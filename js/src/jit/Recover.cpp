@@ -2010,6 +2010,27 @@ bool RAtomicIsLockFree::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MInt32ToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_Int32ToBigInt));
+  return true;
+}
+
+RInt32ToBigInt::RInt32ToBigInt(CompactBufferReader& reader) {}
+
+bool RInt32ToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
+  // Int32 because |n| is computed from MUnbox(Int32).
+  int32_t n = iter.readInt32();
+
+  BigInt* result = BigInt::createFromInt64(cx, int64_t(n));
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
 bool MBigIntAsIntN::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntAsIntN));

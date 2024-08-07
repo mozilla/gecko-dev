@@ -4997,6 +4997,21 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
   masm.bind(ool->rejoin());
 }
 
+void CodeGenerator::visitInt32ToBigInt(LInt32ToBigInt* lir) {
+  Register input = ToRegister(lir->input());
+  Register temp = ToRegister(lir->temp0());
+  Register output = ToRegister(lir->output());
+
+  using Fn = BigInt* (*)(JSContext*, int32_t);
+  auto* ool = oolCallVM<Fn, jit::CreateBigIntFromInt32>(
+      lir, ArgList(input), StoreRegisterTo(output));
+
+  masm.newGCBigInt(output, temp, initialBigIntHeap(), ool->entry());
+  masm.move32SignExtendToPtr(input, temp);
+  masm.initializeBigInt(output, temp);
+  masm.bind(ool->rejoin());
+}
+
 void CodeGenerator::visitInt64ToBigInt(LInt64ToBigInt* lir) {
   Register64 input = ToRegister64(lir->input());
   Register temp = ToRegister(lir->temp0());
