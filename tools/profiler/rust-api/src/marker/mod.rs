@@ -77,7 +77,7 @@
 //! #[derive(Serialize, Deserialize, Debug)]
 //! pub struct TestMarker {
 //!     a: u32,
-//!     b: String,
+//!     b: CowString,
 //! }
 //!
 //! // Please see the documentation of [`ProfilerMarker`].
@@ -96,7 +96,7 @@
 //!     }
 //!     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
 //!         json_writer.int_property("a", self.a.into());
-//!         json_writer.string_property("b", &self.b);
+//!         json_writer.string_property("b", self.b.as_ref());
 //!     }
 //! }
 //! ```
@@ -129,7 +129,12 @@ use crate::json_writer::JSONWriter;
 use crate::marker::deserializer_tags_state::get_or_insert_deserializer_tag;
 use crate::ProfilerTime;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::borrow::Cow;
 use std::os::raw::c_char;
+
+/// Can be serialized/deserialized but does not allocate if built from
+/// a `&'static str`.
+pub type CowString = Cow<'static, str>;
 
 /// Marker API to add a new simple marker without any payload.
 /// Please see the module documentation on how to add a marker with this API.
@@ -237,7 +242,7 @@ impl<'a> Drop for AutoProfilerTextMarker<'a> {
 ///     "BlobRasterization",
 ///     gecko_profiler_category!(Graphics),
 ///     Default::default(),
-///     "Webrender".to_string()
+///     "Webrender".into()
 /// );
 /// ```
 ///
@@ -336,7 +341,13 @@ pub fn add_marker<T>(
 /// This must be kept in sync with the `mozilla::baseprofiler::markers::Tracing`
 /// C++ counterpart.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Tracing(pub String);
+pub struct Tracing(pub CowString);
+
+impl Tracing {
+    pub fn from_str(s: &'static str) -> Self {
+        Tracing(Cow::Borrowed(s))
+    }
+}
 
 impl ProfilerMarker for Tracing {
     fn marker_type_name() -> &'static str {
@@ -373,7 +384,7 @@ pub struct AutoProfilerTracingMarker<'a> {
     name: &'a str,
     category: ProfilingCategoryPair,
     options: MarkerOptions,
-    payload: String,
+    payload: CowString,
 }
 
 impl<'a> AutoProfilerTracingMarker<'a> {
@@ -381,7 +392,7 @@ impl<'a> AutoProfilerTracingMarker<'a> {
         name: &'a str,
         category: ProfilingCategoryPair,
         options: MarkerOptions,
-        payload: String,
+        payload: CowString,
     ) -> Option<AutoProfilerTracingMarker<'a>> {
         if !crate::profiler_state::can_accept_markers() {
             return None;

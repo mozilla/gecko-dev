@@ -509,7 +509,7 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
             "BlobRasterization",
             gecko_profiler_category!(Graphics),
             Default::default(),
-            "Webrender".to_string()
+            "Webrender".into()
         );
 
         let requests: Vec<Job> = requests

@@ -894,7 +894,7 @@ pub fn gecko_profiler_start_marker(name: &str) {
             timing: MarkerTiming::interval_start(ProfilerTime::now()),
             ..Default::default()
         },
-        Tracing("Webrender".to_string()),
+        Tracing::from_str("Webrender"),
     );
 }
 pub fn gecko_profiler_end_marker(name: &str) {
@@ -906,7 +906,7 @@ pub fn gecko_profiler_end_marker(name: &str) {
             timing: MarkerTiming::interval_end(ProfilerTime::now()),
             ..Default::default()
         },
-        Tracing("Webrender".to_string()),
+        Tracing::from_str("Webrender"),
     );
 }
 
@@ -916,7 +916,7 @@ pub fn gecko_profiler_event_marker(name: &str) {
         name,
         gecko_profiler_category!(Graphics),
         Default::default(),
-        Tracing("Webrender".to_string()),
+        Tracing::from_str("Webrender"),
     );
 }
 
