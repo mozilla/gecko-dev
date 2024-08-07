@@ -1026,7 +1026,7 @@ class InjectionContext extends Context {
   /**
    * Returns the property descriptor for the given entry.
    *
-   * @param {Entry} entry
+   * @param {Entry|Namespace} entry
    *        The entry instance to return a descriptor for.
    * @param {object} dest
    *        The object into which this entry is being injected.
@@ -1305,6 +1305,9 @@ const FORMATS = {
 // properties, functions, and events. An Entry is a base class for
 // types, properties, functions, and events.
 class Entry {
+  /** @type {Entry} */
+  fallbackEntry;
+
   constructor(schema = {}) {
     /**
      * If set to any value which evaluates as true, this entry is
@@ -3116,6 +3119,9 @@ const LOADERS = {
 };
 
 class Namespace extends Map {
+  /** @type {Entry} */
+  fallbackEntry;
+
   constructor(root, name, path) {
     super();
 

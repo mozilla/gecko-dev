@@ -385,6 +385,12 @@ export class MockExtension {
       });
   }
 
+  /**
+   * @param {object} options
+   * @param {boolean} [options.expectStopped]
+   * @param {boolean} [options.ignoreDevToolsAttached]
+   * @param {boolean} [options.disableResetIdleForTest]
+   */
   async terminateBackground({ expectStopped = true, ...rest } = {}) {
     const extension = await this._extensionPromise;
     await extension.terminateBackground(rest);

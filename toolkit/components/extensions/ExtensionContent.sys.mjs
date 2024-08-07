@@ -323,10 +323,26 @@ defineLazyGetter(ExtensionChild.prototype, "authorCSSCode", function () {
   return new CSSCodeCache(Ci.nsIStyleSheetService.AUTHOR_SHEET, this);
 });
 
+/**
+ * This is still an ExtensionChild, but with the properties added above.
+ * Unfortunately we can't express that using just JSDocs types locally,
+ * so this needs to be used with `& ExtensionChild` explicitly below.
+ *
+ * @typedef {object} ExtensionChildContent
+ * @property {ScriptCache} staticScripts
+ * @property {ScriptCache} dynamicScripts
+ * @property {ScriptCache} anonStaticScripts
+ * @property {ScriptCache} anonDynamicScripts
+ * @property {CSSCache} userCSS
+ * @property {CSSCache} authorCSS
+ * @property {CSSCodeCache} userCSSCode
+ * @property {CSSCodeCache} authorCSSCode
+ */
+
 // Represents a content script.
 class Script {
   /**
-   * @param {ExtensionChild} extension
+   * @param {ExtensionChild & ExtensionChildContent} extension
    * @param {WebExtensionContentScript|object} matcher
    *        An object with a "matchesWindowGlobal" method and content script
    *        execution details. This is usually a plain WebExtensionContentScript
@@ -412,11 +428,12 @@ class Script {
       };
       // Note: this logic is similar to this.scriptCaches.get(...), but we are
       // not using scriptCaches because we don't want the URL to be cached.
-      let promise = ChromeUtils.compileScript(dataUrl, options);
-      promise.then(script => {
-        promise.script = script;
+      /** @type {Promise<PrecompiledScript> & {script?: PrecompiledScript}} */
+      let promised = ChromeUtils.compileScript(dataUrl, options);
+      promised.then(script => {
+        promised.script = script;
       });
-      this.jsCodeCompiledScript = promise;
+      this.jsCodeCompiledScript = promised;
     } else {
       // this.world === "ISOLATED".
       this.jsCode = jsCode;
@@ -761,7 +778,7 @@ class Script {
 // Represents a user script.
 class UserScript extends Script {
   /**
-   * @param {ExtensionChild} extension
+   * @param {ExtensionChild & ExtensionChildContent} extension
    * @param {WebExtensionContentScript|object} matcher
    *        An object with a "matchesWindowGlobal" method and content script
    *        execution details.
