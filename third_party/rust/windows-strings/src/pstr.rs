@@ -12,12 +12,12 @@ impl PSTR {
     }
 
     /// Construct a null `PSTR`
-    pub fn null() -> Self {
-        Self(std::ptr::null_mut())
+    pub const fn null() -> Self {
+        Self(core::ptr::null_mut())
     }
 
     /// Returns a raw pointer to the `PSTR`
-    pub fn as_ptr(&self) -> *mut u8 {
+    pub const fn as_ptr(&self) -> *mut u8 {
         self.0
     }
 
@@ -32,8 +32,8 @@ impl PSTR {
     ///
     /// The `PSTR`'s pointer needs to be valid for reads up until and including the next `\0`.
     pub unsafe fn as_bytes(&self) -> &[u8] {
-        let len = super::strlen(PCSTR::from_raw(self.0));
-        std::slice::from_raw_parts(self.0, len)
+        let len = strlen(PCSTR::from_raw(self.0));
+        core::slice::from_raw_parts(self.0, len)
     }
 
     /// Copy the `PSTR` into a Rust `String`.
@@ -41,7 +41,7 @@ impl PSTR {
     /// # Safety
     ///
     /// See the safety information for `PSTR::as_bytes`.
-    pub unsafe fn to_string(&self) -> std::result::Result<String, std::string::FromUtf8Error> {
+    pub unsafe fn to_string(&self) -> core::result::Result<String, alloc::string::FromUtf8Error> {
         String::from_utf8(self.as_bytes().into())
     }
 
@@ -50,11 +50,7 @@ impl PSTR {
     /// # Safety
     ///
     /// See the safety information for `PSTR::as_bytes`.
-    pub unsafe fn display(&self) -> impl std::fmt::Display + '_ {
+    pub unsafe fn display(&self) -> impl core::fmt::Display + '_ {
         Decode(move || decode_utf8(self.as_bytes()))
     }
-}
-
-impl TypeKind for PSTR {
-    type TypeKind = CopyType;
 }

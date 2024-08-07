@@ -1,26 +1,34 @@
 use super::*;
-use std::sync::*;
+use core::ffi::c_void;
+use core::marker::PhantomData;
+use core::mem::{size_of, transmute_copy};
+use core::ptr::null_mut;
+use std::sync::Mutex;
 
 /// A type that you can use to declare and implement an event of a specified delegate type.
 ///
 /// The implementation is thread-safe and designed to avoid contention between events being
 /// raised and delegates being added or removed.
-pub struct Event<T: ComInterface> {
+pub struct Event<T: Interface> {
     swap: Mutex<()>,
     change: Mutex<()>,
     delegates: Array<T>,
 }
 
-impl<T: ComInterface> Default for Event<T> {
+impl<T: Interface> Default for Event<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: ComInterface> Event<T> {
+impl<T: Interface> Event<T> {
     /// Creates a new, empty `Event<T>`.
     pub fn new() -> Self {
-        Self { delegates: Array::new(), swap: Mutex::default(), change: Mutex::default() }
+        Self {
+            delegates: Array::new(),
+            swap: Mutex::default(),
+            change: Mutex::default(),
+        }
     }
 
     /// Registers a delegate with the event object.
@@ -99,7 +107,10 @@ impl<T: ComInterface> Event<T> {
         for delegate in lock_free_calls.as_slice() {
             if let Err(error) = delegate.call(&mut callback) {
                 const RPC_E_SERVER_UNAVAILABLE: HRESULT = HRESULT(-2147023174); // HRESULT_FROM_WIN32(RPC_S_SERVER_UNAVAILABLE)
-                if matches!(error.code(), crate::imp::RPC_E_DISCONNECTED | crate::imp::JSCRIPT_E_CANTEXECUTE | RPC_E_SERVER_UNAVAILABLE) {
+                if matches!(
+                    error.code(),
+                    imp::RPC_E_DISCONNECTED | imp::JSCRIPT_E_CANTEXECUTE | RPC_E_SERVER_UNAVAILABLE
+                ) {
                     self.remove(delegate.to_token())?;
                 }
             }
@@ -109,33 +120,41 @@ impl<T: ComInterface> Event<T> {
 }
 
 /// A thread-safe reference-counted array of delegates.
-struct Array<T: ComInterface> {
+struct Array<T: Interface> {
     buffer: *mut Buffer<T>,
     len: usize,
-    _phantom: std::marker::PhantomData<T>,
+    _phantom: PhantomData<T>,
 }
 
-impl<T: ComInterface> Default for Array<T> {
+impl<T: Interface> Default for Array<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: ComInterface> Array<T> {
+impl<T: Interface> Array<T> {
     /// Creates a new, empty `Array<T>` with no capacity.
     fn new() -> Self {
-        Self { buffer: std::ptr::null_mut(), len: 0, _phantom: std::marker::PhantomData }
+        Self {
+            buffer: null_mut(),
+            len: 0,
+            _phantom: PhantomData,
+        }
     }
 
     /// Creates a new, empty `Array<T>` with the specified capacity.
     fn with_capacity(capacity: usize) -> Result<Self> {
-        Ok(Self { buffer: Buffer::new(capacity)?, len: 0, _phantom: std::marker::PhantomData })
+        Ok(Self {
+            buffer: Buffer::new(capacity)?,
+            len: 0,
+            _phantom: PhantomData,
+        })
     }
 
     /// Swaps the contents of two `Array<T>` objects.
     fn swap(&mut self, mut other: Self) -> Self {
-        unsafe { std::ptr::swap(&mut self.buffer, &mut other.buffer) };
-        std::mem::swap(&mut self.len, &mut other.len);
+        unsafe { core::ptr::swap(&mut self.buffer, &mut other.buffer) };
+        core::mem::swap(&mut self.len, &mut other.len);
         other
     }
 
@@ -152,7 +171,7 @@ impl<T: ComInterface> Array<T> {
     /// Appends a delegate to the back of the array.
     fn push(&mut self, delegate: Delegate<T>) {
         unsafe {
-            std::ptr::write((*self.buffer).as_mut_ptr().add(self.len), delegate);
+            (*self.buffer).as_mut_ptr().add(self.len).write(delegate);
             self.len += 1;
         }
     }
@@ -162,7 +181,7 @@ impl<T: ComInterface> Array<T> {
         if self.is_empty() {
             &[]
         } else {
-            unsafe { std::slice::from_raw_parts((*self.buffer).as_ptr(), self.len) }
+            unsafe { core::slice::from_raw_parts((*self.buffer).as_ptr(), self.len) }
         }
     }
 
@@ -171,26 +190,30 @@ impl<T: ComInterface> Array<T> {
         if self.is_empty() {
             &mut []
         } else {
-            unsafe { std::slice::from_raw_parts_mut((*self.buffer).as_mut_ptr(), self.len) }
+            unsafe { core::slice::from_raw_parts_mut((*self.buffer).as_mut_ptr(), self.len) }
         }
     }
 }
 
-impl<T: ComInterface> Clone for Array<T> {
+impl<T: Interface> Clone for Array<T> {
     fn clone(&self) -> Self {
         if !self.is_empty() {
             unsafe { (*self.buffer).0.add_ref() };
         }
-        Self { buffer: self.buffer, len: self.len, _phantom: std::marker::PhantomData }
+        Self {
+            buffer: self.buffer,
+            len: self.len,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl<T: ComInterface> Drop for Array<T> {
+impl<T: Interface> Drop for Array<T> {
     fn drop(&mut self) {
         unsafe {
             if !self.is_empty() && (*self.buffer).0.release() == 0 {
-                std::ptr::drop_in_place(self.as_mut_slice());
-                crate::imp::heap_free(self.buffer as _)
+                core::ptr::drop_in_place(self.as_mut_slice());
+                heap_free(self.buffer as _)
             }
         }
     }
@@ -198,18 +221,19 @@ impl<T: ComInterface> Drop for Array<T> {
 
 /// A reference-counted buffer.
 #[repr(C)]
-struct Buffer<T>(crate::imp::RefCount, std::marker::PhantomData<T>);
+#[repr(align(8))]
+struct Buffer<T>(imp::RefCount, PhantomData<T>);
 
-impl<T: ComInterface> Buffer<T> {
+impl<T: Interface> Buffer<T> {
     /// Creates a new `Buffer` with the specified size in bytes.
     fn new(len: usize) -> Result<*mut Self> {
         if len == 0 {
-            Ok(std::ptr::null_mut())
+            Ok(null_mut())
         } else {
-            let alloc_size = std::mem::size_of::<Self>() + len * std::mem::size_of::<Delegate<T>>();
-            let header = crate::imp::heap_alloc(alloc_size)? as *mut Self;
+            let alloc_size = size_of::<Self>() + len * size_of::<Delegate<T>>();
+            let header = heap_alloc(alloc_size)? as *mut Self;
             unsafe {
-                header.write(Self(crate::imp::RefCount::new(1), std::marker::PhantomData));
+                header.write(Self(imp::RefCount::new(1), PhantomData));
             }
             Ok(header)
         }
@@ -234,10 +258,10 @@ enum Delegate<T> {
     Indirect(AgileReference<T>),
 }
 
-impl<T: ComInterface> Delegate<T> {
+impl<T: Interface> Delegate<T> {
     /// Creates a new `Delegate<T>`, containing a suitable reference to the specified delegate.
     fn new(delegate: &T) -> Result<Self> {
-        if delegate.cast::<crate::imp::IAgileObject>().is_ok() {
+        if delegate.cast::<imp::IAgileObject>().is_ok() {
             Ok(Self::Direct(delegate.clone()))
         } else {
             Ok(Self::Indirect(AgileReference::new(delegate)?))
@@ -248,8 +272,8 @@ impl<T: ComInterface> Delegate<T> {
     fn to_token(&self) -> i64 {
         unsafe {
             match self {
-                Self::Direct(delegate) => crate::imp::EncodePointer(std::mem::transmute_copy(delegate)) as i64,
-                Self::Indirect(delegate) => crate::imp::EncodePointer(std::mem::transmute_copy(delegate)) as i64,
+                Self::Direct(delegate) => imp::EncodePointer(transmute_copy(delegate)) as i64,
+                Self::Indirect(delegate) => imp::EncodePointer(transmute_copy(delegate)) as i64,
             }
         }
     }
@@ -261,4 +285,31 @@ impl<T: ComInterface> Delegate<T> {
             Self::Indirect(delegate) => callback(&delegate.resolve()?),
         }
     }
+}
+
+/// Allocate memory of size `bytes` using `malloc` - the `Event` implementation does not
+/// need to use any particular allocator so `HeapAlloc` need not be used.
+fn heap_alloc(bytes: usize) -> crate::Result<*mut c_void> {
+    let ptr: *mut c_void = unsafe {
+        extern "C" {
+            fn malloc(bytes: usize) -> *mut c_void;
+        }
+
+        malloc(bytes)
+    };
+
+    if ptr.is_null() {
+        Err(Error::from_hresult(imp::E_OUTOFMEMORY))
+    } else {
+        Ok(ptr)
+    }
+}
+
+/// Free memory allocated by `heap_alloc`.
+unsafe fn heap_free(ptr: *mut c_void) {
+    extern "C" {
+        fn free(ptr: *mut c_void);
+    }
+
+    free(ptr);
 }

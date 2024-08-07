@@ -652,9 +652,9 @@ windows-rs:
     description: Source of the windows rust crate
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/windows/0.52.0/download
-        sha256: e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be
-        size: 11843715
+        url: https://crates.io/api/v1/crates/windows/0.58.0/download
+        sha256: dd04d41d93c4992d421894c18c8b43496aa748dd4c081bac0dc93eb0489272b6
+        size: 9744521
         artifact-name: windows-rs.tar.zst
         strip-components: 1
         add-prefix: windows-rs/

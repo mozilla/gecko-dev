@@ -1,14 +1,15 @@
 use super::*;
 
-#[doc(hidden)]
-pub struct Waiter(isize);
-pub struct WaiterSignaler(isize);
+pub struct Waiter(HANDLE);
+pub struct WaiterSignaler(HANDLE);
+
+unsafe impl Send for WaiterSignaler {}
 
 impl Waiter {
     pub fn new() -> crate::Result<(Waiter, WaiterSignaler)> {
         unsafe {
-            let handle = CreateEventW(std::ptr::null(), 1, 0, std::ptr::null());
-            if handle == 0 {
+            let handle = CreateEventW(core::ptr::null(), 1, 0, core::ptr::null());
+            if handle.is_null() {
                 Err(crate::Error::from_win32())
             } else {
                 Ok((Waiter(handle), WaiterSignaler(handle)))

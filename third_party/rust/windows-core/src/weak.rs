@@ -1,11 +1,11 @@
 use super::*;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// `Weak` holds a non-owning reference to an object.
 #[derive(Clone, PartialEq, Eq, Default)]
-pub struct Weak<I: ComInterface>(Option<crate::imp::IWeakReference>, PhantomData<I>);
+pub struct Weak<I: Interface>(Option<imp::IWeakReference>, PhantomData<I>);
 
-impl<I: ComInterface> Weak<I> {
+impl<I: Interface> Weak<I> {
     /// Creates a new `Weak` object without any backing object.
     pub fn new() -> Self {
         Self(None, PhantomData)
@@ -13,11 +13,16 @@ impl<I: ComInterface> Weak<I> {
 
     /// Attempts to upgrade the weak reference to a strong reference.
     pub fn upgrade(&self) -> Option<I> {
-        self.0.as_ref().and_then(|inner| unsafe { inner.Resolve().ok() })
+        self.0
+            .as_ref()
+            .and_then(|inner| unsafe { inner.Resolve().ok() })
     }
 
-    pub(crate) fn downgrade(source: &crate::imp::IWeakReferenceSource) -> Result<Self> {
+    pub(crate) fn downgrade(source: &imp::IWeakReferenceSource) -> Result<Self> {
         let reference = unsafe { source.GetWeakReference().ok() };
         Ok(Self(reference, PhantomData))
     }
 }
+
+unsafe impl<I: Interface> Send for Weak<I> {}
+unsafe impl<I: Interface> Sync for Weak<I> {}

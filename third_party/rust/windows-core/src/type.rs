@@ -6,10 +6,10 @@ pub trait TypeKind {
 }
 
 #[doc(hidden)]
-pub struct ReferenceType;
+pub struct InterfaceType;
 
 #[doc(hidden)]
-pub struct ValueType;
+pub struct CloneType;
 
 #[doc(hidden)]
 pub struct CopyType;
@@ -19,43 +19,39 @@ pub trait Type<T: TypeKind, C = <T as TypeKind>::TypeKind>: TypeKind + Sized + C
     type Abi;
     type Default;
 
-    fn abi(&self) -> Self::Abi {
-        unsafe { std::mem::transmute_copy(self) }
-    }
-
     /// # Safety
     unsafe fn from_abi(abi: Self::Abi) -> Result<Self>;
     fn from_default(default: &Self::Default) -> Result<Self>;
 }
 
-impl<T> Type<T, ReferenceType> for T
+impl<T> Type<T, InterfaceType> for T
 where
-    T: TypeKind<TypeKind = ReferenceType> + Clone,
+    T: TypeKind<TypeKind = InterfaceType> + Clone,
 {
-    type Abi = *mut std::ffi::c_void;
+    type Abi = *mut core::ffi::c_void;
     type Default = Option<Self>;
 
     unsafe fn from_abi(abi: Self::Abi) -> Result<Self> {
         if !abi.is_null() {
-            Ok(std::mem::transmute_copy(&abi))
+            Ok(core::mem::transmute_copy(&abi))
         } else {
-            Err(Error::OK)
+            Err(Error::empty())
         }
     }
 
     fn from_default(default: &Self::Default) -> Result<Self> {
-        default.as_ref().cloned().ok_or(Error::OK)
+        default.as_ref().cloned().ok_or(Error::empty())
     }
 }
 
-impl<T> Type<T, ValueType> for T
+impl<T> Type<T, CloneType> for T
 where
-    T: TypeKind<TypeKind = ValueType> + Clone,
+    T: TypeKind<TypeKind = CloneType> + Clone,
 {
-    type Abi = std::mem::MaybeUninit<Self>;
+    type Abi = core::mem::MaybeUninit<Self>;
     type Default = Self;
 
-    unsafe fn from_abi(abi: std::mem::MaybeUninit<Self>) -> Result<Self> {
+    unsafe fn from_abi(abi: Self::Abi) -> Result<Self> {
         Ok(abi.assume_init())
     }
 
@@ -71,7 +67,7 @@ where
     type Abi = Self;
     type Default = Self;
 
-    unsafe fn from_abi(abi: Self) -> Result<Self> {
+    unsafe fn from_abi(abi: Self::Abi) -> Result<Self> {
         Ok(abi)
     }
 
@@ -81,7 +77,7 @@ where
 }
 
 impl<T: Interface> TypeKind for T {
-    type TypeKind = ReferenceType;
+    type TypeKind = InterfaceType;
 }
 
 impl<T> TypeKind for *mut T {
@@ -102,9 +98,3 @@ primitives!(bool, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, usize, isize);
 
 #[doc(hidden)]
 pub type AbiType<T> = <T as Type<T>>::Abi;
-
-/// # Safety
-#[doc(hidden)]
-pub unsafe fn from_abi<T: Type<T>>(abi: T::Abi) -> Result<T> {
-    T::from_abi(abi)
-}

@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! s {
     ($s:literal) => {
-        $crate::PCSTR::from_raw(::std::concat!($s, '\0').as_ptr())
+        $crate::PCSTR::from_raw(::core::concat!($s, '\0').as_ptr())
     };
 }
 
@@ -41,16 +41,26 @@ macro_rules! h {
     ($s:literal) => {{
         const INPUT: &[u8] = $s.as_bytes();
         const OUTPUT_LEN: usize = $crate::utf16_len(INPUT) + 1;
+        #[allow(clippy::declare_interior_mutable_const)]
         const RESULT: $crate::HSTRING = {
             if OUTPUT_LEN == 1 {
                 unsafe { ::std::mem::transmute(::std::ptr::null::<u16>()) }
             } else {
                 const OUTPUT: $crate::PCWSTR = $crate::w!($s);
-                const HEADER: $crate::HSTRING_HEADER = $crate::HSTRING_HEADER { flags: 0x11, len: (OUTPUT_LEN - 1) as u32, padding1: 0, padding2: 0, ptr: OUTPUT.as_ptr() };
+                const HEADER: $crate::HSTRING_HEADER = $crate::HSTRING_HEADER {
+                    flags: 0x11,
+                    len: (OUTPUT_LEN - 1) as u32,
+                    padding1: 0,
+                    padding2: 0,
+                    ptr: OUTPUT.as_ptr(),
+                };
                 // SAFETY: an `HSTRING` is exactly equivalent to a pointer to an `HSTRING_HEADER`
-                unsafe { ::std::mem::transmute::<&$crate::HSTRING_HEADER, $crate::HSTRING>(&HEADER) }
+                unsafe {
+                    ::std::mem::transmute::<&$crate::HSTRING_HEADER, $crate::HSTRING>(&HEADER)
+                }
             }
         };
+        #[allow(clippy::borrow_interior_mutable_const)]
         &RESULT
     }};
 }
@@ -110,7 +120,8 @@ pub const fn decode_utf8_char(bytes: &[u8], mut pos: usize) -> Option<(u32, usiz
         if (ch2 & 0xc0) != 0x80 || (ch3 & 0xc0) != 0x80 || (ch4 & 0xc0) != 0x80 {
             return None;
         }
-        let result = ((ch & 0x07) << 18) | ((ch2 & 0x3f) << 12) | ((ch3 & 0x3f) << 6) | (ch4 & 0x3f);
+        let result =
+            ((ch & 0x07) << 18) | ((ch2 & 0x3f) << 12) | ((ch3 & 0x3f) << 6) | (ch4 & 0x3f);
         if result <= 0xffff || 0x10ffff < result {
             return None;
         }
