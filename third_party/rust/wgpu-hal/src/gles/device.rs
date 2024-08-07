@@ -9,8 +9,6 @@ use std::{
 };
 
 use arrayvec::ArrayVec;
-#[cfg(native)]
-use std::mem;
 use std::sync::atomic::Ordering;
 
 type ShaderStage<'a> = (
@@ -178,9 +176,7 @@ impl super::Device {
         let raw = unsafe { gl.create_shader(target) }.unwrap();
         #[cfg(native)]
         if gl.supports_debug() {
-            //TODO: remove all transmutes from `object_label`
-            // https://github.com/grovesNL/glow/issues/186
-            let name = unsafe { mem::transmute(raw) };
+            let name = raw.0.get();
             unsafe { gl.object_label(glow::SHADER, name, label) };
         }
 
@@ -250,7 +246,6 @@ impl super::Device {
             index: BoundsCheckPolicy::Unchecked,
             buffer: BoundsCheckPolicy::Unchecked,
             image_load: image_check,
-            image_store: BoundsCheckPolicy::Unchecked,
             binding_array: BoundsCheckPolicy::Unchecked,
         };
 
@@ -366,7 +361,7 @@ impl super::Device {
         #[cfg(native)]
         if let Some(label) = label {
             if private_caps.contains(PrivateCapabilities::DEBUG_FNS) {
-                let name = unsafe { mem::transmute(program) };
+                let name = program.0.get();
                 unsafe { gl.object_label(glow::PROGRAM, name, Some(label)) };
             }
         }
@@ -621,7 +616,7 @@ impl crate::Device for super::Device {
                 .private_caps
                 .contains(PrivateCapabilities::DEBUG_FNS)
             {
-                let name = unsafe { mem::transmute(raw) };
+                let name = raw.map_or(0, |buf| buf.0.get());
                 unsafe { gl.object_label(glow::BUFFER, name, Some(label)) };
             }
         }
@@ -768,7 +763,7 @@ impl crate::Device for super::Device {
                     .private_caps
                     .contains(PrivateCapabilities::DEBUG_FNS)
                 {
-                    let name = unsafe { mem::transmute(raw) };
+                    let name = raw.0.get();
                     unsafe { gl.object_label(glow::RENDERBUFFER, name, Some(label)) };
                 }
             }
@@ -936,7 +931,7 @@ impl crate::Device for super::Device {
                     .private_caps
                     .contains(PrivateCapabilities::DEBUG_FNS)
                 {
-                    let name = unsafe { mem::transmute(raw) };
+                    let name = raw.0.get();
                     unsafe { gl.object_label(glow::TEXTURE, name, Some(label)) };
                 }
             }
@@ -1088,7 +1083,7 @@ impl crate::Device for super::Device {
                 .private_caps
                 .contains(PrivateCapabilities::DEBUG_FNS)
             {
-                let name = unsafe { mem::transmute(raw) };
+                let name = raw.0.get();
                 unsafe { gl.object_label(glow::SAMPLER, name, Some(label)) };
             }
         }

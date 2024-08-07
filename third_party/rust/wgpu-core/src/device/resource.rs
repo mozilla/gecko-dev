@@ -32,7 +32,7 @@ use crate::{
         UsageScopePool,
     },
     validation::{self, validate_color_attachment_bytes_per_sample},
-    FastHashMap, LabelHelpers as _, SubmissionIndex,
+    FastHashMap, LabelHelpers as _, PreHashedKey, PreHashedMap,
 };
 
 use arrayvec::ArrayVec;
@@ -46,6 +46,7 @@ use wgt::{DeviceLostReason, TextureFormat, TextureSampleType, TextureViewDimensi
 use std::{
     borrow::Cow,
     iter,
+    mem::ManuallyDrop,
     num::NonZeroU32,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -142,7 +143,7 @@ pub struct Device<A: HalApi> {
     pub(crate) features: wgt::Features,
     pub(crate) downlevel: wgt::DownlevelCapabilities,
     pub(crate) instance_flags: wgt::InstanceFlags,
-    pub(crate) pending_writes: Mutex<Option<PendingWrites<A>>>,
+    pub(crate) pending_writes: Mutex<ManuallyDrop<PendingWrites<A>>>,
     pub(crate) deferred_destroy: Mutex<Vec<DeferredDestroy<A>>>,
     #[cfg(feature = "trace")]
     pub(crate) trace: Mutex<Option<trace::Trace>>,
@@ -169,7 +170,8 @@ impl<A: HalApi> Drop for Device<A> {
     fn drop(&mut self) {
         resource_log!("Drop {}", self.error_ident());
         let raw = self.raw.take().unwrap();
-        let pending_writes = self.pending_writes.lock().take().unwrap();
+        // SAFETY: We are in the Drop impl and we don't use self.pending_writes anymore after this point.
+        let pending_writes = unsafe { ManuallyDrop::take(&mut self.pending_writes.lock()) };
         pending_writes.dispose(&raw);
         self.command_allocator.dispose(&raw);
         unsafe {
@@ -307,7 +309,10 @@ impl<A: HalApi> Device<A> {
             features: desc.required_features,
             downlevel,
             instance_flags,
-            pending_writes: Mutex::new(rank::DEVICE_PENDING_WRITES, Some(pending_writes)),
+            pending_writes: Mutex::new(
+                rank::DEVICE_PENDING_WRITES,
+                ManuallyDrop::new(pending_writes),
+            ),
             deferred_destroy: Mutex::new(rank::DEVICE_DEFERRED_DESTROY, Vec::new()),
             usage_scopes: Mutex::new(rank::DEVICE_USAGE_SCOPES, Default::default()),
         })
@@ -438,7 +443,7 @@ impl<A: HalApi> Device<A> {
                     .map_err(DeviceError::from)?
             };
         }
-        log::info!("Device::maintain: waiting for submission index {submission_index}");
+        log::trace!("Device::maintain: waiting for submission index {submission_index}");
 
         let mut life_tracker = self.lock_life();
         let submission_closures =
@@ -991,6 +996,8 @@ impl<A: HalApi> Device<A> {
         texture: &Arc<Texture<A>>,
         desc: &resource::TextureViewDescriptor,
     ) -> Result<Arc<TextureView<A>>, resource::CreateTextureViewError> {
+        self.check_is_valid()?;
+
         let snatch_guard = texture.device.snatchable_lock.read();
 
         let texture_raw = texture.try_raw(&snatch_guard)?;
@@ -1222,12 +1229,6 @@ impl<A: HalApi> Device<A> {
             };
             texture.hal_usage & mask_copy & mask_dimension & mask_mip_level
         };
-
-        log::debug!(
-            "Create view for {} filters usages to {:?}",
-            texture.error_ident(),
-            usage
-        );
 
         // use the combined depth-stencil format for the view
         let format = if resolved_format.is_depth_stencil_component(texture.desc.format) {
@@ -1594,7 +1595,7 @@ impl<A: HalApi> Device<A> {
 
         let encoder = self
             .command_allocator
-            .acquire_encoder(self.raw(), queue.raw.as_ref().unwrap())?;
+            .acquire_encoder(self.raw(), queue.raw())?;
 
         Ok(command::CommandBuffer::new(
             encoder,
@@ -2068,8 +2069,6 @@ impl<A: HalApi> Device<A> {
         // if it was deleted by the user.
         used.textures
             .add_single(texture, Some(view.selector.clone()), internal_use);
-
-        texture.same_device_as(view.as_ref())?;
 
         texture.check_usage(pub_usage)?;
 
@@ -2587,11 +2586,29 @@ impl<A: HalApi> Device<A> {
             derived_group_layouts.pop();
         }
 
+        let mut unique_bind_group_layouts = PreHashedMap::default();
+
         let bind_group_layouts = derived_group_layouts
             .into_iter()
-            .map(|bgl_entry_map| {
-                self.create_bind_group_layout(&None, bgl_entry_map, bgl::Origin::Derived)
-                    .map(Arc::new)
+            .map(|mut bgl_entry_map| {
+                bgl_entry_map.sort();
+                match unique_bind_group_layouts.entry(PreHashedKey::from_key(&bgl_entry_map)) {
+                    std::collections::hash_map::Entry::Occupied(v) => Ok(Arc::clone(v.get())),
+                    std::collections::hash_map::Entry::Vacant(e) => {
+                        match self.create_bind_group_layout(
+                            &None,
+                            bgl_entry_map,
+                            bgl::Origin::Derived,
+                        ) {
+                            Ok(bgl) => {
+                                let bgl = Arc::new(bgl);
+                                e.insert(bgl.clone());
+                                Ok(bgl)
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
+                }
             })
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -2689,7 +2706,6 @@ impl<A: HalApi> Device<A> {
                 entry_point: final_entry_point_name.as_ref(),
                 constants: desc.stage.constants.as_ref(),
                 zero_initialize_workgroup_memory: desc.stage.zero_initialize_workgroup_memory,
-                vertex_pulling_transform: false,
             },
             cache: cache.as_ref().and_then(|it| it.raw.as_ref()),
         };
@@ -2726,11 +2742,12 @@ impl<A: HalApi> Device<A> {
 
         if is_auto_layout {
             for bgl in pipeline.layout.bind_group_layouts.iter() {
-                bgl.exclusive_pipeline
+                // `bind_group_layouts` might contain duplicate entries, so we need to ignore the result.
+                let _ = bgl
+                    .exclusive_pipeline
                     .set(binding_model::ExclusivePipeline::Compute(Arc::downgrade(
                         &pipeline,
-                    )))
-                    .unwrap();
+                    )));
             }
         }
 
@@ -2773,7 +2790,6 @@ impl<A: HalApi> Device<A> {
                     .iter()
                     .any(|ct| ct.write_mask != first.write_mask || ct.blend != first.blend)
             } {
-                log::debug!("Color targets: {:?}", color_targets);
                 self.require_downlevel_flags(wgt::DownlevelFlags::INDEPENDENT_BLEND)?;
             }
         }
@@ -3109,7 +3125,6 @@ impl<A: HalApi> Device<A> {
                 entry_point: &vertex_entry_point_name,
                 constants: stage_desc.constants.as_ref(),
                 zero_initialize_workgroup_memory: stage_desc.zero_initialize_workgroup_memory,
-                vertex_pulling_transform: stage_desc.vertex_pulling_transform,
             }
         };
 
@@ -3119,6 +3134,7 @@ impl<A: HalApi> Device<A> {
                 let stage = wgt::ShaderStages::FRAGMENT;
 
                 let shader_module = &fragment_state.stage.module;
+                shader_module.same_device(self)?;
 
                 let stage_err = |error| pipeline::CreateRenderPipelineError::Stage { stage, error };
 
@@ -3165,7 +3181,6 @@ impl<A: HalApi> Device<A> {
                     zero_initialize_workgroup_memory: fragment_state
                         .stage
                         .zero_initialize_workgroup_memory,
-                    vertex_pulling_transform: false,
                 })
             }
             None => None,
@@ -3352,11 +3367,12 @@ impl<A: HalApi> Device<A> {
 
         if is_auto_layout {
             for bgl in pipeline.layout.bind_group_layouts.iter() {
-                bgl.exclusive_pipeline
+                // `bind_group_layouts` might contain duplicate entries, so we need to ignore the result.
+                let _ = bgl
+                    .exclusive_pipeline
                     .set(binding_model::ExclusivePipeline::Render(Arc::downgrade(
                         &pipeline,
-                    )))
-                    .unwrap();
+                    )));
             }
         }
 
@@ -3451,27 +3467,20 @@ impl<A: HalApi> Device<A> {
         }
     }
 
+    #[cfg(feature = "replay")]
     pub(crate) fn wait_for_submit(
         &self,
-        submission_index: SubmissionIndex,
-    ) -> Result<(), WaitIdleError> {
+        submission_index: crate::SubmissionIndex,
+    ) -> Result<(), DeviceError> {
         let guard = self.fence.read();
         let fence = guard.as_ref().unwrap();
-        let last_done_index = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .get_fence_value(fence)
-                .map_err(DeviceError::from)?
-        };
+        let last_done_index = unsafe { self.raw.as_ref().unwrap().get_fence_value(fence)? };
         if last_done_index < submission_index {
-            log::info!("Waiting for submission {:?}", submission_index);
             unsafe {
                 self.raw
                     .as_ref()
                     .unwrap()
-                    .wait(fence, submission_index, !0)
-                    .map_err(DeviceError::from)?
+                    .wait(fence, submission_index, !0)?
             };
             drop(guard);
             let closures = self
@@ -3592,6 +3601,13 @@ impl<A: HalApi> Device<A> {
             .map(|raw| raw.get_internal_counters())
             .unwrap_or_default()
     }
+
+    pub fn generate_allocator_report(&self) -> Option<wgt::AllocatorReport> {
+        self.raw
+            .as_ref()
+            .map(|raw| raw.generate_allocator_report())
+            .unwrap_or_default()
+    }
 }
 
 impl<A: HalApi> Device<A> {
@@ -3610,7 +3626,7 @@ impl<A: HalApi> Device<A> {
 
     /// Wait for idle and remove resources that we can, before we die.
     pub(crate) fn prepare_to_die(&self) {
-        self.pending_writes.lock().as_mut().unwrap().deactivate();
+        self.pending_writes.lock().deactivate();
         let current_index = self
             .last_successful_submission_index
             .load(Ordering::Acquire);

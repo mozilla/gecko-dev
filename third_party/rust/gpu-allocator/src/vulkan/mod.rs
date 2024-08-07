@@ -2,18 +2,17 @@
 
 #[cfg(feature = "visualizer")]
 mod visualizer;
-#[cfg(feature = "visualizer")]
-pub use visualizer::AllocatorVisualizer;
-
 use std::{backtrace::Backtrace, fmt, marker::PhantomData, sync::Arc};
 
 use ash::vk;
 use log::{debug, Level};
+#[cfg(feature = "visualizer")]
+pub use visualizer::AllocatorVisualizer;
 
 use super::allocator;
 use crate::{
-    allocator::fmt_bytes, AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation,
-    Result,
+    allocator::{AllocatorReport, MemoryBlockReport},
+    AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation, Result,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -58,7 +57,7 @@ unsafe impl Sync for SendSyncPtr {}
 pub struct AllocatorCreateDesc {
     pub instance: ash::Instance,
     pub device: ash::Device,
-    pub physical_device: ash::vk::PhysicalDevice,
+    pub physical_device: vk::PhysicalDevice,
     pub debug_settings: AllocatorDebugSettings,
     pub buffer_device_address: bool,
     pub allocation_sizes: AllocationSizes,
@@ -105,7 +104,7 @@ pub struct AllocatorCreateDesc {
 /// let my_gpu_data: Vec<MyGpuData> = make_vertex_data();
 /// ```
 ///
-/// Depending on how the data we're copying will be used, the vulkan device may have a minimum
+/// Depending on how the data we're copying will be used, the Vulkan device may have a minimum
 /// alignment requirement for that data:
 ///
 /// ```ignore
@@ -180,7 +179,7 @@ impl Allocation {
     ///
     /// [`Slab`]: presser::Slab
     // best to be explicit where the lifetime is coming from since we're doing unsafe things
-    // and relying on an inferred liftime type in the PhantomData below
+    // and relying on an inferred lifetime type in the PhantomData below
     #[allow(clippy::needless_lifetimes)]
     pub fn try_as_mapped_slab<'a>(&'a mut self) -> Option<MappedAllocationSlab<'a>> {
         let mapped_ptr = self.mapped_ptr()?.cast().as_ptr();
@@ -352,12 +351,12 @@ impl MemoryBlock {
         requires_personal_block: bool,
     ) -> Result<Self> {
         let device_memory = {
-            let alloc_info = vk::MemoryAllocateInfo::builder()
+            let alloc_info = vk::MemoryAllocateInfo::default()
                 .allocation_size(size)
                 .memory_type_index(mem_type_index as u32);
 
             let allocation_flags = vk::MemoryAllocateFlags::DEVICE_ADDRESS;
-            let mut flags_info = vk::MemoryAllocateFlagsInfo::builder().flags(allocation_flags);
+            let mut flags_info = vk::MemoryAllocateFlagsInfo::default().flags(allocation_flags);
             // TODO(manon): Test this based on if the device has this feature enabled or not
             let alloc_info = if buffer_device_address {
                 alloc_info.push_next(&mut flags_info)
@@ -366,7 +365,7 @@ impl MemoryBlock {
             };
 
             // Flag the memory as dedicated if required.
-            let mut dedicated_memory_info = vk::MemoryDedicatedAllocateInfo::builder();
+            let mut dedicated_memory_info = vk::MemoryDedicatedAllocateInfo::default();
             let alloc_info = match allocation_scheme {
                 AllocationScheme::DedicatedBuffer(buffer) => {
                     dedicated_memory_info = dedicated_memory_info.buffer(buffer);
@@ -691,53 +690,13 @@ pub struct Allocator {
 
 impl fmt::Debug for Allocator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut allocation_report = vec![];
-        let mut total_reserved_size_in_bytes = 0;
-
-        for memory_type in &self.memory_types {
-            for block in memory_type.memory_blocks.iter().flatten() {
-                total_reserved_size_in_bytes += block.size;
-                allocation_report.extend(block.sub_allocator.report_allocations())
-            }
-        }
-
-        let total_used_size_in_bytes = allocation_report.iter().map(|report| report.size).sum();
-
-        allocation_report.sort_by_key(|alloc| std::cmp::Reverse(alloc.size));
-
-        writeln!(
-            f,
-            "================================================================",
-        )?;
-        writeln!(
-            f,
-            "ALLOCATION BREAKDOWN ({} / {})",
-            fmt_bytes(total_used_size_in_bytes),
-            fmt_bytes(total_reserved_size_in_bytes),
-        )?;
-
-        let max_num_allocations_to_print = f.precision().map_or(usize::MAX, |n| n);
-        for (idx, alloc) in allocation_report.iter().enumerate() {
-            if idx >= max_num_allocations_to_print {
-                break;
-            }
-
-            writeln!(
-                f,
-                "{:max_len$.max_len$}\t- {}",
-                alloc.name,
-                fmt_bytes(alloc.size),
-                max_len = allocator::VISUALIZER_TABLE_MAX_ENTRY_NAME_LEN,
-            )?;
-        }
-
-        Ok(())
+        self.generate_report().fmt(f)
     }
 }
 
 impl Allocator {
     pub fn new(desc: &AllocatorCreateDesc) -> Result<Self> {
-        if desc.physical_device == ash::vk::PhysicalDevice::null() {
+        if desc.physical_device == vk::PhysicalDevice::null() {
             return Err(AllocationError::InvalidAllocatorCreateDesc(
                 "AllocatorCreateDesc field `physical_device` is null.".into(),
             ));
@@ -748,8 +707,8 @@ impl Allocator {
                 .get_physical_device_memory_properties(desc.physical_device)
         };
 
-        let memory_types = &mem_props.memory_types[..mem_props.memory_type_count as _];
-        let memory_heaps = mem_props.memory_heaps[..mem_props.memory_heap_count as _].to_vec();
+        let memory_types = &mem_props.memory_types_as_slice();
+        let memory_heaps = mem_props.memory_heaps_as_slice().to_vec();
 
         if desc.debug_settings.log_memory_information {
             debug!("memory type count: {}", mem_props.memory_type_count);
@@ -971,6 +930,33 @@ impl Allocator {
                     && memory_type.memory_properties.contains(flags)
             })
             .map(|memory_type| memory_type.memory_type_index as _)
+    }
+
+    pub fn generate_report(&self) -> AllocatorReport {
+        let mut allocations = vec![];
+        let mut blocks = vec![];
+        let mut total_reserved_bytes = 0;
+
+        for memory_type in &self.memory_types {
+            for block in memory_type.memory_blocks.iter().flatten() {
+                total_reserved_bytes += block.size;
+                let first_allocation = allocations.len();
+                allocations.extend(block.sub_allocator.report_allocations());
+                blocks.push(MemoryBlockReport {
+                    size: block.size,
+                    allocations: first_allocation..allocations.len(),
+                });
+            }
+        }
+
+        let total_allocated_bytes = allocations.iter().map(|report| report.size).sum();
+
+        AllocatorReport {
+            allocations,
+            blocks,
+            total_allocated_bytes,
+            total_reserved_bytes,
+        }
     }
 }
 

@@ -12,7 +12,7 @@
 [package]
 edition = "2015"
 name = "bit-vec"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Alexis Beingessner <a.beingessner@gmail.com>"]
 build = false
 autobins = false
@@ -21,7 +21,7 @@ autotests = false
 autobenches = false
 description = "A vector of bits"
 homepage = "https://github.com/contain-rs/bit-vec"
-documentation = "https://contain-rs.github.io/bit-vec/bit_vec"
+documentation = "https://docs.rs/bit-vec/"
 readme = "README.md"
 keywords = [
     "data-structures",
@@ -30,7 +30,7 @@ keywords = [
     "bitmap",
     "bit",
 ]
-license = "MIT/Apache-2.0"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/contain-rs/bit-vec"
 
 [package.metadata.docs.rs]
@@ -50,7 +50,7 @@ name = "bench"
 path = "benches/bench.rs"
 
 [dependencies.borsh]
-version = "1.5.0"
+version = "1.5"
 features = ["derive"]
 optional = true
 default-features = false

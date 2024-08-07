@@ -121,7 +121,7 @@ impl AllocatorVisualizer {
 
                                     if block.sub_allocator.supports_visualization()
                                         && ui.button("visualize").clicked()
-                                        && !self.selected_blocks.iter().enumerate().any(|(_, x)| {
+                                        && !self.selected_blocks.iter().any(|x| {
                                             x.memory_type_index == mem_type_idx
                                                 && x.block_index == block_idx
                                         })

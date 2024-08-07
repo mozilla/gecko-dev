@@ -196,7 +196,6 @@ impl super::Device {
         }
 
         let value = cur_value + 1;
-        log::debug!("Waiting for idle with value {}", value);
         self.present_queue.signal(&self.idler.fence, value);
         let hr = self
             .idler
@@ -817,11 +816,6 @@ impl crate::Device for super::Device {
             }
         }
 
-        log::debug!(
-            "Creating Root Signature '{}'",
-            desc.label.unwrap_or_default()
-        );
-
         let mut binding_map = hlsl::BindingMap::default();
         let (mut bind_cbv, mut bind_srv, mut bind_uav, mut bind_sampler) = (
             hlsl::BindTarget::default(),
@@ -844,11 +838,6 @@ impl crate::Device for super::Device {
         if pc_start != u32::MAX && pc_end != u32::MIN {
             let parameter_index = parameters.len();
             let size = (pc_end - pc_start) / 4;
-            log::debug!(
-                "\tParam[{}] = push constant (count = {})",
-                parameter_index,
-                size,
-            );
             parameters.push(d3d12::RootParameter::constants(
                 d3d12::ShaderVisibility::All,
                 native_binding(&bind_cbv),
@@ -942,12 +931,6 @@ impl crate::Device for super::Device {
                 bt.register += entry.count.map(NonZeroU32::get).unwrap_or(1);
             }
             if ranges.len() > range_base {
-                log::debug!(
-                    "\tParam[{}] = views (vis = {:?}, count = {})",
-                    parameters.len(),
-                    visibility_view_static,
-                    ranges.len() - range_base,
-                );
                 parameters.push(d3d12::RootParameter::descriptor_table(
                     conv::map_visibility(visibility_view_static),
                     &ranges[range_base..],
@@ -981,12 +964,6 @@ impl crate::Device for super::Device {
                 bind_sampler.register += entry.count.map(NonZeroU32::get).unwrap_or(1);
             }
             if ranges.len() > range_base {
-                log::debug!(
-                    "\tParam[{}] = samplers (vis = {:?}, count = {})",
-                    parameters.len(),
-                    visibility_sampler,
-                    ranges.len() - range_base,
-                );
                 parameters.push(d3d12::RootParameter::descriptor_table(
                     conv::map_visibility(visibility_sampler),
                     &ranges[range_base..],
@@ -1036,12 +1013,6 @@ impl crate::Device for super::Device {
                 );
                 info.dynamic_buffers.push(kind);
 
-                log::debug!(
-                    "\tParam[{}] = dynamic {:?} (vis = {:?})",
-                    parameters.len(),
-                    buffer_ty,
-                    dynamic_buffers_visibility,
-                );
                 parameters.push(d3d12::RootParameter::descriptor(
                     parameter_ty,
                     dynamic_buffers_visibility,
@@ -1062,7 +1033,6 @@ impl crate::Device for super::Device {
                 | crate::PipelineLayoutFlags::NUM_WORK_GROUPS,
         ) {
             let parameter_index = parameters.len();
-            log::debug!("\tParam[{}] = special", parameter_index);
             parameters.push(d3d12::RootParameter::constants(
                 d3d12::ShaderVisibility::All, // really needed for VS and CS only
                 native_binding(&bind_cbv),
@@ -1074,9 +1044,6 @@ impl crate::Device for super::Device {
         } else {
             (None, None)
         };
-
-        log::trace!("{:#?}", parameters);
-        log::trace!("Bindings {:#?}", binding_map);
 
         let (blob, error) = self
             .library
@@ -1104,8 +1071,6 @@ impl crate::Device for super::Device {
             .raw
             .create_root_signature(blob, 0)
             .into_device_result("Root signature creation")?;
-
-        log::debug!("\traw = {:?}", raw);
 
         if let Some(label) = desc.label {
             let cwstr = conv::map_label(label);
@@ -1386,7 +1351,7 @@ impl crate::Device for super::Device {
             };
             for attribute in vbuf.attributes {
                 input_element_descs.push(d3d12_ty::D3D12_INPUT_ELEMENT_DESC {
-                    SemanticName: NAGA_LOCATION_SEMANTIC.as_ptr() as *const _,
+                    SemanticName: NAGA_LOCATION_SEMANTIC.as_ptr().cast(),
                     SemanticIndex: attribute.shader_location,
                     Format: auxil::dxgi::conv::map_vertex_format(attribute.format),
                     InputSlot: i as u32,
@@ -1749,7 +1714,7 @@ impl crate::Device for super::Device {
         {
             unsafe {
                 self.render_doc
-                    .start_frame_capture(self.raw.as_mut_ptr() as *mut _, ptr::null_mut())
+                    .start_frame_capture(self.raw.as_mut_ptr().cast(), ptr::null_mut())
             }
         }
         #[cfg(not(feature = "renderdoc"))]
@@ -1760,7 +1725,7 @@ impl crate::Device for super::Device {
         #[cfg(feature = "renderdoc")]
         unsafe {
             self.render_doc
-                .end_frame_capture(self.raw.as_mut_ptr() as *mut _, ptr::null_mut())
+                .end_frame_capture(self.raw.as_mut_ptr().cast(), ptr::null_mut())
         }
     }
 
@@ -1800,5 +1765,42 @@ impl crate::Device for super::Device {
 
     fn get_internal_counters(&self) -> wgt::HalCounters {
         self.counters.clone()
+    }
+
+    #[cfg(feature = "windows_rs")]
+    fn generate_allocator_report(&self) -> Option<wgt::AllocatorReport> {
+        let mut upstream = {
+            self.mem_allocator
+                .as_ref()?
+                .lock()
+                .allocator
+                .generate_report()
+        };
+
+        let allocations = upstream
+            .allocations
+            .iter_mut()
+            .map(|alloc| wgt::AllocationReport {
+                name: mem::take(&mut alloc.name),
+                offset: alloc.offset,
+                size: alloc.size,
+            })
+            .collect();
+
+        let blocks = upstream
+            .blocks
+            .iter()
+            .map(|block| wgt::MemoryBlockReport {
+                size: block.size,
+                allocations: block.allocations.clone(),
+            })
+            .collect();
+
+        Some(wgt::AllocatorReport {
+            allocations,
+            blocks,
+            total_allocated_bytes: upstream.total_allocated_bytes,
+            total_reserved_bytes: upstream.total_reserved_bytes,
+        })
     }
 }

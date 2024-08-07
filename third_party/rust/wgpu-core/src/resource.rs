@@ -14,7 +14,7 @@ use crate::{
     resource_log,
     snatch::{ExclusiveSnatchGuard, SnatchGuard, Snatchable},
     track::{SharedTrackerIndexAllocator, TextureSelector, TrackerIndex},
-    Label, LabelHelpers, SubmissionIndex,
+    Label, LabelHelpers,
 };
 
 use hal::CommandEncoder;
@@ -22,13 +22,13 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use std::{
-    borrow::Borrow,
+    borrow::{Borrow, Cow},
     fmt::Debug,
     iter,
     mem::{self, ManuallyDrop},
     ops::Range,
     ptr::NonNull,
-    sync::{atomic::Ordering, Arc, Weak},
+    sync::{Arc, Weak},
 };
 
 /// Information about the wgpu-core resource.
@@ -54,14 +54,6 @@ use std::{
 pub(crate) struct TrackingData {
     tracker_index: TrackerIndex,
     tracker_indices: Arc<SharedTrackerIndexAllocator>,
-    /// The index of the last queue submission in which the resource
-    /// was used.
-    ///
-    /// Each queue submission is fenced and assigned an index number
-    /// sequentially. Thus, when a queue submission completes, we know any
-    /// resources used in that submission and any lower-numbered submissions are
-    /// no longer in use by the GPU.
-    submission_index: hal::AtomicFenceValue,
 }
 
 impl Drop for TrackingData {
@@ -75,28 +67,18 @@ impl TrackingData {
         Self {
             tracker_index: tracker_indices.alloc(),
             tracker_indices,
-            submission_index: hal::AtomicFenceValue::new(0),
         }
     }
 
     pub(crate) fn tracker_index(&self) -> TrackerIndex {
         self.tracker_index
     }
-
-    /// Record that this resource will be used by the queue submission with the
-    /// given index.
-    pub(crate) fn use_at(&self, submit_index: SubmissionIndex) {
-        self.submission_index.store(submit_index, Ordering::Release);
-    }
-
-    pub(crate) fn submission_index(&self) -> SubmissionIndex {
-        self.submission_index.load(Ordering::Acquire)
-    }
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ResourceErrorIdent {
-    r#type: &'static str,
+    r#type: Cow<'static, str>,
     label: String,
 }
 
@@ -174,7 +156,7 @@ pub(crate) trait Labeled: ResourceType {
 
     fn error_ident(&self) -> ResourceErrorIdent {
         ResourceErrorIdent {
-            r#type: Self::TYPE,
+            r#type: Cow::Borrowed(Self::TYPE),
             label: self.label().to_owned(),
         }
     }
@@ -193,10 +175,6 @@ macro_rules! impl_labeled {
 
 pub(crate) trait Trackable: Labeled {
     fn tracker_index(&self) -> TrackerIndex;
-    /// Record that this resource will be used by the queue submission with the
-    /// given index.
-    fn use_at(&self, submit_index: SubmissionIndex);
-    fn submission_index(&self) -> SubmissionIndex;
 }
 
 #[macro_export]
@@ -205,12 +183,6 @@ macro_rules! impl_trackable {
         impl<A: HalApi> $crate::resource::Trackable for $ty<A> {
             fn tracker_index(&self) -> $crate::track::TrackerIndex {
                 self.tracking_data.tracker_index()
-            }
-            fn use_at(&self, submit_index: $crate::SubmissionIndex) {
-                self.tracking_data.use_at(submit_index)
-            }
-            fn submission_index(&self) -> $crate::SubmissionIndex {
-                self.tracking_data.submission_index()
             }
         }
     };
@@ -370,6 +342,7 @@ pub struct BufferMapOperation {
 }
 
 #[derive(Clone, Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum BufferAccessError {
     #[error(transparent)]
@@ -418,6 +391,7 @@ pub enum BufferAccessError {
 }
 
 #[derive(Clone, Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[error("Usage flags {actual:?} of {res} do not contain required usage flags {expected:?}")]
 pub struct MissingBufferUsageError {
     pub(crate) res: ResourceErrorIdent,
@@ -434,6 +408,7 @@ pub struct MissingTextureUsageError {
 }
 
 #[derive(Clone, Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[error("{0} has been destroyed")]
 pub struct DestroyedResourceError(pub ResourceErrorIdent);
 
@@ -642,7 +617,6 @@ impl<A: HalApi> Buffer<A> {
         let device = &self.device;
         let snatch_guard = device.snatchable_lock.read();
         let raw_buf = self.try_raw(&snatch_guard)?;
-        log::debug!("{} map state -> Idle", self.error_ident());
         match mem::replace(&mut *self.map_state.lock(), BufferMapState::Idle) {
             BufferMapState::Init { staging_buffer } => {
                 #[cfg(feature = "trace")]
@@ -657,11 +631,9 @@ impl<A: HalApi> Buffer<A> {
                 }
 
                 let mut pending_writes = device.pending_writes.lock();
-                let pending_writes = pending_writes.as_mut().unwrap();
 
                 let staging_buffer = staging_buffer.flush();
 
-                self.use_at(device.active_submission_index.load(Ordering::Relaxed) + 1);
                 let region = wgt::BufferSize::new(self.size).map(|size| hal::BufferCopy {
                     src_offset: 0,
                     dst_offset: 0,
@@ -738,7 +710,7 @@ impl<A: HalApi> Buffer<A> {
             };
 
             queue::TempResource::DestroyedBuffer(DestroyedBuffer {
-                raw: Some(raw),
+                raw: ManuallyDrop::new(raw),
                 device: Arc::clone(&self.device),
                 label: self.label().to_owned(),
                 bind_groups,
@@ -746,14 +718,14 @@ impl<A: HalApi> Buffer<A> {
         };
 
         let mut pending_writes = device.pending_writes.lock();
-        let pending_writes = pending_writes.as_mut().unwrap();
         if pending_writes.contains_buffer(self) {
             pending_writes.consume_temp(temp);
         } else {
-            let last_submit_index = self.submission_index();
-            device
-                .lock_life()
-                .schedule_resource_destruction(temp, last_submit_index);
+            let mut life_lock = device.lock_life();
+            let last_submit_index = life_lock.get_buffer_latest_submission_index(self);
+            if let Some(last_submit_index) = last_submit_index {
+                life_lock.schedule_resource_destruction(temp, last_submit_index);
+            }
         }
 
         Ok(())
@@ -788,7 +760,7 @@ crate::impl_trackable!(Buffer);
 /// A buffer that has been marked as destroyed and is staged for actual deletion soon.
 #[derive(Debug)]
 pub struct DestroyedBuffer<A: HalApi> {
-    raw: Option<A::Buffer>,
+    raw: ManuallyDrop<A::Buffer>,
     device: Arc<Device<A>>,
     label: String,
     bind_groups: Vec<Weak<BindGroup<A>>>,
@@ -808,13 +780,12 @@ impl<A: HalApi> Drop for DestroyedBuffer<A> {
         }
         drop(deferred);
 
-        if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw Buffer (destroyed) {:?}", self.label());
-
-            unsafe {
-                use hal::Device;
-                self.device.raw().destroy_buffer(raw);
-            }
+        resource_log!("Destroy raw Buffer (destroyed) {:?}", self.label());
+        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
+        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
+        unsafe {
+            use hal::Device;
+            self.device.raw().destroy_buffer(raw);
         }
     }
 }
@@ -1201,7 +1172,7 @@ impl<A: HalApi> Texture<A> {
             };
 
             queue::TempResource::DestroyedTexture(DestroyedTexture {
-                raw: Some(raw),
+                raw: ManuallyDrop::new(raw),
                 views,
                 bind_groups,
                 device: Arc::clone(&self.device),
@@ -1210,14 +1181,14 @@ impl<A: HalApi> Texture<A> {
         };
 
         let mut pending_writes = device.pending_writes.lock();
-        let pending_writes = pending_writes.as_mut().unwrap();
         if pending_writes.contains_texture(self) {
             pending_writes.consume_temp(temp);
         } else {
-            let last_submit_index = self.submission_index();
-            device
-                .lock_life()
-                .schedule_resource_destruction(temp, last_submit_index);
+            let mut life_lock = device.lock_life();
+            let last_submit_index = life_lock.get_texture_latest_submission_index(self);
+            if let Some(last_submit_index) = last_submit_index {
+                life_lock.schedule_resource_destruction(temp, last_submit_index);
+            }
         }
 
         Ok(())
@@ -1390,7 +1361,7 @@ impl Global {
 /// A texture that has been marked as destroyed and is staged for actual deletion soon.
 #[derive(Debug)]
 pub struct DestroyedTexture<A: HalApi> {
-    raw: Option<A::Texture>,
+    raw: ManuallyDrop<A::Texture>,
     views: Vec<Weak<TextureView<A>>>,
     bind_groups: Vec<Weak<BindGroup<A>>>,
     device: Arc<Device<A>>,
@@ -1416,13 +1387,12 @@ impl<A: HalApi> Drop for DestroyedTexture<A> {
         }
         drop(deferred);
 
-        if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw Texture (destroyed) {:?}", self.label());
-
-            unsafe {
-                use hal::Device;
-                self.device.raw().destroy_texture(raw);
-            }
+        resource_log!("Destroy raw Texture (destroyed) {:?}", self.label());
+        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
+        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
+        unsafe {
+            use hal::Device;
+            self.device.raw().destroy_texture(raw);
         }
     }
 }
@@ -1632,6 +1602,8 @@ impl<A: HalApi> TextureView<A> {
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum CreateTextureViewError {
+    #[error(transparent)]
+    Device(#[from] DeviceError),
     #[error("TextureId {0:?} is invalid")]
     InvalidTextureId(TextureId),
     #[error(transparent)]

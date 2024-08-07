@@ -115,6 +115,7 @@ pub(crate) fn render_allocation_reports_ui(
                     name,
                     size,
                     backtrace,
+                    ..
                 } = alloc;
 
                 row.col(|ui| {

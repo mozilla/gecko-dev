@@ -1,12 +1,12 @@
 #![allow(clippy::new_without_default)]
 
+use windows::Win32::Graphics::Direct3D12::*;
+
 use super::Allocator;
 use crate::visualizer::{
     render_allocation_reports_ui, AllocationReportVisualizeSettings, ColorScheme,
     MemoryChunksVisualizationSettings,
 };
-
-use windows::Win32::Graphics::Direct3D12::*;
 
 struct AllocatorVisualizerBlockWindow {
     memory_type_index: usize,
@@ -92,7 +92,7 @@ impl AllocatorVisualizer {
                             let mut total_allocated = 0;
 
                             for block in mem_type.memory_blocks.iter().flatten() {
-                                total_block_size += block.sub_allocator.size();
+                                total_block_size += block.size;
                                 total_allocated += block.sub_allocator.allocated();
                             }
 
@@ -134,10 +134,7 @@ impl AllocatorVisualizer {
                                 let Some(block) = block else { continue };
 
                                 ui.collapsing(format!("Block: {}", block_idx), |ui| {
-                                    ui.label(format!(
-                                        "size: {} KiB",
-                                        block.sub_allocator.size() / 1024
-                                    ));
+                                    ui.label(format!("size: {} KiB", block.size / 1024));
                                     ui.label(format!(
                                         "allocated: {} KiB",
                                         block.sub_allocator.allocated() / 1024
@@ -147,7 +144,7 @@ impl AllocatorVisualizer {
 
                                     if block.sub_allocator.supports_visualization()
                                         && ui.button("visualize").clicked()
-                                        && !self.selected_blocks.iter().enumerate().any(|(_, x)| {
+                                        && !self.selected_blocks.iter().any(|x| {
                                             x.memory_type_index == mem_type_idx
                                                 && x.block_index == block_idx
                                         })
@@ -205,7 +202,7 @@ impl AllocatorVisualizer {
                         "Memory type {}, Memory block {}, Block size: {} KiB",
                         window.memory_type_index,
                         window.block_index,
-                        memblock.sub_allocator.size() / 1024
+                        memblock.size / 1024
                     ));
 
                     window

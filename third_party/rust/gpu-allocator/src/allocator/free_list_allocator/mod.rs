@@ -398,15 +398,12 @@ impl SubAllocator for FreeListAllocator {
                     .name
                     .clone()
                     .unwrap_or_else(|| "<Unnamed FreeList allocation>".to_owned()),
+                offset: chunk.offset,
                 size: chunk.size,
                 #[cfg(feature = "visualizer")]
                 backtrace: chunk.backtrace.clone(),
             })
             .collect::<Vec<_>>()
-    }
-
-    fn size(&self) -> u64 {
-        self.size
     }
 
     fn allocated(&self) -> u64 {

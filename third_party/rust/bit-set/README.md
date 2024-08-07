@@ -19,13 +19,13 @@
 
 [crates.io shield]: https://img.shields.io/crates/v/bit-set?label=latest
 [crates.io link]: https://crates.io/crates/bit-set
-[docs.rs badge]: https://docs.rs/bit-set/badge.svg?version=0.6.0
-[docs.rs link]: https://docs.rs/bit-set/0.6.0/bit_set/
+[docs.rs badge]: https://docs.rs/bit-set/badge.svg?version=0.8.0
+[docs.rs link]: https://docs.rs/bit-set/0.8.0/bit_set/
 [github ci badge]: https://github.com/contain-rs/linked-hash-map/workflows/Rust/badge.svg?branch=master
 [rustc 1.0+]: https://img.shields.io/badge/rustc-1.0%2B-blue.svg
 [Rust 1.0]: https://blog.rust-lang.org/2015/05/15/Rust-1.0.html
-[deps.rs status]: https://deps.rs/crate/bit-set/0.6.0/status.svg
-[deps.rs link]: https://deps.rs/crate/bit-set/0.6.0
+[deps.rs status]: https://deps.rs/crate/bit-set/0.8.0/status.svg
+[deps.rs link]: https://deps.rs/crate/bit-set/0.8.0
 [shields.io download count]: https://img.shields.io/crates/d/bit-set.svg
 
 ## Usage
@@ -34,7 +34,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-bit-set = "0.5"
+bit-set = "0.8"
 ```
 
 Since Rust 2018, `extern crate` is no longer mandatory. If your edition is old (Rust 2015),
@@ -44,11 +44,18 @@ add this to your crate root:
 extern crate bit_set;
 ```
 
+If you want to use `serde`, enable it with the `serde` feature:
+
+```toml
+[dependencies]
+bit-set = { version = "0.8", features = ["serde"] }
+```
+
 If you want to use bit-set in a program that has `#![no_std]`, just drop default features:
 
 ```toml
 [dependencies]
-bit-set = { version = "0.5", default-features = false }
+bit-set = { version = "0.8", default-features = false }
 ```
 
 <!-- cargo-rdme start -->

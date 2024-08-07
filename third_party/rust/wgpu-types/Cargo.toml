@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.76"
 name = "wgpu-types"
-version = "0.20.0"
+version = "22.0.0"
 authors = ["gfx-rs developers"]
 description = "WebGPU types"
 homepage = "https://wgpu.rs/"
@@ -37,7 +37,7 @@ targets = [
 [lib]
 
 [dependencies]
-bitflags = "2"
+bitflags = "2.6"
 
 [dependencies.serde]
 version = "1"
@@ -45,7 +45,7 @@ features = ["derive"]
 optional = true
 
 [dev-dependencies]
-serde_json = "1.0.120"
+serde_json = "1.0.121"
 
 [dev-dependencies.serde]
 version = "1"
@@ -54,6 +54,7 @@ features = ["derive"]
 [features]
 counters = []
 fragile-send-sync-non-atomic-wasm = []
+serde = ["dep:serde"]
 strict_asserts = []
 
 [target."cfg(target_arch = \"wasm32\")".dependencies]

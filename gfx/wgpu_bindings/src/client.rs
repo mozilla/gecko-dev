@@ -69,7 +69,6 @@ impl ProgrammableStageDescriptor {
             entry_point: cow_label(&self.entry_point),
             constants: Cow::Owned(constants),
             zero_initialize_workgroup_memory: true,
-            vertex_pulling_transform: true,
         }
     }
 }

@@ -2,6 +2,20 @@
 //! It is designed for integration into browsers, as well as wrapping
 //! into other language-specific user-friendly libraries.
 //!
+#![cfg_attr(
+    not(any(not(doc), wgpu_core_doc)),
+    doc = r#"\
+## Documentation hidden
+
+As a workaround for [an issue in rustdoc](https://github.com/rust-lang/rust/issues/114891)
+that [affects `wgpu-core` documentation builds \
+severely](https://github.com/gfx-rs/wgpu/issues/4905),
+the documentation for `wgpu-core` is empty unless built with
+`RUSTFLAGS="--cfg wgpu_core_doc"`, which may take a very long time.
+"#
+)]
+#![cfg(any(not(doc), wgpu_core_doc))]
+//!
 //! ## Feature flags
 #![doc = document_features::document_features!()]
 //!
@@ -41,6 +55,7 @@
     rustdoc::private_intra_doc_links
 )]
 #![warn(
+    clippy::ptr_as_ptr,
     trivial_casts,
     trivial_numeric_casts,
     unsafe_op_in_unsafe_fn,
@@ -71,7 +86,6 @@ pub mod resource;
 mod snatch;
 pub mod storage;
 mod track;
-mod utils;
 // This is public for users who pre-compile shaders while still wanting to
 // preserve all run-time checks that `wgpu-core` does.
 // See <https://github.com/gfx-rs/wgpu/issues/3103>, after which this can be

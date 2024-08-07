@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.70"
 name = "gpu-allocator"
-version = "0.26.0"
+version = "0.27.0"
 authors = ["Traverse Research <opensource@traverseresearch.nl>"]
 include = [
     "/README.md",
@@ -63,7 +63,7 @@ name = "metal-buffer"
 required-features = ["metal"]
 
 [dependencies.ash]
-version = ">=0.34, <=0.37"
+version = "0.38"
 features = ["debug"]
 optional = true
 default-features = false
@@ -88,7 +88,7 @@ version = "0.3"
 version = "1.0"
 
 [dev-dependencies.ash]
-version = ">=0.34,<=0.37"
+version = "0.38"
 features = [
     "debug",
     "loaded",
@@ -113,7 +113,7 @@ visualizer = [
 vulkan = ["dep:ash"]
 
 [target."cfg(any(target_os = \"macos\", target_os = \"ios\"))".dependencies.metal]
-version = "0.27.0"
+version = "0.29.0"
 features = [
     "link",
     "dispatch",
@@ -132,13 +132,9 @@ features = [
 optional = true
 
 [target."cfg(windows)".dependencies.windows]
-version = ">=0.51,<=0.52"
+version = ">=0.53,<=0.58"
 features = [
-    "Win32_Foundation",
-    "Win32_Graphics",
-    "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D12",
-    "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
 ]
 optional = true
@@ -158,12 +154,9 @@ features = [
 ]
 
 [target."cfg(windows)".dev-dependencies.windows]
-version = ">=0.51,<=0.52"
+version = "0.58"
 features = [
-    "Win32_Foundation",
-    "Win32_Graphics",
     "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D12",
-    "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
 ]

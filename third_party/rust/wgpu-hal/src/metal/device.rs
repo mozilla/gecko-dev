@@ -146,7 +146,6 @@ impl super::Device {
                 index: bounds_check_policy,
                 buffer: bounds_check_policy,
                 image_load: bounds_check_policy,
-                image_store: naga::proc::BoundsCheckPolicy::Unchecked,
                 // TODO: support bounds checks on binding arrays
                 binding_array: naga::proc::BoundsCheckPolicy::Unchecked,
             },
@@ -158,7 +157,7 @@ impl super::Device {
                 metal::MTLPrimitiveTopologyClass::Point => true,
                 _ => false,
             },
-            vertex_pulling_transform: stage.vertex_pulling_transform,
+            vertex_pulling_transform: true,
             vertex_buffer_mappings: vertex_buffer_mappings.to_vec(),
         };
 
@@ -362,7 +361,7 @@ impl crate::Device for super::Device {
         buffer: &super::Buffer,
         range: crate::MemoryRange,
     ) -> DeviceResult<crate::BufferMapping> {
-        let ptr = buffer.raw.contents() as *mut u8;
+        let ptr = buffer.raw.contents().cast::<u8>();
         assert!(!ptr.is_null());
         Ok(crate::BufferMapping {
             ptr: ptr::NonNull::new(unsafe { ptr.offset(range.start as isize) }).unwrap(),

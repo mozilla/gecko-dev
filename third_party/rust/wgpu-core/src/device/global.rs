@@ -19,7 +19,6 @@ use crate::{
     present,
     resource::{
         self, BufferAccessError, BufferAccessResult, BufferMapOperation, CreateBufferError,
-        Trackable,
     },
     storage::Storage,
     Label,
@@ -31,8 +30,7 @@ use wgt::{BufferAddress, TextureFormat};
 
 use std::{
     borrow::Cow,
-    iter,
-    ptr::{self, NonNull},
+    ptr::NonNull,
     sync::{atomic::Ordering, Arc},
 };
 
@@ -253,120 +251,46 @@ impl Global {
     }
 
     #[cfg(feature = "replay")]
-    pub fn device_wait_for_buffer<A: HalApi>(
+    pub fn device_set_buffer_data<A: HalApi>(
         &self,
-        device_id: DeviceId,
-        buffer_id: id::BufferId,
-    ) -> Result<(), WaitIdleError> {
-        let hub = A::hub(self);
-
-        let last_submission = match hub.buffers.read().get(buffer_id) {
-            Ok(buffer) => buffer.submission_index(),
-            Err(_) => return Ok(()),
-        };
-
-        hub.devices
-            .get(device_id)
-            .map_err(|_| DeviceError::InvalidDeviceId)?
-            .wait_for_submit(last_submission)
-    }
-
-    #[doc(hidden)]
-    pub fn device_set_buffer_sub_data<A: HalApi>(
-        &self,
-        device_id: DeviceId,
         buffer_id: id::BufferId,
         offset: BufferAddress,
         data: &[u8],
     ) -> BufferAccessResult {
-        profiling::scope!("Device::set_buffer_sub_data");
-
         let hub = A::hub(self);
-
-        let device = hub
-            .devices
-            .get(device_id)
-            .map_err(|_| DeviceError::InvalidDeviceId)?;
 
         let buffer = hub
             .buffers
             .get(buffer_id)
             .map_err(|_| BufferAccessError::InvalidBufferId(buffer_id))?;
 
-        #[cfg(feature = "trace")]
-        if let Some(ref mut trace) = *device.trace.lock() {
-            let data_path = trace.make_binary("bin", data);
-            trace.add(trace::Action::WriteBuffer {
-                id: buffer_id,
-                data: data_path,
-                range: offset..offset + data.len() as BufferAddress,
-                queued: false,
-            });
-        }
+        let device = &buffer.device;
 
         device.check_is_valid()?;
         buffer.check_usage(wgt::BufferUsages::MAP_WRITE)?;
-        //assert!(buffer isn't used by the GPU);
 
-        let snatch_guard = device.snatchable_lock.read();
-        let raw_buf = buffer.try_raw(&snatch_guard)?;
-        unsafe {
-            let mapping = device
-                .raw()
-                .map_buffer(raw_buf, offset..offset + data.len() as u64)
-                .map_err(DeviceError::from)?;
-            ptr::copy_nonoverlapping(data.as_ptr(), mapping.ptr.as_ptr(), data.len());
-            if !mapping.is_coherent {
-                device
-                    .raw()
-                    .flush_mapped_ranges(raw_buf, iter::once(offset..offset + data.len() as u64));
-            }
-            device.raw().unmap_buffer(raw_buf);
+        let last_submission = device
+            .lock_life()
+            .get_buffer_latest_submission_index(&buffer);
+
+        if let Some(last_submission) = last_submission {
+            device.wait_for_submit(last_submission)?;
         }
 
-        Ok(())
-    }
-
-    #[doc(hidden)]
-    pub fn device_get_buffer_sub_data<A: HalApi>(
-        &self,
-        device_id: DeviceId,
-        buffer_id: id::BufferId,
-        offset: BufferAddress,
-        data: &mut [u8],
-    ) -> BufferAccessResult {
-        profiling::scope!("Device::get_buffer_sub_data");
-
-        let hub = A::hub(self);
-
-        let device = hub
-            .devices
-            .get(device_id)
-            .map_err(|_| DeviceError::InvalidDeviceId)?;
-        device.check_is_valid()?;
-
         let snatch_guard = device.snatchable_lock.read();
-
-        let buffer = hub
-            .buffers
-            .get(buffer_id)
-            .map_err(|_| BufferAccessError::InvalidBufferId(buffer_id))?;
-        buffer.check_usage(wgt::BufferUsages::MAP_READ)?;
-        //assert!(buffer isn't used by the GPU);
-
         let raw_buf = buffer.try_raw(&snatch_guard)?;
         unsafe {
             let mapping = device
                 .raw()
                 .map_buffer(raw_buf, offset..offset + data.len() as u64)
                 .map_err(DeviceError::from)?;
+            std::ptr::copy_nonoverlapping(data.as_ptr(), mapping.ptr.as_ptr(), data.len());
             if !mapping.is_coherent {
-                device.raw().invalidate_mapped_ranges(
+                device.raw().flush_mapped_ranges(
                     raw_buf,
-                    iter::once(offset..offset + data.len() as u64),
+                    std::iter::once(offset..offset + data.len() as u64),
                 );
             }
-            ptr::copy_nonoverlapping(mapping.ptr.as_ptr(), data.as_mut_ptr(), data.len());
             device.raw().unmap_buffer(raw_buf);
         }
 
@@ -400,7 +324,7 @@ impl Global {
         buffer.destroy()
     }
 
-    pub fn buffer_drop<A: HalApi>(&self, buffer_id: id::BufferId, wait: bool) {
+    pub fn buffer_drop<A: HalApi>(&self, buffer_id: id::BufferId) {
         profiling::scope!("Buffer::drop");
         api_log!("Buffer::drop {buffer_id:?}");
 
@@ -422,14 +346,6 @@ impl Global {
             #[cfg(feature = "trace")]
             buffer_id,
         );
-
-        if wait {
-            let last_submit_index = buffer.submission_index();
-            match buffer.device.wait_for_submit(last_submit_index) {
-                Ok(()) => (),
-                Err(e) => log::error!("Failed to wait for buffer {:?}: {}", buffer_id, e),
-            }
-        }
     }
 
     pub fn device_create_texture<A: HalApi>(
@@ -586,24 +502,16 @@ impl Global {
         texture.destroy()
     }
 
-    pub fn texture_drop<A: HalApi>(&self, texture_id: id::TextureId, wait: bool) {
+    pub fn texture_drop<A: HalApi>(&self, texture_id: id::TextureId) {
         profiling::scope!("Texture::drop");
         api_log!("Texture::drop {texture_id:?}");
 
         let hub = A::hub(self);
 
-        if let Some(texture) = hub.textures.unregister(texture_id) {
+        if let Some(_texture) = hub.textures.unregister(texture_id) {
             #[cfg(feature = "trace")]
-            if let Some(t) = texture.device.trace.lock().as_mut() {
+            if let Some(t) = _texture.device.trace.lock().as_mut() {
                 t.add(trace::Action::DestroyTexture(texture_id));
-            }
-
-            if wait {
-                let last_submit_index = texture.submission_index();
-                match texture.device.wait_for_submit(last_submit_index) {
-                    Ok(()) => (),
-                    Err(e) => log::error!("Failed to wait for texture {texture_id:?}: {e}"),
-                }
             }
         }
     }
@@ -658,27 +566,16 @@ impl Global {
     pub fn texture_view_drop<A: HalApi>(
         &self,
         texture_view_id: id::TextureViewId,
-        wait: bool,
     ) -> Result<(), resource::TextureViewDestroyError> {
         profiling::scope!("TextureView::drop");
         api_log!("TextureView::drop {texture_view_id:?}");
 
         let hub = A::hub(self);
 
-        if let Some(view) = hub.texture_views.unregister(texture_view_id) {
+        if let Some(_view) = hub.texture_views.unregister(texture_view_id) {
             #[cfg(feature = "trace")]
-            if let Some(t) = view.device.trace.lock().as_mut() {
+            if let Some(t) = _view.device.trace.lock().as_mut() {
                 t.add(trace::Action::DestroyTextureView(texture_view_id));
-            }
-
-            if wait {
-                let last_submit_index = view.submission_index();
-                match view.device.wait_for_submit(last_submit_index) {
-                    Ok(()) => (),
-                    Err(e) => {
-                        log::error!("Failed to wait for texture view {texture_view_id:?}: {e}")
-                    }
-                }
             }
         }
         Ok(())
@@ -1143,7 +1040,7 @@ impl Global {
             #[cfg(feature = "trace")]
             if let Some(ref mut trace) = *device.trace.lock() {
                 let data = trace.make_binary("spv", unsafe {
-                    std::slice::from_raw_parts(source.as_ptr() as *const u8, source.len() * 4)
+                    std::slice::from_raw_parts(source.as_ptr().cast::<u8>(), source.len() * 4)
                 });
                 trace.add(trace::Action::CreateShaderModule {
                     id: fid.id(),
@@ -1457,7 +1354,6 @@ impl Global {
                         .vertex
                         .stage
                         .zero_initialize_workgroup_memory,
-                    vertex_pulling_transform: desc.vertex.stage.vertex_pulling_transform,
                 };
                 ResolvedVertexState {
                     stage,
@@ -1484,7 +1380,6 @@ impl Global {
                         .vertex
                         .stage
                         .zero_initialize_workgroup_memory,
-                    vertex_pulling_transform: state.stage.vertex_pulling_transform,
                 };
                 Some(ResolvedFragmentState {
                     stage,
@@ -1693,7 +1588,6 @@ impl Global {
                 entry_point: desc.stage.entry_point.clone(),
                 constants: desc.stage.constants.clone(),
                 zero_initialize_workgroup_memory: desc.stage.zero_initialize_workgroup_memory,
-                vertex_pulling_transform: desc.stage.vertex_pulling_transform,
             };
 
             let desc = ResolvedComputePipelineDescriptor {
@@ -1985,7 +1879,10 @@ impl Global {
                 config.composite_alpha_mode = new_alpha_mode;
             }
             if !caps.usage.contains(config.usage) {
-                return Err(E::UnsupportedUsage);
+                return Err(E::UnsupportedUsage {
+                    requested: config.usage,
+                    available: caps.usage,
+                });
             }
             if width == 0 || height == 0 {
                 return Err(E::ZeroArea);
@@ -2347,11 +2244,7 @@ impl Global {
             // need to wait for submissions or triage them. We know we were
             // just polled, so `life_tracker.free_resources` is empty.
             debug_assert!(device.lock_life().queue_empty());
-            {
-                let mut pending_writes = device.pending_writes.lock();
-                let pending_writes = pending_writes.as_mut().unwrap();
-                pending_writes.deactivate();
-            }
+            device.pending_writes.lock().deactivate();
 
             drop(device);
         }
@@ -2433,6 +2326,17 @@ impl Global {
         } else {
             Default::default()
         }
+    }
+
+    pub fn device_generate_allocator_report<A: HalApi>(
+        &self,
+        device_id: DeviceId,
+    ) -> Option<wgt::AllocatorReport> {
+        let hub = A::hub(self);
+        hub.devices
+            .get(device_id)
+            .ok()
+            .and_then(|device| device.generate_allocator_report())
     }
 
     pub fn queue_drop<A: HalApi>(&self, queue_id: QueueId) {

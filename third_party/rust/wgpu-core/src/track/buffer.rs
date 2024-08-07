@@ -1,9 +1,8 @@
-/*! Buffer Trackers
- *
- * Buffers are represented by a single state for the whole resource,
- * a 16 bit bitflag of buffer usages. Because there is only ever
- * one subresource, they have no selector.
-!*/
+//! Buffer Trackers
+//!
+//! Buffers are represented by a single state for the whole resource,
+//! a 16 bit bitflag of buffer usages. Because there is only ever
+//! one subresource, they have no selector.
 
 use std::sync::{Arc, Weak};
 
@@ -275,6 +274,11 @@ impl<A: HalApi> BufferTracker<A> {
         if index >= self.start.len() {
             self.set_size(index + 1);
         }
+    }
+
+    /// Returns true if the given buffer is tracked.
+    pub fn contains(&self, buffer: &Buffer<A>) -> bool {
+        self.metadata.contains(buffer.tracker_index().as_usize())
     }
 
     /// Returns a list of all buffers tracked.
@@ -731,8 +735,6 @@ unsafe fn insert<T: Clone>(
     strict_assert_eq!(invalid_resource_state(new_start_state), false);
     strict_assert_eq!(invalid_resource_state(new_end_state), false);
 
-    log::trace!("\tbuf {index}: insert {new_start_state:?}..{new_end_state:?}");
-
     unsafe {
         if let Some(&mut ref mut start_state) = start_states {
             *start_state.get_unchecked_mut(index) = new_start_state;
@@ -747,7 +749,7 @@ unsafe fn insert<T: Clone>(
 #[inline(always)]
 unsafe fn merge<A: HalApi>(
     current_states: &mut [BufferUses],
-    index32: u32,
+    _index32: u32,
     index: usize,
     state_provider: BufferStateProvider<'_>,
     metadata_provider: ResourceMetadataProvider<'_, Arc<Buffer<A>>>,
@@ -764,8 +766,6 @@ unsafe fn merge<A: HalApi>(
             new_state,
         ));
     }
-
-    log::trace!("\tbuf {index32}: merge {current_state:?} + {new_state:?}");
 
     *current_state = merged_state;
 
@@ -791,8 +791,6 @@ unsafe fn barrier(
         selector: (),
         usage: current_state..new_state,
     });
-
-    log::trace!("\tbuf {index}: transition {current_state:?} -> {new_state:?}");
 }
 
 #[inline(always)]

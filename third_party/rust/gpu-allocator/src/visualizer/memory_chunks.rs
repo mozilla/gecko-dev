@@ -2,9 +2,8 @@ use std::backtrace::BacktraceStatus;
 
 use egui::{Color32, DragValue, Rect, ScrollArea, Sense, Ui, Vec2};
 
-use crate::allocator::free_list_allocator::MemoryChunk;
-
 use super::ColorScheme;
+use crate::allocator::free_list_allocator::MemoryChunk;
 
 pub(crate) struct MemoryChunksVisualizationSettings {
     pub width_in_bytes: u64,

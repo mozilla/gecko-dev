@@ -1,10 +1,12 @@
 #![deny(clippy::unimplemented, clippy::unwrap_used, clippy::ok_expect)]
 use std::{backtrace::Backtrace, sync::Arc};
 
+use log::debug;
+
 use crate::{
-    allocator, AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation, Result,
+    allocator::{self, AllocatorReport, MemoryBlockReport},
+    AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation, Result,
 };
-use log::{debug, Level};
 
 fn memory_location_to_metal(location: MemoryLocation) -> metal::MTLResourceOptions {
     match location {
@@ -15,6 +17,7 @@ fn memory_location_to_metal(location: MemoryLocation) -> metal::MTLResourceOptio
     }
 }
 
+#[derive(Debug)]
 pub struct Allocation {
     chunk_id: Option<std::num::NonZeroU64>,
     offset: u64,
@@ -69,6 +72,7 @@ impl Allocation {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct AllocationCreateDesc<'a> {
     /// Name of the allocation, for tracking and debugging purposes
     pub name: &'a str,
@@ -84,7 +88,7 @@ impl<'a> AllocationCreateDesc<'a> {
         name: &'a str,
         length: u64,
         location: MemoryLocation,
-    ) -> AllocationCreateDesc<'a> {
+    ) -> Self {
         let size_and_align =
             device.heap_buffer_size_and_align(length, memory_location_to_metal(location));
         Self {
@@ -95,11 +99,7 @@ impl<'a> AllocationCreateDesc<'a> {
         }
     }
 
-    pub fn texture(
-        device: &metal::Device,
-        name: &'a str,
-        desc: &metal::TextureDescriptor,
-    ) -> AllocationCreateDesc<'a> {
+    pub fn texture(device: &metal::Device, name: &'a str, desc: &metal::TextureDescriptor) -> Self {
         let size_and_align = device.heap_texture_size_and_align(desc);
         Self {
             name,
@@ -119,7 +119,7 @@ impl<'a> AllocationCreateDesc<'a> {
         name: &'a str,
         size: u64,
         location: MemoryLocation,
-    ) -> AllocationCreateDesc<'a> {
+    ) -> Self {
         let size_and_align = device.heap_acceleration_structure_size_and_align_with_size(size);
         Self {
             name,
@@ -129,24 +129,31 @@ impl<'a> AllocationCreateDesc<'a> {
         }
     }
 }
+
 pub struct Allocator {
     device: Arc<metal::Device>,
     debug_settings: AllocatorDebugSettings,
     memory_types: Vec<MemoryType>,
     allocation_sizes: AllocationSizes,
 }
+
+#[derive(Debug)]
 pub struct AllocatorCreateDesc {
     pub device: Arc<metal::Device>,
     pub debug_settings: AllocatorDebugSettings,
     pub allocation_sizes: AllocationSizes,
 }
+
+#[derive(Debug)]
 pub struct CommittedAllocationStatistics {
     pub num_allocations: usize,
     pub total_size: u64,
 }
+
+#[derive(Debug)]
 struct MemoryBlock {
     heap: Arc<metal::Heap>,
-    _size: u64,
+    size: u64,
     sub_allocator: Box<dyn allocator::SubAllocator>,
 }
 
@@ -156,10 +163,12 @@ impl MemoryBlock {
         size: u64,
         heap_descriptor: &metal::HeapDescriptor,
         dedicated: bool,
+        memory_location: MemoryLocation,
     ) -> Result<Self> {
         heap_descriptor.set_size(size);
 
         let heap = Arc::new(device.new_heap(heap_descriptor));
+        heap.set_label(&format!("MemoryBlock {memory_location:?}"));
 
         let sub_allocator: Box<dyn allocator::SubAllocator> = if dedicated {
             Box::new(allocator::DedicatedBlockAllocator::new(size))
@@ -169,12 +178,13 @@ impl MemoryBlock {
 
         Ok(Self {
             heap,
-            _size: size,
+            size,
             sub_allocator,
         })
     }
 }
 
+#[derive(Debug)]
 struct MemoryType {
     memory_blocks: Vec<Option<MemoryBlock>>,
     _committed_allocations: CommittedAllocationStatistics,
@@ -206,7 +216,13 @@ impl MemoryType {
 
         // Create a dedicated block for large memory allocations
         if size > memblock_size {
-            let mem_block = MemoryBlock::new(device, size, &self.heap_properties, true)?;
+            let mem_block = MemoryBlock::new(
+                device,
+                size,
+                &self.heap_properties,
+                true,
+                self.memory_location,
+            )?;
 
             let block_index = self.memory_blocks.iter().position(|block| block.is_none());
             let block_index = match block_index {
@@ -276,8 +292,13 @@ impl MemoryType {
             }
         }
 
-        let new_memory_block =
-            MemoryBlock::new(device, memblock_size, &self.heap_properties, false)?;
+        let new_memory_block = MemoryBlock::new(
+            device,
+            memblock_size,
+            &self.heap_properties,
+            false,
+            self.memory_location,
+        )?;
 
         let new_block_index = if let Some(block_index) = empty_block_index {
             self.memory_blocks[block_index] = Some(new_memory_block);
@@ -355,14 +376,7 @@ impl MemoryType {
     }
 }
 
-pub struct ResourceCreateDesc {}
-pub struct Resource {}
-
 impl Allocator {
-    pub fn device(&self) -> &metal::Device {
-        todo!()
-    }
-
     pub fn new(desc: &AllocatorCreateDesc) -> Result<Self> {
         let heap_types = [
             (MemoryLocation::GpuOnly, {
@@ -389,7 +403,7 @@ impl Allocator {
         ];
 
         let memory_types = heap_types
-            .iter()
+            .into_iter()
             .enumerate()
             .map(|(i, (memory_location, heap_descriptor))| MemoryType {
                 memory_blocks: vec![],
@@ -397,8 +411,8 @@ impl Allocator {
                     num_allocations: 0,
                     total_size: 0,
                 },
-                memory_location: *memory_location,
-                heap_properties: heap_descriptor.clone(),
+                memory_location,
+                heap_properties: heap_descriptor,
                 memory_type_index: i,
                 active_general_blocks: 0,
             })
@@ -479,10 +493,30 @@ impl Allocator {
         heaps
     }
 
-    pub fn rename_allocation(&mut self, _allocation: &mut Allocation, _name: &str) -> Result<()> {
-        todo!()
-    }
-    pub fn report_memory_leaks(&self, _log_level: Level) {
-        todo!()
+    pub fn generate_report(&self) -> AllocatorReport {
+        let mut allocations = vec![];
+        let mut blocks = vec![];
+        let mut total_reserved_bytes = 0;
+
+        for memory_type in &self.memory_types {
+            for block in memory_type.memory_blocks.iter().flatten() {
+                total_reserved_bytes += block.size;
+                let first_allocation = allocations.len();
+                allocations.extend(block.sub_allocator.report_allocations());
+                blocks.push(MemoryBlockReport {
+                    size: block.size,
+                    allocations: first_allocation..allocations.len(),
+                });
+            }
+        }
+
+        let total_allocated_bytes = allocations.iter().map(|report| report.size).sum();
+
+        AllocatorReport {
+            allocations,
+            blocks,
+            total_allocated_bytes,
+            total_reserved_bytes,
+        }
     }
 }

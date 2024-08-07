@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2015"
 name = "bit-set"
-version = "0.6.0"
+version = "0.8.0"
 authors = ["Alexis Beingessner <a.beingessner@gmail.com>"]
 build = false
 autobins = false
@@ -20,27 +21,42 @@ autotests = false
 autobenches = false
 description = "A set of bits"
 homepage = "https://github.com/contain-rs/bit-set"
-documentation = "https://contain-rs.github.io/bit-set/bit_set"
+documentation = "https://docs.rs/bit-set/"
 readme = "README.md"
 keywords = [
     "data-structures",
     "bitset",
 ]
-license = "MIT/Apache-2.0"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/contain-rs/bit-set"
 
 [lib]
 name = "bit_set"
 path = "src/lib.rs"
 
+[[bench]]
+name = "bench"
+path = "benches/bench.rs"
+
 [dependencies.bit-vec]
-version = "0.7.0"
+version = "0.8.0"
 default-features = false
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+optional = true
 
 [dev-dependencies.rand]
 version = "0.8"
 
+[dev-dependencies.serde_json]
+version = "1.0"
+
 [features]
-bench = []
 default = ["std"]
+serde = [
+    "dep:serde",
+    "bit-vec/serde",
+]
 std = ["bit-vec/std"]

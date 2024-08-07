@@ -89,8 +89,11 @@ pub enum ConfigureSurfaceError {
         requested: wgt::CompositeAlphaMode,
         available: Vec<wgt::CompositeAlphaMode>,
     },
-    #[error("Requested usage is not supported")]
-    UnsupportedUsage,
+    #[error("Requested usage {requested:?} is not in the list of supported usages: {available:?}")]
+    UnsupportedUsage {
+        requested: hal::TextureUses,
+        available: hal::TextureUses,
+    },
     #[error("Gpu got stuck :(")]
     StuckGpu,
 }
@@ -227,7 +230,6 @@ impl Global {
                     .insert_single(&texture, hal::TextureUses::UNINITIALIZED);
 
                 let id = fid.assign(texture);
-                log::debug!("Created CURRENT Surface Texture {:?}", id);
 
                 if present.acquired_texture.is_some() {
                     return Err(SurfaceError::AlreadyAcquired);
@@ -298,10 +300,6 @@ impl Global {
 
             // The texture ID got added to the device tracker by `submit()`,
             // and now we are moving it away.
-            log::debug!(
-                "Removing swapchain texture {:?} from the device tracker",
-                texture_id
-            );
             let texture = hub.textures.unregister(texture_id);
             if let Some(texture) = texture {
                 device
@@ -323,13 +321,7 @@ impl Global {
                             log::error!("Presented frame is from a different surface");
                             Err(hal::SurfaceError::Lost)
                         } else {
-                            unsafe {
-                                queue
-                                    .raw
-                                    .as_ref()
-                                    .unwrap()
-                                    .present(suf.unwrap(), raw.take().unwrap())
-                            }
+                            unsafe { queue.raw().present(suf.unwrap(), raw.take().unwrap()) }
                         }
                     }
                     _ => unreachable!(),
@@ -338,8 +330,6 @@ impl Global {
                 Err(hal::SurfaceError::Outdated) //TODO?
             }
         };
-
-        log::debug!("Presented. End of Frame");
 
         match result {
             Ok(()) => Ok(Status::Good),
@@ -390,11 +380,6 @@ impl Global {
 
             // The texture ID got added to the device tracker by `submit()`,
             // and now we are moving it away.
-            log::debug!(
-                "Removing swapchain texture {:?} from the device tracker",
-                texture_id
-            );
-
             let texture = hub.textures.unregister(texture_id);
 
             if let Some(texture) = texture {

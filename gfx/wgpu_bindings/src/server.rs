@@ -586,7 +586,7 @@ pub extern "C" fn wgpu_server_buffer_destroy(global: &Global, self_id: id::Buffe
 
 #[no_mangle]
 pub extern "C" fn wgpu_server_buffer_drop(global: &Global, self_id: id::BufferId) {
-    gfx_select!(self_id => global.buffer_drop(self_id, false));
+    gfx_select!(self_id => global.buffer_drop(self_id));
 }
 
 #[allow(unused_variables)]
@@ -1317,12 +1317,12 @@ pub extern "C" fn wgpu_server_texture_destroy(global: &Global, self_id: id::Text
 
 #[no_mangle]
 pub extern "C" fn wgpu_server_texture_drop(global: &Global, self_id: id::TextureId) {
-    gfx_select!(self_id => global.texture_drop(self_id, false));
+    gfx_select!(self_id => global.texture_drop(self_id));
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_server_texture_view_drop(global: &Global, self_id: id::TextureViewId) {
-    gfx_select!(self_id => global.texture_view_drop(self_id, false)).unwrap();
+    gfx_select!(self_id => global.texture_view_drop(self_id)).unwrap();
 }
 
 #[no_mangle]

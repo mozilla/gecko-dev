@@ -142,43 +142,38 @@ mod compat {
 
                         let mut errors = Vec::new();
 
-                        let mut expected_bgl_entries = expected_bgl.entries.iter();
-                        let mut assigned_bgl_entries = assigned_bgl.entries.iter();
-                        let zipped = crate::utils::ZipWithProperAdvance::new(
-                            &mut expected_bgl_entries,
-                            &mut assigned_bgl_entries,
-                        );
-
-                        for ((&binding, expected_entry), (_, assigned_entry)) in zipped {
-                            if assigned_entry.visibility != expected_entry.visibility {
-                                errors.push(EntryError::Visibility {
-                                    binding,
-                                    expected: expected_entry.visibility,
-                                    assigned: assigned_entry.visibility,
-                                });
-                            }
-                            if assigned_entry.ty != expected_entry.ty {
-                                errors.push(EntryError::Type {
-                                    binding,
-                                    expected: expected_entry.ty,
-                                    assigned: assigned_entry.ty,
-                                });
-                            }
-                            if assigned_entry.count != expected_entry.count {
-                                errors.push(EntryError::Count {
-                                    binding,
-                                    expected: expected_entry.count,
-                                    assigned: assigned_entry.count,
-                                });
+                        for (&binding, expected_entry) in expected_bgl.entries.iter() {
+                            if let Some(assigned_entry) = assigned_bgl.entries.get(binding) {
+                                if assigned_entry.visibility != expected_entry.visibility {
+                                    errors.push(EntryError::Visibility {
+                                        binding,
+                                        expected: expected_entry.visibility,
+                                        assigned: assigned_entry.visibility,
+                                    });
+                                }
+                                if assigned_entry.ty != expected_entry.ty {
+                                    errors.push(EntryError::Type {
+                                        binding,
+                                        expected: expected_entry.ty,
+                                        assigned: assigned_entry.ty,
+                                    });
+                                }
+                                if assigned_entry.count != expected_entry.count {
+                                    errors.push(EntryError::Count {
+                                        binding,
+                                        expected: expected_entry.count,
+                                        assigned: assigned_entry.count,
+                                    });
+                                }
+                            } else {
+                                errors.push(EntryError::ExtraExpected { binding });
                             }
                         }
 
-                        for (&binding, _) in expected_bgl_entries {
-                            errors.push(EntryError::ExtraExpected { binding });
-                        }
-
-                        for (&binding, _) in assigned_bgl_entries {
-                            errors.push(EntryError::ExtraAssigned { binding });
+                        for (&binding, _) in assigned_bgl.entries.iter() {
+                            if !expected_bgl.entries.contains_key(binding) {
+                                errors.push(EntryError::ExtraAssigned { binding });
+                            }
                         }
 
                         Err(Error::Incompatible {
@@ -253,6 +248,7 @@ mod compat {
                 .filter_map(|(i, e)| if e.is_active() { Some(i) } else { None })
         }
 
+        #[allow(clippy::result_large_err)]
         pub fn get_invalid(&self) -> Result<(), (usize, Error)> {
             for (index, entry) in self.entries.iter().enumerate() {
                 entry.check().map_err(|e| (index, e))?;
@@ -387,8 +383,6 @@ impl<A: HalApi> Binder<A> {
         bind_group: &Arc<BindGroup<A>>,
         offsets: &[wgt::DynamicOffset],
     ) -> &'a [EntryPayload<A>] {
-        log::trace!("\tBinding [{}] = group {}", index, bind_group.error_ident());
-
         let payload = &mut self.payloads[index];
         payload.group = Some(bind_group.clone());
         payload.dynamic_offsets.clear();

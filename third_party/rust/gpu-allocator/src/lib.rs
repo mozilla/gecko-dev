@@ -52,7 +52,7 @@
 //! # }).unwrap();
 //!
 //! // Setup vulkan info
-//! let vk_info = vk::BufferCreateInfo::builder()
+//! let vk_info = vk::BufferCreateInfo::default()
 //!     .size(512)
 //!     .usage(vk::BufferUsageFlags::STORAGE_BUFFER);
 //!
@@ -211,6 +211,8 @@ mod result;
 pub use result::*;
 
 pub(crate) mod allocator;
+
+pub use allocator::{AllocationReport, AllocatorReport, MemoryBlockReport};
 
 #[cfg(feature = "visualizer")]
 pub mod visualizer;

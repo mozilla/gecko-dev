@@ -1,9 +1,6 @@
-#![deny(clippy::unimplemented, clippy::unwrap_used, clippy::ok_expect)]
-
 use std::{backtrace::Backtrace, fmt, sync::Arc};
 
 use log::{debug, warn, Level};
-
 use windows::Win32::{
     Foundation::E_OUTOFMEMORY,
     Graphics::{Direct3D12::*, Dxgi::Common::DXGI_FORMAT},
@@ -11,8 +8,9 @@ use windows::Win32::{
 
 #[cfg(feature = "public-winapi")]
 mod public_winapi {
-    use super::*;
     pub use winapi::um::d3d12 as winapi_d3d12;
+
+    use super::*;
 
     /// Trait similar to [`AsRef`]/[`AsMut`],
     pub trait ToWinapi<T> {
@@ -84,12 +82,10 @@ mod visualizer;
 #[cfg(feature = "visualizer")]
 pub use visualizer::AllocatorVisualizer;
 
-use super::allocator;
-use super::allocator::AllocationType;
-
+use super::{allocator, allocator::AllocationType};
 use crate::{
-    allocator::fmt_bytes, AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation,
-    Result,
+    allocator::{AllocatorReport, MemoryBlockReport},
+    AllocationError, AllocationSizes, AllocatorDebugSettings, MemoryLocation, Result,
 };
 
 /// [`ResourceCategory`] is used for supporting [`D3D12_RESOURCE_HEAP_TIER_1`].
@@ -197,10 +193,12 @@ impl<'a> AllocationCreateDesc<'a> {
         desc: &winapi_d3d12::D3D12_RESOURCE_DESC,
         name: &'a str,
         location: MemoryLocation,
-    ) -> AllocationCreateDesc<'a> {
+    ) -> Self {
         let device = device.as_windows();
         // Raw structs are binary-compatible
-        let desc = unsafe { std::mem::transmute(desc) };
+        let desc = unsafe {
+            std::mem::transmute::<&winapi_d3d12::D3D12_RESOURCE_DESC, &D3D12_RESOURCE_DESC>(desc)
+        };
         let allocation_info =
             unsafe { device.GetResourceAllocationInfo(0, std::slice::from_ref(desc)) };
         let resource_category: ResourceCategory = desc.into();
@@ -223,7 +221,7 @@ impl<'a> AllocationCreateDesc<'a> {
         desc: &D3D12_RESOURCE_DESC,
         name: &'a str,
         location: MemoryLocation,
-    ) -> AllocationCreateDesc<'a> {
+    ) -> Self {
         let allocation_info =
             unsafe { device.GetResourceAllocationInfo(0, std::slice::from_ref(desc)) };
         let resource_category: ResourceCategory = desc.into();
@@ -256,9 +254,8 @@ impl std::ops::Deref for ID3D12DeviceVersion {
     fn deref(&self) -> &Self::Target {
         match self {
             Self::Device(device) => device,
-            // Windows-rs hides CanInto, we know that Device10/Device12 is a subclass of Device but there's not even a Deref.
-            Self::Device10(device10) => windows::core::CanInto::can_into(device10),
-            Self::Device12(device12) => windows::core::CanInto::can_into(device12),
+            Self::Device10(device10) => device10.into(),
+            Self::Device12(device12) => device12.into(),
         }
     }
 }
@@ -271,12 +268,16 @@ pub struct AllocatorCreateDesc {
 }
 
 pub enum ResourceType<'a> {
-    /// Allocation equivalent to Dx12's CommittedResource.
+    /// Create a D3D12 [`CommittedResource`].
+    ///
+    /// [`CommittedResource`]: https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-createcommittedresource
     Committed {
         heap_properties: &'a D3D12_HEAP_PROPERTIES,
         heap_flags: D3D12_HEAP_FLAGS,
     },
-    /// Allocation equivalent to Dx12's PlacedResource.
+    /// Create a D3D12 [`PlacedResource`].
+    ///
+    /// [`PlacedResource`]: https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-createplacedresource
     Placed,
 }
 
@@ -1099,50 +1100,38 @@ impl Allocator {
             Ok(())
         }
     }
+
+    pub fn generate_report(&self) -> AllocatorReport {
+        let mut allocations = vec![];
+        let mut blocks = vec![];
+        let mut total_reserved_bytes = 0;
+
+        for memory_type in &self.memory_types {
+            for block in memory_type.memory_blocks.iter().flatten() {
+                total_reserved_bytes += block.size;
+                let first_allocation = allocations.len();
+                allocations.extend(block.sub_allocator.report_allocations());
+                blocks.push(MemoryBlockReport {
+                    size: block.size,
+                    allocations: first_allocation..allocations.len(),
+                });
+            }
+        }
+
+        let total_allocated_bytes = allocations.iter().map(|report| report.size).sum();
+
+        AllocatorReport {
+            allocations,
+            blocks,
+            total_allocated_bytes,
+            total_reserved_bytes,
+        }
+    }
 }
 
 impl fmt::Debug for Allocator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut allocation_report = vec![];
-        let mut total_reserved_size_in_bytes = 0;
-
-        for memory_type in &self.memory_types {
-            for block in memory_type.memory_blocks.iter().flatten() {
-                total_reserved_size_in_bytes += block.size;
-                allocation_report.extend(block.sub_allocator.report_allocations())
-            }
-        }
-
-        let total_used_size_in_bytes = allocation_report.iter().map(|report| report.size).sum();
-
-        allocation_report.sort_by_key(|alloc| std::cmp::Reverse(alloc.size));
-
-        writeln!(
-            f,
-            "================================================================",
-        )?;
-        writeln!(
-            f,
-            "ALLOCATION BREAKDOWN ({} / {})",
-            fmt_bytes(total_used_size_in_bytes),
-            fmt_bytes(total_reserved_size_in_bytes),
-        )?;
-
-        let max_num_allocations_to_print = f.precision().map_or(usize::MAX, |n| n);
-        for (idx, alloc) in allocation_report.iter().enumerate() {
-            if idx >= max_num_allocations_to_print {
-                break;
-            }
-            writeln!(
-                f,
-                "{:max_len$.max_len$}\t- {}",
-                alloc.name,
-                fmt_bytes(alloc.size),
-                max_len = allocator::VISUALIZER_TABLE_MAX_ENTRY_NAME_LEN,
-            )?;
-        }
-
-        Ok(())
+        self.generate_report().fmt(f)
     }
 }
 

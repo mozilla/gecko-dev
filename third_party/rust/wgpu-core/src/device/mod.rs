@@ -364,6 +364,7 @@ fn map_buffer<A: HalApi>(
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceMismatch {
     pub(super) res: ResourceErrorIdent,
     pub(super) res_device: ResourceErrorIdent,
@@ -388,6 +389,7 @@ impl std::fmt::Display for DeviceMismatch {
 impl std::error::Error for DeviceMismatch {}
 
 #[derive(Clone, Debug, Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum DeviceError {
     #[error("{0} is invalid.")]
