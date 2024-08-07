@@ -13,11 +13,11 @@ interface PromiseRejectionEvent : Event
   constructor(DOMString type, PromiseRejectionEventInit eventInitDict);
 
   [BinaryName="rejectedPromise"]
-  readonly attribute Promise<any> promise;
+  readonly attribute object promise;
   readonly attribute any reason;
 };
 
 dictionary PromiseRejectionEventInit : EventInit {
-  required Promise<any> promise;
+  required object promise;
            any reason;
 };
