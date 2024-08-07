@@ -34,17 +34,69 @@ using namespace mozilla::ipc;
 
 namespace {
 
-class BoolPromiseResolveOrRejectCallback {
+template <typename PromiseType, typename ResolverType, bool MoveOnly>
+class PromiseResolveOrRejectCallbackBase {
  public:
-  using PromiseType = BoolPromise;
-  using ResolverType = BoolResponseResolver;
-
-  BoolPromiseResolveOrRejectCallback(RefPtr<Quota> aQuota,
+  PromiseResolveOrRejectCallbackBase(RefPtr<Quota> aQuota,
                                      ResolverType&& aResolver)
-      : mQuota(std::move(aQuota)), mResolver(std::move(aResolver)) {}
+      : mResolver(std::move(aResolver)), mQuota(std::move(aQuota)) {}
 
-  void operator()(const PromiseType::ResolveOrRejectValue& aValue) {
-    if (!mQuota->CanSend()) {
+ protected:
+  bool CanSend() const { return mQuota->CanSend(); }
+
+  ResolverType mResolver;
+
+ private:
+  RefPtr<Quota> mQuota;
+};
+
+template <typename PromiseType, typename ResolverType, bool MoveOnly>
+class PromiseResolveOrRejectCallback
+    : public PromiseResolveOrRejectCallbackBase<PromiseType, ResolverType,
+                                                MoveOnly> {};
+
+template <typename PromiseType, typename ResolverType>
+class PromiseResolveOrRejectCallback<PromiseType, ResolverType, true>
+    : public PromiseResolveOrRejectCallbackBase<PromiseType, ResolverType,
+                                                true> {
+  using Base =
+      PromiseResolveOrRejectCallbackBase<PromiseType, ResolverType, true>;
+
+  using Base::CanSend;
+  using Base::mResolver;
+
+ public:
+  PromiseResolveOrRejectCallback(RefPtr<Quota> aQuota, ResolverType&& aResolver)
+      : Base(std::move(aQuota), std::move(aResolver)) {}
+
+  void operator()(typename PromiseType::ResolveOrRejectValue&& aValue) {
+    if (!CanSend()) {
+      return;
+    }
+    if (aValue.IsResolve()) {
+      mResolver(std::move(aValue.ResolveValue()));
+    } else {
+      mResolver(aValue.RejectValue());
+    }
+  }
+};
+
+template <typename PromiseType, typename ResolverType>
+class PromiseResolveOrRejectCallback<PromiseType, ResolverType, false>
+    : public PromiseResolveOrRejectCallbackBase<PromiseType, ResolverType,
+                                                false> {
+  using Base =
+      PromiseResolveOrRejectCallbackBase<PromiseType, ResolverType, false>;
+
+  using Base::CanSend;
+  using Base::mResolver;
+
+ public:
+  PromiseResolveOrRejectCallback(RefPtr<Quota> aQuota, ResolverType&& aResolver)
+      : Base(std::move(aQuota), std::move(aResolver)) {}
+
+  void operator()(const typename PromiseType::ResolveOrRejectValue& aValue) {
+    if (!CanSend()) {
       return;
     }
 
@@ -54,11 +106,10 @@ class BoolPromiseResolveOrRejectCallback {
       mResolver(aValue.RejectValue());
     }
   }
-
- private:
-  RefPtr<Quota> mQuota;
-  ResolverType mResolver;
 };
+
+using BoolPromiseResolveOrRejectCallback =
+    PromiseResolveOrRejectCallback<BoolPromise, BoolResponseResolver, false>;
 
 }  // namespace
 
