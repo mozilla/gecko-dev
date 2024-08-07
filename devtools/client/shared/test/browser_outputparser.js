@@ -876,6 +876,37 @@ function testParseVariable(doc, parser) {
           "</span>" +
         "</span>",
     },
+    {
+      text: "var(--x)",
+      variables: {
+        "--x": {
+          value: "light-dark(red, blue)",
+        },
+      },
+      parserExtraOptions: {
+        isDarkColorScheme: false,
+      },
+      expected:
+        '<span>var(<span data-variable="--x = light-dark(red, blue)">--x</span>)</span>',
+    },
+    {
+      text: "var(--x)",
+      variables: {
+        "--x": {
+          value: "color-mix(in srgb, red 50%, blue)",
+        },
+      },
+      parserExtraOptions: {
+        isDarkColorScheme: false,
+      },
+      expected:
+        // prettier-ignore
+        '<span data-color="color-mix(in srgb, red 50%, blue)">' +
+          '<span>var(' +
+            '<span data-variable="--x = color-mix(in srgb, red 50%, blue)">--x</span>' +
+          ')</span>' +
+        '</span>',
+    },
   ];
 
   for (const test of TESTS) {
