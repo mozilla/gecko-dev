@@ -3,6 +3,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.GleanMetrics.NavigationBar
@@ -137,6 +138,7 @@ class TabbedBrowsingWithNavbarTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2343662
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun tabsCounterShortcutMenuNewTabFromNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
