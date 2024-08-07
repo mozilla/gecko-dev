@@ -41,6 +41,10 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
     NoteActorDestroyed();
 #endif
 
+    if (mCanceled) {
+      mResultCode = NS_ERROR_FAILURE;
+    }
+
     if (NS_SUCCEEDED(mResultCode)) {
       mPromiseHolder.ResolveIfExists(GetResolveValue(), __func__);
     } else {
