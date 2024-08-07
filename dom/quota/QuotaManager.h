@@ -418,6 +418,13 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult EnsureTemporaryStorageIsInitializedInternal();
 
+  RefPtr<OriginUsageMetadataArrayPromise> GetUsage(
+      bool aGetAll, RefPtr<BoolPromise> aOnCancelPromise = nullptr);
+
+  RefPtr<UsageInfoPromise> GetOriginUsage(
+      const PrincipalInfo& aPrincipalInfo, bool aFromMemory,
+      RefPtr<BoolPromise> aOnCancelPromise = nullptr);
+
   RefPtr<BoolPromise> ClearStoragesForOrigin(
       const Maybe<PersistenceType>& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo,

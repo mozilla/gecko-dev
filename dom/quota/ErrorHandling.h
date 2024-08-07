@@ -30,4 +30,9 @@ using ResolveBoolResponseAndReturn =
 using ResolveNSResultResponseAndReturn =
     ResolveResponseAndReturn<mozilla::ipc::NSResultResponseResolver>;
 
+using ResolveOriginUsageMetadataArrayResponseAndReturn =
+    ResolveResponseAndReturn<OriginUsageMetadataArrayResponseResolver>;
+using ResolveUsageInfoResponseAndReturn =
+    ResolveResponseAndReturn<UsageInfoResponseResolver>;
+
 }  // namespace mozilla::dom::quota

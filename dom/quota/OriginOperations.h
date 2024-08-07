@@ -55,13 +55,13 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateClearPrivateRepositoryOp(
 RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownStorageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
-RefPtr<QuotaUsageRequestBase> CreateGetUsageOp(
-    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const UsageRequestParams& aParams);
+RefPtr<ResolvableNormalOriginOp<OriginUsageMetadataArray, true>>
+CreateGetUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                 bool aGetAll);
 
-RefPtr<QuotaUsageRequestBase> CreateGetOriginUsageOp(
+RefPtr<ResolvableNormalOriginOp<UsageInfo>> CreateGetOriginUsageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const UsageRequestParams& aParams);
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo, bool aFromMemory);
 
 RefPtr<QuotaRequestBase> CreateStorageNameOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);

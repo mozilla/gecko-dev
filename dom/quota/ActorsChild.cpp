@@ -118,10 +118,11 @@ void QuotaUsageRequestChild::AssertIsOnOwningThread() const {
 
 void QuotaUsageRequestChild::HandleResponse(nsresult aResponse) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(NS_FAILED(aResponse));
   MOZ_ASSERT(mRequest);
 
-  mRequest->SetError(aResponse);
+  if (NS_FAILED(aResponse)) {
+    mRequest->SetError(aResponse);
+  }
 }
 
 void QuotaUsageRequestChild::HandleResponse(

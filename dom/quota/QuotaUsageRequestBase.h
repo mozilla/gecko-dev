@@ -7,25 +7,17 @@
 #ifndef DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
 #define DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
 
-#include "NormalOriginOperationBase.h"
+#include "mozilla/dom/quota/BackgroundThreadObject.h"
 #include "mozilla/dom/quota/PQuotaUsageRequestParent.h"
 
 namespace mozilla::dom::quota {
 
-class UsageRequestResponse;
-
-class QuotaUsageRequestBase : public NormalOriginOperationBase,
+class QuotaUsageRequestBase : public BackgroundThreadObject,
                               public PQuotaUsageRequestParent {
  public:
+  QuotaUsageRequestBase() : mActorDestroyed(false) {}
+
   NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestBase, override)
-
- protected:
-  QuotaUsageRequestBase(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-                        const char* aName)
-      : NormalOriginOperationBase(std::move(aQuotaManager), aName),
-        mActorDestroyed(false) {}
-
-  virtual ~QuotaUsageRequestBase();
 
   void NoteActorDestroyed() {
     AssertIsOnOwningThread();
@@ -39,17 +31,19 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
     return mActorDestroyed;
   }
 
-  // Subclasses use this override to set the IPDL response value.
-  virtual void GetResponse(UsageRequestResponse& aResponse) = 0;
+  RefPtr<BoolPromise> OnCancel();
+
+  void Destroy();
 
  private:
-  void SendResults() override;
+  virtual ~QuotaUsageRequestBase();
 
   // IPDL methods.
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   mozilla::ipc::IPCResult RecvCancel() final;
 
+  MozPromiseHolder<BoolPromise> mCancelPromiseHolder;
   bool mActorDestroyed;
 };
 

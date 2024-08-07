@@ -11,6 +11,7 @@
 #include "Client.h"
 #include "QuotaManager.h"
 #include "QuotaRequests.h"
+#include "QuotaResults.h"
 
 // Global includes
 #include <cstdint>
@@ -37,6 +38,7 @@
 #include "mozilla/hal_sandbox/PHal.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsCOMPtr.h"
@@ -142,8 +144,55 @@ struct ResponseTypeTraits<BoolResponse> {
   static constexpr auto kType = BoolResponse::Tbool;
 
   static RefPtr<nsVariant> CreateVariant(const BoolResponse& aResponse) {
-    RefPtr<nsVariant> variant = new nsVariant();
+    auto variant = MakeRefPtr<nsVariant>();
     variant->SetAsBool(aResponse.get_bool());
+    return variant;
+  }
+};
+
+template <>
+struct ResponseTypeTraits<OriginUsageMetadataArrayResponse> {
+  static constexpr auto kType =
+      OriginUsageMetadataArrayResponse::TOriginUsageMetadataArray;
+
+  static RefPtr<nsVariant> CreateVariant(
+      const OriginUsageMetadataArrayResponse& aResponse) {
+    const OriginUsageMetadataArray& originUsages =
+        aResponse.get_OriginUsageMetadataArray();
+
+    auto variant = MakeRefPtr<nsVariant>();
+
+    if (originUsages.IsEmpty()) {
+      variant->SetAsEmptyArray();
+    } else {
+      nsTArray<RefPtr<UsageResult>> usageResults(originUsages.Length());
+
+      for (const auto& originUsage : originUsages) {
+        usageResults.AppendElement(MakeRefPtr<UsageResult>(
+            originUsage.mOrigin, originUsage.mPersisted, originUsage.mUsage,
+            originUsage.mLastAccessTime));
+      }
+
+      variant->SetAsArray(
+          nsIDataType::VTYPE_INTERFACE_IS, &NS_GET_IID(nsIQuotaUsageResult),
+          usageResults.Length(), static_cast<void*>(usageResults.Elements()));
+    }
+
+    return variant;
+  }
+};
+
+template <>
+struct ResponseTypeTraits<UsageInfoResponse> {
+  static constexpr auto kType = UsageInfoResponse::TUsageInfo;
+
+  static RefPtr<nsVariant> CreateVariant(const UsageInfoResponse& aResponse) {
+    RefPtr<OriginUsageResult> result =
+        new OriginUsageResult(aResponse.get_UsageInfo());
+
+    auto variant = MakeRefPtr<nsVariant>();
+    variant->SetAsInterface(NS_GET_IID(nsIQuotaOriginUsageResult), result);
+
     return variant;
   }
 };
@@ -186,6 +235,13 @@ class ResponsePromiseResolveOrRejectCallback {
 using BoolResponsePromiseResolveOrRejectCallback =
     ResponsePromiseResolveOrRejectCallback<Request, BoolResponsePromise,
                                            BoolResponse>;
+using OriginUsageMetadataArrayResponsePromiseResolveOrRejectCallback =
+    ResponsePromiseResolveOrRejectCallback<
+        UsageRequest, OriginUsageMetadataArrayResponsePromise,
+        OriginUsageMetadataArrayResponse>;
+using UsageInfoResponsePromiseResolveOrRejectCallback =
+    ResponsePromiseResolveOrRejectCallback<
+        UsageRequest, UsageInfoResponsePromise, UsageInfoResponse>;
 
 }  // namespace
 
@@ -807,18 +863,23 @@ QuotaManagerService::GetUsage(nsIQuotaUsageCallback* aCallback, bool aGetAll,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aCallback);
 
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
   RefPtr<UsageRequest> request = new UsageRequest(aCallback);
 
-  AllUsageParams params;
+  RefPtr<QuotaUsageRequestChild> usageRequestChild =
+      new QuotaUsageRequestChild(request);
 
-  params.getAll() = aGetAll;
+  ManagedEndpoint<PQuotaUsageRequestParent> usageRequestParentEndpoint =
+      mBackgroundActor->OpenPQuotaUsageRequestEndpoint(usageRequestChild);
+  QM_TRY(MOZ_TO_RESULT(usageRequestParentEndpoint.IsValid()));
 
-  UsageRequestInfo info(request, params);
+  mBackgroundActor->SendGetUsage(aGetAll, std::move(usageRequestParentEndpoint))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             OriginUsageMetadataArrayResponsePromiseResolveOrRejectCallback(
+                 request));
 
-  nsresult rv = InitiateRequest(info);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  request->SetBackgroundActor(usageRequestChild);
 
   request.forget(_retval);
   return NS_OK;
@@ -833,24 +894,37 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCallback);
 
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  QM_TRY_INSPECT(
+      const auto& principalInfo,
+      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+        PrincipalInfo principalInfo;
+        QM_TRY(MOZ_TO_RESULT(
+            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+
+        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
+               Err(NS_ERROR_INVALID_ARG));
+
+        return principalInfo;
+      }()));
+
   RefPtr<UsageRequest> request = new UsageRequest(aPrincipal, aCallback);
 
-  OriginUsageParams params;
+  RefPtr<QuotaUsageRequestChild> usageRequestChild =
+      new QuotaUsageRequestChild(request);
 
-  nsresult rv =
-      CheckedPrincipalToPrincipalInfo(aPrincipal, params.principalInfo());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  ManagedEndpoint<PQuotaUsageRequestParent> usageRequestParentEndpoint =
+      mBackgroundActor->OpenPQuotaUsageRequestEndpoint(usageRequestChild);
+  QM_TRY(MOZ_TO_RESULT(usageRequestParentEndpoint.IsValid()));
 
-  params.fromMemory() = aFromMemory;
+  mBackgroundActor
+      ->SendGetOriginUsage(principalInfo, aFromMemory,
+                           std::move(usageRequestParentEndpoint))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             UsageInfoResponsePromiseResolveOrRejectCallback(request));
 
-  UsageRequestInfo info(request, params);
-
-  rv = InitiateRequest(info);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  request->SetBackgroundActor(usageRequestChild);
 
   request.forget(_retval);
   return NS_OK;

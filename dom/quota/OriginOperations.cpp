@@ -59,7 +59,6 @@
 #include "OriginInfo.h"
 #include "OriginOperationBase.h"
 #include "QuotaRequestBase.h"
-#include "QuotaUsageRequestBase.h"
 #include "ResolvableNormalOriginOp.h"
 #include "prthread.h"
 #include "prtime.h"
@@ -227,7 +226,8 @@ class OriginUsageHelper : public CancelableHelper {
 };
 
 class GetUsageOp final
-    : public OpenStorageDirectoryHelper<QuotaUsageRequestBase>,
+    : public OpenStorageDirectoryHelper<
+          ResolvableNormalOriginOp<OriginUsageMetadataArray, true>>,
       public TraverseRepositoryHelper,
       public OriginUsageHelper {
   OriginUsageMetadataArray mOriginUsages;
@@ -236,8 +236,7 @@ class GetUsageOp final
   bool mGetAll;
 
  public:
-  GetUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-             const UsageRequestParams& aParams);
+  GetUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager, bool aGetAll);
 
  private:
   ~GetUsageOp() = default;
@@ -258,22 +257,22 @@ class GetUsageOp final
                          const bool aPersistent,
                          const PersistenceType aPersistenceType) override;
 
-  void GetResponse(UsageRequestResponse& aResponse) override;
+  OriginUsageMetadataArray GetResolveValue() override;
 
   void CloseDirectory() override;
 };
 
 class GetOriginUsageOp final
-    : public OpenStorageDirectoryHelper<QuotaUsageRequestBase>,
+    : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<UsageInfo>>,
       public OriginUsageHelper {
-  const OriginUsageParams mParams;
+  const PrincipalInfo mPrincipalInfo;
   PrincipalMetadata mPrincipalMetadata;
   UsageInfo mUsageInfo;
   bool mFromMemory;
 
  public:
   GetOriginUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-                   const UsageRequestParams& aParams);
+                   const PrincipalInfo& aPrincipalInfo, bool aFromMemory);
 
  private:
   ~GetOriginUsageOp() = default;
@@ -286,7 +285,7 @@ class GetOriginUsageOp final
 
   const Atomic<bool>& GetIsCanceledFlag() override;
 
-  void GetResponse(UsageRequestResponse& aResponse) override;
+  UsageInfo GetResolveValue() override;
 
   void CloseDirectory() override;
 };
@@ -783,16 +782,17 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownStorageOp(
   return MakeRefPtr<ShutdownStorageOp>(std::move(aQuotaManager));
 }
 
-RefPtr<QuotaUsageRequestBase> CreateGetUsageOp(
-    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const UsageRequestParams& aParams) {
-  return MakeRefPtr<GetUsageOp>(std::move(aQuotaManager), aParams);
+RefPtr<ResolvableNormalOriginOp<OriginUsageMetadataArray, true>>
+CreateGetUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                 bool aGetAll) {
+  return MakeRefPtr<GetUsageOp>(std::move(aQuotaManager), aGetAll);
 }
 
-RefPtr<QuotaUsageRequestBase> CreateGetOriginUsageOp(
+RefPtr<ResolvableNormalOriginOp<UsageInfo>> CreateGetOriginUsageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const UsageRequestParams& aParams) {
-  return MakeRefPtr<GetOriginUsageOp>(std::move(aQuotaManager), aParams);
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo, bool aFromMemory) {
+  return MakeRefPtr<GetOriginUsageOp>(std::move(aQuotaManager), aPrincipalInfo,
+                                      aFromMemory);
 }
 
 RefPtr<QuotaRequestBase> CreateStorageNameOp(
@@ -1263,12 +1263,11 @@ Result<UsageInfo, nsresult> OriginUsageHelper::GetUsageForOriginEntries(
 }
 
 GetUsageOp::GetUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-                       const UsageRequestParams& aParams)
+                       bool aGetAll)
     : OpenStorageDirectoryHelper(std::move(aQuotaManager),
                                  "dom::quota::GetUsageOp"),
-      mGetAll(aParams.get_AllUsageParams().getAll()) {
+      mGetAll(aGetAll) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aParams.type() == UsageRequestParams::TAllUsageParams);
 }
 
 void GetUsageOp::ProcessOriginInternal(QuotaManager* aQuotaManager,
@@ -1400,12 +1399,10 @@ nsresult GetUsageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   return NS_OK;
 }
 
-void GetUsageOp::GetResponse(UsageRequestResponse& aResponse) {
+OriginUsageMetadataArray GetUsageOp::GetResolveValue() {
   AssertIsOnOwningThread();
 
-  aResponse = AllUsageResponse();
-
-  aResponse.get_AllUsageResponse().originUsages() = std::move(mOriginUsages);
+  return std::move(mOriginUsages);
 }
 
 void GetUsageOp::CloseDirectory() {
@@ -1416,15 +1413,12 @@ void GetUsageOp::CloseDirectory() {
 
 GetOriginUsageOp::GetOriginUsageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const UsageRequestParams& aParams)
+    const PrincipalInfo& aPrincipalInfo, bool aFromMemory)
     : OpenStorageDirectoryHelper(std::move(aQuotaManager),
                                  "dom::quota::GetOriginUsageOp"),
-      mParams(aParams.get_OriginUsageParams()) {
+      mPrincipalInfo(aPrincipalInfo),
+      mFromMemory(aFromMemory) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aParams.type() == UsageRequestParams::TOriginUsageParams);
-
-  // Overwrite GetOriginUsageOp default values.
-  mFromMemory = mParams.fromMemory();
 }
 
 nsresult GetOriginUsageOp::DoInit(QuotaManager& aQuotaManager) {
@@ -1432,7 +1426,7 @@ nsresult GetOriginUsageOp::DoInit(QuotaManager& aQuotaManager) {
 
   QM_TRY_UNWRAP(
       mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mParams.principalInfo()));
+      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -1493,14 +1487,10 @@ nsresult GetOriginUsageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   return NS_OK;
 }
 
-void GetOriginUsageOp::GetResponse(UsageRequestResponse& aResponse) {
+UsageInfo GetOriginUsageOp::GetResolveValue() {
   AssertIsOnOwningThread();
 
-  OriginUsageResponse usageResponse;
-
-  usageResponse.usageInfo() = mUsageInfo;
-
-  aResponse = usageResponse;
+  return mUsageInfo;
 }
 
 void GetOriginUsageOp::CloseDirectory() {

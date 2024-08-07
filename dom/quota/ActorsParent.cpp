@@ -5683,6 +5683,66 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
       "dom::quota::FirstInitializationAttempt::TemporaryStorage"_ns, innerFunc);
 }
 
+RefPtr<OriginUsageMetadataArrayPromise> QuotaManager::GetUsage(
+    bool aGetAll, RefPtr<BoolPromise> aOnCancelPromise) {
+  AssertIsOnOwningThread();
+
+  auto getUsageOp = CreateGetUsageOp(WrapMovingNotNullUnchecked(this), aGetAll);
+
+  RegisterNormalOriginOp(*getUsageOp);
+
+  getUsageOp->RunImmediately();
+
+  if (aOnCancelPromise) {
+    RefPtr<BoolPromise> onCancelPromise = std::move(aOnCancelPromise);
+
+    onCancelPromise->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [getUsageOp](const BoolPromise::ResolveOrRejectValue& aValue) {
+          if (aValue.IsReject()) {
+            return;
+          }
+
+          if (getUsageOp->Cancel()) {
+            NS_WARNING("Canceled more than once?!");
+          }
+        });
+  }
+
+  return getUsageOp->OnResults();
+}
+
+RefPtr<UsageInfoPromise> QuotaManager::GetOriginUsage(
+    const PrincipalInfo& aPrincipalInfo, bool aFromMemory,
+    RefPtr<BoolPromise> aOnCancelPromise) {
+  AssertIsOnOwningThread();
+
+  auto getOriginUsageOp = CreateGetOriginUsageOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo, aFromMemory);
+
+  RegisterNormalOriginOp(*getOriginUsageOp);
+
+  getOriginUsageOp->RunImmediately();
+
+  if (aOnCancelPromise) {
+    RefPtr<BoolPromise> onCancelPromise = std::move(aOnCancelPromise);
+
+    onCancelPromise->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [getOriginUsageOp](const BoolPromise::ResolveOrRejectValue& aValue) {
+          if (aValue.IsReject()) {
+            return;
+          }
+
+          if (getOriginUsageOp->Cancel()) {
+            NS_WARNING("Canceled more than once?!");
+          }
+        });
+  }
+
+  return getOriginUsageOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
     const Maybe<PersistenceType>& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo,

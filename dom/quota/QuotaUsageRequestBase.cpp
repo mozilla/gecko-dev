@@ -7,7 +7,6 @@
 #include "QuotaUsageRequestBase.h"
 
 #include "mozilla/dom/quota/PQuotaRequest.h"
-#include "mozilla/dom/quota/QuotaManager.h"
 
 namespace mozilla::dom::quota {
 
@@ -16,28 +15,17 @@ QuotaUsageRequestBase::~QuotaUsageRequestBase() {
   MOZ_ASSERT(mActorDestroyed);
 }
 
-void QuotaUsageRequestBase::SendResults() {
+RefPtr<BoolPromise> QuotaUsageRequestBase::OnCancel() {
   AssertIsOnOwningThread();
 
-  if (IsActorDestroyed()) {
-    if (NS_SUCCEEDED(mResultCode)) {
-      mResultCode = NS_ERROR_FAILURE;
-    }
-  } else {
-    if (Canceled()) {
-      mResultCode = NS_ERROR_FAILURE;
-    }
+  return mCancelPromiseHolder.Ensure(__func__);
+}
 
-    UsageRequestResponse response;
+void QuotaUsageRequestBase::Destroy() {
+  AssertIsOnOwningThread();
 
-    if (NS_SUCCEEDED(mResultCode)) {
-      GetResponse(response);
-    } else {
-      response = mResultCode;
-    }
-
-    Unused << PQuotaUsageRequestParent::Send__delete__(this,
-                                                       std::move(response));
+  if (!IsActorDestroyed()) {
+    (void)PQuotaUsageRequestParent::Send__delete__(this, NS_OK);
   }
 }
 
@@ -45,15 +33,14 @@ void QuotaUsageRequestBase::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsOnOwningThread();
 
   NoteActorDestroyed();
+
+  mCancelPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);
 }
 
 mozilla::ipc::IPCResult QuotaUsageRequestBase::RecvCancel() {
   AssertIsOnOwningThread();
 
-  if (Cancel()) {
-    NS_WARNING("Canceled more than once?!");
-    return IPC_FAIL(this, "Request canceled more than once");
-  }
+  mCancelPromiseHolder.ResolveIfExists(true, __func__);
 
   return IPC_OK();
 }
