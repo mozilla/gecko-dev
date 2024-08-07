@@ -39,6 +39,7 @@ add_task(async function test() {
           initialValue: true,
           newValue: false,
           expectedValue: false,
+          listenForUpdate: true,
         },
         pdfBugEnabled: {
           type: "Bool",
@@ -46,6 +47,7 @@ add_task(async function test() {
           newValue: true,
           // pdfBugEnabled is immutable.
           expectedValue: false,
+          listenForUpdate: false,
         },
       };
 
@@ -53,12 +55,27 @@ add_task(async function test() {
         Services.prefs.clearUserPref(`pdfjs.${pref}`);
       }
 
-      for (const [pref, { type, initialValue }] of Object.entries(prefs)) {
+      const promises = [];
+      for (const [
+        pref,
+        { type, initialValue, listenForUpdate },
+      ] of Object.entries(prefs)) {
         Assert.strictEqual(
           Services.prefs[`get${type}Pref`](`pdfjs.${pref}`),
           initialValue,
           `pdfjs.${pref} should be ${initialValue}`
         );
+        if (listenForUpdate) {
+          promises.push(
+            BrowserTestUtils.waitForContentEvent(
+              browser,
+              "updatedPreference",
+              false,
+              null,
+              true
+            )
+          );
+        }
       }
 
       await SpecialPowers.spawn(browser, [prefs], async prfs => {
@@ -67,6 +84,8 @@ add_task(async function test() {
           await viewer.preferences.set(pref, newValue);
         }
       });
+
+      await Promise.all(promises);
 
       for (const [pref, { type, expectedValue }] of Object.entries(prefs)) {
         Assert.strictEqual(

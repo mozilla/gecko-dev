@@ -19,12 +19,12 @@ const PDF_VIEWER_WEB_PAGE = "resource://pdf.js/web/viewer.html";
 const MAX_NUMBER_OF_PREFS = 50;
 const PDF_CONTENT_TYPE = "application/pdf";
 
-// Preferences to observe
-const caretBrowsingModePref = "accessibility.browsewithcaret";
-const toolbarDensityPref = "browser.uidensity";
-
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
+// Non-pdfjs preferences to get when the viewer is created and to observe.
+const toolbarDensityPref = "browser.uidensity";
+const caretBrowsingModePref = "accessibility.browsewithcaret";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -185,17 +185,37 @@ PdfDataListener.prototype = {
 class PrefObserver {
   #domWindow;
 
+  #prefs = new Map([
+    [
+      caretBrowsingModePref,
+      {
+        name: "supportsCaretBrowsingMode",
+        type: "bool",
+      },
+    ],
+  ]);
+
   constructor(domWindow, isMobile) {
     this.#domWindow = domWindow;
     this.#init(isMobile);
   }
 
   #init(isMobile) {
-    const prefs = [caretBrowsingModePref];
     if (!isMobile) {
-      prefs.push(toolbarDensityPref);
+      this.#prefs.set(toolbarDensityPref, {
+        name: "toolbarDensity",
+        type: "int",
+      });
+      this.#prefs.set("pdfjs.enableGuessAltText", {
+        name: "enableGuessAltText",
+        type: "bool",
+      });
+      this.#prefs.set("pdfjs.enableAltTextModelDownload", {
+        name: "enableAltTextModelDownload",
+        type: "bool",
+      });
     }
-    for (const pref of prefs) {
+    for (const pref of this.#prefs.keys()) {
       Services.prefs.addObserver(pref, this, /* aHoldWeak = */ true);
     }
   }
@@ -209,22 +229,25 @@ class PrefObserver {
     if (!actor) {
       return;
     }
-    const eventName = "updatedPreference";
-    switch (aPrefName) {
-      case caretBrowsingModePref:
-        actor.dispatchEvent(eventName, {
-          name: "supportsCaretBrowsingMode",
-          value: Services.prefs.getBoolPref(caretBrowsingModePref),
-        });
+    const { name, type } = this.#prefs.get(aPrefName) || {};
+    if (!name) {
+      return;
+    }
+    let value;
+    switch (type) {
+      case "bool": {
+        value = Services.prefs.getBoolPref(aPrefName);
         break;
-      case toolbarDensityPref: {
-        actor.dispatchEvent(eventName, {
-          name: "toolbarDensity",
-          value: Services.prefs.getIntPref(toolbarDensityPref),
-        });
+      }
+      case "int": {
+        value = Services.prefs.getIntPref(aPrefName);
         break;
       }
     }
+    actor.dispatchEvent("updatedPreference", {
+      name,
+      value,
+    });
   }
 
   QueryInterface = ChromeUtils.generateQI([Ci.nsISupportsWeakReference]);
