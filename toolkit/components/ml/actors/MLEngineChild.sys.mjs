@@ -98,7 +98,7 @@ export class MLEngineChild extends JSWindowActorChild {
 
         this.#engineDispatchers.set(
           options.engineId,
-          new EngineDispatcher(this, port, options)
+          await EngineDispatcher.initialize(this, port, options)
         );
         break;
       }
@@ -241,6 +241,8 @@ class EngineDispatcher {
   }
 
   /**
+   * Private Constructor for an Engine Dispatcher.
+   *
    * @param {MLEngineChild} mlEngineChild
    * @param {MessagePort} port
    * @param {PipelineOptions} pipelineOptions
@@ -271,6 +273,23 @@ class EngineDispatcher {
       });
 
     this.#setupMessageHandler(port);
+  }
+
+  /**
+   * Initialize an Engine Dispatcher
+   *
+   * @param {MLEngineChild} mlEngineChild
+   * @param {MessagePort} port
+   * @param {PipelineOptions} pipelineOptions
+   */
+  static async initialize(mlEngineChild, port, pipelineOptions) {
+    const dispatcher = new EngineDispatcher(
+      mlEngineChild,
+      port,
+      pipelineOptions
+    );
+
+    return dispatcher;
   }
 
   handleInitProgressStatus(port, notificationsData) {

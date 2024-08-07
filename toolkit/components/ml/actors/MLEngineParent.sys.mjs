@@ -143,7 +143,7 @@ export class MLEngineParent extends JSWindowActorParent {
       }
 
       lazy.console.debug("Creating a new engine");
-      const engine = new MLEngine({
+      const engine = await MLEngine.initialize({
         mlEngineParent: this,
         pipelineOptions,
         notificationsCallback,
@@ -494,10 +494,12 @@ class MLEngine {
   }
 
   /**
+   * Private constructor for an ML Engine.
+   *
    * @param {object} config - The configuration object for the instance.
    * @param {object} config.mlEngineParent - The parent machine learning engine associated with this instance.
    * @param {object} config.pipelineOptions - The options for configuring the pipeline associated with this instance.
-   * @param {?function(ProgressAndStatshutdownusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
    */
   constructor({ mlEngineParent, pipelineOptions, notificationsCallback }) {
     const engineId = pipelineOptions.engineId;
@@ -509,8 +511,30 @@ class MLEngine {
     this.mlEngineParent = mlEngineParent;
     this.pipelineOptions = pipelineOptions;
     this.notificationsCallback = notificationsCallback;
-    this.#setupPortCommunication();
-    this.setEngineStatus("ready");
+  }
+
+  /**
+   * Initialize the MLEngine.
+   *
+   * @param {object} config - The configuration object for the instance.
+   * @param {object} config.mlEngineParent - The parent machine learning engine associated with this instance.
+   * @param {object} config.pipelineOptions - The options for configuring the pipeline associated with this instance.
+   * @param {?function(ProgressAndStatusCallbackParams):void} config.notificationsCallback - The initialization progress callback function to call.
+   */
+  static async initialize({
+    mlEngineParent,
+    pipelineOptions,
+    notificationsCallback,
+  }) {
+    const mlEngine = new MLEngine({
+      mlEngineParent,
+      pipelineOptions,
+      notificationsCallback,
+    });
+
+    mlEngine.setupPortCommunication();
+
+    return mlEngine;
   }
 
   /**
@@ -568,7 +592,7 @@ class MLEngine {
   /**
    * Create a MessageChannel to communicate with the engine directly.
    */
-  #setupPortCommunication() {
+  setupPortCommunication() {
     const { port1: childPort, port2: parentPort } = new MessageChannel();
     const transferables = [childPort];
     this.#port = parentPort;
@@ -581,6 +605,8 @@ class MLEngine {
       },
       transferables
     );
+
+    this.setEngineStatus("ready");
   }
 
   /**

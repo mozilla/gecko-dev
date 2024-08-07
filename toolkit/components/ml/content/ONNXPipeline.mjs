@@ -332,19 +332,9 @@ export class Pipeline {
   }
 
   /**
-   * Runs the pipeline with the given request.
-   *
-   * @async
-   * @param {T} request - The request object to be processed. The fields it may contain
-   * depends on the task. See each pipeline function for more details.
-   * When the pipeline is initialized with the generic pipeline function, the request contains
-   * `args` and `options` fields. The `args` field is an array of values that are passed
-   * to the generic pipeline function. The `options` field is an object that contains the options for the pipeline.
-   * @returns {Promise<object>} The result object from the pipeline execution.
+   * Ensure all promises are resolved to complete file downloads and model initialization in memory.
    */
-  async run(request) {
-    lazy.console.debug("Running task: ", this.#config.taskName);
-    // Calling all promises to ensure they are resolved before running the first pipeline
+  async ensurePipelineIsReady() {
     if (!this.#isReady) {
       let start = Date.now();
 
@@ -380,6 +370,22 @@ export class Pipeline {
         this.#initTime
       );
     }
+  }
+
+  /**
+   * Runs the pipeline with the given request.
+   *
+   * @async
+   * @param {T} request - The request object to be processed. The fields it may contain
+   * depends on the task. See each pipeline function for more details.
+   * When the pipeline is initialized with the generic pipeline function, the request contains
+   * `args` and `options` fields. The `args` field is an array of values that are passed
+   * to the generic pipeline function. The `options` field is an object that contains the options for the pipeline.
+   * @returns {Promise<object>} The result object from the pipeline execution.
+   */
+  async run(request) {
+    lazy.console.debug("Running task: ", this.#config.taskName);
+    await this.ensurePipelineIsReady();
     let result;
 
     if (this.#genericPipelineFunction) {
