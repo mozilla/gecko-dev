@@ -24,6 +24,7 @@ import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import android.provider.ContactsContract
 import android.view.accessibility.AccessibilityManager
@@ -331,6 +332,18 @@ inline fun Context.runOnlyInMainProcess(block: () -> Unit) {
 @ColorInt
 fun Context.getColorFromAttr(@AttrRes attr: Int) =
     ContextCompat.getColor(this, theme.resolveAttribute(attr))
+
+/**
+ * Returns the color int corresponding to the Android statusBarColor attribute.
+ */
+@ColorInt
+fun Context.getStatusBarColor() =
+    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        @Suppress("DEPRECATION")
+        ContextCompat.getColor(this, theme.resolveAttribute(android.R.attr.statusBarColor))
+    } else {
+        null
+    }
 
 /**
  * Returns a tinted drawable for the given resource ID.
