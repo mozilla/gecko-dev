@@ -30,6 +30,14 @@ LOCAL_INCLUDES += [
     "/tools/profiler/public"
 ]
 
+UNIFIED_SOURCES += [
+    "/third_party/libwebrtc/rtc_base/openssl_adapter.cc",
+    "/third_party/libwebrtc/rtc_base/openssl_session_cache.cc",
+    "/third_party/libwebrtc/rtc_base/openssl_stream_adapter.cc",
+    "/third_party/libwebrtc/rtc_base/ssl_adapter.cc",
+    "/third_party/libwebrtc/rtc_base/ssl_stream_adapter.cc"
+]
+
 if not CONFIG["MOZ_DEBUG"]:
 
     DEFINES["DYNAMIC_ANNOTATIONS_ENABLED"] = "0"
@@ -53,6 +61,11 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["_GNU_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
+
+    OS_LIBS += [
+        "GLESv2",
+        "log"
+    ]
 
 if CONFIG["OS_TARGET"] == "Darwin":
 
@@ -78,6 +91,10 @@ if CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_LARGEFILE_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
+
+    OS_LIBS += [
+        "rt"
+    ]
 
 if CONFIG["OS_TARGET"] == "OpenBSD":
 
@@ -120,12 +137,23 @@ if CONFIG["OS_TARGET"] == "WINNT":
     DEFINES["_WINDOWS"] = True
     DEFINES["__STD_C"] = True
 
+    OS_LIBS += [
+        "crypt32",
+        "iphlpapi",
+        "secur32",
+        "winmm"
+    ]
+
 if CONFIG["TARGET_CPU"] == "aarch64":
 
     DEFINES["WEBRTC_ARCH_ARM64"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
 
 if CONFIG["TARGET_CPU"] == "arm":
+
+    CXXFLAGS += [
+        "-mfpu=neon"
+    ]
 
     DEFINES["WEBRTC_ARCH_ARM"] = True
     DEFINES["WEBRTC_ARCH_ARM_V7"] = True
@@ -179,6 +207,12 @@ if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "arm":
         "unwind"
     ]
 
+if CONFIG["OS_TARGET"] == "Android" and CONFIG["TARGET_CPU"] == "x86":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
+
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "aarch64":
 
     DEFINES["_GNU_SOURCE"] = True
@@ -188,6 +222,10 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "arm":
     DEFINES["_GNU_SOURCE"] = True
 
 if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86":
+
+    CXXFLAGS += [
+        "-msse2"
+    ]
 
     DEFINES["_GNU_SOURCE"] = True
 

@@ -31,7 +31,7 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/call/rtp_bitrate_configurator.cc"
+    "/third_party/libwebrtc/rtc_base/async_socket.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
@@ -87,10 +87,6 @@ if CONFIG["OS_TARGET"] == "Linux":
     DEFINES["_LARGEFILE_SOURCE"] = True
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
-
-    OS_LIBS += [
-        "rt"
-    ]
 
 if CONFIG["OS_TARGET"] == "OpenBSD":
 
@@ -229,4 +225,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("bitrate_configurator_gn")
+Library("async_socket_gn")
