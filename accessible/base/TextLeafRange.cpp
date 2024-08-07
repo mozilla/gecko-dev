@@ -226,7 +226,8 @@ static bool AreFramesOnDifferentLines(nsIFrame* aFrame1, nsIFrame* aFrame2) {
     }
     found = false;
     nsBlockInFlowLineIterator it2(block, lineFrame2, &found);
-    return !found || it1.GetLine() != it2.GetLine();
+    return !found || it1.GetLineList() != it2.GetLineList() ||
+           it1.GetLine() != it2.GetLine();
   }
   AutoAssertNoDomMutations guard;
   nsILineIterator* it = block1->GetLineIterator();
