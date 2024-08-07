@@ -65,7 +65,7 @@ class UtilityProcessManager final : public UtilityProcessHost::Listener {
                                          SandboxingKind aSandbox);
 
   RefPtr<StartRemoteDecodingUtilityPromise> StartProcessForRemoteMediaDecoding(
-      base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
+      EndpointProcInfo aOtherProcess, dom::ContentParentId aChildId,
       SandboxingKind aSandbox);
 
   RefPtr<JSOraclePromise> StartJSOracle(mozilla::dom::JSOracleParent* aParent);

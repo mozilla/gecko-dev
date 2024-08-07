@@ -16,10 +16,10 @@ namespace gfx {
 
 using namespace ipc;
 
-VRGPUParent::VRGPUParent(ProcessId aChildProcessId) : mClosed(false) {
+VRGPUParent::VRGPUParent(EndpointProcInfo aChildProcess) : mClosed(false) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  SetOtherProcessId(aChildProcessId);
+  SetOtherEndpointProcInfo(aChildProcess);
 }
 
 VRGPUParent::~VRGPUParent() = default;
@@ -42,7 +42,7 @@ RefPtr<VRGPUParent> VRGPUParent::CreateForGPU(
     return nullptr;
   }
 
-  RefPtr<VRGPUParent> vcp = new VRGPUParent(aEndpoint.OtherPid());
+  RefPtr<VRGPUParent> vcp = new VRGPUParent(aEndpoint.OtherEndpointProcInfo());
   GetCurrentSerialEventTarget()->Dispatch(
       NewRunnableMethod<Endpoint<PVRGPUParent>&&>("gfx::VRGPUParent::Bind", vcp,
                                                   &VRGPUParent::Bind,

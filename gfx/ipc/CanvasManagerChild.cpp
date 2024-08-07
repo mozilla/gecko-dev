@@ -112,13 +112,15 @@ void CanvasManagerChild::Destroy() {
   ipc::Endpoint<PCanvasManagerParent> parentEndpoint;
   ipc::Endpoint<PCanvasManagerChild> childEndpoint;
 
-  auto compositorPid = CompositorManagerChild::GetOtherPid();
-  if (NS_WARN_IF(!compositorPid)) {
+  ipc::EndpointProcInfo compositorInfo =
+      CompositorManagerChild::GetCompositorProcInfo();
+  if (NS_WARN_IF(compositorInfo == ipc::EndpointProcInfo::Invalid())) {
     return nullptr;
   }
 
   nsresult rv = PCanvasManager::CreateEndpoints(
-      compositorPid, base::GetCurrentProcId(), &parentEndpoint, &childEndpoint);
+      compositorInfo, ipc::EndpointProcInfo::Current(), &parentEndpoint,
+      &childEndpoint);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }

@@ -1410,8 +1410,7 @@ the way it sounds.  For example:
     bool MyPreexistingActorParent::MakeMyActor() {
         Endpoint<PMyActorParent> parentEnd;
         Endpoint<PMyActorChild> childEnd;
-        if (NS_WARN_IF(NS_FAILED(PMyActor::CreateEndpoints(
-              base::GetCurrentProcId(), OtherPid(), &parentEnd, &childEnd)))) {
+        if (NS_WARN_IF(NS_FAILED(PMyActor::CreateEndpoints(&parentEnd, &childEnd)))) {
             // ... handle failure ...
             return false;
         }

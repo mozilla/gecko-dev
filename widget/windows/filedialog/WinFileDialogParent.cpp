@@ -32,9 +32,9 @@ PWinFileDialogParent::nsresult WinFileDialogParent::BindToUtilityProcess(
     mozilla::ipc::UtilityProcessParent* aUtilityParent) {
   Endpoint<PWinFileDialogParent> parentEnd;
   Endpoint<PWinFileDialogChild> childEnd;
-  nsresult rv = PWinFileDialog::CreateEndpoints(base::GetCurrentProcId(),
-                                                aUtilityParent->OtherPid(),
-                                                &parentEnd, &childEnd);
+  nsresult rv = PWinFileDialog::CreateEndpoints(
+      mozilla::ipc::EndpointProcInfo::Current(),
+      aUtilityParent->OtherEndpointProcInfo(), &parentEnd, &childEnd);
 
   if (NS_FAILED(rv)) {
     MOZ_ASSERT(false, "Protocol endpoints failure");

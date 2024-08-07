@@ -6,6 +6,7 @@
 include protocol PGMPContent;
 include GMPTypes;
 
+// FIXME: Should use GeckoChildID over ProcessId to identify processes.
 using base::ProcessId from "base/process.h";
 using GMPPluginType from "GMPNativeTypes.h";
 

@@ -134,7 +134,8 @@ void ProcessChild::QuickExit() {
 UntypedEndpoint ProcessChild::TakeInitialEndpoint() {
   return UntypedEndpoint{PrivateIPDLInterface{},
                          child_thread()->TakeInitialPort(), mMessageChannelId,
-                         base::GetCurrentProcId(), mParentPid};
+                         EndpointProcInfo::Current(),
+                         EndpointProcInfo{.mPid = mParentPid, .mChildID = 0}};
 }
 
 }  // namespace ipc

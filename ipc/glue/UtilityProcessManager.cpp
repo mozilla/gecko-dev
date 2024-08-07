@@ -319,7 +319,7 @@ UtilityProcessManager::StartUtility(RefPtr<Actor> aActor,
 
 RefPtr<UtilityProcessManager::StartRemoteDecodingUtilityPromise>
 UtilityProcessManager::StartProcessForRemoteMediaDecoding(
-    base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
+    EndpointProcInfo aOtherProcess, dom::ContentParentId aChildId,
     SandboxingKind aSandbox) {
   using RetPromise = StartRemoteDecodingUtilityPromise;
 
@@ -363,7 +363,7 @@ UtilityProcessManager::StartProcessForRemoteMediaDecoding(
                   LaunchError("Start...MediaDecoding: child lost"), __func__);
             }
 
-            base::ProcessId process = parent->OtherPid();
+            EndpointProcInfo process = parent->OtherEndpointProcInfo();
 
             Endpoint<PRemoteDecoderManagerChild> childPipe;
             Endpoint<PRemoteDecoderManagerParent> parentPipe;

@@ -61,7 +61,7 @@ nsresult UtilityAudioDecoderChild::BindToUtilityProcess(
   Endpoint<PUtilityAudioDecoderChild> utilityAudioDecoderChildEnd;
   Endpoint<PUtilityAudioDecoderParent> utilityAudioDecoderParentEnd;
   nsresult rv = PUtilityAudioDecoder::CreateEndpoints(
-      aUtilityParent->OtherPid(), base::GetCurrentProcId(),
+      aUtilityParent->OtherEndpointProcInfo(), EndpointProcInfo::Current(),
       &utilityAudioDecoderParentEnd, &utilityAudioDecoderChildEnd);
 
   if (NS_FAILED(rv)) {
@@ -183,18 +183,18 @@ bool UtilityAudioDecoderChild::CreateVideoBridge() {
 
   // The child end is the producer of video frames; the parent end is the
   // consumer.
-  base::ProcessId childPid = UtilityProcessManager::GetSingleton()
-                                 ->GetProcessParent(mSandbox)
-                                 ->OtherPid();
-  base::ProcessId parentPid = gpuManager->GPUProcessPid();
-  if (parentPid == base::kInvalidProcessId) {
+  EndpointProcInfo childInfo = UtilityProcessManager::GetSingleton()
+                                   ->GetProcessParent(mSandbox)
+                                   ->OtherEndpointProcInfo();
+  EndpointProcInfo parentInfo = gpuManager->GPUEndpointProcInfo();
+  if (parentInfo == EndpointProcInfo::Invalid()) {
     NS_WARNING("GPU process Id is invald!");
     return false;
   }
 
   ipc::Endpoint<layers::PVideoBridgeParent> parentPipe;
   ipc::Endpoint<layers::PVideoBridgeChild> childPipe;
-  nsresult rv = layers::PVideoBridge::CreateEndpoints(parentPid, childPid,
+  nsresult rv = layers::PVideoBridge::CreateEndpoints(parentInfo, childInfo,
                                                       &parentPipe, &childPipe);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to create endpoints for video bridge!");

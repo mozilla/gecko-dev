@@ -346,7 +346,8 @@ class ChildImpl final : public BackgroundChildImpl {
       Endpoint<PBackgroundStarterParent> parent;
       Endpoint<PBackgroundStarterChild> child;
       MOZ_ALWAYS_SUCCEEDS(PBackgroundStarter::CreateEndpoints(
-          aActor->OtherPid(), base::GetCurrentProcId(), &parent, &child));
+          aActor->OtherEndpointProcInfo(), EndpointProcInfo::Current(), &parent,
+          &child));
       MOZ_ALWAYS_TRUE(aActor->SendInitBackground(std::move(parent)));
 
       InitStarter(std::move(child));
@@ -355,14 +356,14 @@ class ChildImpl final : public BackgroundChildImpl {
     void InitStarter(Endpoint<PBackgroundStarterChild>&& aEndpoint) {
       AssertIsOnMainThread();
 
-      base::ProcessId otherPid = aEndpoint.OtherPid();
+      EndpointProcInfo otherProcInfo = aEndpoint.OtherEndpointProcInfo();
 
       nsCOMPtr<nsISerialEventTarget> taskQueue;
       MOZ_ALWAYS_SUCCEEDS(NS_CreateBackgroundTaskQueue(
           "PBackgroundStarter Queue", getter_AddRefs(taskQueue)));
 
       RefPtr<BackgroundStarterChild> starter =
-          new BackgroundStarterChild(otherPid, taskQueue);
+          new BackgroundStarterChild(otherProcInfo, taskQueue);
 
       taskQueue->Dispatch(NS_NewRunnableFunction(
           "PBackgroundStarterChild Init",
@@ -459,8 +460,9 @@ class ChildImpl final : public BackgroundChildImpl {
       Endpoint<PBackgroundParent> parent;
       Endpoint<PBackgroundChild> child;
       nsresult rv;
-      rv = PBackground::CreateEndpoints(
-          starter->mOtherPid, base::GetCurrentProcId(), &parent, &child);
+      rv = PBackground::CreateEndpoints(starter->mOtherProcInfo,
+                                        EndpointProcInfo::Current(), &parent,
+                                        &child);
       if (NS_FAILED(rv)) {
         NS_WARNING("Failed to create top level actor!");
         return nullptr;
@@ -1165,7 +1167,8 @@ void ChildImpl::Startup() {
     Endpoint<PBackgroundStarterParent> parent;
     Endpoint<PBackgroundStarterChild> child;
     MOZ_ALWAYS_SUCCEEDS(PBackgroundStarter::CreateEndpoints(
-        base::GetCurrentProcId(), base::GetCurrentProcId(), &parent, &child));
+        EndpointProcInfo::Current(), EndpointProcInfo::Current(), &parent,
+        &child));
 
     MOZ_ALWAYS_TRUE(ParentImpl::AllocStarter(nullptr, std::move(parent),
                                              /* aCrossProcess */ false));

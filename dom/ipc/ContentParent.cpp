@@ -1156,8 +1156,8 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateGMPService() {
   }
 
   nsresult rv;
-  rv = PGMPService::CreateEndpoints(base::GetCurrentProcId(), OtherPid(),
-                                    &parent, &child);
+  rv = PGMPService::CreateEndpoints(EndpointProcInfo::Current(),
+                                    OtherEndpointProcInfo(), &parent, &child);
   if (NS_FAILED(rv)) {
     return IPC_FAIL(this, "CreateEndpoints failed");
   }
@@ -2886,9 +2886,9 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
   Endpoint<PRemoteDecoderManagerChild> videoManager;
   AutoTArray<uint32_t, 3> namespaces;
 
-  if (!gpm->CreateContentBridges(OtherPid(), &compositor, &imageBridge,
-                                 &vrBridge, &videoManager, mChildID,
-                                 &namespaces)) {
+  if (!gpm->CreateContentBridges(OtherEndpointProcInfo(), &compositor,
+                                 &imageBridge, &vrBridge, &videoManager,
+                                 mChildID, &namespaces)) {
     // This can fail if we've already started shutting down the compositor
     // thread. See Bug 1562763 comment 8.
     MOZ_ASSERT(AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdown));
@@ -3055,9 +3055,9 @@ void ContentParent::OnCompositorUnexpectedShutdown() {
   Endpoint<PRemoteDecoderManagerChild> videoManager;
   AutoTArray<uint32_t, 3> namespaces;
 
-  if (!gpm->CreateContentBridges(OtherPid(), &compositor, &imageBridge,
-                                 &vrBridge, &videoManager, mChildID,
-                                 &namespaces)) {
+  if (!gpm->CreateContentBridges(OtherEndpointProcInfo(), &compositor,
+                                 &imageBridge, &vrBridge, &videoManager,
+                                 mChildID, &namespaces)) {
     MOZ_ASSERT(AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdown));
     return;
   }

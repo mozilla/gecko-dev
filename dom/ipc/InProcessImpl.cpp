@@ -75,7 +75,7 @@ void InProcessParent::Startup() {
     MOZ_CRASH("Failed to open InProcessChild!");
   }
 
-  parent->SetOtherProcessId(base::GetCurrentProcId());
+  parent->SetOtherEndpointProcInfo(EndpointProcInfo::Current());
 
   // Stash global references to fetch the other side of the reference.
   InProcessParent::sSingleton = std::move(parent);

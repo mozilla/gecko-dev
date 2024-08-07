@@ -1251,7 +1251,8 @@ BackgroundParentImpl::RecvEnsureRDDProcessAndCreateBridge(
     return IPC_OK();
   }
 
-  rdd->EnsureRDDProcessAndCreateBridge(OtherPid(), parent->ChildID())
+  rdd->EnsureRDDProcessAndCreateBridge(OtherEndpointProcInfo(),
+                                       parent->ChildID())
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [resolver = std::move(aResolver)](
                  mozilla::RDDProcessManager::EnsureRDDPromise::
@@ -1270,7 +1271,7 @@ mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvEnsureUtilityProcessAndCreateBridge(
     const RemoteDecodeIn& aLocation,
     EnsureUtilityProcessAndCreateBridgeResolver&& aResolver) {
-  base::ProcessId otherPid = OtherPid();
+  EndpointProcInfo otherProcInfo = OtherEndpointProcInfo();
   RefPtr<ThreadsafeContentParentHandle> parent =
       BackgroundParent::GetContentParentHandle(this);
   if (NS_WARN_IF(!parent)) {
@@ -1283,7 +1284,7 @@ BackgroundParentImpl::RecvEnsureUtilityProcessAndCreateBridge(
   }
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "BackgroundParentImpl::RecvEnsureUtilityProcessAndCreateBridge()",
-      [aResolver, managerThread, otherPid, childId, aLocation]() {
+      [aResolver, managerThread, otherProcInfo, childId, aLocation]() {
         RefPtr<UtilityProcessManager> upm =
             UtilityProcessManager::GetSingleton();
         using Type =
@@ -1299,7 +1300,8 @@ BackgroundParentImpl::RecvEnsureUtilityProcessAndCreateBridge(
               }));
         } else {
           SandboxingKind sbKind = GetSandboxingKindFromLocation(aLocation);
-          upm->StartProcessForRemoteMediaDecoding(otherPid, childId, sbKind)
+          upm->StartProcessForRemoteMediaDecoding(otherProcInfo, childId,
+                                                  sbKind)
               ->Then(managerThread, __func__,
                      [resolver = aResolver](
                          mozilla::ipc::UtilityProcessManager::

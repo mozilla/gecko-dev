@@ -104,6 +104,23 @@ namespace ipc {
 class ProtocolFdMapping;
 class ProtocolCloneContext;
 
+// Helper type used to specify process info when constructing endpoints for
+// [NeedsOtherPid] toplevel actors.
+struct EndpointProcInfo {
+  base::ProcessId mPid = base::kInvalidProcessId;
+  GeckoChildID mChildID = kInvalidGeckoChildID;
+
+  bool operator==(const EndpointProcInfo& aOther) const {
+    return mPid == aOther.mPid && mChildID == aOther.mChildID;
+  }
+  bool operator!=(const EndpointProcInfo& aOther) const {
+    return !operator==(aOther);
+  }
+
+  static EndpointProcInfo Invalid() { return {}; }
+  static EndpointProcInfo Current();
+};
+
 // Used to pass references to protocol actors across the wire.
 // Actors created on the parent-side have a positive ID, and actors
 // allocated on the child side have a negative ID.
@@ -448,12 +465,12 @@ class IToplevelProtocol : public IRefCountedProtocol {
   MessageChannel* GetIPCChannel() { return &mChannel; }
   const MessageChannel* GetIPCChannel() const { return &mChannel; }
 
-  void SetOtherProcessId(base::ProcessId aOtherPid);
+  void SetOtherEndpointProcInfo(EndpointProcInfo aOtherProcInfo);
 
   virtual void ProcessingError(Result aError, const char* aMsgName) {}
 
   bool Open(ScopedPort aPort, const nsID& aMessageChannelId,
-            base::ProcessId aOtherPid,
+            EndpointProcInfo aOtherProcInfo,
             nsISerialEventTarget* aEventTarget = nullptr);
 
   bool Open(IToplevelProtocol* aTarget, nsISerialEventTarget* aEventTarget,
@@ -537,6 +554,7 @@ class IToplevelProtocol : public IRefCountedProtocol {
   }
 
   base::ProcessId OtherPidMaybeInvalid() const { return mOtherPid; }
+  GeckoChildID OtherChildIDMaybeInvalid() const { return mOtherChildID; }
 
  private:
   int32_t NextId();
@@ -545,6 +563,7 @@ class IToplevelProtocol : public IRefCountedProtocol {
   using IDMap = nsTHashMap<nsUint32HashKey, T>;
 
   base::ProcessId mOtherPid;
+  GeckoChildID mOtherChildID;
 
   // NOTE NOTE NOTE
   // Used to be on mState

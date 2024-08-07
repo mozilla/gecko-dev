@@ -76,6 +76,21 @@ template <class PFooSide>
 struct ParamTraits<mozilla::ipc::Endpoint<PFooSide>>
     : ParamTraits<mozilla::ipc::UntypedEndpoint> {};
 
+template <>
+struct ParamTraits<mozilla::ipc::EndpointProcInfo> {
+  using paramType = mozilla::ipc::EndpointProcInfo;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    IPC::WriteParam(aWriter, aParam.mPid);
+    IPC::WriteParam(aWriter, aParam.mChildID);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    return IPC::ReadParam(aReader, &aResult->mPid) &&
+           IPC::ReadParam(aReader, &aResult->mChildID);
+  }
+};
+
 }  // namespace IPC
 
 namespace mozilla::ipc {

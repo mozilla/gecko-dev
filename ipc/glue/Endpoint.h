@@ -47,18 +47,16 @@ struct PrivateIPDLInterface {};
 
 class UntypedEndpoint {
  public:
-  using ProcessId = base::ProcessId;
-
   UntypedEndpoint() = default;
 
   UntypedEndpoint(const PrivateIPDLInterface&, ScopedPort aPort,
                   const nsID& aMessageChannelId,
-                  ProcessId aMyPid = base::kInvalidProcessId,
-                  ProcessId aOtherPid = base::kInvalidProcessId)
+                  EndpointProcInfo aMyProcInfo = EndpointProcInfo::Invalid(),
+                  EndpointProcInfo aOtherProcInfo = EndpointProcInfo::Invalid())
       : mPort(std::move(aPort)),
         mMessageChannelId(aMessageChannelId),
-        mMyPid(aMyPid),
-        mOtherPid(aOtherPid) {}
+        mMyProcInfo(aMyProcInfo),
+        mOtherProcInfo(aOtherProcInfo) {}
 
   UntypedEndpoint(const UntypedEndpoint&) = delete;
   UntypedEndpoint(UntypedEndpoint&& aOther) = default;
@@ -75,10 +73,10 @@ class UntypedEndpoint {
   bool Bind(IToplevelProtocol* aActor,
             nsISerialEventTarget* aEventTarget = nullptr) {
     MOZ_RELEASE_ASSERT(IsValid());
-    MOZ_RELEASE_ASSERT(mMyPid == base::kInvalidProcessId ||
-                       mMyPid == base::GetCurrentProcId());
+    MOZ_RELEASE_ASSERT(mMyProcInfo == EndpointProcInfo::Invalid() ||
+                       mMyProcInfo == EndpointProcInfo::Current());
     MOZ_RELEASE_ASSERT(!aEventTarget || aEventTarget->IsOnCurrentThread());
-    return aActor->Open(std::move(mPort), mMessageChannelId, mOtherPid,
+    return aActor->Open(std::move(mPort), mMessageChannelId, mOtherProcInfo,
                         aEventTarget);
   }
 
@@ -89,8 +87,8 @@ class UntypedEndpoint {
 
   ScopedPort mPort;
   nsID mMessageChannelId{};
-  ProcessId mMyPid = base::kInvalidProcessId;
-  ProcessId mOtherPid = base::kInvalidProcessId;
+  EndpointProcInfo mMyProcInfo;
+  EndpointProcInfo mOtherProcInfo;
 };
 
 /**
@@ -123,14 +121,18 @@ class Endpoint final : public UntypedEndpoint {
   using UntypedEndpoint::IsValid;
   using UntypedEndpoint::UntypedEndpoint;
 
-  base::ProcessId OtherPid() const {
+  EndpointProcInfo OtherEndpointProcInfo() const {
     static_assert(
         endpoint_detail::ActorNeedsOtherPid<PFooSide>,
         "OtherPid may only be called on Endpoints for actors which are "
         "[NeedsOtherPid]");
-    MOZ_RELEASE_ASSERT(mOtherPid != base::kInvalidProcessId);
-    return mOtherPid;
+    MOZ_RELEASE_ASSERT(mOtherProcInfo != EndpointProcInfo::Invalid());
+    return mOtherProcInfo;
   }
+
+  base::ProcessId OtherPid() const { return OtherEndpointProcInfo().mPid; }
+
+  GeckoChildID OtherChildID() const { return OtherEndpointProcInfo().mChildID; }
 
   // This method binds aActor to this endpoint. After this call, the actor can
   // be used to send and receive messages. The endpoint becomes invalid.
@@ -173,21 +175,22 @@ nsresult CreateEndpoints(const PrivateIPDLInterface& aPrivate,
 
 template <class PFooParent, class PFooChild>
 nsresult CreateEndpoints(const PrivateIPDLInterface& aPrivate,
-                         base::ProcessId aParentDestPid,
-                         base::ProcessId aChildDestPid,
+                         EndpointProcInfo aParentDestProcInfo,
+                         EndpointProcInfo aChildDestProcInfo,
                          Endpoint<PFooParent>* aParentEndpoint,
                          Endpoint<PFooChild>* aChildEndpoint) {
-  MOZ_RELEASE_ASSERT(aParentDestPid != base::kInvalidProcessId);
-  MOZ_RELEASE_ASSERT(aChildDestPid != base::kInvalidProcessId);
+  MOZ_RELEASE_ASSERT(aParentDestProcInfo != EndpointProcInfo::Invalid());
+  MOZ_RELEASE_ASSERT(aChildDestProcInfo != EndpointProcInfo::Invalid());
 
   auto [parentPort, childPort] =
       NodeController::GetSingleton()->CreatePortPair();
   nsID channelId = nsID::GenerateUUID();
   *aParentEndpoint =
       Endpoint<PFooParent>(aPrivate, std::move(parentPort), channelId,
-                           aParentDestPid, aChildDestPid);
-  *aChildEndpoint = Endpoint<PFooChild>(
-      aPrivate, std::move(childPort), channelId, aChildDestPid, aParentDestPid);
+                           aParentDestProcInfo, aChildDestProcInfo);
+  *aChildEndpoint =
+      Endpoint<PFooChild>(aPrivate, std::move(childPort), channelId,
+                          aChildDestProcInfo, aParentDestProcInfo);
   return NS_OK;
 }
 

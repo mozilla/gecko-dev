@@ -108,7 +108,8 @@ bool IPDLUnitTestParent::Start(const char* aName,
     ADD_FAILURE() << "IPDLUnitTestParent::SendStart failed";
     return false;
   }
-  if (!aActor->Open(std::move(parentPort), channelId, OtherPid())) {
+  if (!aActor->Open(std::move(parentPort), channelId,
+                    OtherEndpointProcInfo())) {
     ADD_FAILURE() << "Unable to open parent actor";
     return false;
   }
@@ -176,7 +177,8 @@ ipc::IPCResult IPDLUnitTestChild::RecvStart(const nsCString& aName,
   mojo::core::ports::PortRef port = aPort.Port();
 
   RefPtr<IToplevelProtocol> child = allocChildActor();
-  if (!child->Open(std::move(aPort), aMessageChannelId, OtherPid())) {
+  if (!child->Open(std::move(aPort), aMessageChannelId,
+                   OtherEndpointProcInfo())) {
     ADD_FAILURE() << "Unable to open child actor";
     return IPC_FAIL(this, "Unable to open child actor");
   }

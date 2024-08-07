@@ -32,7 +32,7 @@ class VRGPUParent final : public PVRGPUParent {
   mozilla::ipc::IPCResult RecvPuppetCheckForCompletion();
 
  private:
-  explicit VRGPUParent(ProcessId aChildProcessId);
+  explicit VRGPUParent(ipc::EndpointProcInfo aChildProcess);
   ~VRGPUParent();
 
   void DeferredDestroy();

@@ -1766,8 +1766,8 @@ class _GenerateProtocolCode(ipdl.ast.Visitor):
             params = []
             if includepids:
                 params = [
-                    Decl(Type("base::ProcessId"), "aParentDestPid"),
-                    Decl(Type("base::ProcessId"), "aChildDestPid"),
+                    Decl(Type("mozilla::ipc::EndpointProcInfo"), "aParentDestInfo"),
+                    Decl(Type("mozilla::ipc::EndpointProcInfo"), "aChildDestInfo"),
                 ]
             params += [
                 Decl(
@@ -3881,7 +3881,37 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 return pid;
                 """
             )
-            self.cls.addstmts([otherpidmeth, Whitespace.NL])
+            otherchildidmeth = MethodDefn(
+                MethodDecl("OtherChildID", ret=Type("::GeckoChildID"), const=True)
+            )
+            otherchildidmeth.addcode(
+                """
+                ::GeckoChildID childID =
+                    ::mozilla::ipc::IProtocol::ToplevelProtocol()->OtherChildIDMaybeInvalid();
+                MOZ_RELEASE_ASSERT(childID != -1);
+                return childID;
+                """
+            )
+            otherendpointprocinfometh = MethodDefn(
+                MethodDecl(
+                    "OtherEndpointProcInfo",
+                    ret=Type("::mozilla::ipc::EndpointProcInfo"),
+                    const=True,
+                )
+            )
+            otherendpointprocinfometh.addcode(
+                """
+                return ::mozilla::ipc::EndpointProcInfo{OtherPid(), OtherChildID()};
+                """
+            )
+            self.cls.addstmts(
+                [
+                    otherpidmeth,
+                    otherchildidmeth,
+                    otherendpointprocinfometh,
+                    Whitespace.NL,
+                ]
+            )
 
         if not ptype.isToplevel():
             if 1 == len(p.managers):

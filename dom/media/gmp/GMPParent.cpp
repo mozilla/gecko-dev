@@ -1276,7 +1276,8 @@ bool GMPParent::OpenPGMPContent() {
   Endpoint<PGMPContentParent> parent;
   Endpoint<PGMPContentChild> child;
   if (NS_WARN_IF(NS_FAILED(PGMPContent::CreateEndpoints(
-          base::GetCurrentProcId(), OtherPid(), &parent, &child)))) {
+          mozilla::ipc::EndpointProcInfo::Current(), OtherEndpointProcInfo(),
+          &parent, &child)))) {
     return false;
   }
 

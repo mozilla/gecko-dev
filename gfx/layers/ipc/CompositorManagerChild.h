@@ -51,8 +51,9 @@ class CompositorManagerChild : public PCompositorManagerChild {
     return sInstance;
   }
 
-  // Threadsafe way to get the compositor process ID.
-  static base::ProcessId GetOtherPid() { return sOtherPid; }
+  // Threadsafe way to snapshot the current compositor process info from another
+  // thread.
+  static mozilla::ipc::EndpointProcInfo GetCompositorProcInfo();
 
   bool CanSend() const {
     MOZ_ASSERT(NS_IsMainThread());
@@ -99,13 +100,9 @@ class CompositorManagerChild : public PCompositorManagerChild {
 
  private:
   static StaticRefPtr<CompositorManagerChild> sInstance;
-  static Atomic<base::ProcessId> sOtherPid;
 
-  CompositorManagerChild(CompositorManagerParent* aParent,
-                         uint64_t aProcessToken, uint32_t aNamespace);
-
-  CompositorManagerChild(Endpoint<PCompositorManagerChild>&& aEndpoint,
-                         uint64_t aProcessToken, uint32_t aNamespace);
+  CompositorManagerChild(uint64_t aProcessToken, uint32_t aNamespace,
+                         bool aSameProcess);
 
   virtual ~CompositorManagerChild() = default;
 

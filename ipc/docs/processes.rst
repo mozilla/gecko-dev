@@ -850,9 +850,8 @@ Above, we saw that this is started by ``Host::MakeBridgeAndResolve`` after the
 
       auto resolveFail = MakeScopeExit([&] { mResolver(Nothing()); });
 
-      // Parent side is first PID (main/content), child is second (demo).
-      nsresult rv = PDempHelpline::CreateEndpoints(
-          mParentPid, base::GetProcId(GetChildProcessHandle()), &parent, &child);
+      // Parent side is first argument (main/content), child is second (demo).
+      nsresult rv = PDempHelpline::CreateEndpoints(&parent, &child);
 
       // ...
 

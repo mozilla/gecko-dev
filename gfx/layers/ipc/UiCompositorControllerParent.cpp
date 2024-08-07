@@ -239,7 +239,7 @@ void UiCompositorControllerParent::InitializeForSameProcess() {
   // This function is called by UiCompositorControllerChild in the main thread.
   // So dispatch to the compositor thread to Initialize.
   if (!CompositorThreadHolder::IsInCompositorThread()) {
-    SetOtherProcessId(base::GetCurrentProcId());
+    SetOtherEndpointProcInfo(ipc::EndpointProcInfo::Current());
     SynchronousTask task(
         "UiCompositorControllerParent::InitializeForSameProcess");
 

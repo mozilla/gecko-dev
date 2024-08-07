@@ -50,6 +50,12 @@ namespace mozilla {
 namespace ipc {
 
 /* static */
+EndpointProcInfo EndpointProcInfo::Current() {
+  return EndpointProcInfo{.mPid = GetCurrentProcId(),
+                          .mChildID = XRE_GetChildID()};
+}
+
+/* static */
 IPCResult IPCResult::FailImpl(NotNull<IProtocol*> actor, const char* where,
                               const char* why) {
   // Calls top-level protocol to handle the error.
@@ -684,14 +690,16 @@ IToplevelProtocol::IToplevelProtocol(const char* aName, ProtocolId aProtoId,
   mToplevel = this;
 }
 
-void IToplevelProtocol::SetOtherProcessId(base::ProcessId aOtherPid) {
-  mOtherPid = aOtherPid;
+void IToplevelProtocol::SetOtherEndpointProcInfo(
+    EndpointProcInfo aOtherProcInfo) {
+  mOtherPid = aOtherProcInfo.mPid;
+  mOtherChildID = aOtherProcInfo.mChildID;
 }
 
 bool IToplevelProtocol::Open(ScopedPort aPort, const nsID& aMessageChannelId,
-                             base::ProcessId aOtherPid,
+                             EndpointProcInfo aOtherProcInfo,
                              nsISerialEventTarget* aEventTarget) {
-  SetOtherProcessId(aOtherPid);
+  SetOtherEndpointProcInfo(aOtherProcInfo);
   return GetIPCChannel()->Open(std::move(aPort), mSide, aMessageChannelId,
                                aEventTarget);
 }
@@ -699,15 +707,15 @@ bool IToplevelProtocol::Open(ScopedPort aPort, const nsID& aMessageChannelId,
 bool IToplevelProtocol::Open(IToplevelProtocol* aTarget,
                              nsISerialEventTarget* aEventTarget,
                              mozilla::ipc::Side aSide) {
-  SetOtherProcessId(base::GetCurrentProcId());
-  aTarget->SetOtherProcessId(base::GetCurrentProcId());
+  SetOtherEndpointProcInfo(EndpointProcInfo::Current());
+  aTarget->SetOtherEndpointProcInfo(EndpointProcInfo::Current());
   return GetIPCChannel()->Open(aTarget->GetIPCChannel(), aEventTarget, aSide);
 }
 
 bool IToplevelProtocol::OpenOnSameThread(IToplevelProtocol* aTarget,
                                          Side aSide) {
-  SetOtherProcessId(base::GetCurrentProcId());
-  aTarget->SetOtherProcessId(base::GetCurrentProcId());
+  SetOtherEndpointProcInfo(EndpointProcInfo::Current());
+  aTarget->SetOtherEndpointProcInfo(EndpointProcInfo::Current());
   return GetIPCChannel()->OpenOnSameThread(aTarget->GetIPCChannel(), aSide);
 }
 

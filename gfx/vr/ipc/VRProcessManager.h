@@ -41,7 +41,7 @@ class VRProcessManager final : public VRProcessParent::Listener {
   // Otherwise it blocks until the VR process has finished launching.
   bool EnsureVRReady();
 
-  bool CreateGPUBridges(base::ProcessId aOtherProcess,
+  bool CreateGPUBridges(mozilla::ipc::EndpointProcInfo aOtherProcess,
                         mozilla::ipc::Endpoint<PVRGPUChild>* aOutVRBridge);
 
   VRChild* GetVRChild();
@@ -57,7 +57,7 @@ class VRProcessManager final : public VRProcessParent::Listener {
 
   DISALLOW_COPY_AND_ASSIGN(VRProcessManager);
 
-  bool CreateGPUVRManager(base::ProcessId aOtherProcess,
+  bool CreateGPUVRManager(mozilla::ipc::EndpointProcInfo aOtherProcess,
                           mozilla::ipc::Endpoint<PVRGPUChild>* aOutEndpoint);
   void OnXPCOMShutdown();
   void OnPreferenceChange(const char16_t* aData);

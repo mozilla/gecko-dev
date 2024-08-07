@@ -39,7 +39,7 @@ class RDDProcessManager final : public RDDProcessHost::Listener {
   // If not using a RDD process, launch a new RDD process asynchronously and
   // create a RemoteDecoderManager bridge
   RefPtr<EnsureRDDPromise> EnsureRDDProcessAndCreateBridge(
-      base::ProcessId aOtherProcess, dom::ContentParentId aParentId);
+      ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aParentId);
 
   void OnProcessUnexpectedShutdown(RDDProcessHost* aHost) override;
 
@@ -49,6 +49,9 @@ class RDDProcessManager final : public RDDProcessHost::Listener {
 
   // Returns -1 if there is no RDD process, or the platform pid for it.
   base::ProcessId RDDProcessPid();
+
+  // Returns Invalid if there is no RDD process, or the proc info for it.
+  ipc::EndpointProcInfo RDDEndpointProcInfo();
 
   // If a RDD process is present, create a MemoryReportingProcess object.
   // Otherwise, return null.
@@ -102,7 +105,7 @@ class RDDProcessManager final : public RDDProcessHost::Listener {
   friend class Observer;
 
   bool CreateContentBridge(
-      base::ProcessId aOtherProcess, dom::ContentParentId aParentId,
+      ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aParentId,
       ipc::Endpoint<PRemoteDecoderManagerChild>* aOutRemoteDecoderManager);
 
   const RefPtr<Observer> mObserver;

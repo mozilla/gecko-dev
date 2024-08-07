@@ -16,13 +16,13 @@ class BackgroundStarterChild final : public PBackgroundStarterChild {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BackgroundStarterChild, override)
 
-  BackgroundStarterChild(base::ProcessId aOtherPid,
+  BackgroundStarterChild(EndpointProcInfo aOtherProcInfo,
                          nsISerialEventTarget* aTaskQueue)
-      : mOtherPid(aOtherPid), mTaskQueue(aTaskQueue) {}
+      : mOtherProcInfo(aOtherProcInfo), mTaskQueue(aTaskQueue) {}
 
   // Unlike the methods on `IToplevelProtocol`, may be accessed on any thread
   // and will not be modified after construction.
-  const base::ProcessId mOtherPid;
+  const EndpointProcInfo mOtherProcInfo;
   const nsCOMPtr<nsISerialEventTarget> mTaskQueue;
 
  private:

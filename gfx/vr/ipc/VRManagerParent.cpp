@@ -26,7 +26,7 @@ namespace gfx {
 // See VRManagerChild.cpp
 void ReleaseVRManagerParentSingleton();
 
-VRManagerParent::VRManagerParent(ProcessId aChildProcessId,
+VRManagerParent::VRManagerParent(ipc::EndpointProcInfo aChildProcess,
                                  dom::ContentParentId aChildId,
                                  bool aIsContentChild)
     : mChildId(aChildId),
@@ -37,7 +37,7 @@ VRManagerParent::VRManagerParent(ProcessId aChildProcessId,
   MOZ_COUNT_CTOR(VRManagerParent);
   MOZ_ASSERT(NS_IsMainThread());
 
-  SetOtherProcessId(aChildProcessId);
+  SetOtherEndpointProcInfo(aChildProcess);
 }
 
 VRManagerParent::~VRManagerParent() {
@@ -88,7 +88,7 @@ bool VRManagerParent::CreateForContent(Endpoint<PVRManagerParent>&& aEndpoint,
   }
 
   RefPtr<VRManagerParent> vmp =
-      new VRManagerParent(aEndpoint.OtherPid(), aChildId, true);
+      new VRManagerParent(aEndpoint.OtherEndpointProcInfo(), aChildId, true);
   CompositorThread()->Dispatch(NewRunnableMethod<Endpoint<PVRManagerParent>&&>(
       "gfx::VRManagerParent::Bind", vmp, &VRManagerParent::Bind,
       std::move(aEndpoint)));
@@ -114,7 +114,7 @@ void VRManagerParent::RegisterVRManagerInCompositorThread(
 /*static*/
 already_AddRefed<VRManagerParent> VRManagerParent::CreateSameProcess() {
   RefPtr<VRManagerParent> vmp = new VRManagerParent(
-      base::GetCurrentProcId(), dom::ContentParentId(), false);
+      ipc::EndpointProcInfo::Current(), dom::ContentParentId(), false);
   vmp->mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
   CompositorThread()->Dispatch(
       NewRunnableFunction("RegisterVRManagerIncompositorThreadRunnable",
@@ -124,8 +124,8 @@ already_AddRefed<VRManagerParent> VRManagerParent::CreateSameProcess() {
 
 bool VRManagerParent::CreateForGPUProcess(
     Endpoint<PVRManagerParent>&& aEndpoint) {
-  RefPtr<VRManagerParent> vmp =
-      new VRManagerParent(aEndpoint.OtherPid(), dom::ContentParentId(), false);
+  RefPtr<VRManagerParent> vmp = new VRManagerParent(
+      aEndpoint.OtherEndpointProcInfo(), dom::ContentParentId(), false);
   vmp->mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
   CompositorThread()->Dispatch(NewRunnableMethod<Endpoint<PVRManagerParent>&&>(
       "gfx::VRManagerParent::Bind", vmp, &VRManagerParent::Bind,

@@ -106,7 +106,7 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
       uint64_t aInnerWindowId, bool* aRetry);
 
   bool CreateContentBridges(
-      base::ProcessId aOtherProcess,
+      mozilla::ipc::EndpointProcInfo aOtherProcess,
       mozilla::ipc::Endpoint<PCompositorManagerChild>* aOutCompositor,
       mozilla::ipc::Endpoint<PImageBridgeChild>* aOutImageBridge,
       mozilla::ipc::Endpoint<PVRManagerChild>* aOutVRBridge,
@@ -194,6 +194,9 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
   // Returns -1 if there is no GPU process, or the platform pid for it.
   base::ProcessId GPUProcessPid();
 
+  // Returns Invalid() if there is no GPU process, or the proc info for it.
+  mozilla::ipc::EndpointProcInfo GPUEndpointProcInfo();
+
   // If a GPU process is present, create a MemoryReportingProcess object.
   // Otherwise, return null.
   RefPtr<MemoryReportingProcess> GetProcessMemoryReporter();
@@ -225,17 +228,20 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
   void ScreenInformationChanged();
 
   bool CreateContentCompositorManager(
-      base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
-      uint32_t aNamespace,
+      mozilla::ipc::EndpointProcInfo aOtherProcess,
+      dom::ContentParentId aChildId, uint32_t aNamespace,
       mozilla::ipc::Endpoint<PCompositorManagerChild>* aOutEndpoint);
   bool CreateContentImageBridge(
-      base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
+      mozilla::ipc::EndpointProcInfo aOtherProcess,
+      dom::ContentParentId aChildId,
       mozilla::ipc::Endpoint<PImageBridgeChild>* aOutEndpoint);
   bool CreateContentVRManager(
-      base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
+      mozilla::ipc::EndpointProcInfo aOtherProcess,
+      dom::ContentParentId aChildId,
       mozilla::ipc::Endpoint<PVRManagerChild>* aOutEndpoint);
   void CreateContentRemoteDecoderManager(
-      base::ProcessId aOtherProcess, dom::ContentParentId aChildId,
+      mozilla::ipc::EndpointProcInfo aOtherProcess,
+      dom::ContentParentId aChildId,
       mozilla::ipc::Endpoint<PRemoteDecoderManagerChild>* aOutEndPoint);
 
   // Called from RemoteCompositorSession. We track remote sessions so we can

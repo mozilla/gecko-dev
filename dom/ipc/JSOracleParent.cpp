@@ -60,9 +60,9 @@ nsresult JSOracleParent::BindToUtilityProcess(
   Endpoint<PJSOracleParent> parentEnd;
   Endpoint<PJSOracleChild> childEnd;
   MOZ_ASSERT(aUtilityParent);
-  if (NS_FAILED(PJSOracle::CreateEndpoints(base::GetCurrentProcId(),
-                                           aUtilityParent->OtherPid(),
-                                           &parentEnd, &childEnd))) {
+  if (NS_FAILED(PJSOracle::CreateEndpoints(
+          mozilla::ipc::EndpointProcInfo::Current(),
+          aUtilityParent->OtherEndpointProcInfo(), &parentEnd, &childEnd))) {
     return NS_ERROR_FAILURE;
   }
 

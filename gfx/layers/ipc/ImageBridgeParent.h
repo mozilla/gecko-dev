@@ -41,7 +41,8 @@ class ImageBridgeParent final : public PImageBridgeParent,
   typedef nsTArray<OpDestroy> OpDestroyArray;
 
  protected:
-  ImageBridgeParent(nsISerialEventTarget* aThread, ProcessId aChildProcessId,
+  ImageBridgeParent(nsISerialEventTarget* aThread,
+                    ipc::EndpointProcInfo aChildProcessInfo,
                     dom::ContentParentId aContentId);
 
  public:

@@ -887,8 +887,8 @@ nsresult RemoteProxyAutoConfig::Init(nsIThread* aPACThread) {
   ipc::Endpoint<PProxyAutoConfigParent> parent;
   ipc::Endpoint<PProxyAutoConfigChild> child;
   nsresult rv = PProxyAutoConfig::CreateEndpoints(
-      base::GetCurrentProcId(), socketProcessParent->OtherPid(), &parent,
-      &child);
+      ipc::EndpointProcInfo::Current(),
+      socketProcessParent->OtherEndpointProcInfo(), &parent, &child);
   if (NS_FAILED(rv)) {
     return rv;
   }

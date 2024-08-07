@@ -152,16 +152,16 @@ void ParamTraits<mozilla::ipc::UntypedEndpoint>::Write(MessageWriter* aWriter,
                                                        paramType&& aParam) {
   IPC::WriteParam(aWriter, std::move(aParam.mPort));
   IPC::WriteParam(aWriter, aParam.mMessageChannelId);
-  IPC::WriteParam(aWriter, aParam.mMyPid);
-  IPC::WriteParam(aWriter, aParam.mOtherPid);
+  IPC::WriteParam(aWriter, aParam.mMyProcInfo);
+  IPC::WriteParam(aWriter, aParam.mOtherProcInfo);
 }
 
 bool ParamTraits<mozilla::ipc::UntypedEndpoint>::Read(MessageReader* aReader,
                                                       paramType* aResult) {
   return IPC::ReadParam(aReader, &aResult->mPort) &&
          IPC::ReadParam(aReader, &aResult->mMessageChannelId) &&
-         IPC::ReadParam(aReader, &aResult->mMyPid) &&
-         IPC::ReadParam(aReader, &aResult->mOtherPid);
+         IPC::ReadParam(aReader, &aResult->mMyProcInfo) &&
+         IPC::ReadParam(aReader, &aResult->mOtherProcInfo);
 }
 
 }  // namespace IPC

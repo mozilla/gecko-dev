@@ -2004,7 +2004,8 @@ mozilla::ipc::IPCResult GMPServiceParent::RecvLaunchGMP(
 
   Endpoint<PGMPContentParent> parent;
   Endpoint<PGMPContentChild> child;
-  rv = PGMPContent::CreateEndpoints(OtherPid(), result.pid(), &parent, &child);
+  rv = PGMPContent::CreateEndpoints(
+      OtherEndpointProcInfo(), gmp->OtherEndpointProcInfo(), &parent, &child);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     result.result() = rv;
     result.errorDescription() = "PGMPContent::CreateEndpoints failed."_ns;

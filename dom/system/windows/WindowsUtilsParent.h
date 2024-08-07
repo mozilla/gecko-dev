@@ -22,9 +22,9 @@ class WindowsUtilsParent final : public PWindowsUtilsParent {
       RefPtr<mozilla::ipc::UtilityProcessParent> aUtilityParent) {
     Endpoint<PWindowsUtilsParent> parentEnd;
     Endpoint<PWindowsUtilsChild> childEnd;
-    nsresult rv = PWindowsUtils::CreateEndpoints(base::GetCurrentProcId(),
-                                                 aUtilityParent->OtherPid(),
-                                                 &parentEnd, &childEnd);
+    nsresult rv = PWindowsUtils::CreateEndpoints(
+        mozilla::ipc::EndpointProcInfo::Current(),
+        aUtilityParent->OtherEndpointProcInfo(), &parentEnd, &childEnd);
 
     if (NS_FAILED(rv)) {
       MOZ_ASSERT(false, "Protocol endpoints failure");

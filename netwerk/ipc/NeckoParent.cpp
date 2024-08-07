@@ -745,7 +745,8 @@ mozilla::ipc::IPCResult NeckoParent::RecvInitSocketProcessBridge(
     Endpoint<PSocketProcessBridgeParent> parentEndpoint;
     Endpoint<PSocketProcessBridgeChild> childEndpoint;
     if (NS_WARN_IF(NS_FAILED(PSocketProcessBridge::CreateEndpoints(
-            parent->OtherPid(), self->Manager()->OtherPid(), &parentEndpoint,
+            parent->OtherEndpointProcInfo(),
+            self->Manager()->OtherEndpointProcInfo(), &parentEndpoint,
             &childEndpoint)))) {
       resolver(std::move(invalidEndpoint));
       return;

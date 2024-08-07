@@ -117,8 +117,7 @@ IPCResult TestEndpointOpensChild::RecvStart() {
   Endpoint<PTestEndpointOpensOpenedParent> parent;
   Endpoint<PTestEndpointOpensOpenedChild> child;
   nsresult rv;
-  rv = PTestEndpointOpensOpened::CreateEndpoints(
-      OtherPidMaybeInvalid(), base::GetCurrentProcId(), &parent, &child);
+  rv = PTestEndpointOpensOpened::CreateEndpoints(&parent, &child);
   if (NS_FAILED(rv)) {
     ADD_FAILURE() << "opening PTestEndpointOpensOpened";
     return IPC_TEST_FAIL(this);

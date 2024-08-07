@@ -28,7 +28,7 @@ class VRManagerParent final : public PVRManagerParent {
   friend class PVRManagerParent;
 
  public:
-  explicit VRManagerParent(ProcessId aChildProcessId,
+  explicit VRManagerParent(ipc::EndpointProcInfo aChildProcess,
                            dom::ContentParentId aChildId, bool aIsContentChild);
 
   static already_AddRefed<VRManagerParent> CreateSameProcess();

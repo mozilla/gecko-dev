@@ -63,14 +63,14 @@ void ImageBridgeParent::Setup() {
 }
 
 ImageBridgeParent::ImageBridgeParent(nsISerialEventTarget* aThread,
-                                     ProcessId aChildProcessId,
+                                     EndpointProcInfo aChildProcessInfo,
                                      dom::ContentParentId aContentId)
     : mThread(aThread),
       mContentId(aContentId),
       mClosed(false),
       mCompositorThreadHolder(CompositorThreadHolder::GetSingleton()) {
   MOZ_ASSERT(NS_IsMainThread());
-  SetOtherProcessId(aChildProcessId);
+  SetOtherEndpointProcInfo(aChildProcessInfo);
   mRemoteTextureTxnScheduler = RemoteTextureTxnScheduler::Create(this);
 }
 
@@ -78,14 +78,14 @@ ImageBridgeParent::~ImageBridgeParent() = default;
 
 /* static */
 ImageBridgeParent* ImageBridgeParent::CreateSameProcess() {
-  base::ProcessId pid = base::GetCurrentProcId();
-  RefPtr<ImageBridgeParent> parent =
-      new ImageBridgeParent(CompositorThread(), pid, dom::ContentParentId());
+  EndpointProcInfo procInfo = EndpointProcInfo::Current();
+  RefPtr<ImageBridgeParent> parent = new ImageBridgeParent(
+      CompositorThread(), procInfo, dom::ContentParentId());
 
   {
     MonitorAutoLock lock(*sImageBridgesLock);
-    MOZ_RELEASE_ASSERT(sImageBridges.count(pid) == 0);
-    sImageBridges[pid] = parent;
+    MOZ_RELEASE_ASSERT(sImageBridges.count(procInfo.mPid) == 0);
+    sImageBridges[procInfo.mPid] = parent;
   }
 
   sImageBridgeParentSingleton = parent;
@@ -102,8 +102,9 @@ bool ImageBridgeParent::CreateForGPUProcess(
     return false;
   }
 
-  RefPtr<ImageBridgeParent> parent = new ImageBridgeParent(
-      compositorThread, aEndpoint.OtherPid(), dom::ContentParentId());
+  RefPtr<ImageBridgeParent> parent =
+      new ImageBridgeParent(compositorThread, aEndpoint.OtherEndpointProcInfo(),
+                            dom::ContentParentId());
 
   compositorThread->Dispatch(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
       "layers::ImageBridgeParent::Bind", parent, &ImageBridgeParent::Bind,
@@ -235,8 +236,8 @@ bool ImageBridgeParent::CreateForContent(
     return false;
   }
 
-  RefPtr<ImageBridgeParent> bridge =
-      new ImageBridgeParent(compositorThread, aEndpoint.OtherPid(), aContentId);
+  RefPtr<ImageBridgeParent> bridge = new ImageBridgeParent(
+      compositorThread, aEndpoint.OtherEndpointProcInfo(), aContentId);
   compositorThread->Dispatch(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
       "layers::ImageBridgeParent::Bind", bridge, &ImageBridgeParent::Bind,
       std::move(aEndpoint)));
