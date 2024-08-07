@@ -239,4 +239,4 @@ gpu-descriptor = { git = "https://github.com/zakarumych/gpu-descriptor", rev = "
 
 # Patch for porting to Haiku OS.
 glslopt = { git = "https://github.com/kenz-gelsoft/glslopt-rs", rev = "f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b" }
-lmdb-rkv-sys = { package = "lmdb-rkv-sys", git = "https://github.com/kenz-gelsoft/lmdb-rs", rev = "c246a7b064a067feaf9d611c20b418af261477d0" }
+lmdb-rkv-sys = { package = "lmdb-rkv-sys", git = "https://github.com/kenz-gelsoft/lmdb-rs", rev = "9a481259e3b15932bd88bc90a8d7dc49e7ac9cd6" }
