@@ -13,12 +13,12 @@
 
 namespace mozilla::dom::quota {
 
-template <typename T>
+template <typename ResolveValueT, bool IsExclusive>
 class ResolvableNormalOriginOp : public NormalOriginOperationBase {
  public:
   NS_INLINE_DECL_REFCOUNTING(ResolvableNormalOriginOp, override)
 
-  using PromiseType = MozPromise<T, nsresult, false>;
+  using PromiseType = MozPromise<ResolveValueT, nsresult, IsExclusive>;
 
   RefPtr<PromiseType> OnResults() {
     AssertIsOnOwningThread();
@@ -35,7 +35,7 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
 
   virtual ~ResolvableNormalOriginOp() = default;
 
-  virtual T GetResolveValue() = 0;
+  virtual ResolveValueT GetResolveValue() = 0;
 
  private:
   void SendResults() override {

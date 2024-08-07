@@ -36,7 +36,7 @@ class QuotaManager;
 class QuotaRequestBase;
 class QuotaUsageRequestBase;
 class RequestParams;
-template <typename T>
+template <typename ResolveValueT, bool IsExclusive = false>
 class ResolvableNormalOriginOp;
 class UniversalDirectoryLock;
 class UsageRequestParams;
