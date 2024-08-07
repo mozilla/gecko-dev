@@ -15,7 +15,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Span.h"  // mozilla::{Span,Span}
 #include "mozilla/Sprintf.h"
@@ -94,12 +93,9 @@ using namespace js;
 
 using mozilla::CheckedInt;
 using mozilla::Maybe;
-using mozilla::PodCopy;
 using mozilla::PointerRangeSize;
-using mozilla::Utf8AsUnsignedChars;
 using mozilla::Utf8Unit;
 
-using JS::CompileOptions;
 using JS::ReadOnlyCompileOptions;
 using JS::SourceText;
 

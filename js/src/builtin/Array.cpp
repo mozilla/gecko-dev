@@ -66,7 +66,6 @@ using mozilla::Abs;
 using mozilla::CeilingLog2;
 using mozilla::CheckedInt;
 using mozilla::DebugOnly;
-using mozilla::IsAsciiDigit;
 using mozilla::Maybe;
 using mozilla::SIMD;
 

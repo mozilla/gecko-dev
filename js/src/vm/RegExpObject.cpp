@@ -38,7 +38,6 @@
 
 using namespace js;
 
-using JS::AutoStableStringChars;
 using JS::CompileOptions;
 using JS::RegExpFlag;
 using JS::RegExpFlags;

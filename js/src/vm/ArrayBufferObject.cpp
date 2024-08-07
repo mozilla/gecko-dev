@@ -58,12 +58,9 @@
 #include "vm/NativeObject-inl.h"
 #include "vm/Realm-inl.h"  // js::AutoRealm
 
-using JS::ToInt32;
-
 using js::wasm::IndexType;
 using js::wasm::Pages;
 using mozilla::Atomic;
-using mozilla::CheckedInt;
 using mozilla::DebugOnly;
 using mozilla::Maybe;
 using mozilla::Nothing;

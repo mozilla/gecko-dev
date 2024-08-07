@@ -6,7 +6,6 @@
 
 #include "jit/MIR.h"
 
-#include "mozilla/CheckedInt.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
@@ -46,11 +45,8 @@ using namespace js::jit;
 
 using JS::ToInt32;
 
-using mozilla::CheckedInt;
-using mozilla::DebugOnly;
 using mozilla::IsFloat32Representable;
 using mozilla::IsPowerOfTwo;
-using mozilla::Maybe;
 using mozilla::NumbersAreIdentical;
 
 NON_GC_POINTER_TYPE_ASSERTIONS_GENERATED

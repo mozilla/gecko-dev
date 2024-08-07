@@ -19,7 +19,6 @@
 #include "wasm/WasmProcess.h"
 
 #include "mozilla/Attributes.h"
-#include "mozilla/BinarySearch.h"
 
 #include "gc/Memory.h"
 #include "threading/ExclusiveData.h"
@@ -34,8 +33,6 @@
 
 using namespace js;
 using namespace wasm;
-
-using mozilla::BinarySearchIf;
 
 Atomic<bool> wasm::CodeExists(false);
 

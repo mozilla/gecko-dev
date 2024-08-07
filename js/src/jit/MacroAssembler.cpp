@@ -61,7 +61,6 @@ using namespace js;
 using namespace js::jit;
 
 using JS::GenericNaN;
-using JS::ToInt32;
 
 using mozilla::CheckedInt;
 

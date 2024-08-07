@@ -48,7 +48,6 @@ using namespace js::wasm;
 using mozilla::BinarySearch;
 using mozilla::BinarySearchIf;
 using mozilla::MakeEnumeratedRange;
-using mozilla::PodAssign;
 
 size_t LinkData::SymbolicLinkArray::sizeOfExcludingThis(
     MallocSizeOf mallocSizeOf) const {

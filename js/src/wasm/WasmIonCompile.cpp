@@ -49,9 +49,7 @@ using namespace js::jit;
 using namespace js::wasm;
 
 using mozilla::IsPowerOfTwo;
-using mozilla::Maybe;
 using mozilla::Nothing;
-using mozilla::Some;
 
 namespace {
 

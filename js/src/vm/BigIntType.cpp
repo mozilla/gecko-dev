@@ -117,7 +117,6 @@ using namespace js;
 using JS::AutoStableStringChars;
 using mozilla::Abs;
 using mozilla::AssertedCast;
-using mozilla::BitwiseCast;
 using mozilla::Maybe;
 using mozilla::NegativeInfinity;
 using mozilla::Nothing;

@@ -11,7 +11,6 @@
 #include "vm/JSFunction-inl.h"
 
 #include "mozilla/ArrayUtils.h"  // mozilla::ArrayLength
-#include "mozilla/CheckedInt.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Range.h"
 
@@ -71,13 +70,11 @@
 
 using namespace js;
 
-using mozilla::CheckedInt;
 using mozilla::Maybe;
 using mozilla::Some;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
-using JS::SourceOwnership;
 using JS::SourceText;
 
 static bool fun_enumerate(JSContext* cx, HandleObject obj) {

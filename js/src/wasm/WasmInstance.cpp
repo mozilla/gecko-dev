@@ -75,7 +75,6 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-using mozilla::BitwiseCast;
 using mozilla::CheckedUint32;
 using mozilla::DebugOnly;
 

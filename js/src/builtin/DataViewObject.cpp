@@ -43,7 +43,6 @@ using namespace js;
 
 using JS::CanonicalizeNaN;
 using JS::ToInt32;
-using mozilla::AssertedCast;
 using mozilla::WrapToSigned;
 
 static bool IsDataView(HandleValue v) {

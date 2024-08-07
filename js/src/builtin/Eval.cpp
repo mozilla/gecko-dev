@@ -32,13 +32,10 @@
 using namespace js;
 
 using mozilla::AddToHash;
-using mozilla::HashString;
-using mozilla::RangedPtr;
 
 using JS::AutoCheckCannotGC;
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
-using JS::SourceOwnership;
 using JS::SourceText;
 
 // We should be able to assert this for *any* fp->environmentChain().

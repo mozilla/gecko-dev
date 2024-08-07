@@ -18,10 +18,8 @@
 
 #include "wasm/WasmJS.h"
 
-#include "mozilla/CheckedInt.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/RangedPtr.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -99,9 +97,7 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-using mozilla::CheckedInt;
 using mozilla::Nothing;
-using mozilla::RangedPtr;
 using mozilla::Span;
 
 static bool ThrowCompileOutOfMemory(JSContext* cx) {

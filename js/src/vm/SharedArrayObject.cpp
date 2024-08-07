@@ -29,9 +29,6 @@
 
 using js::wasm::Pages;
 using mozilla::DebugOnly;
-using mozilla::Maybe;
-using mozilla::Nothing;
-using mozilla::Some;
 
 using namespace js;
 using namespace js::jit;

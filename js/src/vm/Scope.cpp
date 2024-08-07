@@ -30,8 +30,6 @@
 using namespace js;
 using namespace js::frontend;
 
-using mozilla::Maybe;
-
 const char* js::BindingKindString(BindingKind kind) {
   switch (kind) {
     case BindingKind::Import:

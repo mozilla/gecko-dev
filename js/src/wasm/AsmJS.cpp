@@ -89,7 +89,6 @@ using namespace js::wasm;
 using JS::AsmJSOption;
 using JS::AutoStableStringChars;
 using JS::GenericNaN;
-using JS::SourceOwnership;
 using JS::SourceText;
 using mozilla::Abs;
 using mozilla::AsVariant;

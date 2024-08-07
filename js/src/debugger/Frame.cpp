@@ -12,7 +12,7 @@
 #include "mozilla/Range.h"        // for Range
 #include "mozilla/RangedPtr.h"    // for RangedPtr
 #include "mozilla/Result.h"       // for Result
-#include "mozilla/ScopeExit.h"    // for MakeScopeExit, ScopeExit
+#include "mozilla/ScopeExit.h"    // for ScopeExit
 #include "mozilla/ThreadLocal.h"  // for ThreadLocal
 #include "mozilla/Vector.h"       // for Vector
 
@@ -96,7 +96,6 @@ using JS::AutoStableStringChars;
 using JS::CompileOptions;
 using JS::SourceOwnership;
 using JS::SourceText;
-using mozilla::MakeScopeExit;
 using mozilla::Maybe;
 
 ScriptedOnStepHandler::ScriptedOnStepHandler(JSObject* object)

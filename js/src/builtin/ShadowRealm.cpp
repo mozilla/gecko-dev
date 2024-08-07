@@ -41,7 +41,6 @@ using namespace js;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
-using JS::SourceOwnership;
 using JS::SourceText;
 
 static JSObject* DefaultNewShadowRealmGlobal(JSContext* cx,

@@ -10,8 +10,6 @@
 
 #include "gc/Tenuring.h"
 
-#include "mozilla/PodOperations.h"
-
 #include "gc/Cell.h"
 #include "gc/GCInternals.h"
 #include "gc/GCProbes.h"
@@ -40,8 +38,6 @@
 
 using namespace js;
 using namespace js::gc;
-
-using mozilla::PodCopy;
 
 constexpr size_t MAX_DEDUPLICATABLE_STRING_LENGTH = 500;
 

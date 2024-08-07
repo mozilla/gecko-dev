@@ -27,7 +27,6 @@
 #include "vm/JSContext-inl.h"
 #include "vm/JSScript-inl.h"
 
-using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
 using namespace js;

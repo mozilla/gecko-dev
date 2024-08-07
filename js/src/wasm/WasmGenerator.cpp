@@ -18,7 +18,6 @@
 
 #include "wasm/WasmGenerator.h"
 
-#include "mozilla/CheckedInt.h"
 #include "mozilla/EnumeratedRange.h"
 #include "mozilla/SHA1.h"
 
@@ -43,7 +42,6 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-using mozilla::CheckedInt;
 using mozilla::MakeEnumeratedRange;
 
 bool CompiledCode::swap(MacroAssembler& masm) {

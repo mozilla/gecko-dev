@@ -18,8 +18,6 @@
 
 #include "wasm/WasmDebug.h"
 
-#include "mozilla/BinarySearch.h"
-
 #include "debugger/Debugger.h"
 #include "ds/Sort.h"
 #include "jit/MacroAssembler.h"
@@ -34,8 +32,6 @@
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
-
-using mozilla::BinarySearchIf;
 
 DebugState::DebugState(const Code& code, const Module& module)
     : code_(&code),

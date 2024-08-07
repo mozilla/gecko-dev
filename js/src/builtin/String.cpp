@@ -64,9 +64,6 @@
 
 using namespace js;
 
-using JS::Symbol;
-using JS::SymbolCode;
-
 using mozilla::AsciiAlphanumericToNumber;
 using mozilla::CheckedInt;
 using mozilla::EnsureUtf16ValiditySpan;

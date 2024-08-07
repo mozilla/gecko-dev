@@ -37,9 +37,6 @@
 
 using namespace js;
 
-using mozilla::Maybe;
-using mozilla::Nothing;
-
 /* static */
 DebuggerMemory* DebuggerMemory::create(JSContext* cx, Debugger* dbg) {
   Value memoryProtoValue =

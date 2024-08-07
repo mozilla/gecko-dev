@@ -9,7 +9,6 @@
 #include "mozilla/ReverseIterator.h"  // mozilla::Reversed(...)
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Span.h"  // mozilla::Span<TaggedScriptThingIndex>
-#include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
 #include <algorithm>
 
@@ -36,8 +35,6 @@
 using namespace js;
 
 using mozilla::TimeDuration;
-using mozilla::TimeStamp;
-using mozilla::Utf8Unit;
 
 namespace js {
 

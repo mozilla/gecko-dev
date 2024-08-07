@@ -18,7 +18,6 @@
 
 #include "wasm/WasmSignalHandlers.h"
 
-#include "mozilla/DebugOnly.h"
 #include "mozilla/ThreadLocal.h"
 
 #include "threading/Thread.h"
@@ -40,8 +39,6 @@
 
 using namespace js;
 using namespace js::wasm;
-
-using mozilla::DebugOnly;
 
 #if !defined(JS_CODEGEN_NONE)
 

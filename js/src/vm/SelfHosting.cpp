@@ -103,7 +103,6 @@ using namespace js;
 using namespace js::selfhosted;
 
 using JS::CompileOptions;
-using mozilla::Maybe;
 
 static bool intrinsic_ToObject(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);

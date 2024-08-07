@@ -20,8 +20,6 @@
 #include "wasm/WasmInstance.h"
 #include "jit/MacroAssembler-inl.h"
 
-using mozilla::DebugOnly;
-
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;

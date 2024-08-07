@@ -8,7 +8,6 @@
 
 #include "mozilla/BinarySearch.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 
 #include <algorithm>
@@ -37,7 +36,6 @@
 
 using mozilla::BinarySearchIf;
 using mozilla::CheckedInt;
-using mozilla::DebugOnly;
 
 using namespace js;
 using namespace js::jit;

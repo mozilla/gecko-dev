@@ -55,7 +55,6 @@
 using namespace js;
 using namespace js::jit;
 
-using mozilla::BitwiseCast;
 using mozilla::Maybe;
 
 using JS::ExpandoAndGeneration;

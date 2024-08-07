@@ -6,7 +6,6 @@
 
 #include "frontend/FoldConstants.h"
 
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/Maybe.h"  // mozilla::Maybe
 #include "mozilla/Try.h"    // MOZ_TRY*
 
@@ -25,12 +24,8 @@
 using namespace js;
 using namespace js::frontend;
 
-using JS::GenericNaN;
 using JS::ToInt32;
 using JS::ToUint32;
-using mozilla::IsNegative;
-using mozilla::NegativeInfinity;
-using mozilla::PositiveInfinity;
 
 struct FoldInfo {
   FrontendContext* fc;

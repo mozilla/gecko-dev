@@ -97,8 +97,6 @@ using namespace js;
 using mozilla::DebugOnly;
 using mozilla::NumberEqualsInt32;
 
-using js::jit::JitScript;
-
 template <bool Eq>
 static MOZ_ALWAYS_INLINE bool LooseEqualityOp(JSContext* cx,
                                               InterpreterRegs& regs) {

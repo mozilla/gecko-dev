@@ -13,7 +13,7 @@
 #include "mozilla/Maybe.h"             // for Maybe, Nothing, Some
 #include "mozilla/ScopeExit.h"         // for MakeScopeExit, ScopeExit
 #include "mozilla/ThreadLocal.h"       // for ThreadLocal
-#include "mozilla/TimeStamp.h"         // for TimeStamp, TimeDuration
+#include "mozilla/TimeStamp.h"         // for TimeStamp
 #include "mozilla/UniquePtr.h"         // for UniquePtr
 #include "mozilla/Variant.h"           // for AsVariant, AsVariantTemporary
 #include "mozilla/Vector.h"            // for Vector, Vector<>::ConstRange
@@ -72,7 +72,7 @@
 #include "js/Promise.h"               // for AutoDebuggerJobQueueInterruption
 #include "js/PropertyAndElement.h"    // for JS_GetProperty
 #include "js/Proxy.h"                 // for PropertyDescriptor
-#include "js/SourceText.h"            // for SourceOwnership, SourceText
+#include "js/SourceText.h"            // for SourceText
 #include "js/StableStringChars.h"     // for AutoStableStringChars
 #include "js/UbiNode.h"               // for Node, RootList, Edge
 #include "js/UbiNodeBreadthFirst.h"   // for BreadthFirst
@@ -152,8 +152,6 @@ using namespace js;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
-using JS::SourceOwnership;
-using JS::SourceText;
 using JS::dbg::AutoEntryMonitor;
 using JS::dbg::Builder;
 using mozilla::AsVariant;
@@ -162,7 +160,6 @@ using mozilla::MakeScopeExit;
 using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::Some;
-using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
 /*** Utils ******************************************************************/

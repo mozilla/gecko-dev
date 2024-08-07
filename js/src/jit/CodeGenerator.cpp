@@ -98,12 +98,9 @@
 using namespace js;
 using namespace js::jit;
 
-using JS::GenericNaN;
-using mozilla::AssertedCast;
 using mozilla::CheckedUint32;
 using mozilla::DebugOnly;
 using mozilla::FloatingPoint;
-using mozilla::Maybe;
 using mozilla::NegativeInfinity;
 using mozilla::PositiveInfinity;
 

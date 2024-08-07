@@ -7,7 +7,6 @@
 #include "vm/Shape-inl.h"
 
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/PodOperations.h"
 
 #include "gc/HashUtil.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow
@@ -25,11 +24,6 @@
 #include "vm/NativeObject-inl.h"
 
 using namespace js;
-
-using mozilla::CeilingLog2Size;
-using mozilla::PodZero;
-
-using JS::AutoCheckCannotGC;
 
 /* static */
 bool Shape::replaceShape(JSContext* cx, HandleObject obj,

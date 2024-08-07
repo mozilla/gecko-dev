@@ -39,7 +39,6 @@
 
 using namespace js;
 
-using JS::AutoCheckCannotGC;
 using mozilla::CheckedInt;
 using mozilla::PodCopy;
 using mozilla::RoundUpPow2;

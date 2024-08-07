@@ -260,7 +260,6 @@ using mozilla::Some;
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
-using JS::AutoGCRooter;
 using JS::SliceBudget;
 using JS::TimeBudget;
 using JS::WorkBudget;

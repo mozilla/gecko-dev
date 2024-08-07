@@ -6,11 +6,6 @@
 
 #include "wasm/WasmGcObject-inl.h"
 
-#include "mozilla/ArrayUtils.h"
-#include "mozilla/Casting.h"
-#include "mozilla/CheckedInt.h"
-#include "mozilla/DebugOnly.h"
-
 #include <algorithm>
 
 #include "gc/Marking.h"
@@ -34,12 +29,6 @@
 #include "gc/GCContext-inl.h"  // GCContext::removeCellMemory
 #include "gc/ObjectKind-inl.h"
 #include "vm/JSContext-inl.h"
-
-using mozilla::AssertedCast;
-using mozilla::CheckedUint32;
-using mozilla::IsPowerOfTwo;
-using mozilla::PodCopy;
-using mozilla::PointerRangeSize;
 
 using namespace js;
 using namespace wasm;

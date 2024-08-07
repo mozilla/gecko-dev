@@ -29,7 +29,6 @@
 
 using namespace js;
 using namespace js::gc;
-using mozilla::DebugOnly;
 
 template void RuntimeScopeData<LexicalScope::SlotInfo>::trace(JSTracer* trc);
 template void RuntimeScopeData<ClassBodyScope::SlotInfo>::trace(JSTracer* trc);
