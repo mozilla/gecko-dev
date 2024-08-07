@@ -21,29 +21,35 @@ head = "head.js"
 ["test_loginDataSourceEnumerateLines.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
 
 ["test_loginDataSourceOriginPrototype.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
 
 ["test_loginDataSourcePasswordPrototype.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
 
 ["test_loginDataSourceReloadDataSource.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
 
 ["test_loginDataSourceSortLines.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
 
 ["test_loginDataSourceUsernamePrototype.js"]
 skip-if = [
 	"os == 'android'", # LoginDataSource imports LoginExport which is not available on Android
-	"release_or_beta"] # Bug 1910590
+	"release_or_beta", # Bug 1910590
+	"appname == 'thunderbird'"] # LoginDataSource imports LoginBreaches which is not available in Thunderbird
