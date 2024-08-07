@@ -235,7 +235,7 @@ Passing Additional Arguments to Browsertime
 
 Browsertime has many command line flags to configure its usage, see `Browsertime configuration <https://www.sitespeed.io/documentation/browsertime/configuration/>`_.
 
-There are multiple ways of adding additional arguments to Browsertime from Raptor. The primary method is to use ``--browsertime-arg``. For example: ``./mach raptor --browsertime -t amazon --browsertime-arg iterations=10``
+There are multiple ways of adding additional arguments to Browsertime from Raptor. The primary method is to use ``--browsertime-arg``. For example: ``./mach raptor -t amazon --browsertime-arg iterations=10``
 
 Other methods for adding additional arguments are:
 
