@@ -1011,10 +1011,16 @@ async function doEagerEvalDOMMethods(commands) {
   // The following "values" methods share single native function with different
   // JitInfo, while ReadableStream's "values" isn't side-effect free.
 
+  // TODO: See Bug 1910717, this can be removed when we remove the pref for iterator helpers
+  let constructorName = "Object";
+  if (typeof Iterator === "function") {
+    constructorName = "Iterator";
+  }
+
   const testDataAllowed = [
-    [`testFormData.values().constructor.name`, "Object"],
-    [`testHeaders.values().constructor.name`, "Object"],
-    [`testURLSearchParams.values().constructor.name`, "Object"],
+    [`testFormData.values().constructor.name`, constructorName],
+    [`testHeaders.values().constructor.name`, constructorName],
+    [`testURLSearchParams.values().constructor.name`, constructorName],
   ];
 
   for (const [code, expectedResult] of testDataAllowed) {

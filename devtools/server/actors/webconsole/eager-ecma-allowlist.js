@@ -237,4 +237,10 @@ const getterAllowList = [
   getter(TypedArray, Symbol.species),
 ];
 
+// TODO: See Bug 1910717, this can be removed when we remove the pref for iterator helpers
+if (typeof Iterator === "function") {
+  // eslint-disable-next-line no-undef
+  getterAllowList.push(getter(Iterator.prototype, "constructor"));
+}
+
 module.exports = { functions: functionAllowList, getters: getterAllowList };
