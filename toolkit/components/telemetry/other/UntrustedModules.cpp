@@ -133,7 +133,8 @@ MultiGetUntrustedModulesData::GetUntrustedModuleLoadEvents() {
     AddPending(contentParent->SendGetUntrustedModulesData());
   }
 
-  if (auto* socketActor = net::SocketProcessParent::GetSingleton()) {
+  if (RefPtr<net::SocketProcessParent> socketActor =
+          net::SocketProcessParent::GetSingleton()) {
     AddPending(socketActor->SendGetUntrustedModulesData());
   }
 

@@ -193,7 +193,8 @@ NS_IMETHODIMP UntrustedModulesProcessor::Observe(nsISupports* aSubject,
       for (auto* proc : contentProcesses) {
         Unused << proc->SendUnblockUntrustedModulesThread();
       }
-      if (auto* proc = net::SocketProcessParent::GetSingleton()) {
+      if (RefPtr<net::SocketProcessParent> proc =
+              net::SocketProcessParent::GetSingleton()) {
         Unused << proc->SendUnblockUntrustedModulesThread();
       }
       if (auto* rddMgr = RDDProcessManager::Get()) {

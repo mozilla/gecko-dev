@@ -1635,7 +1635,8 @@ nsresult nsHttpChannel::InitTransaction() {
     if (NS_WARN_IF(!gIOService->SocketProcessReady())) {
       return NS_ERROR_NOT_AVAILABLE;
     }
-    SocketProcessParent* socketProcess = SocketProcessParent::GetSingleton();
+    RefPtr<SocketProcessParent> socketProcess =
+        SocketProcessParent::GetSingleton();
     if (!socketProcess->CanSend()) {
       return NS_ERROR_NOT_AVAILABLE;
     }

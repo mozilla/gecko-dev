@@ -878,7 +878,7 @@ RemoteProxyAutoConfig::~RemoteProxyAutoConfig() = default;
 nsresult RemoteProxyAutoConfig::Init(nsIThread* aPACThread) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  SocketProcessParent* socketProcessParent =
+  RefPtr<SocketProcessParent> socketProcessParent =
       SocketProcessParent::GetSingleton();
   if (!socketProcessParent) {
     return NS_ERROR_NOT_AVAILABLE;

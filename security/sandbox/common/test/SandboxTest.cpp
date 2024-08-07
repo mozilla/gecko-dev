@@ -242,10 +242,10 @@ SandboxTest::StartTests(const nsTArray<nsCString>& aProcessesList) {
           // If socket process was previously disabled by env,
           // nsIOService code will take some time before it creates the new
           // process and it triggers this callback
-          net::SocketProcessParent* parent =
+          RefPtr<net::SocketProcessParent> parent =
               net::SocketProcessParent::GetSingleton();
           if (parent) {
-            return InitializeSandboxTestingActors(parent, processPromise);
+            return InitializeSandboxTestingActors(parent.get(), processPromise);
           }
           return processPromise->Reject(NS_ERROR_FAILURE, __func__);
         });

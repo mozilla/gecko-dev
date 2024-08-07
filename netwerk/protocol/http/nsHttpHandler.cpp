@@ -588,15 +588,15 @@ nsresult nsHttpHandler::InitConnectionMgr() {
     auto task = [self]() {
       RefPtr<HttpConnectionMgrParent> parent =
           self->mConnMgr->AsHttpConnectionMgrParent();
-      Unused << SocketProcessParent::GetSingleton()
-                    ->SendPHttpConnectionMgrConstructor(
-                        parent,
-                        HttpHandlerInitArgs(
-                            self->mLegacyAppName, self->mLegacyAppVersion,
-                            self->mPlatform, self->mOscpu, self->mMisc,
-                            self->mProduct, self->mProductSub, self->mAppName,
-                            self->mAppVersion, self->mCompatFirefox,
-                            self->mCompatDevice, self->mDeviceModelId));
+      RefPtr<SocketProcessParent> socketParent =
+          SocketProcessParent::GetSingleton();
+      Unused << socketParent->SendPHttpConnectionMgrConstructor(
+          parent,
+          HttpHandlerInitArgs(self->mLegacyAppName, self->mLegacyAppVersion,
+                              self->mPlatform, self->mOscpu, self->mMisc,
+                              self->mProduct, self->mProductSub, self->mAppName,
+                              self->mAppVersion, self->mCompatFirefox,
+                              self->mCompatDevice, self->mDeviceModelId));
     };
     gIOService->CallOrWaitForSocketProcess(std::move(task));
   } else {
@@ -1158,8 +1158,9 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
       if (!XRE_IsSocketProcess()) {
         mDeviceModelId = mozilla::net::GetDeviceModelId();
         if (gIOService->SocketProcessReady()) {
-          Unused << SocketProcessParent::GetSingleton()
-                        ->SendUpdateDeviceModelId(mDeviceModelId);
+          RefPtr<SocketProcessParent> socketParent =
+              SocketProcessParent::GetSingleton();
+          Unused << socketParent->SendUpdateDeviceModelId(mDeviceModelId);
         }
       }
     } else {

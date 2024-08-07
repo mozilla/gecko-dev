@@ -1929,8 +1929,9 @@ nsNSSComponent::ClearSSLExternalAndInternalSessionCache() {
   if (mozilla::net::nsIOService::UseSocketProcess()) {
     if (mozilla::net::gIOService) {
       mozilla::net::gIOService->CallOrWaitForSocketProcess([]() {
-        Unused << mozilla::net::SocketProcessParent::GetSingleton()
-                      ->SendClearSessionCache();
+        RefPtr<mozilla::net::SocketProcessParent> socketParent =
+            mozilla::net::SocketProcessParent::GetSingleton();
+        Unused << socketParent->SendClearSessionCache();
       });
     }
   }
@@ -1960,19 +1961,15 @@ nsNSSComponent::AsyncClearSSLExternalAndInternalSessionCache(
 
   if (mozilla::net::nsIOService::UseSocketProcess() &&
       mozilla::net::gIOService) {
-    mozilla::net::gIOService->CallOrWaitForSocketProcess(
-        [p = RefPtr{promise}]() {
-          Unused << mozilla::net::SocketProcessParent::GetSingleton()
-                        ->SendClearSessionCache()
-                        ->Then(
-                            GetCurrentSerialEventTarget(), __func__,
-                            [promise = RefPtr{p}] {
-                              promise->MaybeResolveWithUndefined();
-                            },
-                            [promise = RefPtr{p}] {
-                              promise->MaybeReject(NS_ERROR_UNEXPECTED);
-                            });
-        });
+    mozilla::net::gIOService->CallOrWaitForSocketProcess([p = RefPtr{
+                                                              promise}]() {
+      RefPtr<mozilla::net::SocketProcessParent> socketParent =
+          mozilla::net::SocketProcessParent::GetSingleton();
+      Unused << socketParent->SendClearSessionCache()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise = RefPtr{p}] { promise->MaybeResolveWithUndefined(); },
+          [promise = RefPtr{p}] { promise->MaybeReject(NS_ERROR_UNEXPECTED); });
+    });
   } else {
     promise->MaybeResolveWithUndefined();
   }

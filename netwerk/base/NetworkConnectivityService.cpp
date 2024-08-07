@@ -312,7 +312,7 @@ NetworkConnectivityService::RecheckDNS() {
   }
 
   if (nsIOService::UseSocketProcess()) {
-    SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+    RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
     if (parent) {
       Unused << parent->SendRecheckDNS();
     }
@@ -482,7 +482,7 @@ NetworkConnectivityService::RecheckIPConnectivity() {
   }
 
   if (nsIOService::UseSocketProcess()) {
-    SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+    RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
     if (parent) {
       Unused << parent->SendRecheckIPConnectivity();
     }

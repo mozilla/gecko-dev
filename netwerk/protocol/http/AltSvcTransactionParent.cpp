@@ -36,7 +36,7 @@ AltSvcTransactionParent::~AltSvcTransactionParent() {
 }
 
 bool AltSvcTransactionParent::Init() {
-  SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+  RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
   if (!parent) {
     return false;
   }

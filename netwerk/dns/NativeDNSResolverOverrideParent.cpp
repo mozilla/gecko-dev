@@ -34,9 +34,10 @@ NativeDNSResolverOverrideParent::GetSingleton() {
   ClearOnShutdown(&gNativeDNSResolverOverrideParent);
 
   auto initTask = []() {
-    Unused << SocketProcessParent::GetSingleton()
-                  ->SendPNativeDNSResolverOverrideConstructor(
-                      gNativeDNSResolverOverrideParent);
+    RefPtr<SocketProcessParent> socketParent =
+        SocketProcessParent::GetSingleton();
+    Unused << socketParent->SendPNativeDNSResolverOverrideConstructor(
+        gNativeDNSResolverOverrideParent);
   };
   gIOService->CallOrWaitForSocketProcess(initTask);
   return do_AddRef(gNativeDNSResolverOverrideParent);

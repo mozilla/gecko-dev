@@ -480,7 +480,7 @@ void FlushAllChildData(
     }
   }
 
-  if (net::SocketProcessParent* socketParent =
+  if (RefPtr<net::SocketProcessParent> socketParent =
           net::SocketProcessParent::GetSingleton()) {
     promises.EmplaceBack(socketParent->SendFlushFOGData());
   }
@@ -616,14 +616,14 @@ void TestTriggerMetrics(uint32_t aProcessType,
           [promise]() { promise->MaybeResolveWithUndefined(); },
           [promise]() { promise->MaybeRejectWithUndefined(); });
       break;
-    case nsIXULRuntime::PROCESS_TYPE_SOCKET:
-      Unused << net::SocketProcessParent::GetSingleton()
-                    ->SendTestTriggerMetrics()
-                    ->Then(
-                        GetCurrentSerialEventTarget(), __func__,
-                        [promise]() { promise->MaybeResolveWithUndefined(); },
-                        [promise]() { promise->MaybeRejectWithUndefined(); });
-      break;
+    case nsIXULRuntime::PROCESS_TYPE_SOCKET: {
+      RefPtr<net::SocketProcessParent> socketParent(
+          net::SocketProcessParent::GetSingleton());
+      Unused << socketParent->SendTestTriggerMetrics()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [promise]() { promise->MaybeResolveWithUndefined(); },
+          [promise]() { promise->MaybeRejectWithUndefined(); });
+    } break;
     case nsIXULRuntime::PROCESS_TYPE_UTILITY:
       Unused << ipc::UtilityProcessManager::GetSingleton()
                     ->GetProcessParent(ipc::SandboxingKind::GENERIC_UTILITY)

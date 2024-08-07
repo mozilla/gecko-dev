@@ -47,7 +47,8 @@ void TRRServiceParent::Init() {
     return;
   }
 
-  SocketProcessParent* socketParent = SocketProcessParent::GetSingleton();
+  RefPtr<SocketProcessParent> socketParent =
+      SocketProcessParent::GetSingleton();
   if (!socketParent) {
     return;
   }

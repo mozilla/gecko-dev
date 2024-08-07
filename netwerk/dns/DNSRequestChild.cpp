@@ -462,7 +462,9 @@ void DNSRequestSender::StartRequest() {
     RefPtr<DNSRequestParent> requestParent = parent;
     RefPtr<DNSRequestSender> self = this;
     auto task = [requestParent, self]() {
-      Unused << SocketProcessParent::GetSingleton()->SendPDNSRequestConstructor(
+      RefPtr<SocketProcessParent> socketParent =
+          SocketProcessParent::GetSingleton();
+      Unused << socketParent->SendPDNSRequestConstructor(
           requestParent, self->mHost, self->mTrrServer, self->mPort,
           self->mType, self->mOriginAttributes, self->mFlags);
     };

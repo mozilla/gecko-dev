@@ -498,7 +498,9 @@ Dashboard::RequestSockets(nsINetDashboardCallback* aCallback) {
     }
 
     RefPtr<Dashboard> self(this);
-    SocketProcessParent::GetSingleton()->SendGetSocketData()->Then(
+    RefPtr<SocketProcessParent> socketParent =
+        SocketProcessParent::GetSingleton();
+    socketParent->SendGetSocketData()->Then(
         GetMainThreadSerialEventTarget(), __func__,
         [self{std::move(self)},
          socketData{std::move(socketData)}](SocketDataArgs&& args) {
@@ -588,7 +590,9 @@ Dashboard::RequestHttpConnections(nsINetDashboardCallback* aCallback) {
     }
 
     RefPtr<Dashboard> self(this);
-    SocketProcessParent::GetSingleton()->SendGetHttpConnectionData()->Then(
+    RefPtr<SocketProcessParent> socketParent =
+        SocketProcessParent::GetSingleton();
+    socketParent->SendGetHttpConnectionData()->Then(
         GetMainThreadSerialEventTarget(), __func__,
         [self{std::move(self)}, httpData](nsTArray<HttpRetParams>&& params) {
           httpData->mData.Assign(std::move(params));
@@ -834,7 +838,9 @@ Dashboard::RequestDNSInfo(nsINetDashboardCallback* aCallback) {
     }
 
     RefPtr<Dashboard> self(this);
-    SocketProcessParent::GetSingleton()->SendGetDNSCacheEntries()->Then(
+    RefPtr<SocketProcessParent> socketParent =
+        SocketProcessParent::GetSingleton();
+    socketParent->SendGetDNSCacheEntries()->Then(
         GetMainThreadSerialEventTarget(), __func__,
         [self{std::move(self)},
          dnsData{std::move(dnsData)}](nsTArray<DNSCacheEntries>&& entries) {

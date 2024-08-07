@@ -736,7 +736,7 @@ mozilla::ipc::IPCResult NeckoParent::RecvInitSocketProcessBridge(
       return;
     }
 
-    SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+    RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
     if (NS_WARN_IF(!parent)) {
       resolver(std::move(invalidEndpoint));
       return;

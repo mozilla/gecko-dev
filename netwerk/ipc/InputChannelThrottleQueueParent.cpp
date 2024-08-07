@@ -83,9 +83,10 @@ InputChannelThrottleQueueParent::Init(uint32_t aMeanBytesPerSecond,
   gIOService->CallOrWaitForSocketProcess(
       [self, meanBytesPerSecond(mMeanBytesPerSecond),
        maxBytesPerSecond(mMaxBytesPerSecond)] {
-        Unused << SocketProcessParent::GetSingleton()
-                      ->SendPInputChannelThrottleQueueConstructor(
-                          self, meanBytesPerSecond, maxBytesPerSecond);
+        RefPtr<SocketProcessParent> socketParent =
+            SocketProcessParent::GetSingleton();
+        Unused << socketParent->SendPInputChannelThrottleQueueConstructor(
+            self, meanBytesPerSecond, maxBytesPerSecond);
       });
 
   return NS_OK;
