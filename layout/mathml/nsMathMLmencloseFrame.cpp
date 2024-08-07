@@ -206,8 +206,7 @@ void nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // paint the menclosed content
   nsMathMLContainerFrame::BuildDisplayList(aBuilder, aLists);
 
-  nsRect mencloseRect = nsIFrame::GetRect();
-  mencloseRect.x = mencloseRect.y = 0;
+  nsRect mencloseRect = nsIFrame::GetContentRectRelativeToSelf();
 
   if (IsToDraw(NOTATION_RADICAL)) {
     mMathMLChar[mRadicalCharIndex].Display(aBuilder, this, aLists, 0);
@@ -626,6 +625,11 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
 
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Add padding+border.
+  auto borderPadding = GetBorderPaddingForPlace(aFlags);
+  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
+                                  mBoundingMetrics);
+
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
 
@@ -634,7 +638,7 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
     // Set position and size of MathMLChars
     if (IsToDraw(NOTATION_LONGDIV))
       mMathMLChar[mLongDivCharIndex].SetRect(nsRect(
-          dx_left - bmLongdivChar.width,
+          dx_left - bmLongdivChar.width + borderPadding.left,
           aDesiredSize.BlockStartAscent() - longdivAscent, bmLongdivChar.width,
           bmLongdivChar.ascent + bmLongdivChar.descent));
 
@@ -644,15 +648,17 @@ nsresult nsMathMLmencloseFrame::PlaceInternal(DrawTarget* aDrawTarget,
                         : dx_left - bmRadicalChar.width);
 
       mMathMLChar[mRadicalCharIndex].SetRect(nsRect(
-          dx, aDesiredSize.BlockStartAscent() - radicalAscent,
-          bmRadicalChar.width, bmRadicalChar.ascent + bmRadicalChar.descent));
+          dx + borderPadding.left,
+          aDesiredSize.BlockStartAscent() - radicalAscent, bmRadicalChar.width,
+          bmRadicalChar.ascent + bmRadicalChar.descent));
     }
 
     mContentWidth = bmBase.width;
 
     //////////////////
     // Finish reflowing child frames
-    PositionRowChildFrames(dx_left, aDesiredSize.BlockStartAscent());
+    PositionRowChildFrames(dx_left + borderPadding.left,
+                           aDesiredSize.BlockStartAscent());
   }
 
   return NS_OK;

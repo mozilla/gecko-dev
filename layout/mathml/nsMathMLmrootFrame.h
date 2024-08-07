@@ -42,8 +42,8 @@ class nsMathMLmrootFrame final : public nsMathMLContainerFrame {
                           nsFontMetrics* aFontMetrics, nscoord* aIndexOffset,
                           nscoord* aSqrOffset);
 
-  virtual void GetIntrinsicISizeMetrics(gfxContext* aRenderingContext,
-                                        ReflowOutput& aDesiredSize) override;
+  nsresult MeasureForWidth(DrawTarget* aDrawTarget,
+                           ReflowOutput& aDesiredSize) final;
 
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
