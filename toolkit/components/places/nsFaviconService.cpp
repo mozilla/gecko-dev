@@ -299,6 +299,30 @@ nsFaviconService::SetFaviconForPage(
     return (rv = NS_ERROR_UNEXPECTED);
   }
 
+  // If URI is a Data URI, mime type returned by channel may be incorrect, since
+  // it relies on type text in the URI. So we override the initial type returned
+  // by channel to ensure that the correct type is associated with the payload.
+  if (aDataURL->SchemeIs("data")) {
+    nsAutoCString sniffedMimeType;
+    uint32_t bufferLength = buffer.Length();
+    // Note that this function can detect png, ico, jpeg, among other file
+    // types, but not SVG.
+    rv = imgLoader::GetMimeTypeFromContent((const char*)buffer.Elements(),
+                                           bufferLength, sniffedMimeType);
+    if (NS_SUCCEEDED(rv)) {
+      mimeType = sniffedMimeType;
+    } else {
+      // When the MIME type is not available, fall back to checking for SVG in
+      // the initial part of the buffer.
+      const char* content = reinterpret_cast<const char*>(buffer.Elements());
+      uint32_t length = std::min(bufferLength, 255u);
+      nsDependentCSubstring substring(content, length);
+      if (substring.Find("<svg") != -1) {
+        mimeType.AssignLiteral("image/svg+xml");
+      }
+    }
+  }
+
   // Favicon should be handled without userpass.
   nsCOMPtr<nsIURI> faviconURI = GetExposableURI(aFaviconURI);
   nsCOMPtr<nsIURI> pageURI = GetExposableURI(aPageURI);

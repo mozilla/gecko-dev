@@ -245,3 +245,20 @@ async function doTestSetFaviconForPage({
     );
   });
 }
+
+add_task(async function test_incorrectMimeTypeDataURI() {
+  let pageURI = uri("http://example.com/");
+  await PlacesTestUtils.addVisits(pageURI);
+
+  const svgContent = "<svg><rect width='1px' height='1px'/></svg>";
+
+  await doTestSetFaviconForPage({
+    pageURI,
+    faviconURI: uri("http://example.com/favicon.svg"),
+    dataURL: uri(`data:image/png;utf8,${svgContent}`),
+    expectedFaviconData: Array.from(new TextEncoder().encode(svgContent)),
+    expectedFaviconMimeType: "image/svg+xml",
+  });
+
+  await PlacesUtils.history.clear();
+});
