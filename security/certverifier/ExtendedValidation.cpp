@@ -1337,7 +1337,7 @@ nsresult LoadExtendedValidationInfo() {
       // The entries for the debug EV roots are at indices 0 through
       // NUM_TEST_EV_ROOTS - 1. Since they're not built-in, they probably
       // haven't been loaded yet.
-#  ifndef XP_HAIKU
+#  ifndef __HAIKU__
       MOZ_ASSERT(i < NUM_TEST_EV_ROOTS, "Could not find built-in EV root");
 #  endif
     } else {
