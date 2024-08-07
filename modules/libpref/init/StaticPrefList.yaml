@@ -3169,7 +3169,11 @@
 # WebCodecs API
 - name: dom.media.webcodecs.enabled
   type: RelaxedAtomicBool
+#if defined(MOZ_WIDGET_ANDROID)
   value: @IS_NIGHTLY_BUILD@
+#else
+  value: true
+#endif
   mirror: always
 
 # WebCodecs API - Image decoder
