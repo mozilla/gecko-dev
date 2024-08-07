@@ -35,11 +35,11 @@ futures-sink = { version = "0.3", optional = true }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"], optional = true }
 getrandom = { version = "0.2", default-features = false, features = ["std"], optional = true }
 hashbrown = { version = "0.13", optional = true }
-hex = { version = "0.4", optional = true }
+hex = { version = "0.4", features = ["serde"], optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 icu_locid = { version = "1", default-features = false, features = ["zerovec"], optional = true }
 icu_properties = { version = "1", features = ["bidi"], optional = true }
-indexmap = { version = "2", default-features = false, features = ["serde", "std"], optional = true }
+indexmap = { version = "2", features = ["serde", "std"], optional = true }
 libc = { version = "0.2", features = ["extra_traits"] }
 lmdb-rkv-sys = { version = "0.11", default-features = false, features = ["mdb_idl_logn_9"], optional = true }
 log = { version = "0.4", features = ["release_max_level_info", "std"], optional = true }
