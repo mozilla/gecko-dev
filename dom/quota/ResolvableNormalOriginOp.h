@@ -37,10 +37,6 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
 
  private:
   void SendResults() override {
-#ifdef DEBUG
-    NoteActorDestroyed();
-#endif
-
     if (Canceled()) {
       mResultCode = NS_ERROR_FAILURE;
     }

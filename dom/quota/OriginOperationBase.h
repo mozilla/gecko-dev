@@ -29,26 +29,12 @@ class OriginOperationBase : public BackgroundThreadObject,
   nsresult mResultCode;
 
  private:
-  bool mActorDestroyed;
-
 #ifdef QM_COLLECTING_OPERATION_TELEMETRY
   const char* mName = nullptr;
 #endif
 
  public:
   NS_INLINE_DECL_REFCOUNTING(OriginOperationBase)
-
-  void NoteActorDestroyed() {
-    AssertIsOnOwningThread();
-
-    mActorDestroyed = true;
-  }
-
-  bool IsActorDestroyed() const {
-    AssertIsOnOwningThread();
-
-    return mActorDestroyed;
-  }
 
 #ifdef QM_COLLECTING_OPERATION_TELEMETRY
   const char* Name() const { return mName; }

@@ -19,7 +19,22 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
  protected:
   QuotaUsageRequestBase(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                         const char* aName)
-      : NormalOriginOperationBase(std::move(aQuotaManager), aName) {}
+      : NormalOriginOperationBase(std::move(aQuotaManager), aName),
+        mActorDestroyed(false) {}
+
+  virtual ~QuotaUsageRequestBase();
+
+  void NoteActorDestroyed() {
+    AssertIsOnOwningThread();
+
+    mActorDestroyed = true;
+  }
+
+  bool IsActorDestroyed() const {
+    AssertIsOnOwningThread();
+
+    return mActorDestroyed;
+  }
 
   // Subclasses use this override to set the IPDL response value.
   virtual void GetResponse(UsageRequestResponse& aResponse) = 0;
@@ -31,6 +46,8 @@ class QuotaUsageRequestBase : public NormalOriginOperationBase,
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   mozilla::ipc::IPCResult RecvCancel() final;
+
+  bool mActorDestroyed;
 };
 
 }  // namespace mozilla::dom::quota

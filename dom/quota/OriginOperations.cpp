@@ -962,10 +962,6 @@ nsresult FinalizeOriginEvictionOp::DoDirectoryWork(
 void FinalizeOriginEvictionOp::UnblockOpen() {
   AssertIsOnOwningThread();
 
-#ifdef DEBUG
-  NoteActorDestroyed();
-#endif
-
   for (const auto& lock : mLocks) {
     lock->Drop();
   }
@@ -1010,11 +1006,7 @@ nsresult SaveOriginAccessTimeOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   return NS_OK;
 }
 
-void SaveOriginAccessTimeOp::SendResults() {
-#ifdef DEBUG
-  NoteActorDestroyed();
-#endif
-}
+void SaveOriginAccessTimeOp::SendResults() {}
 
 void SaveOriginAccessTimeOp::CloseDirectory() {
   AssertIsOnOwningThread();

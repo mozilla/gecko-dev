@@ -44,8 +44,7 @@ OriginOperationBase::OriginOperationBase(
     MovingNotNull<RefPtr<QuotaManager>>&& aQuotaManager, const char* aName)
     : BackgroundThreadObject(GetCurrentSerialEventTarget()),
       mQuotaManager(std::move(aQuotaManager)),
-      mResultCode(NS_OK),
-      mActorDestroyed(false)
+      mResultCode(NS_OK)
 #ifdef QM_COLLECTING_OPERATION_TELEMETRY
       ,
       mName(aName)
@@ -54,10 +53,7 @@ OriginOperationBase::OriginOperationBase(
   AssertIsOnOwningThread();
 }
 
-OriginOperationBase::~OriginOperationBase() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mActorDestroyed);
-}
+OriginOperationBase::~OriginOperationBase() { AssertIsOnOwningThread(); }
 
 void OriginOperationBase::RunImmediately() {
   AssertIsOnOwningThread();

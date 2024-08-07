@@ -11,6 +11,11 @@
 
 namespace mozilla::dom::quota {
 
+QuotaUsageRequestBase::~QuotaUsageRequestBase() {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mActorDestroyed);
+}
+
 void QuotaUsageRequestBase::SendResults() {
   AssertIsOnOwningThread();
 
