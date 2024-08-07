@@ -43,7 +43,11 @@
 #      include "base/process_util.h"
 #    endif
 #    include <sys/wait.h>
-#    include <sys/errno.h>
+#    ifdef XP_HAIKU
+#      include <errno.h>
+#    else
+#      include <sys/errno.h>
+#    endif
 #  endif
 #  include <sys/types.h>
 #  include <signal.h>
