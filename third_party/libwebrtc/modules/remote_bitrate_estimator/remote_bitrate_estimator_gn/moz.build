@@ -43,7 +43,7 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/modules/remote_bitrate_estimator/overuse_estimator.cc",
     "/third_party/libwebrtc/modules/remote_bitrate_estimator/packet_arrival_map.cc",
     "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.cc",
-    "/third_party/libwebrtc/modules/remote_bitrate_estimator/remote_estimator_proxy.cc"
+    "/third_party/libwebrtc/modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
