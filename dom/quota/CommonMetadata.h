@@ -77,6 +77,15 @@ struct FullOriginMetadata : OriginMetadata {
         mLastAccessTime(aLastAccessTime) {}
 };
 
+struct OriginUsageMetadata : FullOriginMetadata {
+  uint64_t mUsage;
+
+  OriginUsageMetadata() = default;
+
+  OriginUsageMetadata(FullOriginMetadata aFullOriginMetadata, uint64_t aUsage)
+      : FullOriginMetadata(std::move(aFullOriginMetadata)), mUsage(aUsage) {}
+};
+
 struct ClientMetadata : OriginMetadata {
   Client::Type mClientType;
 

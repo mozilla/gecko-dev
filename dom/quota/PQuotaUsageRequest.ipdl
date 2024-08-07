@@ -6,6 +6,9 @@ include protocol PQuota;
 
 include "mozilla/dom/quota/SerializationHelpers.h";
 
+[MoveOnly] using mozilla::dom::quota::OriginUsageMetadataArray
+  from "mozilla/dom/quota/CommonMetadataArray.h";
+
 using mozilla::dom::quota::UsageInfo
   from "mozilla/dom/quota/UsageInfo.h";
 
@@ -13,17 +16,9 @@ namespace mozilla {
 namespace dom {
 namespace quota {
 
-struct OriginUsage
-{
-  nsCString origin;
-  bool persisted;
-  uint64_t usage;
-  uint64_t lastAccessed;
-};
-
 struct AllUsageResponse
 {
-  OriginUsage[] originUsages;
+  OriginUsageMetadataArray originUsages;
 };
 
 struct OriginUsageResponse

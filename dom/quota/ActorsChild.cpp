@@ -125,7 +125,7 @@ void QuotaUsageRequestChild::HandleResponse(nsresult aResponse) {
 }
 
 void QuotaUsageRequestChild::HandleResponse(
-    const nsTArray<OriginUsage>& aResponse) {
+    const OriginUsageMetadataArray& aResponse) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
 
@@ -138,8 +138,8 @@ void QuotaUsageRequestChild::HandleResponse(
 
     for (const auto& originUsage : aResponse) {
       usageResults.AppendElement(MakeRefPtr<UsageResult>(
-          originUsage.origin(), originUsage.persisted(), originUsage.usage(),
-          originUsage.lastAccessed()));
+          originUsage.mOrigin, originUsage.mPersisted, originUsage.mUsage,
+          originUsage.mLastAccessTime));
     }
 
     variant->SetAsArray(nsIDataType::VTYPE_INTERFACE_IS,
@@ -176,7 +176,7 @@ void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__(
-    const UsageRequestResponse& aResponse) {
+    UsageRequestResponse&& aResponse) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
 

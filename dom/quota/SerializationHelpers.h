@@ -59,6 +59,23 @@ struct ParamTraits<mozilla::dom::quota::FullOriginMetadata> {
 };
 
 template <>
+struct ParamTraits<mozilla::dom::quota::OriginUsageMetadata> {
+  using ParamType = mozilla::dom::quota::OriginUsageMetadata;
+
+  static void Write(MessageWriter* aWriter, const ParamType& aParam) {
+    ParamTraits<mozilla::dom::quota::FullOriginMetadata>::Write(aWriter,
+                                                                aParam);
+    WriteParam(aWriter, aParam.mUsage);
+  }
+
+  static bool Read(MessageReader* aReader, ParamType* aResult) {
+    return ParamTraits<mozilla::dom::quota::FullOriginMetadata>::Read(
+               aReader, aResult) &&
+           ReadParam(aReader, &aResult->mUsage);
+  }
+};
+
+template <>
 struct ParamTraits<mozilla::OriginAttributesPattern> {
   typedef mozilla::OriginAttributesPattern paramType;
 

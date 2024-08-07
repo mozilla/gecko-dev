@@ -230,7 +230,7 @@ class GetUsageOp final
     : public OpenStorageDirectoryHelper<QuotaUsageRequestBase>,
       public TraverseRepositoryHelper,
       public OriginUsageHelper {
-  nsTArray<OriginUsage> mOriginUsages;
+  OriginUsageMetadataArray mOriginUsages;
   nsTHashMap<nsCStringHashKey, uint32_t> mOriginUsagesIndex;
 
   bool mGetAll;
@@ -1292,17 +1292,24 @@ void GetUsageOp::ProcessOriginInternal(QuotaManager* aQuotaManager,
 
         entry.Insert(mOriginUsages.Length());
 
-        return mOriginUsages.EmplaceBack(nsCString{aOrigin}, false, 0, 0);
+        OriginUsageMetadata metadata;
+        metadata.mOrigin = aOrigin;
+        metadata.mPersistenceType = PERSISTENCE_TYPE_DEFAULT;
+        metadata.mPersisted = false;
+        metadata.mLastAccessTime = 0;
+        metadata.mUsage = 0;
+
+        return mOriginUsages.EmplaceBack(std::move(metadata));
       });
 
   if (aPersistenceType == PERSISTENCE_TYPE_DEFAULT) {
-    originUsage->persisted() = aPersisted;
+    originUsage->mPersisted = aPersisted;
   }
 
-  originUsage->usage() = originUsage->usage() + aUsage;
+  originUsage->mUsage = originUsage->mUsage + aUsage;
 
-  originUsage->lastAccessed() =
-      std::max<int64_t>(originUsage->lastAccessed(), aTimestamp);
+  originUsage->mLastAccessTime =
+      std::max<int64_t>(originUsage->mLastAccessTime, aTimestamp);
 }
 
 const Atomic<bool>& GetUsageOp::GetIsCanceledFlag() {

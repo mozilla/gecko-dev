@@ -36,7 +36,8 @@ void QuotaUsageRequestBase::SendResults() {
       response = mResultCode;
     }
 
-    Unused << PQuotaUsageRequestParent::Send__delete__(this, response);
+    Unused << PQuotaUsageRequestParent::Send__delete__(this,
+                                                       std::move(response));
   }
 }
 
