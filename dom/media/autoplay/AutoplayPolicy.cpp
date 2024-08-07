@@ -114,6 +114,12 @@ static bool IsWindowAllowedToPlayByTraits(nsPIDOMWindowInner* aWindow) {
     return true;
   }
 
+  if (currentDoc->GetPrincipal()->Equals(
+          nsContentUtils::GetFingerprintingProtectionPrincipal())) {
+    AUTOPLAY_LOG("Allow autoplay as in fingerprinting protection document.");
+    return true;
+  }
+
   return false;
 }
 

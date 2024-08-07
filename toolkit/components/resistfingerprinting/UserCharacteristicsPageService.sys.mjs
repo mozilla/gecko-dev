@@ -424,6 +424,9 @@ export class UserCharacteristicsPageService {
         "oscpu",
         "pdfViewer",
         "platform",
+        "audioFrames",
+        "audioRate",
+        "audioChannels",
       ],
     };
 

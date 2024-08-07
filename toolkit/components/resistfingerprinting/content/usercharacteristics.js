@@ -1182,6 +1182,22 @@ async function populateMathML() {
   }, {});
 }
 
+async function populateAudioDeviceProperties() {
+  const ctx = new AudioContext();
+  await ctx.resume();
+
+  // Give firefox some time to calculate latency
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // All the other properties (min/max decibels, smoothingTimeConstant,
+  // fftSize, frequencyBinCount, baseLatency) are hardcoded.
+  return {
+    audioFrames: ctx.outputLatency * ctx.sampleRate,
+    audioRate: ctx.sampleRate,
+    audioChannels: ctx.destination.maxChannelCount,
+  };
+}
+
 // A helper function to generate an array of asynchronous functions to populate
 // canvases using both software and hardware rendering.
 function getCanvasSources() {
@@ -1252,6 +1268,7 @@ async function startPopulating() {
     populateMathML,
     populateCSSQueries,
     populateNavigatorProperties,
+    populateAudioDeviceProperties,
   ];
   // Catches errors in promise-creating functions. E.g. if populateVoiceList
   // throws an error before returning any of its `key: (Promise<any> | any)`
