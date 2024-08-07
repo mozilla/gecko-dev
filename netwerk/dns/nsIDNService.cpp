@@ -70,6 +70,22 @@ static inline bool isOnlySafeChars(mozilla::Span<const char32_t> aLabel,
   return true;
 }
 
+static bool isCJKSlashConfusable(char32_t aChar) {
+  switch (aChar) {
+    case 0x30CE:  // ノ
+    case 0x30BD:  // ソ
+    case 0x30BE:  // ゾ
+    case 0x30F3:  // ン
+    case 0x4E36:  // 丶
+    case 0x4E40:  // 乀
+    case 0x4E41:  // 乁
+    case 0x4E3F:  // 丿
+      return true;
+    default:
+      return false;
+  }
+}
+
 //-----------------------------------------------------------------------------
 // nsIDNService
 //-----------------------------------------------------------------------------
@@ -267,6 +283,32 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     Script nextScript = Script::INVALID;
     if (current != end) {
       nextScript = UnicodeProperties::GetScriptCode(*current);
+    }
+
+    // U+3078 to U+307A (へ, べ, ぺ) in Hiragana mixed with Katakana should be
+    // unsafe
+    if (ch >= 0x3078 && ch <= 0x307A &&
+        (lastScript == Script::KATAKANA || nextScript == Script::KATAKANA)) {
+      return false;
+    }
+    // U+30D8 to U+30DA (ヘ, ベ, ペ) in Katakana mixed with Hiragana should be
+    // unsafe
+    if (ch >= 0x30D8 && ch <= 0x30DA &&
+        (lastScript == Script::HIRAGANA || nextScript == Script::HIRAGANA)) {
+      return false;
+    }
+    // U+30FD and U+30FE are allowed only after Katakana
+    if ((ch == 0x30FD || ch == 0x30FE) && lastScript != Script::KATAKANA) {
+      return false;
+    }
+
+    // Slash confusables not enclosed by {Han,Hiragana,Katakana} should be
+    // unsafe but by itself should be allowed.
+    if (isCJKSlashConfusable(ch) && aLabel.Length() > 1 &&
+        lastScript != Script::HAN && lastScript != Script::HIRAGANA &&
+        lastScript != Script::KATAKANA && nextScript != Script::HAN &&
+        nextScript != Script::HIRAGANA && nextScript != Script::KATAKANA) {
+      return false;
     }
 
     if (ch == 0x30FB &&
