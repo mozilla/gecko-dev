@@ -3802,8 +3802,9 @@ with only_when(need_perl):
 # a directory given via the mozbuild config, or bootstrapped.
 #
 # Unfortunately, doing `include!(mozbuild::windows_rs_path!("src/lib.rs"))`
-# in the crate's lib.rs doesn't work because of
-# https://github.com/rust-lang/rust/issues/66920.
+# in the crate's lib.rs, where `mozbuild::windows_rs_path!()` builds
+# a path relative to MOZ_WINDOWS_RS_DIR defined below, doesn't work
+# because of https://github.com/rust-lang/rust/issues/66920.
 #
 # Previous versions of the windows crate had submodules declared
 # directly in lib.rs. Annotating each of them with
@@ -3815,6 +3816,19 @@ with only_when(need_perl):
 # `include!` at the end of lib.rs, so we can get away with simply
 # replacing it with an `include!` that uses `mozbuild::windows_rs_path!`.
 #
+# Well, that was only true up to a certain point, and even newer versions
+# are back to using a submodule declared directly in lib.rs.
+# To work around that, we use a macro in the mozbuild crate that
+# expands to
+# ```
+# #[path = "/full/path/to/windows-rs/src/lib.rs"]
+# mod lib;
+# pub use lib::*;
+# ```
+# where the path is generated at build time instead of relying on more
+# macros. This creates a submodule and re-exports everything it contains,
+# making the crate appear as the original crate to its users.
+#
 # We ensure that the in-tree contents match what we expect based on
 # the original crate.
 # The expectations are as such:
@@ -3822,15 +3836,6 @@ with only_when(need_perl):
 #   following two lines at the end (after an empty line):
 #     [dependencies.mozbuild]
 #     version = "0.1"
-# - src/lib.rs is mostly identical to the original one, with two notable
-#   differences:
-#   - the addition of `#![allow(warnings)]` on the first line, because if
-#     the crate had been vendored normally, it would not be affected by
-#     `-D warnings`, and `#![allow(warnings)]` mimicks that.
-#   - the replacement of any
-#     `include!("path/file.rs")`
-#     with
-#     `include!(mozbuild::windows_rs_path!("src/path/file.rs"))`
 with only_when(target_is_windows & compile_environment):
     option(
         env="MOZ_WINDOWS_RS_DIR",
@@ -3885,16 +3890,6 @@ with only_when(target_is_windows & compile_environment):
             configure_error("In-tree windows crate is missing dependency on mozbuild")
         if raw_cargo_toml[: -len(DEPENDENCIES)] != raw_cargo_toml_orig:
             configure_error("In-tree windows crate Cargo.toml doesn't match original")
-
-        lib_rs = open(os.path.join(topsrcdir, "build/rust/windows/src/lib.rs")).read()
-        lib_rs_orig = open(os.path.join(dir, "src/lib.rs")).read()
-        lib_rs_expected = "#![allow(warnings)]\n" + re.sub(
-            r'include!\("([^"]*)"\)',
-            r'include!(mozbuild::windows_rs_path!("src/\1"))',
-            lib_rs_orig,
-        )
-        if lib_rs != lib_rs_expected:
-            configure_error("In-tree windows crate lib.rs doesn't match original")
 
         return dir
 
