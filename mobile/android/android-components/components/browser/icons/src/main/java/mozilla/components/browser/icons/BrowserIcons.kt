@@ -341,6 +341,8 @@ class BrowserIcons constructor(
         sharedMemoryCache.clear()
     }
 
+    @Suppress("DEPRECATION") // Apps are not notified of these levels since API level 34.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1909473
     override fun onTrimMemory(level: Int) {
         val shouldClearMemoryCache = when (level) {
             // Foreground: The device is running much lower on memory. The app is running and not killable, but the

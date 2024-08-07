@@ -77,6 +77,8 @@ internal class TrimMemoryMiddleware : Middleware<BrowserState, BrowserAction> {
     }
 }
 
+@Suppress("DEPRECATION") // Apps are not notified of these levels since API level 34.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1909473
 private fun shouldCloseEngineSessions(level: Int): Boolean {
     return when (level) {
         // Foreground: The device is running extremely low on memory. The app is not yet considered a killable
