@@ -16,9 +16,12 @@ namespace mozilla::dom::quota {
 class NormalOriginOperationBase
     : public OriginOperationBase,
       public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
- protected:
-  mozilla::Atomic<bool> mCanceled;
+ public:
+  const Atomic<bool>& Canceled() const { return mCanceled; }
 
+  bool Cancel() { return mCanceled.exchange(true); }
+
+ protected:
   // If we want to only forward declare DirectoryLock which is referenced by
   // the mDirectoryLock member then the constructor and destructor must be
   // defined in the cpp where DirectoryLock is fully declared (DirectoryLock.h
@@ -41,6 +44,8 @@ class NormalOriginOperationBase
   virtual RefPtr<BoolPromise> Open() override;
 
   virtual void UnblockOpen() override;
+
+  mozilla::Atomic<bool> mCanceled;
 };
 
 }  // namespace mozilla::dom::quota

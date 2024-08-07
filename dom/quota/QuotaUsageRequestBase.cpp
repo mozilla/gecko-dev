@@ -19,7 +19,7 @@ void QuotaUsageRequestBase::SendResults() {
       mResultCode = NS_ERROR_FAILURE;
     }
   } else {
-    if (mCanceled) {
+    if (Canceled()) {
       mResultCode = NS_ERROR_FAILURE;
     }
 
@@ -44,7 +44,7 @@ void QuotaUsageRequestBase::ActorDestroy(ActorDestroyReason aWhy) {
 mozilla::ipc::IPCResult QuotaUsageRequestBase::RecvCancel() {
   AssertIsOnOwningThread();
 
-  if (mCanceled.exchange(true)) {
+  if (Cancel()) {
     NS_WARNING("Canceled more than once?!");
     return IPC_FAIL(this, "Request canceled more than once");
   }

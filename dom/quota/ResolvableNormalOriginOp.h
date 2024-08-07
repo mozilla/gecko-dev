@@ -41,7 +41,7 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
     NoteActorDestroyed();
 #endif
 
-    if (mCanceled) {
+    if (Canceled()) {
       mResultCode = NS_ERROR_FAILURE;
     }
 

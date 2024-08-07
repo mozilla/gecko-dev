@@ -1312,7 +1312,7 @@ void GetUsageOp::ProcessOriginInternal(QuotaManager* aQuotaManager,
 const Atomic<bool>& GetUsageOp::GetIsCanceledFlag() {
   AssertIsOnIOThread();
 
-  return mCanceled;
+  return Canceled();
 }
 
 // XXX Remove aPersistent
@@ -1449,7 +1449,7 @@ RefPtr<BoolPromise> GetOriginUsageOp::OpenDirectory() {
 const Atomic<bool>& GetOriginUsageOp::GetIsCanceledFlag() {
   AssertIsOnIOThread();
 
-  return mCanceled;
+  return Canceled();
 }
 
 nsresult GetOriginUsageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
@@ -2777,7 +2777,7 @@ nsresult ListOriginsOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
 const Atomic<bool>& ListOriginsOp::GetIsCanceledFlag() {
   AssertIsOnIOThread();
 
-  return mCanceled;
+  return Canceled();
 }
 
 nsresult ListOriginsOp::ProcessOrigin(QuotaManager& aQuotaManager,
