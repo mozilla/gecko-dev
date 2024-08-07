@@ -149,7 +149,8 @@ function isKeyIn(key, ...keys) {
  *        from `element` to the new input.
  *        defaults to false
  * @param {Object} options.cssProperties: An instance of CSSProperties.
- * @param {Object} options.cssVariables: A Map object containing all CSS variables.
+ * @param {Object} options.getCssVariables: A function that returns a Map containing
+ *        all CSS variables. The Map key is the variable name, the value is the variable value
  * @param {Number} options.defaultIncrement: The value by which the input is incremented
  *        or decremented by default (0.1 for properties like opacity and 1 by default)
  * @param {Function} options.getGridLineNames:
@@ -286,7 +287,9 @@ class InplaceEditor extends EventEmitter {
     this.doc = doc;
     this.elt.inplaceEditor = this;
     this.cssProperties = options.cssProperties;
-    this.cssVariables = options.cssVariables || new Map();
+    this.getCssVariables = options.getCssVariables
+      ? options.getCssVariables.bind(this)
+      : null;
     this.change = options.change;
     this.done = options.done;
     this.contextMenu = options.contextMenu;
@@ -413,6 +416,8 @@ class InplaceEditor extends EventEmitter {
   #pressedKey;
   #preventSuggestions;
   #selectedIndex;
+  #variableNames;
+  #variables;
 
   get currentInputValue() {
     const val = this.trimOutput ? this.input.value.trim() : this.input.value;
@@ -1834,13 +1839,31 @@ class InplaceEditor extends EventEmitter {
       .sort();
   }
 
+  #getCSSVariablesMap() {
+    if (!this.getCssVariables) {
+      return null;
+    }
+
+    if (!this.#variables) {
+      this.#variables = this.getCssVariables();
+    }
+    return this.#variables;
+  }
+
   /**
    * Returns the list of all CSS variables to use for the autocompletion.
    *
    * @return {Array} array of CSS variable names (Strings)
    */
   #getCSSVariableNames() {
-    return Array.from(this.cssVariables.keys()).sort();
+    if (!this.#variableNames) {
+      const variables = this.#getCSSVariablesMap();
+      if (!variables) {
+        return [];
+      }
+      this.#variableNames = Array.from(variables.keys()).sort();
+    }
+    return this.#variableNames;
   }
 
   /**
@@ -1851,7 +1874,7 @@ class InplaceEditor extends EventEmitter {
    * @return {String} the variable value to the given CSS variable name
    */
   #getCSSVariableValue(varName) {
-    return this.cssVariables.get(varName);
+    return this.#getCSSVariablesMap()?.get(varName);
   }
 }
 

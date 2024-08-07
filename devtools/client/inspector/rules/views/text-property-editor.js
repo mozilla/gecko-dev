@@ -324,9 +324,8 @@ TextPropertyEditor.prototype = {
         }
       });
 
-      const cssVariables = this.rule.elementStyle.getAllCustomProperties(
-        this.rule.pseudoElement
-      );
+      const getCssVariables = () =>
+        this.rule.elementStyle.getAllCustomProperties(this.rule.pseudoElement);
 
       editableField({
         start: this._onStartEditing,
@@ -337,7 +336,7 @@ TextPropertyEditor.prototype = {
         contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,
         popup: this.popup,
         cssProperties: this.cssProperties,
-        cssVariables,
+        getCssVariables,
         // (Shift+)Tab will move the focus to the previous/next editable field (so property value
         // or new selector).
         focusEditableFieldAfterApply: true,
@@ -436,7 +435,7 @@ TextPropertyEditor.prototype = {
         multiline: true,
         maxWidth: () => this.container.getBoundingClientRect().width,
         cssProperties: this.cssProperties,
-        cssVariables,
+        getCssVariables,
         getGridLineNames: this.getGridlineNames,
         showSuggestCompletionOnEmpty: true,
         // (Shift+)Tab will move the focus to the previous/next editable field (so property name,
