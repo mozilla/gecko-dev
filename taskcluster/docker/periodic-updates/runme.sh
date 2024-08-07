@@ -47,6 +47,11 @@ then
   PARAMS="${PARAMS} --mobile-experiments"
 fi
 
+if [ -n "${DO_CT_LOGS}" ]
+then
+  PARAMS="${PARAMS} --ct-logs"
+fi
+
 if [ -n "${DONTBUILD}" ]
 then
   PARAMS="${PARAMS} -d"
