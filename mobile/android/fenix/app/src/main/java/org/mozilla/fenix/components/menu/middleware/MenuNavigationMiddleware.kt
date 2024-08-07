@@ -234,6 +234,10 @@ class MenuNavigationMiddleware(
                     BrowserNavigationParams(url = AMO_HOMEPAGE_FOR_ANDROID),
                 )
 
+                is MenuAction.Navigate.ExtensionsLearnMore -> openToBrowser(
+                    BrowserNavigationParams(sumoTopic = SumoTopic.FIND_INSTALL_ADDONS),
+                )
+
                 is MenuAction.Navigate.NewTab -> openNewTab(isPrivate = false)
 
                 is MenuAction.Navigate.NewPrivateTab -> openNewTab(isPrivate = true)

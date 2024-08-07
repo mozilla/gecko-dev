@@ -200,6 +200,7 @@ class MenuTelemetryMiddleware(
             is MenuAction.Navigate.AddonDetails,
             MenuAction.Navigate.Back,
             MenuAction.Navigate.DiscoverMoreExtensions,
+            MenuAction.Navigate.ExtensionsLearnMore,
             MenuAction.Navigate.Extensions,
             MenuAction.Navigate.NewPrivateTab,
             MenuAction.Navigate.Save,

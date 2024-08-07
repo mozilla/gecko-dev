@@ -410,8 +410,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         composable(route = EXTENSIONS_MENU_ROUTE) {
                             ExtensionsSubmenu(
                                 recommendedAddons = recommendedAddons,
+                                showExtensionsOnboarding = true,
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
+                                },
+                                onExtensionsLearnMoreClick = {
+                                    store.dispatch(MenuAction.Navigate.ExtensionsLearnMore)
                                 },
                                 onManageExtensionsMenuClick = {
                                     store.dispatch(MenuAction.Navigate.ManageExtensions)

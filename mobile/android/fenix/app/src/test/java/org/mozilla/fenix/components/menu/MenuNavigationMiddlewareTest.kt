@@ -524,6 +524,20 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
+    fun `WHEN navigate to extensions learn more action is dispatched THEN navigate to the SUMO page for installing add-ons`() = runTest {
+        var params: BrowserNavigationParams? = null
+        val store = createStore(
+            openToBrowser = {
+                params = it
+            },
+        )
+
+        store.dispatch(MenuAction.Navigate.ExtensionsLearnMore).join()
+
+        assertEquals(SumoTopic.FIND_INSTALL_ADDONS, params?.sumoTopic)
+    }
+
+    @Test
     fun `WHEN navigate to new tab action is dispatched THEN navigate to the home screen`() = runTest {
         val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Private)
         val store = createStore(

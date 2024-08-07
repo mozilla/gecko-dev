@@ -235,6 +235,11 @@ sealed class MenuAction : Action {
         data object DiscoverMoreExtensions : Navigate()
 
         /**
+         * [Navigate] action dispatched when navigating to the SUMO page for installing add-ons.
+         */
+        data object ExtensionsLearnMore : Navigate()
+
+        /**
          * [Navigate] action dispatched when navigating to the new tab.
          */
         data object NewTab : Navigate()

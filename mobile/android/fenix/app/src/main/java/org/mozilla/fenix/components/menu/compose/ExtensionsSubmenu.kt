@@ -30,10 +30,13 @@ import org.mozilla.fenix.theme.Theme
 
 internal const val EXTENSIONS_MENU_ROUTE = "extensions_menu"
 
+@Suppress("LongParameterList")
 @Composable
 internal fun ExtensionsSubmenu(
     recommendedAddons: List<Addon>,
+    showExtensionsOnboarding: Boolean,
     onBackButtonClick: () -> Unit,
+    onExtensionsLearnMoreClick: () -> Unit,
     onManageExtensionsMenuClick: () -> Unit,
     onAddonClick: (Addon) -> Unit,
     onInstallAddonClick: (Addon) -> Unit,
@@ -47,6 +50,21 @@ internal fun ExtensionsSubmenu(
             )
         },
     ) {
+        if (showExtensionsOnboarding) {
+            ExtensionsSubmenuBanner(
+                title = stringResource(
+                    R.string.browser_menu_extensions_banner_onboarding_header,
+                    stringResource(R.string.app_name),
+                ),
+                description = stringResource(
+                    R.string.browser_menu_extensions_banner_onboarding_body,
+                    stringResource(R.string.app_name),
+                ),
+                linkText = stringResource(R.string.browser_menu_extensions_banner_learn_more),
+                onClick = onExtensionsLearnMoreClick,
+            )
+        }
+
         MenuGroup {
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_manage_extensions),
@@ -131,7 +149,9 @@ private fun ExtensionsSubmenuPreview() {
                         translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
                     ),
                 ),
+                showExtensionsOnboarding = true,
                 onBackButtonClick = {},
+                onExtensionsLearnMoreClick = {},
                 onManageExtensionsMenuClick = {},
                 onAddonClick = {},
                 onInstallAddonClick = {},
@@ -163,7 +183,9 @@ private fun ExtensionsSubmenuPrivatePreview() {
                         translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
                     ),
                 ),
+                showExtensionsOnboarding = true,
                 onBackButtonClick = {},
+                onExtensionsLearnMoreClick = {},
                 onManageExtensionsMenuClick = {},
                 onAddonClick = {},
                 onInstallAddonClick = {},

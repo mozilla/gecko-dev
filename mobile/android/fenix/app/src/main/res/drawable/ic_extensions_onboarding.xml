@@ -6,8 +6,7 @@
     android:width="180dp"
     android:height="180dp"
     android:viewportWidth="180"
-    android:viewportHeight="180"
-    tools:ignore="UnusedResources">
+    android:viewportHeight="180">
   <path
       android:pathData="M86.69,111.03C86.69,110.93 86.68,110.83 86.68,110.73C88.46,110.73 90.25,110.73 92.03,110.72C92.02,110.82 92.02,110.93 92.02,111.03H86.69H86.69Z"
       android:fillColor="#FCE9D3"/>
