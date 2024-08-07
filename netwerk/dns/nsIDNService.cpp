@@ -334,6 +334,11 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
       return false;
     }
 
+    // Disallow U+0259 for domains outside Azerbaijani ccTLD (.az)
+    if (ch == 0x259 && !TLDEqualsLiteral(aTLD, "az")) {
+      return false;
+    }
+
     // Block single/double-quote-like characters.
     if (ch == 0x2BB || ch == 0x2BC) {
       return false;

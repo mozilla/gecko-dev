@@ -882,7 +882,7 @@ let testCases = [
   ["xn--mnpqr-jta.is", "mn\u00f0pqr.is", kSafe],
 
   // U+0259 (ə) is only allowed under the .az TLD.
-  ["xn--xample-vyc.com", "\u0259xample.com", kUnsafe, "DISABLED"],
+  ["xn--xample-vyc.com", "\u0259xample.com", kUnsafe],
   ["xn--xample-vyc.az", "\u0259xample.az", kSafe],
 
   // U+00B7 is only allowed on Catalan domains between two l's.
