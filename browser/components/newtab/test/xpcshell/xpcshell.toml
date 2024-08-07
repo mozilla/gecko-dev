@@ -28,5 +28,6 @@ support-files = ["../schemas/*.schema.json"]
 ["test_TopSitesFeed_glean.js"]
 
 ["test_WallpaperFeed.js"]
+tags = "remote-settings"
 
 ["test_WeatherFeed.js"]

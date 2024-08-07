@@ -40,30 +40,6 @@ export class PersonalityProvider {
     return this._personalityProviderWorker;
   }
 
-  get baseAttachmentsURL() {
-    // Returning a promise, so we can have an async getter.
-    return this._getBaseAttachmentsURL();
-  }
-
-  async _getBaseAttachmentsURL() {
-    if (this._baseAttachmentsURL) {
-      return this._baseAttachmentsURL;
-    }
-    const server = lazy.Utils.SERVER_URL;
-    const serverInfo = await (
-      await fetch(`${server}/`, {
-        credentials: "omit",
-      })
-    ).json();
-    const {
-      capabilities: {
-        attachments: { base_url },
-      },
-    } = serverInfo;
-    this._baseAttachmentsURL = base_url;
-    return this._baseAttachmentsURL;
-  }
-
   setup() {
     this.setupSyncAttachment(RECIPE_NAME);
     this.setupSyncAttachment(MODELS_NAME);
@@ -160,7 +136,7 @@ export class PersonalityProvider {
 
   async setBaseAttachmentsURL() {
     await this.personalityProviderWorker.post("setBaseAttachmentsURL", [
-      await this.baseAttachmentsURL,
+      await lazy.Utils.baseAttachmentsURL(),
     ]);
   }
 

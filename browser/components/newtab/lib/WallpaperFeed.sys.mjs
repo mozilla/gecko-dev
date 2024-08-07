@@ -29,7 +29,6 @@ export class WallpaperFeed {
   constructor() {
     this.loaded = false;
     this.wallpaperClient = null;
-    this.baseAttachmentURL = "";
     this._onSync = this.onSync.bind(this);
   }
 
@@ -72,7 +71,6 @@ export class WallpaperFeed {
         }
       }
 
-      await this.getBaseAttachment();
       this.wallpaperClient.on("sync", this._onSync);
       this.updateWallpapers(isStartup);
     }
@@ -84,25 +82,11 @@ export class WallpaperFeed {
     }
     this.loaded = false;
     this.wallpaperClient = null;
-    this.baseAttachmentURL = "";
   }
 
   async onSync() {
     this.wallpaperTeardown();
     await this.wallpaperSetup(false /* isStartup */);
-  }
-
-  async getBaseAttachment() {
-    if (!this.baseAttachmentURL) {
-      const SERVER = lazy.Utils.SERVER_URL;
-      const serverInfo = await (
-        await this.fetch(`${SERVER}/`, {
-          credentials: "omit",
-        })
-      ).json();
-      const { base_url } = serverInfo.capabilities.attachments;
-      this.baseAttachmentURL = base_url;
-    }
   }
 
   async updateWallpapers(isStartup = false) {
@@ -112,9 +96,7 @@ export class WallpaperFeed {
       return;
     }
 
-    if (!this.baseAttachmentURL) {
-      await this.getBaseAttachment();
-    }
+    const baseAttachmentURL = await lazy.Utils.baseAttachmentsURL();
 
     const wallpapers = [
       ...records.map(record => {
@@ -122,7 +104,7 @@ export class WallpaperFeed {
           ...record,
           ...(record.attachment
             ? {
-                wallpaperUrl: `${this.baseAttachmentURL}${record.attachment.location}`,
+                wallpaperUrl: `${baseAttachmentURL}${record.attachment.location}`,
               }
             : {}),
           category: record.category || "",

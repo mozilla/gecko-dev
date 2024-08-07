@@ -9,7 +9,6 @@ describe("Personality Provider", () => {
   let RemoteSettingsGetStub;
   let sandbox;
   let globals;
-  let baseURLStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -28,17 +27,10 @@ describe("Personality Provider", () => {
     sinon.spy(global, "BasePromiseWorker");
     sinon.spy(global.BasePromiseWorker.prototype, "post");
 
-    baseURLStub = "https://baseattachmentsurl";
-    global.fetch = async server => ({
-      ok: true,
-      json: async () => {
-        if (server === "bogus://foo/") {
-          return { capabilities: { attachments: { base_url: baseURLStub } } };
-        }
-        return {};
-      },
-    });
     globals.set("RemoteSettings", RemoteSettingsStub);
+    globals.set("Utils", {
+      baseAttachmentsURL: () => "https://baseattachmentsurl",
+    });
 
     instance = new PersonalityProvider();
     instance.interestConfig = {
@@ -72,18 +64,6 @@ describe("Personality Provider", () => {
       personalityProviderWorker = instance.personalityProviderWorker;
       assert.calledOnce(global.BasePromiseWorker);
       assert.isDefined(personalityProviderWorker);
-    });
-  });
-  describe("#_getBaseAttachmentsURL", () => {
-    it("should return a fresh value", async () => {
-      await instance._getBaseAttachmentsURL();
-      assert.equal(instance._baseAttachmentsURL, baseURLStub);
-    });
-    it("should return a cached value", async () => {
-      const cachedURL = "cached";
-      instance._baseAttachmentsURL = cachedURL;
-      await instance._getBaseAttachmentsURL();
-      assert.equal(instance._baseAttachmentsURL, cachedURL);
     });
   });
   describe("#setup", () => {

@@ -3,6 +3,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   ExtensionTestUtils:
     "resource://testing-common/ExtensionXPCShellUtils.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
@@ -17,11 +18,14 @@ ChromeUtils.defineESModuleGetters(this, {
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   updateAppInfo: "resource://testing-common/AppInfo.sys.mjs",
+  Utils: "resource://services-settings/Utils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
+
+// Expose Remote Settings utils with an explicit name.
+const RemoteSettingsUtils = Utils;
 
 // We need Services.appinfo.name set up to allow the hashes to work with a
 // consistent name.

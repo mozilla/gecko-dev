@@ -101,36 +101,6 @@ async function clear_state() {
     response.setStatusLine(null, 200, "OK");
   });
 }
-
-add_task(clear_state);
-
-add_task(async function test_base_attachment_url_depends_on_server() {
-  const before = await downloader._baseAttachmentsURL();
-
-  Services.prefs.setStringPref(
-    "services.settings.server",
-    `http://localhost:${server.identity.primaryPort}/v2`
-  );
-
-  server.registerPathHandler("/v2/", (request, response) => {
-    response.write(
-      JSON.stringify({
-        capabilities: {
-          attachments: {
-            base_url: "http://some-cdn-url.org",
-          },
-        },
-      })
-    );
-    response.setHeader("Content-Type", "application/json; charset=UTF-8");
-    response.setStatusLine(null, 200, "OK");
-  });
-
-  const after = await downloader._baseAttachmentsURL();
-
-  Assert.notEqual(before, after, "base URL was changed");
-  Assert.equal(after, "http://some-cdn-url.org/", "A trailing slash is added");
-});
 add_task(clear_state);
 
 add_task(

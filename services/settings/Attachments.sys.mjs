@@ -128,7 +128,6 @@ export class Downloader {
     this.folders = ["settings", bucketName, collectionName, ...subFolders];
     this.bucketName = bucketName;
     this.collectionName = collectionName;
-    this._cdnURLs = {};
   }
 
   /**
@@ -191,7 +190,7 @@ export class Downloader {
     }
 
     const url =
-      (await this._baseAttachmentsURL()) +
+      (await lazy.Utils.baseAttachmentsURL()) +
       `bundles/${this.bucketName}--${this.collectionName}.zip`;
     const tmpZipFilePath = PathUtils.join(
       PathUtils.tempDir,
@@ -558,7 +557,14 @@ export class Downloader {
       attachment: { location, hash, size },
     } = record;
 
-    const remoteFileUrl = (await this._baseAttachmentsURL()) + location;
+    let baseURL;
+    try {
+      baseURL = await lazy.Utils.baseAttachmentsURL();
+    } catch (error) {
+      throw new Downloader.ServerInfoError(error);
+    }
+
+    const remoteFileUrl = baseURL + location;
 
     const { retries = 3, checkHash = true } = options;
     let retried = 0;
@@ -607,28 +613,6 @@ export class Downloader {
     );
     await IOUtils.remove(path);
     await this._rmDirs();
-  }
-
-  async _baseAttachmentsURL() {
-    if (!this._cdnURLs[lazy.Utils.SERVER_URL]) {
-      const resp = await lazy.Utils.fetch(`${lazy.Utils.SERVER_URL}/`);
-      let serverInfo;
-      try {
-        serverInfo = await resp.json();
-      } catch (error) {
-        throw new Downloader.ServerInfoError(error);
-      }
-      // Server capabilities expose attachments configuration.
-      const {
-        capabilities: {
-          attachments: { base_url },
-        },
-      } = serverInfo;
-      // Make sure the URL always has a trailing slash.
-      this._cdnURLs[lazy.Utils.SERVER_URL] =
-        base_url + (base_url.endsWith("/") ? "" : "/");
-    }
-    return this._cdnURLs[lazy.Utils.SERVER_URL];
   }
 
   async _fetchAttachment(url) {

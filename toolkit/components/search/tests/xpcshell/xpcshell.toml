@@ -46,6 +46,7 @@ prefs = ["browser.search.newSearchConfig.enabled=true"]
 
 ["test_appProvided_icons_updates.js"]
 prefs = ["browser.search.newSearchConfig.enabled=true"]
+tags = "remote-settings"
 
 ["test_async.js"]
 
@@ -259,11 +260,11 @@ prefs = ["browser.search.newSearchConfig.enabled=true"]
 ["test_webextensions_migrate_to.js"]
 support-files = ["data/search-migration.json"]
 
+["test_webextensions_startup.js"]
+
 ["test_webextensions_startup_duplicate.js"]
 
 ["test_webextensions_startup_remove.js"]
-
-["test_webextensions_startup.js"]
 
 ["test_webextensions_upgrade.js"]
 

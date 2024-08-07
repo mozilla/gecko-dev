@@ -93,6 +93,8 @@ function _isUndefined(value) {
   return typeof value === "undefined";
 }
 
+const _cdnURLs = {};
+
 export var Utils = {
   get SERVER_URL() {
     return lazy.allowServerURLOverride
@@ -275,6 +277,39 @@ export var Utils = {
 
       request.send();
     });
+  },
+
+  /**
+   * Retrieves the base URL for attachments from the server configuration.
+   *
+   * If the URL has been previously fetched and cached, it returns the cached URL.
+   *
+   * @async
+   * @function baseAttachmentsURL
+   * @memberof Utils
+   * @returns {Promise<string>} A promise that resolves to the base URL for attachments.
+   *
+   * @throws {Error} If there is an error fetching or parsing the server response.
+   *
+   * @example
+   * const attachmentsURL = await Downloader.baseAttachmentsURL();
+   * console.log(attachmentsURL);
+   */
+  async baseAttachmentsURL() {
+    if (!_cdnURLs[Utils.SERVER_URL]) {
+      const resp = await Utils.fetch(`${Utils.SERVER_URL}/`);
+      const serverInfo = await resp.json();
+      // Server capabilities expose attachments configuration.
+      const {
+        capabilities: {
+          attachments: { base_url },
+        },
+      } = serverInfo;
+      // Make sure the URL always has a trailing slash.
+      _cdnURLs[Utils.SERVER_URL] =
+        base_url + (base_url.endsWith("/") ? "" : "/");
+    }
+    return _cdnURLs[Utils.SERVER_URL];
   },
 
   /**
