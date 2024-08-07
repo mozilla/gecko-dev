@@ -8,12 +8,17 @@
     * {
       --color: tomato;
       --bg: violet;
+      --nested: var(--color);
+      --theme-color: light-dark(var(--color), var(--bg));
+      --nested-with-function: var(--theme-color);
     }
 
     div {
       --color: chartreuse;
       color: var(--color, red);
       background-color: var(--not-set, var(--bg));
+      outline-color: var(--nested);
+      border-color: var(--nested-with-function);
     }
   </style>
 </head>

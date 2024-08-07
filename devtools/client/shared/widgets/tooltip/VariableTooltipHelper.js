@@ -17,6 +17,8 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  * @param  {Object} params
  * @param  {String} params.topSectionText
  *         Text to display in the top section of tooltip (e.g. "--x = blue" or "--x is not defined").
+ * @param  {String} params.computed
+ *         The computed value for the variable.
  * @param  {Object} params.registeredProperty
  *         Contains the registered property data, if the variable was registered (@property or CSS.registerProperty)
  * @param  {String} params.registeredProperty.syntax
@@ -31,7 +33,7 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 function setVariableTooltip(
   tooltip,
   doc,
-  { topSectionText, registeredProperty, startingStyle }
+  { computed, topSectionText, registeredProperty, startingStyle }
 ) {
   // Create tooltip content
   const div = doc.createElementNS(XHTML_NS, "div");
@@ -42,7 +44,19 @@ function setVariableTooltip(
   valueEl.append(doc.createTextNode(topSectionText));
   div.appendChild(valueEl);
 
-  // A registered property always have a non-falsy syntax
+  if (typeof computed !== "undefined") {
+    const section = doc.createElementNS(XHTML_NS, "section");
+    section.classList.add("computed", "variable-tooltip-section");
+
+    const h2 = doc.createElementNS(XHTML_NS, "h2");
+    h2.append(doc.createTextNode("computed value"));
+    const computedValueEl = doc.createElementNS(XHTML_NS, "div");
+    computedValueEl.append(doc.createTextNode(computed));
+    section.append(h2, computedValueEl);
+
+    div.appendChild(section);
+  }
+
   if (typeof startingStyle !== "undefined") {
     const section = doc.createElementNS(XHTML_NS, "section");
     section.classList.add("starting-style", "variable-tooltip-section");

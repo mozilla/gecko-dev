@@ -301,6 +301,7 @@ class OutputParser {
     let varData;
     let varFallbackValue;
     let varSubsitutedValue;
+    let varComputedValue;
 
     // Get the variable value if it is in use.
     if (tokens && tokens.length === 1) {
@@ -321,6 +322,8 @@ class OutputParser {
       varSubsitutedValue = options.inStartingStyleRule
         ? varStartingStyleValue
         : varValue;
+
+      varComputedValue = varData.computedValue;
     }
 
     // Get the variable name.
@@ -336,6 +339,16 @@ class OutputParser {
       );
       firstOpts.class = options.matchedVariableClass;
       secondOpts.class = options.unmatchedClass;
+
+      // Display computed value when it exists, is different from the substituted value
+      // we computed, and we're not inside a starting-style rule
+      if (
+        !options.inStartingStyleRule &&
+        typeof varComputedValue === "string" &&
+        varComputedValue !== varSubsitutedValue
+      ) {
+        firstOpts["data-variable-computed"] = varComputedValue;
+      }
 
       // Display starting-style value when not in a starting style rule
       if (
