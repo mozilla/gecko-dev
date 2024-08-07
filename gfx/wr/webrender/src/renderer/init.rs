@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BlobImageHandler, ColorF, IdNamespace, DocumentId, CrashAnnotator};
+use api::{BlobImageHandler, ColorF, CrashAnnotator, DocumentId, IdNamespace};
 use api::{VoidPtrToSizeFn, FontRenderMode, ImageFormat};
 use api::{RenderNotifier, ImageBufferKind};
 use api::units::*;
@@ -617,6 +617,7 @@ pub fn create_webrender_instance(
         let lp_builder = LowPrioritySceneBuilderThread {
             rx: low_priority_scene_rx,
             tx: scene_tx.clone(),
+            tile_pool: api::BlobTilePool::new(),
         };
 
         thread::Builder::new().name(lp_scene_thread_name.clone()).spawn(move || {

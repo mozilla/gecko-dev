@@ -189,7 +189,8 @@ impl AsyncBlobImageRasterizer for Rasterizer {
     fn rasterize(
         &mut self,
         requests: &[BlobImageParams],
-        _low_priority: bool
+        _low_priority: bool,
+        _tile_pool: &mut BlobTilePool,
     ) -> Vec<(BlobImageRequest, BlobImageResult)> {
         let requests: Vec<Command> = requests.iter().map(
             |item| {

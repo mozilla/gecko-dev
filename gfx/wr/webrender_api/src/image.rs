@@ -421,7 +421,8 @@ pub trait AsyncBlobImageRasterizer : Send {
     fn rasterize(
         &mut self,
         requests: &[BlobImageParams],
-        low_priority: bool
+        low_priority: bool,
+        tile_pool: &mut crate::BlobTilePool,
     ) -> Vec<(BlobImageRequest, BlobImageResult)>;
 }
 

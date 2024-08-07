@@ -42,6 +42,7 @@ mod display_list;
 mod font;
 mod gradient_builder;
 mod image;
+mod tile_pool;
 pub mod units;
 
 pub use crate::color::*;
@@ -51,6 +52,7 @@ pub use crate::display_list::*;
 pub use crate::font::*;
 pub use crate::gradient_builder::*;
 pub use crate::image::*;
+pub use crate::tile_pool::*;
 
 use crate::units::*;
 use crate::channel::Receiver;

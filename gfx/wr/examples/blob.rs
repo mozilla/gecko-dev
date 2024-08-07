@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use webrender::api::{self, DisplayListBuilder, DocumentId, PipelineId, PrimitiveFlags};
 use webrender::api::{ColorF, CommonItemProperties, SpaceAndClipInfo, ImageDescriptorFlags};
+use webrender::api::BlobTilePool;
 use webrender::api::units::*;
 use webrender::render_api::*;
 use webrender::euclid::size2;
@@ -183,7 +184,8 @@ impl api::AsyncBlobImageRasterizer for Rasterizer {
     fn rasterize(
         &mut self,
         requests: &[api::BlobImageParams],
-        _low_priority: bool
+        _low_priority: bool,
+        _tile_pool: &mut BlobTilePool,
     ) -> Vec<(api::BlobImageRequest, api::BlobImageResult)> {
         let requests: Vec<(&api::BlobImageParams, Arc<ImageRenderingCommands>)> = requests.into_iter().map(|params| {
             (params, Arc::clone(&self.image_cmds[&params.request.key]))
