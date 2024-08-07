@@ -287,36 +287,36 @@ impl Time {
         }
     }
 
-    #[allow(clippy::unused_self)] // Only on some platforms is it unused.
-    #[allow(clippy::missing_const_for_fn)] // Only const on some platforms where the function is empty.
+    #[cfg(target_os = "macos")]
     fn start(&self) {
-        #[cfg(target_os = "macos")]
-        {
-            if let Some(p) = self.active {
-                mac::set_realtime(p.scaled(self.scale));
-            } else {
-                mac::set_thread_policy(self.deflt);
-            }
-        }
-
-        #[cfg(windows)]
-        {
-            if let Some(p) = self.active {
-                _ = unsafe { timeBeginPeriod(p.as_uint()) };
-            }
+        if let Some(p) = self.active {
+            mac::set_realtime(p.scaled(self.scale));
+        } else {
+            mac::set_thread_policy(self.deflt);
         }
     }
 
-    #[allow(clippy::unused_self)] // Only on some platforms is it unused.
-    #[allow(clippy::missing_const_for_fn)] // Only const on some platforms where the function is empty.
+    #[cfg(target_os = "windows")]
+    fn start(&self) {
+        if let Some(p) = self.active {
+            _ = unsafe { timeBeginPeriod(p.as_uint()) };
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+    #[allow(clippy::unused_self)]
+    const fn start(&self) {}
+
+    #[cfg(windows)]
     fn stop(&self) {
-        #[cfg(windows)]
-        {
-            if let Some(p) = self.active {
-                _ = unsafe { timeEndPeriod(p.as_uint()) };
-            }
+        if let Some(p) = self.active {
+            _ = unsafe { timeEndPeriod(p.as_uint()) };
         }
     }
+
+    #[cfg(not(target_os = "windows"))]
+    #[allow(clippy::unused_self)]
+    const fn stop(&self) {}
 
     fn update(&mut self) {
         let next = self.periods.min();

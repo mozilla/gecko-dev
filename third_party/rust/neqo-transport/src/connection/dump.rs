@@ -42,7 +42,7 @@ pub fn dump_packet(
         };
         let x = f.dump();
         if !x.is_empty() {
-            write!(&mut s, "\n  {} {}", dir, &x).unwrap();
+            _ = write!(&mut s, "\n  {} {}", dir, &x);
         }
     }
     qdebug!(

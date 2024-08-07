@@ -30,11 +30,7 @@ use url::Url;
 use super::{get_output_file, qlog_new, Args, CloseState, Res};
 
 pub struct Handler<'a> {
-    #[allow(
-        unknown_lints,
-        clippy::struct_field_names,
-        clippy::redundant_field_names
-    )]
+    #[allow(clippy::struct_field_names)]
     url_handler: UrlHandler<'a>,
     token: Option<ResumptionToken>,
     output_read_data: bool,

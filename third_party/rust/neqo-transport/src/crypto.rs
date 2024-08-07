@@ -238,13 +238,13 @@ impl Crypto {
         };
         let secret = secret.ok_or(Error::InternalError)?;
         self.states
-            .set_0rtt_keys(version, dir, &secret, cipher.unwrap());
+            .set_0rtt_keys(version, dir, &secret, cipher.ok_or(Error::InternalError)?)?;
         Ok(true)
     }
 
     /// Lock in a compatible upgrade.
     pub fn confirm_version(&mut self, confirmed: Version) {
-        self.states.confirm_version(self.version, confirmed);
+        _ = self.states.confirm_version(self.version, confirmed);
         self.version = confirmed;
     }
 
@@ -277,7 +277,7 @@ impl Crypto {
         }
         .ok_or(Error::InternalError)?;
         self.states
-            .set_handshake_keys(self.version, &write_secret, &read_secret, cipher);
+            .set_handshake_keys(self.version, &write_secret, &read_secret, cipher)?;
         qdebug!([self], "Handshake keys installed");
         Ok(true)
     }
@@ -313,7 +313,8 @@ impl Crypto {
                 return Err(Error::ProtocolViolation);
             }
             qtrace!([self], "Adding CRYPTO data {:?}", r);
-            self.streams.send(PacketNumberSpace::from(r.epoch), &r.data);
+            self.streams
+                .send(PacketNumberSpace::from(r.epoch), &r.data)?;
         }
         Ok(())
     }
@@ -437,14 +438,13 @@ pub struct CryptoDxState {
 const INITIAL_LARGEST_PACKET_LEN: usize = 1 << 11; // 2048
 
 impl CryptoDxState {
-    #[allow(clippy::reversed_empty_ranges)] // To initialize an empty range.
     pub fn new(
         version: Version,
         direction: CryptoDxDirection,
         epoch: Epoch,
         secret: &SymKey,
         cipher: Cipher,
-    ) -> Self {
+    ) -> Res<Self> {
         qdebug!(
             "Making {:?} {} CryptoDxState, v={:?} cipher={}",
             direction,
@@ -453,17 +453,17 @@ impl CryptoDxState {
             cipher,
         );
         let hplabel = String::from(version.label_prefix()) + "hp";
-        Self {
+        Ok(Self {
             version,
             direction,
             epoch: usize::from(epoch),
-            aead: Aead::new(TLS_VERSION_1_3, cipher, secret, version.label_prefix()).unwrap(),
-            hpkey: HpKey::extract(TLS_VERSION_1_3, cipher, secret, &hplabel).unwrap(),
+            aead: Aead::new(TLS_VERSION_1_3, cipher, secret, version.label_prefix())?,
+            hpkey: HpKey::extract(TLS_VERSION_1_3, cipher, secret, &hplabel)?,
             used_pn: 0..0,
             min_pn: 0,
             invocations: Self::limit(direction, cipher),
             largest_packet_len: INITIAL_LARGEST_PACKET_LEN,
-        }
+        })
     }
 
     pub fn new_initial(
@@ -471,20 +471,18 @@ impl CryptoDxState {
         direction: CryptoDxDirection,
         label: &str,
         dcid: &[u8],
-    ) -> Self {
+    ) -> Res<Self> {
         qtrace!("new_initial {:?} {}", version, ConnectionIdRef::from(dcid));
         let salt = version.initial_salt();
         let cipher = TLS_AES_128_GCM_SHA256;
         let initial_secret = hkdf::extract(
             TLS_VERSION_1_3,
             cipher,
-            Some(hkdf::import_key(TLS_VERSION_1_3, salt).as_ref().unwrap()),
-            hkdf::import_key(TLS_VERSION_1_3, dcid).as_ref().unwrap(),
-        )
-        .unwrap();
+            Some(&hkdf::import_key(TLS_VERSION_1_3, salt)?),
+            &hkdf::import_key(TLS_VERSION_1_3, dcid)?,
+        )?;
 
-        let secret =
-            hkdf::expand_label(TLS_VERSION_1_3, cipher, &initial_secret, &[], label).unwrap();
+        let secret = hkdf::expand_label(TLS_VERSION_1_3, cipher, &initial_secret, &[], label)?;
 
         Self::new(version, direction, TLS_EPOCH_INITIAL, &secret, cipher)
     }
@@ -531,7 +529,7 @@ impl CryptoDxState {
         self.invocations <= UPDATE_WRITE_KEYS_AT
     }
 
-    pub fn next(&self, next_secret: &SymKey, cipher: Cipher) -> Self {
+    pub fn next(&self, next_secret: &SymKey, cipher: Cipher) -> Res<Self> {
         let pn = self.next_pn();
         // We count invocations of each write key just for that key, but all
         // attempts to invocations to read count toward a single limit.
@@ -541,7 +539,7 @@ impl CryptoDxState {
         } else {
             Self::limit(CryptoDxDirection::Write, cipher)
         };
-        Self {
+        Ok(Self {
             version: self.version,
             direction: self.direction,
             epoch: self.epoch + 1,
@@ -550,14 +548,13 @@ impl CryptoDxState {
                 cipher,
                 next_secret,
                 self.version.label_prefix(),
-            )
-            .unwrap(),
+            )?,
             hpkey: self.hpkey.clone(),
             used_pn: pn..pn,
             min_pn: pn,
             invocations,
             largest_packet_len: INITIAL_LARGEST_PACKET_LEN,
-        }
+        })
     }
 
     #[must_use]
@@ -704,6 +701,7 @@ impl CryptoDxState {
             "server in",
             CLIENT_CID,
         )
+        .unwrap()
     }
 
     /// Get the amount of extra padding packets protected with this profile need.
@@ -764,7 +762,7 @@ impl CryptoDxAppData {
         cipher: Cipher,
     ) -> Res<Self> {
         Ok(Self {
-            dx: CryptoDxState::new(version, dir, TLS_EPOCH_APPLICATION_DATA, secret, cipher),
+            dx: CryptoDxState::new(version, dir, TLS_EPOCH_APPLICATION_DATA, secret, cipher)?,
             cipher,
             next_secret: Self::update_secret(cipher, secret)?,
         })
@@ -782,7 +780,7 @@ impl CryptoDxAppData {
         }
         let next_secret = Self::update_secret(self.cipher, &self.next_secret)?;
         Ok(Self {
-            dx: self.dx.next(&self.next_secret, self.cipher),
+            dx: self.dx.next(&self.next_secret, self.cipher)?,
             cipher: self.cipher,
             next_secret,
         })
@@ -947,7 +945,7 @@ impl CryptoStates {
 
     /// Create the initial crypto state.
     /// Note that the version here can change and that's OK.
-    pub fn init<'v, V>(&mut self, versions: V, role: Role, dcid: &[u8])
+    pub fn init<'v, V>(&mut self, versions: V, role: Role, dcid: &[u8]) -> Res<()>
     where
         V: IntoIterator<Item = &'v Version>,
     {
@@ -969,8 +967,8 @@ impl CryptoStates {
             );
 
             let mut initial = CryptoState {
-                tx: CryptoDxState::new_initial(*v, CryptoDxDirection::Write, write, dcid),
-                rx: CryptoDxState::new_initial(*v, CryptoDxDirection::Read, read, dcid),
+                tx: CryptoDxState::new_initial(*v, CryptoDxDirection::Write, write, dcid)?,
+                rx: CryptoDxState::new_initial(*v, CryptoDxDirection::Read, read, dcid)?,
             };
             if let Some(prev) = self.initials.get(v) {
                 qinfo!(
@@ -978,10 +976,11 @@ impl CryptoStates {
                     "Continue packet numbers for initial after retry (write is {:?})",
                     prev.rx.used_pn,
                 );
-                initial.tx.continuation(&prev.tx).unwrap();
+                initial.tx.continuation(&prev.tx)?;
             }
             self.initials.insert(*v, initial);
         }
+        Ok(())
     }
 
     /// At a server, we can be more targeted in initializing.
@@ -990,24 +989,29 @@ impl CryptoStates {
     /// This is maybe slightly inefficient in the first case, because we might
     /// not need the send keys if the packet is subsequently discarded, but
     /// the overall effort is small enough to write off.
-    pub fn init_server(&mut self, version: Version, dcid: &[u8]) {
+    pub fn init_server(&mut self, version: Version, dcid: &[u8]) -> Res<()> {
         if !self.initials.contains_key(&version) {
-            self.init(&[version], Role::Server, dcid);
+            self.init(&[version], Role::Server, dcid)?;
         }
+        Ok(())
     }
 
-    pub fn confirm_version(&mut self, orig: Version, confirmed: Version) {
+    pub fn confirm_version(&mut self, orig: Version, confirmed: Version) -> Res<()> {
         if orig != confirmed {
             // This part where the old data is removed and then re-added is to
             // appease the borrow checker.
             // Note that on the server, we might not have initials for |orig| if it
             // was configured for |orig| and only |confirmed| Initial packets arrived.
             if let Some(prev) = self.initials.remove(&orig) {
-                let next = self.initials.get_mut(&confirmed).unwrap();
-                next.tx.continuation(&prev.tx).unwrap();
+                let next = self
+                    .initials
+                    .get_mut(&confirmed)
+                    .ok_or(Error::VersionNegotiation)?;
+                next.tx.continuation(&prev.tx)?;
                 self.initials.insert(orig, prev);
             }
         }
+        Ok(())
     }
 
     pub fn set_0rtt_keys(
@@ -1016,7 +1020,7 @@ impl CryptoStates {
         dir: CryptoDxDirection,
         secret: &SymKey,
         cipher: Cipher,
-    ) {
+    ) -> Res<()> {
         qtrace!([self], "install 0-RTT keys");
         self.zero_rtt = Some(CryptoDxState::new(
             version,
@@ -1024,7 +1028,8 @@ impl CryptoStates {
             TLS_EPOCH_ZERO_RTT,
             secret,
             cipher,
-        ));
+        )?);
+        Ok(())
     }
 
     /// Discard keys and return true if that happened.
@@ -1055,7 +1060,7 @@ impl CryptoStates {
         write_secret: &SymKey,
         read_secret: &SymKey,
         cipher: Cipher,
-    ) {
+    ) -> Res<()> {
         self.cipher = cipher;
         self.handshake = Some(CryptoState {
             tx: CryptoDxState::new(
@@ -1064,15 +1069,16 @@ impl CryptoStates {
                 TLS_EPOCH_HANDSHAKE,
                 write_secret,
                 cipher,
-            ),
+            )?,
             rx: CryptoDxState::new(
                 version,
                 CryptoDxDirection::Read,
                 TLS_EPOCH_HANDSHAKE,
                 read_secret,
                 cipher,
-            ),
+            )?,
         });
+        Ok(())
     }
 
     pub fn set_application_write_key(&mut self, version: Version, secret: &SymKey) -> Res<()> {
@@ -1115,7 +1121,7 @@ impl CryptoStates {
         // received an acknowledgement for a packet in the current phase.
         // Also, skip this if we are waiting for read keys on the existing
         // key update to be rolled over.
-        let write = &self.app_write.as_ref().unwrap().dx;
+        let write = &self.app_write.as_ref().ok_or(Error::InternalError)?.dx;
         if write.can_update(largest_acknowledged) && self.read_update_time.is_none() {
             // This call additionally checks that we don't advance to the next
             // epoch while a key update is in progress.
@@ -1137,8 +1143,8 @@ impl CryptoStates {
         // ahead of the read keys.  If we initiated the key update, the write keys
         // will already be ahead.
         debug_assert!(self.read_update_time.is_none());
-        let write = &self.app_write.as_ref().unwrap();
-        let read = &self.app_read.as_ref().unwrap();
+        let write = &self.app_write.as_ref().ok_or(Error::InternalError)?;
+        let read = &self.app_read.as_ref().ok_or(Error::InternalError)?;
         if write.epoch() == read.epoch() {
             qdebug!([self], "Update write keys to epoch={}", write.epoch() + 1);
             self.app_write = Some(write.next()?);
@@ -1209,7 +1215,8 @@ impl CryptoStates {
                 } else {
                     qtrace!([self], "Rotating read keys");
                     mem::swap(&mut self.app_read, &mut self.app_read_next);
-                    self.app_read_next = Some(self.app_read.as_ref().unwrap().next()?);
+                    self.app_read_next =
+                        Some(self.app_read.as_ref().ok_or(Error::InternalError)?.next()?);
                 }
                 self.read_update_time = None;
             }
@@ -1232,8 +1239,8 @@ impl CryptoStates {
         // We only need to do the check while we are waiting for read keys to be updated.
         if self.read_update_time.is_some() {
             qtrace!([self], "Checking for PN overlap");
-            let next_dx = &mut self.app_read_next.as_mut().unwrap().dx;
-            next_dx.continuation(&self.app_read.as_ref().unwrap().dx)?;
+            let next_dx = &mut self.app_read_next.as_mut().ok_or(Error::InternalError)?.dx;
+            next_dx.continuation(&self.app_read.as_ref().ok_or(Error::InternalError)?.dx)?;
         }
         Ok(())
     }
@@ -1335,7 +1342,6 @@ pub struct CryptoStream {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)] // Suppress false positive: https://github.com/rust-lang/rust/issues/68408
 pub enum CryptoStreams {
     Initial {
         initial: CryptoStream,
@@ -1385,12 +1391,16 @@ impl CryptoStreams {
         }
     }
 
-    pub fn send(&mut self, space: PacketNumberSpace, data: &[u8]) {
-        self.get_mut(space).unwrap().tx.send(data);
+    pub fn send(&mut self, space: PacketNumberSpace, data: &[u8]) -> Res<()> {
+        self.get_mut(space)
+            .ok_or(Error::ProtocolViolation)?
+            .tx
+            .send(data);
+        Ok(())
     }
 
     pub fn inbound_frame(&mut self, space: PacketNumberSpace, offset: u64, data: &[u8]) -> Res<()> {
-        let rx = &mut self.get_mut(space).unwrap().rx;
+        let rx = &mut self.get_mut(space).ok_or(Error::InternalError)?.rx;
         rx.inbound_frame(offset, data);
         if rx.received() - rx.retired() <= Self::BUFFER_LIMIT {
             Ok(())
@@ -1403,8 +1413,12 @@ impl CryptoStreams {
         self.get(space).map_or(false, |cs| cs.rx.data_ready())
     }
 
-    pub fn read_to_end(&mut self, space: PacketNumberSpace, buf: &mut Vec<u8>) -> usize {
-        self.get_mut(space).unwrap().rx.read_to_end(buf)
+    pub fn read_to_end(&mut self, space: PacketNumberSpace, buf: &mut Vec<u8>) -> Res<usize> {
+        Ok(self
+            .get_mut(space)
+            .ok_or(Error::ProtocolViolation)?
+            .rx
+            .read_to_end(buf))
     }
 
     pub fn acked(&mut self, token: &CryptoRecoveryToken) {

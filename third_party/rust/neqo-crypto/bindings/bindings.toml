@@ -45,7 +45,6 @@ functions = [
     "SSL_OptionSet",
     "SSL_OptionGetDefault",
     "SSL_PeerCertificate",
-    "SSL_PeerCertificateChain",
     "SSL_PeerSignedCertTimestamps",
     "SSL_PeerStapledOCSPResponses",
     "SSL_ResetHandshake",
@@ -137,8 +136,6 @@ variables = [
 
 [nss_p11]
 types = [
-    "CERTCertList",
-    "CERTCertListNode",
     "CK_CHACHA20_PARAMS",
     "CK_ATTRIBUTE_TYPE",
     "CK_FLAGS",
@@ -151,7 +148,6 @@ types = [
 ]
 functions = [
     "CERT_DestroyCertificate",
-    "CERT_DestroyCertList",
     "CERT_GetCertificateDer",
     "NSS_SetAlgorithmPolicy",
     "PK11_CipherOp",
@@ -173,6 +169,7 @@ functions = [
     "PK11_ImportDataKey",
     "PK11_ReadRawAttribute",
     "PK11_ReferenceSymKey",
+    "SECITEM_FreeArray",
     "SECITEM_FreeItem",
     "SECKEY_CopyPrivateKey",
     "SECKEY_CopyPublicKey",

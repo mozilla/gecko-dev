@@ -328,7 +328,7 @@ impl Connection {
             c.conn_params.get_versions().compatible(),
             Role::Client,
             &dcid,
-        );
+        )?;
         c.original_destination_cid = Some(dcid);
         let path = Path::temporary(
             local_addr,
@@ -1040,7 +1040,7 @@ impl Connection {
             qtrace!([self], "Idle/keepalive timer {:?}", idle_time);
             delays.push(idle_time);
 
-            if let Some(lr_time) = self.loss_recovery.next_timeout(rtt) {
+            if let Some(lr_time) = self.loss_recovery.next_timeout(&path) {
                 qtrace!([self], "Loss recovery timer {:?}", lr_time);
                 delays.push(lr_time);
             }
@@ -1129,21 +1129,25 @@ impl Connection {
         output
     }
 
-    fn handle_retry(&mut self, packet: &PublicPacket, now: Instant) {
+    fn handle_retry(&mut self, packet: &PublicPacket, now: Instant) -> Res<()> {
         qinfo!([self], "received Retry");
         if matches!(self.address_validation, AddressValidationInfo::Retry { .. }) {
             self.stats.borrow_mut().pkt_dropped("Extra Retry");
-            return;
+            return Ok(());
         }
         if packet.token().is_empty() {
             self.stats.borrow_mut().pkt_dropped("Retry without a token");
-            return;
+            return Ok(());
         }
-        if !packet.is_valid_retry(self.original_destination_cid.as_ref().unwrap()) {
+        if !packet.is_valid_retry(
+            self.original_destination_cid
+                .as_ref()
+                .ok_or(Error::InvalidRetry)?,
+        ) {
             self.stats
                 .borrow_mut()
                 .pkt_dropped("Retry with bad integrity tag");
-            return;
+            return Ok(());
         }
         // At this point, we should only have the connection ID that we generated.
         // Update to the one that the server prefers.
@@ -1151,7 +1155,7 @@ impl Connection {
             self.stats
                 .borrow_mut()
                 .pkt_dropped("Retry without an existing path");
-            return;
+            return Ok(());
         };
 
         path.borrow_mut().set_remote_cid(packet.scid());
@@ -1171,11 +1175,12 @@ impl Connection {
             self.conn_params.get_versions().compatible(),
             self.role,
             &retry_scid,
-        );
+        )?;
         self.address_validation = AddressValidationInfo::Retry {
             token: packet.token().to_vec(),
             retry_source_cid: retry_scid,
         };
+        Ok(())
     }
 
     fn discard_keys(&mut self, space: PacketNumberSpace, now: Instant) {
@@ -1194,8 +1199,8 @@ impl Connection {
         if d.len() < 16 || !self.state.connected() {
             return false;
         }
-        let token = <&[u8; 16]>::try_from(&d[d.len() - 16..]).unwrap();
-        path.borrow().is_stateless_reset(token)
+        <&[u8; 16]>::try_from(&d[d.len() - 16..])
+            .map_or(false, |token| path.borrow().is_stateless_reset(token))
     }
 
     fn check_stateless_reset(
@@ -1265,7 +1270,7 @@ impl Connection {
                 .clone()
                 .versions(version, self.conn_params.get_versions().all().to_vec());
             let mut c = Self::new_client(
-                self.crypto.server_name().unwrap(),
+                self.crypto.server_name().ok_or(Error::VersionNegotiation)?,
                 self.crypto.protocols(),
                 self.cid_manager.generator(),
                 local_addr,
@@ -1324,7 +1329,7 @@ impl Connection {
 
         match (packet.packet_type(), &self.state, &self.role) {
             (PacketType::Initial, State::Init, Role::Server) => {
-                let version = *packet.version().as_ref().unwrap();
+                let version = packet.version().ok_or(Error::ProtocolViolation)?;
                 if !packet.is_valid_initial()
                     || !self.conn_params.get_versions().all().contains(&version)
                 {
@@ -1340,7 +1345,7 @@ impl Connection {
                 // Record the client's selected CID so that it can be accepted until
                 // the client starts using a real connection ID.
                 let dcid = ConnectionId::from(packet.dcid());
-                self.crypto.states.init_server(version, &dcid);
+                self.crypto.states.init_server(version, &dcid)?;
                 self.original_destination_cid = Some(dcid);
                 self.set_state(State::WaitInitial);
 
@@ -1359,7 +1364,7 @@ impl Connection {
                     if versions.is_empty()
                         || versions.contains(&self.version().wire_version())
                         || versions.contains(&0)
-                        || &packet.scid() != self.odcid().unwrap()
+                        || &packet.scid() != self.odcid().ok_or(Error::InternalError)?
                         || matches!(self.address_validation, AddressValidationInfo::Retry { .. })
                     {
                         // Ignore VersionNegotiation packets that contain the current version.
@@ -1375,7 +1380,7 @@ impl Connection {
                 return Ok(PreprocessResult::End);
             }
             (PacketType::Retry, State::WaitInitial, Role::Client) => {
-                self.handle_retry(packet, now);
+                self.handle_retry(packet, now)?;
                 return Ok(PreprocessResult::Next);
             }
             (PacketType::Handshake | PacketType::Short, State::WaitInitial, Role::Client) => {
@@ -1664,7 +1669,9 @@ impl Connection {
                     .clone(),
             ),
         );
-        path.borrow_mut().set_valid(now);
+        if self.role == Role::Client {
+            path.borrow_mut().set_valid(now);
+        }
     }
 
     /// If the path isn't permanent, assign it a connection ID to make it so.
@@ -2333,7 +2340,11 @@ impl Connection {
             );
 
             self.stats.borrow_mut().packets_tx += 1;
-            let tx = self.crypto.states.tx_mut(self.version, cspace).unwrap();
+            let tx = self
+                .crypto
+                .states
+                .tx_mut(self.version, cspace)
+                .ok_or(Error::InternalError)?;
             encoder = builder.build(tx)?;
             self.crypto.states.auto_update()?;
 
@@ -2375,7 +2386,7 @@ impl Connection {
         }
 
         if encoder.is_empty() {
-            qdebug!("TX blocked, profile={:?} ", profile);
+            qdebug!("TX blocked, profile={:?}", profile);
             Ok(SendOption::No(profile.paced()))
         } else {
             // Perform additional padding for Initial packets as necessary.
@@ -2487,13 +2498,17 @@ impl Connection {
         self.validate_versions()?;
         {
             let tps = self.tps.borrow();
-            let remote = tps.remote.as_ref().unwrap();
+            let remote = tps.remote.as_ref().ok_or(Error::TransportParameterError)?;
 
             // If the peer provided a preferred address, then we have to be a client
             // and they have to be using a non-empty connection ID.
             if remote.get_preferred_address().is_some()
                 && (self.role == Role::Server
-                    || self.remote_initial_source_cid.as_ref().unwrap().is_empty())
+                    || self
+                        .remote_initial_source_cid
+                        .as_ref()
+                        .ok_or(Error::UnknownConnectionId)?
+                        .is_empty())
             {
                 return Err(Error::TransportParameterError);
             }
@@ -2529,7 +2544,7 @@ impl Connection {
 
     fn validate_cids(&self) -> Res<()> {
         let tph = self.tps.borrow();
-        let remote_tps = tph.remote.as_ref().unwrap();
+        let remote_tps = tph.remote.as_ref().ok_or(Error::TransportParameterError)?;
 
         let tp = remote_tps.get_bytes(tparams::INITIAL_SOURCE_CONNECTION_ID);
         if self
@@ -2590,7 +2605,7 @@ impl Connection {
     /// Validate the `version_negotiation` transport parameter from the peer.
     fn validate_versions(&self) -> Res<()> {
         let tph = self.tps.borrow();
-        let remote_tps = tph.remote.as_ref().unwrap();
+        let remote_tps = tph.remote.as_ref().ok_or(Error::TransportParameterError)?;
         // `current` and `other` are the value from the peer's transport parameters.
         // We're checking that these match our expectations.
         if let Some((current, other)) = remote_tps.get_versions() {
@@ -2653,19 +2668,23 @@ impl Connection {
         self.version = v;
     }
 
-    fn compatible_upgrade(&mut self, packet_version: Version) {
+    fn compatible_upgrade(&mut self, packet_version: Version) -> Res<()> {
         if !matches!(self.state, State::WaitInitial | State::WaitVersion) {
-            return;
+            return Ok(());
         }
 
         if self.role == Role::Client {
             self.confirm_version(packet_version);
         } else if self.tps.borrow().remote.is_some() {
             let version = self.tps.borrow().version();
-            let dcid = self.original_destination_cid.as_ref().unwrap();
-            self.crypto.states.init_server(version, dcid);
+            let dcid = self
+                .original_destination_cid
+                .as_ref()
+                .ok_or(Error::ProtocolViolation)?;
+            self.crypto.states.init_server(version, dcid)?;
             self.confirm_version(version);
         }
+        Ok(())
     }
 
     fn handshake(
@@ -2696,14 +2715,15 @@ impl Connection {
                 }
             }
             _ => {
-                unreachable!("Crypto state should not be new or failed after successful handshake")
+                qerror!("Crypto state should not be new or failed after successful handshake");
+                return Err(Error::CryptoError(neqo_crypto::Error::InternalError));
             }
         }
 
         // There is a chance that this could be called less often, but getting the
         // conditions right is a little tricky, so call whenever CRYPTO data is used.
         if try_update {
-            self.compatible_upgrade(packet_version);
+            self.compatible_upgrade(packet_version)?;
             // We have transport parameters, it's go time.
             if self.tps.borrow().remote.is_some() {
                 self.set_initial_limits();
@@ -2799,7 +2819,7 @@ impl Connection {
                 if self.crypto.streams.data_ready(space) {
                     let mut buf = Vec::new();
                     let read = self.crypto.streams.read_to_end(space, &mut buf);
-                    qdebug!("Read {} bytes", read);
+                    qdebug!("Read {:?} bytes", read);
                     self.handshake(now, packet_version, space, Some(&buf))?;
                     self.create_resumption_token(now);
                 } else {
@@ -3043,7 +3063,13 @@ impl Connection {
             // Generate a qlog event that the server connection started.
             qlog::server_connection_started(&self.qlog, &path);
         } else {
-            self.zero_rtt_state = if self.crypto.tls.info().unwrap().early_data_accepted() {
+            self.zero_rtt_state = if self
+                .crypto
+                .tls
+                .info()
+                .ok_or(Error::InternalError)?
+                .early_data_accepted()
+            {
                 ZeroRttState::AcceptedClient
             } else {
                 self.client_0rtt_rejected(now);
@@ -3060,7 +3086,12 @@ impl Connection {
         self.create_resumption_token(now);
         self.saved_datagrams
             .make_available(CryptoSpace::ApplicationData);
-        self.stats.borrow_mut().resumed = self.crypto.tls.info().unwrap().resumed();
+        self.stats.borrow_mut().resumed = self
+            .crypto
+            .tls
+            .info()
+            .ok_or(Error::InternalError)?
+            .resumed();
         if self.role == Role::Server {
             self.state_signaling.handshake_done();
             self.set_confirmed()?;
@@ -3355,7 +3386,7 @@ impl Connection {
         );
 
         let data_len_possible =
-            u64::try_from(mtu.saturating_sub(tx.expansion() + builder.len() + 1)).unwrap();
+            u64::try_from(mtu.saturating_sub(tx.expansion() + builder.len() + 1))?;
         Ok(min(data_len_possible, max_dgram_size))
     }
 

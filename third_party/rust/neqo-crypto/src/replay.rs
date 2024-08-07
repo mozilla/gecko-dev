@@ -18,8 +18,6 @@ use crate::{
 };
 
 // This is an opaque struct in NSS.
-#[allow(clippy::upper_case_acronyms)]
-#[allow(clippy::empty_enum)]
 pub enum SSLAntiReplayContext {}
 
 experimental_api!(SSL_CreateAntiReplayContext(

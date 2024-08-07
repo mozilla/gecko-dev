@@ -783,19 +783,15 @@ fn anti_amplification() {
     let c_init = client.process_output(now).dgram();
     now += DEFAULT_RTT / 2;
     let s_init1 = server.process(c_init.as_ref(), now).dgram().unwrap();
-    assert_eq!(s_init1.len(), client.plpmtu());
+    assert_eq!(s_init1.len(), server.plpmtu());
     let s_init2 = server.process_output(now).dgram().unwrap();
     assert_eq!(s_init2.len(), server.plpmtu());
-
-    // Skip the gap for pacing here.
-    let s_pacing = server.process_output(now).callback();
-    assert_ne!(s_pacing, Duration::new(0, 0));
-    now += s_pacing;
-
     let s_init3 = server.process_output(now).dgram().unwrap();
     assert_eq!(s_init3.len(), server.plpmtu());
     let cb = server.process_output(now).callback();
-    assert_ne!(cb, Duration::new(0, 0));
+
+    // We are blocked by the amplification limit now.
+    assert_eq!(cb, server.conn_params.get_idle_timeout());
 
     now += DEFAULT_RTT / 2;
     client.process_input(&s_init1, now);

@@ -5,8 +5,6 @@
 // except according to those terms.
 
 #![allow(dead_code)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::missing_errors_doc)]
 
 use std::{mem, time::Instant};
 
@@ -18,6 +16,8 @@ use neqo_crypto::{
 use test_fixture::{anti_replay, fixture_init, now};
 
 /// Consume records until the handshake state changes.
+#[allow(clippy::missing_panics_doc)]
+#[allow(clippy::missing_errors_doc)]
 pub fn forward_records(
     now: Instant,
     agent: &mut SecretAgent,
@@ -65,6 +65,7 @@ fn handshake(now: Instant, client: &mut SecretAgent, server: &mut SecretAgent) {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn connect_at(now: Instant, client: &mut SecretAgent, server: &mut SecretAgent) {
     handshake(now, client, server);
     qinfo!("client: {:?}", client.state());
@@ -77,6 +78,7 @@ pub fn connect(client: &mut SecretAgent, server: &mut SecretAgent) {
     connect_at(now(), client, server);
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn connect_fail(client: &mut SecretAgent, server: &mut SecretAgent) {
     handshake(now(), client, server);
     assert!(!client.state().is_connected());
@@ -131,6 +133,7 @@ fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Opt
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
 pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, ResumptionToken) {
     fixture_init();

@@ -158,7 +158,7 @@ mod test {
     }
 
     #[test]
-    fn test_encoding_decoding_instructions() {
+    fn encoding_decoding_instructions() {
         test_encoding_decoding(DecoderInstruction::InsertCountIncrement { increment: 1 });
         test_encoding_decoding(DecoderInstruction::InsertCountIncrement { increment: 10_000 });
 
@@ -197,7 +197,7 @@ mod test {
     }
 
     #[test]
-    fn test_encoding_decoding_instructions_slow_reader() {
+    fn encoding_decoding_instructions_slow_reader() {
         test_encoding_decoding_slow_reader(DecoderInstruction::InsertCountIncrement {
             increment: 10_000,
         });
@@ -210,7 +210,7 @@ mod test {
     }
 
     #[test]
-    fn test_decoding_error() {
+    fn decoding_error() {
         let mut test_receiver: TestReceiver = TestReceiver::default();
         // InsertCountIncrement with overflow
         test_receiver.write(&[

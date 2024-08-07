@@ -133,6 +133,7 @@ impl RttEstimate {
                 QlogMetric::LatestRtt(self.latest_rtt),
                 QlogMetric::MinRtt(self.min_rtt),
                 QlogMetric::SmoothedRtt(self.smoothed_rtt),
+                QlogMetric::RttVariance(self.rttvar),
             ],
         );
     }

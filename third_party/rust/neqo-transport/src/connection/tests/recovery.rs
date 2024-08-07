@@ -584,6 +584,10 @@ fn loss_time_past_largest_acked() {
     let s_hs3 = server.process(None, now + s_pto).dgram();
     assert!(s_hs3.is_some());
 
+    // We are blocked by the amplification limit now.
+    let cb = server.process_output(now).callback();
+    assert_eq!(cb, server.conn_params.get_idle_timeout());
+
     // Get some Handshake packets from the client.
     // We need one to be left unacknowledged before one that is acknowledged.
     // So that the client engages the loss recovery timer.

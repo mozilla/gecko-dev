@@ -943,7 +943,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compare() {
+    fn compare() {
         let f1 = Frame::Padding(1);
         let f2 = Frame::Padding(1);
         let f3 = Frame::Crypto {

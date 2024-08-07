@@ -184,9 +184,8 @@ impl TransportParameter {
 
     fn decode_preferred_address(d: &mut Decoder) -> Res<Self> {
         // IPv4 address (maybe)
-        let v4ip =
-            Ipv4Addr::from(<[u8; 4]>::try_from(d.decode(4).ok_or(Error::NoMoreData)?).unwrap());
-        let v4port = u16::try_from(d.decode_uint(2).ok_or(Error::NoMoreData)?).unwrap();
+        let v4ip = Ipv4Addr::from(<[u8; 4]>::try_from(d.decode(4).ok_or(Error::NoMoreData)?)?);
+        let v4port = u16::try_from(d.decode_uint(2).ok_or(Error::NoMoreData)?)?;
         // Can't have non-zero IP and zero port, or vice versa.
         if v4ip.is_unspecified() ^ (v4port == 0) {
             return Err(Error::TransportParameterError);
@@ -198,9 +197,10 @@ impl TransportParameter {
         };
 
         // IPv6 address (mostly the same as v4)
-        let v6ip =
-            Ipv6Addr::from(<[u8; 16]>::try_from(d.decode(16).ok_or(Error::NoMoreData)?).unwrap());
-        let v6port = u16::try_from(d.decode_uint(2).ok_or(Error::NoMoreData)?).unwrap();
+        let v6ip = Ipv6Addr::from(<[u8; 16]>::try_from(
+            d.decode(16).ok_or(Error::NoMoreData)?,
+        )?);
+        let v6port = u16::try_from(d.decode_uint(2).ok_or(Error::NoMoreData)?)?;
         if v6ip.is_unspecified() ^ (v6port == 0) {
             return Err(Error::TransportParameterError);
         }
@@ -222,7 +222,7 @@ impl TransportParameter {
 
         // Stateless reset token
         let srtbuf = d.decode(16).ok_or(Error::NoMoreData)?;
-        let srt = <[u8; 16]>::try_from(srtbuf).unwrap();
+        let srt = <[u8; 16]>::try_from(srtbuf)?;
 
         Ok(Self::PreferredAddress { v4, v6, cid, srt })
     }

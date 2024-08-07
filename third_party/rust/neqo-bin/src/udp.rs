@@ -57,7 +57,7 @@ impl Socket {
     pub fn recv(&self, local_address: &SocketAddr) -> Result<Vec<Datagram>, io::Error> {
         self.inner
             .try_io(tokio::io::Interest::READABLE, || {
-                neqo_udp::recv_inner(local_address, &self.state, (&self.inner).into())
+                neqo_udp::recv_inner(local_address, &self.state, &self.inner)
             })
             .or_else(|e| {
                 if e.kind() == io::ErrorKind::WouldBlock {

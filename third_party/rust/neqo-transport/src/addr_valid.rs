@@ -267,7 +267,7 @@ impl AddressValidation {
 
 // Note: these lint override can be removed in later versions where the lints
 // either don't trip a false positive or don't apply.  rustc 1.46 is fine.
-#[allow(dead_code, clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant)]
 pub enum NewTokenState {
     Client {
         /// Tokens that haven't been taken yet.

@@ -108,21 +108,21 @@ mod tests {
     use super::{Prefix, QpackData};
 
     #[test]
-    fn test_encode_prefixed_encoded_int_1() {
+    fn encode_prefixed_encoded_int_1() {
         let mut d = QpackData::default();
         d.encode_prefixed_encoded_int(Prefix::new(0xC0, 2), 5);
         assert_eq!(d[..], [0xc5]);
     }
 
     #[test]
-    fn test_encode_prefixed_encoded_int_2() {
+    fn encode_prefixed_encoded_int_2() {
         let mut d = QpackData::default();
         d.encode_prefixed_encoded_int(Prefix::new(0xC0, 2), 65);
         assert_eq!(d[..], [0xff, 0x02]);
     }
 
     #[test]
-    fn test_encode_prefixed_encoded_int_3() {
+    fn encode_prefixed_encoded_int_3() {
         let mut d = QpackData::default();
         d.encode_prefixed_encoded_int(Prefix::new(0xC0, 2), 100_000);
         assert_eq!(d[..], [0xff, 0xe1, 0x8c, 0x06]);
@@ -146,14 +146,14 @@ mod tests {
     const LITERAL_HUFFMAN: &[u8] = &[0xe8, 0x25, 0xa8, 0x49, 0xe9, 0x5b, 0xa9, 0x7d, 0x7f];
 
     #[test]
-    fn test_encode_literal() {
+    fn encode_literal() {
         let mut d = QpackData::default();
         d.encode_literal(false, Prefix::new(0xC0, 2), VALUE);
         assert_eq!(&&d[..], &LITERAL);
     }
 
     #[test]
-    fn test_encode_literal_huffman() {
+    fn encode_literal_huffman() {
         let mut d = QpackData::default();
         d.encode_literal(true, Prefix::new(0xC0, 2), VALUE);
         assert_eq!(&&d[..], &LITERAL_HUFFMAN);

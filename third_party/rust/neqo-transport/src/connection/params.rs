@@ -371,17 +371,17 @@ impl ConnectionParameters {
         // default parameters
         tps.local.set_integer(
             tparams::ACTIVE_CONNECTION_ID_LIMIT,
-            u64::try_from(LOCAL_ACTIVE_CID_LIMIT).unwrap(),
+            u64::try_from(LOCAL_ACTIVE_CID_LIMIT)?,
         );
         tps.local.set_empty(tparams::DISABLE_MIGRATION);
         tps.local.set_empty(tparams::GREASE_QUIC_BIT);
         tps.local.set_integer(
             tparams::MAX_ACK_DELAY,
-            u64::try_from(DEFAULT_ACK_DELAY.as_millis()).unwrap(),
+            u64::try_from(DEFAULT_ACK_DELAY.as_millis())?,
         );
         tps.local.set_integer(
             tparams::MIN_ACK_DELAY,
-            u64::try_from(GRANULARITY.as_micros()).unwrap(),
+            u64::try_from(GRANULARITY.as_micros())?,
         );
 
         // set configurable parameters

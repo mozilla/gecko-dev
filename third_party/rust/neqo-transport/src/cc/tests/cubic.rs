@@ -339,7 +339,7 @@ fn congestion_event_congestion_avoidance_2() {
 }
 
 #[test]
-fn congestion_event_congestion_avoidance_test_no_overflow() {
+fn congestion_event_congestion_avoidance_no_overflow() {
     const PTO: Duration = Duration::from_millis(120);
     let mut cubic = ClassicCongestionControl::new(Cubic::default(), Pmtud::new(IP_ADDR));
 

@@ -16,13 +16,13 @@ use crate::{
 };
 
 #[test]
-fn test_data_frame() {
+fn data_frame() {
     let f = HFrame::Data { len: 3 };
     enc_dec_hframe(&f, "0003010203", 3);
 }
 
 #[test]
-fn test_headers_frame() {
+fn headers_frame() {
     let f = HFrame::Headers {
         header_block: vec![0x01, 0x02, 0x03],
     };
@@ -30,13 +30,13 @@ fn test_headers_frame() {
 }
 
 #[test]
-fn test_cancel_push_frame4() {
+fn cancel_push_frame4() {
     let f = HFrame::CancelPush { push_id: 5 };
     enc_dec_hframe(&f, "030105", 0);
 }
 
 #[test]
-fn test_settings_frame4() {
+fn settings_frame4() {
     let f = HFrame::Settings {
         settings: HSettings::new(&[HSetting::new(HSettingType::MaxHeaderListSize, 4)]),
     };
@@ -44,7 +44,7 @@ fn test_settings_frame4() {
 }
 
 #[test]
-fn test_push_promise_frame4() {
+fn push_promise_frame4() {
     let f = HFrame::PushPromise {
         push_id: 4,
         header_block: vec![0x61, 0x62, 0x63, 0x64],
@@ -53,7 +53,7 @@ fn test_push_promise_frame4() {
 }
 
 #[test]
-fn test_goaway_frame4() {
+fn goaway_frame4() {
     let f = HFrame::Goaway {
         stream_id: StreamId::new(5),
     };
@@ -80,7 +80,7 @@ fn grease() {
 }
 
 #[test]
-fn test_priority_update_request_default() {
+fn priority_update_request_default() {
     let f = HFrame::PriorityUpdateRequest {
         element_id: 6,
         priority: Priority::default(),
@@ -89,7 +89,7 @@ fn test_priority_update_request_default() {
 }
 
 #[test]
-fn test_priority_update_request_incremental_default() {
+fn priority_update_request_incremental_default() {
     let f = HFrame::PriorityUpdateRequest {
         element_id: 7,
         priority: Priority::new(6, false),
@@ -98,7 +98,7 @@ fn test_priority_update_request_incremental_default() {
 }
 
 #[test]
-fn test_priority_update_request_urgency_default() {
+fn priority_update_request_urgency_default() {
     let f = HFrame::PriorityUpdateRequest {
         element_id: 8,
         priority: Priority::new(3, true),
@@ -107,7 +107,7 @@ fn test_priority_update_request_urgency_default() {
 }
 
 #[test]
-fn test_priority_update_push_default() {
+fn priority_update_push_default() {
     let f = HFrame::PriorityUpdatePush {
         element_id: 10,
         priority: Priority::default(),

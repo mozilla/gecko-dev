@@ -677,7 +677,7 @@ mod tests {
 
     // test insert_with_name_literal which fails because there is not enough space in the table
     #[test]
-    fn test_insert_with_name_literal_1() {
+    fn insert_with_name_literal_1() {
         let mut encoder = connect(false);
 
         // insert "content-length: 1234
@@ -691,7 +691,7 @@ mod tests {
 
     // test insert_with_name_literal - succeeds
     #[test]
-    fn test_insert_with_name_literal_2() {
+    fn insert_with_name_literal_2() {
         let mut encoder = connect(false);
 
         assert!(encoder.encoder.set_max_capacity(200).is_ok());
@@ -708,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn test_change_capacity() {
+    fn change_capacity() {
         let mut encoder = connect(false);
 
         assert!(encoder.encoder.set_max_capacity(200).is_ok());
@@ -722,7 +722,7 @@ mod tests {
     }
 
     #[test]
-    fn test_header_block_encoder_non() {
+    fn header_block_encoder_non() {
         let test_cases: [TestElement; 6] = [
             // test a header with ref to static - encode_indexed
             TestElement {
@@ -798,7 +798,7 @@ mod tests {
     }
 
     #[test]
-    fn test_header_block_encoder_huffman() {
+    fn header_block_encoder_huffman() {
         let test_cases: [TestElement; 6] = [
             // test a header with ref to static - encode_indexed
             TestElement {
@@ -873,7 +873,7 @@ mod tests {
 
     // Test inserts block on waiting for an insert count increment.
     #[test]
-    fn test_insertion_blocked_on_insert_count_feedback() {
+    fn insertion_blocked_on_insert_count_feedback() {
         let mut encoder = connect(false);
 
         encoder.encoder.set_max_capacity(60).unwrap();
@@ -968,12 +968,12 @@ mod tests {
     }
 
     #[test]
-    fn test_header_ack() {
+    fn header_ack() {
         test_insertion_blocked_on_waiting_for_header_ack_or_stream_cancel(0);
     }
 
     #[test]
-    fn test_stream_canceled() {
+    fn stream_canceled() {
         test_insertion_blocked_on_waiting_for_header_ack_or_stream_cancel(1);
     }
 
@@ -1595,7 +1595,7 @@ mod tests {
     }
 
     #[test]
-    fn test_do_not_evict_entry_that_are_referred_only_by_the_same_header_blocked_encoding() {
+    fn do_not_evict_entry_that_are_referred_only_by_the_same_header_blocked_encoding() {
         let mut encoder = connect(false);
 
         encoder.encoder.set_max_blocked_streams(20).unwrap();
@@ -1639,7 +1639,7 @@ mod tests {
     }
 
     #[test]
-    fn test_streams_cancel_cleans_up_unacked_header_blocks() {
+    fn streams_cancel_cleans_up_unacked_header_blocks() {
         let mut encoder = connect(false);
 
         encoder.encoder.set_max_blocked_streams(10).unwrap();

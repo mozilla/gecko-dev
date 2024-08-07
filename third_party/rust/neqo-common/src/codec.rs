@@ -304,7 +304,6 @@ impl Encoder {
     /// # Panics
     ///
     /// When `n` is outside the range `1..=8`.
-    #[allow(clippy::cast_possible_truncation)]
     pub fn encode_uint<T: Into<u64>>(&mut self, n: usize, v: T) -> &mut Self {
         let v = v.into();
         assert!(n > 0 && n <= 8);
@@ -374,7 +373,6 @@ impl Encoder {
     /// # Panics
     ///
     /// When `f()` writes more than 2^62 bytes.
-    #[allow(clippy::cast_possible_truncation)]
     pub fn encode_vvec_with<F: FnOnce(&mut Self)>(&mut self, f: F) -> &mut Self {
         let start = self.buf.len();
         // Optimize for short buffers, reserve a single byte for the length.

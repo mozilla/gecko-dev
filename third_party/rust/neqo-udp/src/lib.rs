@@ -5,7 +5,6 @@
 // except according to those terms.
 
 #![allow(clippy::missing_errors_doc)] // Functions simply delegate to tokio and quinn-udp.
-#![allow(clippy::missing_panics_doc)] // Functions simply delegate to tokio and quinn-udp.
 
 use std::{
     cell::RefCell,
@@ -14,7 +13,7 @@ use std::{
     slice,
 };
 
-use neqo_common::{qtrace, Datagram, IpTos};
+use neqo_common::{qdebug, qtrace, Datagram, IpTos};
 use quinn_udp::{EcnCodepoint, RecvMeta, Transmit, UdpSocketState};
 
 /// Socket receive buffer size.
@@ -53,22 +52,44 @@ pub fn send_inner(
     Ok(())
 }
 
+#[cfg(unix)]
+use std::os::fd::AsFd as SocketRef;
+#[cfg(windows)]
+use std::os::windows::io::AsSocket as SocketRef;
+
 pub fn recv_inner(
     local_address: &SocketAddr,
     state: &UdpSocketState,
-    socket: quinn_udp::UdpSockRef<'_>,
+    socket: impl SocketRef,
 ) -> Result<Vec<Datagram>, io::Error> {
     let dgrams = RECV_BUF.with_borrow_mut(|recv_buf| -> Result<Vec<Datagram>, io::Error> {
-        let mut meta = RecvMeta::default();
+        let mut meta;
 
-        state.recv(
-            socket,
-            &mut [IoSliceMut::new(recv_buf)],
-            slice::from_mut(&mut meta),
-        )?;
+        loop {
+            meta = RecvMeta::default();
+
+            state.recv(
+                (&socket).into(),
+                &mut [IoSliceMut::new(recv_buf)],
+                slice::from_mut(&mut meta),
+            )?;
+
+            if meta.len == 0 || meta.stride == 0 {
+                qdebug!(
+                    "ignoring datagram from {} to {} len {} stride {}",
+                    meta.addr,
+                    local_address,
+                    meta.len,
+                    meta.stride
+                );
+                continue;
+            }
+
+            break;
+        }
 
         Ok(recv_buf[0..meta.len]
-            .chunks(meta.stride.min(recv_buf.len()))
+            .chunks(meta.stride)
             .map(|d| {
                 qtrace!(
                     "received {} bytes from {} to {}",
@@ -101,9 +122,7 @@ pub struct Socket<S> {
     inner: S,
 }
 
-impl<#[cfg(unix)] S: std::os::fd::AsFd, #[cfg(windows)] S: std::os::windows::io::AsSocket>
-    Socket<S>
-{
+impl<S: SocketRef> Socket<S> {
     /// Create a new [`Socket`] given a raw file descriptor managed externally.
     pub fn new(socket: S) -> Result<Self, io::Error> {
         Ok(Self {
@@ -120,7 +139,7 @@ impl<#[cfg(unix)] S: std::os::fd::AsFd, #[cfg(windows)] S: std::os::windows::io:
     /// Receive a batch of [`Datagram`]s on the given [`Socket`], each
     /// set with the provided local address.
     pub fn recv(&self, local_address: &SocketAddr) -> Result<Vec<Datagram>, io::Error> {
-        recv_inner(local_address, &self.state, (&self.inner).into())
+        recv_inner(local_address, &self.state, &self.inner)
     }
 }
 
@@ -130,10 +149,37 @@ mod tests {
 
     use super::*;
 
+    fn socket() -> Result<Socket<std::net::UdpSocket>, io::Error> {
+        let socket = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
+        // Reverse non-blocking flag set by `UdpSocketState` to make the test non-racy.
+        socket.inner.set_nonblocking(false)?;
+        Ok(socket)
+    }
+
+    #[test]
+    fn ignore_empty_datagram() -> Result<(), io::Error> {
+        let sender = socket()?;
+        let receiver = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
+        let receiver_addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+
+        let datagram = Datagram::new(
+            sender.inner.local_addr()?,
+            receiver.inner.local_addr()?,
+            IpTos::default(),
+            vec![],
+        );
+
+        sender.send(&datagram)?;
+        let res = receiver.recv(&receiver_addr);
+        assert_eq!(res.unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+
+        Ok(())
+    }
+
     #[test]
     fn datagram_tos() -> Result<(), io::Error> {
-        let sender = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
-        let receiver = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
+        let sender = socket()?;
+        let receiver = socket()?;
         let receiver_addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
 
         let datagram = Datagram::new(
@@ -167,8 +213,8 @@ mod tests {
     fn many_datagrams_through_gro() -> Result<(), io::Error> {
         const SEGMENT_SIZE: usize = 128;
 
-        let sender = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
-        let receiver = Socket::new(std::net::UdpSocket::bind("127.0.0.1:0")?)?;
+        let sender = socket()?;
+        let receiver = socket()?;
         let receiver_addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
 
         // `neqo_udp::Socket::send` does not yet

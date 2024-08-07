@@ -237,7 +237,7 @@ mod tests {
     const WRONG_END: &[u8] = &[0xa8, 0xeb, 0x10, 0x64, 0x9c, 0xaf];
 
     #[test]
-    fn test_encoder() {
+    fn encoder() {
         for e in TEST_CASES {
             let out = encode_huffman(e.val);
             assert_eq!(out[..], *e.res);
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decoder() {
+    fn decoder() {
         for e in TEST_CASES {
             let res = decode_huffman(e.res);
             assert!(res.is_ok());

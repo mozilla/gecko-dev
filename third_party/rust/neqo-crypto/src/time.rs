@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::upper_case_acronyms)]
-
 use std::{
     ops::Deref,
     os::raw::c_void,

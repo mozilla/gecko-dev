@@ -90,7 +90,6 @@ impl Ord for State {
         if mem::discriminant(self) == mem::discriminant(other) {
             return Ordering::Equal;
         }
-        #[allow(clippy::match_same_arms)] // Lint bug: rust-lang/rust-clippy#860
         match (self, other) {
             (Self::Init, _) => Ordering::Less,
             (_, Self::Init) => Ordering::Greater,

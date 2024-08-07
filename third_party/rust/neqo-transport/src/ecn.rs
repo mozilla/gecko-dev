@@ -9,10 +9,19 @@ use std::ops::{AddAssign, Deref, DerefMut, Sub};
 use enum_map::EnumMap;
 use neqo_common::{qdebug, qinfo, qwarn, IpTosEcn};
 
-use crate::{packet::PacketNumber, recovery::SentPacket};
+use crate::{
+    packet::{PacketNumber, PacketType},
+    recovery::SentPacket,
+};
 
 /// The number of packets to use for testing a path for ECN capability.
 pub const ECN_TEST_COUNT: usize = 10;
+
+/// The number of packets to use for testing a path for ECN capability when exchanging
+/// Initials during the handshake. This is a lower number than [`ECN_TEST_COUNT`] to avoid
+/// unnecessarily delaying the handshake; we would otherwise double the PTO [`ECN_TEST_COUNT`]
+/// times.
+const ECN_TEST_COUNT_INITIAL_PHASE: usize = 3;
 
 /// The state information related to testing a path for ECN capability.
 /// See RFC9000, Appendix A.4.
@@ -20,7 +29,10 @@ pub const ECN_TEST_COUNT: usize = 10;
 enum EcnValidationState {
     /// The path is currently being tested for ECN capability, with the number of probes sent so
     /// far on the path during the ECN validation.
-    Testing(usize),
+    Testing {
+        probes_sent: usize,
+        initial_probes_lost: usize,
+    },
     /// The validation test has concluded but the path's ECN capability is not yet known.
     Unknown,
     /// The path is known to **not** be ECN capable.
@@ -31,7 +43,10 @@ enum EcnValidationState {
 
 impl Default for EcnValidationState {
     fn default() -> Self {
-        Self::Testing(0)
+        Self::Testing {
+            probes_sent: 0,
+            initial_probes_lost: 0,
+        }
     }
 }
 
@@ -112,7 +127,7 @@ impl EcnInfo {
     /// We do not implement the part of the RFC that says to exit ECN validation if the time since
     /// the start of ECN validation exceeds 3 * PTO, since this seems to happen much too quickly.
     pub fn on_packet_sent(&mut self) {
-        if let EcnValidationState::Testing(ref mut probes_sent) = &mut self.state {
+        if let EcnValidationState::Testing { probes_sent, .. } = &mut self.state {
             *probes_sent += 1;
             qdebug!("ECN probing: sent {} probes", probes_sent);
             if *probes_sent == ECN_TEST_COUNT {
@@ -136,6 +151,28 @@ impl EcnInfo {
 
         matches!(self.state, EcnValidationState::Capable)
             && (self.baseline - prev_baseline)[IpTosEcn::Ce] > 0
+    }
+
+    pub fn on_packets_lost(&mut self, lost_packets: &[SentPacket]) {
+        if let EcnValidationState::Testing {
+            probes_sent,
+            initial_probes_lost: probes_lost,
+        } = &mut self.state
+        {
+            *probes_lost += lost_packets
+                .iter()
+                .filter(|p| p.packet_type() == PacketType::Initial && p.ecn_mark().is_ecn_marked())
+                .count();
+            // If we have lost all initial probes a bunch of times, we can conclude that the path
+            // is not ECN capable and likely drops all ECN marked packets.
+            if probes_sent == probes_lost && *probes_lost == ECN_TEST_COUNT_INITIAL_PHASE {
+                qdebug!(
+                    "ECN validation failed, all {} initial marked packets were lost",
+                    probes_lost
+                );
+                self.state = EcnValidationState::Failed;
+            }
+        }
     }
 
     /// After the ECN validation test has ended, check if the path is ECN capable.

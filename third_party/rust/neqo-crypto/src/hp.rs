@@ -68,7 +68,6 @@ impl HpKey {
     /// # Panics
     ///
     /// When `cipher` is not known to this code.
-    #[allow(clippy::cast_sign_loss)] // Cast for PK11_GetBlockSize is safe.
     pub fn extract(version: Version, cipher: Cipher, prk: &SymKey, label: &str) -> Res<Self> {
         const ZERO: &[u8] = &[0; 12];
 
@@ -119,7 +118,7 @@ impl HpKey {
 
         debug_assert_eq!(
             res.block_size(),
-            usize::try_from(unsafe { PK11_GetBlockSize(mech, null_mut()) }).unwrap()
+            usize::try_from(unsafe { PK11_GetBlockSize(mech, null_mut()) })?
         );
         Ok(res)
     }
@@ -155,10 +154,10 @@ impl HpKey {
                         &mut output_len,
                         c_int::try_from(output.len())?,
                         sample[..Self::SAMPLE_SIZE].as_ptr().cast(),
-                        c_int::try_from(Self::SAMPLE_SIZE).unwrap(),
+                        c_int::try_from(Self::SAMPLE_SIZE)?,
                     )
                 })?;
-                debug_assert_eq!(usize::try_from(output_len).unwrap(), output.len());
+                debug_assert_eq!(usize::try_from(output_len)?, output.len());
                 Ok(output)
             }
 
@@ -183,7 +182,7 @@ impl HpKey {
                         c_uint::try_from(Self::SAMPLE_SIZE)?,
                     )
                 })?;
-                debug_assert_eq!(usize::try_from(output_len).unwrap(), output.len());
+                debug_assert_eq!(usize::try_from(output_len)?, output.len());
                 Ok(output)
             }
         }

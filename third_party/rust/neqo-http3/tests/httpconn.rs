@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(unused_assignments)]
-
 use std::{
     mem,
     time::{Duration, Instant},
@@ -168,12 +166,12 @@ fn exchange_packets(client: &mut Http3Client, server: &mut Http3Server, out_ex: 
 }
 
 #[test]
-fn test_connect() {
+fn simple_connect() {
     let (_hconn_c, _hconn_s, _d) = connect();
 }
 
 #[test]
-fn test_fetch() {
+fn fetch() {
     let (mut hconn_c, mut hconn_s, dgram) = connect();
 
     qtrace!("-----client");
@@ -203,7 +201,7 @@ fn test_fetch() {
 }
 
 #[test]
-fn test_103_response() {
+fn response_103() {
     let (mut hconn_c, mut hconn_s, dgram) = connect();
 
     let req = hconn_c
@@ -249,7 +247,7 @@ fn test_103_response() {
 /// [`neqo_transport::SendStream::set_writable_event_low_watermark`].
 #[allow(clippy::cast_possible_truncation)]
 #[test]
-fn test_data_writable_events_low_watermark() -> Result<(), Box<dyn std::error::Error>> {
+fn data_writable_events_low_watermark() -> Result<(), Box<dyn std::error::Error>> {
     const STREAM_LIMIT: u64 = 5000;
     const DATA_FRAME_HEADER_SIZE: usize = 3;
 
@@ -323,7 +321,7 @@ fn test_data_writable_events_low_watermark() -> Result<(), Box<dyn std::error::E
 }
 
 #[test]
-fn test_data_writable_events() {
+fn data_writable_events() {
     const STREAM_LIMIT: u64 = 5000;
     const DATA_AMOUNT: usize = 10000;
 

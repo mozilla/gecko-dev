@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::unused_unit)] // see https://github.com/Lymia/enumset/issues/44
-
 use enumset::{enum_set, EnumSet, EnumSetType};
 use neqo_common::Header;
 

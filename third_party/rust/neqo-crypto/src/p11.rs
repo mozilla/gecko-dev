@@ -15,6 +15,7 @@ use std::{
     ops::{Deref, DerefMut},
     os::raw::c_uint,
     ptr::null_mut,
+    slice::Iter as SliceIter,
 };
 
 use neqo_common::hex_with_len;
@@ -24,9 +25,7 @@ use crate::{
     null_safe_slice,
 };
 
-#[allow(clippy::upper_case_acronyms)]
 #[allow(clippy::unreadable_literal)]
-#[allow(unknown_lints, clippy::borrow_as_ptr)]
 mod nss_p11 {
     include!(concat!(env!("OUT_DIR"), "/nss_p11.rs"));
 }
@@ -70,16 +69,14 @@ macro_rules! scoped_ptr {
         }
 
         impl Drop for $scoped {
-            #[allow(unused_must_use)]
             fn drop(&mut self) {
-                unsafe { $dtor(self.ptr) };
+                unsafe { _ = $dtor(self.ptr) };
             }
         }
     };
 }
 
 scoped_ptr!(Certificate, CERTCertificate, CERT_DestroyCertificate);
-scoped_ptr!(CertList, CERTCertList, CERT_DestroyCertList);
 scoped_ptr!(PublicKey, SECKEYPublicKey, SECKEY_DestroyPublicKey);
 
 impl PublicKey {
@@ -100,10 +97,10 @@ impl PublicKey {
                 **self,
                 buf.as_mut_ptr(),
                 &mut len,
-                c_uint::try_from(buf.len()).unwrap(),
+                c_uint::try_from(buf.len())?,
             )
         })?;
-        buf.truncate(usize::try_from(len).unwrap());
+        buf.truncate(usize::try_from(len)?);
         Ok(buf)
     }
 }
@@ -240,6 +237,12 @@ unsafe fn destroy_secitem(item: *mut SECItem) {
 }
 scoped_ptr!(Item, SECItem, destroy_secitem);
 
+impl AsRef<[u8]> for SECItem {
+    fn as_ref(&self) -> &[u8] {
+        unsafe { null_safe_slice(self.data, self.len) }
+    }
+}
+
 impl Item {
     /// Create a wrapper for a slice of this object.
     /// Creating this object is technically safe, but using it is extremely dangerous.
@@ -287,6 +290,38 @@ impl Item {
         assert_eq!(b.type_, SECItemType::siBuffer);
         let slc = null_safe_slice(b.data, b.len);
         Vec::from(slc)
+    }
+}
+
+unsafe fn destroy_secitem_array(array: *mut SECItemArray) {
+    SECITEM_FreeArray(array, PRBool::from(true));
+}
+scoped_ptr!(ItemArray, SECItemArray, destroy_secitem_array);
+
+impl<'a> IntoIterator for &'a ItemArray {
+    type Item = &'a [u8];
+    type IntoIter = ItemArrayIterator<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter {
+            iter: AsRef::<[SECItem]>::as_ref(self).iter(),
+        }
+    }
+}
+
+impl AsRef<[SECItem]> for ItemArray {
+    fn as_ref(&self) -> &[SECItem] {
+        unsafe { null_safe_slice((*self.ptr).items, (*self.ptr).len) }
+    }
+}
+
+pub struct ItemArrayIterator<'a> {
+    iter: SliceIter<'a, SECItem>,
+}
+
+impl<'a> Iterator for ItemArrayIterator<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<&'a [u8]> {
+        self.iter.next().map(AsRef::<[u8]>::as_ref)
     }
 }
 

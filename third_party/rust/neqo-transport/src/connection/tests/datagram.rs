@@ -382,7 +382,6 @@ fn dgram_no_allowed() {
 }
 
 #[test]
-#[allow(clippy::assertions_on_constants)] // this is a static assert, thanks
 fn dgram_too_big() {
     let mut client =
         new_client(ConnectionParameters::default().datagram_size(DATAGRAM_LEN_SMALLER_THAN_MTU));

@@ -149,7 +149,6 @@ impl PacketBuilder {
     ///
     /// If, after calling this method, `remaining()` returns 0, then call `abort()` to get
     /// the encoder back.
-    #[allow(clippy::reversed_empty_ranges)]
     pub fn short(mut encoder: Encoder, key_phase: bool, dcid: impl AsRef<[u8]>) -> Self {
         let mut limit = Self::infer_limit(&encoder);
         let header_start = encoder.len();
@@ -181,8 +180,7 @@ impl PacketBuilder {
     /// even if the token is empty.
     ///
     /// See `short()` for more on how to handle this in cases where there is no space.
-    #[allow(clippy::reversed_empty_ranges)] // For initializing an empty range.
-    #[allow(clippy::similar_names)] // For dcid and scid, which are fine here.
+    #[allow(clippy::similar_names)]
     pub fn long(
         mut encoder: Encoder,
         pt: PacketType,
@@ -454,7 +452,7 @@ impl PacketBuilder {
     /// # Errors
     ///
     /// This will return an error if AEAD encrypt fails.
-    #[allow(clippy::similar_names)] // scid and dcid are fine here.
+    #[allow(clippy::similar_names)]
     pub fn retry(
         version: Version,
         dcid: &[u8],
@@ -486,8 +484,8 @@ impl PacketBuilder {
     }
 
     /// Make a Version Negotiation packet.
-    #[allow(clippy::similar_names)] // scid and dcid are fine here.
     #[must_use]
+    #[allow(clippy::similar_names)]
     pub fn version_negotiation(
         dcid: &[u8],
         scid: &[u8],
@@ -602,7 +600,7 @@ impl<'a> PublicPacket<'a> {
     /// # Errors
     ///
     /// This will return an error if the packet could not be decoded.
-    #[allow(clippy::similar_names)] // For dcid and scid, which are fine.
+    #[allow(clippy::similar_names)]
     pub fn decode(data: &'a [u8], dcid_decoder: &dyn ConnectionIdDecoder) -> Res<(Self, &'a [u8])> {
         let mut decoder = Decoder::new(data);
         let first = Self::opt(decoder.decode_byte())?;
@@ -760,7 +758,6 @@ impl<'a> PublicPacket<'a> {
     }
 
     #[must_use]
-    #[allow(clippy::len_without_is_empty)] // is_empty() would always return false in this case
     pub const fn len(&self) -> usize {
         self.data.len()
     }

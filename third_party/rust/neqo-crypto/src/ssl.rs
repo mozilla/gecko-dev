@@ -8,11 +8,8 @@
     dead_code,
     non_upper_case_globals,
     non_snake_case,
-    clippy::cognitive_complexity,
     clippy::too_many_lines,
-    clippy::upper_case_acronyms,
-    unknown_lints,
-    clippy::borrow_as_ptr
+    clippy::cognitive_complexity
 )]
 
 use std::os::raw::{c_uint, c_void};
@@ -28,9 +25,7 @@ mod SSLOption {
 }
 
 // I clearly don't understand how bindgen operates.
-#[allow(clippy::empty_enum)]
 pub enum PLArenaPool {}
-#[allow(clippy::empty_enum)]
 pub enum PRFileDesc {}
 
 // Remap some constants.

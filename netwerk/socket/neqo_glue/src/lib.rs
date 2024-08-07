@@ -1479,14 +1479,11 @@ pub extern "C" fn neqo_http3conn_peer_certificate_info(
     conn: &mut NeqoHttp3Conn,
     neqo_certs_info: &mut NeqoCertificateInfo,
 ) -> nsresult {
-    let mut certs_info = match conn.conn.peer_certificate() {
-        Some(certs) => certs,
-        None => return NS_ERROR_NOT_AVAILABLE,
+    let Some(certs_info) = conn.conn.peer_certificate() else {
+        return NS_ERROR_NOT_AVAILABLE;
     };
 
-    neqo_certs_info.certs = certs_info
-        .map(|cert| cert.iter().cloned().collect())
-        .collect();
+    neqo_certs_info.certs = certs_info.iter().map(ThinVec::from).collect();
 
     match &mut certs_info.stapled_ocsp_responses() {
         Some(ocsp_val) => {

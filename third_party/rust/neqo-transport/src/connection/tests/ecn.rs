@@ -12,11 +12,11 @@ use test_fixture::{
     fixture_init, now, DEFAULT_ADDR_V4,
 };
 
-use super::send_something_with_modifier;
+use super::{send_something_with_modifier, DEFAULT_RTT};
 use crate::{
     connection::tests::{
         connect_force_idle, connect_force_idle_with_modifier, default_client, default_server,
-        migration::get_cid, new_client, new_server, send_something,
+        handshake_with_modifier, migration::get_cid, new_client, new_server, send_something,
     },
     ecn::ECN_TEST_COUNT,
     ConnectionId, ConnectionParameters, StreamType,
@@ -65,6 +65,30 @@ fn ce() -> fn(Datagram) -> Option<Datagram> {
 
 fn drop() -> fn(Datagram) -> Option<Datagram> {
     |_| None
+}
+
+fn drop_ecn_marked_datagrams() -> fn(Datagram) -> Option<Datagram> {
+    |d| (!d.tos().is_ecn_marked()).then_some(d)
+}
+
+#[test]
+fn handshake_delay_with_ecn_blackhole() {
+    let start = now();
+    let mut client = default_client();
+    let mut server = default_server();
+    let finish = handshake_with_modifier(
+        &mut client,
+        &mut server,
+        start,
+        DEFAULT_RTT,
+        drop_ecn_marked_datagrams(),
+    );
+
+    assert_eq!(
+        (finish - start).as_millis() / DEFAULT_RTT.as_millis(),
+        15,
+        "expected 6 RTT for client to detect blackhole, 6 RTT for server to detect blackhole and 3 RTT for handshake to be confirmed.",
+    );
 }
 
 #[test]

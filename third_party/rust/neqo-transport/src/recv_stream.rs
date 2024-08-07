@@ -65,6 +65,7 @@ impl RecvStreams {
     pub fn get_mut(&mut self, id: StreamId) -> Res<&mut RecvStream> {
         self.streams.get_mut(&id).ok_or(Error::InvalidStreamId)
     }
+
     #[allow(clippy::missing_errors_doc)]
     pub fn keep_alive(&mut self, id: StreamId, k: bool) -> Res<()> {
         let self_ka = &mut self.keep_alive;
@@ -386,7 +387,6 @@ impl RxStreamOrderer {
 
 /// QUIC receiving states, based on -transport 3.2.
 #[derive(Debug)]
-#[allow(dead_code)]
 // Because a dead_code warning is easier than clippy::unused_self, see https://github.com/rust-lang/rust/issues/68408
 enum RecvStreamState {
     Recv {
@@ -643,7 +643,7 @@ impl RecvStream {
         // We should post a DataReadable event only once when we change from no-data-ready to
         // data-ready. Therefore remember the state before processing a new frame.
         let already_data_ready = self.data_ready();
-        let new_end = offset + u64::try_from(data.len()).unwrap();
+        let new_end = offset + u64::try_from(data.len())?;
 
         self.state.flow_control_consume_data(new_end, fin)?;
 
@@ -1051,7 +1051,7 @@ mod tests {
     }
 
     #[test]
-    #[allow(unknown_lints, clippy::single_range_in_vec_init)] // Because that lint makes no sense here.
+    #[allow(clippy::single_range_in_vec_init)] // Because that lint makes no sense here.
     fn recv_noncontiguous() {
         // Non-contiguous with the start, no data available.
         recv_ranges(&[10..20], 0);

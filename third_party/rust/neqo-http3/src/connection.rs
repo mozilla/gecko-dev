@@ -467,7 +467,6 @@ impl Http3Connection {
 
     /// The function calls `receive` for a stream. It also deals with the outcome of a read by
     /// calling `handle_stream_manipulation_output`.
-    #[allow(clippy::option_if_let_else)] // False positive as borrow scope isn't lexical here.
     fn stream_receive(&mut self, conn: &mut Connection, stream_id: StreamId) -> Res<ReceiveOutput> {
         qtrace!([self], "Readable stream {}.", stream_id);
 

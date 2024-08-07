@@ -361,7 +361,6 @@ fn vn_after_retry() {
 // at least 8 bytes long.  Otherwise, the second Initial won't have a
 // long enough connection ID.
 #[test]
-#[allow(clippy::shadow_unrelated)]
 fn mitm_retry() {
     let mut client = default_client();
     let mut retry_server = default_server();

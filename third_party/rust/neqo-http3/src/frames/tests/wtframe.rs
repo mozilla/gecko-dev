@@ -8,7 +8,7 @@ use super::enc_dec_wtframe;
 use crate::frames::WebTransportFrame;
 
 #[test]
-fn test_wt_close_session() {
+fn wt_close_session() {
     let f = WebTransportFrame::CloseSession {
         error: 5,
         message: "Hello".to_string(),

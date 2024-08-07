@@ -9,7 +9,7 @@ use std::{
     mem,
     net::{IpAddr, Ipv6Addr, SocketAddr},
     rc::Rc,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use neqo_common::{Datagram, Decoder};
@@ -65,14 +65,6 @@ fn change_source_port(d: &Datagram) -> Datagram {
     Datagram::new(new_port(d.source()), d.destination(), d.tos(), &d[..])
 }
 
-/// As these tests use a new path, that path often has a non-zero RTT.
-/// Pacing can be a problem when testing that path.  This skips time forward.
-fn skip_pacing(c: &mut Connection, now: Instant) -> Instant {
-    let pacing = c.process_output(now).callback();
-    assert_ne!(pacing, Duration::new(0, 0));
-    now + pacing
-}
-
 #[test]
 fn rebinding_port() {
     let mut client = default_client();
@@ -100,7 +92,7 @@ fn path_forwarding_attack() {
     let mut client = default_client();
     let mut server = default_server();
     connect_force_idle(&mut client, &mut server);
-    let mut now = now();
+    let now = now();
 
     let dgram = send_something(&mut client, now);
     let dgram = change_path(&dgram, DEFAULT_ADDR_V4);
@@ -160,16 +152,15 @@ fn path_forwarding_attack() {
     assert_v6_path(&client_data2, false);
 
     // The server keeps sending on the new path.
-    now = skip_pacing(&mut server, now);
     let server_data2 = send_something(&mut server, now);
     assert_v4_path(&server_data2, false);
 
     // Until new data is received from the client on the old path.
     server.process_input(&client_data2, now);
-    // The server sends a probe on the "old" path.
+    // The server sends a probe on the new path.
     let server_data3 = send_something(&mut server, now);
     assert_v4_path(&server_data3, true);
-    // But switches data transmission to the "new" path.
+    // But switches data transmission to the old path.
     let server_data4 = server.process_output(now).dgram().unwrap();
     assert_v6_path(&server_data4, false);
 }

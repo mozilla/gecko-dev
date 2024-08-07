@@ -275,7 +275,7 @@ fn overflow_crypto() {
 }
 
 #[test]
-fn test_handshake_xyber() {
+fn handshake_xyber() {
     let mut client = default_client();
     let mut server = default_server();
 

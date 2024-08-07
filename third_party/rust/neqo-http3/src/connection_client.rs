@@ -2127,14 +2127,14 @@ mod tests {
 
     // Client: Test receiving a new control stream and a SETTINGS frame.
     #[test]
-    fn test_client_connect_and_exchange_qpack_and_control_streams() {
+    fn client_connect_and_exchange_qpack_and_control_streams() {
         mem::drop(connect());
     }
 
     // Client: Test that the connection will be closed if control stream
     // has been closed.
     #[test]
-    fn test_client_close_control_stream() {
+    fn client_close_control_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2148,7 +2148,7 @@ mod tests {
     // Client: Test that the connection will be closed if the local control stream
     // has been reset.
     #[test]
-    fn test_client_reset_control_stream() {
+    fn client_reset_control_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2162,7 +2162,7 @@ mod tests {
     // Client: Test that the connection will be closed if the server side encoder stream
     // has been reset.
     #[test]
-    fn test_client_reset_server_side_encoder_stream() {
+    fn client_reset_server_side_encoder_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2176,7 +2176,7 @@ mod tests {
     // Client: Test that the connection will be closed if the server side decoder stream
     // has been reset.
     #[test]
-    fn test_client_reset_server_side_decoder_stream() {
+    fn client_reset_server_side_decoder_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2190,7 +2190,7 @@ mod tests {
     // Client: Test that the connection will be closed if the local control stream
     // has received a stop_sending.
     #[test]
-    fn test_client_stop_sending_control_stream() {
+    fn client_stop_sending_control_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2204,7 +2204,7 @@ mod tests {
     // Client: Test that the connection will be closed if the client side encoder stream
     // has received a stop_sending.
     #[test]
-    fn test_client_stop_sending_encoder_stream() {
+    fn client_stop_sending_encoder_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2218,7 +2218,7 @@ mod tests {
     // Client: Test that the connection will be closed if the client side decoder stream
     // has received a stop_sending.
     #[test]
-    fn test_client_stop_sending_decoder_stream() {
+    fn client_stop_sending_decoder_stream() {
         let (mut client, mut server) = connect();
         server
             .conn
@@ -2232,7 +2232,7 @@ mod tests {
     // Client: test missing SETTINGS frame
     // (the first frame sent is a garbage frame).
     #[test]
-    fn test_client_missing_settings() {
+    fn client_missing_settings() {
         let (mut client, mut server) = connect_only_transport();
         // Create server control stream.
         let control_stream = server.conn.stream_create(StreamType::UniDi).unwrap();
@@ -2249,7 +2249,7 @@ mod tests {
     // Client: receiving SETTINGS frame twice causes connection close
     // with error HTTP_UNEXPECTED_FRAME.
     #[test]
-    fn test_client_receive_settings_twice() {
+    fn client_receive_settings_twice() {
         let (mut client, mut server) = connect();
         // send the second SETTINGS frame.
         let sent = server.conn.stream_send(
@@ -2279,30 +2279,30 @@ mod tests {
 
     // send DATA frame on a cortrol stream
     #[test]
-    fn test_data_frame_on_control_stream() {
+    fn data_frame_on_control_stream() {
         test_wrong_frame_on_control_stream(&[0x0, 0x2, 0x1, 0x2]);
     }
 
     // send HEADERS frame on a cortrol stream
     #[test]
-    fn test_headers_frame_on_control_stream() {
+    fn headers_frame_on_control_stream() {
         test_wrong_frame_on_control_stream(&[0x1, 0x2, 0x1, 0x2]);
     }
 
     // send PUSH_PROMISE frame on a cortrol stream
     #[test]
-    fn test_push_promise_frame_on_control_stream() {
+    fn push_promise_frame_on_control_stream() {
         test_wrong_frame_on_control_stream(&[0x5, 0x2, 0x1, 0x2]);
     }
 
     // send PRIORITY_UPDATE frame on a control stream to the client
     #[test]
-    fn test_priority_update_request_on_control_stream() {
+    fn priority_update_request_on_control_stream() {
         test_wrong_frame_on_control_stream(&[0x80, 0x0f, 0x07, 0x00, 0x01, 0x03]);
     }
 
     #[test]
-    fn test_priority_update_push_on_control_stream() {
+    fn priority_update_push_on_control_stream() {
         test_wrong_frame_on_control_stream(&[0x80, 0x0f, 0x07, 0x01, 0x01, 0x03]);
     }
 
@@ -2328,50 +2328,50 @@ mod tests {
     }
 
     #[test]
-    fn test_cancel_push_frame_on_push_stream() {
+    fn cancel_push_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x3, 0x1, 0x5]);
     }
 
     #[test]
-    fn test_settings_frame_on_push_stream() {
+    fn settings_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x4, 0x4, 0x6, 0x4, 0x8, 0x4]);
     }
 
     #[test]
-    fn test_push_promise_frame_on_push_stream() {
+    fn push_promise_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x5, 0x2, 0x1, 0x2]);
     }
 
     #[test]
-    fn test_priority_update_request_on_push_stream() {
+    fn priority_update_request_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x80, 0x0f, 0x07, 0x00, 0x01, 0x03]);
     }
 
     #[test]
-    fn test_priority_update_push_on_push_stream() {
+    fn priority_update_push_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x80, 0x0f, 0x07, 0x01, 0x01, 0x03]);
     }
 
     #[test]
-    fn test_goaway_frame_on_push_stream() {
+    fn goaway_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x7, 0x1, 0x5]);
     }
 
     #[test]
-    fn test_max_push_id_frame_on_push_stream() {
+    fn max_push_id_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0xd, 0x1, 0x5]);
     }
 
     // send DATA frame before a header frame
     #[test]
-    fn test_data_frame_on_push_stream() {
+    fn data_frame_on_push_stream() {
         test_wrong_frame_on_push_stream(&[0x0, 0x2, 0x1, 0x2]);
     }
 
     // Client: receive unknown stream type
     // This function also tests getting stream id that does not fit into a single byte.
     #[test]
-    fn test_client_received_unknown_stream() {
+    fn client_received_unknown_stream() {
         let (mut client, mut server) = connect();
 
         // create a stream with unknown type.
@@ -2416,38 +2416,38 @@ mod tests {
     }
 
     #[test]
-    fn test_cancel_push_frame_on_request_stream() {
+    fn cancel_push_frame_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0x3, 0x1, 0x5]);
     }
 
     #[test]
-    fn test_settings_frame_on_request_stream() {
+    fn settings_frame_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0x4, 0x4, 0x6, 0x4, 0x8, 0x4]);
     }
 
     #[test]
-    fn test_goaway_frame_on_request_stream() {
+    fn goaway_frame_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0x7, 0x1, 0x5]);
     }
 
     #[test]
-    fn test_max_push_id_frame_on_request_stream() {
+    fn max_push_id_frame_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0xd, 0x1, 0x5]);
     }
 
     #[test]
-    fn test_priority_update_request_on_request_stream() {
+    fn priority_update_request_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0x80, 0x0f, 0x07, 0x00, 0x01, 0x03]);
     }
 
     #[test]
-    fn test_priority_update_push_on_request_stream() {
+    fn priority_update_push_on_request_stream() {
         test_wrong_frame_on_request_stream(&[0x80, 0x0f, 0x07, 0x01, 0x01, 0x03]);
     }
 
     // Test reading of a slowly streamed frame. bytes are received one by one
     #[test]
-    fn test_frame_reading() {
+    fn frame_reading() {
         let (mut client, mut server) = connect_only_transport();
 
         // create a control stream.
@@ -2801,7 +2801,6 @@ mod tests {
 
     // Send 2 data frames so that the second one cannot fit into the send_buf and it is only
     // partialy sent. We check that the sent data is correct.
-    #[allow(clippy::useless_vec)]
     fn fetch_with_two_data_frames(
         first_frame: &[u8],
         expected_first_data_frame_header: &[u8],
@@ -2952,7 +2951,7 @@ mod tests {
 
     // Test receiving STOP_SENDING with the HttpNoError error code.
     #[test]
-    fn test_stop_sending_early_response() {
+    fn stop_sending_early_response() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3030,7 +3029,7 @@ mod tests {
 
     // Server sends stop sending and reset.
     #[test]
-    fn test_stop_sending_other_error_with_reset() {
+    fn stop_sending_other_error_with_reset() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3094,7 +3093,7 @@ mod tests {
 
     // Server sends stop sending with RequestRejected, but it does not send reset.
     #[test]
-    fn test_stop_sending_other_error_wo_reset() {
+    fn stop_sending_other_error_wo_reset() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3142,7 +3141,7 @@ mod tests {
     // Server sends stop sending and reset. We have some events for that stream already
     // in client.events. The events will be removed.
     #[test]
-    fn test_stop_sending_and_reset_other_error_with_events() {
+    fn stop_sending_and_reset_other_error_with_events() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3216,7 +3215,7 @@ mod tests {
     // We have some events for that stream already in the client.events.
     // The events will be removed.
     #[test]
-    fn test_stop_sending_other_error_with_events() {
+    fn stop_sending_other_error_with_events() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3280,7 +3279,7 @@ mod tests {
 
     // Server sends a reset. We will close sending side as well.
     #[test]
-    fn test_reset_wo_stop_sending() {
+    fn reset_wo_stop_sending() {
         // Connect exchange headers and send a request. Also check if the correct header frame has
         // been sent.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(false);
@@ -3357,24 +3356,24 @@ mod tests {
 
     // Incomplete DATA frame
     #[test]
-    fn test_incomplet_data_frame() {
+    fn incomplet_data_frame() {
         test_incomplet_frame(&HTTP_RESPONSE_2[..12], &Error::HttpFrame);
     }
 
     // Incomplete HEADERS frame
     #[test]
-    fn test_incomplet_headers_frame() {
+    fn incomplet_headers_frame() {
         test_incomplet_frame(&HTTP_RESPONSE_2[..7], &Error::HttpFrame);
     }
 
     #[test]
-    fn test_incomplet_unknown_frame() {
+    fn incomplet_unknown_frame() {
         test_incomplet_frame(&[0x21], &Error::HttpFrame);
     }
 
     // test goaway
     #[test]
-    fn test_goaway() {
+    fn goaway() {
         let (mut client, mut server) = connect();
         let request_stream_id_1 = make_request(&mut client, false, &[]);
         assert_eq!(request_stream_id_1, 0);
@@ -3596,7 +3595,7 @@ mod tests {
 
     // Close stream before headers.
     #[test]
-    fn test_stream_fin_wo_headers() {
+    fn stream_fin_wo_headers() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
         // send fin before sending any data.
         server.conn.stream_close_send(request_stream_id).unwrap();
@@ -3625,7 +3624,7 @@ mod tests {
 
     // Close stream imemediately after headers.
     #[test]
-    fn test_stream_fin_after_headers() {
+    fn stream_fin_after_headers() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
         server_send_response_and_exchange_packet(
@@ -3664,7 +3663,7 @@ mod tests {
     // Send headers, read headers and than close stream.
     // We should get HeaderReady and a DataReadable
     #[test]
-    fn test_stream_fin_after_headers_are_read_wo_data_frame() {
+    fn stream_fin_after_headers_are_read_wo_data_frame() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
         // Send some good data wo fin
         server_send_response_and_exchange_packet(
@@ -3730,7 +3729,7 @@ mod tests {
 
     // Send headers and an empty data frame, then close the stream.
     #[test]
-    fn test_stream_fin_after_headers_and_a_empty_data_frame() {
+    fn stream_fin_after_headers_and_a_empty_data_frame() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
         // Send headers.
@@ -3783,7 +3782,7 @@ mod tests {
     // Send headers and an empty data frame. Read headers and then close the stream.
     // We should get a HeaderReady without fin and a DataReadable wo data and with fin.
     #[test]
-    fn test_stream_fin_after_headers_an_empty_data_frame_are_read() {
+    fn stream_fin_after_headers_an_empty_data_frame_are_read() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
         // Send some good data wo fin
         // Send headers.
@@ -3854,7 +3853,7 @@ mod tests {
     }
 
     #[test]
-    fn test_stream_fin_after_a_data_frame() {
+    fn stream_fin_after_a_data_frame() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
         // Send some good data wo fin
         server_send_response_and_exchange_packet(
@@ -3919,7 +3918,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_data_frames() {
+    fn multiple_data_frames() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
         // Send two data frames with fin
@@ -3955,7 +3954,7 @@ mod tests {
     }
 
     #[test]
-    fn test_receive_grease_before_response() {
+    fn receive_grease_before_response() {
         // Construct an unknown frame.
         const UNKNOWN_FRAME_LEN: usize = 832;
 
@@ -4000,7 +3999,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_frames_header_blocked() {
+    fn read_frames_header_blocked() {
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
         setup_server_side_encoder(&mut client, &mut server);
@@ -4069,7 +4068,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_frames_header_blocked_with_fin_after_headers() {
+    fn read_frames_header_blocked_with_fin_after_headers() {
         let (mut hconn, mut server, request_stream_id) = connect_and_send_request(true);
 
         setup_server_side_encoder(&mut hconn, &mut server);
@@ -4632,7 +4631,7 @@ mod tests {
     }
 
     #[test]
-    fn test_trailers_with_fin_after_headers() {
+    fn trailers_with_fin_after_headers() {
         // Make a new connection.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
@@ -4693,7 +4692,7 @@ mod tests {
     }
 
     #[test]
-    fn test_trailers_with_later_fin_after_headers() {
+    fn trailers_with_later_fin_after_headers() {
         // Make a new connection.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
@@ -4763,7 +4762,7 @@ mod tests {
     }
 
     #[test]
-    fn test_data_after_trailers_after_headers() {
+    fn data_after_trailers_after_headers() {
         // Make a new connection.
         let (mut client, mut server, request_stream_id) = connect_and_send_request(true);
 
@@ -5557,7 +5556,7 @@ mod tests {
     }
 
     #[test]
-    fn test_max_push_id_frame_update_is_sent() {
+    fn max_push_id_frame_update_is_sent() {
         const MAX_PUSH_ID_FRAME: &[u8] = &[0xd, 0x1, 0x8];
 
         // Connect and send a request

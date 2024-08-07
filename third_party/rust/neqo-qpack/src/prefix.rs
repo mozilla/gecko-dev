@@ -6,7 +6,6 @@
 
 #[derive(Copy, Clone, Debug)]
 pub struct Prefix {
-    #[allow(unknown_lints)] // available with Rust v1.75
     #[allow(clippy::struct_field_names)]
     prefix: u8,
     len: u8,
