@@ -26,19 +26,23 @@ const TEST_URI = `https://example.org/document-builder.sjs?html=
  <script>
     CSS.registerProperty({
       name: "--js",
-      syntax: "*",
+      syntax: "<color>",
       inherits: false,
+      initialValue: "gold"
     });
   </script>
   <style>
     @property --css {
-      syntax: "*";
+      syntax: "<color>";
       inherits: false;
+      initial-value: tomato;
     }
 
     h1 {
       --css: red;
       --not-registered: blue;
+      --nested: var(--js);
+      --nested-with-function: color-mix(in srgb, var(--css) 50%, var(--not-registered));
       color: gold;
     }
   </style>
@@ -57,7 +61,17 @@ add_task(async function () {
     view.styleDocument.querySelector("#registered-properties-container")
   );
 
-  const topLevelVariables = ["--css", "--js", "--not-registered"];
+  const topLevelVariables = [
+    { label: "--css", postLabel: "rgb(255, 0, 0)", hasColorSwatch: true },
+    { label: "--js", postLabel: "gold", hasColorSwatch: true },
+    { label: "--nested", postLabel: "rgb(255, 215, 0)", hasColorSwatch: true },
+    {
+      label: "--nested-with-function",
+      postLabel: "color-mix(in srgb, rgb(255, 0, 0) 50%, blue)",
+      hasColorSwatch: true,
+    },
+    { label: "--not-registered", postLabel: "blue", hasColorSwatch: true },
+  ];
   await checkNewPropertyCssVariableAutocomplete(view, topLevelVariables);
 
   await checkCssVariableAutocomplete(
@@ -71,7 +85,14 @@ add_task(async function () {
   );
   await selectNodeInFrames(["iframe", "h1"], inspector);
 
-  const iframeVariables = ["--iframe", "--iframe-not-registered"];
+  const iframeVariables = [
+    { label: "--iframe" },
+    {
+      label: "--iframe-not-registered",
+      postLabel: "turquoise",
+      hasColorSwatch: true,
+    },
+  ];
   await checkNewPropertyCssVariableAutocomplete(view, iframeVariables);
 
   await checkCssVariableAutocomplete(
@@ -91,10 +112,10 @@ async function checkNewPropertyCssVariableAutocomplete(
   EventUtils.sendString("--");
   await onPopupOpen;
 
-  Assert.deepEqual(
-    editor.popup.getItems().map(item => item.label),
-    expectedPopupItems,
-    "Got expected items in autopopup"
+  assertEditorPopupItems(
+    editor,
+    // we don't display postLabel for the new property
+    expectedPopupItems.map(item => ({ label: item.label }))
   );
 
   info("Close the popup");
@@ -115,11 +136,7 @@ async function checkCssVariableAutocomplete(
   view.debounce.flush();
   await onPopupOpen;
   await onRuleViewChanged;
-  Assert.deepEqual(
-    editor.popup.getItems().map(item => item.label),
-    expectedPopupItems,
-    "Got expected items in autopopup"
-  );
+  assertEditorPopupItems(editor, expectedPopupItems);
 
   info("Close the popup");
   const onPopupClosed = once(editor.popup, "popup-closed");
@@ -128,4 +145,45 @@ async function checkCssVariableAutocomplete(
   onRuleViewChanged = view.once("ruleview-changed");
   EventUtils.synthesizeKey("VK_ESCAPE", {}, view.styleWindow);
   await onRuleViewChanged;
+}
+
+/**
+ * Check that the popup items are the expected ones.
+ *
+ * @param {InplaceEditor} editor
+ * @param {Array{Object}} expectedPopupItems
+ */
+function assertEditorPopupItems(editor, expectedPopupItems) {
+  const popupListItems = Array.from(editor.popup._list.querySelectorAll("li"));
+  is(
+    popupListItems.length,
+    expectedPopupItems.length,
+    "Popup has expected number of items"
+  );
+  popupListItems.forEach((li, i) => {
+    const expected = expectedPopupItems[i];
+    const value =
+      li.querySelector(".initial-value").textContent +
+      li.querySelector(".autocomplete-value").textContent;
+    is(value, expected.label, `Popup item #${i} as expected label`);
+
+    // Don't pollute test logs if we don't have the expected variable
+    if (value !== expected.label) {
+      return;
+    }
+
+    const postLabelEl = li.querySelector(".autocomplete-postlabel");
+    is(
+      li.querySelector(".autocomplete-postlabel")?.textContent,
+      expected.postLabel,
+      `${expected.label} has expected post label`
+    );
+    is(
+      !!postLabelEl?.querySelector(".autocomplete-swatch"),
+      !!expected.hasColorSwatch,
+      `${expected.label} ${
+        expected.hasColorSwatch ? "has" : "does not have"
+      } a post label color swatch`
+    );
+  });
 }
