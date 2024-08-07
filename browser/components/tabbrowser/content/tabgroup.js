@@ -13,6 +13,8 @@
       <html:slot/>
       `;
 
+    #labelElement;
+
     constructor() {
       super();
     }
@@ -31,7 +33,11 @@
       this.textContent = "";
       this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
+
       this._initialized = true;
+
+      this.#labelElement = this.querySelector(".tab-group-label");
+      this.#labelElement.addEventListener("click", this);
     }
 
     get color() {
@@ -58,6 +64,14 @@
       this.setAttribute("label", val);
     }
 
+    get collapsed() {
+      return this.hasAttribute("collapsed");
+    }
+
+    set collapsed(val) {
+      this.toggleAttribute("collapsed", val);
+    }
+
     get tabs() {
       return Array.from(this.children).filter(node => node.matches("tab"));
     }
@@ -70,6 +84,13 @@
     addTabs(tabs) {
       for (let tab of tabs) {
         gBrowser.moveTabToGroup(tab, this);
+      }
+    }
+
+    on_click(event) {
+      if (event.target === this.#labelElement && event.button === 0) {
+        event.preventDefault();
+        this.collapsed = !this.collapsed;
       }
     }
   }

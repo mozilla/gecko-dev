@@ -656,6 +656,17 @@
 
 tab-group {
   border-bottom: 2px solid var(--tab-group-color);
+
+  & > .tabbrowser-tab {
+    transition: min-width 100ms ease-out, max-width 100ms ease-out, padding 100ms ease-out;
+  }
+
+  &[collapsed] > .tabbrowser-tab {
+    min-width: 0;
+    max-width: 0;
+    padding: 0;
+    overflow-clip-margin: 0;
+  }
 }
 
 .tab-group-label {
@@ -668,7 +679,15 @@ tab-group {
   color: white;
   margin: auto 0;
   padding: 2px;
+
+  tab-group[collapsed] > & {
+    /* TODO: choose actual color values from the spec instead of generating on the fly */
+    background-color: color-mix(in srgb, var(--tab-group-color) 30%, white);
+    color: var(--tab-group-color);
+    outline: 1px solid var(--tab-group-color);
+  }
 }
+
 
 /* Tab Overflow */
 

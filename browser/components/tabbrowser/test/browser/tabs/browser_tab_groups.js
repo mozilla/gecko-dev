@@ -16,3 +16,21 @@ add_task(async function test_tabGroups() {
   BrowserTestUtils.removeTab(tab1);
   group.remove();
 });
+
+add_task(async function test_tabGroupCollapseAndExpand() {
+  let group = gBrowser.addTabGroup("blue", "test");
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  group.addTabs([tab1]);
+
+  Assert.ok(!group.collapsed, "group is expanded by default");
+
+  group.querySelector(".tab-group-label").click();
+  Assert.ok(group.collapsed, "group is collapsed on click");
+
+  group.querySelector(".tab-group-label").click();
+  Assert.ok(!group.collapsed, "collapsed group is expanded on click");
+
+  // TODO add API to remove group
+  BrowserTestUtils.removeTab(tab1);
+  group.remove();
+});
