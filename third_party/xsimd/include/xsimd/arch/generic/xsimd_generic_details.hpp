@@ -204,11 +204,11 @@ namespace xsimd
             XSIMD_INLINE batch<uint32_t, A> fast_cast(batch<float, A> const& v, batch<uint32_t, A> const&, requires_arch<generic>) noexcept
             {
                 auto is_large = v >= batch<float, A>(1u << 31);
-                auto small = bitwise_cast<float>(batch_cast<int32_t>(v));
-                auto large = bitwise_cast<float>(
+                auto small_v = bitwise_cast<float>(batch_cast<int32_t>(v));
+                auto large_v = bitwise_cast<float>(
                     batch_cast<int32_t>(v - batch<float, A>(1u << 31))
                     ^ batch<int32_t, A>(1u << 31));
-                return bitwise_cast<uint32_t>(select(is_large, large, small));
+                return bitwise_cast<uint32_t>(select(is_large, large_v, small_v));
             }
         }
 
