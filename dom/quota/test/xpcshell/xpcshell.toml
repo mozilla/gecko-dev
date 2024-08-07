@@ -11,6 +11,7 @@ support-files = [
   "createLocalStorage_profile.zip",
   "defaultStorageDirectory_shared.json",
   "defaultStorageDirectory_shared.zip",
+  "getUsageForPrincipal_profile.zip",
   "getUsage_profile.zip",
   "groupMismatch_profile.zip",
   "indexedDBDirectory_shared.json",
@@ -24,6 +25,9 @@ support-files = [
   "tempMetadataCleanup_profile.zip",
   "unknownFiles_profile.zip",
 ]
+
+["make_getUsageForPrincipal.js"]
+skip-if = ["true"] # Only used for recreating getUsageForPrincipal_profile.zip
 
 ["make_unknownFiles.js"]
 skip-if = ["true"] # Only used for recreating unknownFiles_profile.zip
@@ -50,6 +54,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 ["test_estimateOrigin.js"]
 
 ["test_getUsage.js"]
+
+["test_getUsageForPrincipal.js"]
 
 ["test_groupMismatch.js"]
 skip-if = ["true"] # The group is now always empty, so metadata can't differ anymore.
