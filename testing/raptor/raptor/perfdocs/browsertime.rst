@@ -174,20 +174,18 @@ it does not install it):
 
    ./mach raptor -t amazon --app fenix --binary org.mozilla.fenix --conditioned-profile settled-webext
 
-To run these jobs on try, make sure to select the tp6 jobs that include the string `webextensions`, as an example (add ``--no-push`` to force try fuzzy to only
-list the jobs selected by the try fuzzy query) to run all tp6 page-load webextensons jobs currently defined:
+To run these jobs on try, make sure to select the tp6 jobs that include the string `webextensions`, as an example (add ``--no-push`` to force try perf to only
+list the jobs selected by the try perf query) to run all tp6 page-load webextensons jobs currently defined:
 
 ::
 
-   ./mach try fuzzy -q "'tp6 'webextensions"
+   ./mach try perf --show-all -q "'tp6 'webextensions"
 
 Similarly for running tp6m (equivalent to tp6 but for mobile) on Firefox for Android builds:
 
 ::
 
-   ./mach try fuzzy --full -q "'tp6m 'webextensions"
-
-Note that this can also be done using ``./mach try perf --show-all -q "'tp6m 'webextensions"`` to produce a compare view link of the changes before/after the patch being tested.
+   ./mach try perf --show-all -q "'tp6m 'webextensions"
 
 The set of extensions installed are the ones listed in the ``"addons"`` property of the condprof customization file
 `webext.json`_ from the ``testing/condprofile/condprof/customization/`` directory.
@@ -332,7 +330,7 @@ If you're looking for the latest geckodriver being used there are two ways:
 * Alternatively, if you're trying to figure out which geckodriver a given CI task is using, you can click on the browsertime task in treeherder, and then click on the ``Task`` id in the bottom left of the pop-up interface. Then in the window that opens up, click on `See more` in the task details tab on the left, this will show you the dependent tasks with the latest toolchain-geckodriver being used. There's an Artifacts drop down on the right hand side for the toolchain-geckodriver task that you can find the latest geckodriver in.
 
 If you're trying to test Browsertime with a new geckodriver, you can do either of the following:
-* Request a new geckodriver build in your try run (i.e. through ``./mach try fuzzy``).
+* Request a new geckodriver build in your try run (i.e. through ``./mach try perf --show-all``).
 * Trigger a new geckodriver in a try push, then trigger the browsertime tests which will then use the newly built version in the try push.
 
 Comparing Before/After Browsertime Videos
