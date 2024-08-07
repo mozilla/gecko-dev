@@ -40,11 +40,11 @@ use crate::util::drain_filter;
 use std::thread;
 use std::time::Duration;
 
-fn rasterize_blobs(txn: &mut TransactionMsg, is_low_priority: bool) {
+fn rasterize_blobs(txn: &mut TransactionMsg, is_low_priority: bool, tile_pool: &mut api::BlobTilePool) {
     profile_scope!("rasterize_blobs");
 
     if let Some(ref mut rasterizer) = txn.blob_rasterizer {
-        let mut rasterized_blobs = rasterizer.rasterize(&txn.blob_requests, is_low_priority);
+        let mut rasterized_blobs = rasterizer.rasterize(&txn.blob_requests, is_low_priority, tile_pool);
         // try using the existing allocation if our current list is empty
         if txn.rasterized_blobs.is_empty() {
             txn.rasterized_blobs = rasterized_blobs;
@@ -244,6 +244,7 @@ pub struct SceneBuilderThread {
     capture_config: Option<CaptureConfig>,
     debug_flags: DebugFlags,
     recycler: SceneRecycler,
+    tile_pool: api::BlobTilePool,
 }
 
 pub struct SceneBuilderThreadChannels {
@@ -290,6 +291,8 @@ impl SceneBuilderThread {
             capture_config: None,
             debug_flags: DebugFlags::default(),
             recycler: SceneRecycler::new(),
+            // TODO: tile size is hard-coded here.
+            tile_pool: api::BlobTilePool::new(),
         }
     }
 
@@ -331,6 +334,7 @@ impl SceneBuilderThread {
 
                     // Now that we off the critical path, do some memory bookkeeping.
                     self.recycler.recycle_built_scene();
+                    self.tile_pool.cleanup();
                 }
                 Ok(SceneBuilderRequest::AddDocument(document_id, initial_size)) => {
                     let old = self.documents.insert(document_id, Document::new(
@@ -641,7 +645,7 @@ impl SceneBuilderThread {
             profile.start_time(profiler::BLOB_RASTERIZATION_TIME);
 
             let is_low_priority = false;
-            rasterize_blobs(&mut txn, is_low_priority);
+            rasterize_blobs(&mut txn, is_low_priority, &mut self.tile_pool);
 
             profile.end_time(profiler::BLOB_RASTERIZATION_TIME);
             Telemetry::record_rasterize_blobs_time(Duration::from_micros((profile.get(profiler::BLOB_RASTERIZATION_TIME).unwrap() * 1000.00) as u64));
@@ -771,6 +775,7 @@ impl SceneBuilderThread {
 pub struct LowPrioritySceneBuilderThread {
     pub rx: Receiver<SceneBuilderRequest>,
     pub tx: Sender<SceneBuilderRequest>,
+    pub tile_pool: api::BlobTilePool,
 }
 
 impl LowPrioritySceneBuilderThread {
@@ -782,6 +787,7 @@ impl LowPrioritySceneBuilderThread {
                         .map(|txn| self.process_transaction(txn))
                         .collect();
                     self.tx.send(SceneBuilderRequest::Transactions(txns)).unwrap();
+                    self.tile_pool.cleanup();
                 }
                 Ok(SceneBuilderRequest::ShutDown(sync)) => {
                     self.tx.send(SceneBuilderRequest::ShutDown(sync)).unwrap();
@@ -800,7 +806,7 @@ impl LowPrioritySceneBuilderThread {
     fn process_transaction(&mut self, mut txn: Box<TransactionMsg>) -> Box<TransactionMsg> {
         let is_low_priority = true;
         txn.profile.start_time(profiler::BLOB_RASTERIZATION_TIME);
-        rasterize_blobs(&mut txn, is_low_priority);
+        rasterize_blobs(&mut txn, is_low_priority, &mut self.tile_pool);
         txn.profile.end_time(profiler::BLOB_RASTERIZATION_TIME);
         Telemetry::record_rasterize_blobs_time(Duration::from_micros((txn.profile.get(profiler::BLOB_RASTERIZATION_TIME).unwrap() * 1000.00) as u64));
         txn.blob_requests = Vec::new();

@@ -483,6 +483,7 @@ struct Job {
     dirty_rect: BlobDirtyRect,
     visible_rect: DeviceIntRect,
     tile_size: TileSize,
+    output: MutableTileBuffer,
 }
 
 /// Rasterizes gecko blob images.
@@ -502,6 +503,7 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
         &mut self,
         requests: &[BlobImageParams],
         low_priority: bool,
+        tile_pool: &mut BlobTilePool,
     ) -> Vec<(BlobImageRequest, BlobImageResult)> {
         // All we do here is spin up our workers to callback into gecko to replay the drawing commands.
         gecko_profiler_label!(Graphics, Rasterization);
@@ -519,6 +521,8 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
                 let blob = Arc::clone(&command.data);
                 assert!(!params.descriptor.rect.is_empty());
 
+                let buf_size = (params.descriptor.rect.area() * params.descriptor.format.bytes_per_pixel()) as usize;
+
                 Job {
                     request: params.request,
                     descriptor: params.descriptor,
@@ -526,6 +530,7 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
                     visible_rect: command.visible_rect,
                     dirty_rect: params.dirty_rect,
                     tile_size: command.tile_size,
+                    output: tile_pool.get_buffer(buf_size),
                 }
             })
             .collect();
@@ -543,7 +548,7 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
             requests.len() > 4
         };
 
-        if should_parallelize {
+        let result = if should_parallelize {
             // Parallel version synchronously installs a job on the thread pool which will
             // try to do the work in parallel.
             // This thread is blocked until the thread pool is done doing the work.
@@ -557,7 +562,9 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
             }
         } else {
             requests.into_iter().map(rasterize_blob).collect()
-        }
+        };
+
+        result
     }
 }
 
@@ -574,18 +581,17 @@ fn autoreleasepool<T, F: FnOnce() -> T>(f: F) -> T {
     }
 }
 
-fn rasterize_blob(job: Job) -> (BlobImageRequest, BlobImageResult) {
+fn rasterize_blob(mut job: Job) -> (BlobImageRequest, BlobImageResult) {
     gecko_profiler_label!(Graphics, Rasterization);
     let descriptor = job.descriptor;
-    let buf_size = (descriptor.rect.area() * descriptor.format.bytes_per_pixel()) as usize;
-
-    let mut output = vec![0u8; buf_size];
 
     let dirty_rect = match job.dirty_rect {
         DirtyRect::Partial(rect) => Some(rect),
         DirtyRect::All => None,
     };
     assert!(!descriptor.rect.is_empty());
+
+    let request = job.request;
 
     let result = autoreleasepool(|| {
         unsafe {
@@ -595,9 +601,9 @@ fn rasterize_blob(job: Job) -> (BlobImageRequest, BlobImageResult) {
                 &descriptor.rect,
                 &job.visible_rect,
                 job.tile_size,
-                &job.request.tile,
+                &request.tile,
                 dirty_rect.as_ref(),
-                MutByteSlice::new(output.as_mut_slice()),
+                MutByteSlice::new(job.output.as_mut_slice()),
             ) {
                 // We want the dirty rect local to the tile rather than the whole image.
                 // TODO(nical): move that up and avoid recomupting the tile bounds in the callback
@@ -607,7 +613,7 @@ fn rasterize_blob(job: Job) -> (BlobImageRequest, BlobImageResult) {
 
                 Ok(RasterizedBlobImage {
                     rasterized_rect,
-                    data: Arc::new(output),
+                    data: job.output.into_arc(),
                 })
             } else {
                 panic!("Moz2D replay problem");
@@ -615,7 +621,7 @@ fn rasterize_blob(job: Job) -> (BlobImageRequest, BlobImageResult) {
         }
     });
 
-    (job.request, result)
+    (request, result)
 }
 
 impl BlobImageHandler for Moz2dBlobImageHandler {
