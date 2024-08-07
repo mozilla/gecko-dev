@@ -4,34 +4,41 @@
 
 package org.mozilla.fenix.crashes
 
+import android.content.res.Configuration
 import android.view.ViewGroup.MarginLayoutParams
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
-import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.utils.Settings
 
+@RunWith(AndroidJUnit4::class)
 class CrashContentIntegrationTest {
-    @OptIn(ExperimentalCoroutinesApi::class)
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
 
     private val sessionId = "sessionId"
     private lateinit var browserStore: BrowserStore
+    private lateinit var appStore: AppStore
+    private lateinit var settings: Settings
 
     @Before
     fun setup() {
@@ -43,6 +50,11 @@ class CrashContentIntegrationTest {
                 selectedTabId = sessionId,
             ),
         )
+        appStore = AppStore()
+        settings = mockk {
+            every { getBottomToolbarHeight(any()) } returns 100
+            every { getTopToolbarHeight(any()) } returns 100
+        }
     }
 
     @Test
@@ -55,13 +67,11 @@ class CrashContentIntegrationTest {
             every { height } returns 33
         }
         val components: Components = mockk()
-        val settings: Settings = mockk()
-        val appStore: AppStore = mockk()
         val integration = CrashContentIntegration(
+            context = testContext,
             browserStore = browserStore,
             appStore = appStore,
             toolbar = toolbar,
-            isToolbarPlacedAtTop = true,
             crashReporterView = crashReporterView,
             components = components,
             settings = settings,
@@ -71,7 +81,7 @@ class CrashContentIntegrationTest {
         val controllerCaptor = slot<CrashReporterController>()
         integration.start()
         browserStore.dispatch(CrashAction.SessionCrashedAction(sessionId))
-        browserStore.waitUntilIdle()
+        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
 
         verify {
             toolbar.expand()
@@ -86,23 +96,53 @@ class CrashContentIntegrationTest {
 
     @Test
     fun `GIVEN a tab is marked as crashed WHEN the crashed state changes THEN hide the in-content crash reporter`() {
-        val crashReporterView: CrashContentView = mockk(relaxed = true)
+        val crashReporterLayoutParams: MarginLayoutParams = mockk(relaxed = true)
+        val crashReporterView: CrashContentView = mockk(relaxed = true) {
+            every { layoutParams } returns crashReporterLayoutParams
+        }
         val integration = CrashContentIntegration(
+            context = testContext,
             browserStore = browserStore,
-            appStore = mockk(),
+            appStore = appStore,
             toolbar = mockk(),
-            isToolbarPlacedAtTop = true,
             crashReporterView = crashReporterView,
             components = mockk(),
-            settings = mockk(),
+            settings = settings,
             navController = mockk(),
             sessionId = sessionId,
         )
 
         integration.start()
         browserStore.dispatch(CrashAction.RestoreCrashedSessionAction(sessionId))
-        browserStore.waitUntilIdle()
+        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
 
         verify { crashReporterView.hide() }
+    }
+
+    @Test
+    fun `WHEN orientation state changes THEN margins are updated`() {
+        val crashReporterLayoutParams: MarginLayoutParams = mockk(relaxed = true)
+        val crashReporterView: CrashContentView = mockk(relaxed = true) {
+            every { layoutParams } returns crashReporterLayoutParams
+        }
+        val integration = spyk(
+            CrashContentIntegration(
+                context = testContext,
+                browserStore = browserStore,
+                appStore = appStore,
+                toolbar = mockk(),
+                crashReporterView = crashReporterView,
+                components = mockk(),
+                settings = settings,
+                navController = mockk(),
+                sessionId = sessionId,
+            ),
+        )
+
+        integration.start()
+        appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
+        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { integration.updateVerticalMargins() }
     }
 }

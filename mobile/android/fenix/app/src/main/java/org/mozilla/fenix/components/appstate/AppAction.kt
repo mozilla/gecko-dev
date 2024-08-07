@@ -76,6 +76,11 @@ sealed class AppAction : Action {
     data class RemoveRecentTab(val recentTab: RecentTab) : AppAction()
 
     /**
+     * The orientation of the application has changed.
+     */
+    data class OrientationChange(val orientation: OrientationMode) : AppAction()
+
+    /**
      * The list of bookmarks displayed on the home screen has changed.
      */
     data class BookmarksChange(val bookmarks: List<Bookmark>) : AppAction()

@@ -43,6 +43,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property expandedCollections A set containing the ids of the [TabCollection] that are expanded
  * in the [HomeFragment].
  * @property mode Whether the app is in private browsing mode.
+ * @property orientation Current orientation of the application.
  * @property selectedTabId The currently selected tab ID. This should be bound to [BrowserStore].
  * @property topSites The list of [TopSite] in the [HomeFragment].
  * @property showCollectionPlaceholder If true, shows a placeholder when there are no collections.
@@ -77,6 +78,7 @@ data class AppState(
     val collections: List<TabCollection> = emptyList(),
     val expandedCollections: Set<Long> = emptySet(),
     val mode: BrowsingMode = BrowsingMode.Normal,
+    val orientation: OrientationMode = OrientationMode.Undefined,
     val selectedTabId: String? = null,
     val topSites: List<TopSite> = emptyList(),
     val showCollectionPlaceholder: Boolean = false,
