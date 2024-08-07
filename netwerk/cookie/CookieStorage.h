@@ -141,8 +141,14 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
                                          const nsACString& aBaseDomain,
                                          nsCOMPtr<nsIArray>& aPurgedList);
 
+  // prevent excessive purging by using a soft and hard limit
+  // the soft limit (aka quota) is derived directly from partitionLimitCapacity
+  // pref while the hard limit is 1.2 times the partitionLimitCapacity pref we
+  // use the hard limit to trigger purging and telemetry and when we do purge,
+  // we purge down to the soft limit (quota)
   int32_t PartitionLimitExceededBytes(Cookie* aCookie,
-                                      const nsACString& aBaseDomain);
+                                      const nsACString& aBaseDomain,
+                                      bool aHardMax);
 
   static void CreateOrUpdatePurgeList(nsCOMPtr<nsIArray>& aPurgedList,
                                       nsICookie* aCookie);

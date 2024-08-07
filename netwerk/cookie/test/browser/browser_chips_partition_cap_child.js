@@ -109,11 +109,15 @@ add_task(async function test_chips_limit_document_first_party_child() {
   await BrowserTestUtils.browserLoaded(browser);
 
   // Set partitioned and unpartitioned cookie from document child-side
-  // third should fail to set (> 10K bytes)
+  // 10240 * 1.2 -> 12288
+  // fourth will cause purge (> 12288 Bytes)
+  // and we will purge down to the soft maximum (quota) (10240 Bytes)
+  await setCookieViaDomOnChild(browser, uniqueLargeCookie(true));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(true));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(true));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(true));
 
+  await setCookieViaDomOnChild(browser, uniqueLargeCookie(false));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(false));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(false));
   await setCookieViaDomOnChild(browser, uniqueLargeCookie(false));
@@ -133,7 +137,7 @@ add_task(async function test_chips_limit_document_first_party_child() {
   // check that partitioned cookies are purged at maximum
   // check that unpartitioned cookies are not
   Assert.equal(partitioned.length, 2);
-  Assert.equal(unpartitioned.length, 3);
+  Assert.equal(unpartitioned.length, 4);
 
   // Cleanup
   BrowserTestUtils.removeTab(tab);
@@ -170,9 +174,11 @@ add_task(async function test_chips_limit_third_party() {
       content.document.cookie = largeCookie(true, 0);
       content.document.cookie = largeCookie(true, 1);
       content.document.cookie = largeCookie(true, 2);
+      content.document.cookie = largeCookie(true, 3);
       content.document.cookie = largeCookie(false, 0);
       content.document.cookie = largeCookie(false, 1);
       content.document.cookie = largeCookie(false, 2);
+      content.document.cookie = largeCookie(false, 3);
     });
   });
 
@@ -242,9 +248,11 @@ add_task(async function test_chips_limit_samesite_foreign() {
             content.document.cookie = largeCookie(true, 0);
             content.document.cookie = largeCookie(true, 1);
             content.document.cookie = largeCookie(true, 2);
+            content.document.cookie = largeCookie(true, 3);
             content.document.cookie = largeCookie(false, 0);
             content.document.cookie = largeCookie(false, 1);
             content.document.cookie = largeCookie(false, 2);
+            content.document.cookie = largeCookie(false, 3);
           });
         }
       );

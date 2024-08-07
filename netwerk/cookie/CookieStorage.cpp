@@ -32,6 +32,10 @@
 #define LIMIT(x, low, high, default) \
   ((x) >= (low) && (x) <= (high) ? (x) : (default))
 
+// in order to keep our metrics consistent
+// we only send metrics when the pref hasn't been manipulated from the default
+static const uint32_t kChipsPartitionByteCapacityDefault = 10240;
+
 namespace mozilla {
 namespace net {
 
@@ -528,7 +532,7 @@ bool CookieStorage::RemoveCookiesFromBackUntilUnderLimit(
     RemoveCookieFromList(*it);
     CreateOrUpdatePurgeList(aPurgedList, evictedCookie);
     MOZ_ASSERT((*it).entry);
-    if (PartitionLimitExceededBytes(aCookie, aBaseDomain) <= 0) {
+    if (PartitionLimitExceededBytes(aCookie, aBaseDomain, false) <= 0) {
       return true;
     }
   }
@@ -573,13 +577,14 @@ void CookieStorage::RemoveOlderCookiesUntilUnderLimit(
 }
 
 int32_t CookieStorage::PartitionLimitExceededBytes(
-    Cookie* aCookie, const nsACString& aBaseDomain) {
+    Cookie* aCookie, const nsACString& aBaseDomain, bool aHardMax) {
   uint32_t newCount = CountCookieBytesNotMatchingCookie(*aCookie, aBaseDomain) +
                       aCookie->NameAndValueBytes();
+  double factor = aHardMax ? 1.2 : 1;
   // shouldn't expect more the 4000 cookies * 4000 bytes/cookie -> 16MB
   return static_cast<int32_t>(
       newCount -
-      StaticPrefs::network_cookie_chips_partitionLimitByteCapacity());
+      StaticPrefs::network_cookie_chips_partitionLimitByteCapacity() * factor);
 }
 
 // this is a backend function for adding a cookie to the list, via SetCookie.
@@ -723,7 +728,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
           mHostTable.GetEntry(CookieKey(aBaseDomain, aOriginAttributes));
       if (entry) {
         int32_t exceededBytes =
-            PartitionLimitExceededBytes(aCookie, aBaseDomain);
+            PartitionLimitExceededBytes(aCookie, aBaseDomain, true);
         if (exceededBytes > 0) {
           MOZ_LOG(gCookieLog, LogLevel::Debug,
                   ("Partition byte limit exceeded on cookie overwrite\n"));
@@ -731,8 +736,11 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
             RemoveOlderCookiesUntilUnderLimit(entry, aCookie, aBaseDomain,
                                               purgedList);
           }
-          mozilla::glean::networking::cookie_chips_partition_limit_overflow
-              .AccumulateSingleSample(exceededBytes);
+          if (StaticPrefs::network_cookie_chips_partitionLimitByteCapacity() ==
+              kChipsPartitionByteCapacityDefault) {
+            mozilla::glean::networking::cookie_chips_partition_limit_overflow
+                .AccumulateSingleSample(exceededBytes);
+          }
         }
       }
     }
@@ -786,16 +794,19 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
     } else if (CookieCommons::ChipsLimitEnabledAndChipsCookie(
                    *aCookie, aBrowsingContext) &&
                entry &&
-               (partitionLimitExceededBytes =
-                    PartitionLimitExceededBytes(aCookie, aBaseDomain)) > 0) {
+               (partitionLimitExceededBytes = PartitionLimitExceededBytes(
+                    aCookie, aBaseDomain, true)) > 0) {
       MOZ_LOG(gCookieLog, LogLevel::Debug,
               ("Partition byte limit exceeded on cookie add\n"));
       if (!StaticPrefs::network_cookie_chips_partitionLimitDryRun()) {
         RemoveOlderCookiesUntilUnderLimit(entry, aCookie, aBaseDomain,
                                           purgedList);
       }
-      mozilla::glean::networking::cookie_chips_partition_limit_overflow
-          .AccumulateSingleSample(partitionLimitExceededBytes);
+      if (StaticPrefs::network_cookie_chips_partitionLimitByteCapacity() ==
+          kChipsPartitionByteCapacityDefault) {
+        mozilla::glean::networking::cookie_chips_partition_limit_overflow
+            .AccumulateSingleSample(partitionLimitExceededBytes);
+      }
     } else if (mCookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
       int64_t maxAge = aCurrentTimeInUsec - mCookieOldestTime;
       int64_t purgeAge = ADD_TEN_PERCENT(mCookiePurgeAge);

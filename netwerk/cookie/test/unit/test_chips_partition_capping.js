@@ -84,18 +84,22 @@ function channelMaybePartitioned(uri, partition) {
   return channel;
 }
 
-const COOKIES_TO_SET_COUNT = 102;
+const BYTE_LIMIT = 10240;
+const BYTE_LIMIT_WITH_BUFFER = BYTE_LIMIT * 1.2; // 12288
+const BYTES_PER_COOKIE = 100;
+const COOKIES_TO_SET_COUNT = 122;
+const COOKIES_TO_SET_BYTES = COOKIES_TO_SET_COUNT * BYTES_PER_COOKIE; // 12200
 
-// set 102 cookies at 100 Bytes each -> 10200B
+// set many cookies at 100 Bytes each
 // partition maximum is 10KiB or 10240B (only for partitioned cookies)
-// so after this function is called any partitioned cookie > 40Bytes will exceed
+// so after this function is called any partitioned cookie (100B) will exceed
 function setManyCookies(uri, channel, partitioned) {
   let cookieString = "";
   let cookieNames = [];
   for (let i = 0; i < COOKIES_TO_SET_COUNT; i++) {
-    // each cookie will be 100 Bytes
     let name = "c" + i.toString();
-    let value = i + "_".repeat(100 - i.toString().length - name.length);
+    let value =
+      i + "_".repeat(BYTES_PER_COOKIE - i.toString().length - name.length);
     let cookie = name + "=" + value;
     cookieNames.push(name);
 
@@ -159,24 +163,27 @@ add_task(async function test_chips_limit_parent_http_partitioned() {
 
   let expected = setManyCookies(uri, channel, true);
   expected.cookieNames.push("exceeded");
-  expected.cookieNames.shift(); // remove first three elements
-  expected.cookieNames.shift();
-  expected.cookieNames.shift();
+  // with the buffer quite a few cookies will be purged
+  for (let i = 0; i < 23; i++) {
+    expected.cookieNames.shift();
+  }
 
   // pre-condition: check that all got added as expected
   let actual = Services.cookies.getCookieStringFromHttp(uri, channel);
   Assert.equal(actual, expected.cookieString);
-  await checkReportedOverflow(0);
+  await checkReportedOverflow(0); // no reporting until over the hard cap
 
   // adding 248 Bytes has excess of 208Bytes (3 cookies will be purged (FIFO))
   let cookie = "exceeded".concat("=").concat("x".repeat(240));
+  let cookieNameValueLen = cookie.length - 1;
   Services.cookies.setCookieStringFromHttp(
     uri,
     headerify(cookie, COOKIES_TO_SET_COUNT, true), // use count for uniqueness
     channel
   );
 
-  let expectedOverflow = 208;
+  let expectedOverflow =
+    COOKIES_TO_SET_BYTES + cookieNameValueLen - BYTE_LIMIT_WITH_BUFFER;
   await checkReportedOverflow(expectedOverflow);
 
   // extract cookie names from string and compare to expected values
@@ -198,8 +205,9 @@ add_task(async function test_chips_limit_overwrites_can_purge() {
   let channel = channelMaybePartitioned(uri, baseDomain, true);
 
   let expected = setManyCookies(uri, channel, true);
-  expected.cookieNames.shift(); // remove first two elements
-  expected.cookieNames.shift();
+  for (let i = 0; i < 22; i++) {
+    expected.cookieNames.shift();
+  }
 
   // pre-condition: check that all got added as expected
   let actual = Services.cookies.getCookieStringFromHttp(uri, channel);
@@ -210,13 +218,18 @@ add_task(async function test_chips_limit_overwrites_can_purge() {
   // 244 (new cookie) - 100 (existing cookie) -> 144 newly added bytes
   // So we are in excess by 104 bytes, means 2 cookies need purging (FIFO)
   let cookie = "c101".concat("=").concat("x".repeat(240)); // 244
+  let cookieNameValueLen = cookie.length - 1;
   Services.cookies.setCookieStringFromHttp(
     uri,
     headerify(cookie, COOKIES_TO_SET_COUNT, true), // use count for uniqueness
     channel
   );
 
-  let expectedOverflow = 104;
+  let expectedOverflow =
+    COOKIES_TO_SET_BYTES +
+    cookieNameValueLen -
+    BYTES_PER_COOKIE -
+    BYTE_LIMIT_WITH_BUFFER;
   await checkReportedOverflow(expectedOverflow);
 
   // extract cookie names from string and compare to expected values
@@ -248,6 +261,7 @@ add_task(async function test_chips_limit_dry_run_no_purge() {
 
   // adding 248 Bytes has excess of 208Bytes (3 cookies will be purged (FIFO))
   let cookie = "exceeded".concat("=").concat("x".repeat(240));
+  let cookieNameValueLen = cookie.length - 1;
   Services.cookies.setCookieStringFromHttp(
     uri,
     headerify(cookie, COOKIES_TO_SET_COUNT, true), // use count for uniqueness
@@ -255,7 +269,8 @@ add_task(async function test_chips_limit_dry_run_no_purge() {
   );
   expected.cookieString += "; ".concat(cookie);
 
-  let expectedOverflow = 208;
+  let expectedOverflow =
+    COOKIES_TO_SET_BYTES + cookieNameValueLen - BYTE_LIMIT_WITH_BUFFER;
   await checkReportedOverflow(expectedOverflow);
 
   // extract cookie names from string and compare to expected values
