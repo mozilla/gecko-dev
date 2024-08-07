@@ -36,6 +36,7 @@ using mozilla::Preferences;
 #define NS_NET_PREF_EXTRAALLOWED "network.IDN.extra_allowed_chars"
 #define NS_NET_PREF_EXTRABLOCKED "network.IDN.extra_blocked_chars"
 #define NS_NET_PREF_IDNRESTRICTION "network.IDN.restriction_profile"
+#define ISNUMERIC(c) ((c) >= '0' && (c) <= '9')
 
 template <int N>
 static inline bool TLDEqualsLiteral(mozilla::Span<const char32_t> aTLD,
@@ -80,6 +81,34 @@ static bool isCJKSlashConfusable(char32_t aChar) {
     case 0x4E40:  // 乀
     case 0x4E41:  // 乁
     case 0x4E3F:  // 丿
+      return true;
+    default:
+      return false;
+  }
+}
+
+static bool isCJKIdeograph(char32_t aChar) {
+  switch (aChar) {
+    case 0x4E00:  // 一
+    case 0x3127:  // ㄧ
+    case 0x4E28:  // 丨
+    case 0x4E5B:  // 乛
+    case 0x4E03:  // 七
+    case 0x4E05:  // 丅
+    case 0x5341:  // 十
+    case 0x3007:  // 〇
+    case 0x3112:  // ㄒ
+    case 0x311A:  // ㄚ
+    case 0x311F:  // ㄟ
+    case 0x3128:  // ㄨ
+    case 0x3129:  // ㄩ
+    case 0x3108:  // ㄈ
+    case 0x31BA:  // ㆺ
+    case 0x31B3:  // ㆳ
+    case 0x5DE5:  // 工
+    case 0x31B2:  // ㆲ
+    case 0x8BA0:  // 讠
+    case 0x4E01:  // 丁
       return true;
     default:
       return false;
@@ -358,6 +387,26 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     // Block single/double-quote-like characters.
     if (ch == 0x2BB || ch == 0x2BC) {
       return false;
+    }
+
+    // Block these CJK ideographs if they are adjacent to non-CJK characters.
+    // These characters can be used to spoof Latin characters/punctuation marks.
+    if (isCJKIdeograph(ch)) {
+      // Check if there is a non-Bopomofo, non-Hiragana, non-Katakana, non-Han,
+      // and non-Numeric character on the left. previousChar is 0 when ch is the
+      // first character.
+      if (lastScript != Script::BOPOMOFO && lastScript != Script::HIRAGANA &&
+          lastScript != Script::KATAKANA && lastScript != Script::HAN &&
+          previousChar && !ISNUMERIC(previousChar)) {
+        return false;
+      }
+      // Check if there is a non-Bopomofo, non-Hiragana, non-Katakana, non-Han,
+      // and non-Numeric character on the right.
+      if (nextScript != Script::BOPOMOFO && nextScript != Script::HIRAGANA &&
+          nextScript != Script::KATAKANA && nextScript != Script::HAN &&
+          current != aLabel.end() && !ISNUMERIC(*current)) {
+        return false;
+      }
     }
 
     // Check for mixed numbering systems
