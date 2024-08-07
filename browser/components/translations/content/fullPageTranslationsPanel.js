@@ -263,6 +263,8 @@ var FullPageTranslationsPanel = new (class {
 
       panel.addEventListener("command", this);
       panel.addEventListener("click", this);
+      panel.addEventListener("popupshown", this);
+      panel.addEventListener("popuphidden", this);
 
       const settingsButton = document.getElementById(
         "translations-panel-settings"
@@ -1422,13 +1424,19 @@ var FullPageTranslationsPanel = new (class {
         switch (event.target.id) {
           case "full-page-translations-panel-intro-learn-more-link":
           case "full-page-translations-panel-unsupported-learn-more-link":
-            FullPageTranslationsPanel.onLearnMoreLink();
+            this.onLearnMoreLink();
             break;
           default:
             this.handlePanelButtonEvent(event);
         }
         break;
       }
+      case "popupshown":
+        this.handlePanelPopupShownEvent(event);
+        break;
+      case "popuphidden":
+        this.handlePanelPopupHiddenEvent(event);
+        break;
       case "TranslationsParent:OfferTranslation": {
         if (Services.wm.getMostRecentBrowserWindow()?.gBrowser === gBrowser) {
           this.open(event, /* reportAsAutoShow */ true);
