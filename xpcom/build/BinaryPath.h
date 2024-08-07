@@ -133,7 +133,7 @@ class BinaryPath {
     return rv;
   }
 
-#elif defined(ANDROID) || defined(__HAIKU__)
+#elif defined(ANDROID) || defined(XP_HAIKU)
   static nsresult Get(char aResult[MAXPATHLEN]) {
     // On Android, we use the MOZ_ANDROID_LIBDIR variable that is set by the
     // Java bootstrap code.
@@ -142,7 +142,11 @@ class BinaryPath {
       return NS_ERROR_FAILURE;
     }
 
+#ifdef XP_HAIKU
+    snprintf(aResult, MAXPATHLEN, "%s/%s", libDir, "firefox");
+#else
     snprintf(aResult, MAXPATHLEN, "%s/%s", libDir, "dummy");
+#endif
     aResult[MAXPATHLEN - 1] = '\0';
     return NS_OK;
   }
