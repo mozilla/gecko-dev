@@ -5619,7 +5619,7 @@ var SessionStoreInternal = {
     if (aSidebar && aWindow.SidebarController.sidebarRevampEnabled) {
       const { SidebarController } = aWindow;
       SidebarController.promiseInitialized.then(() => {
-        SidebarController.sidebarMain.expanded = aSidebar.expanded;
+        SidebarController.toggleExpanded(aSidebar.expanded);
         SidebarController.sidebarContainer.hidden = aSidebar.hidden;
         SidebarController.updateToolbarButton();
       });

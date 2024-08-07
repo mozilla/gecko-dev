@@ -609,7 +609,7 @@ var SidebarController = {
     // revamped sidebar.
     if (this.sidebarRevampEnabled && sourceController.revampComponentsLoaded) {
       this.promiseInitialized.then(() => {
-        this.sidebarMain.expanded = sourceController.sidebarMain.expanded;
+        this.toggleExpanded(sourceController.sidebarMain.expanded);
         this.sidebarContainer.hidden = sourceController.sidebarContainer.hidden;
         this.updateToolbarButton();
       });
@@ -772,7 +772,7 @@ var SidebarController = {
   handleToolbarButtonClick() {
     switch (this.sidebarRevampVisibility) {
       case "always-show":
-        this.sidebarMain.expanded = !this.sidebarMain.expanded;
+        this.toggleExpanded();
         break;
       case "hide-sidebar": {
         const isHidden = this.sidebarContainer.hidden;
@@ -781,7 +781,7 @@ var SidebarController = {
           this.hide();
         } else if (isHidden) {
           // Sidebar is currently hidden, but now we want to show it.
-          this.sidebarMain.expanded = true;
+          this.toggleExpanded(true);
         }
         this.sidebarContainer.hidden = !isHidden;
         break;
@@ -808,6 +808,22 @@ var SidebarController = {
         this.toolbarButton.checked = !this.sidebarContainer.hidden;
         break;
     }
+  },
+
+  /**
+   * Toggle the expanded state of the sidebar.
+   *
+   * @param {boolean} force - Optional true/false to toggle to
+   */
+  toggleExpanded(force) {
+    this._sidebarMain.expanded =
+      typeof force == "boolean" ? force : !this._sidebarMain.expanded;
+    // Marking the tab container element as expanded or not simplifies the CSS logic
+    // and selectors considerably.
+    gBrowser.tabContainer.toggleAttribute(
+      "expanded",
+      this._sidebarMain.expanded
+    );
   },
 
   _loadSidebarExtension(commandID) {
@@ -1129,7 +1145,7 @@ var SidebarController = {
         // to calling `show()`. Thus, we store the expanded state at this point.
         this._previousExpandedState = this.sidebarMain.expanded;
 
-        this.sidebarMain.expanded = false;
+        this.toggleExpanded(false);
       } else {
         this.hideSwitcherPanel();
       }
@@ -1215,9 +1231,10 @@ var SidebarController = {
 
       // When visibility is set to "Hide Sidebar", we always want to revert
       // back to an expanded state.
-      this.sidebarMain.expanded =
+      this.toggleExpanded(
         this.sidebarRevampVisibility === "hide-sidebar" ||
-        this._previousExpandedState;
+          this._previousExpandedState
+      );
     }
     this.selectMenuItem("");
 
@@ -1270,7 +1287,7 @@ var SidebarController = {
 
   toggleTabstrip() {
     let tabStrip = document.getElementById("tabbrowser-tabs");
-    let arrowScrollbox = document.getElementById("tabbrowser-arrowscrollbox");
+    let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
     let verticalTabs = document.getElementById("vertical-tabs");
 
     let tabsToolbarWidgets = CustomizableUI.getWidgetIdsInArea("TabsToolbar");
@@ -1279,6 +1296,7 @@ var SidebarController = {
     );
 
     if (this.sidebarVerticalTabsEnabled) {
+      this.toggleExpanded(this._sidebarMain.expanded);
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
       verticalTabs.append(tabStrip);
@@ -1289,6 +1307,7 @@ var SidebarController = {
       }
     } else {
       arrowScrollbox.setAttribute("orient", "horizontal");
+      tabStrip.removeAttribute("expanded");
       tabStrip.setAttribute("orient", "horizontal");
 
       // make sure we put the tabstrip back in its original position in the TabsToolbar

@@ -255,7 +255,11 @@
   height: 16px;
   width: 16px;
 
-  &:not([pinned]) {
+  /* apply end margin to not-pinned tabs which are:
+     - oriented horizontally, or
+     - vertical but expanded
+  */
+  #tabbrowser-tabs:is(:not([orient="vertical"]), [orient="vertical"][expanded]) &:not([pinned]) {
     margin-inline-end: 5.5px;
   }
 }
@@ -542,7 +546,7 @@
   margin: -.3em 0 .3em; /* adjust margins to compensate for line-height of .tab-label */
   opacity: .8;
 
-  #tabbrowser-tabs[secondarytext-unsupported] &,
+  #tabbrowser-tabs:is([secondarytext-unsupported], [orient="vertical"]) &,
   :root[uidensity=compact] &,
   &:not([soundplaying], [muted], [activemedia-blocked], [pictureinpicture]),
   &:not([activemedia-blocked]) > .tab-icon-sound-blocked-label,

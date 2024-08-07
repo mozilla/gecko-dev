@@ -2317,8 +2317,13 @@
     updateTabIndicatorAttr(tab) {
       const theseAttributes = ["soundplaying", "muted", "activemedia-blocked"];
       const notTheseAttributes = ["pinned", "sharing", "crashed"];
+      const isVerticalAndCollapsed =
+        this.verticalMode && !this.hasAttribute("expanded");
 
-      if (notTheseAttributes.some(attr => tab.hasAttribute(attr))) {
+      if (
+        isVerticalAndCollapsed ||
+        notTheseAttributes.some(attr => tab.hasAttribute(attr))
+      ) {
         tab.removeAttribute("indicator-replaces-favicon");
         return;
       }
