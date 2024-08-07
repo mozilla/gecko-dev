@@ -7,6 +7,9 @@
  * https://fetch.spec.whatwg.org/#request-class
  */
 
+
+interface Principal;
+
 typedef (Request or UTF8String) RequestInfo;
 typedef unsigned long nsContentPolicyType;
 
@@ -76,6 +79,9 @@ dictionary RequestInit {
 
   [ChromeOnly]
   boolean mozErrors;
+
+  [ChromeOnly]
+  Principal triggeringPrincipal;
 
   AbortSignal? signal;
 

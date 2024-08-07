@@ -262,6 +262,14 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
 
   void SetMozErrors() { mMozErrors = true; }
 
+  void SetTriggeringPrincipal(nsIPrincipal* aPrincipal) {
+    mTriggeringPrincipalOverride = aPrincipal;
+  }
+
+  nsIPrincipal* GetTriggeringPrincipalOverride() {
+    return mTriggeringPrincipalOverride;
+  }
+
   const nsCString& GetFragment() const { return mFragment; }
 
   nsContentPolicyType ContentPolicyType() const { return mContentPolicyType; }
@@ -437,6 +445,8 @@ class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   nsCString mBodyBlobURISpec;
   nsString mBodyLocalPath;
   nsCOMPtr<nsIInputStream> mBodyStream;
+
+  nsCOMPtr<nsIPrincipal> mTriggeringPrincipalOverride;
   int64_t mBodyLength{InternalResponse::UNKNOWN_BODY_SIZE};
 
   nsCString mPreferredAlternativeDataType;
