@@ -1412,7 +1412,9 @@ bool SkAAClip::setPath(const SkPath& path, const SkIRect& clip, bool doAA) {
         ibounds = clip;
     } else {
         path.getBounds().roundOut(&ibounds);
-        if (ibounds.isEmpty() || !ibounds.intersect(clip)) {
+        // Since clip is already validated with isEmpty, it is safe to use isEmpty64
+        // for ibounds as it will be intersected with clip after.
+        if (ibounds.isEmpty64() || !ibounds.intersect(clip)) {
             return this->setEmpty();
         }
     }

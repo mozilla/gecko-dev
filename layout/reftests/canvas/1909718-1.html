@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c" width="200" height="200"></canvas>
+
+<script>
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+
+ctx.fillStyle = 'red';
+ctx.fillRect(0, 0, 200, 200);
+
+ctx.beginPath();
+ctx.rect(-6091968027, 0, 2 * 6091968027, 100);
+ctx.rect(100, 100, 100, 100);
+ctx.clip();
+
+ctx.fillStyle = 'green';
+ctx.fillRect(0, 0, 200, 200);
+
+</script>
+
+</body>
+</html>
