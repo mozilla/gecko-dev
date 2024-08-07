@@ -201,7 +201,9 @@ void *OpenSystemLibraryWithExtensionAndGetError(const char *libraryName,
     int extraFlags = 0;
     if (searchType == SearchType::AlreadyLoaded)
     {
+#ifndef __HAIKU__
         extraFlags = RTLD_NOLOAD;
+#endif
     }
 
     std::string fullPath = directory + libraryName;
