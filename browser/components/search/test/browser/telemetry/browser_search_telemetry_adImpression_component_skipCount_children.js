@@ -10,8 +10,7 @@
 const TEST_PROVIDER_INFO = [
   {
     telemetryId: "example",
-    searchPageRegexp:
-      /^https:\/\/example.org\/browser\/browser\/components\/search\/test\/browser\/telemetry\/searchTelemetryAd/,
+    searchPageRegexp: /^https:\/\/example.org\//,
     queryParamNames: ["s"],
     codeParamName: "abc",
     taggedCodes: ["ff"],
@@ -31,14 +30,46 @@ const IMPRESSION = {
   is_signed_in: "false",
 };
 
-const SERP_URL = getSERPUrl("searchTelemetryAd_searchbox_with_content.html");
+/**
+ * This HTML contains non-sponsored links that wouldn't be picked up via a
+ * bottom up search and thus, requires topdown inspection to find them.
+ * It also contains sponsored links so that we do a bottom-up search.
+ */
+const TEST_URI = `
+<!DOCTYPE html>
+<main>
+  <section class="refined-search-buttons">
+      <a href="https://example.com/search?q=item+1">item 1</a>
+      <a href="https://example.com/search?q=item+2">item 2</a>
+  </section>
+  <aside class="sidebar">
+    <div class="sidebar-result">
+      <a href="https://example.com/ad">Ad link</a>
+    </div>
+    <div class="sidebar-result">
+      <a href="https://example.com/ad">Ad link</a>
+    </div>
+  </aside>
+</main>
+`;
+const SERP_URL =
+  "https://example.org/document-builder.sjs?s=test&abc=ff&html=" +
+  encodeURIComponent(TEST_URI);
 
-async function replaceIncludedProperty(included) {
+async function replaceIncludedProperty(topDown, bottomUp) {
   let components = [
     {
       type: SearchSERPTelemetryUtils.COMPONENTS.REFINED_SEARCH_BUTTONS,
-      included,
+      included: topDown,
       topDown: true,
+    },
+    {
+      type: SearchSERPTelemetryUtils.COMPONENTS.AD_SIDEBAR,
+      included: bottomUp,
+    },
+    {
+      type: SearchSERPTelemetryUtils.COMPONENTS.AD_LINK,
+      default: true,
     },
   ];
   TEST_PROVIDER_INFO[0].components = components;
@@ -62,16 +93,29 @@ add_setup(async function () {
 
 // For older clients, skipCount won't be available.
 add_task(async function test_skip_count_not_provided() {
-  await replaceIncludedProperty({
-    parent: {
-      selector: ".refined-search-buttons",
-    },
-    children: [
-      {
-        selector: "a",
+  await replaceIncludedProperty(
+    {
+      parent: {
+        selector: ".refined-search-buttons",
       },
-    ],
-  });
+      children: [
+        {
+          selector: "a",
+        },
+      ],
+    },
+    {
+      parent: {
+        selector: ".sidebar",
+      },
+      children: [
+        {
+          selector: ".sidebar-result",
+          countChildren: true,
+        },
+      ],
+    }
+  );
 
   let { cleanup } = await openSerpInNewTab(SERP_URL);
 
@@ -79,6 +123,12 @@ add_task(async function test_skip_count_not_provided() {
     {
       impression: IMPRESSION,
       adImpressions: [
+        {
+          component: SearchSERPTelemetryUtils.COMPONENTS.AD_SIDEBAR,
+          ads_loaded: "2",
+          ads_visible: "2",
+          ads_hidden: "0",
+        },
         {
           component: SearchSERPTelemetryUtils.COMPONENTS.REFINED_SEARCH_BUTTONS,
           ads_loaded: "1",
@@ -93,17 +143,31 @@ add_task(async function test_skip_count_not_provided() {
 });
 
 add_task(async function test_skip_count_is_false() {
-  await replaceIncludedProperty({
-    parent: {
-      selector: ".refined-search-buttons",
-    },
-    children: [
-      {
-        selector: "a",
-        skipCount: false,
+  await replaceIncludedProperty(
+    {
+      parent: {
+        selector: ".refined-search-buttons",
       },
-    ],
-  });
+      children: [
+        {
+          selector: "a",
+          skipCount: false,
+        },
+      ],
+    },
+    {
+      parent: {
+        selector: ".sidebar",
+      },
+      children: [
+        {
+          selector: ".sidebar-result",
+          countChildren: true,
+          skipCount: false,
+        },
+      ],
+    }
+  );
 
   let { cleanup } = await openSerpInNewTab(SERP_URL);
 
@@ -111,6 +175,12 @@ add_task(async function test_skip_count_is_false() {
     {
       impression: IMPRESSION,
       adImpressions: [
+        {
+          component: SearchSERPTelemetryUtils.COMPONENTS.AD_SIDEBAR,
+          ads_loaded: "2",
+          ads_visible: "2",
+          ads_hidden: "0",
+        },
         {
           component: SearchSERPTelemetryUtils.COMPONENTS.REFINED_SEARCH_BUTTONS,
           ads_loaded: "1",
@@ -125,17 +195,31 @@ add_task(async function test_skip_count_is_false() {
 });
 
 add_task(async function test_skip_count_is_true() {
-  await replaceIncludedProperty({
-    parent: {
-      selector: ".refined-search-buttons",
-    },
-    children: [
-      {
-        selector: "a",
-        skipCount: true,
+  await replaceIncludedProperty(
+    {
+      parent: {
+        selector: ".refined-search-buttons",
       },
-    ],
-  });
+      children: [
+        {
+          selector: "a",
+          skipCount: true,
+        },
+      ],
+    },
+    {
+      parent: {
+        selector: ".sidebar",
+      },
+      children: [
+        {
+          selector: ".sidebar-result",
+          countChildren: true,
+          skipCount: true,
+        },
+      ],
+    }
+  );
 
   let { cleanup } = await openSerpInNewTab(SERP_URL);
 
