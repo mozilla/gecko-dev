@@ -210,7 +210,7 @@ fn process<OutputUnicode: FnMut(&[char], &[char], bool) -> bool>(
         if allow_any_glyphful_ascii {
             GLYPHLESS
         } else {
-            GECKO
+            AsciiDenyList::URL
         },
         Hyphens::Allow,
         ErrorPolicy::FailFast,
