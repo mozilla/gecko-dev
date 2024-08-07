@@ -101,9 +101,9 @@ class MacroAssemblerMIPSShared : public Assembler {
   void ma_ctz(Register rd, Register rs);
 
   // load
-  void ma_load(Register dest, const BaseIndex& src,
-               LoadStoreSize size = SizeWord,
-               LoadStoreExtension extension = SignExtend);
+  FaultingCodeOffset ma_load(Register dest, const BaseIndex& src,
+                             LoadStoreSize size = SizeWord,
+                             LoadStoreExtension extension = SignExtend);
   void ma_load_unaligned(Register dest, const BaseIndex& src,
                          LoadStoreSize size = SizeWord,
                          LoadStoreExtension extension = SignExtend);
@@ -115,9 +115,9 @@ class MacroAssemblerMIPSShared : public Assembler {
                          LoadStoreSize size, LoadStoreExtension extension);
 
   // store
-  void ma_store(Register data, const BaseIndex& dest,
-                LoadStoreSize size = SizeWord,
-                LoadStoreExtension extension = SignExtend);
+  FaultingCodeOffset ma_store(Register data, const BaseIndex& dest,
+                              LoadStoreSize size = SizeWord,
+                              LoadStoreExtension extension = SignExtend);
   void ma_store(Imm32 imm, const BaseIndex& dest, LoadStoreSize size = SizeWord,
                 LoadStoreExtension extension = SignExtend);
   void ma_store_unaligned(Register data, const Address& dest,
@@ -183,11 +183,11 @@ class MacroAssemblerMIPSShared : public Assembler {
   // fp instructions
   void ma_lis(FloatRegister dest, float value);
 
-  void ma_sd(FloatRegister src, BaseIndex address);
-  void ma_ss(FloatRegister src, BaseIndex address);
+  FaultingCodeOffset ma_sd(FloatRegister src, BaseIndex address);
+  FaultingCodeOffset ma_ss(FloatRegister src, BaseIndex address);
 
-  void ma_ld(FloatRegister dest, const BaseIndex& src);
-  void ma_ls(FloatRegister dest, const BaseIndex& src);
+  FaultingCodeOffset ma_ld(FloatRegister dest, const BaseIndex& src);
+  FaultingCodeOffset ma_ls(FloatRegister dest, const BaseIndex& src);
 
   // FP branches
   void ma_bc1s(FloatRegister lhs, FloatRegister rhs, Label* label,
@@ -224,11 +224,11 @@ class MacroAssemblerMIPSShared : public Assembler {
   void minMaxFloat32(FloatRegister srcDest, FloatRegister other, bool handleNaN,
                      bool isMax);
 
-  void loadDouble(const Address& addr, FloatRegister dest);
-  void loadDouble(const BaseIndex& src, FloatRegister dest);
+  FaultingCodeOffset loadDouble(const Address& addr, FloatRegister dest);
+  FaultingCodeOffset loadDouble(const BaseIndex& src, FloatRegister dest);
 
-  void loadFloat32(const Address& addr, FloatRegister dest);
-  void loadFloat32(const BaseIndex& src, FloatRegister dest);
+  FaultingCodeOffset loadFloat32(const Address& addr, FloatRegister dest);
+  FaultingCodeOffset loadFloat32(const BaseIndex& src, FloatRegister dest);
 
   FaultingCodeOffset loadFloat16(const Address& addr, FloatRegister dest,
                                  Register) {
