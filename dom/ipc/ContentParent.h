@@ -464,6 +464,13 @@ class ContentParent final : public PContentParent,
    */
   void KillHard(const char* aReason);
 
+  /**
+   * Get a unique identifier for this child process. This ID is unique across
+   * all types of child processes.
+   *
+   * NOTE: The `ContentParentId` wrapper type is a historical artifact from when
+   * the ID was only specific to content processes.
+   */
   ContentParentId ChildID() const { return mChildID; }
 
   /**

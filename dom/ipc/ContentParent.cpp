@@ -553,9 +553,6 @@ static bool sCreatedFirstContentProcess = false;
 static bool sInProcessSelector = false;
 #endif
 
-// The first content child has ID 1, so the chrome process can have ID 0.
-static uint64_t gContentChildID = 1;
-
 static const char* sObserverTopics[] = {
     NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC,
     NS_IPC_IOSERVICE_SET_CONNECTIVITY_TOPIC,
@@ -2368,7 +2365,6 @@ bool ContentParent::BeginSubprocessLaunch(ProcessPriority aPriority) {
   }
 
   std::vector<std::string> extraArgs;
-  geckoargs::sChildID.Put(mChildID, extraArgs);
   geckoargs::sIsForBrowser.Put(IsForBrowser(), extraArgs);
   geckoargs::sNotForBrowser.Put(!IsForBrowser(), extraArgs);
 
@@ -2541,14 +2537,19 @@ bool ContentParent::LaunchSubprocessResolve(bool aIsSync,
   return true;
 }
 
+static bool IsFileContent(const nsACString& aRemoteType) {
+  return aRemoteType == FILE_REMOTE_TYPE;
+}
+
 ContentParent::ContentParent(const nsACString& aRemoteType)
-    : mSubprocess(nullptr),
+    : mSubprocess(new GeckoChildProcessHost(GeckoProcessType_Content,
+                                            IsFileContent(aRemoteType))),
       mLaunchTS(TimeStamp::Now()),
       mLaunchYieldTS(mLaunchTS),
       mActivateTS(mLaunchTS),
       mIsAPreallocBlocker(false),
       mRemoteType(aRemoteType),
-      mChildID(gContentChildID++),
+      mChildID(mSubprocess->GetChildID()),
       mGeolocationWatchID(-1),
       mThreadsafeHandle(
           new ThreadsafeContentParentHandle(this, mChildID, mRemoteType)),
@@ -2569,6 +2570,8 @@ ContentParent::ContentParent(const nsACString& aRemoteType)
       mBlockShutdownCalled(false),
 #endif
       mHangMonitorActor(nullptr) {
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+
   mRemoteTypeIsolationPrincipal =
       CreateRemoteTypeIsolationPrincipal(aRemoteType);
 
@@ -2588,13 +2591,9 @@ ContentParent::ContentParent(const nsACString& aRemoteType)
       MessageChannel::REQUIRE_DEFERRED_MESSAGE_PROTECTION);
 #endif
 
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  bool isFile = mRemoteType == FILE_REMOTE_TYPE;
-  mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content, isFile);
   MOZ_LOG(ContentParent::GetLog(), LogLevel::Verbose,
-          ("CreateSubprocess: ContentParent %p mSubprocess %p handle %" PRIuPTR,
-           this, mSubprocess,
-           mSubprocess ? (uintptr_t)mSubprocess->GetChildProcessHandle() : -1));
+          ("CreateSubprocess: ContentParent %p mSubprocess %p childID %d", this,
+           mSubprocess, mSubprocess->GetChildID()));
 }
 
 ContentParent::~ContentParent() {
@@ -3248,7 +3247,6 @@ mozilla::ipc::IPCResult ContentParent::RecvClipboardHasType(
 }
 
 namespace {
-
 static Result<ClipboardReadRequest, nsresult> CreateClipboardReadRequest(
     ContentParent& aContentParent,
     nsIClipboardDataSnapshot& aClipboardDataSnapshot) {

@@ -121,8 +121,6 @@ static CommandLineArg<uint64_t> sPrefMapHandle{"-prefMapHandle",
                                                "prefmaphandle"};
 static CommandLineArg<uint64_t> sPrefMapSize{"-prefMapSize", "prefmapsize"};
 
-static CommandLineArg<uint64_t> sChildID{"-childID", "childid"};
-
 static CommandLineArg<uint64_t> sSandboxingKind{"-sandboxingKind",
                                                 "sandboxingkind"};
 

@@ -603,10 +603,7 @@ ContentChild* ContentChild::sSingleton;
 StaticAutoPtr<ContentChild::ShutdownCanary> ContentChild::sShutdownCanary;
 
 ContentChild::ContentChild()
-    : mID(uint64_t(-1)),
-      mIsForBrowser(false),
-      mIsAlive(true),
-      mShuttingDown(false) {
+    : mIsForBrowser(false), mIsAlive(true), mShuttingDown(false) {
   // This process is a content process, so it's clearly running in
   // multiprocess mode!
   nsDebugImpl::SetMultiprocessMode("Child");
@@ -705,8 +702,7 @@ class nsGtkNativeInitRunnable : public Runnable {
 };
 
 void ContentChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
-                        const char* aParentBuildID, uint64_t aChildID,
-                        bool aIsForBrowser) {
+                        const char* aParentBuildID, bool aIsForBrowser) {
 #ifdef MOZ_WIDGET_GTK
   // When running X11 only build we need to pass a display down
   // to gtk_init because it's not going to use the one from the environment
@@ -795,7 +791,6 @@ void ContentChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
 
   CrashReporterClient::InitSingleton(this);
 
-  mID = aChildID;
   mIsForBrowser = aIsForBrowser;
 
   SetProcessName("Web Content"_ns);
@@ -4572,7 +4567,7 @@ mozilla::ipc::IPCResult ContentChild::RecvInitSandboxTesting(
 #endif
 
 NS_IMETHODIMP ContentChild::GetChildID(uint64_t* aOut) {
-  *aOut = mID;
+  *aOut = XRE_GetChildID();
   return NS_OK;
 }
 

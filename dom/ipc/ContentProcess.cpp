@@ -67,7 +67,6 @@ ContentProcess::ContentProcess(ProcessId aParentPid,
 ContentProcess::~ContentProcess() { NS_LogTerm(); }
 
 bool ContentProcess::Init(int aArgc, char* aArgv[]) {
-  Maybe<uint64_t> childID = geckoargs::sChildID.Get(aArgc, aArgv);
   Maybe<bool> isForBrowser = Nothing();
   Maybe<const char*> parentBuildID =
       geckoargs::sParentBuildID.Get(aArgc, aArgv);
@@ -122,8 +121,7 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
 #endif /* XP_MACOSX && MOZ_SANDBOX */
 
   // Did we find all the mandatory flags?
-  if (childID.isNothing() || isForBrowser.isNothing() ||
-      parentBuildID.isNothing()) {
+  if (isForBrowser.isNothing() || parentBuildID.isNothing()) {
     return false;
   }
 
@@ -136,7 +134,7 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
     return false;
   }
 
-  mContent.Init(TakeInitialEndpoint(), *parentBuildID, *childID, *isForBrowser);
+  mContent.Init(TakeInitialEndpoint(), *parentBuildID, *isForBrowser);
 
   nsCOMPtr<nsIFile> greDir;
   nsresult rv = GetGREDir(getter_AddRefs(greDir));
