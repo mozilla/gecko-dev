@@ -1066,7 +1066,10 @@ class HomeFragment : Fragment() {
 
         toolbarView?.updateTabCounter(requireComponents.core.store.state)
 
-        if (bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR)) {
+        val focusOnAddressBar = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
+            FxNimbus.features.oneClickSearch.value().enabled
+
+        if (focusOnAddressBar) {
             // If the fragment gets recreated by the activity, the search fragment might get recreated as well. Changing
             // between browsing modes triggers activity recreation, so when changing modes goes together with navigating
             // home, we should avoid navigating to search twice.
