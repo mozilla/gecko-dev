@@ -16,6 +16,8 @@ namespace mozilla::dom::quota {
 template <typename T>
 class ResolvableNormalOriginOp : public NormalOriginOperationBase {
  public:
+  NS_INLINE_DECL_REFCOUNTING(ResolvableNormalOriginOp, override)
+
   using PromiseType = MozPromise<T, nsresult, false>;
 
   RefPtr<PromiseType> OnResults() {

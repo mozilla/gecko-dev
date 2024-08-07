@@ -96,6 +96,8 @@ class FinalizeOriginEvictionOp : public OriginOperationBase {
     AssertIsOnOwningThread();
   }
 
+  NS_INLINE_DECL_REFCOUNTING(FinalizeOriginEvictionOp, override)
+
  private:
   ~FinalizeOriginEvictionOp() = default;
 
@@ -121,6 +123,8 @@ class SaveOriginAccessTimeOp
         mTimestamp(aTimestamp) {
     AssertIsOnOwningThread();
   }
+
+  NS_INLINE_DECL_REFCOUNTING(SaveOriginAccessTimeOp, override)
 
  private:
   ~SaveOriginAccessTimeOp() = default;

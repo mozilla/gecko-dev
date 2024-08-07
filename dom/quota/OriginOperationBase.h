@@ -34,7 +34,7 @@ class OriginOperationBase : public BackgroundThreadObject,
 #endif
 
  public:
-  NS_INLINE_DECL_REFCOUNTING(OriginOperationBase)
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
 #ifdef QM_COLLECTING_OPERATION_TELEMETRY
   const char* Name() const { return mName; }

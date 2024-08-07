@@ -75,22 +75,6 @@ void QuotaChild::ActorDestroy(ActorDestroyReason aWhy) {
   }
 }
 
-PQuotaUsageRequestChild* QuotaChild::AllocPQuotaUsageRequestChild(
-    const UsageRequestParams& aParams) {
-  AssertIsOnOwningThread();
-
-  MOZ_CRASH("PQuotaUsageRequestChild actors should be manually constructed!");
-}
-
-bool QuotaChild::DeallocPQuotaUsageRequestChild(
-    PQuotaUsageRequestChild* aActor) {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(aActor);
-
-  delete static_cast<QuotaUsageRequestChild*>(aActor);
-  return true;
-}
-
 PQuotaRequestChild* QuotaChild::AllocPQuotaRequestChild(
     const RequestParams& aParams) {
   AssertIsOnOwningThread();

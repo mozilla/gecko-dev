@@ -227,7 +227,7 @@ void Quota::ActorDestroy(ActorDestroyReason aWhy) {
 #endif
 }
 
-PQuotaUsageRequestParent* Quota::AllocPQuotaUsageRequestParent(
+already_AddRefed<PQuotaUsageRequestParent> Quota::AllocPQuotaUsageRequestParent(
     const UsageRequestParams& aParams) {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aParams.type() != UsageRequestParams::T__None);
@@ -262,7 +262,7 @@ PQuotaUsageRequestParent* Quota::AllocPQuotaUsageRequestParent(
   quotaManager->RegisterNormalOriginOp(*actor);
 
   // Transfer ownership to IPDL.
-  return actor.forget().take();
+  return actor.forget();
 }
 
 mozilla::ipc::IPCResult Quota::RecvPQuotaUsageRequestConstructor(
@@ -276,16 +276,6 @@ mozilla::ipc::IPCResult Quota::RecvPQuotaUsageRequestConstructor(
 
   op->RunImmediately();
   return IPC_OK();
-}
-
-bool Quota::DeallocPQuotaUsageRequestParent(PQuotaUsageRequestParent* aActor) {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aActor);
-
-  // Transfer ownership back from IPDL.
-  RefPtr<QuotaUsageRequestBase> actor =
-      dont_AddRef(static_cast<QuotaUsageRequestBase*>(aActor));
-  return true;
 }
 
 PQuotaRequestParent* Quota::AllocPQuotaRequestParent(

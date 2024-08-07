@@ -38,7 +38,7 @@ union UsageRequestResponse
   OriginUsageResponse;
 };
 
-[ManualDealloc, ChildImpl=virtual, ParentImpl=virtual]
+[ChildImpl=virtual, ParentImpl=virtual]
 protocol PQuotaUsageRequest
 {
   manager PQuota;

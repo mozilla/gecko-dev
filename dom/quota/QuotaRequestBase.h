@@ -16,6 +16,9 @@ class RequestResponse;
 
 class QuotaRequestBase : public NormalOriginOperationBase,
                          public PQuotaRequestParent {
+ public:
+  NS_INLINE_DECL_REFCOUNTING(QuotaRequestBase, override)
+
  protected:
   QuotaRequestBase(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                    const char* aName)

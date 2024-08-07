@@ -34,15 +34,12 @@ class Quota final : public PQuotaParent {
   // IPDL methods.
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual PQuotaUsageRequestParent* AllocPQuotaUsageRequestParent(
-      const UsageRequestParams& aParams) override;
+  virtual already_AddRefed<PQuotaUsageRequestParent>
+  AllocPQuotaUsageRequestParent(const UsageRequestParams& aParams) override;
 
   virtual mozilla::ipc::IPCResult RecvPQuotaUsageRequestConstructor(
       PQuotaUsageRequestParent* aActor,
       const UsageRequestParams& aParams) override;
-
-  virtual bool DeallocPQuotaUsageRequestParent(
-      PQuotaUsageRequestParent* aActor) override;
 
   virtual PQuotaRequestParent* AllocPQuotaRequestParent(
       const RequestParams& aParams) override;
