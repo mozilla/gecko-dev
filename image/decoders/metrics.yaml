@@ -44,6 +44,7 @@ avif:
       - item_loc_not_found
       - no_item_data_box
       - no_samples
+      - ConvertYCbCr_failure
       - uncategorized
     description: >
       Decode result of AVIF image.

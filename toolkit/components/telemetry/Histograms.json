@@ -2100,6 +2100,7 @@
       "construction_method",
       "item_loc_not_found",
       "no_item_data_box",
+      "ConvertYCbCr_failure",
       "uncategorized"
     ],
     "description": "Decode result of AVIF image",

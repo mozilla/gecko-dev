@@ -1922,9 +1922,13 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling gfx::ConvertYCbCrToRGB32 premultOp: %p", this,
            premultOp));
-  DebugOnly<nsresult> result = gfx::ConvertYCbCrToRGB32(
-      *decodedData, format, rgbBuf.get(), rgbStride.value(), premultOp);
-  MOZ_ASSERT(NS_SUCCEEDED(result), "Failed to convert YUV into RGB data");
+  nsresult result = gfx::ConvertYCbCrToRGB32(*decodedData, format, rgbBuf.get(),
+                                             rgbStride.value(), premultOp);
+  if (!NS_SUCCEEDED(result)) {
+    MOZ_LOG(sAVIFLog, LogLevel::Debug,
+            ("[this=%p] ConvertYCbCrToRGB32 failure", this));
+    return AsVariant(NonDecoderResult::ConvertYCbCrFailure);
+  }
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling SurfacePipeFactory::CreateSurfacePipe", this));
@@ -2210,6 +2214,12 @@ void nsAVIFDecoder::RecordDecodeResultTelemetry(
         AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::no_samples);
         mozilla::glean::avif::decode_result
             .EnumGet(glean::avif::DecodeResultLabel::eNoSamples)
+            .Add();
+        return;
+      case NonDecoderResult::ConvertYCbCrFailure:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::ConvertYCbCr_failure);
+        mozilla::glean::avif::decode_result
+            .EnumGet(glean::avif::DecodeResultLabel::eConvertycbcrFailure)
             .Add();
         return;
     }

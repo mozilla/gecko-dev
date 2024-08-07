@@ -66,6 +66,7 @@ class nsAVIFDecoder final : public Decoder {
     FrameSizeChanged,
     InvalidCICP,
     NoSamples,
+    ConvertYCbCrFailure,
   };
   using DecodeResult =
       Variant<Mp4parseStatus, NonDecoderResult, Dav1dResult, AOMResult>;
