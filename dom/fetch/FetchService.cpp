@@ -235,20 +235,6 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
 
   nsresult rv;
 
-  if (mRequest->GetKeepalive()) {
-    nsAutoCString origin;
-    MOZ_ASSERT(mPrincipal);
-    mPrincipal->GetOrigin(origin);
-
-    RefPtr<FetchService> fetchService = FetchService::GetInstance();
-    MOZ_ASSERT(fetchService);
-    if (fetchService->DoesExceedsKeepaliveResourceLimits(origin)) {
-      FETCH_LOG(("FetchInstance::Fetch Keepalive request exceeds limit"));
-      return FetchService::NetworkErrorResponse(NS_ERROR_DOM_ABORT_ERR, mArgs);
-    }
-    fetchService->IncrementKeepAliveRequestCount(origin);
-  }
-
   // Create a FetchDriver instance
   mFetchDriver = MakeRefPtr<FetchDriver>(
       mRequest.clonePtr(),               // Fetch Request
@@ -327,14 +313,6 @@ void FetchService::FetchInstance::OnResponseEnd(
     JS::Handle<JS::Value> aReasonDetails) {
   FETCH_LOG(("FetchInstance::OnResponseEnd [%p] %s", this,
              aReason == eAborted ? "eAborted" : "eNetworking"));
-
-  if (mRequest->GetKeepalive()) {
-    nsAutoCString origin;
-    MOZ_ASSERT(mPrincipal);
-    mPrincipal->GetOrigin(origin);
-    RefPtr<FetchService> fetchService = FetchService::GetInstance();
-    fetchService->DecrementKeepAliveRequestCount(origin);
-  }
 
   MOZ_ASSERT(mRequest);
   if (mArgsType != FetchArgsType::NavigationPreload) {
@@ -699,53 +677,6 @@ nsresult FetchService::UnregisterNetworkObserver() {
     mObservingNetwork = false;
   }
   return NS_OK;
-}
-
-void FetchService::IncrementKeepAliveRequestCount(const nsACString& aOrigin) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
-  FETCH_LOG(("FetchService::IncrementKeepAliveRequestCount [origin=%s]\n",
-             PromiseFlatCString(aOrigin).get()));
-  ++mTotalKeepAliveRequests;
-  uint32_t count = mPendingKeepAliveRequestsPerOrigin.Get(aOrigin) + 1;
-  mPendingKeepAliveRequestsPerOrigin.InsertOrUpdate(aOrigin, count);
-}
-
-void FetchService::DecrementKeepAliveRequestCount(const nsACString& aOrigin) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
-  FETCH_LOG(("FetchService::DecrementKeepAliveRequestCount [origin=%s]\n",
-             PromiseFlatCString(aOrigin).get()));
-  MOZ_ASSERT(mTotalKeepAliveRequests > 0);
-  if (mTotalKeepAliveRequests) {
-    --mTotalKeepAliveRequests;
-  }
-
-  uint32_t count = mPendingKeepAliveRequestsPerOrigin.Get(aOrigin);
-  MOZ_ASSERT(count > 0);
-  if (count) {
-    --count;
-    if (count == 0) {
-      mPendingKeepAliveRequestsPerOrigin.Remove(aOrigin);
-    } else {
-      mPendingKeepAliveRequestsPerOrigin.InsertOrUpdate(aOrigin, count);
-    }
-  }
-}
-
-bool FetchService::DoesExceedsKeepaliveResourceLimits(
-    const nsACString& origin) {
-  if (mTotalKeepAliveRequests >=
-      StaticPrefs::dom_fetchKeepalive_total_request_limit()) {
-    return true;
-  }
-
-  if (mPendingKeepAliveRequestsPerOrigin.Get(origin) >=
-      StaticPrefs::dom_fetchKeepalive_request_limit_per_origin()) {
-    return true;
-  }
-
-  return false;
 }
 
 NS_IMETHODIMP FetchService::Observe(nsISupports* aSubject, const char* aTopic,
