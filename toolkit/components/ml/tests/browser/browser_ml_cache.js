@@ -46,8 +46,18 @@ const badHubs = [
   "https://model-hub.mozilla.org.hack", // Domain that contains allowed domain
 ];
 
+function createRandomBlob(blockSize = 8, count = 1) {
+  const blocks = Array.from({ length: count }, () =>
+    Uint32Array.from(
+      { length: blockSize / 4 },
+      () => Math.random() * 4294967296
+    )
+  );
+  return new Blob(blocks, { type: "application/octet-stream" });
+}
+
 function createBlob(size = 8) {
-  return new Blob([new ArrayBuffer(size)]);
+  return createRandomBlob(size);
 }
 
 /**
@@ -718,6 +728,91 @@ add_task(async function test_DeleteModels() {
     null,
     "The data for the deleted model should not exist."
   );
+  await deleteCache(cache);
+});
+
+/**
+ * Test that after deleting a model from the cache, the remaing models are still there.
+ */
+add_task(async function test_nonDeletedModels() {
+  const cache = await initializeCache();
+
+  const testData = createRandomBlob();
+
+  await Promise.all([
+    cache.put({
+      taskName: "task1",
+      model: "org/model",
+      revision: "v1",
+      file: "file.txt",
+      data: testData,
+      headers: {
+        ETag: "ETAG123",
+      },
+    }),
+    cache.put({
+      taskName: "task2",
+      model: "org/model2",
+      revision: "v1",
+      file: "file.txt",
+      data: createRandomBlob(),
+      headers: {
+        ETag: "ETAG1234",
+      },
+    }),
+
+    cache.put({
+      taskName: "task3",
+      model: "org/model2",
+      revision: "v1",
+      file: "file2.txt",
+      data: createRandomBlob(),
+      headers: {
+        ETag: "ETAG1234",
+      },
+    }),
+  ]);
+
+  await cache.deleteModels({ model: "org/model2", revision: "v1" });
+
+  const [retrievedData, headers] = await cache.getFile({
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
+  Assert.deepEqual(
+    retrievedData,
+    testData,
+    "The retrieved data should match the stored data."
+  );
+  Assert.equal(
+    headers.ETag,
+    "ETAG123",
+    "The retrieved ETag should match the stored ETag."
+  );
+
+  const dataAfterDelete = await cache.getFile({
+    model: "org/model2",
+    revision: "v1",
+    file: "file.txt",
+  });
+  Assert.equal(
+    dataAfterDelete,
+    null,
+    "The data for the deleted model should not exist."
+  );
+
+  const dataAfterDelete2 = await cache.getFile({
+    model: "org/model2",
+    revision: "v1",
+    file: "file2.txt",
+  });
+  Assert.equal(
+    dataAfterDelete2,
+    null,
+    "The data for the deleted model should not exist."
+  );
+
   await deleteCache(cache);
 });
 

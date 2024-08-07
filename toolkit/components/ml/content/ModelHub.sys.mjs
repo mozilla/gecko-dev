@@ -485,36 +485,53 @@ export class IndexedDBCache {
   }
 
   /**
-   * Generate an indexedDB query to retrieve entries from a task,model,revision index.
+   * Generates an IndexedDB query to retrieve entries from the appropriate index.
    *
-   * @param {object} config
-   * @param {?string} config.taskName - Name of the inference task.. If null, we retrieve all tasks.
-   * @param {?string} config.model - The model name (organization/name). If null, we retrieve all models.
-   * @param {?string} config.revision - The model revision. If null, we retrieve all revisions.
-   * @returns {?string} The query to use for retrieving entries from the index.
+   * @param {object} config - Configuration object.
+   * @param {?string} config.taskName - The name of the inference task. Retrieves all tasks if null.
+   * @param {?string} config.model - The model name (organization/name). Retrieves all models if null.
+   * @param {?string} config.revision - The model revision. Retrieves all revisions if null.
+   *
+   * @returns {object} queryIndex - The query and index for retrieving entries.
+   * @returns {?string} queryIndex.query - The query.
+   * @returns {?string} queryIndex.indexName - The index name.
    */
   #getFileQuery({ taskName, model, revision }) {
-    // See https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange
-    // for explanation on the query.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange for explanation on the query.
+
+    // Case 1: Query to retrieve all entries matching taskName, model, and revision
     if (taskName && model && revision) {
-      // Query to retrieve all entries matching taskName, model and revision
-      return [taskName, model, revision];
+      return {
+        key: [taskName, model, revision],
+        indexName: this.#indices.taskModelRevisionIndex.name,
+      };
     }
+    // Case 2: Query to retrieve all entries with taskName
     if (taskName && !model && !revision) {
-      // Query to retrieve all entries with taskName
-      return IDBKeyRange.bound([taskName], [taskName, []]);
+      return {
+        key: IDBKeyRange.bound([taskName], [taskName, []]),
+        indexName: this.#indices.taskModelRevisionIndex.name,
+      };
     }
+    // Case 3: Query to retrieve all entries matching model and revision
     if (!taskName && model && revision) {
-      // Query to retrieve all entries matching model and revision
-      return IDBKeyRange.bound([0, model, revision], [[], model, revision]);
+      return {
+        key: [model, revision],
+        indexName: this.#indices.modelRevisionIndex.name,
+      };
     }
+    // Case 4: Query to retrieve all entries
     if (!taskName && !model && !revision) {
-      // Query to retrieve all entries
-      return null;
+      return { key: null, indexName: null };
     }
-    throw new Error(
-      "If the model is defined, so must the revision. If the model is not defined, neither should the revision."
-    );
+    // Case 5: Query to retrieve all entries matching taskName and model
+    if (taskName && model && !revision) {
+      return {
+        key: IDBKeyRange.bound([taskName, model], [taskName, model, []]),
+        indexName: this.#indices.taskModelRevisionIndex.name,
+      };
+    }
+    throw new Error("Invalid query configuration.");
   }
 
   /**
@@ -713,7 +730,7 @@ export class IndexedDBCache {
    * @param {?string} config.taskName - name of the inference task to delete.
    *                                    If null, delete specified models for all tasks.
    *
-   * @throws {Error} If a model is defined, the revision must also be defined.
+   * @throws {Error} If a revision is defined, the model must also be defined.
    *                 If the model is not defined, the revision should also not be defined.
    *                 Otherwise, an error will be thrown.
 
@@ -722,8 +739,7 @@ export class IndexedDBCache {
   async deleteModels({ taskName, model, revision }) {
     const tasks = await this.#getData({
       storeName: this.taskStoreName,
-      indexName: this.#indices.taskModelRevisionIndex.name,
-      key: this.#getFileQuery({ taskName, model, revision }),
+      ...this.#getFileQuery({ taskName, model, revision }),
     });
 
     let deletePromises = [];
@@ -785,8 +801,7 @@ export class IndexedDBCache {
       // Get all model/revision associated to this task.
       const data = await this.#getKeys({
         storeName: this.taskStoreName,
-        indexName: this.#indices.taskModelRevisionIndex.name,
-        key: this.#getFileQuery({ taskName, model, revision }),
+        ...this.#getFileQuery({ taskName, model, revision }),
       });
 
       modelRevisions = [];
