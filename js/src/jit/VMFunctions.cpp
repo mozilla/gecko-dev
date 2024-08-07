@@ -2536,6 +2536,10 @@ void TraceCreateObject(JSObject* obj) {
 }
 #endif
 
+BigInt* CreateBigIntFromInt32(JSContext* cx, int32_t i32) {
+  return js::BigInt::createFromInt64(cx, int64_t(i32));
+}
+
 #if JS_BITS_PER_WORD == 32
 BigInt* CreateBigIntFromInt64(JSContext* cx, uint32_t low, uint32_t high) {
   uint64_t n = (static_cast<uint64_t>(high) << 32) + low;

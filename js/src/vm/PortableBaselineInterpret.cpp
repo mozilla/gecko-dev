@@ -2742,6 +2742,7 @@ ICInterpretOps(BaselineFrame* frame, VMFrameManager& frameMgr, State& state,
   CACHEOP_CASE_UNIMPL(CompareDoubleSameValueResult)
   CACHEOP_CASE_UNIMPL(SameValueResult)
   CACHEOP_CASE_UNIMPL(IndirectTruncateInt32Result)
+  CACHEOP_CASE_UNIMPL(Int32ToBigIntResult)
   CACHEOP_CASE_UNIMPL(BigIntAsIntNResult)
   CACHEOP_CASE_UNIMPL(BigIntAsUintNResult)
   CACHEOP_CASE_UNIMPL(SetHasResult)

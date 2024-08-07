@@ -2753,6 +2753,14 @@
     input: WordSized
   mir_op: true
 
+# Create a new BigInt* from an unboxed int32.
+- name: Int32ToBigInt
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: true
+
 # Create a new BigInt* from an unboxed int64.
 - name: Int64ToBigInt
   result_type: WordSized

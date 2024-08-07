@@ -10018,6 +10018,30 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectToString() {
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachBigInt() {
+  // Need a single argument (Int32).
+  if (argc_ != 1 || !args_[0].isInt32()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the 'BigInt' native function.
+  emitNativeCalleeGuard();
+
+  // Guard that the argument is an Int32.
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+  Int32OperandId int32Id = writer.guardToInt32(argId);
+
+  // Convert Int32 to BigInt.
+  writer.int32ToBigIntResult(int32Id);
+  writer.returnFromIC();
+
+  trackAttached("BigInt");
+  return AttachDecision::Attach;
+}
+
 AttachDecision InlinableNativeIRGenerator::tryAttachBigIntAsIntN() {
   // Need two arguments (Int32, BigInt).
   if (argc_ != 2 || !args_[0].isInt32() || !args_[1].isBigInt()) {
@@ -12048,6 +12072,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachAtomicsIsLockFree();
 
     // BigInt natives.
+    case InlinableNative::BigInt:
+      return tryAttachBigInt();
     case InlinableNative::BigIntAsIntN:
       return tryAttachBigIntAsIntN();
     case InlinableNative::BigIntAsUintN:

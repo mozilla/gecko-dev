@@ -199,36 +199,47 @@ bool BigIntObject::asIntN(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 const ClassSpec BigIntObject::classSpec_ = {
-    GenericCreateConstructor<BigIntConstructor, 1, gc::AllocKind::FUNCTION>,
+    GenericCreateConstructor<BigIntConstructor, 1, gc::AllocKind::FUNCTION,
+                             &jit::JitInfo_BigInt>,
     GenericCreatePrototype<BigIntObject>,
     BigIntObject::staticMethods,
     nullptr,
     BigIntObject::methods,
-    BigIntObject::properties};
+    BigIntObject::properties,
+};
 
 const JSClass BigIntObject::class_ = {
     "BigInt",
     JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt) |
         JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
-    JS_NULL_CLASS_OPS, &BigIntObject::classSpec_};
+    JS_NULL_CLASS_OPS,
+    &BigIntObject::classSpec_,
+};
 
 const JSClass BigIntObject::protoClass_ = {
-    "BigInt.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt),
-    JS_NULL_CLASS_OPS, &BigIntObject::classSpec_};
+    "BigInt.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt),
+    JS_NULL_CLASS_OPS,
+    &BigIntObject::classSpec_,
+};
 
 const JSPropertySpec BigIntObject::properties[] = {
     // BigInt proposal section 5.3.5
     JS_STRING_SYM_PS(toStringTag, "BigInt", JSPROP_READONLY), JS_PS_END};
 
 const JSFunctionSpec BigIntObject::methods[] = {
-    JS_FN("valueOf", valueOf, 0, 0), JS_FN("toString", toString, 0, 0),
+    JS_FN("valueOf", valueOf, 0, 0),
+    JS_FN("toString", toString, 0, 0),
 #ifdef JS_HAS_INTL_API
     JS_SELF_HOSTED_FN("toLocaleString", "BigInt_toLocaleString", 0, 0),
 #else
     JS_FN("toLocaleString", toLocaleString, 0, 0),
 #endif
-    JS_FS_END};
+    JS_FS_END,
+};
 
 const JSFunctionSpec BigIntObject::staticMethods[] = {
     JS_INLINABLE_FN("asUintN", asUintN, 2, 0, BigIntAsUintN),
-    JS_INLINABLE_FN("asIntN", asIntN, 2, 0, BigIntAsIntN), JS_FS_END};
+    JS_INLINABLE_FN("asIntN", asIntN, 2, 0, BigIntAsIntN),
+    JS_FS_END,
+};

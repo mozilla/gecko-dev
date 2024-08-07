@@ -612,6 +612,8 @@ void TraceCreateObject(JSObject* obj);
 
 bool DoStringToInt64(JSContext* cx, HandleString str, uint64_t* res);
 
+BigInt* CreateBigIntFromInt32(JSContext* cx, int32_t i32);
+
 #if JS_BITS_PER_WORD == 32
 BigInt* CreateBigIntFromInt64(JSContext* cx, uint32_t low, uint32_t high);
 BigInt* CreateBigIntFromUint64(JSContext* cx, uint32_t low, uint32_t high);
