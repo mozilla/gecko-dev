@@ -7964,14 +7964,15 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-#ifdef NIGHTLY_BUILD
-  # Experimental support for Iterator Helpers in JavaScript.
--   name: javascript.options.experimental.iterator_helpers
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
 
+# Experimental support for Iterator Helpers in JavaScript.
+- name: javascript.options.experimental.iterator_helpers
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
+
+#ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
 -   name: javascript.options.experimental.async_iterator_helpers
     type: bool
