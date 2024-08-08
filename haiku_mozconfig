@@ -1,0 +1,18 @@
+ac_add_options --enable-default-toolkit=cairo-gtk3-wayland-only
+ac_add_options --disable-audio-backends
+ac_add_options --disable-jit
+ac_add_options --disable-tests
+ac_add_options --disable-updater
+ac_add_options --with-system-ffi
+# error: use of undeclared identifier 'UNUM_APPROXIMATELY_SIGN_FIELD'; did you mean 'UNUM_APPROXIMATELY_SIGN_SYMBOL'?
+#ac_add_options --with-system-icu
+ac_add_options --with-system-jpeg
+ac_add_options --with-system-libevent
+ac_add_options --with-system-libvpx
+ac_add_options --with-system-nspr
+ac_add_options --with-system-nss
+# --with-system-png won't work because the system's libpng doesn't have APNG support
+#ac_add_options --with-system-png
+ac_add_options --with-system-webp
+ac_add_options --with-system-zlib
+ac_add_options --without-wasm-sandboxed-libraries

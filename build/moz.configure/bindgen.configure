@@ -203,7 +203,7 @@ def bindgen_libclang_path(libclang_path, clang, library_name_info, host):
     libclang_choices.append(
         "%sclang%s" % (library_name_info.dll.prefix, library_name_info.dll.suffix)
     )
-    if host.kernel == "Linux":
+    if host.kernel == "Linux" or host.kernel == "Haiku":
         libclang_choices.append("libclang.so.*")
 
     if host.os == "OpenBSD":
