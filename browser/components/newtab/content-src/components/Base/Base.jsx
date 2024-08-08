@@ -435,8 +435,6 @@ export class BaseContent extends React.PureComponent {
     const { initialized, customizeMenuVisible } = App;
     const prefs = props.Prefs.values;
 
-    const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
-
     const activeWallpaper =
       prefs[`newtabWallpapers.wallpaper-${this.state.colorMode}`];
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
@@ -493,7 +491,6 @@ export class BaseContent extends React.PureComponent {
     const featureClassName = [
       weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
       prefs.showSearch ? "has-search" : "no-search",
-      layoutsVariantAEnabled ? "layout-variant-a" : "", // Layout experiment variant
     ]
       .filter(v => v)
       .join(" ");

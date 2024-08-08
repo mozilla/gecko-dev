@@ -1766,9 +1766,6 @@ pref("browser.newtabpage.activity-stream.newtabWallpapers.highlightCtaText", "")
 
 pref("browser.newtabpage.activity-stream.newNewtabExperience.colors", "#0090ED,#FF4F5F,#2AC3A2,#FF7139,#A172FF,#FFA437,#FF2A8A");
 
-// Default layout experimentation
-pref("browser.newtabpage.activity-stream.newtabLayouts.variant-a", false);
-
 // Activity Stream prefs that control to which page to redirect
 #ifndef RELEASE_OR_BETA
   pref("browser.newtabpage.activity-stream.debug", false);

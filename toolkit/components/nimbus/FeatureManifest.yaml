@@ -743,18 +743,6 @@ newtabSpocsCache:
       description: >-
         Controls if spocs should be included in startup cache.
 
-newtabLayoutExperiment:
-  description: >-
-    Change the default layout of new tab by adjusting sizes and spacing of elements.
-  owner: achurchwell@mozilla.com
-  hasExposure: false
-  variables:
-    variantA:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.newtabLayouts.variant-a
-
 newtabTopicSelection:
   description: the about:newtab topic selection experience.
   owner: nbarrett@mozilla.com
