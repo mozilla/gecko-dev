@@ -16,6 +16,7 @@ import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AppTheme
+import org.mozilla.fenix.GleanMetrics.CustomizationSettings
 import org.mozilla.fenix.GleanMetrics.PullToRefreshInBrowser
 import org.mozilla.fenix.GleanMetrics.ToolbarSettings
 import org.mozilla.fenix.R
@@ -186,6 +187,9 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         when (preference.key) {
             resources.getString(R.string.pref_key_website_pull_to_refresh) -> {
                 PullToRefreshInBrowser.enabled.set(requireContext().settings().isPullToRefreshEnabledInBrowser)
+            }
+            resources.getString(R.string.pref_key_dynamic_toolbar) -> {
+                CustomizationSettings.dynamicToolbar.set(requireContext().settings().isDynamicToolbarEnabled)
             }
         }
         return super.onPreferenceTreeClick(preference)
