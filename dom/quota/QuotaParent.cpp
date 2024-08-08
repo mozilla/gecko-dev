@@ -17,11 +17,9 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "nsDebug.h"
 #include "nsError.h"
-#include "NormalOriginOperationBase.h"
 #include "OriginOperations.h"
 #include "QuotaRequestBase.h"
 #include "QuotaUsageRequestBase.h"
-#include "ResolvableNormalOriginOp.h"
 
 // CUF == CRASH_UNLESS_FUZZING
 #define QM_CUF_AND_IPC_FAIL(actor)                           \
@@ -154,33 +152,6 @@ bool Quota::TrustParams() const {
   return trustParams;
 }
 
-bool Quota::VerifyRequestParams(const UsageRequestParams& aParams) const {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aParams.type() != UsageRequestParams::T__None);
-
-  switch (aParams.type()) {
-    case UsageRequestParams::TAllUsageParams:
-      break;
-
-    case UsageRequestParams::TOriginUsageParams: {
-      const OriginUsageParams& params = aParams.get_OriginUsageParams();
-
-      if (NS_WARN_IF(
-              !QuotaManager::IsPrincipalInfoValid(params.principalInfo()))) {
-        MOZ_CRASH_UNLESS_FUZZING();
-        return false;
-      }
-
-      break;
-    }
-
-    default:
-      MOZ_CRASH("Should never get here!");
-  }
-
-  return true;
-}
-
 bool Quota::VerifyRequestParams(const RequestParams& aParams) const {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aParams.type() != RequestParams::T__None);
@@ -285,62 +256,6 @@ void Quota::ActorDestroy(ActorDestroyReason aWhy) {
   MOZ_ASSERT(!mActorDestroyed);
   mActorDestroyed = true;
 #endif
-}
-
-already_AddRefed<PQuotaUsageRequestParent> Quota::AllocPQuotaUsageRequestParent(
-    const UsageRequestParams& aParams) {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aParams.type() != UsageRequestParams::T__None);
-
-  if (NS_WARN_IF(QuotaManager::IsShuttingDown())) {
-    return nullptr;
-  }
-
-  if (!TrustParams() && NS_WARN_IF(!VerifyRequestParams(aParams))) {
-    MOZ_CRASH_UNLESS_FUZZING();
-    return nullptr;
-  }
-
-  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
-                QuotaManager::GetOrCreate(), nullptr);
-
-  auto op = [&]() -> RefPtr<NormalOriginOperationBase> {
-    switch (aParams.type()) {
-      case UsageRequestParams::TAllUsageParams:
-        return CreateGetUsageOp(quotaManager,
-                                aParams.get_AllUsageParams().getAll());
-
-      case UsageRequestParams::TOriginUsageParams: {
-        const OriginUsageParams& originUsageParams =
-            aParams.get_OriginUsageParams();
-
-        return CreateGetOriginUsageOp(quotaManager,
-                                      originUsageParams.principalInfo(),
-                                      originUsageParams.fromMemory());
-      }
-
-      default:
-        MOZ_CRASH("Should never get here!");
-    }
-  }();
-
-  MOZ_ASSERT(op);
-
-  quotaManager->RegisterNormalOriginOp(*op);
-
-  op->RunImmediately();
-
-  return MakeAndAddRef<QuotaUsageRequestBase>();
-}
-
-mozilla::ipc::IPCResult Quota::RecvPQuotaUsageRequestConstructor(
-    PQuotaUsageRequestParent* aActor, const UsageRequestParams& aParams) {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aActor);
-  MOZ_ASSERT(aParams.type() != UsageRequestParams::T__None);
-  MOZ_ASSERT(!QuotaManager::IsShuttingDown());
-
-  return IPC_OK();
 }
 
 PQuotaRequestParent* Quota::AllocPQuotaRequestParent(

@@ -65,23 +65,6 @@ struct GetFullOriginMetadataParams
   PrincipalInfo principalInfo;
 };
 
-struct AllUsageParams
-{
-  bool getAll;
-};
-
-struct OriginUsageParams
-{
-  PrincipalInfo principalInfo;
-  bool fromMemory;
-};
-
-union UsageRequestParams
-{
-  AllUsageParams;
-  OriginUsageParams;
-};
-
 struct ClearResetOriginParams
 {
   PrincipalInfo principalInfo;
@@ -136,8 +119,6 @@ protocol PQuota
 
 parent:
   async __delete__();
-
-  async PQuotaUsageRequest(UsageRequestParams params);
 
   async PQuotaRequest(RequestParams params);
 
