@@ -3891,8 +3891,13 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
     nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
     nsIDNSService::ResolverMode mode;
     dns->GetCurrentTrrMode(&mode);
-    Unused << SendSetTRRMode(mode, static_cast<nsIDNSService::ResolverMode>(
-                                       StaticPrefs::network_trr_mode()));
+    nsIDNSService::ResolverMode modeFromPref =
+        static_cast<nsIDNSService::ResolverMode>(
+            StaticPrefs::network_trr_mode());
+    if (modeFromPref > nsIDNSService::MODE_TRROFF) {
+      modeFromPref = nsIDNSService::MODE_TRROFF;
+    }
+    Unused << SendSetTRRMode(mode, modeFromPref);
   }
 
   return NS_OK;
