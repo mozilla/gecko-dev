@@ -12,6 +12,7 @@
 #include "mozilla/ScopeExit.h"
 
 #include "gc/Marking.h"
+#include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
 #include "jit/InlineScriptTree.h"
 #include "jit/JitRuntime.h"

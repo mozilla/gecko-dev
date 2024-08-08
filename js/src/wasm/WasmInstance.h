@@ -25,8 +25,8 @@
 #include <functional>
 
 #include "gc/Barrier.h"
-#include "gc/Zone.h"
-#include "js/Stack.h"  // JS::NativeStackLimit
+#include "js/shadow/Zone.h"  // for BarrierState
+#include "js/Stack.h"        // JS::NativeStackLimit
 #include "js/TypeDecls.h"
 #include "vm/SharedMem.h"
 #include "wasm/WasmExprType.h"  // for ResultType

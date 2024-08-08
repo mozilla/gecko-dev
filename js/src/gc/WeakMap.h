@@ -13,7 +13,6 @@
 #include "gc/Barrier.h"
 #include "gc/Marking.h"
 #include "gc/Tracer.h"
-#include "gc/Zone.h"
 #include "gc/ZoneAllocator.h"
 #include "js/HashTable.h"
 #include "js/HeapAPI.h"

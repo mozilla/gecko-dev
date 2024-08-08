@@ -12,6 +12,7 @@
 #include <type_traits>
 
 #include "gc/RelocationOverlay.h"
+#include "gc/Zone.h"
 #include "js/Id.h"
 #include "js/Value.h"
 #include "vm/StringType.h"

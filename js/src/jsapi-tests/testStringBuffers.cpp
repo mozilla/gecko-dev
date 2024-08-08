@@ -6,6 +6,7 @@
 
 #include "jsapi.h"
 
+#include "gc/Zone.h"
 #include "js/String.h"
 #include "jsapi-tests/tests.h"
 #include "util/Text.h"
