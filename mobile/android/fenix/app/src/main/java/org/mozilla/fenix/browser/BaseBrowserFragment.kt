@@ -1616,6 +1616,23 @@ abstract class BaseBrowserFragment :
                 }
             },
         ) {
+            val tabCounterMenu = lazy {
+                FenixTabCounterMenu(
+                    context = context,
+                    onItemTapped = { item ->
+                        browserToolbarInteractor.onTabCounterMenuItemTapped(item)
+                    },
+                    iconColor = when (activity.browsingModeManager.mode.isPrivate) {
+                        true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                        else -> null
+                    },
+                ).also {
+                    it.updateMenu(
+                        toolbarPosition = context.settings().toolbarPosition,
+                    )
+                }
+            }
+
             BrowserNavBar(
                 isPrivateMode = activity.browsingModeManager.mode.isPrivate,
                 browserStore = context.components.core.store,
@@ -1630,20 +1647,7 @@ abstract class BaseBrowserFragment :
                         else -> null
                     },
                 ),
-                tabsCounterMenu = FenixTabCounterMenu(
-                    context = context,
-                    onItemTapped = { item ->
-                        browserToolbarInteractor.onTabCounterMenuItemTapped(item)
-                    },
-                    iconColor = when (activity.browsingModeManager.mode.isPrivate) {
-                        true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
-                        else -> null
-                    },
-                ).also {
-                    it.updateMenu(
-                        toolbarPosition = context.settings().toolbarPosition,
-                    )
-                },
+                tabsCounterMenu = tabCounterMenu,
                 onBackButtonClick = {
                     if (context.settings().shouldShowNavigationButtonsCFR) {
                         val currentTime = System.currentTimeMillis()

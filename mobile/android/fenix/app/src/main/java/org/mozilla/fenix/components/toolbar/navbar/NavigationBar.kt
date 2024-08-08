@@ -60,7 +60,7 @@ import org.mozilla.fenix.theme.ThemeManager
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
  * @param newTabMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
  * long taps on the new tab button.
- * @param tabsCounterMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
+ * @param tabsCounterMenu A lazy [TabCounterMenu] to be used as an [AndroidView] for when the user
  * long taps on the tab counter.
  * @param onBackButtonClick Invoked when the user clicks on the back button in the navigation bar.
  * @param onBackButtonLongPress Invoked when the user long-presses the back button in the navigation bar.
@@ -82,7 +82,7 @@ fun BrowserNavBar(
     browserStore: BrowserStore,
     menuButton: MenuButton,
     newTabMenu: TabCounterMenu,
-    tabsCounterMenu: TabCounterMenu,
+    tabsCounterMenu: Lazy<TabCounterMenu>,
     onBackButtonClick: () -> Unit,
     onBackButtonLongPress: () -> Unit,
     onForwardButtonClick: () -> Unit,
@@ -151,7 +151,7 @@ fun BrowserNavBar(
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
- * @param tabsCounterMenu A [TabCounterMenu] to be used as an [AndroidView] for when the user
+ * @param tabsCounterMenu A lazy [TabCounterMenu] to be used as an [AndroidView] for when the user
  * long taps on the tab counter.
  * @param onSearchButtonClick Invoked when the user clicks the search button in the nav bar. The button
  * is visible only on home screen and activates [SearchDialogFragment].
@@ -166,7 +166,7 @@ fun HomeNavBar(
     isPrivateMode: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
-    tabsCounterMenu: TabCounterMenu,
+    tabsCounterMenu: Lazy<TabCounterMenu>,
     onSearchButtonClick: () -> Unit,
     onTabsButtonClick: () -> Unit,
     onTabsButtonLongPress: () -> Unit,
@@ -452,7 +452,7 @@ private fun HomeNavBarPreviewRoot(
             ),
         )
     }
-    val tabsCounterMenu = TabCounterMenu(context, onItemTapped = {})
+    val tabsCounterMenu = lazy { TabCounterMenu(context, onItemTapped = {}) }
 
     HomeNavBar(
         isPrivateMode = isPrivateMode,
@@ -484,7 +484,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
             ),
         )
     }
-    val tabsCounterMenu = TabCounterMenu(context, onItemTapped = {})
+    val tabsCounterMenu = lazy { TabCounterMenu(context, onItemTapped = {}) }
     val newTabMenu = NewTabMenu(context, onItemTapped = {})
 
     BrowserNavBar(

@@ -105,7 +105,7 @@ class TabPreview @JvmOverloads constructor(
                                     )
                                 },
                                 newTabMenu = NewTabMenu(context, onItemTapped = {}),
-                                tabsCounterMenu = TabCounterMenu(context, onItemTapped = {}),
+                                tabsCounterMenu = lazy { TabCounterMenu(context, onItemTapped = {}) },
                                 onBackButtonClick = {
                                     // no-op
                                 },

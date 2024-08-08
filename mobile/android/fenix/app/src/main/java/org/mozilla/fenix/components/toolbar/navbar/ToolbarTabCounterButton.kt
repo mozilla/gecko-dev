@@ -36,7 +36,7 @@ import org.mozilla.fenix.theme.Theme
  * @param tabCount The number of tabs to display in the tab counter.
  * @param isPrivateMode Whether the browser is in private mode.
  * @param onClick Invoked when the tab counter is clicked.
- * @param menu Optional menu to show when the tab counter is long clicked.
+ * @param menu Optional lazy menu to show when the tab counter is long clicked.
  * @param onLongPress Optional callback for when the tab counter is long clicked.
  */
 @Composable
@@ -44,7 +44,7 @@ fun ToolbarTabCounterButton(
     tabCount: Int,
     isPrivateMode: Boolean,
     onClick: () -> Unit,
-    menu: TabCounterMenu? = null,
+    menu: Lazy<TabCounterMenu>? = null,
     onLongPress: () -> Unit = {},
 ) {
     IconButton(
@@ -57,7 +57,7 @@ fun ToolbarTabCounterButton(
                         onClick() // This ensures clicks in the 34dp touch target are caught.
                     }
 
-                    menu?.let { menu ->
+                    menu?.value?.let { menu ->
                         setOnLongClickListener {
                             onLongPress()
                             menu.menuController.show(anchor = it)
