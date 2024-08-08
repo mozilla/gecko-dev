@@ -24,6 +24,10 @@
 #if defined(__OpenBSD__)
 #  include <sys/stat.h>
 #endif
+#if defined(XP_HAIKU)
+#  include <OS.h>
+#  include <image.h>
+#endif
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
 
@@ -133,7 +137,7 @@ class BinaryPath {
     return rv;
   }
 
-#elif defined(ANDROID) || defined(__HAIKU__)
+#elif defined(ANDROID)
   static nsresult Get(char aResult[MAXPATHLEN]) {
     // On Android, we use the MOZ_ANDROID_LIBDIR variable that is set by the
     // Java bootstrap code.
@@ -270,6 +274,21 @@ class BinaryPath {
     if (found) {
       return NS_OK;
     }
+    return NS_ERROR_FAILURE;
+  }
+
+#elif defined(XP_HAIKU)
+  static nsresult Get(char aResult[MAXPATHLEN]) {
+    image_info info;
+    int32 cookie = 0;
+
+    while (get_next_image_info(B_CURRENT_TEAM, &cookie, &info) >= B_OK) {
+      if (info.type == B_APP_IMAGE) {
+        strlcpy(aResult, info.name, MAXPATHLEN - 1);
+        return NS_OK;
+      }
+    }
+
     return NS_ERROR_FAILURE;
   }
 

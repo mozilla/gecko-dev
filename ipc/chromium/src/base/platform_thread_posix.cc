@@ -16,6 +16,8 @@
 #elif defined(XP_LINUX)
 #  include <sys/syscall.h>
 #  include <sys/prctl.h>
+#elif defined(__HAIKU__)
+#  include <OS.h>
 #endif
 
 #if !defined(XP_DARWIN)
@@ -60,6 +62,8 @@ PlatformThreadId PlatformThread::CurrentId() {
   return lwp_gettid();
 #elif defined(XP_FREEBSD)
   return pthread_getthreadid_np();
+#elif defined(__HAIKU__)
+  return find_thread(NULL);
 #endif
 }
 

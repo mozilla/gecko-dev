@@ -31,6 +31,9 @@
 #    include <unistd.h>
 #    define gettid() static_cast<pid_t>(syscall(__NR_gettid))
 #  endif
+#  if defined(XP_HAIKU)
+#    include <OS.h>
+#  endif
 #else
 #  error "Unsupported platform"
 #endif
@@ -117,12 +120,12 @@ void* js::GetNativeStackBaseImpl() {
 #  endif
 }
 
-#elif defined(__HAIKU__)
+#elif defined(XP_HAIKU)
 
-// TODO: stubbed out...
 void* js::GetNativeStackBaseImpl() {
-    MOZ_CRASH("js::GetNativeStackBaseImpl() is not implemented");
-    return NULL;
+    thread_info info;
+    get_thread_info(find_thread(NULL), &info);
+    return info.stack_end;
 }
 
 #elif defined(__wasi__)
