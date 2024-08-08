@@ -18,6 +18,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
@@ -27,10 +28,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PdfJsTelemetry: "resource://pdf.js/PdfJsTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SetClipboardSearchString: "resource://gre/modules/Finder.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 const IMAGE_TO_TEXT_TASK = "moz-image-to-text";
 const ML_ENGINE_ID = "pdfjs";
+const ML_ENGINE_MAX_TIMEOUT = 60000;
 
 var Svc = {};
 XPCOMUtils.defineLazyServiceGetter(
@@ -160,12 +163,34 @@ export class PdfjsParent extends JSWindowActorParent {
     if (service !== IMAGE_TO_TEXT_TASK) {
       throw new Error("Invalid service");
     }
-    const { promise, resolve } = Promise.withResolvers();
-    const self = this;
-    const aggregator = new lazy.MultiProgressAggregator({
-      progressCallback({ ok, total, totalLoaded, statusText }) {
-        const finished = statusText === lazy.Progress.ProgressStatusText.DONE;
-        if (listenToProgress) {
+
+    let aggregator = null;
+    if (listenToProgress) {
+      const self = this;
+      const timeoutCallback = () => {
+        lazy.clearTimeout(timeoutId);
+        timeoutId = null;
+        self.sendAsyncMessage("PDFJS:Child:handleEvent", {
+          type: "loadAIEngineProgress",
+          detail: {
+            service,
+            ok: false,
+            finished: true,
+          },
+        });
+      };
+      let timeoutId = lazy.setTimeout(timeoutCallback, ML_ENGINE_MAX_TIMEOUT);
+      aggregator = new lazy.MultiProgressAggregator({
+        progressCallback({ ok, total, totalLoaded, statusText }) {
+          if (timeoutId !== null) {
+            lazy.clearTimeout(timeoutId);
+            timeoutId = lazy.setTimeout(timeoutCallback, ML_ENGINE_MAX_TIMEOUT);
+          } else {
+            // The timeout has already fired, so we don't need to do anything.
+            this.progressCallback = null;
+            return;
+          }
+          const finished = statusText === lazy.Progress.ProgressStatusText.DONE;
           self.sendAsyncMessage("PDFJS:Child:handleEvent", {
             type: "loadAIEngineProgress",
             detail: {
@@ -176,28 +201,23 @@ export class PdfjsParent extends JSWindowActorParent {
               finished,
             },
           });
-        }
-        if (finished) {
-          // Once we're done, we can remove the progress callback.
-          this.progressCallback = null;
-          resolve(ok);
-        }
-      },
-      watchedTypes: [
-        lazy.Progress.ProgressType.DOWNLOAD,
-        lazy.Progress.ProgressType.LOAD_FROM_CACHE,
-      ],
-    });
-
-    if (Cu.isInAutomation) {
-      return !!(await this.#createAIEngine("moz-eco", null));
+          if (finished) {
+            lazy.clearTimeout(timeoutId);
+            // Once we're done, we can remove the progress callback.
+            this.progressCallback = null;
+          }
+        },
+        watchedTypes: [
+          lazy.Progress.ProgressType.DOWNLOAD,
+          lazy.Progress.ProgressType.LOAD_FROM_CACHE,
+        ],
+      });
     }
 
-    const [engine, ok] = await Promise.all([
-      this.#createAIEngine(service, aggregator),
-      promise,
-    ]);
-    return !!engine && ok;
+    return !!(await this.#createAIEngine(
+      Cu.isInAutomation ? "moz-echo" : service,
+      aggregator
+    ));
   }
 
   async _mlDelete({ data: service }) {
@@ -210,8 +230,7 @@ export class PdfjsParent extends JSWindowActorParent {
       await lazy.EngineProcess.destroyMLEngine();
       const cache = await lazy.IndexedDBCache.init();
       await cache.deleteModels({
-        model: "mozilla/distilvit",
-        revision: "main",
+        taskName: service,
       });
     } catch (e) {
       console.error("Failed to delete AI model", e);
