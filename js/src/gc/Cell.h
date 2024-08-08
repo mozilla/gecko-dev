@@ -458,15 +458,15 @@ JS::TraceKind TenuredCell::getTraceKind() const {
 }
 
 JS::Zone* TenuredCell::zone() const {
-  JS::Zone* zone = arena()->zone;
+  JS::Zone* zone = zoneFromAnyThread();
   MOZ_ASSERT(CurrentThreadIsGCMarking() || CurrentThreadCanAccessZone(zone));
   return zone;
 }
 
-JS::Zone* TenuredCell::zoneFromAnyThread() const { return arena()->zone; }
+JS::Zone* TenuredCell::zoneFromAnyThread() const { return arena()->zone(); }
 
 bool TenuredCell::isInsideZone(JS::Zone* zone) const {
-  return zone == arena()->zone;
+  return zone == zoneFromAnyThread();
 }
 
 // Read barrier and pre-write barrier implementation for GC cells.

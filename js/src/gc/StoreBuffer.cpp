@@ -196,7 +196,7 @@ ArenaCellSet::ArenaCellSet(Arena* arena, ArenaCellSet* next)
 #ifdef DEBUG
       ,
       minorGCNumberAtCreation(
-          arena->zone->runtimeFromMainThread()->gc.minorGCCount())
+          arena->zone()->runtimeFromMainThread()->gc.minorGCCount())
 #endif
 {
   MOZ_ASSERT(arena);
@@ -204,7 +204,7 @@ ArenaCellSet::ArenaCellSet(Arena* arena, ArenaCellSet* next)
 }
 
 ArenaCellSet* StoreBuffer::WholeCellBuffer::allocateCellSet(Arena* arena) {
-  Zone* zone = arena->zone;
+  Zone* zone = arena->zone();
   JSRuntime* rt = zone->runtimeFromMainThread();
   if (!rt->gc.nursery().isEnabled()) {
     return nullptr;

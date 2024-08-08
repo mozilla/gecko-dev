@@ -143,7 +143,7 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
   if constexpr (std::is_same_v<T, JSObject> || std::is_same_v<T, JSString> ||
                 std::is_same_v<T, JS::BigInt>) {
     if (isNewlyCreated_) {
-      zone->pretenuring.updateCellCountsInNewlyCreatedArenas(
+      zone()->pretenuring.updateCellCountsInNewlyCreatedArenas(
           nmarked + nfinalized, nmarked);
     }
   }
@@ -1844,14 +1844,14 @@ template <typename T>
 static bool SweepArenaList(JS::GCContext* gcx, Arena** arenasToSweep,
                            SliceBudget& sliceBudget) {
   while (Arena* arena = *arenasToSweep) {
-    MOZ_ASSERT(arena->zone->isGCSweeping());
+    MOZ_ASSERT(arena->zone()->isGCSweeping());
 
     for (ArenaCellIterUnderGC cell(arena); !cell.done(); cell.next()) {
       SweepThing(gcx, cell.as<T>());
     }
 
     Arena* next = arena->next;
-    MOZ_ASSERT_IF(next, next->zone == arena->zone);
+    MOZ_ASSERT_IF(next, next->zone() == arena->zone());
     *arenasToSweep = next;
 
     AllocKind kind = MapTypeToAllocKind<T>::kind;

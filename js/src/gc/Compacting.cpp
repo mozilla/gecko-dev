@@ -289,7 +289,7 @@ static void RelocateArena(Arena* arena, SliceBudget& sliceBudget) {
   MOZ_ASSERT(!arena->onDelayedMarkingList());
   MOZ_ASSERT(arena->bufferedCells()->isEmpty());
 
-  Zone* zone = arena->zone;
+  Zone* zone = arena->zone();
 
   AllocKind thingKind = arena->getAllocKind();
   size_t thingSize = arena->getThingSize();
@@ -880,11 +880,11 @@ void GCRuntime::clearRelocatedArenasWithoutUnlocking(Arena* arenaList,
     //  - if they were allocated since the start of the GC.
     bool allArenasRelocated = ShouldRelocateAllArenas(reason);
     bool updateRetainedSize = !allArenasRelocated && !arena->isNewlyCreated();
-    arena->zone->gcHeapSize.removeBytes(ArenaSize, updateRetainedSize,
-                                        heapSize);
+    arena->zone()->gcHeapSize.removeBytes(ArenaSize, updateRetainedSize,
+                                          heapSize);
 
     // Release the arena but don't return it to the chunk yet.
-    arena->release(lock);
+    arena->release(this, lock);
   }
 }
 

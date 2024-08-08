@@ -14,11 +14,11 @@
 #include "util/Poison.h"
 #include "vm/Runtime.h"
 
-inline void js::gc::Arena::init(JS::Zone* zoneArg, AllocKind kind,
-                                const AutoLockGC& lock) {
+inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
+                                AllocKind kind, const AutoLockGC& lock) {
 #ifdef DEBUG
-  MOZ_MAKE_MEM_DEFINED(&zone, sizeof(zone));
-  MOZ_ASSERT((uintptr_t(zone) & 0xff) == JS_FREED_ARENA_PATTERN);
+  MOZ_MAKE_MEM_DEFINED(&zone_, sizeof(zone_));
+  MOZ_ASSERT((uintptr_t(zone_) & 0xff) == JS_FREED_ARENA_PATTERN);
 #endif
 
   MOZ_ASSERT(firstFreeSpan.isEmpty());
@@ -30,15 +30,15 @@ inline void js::gc::Arena::init(JS::Zone* zoneArg, AllocKind kind,
 
   MOZ_MAKE_MEM_UNDEFINED(this, ArenaSize);
 
-  zone = zoneArg;
+  zone_ = zoneArg;
   allocKind = kind;
   isNewlyCreated_ = 1;
   onDelayedMarkingList_ = 0;
   hasDelayedBlackMarking_ = 0;
   hasDelayedGrayMarking_ = 0;
   nextDelayedMarkingArena_ = 0;
-  if (zone->isAtomsZone()) {
-    zone->runtimeFromAnyThread()->gc.atomMarking.registerArena(this, lock);
+  if (zone_->isAtomsZone()) {
+    gc->atomMarking.registerArena(this, lock);
   } else {
     bufferedCells() = &ArenaCellSet::Empty;
   }
@@ -50,20 +50,20 @@ inline void js::gc::Arena::init(JS::Zone* zoneArg, AllocKind kind,
 #endif
 }
 
-inline void js::gc::Arena::release(const AutoLockGC& lock) {
-  if (zone->isAtomsZone()) {
-    zone->runtimeFromAnyThread()->gc.atomMarking.unregisterArena(this, lock);
+inline void js::gc::Arena::release(GCRuntime* gc, const AutoLockGC& lock) {
+  if (zone_->isAtomsZone()) {
+    gc->atomMarking.unregisterArena(this, lock);
   }
   setAsNotAllocated();
 }
 
 inline js::gc::ArenaCellSet*& js::gc::Arena::bufferedCells() {
-  MOZ_ASSERT(zone && !zone->isAtomsZone());
+  MOZ_ASSERT(zone_ && !zone_->isAtomsZone());
   return bufferedCells_;
 }
 
 inline size_t& js::gc::Arena::atomBitmapStart() {
-  MOZ_ASSERT(zone && zone->isAtomsZone());
+  MOZ_ASSERT(zone_ && zone_->isAtomsZone());
   return atomBitmapStart_;
 }
 

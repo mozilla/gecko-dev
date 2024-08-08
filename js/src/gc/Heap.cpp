@@ -140,6 +140,13 @@ void Arena::staticAsserts() {
                 "We haven't defined all offsets.");
   static_assert(std::size(ThingsPerArena) == AllocKindCount,
                 "We haven't defined all counts.");
+  static_assert(ArenaZoneOffset == offsetof(Arena, zone_),
+                "The hardcoded API zone offset must match the actual offset.");
+  static_assert(sizeof(Arena) == ArenaSize,
+                "ArenaSize must match the actual size of the Arena structure.");
+  static_assert(
+      offsetof(Arena, data) == ArenaHeaderSize,
+      "ArenaHeaderSize must match the actual size of the header fields.");
 }
 
 /* static */
@@ -220,20 +227,6 @@ ArenaLists::ArenaLists(Zone* zone)
   }
 }
 
-void ReleaseArenas(JSRuntime* rt, Arena* arena, const AutoLockGC& lock) {
-  Arena* next;
-  for (; arena; arena = next) {
-    next = arena->next;
-    rt->gc.releaseArena(arena, lock);
-  }
-}
-
-void ReleaseArenaList(JSRuntime* rt, ArenaList& arenaList,
-                      const AutoLockGC& lock) {
-  ReleaseArenas(rt, arenaList.head(), lock);
-  arenaList.clear();
-}
-
 ArenaLists::~ArenaLists() {
   AutoLockGC lock(runtime());
 
@@ -243,10 +236,10 @@ ArenaLists::~ArenaLists() {
      * the background finalization is disabled.
      */
     MOZ_ASSERT(concurrentUse(i) == ConcurrentUse::None);
-    ReleaseArenaList(runtime(), arenaList(i), lock);
+    runtime()->gc.releaseArenaList(arenaList(i), lock);
   }
 
-  ReleaseArenas(runtime(), savedEmptyArenas, lock);
+  runtime()->gc.releaseArenas(savedEmptyArenas, lock);
 }
 
 void ArenaLists::moveArenasToCollectingLists() {

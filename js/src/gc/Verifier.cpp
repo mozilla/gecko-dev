@@ -695,7 +695,7 @@ void js::gc::MarkingValidator::validate() {
       if (!arena->allocated()) {
         continue;
       }
-      if (!arena->zone->isGCSweeping()) {
+      if (!arena->zone()->isGCSweeping()) {
         continue;
       }
 

@@ -50,7 +50,7 @@ namespace gc {
 void AtomMarkingRuntime::registerArena(Arena* arena, const AutoLockGC& lock) {
   MOZ_ASSERT(arena->getThingSize() != 0);
   MOZ_ASSERT(arena->getThingSize() % CellAlignBytes == 0);
-  MOZ_ASSERT(arena->zone->isAtomsZone());
+  MOZ_ASSERT(arena->zone()->isAtomsZone());
 
   // We need to find a range of bits from the atoms bitmap for this arena.
 
@@ -66,7 +66,7 @@ void AtomMarkingRuntime::registerArena(Arena* arena, const AutoLockGC& lock) {
 }
 
 void AtomMarkingRuntime::unregisterArena(Arena* arena, const AutoLockGC& lock) {
-  MOZ_ASSERT(arena->zone->isAtomsZone());
+  MOZ_ASSERT(arena->zone()->isAtomsZone());
 
   // Leak these atom bits if we run out of memory.
   (void)freeArenaIndexes.ref().emplaceBack(arena->atomBitmapStart());

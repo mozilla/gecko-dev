@@ -157,7 +157,6 @@ class alignas(ArenaSize) Arena {
    */
   FreeSpan firstFreeSpan;
 
- public:
   /*
    * One of the AllocKind constants or AllocKind::LIMIT when the arena does
    * not contain any GC things and is on the list of empty arenas in the GC
@@ -170,8 +169,9 @@ class alignas(ArenaSize) Arena {
    * of this field must match the ArenaZoneOffset stored in js/HeapAPI.h,
    * as is statically asserted below.
    */
-  JS::Zone* zone;
+  JS::Zone* zone_;
 
+ public:
   /*
    * Arena::next has two purposes: when unallocated, it points to the next
    * available Arena. When allocated, it points to the next Arena in the same
@@ -228,7 +228,10 @@ class alignas(ArenaSize) Arena {
    */
   uint8_t data[ArenaSize - ArenaHeaderSize];
 
-  void init(JS::Zone* zoneArg, AllocKind kind, const AutoLockGC& lock);
+  void init(GCRuntime* gc, JS::Zone* zoneArg, AllocKind kind,
+            const AutoLockGC& lock);
+
+  JS::Zone* zone() const { return zone_; }
 
   // Sets |firstFreeSpan| to the Arena's entire valid range, and
   // also sets the next span stored at |firstFreeSpan.last| as empty.
@@ -246,7 +249,7 @@ class alignas(ArenaSize) Arena {
     firstFreeSpan.initAsEmpty();
 
     // Poison zone pointer to highlight UAF on released arenas in crash data.
-    AlwaysPoison(&zone, JS_FREED_ARENA_PATTERN, sizeof(zone),
+    AlwaysPoison(&zone_, JS_FREED_ARENA_PATTERN, sizeof(zone_),
                  MemCheckKind::MakeNoAccess);
 
     allocKind = AllocKind::LIMIT;
@@ -260,7 +263,7 @@ class alignas(ArenaSize) Arena {
   }
 
   // Return an allocated arena to its unallocated state.
-  inline void release(const AutoLockGC& lock);
+  inline void release(GCRuntime* gc, const AutoLockGC& lock);
 
   uintptr_t address() const {
     checkAddress();
@@ -434,16 +437,6 @@ class alignas(ArenaSize) Arena {
   void checkNoMarkedCells();
 #endif
 };
-
-static_assert(ArenaZoneOffset == offsetof(Arena, zone),
-              "The hardcoded API zone offset must match the actual offset.");
-
-static_assert(sizeof(Arena) == ArenaSize,
-              "ArenaSize must match the actual size of the Arena structure.");
-
-static_assert(
-    offsetof(Arena, data) == ArenaHeaderSize,
-    "ArenaHeaderSize must match the actual size of the header fields.");
 
 inline Arena* FreeSpan::getArena() {
   Arena* arena = getArenaUnchecked();

@@ -49,7 +49,7 @@ inline void ArenaCellSet::check() const {
   MOZ_ASSERT(isEmpty() == !arena);
   if (!isEmpty()) {
     MOZ_ASSERT(IsCellPointerValid(arena));
-    JSRuntime* runtime = arena->zone->runtimeFromMainThread();
+    JSRuntime* runtime = arena->zone()->runtimeFromMainThread();
     uint64_t minorGCCount = runtime->gc.minorGCCount();
     MOZ_ASSERT(minorGCCount == minorGCNumberAtCreation ||
                minorGCCount == minorGCNumberAtCreation + 1);

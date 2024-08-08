@@ -440,7 +440,7 @@ inline void* FreeLists::setArenaAndAllocate(Arena* arena, AllocKind kind) {
   FreeSpan* span = arena->getFirstFreeSpan();
   freeLists_[kind] = span;
 
-  Zone* zone = arena->zone;
+  Zone* zone = arena->zone();
   if (MOZ_UNLIKELY(zone->isGCMarkingOrSweeping())) {
     arena->arenaAllocatedDuringGC();
   }
@@ -456,7 +456,7 @@ void Arena::arenaAllocatedDuringGC() {
   // incremental GC will be marked black by pre-marking all free cells in the
   // arena we are about to allocate from.
 
-  MOZ_ASSERT(zone->isGCMarkingOrSweeping());
+  MOZ_ASSERT(zone()->isGCMarkingOrSweeping());
   for (ArenaFreeCellIter cell(this); !cell.done(); cell.next()) {
     MOZ_ASSERT(!cell->isMarkedAny());
     cell->markBlack();
@@ -508,7 +508,7 @@ Arena* TenuredChunk::allocateArena(GCRuntime* gc, Zone* zone,
   MOZ_ASSERT(info.numArenasFreeCommitted > 0);
   Arena* arena = fetchNextFreeArena(gc);
 
-  arena->init(zone, thingKind, lock);
+  arena->init(gc, zone, thingKind, lock);
   updateChunkListAfterAlloc(gc, lock);
 
   verify();

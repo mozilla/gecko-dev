@@ -608,6 +608,8 @@ class GCRuntime {
 
   // Public here for ReleaseArenaLists and FinalizeTypedArenas.
   void releaseArena(Arena* arena, const AutoLockGC& lock);
+  void releaseArenas(Arena* arena, const AutoLockGC& lock);
+  void releaseArenaList(ArenaList& arenaList, const AutoLockGC& lock);
 
   // Allocator internals.
   static void* refillFreeListInGC(Zone* zone, AllocKind thingKind);

@@ -394,13 +394,26 @@ inline void GCRuntime::prepareToFreeChunk(TenuredChunkInfo& info) {
 #endif
 }
 
+void GCRuntime::releaseArenaList(ArenaList& arenaList, const AutoLockGC& lock) {
+  releaseArenas(arenaList.head(), lock);
+  arenaList.clear();
+}
+
+void GCRuntime::releaseArenas(Arena* arena, const AutoLockGC& lock) {
+  Arena* next;
+  for (; arena; arena = next) {
+    next = arena->next;
+    releaseArena(arena, lock);
+  }
+}
+
 void GCRuntime::releaseArena(Arena* arena, const AutoLockGC& lock) {
   MOZ_ASSERT(arena->allocated());
   MOZ_ASSERT(!arena->onDelayedMarkingList());
   MOZ_ASSERT(TlsGCContext.get()->isFinalizing());
 
-  arena->zone->gcHeapSize.removeGCArena(heapSize);
-  arena->release(lock);
+  arena->zone()->gcHeapSize.removeGCArena(heapSize);
+  arena->release(this, lock);
   arena->chunk()->releaseArena(this, arena, lock);
 }
 
@@ -900,6 +913,7 @@ bool GCRuntime::init(uint32_t maxbytes) {
   MOZ_ASSERT(!wasInitialized());
 
   MOZ_ASSERT(SystemPageSize());
+  Arena::staticAsserts();
   Arena::checkLookupTables();
 
   if (!TlsGCContext.init()) {
