@@ -12002,8 +12002,7 @@ GeneralParser<ParseHandler, Unit>::propertyName(
 static bool TokenKindCanStartPropertyName(TokenKind tt) {
   return TokenKindIsPossibleIdentifierName(tt) || tt == TokenKind::String ||
          tt == TokenKind::Number || tt == TokenKind::LeftBracket ||
-         tt == TokenKind::Mul || tt == TokenKind::BigInt ||
-         tt == TokenKind::PrivateName;
+         tt == TokenKind::BigInt || tt == TokenKind::PrivateName;
 }
 
 template <class ParseHandler, typename Unit>
@@ -12069,7 +12068,7 @@ GeneralParser<ParseHandler, Unit>::propertyOrMethodName(
     if (!tokenStream.peekTokenSameLine(&tt)) {
       return errorResult();
     }
-    if (TokenKindCanStartPropertyName(tt)) {
+    if (TokenKindCanStartPropertyName(tt) || tt == TokenKind::Mul) {
       isAsync = true;
       tokenStream.consumeKnownToken(tt);
       ltok = tt;
