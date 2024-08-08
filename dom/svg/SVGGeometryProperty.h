@@ -50,7 +50,7 @@ struct Width {
   static AspectRatio AspectRatioRelative(AspectRatio aAspectRatio) {
     return aAspectRatio.Inverted();
   }
-  constexpr static uint32_t DefaultObjectSize = 300;
+  constexpr static uint32_t DefaultObjectSize = kFallbackIntrinsicWidthInPixels;
   using CounterPart = Height;
 };
 struct Height {
@@ -61,7 +61,8 @@ struct Height {
   static AspectRatio AspectRatioRelative(AspectRatio aAspectRatio) {
     return aAspectRatio;
   }
-  constexpr static uint32_t DefaultObjectSize = 150;
+  constexpr static uint32_t DefaultObjectSize =
+      kFallbackIntrinsicHeightInPixels;
   using CounterPart = Width;
 };
 
