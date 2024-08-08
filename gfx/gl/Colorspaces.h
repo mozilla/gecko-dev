@@ -5,8 +5,6 @@
 #ifndef MOZILLA_GFX_GL_COLORSPACES_H_
 #define MOZILLA_GFX_GL_COLORSPACES_H_
 
-// Reference: https://hackmd.io/0wkiLmP7RWOFjcD13M870A
-
 // We are going to be doing so, so many transforms, so descriptive labels are
 // critical.
 
@@ -19,6 +17,7 @@
 #include <cstdlib>
 #include <functional>
 #include <optional>
+#include <ostream>
 #include <vector>
 
 #include "AutoMappable.h"
@@ -269,6 +268,8 @@ struct avec final {
 
   // -
 
+  constexpr auto size() const { return data.size(); }
+
   const auto& operator[](const size_t n) const { return data[n]; }
   auto& operator[](const size_t n) { return data[n]; }
 
@@ -330,6 +331,16 @@ struct avec final {
       eq &= (a[i] == b[i]);
     }
     return eq;
+  }
+
+  friend std::ostream& operator<<(std::ostream& s, const avec& a) {
+    s << "avec(";
+    const char* delim = "";
+    for (const auto& v : a.data) {
+      s << delim << v;
+      delim = ", ";
+    }
+    return s << ")";
   }
 };
 using vec2 = avec<float, 2>;

@@ -702,3 +702,51 @@ TEST(Colorspaces, SampleOutByIn_NegativeInputs)
   const auto tf = MakeGamma(1.0 / 2.2, 256);
   EXPECT_LT(SampleOutByIn(tf, -0.1f), 0.0f);
 }
+
+TEST(Colorspaces, ColorProfileConversionDesc_Srgb_Displayp3)
+{
+  const auto srgb = ColorProfileDesc::From({
+      Chromaticities::Srgb(),
+      PiecewiseGammaDesc::Srgb(),
+  });
+  const auto displayp3 = ColorProfileDesc::From({
+      Chromaticities::DisplayP3(),
+      PiecewiseGammaDesc::DisplayP3(),
+  });
+  const auto srgbToDisplayp3 = ColorProfileConversionDesc::From({
+      .src = srgb,
+      .dst = displayp3,
+  });
+  const auto displayp3ToSrgb = ColorProfileConversionDesc::From({
+      .src = displayp3,
+      .dst = srgb,
+  });
+
+  const auto VecNear = [](const vec3& was, const vec3& expected,
+                          const vec3& max_err) {
+    const auto err = abs(was - expected);
+    const auto err_above_max_err = err - max_err;
+    bool ok = true;
+    for (const auto v : err_above_max_err.data) {
+      ok &= v <= 0.0;
+    }
+    return ok;
+  };
+
+  // https://apps.colorjs.io/convert/?color=color(srgb%201.0%200%200)&precision=4
+  EXPECT_PRED3(VecNear, srgbToDisplayp3.DstFromSrc(vec3({1.0, 0.0, 0.0})),
+               vec3({0.9175, 0.2003, 0.1386}), vec3(0.0004));
+  EXPECT_PRED3(VecNear, srgbToDisplayp3.DstFromSrc(vec3({0.0, 1.0, 0.0})),
+               vec3({0.4584, 0.9853, 0.2983}), vec3(0.0001));
+  EXPECT_PRED3(VecNear, srgbToDisplayp3.DstFromSrc(vec3({0.0, 0.0, 1.0})),
+               vec3({0.0000, 0.0000, 0.9596}), vec3(0.0001));
+  EXPECT_PRED3(VecNear,
+               displayp3ToSrgb.DstFromSrc(vec3({0.9175, 0.2003, 0.1386})),
+               vec3({1.0, 0.0, 0.0}), vec3(0.0002));
+  EXPECT_PRED3(VecNear,
+               displayp3ToSrgb.DstFromSrc(vec3({0.4584, 0.9853, 0.2983})),
+               vec3({0.0, 1.0, 0.0}), vec3(0.0003));
+  EXPECT_PRED3(VecNear,
+               displayp3ToSrgb.DstFromSrc(vec3({0.0000, 0.0000, 0.9596})),
+               vec3({0.0, 0.0, 1.0}), vec3(0.0001));
+}
