@@ -34,3 +34,28 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   BrowserTestUtils.removeTab(tab1);
   group.remove();
 });
+
+add_task(async function test_tabGroupCollapsedTabsNotVisible() {
+  let group = gBrowser.addTabGroup("blue", "test");
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  group.addTabs([tab1]);
+
+  Assert.ok(!group.collapsed, "group is expanded by default");
+
+  Assert.ok(
+    gBrowser.visibleTabs.includes(tab1),
+    "tab in expanded tab group is visible"
+  );
+
+  group.collapsed = true;
+  Assert.ok(
+    !gBrowser.visibleTabs.includes(tab1),
+    "tab in collapsed tab group is not visible"
+  );
+
+  // TODO add API to remove group
+  // TODO BrowserTestUtils.removeTab breaks if the tab is not in a visible state
+  group.collapsed = false;
+  BrowserTestUtils.removeTab(tab1);
+  group.remove();
+});

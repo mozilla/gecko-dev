@@ -70,6 +70,8 @@
 
     set collapsed(val) {
       this.toggleAttribute("collapsed", val);
+      const eventName = val ? "TabGroupCollapse" : "TabGroupExpand";
+      this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
     }
 
     get tabs() {

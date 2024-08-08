@@ -25,6 +25,8 @@
       this.addEventListener("TabUnpinned", this);
       this.addEventListener("TabHoverStart", this);
       this.addEventListener("TabHoverEnd", this);
+      this.addEventListener("TabGroupExpand", this);
+      this.addEventListener("TabGroupCollapse", this);
       this.addEventListener("transitionend", this);
       this.addEventListener("dblclick", this);
       this.addEventListener("click", this);
@@ -213,6 +215,14 @@
 
     on_TabHoverEnd(event) {
       this._previewPanel?.deactivate(event.target);
+    }
+
+    on_TabGroupExpand() {
+      this._invalidateCachedVisibleTabs();
+    }
+
+    on_TabGroupCollapse() {
+      this._invalidateCachedVisibleTabs();
     }
 
     on_transitionend(event) {
@@ -1163,7 +1173,7 @@
       if (!this._visibleTabs) {
         this._visibleTabs = Array.prototype.filter.call(
           this.allTabs,
-          tab => !tab.hidden && !tab.closing
+          tab => !tab.hidden && !tab.closing && !tab.group?.collapsed
         );
       }
       return this._visibleTabs;
