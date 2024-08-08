@@ -262,18 +262,7 @@ Running two instances of Mozilla simultaneously
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can run two instances of Mozilla (e.g. debug and optimized)
-simultaneously by setting the environment variable ``MOZ_NO_REMOTE``:
-
-.. code::
-
-   set MOZ_NO_REMOTE=1
-
-Or, starting with Firefox 2 and other Gecko 1.8.1-based applications,
-you can use the ``-no-remote`` command-line switch instead (implemented
-in
-`bug 325509 <https://bugzilla.mozilla.org/show_bug.cgi?id=325509>`__).
-
-You can also specify the profile to use with the ``-P profile_name``
+simultaneously by specifying the profile to use with the ``-P profile_name``
 command-line argument.
 
 Debugging JavaScript

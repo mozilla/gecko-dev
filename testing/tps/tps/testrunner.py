@@ -49,7 +49,6 @@ class TPSTestRunner(object):
         "MOZ_CRASHREPORTER_DISABLE": "1",
         "GNOME_DISABLE_CRASH_DIALOG": "1",
         "XRE_NO_WINDOWS_CRASH_DIALOG": "1",
-        "MOZ_NO_REMOTE": "1",
         "XPCOM_DEBUG_BREAK": "warn",
     }
 

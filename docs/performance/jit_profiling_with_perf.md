@@ -73,7 +73,7 @@ export MOZ_DISABLE_CONTENT_SANDBOX=1
 
 Run the Firefox browser
 ```
-~/mozilla-central/obj-opt64/dist/bin/firefox -no-remote -profile ~/mozilla-central/obj-opt64/tmp/profile-default &
+~/mozilla-central/obj-opt64/dist/bin/firefox -profile ~/mozilla-central/obj-opt64/tmp/profile-default &
 ```
 
 Navigate to the test case, but do not start it yet.  Then hover over the tab to get the content process PID.

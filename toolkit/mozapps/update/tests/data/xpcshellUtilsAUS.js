@@ -4439,8 +4439,6 @@ function createAppInfo(aID, aName, aVersion, aPlatformVersion) {
  *       would otherwise pollute the xpcshell log.
  *
  * Command line arguments used when launching the application:
- * -no-remote prevents shell integration from being affected by an existing
- * application process.
  * -test-process-updates makes the application exit after being relaunched by
  * the updater.
  * the platform specific string defined by PIPE_TO_NULL to output both stdout
@@ -4481,7 +4479,7 @@ function getProcessArgs(aExtraArgs) {
     scriptContents += "export XRE_PROFILE_PATH=" + profilePath + "\n";
     scriptContents +=
       appBinPath +
-      " -no-remote -test-process-updates " +
+      " -test-process-updates " +
       aExtraArgs.join(" ") +
       " " +
       PIPE_TO_NULL;
@@ -4498,7 +4496,6 @@ function getProcessArgs(aExtraArgs) {
       appBinPath,
       "-profile",
       profilePath,
-      "-no-remote",
       "-test-process-updates",
       "-wait-for-browser",
     ]

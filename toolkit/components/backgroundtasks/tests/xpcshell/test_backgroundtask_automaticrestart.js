@@ -19,7 +19,7 @@ add_task(async function test_backgroundtask_automatic_restart() {
 
   // Test restart functionality.
   let exitCode = await do_backgroundtask("automaticrestart", {
-    extraArgs: [`-no-wait`, path, `-attach-console`, `-no-remote`],
+    extraArgs: [`-no-wait`, path, `-attach-console`],
     onStdoutLine: line => stdoutLines.push(line),
   });
   Assert.equal(0, exitCode);

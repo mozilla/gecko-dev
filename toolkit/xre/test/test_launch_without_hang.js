@@ -238,7 +238,6 @@ function run_test() {
 
   let testTry = function testTry() {
     let shell = wrapLaunchInShell(getFirefoxExecutableFile(), [
-      "-no-remote",
       "-test-launch-without-hang",
     ]);
     info("Try attempt #" + triesStarted);
