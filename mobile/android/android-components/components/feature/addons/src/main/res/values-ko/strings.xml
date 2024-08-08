@@ -211,9 +211,9 @@
     <!-- Text shown after failed to disable an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_disable">%1$s 부가 기능 비활성화에 실패했습니다</string>
     <!-- Text shown after successfully uninstalled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_uninstalled">%1$s 부가 기능 설치 제거에 성공했습니다</string>
+    <string name="mozac_feature_addons_successfully_uninstalled">%1$s 제거에 성공했습니다</string>
     <!-- Text shown after failed to uninstall an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_uninstall">%1$s 부가 기능 설치 제거에 실패했습니다</string>
+    <string name="mozac_feature_addons_failed_to_uninstall">%1$s 제거에 실패했습니다</string>
     <!-- Text shown after successfully removed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">%1$s 부가 기능 제거에 성공했습니다</string>
     <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
