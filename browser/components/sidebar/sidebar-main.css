@@ -29,8 +29,8 @@
 .actions-list {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding-inline: var(--space-xsmall);
+  padding-inline-end: var(--space-small);
+  align-items: center;
 }
 
 .expanded-button {
@@ -40,6 +40,7 @@
     font-size: var(--font-size-large);
     font-weight: var(--font-weight);
     justify-content: flex-start;
+    padding-inline-start: 8px;
   }
 }
 
