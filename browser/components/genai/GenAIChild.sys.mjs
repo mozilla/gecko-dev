@@ -27,6 +27,17 @@ export class GenAIChild extends JSWindowActorChild {
         sendHide();
         break;
       case "mouseup": {
+        // Only handle plain clicks
+        if (
+          event.button ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey
+        ) {
+          return;
+        }
+
         // Show immediately on selection or allow long press with no selection
         const selection =
           this.contentWindow.getSelection()?.toString().trim() ?? "";
