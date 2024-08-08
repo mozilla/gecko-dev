@@ -1992,7 +1992,7 @@ function rint32tobigint(i) {
 let uceFault_nantozero_nan = eval(`(${uceFault})`.replace('uceFault', 'uceFault_nantozero_nan'));
 function rnantozero_nan(i) {
     // Note: |x| must be Double-typed.
-    var x = (i + 0.5) * NaN;
+    var x = NaN ** (i + 0.5);
     var y = x ? x : +0;
     if (uceFault_nantozero_nan(i) || uceFault_nantozero_nan(i))
         assertEq(y, +0);
