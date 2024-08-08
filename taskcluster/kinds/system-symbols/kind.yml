@@ -260,7 +260,7 @@ tasks:
                   type: directory
                   path: /builds/worker/artifacts/
             docker-image: {in-tree: system-symbols-linux-scraper}
-            max-run-time: 14400
+            max-run-time: 18000
         run:
             using: run-task
             command: >-
