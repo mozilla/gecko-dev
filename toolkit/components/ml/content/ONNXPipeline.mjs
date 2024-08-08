@@ -393,7 +393,7 @@ export class Pipeline {
 
     if (this.#genericPipelineFunction) {
       if (this.#config.modelId === "test-echo") {
-        result = { output: request.args };
+        result = { output: request.args, config: this.#config };
       } else {
         result = await this.#genericPipelineFunction(
           ...request.args,

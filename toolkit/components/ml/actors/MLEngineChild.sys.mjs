@@ -93,15 +93,16 @@ export class MLEngineChild extends JSWindowActorChild {
    */
   async #onNewPortCreated({ port, pipelineOptions }) {
     try {
-      // Override some options using prefs
-      let options = new lazy.PipelineOptions(pipelineOptions);
-
-      options.updateOptions({
+      // We get some default options from the prefs
+      let options = new lazy.PipelineOptions({
         modelHubRootUrl: lazy.MODEL_HUB_ROOT_URL,
         modelHubUrlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
         timeoutMS: lazy.CACHE_TIMEOUT_MS,
         logLevel: lazy.LOG_LEVEL,
       });
+
+      // And then overwrite with the ones passed in the message
+      options.updateOptions(pipelineOptions);
 
       // Check if we already have an engine under this id.
       if (this.#engineDispatchers.has(options.engineId)) {
@@ -484,16 +485,24 @@ class EngineDispatcher {
  * @param {string} config.taskName - name of the inference task.
  * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
  * the model hub root or an absolute URL.
+ * @param {string} config.modelHubRootUrl - root url of the model hub. When not provided, uses the default from prefs.
+ * @param {string} config.modefHubUrlTemplate - url template of the model hub. When not provided, uses the default from prefs.
  * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
  */
-async function getModelFile({ taskName, url, getModelFileFn }) {
+async function getModelFile({
+  taskName,
+  url,
+  getModelFileFn,
+  modelHubRootUrl,
+  modefHubUrlTemplate,
+}) {
   const [data, headers] = await getModelFileFn({
     taskName,
     url,
-    rootUrl: lazy.MODEL_HUB_ROOT_URL,
-    urlTemplate: lazy.MODEL_HUB_URL_TEMPLATE,
+    rootUrl: modelHubRootUrl || lazy.MODEL_HUB_ROOT_URL,
+    urlTemplate: modefHubUrlTemplate || lazy.MODEL_HUB_URL_TEMPLATE,
   });
   return new lazy.BasePromiseWorker.Meta([url, headers, data], {
     transfers: [data],
@@ -533,6 +542,8 @@ class InferenceEngine {
             url,
             taskName: pipelineOptions.taskName,
             getModelFileFn,
+            modelHubRootUrl: pipelineOptions.modelHubRootUrl,
+            modelHubUrlTemplate: pipelineOptions.modelHubUrlTemplate,
           }),
       }
     );

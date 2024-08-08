@@ -1440,3 +1440,101 @@ add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
 
   await deleteCache(cache2);
 });
+
+/**
+ * Test that we can use a custom hub on every API call to get files.
+ */
+add_task(async function test_getting_file_custom_hub() {
+  // The hub is configured to use localhost
+  const hub = new ModelHub({
+    rootUrl: "https://localhost",
+    urlTemplate: "{model}/boo/revision",
+  });
+
+  // but we can use APIs against another hub
+  const args = {
+    model: "acme/bert",
+    revision: "main",
+    file: "config.json",
+    taskName: "task_model",
+    modelHubRootUrl: FAKE_HUB,
+    modelHubUrlTemplate: "{model}/{revision}",
+  };
+
+  let [array, headers] = await hub.getModelFileAsArrayBuffer(args);
+
+  Assert.equal(headers["Content-Type"], "application/json");
+
+  // check the content of the file.
+  let jsonData = JSON.parse(
+    String.fromCharCode.apply(null, new Uint8Array(array))
+  );
+
+  Assert.equal(jsonData.hidden_size, 768);
+
+  let res = await hub.getModelFileAsBlob(args);
+  Assert.equal(res[0].size, 562);
+
+  let response = await hub.getModelFileAsResponse(args);
+  Assert.equal((await response.blob()).size, 562);
+});
+
+/**
+ * Make sure that we can't pass a rootUrl that is not allowed when using the API calls
+ */
+add_task(async function test_getting_file_disallowed_custom_hub() {
+  // The hub is configured to use localhost
+  const hub = new ModelHub({
+    rootUrl: "https://localhost",
+    urlTemplate: "{model}/boo/revision",
+  });
+
+  // and we can't use APIs against another hub if it's not allowed
+  const args = {
+    model: "acme/bert",
+    revision: "main",
+    file: "config.json",
+    taskName: "task_model",
+    modelHubRootUrl: "https://forbidden.com",
+    modelHubUrlTemplate: "{model}/{revision}",
+  };
+
+  try {
+    await hub.getModelFileAsArrayBuffer(args);
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      `Should throw with https://forbidden.com`
+    );
+  }
+
+  try {
+    await hub.getModelFileAsBlob(args);
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      `Should throw with https://forbidden.com`
+    );
+  }
+
+  try {
+    await hub.getModelFileAsResponse(args);
+    throw new Error("Expected method to reject.");
+  } catch (error) {
+    Assert.throws(
+      () => {
+        throw error;
+      },
+      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      `Should throw with https://forbidden.com`
+    );
+  }
+});

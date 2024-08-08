@@ -302,6 +302,8 @@ export class MLEngineParent extends JSWindowActorParent {
     const [data, headers] = await this.modelHub.getModelFileAsArrayBuffer({
       taskName,
       ...parsedUrl,
+      modelHubRootUrl: rootUrl,
+      modelHubUrlTemplate: urlTemplate,
       progressCallback: this.notificationsCallback?.bind(this),
     });
 

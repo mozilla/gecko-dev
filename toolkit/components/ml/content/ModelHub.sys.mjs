@@ -867,6 +867,7 @@ export class ModelHub {
    * @param {string} config.urlTemplate - The template to retrieve the full URL using a model name and revision.
    */
   constructor({ rootUrl, urlTemplate = DEFAULT_URL_TEMPLATE } = {}) {
+    // Early error when the hub is created on a disallowed url - #fileURL also checks this so API calls with custom hubs are also covered.
     if (!allowedHub(rootUrl)) {
       throw new Error(`Invalid model hub root url: ${rootUrl}`);
     }
@@ -956,13 +957,22 @@ export class ModelHub {
 
   /** Creates the file URL from the organization, model, and version.
    *
-   * @param {string} model
-   * @param {string} revision
-   * @param {string} file
+   * @param {object} config - The configuration object to be updated.
+   * @param {string} config.model - model name
+   * @param {string} config.revision - model revision
+   * @param {string} config.file - filename
+   * @param {string} config.modelHubRootUrl - root url of the model hub
+   * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @returns {string} The full URL
    */
-  #fileUrl(model, revision, file) {
-    const baseUrl = new URL(this.rootUrl);
+  #fileUrl({ model, revision, file, modelHubRootUrl, modelHubUrlTemplate }) {
+    const rootUrl = modelHubRootUrl || this.rootUrl;
+    if (!allowedHub(rootUrl)) {
+      throw new Error(`Invalid model hub root url: ${rootUrl}`);
+    }
+    const urlTemplate = modelHubUrlTemplate || this.urlTemplate;
+    const baseUrl = new URL(rootUrl);
+
     if (!baseUrl.pathname.endsWith("/")) {
       baseUrl.pathname += "/";
     }
@@ -973,7 +983,7 @@ export class ModelHub {
       model,
       revision,
     };
-    let path = this.urlTemplate.replace(
+    let path = urlTemplate.replace(
       /\{(\w+)\}/g,
       (match, key) => data[key] || match
     );
@@ -1112,14 +1122,25 @@ export class ModelHub {
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
+   * @param {string} config.modelHubRootUrl - root url of the model hub
+   * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @returns {Promise<Response>} The file content
    */
-  async getModelFileAsResponse({ taskName, model, revision, file }) {
+  async getModelFileAsResponse({
+    taskName,
+    model,
+    revision,
+    file,
+    modelHubRootUrl,
+    modelHubUrlTemplate,
+  }) {
     const [blob, headers] = await this.getModelFileAsBlob({
       taskName,
       model,
       revision,
       file,
+      modelHubRootUrl,
+      modelHubUrlTemplate,
     });
 
     return new Response(blob, { headers });
@@ -1133,14 +1154,25 @@ export class ModelHub {
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
+   * @param {string} config.modelHubRootUrl - root url of the model hub
+   * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @returns {Promise<[Blob, object]>} The file content
    */
-  async getModelFileAsBlob({ taskName, model, revision, file }) {
+  async getModelFileAsBlob({
+    taskName,
+    model,
+    revision,
+    file,
+    modelHubRootUrl,
+    modelHubUrlTemplate,
+  }) {
     const [buffer, headers] = await this.getModelFileAsArrayBuffer({
       taskName,
       model,
       revision,
       file,
+      modelHubRootUrl,
+      modelHubUrlTemplate,
     });
     return [new Blob([buffer]), headers];
   }
@@ -1154,6 +1186,8 @@ export class ModelHub {
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
+   * @param {string} config.modelHubRootUrl - root url of the model hub
+   * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback A function to call to indicate progress status.
    * @returns {Promise<[ArrayBuffer, headers]>} The file content
    */
@@ -1162,6 +1196,8 @@ export class ModelHub {
     model,
     revision,
     file,
+    modelHubRootUrl,
+    modelHubUrlTemplate,
     progressCallback,
   }) {
     // Make sure inputs are clean. We don't sanitize them but throw an exception
@@ -1169,7 +1205,13 @@ export class ModelHub {
     if (checkError) {
       throw checkError;
     }
-    const url = this.#fileUrl(model, revision, file);
+    const url = this.#fileUrl({
+      model,
+      revision,
+      file,
+      modelHubRootUrl,
+      modelHubUrlTemplate,
+    });
     lazy.console.debug(`Getting model file from ${url}`);
 
     await this.#initCache();

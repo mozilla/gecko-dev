@@ -451,3 +451,55 @@ add_task(async function test_ml_engine_override_options() {
   await EngineProcess.destroyMLEngine();
   await cleanup();
 });
+
+/**
+ * Tests a custom model hub
+ */
+add_task(async function test_ml_custom_hub() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the engine process");
+  const mlEngineParent = await EngineProcess.getMLEngineParent();
+
+  info("Get engineInstance");
+
+  const options = new PipelineOptions({
+    taskName: "summarization",
+    modelId: "test-echo",
+    modelRevision: "main",
+    modelHubRootUrl: "https://example.com",
+    modelHubUrlTemplate: "models/{model}/{revision}",
+  });
+
+  const engineInstance = await mlEngineParent.getEngine(options);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({
+    args: ["This gets echoed."],
+  });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  let res = await inferencePromise;
+
+  Assert.equal(
+    res.output,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.equal(
+    res.config.modelHubRootUrl,
+    "https://example.com",
+    "The pipeline used the custom hub"
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
