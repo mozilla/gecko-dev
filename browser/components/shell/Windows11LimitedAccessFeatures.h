@@ -7,7 +7,6 @@
 #define SHELL_WINDOWS11LIMITEDACCESSFEATURES_H__
 
 #include "nsISupportsImpl.h"
-#include "nsString.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
 #include <winerror.h>
@@ -48,18 +47,7 @@ class Win11LimitedAccessFeaturesInterface {
   virtual ~Win11LimitedAccessFeaturesInterface() {}
 };
 
-struct LimitedAccessFeatureInfo {
-  const nsCString debugName;
-  const nsString feature;
-  const nsString token;
-  const nsString attestation;
-};
-
 RefPtr<Win11LimitedAccessFeaturesInterface>
 CreateWin11LimitedAccessFeaturesInterface();
-
-mozilla::Result<LimitedAccessFeatureInfo, nsresult>
-GenerateLimitedAccessFeatureInfo(const nsCString& debugName,
-                                 const nsString& lafId);
 
 #endif  // SHELL_WINDOWS11LIMITEDACCESSFEATURES_H__

@@ -7,4 +7,3 @@ Firefox on Windows
 
    blocklist
    windows-pointing-device/index
-   LimitedAccessFeature
