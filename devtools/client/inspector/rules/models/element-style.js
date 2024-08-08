@@ -965,8 +965,11 @@ class ElementStyle {
    */
   getAllCustomProperties(pseudo = "") {
     const customProperties = new Map();
-    for (const [key, { declarationValue }] of this.variablesMap.get(pseudo)) {
-      customProperties.set(key, declarationValue);
+    for (const [
+      key,
+      { computedValue, declarationValue },
+    ] of this.variablesMap.get(pseudo)) {
+      customProperties.set(key, computedValue ?? declarationValue);
     }
 
     const startingStyleCustomProperties =
