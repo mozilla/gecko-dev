@@ -843,36 +843,27 @@ class ScriptModule extends RootBiDiModule {
   }
 
   #onRealmCreated = (eventName, { realmInfo }) => {
-    // This event is emitted from the parent process but for a given browsing
-    // context. Set the event's contextInfo to the message handler corresponding
-    // to this browsing context.
-    const contextInfo = {
-      contextId: realmInfo.context.id,
-      type: lazy.WindowGlobalMessageHandler.type,
-    };
-
     // Resolve browsing context to a TabManager id.
     const context = lazy.TabManager.getIdForBrowsingContext(realmInfo.context);
+    const browsingContextId = realmInfo.context.id;
 
-    // Don not emit the event, if the browsing context is gone.
+    // Do not emit the event, if the browsing context is gone.
     if (context === null) {
       return;
     }
 
     realmInfo.context = context;
-    this.emitEvent("script.realmCreated", realmInfo, contextInfo);
+    this._emitEventForBrowsingContext(
+      browsingContextId,
+      "script.realmCreated",
+      realmInfo
+    );
   };
 
   #onRealmDestroyed = (eventName, { realm, context }) => {
-    // This event is emitted from the parent process but for a given browsing
-    // context. Set the event's contextInfo to the message handler corresponding
-    // to this browsing context.
-    const contextInfo = {
-      contextId: context.id,
-      type: lazy.WindowGlobalMessageHandler.type,
-    };
-
-    this.emitEvent("script.realmDestroyed", { realm }, contextInfo);
+    this._emitEventForBrowsingContext(context.id, "script.realmDestroyed", {
+      realm,
+    });
   };
 
   #startListingOnRealmCreated() {

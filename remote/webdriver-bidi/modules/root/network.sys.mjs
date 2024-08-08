@@ -28,8 +28,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
   updateCacheBehavior:
     "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
-  WindowGlobalMessageHandler:
-    "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
 
 /**
@@ -1367,13 +1365,6 @@ class NetworkModule extends RootBiDiModule {
     return context;
   }
 
-  #getContextInfo(browsingContext) {
-    return {
-      contextId: browsingContext.id,
-      type: lazy.WindowGlobalMessageHandler.type,
-    };
-  }
-
   #getNetworkIntercepts(event, request, topContextId) {
     const intercepts = [];
 
@@ -1610,10 +1601,10 @@ class NetworkModule extends RootBiDiModule {
         response: responseData,
       };
 
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        browsingContext.id,
         protocolEventName,
-        authRequiredEvent,
-        this.#getContextInfo(browsingContext)
+        authRequiredEvent
       );
 
       if (authRequiredEvent.isBlocked) {
@@ -1660,13 +1651,15 @@ class NetworkModule extends RootBiDiModule {
     // navigate command.
     // Bug 1861922: Replace internal events with a Network listener helper
     // directly using the NetworkObserver.
-    this.emitEvent(
+    const eventPayload = {
+      navigation: request.navigationId,
+      url: request.serializedURL,
+    };
+
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       internalEventName,
-      {
-        navigation: request.navigationId,
-        url: request.serializedURL,
-      },
-      this.#getContextInfo(browsingContext)
+      eventPayload
     );
 
     const isListening = this._hasListener(protocolEventName, {
@@ -1693,12 +1686,11 @@ class NetworkModule extends RootBiDiModule {
       initiator,
     };
 
-    this.emitEvent(
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       protocolEventName,
-      beforeRequestSentEvent,
-      this.#getContextInfo(browsingContext)
+      beforeRequestSentEvent
     );
-
     if (beforeRequestSentEvent.isBlocked) {
       // TODO: Requests suspended in beforeRequestSent still reach the server at
       // the moment. https://bugzilla.mozilla.org/show_bug.cgi?id=1849686
@@ -1742,13 +1734,15 @@ class NetworkModule extends RootBiDiModule {
     // navigate command.
     // Bug 1861922: Replace internal events with a Network listener helper
     // directly using the NetworkObserver.
-    this.emitEvent(
+    const eventPayload = {
+      navigation: request.navigationId,
+      url: request.serializedURL,
+    };
+
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       internalEventName,
-      {
-        navigation: request.navigationId,
-        url: request.serializedURL,
-      },
-      this.#getContextInfo(browsingContext)
+      eventPayload
     );
 
     const isListening = this._hasListener(protocolEventName, {
@@ -1770,10 +1764,10 @@ class NetworkModule extends RootBiDiModule {
       errorText: request.errorText,
     };
 
-    this.emitEvent(
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       protocolEventName,
-      fetchErrorEvent,
-      this.#getContextInfo(browsingContext)
+      fetchErrorEvent
     );
   };
 
@@ -1803,13 +1797,15 @@ class NetworkModule extends RootBiDiModule {
     // navigate command.
     // Bug 1861922: Replace internal events with a Network listener helper
     // directly using the NetworkObserver.
-    this.emitEvent(
+    const eventPayload = {
+      navigation: request.navigationId,
+      url: request.serializedURL,
+    };
+
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       internalEventName,
-      {
-        navigation: request.navigationId,
-        url: request.serializedURL,
-      },
-      this.#getContextInfo(browsingContext)
+      eventPayload
     );
 
     const isListening = this._hasListener(protocolEventName, {
@@ -1833,10 +1829,10 @@ class NetworkModule extends RootBiDiModule {
       response: responseData,
     };
 
-    this.emitEvent(
+    this._emitEventForBrowsingContext(
+      browsingContext.id,
       protocolEventName,
-      responseEvent,
-      this.#getContextInfo(browsingContext)
+      responseEvent
     );
 
     if (

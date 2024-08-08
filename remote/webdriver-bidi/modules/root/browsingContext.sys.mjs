@@ -1809,17 +1809,10 @@ class BrowsingContextModule extends RootBiDiModule {
         }
       );
 
-      // This event is emitted from the parent process but for a given browsing
-      // context. Set the event's contextInfo to the message handler corresponding
-      // to this browsing context.
-      const contextInfo = {
-        contextId: browsingContext.id,
-        type: lazy.WindowGlobalMessageHandler.type,
-      };
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        browsingContext.id,
         "browsingContext.contextCreated",
-        browsingContextInfo,
-        contextInfo
+        browsingContextInfo
       );
     }
   };
@@ -1859,17 +1852,10 @@ class BrowsingContextModule extends RootBiDiModule {
         }
       );
 
-      // This event is emitted from the parent process but for a given browsing
-      // context. Set the event's contextInfo to the message handler corresponding
-      // to this browsing context.
-      const contextInfo = {
-        contextId: browsingContext.id,
-        type: lazy.WindowGlobalMessageHandler.type,
-      };
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        browsingContext.id,
         "browsingContext.contextDestroyed",
-        browsingContextInfo,
-        contextInfo
+        browsingContextInfo
       );
     }
   };
@@ -1879,19 +1865,16 @@ class BrowsingContextModule extends RootBiDiModule {
     const context = this.#getBrowsingContext(navigableId);
 
     if (this.#subscribedEvents.has("browsingContext.fragmentNavigated")) {
-      const contextInfo = {
-        contextId: context.id,
-        type: lazy.WindowGlobalMessageHandler.type,
+      const browsingContextInfo = {
+        context: navigableId,
+        navigation: navigationId,
+        timestamp: Date.now(),
+        url,
       };
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        context.id,
         "browsingContext.fragmentNavigated",
-        {
-          context: navigableId,
-          navigation: navigationId,
-          timestamp: Date.now(),
-          url,
-        },
-        contextInfo
+        browsingContextInfo
       );
     }
   };
@@ -1905,22 +1888,17 @@ class BrowsingContextModule extends RootBiDiModule {
         return;
       }
 
-      // This event is emitted from the parent process but for a given browsing
-      // context. Set the event's contextInfo to the message handler corresponding
-      // to this browsing context.
-      const contextInfo = {
-        contextId,
-        type: lazy.WindowGlobalMessageHandler.type,
-      };
-
       const params = {
         context: contextId,
         accepted: detail.accepted,
         type: detail.promptType,
         userText: detail.userText,
       };
-
-      this.emitEvent("browsingContext.userPromptClosed", params, contextInfo);
+      this._emitEventForBrowsingContext(
+        contextId,
+        "browsingContext.userPromptClosed",
+        params
+      );
     }
   };
 
@@ -1936,13 +1914,6 @@ class BrowsingContextModule extends RootBiDiModule {
       }
 
       const contextId = lazy.TabManager.getIdForBrowser(contentBrowser);
-      // This event is emitted from the parent process but for a given browsing
-      // context. Set the event's contextInfo to the message handler corresponding
-      // to this browsing context.
-      const contextInfo = {
-        contextId,
-        type: lazy.WindowGlobalMessageHandler.type,
-      };
 
       const session = lazy.getWebDriverSessionById(
         this.messageHandler.sessionId
@@ -1960,10 +1931,10 @@ class BrowsingContextModule extends RootBiDiModule {
         eventPayload.defaultValue = await prompt.getInputText();
       }
 
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        contextId,
         "browsingContext.userPromptOpened",
-        eventPayload,
-        contextInfo
+        eventPayload
       );
     }
   };
@@ -1972,20 +1943,16 @@ class BrowsingContextModule extends RootBiDiModule {
     const { navigableId, navigationId, url, contextId } = data;
 
     if (this.#subscribedEvents.has("browsingContext.navigationFailed")) {
-      const contextInfo = {
-        contextId,
-        type: lazy.WindowGlobalMessageHandler.type,
+      const eventPayload = {
+        context: navigableId,
+        navigation: navigationId,
+        timestamp: Date.now(),
+        url,
       };
-
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        contextId,
         "browsingContext.navigationFailed",
-        {
-          context: navigableId,
-          navigation: navigationId,
-          timestamp: Date.now(),
-          url,
-        },
-        contextInfo
+        eventPayload
       );
     }
   };
@@ -1995,20 +1962,16 @@ class BrowsingContextModule extends RootBiDiModule {
     const context = this.#getBrowsingContext(navigableId);
 
     if (this.#subscribedEvents.has("browsingContext.navigationStarted")) {
-      const contextInfo = {
-        contextId: context.id,
-        type: lazy.WindowGlobalMessageHandler.type,
+      const eventPayload = {
+        context: navigableId,
+        navigation: navigationId,
+        timestamp: Date.now(),
+        url,
       };
-
-      this.emitEvent(
+      this._emitEventForBrowsingContext(
+        context.id,
         "browsingContext.navigationStarted",
-        {
-          context: navigableId,
-          navigation: navigationId,
-          timestamp: Date.now(),
-          url,
-        },
-        contextInfo
+        eventPayload
       );
     }
   };
