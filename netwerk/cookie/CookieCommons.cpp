@@ -165,6 +165,11 @@ nsresult CookieCommons::GetBaseDomainFromHost(
   return rv;
 }
 
+/* static */ bool CookieCommons::IsIPv6BaseDomain(
+    const nsACString& aBaseDomain) {
+  return aBaseDomain.Contains(':');
+}
+
 namespace {
 
 void NotifyRejectionToObservers(nsIURI* aHostURI, CookieOperation aOperation) {

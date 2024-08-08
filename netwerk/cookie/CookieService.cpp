@@ -1276,12 +1276,14 @@ void CookieService::GetCookiesForURI(
 
 nsresult CookieService::NormalizeHost(nsCString& aHost) {
   nsAutoCString host;
-  nsresult rv = NS_DomainToASCIIAllowAnyGlyphfulASCII(aHost, host);
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (!CookieCommons::IsIPv6BaseDomain(aHost)) {
+    nsresult rv = NS_DomainToASCII(aHost, host);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    aHost = host;
   }
 
-  aHost = host;
   return NS_OK;
 }
 

@@ -80,6 +80,10 @@ class CookieCommons final {
                                         const nsACString& aHost,
                                         nsCString& aBaseDomain);
 
+  // This method returns true if aBaseDomain contains any colons since only
+  // IPv6 baseDomains may contain colons.
+  static bool IsIPv6BaseDomain(const nsACString& aBaseDomain);
+
   static void NotifyRejected(nsIURI* aHostURI, nsIChannel* aChannel,
                              uint32_t aRejectedReason,
                              CookieOperation aOperation);

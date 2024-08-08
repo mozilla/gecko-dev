@@ -366,11 +366,6 @@ void CookieStorage::RemoveCookiesWithOriginAttributes(
   }
 }
 
-/* static */ bool CookieStorage::isIPv6BaseDomain(
-    const nsACString& aBaseDomain) {
-  return aBaseDomain.Contains(':');
-}
-
 /* static */ bool CookieStorage::SerializeIPv6BaseDomain(
     nsACString& aBaseDomain) {
   bool hasStartBracket = aBaseDomain.First() == '[';
@@ -410,7 +405,7 @@ void CookieStorage::RemoveCookiesFromExactHost(
   // the normalized (ASCII) host for IP addresses
   // (it is equal to the CookieService::NormalizeHost() output).
   nsAutoCString removeBaseDomain;
-  bool isIPv6 = isIPv6BaseDomain(aBaseDomain);
+  bool isIPv6 = CookieCommons::IsIPv6BaseDomain(aBaseDomain);
   if (isIPv6) {
     MOZ_ASSERT(!aBaseDomain.IsEmpty());
     // Copy base domain since argument is immutable.
@@ -428,7 +423,7 @@ void CookieStorage::RemoveCookiesFromExactHost(
     // IPv6 host / base domain cookies
     if (isIPv6) {
       // If we look for a IPv6 cookie skip non-IPv6 cookie entries.
-      if (!isIPv6BaseDomain(entry->mBaseDomain)) {
+      if (!CookieCommons::IsIPv6BaseDomain(entry->mBaseDomain)) {
         continue;
       }
       // Serialize IPv6 base domains before comparison.
