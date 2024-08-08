@@ -116,55 +116,6 @@ void QuotaUsageRequestChild::AssertIsOnOwningThread() const {
 
 #endif  // DEBUG
 
-void QuotaUsageRequestChild::HandleResponse(nsresult aResponse) {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  if (NS_FAILED(aResponse)) {
-    mRequest->SetError(aResponse);
-  }
-}
-
-void QuotaUsageRequestChild::HandleResponse(
-    const OriginUsageMetadataArray& aResponse) {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  RefPtr<nsVariant> variant = new nsVariant();
-
-  if (aResponse.IsEmpty()) {
-    variant->SetAsEmptyArray();
-  } else {
-    nsTArray<RefPtr<UsageResult>> usageResults(aResponse.Length());
-
-    for (const auto& originUsage : aResponse) {
-      usageResults.AppendElement(MakeRefPtr<UsageResult>(
-          originUsage.mOrigin, originUsage.mPersisted, originUsage.mUsage,
-          originUsage.mLastAccessTime));
-    }
-
-    variant->SetAsArray(nsIDataType::VTYPE_INTERFACE_IS,
-                        &NS_GET_IID(nsIQuotaUsageResult), usageResults.Length(),
-                        static_cast<void*>(usageResults.Elements()));
-  }
-
-  mRequest->SetResult(variant);
-}
-
-void QuotaUsageRequestChild::HandleResponse(
-    const OriginUsageResponse& aResponse) {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  RefPtr<OriginUsageResult> result =
-      new OriginUsageResult(aResponse.usageInfo());
-
-  RefPtr<nsVariant> variant = new nsVariant();
-  variant->SetAsInterface(NS_GET_IID(nsIQuotaOriginUsageResult), result);
-
-  mRequest->SetResult(variant);
-}
-
 void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsOnOwningThread();
 
@@ -176,27 +127,9 @@ void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
   }
 }
 
-mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__(
-    UsageRequestResponse&& aResponse) {
+mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
-
-  switch (aResponse.type()) {
-    case UsageRequestResponse::Tnsresult:
-      HandleResponse(aResponse.get_nsresult());
-      break;
-
-    case UsageRequestResponse::TAllUsageResponse:
-      HandleResponse(aResponse.get_AllUsageResponse().originUsages());
-      break;
-
-    case UsageRequestResponse::TOriginUsageResponse:
-      HandleResponse(aResponse.get_OriginUsageResponse());
-      break;
-
-    default:
-      MOZ_CRASH("Unknown response type!");
-  }
 
   return IPC_OK();
 }

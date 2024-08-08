@@ -6,8 +6,6 @@
 
 #include "QuotaUsageRequestBase.h"
 
-#include "mozilla/dom/quota/PQuotaRequest.h"
-
 namespace mozilla::dom::quota {
 
 QuotaUsageRequestBase::~QuotaUsageRequestBase() {
@@ -25,7 +23,7 @@ void QuotaUsageRequestBase::Destroy() {
   AssertIsOnOwningThread();
 
   if (!IsActorDestroyed()) {
-    (void)PQuotaUsageRequestParent::Send__delete__(this, NS_OK);
+    (void)PQuotaUsageRequestParent::Send__delete__(this);
   }
 }
 

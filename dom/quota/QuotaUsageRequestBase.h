@@ -8,6 +8,7 @@
 #define DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
 
 #include "mozilla/dom/quota/BackgroundThreadObject.h"
+#include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/PQuotaUsageRequestParent.h"
 
 namespace mozilla::dom::quota {

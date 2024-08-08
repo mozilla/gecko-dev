@@ -93,17 +93,10 @@ class QuotaUsageRequestChild final : public PQuotaUsageRequestChild {
   // Only destroyed by QuotaChild.
   ~QuotaUsageRequestChild();
 
-  void HandleResponse(nsresult aResponse);
-
-  void HandleResponse(const OriginUsageMetadataArray& aResponse);
-
-  void HandleResponse(const OriginUsageResponse& aResponse);
-
   // IPDL methods are only called by IPDL.
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual mozilla::ipc::IPCResult Recv__delete__(
-      UsageRequestResponse&& aResponse) override;
+  virtual mozilla::ipc::IPCResult Recv__delete__() override;
 };
 
 class QuotaRequestChild final : public PQuotaRequestChild {

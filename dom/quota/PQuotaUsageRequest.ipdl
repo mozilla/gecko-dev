@@ -4,34 +4,9 @@
 
 include protocol PQuota;
 
-include "mozilla/dom/quota/SerializationHelpers.h";
-
-[MoveOnly] using mozilla::dom::quota::OriginUsageMetadataArray
-  from "mozilla/dom/quota/CommonMetadataArray.h";
-
-using mozilla::dom::quota::UsageInfo
-  from "mozilla/dom/quota/UsageInfo.h";
-
 namespace mozilla {
 namespace dom {
 namespace quota {
-
-struct AllUsageResponse
-{
-  OriginUsageMetadataArray originUsages;
-};
-
-struct OriginUsageResponse
-{
-  UsageInfo usageInfo;
-};
-
-union UsageRequestResponse
-{
-  nsresult;
-  AllUsageResponse;
-  OriginUsageResponse;
-};
 
 [ChildImpl=virtual, ParentImpl=virtual]
 protocol PQuotaUsageRequest
@@ -42,7 +17,7 @@ parent:
   async Cancel();
 
 child:
-  async __delete__(UsageRequestResponse response);
+  async __delete__();
 };
 
 } // namespace quota
