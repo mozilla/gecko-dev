@@ -205,11 +205,30 @@ class FetchService final : public nsIObserver {
   nsresult RegisterNetworkObserver();
   nsresult UnregisterNetworkObserver();
 
+  // Update pending keepalive fetch requests count
+  void IncrementKeepAliveRequestCount(const nsACString& aOrigin);
+  void DecrementKeepAliveRequestCount(const nsACString& aOrigin);
+
+  // Check if the number of pending keepalive fetch requests exceeds the
+  // configured limit
+  // We limit the number of pending keepalive requests on two levels:
+  // 1. per origin - controlled by pref
+  // dom.fetchKeepalive.request_limit_per_origin)
+  // 2. per browser instance - controlled by pref
+  // dom.fetchKeepalive.total_request_limit
+  bool DoesExceedsKeepaliveResourceLimits(const nsACString& aOrigin);
+
   // This is a container to manage the generated fetches.
   nsTHashMap<nsRefPtrHashKey<FetchServicePromises>, RefPtr<FetchInstance> >
       mFetchInstanceTable;
   bool mObservingNetwork{false};
   bool mOffline{false};
+
+  // map to key origin to number of pending keepalive fetch requests
+  nsTHashMap<nsCStringHashKey, uint32_t> mPendingKeepAliveRequestsPerOrigin;
+
+  // total pending keepalive fetch requests per browser instance
+  uint32_t mTotalKeepAliveRequests{0};
 };
 
 }  // namespace mozilla::dom
