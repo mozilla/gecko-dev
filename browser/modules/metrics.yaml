@@ -310,9 +310,11 @@ browser.usage:
       Could be via mouse or keyboard, could be a command or a UI element.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889111
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912172
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889111
-    expires: 132
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912172
+    expires: never
     data_sensitivity: [interaction]
     notification_emails:
       - chutten@mozilla.com
