@@ -6,6 +6,7 @@ package org.mozilla.fenix.browser
 
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.DownloadState.Status
+import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
 import org.mozilla.fenix.ext.settings
@@ -14,6 +15,7 @@ internal fun BaseBrowserFragment.handleOnDownloadFinished(
     downloadState: DownloadState,
     downloadJobStatus: Status,
     tryAgain: (String) -> Unit,
+    browserToolbars: List<ScrollableToolbar>,
 ) {
     // If the download is just paused, don't show any in-app notification
     if (shouldShowCompletedDownloadDialog(downloadState, downloadJobStatus)) {
@@ -47,7 +49,7 @@ internal fun BaseBrowserFragment.handleOnDownloadFinished(
             ) { sharedViewModel.downloadDialogState.remove(downloadState.sessionId) }
 
             dynamicDownloadDialog.show()
-            browserToolbarView.expand()
+            browserToolbars.forEach { it.expand() }
         }
     }
 }
