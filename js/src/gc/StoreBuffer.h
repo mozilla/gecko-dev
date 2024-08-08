@@ -600,6 +600,7 @@ class StoreBuffer {
     unput(bufferWasmAnyRef, WasmAnyRefEdge(vp));
   }
 
+  static inline bool isInWholeCellBuffer(Cell* cell);
   inline void putWholeCell(Cell* cell);
   inline void putWholeCellDontCheckLast(Cell* cell);
   const void* addressOfLastBufferedWholeCell() {

@@ -87,6 +87,13 @@ inline void StoreBuffer::WholeCellBuffer::putDontCheckLast(const Cell* cell) {
   last_ = cell;
 }
 
+/* static */
+inline bool StoreBuffer::isInWholeCellBuffer(Cell* cell) {
+  TenuredCell* tenured = &cell->asTenured();
+  gc::ArenaCellSet* cells = tenured->arena()->bufferedCells();
+  return cells && cells->hasCell(tenured);
+}
+
 inline void StoreBuffer::putWholeCell(Cell* cell) { bufferWholeCell.put(cell); }
 inline void StoreBuffer::putWholeCellDontCheckLast(Cell* cell) {
   bufferWholeCell.putDontCheckLast(cell);

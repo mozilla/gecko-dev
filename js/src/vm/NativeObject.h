@@ -749,8 +749,6 @@ class NativeObject : public JSObject {
     elements_ = emptyObjectElementsShared;
   }
 
-  inline bool isInWholeCellBuffer() const;
-
   static inline NativeObject* create(JSContext* cx, gc::AllocKind kind,
                                      gc::Heap heap, Handle<SharedShape*> shape,
                                      gc::AllocSite* site = nullptr);

@@ -24,7 +24,6 @@
 #include "vm/StringType.h"
 #include "vm/TypedArrayObject.h"
 
-#include "gc/Heap-inl.h"
 #include "gc/Marking-inl.h"
 #include "gc/ObjectKind-inl.h"
 #include "vm/Compartment-inl.h"
@@ -469,12 +468,6 @@ inline DenseElementResult NativeObject::setOrExtendDenseElements(
 
   copyDenseElements(start, vp, count);
   return DenseElementResult::Success;
-}
-
-inline bool NativeObject::isInWholeCellBuffer() const {
-  const gc::TenuredCell* cell = &asTenured();
-  gc::ArenaCellSet* cells = cell->arena()->bufferedCells();
-  return cells && cells->hasCell(cell);
 }
 
 /* static */
