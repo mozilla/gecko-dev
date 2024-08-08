@@ -40,6 +40,7 @@ class TopSiteItemMenu(
     private val menuItems by lazy {
         val isPinnedSite = topSite is TopSite.Pinned || topSite is TopSite.Default
         val isProvidedSite = topSite is TopSite.Provided
+        val isFrecentSite = topSite is TopSite.Frecent
 
         listOfNotNull(
             SimpleBrowserMenuItem(
@@ -47,7 +48,7 @@ class TopSiteItemMenu(
             ) {
                 onItemTapped.invoke(Item.OpenInPrivateTab)
             },
-            if (isPinnedSite) {
+            if (isPinnedSite || isFrecentSite) {
                 SimpleBrowserMenuItem(
                     context.getString(R.string.top_sites_edit_top_site),
                 ) {

@@ -29,6 +29,7 @@ import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.TopSite
+import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -93,6 +94,7 @@ class DefaultSessionControlControllerTest {
     private val tabsUseCases: TabsUseCases = mockk(relaxed = true)
     private val reloadUrlUseCase: SessionUseCases = mockk(relaxed = true)
     private val selectTabUseCase: TabsUseCases = mockk(relaxed = true)
+    private val topSitesUseCases: TopSitesUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
     private val analytics: Analytics = mockk(relaxed = true)
     private val scope = coroutinesTestRule.scope
@@ -1077,6 +1079,46 @@ class DefaultSessionControlControllerTest {
     }
 
     @Test
+    fun `WHEN the frecent top site is updated THEN add the frecent top site as a pinned top site`() {
+        val topSite = TopSite.Frecent(
+            id = 1L,
+            title = "Mozilla",
+            url = "mozilla.org",
+            createdAt = 0,
+        )
+
+        val controller = spyk(createController())
+        val title = "Firefox"
+        val url = "firefox.com"
+
+        controller.updateTopSite(topSite = topSite, title = title, url = url)
+
+        verify {
+            topSitesUseCases.addPinnedSites(title = title, url = url)
+        }
+    }
+
+    @Test
+    fun `WHEN the pinned top site is updated THEN update the pinned top site in storage`() {
+        val topSite = TopSite.Pinned(
+            id = 1L,
+            title = "Mozilla",
+            url = "mozilla.org",
+            createdAt = 0,
+        )
+
+        val controller = spyk(createController())
+        val title = "Firefox"
+        val url = "firefox.com"
+
+        controller.updateTopSite(topSite = topSite, title = title, url = url)
+
+        verify {
+            topSitesUseCases.updateTopSites(topSite = topSite, title = title, url = url)
+        }
+    }
+
+    @Test
     fun `GIVEN exactly the required amount of downloaded thumbnails with no errors WHEN handling wallpaper dialog THEN dialog is shown`() {
         val wallpaperState = WallpaperState.default.copy(
             availableWallpapers = makeFakeRemoteWallpapers(
@@ -1362,8 +1404,9 @@ class DefaultSessionControlControllerTest {
             tabCollectionStorage = tabCollectionStorage,
             addTabUseCase = tabsUseCases.addTab,
             restoreUseCase = mockk(relaxed = true),
-            reloadUrlUseCase = reloadUrlUseCase.reload,
             selectTabUseCase = selectTabUseCase.selectTab,
+            reloadUrlUseCase = reloadUrlUseCase.reload,
+            topSitesUseCases = topSitesUseCases,
             appStore = appStore,
             navController = navController,
             viewLifecycleScope = scope,

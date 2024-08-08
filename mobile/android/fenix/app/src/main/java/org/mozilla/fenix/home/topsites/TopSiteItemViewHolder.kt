@@ -123,6 +123,7 @@ class TopSiteItemViewHolder(
         }
 
         binding.topSiteTitle.text = topSite.title
+        binding.topSiteSubtitle.isVisible = topSite is TopSite.Provided
 
         if (topSite is TopSite.Pinned || topSite is TopSite.Default) {
             val pinIndicator = getDrawable(itemView.context, R.drawable.ic_new_pin)
@@ -132,8 +133,6 @@ class TopSiteItemViewHolder(
         }
 
         if (topSite is TopSite.Provided) {
-            binding.topSiteSubtitle.isVisible = true
-
             viewLifecycleOwner.lifecycleScope.launch(IO) {
                 itemView.context.components.core.client.bitmapForUrl(topSite.imageUrl)?.let { bitmap ->
                     withContext(Main) {

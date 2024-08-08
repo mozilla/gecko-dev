@@ -447,6 +447,7 @@ private fun getMenuItems(
 ): List<MenuItem> {
     val isPinnedSite = topSite is TopSite.Pinned || topSite is TopSite.Default
     val isProvidedSite = topSite is TopSite.Provided
+    val isFrecentSite = topSite is TopSite.Frecent
     val result = mutableListOf<MenuItem>()
 
     result.add(
@@ -457,7 +458,7 @@ private fun getMenuItems(
         ),
     )
 
-    if (isPinnedSite) {
+    if (isPinnedSite || isFrecentSite) {
         result.add(
             MenuItem(
                 title = stringResource(id = R.string.top_sites_edit_top_site),
@@ -484,29 +485,21 @@ private fun getMenuItems(
     }
 
     if (isProvidedSite) {
-        result.add(
-            MenuItem(
-                title = stringResource(id = R.string.delete_from_history),
-                testTag = TopSitesTestTag.remove,
-                onClick = { onRemoveTopSiteClicked(topSite) },
-            ),
-        )
-    }
-
-    if (isProvidedSite) {
-        result.add(
-            MenuItem(
-                title = stringResource(id = R.string.top_sites_menu_settings),
-                onClick = onSettingsClicked,
-            ),
-        )
-    }
-
-    if (isProvidedSite) {
-        result.add(
-            MenuItem(
-                title = stringResource(id = R.string.top_sites_menu_sponsor_privacy),
-                onClick = onSponsorPrivacyClicked,
+        result.addAll(
+            listOf(
+                MenuItem(
+                    title = stringResource(id = R.string.delete_from_history),
+                    testTag = TopSitesTestTag.remove,
+                    onClick = { onRemoveTopSiteClicked(topSite) },
+                ),
+                MenuItem(
+                    title = stringResource(id = R.string.top_sites_menu_settings),
+                    onClick = onSettingsClicked,
+                ),
+                MenuItem(
+                    title = stringResource(id = R.string.top_sites_menu_sponsor_privacy),
+                    onClick = onSponsorPrivacyClicked,
+                ),
             ),
         )
     }
