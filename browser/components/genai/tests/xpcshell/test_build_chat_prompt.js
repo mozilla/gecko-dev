@@ -98,18 +98,41 @@ add_task(function test_prompt_placeholder_options() {
 /**
  * Check that prefix pref is added to prompt
  */
-add_task(function test_prompt_prefix() {
-  Services.prefs.setStringPref("browser.ml.chat.prompt.prefix", "hello ");
+add_task(async function test_prompt_prefix() {
+  Services.prefs.setStringPref("browser.ml.chat.prompt.prefix", "hello");
+  await GenAI.prepareChatPromptPrefix();
+
   Assert.equal(
     GenAI.buildChatPrompt({ label: "world" }),
-    "hello world",
+    "hello\n\nworld",
     "Prefix and prompt combined"
   );
 
-  Services.prefs.setStringPref("browser.ml.chat.prompt.prefix", "%a% ");
+  Services.prefs.setStringPref("browser.ml.chat.prompt.prefix", "%a%");
+  await GenAI.prepareChatPromptPrefix();
+
   Assert.equal(
     GenAI.buildChatPrompt({ label: "%a%" }, { a: "hi" }),
-    "hi hi",
+    "hi\n\nhi",
     "Context used for prefix and prompt"
+  );
+});
+
+/**
+ * Check that prefix pref supports localization
+ */
+add_task(async function test_prompt_prefix() {
+  Services.prefs.clearUserPref("browser.ml.chat.prompt.prefix");
+  await GenAI.prepareChatPromptPrefix();
+
+  Assert.ok(
+    JSON.parse(Services.prefs.getStringPref("browser.ml.chat.prompt.prefix"))
+      .l10nId,
+    "Default prefix is localized"
+  );
+
+  Assert.ok(
+    !GenAI.buildChatPrompt({ label: "" }).match(/l10nId/),
+    "l10nId replaced with localized"
   );
 });
