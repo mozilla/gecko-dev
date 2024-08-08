@@ -15,7 +15,7 @@ package {{ namespace }}
 
 import {{ glean_namespace }}.private.BooleanMetricType // ktlint-disable import-ordering no-unused-imports
 import {{ glean_namespace }}.private.CounterMetricType // ktlint-disable import-ordering no-unused-imports
-import {{ glean_namespace }}.private.HistogramMetricBase // ktlint-disable import-ordering no-unused-imports
+import {{ glean_namespace }}.private.HistogramBase // ktlint-disable import-ordering no-unused-imports
 import {{ glean_namespace }}.private.LabeledMetricType // ktlint-disable import-ordering no-unused-imports
 import {{ glean_namespace }}.private.QuantityMetricType // ktlint-disable import-ordering no-unused-imports
 import {{ glean_namespace }}.private.StringMetricType // ktlint-disable import-ordering no-unused-imports
@@ -28,7 +28,7 @@ internal object GleanGeckoMetricsMapping {
     // Support exfiltration of Gecko histograms from products using both the
     // Glean SDK and GeckoView. See bug 1566356 for more context.
     @Suppress("UNUSED_PARAMETER")
-    fun getHistogram(geckoMetricName: String): HistogramMetricBase? {
+    fun getHistogram(geckoMetricName: String): HistogramBase? {
     {% if 'histograms' in gecko_metrics %}
         return when (geckoMetricName) {
         {% for category in gecko_metrics['histograms'].keys()|sort %}

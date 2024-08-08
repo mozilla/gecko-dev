@@ -478,6 +478,7 @@ pub mod test_nested {
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
+    #[allow(non_snake_case)]
     pub struct EventMetricWithExtraExtra {
         pub an_extra_key: Option<String>,
         pub another_extra_key: Option<String>,

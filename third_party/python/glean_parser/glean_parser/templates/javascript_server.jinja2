@@ -234,7 +234,7 @@ class {{ ping|event_class_name(metrics_by_type) }} {
       {% if event.extra_keys %}
       extra: {
         {% for extra, metadata in event.extra_keys.items() %}
-        {{ extra }}: {{ extra }},
+        {{ extra }}: String({{ extra }}),
         {% endfor %}
       },
       {% endif %}

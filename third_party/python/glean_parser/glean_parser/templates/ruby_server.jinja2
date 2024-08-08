@@ -155,7 +155,7 @@ module Glean
           'timestamp' => (Time.now.utc.to_f * 1000).to_i,
           'extra' => [
             {% for extra, metadata in event.extra_keys.items() %}
-            ['{{ extra }}', {{ extra }}],
+            ['{{ extra }}', {{ extra }}.to_s],
             {% endfor %}
           ].to_h,
         },

@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: glean_parser
-Version: 14.3.0
+Version: 14.5.1
 Summary: Parser tools for Mozilla's Glean telemetry
 Home-page: https://github.com/mozilla/glean_parser
 Author: The Glean Team
@@ -18,12 +18,12 @@ Classifier: Programming Language :: Python :: 3.12
 Description-Content-Type: text/markdown
 License-File: LICENSE
 License-File: AUTHORS.md
-Requires-Dist: appdirs >=1.4
-Requires-Dist: Click >=7
-Requires-Dist: diskcache >=4
-Requires-Dist: Jinja2 >=2.10.1
-Requires-Dist: jsonschema >=3.0.2
-Requires-Dist: PyYAML >=5.3.1
+Requires-Dist: appdirs>=1.4
+Requires-Dist: Click>=7
+Requires-Dist: diskcache>=4
+Requires-Dist: Jinja2>=2.10.1
+Requires-Dist: jsonschema>=3.0.2
+Requires-Dist: PyYAML>=5.3.1
 
 # Glean Parser
 
@@ -78,6 +78,20 @@ $ glean_parser check < ping.json
 # Changelog
 
 ## Unreleased
+
+## 14.5.1
+
+- BUGFIX: Rust object metrics: Accept `null` in place of empty arrays
+
+## 14.5.0
+
+- BUGFIX: Fix Rust codegen to properly handle events with multiple types of extras ([bug 1911165](https://bugzilla.mozilla.org/show_bug.cgi?id=1911165))
+- Updating Kotlin template import statement as part of removing `service-glean` from Android Components. ([bug 1906941](https://bugzilla.mozilla.org/show_bug.cgi?id=1906941))
+
+## 14.4.0
+
+- Fix JS and Ruby server templates to correctly send event extra values as strings ([DENG-4405](https://mozilla-hub.atlassian.net/browse/DENG-4405))
+- ENHANCEMENT: Extra keys in `extra_keys:` fields may now contain any printable ASCII characters ([bug 1910976](https://bugzilla.mozilla.org/show_bug.cgi?id=1910976))
 
 ## 14.3.0
 

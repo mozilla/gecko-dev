@@ -28,6 +28,11 @@ definitions:
     pattern: "^[a-z_][a-z0-9_]{0,29}(\\.[a-z_][a-z0-9_]{0,29})*$"
     maxLength: 40
 
+  event_extra_key:
+    type: string
+    pattern: "^[ -~]+$"
+    maxLength: 40
+
   # Prior to version 2.0.0 of the schema, special ping names with underscores
   # were also supported.
   kebab_case:
@@ -385,7 +390,7 @@ definitions:
           Valid when `type`_ is `event`.
         type: object
         propertyNames:
-          $ref: "#/definitions/dotted_snake_case"
+          $ref: "#/definitions/event_extra_key"
         additionalProperties:
           type: object
           properties:

@@ -59,6 +59,7 @@ pub type {{ name }} = {{ struct.type|structure_type_name }};
 
 {%- macro extra_keys_with_types(obj, name, suffix) -%}
 #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
+#[allow(non_snake_case)]
 pub struct {{ obj.name|Camelize }}{{ suffix }} {
     {% for item, type in obj|attr(name) %}
     pub {{ item|snake_case }}: Option<{{type|extra_type_name}}>,
