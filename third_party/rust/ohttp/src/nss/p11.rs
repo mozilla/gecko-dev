@@ -67,7 +67,7 @@ macro_rules! scoped_ptr {
 
         impl Drop for $scoped {
             fn drop(&mut self) {
-                let _ = unsafe { $dtor(self.ptr) };
+                unsafe { $dtor(self.ptr) };
             }
         }
     };
@@ -240,7 +240,7 @@ impl<'a, T: Sized + 'a> ParamItem<'a, T> {
         };
         Self {
             item,
-            marker: PhantomData::default(),
+            marker: PhantomData,
         }
     }
 

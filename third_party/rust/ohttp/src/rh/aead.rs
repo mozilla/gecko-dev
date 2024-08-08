@@ -54,7 +54,7 @@ impl AeadEngine {
 /// A switch-hitting AEAD that uses a selected primitive.
 pub struct Aead {
     mode: Mode,
-    aead: AeadEngine,
+    engine: AeadEngine,
     nonce_base: [u8; NONCE_LEN],
     seq: SequenceNumber,
 }
@@ -80,7 +80,7 @@ impl Aead {
         };
         Ok(Self {
             mode,
-            aead,
+            engine: aead,
             nonce_base,
             seq: 0,
         })
@@ -105,14 +105,14 @@ impl Aead {
         // A copy for the nonce generator to write into.  But we don't use the value.
         let nonce = self.nonce(self.seq);
         self.seq += 1;
-        let ct = self.aead.encrypt(&nonce, Payload { msg: pt, aad })?;
+        let ct = self.engine.encrypt(&nonce, Payload { msg: pt, aad })?;
         Ok(ct)
     }
 
     pub fn open(&mut self, aad: &[u8], seq: SequenceNumber, ct: &[u8]) -> Res<Vec<u8>> {
         assert_eq!(self.mode, Mode::Decrypt);
         let nonce = self.nonce(seq);
-        let pt = self.aead.decrypt(&nonce, Payload { msg: ct, aad })?;
+        let pt = self.engine.decrypt(&nonce, Payload { msg: ct, aad })?;
         Ok(pt)
     }
 }

@@ -133,59 +133,108 @@ mod nss {
         assert!(status.success(), "NSS build failed");
     }
 
-    fn dynamic_link() {
-        let libs = if env::consts::OS == "windows" {
-            &["nssutil3.dll", "nss3.dll"]
+    fn nspr_libs() -> Vec<&'static str> {
+        if env::consts::OS == "windows" {
+            vec!["libplds4", "libplc4", "libnspr4"]
         } else {
-            &["nssutil3", "nss3"]
-        };
-        dynamic_link_both(libs);
+            vec!["plds4", "plc4", "nspr4"]
+        }
     }
 
-    fn dynamic_link_both(extra_libs: &[&str]) {
-        let nspr_libs = if env::consts::OS == "windows" {
-            &["libplds4", "libplc4", "libnspr4"]
+    fn dynamic_link() {
+        let mut libs = if env::consts::OS == "windows" {
+            vec!["nssutil3.dll", "nss3.dll"]
         } else {
-            &["plds4", "plc4", "nspr4"]
+            vec!["nssutil3", "nss3"]
         };
-        for lib in nspr_libs.iter().chain(extra_libs) {
+
+        libs.append(&mut nspr_libs());
+
+        for lib in &libs {
             println!("cargo:rustc-link-lib=dylib={}", lib);
         }
     }
 
-    fn static_link() {
+    fn static_softoken_libs(nsslibdir: &Path) -> Vec<&'static str> {
+        let mut static_libs = vec!["pk11wrap_static", "softokn_static", "freebl_static"];
+
+        // NSS optionally builds platform-specific acceleration libraries as
+        // separate static libraries.
+        let accel_libs = &[
+            "gcm-aes-x86_c_lib",
+            "sha-x86_c_lib",
+            "hw-acc-crypto-avx",
+            "hw-acc-crypto-avx2",
+            "armv8_c_lib",
+            "gcm-aes-arm32-neon_c_lib",
+            "gcm-aes-aarch64_c_lib",
+            // NOTE: The intel-gcm-* libraries are already automatically
+            //       included in freebl_static as source files.
+        ];
+
+        // Build rules are complex, so simply check the lib directory to see if
+        // any of the accelerator libraries were built to decide what to
+        // include. Check different variations of the filename to handle
+        // platform differences.
+        for libname in accel_libs {
+            let filename = if env::consts::OS == "windows" {
+                format!("{libname}.lib")
+            } else {
+                format!("lib{libname}.a")
+            };
+            if nsslibdir.join(filename).is_file() {
+                static_libs.push(libname);
+            }
+        }
+
+        static_libs
+    }
+
+    fn static_link(nsslibdir: &Path, use_static_softoken: bool, use_static_nspr: bool) {
         let mut static_libs = vec![
             "certdb",
             "certhi",
             "cryptohi",
-            "freebl",
             "nss_static",
             "nssb",
             "nssdev",
             "nsspki",
             "nssutil",
-            "pk11wrap",
-            "pkcs12",
-            "pkcs7",
-            "smime",
-            "softokn_static",
         ];
-        if env::consts::OS != "macos" {
-            static_libs.push("sqlite");
+        let mut dynamic_libs = vec![];
+
+        if use_static_softoken {
+            // Statically link pk11/softokn/freebl
+            static_libs.append(&mut static_softoken_libs(nsslibdir));
+        } else {
+            // Use dlopen to get softokn3.so
+            static_libs.push("pk11wrap");
         }
-        for lib in static_libs {
-            println!("cargo:rustc-link-lib=static={}", lib);
+
+        if use_static_nspr {
+            static_libs.append(&mut nspr_libs());
+        } else {
+            dynamic_libs.append(&mut nspr_libs());
+        }
+
+        if cfg!(not(feature = "external-sqlite")) && env::consts::OS != "macos" {
+            static_libs.push("sqlite");
         }
 
         // Dynamic libs that aren't transitively included by NSS libs.
-        let mut other_libs = Vec::new();
         if env::consts::OS != "windows" {
-            other_libs.extend_from_slice(&["pthread", "dl", "c", "z"]);
+            dynamic_libs.extend_from_slice(&["pthread", "dl", "c", "z"]);
         }
-        if env::consts::OS == "macos" {
-            other_libs.push("sqlite3");
+        if cfg!(not(feature = "external-sqlite")) && env::consts::OS == "macos" {
+            dynamic_libs.push("sqlite3");
         }
-        dynamic_link_both(&other_libs);
+
+        for lib in &static_libs {
+            println!("cargo:rustc-link-lib=static={}", lib);
+        }
+        for lib in &dynamic_libs {
+            println!("cargo:rustc-link-lib=dylib={}", lib);
+        }
     }
 
     fn get_includes(nsstarget: &Path, nssdist: &Path) -> Vec<PathBuf> {
@@ -275,7 +324,9 @@ mod nss {
             nsslibdir.to_str().unwrap()
         );
         if is_debug() {
-            static_link();
+            let use_static_softoken = true;
+            let use_static_nspr = true;
+            static_link(&nsslibdir, use_static_softoken, use_static_nspr);
         } else {
             dynamic_link();
         }
@@ -411,10 +462,48 @@ mod nss {
         unreachable!()
     }
 
+    #[cfg(feature = "app-svc")]
+    fn setup_for_app_svc() -> Vec<String> {
+        // Locate the NSS libraries that application_services is using.
+        // NOTE: This directory has a slightly different layout than then normal
+        //       'dist' directory that NSS builds output.
+        let nss_dir = nss_dir().expect("NSS_DIR env must be set for app_svc builds");
+        if !nss_dir.exists() {
+            eprintln!(
+                "NSS_DIR path (obtained via `env`) does not exist: {}",
+                nss_dir.display()
+            );
+            panic!("It looks like NSS is not built. Please run `libs/verify-[platform]-environment.sh` in application-services first!");
+        }
+
+        let lib_dir = nss_dir.join("lib");
+        println!(
+            "cargo:rustc-link-search=native={}",
+            lib_dir.to_string_lossy()
+        );
+
+        // For app_svc builds, we use static linking of NSS.
+        let use_static_softoken = true;
+        let use_static_nspr = true;
+        static_link(&lib_dir, use_static_softoken, use_static_nspr);
+
+        let include_dir = nss_dir.join("include");
+        println!("cargo:include={}", include_dir.to_string_lossy());
+
+        vec![String::from("-I") + &include_dir.join("nss").to_string_lossy()]
+    }
+
+    #[cfg(not(feature = "app-svc"))]
+    fn setup_for_app_svc() -> Vec<String> {
+        unreachable!()
+    }
+
     pub fn build() {
         println!("cargo:rerun-if-env-changed=NSS_DIR");
         let flags = if cfg!(feature = "gecko") {
             setup_for_gecko()
+        } else if cfg!(feature = "app-svc") {
+            setup_for_app_svc()
         } else {
             nss_dir().map_or_else(pkg_config, |nss| build_nss(&nss))
         };

@@ -5,6 +5,7 @@
     allow(dead_code, unused_imports)
 )]
 
+mod config;
 mod err;
 pub mod hpke;
 #[cfg(feature = "nss")]
@@ -14,11 +15,16 @@ mod rand;
 #[cfg(feature = "rust-hpke")]
 mod rh;
 
-pub use err::Error;
+pub use crate::{
+    config::{KeyConfig, SymmetricSuite},
+    err::Error,
+};
 
-use crate::hpke::{Aead as AeadId, Kdf, Kem};
+use crate::{
+    err::Res,
+    hpke::{Aead as AeadId, Kdf, Kem},
+};
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
-use err::Res;
 use log::trace;
 use std::{
     cmp::max,
@@ -28,25 +34,21 @@ use std::{
 };
 
 #[cfg(feature = "nss")]
-use nss::random;
+use crate::nss::random;
 #[cfg(feature = "nss")]
-use nss::{
+use crate::nss::{
     aead::{Aead, Mode, NONCE_LEN},
     hkdf::{Hkdf, KeyMechanism},
-    hpke::{generate_key_pair, Config as HpkeConfig, Exporter, HpkeR, HpkeS},
-    PrivateKey, PublicKey,
+    hpke::{Config as HpkeConfig, Exporter, HpkeR, HpkeS},
 };
 
 #[cfg(feature = "rust-hpke")]
 use crate::rand::random;
 #[cfg(feature = "rust-hpke")]
-use rh::{
+use crate::rh::{
     aead::{Aead, Mode, NONCE_LEN},
     hkdf::{Hkdf, KeyMechanism},
-    hpke::{
-        derive_key_pair, generate_key_pair, Config as HpkeConfig, Exporter, HpkeR, HpkeS,
-        PrivateKey, PublicKey,
-    },
+    hpke::{Config as HpkeConfig, Exporter, HpkeR, HpkeS},
 };
 
 /// The request header is a `KeyId` and 2 each for KEM, KDF, and AEAD identifiers
@@ -64,187 +66,6 @@ pub type KeyId = u8;
 pub fn init() {
     #[cfg(feature = "nss")]
     nss::init();
-}
-
-/// A tuple of KDF and AEAD identifiers.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SymmetricSuite {
-    kdf: Kdf,
-    aead: AeadId,
-}
-
-impl SymmetricSuite {
-    #[must_use]
-    pub const fn new(kdf: Kdf, aead: AeadId) -> Self {
-        Self { kdf, aead }
-    }
-
-    #[must_use]
-    pub fn kdf(self) -> Kdf {
-        self.kdf
-    }
-
-    #[must_use]
-    pub fn aead(self) -> AeadId {
-        self.aead
-    }
-}
-
-/// The key configuration of a server.  This can be used by both client and server.
-/// An important invariant of this structure is that it does not include
-/// any combination of KEM, KDF, and AEAD that is not supported.
-pub struct KeyConfig {
-    key_id: KeyId,
-    kem: Kem,
-    symmetric: Vec<SymmetricSuite>,
-    sk: Option<PrivateKey>,
-    pk: PublicKey,
-}
-
-impl KeyConfig {
-    fn strip_unsupported(symmetric: &mut Vec<SymmetricSuite>, kem: Kem) {
-        symmetric.retain(|s| HpkeConfig::new(kem, s.kdf(), s.aead()).supported());
-    }
-
-    /// Construct a configuration for the server side.
-    /// # Panics
-    /// If the configurations don't include a supported configuration.
-    pub fn new(key_id: u8, kem: Kem, mut symmetric: Vec<SymmetricSuite>) -> Res<Self> {
-        Self::strip_unsupported(&mut symmetric, kem);
-        assert!(!symmetric.is_empty());
-        let (sk, pk) = generate_key_pair(kem)?;
-        Ok(Self {
-            key_id,
-            kem,
-            symmetric,
-            sk: Some(sk),
-            pk,
-        })
-    }
-
-    /// Derive a configuration for the server side from input keying material,
-    /// using the `DeriveKeyPair` functionality of the HPKE KEM defined here:
-    /// <https://www.ietf.org/archive/id/draft-irtf-cfrg-hpke-12.html#section-4>
-    /// # Panics
-    /// If the configurations don't include a supported configuration.
-    #[allow(unused)]
-    pub fn derive(
-        key_id: u8,
-        kem: Kem,
-        mut symmetric: Vec<SymmetricSuite>,
-        ikm: &[u8],
-    ) -> Res<Self> {
-        #[cfg(feature = "rust-hpke")]
-        {
-            Self::strip_unsupported(&mut symmetric, kem);
-            assert!(!symmetric.is_empty());
-            let (sk, pk) = derive_key_pair(kem, ikm)?;
-            Ok(Self {
-                key_id,
-                kem,
-                symmetric,
-                sk: Some(sk),
-                pk,
-            })
-        }
-        #[cfg(not(feature = "rust-hpke"))]
-        {
-            Err(Error::Unsupported)
-        }
-    }
-
-    /// Encode into a wire format.  This shares a format with the core of ECH:
-    ///
-    /// ```tls-format
-    /// opaque HpkePublicKey[Npk];
-    /// uint16 HpkeKemId;  // Defined in I-D.irtf-cfrg-hpke
-    /// uint16 HpkeKdfId;  // Defined in I-D.irtf-cfrg-hpke
-    /// uint16 HpkeAeadId; // Defined in I-D.irtf-cfrg-hpke
-    ///
-    /// struct {
-    ///   HpkeKdfId kdf_id;
-    ///   HpkeAeadId aead_id;
-    /// } ECHCipherSuite;
-    ///
-    /// struct {
-    ///   uint8 key_id;
-    ///   HpkeKemId kem_id;
-    ///   HpkePublicKey public_key;
-    ///   ECHCipherSuite cipher_suites<4..2^16-4>;
-    /// } ECHKeyConfig;
-    /// ```
-    /// # Panics
-    /// Not as a result of this function.
-    pub fn encode(&self) -> Res<Vec<u8>> {
-        let mut buf = Vec::new();
-        buf.write_u8(self.key_id)?;
-        buf.write_u16::<NetworkEndian>(u16::from(self.kem))?;
-        let pk_buf = self.pk.key_data()?;
-        buf.extend_from_slice(&pk_buf);
-        buf.write_u16::<NetworkEndian>((self.symmetric.len() * 4).try_into()?)?;
-        for s in &self.symmetric {
-            buf.write_u16::<NetworkEndian>(u16::from(s.kdf()))?;
-            buf.write_u16::<NetworkEndian>(u16::from(s.aead()))?;
-        }
-        Ok(buf)
-    }
-
-    /// Construct a configuration from the encoded server configuration.
-    /// The format of `encoded_config` is the output of `Self::encode`.
-    fn parse(encoded_config: &[u8]) -> Res<Self> {
-        let mut r = BufReader::new(encoded_config);
-        let key_id = r.read_u8()?;
-        let kem = Kem::try_from(r.read_u16::<NetworkEndian>()?)?;
-
-        // Note that the KDF and AEAD doesn't matter here.
-        let kem_config = HpkeConfig::new(kem, Kdf::HkdfSha256, AeadId::Aes128Gcm);
-        if !kem_config.supported() {
-            return Err(Error::Unsupported);
-        }
-        let mut pk_buf = vec![0; kem_config.kem().n_pk()];
-        r.read_exact(&mut pk_buf)?;
-
-        let sym_len = r.read_u16::<NetworkEndian>()?;
-        let mut sym = vec![0; usize::from(sym_len)];
-        r.read_exact(&mut sym)?;
-        if sym.is_empty() || (sym.len() % 4 != 0) {
-            return Err(Error::Format);
-        }
-        let sym_count = sym.len() / 4;
-        let mut sym_r = BufReader::new(&sym[..]);
-        let mut symmetric = Vec::with_capacity(sym_count);
-        for _ in 0..sym_count {
-            let kdf = Kdf::try_from(sym_r.read_u16::<NetworkEndian>()?)?;
-            let aead = AeadId::try_from(sym_r.read_u16::<NetworkEndian>()?)?;
-            symmetric.push(SymmetricSuite::new(kdf, aead));
-        }
-
-        // Check that there was nothing extra.
-        let mut tmp = [0; 1];
-        if r.read(&mut tmp)? > 0 {
-            return Err(Error::Format);
-        }
-
-        Self::strip_unsupported(&mut symmetric, kem);
-        let pk = HpkeR::decode_public_key(kem_config.kem(), &pk_buf)?;
-
-        Ok(Self {
-            key_id,
-            kem,
-            symmetric,
-            sk: None,
-            pk,
-        })
-    }
-
-    fn select(&self, sym: SymmetricSuite) -> Res<HpkeConfig> {
-        if self.symmetric.contains(&sym) {
-            let config = HpkeConfig::new(self.kem, sym.kdf(), sym.aead());
-            Ok(config)
-        } else {
-            Err(Error::Unsupported)
-        }
-    }
 }
 
 /// Construct the info parameter we use to initialize an `HpkeS` instance.
@@ -270,11 +91,8 @@ pub struct ClientRequest {
 
 #[cfg(feature = "client")]
 impl ClientRequest {
-    /// Reads an encoded configuration and constructs a single use client sender.
-    /// See `KeyConfig::encode` for the structure details.
-    #[allow(clippy::similar_names)] // for `sk_s` and `pk_s`
-    pub fn new(encoded_config: &[u8]) -> Res<Self> {
-        let mut config = KeyConfig::parse(encoded_config)?;
+    /// Construct a `ClientRequest` from a specific `KeyConfig` instance.
+    pub fn from_config(config: &mut KeyConfig) -> Res<Self> {
         // TODO(mt) choose the best config, not just the first.
         let selected = config.select(config.symmetric[0])?;
 
@@ -285,6 +103,25 @@ impl ClientRequest {
         let header = Vec::from(&info[INFO_REQUEST.len() + 1..]);
         debug_assert_eq!(header.len(), REQUEST_HEADER_LEN);
         Ok(Self { hpke, header })
+    }
+
+    /// Reads an encoded configuration and constructs a single use client sender.
+    /// See `KeyConfig::decode` for the structure details.
+    pub fn from_encoded_config(encoded_config: &[u8]) -> Res<Self> {
+        let mut config = KeyConfig::decode(encoded_config)?;
+        Self::from_config(&mut config)
+    }
+
+    /// Reads an encoded list of configurations and constructs a single use client sender
+    /// from the first supported configuration.
+    /// See `KeyConfig::decode_list` for the structure details.
+    pub fn from_encoded_config_list(encoded_config_list: &[u8]) -> Res<Self> {
+        let mut configs = KeyConfig::decode_list(encoded_config_list)?;
+        if let Some(mut config) = configs.pop() {
+            Self::from_config(&mut config)
+        } else {
+            Err(Error::Unsupported)
+        }
     }
 
     /// Encapsulate a request.  This consumes this object.
@@ -312,6 +149,7 @@ impl ClientRequest {
 /// It holds a single key pair and can generate a configuration.
 /// (A more complex server would have multiple key pairs. This is simple.)
 #[cfg(feature = "server")]
+#[derive(Debug, Clone)]
 pub struct Server {
     config: KeyConfig,
 }
@@ -336,7 +174,7 @@ impl Server {
     /// # Panics
     /// Not as a consequence of this code, but Rust won't know that for sure.
     #[allow(clippy::similar_names)] // for kem_id and key_id
-    pub fn decapsulate(&mut self, enc_request: &[u8]) -> Res<(Vec<u8>, ServerResponse)> {
+    pub fn decapsulate(&self, enc_request: &[u8]) -> Res<(Vec<u8>, ServerResponse)> {
         if enc_request.len() < REQUEST_HEADER_LEN {
             return Err(Error::Truncated);
         }
@@ -364,7 +202,7 @@ impl Server {
         let mut hpke = HpkeR::new(
             cfg,
             &self.config.pk,
-            self.config.sk.as_mut().unwrap(),
+            self.config.sk.as_ref().unwrap(),
             &enc,
             &info,
         )?;
@@ -475,9 +313,10 @@ impl ClientResponse {
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod test {
     use crate::{
+        config::SymmetricSuite,
         err::Res,
         hpke::{Aead, Kdf, Kem},
-        ClientRequest, Error, KeyConfig, KeyId, Server, SymmetricSuite,
+        ClientRequest, Error, KeyConfig, KeyId, Server,
     };
     use log::trace;
     use std::{fmt::Debug, io::ErrorKind};
@@ -497,7 +336,7 @@ mod test {
 
     fn init() {
         crate::init();
-        let _ = env_logger::try_init();
+        _ = env_logger::try_init(); // ignore errors here
     }
 
     #[test]
@@ -505,11 +344,11 @@ mod test {
         init();
 
         let server_config = KeyConfig::new(KEY_ID, KEM, Vec::from(SYMMETRIC)).unwrap();
-        let mut server = Server::new(server_config).unwrap();
+        let server = Server::new(server_config).unwrap();
         let encoded_config = server.config().encode().unwrap();
         trace!("Config: {}", hex::encode(&encoded_config));
 
-        let client = ClientRequest::new(&encoded_config).unwrap();
+        let client = ClientRequest::from_encoded_config(&encoded_config).unwrap();
         let (enc_request, client_response) = client.encapsulate(REQUEST).unwrap();
         trace!("Request: {}", hex::encode(REQUEST));
         trace!("Encapsulated Request: {}", hex::encode(&enc_request));
@@ -530,12 +369,12 @@ mod test {
         init();
 
         let server_config = KeyConfig::new(KEY_ID, KEM, Vec::from(SYMMETRIC)).unwrap();
-        let mut server = Server::new(server_config).unwrap();
+        let server = Server::new(server_config).unwrap();
         let encoded_config = server.config().encode().unwrap();
 
-        let client1 = ClientRequest::new(&encoded_config).unwrap();
+        let client1 = ClientRequest::from_encoded_config(&encoded_config).unwrap();
         let (enc_request1, client_response1) = client1.encapsulate(REQUEST).unwrap();
-        let client2 = ClientRequest::new(&encoded_config).unwrap();
+        let client2 = ClientRequest::from_encoded_config(&encoded_config).unwrap();
         let (enc_request2, client_response2) = client2.encapsulate(REQUEST).unwrap();
         assert_ne!(enc_request1, enc_request2);
 
@@ -570,10 +409,10 @@ mod test {
         init();
 
         let server_config = KeyConfig::new(KEY_ID, KEM, Vec::from(SYMMETRIC)).unwrap();
-        let mut server = Server::new(server_config).unwrap();
+        let server = Server::new(server_config).unwrap();
         let encoded_config = server.config().encode().unwrap();
 
-        let client = ClientRequest::new(&encoded_config).unwrap();
+        let client = ClientRequest::from_encoded_config(&encoded_config).unwrap();
         let (enc_request, _) = client.encapsulate(REQUEST).unwrap();
 
         let res = server.decapsulate(&enc_request[..cut]);
@@ -601,10 +440,10 @@ mod test {
         init();
 
         let server_config = KeyConfig::new(KEY_ID, KEM, Vec::from(SYMMETRIC)).unwrap();
-        let mut server = Server::new(server_config).unwrap();
+        let server = Server::new(server_config).unwrap();
         let encoded_config = server.config().encode().unwrap();
 
-        let client = ClientRequest::new(&encoded_config).unwrap();
+        let client = ClientRequest::from_encoded_config(&encoded_config).unwrap();
         let (enc_request, client_response) = client.encapsulate(REQUEST).unwrap();
 
         let (request, server_response) = server.decapsulate(&enc_request).unwrap();
@@ -643,7 +482,7 @@ mod test {
 
         init();
 
-        let config = KeyConfig::parse(EXPECTED_CONFIG).unwrap();
+        let config = KeyConfig::decode(EXPECTED_CONFIG).unwrap();
 
         let new_config = KeyConfig::derive(KEY_ID, KEM, Vec::from(SYMMETRIC), IKM).unwrap();
         assert_eq!(config.key_id, new_config.key_id);
@@ -653,5 +492,32 @@ mod test {
         let server = Server::new(new_config).unwrap();
         let encoded_config = server.config().encode().unwrap();
         assert_eq!(EXPECTED_CONFIG, encoded_config);
+    }
+
+    #[test]
+    fn request_from_config_list() {
+        init();
+
+        let server_config = KeyConfig::new(KEY_ID, KEM, Vec::from(SYMMETRIC)).unwrap();
+        let server = Server::new(server_config).unwrap();
+        let encoded_config = server.config().encode().unwrap();
+
+        let mut header: [u8; 2] = [0; 2];
+        header[0] = u8::try_from((encoded_config.len() & 0xFF00) >> 8).unwrap();
+        header[1] = u8::try_from(encoded_config.len() & 0xFF).unwrap();
+        let mut encoded_config_list = Vec::new();
+        encoded_config_list.extend(header.to_vec());
+        encoded_config_list.extend(encoded_config);
+
+        let client = ClientRequest::from_encoded_config_list(&encoded_config_list).unwrap();
+        let (enc_request, client_response) = client.encapsulate(REQUEST).unwrap();
+
+        let (request, server_response) = server.decapsulate(&enc_request).unwrap();
+        assert_eq!(&request[..], REQUEST);
+
+        let enc_response = server_response.encapsulate(RESPONSE).unwrap();
+
+        let response = client_response.decapsulate(&enc_response).unwrap();
+        assert_eq!(&response[..], RESPONSE);
     }
 }

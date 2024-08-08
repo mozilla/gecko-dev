@@ -106,7 +106,7 @@ fn ohttp_upload(upload_request: PingUploadRequest) -> Result<UploadResult, Viadu
         ohttp::init();
     });
 
-    let ohttp_request = ohttp::ClientRequest::new(config)?;
+    let ohttp_request = ohttp::ClientRequest::from_encoded_config(config)?;
     let (capsule, ohttp_response) = ohttp_request.encapsulate(&binary_request)?;
 
     const OHTTP_RELAY_URL: &str = "https://mozilla-ohttp.fastly-edge.com/";

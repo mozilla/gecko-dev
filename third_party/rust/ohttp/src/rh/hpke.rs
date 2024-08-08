@@ -3,15 +3,23 @@ use crate::{
     hpke::{Aead, Kdf, Kem},
     Error, Res,
 };
-use ::hpke::{
-    aead::{AeadTag, AesGcm128, ChaCha20Poly1305},
+
+#[cfg(not(feature = "pq"))]
+use ::hpke as rust_hpke;
+
+#[cfg(feature = "pq")]
+use ::hpke_pq as rust_hpke;
+
+use rust_hpke::{
+    aead::{AeadCtxR, AeadCtxS, AeadTag, AesGcm128, ChaCha20Poly1305},
     kdf::HkdfSha256,
-    kem::{Kem as HpkeKem, X25519HkdfSha256},
-    kex::{KeyExchange, X25519},
-    op_mode::{OpModeR, OpModeS},
-    setup::{setup_receiver, setup_sender},
-    AeadCtxR, AeadCtxS, Deserializable, EncappedKey, Serializable,
+    kem::{Kem as KemTrait, X25519HkdfSha256},
+    setup_receiver, setup_sender, Deserializable, OpModeR, OpModeS, Serializable,
 };
+
+#[cfg(feature = "pq")]
+use rust_hpke::kem::X25519Kyber768Draft00;
+
 use ::rand::thread_rng;
 use log::trace;
 use std::ops::Deref;
@@ -57,8 +65,13 @@ impl Default for Config {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone)]
 pub enum PublicKey {
-    X25519(<<X25519HkdfSha256 as HpkeKem>::Kex as KeyExchange>::PublicKey),
+    X25519(<X25519HkdfSha256 as KemTrait>::PublicKey),
+
+    #[cfg(feature = "pq")]
+    X25519Kyber768Draft00(<X25519Kyber768Draft00 as KemTrait>::PublicKey),
 }
 
 impl PublicKey {
@@ -66,6 +79,9 @@ impl PublicKey {
     pub fn key_data(&self) -> Res<Vec<u8>> {
         Ok(match self {
             Self::X25519(k) => Vec::from(k.to_bytes().as_slice()),
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(k) => Vec::from(k.to_bytes().as_slice()),
         })
     }
 }
@@ -80,8 +96,13 @@ impl std::fmt::Debug for PublicKey {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone)]
 pub enum PrivateKey {
-    X25519(<<X25519HkdfSha256 as HpkeKem>::Kex as KeyExchange>::PrivateKey),
+    X25519(<X25519HkdfSha256 as KemTrait>::PrivateKey),
+
+    #[cfg(feature = "pq")]
+    X25519Kyber768Draft00(<X25519Kyber768Draft00 as KemTrait>::PrivateKey),
 }
 
 impl PrivateKey {
@@ -89,6 +110,9 @@ impl PrivateKey {
     pub fn key_data(&self) -> Res<Vec<u8>> {
         Ok(match self {
             Self::X25519(k) => Vec::from(k.to_bytes().as_slice()),
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(k) => Vec::from(k.to_bytes().as_slice()),
         })
     }
 }
@@ -110,12 +134,25 @@ enum SenderContextX25519HkdfSha256HkdfSha256 {
     ChaCha20Poly1305(Box<AeadCtxS<ChaCha20Poly1305, HkdfSha256, X25519HkdfSha256>>),
 }
 
+#[cfg(feature = "pq")]
+enum SenderContextX25519Kyber768Draft00HkdfSha256 {
+    AesGcm128(Box<AeadCtxS<AesGcm128, HkdfSha256, X25519Kyber768Draft00>>),
+}
+
 enum SenderContextX25519HkdfSha256 {
     HkdfSha256(SenderContextX25519HkdfSha256HkdfSha256),
 }
 
+#[cfg(feature = "pq")]
+enum SenderContextX25519Kyber768Draft00 {
+    HkdfSha256(SenderContextX25519Kyber768Draft00HkdfSha256),
+}
+
 enum SenderContext {
     X25519HkdfSha256(SenderContextX25519HkdfSha256),
+
+    #[cfg(feature = "pq")]
+    X25519Kyber768Draft00(SenderContextX25519Kyber768Draft00),
 }
 
 impl SenderContext {
@@ -124,13 +161,21 @@ impl SenderContext {
             Self::X25519HkdfSha256(SenderContextX25519HkdfSha256::HkdfSha256(
                 SenderContextX25519HkdfSha256HkdfSha256::AesGcm128(context),
             )) => {
-                let tag = context.seal(plaintext, aad)?;
+                let tag = context.seal_in_place_detached(plaintext, aad)?;
                 Vec::from(tag.to_bytes().as_slice())
             }
             Self::X25519HkdfSha256(SenderContextX25519HkdfSha256::HkdfSha256(
                 SenderContextX25519HkdfSha256HkdfSha256::ChaCha20Poly1305(context),
             )) => {
-                let tag = context.seal(plaintext, aad)?;
+                let tag = context.seal_in_place_detached(plaintext, aad)?;
+                Vec::from(tag.to_bytes().as_slice())
+            }
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(SenderContextX25519Kyber768Draft00::HkdfSha256(
+                SenderContextX25519Kyber768Draft00HkdfSha256::AesGcm128(context),
+            )) => {
+                let tag = context.seal_in_place_detached(plaintext, aad)?;
                 Vec::from(tag.to_bytes().as_slice())
             }
         })
@@ -145,6 +190,13 @@ impl SenderContext {
             }
             Self::X25519HkdfSha256(SenderContextX25519HkdfSha256::HkdfSha256(
                 SenderContextX25519HkdfSha256HkdfSha256::ChaCha20Poly1305(context),
+            )) => {
+                context.export(info, out_buf)?;
+            }
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(SenderContextX25519Kyber768Draft00::HkdfSha256(
+                SenderContextX25519Kyber768Draft00HkdfSha256::AesGcm128(context),
             )) => {
                 context.export(info, out_buf)?;
             }
@@ -171,7 +223,7 @@ impl HpkeS {
 
         macro_rules! dispatch_hpkes_new {
             {
-                ($c:expr, $pk:expr, $csprng:expr): [$({
+                ($c:expr, $pk:expr, $csprng:expr): [$( $(#[$meta:meta])* {
                     $kemid:path => $kem:path,
                     $kdfid:path => $kdf:path,
                     $aeadid:path => $aead:path,
@@ -180,6 +232,7 @@ impl HpkeS {
             } => {
                 match ($c, $pk) {
                     $(
+                        $(#[$meta])*
                         (
                             Config {
                                 kem: $kemid,
@@ -194,13 +247,17 @@ impl HpkeS {
                                 info,
                                 $csprng,
                             )?;
-                            ($ctxt1($ctxt2($ctxt3(Box::new(context)))), enc)
+                            (
+                                $ctxt1($ctxt2($ctxt3(Box::new(context)))),
+                                Vec::from(enc.to_bytes().as_slice()),
+                            )
                         }
                     )*
                     _ => return Err(Error::InvalidKeyType),
                 }
             };
         }
+
         let (context, enc) = dispatch_hpkes_new! { (config, pk_r, &mut csprng): [
             {
                 Kem::X25519Sha256 => X25519HkdfSha256,
@@ -220,8 +277,19 @@ impl HpkeS {
                 SenderContextX25519HkdfSha256::HkdfSha256,
                 SenderContextX25519HkdfSha256HkdfSha256::ChaCha20Poly1305,
             },
+
+            #[cfg(feature = "pq")]
+            {
+                Kem::X25519Kyber768Draft00 => X25519Kyber768Draft00,
+                Kdf::HkdfSha256 => HkdfSha256,
+                Aead::Aes128Gcm => AesGcm128,
+                PublicKey::X25519Kyber768Draft00,
+                SenderContext::X25519Kyber768Draft00,
+                SenderContextX25519Kyber768Draft00::HkdfSha256,
+                SenderContextX25519Kyber768Draft00HkdfSha256::AesGcm128,
+            },
         ]};
-        let enc = Vec::from(enc.to_bytes().as_slice());
+
         Ok(Self {
             context,
             enc,
@@ -267,12 +335,25 @@ enum ReceiverContextX25519HkdfSha256HkdfSha256 {
     ChaCha20Poly1305(Box<AeadCtxR<ChaCha20Poly1305, HkdfSha256, X25519HkdfSha256>>),
 }
 
+#[cfg(feature = "pq")]
+enum ReceiverContextX25519Kyber768Draft00HkdfSha256 {
+    AesGcm128(Box<AeadCtxR<AesGcm128, HkdfSha256, X25519Kyber768Draft00>>),
+}
+
 enum ReceiverContextX25519HkdfSha256 {
     HkdfSha256(ReceiverContextX25519HkdfSha256HkdfSha256),
 }
 
+#[cfg(feature = "pq")]
+enum ReceiverContextX25519Kyber768Draft00 {
+    HkdfSha256(ReceiverContextX25519Kyber768Draft00HkdfSha256),
+}
+
 enum ReceiverContext {
     X25519HkdfSha256(ReceiverContextX25519HkdfSha256),
+
+    #[cfg(feature = "pq")]
+    X25519Kyber768Draft00(ReceiverContextX25519Kyber768Draft00),
 }
 
 impl ReceiverContext {
@@ -284,10 +365,10 @@ impl ReceiverContext {
                 if ciphertext.len() < AeadTag::<AesGcm128>::size() {
                     return Err(Error::Truncated);
                 }
-                let (ct, tag) =
+                let (ct, tag_slice) =
                     ciphertext.split_at_mut(ciphertext.len() - AeadTag::<AesGcm128>::size());
-                let tag = AeadTag::<AesGcm128>::from_bytes(tag)?;
-                context.open(ct, aad, &tag)?;
+                let tag = AeadTag::<AesGcm128>::from_bytes(tag_slice)?;
+                context.open_in_place_detached(ct, aad, &tag)?;
                 ct
             }
             Self::X25519HkdfSha256(ReceiverContextX25519HkdfSha256::HkdfSha256(
@@ -296,10 +377,24 @@ impl ReceiverContext {
                 if ciphertext.len() < AeadTag::<ChaCha20Poly1305>::size() {
                     return Err(Error::Truncated);
                 }
-                let (ct, tag) =
+                let (ct, tag_slice) =
                     ciphertext.split_at_mut(ciphertext.len() - AeadTag::<ChaCha20Poly1305>::size());
-                let tag = AeadTag::<ChaCha20Poly1305>::from_bytes(tag)?;
-                context.open(ct, aad, &tag)?;
+                let tag = AeadTag::<ChaCha20Poly1305>::from_bytes(tag_slice)?;
+                context.open_in_place_detached(ct, aad, &tag)?;
+                ct
+            }
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(ReceiverContextX25519Kyber768Draft00::HkdfSha256(
+                ReceiverContextX25519Kyber768Draft00HkdfSha256::AesGcm128(context),
+            )) => {
+                if ciphertext.len() < AeadTag::<AesGcm128>::size() {
+                    return Err(Error::Truncated);
+                }
+                let (ct, tag_slice) =
+                    ciphertext.split_at_mut(ciphertext.len() - AeadTag::<AesGcm128>::size());
+                let tag = AeadTag::<AesGcm128>::from_bytes(tag_slice)?;
+                context.open_in_place_detached(ct, aad, &tag)?;
                 ct
             }
         })
@@ -314,6 +409,13 @@ impl ReceiverContext {
             }
             Self::X25519HkdfSha256(ReceiverContextX25519HkdfSha256::HkdfSha256(
                 ReceiverContextX25519HkdfSha256HkdfSha256::ChaCha20Poly1305(context),
+            )) => {
+                context.export(info, out_buf)?;
+            }
+
+            #[cfg(feature = "pq")]
+            Self::X25519Kyber768Draft00(ReceiverContextX25519Kyber768Draft00::HkdfSha256(
+                ReceiverContextX25519Kyber768Draft00HkdfSha256::AesGcm128(context),
             )) => {
                 context.export(info, out_buf)?;
             }
@@ -334,13 +436,13 @@ impl HpkeR {
     pub fn new(
         config: Config,
         _pk_r: &PublicKey,
-        sk_r: &mut PrivateKey,
+        sk_r: &PrivateKey,
         enc: &[u8],
         info: &[u8],
     ) -> Res<Self> {
         macro_rules! dispatch_hpker_new {
             {
-                ($c:ident, $sk:ident): [$({
+                ($c:ident, $sk:ident): [$( $(#[$meta:meta])* {
                     $kemid:path => $kem:path,
                     $kdfid:path => $kdf:path,
                     $aeadid:path => $aead:path,
@@ -349,6 +451,7 @@ impl HpkeR {
             } => {
                 match ($c, $sk) {
                     $(
+                        $(#[$meta])*
                         (
                             Config {
                                 kem: $kemid,
@@ -357,7 +460,7 @@ impl HpkeR {
                             },
                             $ske(sk_r),
                         ) => {
-                            let enc = EncappedKey::from_bytes(enc)?;
+                            let enc = <$kem as KemTrait>::EncappedKey::from_bytes(enc)?;
                             let context = setup_receiver::<$aead, $kdf, $kem>(
                                 &OpModeR::Base,
                                 sk_r,
@@ -390,7 +493,19 @@ impl HpkeR {
                 ReceiverContextX25519HkdfSha256::HkdfSha256,
                 ReceiverContextX25519HkdfSha256HkdfSha256::ChaCha20Poly1305,
             },
+
+            #[cfg(feature = "pq")]
+            {
+                Kem::X25519Kyber768Draft00 => X25519Kyber768Draft00,
+                Kdf::HkdfSha256 => HkdfSha256,
+                Aead::Aes128Gcm => AesGcm128,
+                PrivateKey::X25519Kyber768Draft00,
+                ReceiverContext::X25519Kyber768Draft00,
+                ReceiverContextX25519Kyber768Draft00::HkdfSha256,
+                ReceiverContextX25519Kyber768Draft00HkdfSha256::AesGcm128,
+            },
         ]};
+
         Ok(Self { context, config })
     }
 
@@ -401,8 +516,13 @@ impl HpkeR {
     pub fn decode_public_key(kem: Kem, k: &[u8]) -> Res<PublicKey> {
         Ok(match kem {
             Kem::X25519Sha256 => {
-                PublicKey::X25519(<X25519 as KeyExchange>::PublicKey::from_bytes(k)?)
+                PublicKey::X25519(<X25519HkdfSha256 as KemTrait>::PublicKey::from_bytes(k)?)
             }
+
+            #[cfg(feature = "pq")]
+            Kem::X25519Kyber768Draft00 => PublicKey::X25519Kyber768Draft00(
+                <X25519Kyber768Draft00 as KemTrait>::PublicKey::from_bytes(k)?,
+            ),
         })
     }
 
@@ -438,6 +558,15 @@ pub fn generate_key_pair(kem: Kem) -> Res<(PrivateKey, PublicKey)> {
             let (sk, pk) = X25519HkdfSha256::gen_keypair(&mut csprng);
             (PrivateKey::X25519(sk), PublicKey::X25519(pk))
         }
+
+        #[cfg(feature = "pq")]
+        Kem::X25519Kyber768Draft00 => {
+            let (sk, pk) = X25519Kyber768Draft00::gen_keypair(&mut csprng);
+            (
+                PrivateKey::X25519Kyber768Draft00(sk),
+                PublicKey::X25519Kyber768Draft00(pk),
+            )
+        }
     };
     trace!("Generated key pair: sk={:?} pk={:?}", sk, pk);
     Ok((sk, pk))
@@ -450,6 +579,15 @@ pub fn derive_key_pair(kem: Kem, ikm: &[u8]) -> Res<(PrivateKey, PublicKey)> {
             let (sk, pk) = X25519HkdfSha256::derive_keypair(ikm);
             (PrivateKey::X25519(sk), PublicKey::X25519(pk))
         }
+
+        #[cfg(feature = "pq")]
+        Kem::X25519Kyber768Draft00 => {
+            let (sk, pk) = X25519Kyber768Draft00::derive_keypair(ikm);
+            (
+                PrivateKey::X25519Kyber768Draft00(sk),
+                PublicKey::X25519Kyber768Draft00(pk),
+            )
+        }
     };
     trace!("Derived key pair: sk={:?} pk={:?}", sk, pk);
     Ok((sk, pk))
@@ -458,7 +596,10 @@ pub fn derive_key_pair(kem: Kem, ikm: &[u8]) -> Res<(PrivateKey, PublicKey)> {
 #[cfg(test)]
 mod test {
     use super::{generate_key_pair, Config, HpkeR, HpkeS};
-    use crate::{hpke::Aead, init};
+    use crate::{
+        hpke::{Aead, Kem},
+        init,
+    };
 
     const INFO: &[u8] = b"info";
     const AAD: &[u8] = b"aad";
@@ -469,21 +610,22 @@ mod test {
     fn make() {
         init();
         let cfg = Config::default();
-        let (mut sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
+        let (sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
         let hpke_s = HpkeS::new(cfg, &mut pk_r, INFO).unwrap();
-        let _hpke_r = HpkeR::new(cfg, &pk_r, &mut sk_r, &hpke_s.enc().unwrap(), INFO).unwrap();
+        let _hpke_r = HpkeR::new(cfg, &pk_r, &sk_r, &hpke_s.enc().unwrap(), INFO).unwrap();
     }
 
     #[allow(clippy::similar_names)] // for sk_x and pk_x
-    fn seal_open(aead: Aead) {
+    fn seal_open(aead: Aead, kem: Kem) {
         // Setup
         init();
         let cfg = Config {
+            kem,
             aead,
             ..Config::default()
         };
         assert!(cfg.supported());
-        let (mut sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
+        let (sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
 
         // Send
         let mut hpke_s = HpkeS::new(cfg, &mut pk_r, INFO).unwrap();
@@ -491,18 +633,24 @@ mod test {
         let ct = hpke_s.seal(AAD, PT).unwrap();
 
         // Receive
-        let mut hpke_r = HpkeR::new(cfg, &pk_r, &mut sk_r, &enc, INFO).unwrap();
+        let mut hpke_r = HpkeR::new(cfg, &pk_r, &sk_r, &enc, INFO).unwrap();
         let pt = hpke_r.open(AAD, &ct).unwrap();
         assert_eq!(&pt[..], PT);
     }
 
     #[test]
     fn seal_open_gcm() {
-        seal_open(Aead::Aes128Gcm);
+        seal_open(Aead::Aes128Gcm, Kem::X25519Sha256);
     }
 
     #[test]
     fn seal_open_chacha() {
-        seal_open(Aead::ChaCha20Poly1305);
+        seal_open(Aead::ChaCha20Poly1305, Kem::X25519Sha256);
+    }
+
+    #[cfg(feature = "pq")]
+    #[test]
+    fn seal_open_xyber768d00() {
+        seal_open(Aead::Aes128Gcm, Kem::X25519Kyber768Draft00);
     }
 }

@@ -86,6 +86,8 @@ impl HpkeContext {
     }
 }
 
+unsafe impl Send for HpkeContext {}
+
 impl Exporter for HpkeContext {
     fn export(&self, info: &[u8], len: usize) -> Res<SymKey> {
         let mut out: *mut sys::PK11SymKey = null_mut();
@@ -168,7 +170,7 @@ impl HpkeR {
     pub fn new(
         config: Config,
         pk_r: &PublicKey,
-        sk_r: &mut PrivateKey,
+        sk_r: &PrivateKey,
         enc: &[u8],
         info: &[u8],
     ) -> Res<Self> {
@@ -290,7 +292,7 @@ pub fn generate_key_pair(kem: Kem) -> Res<(PrivateKey, PublicKey)> {
 
 #[cfg(test)]
 mod test {
-    use super::{generate_key_pair, Config, HpkeR, HpkeS};
+    use super::{generate_key_pair, Config, HpkeContext, HpkeR, HpkeS};
     use crate::{hpke::Aead, init};
 
     const INFO: &[u8] = b"info";
@@ -302,9 +304,9 @@ mod test {
     fn make() {
         init();
         let cfg = Config::default();
-        let (mut sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
+        let (sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
         let hpke_s = HpkeS::new(cfg, &mut pk_r, INFO).unwrap();
-        let _hpke_r = HpkeR::new(cfg, &pk_r, &mut sk_r, &hpke_s.enc().unwrap(), INFO).unwrap();
+        let _hpke_r = HpkeR::new(cfg, &pk_r, &sk_r, &hpke_s.enc().unwrap(), INFO).unwrap();
     }
 
     #[allow(clippy::similar_names)] // for sk_x and pk_x
@@ -316,7 +318,7 @@ mod test {
             ..Config::default()
         };
         assert!(cfg.supported());
-        let (mut sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
+        let (sk_r, mut pk_r) = generate_key_pair(cfg.kem()).unwrap();
 
         // Send
         let mut hpke_s = HpkeS::new(cfg, &mut pk_r, INFO).unwrap();
@@ -324,7 +326,7 @@ mod test {
         let ct = hpke_s.seal(AAD, PT).unwrap();
 
         // Receive
-        let mut hpke_r = HpkeR::new(cfg, &pk_r, &mut sk_r, &enc, INFO).unwrap();
+        let mut hpke_r = HpkeR::new(cfg, &pk_r, &sk_r, &enc, INFO).unwrap();
         let pt = hpke_r.open(AAD, &ct).unwrap();
         assert_eq!(&pt[..], PT);
     }
@@ -337,5 +339,20 @@ mod test {
     #[test]
     fn seal_open_chacha() {
         seal_open(Aead::ChaCha20Poly1305);
+    }
+
+    #[test]
+    fn send_hpkecontext() {
+        use std::{sync::mpsc, thread};
+
+        let (tx, rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            let context = HpkeContext::new(Config::default());
+            tx.send(context).unwrap();
+        });
+
+        let context = rx.recv().unwrap();
+        drop(context);
     }
 }

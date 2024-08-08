@@ -44,6 +44,8 @@ unsafe fn destroy_aead_context(ctx: *mut PK11Context) {
 }
 scoped_ptr!(Context, PK11Context, destroy_aead_context);
 
+unsafe impl Send for Context {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Encrypt,

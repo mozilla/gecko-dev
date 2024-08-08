@@ -10,9 +10,12 @@ pub enum Error {
     Crypto(#[from] crate::nss::Error),
     #[error("an error was found in the format")]
     Format,
+    #[cfg(all(feature = "rust-hpke", not(feature = "pq")))]
     #[error("a problem occurred with HPKE: {0}")]
-    #[cfg(feature = "rust-hpke")]
     Hpke(#[from] ::hpke::HpkeError),
+    #[cfg(all(feature = "rust-hpke", feature = "pq"))]
+    #[error("a problem occurred with HPKE: {0}")]
+    Hpke(#[from] ::hpke_pq::HpkeError),
     #[error("an internal error occurred")]
     Internal,
     #[error("the wrong type of key was provided for the selected KEM")]

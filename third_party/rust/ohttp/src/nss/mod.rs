@@ -11,7 +11,7 @@ pub mod aead;
 pub mod hkdf;
 pub mod hpke;
 
-pub use self::p11::{random, PrivateKey, PublicKey, SymKey};
+pub use self::p11::{random, PrivateKey, PublicKey};
 use err::secstatus_to_res;
 pub use err::Error;
 use lazy_static::lazy_static;
@@ -37,7 +37,7 @@ enum NssLoaded {
 
 impl Drop for NssLoaded {
     fn drop(&mut self) {
-        if *self == Self::NoDb {
+        if matches!(self, Self::NoDb) {
             unsafe {
                 secstatus_to_res(nss_init::NSS_Shutdown()).expect("NSS Shutdown failed");
             }

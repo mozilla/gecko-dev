@@ -373,8 +373,8 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.ohttp]]
-version = "0.3.1"
-when = "2023-02-23"
+version = "0.5.1"
+when = "2024-01-10"
 user-id = 128763
 user-login = "martinthomson"
 user-name = "Martin Thomson"
@@ -558,6 +558,13 @@ when = "2024-01-19"
 user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
+
+[[publisher.syn]]
+version = "1.0.109"
+when = "2023-02-24"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
 
 [[publisher.syn]]
 version = "2.0.68"
@@ -1124,6 +1131,12 @@ who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 delta = "0.31.1 -> 0.32.0"
 notes = "Various new features and refactorings as one would expect from an object parsing crate, all looks good."
+
+[[audits.bytecode-alliance.audits.peeking_take_while]]
+who = "Nick Fitzgerald <fitzgen@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+notes = "I am the author of this crate."
 
 [[audits.bytecode-alliance.audits.percent-encoding]]
 who = "Alex Crichton <alex@alexcrichton.com>"

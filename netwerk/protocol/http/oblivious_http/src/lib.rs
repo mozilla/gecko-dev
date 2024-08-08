@@ -110,7 +110,7 @@ impl ObliviousHttpServer {
         &self,
         enc_request: &ThinVec<u8>,
     ) -> Result<RefPtr<nsIObliviousHttpServerResponse>, nsresult> {
-        let mut server = self.server.borrow_mut();
+        let server = self.server.borrow_mut();
         let (request, server_response) = server
             .decapsulate(enc_request)
             .map_err(|_| NS_ERROR_FAILURE)?;
@@ -138,7 +138,7 @@ impl ObliviousHttp {
     ) -> Result<RefPtr<nsIObliviousHttpClientRequest>, nsresult> {
         ohttp::init();
 
-        let client = ClientRequest::new(encoded_config).map_err(|_| NS_ERROR_FAILURE)?;
+        let client = ClientRequest::from_encoded_config(encoded_config).map_err(|_| NS_ERROR_FAILURE)?;
         let (enc_request, response) = client.encapsulate(request).map_err(|_| NS_ERROR_FAILURE)?;
         let oblivious_http_client_response =
             ObliviousHttpClientResponse::allocate(InitObliviousHttpClientResponse {

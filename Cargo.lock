@@ -435,7 +435,7 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.63.999"
+version = "0.64.999"
 dependencies = [
  "bindgen 0.69.4",
 ]
@@ -4344,11 +4344,11 @@ dependencies = [
 
 [[package]]
 name = "ohttp"
-version = "0.3.1"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "850ce328ec7e4dc1a9446c56aef700d21d914268c8529b96017a2bf10f74b70f"
+checksum = "578cb11a3fb5c85697ed8bb850d5ad1cbf819d3eea05c2b253cf1d240fbb10c5"
 dependencies = [
- "bindgen 0.63.999",
+ "bindgen 0.64.999",
  "byteorder",
  "hex",
  "lazy_static",

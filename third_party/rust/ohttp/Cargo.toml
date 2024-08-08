@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "ohttp"
-version = "0.3.1"
+version = "0.5.1"
 authors = ["Martin Thomson <mt@lowentropy.net>"]
 build = "build.rs"
 description = "Oblivious HTTP"
@@ -44,10 +44,24 @@ version = "0.11"
 optional = true
 
 [dependencies.hpke]
-version = "0.7"
-features = ["std"]
+version = "0.10.0"
+features = [
+    "std",
+    "x25519",
+]
 optional = true
 default-features = false
+
+[dependencies.hpke-pq]
+version = "0.10.1"
+features = [
+    "std",
+    "x25519",
+    "xyber768d00",
+]
+optional = true
+default-features = false
+package = "hpke_pq"
 
 [dependencies.lazy_static]
 version = "1.4"
@@ -72,7 +86,7 @@ version = "0.9"
 default-features = false
 
 [build-dependencies.bindgen]
-version = "0.63"
+version = "0.64"
 features = ["runtime"]
 optional = true
 default-features = false
@@ -91,21 +105,27 @@ version = "1.0"
 version = "0.5"
 
 [features]
+app-svc = ["nss"]
 client = []
 default = [
     "client",
     "server",
     "rust-hpke",
 ]
-gecko = ["mozbuild"]
+external-sqlite = []
+gecko = [
+    "nss",
+    "mozbuild",
+]
 nss = ["bindgen"]
+pq = ["hpke-pq"]
 rust-hpke = [
-    "hpke/x25519",
     "rand",
     "aead",
     "aes-gcm",
     "chacha20poly1305",
     "hkdf",
     "sha2",
+    "hpke",
 ]
 server = []
