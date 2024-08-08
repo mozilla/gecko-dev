@@ -6322,6 +6322,17 @@ bool WarpCacheIRTranspiler::emitAssertPropertyLookup(ObjOperandId objId,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitAssertFloat32Result(ValOperandId valId,
+                                                    bool mustBeFloat32) {
+  MDefinition* val = getOperand(valId);
+
+  auto* assert = MAssertFloat32::New(alloc(), val, mustBeFloat32);
+  addEffectful(assert);
+
+  pushResult(constant(UndefinedValue()));
+  return resumeAfter(assert);
+}
+
 bool WarpCacheIRTranspiler::emitAssertRecoveredOnBailoutResult(
     ValOperandId valId, bool mustBeRecovered) {
   MDefinition* val = getOperand(valId);

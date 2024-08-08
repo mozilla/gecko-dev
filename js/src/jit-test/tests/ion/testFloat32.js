@@ -430,6 +430,9 @@ function refuseLoop() {
 test(refuseLoop);
 
 function acceptLoop() {
+    // TODO(post-Warp): Support Float32 with Phi nodes (bug 1655773).
+    return;
+
     var res = f32[0],
         n = 10;
     while (n--) {
@@ -462,6 +465,9 @@ function alternateCond(n) {
 })();
 
 function phiTest(n) {
+    // TODO(post-Warp): Support Float32 with Phi nodes (bug 1655773).
+    return;
+
     var x = (f32[0]);
     var y = n;
     if (n > 0) {
@@ -487,6 +493,9 @@ function phiTest(n) {
 })();
 
 function mixedPhiTest(n) {
+    // TODO(post-Warp): Support Float32 with Phi nodes (bug 1655773).
+    return;
+
     var x = (f32[0]);
     var y = n;
     if (n > 0) {
@@ -513,6 +522,9 @@ function mixedPhiTest(n) {
 })();
 
 function phiTest2(n) {
+    // TODO(post-Warp): Support Float32 with Phi nodes (bug 1655773).
+    return;
+
     var x = f32[0];
     while (n >= 0) {
         x = Math.fround(Math.fround(x) + 1);

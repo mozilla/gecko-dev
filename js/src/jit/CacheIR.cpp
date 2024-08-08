@@ -9764,16 +9764,19 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAssertFloat32() {
     return AttachDecision::NoAction;
   }
 
+  // (Fuzzing unsafe) testing function which must be called with a constant
+  // boolean as its second argument.
+  bool mustBeFloat32 = args_[1].toBoolean();
+
   // Initialize the input operand.
   initializeInputOperand();
 
   // Guard callee is the 'assertFloat32' native function.
   emitNativeCalleeGuard();
 
-  // TODO: Warp doesn't yet optimize Float32 (bug 1655773).
+  ValOperandId valId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
 
-  // NOP when not in IonMonkey.
-  writer.loadUndefinedResult();
+  writer.assertFloat32Result(valId, mustBeFloat32);
   writer.returnFromIC();
 
   trackAttached("AssertFloat32");
