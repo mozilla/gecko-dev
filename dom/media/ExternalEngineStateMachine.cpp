@@ -881,7 +881,6 @@ void ExternalEngineStateMachine::RunningEngineUpdate(MediaData::Type aType) {
 void ExternalEngineStateMachine::OnRequestAudio() {
   AssertOnTaskQueue();
   MOZ_ASSERT(mState.IsRunningEngine() || mState.IsSeekingData());
-  LOGV("OnRequestAudio");
 
   if (!HasAudio()) {
     return;
@@ -895,7 +894,6 @@ void ExternalEngineStateMachine::OnRequestAudio() {
     return;
   }
 
-  LOGV("Start requesting audio");
   PerformanceRecorder<PlaybackStage> perfRecorder(MediaStage::RequestData);
   RefPtr<ExternalEngineStateMachine> self = this;
   mReader->RequestAudioData()
@@ -905,7 +903,6 @@ void ExternalEngineStateMachine::OnRequestAudio() {
               const RefPtr<AudioData>& aAudio) mutable {
             perfRecorder.Record();
             mAudioDataRequest.Complete();
-            LOGV("Completed requesting audio");
             AUTO_PROFILER_LABEL(
                 "ExternalEngineStateMachine::OnRequestAudio:Resolved",
                 MEDIA_PLAYBACK);
@@ -945,7 +942,6 @@ void ExternalEngineStateMachine::OnRequestAudio() {
 void ExternalEngineStateMachine::OnRequestVideo() {
   AssertOnTaskQueue();
   MOZ_ASSERT(mState.IsRunningEngine() || mState.IsSeekingData());
-  LOGV("OnRequestVideo");
 
   if (!HasVideo()) {
     return;
@@ -959,7 +955,6 @@ void ExternalEngineStateMachine::OnRequestVideo() {
     return;
   }
 
-  LOGV("Start requesting video");
   PerformanceRecorder<PlaybackStage> perfRecorder(MediaStage::RequestData,
                                                   Info().mVideo.mImage.height);
   RefPtr<ExternalEngineStateMachine> self = this;
@@ -970,7 +965,6 @@ void ExternalEngineStateMachine::OnRequestVideo() {
               const RefPtr<VideoData>& aVideo) mutable {
             perfRecorder.Record();
             mVideoDataRequest.Complete();
-            LOGV("Completed requesting video");
             AUTO_PROFILER_LABEL(
                 "ExternalEngineStateMachine::OnRequestVideo:Resolved",
                 MEDIA_PLAYBACK);
