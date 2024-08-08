@@ -13,8 +13,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 ChromeUtils.defineLazyGetter(
   lazy,
@@ -88,12 +86,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatShortcutsCustom",
   "browser.ml.chat.shortcuts.custom"
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "chatShortcutsDebounce",
-  "browser.ml.chat.shortcutsDebounce",
-  200
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -329,7 +321,7 @@ export const GenAI = {
       case "GenAI:HideShortcuts":
         hide();
         break;
-      case "GenAI:SelectionChange":
+      case "GenAI:ShowShortcuts": {
         // Add shortcuts to the current tab's brower stack if it doesn't exist
         if (!shortcuts) {
           shortcuts = stack.appendChild(document.createElement("div"));
@@ -392,36 +384,29 @@ export const GenAI = {
           });
         }
 
-        // Immediately hide shortcuts and debounce multiple selection changes
-        hide();
-        if (shortcuts.timeout) {
-          lazy.clearTimeout(shortcuts.timeout);
-        }
-        // Save the latest selection so it can be used by timeout and popup
+        // Save the latest selection so it can be used by popup
         shortcuts.selection = data.selection;
-        shortcuts.timeout = lazy.setTimeout(() => {
-          // Pref might have changed since the timeout started
-          if (!lazy.chatShortcuts || shortcuts.hasAttribute("shown")) {
-            return;
-          }
+        if (shortcuts.hasAttribute("shown")) {
+          return;
+        }
 
-          shortcuts.toggleAttribute("shown");
-          Glean.genaiChatbot.shortcutsDisplayed.record({
-            selection: shortcuts.selection.length,
-          });
+        shortcuts.toggleAttribute("shown");
+        Glean.genaiChatbot.shortcutsDisplayed.record({
+          selection: shortcuts.selection.length,
+        });
 
-          // Position the shortcuts relative to the browser's top-left corner
-          const rect = browser.getBoundingClientRect();
-          shortcuts.style.setProperty(
-            "--shortcuts-x",
-            data.x - window.screenX - rect.x + "px"
-          );
-          shortcuts.style.setProperty(
-            "--shortcuts-y",
-            data.y - window.screenY - rect.y + "px"
-          );
-        }, lazy.chatShortcutsDebounce);
+        // Position the shortcuts relative to the browser's top-left corner
+        const rect = browser.getBoundingClientRect();
+        shortcuts.style.setProperty(
+          "--shortcuts-x",
+          data.x - window.screenX - rect.x + "px"
+        );
+        shortcuts.style.setProperty(
+          "--shortcuts-y",
+          data.y - window.screenY - rect.y + "px"
+        );
         break;
+      }
     }
   },
 
