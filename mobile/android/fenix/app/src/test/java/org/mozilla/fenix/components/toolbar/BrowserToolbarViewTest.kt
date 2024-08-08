@@ -285,4 +285,18 @@ class BrowserToolbarViewTest {
 
         verify { behavior.forceCollapse(toolbarView.layout) }
     }
+
+    @Test
+    fun `enable scrolling is forwarded to the toolbar behavior`() {
+        toolbarView.enableScrolling()
+
+        verify { behavior.enableScrolling() }
+    }
+
+    @Test
+    fun `disable scrolling is forwarded to the toolbar behavior`() {
+        toolbarView.disableScrolling()
+
+        verify { behavior.disableScrolling() }
+    }
 }
