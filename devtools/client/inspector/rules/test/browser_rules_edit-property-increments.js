@@ -9,11 +9,6 @@
 // Bug 1275446 - This test happen to hit the default timeout on linux32
 requestLongerTimeout(2);
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
-});
-
 const TEST_URI = `
   <style>
     #test {
@@ -749,72 +744,4 @@ async function testCssVariableIncrements(view) {
       selectAll: true,
     },
   });
-}
-
-async function runIncrementTest(propertyEditor, view, tests) {
-  propertyEditor.valueSpan.scrollIntoView();
-  const editor = await focusEditableField(view, propertyEditor.valueSpan);
-
-  for (const test in tests) {
-    await testIncrement(editor, tests[test], view, propertyEditor);
-  }
-
-  // Blur the field to put back the UI in its initial state (and avoid pending
-  // requests when the test ends).
-  const onRuleViewChanged = view.once("ruleview-changed");
-  EventUtils.synthesizeKey("VK_ESCAPE", {}, view.styleWindow);
-  view.debounce.flush();
-  await onRuleViewChanged;
-}
-
-async function testIncrement(editor, options, view) {
-  editor.input.value = options.start;
-  const input = editor.input;
-
-  if (options.selectAll) {
-    input.select();
-  } else if (options.selection) {
-    input.setSelectionRange(options.selection[0], options.selection[1]);
-  }
-
-  is(input.value, options.start, "Value initialized at " + options.start);
-
-  const onRuleViewChanged = view.once("ruleview-changed");
-  const onKeyUp = once(input, "keyup");
-
-  let key;
-  key = options.down ? "VK_DOWN" : "VK_UP";
-  if (options.pageDown) {
-    key = "VK_PAGE_DOWN";
-  } else if (options.pageUp) {
-    key = "VK_PAGE_UP";
-  }
-
-  let smallIncrementKey = { ctrlKey: options.ctrl };
-  if (lazy.AppConstants.platform === "macosx") {
-    smallIncrementKey = { altKey: options.alt };
-  }
-
-  EventUtils.synthesizeKey(
-    key,
-    { ...smallIncrementKey, shiftKey: options.shift },
-    view.styleWindow
-  );
-
-  await onKeyUp;
-
-  // Only expect a change if the value actually changed!
-  if (options.start !== options.end) {
-    view.debounce.flush();
-    await onRuleViewChanged;
-  }
-
-  is(input.value, options.end, "Value changed to " + options.end);
-}
-
-function getSmallIncrementKey() {
-  if (lazy.AppConstants.platform === "macosx") {
-    return { alt: true };
-  }
-  return { ctrl: true };
 }

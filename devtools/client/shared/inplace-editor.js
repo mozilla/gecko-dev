@@ -369,6 +369,7 @@ class InplaceEditor extends EventEmitter {
       this.#onKeyPress,
       eventListenerConfig
     );
+    this.input.addEventListener("wheel", this.#onWheel, eventListenerConfig);
     this.input.addEventListener("input", this.#onInput, eventListenerConfig);
     this.input.addEventListener(
       "dblclick",
@@ -1436,41 +1437,59 @@ class InplaceEditor extends EventEmitter {
   }
 
   /**
-   * Get the increment/decrement step to use for the provided key event.
+   * Get the increment/decrement step to use for the provided key or wheel
+   * event.
+   *
+   * @param {Event} event
+   *        The event from which the increment should be comuted
+   * @return {number} The computed increment value.
    */
   #getIncrement(event) {
-    const getSmallIncrementKey = evt => {
-      if (isOSX) {
-        return evt.altKey;
-      }
-      return evt.ctrlKey;
-    };
-
     const largeIncrement = 100;
     const mediumIncrement = 10;
     const smallIncrement = 0.1;
 
     let increment = 0;
+
+    let wheelUp = false;
+    let wheelDown = false;
+    if (event.type === "wheel") {
+      if (event.wheelDelta > 0) {
+        wheelUp = true;
+      } else if (event.wheelDelta < 0) {
+        wheelDown = true;
+      }
+    }
+
     const key = event.keyCode;
 
-    if (isKeyIn(key, "UP", "PAGE_UP")) {
+    if (wheelUp || isKeyIn(key, "UP", "PAGE_UP")) {
       increment = 1 * this.defaultIncrement;
-    } else if (isKeyIn(key, "DOWN", "PAGE_DOWN")) {
+    } else if (wheelDown || isKeyIn(key, "DOWN", "PAGE_DOWN")) {
       increment = -1 * this.defaultIncrement;
     }
 
-    if (event.shiftKey && !getSmallIncrementKey(event)) {
+    const largeIncrementKeyPressed = event.shiftKey;
+    const smallIncrementKeyPressed = this.#isSmallIncrementKeyPressed(event);
+    if (largeIncrementKeyPressed && !smallIncrementKeyPressed) {
       if (isKeyIn(key, "PAGE_UP", "PAGE_DOWN")) {
         increment *= largeIncrement;
       } else {
         increment *= mediumIncrement;
       }
-    } else if (getSmallIncrementKey(event) && !event.shiftKey) {
+    } else if (smallIncrementKeyPressed && !largeIncrementKeyPressed) {
       increment *= smallIncrement;
     }
 
     return increment;
   }
+
+  #isSmallIncrementKeyPressed = evt => {
+    if (isOSX) {
+      return evt.altKey;
+    }
+    return evt.ctrlKey;
+  };
 
   /**
    * Handle the input field's keyup event.
@@ -1499,6 +1518,24 @@ class InplaceEditor extends EventEmitter {
     // In case that the current value becomes empty, show the suggestions if needed.
     if (this.currentInputValue === "" && this.showSuggestCompletionOnEmpty) {
       this.#maybeSuggestCompletion(false);
+    }
+  };
+
+  /**
+   * Handle the input field's wheel event.
+   *
+   * @param {WheelEvent} event
+   */
+  #onWheel = event => {
+    const isPlainText = this.contentType == CONTENT_TYPES.PLAIN_TEXT;
+    let increment = 0;
+    if (!isPlainText) {
+      increment = this.#getIncrement(event);
+    }
+
+    if (increment && this.#incrementValue(increment)) {
+      this.#updateSize();
+      event.preventDefault();
     }
   };
 

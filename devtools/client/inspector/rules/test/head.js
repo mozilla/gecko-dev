@@ -1210,3 +1210,140 @@ function getRuleViewAncestorRulesDataElementByIndex(view, ruleIndex) {
 function getRuleViewAncestorRulesDataTextByIndex(view, ruleIndex) {
   return getRuleViewAncestorRulesDataElementByIndex(view, ruleIndex)?.innerText;
 }
+
+/**
+ * Runs a sequence of tests against the provided property editor.
+ *
+ * @param {TextPropertyEditor} propertyEditor
+ *     The TextPropertyEditor instance to test.
+ * @param {RuleView} view
+ *     The RuleView which owns the propertyEditor.
+ * @param {Array<object>} test
+ *     The array of tests to run.
+ */
+async function runIncrementTest(propertyEditor, view, tests) {
+  propertyEditor.valueSpan.scrollIntoView();
+  const editor = await focusEditableField(view, propertyEditor.valueSpan);
+
+  for (const testIndex in tests) {
+    await testIncrement(editor, view, tests[testIndex], testIndex);
+  }
+
+  // Blur the field to put back the UI in its initial state (and avoid pending
+  // requests when the test ends).
+  const onRuleViewChanged = view.once("ruleview-changed");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, view.styleWindow);
+  view.debounce.flush();
+  await onRuleViewChanged;
+}
+
+/**
+ * Individual test runner for increment tests used via runIncrementTest in
+ * browser_rules_edit-property-increments.js and similar tests.
+ *
+ * Will attempt to increment the value of the provided inplace editor based on
+ * the test options provided.
+ *
+ * @param {InplaceEditor} editor
+ *     The InplaceEditor instance to test.
+ * @param {RuleView} view
+ *     The RuleView which owns the editor.
+ * @param {object} test
+ * @param {boolean=} test.alt
+ *     Whether alt should be depressed.
+ * @param {boolean=} test.ctrl
+ *     Whether ctrl should be depressed.
+ * @param {number=} test.deltaX
+ *     Only relevant if test.wheel=true, value of the wheel delta on the horizontal axis.
+ * @param {number=} test.deltaY
+ *     Only relevant if test.wheel=true, value of the wheel delta on the vertical axis.
+ * @param {boolean=} test.down
+ *     For key increment tests, whether this should simulate pressing the down
+ *     arrow, or the up arrow. down, pagedown and pageup are mutually exclusive.
+ * @param {string} test.end
+ *     The expected value at the end of the test.
+ * @param {boolean=} test.pagedown
+ *     For key increment tests, whether this should simulate pressing the
+ *     pagedown key. down, pagedown and pageup are mutually exclusive.
+ * @param {boolean=} test.pageup
+ *     For key increment tests, whether this should simulate pressing the
+ *     pageup key. down, pagedown and pageup are mutually exclusive.
+ * @param {boolean=} test.selectAll
+ *     Whether all the input text should be selected. You can also specify a
+ *     range with test.selection.
+ * @param {Array<number>=} test.selection
+ *     An array of two numbers which corresponds to the initial selection range.
+ * @param {boolean=} test.shift
+ *     Whether shift should be depressed.
+ * @param {string} test.start
+ *     The input value at the beginning of the test.
+ * @param {boolean=} test.wheel
+ *     True if the test should use wheel events to increment the value.
+ * @param {number} testIndex
+ *     The test index, used for logging.
+ */
+async function testIncrement(editor, view, test, testIndex) {
+  editor.input.value = test.start;
+  const input = editor.input;
+
+  if (test.selectAll) {
+    input.select();
+  } else if (test.selection) {
+    input.setSelectionRange(test.selection[0], test.selection[1]);
+  }
+
+  is(input.value, test.start, "Value initialized at " + test.start);
+
+  const onRuleViewChanged = view.once("ruleview-changed");
+
+  let smallIncrementKey = { ctrlKey: test.ctrl };
+  if (AppConstants.platform === "macosx") {
+    smallIncrementKey = { altKey: test.alt };
+  }
+
+  const options = {
+    shiftKey: test.shift,
+    ...smallIncrementKey,
+  };
+
+  if (test.wheel) {
+    // If test.wheel is true, we should increment the value using the wheel.
+    const onWheel = once(input, "wheel");
+    input.dispatchEvent(
+      new view.styleWindow.WheelEvent("wheel", {
+        deltaX: test.deltaX,
+        deltaY: test.deltaY,
+        deltaMode: 0,
+        ...options,
+      })
+    );
+    await onWheel;
+  } else {
+    let key;
+    key = test.down ? "VK_DOWN" : "VK_UP";
+    if (test.pageDown) {
+      key = "VK_PAGE_DOWN";
+    } else if (test.pageUp) {
+      key = "VK_PAGE_UP";
+    }
+    const onKeyUp = once(input, "keyup");
+    EventUtils.synthesizeKey(key, options, view.styleWindow);
+
+    await onKeyUp;
+  }
+
+  // Only expect a change if the value actually changed!
+  if (test.start !== test.end) {
+    view.debounce.flush();
+    await onRuleViewChanged;
+  }
+
+  is(input.value, test.end, `[Test ${testIndex}] Value changed to ${test.end}`);
+}
+
+function getSmallIncrementKey() {
+  if (AppConstants.platform === "macosx") {
+    return { alt: true };
+  }
+  return { ctrl: true };
+}
