@@ -8099,20 +8099,42 @@ static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     return;
   }
 
+  bool isHTTPS = aURI->SchemeIs("https");
+
   nsILoadInfo::HTTPSUpgradeTelemetryType httpsTelemetry =
-      nsILoadInfo::NOT_INITIALIZED;
-  aLoadInfo->GetHttpsUpgradeTelemetry(&httpsTelemetry);
+      aLoadInfo->GetHttpsUpgradeTelemetry();
   switch (httpsTelemetry) {
-    case nsILoadInfo::NOT_INITIALIZED:
+    case nsILoadInfo::NOT_INITIALIZED: {
+      if (isHTTPS) {
+        // Bug 1912222: We should never encounter NOT_INITIALIZED values,
+        // though we still want to know whether those loads are HTTPS
+        // or not. Eventually we'll want to remove this if-clause
+        // again and only report "not_initialized".
+        mozilla::glean::networking::http_to_https_upgrade_reason
+            .Get("not_initialized_https"_ns)
+            .Add(1);
+        return;
+      }
       mozilla::glean::networking::http_to_https_upgrade_reason
           .Get("not_initialized"_ns)
           .Add(1);
       break;
-    case nsILoadInfo::NO_UPGRADE:
+    }
+    case nsILoadInfo::NO_UPGRADE: {
+      if (isHTTPS) {
+        // Bug 1912222: We should rearely encounter NO_UPGRADE values, though
+        // we still want to ensure those are not HTTPS. Eventually we'll want
+        // to remove this if-clause again and only report "no_upgrade".
+        mozilla::glean::networking::http_to_https_upgrade_reason
+            .Get("no_upgrade_https"_ns)
+            .Add(1);
+        return;
+      }
       mozilla::glean::networking::http_to_https_upgrade_reason
           .Get("no_upgrade"_ns)
           .Add(1);
       break;
+    }
     case nsILoadInfo::ALREADY_HTTPS:
       mozilla::glean::networking::http_to_https_upgrade_reason
           .Get("already_https"_ns)

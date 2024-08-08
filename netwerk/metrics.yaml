@@ -1243,7 +1243,9 @@ networking:
     expires: never
     labels:
       - not_initialized
+      - not_initialized_https #Bug 1912222, remove eventually
       - no_upgrade
+      - no_upgrade_https #Bug 1912222, remove eventually
       - already_https
       - hsts
       - https_only_upgrade
