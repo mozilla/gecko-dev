@@ -37,7 +37,7 @@
         },
         "rbnf_tree": {
             "filterType": "locale",
-            "includelist": [ "ja" ]
+            "includelist": [ "ja", "zh" ]
         },
         "stringprep": {
             "filterType": "exclude"
