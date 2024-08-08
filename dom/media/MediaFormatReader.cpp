@@ -1814,6 +1814,11 @@ void MediaFormatReader::NotifyNewOutput(
                 !!decoder.mIsHardwareAccelerated);
           }
         }
+        // As the real video decoder creation might be delayed, we want to
+        // update the decoder name again, instead of using the wrong name.
+        if (decoder.mNumSamplesOutput == 1) {
+          decoder.mDescription = mVideo.mDecoder->GetDescriptionName();
+        }
       }
       decoder.mDecodePerfRecorder->Record(
           sample->mTime.ToMicroseconds(),
