@@ -62,8 +62,6 @@ class nsWifiMonitor final : public nsIWifiMonitor, public nsIObserver {
 
   ~nsWifiMonitor();
 
-  void EnsureWifiScanner();
-
   nsresult DispatchScanToBackgroundThread(uint64_t aPollingId = 0,
                                           uint32_t aWaitMs = 0);
 
