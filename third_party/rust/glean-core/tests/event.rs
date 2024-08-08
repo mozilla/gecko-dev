@@ -8,6 +8,8 @@ use crate::common::*;
 use std::collections::HashMap;
 use std::fs;
 
+use serde_json::json;
+
 use glean_core::metrics::*;
 use glean_core::{
     get_timestamp_ms, test_get_num_recorded_errors, CommonMetricData, ErrorType, Lifetime,
@@ -219,6 +221,82 @@ fn test_sending_of_event_ping_when_it_fills_up() {
         let event = &snapshot.as_array().unwrap()[i];
         assert_eq!((i + 500).to_string(), event["extra"]["test_event_number"]);
     }
+}
+
+#[test]
+fn test_server_knobs_config_changing_max_events() {
+    let (mut glean, _t) = new_glean(None);
+
+    let store_names: Vec<String> = vec!["events".into()];
+
+    for store_name in &store_names {
+        glean.register_ping_type(&PingType::new(
+            store_name.clone(),
+            true,
+            false,
+            true,
+            true,
+            true,
+            vec![],
+            vec!["max_capacity".to_string()],
+        ));
+    }
+
+    // 1. Set up an event to record
+    let click = EventMetric::new(
+        CommonMetricData {
+            name: "click".into(),
+            category: "ui".into(),
+            send_in_pings: store_names,
+            disabled: false,
+            lifetime: Lifetime::Ping,
+            ..Default::default()
+        },
+        vec!["test_event_number".into()],
+    );
+
+    // 2. Set a Server Knobs configuration to disable the metrics
+    let remote_settings_config = json!(
+        {
+            "event_threshold": 50
+        }
+    )
+    .to_string();
+    glean
+        .apply_server_knobs_config(RemoteSettingsConfig::try_from(remote_settings_config).unwrap());
+
+    // 3. Record 51 events. We expect to get the first 50 in the first ping and 1
+    // remaining afterward
+    for i in 0..51 {
+        let mut extra = HashMap::new();
+        extra.insert("test_event_number".to_string(), i.to_string());
+        click.record_sync(&glean, i, extra, 0);
+    }
+
+    assert_eq!(1, click.get_value(&glean, "events").unwrap().len());
+
+    let (url, json, _) = &get_queued_pings(glean.get_data_path()).unwrap()[0];
+    assert!(url.starts_with(format!("/submit/{}/events/", glean.get_application_id()).as_str()));
+    assert_eq!(50, json["events"].as_array().unwrap().len());
+    assert_eq!(
+        "max_capacity",
+        json["ping_info"].as_object().unwrap()["reason"]
+            .as_str()
+            .unwrap()
+    );
+
+    for i in 0..50 {
+        let event = &json["events"].as_array().unwrap()[i];
+        assert_eq!(i.to_string(), event["extra"]["test_event_number"]);
+    }
+
+    let snapshot = glean
+        .event_storage()
+        .snapshot_as_json(&glean, "events", false)
+        .unwrap();
+    assert_eq!(1, snapshot.as_array().unwrap().len());
+    let event = &snapshot.as_array().unwrap()[0];
+    assert_eq!(50.to_string(), event["extra"]["test_event_number"]);
 }
 
 #[test]
@@ -487,6 +565,8 @@ fn with_event_timestamps() {
         experimentation_id: None, // Enabling event timestamps
         enable_internal_pings: true,
         ping_schedule: Default::default(),
+        ping_lifetime_threshold: 0,
+        ping_lifetime_max_time: 0,
     };
     let glean = Glean::new(cfg).unwrap();
 

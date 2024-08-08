@@ -8,6 +8,7 @@ use crate::net::PingUploader;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::time::Duration;
 
 /// The default server pings are sent to.
 pub(crate) const DEFAULT_GLEAN_ENDPOINT: &str = "https://incoming.telemetry.mozilla.org";
@@ -53,6 +54,10 @@ pub struct Configuration {
     /// Maps a ping name to a list of pings to schedule along with it.
     /// Only used if the ping's own ping schedule list is empty.
     pub ping_schedule: HashMap<String, Vec<String>>,
+    /// Write count threshold when to auto-flush. `0` disables it.
+    pub ping_lifetime_threshold: usize,
+    /// After what time to auto-flush. 0 disables it.
+    pub ping_lifetime_max_time: Duration,
 }
 
 /// Configuration builder.
@@ -105,6 +110,10 @@ pub struct Builder {
     /// Maps a ping name to a list of pings to schedule along with it.
     /// Only used if the ping's own ping schedule list is empty.
     pub ping_schedule: HashMap<String, Vec<String>>,
+    /// Write count threshold when to auto-flush. `0` disables it.
+    pub ping_lifetime_threshold: usize,
+    /// After what time to auto-flush. 0 disables it.
+    pub ping_lifetime_max_time: Duration,
 }
 
 impl Builder {
@@ -130,6 +139,8 @@ impl Builder {
             experimentation_id: None,
             enable_internal_pings: true,
             ping_schedule: HashMap::new(),
+            ping_lifetime_threshold: 0,
+            ping_lifetime_max_time: Duration::ZERO,
         }
     }
 
@@ -151,6 +162,8 @@ impl Builder {
             experimentation_id: self.experimentation_id,
             enable_internal_pings: self.enable_internal_pings,
             ping_schedule: self.ping_schedule,
+            ping_lifetime_threshold: self.ping_lifetime_threshold,
+            ping_lifetime_max_time: self.ping_lifetime_max_time,
         }
     }
 
@@ -211,6 +224,18 @@ impl Builder {
     /// Set the ping schedule map.
     pub fn with_ping_schedule(mut self, value: HashMap<String, Vec<String>>) -> Self {
         self.ping_schedule = value;
+        self
+    }
+
+    /// Write count threshold when to auto-flush. `0` disables it.
+    pub fn with_ping_lifetime_threshold(mut self, value: usize) -> Self {
+        self.ping_lifetime_threshold = value;
+        self
+    }
+
+    /// After what time to auto-flush. 0 disables it.
+    pub fn with_ping_lifetime_max_time(mut self, value: Duration) -> Self {
+        self.ping_lifetime_max_time = value;
         self
     }
 }

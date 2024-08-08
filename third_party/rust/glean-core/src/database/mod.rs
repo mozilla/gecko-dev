@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::fs;
@@ -10,9 +10,9 @@ use std::io;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::str;
-#[cfg(target_os = "android")]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 use crate::ErrorKind;
 
@@ -183,13 +183,6 @@ use crate::Glean;
 use crate::Lifetime;
 use crate::Result;
 
-/// The number of writes we accept writes to the ping-lifetime in-memory map
-/// before data is flushed to disk.
-///
-/// Only considered if `delay_ping_lifetime_io` is set to `true`.
-#[cfg(target_os = "android")]
-const PING_LIFETIME_THRESHOLD: usize = 1000;
-
 pub struct Database {
     /// Handle to the database environment.
     rkv: Rkv,
@@ -209,11 +202,24 @@ pub struct Database {
 
     /// A count of how many database writes have been done since the last ping-lifetime flush.
     ///
-    /// A ping-lifetime flush is automatically done after `PING_LIFETIME_THRESHOLD` writes.
+    /// A ping-lifetime flush is automatically done after `ping_lifetime_threshold` writes.
     ///
     /// Only relevant if `delay_ping_lifetime_io` is set to `true`,
-    #[cfg(target_os = "android")]
     ping_lifetime_count: AtomicUsize,
+
+    /// Write-count threshold when to auto-flush. `0` disables it.
+    ping_lifetime_threshold: usize,
+
+    /// The last time the `lifetime=ping` data was flushed to disk.
+    ///
+    /// Data is flushed to disk automatically when the last flush was more than
+    /// `ping_lifetime_max_time` ago.
+    ///
+    /// Only relevant if `delay_ping_lifetime_io` is set to `true`,
+    ping_lifetime_store_ts: Cell<Instant>,
+
+    /// After what time to auto-flush. 0 disables it.
+    ping_lifetime_max_time: Duration,
 
     /// Initial file size when opening the database.
     file_size: Option<NonZeroU64>,
@@ -276,7 +282,12 @@ impl Database {
     ///
     /// It also loads any Lifetime::Ping data that might be
     /// persisted, in case `delay_ping_lifetime_io` is set.
-    pub fn new(data_path: &Path, delay_ping_lifetime_io: bool) -> Result<Self> {
+    pub fn new(
+        data_path: &Path,
+        delay_ping_lifetime_io: bool,
+        ping_lifetime_threshold: usize,
+        ping_lifetime_max_time: Duration,
+    ) -> Result<Self> {
         let path = data_path.join("db");
         log::debug!("Database path: {:?}", path.display());
         let file_size = database_size(&path);
@@ -296,14 +307,18 @@ impl Database {
         // The value was chosen at random.
         let write_timings = RefCell::new(Vec::with_capacity(64));
 
+        let now = Instant::now();
+
         let db = Self {
             rkv,
             user_store,
             ping_store,
             application_store,
             ping_lifetime_data,
-            #[cfg(target_os = "android")]
             ping_lifetime_count: AtomicUsize::new(0),
+            ping_lifetime_threshold,
+            ping_lifetime_store_ts: Cell::new(now),
+            ping_lifetime_max_time,
             file_size,
             rkv_load_state,
             write_timings,
@@ -851,8 +866,8 @@ impl Database {
                 .expect("Can't read ping lifetime data");
 
             // We can reset the write-counter. Current data has been persisted.
-            #[cfg(target_os = "android")]
             self.ping_lifetime_count.store(0, Ordering::Release);
+            self.ping_lifetime_store_ts.replace(Instant::now());
 
             self.write_with_store(Lifetime::Ping, |mut writer, store| {
                 for (key, value) in data.iter() {
@@ -874,36 +889,54 @@ impl Database {
         &self,
         data: &BTreeMap<String, Metric>,
     ) -> Result<()> {
-        #[cfg(target_os = "android")]
-        {
-            self.ping_lifetime_count.fetch_add(1, Ordering::Release);
+        if self.ping_lifetime_threshold == 0 && self.ping_lifetime_max_time.is_zero() {
+            log::trace!("Auto-flush disabled.");
+            return Ok(());
+        }
 
-            let write_count = self.ping_lifetime_count.load(Ordering::Relaxed);
-            if write_count < PING_LIFETIME_THRESHOLD {
-                return Ok(());
+        let write_count = self.ping_lifetime_count.fetch_add(1, Ordering::Release) + 1;
+        let last_write = self.ping_lifetime_store_ts.get();
+        let elapsed = last_write.elapsed();
+
+        if (self.ping_lifetime_threshold == 0 || write_count < self.ping_lifetime_threshold)
+            && (self.ping_lifetime_max_time.is_zero() || elapsed < self.ping_lifetime_max_time)
+        {
+            log::trace!(
+                "Not flushing. write_count={} (threshold={}), elapsed={:?} (max={:?})",
+                write_count,
+                self.ping_lifetime_threshold,
+                elapsed,
+                self.ping_lifetime_max_time
+            );
+            return Ok(());
+        }
+
+        if self.ping_lifetime_threshold > 0 && write_count >= self.ping_lifetime_threshold {
+            log::debug!(
+                "Flushing database due to threshold of {} reached.",
+                self.ping_lifetime_threshold
+            )
+        } else if !self.ping_lifetime_max_time.is_zero() && elapsed >= self.ping_lifetime_max_time {
+            log::debug!(
+                "Flushing database due to last write more than {:?} ago",
+                self.ping_lifetime_max_time
+            );
+        }
+
+        self.ping_lifetime_count.store(0, Ordering::Release);
+        self.ping_lifetime_store_ts.replace(Instant::now());
+        self.write_with_store(Lifetime::Ping, |mut writer, store| {
+            for (key, value) in data.iter() {
+                let encoded =
+                    bincode::serialize(&value).expect("IMPOSSIBLE: Serializing metric failed");
+                // There is no need for `get_storage_key` here because
+                // the key is already formatted from when it was saved
+                // to ping_lifetime_data.
+                store.put(&mut writer, key, &rkv::Value::Blob(&encoded))?;
             }
-
-            self.ping_lifetime_count.store(0, Ordering::Release);
-            let write_result = self.write_with_store(Lifetime::Ping, |mut writer, store| {
-                for (key, value) in data.iter() {
-                    let encoded =
-                        bincode::serialize(&value).expect("IMPOSSIBLE: Serializing metric failed");
-                    // There is no need for `get_storage_key` here because
-                    // the key is already formatted from when it was saved
-                    // to ping_lifetime_data.
-                    store.put(&mut writer, key, &rkv::Value::Blob(&encoded))?;
-                }
-                writer.commit()?;
-                Ok(())
-            });
-
-            return write_result;
-        }
-        #[cfg(not(target_os = "android"))]
-        {
-            _ = data; // suppress unused_variables warning.
+            writer.commit()?;
             Ok(())
-        }
+        })
     }
 }
 
@@ -917,7 +950,7 @@ mod test {
     #[test]
     fn test_panicks_if_fails_dir_creation() {
         let path = Path::new("/!#\"'@#°ç");
-        assert!(Database::new(path, false).is_err());
+        assert!(Database::new(path, false, 0, Duration::ZERO).is_err());
     }
 
     #[test]
@@ -935,7 +968,7 @@ mod test {
         let dir = tempdir().unwrap();
         let path = dir.path().join(os_str);
 
-        let res = Database::new(&path, false);
+        let res = Database::new(&path, false, 0, Duration::ZERO);
 
         assert!(
             res.is_ok(),
@@ -959,7 +992,7 @@ mod test {
         let dir = tempdir().unwrap();
         let path = dir.path().join(os_str);
 
-        let res = Database::new(&path, false);
+        let res = Database::new(&path, false, 0, Duration::ZERO);
         assert!(
             res.is_ok(),
             "Database should not fail at {}: {:?}",
@@ -982,7 +1015,7 @@ mod test {
         let dir = tempdir().unwrap();
         let path = dir.path().join(os_str);
 
-        let res = Database::new(&path, false);
+        let res = Database::new(&path, false, 0, Duration::ZERO);
         assert!(
             res.is_err(),
             "Database should not fail at {}: {:?}",
@@ -994,7 +1027,7 @@ mod test {
     #[test]
     fn test_data_dir_rkv_inits() {
         let dir = tempdir().unwrap();
-        Database::new(dir.path(), false).unwrap();
+        Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         assert!(dir.path().exists());
     }
@@ -1003,7 +1036,7 @@ mod test {
     fn test_ping_lifetime_metric_recorded() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), false).unwrap();
+        let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         assert!(db.ping_lifetime_data.is_none());
 
@@ -1039,7 +1072,7 @@ mod test {
     fn test_application_lifetime_metric_recorded() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), false).unwrap();
+        let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         // Attempt to record a known value.
         let test_value = "test-value";
@@ -1076,7 +1109,7 @@ mod test {
     fn test_user_lifetime_metric_recorded() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), false).unwrap();
+        let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         // Attempt to record a known value.
         let test_value = "test-value";
@@ -1110,7 +1143,7 @@ mod test {
     fn test_clear_ping_storage() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), false).unwrap();
+        let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         // Attempt to record a known value for every single lifetime.
         let test_storage = "test-storage";
@@ -1185,7 +1218,7 @@ mod test {
     fn test_remove_single_metric() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), false).unwrap();
+        let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
         let test_storage = "test-storage-single-lifetime";
         let metric_id_pattern = "telemetry_test.single_metric";
@@ -1241,7 +1274,7 @@ mod test {
     fn test_delayed_ping_lifetime_persistence() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), true).unwrap();
+        let db = Database::new(dir.path(), true, 0, Duration::ZERO).unwrap();
         let test_storage = "test-storage";
 
         assert!(db.ping_lifetime_data.is_some());
@@ -1357,7 +1390,7 @@ mod test {
         let test_metric_id = "telemetry_test.test_name";
 
         {
-            let db = Database::new(dir.path(), true).unwrap();
+            let db = Database::new(dir.path(), true, 0, Duration::ZERO).unwrap();
 
             // Attempt to record a known value.
             db.record_per_lifetime(
@@ -1396,7 +1429,7 @@ mod test {
         // Now create a new instace of the db and check if data was
         // correctly loaded from rkv to memory.
         {
-            let db = Database::new(dir.path(), true).unwrap();
+            let db = Database::new(dir.path(), true, 0, Duration::ZERO).unwrap();
 
             // Verify that test_value is in memory.
             let data = match &db.ping_lifetime_data {
@@ -1425,7 +1458,7 @@ mod test {
     fn test_delayed_ping_lifetime_clear() {
         // Init the database in a temporary directory.
         let dir = tempdir().unwrap();
-        let db = Database::new(dir.path(), true).unwrap();
+        let db = Database::new(dir.path(), true, 0, Duration::ZERO).unwrap();
         let test_storage = "test-storage";
 
         assert!(db.ping_lifetime_data.is_some());
@@ -1498,7 +1531,7 @@ mod test {
 
         // Attempt to record metric with the record and record_with functions,
         // this should work since upload is enabled.
-        let db = Database::new(dir.path(), true).unwrap();
+        let db = Database::new(dir.path(), true, 0, Duration::ZERO).unwrap();
         db.record(&glean, &test_data, &Metric::String("record".to_owned()));
         db.iter_store_from(
             Lifetime::Ping,
@@ -1595,7 +1628,7 @@ mod test {
             let f = File::create(safebin).expect("create database file");
             drop(f);
 
-            let db = Database::new(dir.path(), false).unwrap();
+            let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
             assert!(dir.path().exists());
             assert!(
@@ -1616,7 +1649,7 @@ mod test {
             let safebin = database_dir.join("data.safe.bin");
             fs::write(safebin, "<broken>").expect("write to database file");
 
-            let db = Database::new(dir.path(), false).unwrap();
+            let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
 
             assert!(dir.path().exists());
             assert!(
@@ -1665,7 +1698,7 @@ mod test {
 
             // First open should migrate the data.
             {
-                let db = Database::new(dir.path(), false).unwrap();
+                let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
                 let safebin = database_dir.join("data.safe.bin");
                 assert!(safebin.exists(), "safe-mode file should exist");
                 assert!(!datamdb.exists(), "LMDB data should be deleted");
@@ -1685,7 +1718,7 @@ mod test {
 
             // Next open should not re-create the LMDB files.
             {
-                let db = Database::new(dir.path(), false).unwrap();
+                let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
                 let safebin = database_dir.join("data.safe.bin");
                 assert!(safebin.exists(), "safe-mode file exists");
                 assert!(!datamdb.exists(), "LMDB data should not be recreated");
@@ -1764,7 +1797,7 @@ mod test {
             // First open should try migration and ignore it, because destination is not empty.
             // It also deletes the leftover LMDB database.
             {
-                let db = Database::new(dir.path(), false).unwrap();
+                let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
                 let safebin = database_dir.join("data.safe.bin");
                 assert!(safebin.exists(), "safe-mode file should exist");
                 assert!(!datamdb.exists(), "LMDB data should be deleted");
@@ -1829,7 +1862,7 @@ mod test {
             // First open should try migration and ignore it, because destination is not empty.
             // It also deletes the leftover LMDB database.
             {
-                let db = Database::new(dir.path(), false).unwrap();
+                let db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
                 let safebin = database_dir.join("data.safe.bin");
                 assert!(safebin.exists(), "safe-mode file should exist");
                 assert!(!datamdb.exists(), "LMDB data should be deleted");
@@ -1874,7 +1907,7 @@ mod test {
             // safe-mode does not write an empty database to disk.
             // It also deletes the leftover LMDB database.
             {
-                let _db = Database::new(dir.path(), false).unwrap();
+                let _db = Database::new(dir.path(), false, 0, Duration::ZERO).unwrap();
                 let safebin = database_dir.join("data.safe.bin");
                 assert!(!safebin.exists(), "safe-mode file should exist");
                 assert!(!datamdb.exists(), "LMDB data should be deleted");

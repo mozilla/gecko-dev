@@ -209,6 +209,8 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             ),
             enableEventTimestamps = FxNimbus.features.glean.value().enableEventTimestamps,
             delayPingLifetimeIo = FxNimbus.features.glean.value().delayPingLifetimeIo,
+            pingLifetimeThreshold = FxNimbus.features.glean.value().pingLifetimeThreshold,
+            pingLifetimeMaxTime = FxNimbus.features.glean.value().pingLifetimeMaxTime,
         )
 
         // Set the metric configuration from Nimbus.

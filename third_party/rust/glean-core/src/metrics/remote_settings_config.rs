@@ -31,6 +31,12 @@ pub struct RemoteSettingsConfig {
     /// enabled state of the ping of the same name.
     #[serde(default)]
     pub pings_enabled: HashMap<String, bool>,
+
+    /// The threshold of events that will be buffered before an events ping is
+    /// collected and submitted.
+    /// It overrides the value configured at initialization time.
+    #[serde(default)]
+    pub event_threshold: Option<u32>,
 }
 
 impl RemoteSettingsConfig {

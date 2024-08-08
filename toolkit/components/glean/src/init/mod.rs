@@ -6,6 +6,7 @@ use std::env;
 use std::ffi::CString;
 use std::ops::DerefMut;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use firefox_on_glean::{metrics, pings};
 use nserror::{nsresult, NS_ERROR_FAILURE};
@@ -190,6 +191,8 @@ fn build_configuration(
         experimentation_id: None,
         enable_internal_pings: true,
         ping_schedule: pings::ping_schedule(),
+        ping_lifetime_threshold: 0,
+        ping_lifetime_max_time: Duration::ZERO,
     };
 
     Ok((configuration, client_info))

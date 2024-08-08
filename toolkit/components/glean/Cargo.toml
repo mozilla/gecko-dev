@@ -28,5 +28,3 @@ mozbuild = "0.1"
 disable_upload = []
 # Letting us know we're compiling with Gecko symbols.
 with_gecko = ["firefox-on-glean/with_gecko"]
-# Opt into a larger preinit queue
-million_queue = ["glean/preinit_million_queue"]

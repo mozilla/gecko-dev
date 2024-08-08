@@ -93,6 +93,8 @@ fn test_metrics_must_report_experimentation_id() {
         experimentation_id: Some("test-experimentation-id".to_string()),
         enable_internal_pings: true,
         ping_schedule: Default::default(),
+        ping_lifetime_threshold: 0,
+        ping_lifetime_max_time: 0,
     })
     .unwrap();
     let ping_maker = PingMaker::new();
@@ -147,6 +149,8 @@ fn experimentation_id_is_removed_if_send_if_empty_is_false() {
         experimentation_id: Some("test-experimentation-id".to_string()),
         enable_internal_pings: true,
         ping_schedule: Default::default(),
+        ping_lifetime_threshold: 0,
+        ping_lifetime_max_time: 0,
     })
     .unwrap();
     let ping_maker = PingMaker::new();

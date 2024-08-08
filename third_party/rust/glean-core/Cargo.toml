@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.66"
 name = "glean-core"
-version = "60.4.0"
+version = "60.5.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -35,7 +35,7 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
 [package.metadata.glean]
-glean-parser = "14.3.0"
+glean-parser = "14.5.1"
 
 [dependencies.bincode]
 version = "1.2.1"
@@ -111,7 +111,6 @@ default-features = false
 
 [features]
 enable_env_logger = ["env_logger"]
-preinit_million_queue = []
 
 [target."cfg(target_os = \"android\")".dependencies.android_logger]
 version = "0.12.0"

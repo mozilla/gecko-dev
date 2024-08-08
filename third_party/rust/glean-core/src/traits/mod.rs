@@ -54,3 +54,16 @@ pub use self::timing_distribution::TimingDistribution;
 pub use self::url::Url;
 pub use self::uuid::Uuid;
 pub use crate::histogram::HistogramType;
+
+#[doc(hidden)]
+pub mod __serde_helper {
+    /// Deserialize value to a `Vec<T>`.
+    ///
+    /// If the value was `null`  return an empty vector.
+    pub fn vec_null<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(
+        d: D,
+    ) -> Result<Vec<T>, D::Error> {
+        let res: Option<Vec<T>> = serde::Deserialize::deserialize(d)?;
+        Ok(res.unwrap_or_default())
+    }
+}

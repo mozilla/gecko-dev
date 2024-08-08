@@ -124,6 +124,8 @@ fn initialize_internal(cfg: Configuration, client_info: ClientInfoMetrics) -> Op
         experimentation_id: cfg.experimentation_id,
         enable_internal_pings: cfg.enable_internal_pings,
         ping_schedule: cfg.ping_schedule,
+        ping_lifetime_threshold: cfg.ping_lifetime_threshold as u64,
+        ping_lifetime_max_time: cfg.ping_lifetime_max_time.as_millis() as u64,
     };
 
     glean_core::glean_initialize(core_cfg, client_info.into(), callbacks);

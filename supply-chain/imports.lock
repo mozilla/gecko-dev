@@ -226,15 +226,15 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "60.4.0"
-when = "2024-07-23"
+version = "60.5.0"
+when = "2024-08-06"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "60.4.0"
-when = "2024-07-23"
+version = "60.5.0"
+when = "2024-08-06"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -359,13 +359,6 @@ user-login = "jschanck"
 user-name = "John Schanck"
 
 [[publisher.num_cpus]]
-version = "1.15.0"
-when = "2022-12-20"
-user-id = 359
-user-login = "seanmonstar"
-user-name = "Sean McArthur"
-
-[[publisher.num_cpus]]
 version = "1.16.0"
 when = "2023-06-29"
 user-id = 359
@@ -389,13 +382,6 @@ user-name = "Matt Brubeck"
 [[publisher.parking_lot]]
 version = "0.12.1"
 when = "2022-05-31"
-user-id = 2915
-user-login = "Amanieu"
-user-name = "Amanieu d'Antras"
-
-[[publisher.parking_lot_core]]
-version = "0.9.9"
-when = "2023-10-17"
 user-id = 2915
 user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
@@ -474,13 +460,6 @@ when = "2023-04-05"
 user-id = 57462
 user-login = "mozkeeler"
 user-name = "Dana Keeler"
-
-[[publisher.rustix]]
-version = "0.38.28"
-when = "2023-12-09"
-user-id = 6825
-user-login = "sunfishcode"
-user-name = "Dan Gohman"
 
 [[publisher.rustix]]
 version = "0.38.34"
@@ -719,13 +698,6 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.warp]]
-version = "0.3.6"
-when = "2023-09-27"
-user-id = 359
-user-login = "seanmonstar"
-user-name = "Sean McArthur"
-
-[[publisher.warp]]
 version = "0.3.7"
 when = "2024-04-05"
 user-id = 359
@@ -740,32 +712,14 @@ user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-encoder]]
-version = "0.210.0"
-when = "2024-06-10"
-user-id = 73222
-user-login = "wasmtime-publish"
-
-[[publisher.wasm-encoder]]
 version = "0.214.0"
 when = "2024-07-16"
 user-id = 73222
 user-login = "wasmtime-publish"
 
 [[publisher.wasm-smith]]
-version = "0.210.0"
-when = "2024-06-10"
-user-id = 73222
-user-login = "wasmtime-publish"
-
-[[publisher.wasm-smith]]
 version = "0.214.0"
 when = "2024-07-16"
-user-id = 73222
-user-login = "wasmtime-publish"
-
-[[publisher.wast]]
-version = "210.0.0"
-when = "2024-06-10"
 user-id = 73222
 user-login = "wasmtime-publish"
 
@@ -789,22 +743,8 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.windows]]
-version = "0.52.0"
-when = "2023-11-15"
-user-id = 64539
-user-login = "kennykerr"
-user-name = "Kenny Kerr"
-
-[[publisher.windows]]
 version = "0.58.0"
 when = "2024-07-03"
-user-id = 64539
-user-login = "kennykerr"
-user-name = "Kenny Kerr"
-
-[[publisher.windows-core]]
-version = "0.52.0"
-when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
@@ -1454,18 +1394,6 @@ Previously reviewed during security review and the audit is grandparented in.
 """
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
-[[audits.google.audits.tokio]]
-who = "Vovo Yang <vovoy@google.com>"
-criteria = "safe-to-run"
-version = "1.29.1"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.tokio-macros]]
-who = "Vovo Yang <vovoy@google.com>"
-criteria = "safe-to-run"
-version = "2.1.0"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
 [[audits.google.audits.tokio-stream]]
 who = "David Koloski <dkoloski@google.com>"
 criteria = "safe-to-deploy"
@@ -1632,7 +1560,7 @@ who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
 user-id = 48 # Jan-Erik Rediger (badboy)
 start = "2021-03-03"
-end = "2024-05-10"
+end = "2025-08-05"
 notes = "Maintained by me"
 aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use chrono::{DateTime, FixedOffset};
 use once_cell::sync::OnceCell;
@@ -122,6 +123,8 @@ where
 ///     experimentation_id: None,
 ///     enable_internal_pings: true,
 ///     ping_schedule: Default::default(),
+///     ping_lifetime_threshold: 1000,
+///     ping_lifetime_max_time: 2000,
 /// };
 /// let mut glean = Glean::new(cfg).unwrap();
 /// let ping = PingType::new("sample", true, false, true, true, true, vec![], vec![]);
@@ -250,7 +253,14 @@ impl Glean {
         // Creating the data store creates the necessary path as well.
         // If that fails we bail out and don't initialize further.
         let data_path = Path::new(&cfg.data_path);
-        glean.data_store = Some(Database::new(data_path, cfg.delay_ping_lifetime_io)?);
+        let ping_lifetime_threshold = cfg.ping_lifetime_threshold as usize;
+        let ping_lifetime_max_time = Duration::from_millis(cfg.ping_lifetime_max_time);
+        glean.data_store = Some(Database::new(
+            data_path,
+            cfg.delay_ping_lifetime_io,
+            ping_lifetime_threshold,
+            ping_lifetime_max_time,
+        )?);
 
         // Set experimentation identifier (if any)
         if let Some(experimentation_id) = &cfg.experimentation_id {
@@ -329,6 +339,8 @@ impl Glean {
             experimentation_id: None,
             enable_internal_pings,
             ping_schedule: Default::default(),
+            ping_lifetime_threshold: 0,
+            ping_lifetime_max_time: 0,
         };
 
         let mut glean = Self::new(cfg).unwrap();
@@ -594,7 +606,13 @@ impl Glean {
 
     /// Gets the maximum number of events to store before sending a ping.
     pub fn get_max_events(&self) -> usize {
-        self.max_events as usize
+        let remote_settings_config = self.remote_settings_config.lock().unwrap();
+
+        if let Some(max_events) = remote_settings_config.event_threshold {
+            max_events as usize
+        } else {
+            self.max_events as usize
+        }
     }
 
     /// Gets the next task for an uploader.
@@ -782,6 +800,8 @@ impl Glean {
         remote_settings_config
             .pings_enabled
             .extend(cfg.pings_enabled);
+
+        remote_settings_config.event_threshold = cfg.event_threshold;
 
         // Update remote_settings epoch
         self.remote_settings_epoch.fetch_add(1, Ordering::SeqCst);

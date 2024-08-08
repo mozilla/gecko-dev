@@ -94,6 +94,8 @@ dictionary InternalConfiguration {
     string? experimentation_id;
     boolean enable_internal_pings;
     record<string, sequence<string>> ping_schedule;
+    u64 ping_lifetime_threshold;
+    u64 ping_lifetime_max_time; // in millis
 };
 
 // How to specify the rate pings may be uploaded before they are throttled.

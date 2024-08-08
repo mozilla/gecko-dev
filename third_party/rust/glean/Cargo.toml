@@ -13,11 +13,12 @@
 edition = "2021"
 rust-version = "1.66"
 name = "glean"
-version = "60.4.0"
+version = "60.5.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
 ]
+build = false
 include = [
     "/README.md",
     "/LICENSE",
@@ -25,6 +26,10 @@ include = [
     "/tests",
     "/Cargo.toml",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Glean SDK Rust language bindings"
 readme = "README.md"
 keywords = [
@@ -34,8 +39,48 @@ keywords = [
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
+[lib]
+name = "glean"
+path = "src/lib.rs"
+
+[[test]]
+name = "init_fails"
+path = "tests/init_fails.rs"
+
+[[test]]
+name = "never_init"
+path = "tests/never_init.rs"
+
+[[test]]
+name = "no_time_to_init"
+path = "tests/no_time_to_init.rs"
+
+[[test]]
+name = "overflowing_preinit"
+path = "tests/overflowing_preinit.rs"
+
+[[test]]
+name = "persist_ping_lifetime_nopanic"
+path = "tests/persist_ping_lifetime_nopanic.rs"
+
+[[test]]
+name = "schema"
+path = "tests/schema.rs"
+
+[[test]]
+name = "simple"
+path = "tests/simple.rs"
+
+[[test]]
+name = "timing_distribution_single_sample"
+path = "tests/timing_distribution_single_sample.rs"
+
+[[test]]
+name = "upload_timing"
+path = "tests/upload_timing.rs"
+
 [dependencies.glean-core]
-version = "60.4.0"
+version = "60.5.0"
 
 [dependencies.inherent]
 version = "1"
@@ -71,9 +116,6 @@ version = "1.0.44"
 
 [dev-dependencies.tempfile]
 version = "3.1.0"
-
-[features]
-preinit_million_queue = ["glean-core/preinit_million_queue"]
 
 [badges.circle-ci]
 branch = "main"
