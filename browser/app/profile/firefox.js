@@ -1969,6 +1969,7 @@ pref("browser.ml.chat.shortcuts.custom", true);
 #else
 pref("browser.ml.chat.shortcuts.custom", false);
 #endif
+pref("browser.ml.chat.shortcuts.longPress", 60000);
 pref("browser.ml.chat.sidebar", true);
 
 pref("security.protectionspopup.recordEventTelemetry", true);

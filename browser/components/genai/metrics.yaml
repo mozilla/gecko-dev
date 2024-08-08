@@ -204,6 +204,9 @@ genai.chatbot:
     send_in_pings:
       - events
     extra_keys:
+      delay:
+        type: quantity
+        description: Milliseconds from mousedown to showing.
       selection:
         type: quantity
         description: Selected text length.
