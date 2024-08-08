@@ -238,9 +238,8 @@ bool WasmGcObject::lookUpProperty(JSContext* cx, Handle<WasmGcObject*> obj,
                                  JSMSG_WASM_OUT_OF_BOUNDS);
         return false;
       }
-      const StructField& field = structType.fields_[index];
-      offset->set(field.offset);
-      *type = field.type;
+      offset->set(structType.fieldOffset(index));
+      *type = structType.fields_[index].type;
       return true;
     }
     case wasm::TypeDefKind::Array: {
@@ -255,13 +254,13 @@ bool WasmGcObject::lookUpProperty(JSContext* cx, Handle<WasmGcObject*> obj,
         return false;
       }
       uint64_t scaledIndex =
-          uint64_t(index) * uint64_t(arrayType.elementType_.size());
+          uint64_t(index) * uint64_t(arrayType.elementType().size());
       if (scaledIndex >= uint64_t(UINT32_MAX)) {
         // It's unrepresentable as an WasmGcObject::PropOffset.  Give up.
         return false;
       }
       offset->set(uint32_t(scaledIndex));
-      *type = arrayType.elementType_;
+      *type = arrayType.elementType();
       return true;
     }
     default:
@@ -359,12 +358,12 @@ void WasmArrayObject::obj_trace(JSTracer* trc, JSObject* object) {
 
   const auto& typeDef = arrayObj.typeDef();
   const auto& arrayType = typeDef.arrayType();
-  if (!arrayType.elementType_.isRefRepr()) {
+  if (!arrayType.elementType().isRefRepr()) {
     return;
   }
 
   uint32_t numElements = arrayObj.numElements_;
-  uint32_t elemSize = arrayType.elementType_.size();
+  uint32_t elemSize = arrayType.elementType().size();
   for (uint32_t i = 0; i < numElements; i++) {
     AnyRef* elementPtr = reinterpret_cast<AnyRef*>(data + i * elemSize);
     TraceManuallyBarrieredEdge(trc, elementPtr, "wasm-array-element");
@@ -389,7 +388,7 @@ void WasmArrayObject::obj_finalize(JS::GCContext* gcx, JSObject* object) {
     // arrayObj.numElements_ was validated to not overflow when constructing the
     // array
     size_t trailerSize = calcStorageBytesUnchecked(
-        typeDef.arrayType().elementType_.size(), arrayObj.numElements_);
+        typeDef.arrayType().elementType().size(), arrayObj.numElements_);
     // Ensured by WasmArrayObject::createArrayNonEmpty.
     MOZ_RELEASE_ASSERT(trailerSize <= size_t(MaxArrayPayloadBytes));
     gcx->removeCellMemory(&arrayObj, trailerSize + TrailerBlockOverhead,
@@ -420,7 +419,7 @@ size_t WasmArrayObject::obj_moved(JSObject* obj, JSObject* old) {
       // arrayObj.numElements_ was validated not to overflow when constructing
       // the array
       size_t trailerSize = calcStorageBytesUnchecked(
-          typeDef.arrayType().elementType_.size(), arrayObj.numElements_);
+          typeDef.arrayType().elementType().size(), arrayObj.numElements_);
       // Ensured by WasmArrayObject::createArrayOOL.
       MOZ_RELEASE_ASSERT(trailerSize <= size_t(MaxArrayPayloadBytes));
       nursery.trackTrailerOnPromotion(arrayObj.dataHeader(), obj, trailerSize,
@@ -434,20 +433,20 @@ size_t WasmArrayObject::obj_moved(JSObject* obj, JSObject* old) {
 
 void WasmArrayObject::storeVal(const Val& val, uint32_t itemIndex) {
   const ArrayType& arrayType = typeDef().arrayType();
-  size_t elementSize = arrayType.elementType_.size();
+  size_t elementSize = arrayType.elementType().size();
   MOZ_ASSERT(itemIndex < numElements_);
   uint8_t* data = data_ + elementSize * itemIndex;
-  WriteValTo(val, arrayType.elementType_, data);
+  WriteValTo(val, arrayType.elementType(), data);
 }
 
 void WasmArrayObject::fillVal(const Val& val, uint32_t itemIndex,
                               uint32_t len) {
   const ArrayType& arrayType = typeDef().arrayType();
-  size_t elementSize = arrayType.elementType_.size();
+  size_t elementSize = arrayType.elementType().size();
   uint8_t* data = data_ + elementSize * itemIndex;
   MOZ_ASSERT(itemIndex <= numElements_ && len <= numElements_ - itemIndex);
   for (uint32_t i = 0; i < len; i++) {
-    WriteValTo(val, arrayType.elementType_, data);
+    WriteValTo(val, arrayType.elementType(), data);
     data += elementSize;
   }
 }
@@ -513,9 +512,10 @@ bool WasmStructObject::getField(JSContext* cx, uint32_t index,
                                 MutableHandle<Value> val) {
   const StructType& resultType = typeDef().structType();
   MOZ_ASSERT(index <= resultType.fields_.length());
-  const StructField& field = resultType.fields_[index];
+  const FieldType& field = resultType.fields_[index];
+  uint32_t fieldOffset = resultType.fieldOffset(index);
   StorageType ty = field.type.storageType();
-  return ToJSValue(cx, fieldOffsetToAddress(ty, field.offset), ty, val);
+  return ToJSValue(cx, fieldOffsetToAddress(ty, fieldOffset), ty, val);
 }
 
 /* static */
@@ -578,7 +578,7 @@ size_t WasmStructObject::obj_moved(JSObject* obj, JSObject* old) {
 void WasmStructObject::storeVal(const Val& val, uint32_t fieldIndex) {
   const StructType& structType = typeDef().structType();
   StorageType fieldType = structType.fields_[fieldIndex].type;
-  uint32_t fieldOffset = structType.fields_[fieldIndex].offset;
+  uint32_t fieldOffset = structType.fieldOffset(fieldIndex);
 
   MOZ_ASSERT(fieldIndex < structType.fields_.length());
   bool areaIsOutline;

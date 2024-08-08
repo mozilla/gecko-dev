@@ -1755,7 +1755,7 @@ JSObject* GetSuspendingPromiseResult(Instance* instance,
   Rooted<WasmStructObject*> results(
       cx, instance->constantStructNewDefault(
               cx, SuspendingFunctionModuleFactory::ResultsTypeIndex));
-  const StructFieldVector& fields = results->typeDef().structType().fields_;
+  const FieldTypeVector& fields = results->typeDef().structType().fields_;
 
   if (fields.length() > 0) {
     RootedValue jsValue(cx, promise->value());

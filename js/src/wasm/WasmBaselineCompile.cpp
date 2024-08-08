@@ -7376,7 +7376,7 @@ bool BaseCompiler::emitGcArraySet(RegRef object, RegPtr data, RegI32 index,
   // shift immediate. If not we shift the index manually and then unshift
   // it after the store. We don't use an extra register for this because we
   // don't have any to spare on x86.
-  uint32_t shift = arrayType.elementType_.indexingShift();
+  uint32_t shift = arrayType.elementType().indexingShift();
   Scale scale;
   bool shiftedIndex = false;
   if (IsShiftInScaleRange(shift)) {
@@ -7393,9 +7393,9 @@ bool BaseCompiler::emitGcArraySet(RegRef object, RegPtr data, RegI32 index,
   });
 
   // Easy path if the field is a scalar
-  if (!arrayType.elementType_.isRefRepr()) {
+  if (!arrayType.elementType().isRefRepr()) {
     emitGcSetScalar<BaseIndex, NoNullCheck>(BaseIndex(data, index, scale, 0),
-                                            arrayType.elementType_, value);
+                                            arrayType.elementType(), value);
     return true;
   }
 
@@ -7537,9 +7537,9 @@ bool BaseCompiler::emitStructNew() {
 
   uint32_t fieldIndex = structType.fields_.length();
   while (fieldIndex-- > 0) {
-    const StructField& field = structType.fields_[fieldIndex];
+    const FieldType& field = structType.fields_[fieldIndex];
     StorageType type = field.type;
-    uint32_t fieldOffset = field.offset;
+    uint32_t fieldOffset = structType.fieldOffset(fieldIndex);
 
     bool areaIsOutline;
     uint32_t areaOffset;
@@ -7626,7 +7626,7 @@ bool BaseCompiler::emitStructGet(FieldWideningOp wideningOp) {
 
   // Decide whether we're accessing inline or outline, and at what offset
   StorageType fieldType = structType.fields_[fieldIndex].type;
-  uint32_t fieldOffset = structType.fields_[fieldIndex].offset;
+  uint32_t fieldOffset = structType.fieldOffset(fieldIndex);
 
   bool areaIsOutline;
   uint32_t areaOffset;
@@ -7667,11 +7667,11 @@ bool BaseCompiler::emitStructSet() {
   }
 
   const StructType& structType = (*codeMeta_.types)[typeIndex].structType();
-  const StructField& structField = structType.fields_[fieldIndex];
+  const FieldType& structField = structType.fields_[fieldIndex];
 
   // Decide whether we're accessing inline or outline, and at what offset
   StorageType fieldType = structType.fields_[fieldIndex].type;
-  uint32_t fieldOffset = structType.fields_[fieldIndex].offset;
+  uint32_t fieldOffset = structType.fieldOffset(fieldIndex);
 
   bool areaIsOutline;
   uint32_t areaOffset;
@@ -7845,14 +7845,14 @@ bool BaseCompiler::emitArrayNew() {
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
-  if (arrayType.elementType_.isRefRepr()) {
+  if (arrayType.elementType().isRefRepr()) {
     needPtr(RegPtr(PreBarrierReg));
   }
 
   RegRef object = needRef();
   RegI32 numElements = popI32();
   if (!emitArrayAlloc<false>(typeIndex, object, numElements,
-                             arrayType.elementType_.size())) {
+                             arrayType.elementType().size())) {
     return false;
   }
 
@@ -7865,7 +7865,7 @@ bool BaseCompiler::emitArrayNew() {
   numElements = emitGcArrayGetNumElements<NoNullCheck>(object);
 
   // Free the barrier reg after we've allocated all registers
-  if (arrayType.elementType_.isRefRepr()) {
+  if (arrayType.elementType().isRefRepr()) {
     freePtr(RegPtr(PreBarrierReg));
   }
 
@@ -7913,14 +7913,14 @@ bool BaseCompiler::emitArrayNewFixed() {
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
-  bool avoidPreBarrierReg = arrayType.elementType_.isRefRepr();
+  bool avoidPreBarrierReg = arrayType.elementType().isRefRepr();
   if (avoidPreBarrierReg) {
     needPtr(RegPtr(PreBarrierReg));
   }
 
   RegRef object = needRef();
   if (!emitArrayAllocFixed<false>(typeIndex, object, numElements,
-                                  arrayType.elementType_.size())) {
+                                  arrayType.elementType().size())) {
     return false;
   }
 
@@ -7983,7 +7983,7 @@ bool BaseCompiler::emitArrayNewDefault() {
   RegRef object = needRef();
   RegI32 numElements = popI32();
   if (!emitArrayAlloc<true>(typeIndex, object, numElements,
-                            arrayType.elementType_.size())) {
+                            arrayType.elementType().size())) {
     return false;
   }
 
@@ -8100,14 +8100,14 @@ bool BaseCompiler::emitArrayGet(FieldWideningOp wideningOp) {
   RegPtr rdata = emitGcArrayGetData<NoNullCheck>(rp);
 
   // Load the value
-  uint32_t shift = arrayType.elementType_.indexingShift();
+  uint32_t shift = arrayType.elementType().indexingShift();
   if (IsShiftInScaleRange(shift)) {
     emitGcGet<BaseIndex, NoNullCheck>(
-        arrayType.elementType_, wideningOp,
+        arrayType.elementType(), wideningOp,
         BaseIndex(rdata, index, ShiftToScale(shift), 0));
   } else {
     masm.lshiftPtr(Imm32(shift), index);
-    emitGcGet<BaseIndex, NoNullCheck>(arrayType.elementType_, wideningOp,
+    emitGcGet<BaseIndex, NoNullCheck>(arrayType.elementType(), wideningOp,
                                       BaseIndex(rdata, index, TimesOne, 0));
   }
 
@@ -8133,7 +8133,7 @@ bool BaseCompiler::emitArraySet() {
 
   // Reserve this register early if we will need it so that it is not taken by
   // any register used in this function.
-  if (arrayType.elementType_.isRefRepr()) {
+  if (arrayType.elementType().isRefRepr()) {
     needPtr(RegPtr(PreBarrierReg));
   }
 
@@ -8152,7 +8152,7 @@ bool BaseCompiler::emitArraySet() {
   RegPtr rdata = emitGcArrayGetData<NoNullCheck>(rp);
 
   // Free the barrier reg after we've allocated all registers
-  if (arrayType.elementType_.isRefRepr()) {
+  if (arrayType.elementType().isRefRepr()) {
     freePtr(RegPtr(PreBarrierReg));
   }
 
@@ -8229,7 +8229,7 @@ bool BaseCompiler::emitArrayFill() {
 
   const TypeDef& typeDef = codeMeta_.types->type(typeIndex);
   const ArrayType& arrayType = typeDef.arrayType();
-  StorageType elementType = arrayType.elementType_;
+  StorageType elementType = arrayType.elementType();
 
   // On x86 (32-bit), we are very short of registers, hence the code
   // generation scheme is less straightforward than it might otherwise be.
@@ -8388,7 +8388,7 @@ bool BaseCompiler::emitArrayFill() {
   // Currently `rdata` points at the start of the array data area.  Move it
   // forwards by `index` units so as to make it point at the start of the area
   // to be filled.
-  uint32_t shift = arrayType.elementType_.indexingShift();
+  uint32_t shift = arrayType.elementType().indexingShift();
   if (shift > 0) {
     masm.lshift32(Imm32(shift), index);
     // `index` is a 32 bit value, so we must zero-extend it to 64 bits before
