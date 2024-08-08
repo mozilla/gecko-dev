@@ -653,11 +653,11 @@ nsCString ConvertCodecName(const nsCString& aContainer,
 bool IsSupportedAudioCodec(const nsAString& aCodec) {
   LOG("IsSupportedAudioCodec: %s", NS_ConvertUTF16toUTF8(aCodec).get());
   return aCodec.EqualsLiteral("flac") || aCodec.EqualsLiteral("mp3") ||
-         IsAACCodecString(aCodec) || aCodec.EqualsLiteral("opus") ||
-         aCodec.EqualsLiteral("ulaw") || aCodec.EqualsLiteral("alaw") ||
-         aCodec.EqualsLiteral("pcm-u8") || aCodec.EqualsLiteral("pcm-s16") ||
-         aCodec.EqualsLiteral("pcm-s24") || aCodec.EqualsLiteral("pcm-s32") ||
-         aCodec.EqualsLiteral("pcm-f32");
+         IsAACCodecString(aCodec) || aCodec.EqualsLiteral("vorbis") ||
+         aCodec.EqualsLiteral("opus") || aCodec.EqualsLiteral("ulaw") ||
+         aCodec.EqualsLiteral("alaw") || aCodec.EqualsLiteral("pcm-u8") ||
+         aCodec.EqualsLiteral("pcm-s16") || aCodec.EqualsLiteral("pcm-s24") ||
+         aCodec.EqualsLiteral("pcm-s32") || aCodec.EqualsLiteral("pcm-f32");
 }
 
 uint32_t BytesPerSamples(const mozilla::dom::AudioSampleFormat& aFormat) {
