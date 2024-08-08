@@ -124,6 +124,7 @@ UNIFIED_SOURCES += [
     "QuotaRequestBase.cpp",
     "QuotaRequests.cpp",
     "QuotaResults.cpp",
+    "QuotaUsageRequestChild.cpp",
     "QuotaUsageRequestParent.cpp",
     "RemoteQuotaObject.cpp",
     "RemoteQuotaObjectChild.cpp",

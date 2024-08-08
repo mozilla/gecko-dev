@@ -8,6 +8,7 @@
 
 // Local includes
 #include "ActorsChild.h"
+#include "QuotaUsageRequestChild.h"
 
 // Global includes
 #include "mozilla/ErrorNames.h"

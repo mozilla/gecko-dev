@@ -16,7 +16,6 @@
 #include <utility>
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/quota/PQuotaRequest.h"
-#include "mozilla/dom/quota/PQuotaUsageRequest.h"
 #include "nsError.h"
 #include "nsID.h"
 #include "nsIEventTarget.h"
@@ -88,50 +87,6 @@ bool QuotaChild::DeallocPQuotaRequestChild(PQuotaRequestChild* aActor) {
 
   delete static_cast<QuotaRequestChild*>(aActor);
   return true;
-}
-
-/*******************************************************************************
- * QuotaUsageRequestChild
- ******************************************************************************/
-
-QuotaUsageRequestChild::QuotaUsageRequestChild(UsageRequest* aRequest)
-    : mRequest(aRequest) {
-  AssertIsOnOwningThread();
-
-  MOZ_COUNT_CTOR(quota::QuotaUsageRequestChild);
-}
-
-QuotaUsageRequestChild::~QuotaUsageRequestChild() {
-  // Can't assert owning thread here because the request is cleared.
-
-  MOZ_COUNT_DTOR(quota::QuotaUsageRequestChild);
-}
-
-#ifdef DEBUG
-
-void QuotaUsageRequestChild::AssertIsOnOwningThread() const {
-  MOZ_ASSERT(mRequest);
-  mRequest->AssertIsOnOwningThread();
-}
-
-#endif  // DEBUG
-
-void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
-  AssertIsOnOwningThread();
-
-  if (mRequest) {
-    mRequest->ClearBackgroundActor();
-#ifdef DEBUG
-    mRequest = nullptr;
-#endif
-  }
-}
-
-mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  return IPC_OK();
 }
 
 /*******************************************************************************

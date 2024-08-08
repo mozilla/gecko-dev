@@ -12,7 +12,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/quota/PQuotaChild.h"
 #include "mozilla/dom/quota/PQuotaRequestChild.h"
-#include "mozilla/dom/quota/PQuotaUsageRequestChild.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "nsCOMPtr.h"
 #include "nsStringFwd.h"
@@ -67,36 +66,6 @@ class QuotaChild final : public PQuotaChild {
       const RequestParams& aParams) override;
 
   virtual bool DeallocPQuotaRequestChild(PQuotaRequestChild* aActor) override;
-};
-
-class QuotaUsageRequestChild final : public PQuotaUsageRequestChild {
-  friend class QuotaChild;
-  friend class QuotaManagerService;
-
-  RefPtr<UsageRequest> mRequest;
-
- public:
-  void AssertIsOnOwningThread() const
-#ifdef DEBUG
-      ;
-#else
-  {
-  }
-#endif
-
-  NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestChild, override)
-
- private:
-  // Only created by QuotaManagerService.
-  explicit QuotaUsageRequestChild(UsageRequest* aRequest);
-
-  // Only destroyed by QuotaChild.
-  ~QuotaUsageRequestChild();
-
-  // IPDL methods are only called by IPDL.
-  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
-
-  virtual mozilla::ipc::IPCResult Recv__delete__() override;
 };
 
 class QuotaRequestChild final : public PQuotaRequestChild {
