@@ -4848,6 +4848,18 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+
+  void vpsignd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
+    MOZ_ASSERT(HasSSSE3());
+    switch (src1.kind()) {
+      case Operand::FPREG:
+        masm.vpsignd_rr(src1.fpu(), src0.encoding(), dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+
   void vfmadd231ps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasFMA());
     masm.vfmadd231ps_rrr(src1.encoding(), src0.encoding(), dest.encoding());

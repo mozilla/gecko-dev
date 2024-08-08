@@ -4414,6 +4414,11 @@ class BaseAssembler : public GenericAssembler {
                     offset, base, index, scale, invalid_xmm, dst);
   }
 
+  void vpsignd_rr(XMMRegisterID src1, XMMRegisterID src0, XMMRegisterID dst) {
+    threeByteOpSimd("vpsignd", VEX_PD, OP3_PSIGND_PdqQdq, ESCAPE_38, src1, src0,
+                    dst);
+  }
+
   // F16C instructions:
 
   void vcvtph2ps_rr(XMMRegisterID src, XMMRegisterID dst) {
