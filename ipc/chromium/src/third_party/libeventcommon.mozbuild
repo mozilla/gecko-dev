@@ -10,6 +10,8 @@ elif CONFIG['TARGET_KERNEL'] in ('DragonFly', 'FreeBSD', 'NetBSD', 'OpenBSD'):
     libevent_include_suffix = 'bsd'
 elif CONFIG['TARGET_KERNEL'] == 'SunOS':
     libevent_include_suffix = 'solaris'
+elif CONFIG['TARGET_KERNEL'] == 'Haiku':
+    libevent_include_suffix = 'haiku'
 elif CONFIG['TARGET_OS'] == 'Android':
     libevent_include_suffix = 'android'
 else:

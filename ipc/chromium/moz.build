@@ -102,7 +102,7 @@ if CONFIG["TARGET_OS"] == "iOS":
         "src/base/process_util_ios.cpp",
     ]
 
-if CONFIG["TARGET_KERNEL"] in ("DragonFly", "FreeBSD", "NetBSD", "OpenBSD"):
+if CONFIG["TARGET_KERNEL"] in ("DragonFly", "FreeBSD", "NetBSD", "OpenBSD", "Haiku"):
     SOURCES += [
         "src/base/process_util_linux.cc",
         "src/base/time_posix.cc",

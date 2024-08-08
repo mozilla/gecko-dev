@@ -346,14 +346,16 @@ nsString gProcessStartupShortcut;
 #  ifdef MOZ_WAYLAND
 #    include <gdk/gdkwayland.h>
 #    include "mozilla/widget/nsWaylandDisplay.h"
-#    include "wayland-proxy.h"
+#    ifndef XP_HAIKU
+#      include "wayland-proxy.h"
+#    endif /* !XP_HAIKU */
 #  endif
 #  ifdef MOZ_X11
 #    include <gdk/gdkx.h>
 #  endif /* MOZ_X11 */
 #endif
 
-#if defined(MOZ_WAYLAND)
+#if defined(MOZ_WAYLAND) && !defined(XP_HAIKU)
 std::unique_ptr<WaylandProxy> gWaylandProxy;
 #endif
 
@@ -4752,7 +4754,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     // display_name is owned by gdk.
     display_name = gdk_get_display_arg_name();
     bool waylandEnabled = IsWaylandEnabled();
-#  ifdef MOZ_WAYLAND
+#  if defined(MOZ_WAYLAND) && !defined(XP_HAIKU)
     if (!display_name) {
       auto* proxyEnv = getenv("MOZ_DISABLE_WAYLAND_PROXY");
       bool disableWaylandProxy = proxyEnv && *proxyEnv;
@@ -4804,7 +4806,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     } else {
       gdk_display_manager_open_display(gdk_display_manager_get(), nullptr);
     }
-#  if defined(MOZ_WAYLAND)
+#  if defined(MOZ_WAYLAND) && !defined(XP_HAIKU)
     // We want to use proxy for main connection only so
     // restore original Wayland display for next potential Wayland connections
     // from gfx probe code and so on.
@@ -6026,7 +6028,9 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   if (!gfxPlatform::IsHeadless()) {
 #  ifdef MOZ_WAYLAND
     WaylandDisplayRelease();
+#    ifndef XP_HAIKU
     gWaylandProxy = nullptr;
+#    endif // !XP_HAIKU
 #  endif
   }
 #endif

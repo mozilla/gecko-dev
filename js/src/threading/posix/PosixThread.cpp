@@ -115,6 +115,9 @@ void ThisThread::SetName(const char* name) {
   rv = 0;
 #elif defined(__NetBSD__)
   rv = pthread_setname_np(pthread_self(), "%s", (void*)name);
+#elif defined(__HAIKU__)
+  MOZ_CRASH("ThisThread::SetName() is not implemented");
+  rv = 1; // not implemented.
 #else
   rv = pthread_setname_np(pthread_self(), name);
 #endif
@@ -126,7 +129,11 @@ void ThisThread::GetName(char* nameBuffer, size_t len) {
 
   int rv = -1;
 #ifdef HAVE_PTHREAD_GETNAME_NP
+#  ifdef __HAIKU__
+  MOZ_CRASH("ThisThread::GetName() is not implemented");
+#  else
   rv = pthread_getname_np(pthread_self(), nameBuffer, len);
+#  endif
 #elif defined(HAVE_PTHREAD_GET_NAME_NP)
   pthread_get_name_np(pthread_self(), nameBuffer, len);
   rv = 0;

@@ -117,6 +117,14 @@ void* js::GetNativeStackBaseImpl() {
 #  endif
 }
 
+#elif defined(__HAIKU__)
+
+// TODO: stubbed out...
+void* js::GetNativeStackBaseImpl() {
+    MOZ_CRASH("js::GetNativeStackBaseImpl() is not implemented");
+    return NULL;
+}
+
 #elif defined(__wasi__)
 
 // Since we rearrange the layout for wasi via --stack-first flag for the linker
