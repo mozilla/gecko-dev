@@ -313,38 +313,49 @@ RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
 
   if (doc->ShouldResistFingerprinting(RFPTarget::MediaDevices)) {
     // We expose a single device of each kind.
-    // Legacy mode also achieves the same thing.
-    bool micVariantSeen = false, camVariantSeen = false;
+    // Legacy mode also achieves the same thing, except for speakers.
+    nsTHashSet<MediaDeviceKind> seenKinds;
+
     for (uint32_t i = 0; i < exposed->Length(); i++) {
       RefPtr<mozilla::MediaDevice> device = exposed->ElementAt(i);
-      if (device->mKind == MediaDeviceKind::Audioinput) {
-        if (micVariantSeen) {
-          exposed->RemoveElementAt(i);
-          i--;
-        }
-        micVariantSeen = true;
-      } else if (device->mKind == dom::MediaDeviceKind::Videoinput) {
-        if (camVariantSeen) {
-          exposed->RemoveElementAt(i);
-          i--;
-        }
-        camVariantSeen = true;
+      if (seenKinds.Contains(device->mKind)) {
+        exposed->RemoveElementAt(i);
+        i--;
+        continue;
       }
+      seenKinds.Insert(device->mKind);
     }
 
-    if (!micVariantSeen || !camVariantSeen) {
+    // We haven't seen at least one of each kind of device.
+    // Audioinput, Videoinput, Audiooutput.
+    // Insert fake devices.
+    if (seenKinds.Count() != 3) {
       RefPtr fakeEngine = new MediaEngineFake();
       RefPtr fakeDevices = new MediaDeviceSetRefCnt();
-      if (!micVariantSeen) {
+      // The order in which we insert the fake devices is important.
+      // Microphone is inserted first, then camera, then speaker.
+      // If we haven't seen a microphone, insert a fake one.
+      if (!seenKinds.Contains(MediaDeviceKind::Audioinput)) {
         fakeEngine->EnumerateDevices(MediaSourceEnum::Microphone,
                                      MediaSinkEnum::Other, fakeDevices);
         exposed->InsertElementAt(0, fakeDevices->LastElement());
       }
-
-      if (!camVariantSeen) {
+      // If we haven't seen a camera, insert a fake one.
+      if (!seenKinds.Contains(MediaDeviceKind::Videoinput)) {
         fakeEngine->EnumerateDevices(MediaSourceEnum::Camera,
                                      MediaSinkEnum::Other, fakeDevices);
         exposed->InsertElementAt(1, fakeDevices->LastElement());
+      }
+      // If we haven't seen a speaker, insert a fake one.
+      if (!seenKinds.Contains(MediaDeviceKind::Audiooutput) &&
+          mCanExposeMicrophoneInfo) {
+        RefPtr info = new AudioDeviceInfo(
+            nullptr, u""_ns, u""_ns, u""_ns, CUBEB_DEVICE_TYPE_OUTPUT,
+            CUBEB_DEVICE_STATE_ENABLED, CUBEB_DEVICE_PREF_ALL,
+            CUBEB_DEVICE_FMT_ALL, CUBEB_DEVICE_FMT_S16NE, 2, 44100, 44100,
+            44100, 128, 128);
+        exposed->AppendElement(
+            new MediaDevice(new MediaEngineFake(), info, u""_ns));
       }
     }
   }
