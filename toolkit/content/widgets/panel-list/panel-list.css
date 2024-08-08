@@ -13,7 +13,7 @@
 :host {
   position: absolute;
   font: menu;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border-radius: 4px;
   padding: 6px 0;
   margin-bottom: 16px;
@@ -56,7 +56,7 @@
 ::slotted(hr:not([hidden])) {
   display: block !important;
   height: 1px !important;
-  background: var(--in-content-box-border-color) !important;
+  background: var(--border-color-interactive) !important;
   padding: 0 !important;
   margin: 6px 0 !important;
   border: none !important;

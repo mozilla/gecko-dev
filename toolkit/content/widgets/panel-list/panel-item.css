@@ -47,24 +47,24 @@ button:-moz-locale-dir(rtl) {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: var(--in-content-accent-color);
+  background-color: var(--color-accent-primary);
   position: absolute;
   top: 4px;
   inset-inline-start: 24px;
 }
 
 button:enabled:hover {
-  background-color: var(--in-content-button-background-hover);
-  color: var(--in-content-button-text-color-hover);
+  background-color: var(--button-background-color-hover);
+  color: var(--button-text-color-hover);
 }
 
 button:enabled:hover:active {
-  background-color: var(--in-content-button-background-active);
-  color: var(--in-content-button-text-color-active);
+  background-color: var(--button-background-color-active);
+  color: var(--button-text-color-active);
 }
 
 button:focus-visible {
-  outline-offset: var(--in-content-focus-outline-inset);
+  outline-offset: var(--focus-outline-inset);
 }
 
 button:disabled {
