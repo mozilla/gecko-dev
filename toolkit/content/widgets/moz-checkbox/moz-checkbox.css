@@ -56,3 +56,7 @@ input,
 .description {
   margin-inline-start: var(--checkbox-space-offset);
 }
+
+.text {
+  padding-inline-end: var(--space-xsmall);
+}

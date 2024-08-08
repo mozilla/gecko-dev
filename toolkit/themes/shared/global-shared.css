@@ -246,7 +246,8 @@ xul|label[disabled="true"] {
 /* Links */
 
 .text-link,
-a {
+a,
+::part(support-link) {
   color: var(--link-color);
   cursor: pointer;
   text-decoration: underline;

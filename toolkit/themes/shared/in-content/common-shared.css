@@ -637,30 +637,35 @@ xul|search-textbox[disabled="true"] {
 /* Links */
 
 html|a,
-.text-link {
+.text-link,
+::part(support-link) {
   cursor: pointer;
   color: var(--link-color);
 }
 
-html|a:visited {
+html|a:visited,
+::part(support-link):visited {
   color: var(--link-color-visited);
 }
 
 html|a:hover,
 .text-link:hover,
-button.text-link:is(:not([disabled="true"]), :enabled):hover {
+button.text-link:is(:not([disabled="true"]), :enabled):hover,
+::part(support-link):hover {
   color: var(--link-color-hover);
 }
 
 html|a:hover:active,
 .text-link:hover:active,
-button.text-link:is(:not([disabled="true"]), :enabled):hover:active {
+button.text-link:is(:not([disabled="true"]), :enabled):hover:active,
+::part(support-link):hover:active {
   color: var(--link-color-active);
   text-decoration: none;
 }
 
 html|a:focus-visible,
-.text-link:focus-visible {
+.text-link:focus-visible,
+::part(support-link):focus-visible {
   outline: var(--focus-outline);
   outline-offset: var(--link-focus-outline-offset);
   border-radius: 4px;

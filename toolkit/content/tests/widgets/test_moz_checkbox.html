@@ -24,6 +24,10 @@
   description="description attr">
     <span slot="description">slot description</span>
   </moz-checkbox>
+  <moz-checkbox id="moz-checkbox-7" label="test label 7" support-page="test-page"></moz-checkbox>
+  <moz-checkbox id="moz-checkbox-8" label="test label 8">
+    <a slot="support-link" href="www.example.com">Help me!</a>
+  </moz-checkbox>
 </div>
 <pre id="test">
   <script class="testbody" type="application/javascript">
@@ -355,10 +359,10 @@
       );
 
       const mozCheckbox5 = document.getElementById("moz-checkbox-5");
-      descriptionEl = mozCheckbox5.shadowRoot.querySelector("slot");
+      descriptionEl = mozCheckbox5.shadowRoot.querySelector("slot:not([name=support-link])");
 
       ok(descriptionEl, "Description slot element should exist");
-      is(descriptionEl.name, "description", "Description slow should have the correct name attribute");
+      is(descriptionEl.name, "description", "Description slot should have the correct name attribute");
       is(
         mozCheckbox5.querySelector("[slot='description']").innerText,
         "slot description",
@@ -385,7 +389,6 @@
         "description",
         "The input element should be described by the 'description' slot"
       );
-
     });
 
     add_task(async function testCheckboxAccesskey() {
@@ -454,6 +457,42 @@
         document.activeElement,
         mozCheckbox1,
         "Focus cycles between checkboxes with the same accesskey."
+      );
+    });
+
+    add_task(async function testSupportLink() {
+      let mozCheckbox7 = document.getElementById("moz-checkbox-7");
+      let mozCheckbox8 = document.getElementById("moz-checkbox-8");
+
+      let supportLink = mozCheckbox7.shadowRoot.querySelector(
+        "a[is=moz-support-link]"
+      );
+      ok(supportLink, "Support link is rendered when supportPage attribute is set.");
+      ok(
+        supportLink.href.includes("test-page"),
+        "Support link href points to the expected SUMO page."
+      );
+      is(
+        supportLink.innerText,
+        "Learn more",
+        "Support link uses the default label text."
+      );
+
+      let slottedSupportLink = mozCheckbox8.shadowRoot
+        .querySelector("slot[name=support-link]")
+        .assignedElements()[0];
+      ok(
+        slottedSupportLink,
+        "Links can also be rendered using the support-link slot."
+      );
+      ok(
+        slottedSupportLink.href.includes("www.example.com"),
+        "Slotted link uses the expected url."
+      );
+      is(
+        slottedSupportLink.innerText,
+        "Help me!",
+        "Slotted link uses non-default label text."
       );
     });
   </script>

@@ -10,7 +10,11 @@ export default {
   component: "moz-checkbox",
   argTypes: {
     l10nId: {
-      options: ["moz-checkbox-label", "moz-checkbox-label-description"],
+      options: [
+        "moz-checkbox-label",
+        "moz-checkbox-label-description",
+        "moz-checkbox-long-label",
+      ],
       control: { type: "select" },
     },
   },
@@ -23,6 +27,8 @@ moz-checkbox-label =
 moz-checkbox-label-description =
   .label = The label of the checkbox
   .description = This is a description
+moz-checkbox-long-label =
+  .label = Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum libero enim, luctus eu ante a, maximus imperdiet mi. Suspendisse sodales, nisi et commodo malesuada, lectus.
     `,
   },
 };
@@ -36,6 +42,7 @@ const Template = ({
   description,
   hasSlottedDescription,
   accesskey,
+  supportPage,
 }) => html`
   <moz-checkbox
     ?checked=${checked}
@@ -45,6 +52,7 @@ const Template = ({
     .iconSrc=${iconSrc}
     ?disabled=${disabled}
     accesskey=${ifDefined(accesskey)}
+    support-page=${ifDefined(supportPage)}
   >
     ${hasSlottedDescription
       ? html`<div slot="description">test slot text</div>`
@@ -63,6 +71,7 @@ Default.args = {
   description: "",
   label: "",
   accesskey: "",
+  supportPage: "",
 };
 
 export const WithIcon = Template.bind({});
@@ -99,4 +108,10 @@ export const WithAccesskey = Template.bind({});
 WithAccesskey.args = {
   ...Default.args,
   accesskey: "c",
+};
+
+export const WithSupportPage = Template.bind({});
+WithSupportPage.args = {
+  ...Default.args,
+  supportPage: "test",
 };

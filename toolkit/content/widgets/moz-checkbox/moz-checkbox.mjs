@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, when } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-support-link.mjs";
 
 /**
  * A checkbox input with a label.
@@ -21,6 +23,7 @@ import "chrome://global/content/elements/moz-label.mjs";
  * @property {boolean} disabled - The disabled state of the checkbox input
  * @property {string} iconSrc - The src for an optional icon
  * @property {string} description - The text for the description element that helps describe the checkbox
+ * @property {string} supportPage - Name of the SUMO support page to link to.
  */
 export default class MozCheckbox extends MozLitElement {
   static properties = {
@@ -37,6 +40,7 @@ export default class MozCheckbox extends MozLitElement {
       reflect: true,
     },
     accessKey: { type: String, state: true },
+    supportPage: { type: String, attribute: "support-page" },
   };
 
   static get queries() {
@@ -106,6 +110,20 @@ export default class MozCheckbox extends MozLitElement {
     `;
   }
 
+  supportLinkTemplate() {
+    return html`<slot name="support-link">
+      ${when(
+        this.supportPage,
+        () =>
+          html`<a
+            is="moz-support-link"
+            support-page=${this.supportPage}
+            part="support-link"
+          ></a>`
+      )}
+    </slot>`;
+  }
+
   render() {
     return html`
       <link
@@ -132,7 +150,10 @@ export default class MozCheckbox extends MozLitElement {
         />
         <span class="label-content">
           ${this.iconTemplate()}
-          <span class="text">${this.label}</span>
+          <span>
+            <span class="text">${this.label}</span>
+            ${this.supportLinkTemplate()}
+          </span>
         </span>
       </label>
       ${this.descriptionTemplate()}
