@@ -135,7 +135,7 @@ void* CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
                                       site);
   }
 
-  return TryNewTenuredCell<allowGC>(cx, allocKind, thingSize);
+  return TryNewTenuredCell<allowGC>(cx, allocKind);
 }
 
 /* static */
@@ -153,7 +153,8 @@ template <typename T, AllowGC allowGC, typename... Args>
 /* static */
 T* CellAllocator::NewTenuredCell(JSContext* cx, Args&&... args) {
   gc::AllocKind kind = gc::MapTypeToAllocKind<T>::kind;
-  void* cell = AllocTenuredCell<allowGC>(cx, kind, sizeof(T));
+  MOZ_ASSERT(Arena::thingSize(kind) == sizeof(T));
+  void* cell = AllocTenuredCell<allowGC>(cx, kind);
   if (MOZ_UNLIKELY(!cell)) {
     return nullptr;
   }

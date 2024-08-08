@@ -112,7 +112,7 @@ MOZ_NEVER_INLINE void* CellAllocator::RetryNurseryAlloc(JSContext* cx,
   }
 
   // As a final fallback, allocate the cell in the tenured heap.
-  return TryNewTenuredCell<allowGC>(cx, allocKind, thingSize);
+  return TryNewTenuredCell<allowGC>(cx, allocKind);
 }
 
 template void* CellAllocator::RetryNurseryAlloc<NoGC>(JSContext* cx,
@@ -127,26 +127,22 @@ template void* CellAllocator::RetryNurseryAlloc<CanGC>(JSContext* cx,
                                                        AllocSite* site);
 
 template <AllowGC allowGC>
-void* gc::CellAllocator::AllocTenuredCell(JSContext* cx, gc::AllocKind kind,
-                                          size_t size) {
+void* gc::CellAllocator::AllocTenuredCell(JSContext* cx, gc::AllocKind kind) {
   MOZ_ASSERT(!IsNurseryAllocable(kind));
-  MOZ_ASSERT(size == Arena::thingSize(kind));
 
   if (!PreAllocChecks<allowGC>(cx, kind)) {
     return nullptr;
   }
 
-  return TryNewTenuredCell<allowGC>(cx, kind, size);
+  return TryNewTenuredCell<allowGC>(cx, kind);
 }
-template void* gc::CellAllocator::AllocTenuredCell<NoGC>(JSContext*, AllocKind,
-                                                         size_t);
-template void* gc::CellAllocator::AllocTenuredCell<CanGC>(JSContext*, AllocKind,
-                                                          size_t);
+template void* gc::CellAllocator::AllocTenuredCell<NoGC>(JSContext*, AllocKind);
+template void* gc::CellAllocator::AllocTenuredCell<CanGC>(JSContext*,
+                                                          AllocKind);
 
 template <AllowGC allowGC>
 /* static */
-void* CellAllocator::TryNewTenuredCell(JSContext* cx, AllocKind kind,
-                                       size_t thingSize) {
+void* CellAllocator::TryNewTenuredCell(JSContext* cx, AllocKind kind) {
   if constexpr (allowGC) {
     // Invoking the interrupt callback can fail and we can't usefully
     // handle that here. Just check in case we need to collect instead.
@@ -167,7 +163,7 @@ void* CellAllocator::TryNewTenuredCell(JSContext* cx, AllocKind kind,
     if (MOZ_UNLIKELY(!ptr)) {
       if constexpr (allowGC) {
         cx->runtime()->gc.attemptLastDitchGC(cx);
-        ptr = TryNewTenuredCell<NoGC>(cx, kind, thingSize);
+        ptr = TryNewTenuredCell<NoGC>(cx, kind);
         if (ptr) {
           return ptr;
         }
@@ -192,11 +188,9 @@ void* CellAllocator::TryNewTenuredCell(JSContext* cx, AllocKind kind,
   return ptr;
 }
 template void* CellAllocator::TryNewTenuredCell<NoGC>(JSContext* cx,
-                                                      AllocKind kind,
-                                                      size_t thingSize);
+                                                      AllocKind kind);
 template void* CellAllocator::TryNewTenuredCell<CanGC>(JSContext* cx,
-                                                       AllocKind kind,
-                                                       size_t thingSize);
+                                                       AllocKind kind);
 
 void GCRuntime::attemptLastDitchGC(JSContext* cx) {
   // Either there was no memory available for a new chunk or the heap hit its
