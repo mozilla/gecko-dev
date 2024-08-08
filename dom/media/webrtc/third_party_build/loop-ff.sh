@@ -217,6 +217,7 @@ echo_log "Save patch-stack"
 MODIFIED_BUILD_RELATED_FILE_CNT=`hg diff -c tip --stat \
     --include 'third_party/libwebrtc/**BUILD.gn' \
     --include 'third_party/libwebrtc/webrtc.gni' \
+    --include 'third_party/libwebrtc/.gn' \
     | grep -v "files changed" \
     | wc -l | tr -d " " || true`
 ERROR_HELP=$"
