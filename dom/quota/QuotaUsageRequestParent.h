@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
-#define DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
+#ifndef DOM_QUOTA_QUOTAUSAGEREQUESTPARENT_H_
+#define DOM_QUOTA_QUOTAUSAGEREQUESTPARENT_H_
 
 #include "mozilla/dom/quota/BackgroundThreadObject.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
@@ -13,19 +13,19 @@
 
 namespace mozilla::dom::quota {
 
-class QuotaUsageRequestBase : public BackgroundThreadObject,
-                              public PQuotaUsageRequestParent {
+class QuotaUsageRequestParent : public BackgroundThreadObject,
+                                public PQuotaUsageRequestParent {
  public:
-  QuotaUsageRequestBase() = default;
+  QuotaUsageRequestParent() = default;
 
-  NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestBase, override)
+  NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestParent, override)
 
   RefPtr<BoolPromise> OnCancel();
 
   void Destroy();
 
  private:
-  virtual ~QuotaUsageRequestBase();
+  virtual ~QuotaUsageRequestParent();
 
   // IPDL methods.
   void ActorDestroy(ActorDestroyReason aWhy) override;
@@ -37,4 +37,4 @@ class QuotaUsageRequestBase : public BackgroundThreadObject,
 
 }  // namespace mozilla::dom::quota
 
-#endif  // DOM_QUOTA_QUOTAUSAGEREQUESTBASE_H_
+#endif  // DOM_QUOTA_QUOTAUSAGEREQUESTPARENT_H_

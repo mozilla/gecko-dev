@@ -19,7 +19,7 @@
 #include "nsError.h"
 #include "OriginOperations.h"
 #include "QuotaRequestBase.h"
-#include "QuotaUsageRequestBase.h"
+#include "QuotaUsageRequestParent.h"
 
 // CUF == CRASH_UNLESS_FUZZING
 #define QM_CUF_AND_IPC_FAIL(actor)                           \
@@ -531,7 +531,7 @@ mozilla::ipc::IPCResult Quota::RecvGetUsage(
                 QuotaManager::GetOrCreate(),
                 ResolveOriginUsageMetadataArrayResponseAndReturn(aResolve));
 
-  auto parentActor = MakeRefPtr<QuotaUsageRequestBase>();
+  auto parentActor = MakeRefPtr<QuotaUsageRequestParent>();
 
   auto cancelPromise = parentActor->OnCancel();
 
@@ -574,7 +574,7 @@ mozilla::ipc::IPCResult Quota::RecvGetOriginUsage(
                 QuotaManager::GetOrCreate(),
                 ResolveUsageInfoResponseAndReturn(aResolve));
 
-  auto parentActor = MakeRefPtr<QuotaUsageRequestBase>();
+  auto parentActor = MakeRefPtr<QuotaUsageRequestParent>();
 
   auto cancelPromise = parentActor->OnCancel();
 
