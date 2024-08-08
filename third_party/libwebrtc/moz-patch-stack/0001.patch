@@ -312,7 +312,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  api/rtp_parameters.cc                         |   3 +-
  call/BUILD.gn                                 |   4 +-
  call/video_receive_stream.h                   |   2 +
- modules/audio_coding/acm2/acm_receiver.h      |  12 +-
+ modules/audio_coding/acm2/acm_receiver.h      |   1 +
  modules/audio_coding/neteq/dtmf_buffer.cc     |   6 +-
  modules/desktop_capture/desktop_capturer.h    |   1 +
  .../desktop_capture/fake_desktop_capturer.cc  |   4 +-
@@ -346,7 +346,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  test/fuzzers/rtp_packet_fuzzer.cc             |   5 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 39 files changed, 573 insertions(+), 85 deletions(-)
+ 39 files changed, 566 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index 8813e0f4c2..b5e08cea2c 100644
@@ -416,7 +416,7 @@ index 3ff4b58a2e..ad0f3c9396 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 8d5c3ef05f..a934b36da4 100644
+index 684b076d27..4a1f13a4b9 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -438,7 +438,7 @@ index 8d5c3ef05f..a934b36da4 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 20e9245584..b54df14eac 100644
+index 59ffd39548..71b5f12982 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -216,6 +216,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -451,10 +451,10 @@ index 20e9245584..b54df14eac 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 6393a866f6..b942f635e7 100644
+index 8b57523cb7..c0932c5e4d 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
-@@ -18,6 +18,7 @@
+@@ -19,6 +19,7 @@
  #include <string>
  #include <utility>
  #include <vector>
@@ -462,26 +462,6 @@ index 6393a866f6..b942f635e7 100644
  
  #include "absl/types/optional.h"
  #include "api/array_view.h"
-@@ -232,12 +233,15 @@ class AcmReceiver {
- 
-   mutable Mutex mutex_;
-   absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
--  ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
--  std::unique_ptr<int16_t[]> last_audio_buffer_ RTC_GUARDED_BY(mutex_);
--  CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
-+  ACMResampler resampler_;
-+
-+  // After construction, this is only ever touched on the thread that calls
-+  // AcmReceiver::GetAudio, and only modified in this method.
-+  std::unique_ptr<int16_t[]> last_audio_buffer_;
-+  CallStatistics call_stats_;
-   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
-   Clock& clock_;
--  bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
-+  std::atomic<bool> resampled_last_output_frame_;
- };
- 
- }  // namespace acm2
 diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
 index 9f78aca6e2..115bfcf97b 100644
 --- a/modules/audio_coding/neteq/dtmf_buffer.cc
@@ -777,7 +757,7 @@ index 3745e9cba5..f68cfb94c1 100644
        device_names->push_back(rtc::ToUtf8(device.DeviceName));
      }
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index de68885519..099b0be1a3 100644
+index 7ec3b17929..cd516d3d6f 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -200,7 +200,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
@@ -949,7 +929,7 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 1c2d746ac2..bf1ebfb412 100644
+index ed805e7a2b..65a9d58314 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
 @@ -128,6 +128,10 @@ bool IsNonVolatile(RTPExtensionType type) {
@@ -1563,10 +1543,10 @@ index 0134e3ea58..86d1bdda16 100644
    std::unique_ptr<ScalableVideoController> svc_controller_;
    absl::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index b6e1697682..db328d51c6 100644
+index 85ec8edb9b..811256a88b 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -470,6 +470,12 @@ rtc_library("logging") {
+@@ -465,6 +465,12 @@ rtc_library("logging") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  
@@ -1682,7 +1662,7 @@ index 0a9226ef6f..620c1c02f3 100644
    vcm_ = nullptr;
  }
 diff --git a/webrtc.gni b/webrtc.gni
-index 2077c0e9a8..c9f75e2cde 100644
+index 993b19c1f5..706d1794b2 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -130,7 +130,7 @@ declare_args() {

@@ -39,6 +39,10 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
   ss << "{remote_ssrc: " << remote_ssrc;
   ss << ", local_ssrc: " << local_ssrc;
   ss << ", nack: " << nack.ToString();
+  ss << ", rtcp: "
+     << (rtcp_mode == RtcpMode::kCompound
+             ? "compound"
+             : (rtcp_mode == RtcpMode::kReducedSize ? "reducedSize" : "off"));
   ss << ", rtcp_event_observer: "
      << (rtcp_event_observer ? "(rtcp_event_observer)" : "nullptr");
   ss << '}';
@@ -129,6 +133,7 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
   // using the actual packet size for the configured codec.
   channel_receive_->SetNACKStatus(config.rtp.nack.rtp_history_ms != 0,
                                   config.rtp.nack.rtp_history_ms / 20);
+  channel_receive_->SetRtcpMode(config.rtp.rtcp_mode);
   channel_receive_->SetReceiveCodecs(config.decoder_map);
   // `frame_transformer` and `frame_decryptor` have been given to
   // `channel_receive_` already.
@@ -233,6 +238,16 @@ void AudioReceiveStreamImpl::SetNackHistory(int history_ms) {
   // TODO(solenberg): Config NACK history window (which is a packet count),
   // using the actual packet size for the configured codec.
   channel_receive_->SetNACKStatus(history_ms != 0, history_ms / 20);
+}
+
+void AudioReceiveStreamImpl::SetRtcpMode(webrtc::RtcpMode mode) {
+  RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+
+  if (config_.rtp.rtcp_mode == mode)
+    return;
+
+  config_.rtp.rtcp_mode = mode;
+  channel_receive_->SetRtcpMode(mode);
 }
 
 void AudioReceiveStreamImpl::SetNonSenderRttMeasurement(bool enabled) {

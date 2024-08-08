@@ -123,6 +123,10 @@ void FakeAudioReceiveStream::SetNackHistory(int history_ms) {
   config_.rtp.nack.rtp_history_ms = history_ms;
 }
 
+void FakeAudioReceiveStream::SetRtcpMode(webrtc::RtcpMode mode) {
+  config_.rtp.rtcp_mode = mode;
+}
+
 void FakeAudioReceiveStream::SetNonSenderRttMeasurement(bool enabled) {
   config_.enable_non_sender_rtt = enabled;
 }

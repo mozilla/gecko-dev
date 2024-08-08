@@ -333,13 +333,13 @@ class TestVideoEncoderFactoryWrapper final {
     RTC_CHECK_EQ(ret, WEBRTC_VIDEO_CODEC_OK);
 
     // Set bitrates.
-    std::unique_ptr<webrtc::VideoBitrateAllocator> bitrate_allocator_;
-    bitrate_allocator_ = webrtc::CreateBuiltinVideoBitrateAllocatorFactory()
-                             ->CreateVideoBitrateAllocator(video_codec_setting);
-    RTC_CHECK(bitrate_allocator_);
+    std::unique_ptr<VideoBitrateAllocator> bitrate_allocator =
+        CreateBuiltinVideoBitrateAllocatorFactory()->Create(
+            env, video_codec_setting);
+    RTC_CHECK(bitrate_allocator);
 
     webrtc::VideoBitrateAllocation allocation =
-        bitrate_allocator_->GetAllocation(bitrate_kbps * 1000, frame_rate_fps);
+        bitrate_allocator->GetAllocation(bitrate_kbps * 1000, frame_rate_fps);
     RTC_LOG(LS_INFO) << allocation.ToString();
 
     video_encoder->SetRates(webrtc::VideoEncoder::RateControlParameters(

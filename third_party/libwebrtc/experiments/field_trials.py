@@ -62,6 +62,9 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate',
                42220543,
                date(2025, 1, 1)),
+    FieldTrial('WebRTC-Bwe-ResetOnAdapterIdChange',
+               42225231,
+               date(2025, 5, 30)),
     FieldTrial('WebRTC-DataChannelMessageInterleaving',
                41481008,
                date(2024, 10, 1)),
@@ -100,9 +103,6 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
                date(2024, 4, 1)),
     FieldTrial('WebRTC-Pacer-KeyframeFlushing',
                42221435,
-               date(2024, 4, 1)),
-    FieldTrial('WebRTC-PaddingMode-RecentLargePacket',
-               42225520,
                date(2024, 4, 1)),
     FieldTrial('WebRTC-PermuteTlsClientHello',
                42225803,
@@ -477,9 +477,6 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
                date(2024, 4, 1)),
     FieldTrial('WebRTC-AudioDevicePlayoutBufferSizeFactor',
                42221006,
-               date(2024, 4, 1)),
-    FieldTrial('WebRTC-AutomaticAnimationDetectionScreenshare',
-               42221141,
                date(2024, 4, 1)),
     FieldTrial('WebRTC-BindUsingInterfaceName',
                42220770,
@@ -875,7 +872,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
 ])  # yapf: disable
 
 POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
-    'b0b0cce63bfdf327229b569576a07b716db186b7'
+    'd6beac9eb318c70cd1695598b3d3c069cd17b42f'
 
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)

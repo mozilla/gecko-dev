@@ -70,20 +70,21 @@ void ProcessCaptureFrame(uint32_t delay_ms,
 int Resample(const AudioFrame& frame,
              const int destination_sample_rate,
              PushResampler<int16_t>* resampler,
-             rtc::ArrayView<int16_t> destination) {
+             InterleavedView<int16_t> destination) {
   TRACE_EVENT2("webrtc", "Resample", "frame sample rate", frame.sample_rate_hz_,
                "destination_sample_rate", destination_sample_rate);
-  const int number_of_channels = static_cast<int>(frame.num_channels_);
-  const int target_number_of_samples_per_channel =
-      destination_sample_rate / 100;
-  RTC_CHECK_EQ(destination.size(),
+  const size_t target_number_of_samples_per_channel =
+      SampleRateToDefaultChannelSize(destination_sample_rate);
+  RTC_DCHECK_EQ(NumChannels(destination), frame.num_channels_);
+  RTC_DCHECK_EQ(SamplesPerChannel(destination),
+                target_number_of_samples_per_channel);
+  RTC_CHECK_EQ(destination.data().size(),
                frame.num_channels_ * target_number_of_samples_per_channel);
 
   resampler->InitializeIfNeeded(frame.sample_rate_hz_, destination_sample_rate,
-                                number_of_channels);
+                                static_cast<int>(frame.num_channels()));
 
-  // TODO(yujo): make resampler take an AudioFrame, and add special case
-  // handling of muted frames.
+  // TODO(yujo): Add special case handling of muted frames.
   return resampler->Resample(frame.data_view(), destination);
 }
 }  // namespace
@@ -235,8 +236,8 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
   nSamplesOut =
       Resample(mixed_frame_, samplesPerSec, &render_resampler_,
-               rtc::ArrayView<int16_t>(static_cast<int16_t*>(audioSamples),
-                                       nSamples * nChannels));
+               InterleavedView<int16_t>(static_cast<int16_t*>(audioSamples),
+                                        nSamples, nChannels));
   RTC_DCHECK_EQ(nSamplesOut, nChannels * nSamples);
   return 0;
 }
@@ -268,8 +269,8 @@ void AudioTransportImpl::PullRenderData(int bits_per_sample,
 
   int output_samples =
       Resample(mixed_frame_, sample_rate, &render_resampler_,
-               rtc::ArrayView<int16_t>(static_cast<int16_t*>(audio_data),
-                                       number_of_channels * number_of_frames));
+               InterleavedView<int16_t>(static_cast<int16_t*>(audio_data),
+                                        number_of_frames, number_of_channels));
   RTC_DCHECK_EQ(output_samples, number_of_channels * number_of_frames);
 }
 

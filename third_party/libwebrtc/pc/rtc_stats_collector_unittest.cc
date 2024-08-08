@@ -3759,7 +3759,7 @@ class FakeRTCStatsCollector : public RTCStatsCollector,
   // Satisfying the implementation of these methods and associating them with a
   // reference counter, will be done by RefCountedObject.
   virtual void AddRef() const = 0;
-  virtual rtc::RefCountReleaseStatus Release() const = 0;
+  virtual RefCountReleaseStatus Release() const = 0;
 
   // RTCStatsCollectorCallback implementation.
   void OnStatsDelivered(

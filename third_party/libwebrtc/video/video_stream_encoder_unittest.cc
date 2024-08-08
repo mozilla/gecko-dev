@@ -152,7 +152,7 @@ class TestBuffer : public webrtc::I420Buffer {
       : I420Buffer(width, height), event_(event) {}
 
  private:
-  friend class rtc::RefCountedObject<TestBuffer>;
+  friend class RefCountedObject<TestBuffer>;
   ~TestBuffer() override {
     if (event_)
       event_->Set();
@@ -184,7 +184,7 @@ class FakeNativeBuffer : public webrtc::VideoFrameBuffer {
   }
 
  private:
-  friend class rtc::RefCountedObject<FakeNativeBuffer>;
+  friend class RefCountedObject<FakeNativeBuffer>;
   ~FakeNativeBuffer() override {
     if (event_)
       event_->Set();
@@ -216,7 +216,7 @@ class FakeNV12NativeBuffer : public webrtc::VideoFrameBuffer {
   const NV12BufferInterface* GetNV12() const { return nv12_buffer_.get(); }
 
  private:
-  friend class rtc::RefCountedObject<FakeNV12NativeBuffer>;
+  friend class RefCountedObject<FakeNV12NativeBuffer>;
   ~FakeNV12NativeBuffer() override {
     if (event_)
       event_->Set();
@@ -1601,11 +1601,12 @@ class VideoStreamEncoderTest : public ::testing::Test {
         : bitrate_allocator_factory_(
               CreateBuiltinVideoBitrateAllocatorFactory()) {}
 
-    std::unique_ptr<VideoBitrateAllocator> CreateVideoBitrateAllocator(
+    std::unique_ptr<VideoBitrateAllocator> Create(
+        const Environment& env,
         const VideoCodec& codec) override {
       MutexLock lock(&mutex_);
       codec_config_ = codec;
-      return bitrate_allocator_factory_->CreateVideoBitrateAllocator(codec);
+      return bitrate_allocator_factory_->Create(env, codec);
     }
 
     VideoCodec codec_config() const {
@@ -4780,7 +4781,7 @@ TEST_F(VideoStreamEncoderTest, ReportsVideoBitrateAllocation) {
 
   const int kDefaultFps = 30;
   const VideoBitrateAllocation expected_bitrate =
-      SimulcastRateAllocator(fake_encoder_.config())
+      SimulcastRateAllocator(env_, fake_encoder_.config())
           .Allocate(VideoBitrateAllocationParameters(kLowTargetBitrate.bps(),
                                                      kDefaultFps));
 
@@ -7299,8 +7300,7 @@ TEST_F(VideoStreamEncoderTest, DropsFramesWhenEncoderOvershoots) {
   // of video, verify number of drops. Rate needs to be slightly changed in
   // order to force the rate to be reconfigured.
   double overshoot_factor = 2.0;
-  const RateControlSettings trials =
-      RateControlSettings::ParseFromFieldTrials();
+  const RateControlSettings trials(env_.field_trials());
   if (trials.UseEncoderBitrateAdjuster()) {
     // With bitrate adjuster, when need to overshoot even more to trigger
     // frame dropping since the adjuter will try to just lower the target
@@ -8012,65 +8012,6 @@ TEST_F(VideoStreamEncoderTest,
       /*cwnd_reduce_ratio=*/0);
   video_stream_encoder_->WaitUntilTaskQueueIsIdle();
   EXPECT_EQ(1, fake_encoder_.GetNumSetRates());
-  video_stream_encoder_->Stop();
-}
-
-TEST_F(VideoStreamEncoderTest, AutomaticAnimationDetection) {
-  test::ScopedKeyValueConfig field_trials(
-      field_trials_,
-      "WebRTC-AutomaticAnimationDetectionScreenshare/"
-      "enabled:true,min_fps:20,min_duration_ms:1000,min_area_ratio:0.8/");
-  const int kFramerateFps = 30;
-  const int kWidth = 1920;
-  const int kHeight = 1080;
-  const int kNumFrames = 2 * kFramerateFps;  // >1 seconds of frames.
-  ASSERT_EQ(video_encoder_config_.simulcast_layers.size(), 1u);
-  // Works on screenshare mode.
-  ResetEncoder("VP8", 1, 1, 1, /*screenshare*/ true,
-               /*max_frame_rate=*/kFramerateFps);
-  // We rely on the automatic resolution adaptation, but we handle framerate
-  // adaptation manually by mocking the stats proxy.
-  video_source_.set_adaptation_enabled(true);
-
-  // BALANCED degradation preference is required for this feature.
-  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
-  video_stream_encoder_->SetSource(&video_source_,
-                                   webrtc::DegradationPreference::BALANCED);
-  EXPECT_THAT(video_source_.sink_wants(), WantsFps(Eq(kFramerateFps)));
-
-  VideoFrame frame = CreateFrame(1, kWidth, kHeight);
-  frame.set_update_rect(VideoFrame::UpdateRect{0, 0, kWidth, kHeight});
-
-  // Pass enough frames with the full update to trigger animation detection.
-  for (int i = 0; i < kNumFrames; ++i) {
-    int64_t timestamp_ms = CurrentTimeMs();
-    frame.set_ntp_time_ms(timestamp_ms);
-    frame.set_timestamp_us(timestamp_ms * 1000);
-    video_source_.IncomingCapturedFrame(frame);
-    WaitForEncodedFrame(timestamp_ms);
-  }
-
-  // Resolution should be limited.
-  rtc::VideoSinkWants expected;
-  expected.max_framerate_fps = kFramerateFps;
-  expected.max_pixel_count = 1280 * 720 + 1;
-  EXPECT_THAT(video_source_.sink_wants(), FpsEqResolutionLt(expected));
-
-  // Pass one frame with no known update.
-  //  Resolution cap should be removed immediately.
-  int64_t timestamp_ms = CurrentTimeMs();
-  frame.set_ntp_time_ms(timestamp_ms);
-  frame.set_timestamp_us(timestamp_ms * 1000);
-  frame.clear_update_rect();
-
-  video_source_.IncomingCapturedFrame(frame);
-  WaitForEncodedFrame(timestamp_ms);
-
-  // Resolution should be unlimited now.
-  EXPECT_THAT(video_source_.sink_wants(),
-              FpsMatchesResolutionMax(Eq(kFramerateFps)));
-
   video_stream_encoder_->Stop();
 }
 

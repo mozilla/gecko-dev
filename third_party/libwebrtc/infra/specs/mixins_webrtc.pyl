@@ -51,9 +51,9 @@
     'swarming': {
       'idempotent': False,
       'dimensions': {
-        'os': 'iOS-15.7.8',
+        'os': 'iOS-17.4.1',
         'pool': 'WebRTC',
-        'id': 'mac-254-e504',
+        'id': 'mac-438-e504',
         'device_status': 'available'
       },
     },
@@ -198,17 +198,5 @@
     'args': [
       '--xctest',
     ],
-  },
-  'xcode_14_main': {
-    'args': ['--xcode-build-version', '14c18'],
-    'swarming': {
-      'dimensions': {
-        'caches': 'xcode_ios_14c18',
-      },
-      'named_caches': [{
-        'name': 'xcode_ios_14c18',
-        'path': 'Xcode.app'
-      }]
-    }
   },
 }

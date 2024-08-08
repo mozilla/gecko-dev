@@ -236,8 +236,8 @@ if (rtc_include_tests) {
       "../../rtc_base:checks",
       "../../rtc_base:logging",
       "../../system_wrappers",
+      "//third_party/abseil-cpp/absl/strings:string_view",
     ]
-    absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
 
     if (is_posix || is_fuchsia) {
       sources += [
@@ -277,7 +277,12 @@ if ((is_linux || is_chromeos) && rtc_use_pipewire) {
 rtc_library("desktop_capture") {
   visibility = [ "*" ]
   defines = []
-  deps = []
+  deps = [
+    "//third_party/abseil-cpp/absl/memory",
+    "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
   public_configs = [ ":x11_config" ]
   sources = [
     "blank_detector_desktop_capturer_wrapper.cc",
@@ -505,12 +510,6 @@ rtc_library("desktop_capture") {
       "../../rtc_base/win:windows_version",
     ]
   }
-
-  absl_deps = [
-    "//third_party/abseil-cpp/absl/memory",
-    "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
-  ]
 
   if (rtc_use_x11_extensions) {
     deps += [ "../../rtc_base:sanitizer" ]

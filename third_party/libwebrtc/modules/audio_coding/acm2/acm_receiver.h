@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -22,11 +23,13 @@
 
 #include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/audio/audio_frame.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_factory.h"
+#include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/acm2/call_statistics.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
@@ -69,13 +72,15 @@ class AcmReceiver {
   //                            information about payload type, sequence number,
   //                            timestamp, SSRC and marker bit.
   //   - incoming_payload     : Incoming audio payload.
-  //   - length_payload       : Length of incoming audio payload in bytes.
+  //   - receive_time         : Timestamp when the packet has been seen on the
+  //                            network card.
   //
   // Return value             : 0 if OK.
   //                           <0 if NetEq returned an error.
   //
   int InsertPacket(const RTPHeader& rtp_header,
-                   rtc::ArrayView<const uint8_t> incoming_payload);
+                   rtc::ArrayView<const uint8_t> incoming_payload,
+                   Timestamp receive_time = Timestamp::MinusInfinity());
 
   //
   // Asks NetEq for 10 milliseconds of decoded audio.
@@ -164,11 +169,6 @@ class AcmReceiver {
   //
   void FlushBuffers();
 
-  //
-  // Remove all registered codecs.
-  //
-  void RemoveAllCodecs();
-
   // Returns the RTP timestamp for the last sample delivered by GetAudio().
   // The return value will be empty if no valid timestamp is available.
   absl::optional<uint32_t> GetPlayoutTimestamp();
@@ -233,15 +233,13 @@ class AcmReceiver {
 
   mutable Mutex mutex_;
   absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
-  ACMResampler resampler_;
-
-  // After construction, this is only ever touched on the thread that calls
-  // AcmReceiver::GetAudio, and only modified in this method.
-  std::unique_ptr<int16_t[]> last_audio_buffer_;
-  CallStatistics call_stats_;
+  ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
+  CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
   Clock& clock_;
-  std::atomic<bool> resampled_last_output_frame_;
+  bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
+  std::array<int16_t, AudioFrame::kMaxDataSizeSamples> last_audio_buffer_
+      RTC_GUARDED_BY(mutex_);
 };
 
 }  // namespace acm2

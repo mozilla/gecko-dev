@@ -10,7 +10,6 @@ COMPILE_FLAGS["OS_INCLUDES"] = []
 AllowCompilerWarnings()
 
 DEFINES["ABSL_ALLOCATOR_NOTHROW"] = "1"
-DEFINES["BWE_TEST_LOGGING_COMPILE_TIME_ENABLE"] = "0"
 DEFINES["RTC_DAV1D_IN_INTERNAL_DECODER_FACTORY"] = True
 DEFINES["RTC_ENABLE_VP9"] = True
 DEFINES["WEBRTC_ENABLE_PROTOBUF"] = "0"
@@ -78,7 +77,6 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_sequence_number_map.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/source_tracker.cc",
-    "/third_party/libwebrtc/modules/rtp_rtcp/source/time_util.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/tmmbr_help.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/ulpfec_header_reader_writer.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/ulpfec_receiver.cc",

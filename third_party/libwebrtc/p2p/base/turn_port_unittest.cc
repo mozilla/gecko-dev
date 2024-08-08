@@ -366,9 +366,13 @@ class TurnPortTest : public ::testing::Test,
   void CreateUdpPort() { CreateUdpPort(kLocalAddr2); }
 
   void CreateUdpPort(const SocketAddress& address) {
-    udp_port_ = UDPPort::Create(&main_, socket_factory(), MakeNetwork(address),
-                                0, 0, kIceUfrag2, kIcePwd2, false,
-                                absl::nullopt, &field_trials_);
+    udp_port_ = UDPPort::Create({.network_thread = &main_,
+                                 .socket_factory = socket_factory(),
+                                 .network = MakeNetwork(address),
+                                 .ice_username_fragment = kIceUfrag2,
+                                 .ice_password = kIcePwd2,
+                                 .field_trials = &field_trials_},
+                                0, 0, false, absl::nullopt);
     // UDP port will be controlled.
     udp_port_->SetIceRole(ICEROLE_CONTROLLED);
     udp_port_->SetIceTiebreaker(kTiebreakerDefault);
@@ -1517,8 +1521,8 @@ TEST_F(TurnPortTest, TestChannelBindGetErrorResponse) {
   // TODO(deadbeef): SetEntryChannelId should not be a public method.
   // Instead we should set an option on the fake TURN server to force it to
   // send a channel bind errors.
-  ASSERT_TRUE(
-      turn_port_->SetEntryChannelId(udp_port_->Candidates()[0].address(), -1));
+  ASSERT_TRUE(turn_port_->SetEntryChannelId(
+      udp_port_->Candidates()[0].address(), /*channel_id=*/1));
 
   std::string data = "ABC";
   conn1->Send(data.data(), data.length(), options);

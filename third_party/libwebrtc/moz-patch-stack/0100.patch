@@ -19,7 +19,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d92a578327f524ec3
  5 files changed, 23 insertions(+), 5 deletions(-)
 
 diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
-index 47e422ebfc..91a39628af 100644
+index 7e0258ae77..5dcc055ec9 100644
 --- a/call/rtp_video_sender.cc
 +++ b/call/rtp_video_sender.cc
 @@ -493,6 +493,7 @@ void RtpVideoSender::SetActiveModulesLocked(bool sending) {
@@ -31,7 +31,7 @@ index 47e422ebfc..91a39628af 100644
      rtp_module.SetSendingMediaStatus(sending);
      if (sending) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 099b0be1a3..971f49b949 100644
+index cd516d3d6f..1cd3edc31c 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -212,8 +212,23 @@ bool RTCPSender::Sending() const {
@@ -81,10 +81,10 @@ index 002a5f86f1..1dcb628722 100644
  
  TEST_F(RtcpSenderTest, SendFir) {
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index cca9a40250..a63067141d 100644
+index 278d88154d..579bfcd2e9 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -296,6 +296,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+@@ -297,6 +297,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
  
  int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
    if (rtcp_sender_.Sending() != sending) {

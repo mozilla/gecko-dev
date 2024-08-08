@@ -23,8 +23,6 @@ rtc_source_set("voip_api") {
     "..:array_view",
     "../audio_codecs:audio_codecs_api",
     "../neteq:neteq_api",
-  ]
-  absl_deps = [
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
@@ -57,8 +55,8 @@ if (rtc_include_tests) {
       ":voip_api",
       "..:array_view",
       "../../test:test_support",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
-    absl_deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
   }
 
   rtc_library("voip_engine_factory_unittests") {

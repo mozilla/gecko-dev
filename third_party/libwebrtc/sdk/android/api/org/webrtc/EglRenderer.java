@@ -34,6 +34,14 @@ public class EglRenderer implements VideoSink {
 
   public interface FrameListener { void onFrame(Bitmap frame); }
 
+  /**
+   * Can be implemented by the clients who want to know exactly when a render happens.
+   */
+  public interface RenderListener {
+    /** Fired when swapBuffers happens. */
+    void onRender(long timestampNs);
+  }
+
   /** Callback for clients to be notified about errors encountered during rendering. */
   public static interface ErrorCallback {
     /** Called if GLES20.GL_OUT_OF_MEMORY is encountered during rendering. */
@@ -99,6 +107,8 @@ public class EglRenderer implements VideoSink {
   };
 
   private final ArrayList<FrameListenerAndParams> frameListeners = new ArrayList<>();
+
+  private final ArrayList<RenderListener> renderListeners = new ArrayList<>();
 
   private volatile ErrorCallback errorCallback;
 
@@ -279,6 +289,7 @@ public class EglRenderer implements VideoSink {
           eglBase = null;
         }
 
+        renderListeners.clear();
         frameListeners.clear();
         eglCleanupBarrier.countDown();
       });
@@ -405,7 +416,7 @@ public class EglRenderer implements VideoSink {
    *                 It should be lightweight and must not call removeFrameListener.
    * @param scale    The scale of the Bitmap passed to the callback, or 0 if no Bitmap is
    *                 required.
-   * @param drawer   Custom drawer to use for this frame listener or null to use the default one.
+   * @param drawerParam   Custom drawer to use for this frame listener or null to use the default.
    */
   public void addFrameListener(
       final FrameListener listener, final float scale, final RendererCommon.GlDrawer drawerParam) {
@@ -419,7 +430,7 @@ public class EglRenderer implements VideoSink {
    *                 It should be lightweight and must not call removeFrameListener.
    * @param scale    The scale of the Bitmap passed to the callback, or 0 if no Bitmap is
    *                 required.
-   * @param drawer   Custom drawer to use for this frame listener or null to use the default one.
+   * @param drawerParam   Custom drawer to use for this frame listener or null to use the default.
    * @param applyFpsReduction This callback will not be called for frames that have been dropped by
    *                          FPS reduction.
    */
@@ -433,11 +444,21 @@ public class EglRenderer implements VideoSink {
   }
 
   /**
+   * Register a callback to be invoked when a new video frame has been rendered. 
+   *
+   * @param listener The callback to be invoked. The callback will be invoked on the render thread.
+   *                 It should be lightweight and must not call removeRenderListener.
+   */
+  public void addRenderListener(final RenderListener listener) {
+    renderListeners.add(listener);
+  }
+
+  /**
    * Remove any pending callback that was added with addFrameListener. If the callback is not in
    * the queue, nothing happens. It is ensured that callback won't be called after this method
    * returns.
    *
-   * @param runnable The callback to remove.
+   * @param listener The callback to remove.
    */
   public void removeFrameListener(final FrameListener listener) {
     final CountDownLatch latch = new CountDownLatch(1);
@@ -457,6 +478,36 @@ public class EglRenderer implements VideoSink {
           }
         }
       });
+    }
+    ThreadUtils.awaitUninterruptibly(latch);
+  }
+
+  /**
+   * Remove any pending callback that was added with addRenderListener. If the callback is not in
+   * the queue, nothing happens. It is ensured that callback won't be called after this method
+   * returns.
+   *
+   * @param listener The callback to remove.
+   */
+  public void removeRenderListener(final RenderListener listener) {
+    final CountDownLatch latch = new CountDownLatch(1);
+    synchronized (threadLock) {
+      if (eglThread == null) {
+        return;
+      }
+      if (Thread.currentThread() == eglThread.getHandler().getLooper().getThread()) {
+        throw new RuntimeException("removeRenderListener must not be called on the render thread.");
+      }
+      postToRenderThread(
+          () -> {
+            latch.countDown();
+            final Iterator<RenderListener> iter = renderListeners.iterator();
+            while (iter.hasNext()) {
+              if (iter.next() == listener) {
+                iter.remove();
+              }
+            }
+          });
     }
     ThreadUtils.awaitUninterruptibly(latch);
   }
@@ -574,6 +625,10 @@ public class EglRenderer implements VideoSink {
                 eglBase.swapBuffers(frame.getTimestampNs());
               } else {
                 eglBase.swapBuffers();
+              }
+
+              for (var listener : renderListeners) {
+                listener.onRender(System.nanoTime());
               }
 
               synchronized (statisticsLock) {

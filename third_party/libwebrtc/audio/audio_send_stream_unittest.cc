@@ -17,14 +17,13 @@
 #include <vector>
 
 #include "api/audio/audio_processing_statistics.h"
-#include "api/task_queue/default_task_queue_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/test/mock_frame_encryptor.h"
 #include "audio/audio_state.h"
 #include "audio/conversion.h"
 #include "audio/mock_voe_channel_proxy.h"
 #include "call/test/mock_bitrate_allocator.h"
 #include "call/test/mock_rtp_transport_controller_send.h"
-#include "logging/rtc_event_log/mock/mock_rtc_event_log.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/audio_mixer/sine_wave_generator.h"
@@ -186,13 +185,12 @@ struct ConfigHelper {
   }
 
   std::unique_ptr<internal::AudioSendStream> CreateAudioSendStream() {
-    return std::unique_ptr<internal::AudioSendStream>(
-        new internal::AudioSendStream(
-            time_controller_.GetClock(), stream_config_, audio_state_,
-            time_controller_.GetTaskQueueFactory(), &rtp_transport_,
-            &bitrate_allocator_, &event_log_, absl::nullopt,
-            std::unique_ptr<voe::ChannelSendInterface>(channel_send_),
-            field_trials));
+    return std::make_unique<internal::AudioSendStream>(
+        CreateEnvironment(&field_trials, time_controller_.GetClock(),
+                          time_controller_.GetTaskQueueFactory()),
+        stream_config_, audio_state_, &rtp_transport_, &bitrate_allocator_,
+        absl::nullopt,
+        std::unique_ptr<voe::ChannelSendInterface>(channel_send_));
   }
 
   AudioSendStream::Config& config() { return stream_config_; }
@@ -325,7 +323,6 @@ struct ConfigHelper {
   rtc::scoped_refptr<MockAudioProcessing> audio_processing_;
   AudioProcessingStats audio_processing_stats_;
   ::testing::StrictMock<MockNetworkLinkRtcpObserver> rtcp_observer_;
-  ::testing::NiceMock<MockRtcEventLog> event_log_;
   ::testing::NiceMock<MockRtpTransportControllerSend> rtp_transport_;
   ::testing::NiceMock<MockRtpRtcpInterface> rtp_rtcp_;
   ::testing::NiceMock<MockLimitObserver> limit_observer_;

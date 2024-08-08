@@ -447,7 +447,7 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
 
   void SetUp() override {
     helper_ = std::make_unique<TestSimulcastEncoderAdapterFakeHelper>(
-        CreateEnvironment(&field_trials_), use_fallback_factory_,
+        env_, use_fallback_factory_,
         SdpVideoFormat("VP8", sdp_video_parameters_));
     adapter_ = helper_->CreateMockEncoderAdapter();
     last_encoded_image_width_ = absl::nullopt;
@@ -503,7 +503,7 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
         codec_.simulcastStream[stream_idx].active = active_streams[stream_idx];
       }
     }
-    rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+    rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
     EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
     adapter_->RegisterEncodeCompleteCallback(this);
   }
@@ -579,6 +579,8 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
   }
 
  protected:
+  test::ScopedKeyValueConfig field_trials_;
+  const Environment env_ = CreateEnvironment(&field_trials_);
   std::unique_ptr<TestSimulcastEncoderAdapterFakeHelper> helper_;
   std::unique_ptr<VideoEncoder> adapter_;
   VideoCodec codec_;
@@ -588,7 +590,6 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
   std::unique_ptr<SimulcastRateAllocator> rate_allocator_;
   bool use_fallback_factory_;
   CodecParameterMap sdp_video_parameters_;
-  test::ScopedKeyValueConfig field_trials_;
 };
 
 TEST_F(TestSimulcastEncoderAdapterFake, InitEncode) {
@@ -662,7 +663,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, ReusesEncodersInOrder) {
   SimulcastTestFixtureImpl::DefaultSettings(
       &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
       kVideoCodecVP8);
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   adapter_->RegisterEncodeCompleteCallback(this);
   const uint32_t target_bitrate =
       1000 * (codec_.simulcastStream[0].targetBitrate +
@@ -913,7 +914,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, SetRatesUnderMinBitrate) {
   codec_.minBitrate = 50;
   codec_.numberOfSimulcastStreams = 1;
   EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
 
   // Above min should be respected.
   VideoBitrateAllocation target_bitrate = rate_allocator_->Allocate(
@@ -1110,7 +1111,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, GeneratesKeyFramesOnRequestedLayers) {
   SimulcastTestFixtureImpl::DefaultSettings(
       &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
       kVideoCodecVP8);
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   adapter_->RegisterEncodeCompleteCallback(this);
 
   // Input data.
@@ -1299,7 +1300,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, ActivatesCorrectStreamsInInitEncode) {
   SimulcastTestFixtureImpl::DefaultSettings(
       &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
       kVideoCodecVP8);
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   adapter_->RegisterEncodeCompleteCallback(this);
 
   // Only enough start bitrate for the lowest stream.
@@ -1337,7 +1338,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, TrustedRateControl) {
   SimulcastTestFixtureImpl::DefaultSettings(
       &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
       kVideoCodecVP8);
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   adapter_->RegisterEncodeCompleteCallback(this);
 
   // Only enough start bitrate for the lowest stream.
@@ -1584,7 +1585,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, SetRateDistributesBandwithAllocation) {
   const DataRate bandwidth_allocation =
       target_bitrate + DataRate::KilobitsPerSec(600);
 
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
   adapter_->RegisterEncodeCompleteCallback(this);
 
@@ -1620,7 +1621,7 @@ TEST_F(TestSimulcastEncoderAdapterFake, CanSetZeroBitrateWithHeadroom) {
       kVideoCodecVP8);
   codec_.numberOfSimulcastStreams = 3;
 
-  rate_allocator_.reset(new SimulcastRateAllocator(codec_));
+  rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
   EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
   adapter_->RegisterEncodeCompleteCallback(this);
 

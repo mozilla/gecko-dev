@@ -170,8 +170,10 @@ bool Receiver::IncomingPacket() {
     }
 
     EXPECT_EQ(0, _acm_receiver->InsertPacket(
-                     _rtpHeader, rtc::ArrayView<const uint8_t>(
-                                     _incomingPayload, _realPayloadSizeBytes)));
+                     _rtpHeader,
+                     rtc::ArrayView<const uint8_t>(_incomingPayload,
+                                                   _realPayloadSizeBytes),
+                     /*receive_time=*/Timestamp::Millis(_nextTime)));
     _realPayloadSizeBytes = _rtpStream->Read(&_rtpHeader, _incomingPayload,
                                              _payloadSizeBytes, &_nextTime);
     if (_realPayloadSizeBytes == 0 && _rtpStream->EndOfFile()) {
@@ -232,10 +234,14 @@ void EncodeDecodeTest::Perform() {
       {107, {"L16", 8000, 1}},  {108, {"L16", 16000, 1}},
       {109, {"L16", 32000, 1}}, {0, {"PCMU", 8000, 1}},
       {8, {"PCMA", 8000, 1}},
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722 and iLBC.
+#if defined(__has_feature) && !__has_feature(undefined_behavior_sanitizer)
 #ifdef WEBRTC_CODEC_ILBC
       {102, {"ILBC", 8000, 1}},
 #endif
-      {9, {"G722", 8000, 1}}};
+      {9, {"G722", 8000, 1}},
+#endif
+  };
   int file_num = 0;
   for (const auto& send_codec : send_codecs) {
     RTPFile rtpFile;

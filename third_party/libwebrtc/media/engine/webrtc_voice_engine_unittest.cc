@@ -3739,7 +3739,7 @@ TEST(WebRtcVoiceEngineTest, StartupShutdownWithExternalADM) {
     }
     // The engine/channel should have dropped their references.
     EXPECT_EQ(adm.release()->Release(),
-              rtc::RefCountReleaseStatus::kDroppedLastRef);
+              webrtc::RefCountReleaseStatus::kDroppedLastRef);
   }
 }
 

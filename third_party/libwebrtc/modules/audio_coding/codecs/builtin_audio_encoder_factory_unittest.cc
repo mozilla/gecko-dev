@@ -57,6 +57,12 @@ TEST_P(AudioEncoderFactoryTest, CanRunAllSupportedEncoders) {
   auto factory = GetParam();
   auto supported_encoders = factory->GetSupportedEncoders();
   for (const auto& spec : supported_encoders) {
+// TODO(bugs.webrtc.org/345525069): Either fix/enable or remove G722.
+#if defined(__has_feature) && __has_feature(undefined_behavior_sanitizer)
+    if (spec.format.name == "G722") {
+      GTEST_SKIP() << "Skipping G722, see webrtc:345525069.";
+    }
+#endif
     auto encoder =
         factory->MakeAudioEncoder(kTestPayloadType, spec.format, absl::nullopt);
     EXPECT_TRUE(encoder);
