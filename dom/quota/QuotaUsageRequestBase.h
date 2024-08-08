@@ -16,21 +16,9 @@ namespace mozilla::dom::quota {
 class QuotaUsageRequestBase : public BackgroundThreadObject,
                               public PQuotaUsageRequestParent {
  public:
-  QuotaUsageRequestBase() : mActorDestroyed(false) {}
+  QuotaUsageRequestBase() = default;
 
   NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestBase, override)
-
-  void NoteActorDestroyed() {
-    AssertIsOnOwningThread();
-
-    mActorDestroyed = true;
-  }
-
-  bool IsActorDestroyed() const {
-    AssertIsOnOwningThread();
-
-    return mActorDestroyed;
-  }
 
   RefPtr<BoolPromise> OnCancel();
 
@@ -45,7 +33,6 @@ class QuotaUsageRequestBase : public BackgroundThreadObject,
   mozilla::ipc::IPCResult RecvCancel() final;
 
   MozPromiseHolder<BoolPromise> mCancelPromiseHolder;
-  bool mActorDestroyed;
 };
 
 }  // namespace mozilla::dom::quota

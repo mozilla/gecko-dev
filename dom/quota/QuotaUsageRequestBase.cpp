@@ -8,10 +8,7 @@
 
 namespace mozilla::dom::quota {
 
-QuotaUsageRequestBase::~QuotaUsageRequestBase() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mActorDestroyed);
-}
+QuotaUsageRequestBase::~QuotaUsageRequestBase() { AssertIsOnOwningThread(); }
 
 RefPtr<BoolPromise> QuotaUsageRequestBase::OnCancel() {
   AssertIsOnOwningThread();
@@ -22,15 +19,13 @@ RefPtr<BoolPromise> QuotaUsageRequestBase::OnCancel() {
 void QuotaUsageRequestBase::Destroy() {
   AssertIsOnOwningThread();
 
-  if (!IsActorDestroyed()) {
+  if (CanSend()) {
     (void)PQuotaUsageRequestParent::Send__delete__(this);
   }
 }
 
 void QuotaUsageRequestBase::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsOnOwningThread();
-
-  NoteActorDestroyed();
 
   mCancelPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);
 }
