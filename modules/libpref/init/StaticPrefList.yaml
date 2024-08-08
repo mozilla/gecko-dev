@@ -12115,7 +12115,7 @@
 
 - name: network.cookie.sameSite.noneRequiresSecure
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 - name: network.cookie.sameSite.schemeful
