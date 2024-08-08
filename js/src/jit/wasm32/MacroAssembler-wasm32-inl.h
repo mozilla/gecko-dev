@@ -25,6 +25,10 @@ void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::move64To32(Register64 src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::move32To64ZeroExtend(Register src, Register64 dest) {

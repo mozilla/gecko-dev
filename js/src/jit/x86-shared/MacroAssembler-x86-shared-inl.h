@@ -40,6 +40,10 @@ void MacroAssembler::moveGPRToFloat32(Register src, FloatRegister dest) {
   vmovd(src, dest);
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  vmovd(src, dest);
+}
+
 void MacroAssembler::move8ZeroExtend(Register src, Register dest) {
   movzbl(src, dest);
 }

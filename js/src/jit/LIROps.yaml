@@ -1494,6 +1494,12 @@
     input: WordSized
   num_temps: 1
 
+- name: DoubleToFloat32ToFloat16
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 2
+
 - name: Float32ToFloat16
   result_type: WordSized
   operands:

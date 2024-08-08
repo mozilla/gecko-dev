@@ -66,6 +66,10 @@ void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   ma_vxfer(src.low, src.high, dest);
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  ma_vxfer(src, dest, InvalidReg);
+}
+
 void MacroAssembler::move64To32(Register64 src, Register dest) {
   if (src.low != dest) {
     move32(src.low, dest);

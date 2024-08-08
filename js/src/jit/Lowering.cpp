@@ -3011,16 +3011,18 @@ void LIRGenerator::visitToFloat16(MToFloat16* convert) {
     }
 
     case MIRType::Double: {
-      LDefinition tempDef = LDefinition::BogusTemp();
-      if (!MacroAssembler::SupportsFloat64To16()) {
-        tempDef = temp();
-      }
-
-      auto* lir =
-          new (alloc()) LDoubleToFloat16(useRegisterAtStart(opd), tempDef);
-      define(lir, convert);
-
-      if (!MacroAssembler::SupportsFloat64To16()) {
+      if (MacroAssembler::SupportsFloat64To16()) {
+        auto* lir = new (alloc())
+            LDoubleToFloat16(useRegisterAtStart(opd), LDefinition::BogusTemp());
+        define(lir, convert);
+      } else if (MacroAssembler::SupportsFloat32To16()) {
+        auto* lir = new (alloc())
+            LDoubleToFloat32ToFloat16(useRegister(opd), temp(), temp());
+        define(lir, convert);
+      } else {
+        auto* lir =
+            new (alloc()) LDoubleToFloat16(useRegisterAtStart(opd), temp());
+        define(lir, convert);
         assignSafepoint(lir, convert);
       }
       break;

@@ -1115,6 +1115,13 @@ void CodeGenerator::visitDoubleToFloat16(LDoubleToFloat16* lir) {
       ToTempRegisterOrInvalid(lir->temp0()), volatileRegs);
 }
 
+void CodeGenerator::visitDoubleToFloat32ToFloat16(
+    LDoubleToFloat32ToFloat16* lir) {
+  masm.convertDoubleToFloat16(
+      ToFloatRegister(lir->input()), ToFloatRegister(lir->output()),
+      ToRegister(lir->temp0()), ToRegister(lir->temp1()));
+}
+
 void CodeGenerator::visitFloat32ToFloat16(LFloat32ToFloat16* lir) {
   LiveRegisterSet volatileRegs;
   if (!MacroAssembler::SupportsFloat32To16()) {

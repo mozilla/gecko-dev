@@ -26,6 +26,10 @@ void MacroAssembler::moveGPRToFloat32(Register src, FloatRegister dest) {
   moveToFloat32(src, dest);
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::move8ZeroExtend(Register src, Register dest) {
   as_andi(dest, src, 0xff);
 }

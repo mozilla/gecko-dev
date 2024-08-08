@@ -68,6 +68,10 @@ void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   Fmov(ARMFPRegister(dest, 64), ARMRegister(src.reg, 64));
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  Fmov(ARMRegister(dest, 32), ARMFPRegister(src, 32));
+}
+
 void MacroAssembler::move64To32(Register64 src, Register dest) {
   Mov(ARMRegister(dest, 32), ARMRegister(src.reg, 32));
 }

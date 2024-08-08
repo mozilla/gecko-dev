@@ -995,6 +995,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void moveDoubleToGPR64(FloatRegister src, Register64 dest) PER_ARCH;
   inline void moveGPR64ToDouble(Register64 src, FloatRegister dest) PER_ARCH;
 
+  // Move the low 32-bits of a double.
+  inline void moveLowDoubleToGPR(FloatRegister src,
+                                 Register dest) PER_SHARED_ARCH;
+
   inline void move8ZeroExtend(Register src, Register dest) PER_SHARED_ARCH;
 
   inline void move8SignExtend(Register src, Register dest) PER_SHARED_ARCH;
@@ -5301,6 +5305,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void convertDoubleToFloat16(FloatRegister src, FloatRegister dest,
                               Register temp, LiveRegisterSet volatileLiveRegs);
+
+  void convertDoubleToFloat16(FloatRegister src, FloatRegister dest,
+                              Register temp1, Register temp2);
 
   void convertFloat32ToFloat16(FloatRegister src, FloatRegister dest,
                                Register temp, LiveRegisterSet volatileLiveRegs);

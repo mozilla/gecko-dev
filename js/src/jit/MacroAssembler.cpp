@@ -12,6 +12,7 @@
 #include "mozilla/XorShift128PlusRNG.h"
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 #include "jit/AtomicOp.h"
@@ -37,6 +38,7 @@
 #include "vm/ArgumentsObject.h"
 #include "vm/ArrayBufferViewObject.h"
 #include "vm/BoundFunctionObject.h"
+#include "vm/Float16.h"
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/Iteration.h"
 #include "vm/JSContext.h"
@@ -7628,6 +7630,254 @@ void MacroAssembler::convertDoubleToFloat16(FloatRegister src,
   storeCallFloatResult(dest);
 
   PopRegsInMask(save);
+}
+
+void MacroAssembler::convertDoubleToFloat16(FloatRegister src,
+                                            FloatRegister dest, Register temp1,
+                                            Register temp2) {
+  MOZ_ASSERT(MacroAssembler::SupportsFloat64To16() ||
+             MacroAssembler::SupportsFloat32To16());
+  MOZ_ASSERT(src != dest);
+
+  if (MacroAssembler::SupportsFloat64To16()) {
+    convertDoubleToFloat16(src, dest);
+
+    // Float16 is currently passed as Float32, so expand again to Float32.
+    convertFloat16ToFloat32(dest, dest);
+    return;
+  }
+
+  using Float32 = mozilla::FloatingPoint<float>;
+
+#ifdef DEBUG
+  static auto float32Bits = [](float16 f16) {
+    // Cast to float and reinterpret to bit representation.
+    return mozilla::BitwiseCast<Float32::Bits>(static_cast<float>(f16));
+  };
+
+  static auto nextExponent = [](float16 f16, int32_t direction) {
+    constexpr auto kSignificandWidth = Float32::kSignificandWidth;
+
+    // Shift out mantissa and then adjust exponent.
+    auto bits = float32Bits(f16);
+    return ((bits >> kSignificandWidth) + direction) << kSignificandWidth;
+  };
+#endif
+
+  // Float32 larger or equals to |overflow| are infinity (or NaN) in Float16.
+  constexpr uint32_t overflow = 0x4780'0000;
+  MOZ_ASSERT(overflow == nextExponent(std::numeric_limits<float16>::max(), 1));
+
+  // Float32 smaller than |underflow| are zero in Float16.
+  constexpr uint32_t underflow = 0x3300'0000;
+  MOZ_ASSERT(underflow ==
+             nextExponent(std::numeric_limits<float16>::denorm_min(), -1));
+
+  // Float32 larger or equals to |normal| are normal numbers in Float16.
+  constexpr uint32_t normal = 0x3880'0000;
+  MOZ_ASSERT(normal == float32Bits(std::numeric_limits<float16>::min()));
+
+  // There are five possible cases to consider:
+  // 1. Non-finite (infinity and NaN)
+  // 2. Overflow to infinity
+  // 3. Normal numbers
+  // 4. Denormal numbers
+  // 5. Underflow to zero
+  //
+  // Cases 1-2 and 4-5 don't need separate code paths, so we only need to be
+  // concerned about incorrect double rounding for cases 3-4.
+  //
+  // Double rounding:
+  //
+  // Conversion from float64 -> float32 -> float16 can introduce double rounding
+  // errors when compared to a direct conversion float64 -> float16.
+  //
+  // Number of bits in the exponent and mantissa. These are relevant below.
+  //
+  //       exponent  mantissa
+  // -----------------------
+  // f16 |  5        10
+  // f32 |  8        23
+  // f64 | 11        52
+  //
+  // Examples:
+  //
+  // Input (f64): 0.0000610649585723877
+  // Bits (f64):  3f10'0200'0000'0000
+  // Bits (f32):  3880'1000
+  // Bits (f16):  0400
+  //
+  // Ignore the three left-most nibbles of the f64 bits (those are the sign and
+  // exponent). Shift the f64 mantissa right by (52 - 23) = 29 bits. The bits
+  // of the f32 mantissa are therefore 00'1000. Converting from f32 to f16 will
+  // right shift the mantissa by (23 - 10) = 13 bits. `001000 >> 13` is all
+  // zero. Directly converting from f64 to f16 right shifts the f64 mantissa by
+  // (52 - 10) = 42 bits. `0'0200'0000'0000 >> 42` is also all zero. So in this
+  // case no double rounding did take place.
+  //
+  // Input (f64): 0.00006106495857238771
+  // Bits (f64):  3f10'0200'0000'0001
+  // Bits (f32):  3880'1000
+  // Bits (f16):  0401
+  //
+  // The f64 to f32 conversion returns the same result 3880'1000 as in the first
+  // example, but the direct f64 to f16 conversion must return 0401. Let's look
+  // at the binary representation of the mantissa.
+  //
+  // Mantissa of 3f10'0200'0000'0001 in binary representation:
+  //
+  //                                          Low 32-bits
+  //                           __________________|__________________
+  //                          /                                     |
+  // 0000 0000 0010 0000 0000 0000 0000 0000 0000 0000 0000 0000 0001
+  //            |               |
+  //            |               GRS
+  //            |               001
+  //            |
+  //            GRS  (G)uard bit
+  //            011  (R)ound bit
+  //                 (S)ticky bit
+  //
+  // The guard, round, and sticky bits control when to round: If the round bit
+  // is one and at least one of guard or sticky is one, then round up. The
+  // sticky bit is the or-ed value of all bits right of the round bit.
+  //
+  // When rounding to float16, GRS is 011, so we have to round up, whereas when
+  // rounding to float32, GRS is 001, so no rounding takes place.
+  //
+  // Mantissa of 3880'1000 in binary representation:
+  //
+  // e000 0000 0001 0000 0000 0000
+  //             |
+  //             GRS
+  //             010
+  //
+  // The round bit is set, but neither the guard nor sticky bit is set, so no
+  // rounding takes place for the f32 -> f16 conversion. We can attempt to
+  // recover the missing sticky bit from the f64 -> f16 conversion by looking at
+  // the low 32-bits of the f64 mantissa. If at least one bit is set in the
+  // low 32-bits (and the MSB is zero), then add one to the f32 mantissa.
+  // Modified mantissa now looks like:
+  //
+  // e000 0000 0001 0000 0000 0001
+  //             |
+  //             GRS
+  //             011
+  //
+  // GRS is now 011, so we round up and get the correctly rounded result 0401.
+  //
+  // Input (f64): 0.00006112456321716307
+  // Bits (f64):  3f10'05ff'ffff'ffff
+  // Bits (f32):  3880'3000
+  // Bits (f16):  0401
+  //
+  //                                          Low 32-bits
+  //                           __________________|__________________
+  //                          /                                     |
+  // 0000 0000 0101 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
+  //            |               |
+  //            |               GRS
+  //            |               111
+  //            |
+  //            GRS
+  //            101
+  //
+  // When rounding to float16, GRS is 101, so we don't round, whereas when
+  // rounding to float32, GRS is 111, so we have to round up.
+  //
+  // Mantissa of 3880'3000 in binary representation:
+  //
+  // e000 0000 0011 0000 0000 0000
+  //             |
+  //             GRS
+  //             110
+  //
+  // The guard and sticky bits are set, so the float32 -> float16 conversion
+  // incorrectly rounds up when compared to the direct float64 -> float16
+  // conversion. To avoid rounding twice we subtract one if the MSB of the low
+  // 32-bits of the f64 mantissa is set. Modified mantissa now looks like:
+  //
+  // e000 0000 0010 1111 1111 1111
+  //             |
+  //             GRS
+  //             101
+  //
+  // GRS is now 101, so we don't round and get the correct result 0401.
+  //
+  // Approach used to avoid double rounding:
+  //
+  // 1. For normal numbers, inspect the f32 mantissa and if its round bit is set
+  // and the sticky bits are all zero, then possibly adjust the f32 mantissa
+  // depending on the low 32-bits of the f64 mantissa.
+  //
+  // 2. For denormal numbers, possibly adjust the f32 mantissa if the round and
+  // sticky bits are all zero.
+
+  // First round to float32 and reinterpret to bit representation.
+  convertDoubleToFloat32(src, dest);
+  moveFloat32ToGPR(dest, temp1);
+
+  // Mask off sign bit to simplify range checks.
+  and32(Imm32(~Float32::kSignBit), temp1);
+
+  Label done;
+
+  // No changes necessary for underflow or overflow, including zero and
+  // non-finite numbers.
+  branch32(Assembler::Below, temp1, Imm32(underflow), &done);
+  branch32(Assembler::AboveOrEqual, temp1, Imm32(overflow), &done);
+
+  // Compute 0x1000 for normal and 0x0000 for denormal numbers.
+  cmp32Set(Assembler::AboveOrEqual, temp1, Imm32(normal), temp2);
+  lshift32(Imm32(12), temp2);
+
+  // Look at the last thirteen bits of the mantissa which will be shifted out
+  // when converting from float32 to float16. (The round and sticky bits.)
+  //
+  // Normal numbers: If the round bit is set and sticky bits are zero, then
+  // adjust the float32 mantissa.
+  // Denormal numbers: If all bits are zero, then adjust the mantissa.
+  and32(Imm32(0x1fff), temp1);
+  branch32(Assembler::NotEqual, temp1, temp2, &done);
+  {
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    // x86 can use SIMD instructions to avoid GPR<>XMM register moves.
+    ScratchSimd128Scope scratch(*this);
+
+    int32_t one[] = {1, 0, 0, 0};
+    loadConstantSimd128(SimdConstant::CreateX4(one), scratch);
+
+    // 1. If the low 32-bits of |src| are all zero, then set |scratch| to 0.
+    // 2. If the MSB of the low 32-bits is set, then set |scratch| to -1.
+    // 3. Otherwise set |scratch| to 1.
+    vpsignd(Operand(src), scratch, scratch);
+
+    // Add |scratch| to the mantissa.
+    vpaddd(Operand(scratch), dest, dest);
+#else
+    // Determine in which direction to round. When the low 32-bits are all zero,
+    // then we don't have to round.
+    moveLowDoubleToGPR(src, temp2);
+    branch32(Assembler::Equal, temp2, Imm32(0), &done);
+
+    // Load either -1 or +1 into |temp2|.
+    rshift32Arithmetic(Imm32(31), temp2);
+    or32(Imm32(1), temp2);
+
+    // Add or subtract one to the mantissa.
+    moveFloat32ToGPR(dest, temp1);
+    add32(temp2, temp1);
+    moveGPRToFloat32(temp1, dest);
+#endif
+  }
+
+  bind(&done);
+
+  // Perform the actual float16 conversion.
+  convertFloat32ToFloat16(dest, dest);
+
+  // Float16 is currently passed as Float32, so expand again to Float32.
+  convertFloat16ToFloat32(dest, dest);
 }
 
 void MacroAssembler::convertFloat32ToFloat16(FloatRegister src,

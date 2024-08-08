@@ -1600,6 +1600,9 @@ void MacroAssembler::moveDoubleToGPR64(FloatRegister src, Register64 dest) {
 void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   fmv_d_x(dest, src.reg);
 }
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH("Not supported for this target");
+}
 void MacroAssembler::moveFloat32ToGPR(FloatRegister src, Register dest) {
   fmv_x_w(dest, src);
 }

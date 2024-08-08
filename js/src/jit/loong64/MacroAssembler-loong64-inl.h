@@ -30,6 +30,10 @@ void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   moveToDouble(src.reg, dest);
 }
 
+void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
+  MOZ_CRASH("Not supported for this target");
+}
+
 void MacroAssembler::move64To32(Register64 src, Register dest) {
   as_slli_w(dest, src.reg, 0);
 }
