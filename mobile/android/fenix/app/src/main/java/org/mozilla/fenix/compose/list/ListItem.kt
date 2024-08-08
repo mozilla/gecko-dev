@@ -476,11 +476,11 @@ private fun ListItem(
         modifier = modifier
             .height(IntrinsicSize.Min)
             .defaultMinSize(minHeight = minHeight)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
             .thenConditional(
                 modifier = Modifier.clickable { onClick?.invoke() },
                 predicate = { onClick != null && enabled },
-            ),
+            )
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         beforeListAction()
