@@ -980,6 +980,15 @@ set_define("XP_FREEBSD", target_is_freebsd)
 
 
 @depends(target)
+def target_is_haiku(target):
+    if target.kernel == "Haiku":
+        return True
+
+
+set_define("XP_HAIKU", target_is_haiku)
+
+
+@depends(target)
 def target_is_solaris(target):
     if target.kernel == "SunOS":
         return True

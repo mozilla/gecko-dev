@@ -11,8 +11,19 @@
 
 #include "mozilla/PlatformMutex.h"
 
+#ifdef __HAIKU__
+
+struct __attribute__((packed)) mozilla::detail::MutexImpl::PlatformData {
+  pthread_mutex_t ptMutex;
+  uint32_t padding;
+};
+
+#else
+
 struct mozilla::detail::MutexImpl::PlatformData {
   pthread_mutex_t ptMutex;
 };
+
+#endif
 
 #endif  // MutexPlatformData_posix_h

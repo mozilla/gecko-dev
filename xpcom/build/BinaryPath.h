@@ -133,7 +133,7 @@ class BinaryPath {
     return rv;
   }
 
-#elif defined(ANDROID)
+#elif defined(ANDROID) || defined(__HAIKU__)
   static nsresult Get(char aResult[MAXPATHLEN]) {
     // On Android, we use the MOZ_ANDROID_LIBDIR variable that is set by the
     // Java bootstrap code.

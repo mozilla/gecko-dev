@@ -539,7 +539,7 @@ private:
 
     // Note for 32-bit machines kMaxCapacity will be <= SIZE_MAX. For 64-bit machines it will
     // just be INT_MAX if the sizeof(T) < 2^32.
-    static constexpr int kMaxCapacity = SkToInt(std::min(SIZE_MAX / sizeof(T), (size_t)INT_MAX));
+    static constexpr int kMaxCapacity = SkToInt(std::min((size_t)SIZE_MAX / sizeof(T), (size_t)INT_MAX));
 
     void setDataFromBytes(SkSpan<std::byte> allocation) {
         T* data = TCast(allocation.data());

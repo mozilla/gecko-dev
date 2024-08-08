@@ -49,10 +49,17 @@ class MutexImpl {
   PlatformData* platformData();
 
 #if !defined(XP_WIN) && !defined(__wasi__)
+#  ifdef __HAIKU__
+  void* platformData_[(sizeof(pthread_mutex_t) + sizeof(uint32_t)) / sizeof(void*)];
+  static_assert((sizeof(pthread_mutex_t) + sizeof(uint32_t)) / sizeof(void*) != 0 &&
+                    (sizeof(pthread_mutex_t) + sizeof(uint32_t)) % sizeof(void*) == 0,
+                "pthread_mutex_t must have pointer alignment");
+#  else
   void* platformData_[sizeof(pthread_mutex_t) / sizeof(void*)];
   static_assert(sizeof(pthread_mutex_t) / sizeof(void*) != 0 &&
                     sizeof(pthread_mutex_t) % sizeof(void*) == 0,
                 "pthread_mutex_t must have pointer alignment");
+#endif
 #else
   void* platformData_[6];
 #endif
