@@ -7,6 +7,8 @@
 #ifndef MOZILLA_DOM_MEDIA_WEBRTC_LIBWEBRTCGLUE_FRAMETRANSFORMER_H_
 #define MOZILLA_DOM_MEDIA_WEBRTC_LIBWEBRTCGLUE_FRAMETRANSFORMER_H_
 
+#include <map>
+
 #include "api/frame_transformer_interface.h"
 #include "libwebrtcglue/FrameTransformerProxy.h"
 #include "nsISupportsImpl.h"
