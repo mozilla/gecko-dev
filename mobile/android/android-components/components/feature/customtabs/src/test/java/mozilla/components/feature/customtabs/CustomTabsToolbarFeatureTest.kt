@@ -126,6 +126,7 @@ class CustomTabsToolbarFeatureTest {
         assertFalse(toolbar.display.onUrlClicked.invoke())
     }
 
+    @Suppress("DEPRECATION")
     @Test
     @Config(sdk = [28])
     fun `initialize updates toolbar, window and text color on SDK 28`() {
@@ -166,6 +167,7 @@ class CustomTabsToolbarFeatureTest {
         assertEquals(Color.WHITE, toolbar.display.colors.text)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `initialize updates toolbar, window and text color`() {
         val tab = createCustomTab(
@@ -271,6 +273,7 @@ class CustomTabsToolbarFeatureTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `GIVEN changing the status bar color is enabled WHEN customizing the UI for a custom tab THEN change the status bar color`() {
         val tab = createCustomTab(
@@ -314,6 +317,7 @@ class CustomTabsToolbarFeatureTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `GIVEN changing the status bar color is disabled WHEN customizing the UI for a custom tab THEN don't change the status bar color`() {
         val tab = createCustomTab(
@@ -357,6 +361,7 @@ class CustomTabsToolbarFeatureTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `GIVEN changing the system navigation bar color is enabled WHEN customizing the UI for a custom tab THEN change the system navigation bar color`() {
         val tab = createCustomTab(
@@ -401,6 +406,7 @@ class CustomTabsToolbarFeatureTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `GIVEN changing the system navigation bar color is disabled WHEN customizing the UI for a custom tab THEN don't change the system navigation bar color`() {
         val tab = createCustomTab(
