@@ -227,10 +227,11 @@ enum class ColorBit : uint32_t { BlackBit = 0, GrayOrBlackBit = 1 };
 enum class MarkColor : uint8_t { Gray = 1, Black = 2 };
 
 // Mark bitmap for a tenured heap chunk.
-struct alignas(TypicalCacheLineSize) MarkBitmap {
+class alignas(TypicalCacheLineSize) MarkBitmap {
   static constexpr size_t WordCount = ArenaBitmapWords * ArenasPerChunk;
   MarkBitmapWord bitmap[WordCount];
 
+ public:
   inline void getMarkWordAndMask(const TenuredCell* cell, ColorBit colorBit,
                                  MarkBitmapWord** wordp, uintptr_t* maskp);
 
@@ -247,6 +248,8 @@ struct alignas(TypicalCacheLineSize) MarkBitmap {
                           ColorBit colorBit);
   inline void unmark(const TenuredCell* cell);
   inline MarkBitmapWord* arenaBits(Arena* arena);
+
+  inline void copyFrom(const MarkBitmap& other);
 };
 
 static_assert(ArenaBitmapBytes * ArenasPerChunk == sizeof(MarkBitmap),
@@ -550,6 +553,30 @@ MOZ_ALWAYS_INLINE void MarkBitmap::getMarkWordAndMask(const TenuredCell* cell,
   *maskp = uintptr_t(1) << (bit % MarkBitmapWordBits);
 }
 
+MOZ_ALWAYS_INLINE bool MarkBitmap::markBit(const TenuredCell* cell,
+                                           ColorBit colorBit) {
+  MarkBitmapWord* word;
+  uintptr_t mask;
+  getMarkWordAndMask(cell, colorBit, &word, &mask);
+  return *word & mask;
+}
+
+MOZ_ALWAYS_INLINE bool MarkBitmap::isMarkedAny(const TenuredCell* cell) {
+  return markBit(cell, ColorBit::BlackBit) ||
+         markBit(cell, ColorBit::GrayOrBlackBit);
+}
+
+MOZ_ALWAYS_INLINE bool MarkBitmap::isMarkedBlack(const TenuredCell* cell) {
+  // Return true if BlackBit is set.
+  return markBit(cell, ColorBit::BlackBit);
+}
+
+MOZ_ALWAYS_INLINE bool MarkBitmap::isMarkedGray(const TenuredCell* cell) {
+  // Return true if GrayOrBlackBit is set and BlackBit is not set.
+  return !markBit(cell, ColorBit::BlackBit) &&
+         markBit(cell, ColorBit::GrayOrBlackBit);
+}
+
 namespace detail {
 
 // `addr` must be an address within GC-controlled memory. Note that it cannot
@@ -586,17 +613,11 @@ static MOZ_ALWAYS_INLINE JS::Zone* GetTenuredGCThingZone(const void* ptr) {
 
 static MOZ_ALWAYS_INLINE bool TenuredCellIsMarkedBlack(
     const TenuredCell* cell) {
-  // Return true if BlackBit is set.
-
   MOZ_ASSERT(cell);
   MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
 
-  MarkBitmapWord* blackWord;
-  uintptr_t blackMask;
   TenuredChunkBase* chunk = GetCellChunkBase(cell);
-  chunk->markBits.getMarkWordAndMask(cell, js::gc::ColorBit::BlackBit,
-                                     &blackWord, &blackMask);
-  return *blackWord & blackMask;
+  return chunk->markBits.isMarkedBlack(cell);
 }
 
 static MOZ_ALWAYS_INLINE bool NonBlackCellIsMarkedGray(
@@ -607,16 +628,15 @@ static MOZ_ALWAYS_INLINE bool NonBlackCellIsMarkedGray(
   MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
   MOZ_ASSERT(!TenuredCellIsMarkedBlack(cell));
 
-  MarkBitmapWord* grayWord;
-  uintptr_t grayMask;
   TenuredChunkBase* chunk = GetCellChunkBase(cell);
-  chunk->markBits.getMarkWordAndMask(cell, js::gc::ColorBit::GrayOrBlackBit,
-                                     &grayWord, &grayMask);
-  return *grayWord & grayMask;
+  return chunk->markBits.markBit(cell, ColorBit::GrayOrBlackBit);
 }
 
 static MOZ_ALWAYS_INLINE bool TenuredCellIsMarkedGray(const TenuredCell* cell) {
-  return !TenuredCellIsMarkedBlack(cell) && NonBlackCellIsMarkedGray(cell);
+  MOZ_ASSERT(cell);
+  MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
+  TenuredChunkBase* chunk = GetCellChunkBase(cell);
+  return chunk->markBits.isMarkedGray(cell);
 }
 
 static MOZ_ALWAYS_INLINE bool CellIsMarkedGray(const Cell* cell) {

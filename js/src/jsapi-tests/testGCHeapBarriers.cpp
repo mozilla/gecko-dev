@@ -20,6 +20,7 @@
 #include "vm/Runtime.h"
 #include "vm/TypedArrayObject.h"
 
+#include "gc/Heap-inl.h"
 #include "vm/JSContext-inl.h"
 
 using namespace js;

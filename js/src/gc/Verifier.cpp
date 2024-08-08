@@ -25,6 +25,7 @@
 
 #include "gc/ArenaList-inl.h"
 #include "gc/GC-inl.h"
+#include "gc/Heap-inl.h"
 #include "gc/Marking-inl.h"
 #include "gc/PrivateIterators-inl.h"
 
@@ -510,11 +511,7 @@ void js::gc::MarkingValidator::nonIncrementalMark(AutoGCSession& session) {
         return;
       }
       UniquePtr<MarkBitmap> entry(new (buffer) MarkBitmap);
-
-      MarkBitmap* bitmap = &chunk->markBits;
-      memcpy((void*)entry->bitmap, (void*)bitmap->bitmap,
-             sizeof(bitmap->bitmap));
-
+      entry->copyFrom(chunk->markBits);
       if (!map.putNew(chunk, std::move(entry))) {
         return;
       }
@@ -631,11 +628,10 @@ void js::gc::MarkingValidator::nonIncrementalMark(AutoGCSession& session) {
       auto ptr = map.lookup(chunk);
       MOZ_RELEASE_ASSERT(ptr, "Chunk not found in map");
       MarkBitmap* entry = ptr->value().get();
-      for (size_t i = 0; i < MarkBitmap::WordCount; i++) {
-        uintptr_t v = entry->bitmap[i];
-        entry->bitmap[i] = uintptr_t(bitmap->bitmap[i]);
-        bitmap->bitmap[i] = v;
-      }
+      MarkBitmap temp;
+      temp.copyFrom(*entry);
+      entry->copyFrom(*bitmap);
+      bitmap->copyFrom(temp);
     }
   }
 
