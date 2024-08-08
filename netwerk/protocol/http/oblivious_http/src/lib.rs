@@ -138,7 +138,8 @@ impl ObliviousHttp {
     ) -> Result<RefPtr<nsIObliviousHttpClientRequest>, nsresult> {
         ohttp::init();
 
-        let client = ClientRequest::from_encoded_config(encoded_config).map_err(|_| NS_ERROR_FAILURE)?;
+        let client =
+            ClientRequest::from_encoded_config(encoded_config).map_err(|_| NS_ERROR_FAILURE)?;
         let (enc_request, response) = client.encapsulate(request).map_err(|_| NS_ERROR_FAILURE)?;
         let oblivious_http_client_response =
             ObliviousHttpClientResponse::allocate(InitObliviousHttpClientResponse {
@@ -175,6 +176,20 @@ impl ObliviousHttp {
         oblivious_http_server
             .query_interface::<nsIObliviousHttpServer>()
             .ok_or(NS_ERROR_FAILURE)
+    }
+
+    xpcom_method!(decode_config_list => DecodeConfigList(encoded_config_list: *const ThinVec<u8>) -> ThinVec<ThinVec<u8>>);
+    fn decode_config_list(
+        &self,
+        encoded_config_list: &ThinVec<u8>,
+    ) -> Result<ThinVec<ThinVec<u8>>, nsresult> {
+        let configs = KeyConfig::decode_list(encoded_config_list)
+            .map_err(|_| NS_ERROR_FAILURE)?
+            .into_iter()
+            .map(|config| config.encode().unwrap())
+            .map(ThinVec::from)
+            .collect();
+        Ok(configs)
     }
 }
 
