@@ -350,6 +350,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabLayouts.variant-a",
+    {
+      title: "Boolean flag to turn layout variant A on and off",
+      value: false,
+    },
+  ],
+  [
     "newtabWallpapers.highlightEnabled",
     {
       title: "Boolean flag to show the highlight about the Wallpaper feature",
