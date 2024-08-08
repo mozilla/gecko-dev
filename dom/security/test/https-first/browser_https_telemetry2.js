@@ -29,77 +29,79 @@ async function setPrefsAndResetFog(
   });
 }
 
-function verifyGleanValues(
-  aDescription,
-  aNotInitialized,
-  aNoUpgrade,
-  aAlreadyHTTPS,
-  aHSTS,
-  aHttpsOnlyUpgrade,
-  aHttpsOnlyUpgradeDowngrade,
-  aHttpsFirstUpgrade,
-  aHttpsFirstUpgradeDowngrade,
-  aHttpsFirstSchemelessUpgrade,
-  aHttpsFirstSchemelessUpgradeDowngrade,
-  aCSPUpgradeInsecureRequests,
-  aHttpsRR,
-  aWebExtensionUpgrade,
-  aUpgradeException
-) {
+function verifyGleanValues(aDescription, aExpected) {
   info(aDescription);
+
+  let notInitialized = aExpected.notInitialized || null;
+  let noUpgrade = aExpected.noUpgrade || null;
+  let alreadyHTTPS = aExpected.alreadyHTTPS || null;
+  let hsts = aExpected.hsts || null;
+  let httpsOnlyUpgrade = aExpected.httpsOnlyUpgrade || null;
+  let httpsOnlyUpgradeDowngrade = aExpected.httpsOnlyUpgradeDowngrade || null;
+  let httpsFirstUpgrade = aExpected.httpsFirstUpgrade || null;
+  let httpsFirstUpgradeDowngrade = aExpected.httpsFirstUpgradeDowngrade || null;
+  let httpsFirstSchemelessUpgrade =
+    aExpected.httpsFirstSchemelessUpgrade || null;
+  let httpsFirstSchemelessUpgradeDowngrade =
+    aExpected.httpsFirstSchemelessUpgradeDowngrade || null;
+  let cspUpgradeInsecureRequests = aExpected.cspUpgradeInsecureRequests || null;
+  let httpsRR = aExpected.httpsRR || null;
+  let webExtensionUpgrade = aExpected.webExtensionUpgrade || null;
+  let upgradeException = aExpected.upgradeException || null;
+
   let glean = Glean.networking.httpToHttpsUpgradeReason;
   is(
     glean.not_initialized.testGetValue(),
-    aNotInitialized,
+    notInitialized,
     "verify not_initialized"
   );
-  is(glean.no_upgrade.testGetValue(), aNoUpgrade, "verify no_upgrade");
-  is(glean.already_https.testGetValue(), aAlreadyHTTPS, "verify already_https");
-  is(glean.hsts.testGetValue(), aHSTS, "verify hsts");
+  is(glean.no_upgrade.testGetValue(), noUpgrade, "verify no_upgrade");
+  is(glean.already_https.testGetValue(), alreadyHTTPS, "verify already_https");
+  is(glean.hsts.testGetValue(), hsts, "verify hsts");
   is(
     glean.https_only_upgrade.testGetValue(),
-    aHttpsOnlyUpgrade,
+    httpsOnlyUpgrade,
     "verify https_only_upgrade"
   );
   is(
     glean.https_only_upgrade_downgrade.testGetValue(),
-    aHttpsOnlyUpgradeDowngrade,
+    httpsOnlyUpgradeDowngrade,
     "verify https_only_upgrade_downgrade"
   );
   is(
     glean.https_first_upgrade.testGetValue(),
-    aHttpsFirstUpgrade,
+    httpsFirstUpgrade,
     "verify https_first_upgrade"
   );
   is(
     glean.https_first_upgrade_downgrade.testGetValue(),
-    aHttpsFirstUpgradeDowngrade,
+    httpsFirstUpgradeDowngrade,
     "verify https_first_upgrade_downgrade"
   );
   is(
     glean.https_first_schemeless_upgrade.testGetValue(),
-    aHttpsFirstSchemelessUpgrade,
+    httpsFirstSchemelessUpgrade,
     "verify https_first_schemeless_upgrade"
   );
   is(
     glean.https_first_schemeless_upgrade_downgrade.testGetValue(),
-    aHttpsFirstSchemelessUpgradeDowngrade,
+    httpsFirstSchemelessUpgradeDowngrade,
     "verify https_first_schemeless_upgrade_downgrade"
   );
   is(
     glean.csp_uir.testGetValue(),
-    aCSPUpgradeInsecureRequests,
+    cspUpgradeInsecureRequests,
     "verify csp_uir"
   );
-  is(glean.https_rr.testGetValue(), aHttpsRR, "verify https_rr");
+  is(glean.https_rr.testGetValue(), httpsRR, "verify https_rr");
   is(
     glean.web_extension_upgrade.testGetValue(),
-    aWebExtensionUpgrade,
+    webExtensionUpgrade,
     "verify web_extension_upgrade"
   );
   is(
     glean.upgrade_exception.testGetValue(),
-    aUpgradeException,
+    upgradeException,
     "verify upgrade_exception"
   );
 }
@@ -133,28 +135,14 @@ add_task(async function () {
     false /* aSchemeLessPref */
   );
 
+  let random = Math.random();
+
   await runUpgradeTest(
-    "view-source:https://example.com",
+    "view-source:https://example.com?" + random,
     "(1) verify view-source",
     "view-source"
   );
-  verifyGleanValues(
-    "(1) verify view-source",
-    null /* aNotInitialized */,
-    null /* aNoUpgrade */,
-    1 /* aAlreadyHTTPS */,
-    null /* aHSTS */,
-    null /* aHttpsOnlyUpgrade */,
-    null /* aHttpsOnlyUpgradeDowngrade */,
-    null /* aHttpsFirstUpgrade */,
-    null /* aHttpsFirstUpgradeDowngrade */,
-    null /* aHttpsFirstSchemelessUpgrade */,
-    null /* aHttpsFirstSchemelessUpgradeDowngrade */,
-    null /* aCSPUpgradeInsecureRequests */,
-    null /* aHttpsRR */,
-    null /* aWebExtensionUpgrade */,
-    null /* aUpgradeException */
-  );
+  verifyGleanValues("(1) verify view-source", { alreadyHTTPS: 1 });
 });
 
 add_task(async function () {
@@ -168,23 +156,7 @@ add_task(async function () {
 
   // about:credits resolves to https://www.mozilla.org/credits/
   await runUpgradeTest("about:credits", "(2) verify about: pages", "https:");
-  verifyGleanValues(
-    "(2) verify about: pages",
-    null /* aNotInitialized */,
-    null /* aNoUpgrade */,
-    1 /* aAlreadyHTTPS */,
-    null /* aHSTS */,
-    null /* aHttpsOnlyUpgrade */,
-    null /* aHttpsOnlyUpgradeDowngrade */,
-    null /* aHttpsFirstUpgrade */,
-    null /* aHttpsFirstUpgradeDowngrade */,
-    null /* aHttpsFirstSchemelessUpgrade */,
-    null /* aHttpsFirstSchemelessUpgradeDowngrade */,
-    null /* aCSPUpgradeInsecureRequests */,
-    null /* aHttpsRR */,
-    null /* aWebExtensionUpgrade */,
-    null /* aUpgradeException */
-  );
+  verifyGleanValues("(2) verify about: pages", { alreadyHTTPS: 1 });
 });
 
 add_task(async function () {
@@ -196,8 +168,10 @@ add_task(async function () {
     false /* aSchemeLessPref */
   );
 
+  let random = Math.random();
+
   await BrowserTestUtils.withNewTab(
-    TEST_PATH_HTTP + "file_https_telemetry_csp_uir.html",
+    TEST_PATH_HTTP + "file_https_telemetry_csp_uir.html?" + random,
     async function (browser) {
       let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
       BrowserTestUtils.synthesizeMouse(
@@ -220,21 +194,8 @@ add_task(async function () {
   // we record 2 loads:
   // * the load for TEST_PATH_HTTP which results in "no_upgrade"
   // * the link click where CSP UIR upgrades the load to https
-  verifyGleanValues(
-    "(3) verify top-level csp upgrade-insecure-requests",
-    null /* aNotInitialized */,
-    1 /* aNoUpgrade */,
-    null /* aAlreadyHTTPS */,
-    null /* aHSTS */,
-    null /* aHttpsOnlyUpgrade */,
-    null /* aHttpsOnlyUpgradeDowngrade */,
-    null /* aHttpsFirstUpgrade */,
-    null /* aHttpsFirstUpgradeDowngrade */,
-    null /* aHttpsFirstSchemelessUpgrade */,
-    null /* aHttpsFirstSchemelessUpgradeDowngrade */,
-    1 /* aCSPUpgradeInsecureRequests */,
-    null /* aHttpsRR */,
-    null /* aWebExtensionUpgrade */,
-    null /* aUpgradeException */
-  );
+  verifyGleanValues("(3) verify top-level csp upgrade-insecure-requests", {
+    noUpgrade: 1,
+    cspUpgradeInsecureRequests: 1,
+  });
 });
