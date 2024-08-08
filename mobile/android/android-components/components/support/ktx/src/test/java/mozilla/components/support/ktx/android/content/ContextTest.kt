@@ -18,6 +18,8 @@ import android.content.Intent.EXTRA_SUBJECT
 import android.content.Intent.EXTRA_TEXT
 import android.content.Intent.EXTRA_TITLE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.net.Uri
@@ -27,6 +29,7 @@ import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.ktx.R
+import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.fakes.android.FakeContext
 import mozilla.components.support.test.mock
@@ -39,9 +42,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.anyString
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -286,6 +291,44 @@ class ContextTest {
 
         whenever(cameraManager.cameraIdList).thenThrow(AssertionError("Test"))
         assertFalse(context.hasCamera())
+    }
+
+    @Test
+    fun `appVersionName returns proper value`() {
+        val context: Context = mock()
+        val packageManager: PackageManager = mock()
+        val packageInfo = PackageInfo().apply { versionName = "1.0.0" }
+
+        `when`(context.packageManager).thenReturn(packageManager)
+        `when`(context.packageName).thenReturn("org.mozilla.app")
+        `when`(
+            packageManager.getPackageInfo(
+                anyString(),
+                any<PackageManager.PackageInfoFlags>(),
+            ),
+        ).thenReturn(packageInfo)
+
+        val versionName = context.appVersionName
+        assertEquals("1.0.0", versionName)
+    }
+
+    @Test
+    fun `appVersionName returns empty string when versionName is null`() {
+        val context: Context = mock()
+        val packageManager: PackageManager = mock()
+        val packageInfo = PackageInfo().apply { versionName = null }
+
+        `when`(context.packageManager).thenReturn(packageManager)
+        `when`(context.packageName).thenReturn("org.mozilla.app")
+        `when`(
+            packageManager.getPackageInfo(
+                anyString(),
+                any<PackageManager.PackageInfoFlags>(),
+            ),
+        ).thenReturn(packageInfo)
+
+        val versionName = context.appVersionName
+        assertEquals("", versionName)
     }
 }
 
