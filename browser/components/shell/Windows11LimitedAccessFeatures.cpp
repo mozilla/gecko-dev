@@ -111,20 +111,20 @@ https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/TaskbarMa
  */
 
 struct LimitedAccessFeatureInfo {
-  const char* debugName;
-  const WCHAR* feature;
-  const WCHAR* token;
-  const WCHAR* attestation;
+  const nsCString debugName;
+  const nsString feature;
+  const nsString token;
+  const nsString attestation;
 };
 
 static LimitedAccessFeatureInfo limitedAccessFeatureInfo[] = {
     {// Win11LimitedAccessFeatureType::Taskbar
-     "Win11LimitedAccessFeatureType::Taskbar",
-     L"com.microsoft.windows.taskbar.pin", L"kRFiWpEK5uS6PMJZKmR7MQ==",
-     L"pcsmm0jrprpb2 has registered their use of "
-     L"com.microsoft.windows.taskbar.pin with Microsoft and agrees to the "
-     L"terms "
-     L"of use."}};
+     "Win11LimitedAccessFeatureType::Taskbar"_ns,
+     u"com.microsoft.windows.taskbar.pin"_ns, u"kRFiWpEK5uS6PMJZKmR7MQ=="_ns,
+     u"pcsmm0jrprpb2 has registered their use of "_ns
+     u"com.microsoft.windows.taskbar.pin with Microsoft and agrees to the "_ns
+     u"terms "_ns
+     u"of use."_ns}};
 
 static_assert(mozilla::ArrayLength(limitedAccessFeatureInfo) ==
               kWin11LimitedAccessFeatureTypeCount);
@@ -177,14 +177,15 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::Unlock(
 
   const auto& lafInfo = limitedAccessFeatureInfo[static_cast<int>(feature)];
 
-  LAF_LOG(
-      LogLevel::Debug, "Limited Access Feature Info for %s. Feature %S, %S, %S",
-      lafInfo.debugName, lafInfo.feature, lafInfo.token, lafInfo.attestation);
+  LAF_LOG(LogLevel::Debug,
+          "Limited Access Feature Info for %s. Feature %ls, %ls, %ls",
+          lafInfo.debugName.get(), lafInfo.token.getW(), lafInfo.token.getW(),
+          lafInfo.attestation.getW());
 
   int state = atomicState;
   if (state != Uninitialized) {
     LAF_LOG(LogLevel::Debug, "%s already initialized! State = %s",
-            lafInfo.debugName, (state == Unlocked) ? "true" : "false");
+            lafInfo.debugName.get(), (state == Unlocked) ? "true" : "false");
     return (state == Unlocked);
   }
 
@@ -236,18 +237,18 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::UnlockImplementation(
 
   if (!SUCCEEDED(hr)) {
     LAF_LOG(LogLevel::Debug, "%s activation error. HRESULT = 0x%lx",
-            lafInfo.debugName, hr);
+            lafInfo.debugName.get(), hr);
     return Err(hr);
   }
 
   hr = limitedAccessFeatures->TryUnlockFeature(
-      HStringReference(lafInfo.feature).Get(),
-      HStringReference(lafInfo.token).Get(),
-      HStringReference(lafInfo.attestation).Get(),
+      HStringReference(lafInfo.feature.get()).Get(),
+      HStringReference(lafInfo.token.get()).Get(),
+      HStringReference(lafInfo.attestation.get()).Get(),
       &limitedAccessFeaturesResult);
   if (!SUCCEEDED(hr)) {
     LAF_LOG(LogLevel::Debug, "%s unlock error. HRESULT = 0x%lx",
-            lafInfo.debugName, hr);
+            lafInfo.debugName.get(), hr);
     return Err(hr);
   }
 
@@ -255,7 +256,7 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::UnlockImplementation(
   hr = limitedAccessFeaturesResult->get_Status(&status);
   if (!SUCCEEDED(hr)) {
     LAF_LOG(LogLevel::Debug, "%s get status error. HRESULT = 0x%lx",
-            lafInfo.debugName, hr);
+            lafInfo.debugName.get(), hr);
     return Err(hr);
   }
 
@@ -263,7 +264,7 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::UnlockImplementation(
   if ((status != LimitedAccessFeatureStatus_Available) &&
       (status != LimitedAccessFeatureStatus_AvailableWithoutToken)) {
     LAF_LOG(LogLevel::Debug, "%s not available. HRESULT = 0x%lx",
-            lafInfo.debugName, hr);
+            lafInfo.debugName.get(), hr);
     state = Locked;
   }
 
