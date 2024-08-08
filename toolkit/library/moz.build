@@ -372,12 +372,8 @@ if CONFIG["OS_ARCH"] == "WINNT":
         # "d3d11", # should be explicitly linked by gfx-backend-d3d11
         #'d3d12', # should be explicitly linked by d3d12-rs
         "d3dcompiler",
+        "runtimeobject",
     ]
-
-    if CONFIG["CC_TYPE"] == "clang-cl":
-        OS_LIBS += [
-            "runtimeobject",
-        ]
 
     if CONFIG["ACCESSIBILITY"]:
         OS_LIBS += [
