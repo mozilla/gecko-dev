@@ -36,6 +36,13 @@ void QuotaUsageRequestChild::AssertIsOnOwningThread() const {
 
 #endif  // DEBUG
 
+mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__() {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mRequest);
+
+  return IPC_OK();
+}
+
 void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsOnOwningThread();
 
@@ -45,13 +52,6 @@ void QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
     mRequest = nullptr;
 #endif
   }
-}
-
-mozilla::ipc::IPCResult QuotaUsageRequestChild::Recv__delete__() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mRequest);
-
-  return IPC_OK();
 }
 
 }  // namespace mozilla::dom::quota

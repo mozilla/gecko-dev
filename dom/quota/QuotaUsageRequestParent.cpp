@@ -26,18 +26,18 @@ void QuotaUsageRequestParent::Destroy() {
   }
 }
 
-void QuotaUsageRequestParent::ActorDestroy(ActorDestroyReason aWhy) {
-  AssertIsOnOwningThread();
-
-  mCancelPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);
-}
-
 mozilla::ipc::IPCResult QuotaUsageRequestParent::RecvCancel() {
   AssertIsOnOwningThread();
 
   mCancelPromiseHolder.ResolveIfExists(true, __func__);
 
   return IPC_OK();
+}
+
+void QuotaUsageRequestParent::ActorDestroy(ActorDestroyReason aWhy) {
+  AssertIsOnOwningThread();
+
+  mCancelPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);
 }
 
 }  // namespace mozilla::dom::quota

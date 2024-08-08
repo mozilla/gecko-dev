@@ -24,13 +24,13 @@ class QuotaUsageRequestParent : public BackgroundThreadObject,
 
   void Destroy();
 
+  // IPDL methods.
+  mozilla::ipc::IPCResult RecvCancel();
+
  private:
   virtual ~QuotaUsageRequestParent();
 
-  // IPDL methods.
   void ActorDestroy(ActorDestroyReason aWhy) override;
-
-  mozilla::ipc::IPCResult RecvCancel() final;
 
   MozPromiseHolder<BoolPromise> mCancelPromiseHolder;
 };

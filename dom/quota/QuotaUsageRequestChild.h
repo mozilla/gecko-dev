@@ -33,6 +33,9 @@ class QuotaUsageRequestChild final : public PQuotaUsageRequestChild {
 
   NS_INLINE_DECL_REFCOUNTING(QuotaUsageRequestChild, override)
 
+  // IPDL methods are only called by IPDL.
+  virtual mozilla::ipc::IPCResult Recv__delete__() override;
+
  private:
   // Only created by QuotaManagerService.
   explicit QuotaUsageRequestChild(UsageRequest* aRequest);
@@ -40,10 +43,7 @@ class QuotaUsageRequestChild final : public PQuotaUsageRequestChild {
   // Only destroyed by QuotaChild.
   ~QuotaUsageRequestChild();
 
-  // IPDL methods are only called by IPDL.
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
-
-  virtual mozilla::ipc::IPCResult Recv__delete__() override;
 };
 
 }  // namespace mozilla::dom::quota

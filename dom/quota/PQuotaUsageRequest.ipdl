@@ -8,7 +8,6 @@ namespace mozilla {
 namespace dom {
 namespace quota {
 
-[ChildImpl=virtual, ParentImpl=virtual]
 protocol PQuotaUsageRequest
 {
   manager PQuota;

@@ -12,7 +12,6 @@
 #include "QuotaManager.h"
 #include "QuotaRequests.h"
 #include "QuotaResults.h"
-#include "QuotaUsageRequestChild.h"
 
 // Global includes
 #include <cstdint>
@@ -34,6 +33,7 @@
 #include "mozilla/Variant.h"
 #include "mozilla/dom/quota/PQuota.h"
 #include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/dom/quota/QuotaUsageRequestChild.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/fallible.h"
 #include "mozilla/hal_sandbox/PHal.h"
