@@ -44,7 +44,7 @@ add_task(async function () {
   editor.input.value = "background-color";
 
   info("Pressing RETURN and waiting for the value field focus");
-  const onNameAdded = view.once("ruleview-changed");
+  let onNameAdded = view.once("ruleview-changed");
   EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
 
   await onNameAdded;
@@ -69,10 +69,55 @@ add_task(async function () {
   );
 
   info("Entering the property value");
-  const onValueAdded = view.once("ruleview-changed");
+  let onValueAdded = view.once("ruleview-changed");
   editor.input.value = "purple";
   EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
   await onValueAdded;
 
   is(textProp.value, "purple", "Text prop should have been changed.");
+
+  info("Test creating a new empty CSS variable");
+  editor = await focusNewRuleViewProperty(ruleEditor);
+  editor.input.value = "--x";
+
+  info("Pressing RETURN and waiting for the value field focus");
+  onNameAdded = view.once("ruleview-changed");
+  EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
+  await onNameAdded;
+
+  info("Entering the empty property value");
+  onValueAdded = view.once("ruleview-changed");
+  // the input value should already be empty, but let's make it explicit
+  inplaceEditor(view.styleDocument.activeElement).input.value = "";
+  EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
+  await onValueAdded;
+
+  is(
+    ruleEditor.rule.textProps.length,
+    3,
+    "Should have created a new text property."
+  );
+  const emptyVarTextProp = ruleEditor.rule.textProps[2];
+  is(emptyVarTextProp.value, "", "The empty variable was created.");
+  ok(emptyVarTextProp.editor.isValid(), "The empty variable is valid.");
+  is(
+    emptyVarTextProp.editor.nameSpan.innerText,
+    "--x",
+    "Created expected declaration"
+  );
+
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, view.styleWindow);
+
+  info("Check that editing the variable name doesn't remove the declaration");
+  await focusEditableField(view, emptyVarTextProp.editor.nameSpan);
+  const onRuleViewChanged = view.once("ruleview-changed");
+  const onTimeout = wait(500).then(() => "TIMEOUT");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, view.styleWindow);
+  const raceResult = await Promise.race([onRuleViewChanged, onTimeout]);
+  is(raceResult, "TIMEOUT", "ruleview-changed wasn't called");
+  is(
+    ruleEditor.rule.textProps.length,
+    3,
+    "We still have the same number of text properties."
+  );
 });
