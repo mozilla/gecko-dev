@@ -946,8 +946,8 @@ export let BrowserUsageTelemetry = {
 
     const extra = {
       source,
-      widgetId: telemetryId(widgetId),
-      flowId: this._flowId,
+      widget_id: telemetryId(widgetId),
+      flow_id: this._flowId,
     };
     Glean.browserUsage.interaction.record(extra);
   },
