@@ -405,6 +405,7 @@ describe('Launcher specs', function () {
           );
         } else if (isFirefox) {
           expect(puppeteer.defaultArgs()).toContain('--headless');
+          expect(puppeteer.defaultArgs()).toContain('--no-remote');
           if (os.platform() === 'darwin') {
             expect(puppeteer.defaultArgs()).toContain('--foreground');
           } else {
@@ -460,8 +461,8 @@ describe('Launcher specs', function () {
         const defaultArgs = puppeteer.defaultArgs();
         const {browser, close} = await launch(
           Object.assign({}, defaultBrowserOptions, {
-            // Ignore the second default argument.
-            ignoreDefaultArgs: [defaultArgs[1]],
+            // Ignore first and third default argument.
+            ignoreDefaultArgs: [defaultArgs[0]!, defaultArgs[2]],
           })
         );
         try {
@@ -469,8 +470,9 @@ describe('Launcher specs', function () {
           if (!spawnargs) {
             throw new Error('spawnargs not present');
           }
-          expect(spawnargs.indexOf(defaultArgs[0]!)).not.toBe(-1);
-          expect(spawnargs.indexOf(defaultArgs[1]!)).toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[0]!)).toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[1]!)).not.toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[2]!)).toBe(-1);
         } finally {
           await close();
         }
@@ -483,8 +485,8 @@ describe('Launcher specs', function () {
         const defaultArgs = puppeteer.defaultArgs();
         const {browser, close} = await launch(
           Object.assign({}, defaultBrowserOptions, {
-            // All arguments are optional.
-            ignoreDefaultArgs: [],
+            // Only the first argument is fixed, others are optional.
+            ignoreDefaultArgs: [defaultArgs[0]!],
           })
         );
         try {
@@ -492,7 +494,8 @@ describe('Launcher specs', function () {
           if (!spawnargs) {
             throw new Error('spawnargs not present');
           }
-          expect(spawnargs.indexOf(defaultArgs[0]!)).not.toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[0]!)).toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[1]!)).not.toBe(-1);
         } finally {
           await close();
         }

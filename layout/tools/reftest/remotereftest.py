@@ -435,7 +435,7 @@ class RemoteReftest(RefTest):
         startTime = datetime.datetime.now()
         status = 0
         profileDirectory = self.remoteProfile + "/"
-        cmdargs.extend(("-profile", profileDirectory))
+        cmdargs.extend(("-no-remote", "-profile", profileDirectory))
 
         pid = rpm.launch(
             binary,

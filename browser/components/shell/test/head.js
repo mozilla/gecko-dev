@@ -20,7 +20,7 @@ async function runFirefox(args) {
     "headless_test_screenshot_profile"
   );
   const prefsPath = PathUtils.join(profilePath, mochiPrefsName);
-  const firefoxArgs = ["-profile", profilePath];
+  const firefoxArgs = ["-profile", profilePath, "-no-remote"];
 
   await IOUtils.makeDirectory(profilePath);
   await IOUtils.copy(mochiPrefsPath, prefsPath);

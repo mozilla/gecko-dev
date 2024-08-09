@@ -365,7 +365,7 @@ class MochiRemote(MochitestDesktop):
         profileDirectory = self.remoteProfile + "/"
         args = []
         args.extend(extraArgs)
-        args.extend(("-profile", profileDirectory))
+        args.extend(("-no-remote", "-profile", profileDirectory))
 
         pid = rpm.launch(
             app,

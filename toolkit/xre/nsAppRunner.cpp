@@ -318,6 +318,7 @@ extern const char gToolkitBuildID[];
 static nsIProfileLock* gProfileLock;
 #if defined(MOZ_HAS_REMOTE)
 static nsRemoteService* gRemoteService;
+bool gRestartWithoutRemote = false;
 #endif
 
 int gRestartArgc;
@@ -2091,6 +2092,8 @@ static void DumpHelp() {
       "  --origin-to-force-quic-on <origin>\n"
       "                     Force to use QUIC for the specified origin.\n"
 #ifdef MOZ_HAS_REMOTE
+      "  --no-remote        Do not accept or send remote commands; implies\n"
+      "                     --new-instance.\n"
       "  --new-instance     Open new instance, not a new window in running "
       "instance.\n"
 #endif
@@ -2509,6 +2512,12 @@ nsresult LaunchChild(bool aBlankCommandLine, bool aTryExec) {
     gRestartArgc = 1;
     gRestartArgv[gRestartArgc] = nullptr;
   }
+
+#if defined(MOZ_HAS_REMOTE)
+  if (gRestartWithoutRemote) {
+    SaveToEnv("MOZ_NO_REMOTE=1");
+  }
+#endif
 
   SaveToEnv("MOZ_LAUNCHED_CHILD=1");
 #if defined(MOZ_LAUNCHER_PROCESS)
@@ -3692,6 +3701,7 @@ class XREMain {
   nsAutoCString mOriginToForceQUIC;
 #if defined(MOZ_HAS_REMOTE)
   bool mDisableRemoteClient = false;
+  bool mDisableRemoteServer = false;
 #endif
 };
 
@@ -4319,12 +4329,20 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   CrashReporter::RegisterAnnotationBool(CrashReporter::Annotation::SafeMode,
                                         &gSafeMode);
 
-  // Strip the now unsupported no-remote command line argument.
-  CheckArg("no-remote");
-
 #if defined(MOZ_HAS_REMOTE)
-  // Handle the --new-instance command line arguments. Setup the environment to
-  // better accommodate other components and various restart scenarios.
+  // Handle --no-remote and --new-instance command line arguments. Setup
+  // the environment to better accommodate other components and various
+  // restart scenarios.
+  ar = CheckArg("no-remote");
+  if (ar == ARG_FOUND || EnvHasValue("MOZ_NO_REMOTE")) {
+    mDisableRemoteClient = true;
+    mDisableRemoteServer = true;
+    gRestartWithoutRemote = true;
+    // We don't want to propagate MOZ_NO_REMOTE to potential child
+    // process.
+    SaveToEnv("MOZ_NO_REMOTE=");
+  }
+
   ar = CheckArg("new-instance");
   if (ar == ARG_FOUND || EnvHasValue("MOZ_NEW_INSTANCE")) {
     mDisableRemoteClient = true;
@@ -4332,6 +4350,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
 #else
   // These arguments do nothing in platforms with no remoting support but we
   // should remove them from the command line anyway.
+  CheckArg("no-remote");
   CheckArg("new-instance");
 #endif
 
@@ -4714,6 +4733,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #ifdef MOZ_HAS_REMOTE
   if (gfxPlatform::IsHeadless()) {
     mDisableRemoteClient = true;
+    mDisableRemoteServer = true;
   }
 #endif
 
@@ -4834,7 +4854,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #if defined(MOZ_HAS_REMOTE)
   // handle --remote now that xpcom is fired up
   mRemoteService = new nsRemoteService(gAppData->remotingName);
-  if (mRemoteService) {
+  if (mRemoteService && !mDisableRemoteServer) {
     mRemoteService->LockStartup();
     gRemoteService = mRemoteService;
   }
@@ -5697,7 +5717,7 @@ nsresult XREMain::XRE_mainRun() {
 #if defined(MOZ_HAS_REMOTE)
       // if we have X remote support, start listening for requests on the
       // proxy window.
-      if (mRemoteService) {
+      if (mRemoteService && !mDisableRemoteServer) {
         mRemoteService->StartupServer();
         mRemoteService->UnlockStartup();
         gRemoteService = nullptr;
@@ -6041,7 +6061,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   // Shut down the remote service. We must do this before calling LaunchChild
   // if we're restarting because otherwise the new instance will attempt to
   // remote to this instance.
-  if (mRemoteService) {
+  if (mRemoteService && !mDisableRemoteServer) {
     mRemoteService->ShutdownServer();
   }
 #endif /* MOZ_WIDGET_GTK */
