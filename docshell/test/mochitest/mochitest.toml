@@ -286,6 +286,8 @@ skip-if = [
   "http2",
 ]
 
+["test_popup_unknown_protocol.html"]
+
 ["test_pushState_after_document_open.html"]
 
 ["test_redirect_history.html"]
