@@ -35,8 +35,8 @@ struct ParamTraits<mozilla::dom::MediaAudibleState>
           mozilla::dom::MediaAudibleState::eAudible> {};
 
 template <>
-struct ParamTraits<mozilla::dom::SeekDetails> {
-  typedef mozilla::dom::SeekDetails paramType;
+struct ParamTraits<mozilla::dom::AbsoluteSeek> {
+  typedef mozilla::dom::AbsoluteSeek paramType;
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mSeekTime);
@@ -46,6 +46,24 @@ struct ParamTraits<mozilla::dom::SeekDetails> {
   static bool Read(MessageReader* aReader, paramType* aResult) {
     if (!ReadParam(aReader, &aResult->mSeekTime) ||
         !ReadParam(aReader, &aResult->mFastSeek)) {
+      return false;
+    }
+    return true;
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::dom::SeekDetails> {
+  typedef mozilla::dom::SeekDetails paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mAbsolute);
+    WriteParam(aWriter, aParam.mRelativeSeekOffset);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    if (!ReadParam(aReader, &aResult->mAbsolute) ||
+        !ReadParam(aReader, &aResult->mRelativeSeekOffset)) {
       return false;
     }
     return true;

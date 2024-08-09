@@ -142,16 +142,16 @@ void MediaController::NextTrack() {
       MediaControlAction(MediaControlKey::Nexttrack));
 }
 
-void MediaController::SeekBackward() {
+void MediaController::SeekBackward(double aSeekOffset) {
   LOG("Seek Backward");
-  UpdateMediaControlActionToContentMediaIfNeeded(
-      MediaControlAction(MediaControlKey::Seekbackward));
+  UpdateMediaControlActionToContentMediaIfNeeded(MediaControlAction(
+      MediaControlKey::Seekbackward, SeekDetails(aSeekOffset)));
 }
 
-void MediaController::SeekForward() {
+void MediaController::SeekForward(double aSeekOffset) {
   LOG("Seek Forward");
-  UpdateMediaControlActionToContentMediaIfNeeded(
-      MediaControlAction(MediaControlKey::Seekforward));
+  UpdateMediaControlActionToContentMediaIfNeeded(MediaControlAction(
+      MediaControlKey::Seekforward, SeekDetails(aSeekOffset)));
 }
 
 void MediaController::SkipAd() {

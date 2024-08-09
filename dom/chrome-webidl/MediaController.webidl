@@ -54,8 +54,8 @@ interface MediaController : EventTarget {
   undefined stop();
   undefined prevTrack();
   undefined nextTrack();
-  undefined seekBackward();
-  undefined seekForward();
+  undefined seekBackward(double seekOffset);
+  undefined seekForward(double seekOffset);
   undefined skipAd();
   undefined seekTo(double seekTime, optional boolean fastSeek = false);
 };

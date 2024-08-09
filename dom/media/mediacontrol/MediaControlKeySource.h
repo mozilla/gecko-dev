@@ -5,6 +5,7 @@
 #ifndef DOM_MEDIA_MEDIACONTROL_MEDIACONTROLKEYSOURCE_H_
 #define DOM_MEDIA_MEDIACONTROL_MEDIACONTROLKEYSOURCE_H_
 
+#include "mozilla/Maybe.h"
 #include "mozilla/dom/MediaControllerBinding.h"
 #include "mozilla/dom/MediaMetadata.h"
 #include "mozilla/dom/MediaSession.h"
@@ -15,15 +16,20 @@
 namespace mozilla::dom {
 
 // This is used to store seek related properties from MediaSessionActionDetails.
-// However, currently we have no plan to support `seekOffset`.
 // https://w3c.github.io/mediasession/#the-mediasessionactiondetails-dictionary
+struct AbsoluteSeek {
+  double mSeekTime;
+  bool mFastSeek;
+};
 struct SeekDetails {
+  Maybe<AbsoluteSeek> mAbsolute;
+  Maybe<double> mRelativeSeekOffset;
+
   SeekDetails() = default;
-  explicit SeekDetails(double aSeekTime) : mSeekTime(aSeekTime) {}
   SeekDetails(double aSeekTime, bool aFastSeek)
-      : mSeekTime(aSeekTime), mFastSeek(aFastSeek) {}
-  double mSeekTime = 0.0;
-  bool mFastSeek = false;
+      : mAbsolute(Some(AbsoluteSeek{aSeekTime, aFastSeek})) {}
+  explicit SeekDetails(double aRelativeSeekOffset)
+      : mRelativeSeekOffset(Some(aRelativeSeekOffset)) {}
 };
 
 struct MediaControlAction {

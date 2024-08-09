@@ -50,7 +50,7 @@ skip-if = ["verify && os == 'mac'"] # bug 1673509
 ["browser_media_control_position_state.js"]
 skip-if = ["apple_catalina && !debug"] # Bug 1775892
 
-["browser_media_control_seekto.js"]
+["browser_media_control_seek.js"]
 
 ["browser_media_control_stop_timer.js"]
 

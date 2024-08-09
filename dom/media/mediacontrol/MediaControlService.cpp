@@ -307,12 +307,19 @@ void MediaControlService::GenerateTestMediaControlKey(MediaControlKey aKey) {
   if (!StaticPrefs::media_mediacontrol_testingevents_enabled()) {
     return;
   }
-  // Generate a seek details for `seekto`
-  if (aKey == MediaControlKey::Seekto) {
-    mMediaKeysHandler->OnActionPerformed(
-        MediaControlAction(aKey, SeekDetails()));
-  } else {
-    mMediaKeysHandler->OnActionPerformed(MediaControlAction(aKey));
+  // Generate seek details when necessary
+  switch (aKey) {
+    case MediaControlKey::Seekto:
+      mMediaKeysHandler->OnActionPerformed(
+          MediaControlAction(aKey, SeekDetails(0.0, false /* fast seek */)));
+      break;
+    case MediaControlKey::Seekbackward:
+    case MediaControlKey::Seekforward:
+      mMediaKeysHandler->OnActionPerformed(
+          MediaControlAction(aKey, SeekDetails(0.0)));
+      break;
+    default:
+      mMediaKeysHandler->OnActionPerformed(MediaControlAction(aKey));
   }
 }
 

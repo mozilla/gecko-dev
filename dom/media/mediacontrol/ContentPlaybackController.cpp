@@ -120,12 +120,22 @@ void ContentPlaybackController::Pause() {
   }
 }
 
-void ContentPlaybackController::SeekBackward() {
-  NotifyMediaSessionWhenActionIsSupported(MediaSessionAction::Seekbackward);
+void ContentPlaybackController::SeekBackward(double aSeekOffset) {
+  MediaSessionActionDetails details;
+  details.mAction = MediaSessionAction::Seekbackward;
+  details.mSeekOffset.Construct(aSeekOffset);
+  if (IsMediaSessionActionSupported(details.mAction)) {
+    NotifyMediaSession(details);
+  }
 }
 
-void ContentPlaybackController::SeekForward() {
-  NotifyMediaSessionWhenActionIsSupported(MediaSessionAction::Seekforward);
+void ContentPlaybackController::SeekForward(double aSeekOffset) {
+  MediaSessionActionDetails details;
+  details.mAction = MediaSessionAction::Seekforward;
+  details.mSeekOffset.Construct(aSeekOffset);
+  if (IsMediaSessionActionSupported(details.mAction)) {
+    NotifyMediaSession(details);
+  }
 }
 
 void ContentPlaybackController::PreviousTrack() {
@@ -195,18 +205,26 @@ void ContentMediaControlKeyHandler::HandleMediaControlAction(
     case MediaControlKey::Nexttrack:
       controller.NextTrack();
       return;
-    case MediaControlKey::Seekbackward:
-      controller.SeekBackward();
+    case MediaControlKey::Seekbackward: {
+      const SeekDetails& details = *aAction.mDetails;
+      MOZ_ASSERT(details.mRelativeSeekOffset);
+      controller.SeekBackward(details.mRelativeSeekOffset.value());
       return;
-    case MediaControlKey::Seekforward:
-      controller.SeekForward();
+    }
+    case MediaControlKey::Seekforward: {
+      const SeekDetails& details = *aAction.mDetails;
+      MOZ_ASSERT(details.mRelativeSeekOffset);
+      controller.SeekForward(details.mRelativeSeekOffset.value());
       return;
+    }
     case MediaControlKey::Skipad:
       controller.SkipAd();
       return;
     case MediaControlKey::Seekto: {
       const SeekDetails& details = *aAction.mDetails;
-      controller.SeekTo(details.mSeekTime, details.mFastSeek);
+      MOZ_ASSERT(details.mAbsolute);
+      controller.SeekTo(details.mAbsolute->mSeekTime,
+                        details.mAbsolute->mFastSeek);
       return;
     }
     default:

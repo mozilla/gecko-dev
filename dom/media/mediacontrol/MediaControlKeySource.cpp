@@ -64,18 +64,26 @@ void MediaControlKeyHandler::OnActionPerformed(
     case MediaControlKey::Nexttrack:
       controller->NextTrack();
       return;
-    case MediaControlKey::Seekbackward:
-      controller->SeekBackward();
+    case MediaControlKey::Seekbackward: {
+      const SeekDetails& details = *aAction.mDetails;
+      MOZ_ASSERT(details.mRelativeSeekOffset);
+      controller->SeekBackward(fmin(details.mRelativeSeekOffset.value(), 10.0));
       return;
-    case MediaControlKey::Seekforward:
-      controller->SeekForward();
+    }
+    case MediaControlKey::Seekforward: {
+      const SeekDetails& details = *aAction.mDetails;
+      MOZ_ASSERT(details.mRelativeSeekOffset);
+      controller->SeekForward(fmin(details.mRelativeSeekOffset.value(), 10.0));
       return;
+    }
     case MediaControlKey::Skipad:
       controller->SkipAd();
       return;
     case MediaControlKey::Seekto: {
       const SeekDetails& details = *aAction.mDetails;
-      controller->SeekTo(details.mSeekTime, details.mFastSeek);
+      MOZ_ASSERT(details.mAbsolute);
+      controller->SeekTo(details.mAbsolute->mSeekTime,
+                         details.mAbsolute->mFastSeek);
       return;
     }
     case MediaControlKey::Stop:

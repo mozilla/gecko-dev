@@ -42,8 +42,8 @@ class MOZ_STACK_CLASS ContentPlaybackController {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void Focus();
   void Play();
   void Pause();
-  void SeekBackward();
-  void SeekForward();
+  void SeekBackward(double aSeekOffset);
+  void SeekForward(double aSeekOffset);
   void PreviousTrack();
   void NextTrack();
   void SkipAd();

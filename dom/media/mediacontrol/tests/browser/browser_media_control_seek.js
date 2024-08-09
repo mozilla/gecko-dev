@@ -28,7 +28,7 @@ add_task(async function testSetPositionState() {
     seekTime: seektime,
   });
 
-  info(`seek to ${seektime} seconds and set fastseek to boolean`);
+  info(`seek to ${seektime} seconds and set fastseek to true`);
   await PerformSeekTo(tab, {
     seekTime: seektime,
     fastSeek: true,
@@ -38,6 +38,28 @@ add_task(async function testSetPositionState() {
   await PerformSeekTo(tab, {
     seekTime: seektime,
     fastSeek: false,
+  });
+
+  info(`remove tab`);
+  await tab.close();
+});
+
+add_task(async function testSeekRelative() {
+  info(`open media page`);
+  const tab = await createLoadedTabWrapper(PAGE_URL);
+
+  info(`start media`);
+  await playMedia(tab, testVideoId);
+
+  const seekoffset = 5;
+  info(`seek forward ${seekoffset} seconds`);
+  await PerformSeekRelative(tab, "seekforward", {
+    seekOffset: seekoffset,
+  });
+
+  info(`seek backward ${seekoffset} seconds`);
+  await PerformSeekRelative(tab, "seekbackward", {
+    seekOffset: seekoffset,
   });
 
   info(`remove tab`);
@@ -82,10 +104,46 @@ async function PerformSeekTo(tab, seekDetails) {
     [testVideoId],
     Id => {
       const video = content.document.getElementById(Id);
-      return new Promise(r => (video.onseeking = r()));
+      return new Promise(r => (video.onseeked = r()));
     }
   );
   const { seekTime, fastSeek } = seekDetails;
   tab.linkedBrowser.browsingContext.mediaController.seekTo(seekTime, fastSeek);
+  await seekPromise;
+}
+
+async function PerformSeekRelative(tab, mode, seekDetails) {
+  await SpecialPowers.spawn(
+    tab.linkedBrowser,
+    [seekDetails, mode, testVideoId],
+    (seekDetails, mode, Id) => {
+      const { seekOffset } = seekDetails;
+      content.navigator.mediaSession.setActionHandler(mode, details => {
+        Assert.notEqual(
+          details.seekOffset,
+          undefined,
+          "Seekoffset must be presented"
+        );
+        is(seekOffset, details.seekOffset, "Get correct seekoffset");
+
+        content.document.getElementById(Id).currentTime +=
+          mode == "seekForward" ? seekOffset : -seekOffset;
+      });
+    }
+  );
+  const seekPromise = SpecialPowers.spawn(
+    tab.linkedBrowser,
+    [testVideoId],
+    Id => {
+      const video = content.document.getElementById(Id);
+      return new Promise(r => (video.onseeked = r()));
+    }
+  );
+  const { seekOffset } = seekDetails;
+  if (mode === "seekforward") {
+    tab.linkedBrowser.browsingContext.mediaController.seekForward(seekOffset);
+  } else {
+    tab.linkedBrowser.browsingContext.mediaController.seekBackward(seekOffset);
+  }
   await seekPromise;
 }
