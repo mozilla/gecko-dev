@@ -368,8 +368,6 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
     CookieParser& aCookieParser, Document* aDocument,
     const nsACString& aCookieString, int64_t currentTimeInUsec,
     nsIEffectiveTLDService* aTLDService, mozIThirdPartyUtil* aThirdPartyUtil,
-    std::function<bool(const nsACString&, const OriginAttributes&)>&&
-        aHasExistingCookiesLambda,
     nsACString& aBaseDomain, OriginAttributes& aAttrs) {
   if (!CookieCommons::IsSchemeSupported(aCookieParser.HostURI())) {
     return nullptr;
@@ -447,11 +445,17 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
                       : aDocument->EffectiveCookiePrincipal();
   MOZ_ASSERT(cookiePrincipal);
 
+  nsCOMPtr<nsICookieService> service =
+      do_GetService(NS_COOKIESERVICE_CONTRACTID);
+  if (!service) {
+    return nullptr;
+  }
+
   // Check if limit-foreign is required.
   uint32_t dummyRejectedReason = 0;
   if (aDocument->CookieJarSettings()->GetLimitForeignContexts() &&
-      !aHasExistingCookiesLambda(baseDomain,
-                                 cookiePrincipal->OriginAttributesRef()) &&
+      !service->HasExistingCookies(baseDomain,
+                                   cookiePrincipal->OriginAttributesRef()) &&
       !ShouldAllowAccessFor(innerWindow, aCookieParser.HostURI(),
                             &dummyRejectedReason)) {
     return nullptr;

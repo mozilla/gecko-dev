@@ -860,7 +860,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // aCookieHeader is an in/out param to point to the next cookie, if
   // there is one. Save the present value for logging purposes
-  nsCString savedCookieHeader(aCookieHeader);
+  mCookieString.Assign(aCookieHeader);
 
   // newCookie says whether there are multiple cookies in the header;
   // so we can handle them separately.
@@ -897,7 +897,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // reject cookie if name and value are empty, per RFC6265bis
   if (mCookieData.name().IsEmpty() && mCookieData.value().IsEmpty()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "cookie name and value are empty");
 
     RejectCookie(RejectedEmptyNameAndValue);
@@ -906,7 +906,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // reject cookie if it's over the size limit, per RFC2109
   if (!CookieCommons::CheckNameAndValueSize(mCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "cookie too big (> 4kb)");
     RejectCookie(RejectedNameValueOversize);
     return newCookie;
@@ -921,7 +921,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
   }
 
   if (!CookieCommons::CheckName(mCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "invalid name character");
     RejectCookie(RejectedInvalidCharName);
     return newCookie;
@@ -929,14 +929,14 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // domain & path checks
   if (!CheckDomain(mCookieData, mHostURI, aBaseDomain, aRequireHostMatch)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed the domain tests");
     RejectCookie(RejectedInvalidDomain);
     return newCookie;
   }
 
   if (!CheckPath()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed the path tests");
     return newCookie;
   }
@@ -945,7 +945,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
   // `__Host-` or `__Secure-`
   if (mCookieData.name().IsEmpty() && (HasSecurePrefix(mCookieData.value()) ||
                                        HasHostPrefix(mCookieData.value()))) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed hidden prefix tests");
     RejectCookie(RejectedInvalidPrefix);
     return newCookie;
@@ -953,14 +953,14 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // magic prefix checks. MUST be run after CheckDomain() and CheckPath()
   if (!CheckPrefixes(mCookieData, potentiallyTrustworthy)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed the prefix tests");
     RejectCookie(RejectedInvalidPrefix);
     return newCookie;
   }
 
   if (!CookieCommons::CheckValue(mCookieData)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "invalid value character");
     RejectCookie(RejectedInvalidCharValue);
     return newCookie;
@@ -968,7 +968,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
 
   // if the new cookie is httponly, make sure we're not coming from script
   if (!aFromHttp && mCookieData.isHttpOnly()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "cookie is httponly; coming from script");
     RejectCookie(RejectedHttpOnlyButFromScript);
     return newCookie;
@@ -994,7 +994,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
       laxByDefault ? mCookieData.sameSite() : mCookieData.rawSameSite();
   if ((effectiveSameSite != nsICookie::SAMESITE_NONE) &&
       aIsForeignAndNotAddon) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed the samesite tests");
     RejectCookie(RejectedForNonSameSiteness);
     return newCookie;
@@ -1010,7 +1010,7 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
         (aIsInPrivateBrowsing &&
          StaticPrefs::
              network_cookie_cookieBehavior_optInPartitioning_pbmode())) {
-      COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, savedCookieHeader,
+      COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                         "foreign cookies must be partitioned");
       RejectCookie(RejectedForeignNoPartitionedError);
       return newCookie;
@@ -1026,6 +1026,10 @@ void CookieParser::RejectCookie(Rejection aRejection) {
   MOZ_ASSERT(mRejection == NoRejection);
   MOZ_ASSERT(aRejection != NoRejection);
   mRejection = aRejection;
+}
+
+void CookieParser::GetCookieString(nsACString& aCookieString) const {
+  aCookieString.Assign(mCookieString);
 }
 
 }  // namespace net

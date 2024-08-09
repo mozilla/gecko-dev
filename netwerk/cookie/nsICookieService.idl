@@ -16,12 +16,15 @@ namespace mozilla {
 
   namespace net {
     class Cookie;
+    class CookieParser;
   }
 }
 %}
 
 [ref] native const_OriginAttributes(const mozilla::OriginAttributes);
-native CookiePtr(RefPtr<mozilla::net::Cookie>);
+native CookieRefPtr(RefPtr<mozilla::net::Cookie>);
+[ref] native CookiePtr(mozilla::net::Cookie);
+[ref] native CookieParserPtr(mozilla::net::CookieParser);
 
 /**
  * @see nsICookieService::runInTransaction
@@ -88,11 +91,25 @@ interface nsICookieService : nsISupports
    */
   [noscript, notxpcom, nostdcall] void getCookiesFromHost(in ACString aBaseDomain,
                                                           in const_OriginAttributes aOriginAttributes,
-                                                          out Array<CookiePtr> aCookies);
+                                                          out Array<CookieRefPtr> aCookies);
 
   /* Update the last access to stale cookies */
-  [noscript, notxpcom, nostdcall] void staleCookies(in Array<CookiePtr> aCookies,
+  [noscript, notxpcom, nostdcall] void staleCookies(in Array<CookieRefPtr> aCookies,
                                                     in int64_t aCurrentTimeInUsec);
+
+  /* Return true if there are existing cookies for the host and OriginAttributes. */
+  [noscript, notxpcom, nostdcall] boolean hasExistingCookies(in ACString aBaseDomain,
+                                                             in const_OriginAttributes aOriginAttributes);
+
+  /* Return true if there are existing cookies for the host and OriginAttributes. */
+  [noscript, notxpcom, nostdcall] void addCookieFromDocument(in CookieParserPtr aCookieParser,
+                                                             in ACString aBaseDomain,
+                                                             in const_OriginAttributes aOriginAttributes,
+                                                             in CookiePtr aCookie,
+                                                             in int64_t aCurrentTimeInUsec,
+                                                             in nsIURI aDocumentURI,
+                                                             in boolean aThirdParty,
+                                                             in Document document);
 
   /*
    * Get the complete cookie string associated with the URI.
@@ -111,18 +128,6 @@ interface nsICookieService : nsISupports
    * @return the resulting cookie string
    */
   ACString getCookieStringFromHttp(in nsIURI aURI, in nsIChannel aChannel);
-
-  /*
-   * Set the cookie string associated with a Document. This method is meant to
-   * be used for `document.cookie` only. Any security check about
-   * storage-access permission and cookie behavior must be done by the caller.
-   *
-   * @param aDocument
-   *        The document.
-   * @param aCookie
-   *        the cookie string to set.
-   */
-  void setCookieStringFromDocument(in Document aDocument, in ACString aCookie);
 
   /*
    * Set the cookie string and expires associated with the URI.
