@@ -1563,11 +1563,8 @@ void DrawTargetWebgl::CopySurface(SourceSurface* aSurface,
 void DrawTargetWebgl::PushClip(const Path* aPath) {
   if (aPath && aPath->GetBackendType() == BackendType::SKIA) {
     // Detect if the path is really just a rect to simplify caching.
-    const PathSkia* pathSkia = static_cast<const PathSkia*>(aPath);
-    const SkPath& skPath = pathSkia->GetPath();
-    SkRect rect = SkRect::MakeEmpty();
-    if (skPath.isRect(&rect)) {
-      PushClipRect(SkRectToRect(rect));
+    if (Maybe<Rect> rect = aPath->AsRect()) {
+      PushClipRect(*rect);
       return;
     }
   }
