@@ -631,7 +631,9 @@ BounceTrackingProtection::TestRunPurgeBounceTrackers(
                     purgedSiteHosts) {
         promise->MaybeResolve(purgedSiteHosts);
       },
-      [promise] { promise->MaybeRejectWithUndefined(); });
+      [promise](const PurgeBounceTrackersMozPromise::RejectValueType& error) {
+        promise->MaybeReject(error);
+      });
 
   promise.forget(aPromise);
   return NS_OK;
