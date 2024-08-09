@@ -332,7 +332,8 @@ JSONToken JSONTokenizer<CharT, ParserT>::stringToken(const CharPtr start,
 
 template <typename CharT, typename ParserT>
 template <JSONStringType ST>
-JSONToken JSONTokenizer<CharT, ParserT>::stringToken(StringBuilder& builder) {
+JSONToken JSONTokenizer<CharT, ParserT>::stringToken(
+    JSONStringBuilder& builder) {
   if (!parser->handler.template setStringValue<ST>(builder, getSource())) {
     return JSONToken::OOM;
   }
@@ -390,7 +391,7 @@ JSONToken JSONTokenizer<CharT, ParserT>::readString() {
    * of unescaped characters into a temporary buffer, then an escaped
    * character, and repeat until the entire string is consumed.
    */
-  StringBuilder builder(parser->handler.context());
+  JSONStringBuilder builder(parser->handler.context());
   do {
     if (start < current && !builder.append(start.get(), current.get())) {
       return token(JSONToken::OOM);
@@ -764,13 +765,13 @@ void JSONFullParseHandlerAnyChar::trace(JSTracer* trc) {
 }
 
 template <typename CharT>
-bool JSONFullParseHandler<CharT>::StringBuilder::append(char16_t c) {
+bool JSONFullParseHandler<CharT>::JSONStringBuilder::append(char16_t c) {
   return buffer.append(c);
 }
 
 template <typename CharT>
-bool JSONFullParseHandler<CharT>::StringBuilder::append(const CharT* begin,
-                                                        const CharT* end) {
+bool JSONFullParseHandler<CharT>::JSONStringBuilder::append(const CharT* begin,
+                                                            const CharT* end) {
   return buffer.append(begin, end);
 }
 
@@ -795,7 +796,7 @@ inline bool JSONFullParseHandler<CharT>::setStringValue(
 template <typename CharT>
 template <JSONStringType ST>
 inline bool JSONFullParseHandler<CharT>::setStringValue(
-    StringBuilder& builder, mozilla::Span<const CharT>&& source) {
+    JSONStringBuilder& builder, mozilla::Span<const CharT>&& source) {
   JSString* str;
   if constexpr (ST == JSONStringType::PropertyName) {
     str = builder.buffer.finishAtom();
@@ -1341,11 +1342,11 @@ class MOZ_STACK_CLASS DelegateHandler {
   struct ElementVector {};
   struct PropertyVector {};
 
-  class StringBuilder {
+  class JSONStringBuilder {
    public:
     StringBuffer buffer;
 
-    explicit StringBuilder(FrontendContext* fc) : buffer(fc) {}
+    explicit JSONStringBuilder(FrontendContext* fc) : buffer(fc) {}
 
     bool append(char16_t c) { return buffer.append(c); }
     bool append(const CharT* begin, const CharT* end) {
@@ -1385,7 +1386,7 @@ class MOZ_STACK_CLASS DelegateHandler {
   }
 
   template <JSONStringType ST>
-  inline bool setStringValue(StringBuilder& builder,
+  inline bool setStringValue(JSONStringBuilder& builder,
                              mozilla::Span<const CharT>&& source) {
     if (hadHandlerError_) {
       return false;
