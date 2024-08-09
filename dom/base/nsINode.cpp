@@ -724,8 +724,7 @@ nsINode::GetMutationObservers() {
 }
 
 void nsINode::LastRelease() {
-  nsINode::nsSlots* slots = GetExistingSlots();
-  if (slots) {
+  if (nsSlots* slots = GetExistingSlots()) {
     if (!slots->mMutationObservers.isEmpty()) {
       for (auto iter = slots->mMutationObservers.begin();
            iter != slots->mMutationObservers.end(); ++iter) {
@@ -758,7 +757,6 @@ void nsINode::LastRelease() {
     // properties are bound to nsINode objects and the destructor functions of
     // the properties may want to use the owner document of the nsINode.
     AsDocument()->RemoveAllProperties();
-
     AsDocument()->DropStyleSet();
   } else {
     if (HasProperties()) {
@@ -769,37 +767,33 @@ void nsINode::LastRelease() {
     }
 
     if (HasFlag(ADDED_TO_FORM)) {
-      if (nsGenericHTMLFormControlElement* formControl =
-              nsGenericHTMLFormControlElement::FromNode(this)) {
+      if (auto* formControl = nsGenericHTMLFormControlElement::FromNode(this)) {
         // Tell the form (if any) this node is going away.  Don't
         // notify, since we're being destroyed in any case.
         formControl->ClearForm(true, true);
-      } else if (HTMLImageElement* imageElem =
-                     HTMLImageElement::FromNode(this)) {
+      } else if (auto* imageElem = HTMLImageElement::FromNode(this)) {
         imageElem->ClearForm(true);
       }
     }
-  }
-  UnsetFlags(NODE_HAS_PROPERTIES);
-
-  if (NodeType() != nsINode::DOCUMENT_NODE &&
-      HasFlag(NODE_HAS_LISTENERMANAGER)) {
+    if (HasFlag(NODE_HAS_LISTENERMANAGER)) {
 #ifdef DEBUG
-    if (nsContentUtils::IsInitialized()) {
-      EventListenerManager* manager =
-          nsContentUtils::GetExistingListenerManagerForNode(this);
-      if (!manager) {
-        NS_ERROR(
-            "Huh, our bit says we have a listener manager list, "
-            "but there's nothing in the hash!?!!");
+      if (nsContentUtils::IsInitialized()) {
+        EventListenerManager* manager =
+            nsContentUtils::GetExistingListenerManagerForNode(this);
+        if (!manager) {
+          NS_ERROR(
+              "Huh, our bit says we have a listener manager list, "
+              "but there's nothing in the hash!?!!");
+        }
       }
-    }
 #endif
 
-    nsContentUtils::RemoveListenerManager(this);
-    UnsetFlags(NODE_HAS_LISTENERMANAGER);
+      nsContentUtils::RemoveListenerManager(this);
+      UnsetFlags(NODE_HAS_LISTENERMANAGER);
+    }
   }
 
+  UnsetFlags(NODE_HAS_PROPERTIES);
   ReleaseWrapper(this);
 
   FragmentOrElement::RemoveBlackMarkedNode(this);
