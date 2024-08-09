@@ -75,10 +75,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1166138
       document.body.removeChild(image);
 
       SpecialPowers.pushPrefEnv({'set': [['layout.css.devPixelsPerPx', 1]]});
-      await spin(true);
+      await spin(false); // No load should occur because the element is unbound
 
       document.body.appendChild(image);
-      await spin(false);
+      await spin(true);
       is(image.currentSrc, img1x, "remove and re-add tag after changing to 1x");
 
       document.body.removeChild(image);
