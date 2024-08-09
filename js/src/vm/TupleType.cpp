@@ -35,8 +35,10 @@ static bool TupleConstructor(JSContext* cx, unsigned argc, Value* vp);
 
 static const JSFunctionSpec tuple_static_methods[] = {
     JS_FN("isTuple", tuple_is_tuple, 1, 0),
-    JS_SELF_HOSTED_FN("from", "TupleFrom", 1, 0), JS_FN("of", tuple_of, 0, 0),
-    JS_FS_END};
+    JS_SELF_HOSTED_FN("from", "TupleFrom", 1, 0),
+    JS_FN("of", tuple_of, 0, 0),
+    JS_FS_END,
+};
 
 static const JSFunctionSpec tuple_methods[] = {
     JS_SELF_HOSTED_FN("toSorted", "TupleToSorted", 1, 0),
@@ -67,7 +69,8 @@ static const JSFunctionSpec tuple_methods[] = {
     JS_FN("with", tuple_with, 2, 0),
     JS_FN("slice", tuple_slice, 2, 0),
     JS_FN("valueOf", tuple_value_of, 0, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 Shape* TupleType::getInitialShape(JSContext* cx) {
   return SharedShape::getInitialShape(cx, &TupleType::class_, cx->realm(),
@@ -617,16 +620,25 @@ bool TupleType::lengthAccessor(JSContext* cx, unsigned argc, Value* vp) {
                          END: Tuple.prototype methods
 \*===========================================================================*/
 
-const JSClass TupleType::class_ = {"tuple", 0, JS_NULL_CLASS_OPS,
-                                   &TupleType::classSpec_};
+const JSClass TupleType::class_ = {
+    "tuple",
+    0,
+    JS_NULL_CLASS_OPS,
+    &TupleType::classSpec_,
+};
 
 const JSClass TupleType::protoClass_ = {
-    "Tuple.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_Tuple),
-    JS_NULL_CLASS_OPS, &TupleType::classSpec_};
+    "Tuple.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Tuple),
+    JS_NULL_CLASS_OPS,
+    &TupleType::classSpec_,
+};
 
 /* static */ const JSPropertySpec properties_[] = {
     JS_STRING_SYM_PS(toStringTag, "Tuple", JSPROP_READONLY),
-    JS_PSG("length", TupleType::lengthAccessor, 0), JS_PS_END};
+    JS_PSG("length", TupleType::lengthAccessor, 0),
+    JS_PS_END,
+};
 
 const ClassSpec TupleType::classSpec_ = {
     GenericCreateConstructor<TupleConstructor, 0, gc::AllocKind::FUNCTION>,
@@ -635,4 +647,5 @@ const ClassSpec TupleType::classSpec_ = {
     nullptr,
     tuple_methods,
     properties_,
-    nullptr};
+    nullptr,
+};

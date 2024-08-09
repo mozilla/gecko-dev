@@ -224,7 +224,9 @@ CallObject* CallObject::createHollowForDebug(JSContext* cx,
 }
 
 const JSClass CallObject::class_ = {
-    "Call", JSCLASS_HAS_RESERVED_SLOTS(CallObject::RESERVED_SLOTS)};
+    "Call",
+    JSCLASS_HAS_RESERVED_SLOTS(CallObject::RESERVED_SLOTS),
+};
 
 /*****************************************************************************/
 
@@ -335,7 +337,9 @@ VarEnvironmentObject* VarEnvironmentObject::createWithoutEnclosing(
 }
 
 const JSClass VarEnvironmentObject::class_ = {
-    "Var", JSCLASS_HAS_RESERVED_SLOTS(VarEnvironmentObject::RESERVED_SLOTS)};
+    "Var",
+    JSCLASS_HAS_RESERVED_SLOTS(VarEnvironmentObject::RESERVED_SLOTS),
+};
 
 /*****************************************************************************/
 
@@ -371,7 +375,8 @@ const JSClass ModuleEnvironmentObject::class_ = {
     &ModuleEnvironmentObject::classOps_,
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
-    &ModuleEnvironmentObject::objectOps_};
+    &ModuleEnvironmentObject::objectOps_,
+};
 
 /* static */
 ModuleEnvironmentObject* ModuleEnvironmentObject::create(
@@ -662,7 +667,8 @@ bool ModuleEnvironmentObject::newEnumerate(JSContext* cx, HandleObject obj,
 
 const JSClass WasmInstanceEnvironmentObject::class_ = {
     "WasmInstance",
-    JSCLASS_HAS_RESERVED_SLOTS(WasmInstanceEnvironmentObject::RESERVED_SLOTS)};
+    JSCLASS_HAS_RESERVED_SLOTS(WasmInstanceEnvironmentObject::RESERVED_SLOTS),
+};
 
 /* static */
 WasmInstanceEnvironmentObject*
@@ -689,7 +695,8 @@ WasmInstanceEnvironmentObject::createHollowForDebug(
 
 const JSClass WasmFunctionCallObject::class_ = {
     "WasmCall",
-    JSCLASS_HAS_RESERVED_SLOTS(WasmFunctionCallObject::RESERVED_SLOTS)};
+    JSCLASS_HAS_RESERVED_SLOTS(WasmFunctionCallObject::RESERVED_SLOTS),
+};
 
 /* static */
 WasmFunctionCallObject* WasmFunctionCallObject::createHollowForDebug(
@@ -901,7 +908,8 @@ const JSClass WithEnvironmentObject::class_ = {
     JS_NULL_CLASS_OPS,
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
-    &WithEnvironmentObjectOps};
+    &WithEnvironmentObjectOps,
+};
 
 /* static */
 NonSyntacticVariablesObject* NonSyntacticVariablesObject::create(
@@ -930,7 +938,8 @@ NonSyntacticVariablesObject* NonSyntacticVariablesObject::create(
 
 const JSClass NonSyntacticVariablesObject::class_ = {
     "NonSyntacticVariablesObject",
-    JSCLASS_HAS_RESERVED_SLOTS(NonSyntacticVariablesObject::RESERVED_SLOTS)};
+    JSCLASS_HAS_RESERVED_SLOTS(NonSyntacticVariablesObject::RESERVED_SLOTS),
+};
 
 bool js::CreateNonSyntacticEnvironmentChain(JSContext* cx,
                                             HandleObjectVector envChain,
@@ -976,7 +985,8 @@ const JSClass LexicalEnvironmentObject::class_ = {
     JS_NULL_CLASS_OPS,
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
-    JS_NULL_OBJECT_OPS};
+    JS_NULL_OBJECT_OPS,
+};
 
 /* static */
 LexicalEnvironmentObject* LexicalEnvironmentObject::create(
@@ -1401,7 +1411,8 @@ const JSClass RuntimeLexicalErrorObject::class_ = {
     JS_NULL_CLASS_OPS,
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
-    &RuntimeLexicalErrorObjectObjectOps};
+    &RuntimeLexicalErrorObjectObjectOps,
+};
 
 /*****************************************************************************/
 

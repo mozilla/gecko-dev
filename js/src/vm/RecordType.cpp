@@ -47,7 +47,8 @@ const ClassSpec RecordType::classSpec_ = {
     nullptr,
     nullptr,
     nullptr,
-    nullptr};
+    nullptr,
+};
 
 Shape* RecordType::getInitialShape(JSContext* cx) {
   return SharedShape::getInitialShape(cx, &RecordType::class_, cx->realm(),

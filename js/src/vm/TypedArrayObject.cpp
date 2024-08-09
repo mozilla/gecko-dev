@@ -1641,7 +1641,8 @@ static bool TypedArray_toStringTagGetter(JSContext* cx, unsigned argc,
     JS_PSG("byteLength", TypedArray_byteLengthGetter, 0),
     JS_PSG("byteOffset", TypedArray_byteOffsetGetter, 0),
     JS_SYM_GET(toStringTag, TypedArray_toStringTagGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 template <typename T>
 static inline bool SetFromTypedArray(Handle<TypedArrayObject*> target,

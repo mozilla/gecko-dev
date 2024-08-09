@@ -346,7 +346,9 @@ static bool CallerSetter(JSContext* cx, unsigned argc, Value* vp) {
 
 static const JSPropertySpec function_properties[] = {
     JS_PSGS("arguments", ArgumentsGetter, ArgumentsSetter, 0),
-    JS_PSGS("caller", CallerGetter, CallerSetter, 0), JS_PS_END};
+    JS_PSGS("caller", CallerGetter, CallerSetter, 0),
+    JS_PS_END,
+};
 
 static bool ResolveInterpretedFunctionPrototype(JSContext* cx,
                                                 HandleFunction fun,
@@ -1111,7 +1113,8 @@ static const JSFunctionSpec function_methods[] = {
                     FunctionBind),
     JS_SYM_FN(hasInstance, fun_symbolHasInstance, 1,
               JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSClassOps JSFunctionClassOps = {
     nullptr,         // addProperty
@@ -1128,19 +1131,24 @@ static const JSClassOps JSFunctionClassOps = {
 
 static const ClassSpec JSFunctionClassSpec = {
     CreateFunctionConstructor, CreateFunctionPrototype, nullptr, nullptr,
-    function_methods,          function_properties};
+    function_methods,          function_properties,
+};
 
 const JSClass js::FunctionClass = {
     "Function",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Function) |
         JSCLASS_HAS_RESERVED_SLOTS(JSFunction::SlotCount),
-    &JSFunctionClassOps, &JSFunctionClassSpec};
+    &JSFunctionClassOps,
+    &JSFunctionClassSpec,
+};
 
 const JSClass js::ExtendedFunctionClass = {
     "Function",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Function) |
         JSCLASS_HAS_RESERVED_SLOTS(FunctionExtended::SlotCount),
-    &JSFunctionClassOps, &JSFunctionClassSpec};
+    &JSFunctionClassOps,
+    &JSFunctionClassSpec,
+};
 
 const JSClass* const js::FunctionClassPtr = &FunctionClass;
 const JSClass* const js::FunctionExtendedClassPtr = &ExtendedFunctionClass;

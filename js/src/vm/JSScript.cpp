@@ -712,7 +712,8 @@ static const JSClassOps ScriptSourceObjectClassOps = {
 const JSClass ScriptSourceObject::class_ = {
     "ScriptSource",
     JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &ScriptSourceObjectClassOps};
+    &ScriptSourceObjectClassOps,
+};
 
 ScriptSourceObject* ScriptSourceObject::create(JSContext* cx,
                                                ScriptSource* source) {

@@ -390,24 +390,34 @@ const ClassSpec SavedFrame::classSpec_ = {
     SavedFrame::protoFunctions,
     SavedFrame::protoAccessors,
     SavedFrame::finishSavedFrameInit,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /* static */ const JSClass SavedFrame::class_ = {
     "SavedFrame",
     JSCLASS_HAS_RESERVED_SLOTS(SavedFrame::JSSLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_SavedFrame) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &SavedFrameClassOps, &SavedFrame::classSpec_};
+    &SavedFrameClassOps,
+    &SavedFrame::classSpec_,
+};
 
 const JSClass SavedFrame::protoClass_ = {
-    "SavedFrame.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_SavedFrame),
-    JS_NULL_CLASS_OPS, &SavedFrame::classSpec_};
+    "SavedFrame.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_SavedFrame),
+    JS_NULL_CLASS_OPS,
+    &SavedFrame::classSpec_,
+};
 
-/* static */ const JSFunctionSpec SavedFrame::staticFunctions[] = {JS_FS_END};
+/* static */ const JSFunctionSpec SavedFrame::staticFunctions[] = {
+    JS_FS_END,
+};
 
 /* static */ const JSFunctionSpec SavedFrame::protoFunctions[] = {
     JS_FN("constructor", SavedFrame::construct, 0, 0),
-    JS_FN("toString", SavedFrame::toStringMethod, 0, 0), JS_FS_END};
+    JS_FN("toString", SavedFrame::toStringMethod, 0, 0),
+    JS_FS_END,
+};
 
 /* static */ const JSPropertySpec SavedFrame::protoAccessors[] = {
     JS_PSG("source", SavedFrame::sourceProperty, 0),
@@ -419,7 +429,8 @@ const JSClass SavedFrame::protoClass_ = {
     JS_PSG("asyncParent", SavedFrame::asyncParentProperty, 0),
     JS_PSG("parent", SavedFrame::parentProperty, 0),
     JS_STRING_SYM_PS(toStringTag, "SavedFrame", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 /* static */
 void SavedFrame::finalize(JS::GCContext* gcx, JSObject* obj) {

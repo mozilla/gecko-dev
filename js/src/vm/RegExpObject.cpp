@@ -176,17 +176,23 @@ static const ClassSpec RegExpObjectClassSpec = {
     js::regexp_static_props,
     js::regexp_methods,
     js::regexp_properties,
-    FinishRegExpClassInit};
+    FinishRegExpClassInit,
+};
 
 const JSClass RegExpObject::class_ = {
     "RegExp",
     JSCLASS_HAS_RESERVED_SLOTS(RegExpObject::RESERVED_SLOTS) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_RegExp),
-    JS_NULL_CLASS_OPS, &RegExpObjectClassSpec};
+    JS_NULL_CLASS_OPS,
+    &RegExpObjectClassSpec,
+};
 
 const JSClass RegExpObject::protoClass_ = {
-    "RegExp.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_RegExp),
-    JS_NULL_CLASS_OPS, &RegExpObjectClassSpec};
+    "RegExp.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_RegExp),
+    JS_NULL_CLASS_OPS,
+    &RegExpObjectClassSpec,
+};
 
 template <typename CharT>
 RegExpObject* RegExpObject::create(JSContext* cx, const CharT* chars,
