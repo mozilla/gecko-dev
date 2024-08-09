@@ -4,7 +4,6 @@
 
 #include "ClearDataCallback.h"
 #include "mozilla/glean/GleanMetrics.h"
-#include "nsIBounceTrackingProtection.h"
 #include "nsIURIClassifier.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "nsNetCID.h"
@@ -46,8 +45,7 @@ ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
       mClearDurationTimer(0) {
   MOZ_ASSERT(!aHost.IsEmpty(), "Host must not be empty");
 
-  if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-      nsIBounceTrackingProtection::MODE_ENABLED) {
+  if (!StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()) {
     // Only collect timing information when actually performing the deletion
     mClearDurationTimer =
         glean::bounce_tracking_protection::purge_duration.Start();
@@ -114,8 +112,7 @@ void ClearDataCallback::RecordClearDurationTelemetry() {
 }
 
 void ClearDataCallback::RecordPurgeCountTelemetry(bool aFailed) {
-  if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-      nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
+  if (StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()) {
     MOZ_ASSERT(aFailed == 0, "Dry-run purge can't fail");
     glean::bounce_tracking_protection::purge_count.Get("dry"_ns).Add(1);
   } else if (aFailed) {
@@ -183,8 +180,8 @@ void ClearDataCallback::RecordPurgeEventTelemetry(bool aSuccess) {
   // Record a glean event for the clear action.
   glean::bounce_tracking_protection::PurgeActionExtra extra = {
       .bounceTime = Some(mBounceTime / PR_USEC_PER_SEC),
-      .isDryRun = Some(StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-                       nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN),
+      .isDryRun = Some(
+          StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()),
       .siteHost = Some(mHost),
       .success = Some(aSuccess),
   };

@@ -6,7 +6,6 @@
 
 #include "mozilla/Logging.h"
 #include "nsIObserver.h"
-#include "nsWeakReference.h"
 
 namespace mozilla {
 
@@ -16,19 +15,19 @@ class WindowContext;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
-class BounceTrackingStorageObserver : public nsIObserver,
-                                      public nsSupportsWeakReference {
+class BounceTrackingStorageObserver final : public nsIObserver {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
  public:
+  BounceTrackingStorageObserver() = default;
+  [[nodiscard]] nsresult Init();
+
   [[nodiscard]] static nsresult OnInitialStorageAccess(
       dom::WindowContext* aWindowContext);
 
-  [[nodiscard]] nsresult Init();
-
  private:
-  virtual ~BounceTrackingStorageObserver() = default;
+  ~BounceTrackingStorageObserver() = default;
 };
 
 }  // namespace mozilla

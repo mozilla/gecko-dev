@@ -1,9 +1,10 @@
 [DEFAULT]
 head = "head.js"
 prefs = [
-  "privacy.bounceTrackingProtection.mode=1",
+  "privacy.bounceTrackingProtection.enabled=true",
   "privacy.bounceTrackingProtection.enableTestMode=true",
   "privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec=0",
+  "privacy.bounceTrackingProtection.enableDryRunMode=false",
   # Do not upgrade ORIGIN_TRACKER_B, all other origins are already HTTPS
   "dom.security.https_first=false",
 ]
@@ -16,11 +17,9 @@ support-files = [
   "file_web_worker.js",
 ]
 
-["browser_bouncetracking_cookie_behavior.js"]
-
 ["browser_bouncetracking_dry_run.js"]
 
-["browser_bouncetracking_mode_prefs.js"]
+["browser_bouncetracking_initialize.js"]
 
 ["browser_bouncetracking_oa_isolation.js"]
 
@@ -52,5 +51,3 @@ support-files = [
 
 ["browser_bouncetracking_webAuthUserActivation.js"]
 support-files = ["!/dom/webauthn/tests/browser/head.js"]
-
-["browser_bouncetracking_web_console.js"]

@@ -28,11 +28,9 @@ add_setup(function () {
  * @param {bool} num - Number of hosts to purge
  */
 async function testNumHostsPerPurgeRun(isDryRunMode, num) {
-  Services.prefs.setIntPref(
-    "privacy.bounceTrackingProtection.mode",
+  Services.prefs.setBoolPref(
+    "privacy.bounceTrackingProtection.enableDryRunMode",
     isDryRunMode
-      ? Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN
-      : Ci.nsIBounceTrackingProtection.MODE_ENABLED
   );
 
   Assert.equal(
@@ -71,7 +69,9 @@ async function testNumHostsPerPurgeRun(isDryRunMode, num) {
   }
 
   // Cleanup
-  Services.prefs.clearUserPref("privacy.bounceTrackingProtection.mode");
+  Services.prefs.clearUserPref(
+    "privacy.bounceTrackingProtection.enableDryRunMode"
+  );
   Services.fog.testResetFOG();
   btp.clearAll();
 }

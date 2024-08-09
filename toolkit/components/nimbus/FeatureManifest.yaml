@@ -3423,11 +3423,21 @@ bounceTrackingProtection:
   hasExposure: false
   variables:
     enabled:
-      type: int
+      type: boolean
       setPref:
         branch: default
-        pref: privacy.bounceTrackingProtection.mode
-      description: Mode to run the feature in. See nsIBounceTrackingProtection.idl for documentation.
+        pref: privacy.bounceTrackingProtection.enabled
+      description: Main flag to enable / disable the feature.
+    enableDryRunMode:
+      type: boolean
+      setPref:
+        branch: default
+        pref: privacy.bounceTrackingProtection.enableDryRunMode
+      description: >-
+        Enables a mode where if bounce tracking protection is enabled it
+        classifies but does not purge trackers. This mode is helpful for testing
+        the feature without risking data loss. Telemetry is still collected
+        normally.
 
 remoteTabManagement:
   description: >

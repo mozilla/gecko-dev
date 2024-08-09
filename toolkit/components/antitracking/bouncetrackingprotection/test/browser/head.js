@@ -231,21 +231,15 @@ async function navigateLinkClick(
  * run for the given browser.
  */
 async function waitForRecordBounces(browser) {
-  let { browserId } = browser.browsingContext;
-  info(
-    `waitForRecordBounces: Waiting for record bounces for browser: ${browserId}.`
-  );
-
-  await TestUtils.topicObserved(
+  return TestUtils.topicObserved(
     OBSERVER_MSG_RECORD_BOUNCES_FINISHED,
     subject => {
       // Ensure the message was dispatched for the browser we're interested in.
       let propBag = subject.QueryInterface(Ci.nsIPropertyBag2);
-      return browserId == propBag.getProperty("browserId");
+      let browserId = propBag.getProperty("browserId");
+      return browser.browsingContext.browserId == browserId;
     }
   );
-
-  info(`waitForRecordBounces: Recorded bounces for browser ${browserId}.`);
 }
 
 /**
@@ -269,9 +263,6 @@ async function waitForRecordBounces(browser) {
  * @param {('same-site'|'cross-site')} [options.setCookieViaImage] - Whether to
  * set the state via an image request. Only applies to setState ==
  * "cookie-server".
- * @param {boolean} [options.expectRecordBounces=true] - Whether the record
- * bounces algorithm runs and we should wait for the test message. This
- * shouldn't run when the feature is disabled.
  * @param {boolean} [options.expectCandidate=true] - Expect the redirecting site
  * to be identified as a bounce tracker (candidate).
  * @param {boolean} [options.expectPurge=true] - Expect the redirecting site to
@@ -295,7 +286,6 @@ async function runTestBounce(options = {}) {
     setStateInWebWorker = false,
     setStateInNestedWebWorker = false,
     setCookieViaImage = null,
-    expectRecordBounces = true,
     expectCandidate = true,
     expectPurge = true,
     originAttributes = {},
@@ -342,10 +332,7 @@ async function runTestBounce(options = {}) {
   let browser = tab.linkedBrowser;
   await BrowserTestUtils.browserLoaded(browser, true, initialURL);
 
-  let promiseRecordBounces;
-  if (expectRecordBounces) {
-    promiseRecordBounces = waitForRecordBounces(browser);
-  }
+  let promiseRecordBounces = waitForRecordBounces(browser);
 
   // The final destination after the bounce.
   let targetURL = new URL(getBaseUrl(ORIGIN_B) + "file_start.html");
@@ -376,26 +363,14 @@ async function runTestBounce(options = {}) {
 
   // Navigate again with user gesture which triggers
   // BounceTrackingProtection::RecordStatefulBounces. We could rely on the
-  // timeout (mClientBounceDetectionTimeout) here but that can cause races in
-  // debug where the load is quite slow.
-  let finalTargetURL = new URL(getBaseUrl(ORIGIN_C) + "file_start.html");
-  let finalLoadPromise = BrowserTestUtils.browserLoaded(
+  // timeout (mClientBounceDetectionTimeout) here but that can cause races
+  // in debug where the load is quite slow.
+  await navigateLinkClick(
     browser,
-    true,
-    initialURL.href
+    new URL(getBaseUrl(ORIGIN_C) + "file_start.html")
   );
-  await navigateLinkClick(browser, finalTargetURL);
-  await finalLoadPromise;
 
-  if (expectRecordBounces) {
-    await promiseRecordBounces;
-  } else {
-    // If we don't expect classification to happen only wait for navigation from
-    // the navigateLinkClick to complete. This navigation would trigger
-    // RecordStatefulBounces if the protection was enabled. Give
-    // RecordStatefulBounces time to run after navigation.
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
+  await promiseRecordBounces;
 
   Assert.deepEqual(
     bounceTrackingProtection
@@ -418,25 +393,11 @@ async function runTestBounce(options = {}) {
   // If the caller specified a function to run after the bounce, run it now.
   await postBounceCallback();
 
-  // Run tracker purging. If the feature is disabled this throws.
-  let mode = Services.prefs.getIntPref("privacy.bounceTrackingProtection.mode");
-  let expectPurgingToThrow =
-    mode != Ci.nsIBounceTrackingProtection.MODE_ENABLED &&
-    mode != Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN;
-
-  if (expectPurgingToThrow) {
-    await Assert.rejects(
-      bounceTrackingProtection.testRunPurgeBounceTrackers(),
-      /NS_ERROR_NOT_AVAILABLE/,
-      "testRunPurgeBounceTrackers should reject when BTP is disabled."
-    );
-  } else {
-    Assert.deepEqual(
-      await bounceTrackingProtection.testRunPurgeBounceTrackers(),
-      expectPurge ? [SITE_TRACKER] : [],
-      `Should ${expectPurge ? "" : "not "}purge state for ${SITE_TRACKER}.`
-    );
-  }
+  Assert.deepEqual(
+    await bounceTrackingProtection.testRunPurgeBounceTrackers(),
+    expectPurge ? [SITE_TRACKER] : [],
+    `Should ${expectPurge ? "" : "not "}purge state for ${SITE_TRACKER}.`
+  );
 
   // Clean up
   BrowserTestUtils.removeTab(tab);

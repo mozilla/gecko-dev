@@ -66,10 +66,6 @@ class BounceTrackingStateGlobal final {
   [[nodiscard]] nsresult RemoveBounceTrackers(
       const nsTArray<nsCString>& aSiteHosts);
 
-  // Clear user activation or bounce tracker map.
-  [[nodiscard]] nsresult ClearByType(
-      BounceTrackingProtectionStorage::EntryType aType, bool aSkipStorage);
-
   [[nodiscard]] nsresult ClearSiteHost(const nsACString& aSiteHost,
                                        bool aSkipStorage = false);
 

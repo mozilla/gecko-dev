@@ -39,21 +39,17 @@ namespace mozilla {
 static StaticAutoPtr<nsTHashMap<uint64_t, WeakPtr<BounceTrackingState>>>
     sBounceTrackingStates;
 
+static StaticRefPtr<BounceTrackingStorageObserver> sStorageObserver;
+
 NS_IMPL_ISUPPORTS(BounceTrackingState, nsIWebProgressListener,
                   nsISupportsWeakReference);
 
 BounceTrackingState::BounceTrackingState() {
-  MOZ_ASSERT(StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-                 nsIBounceTrackingProtection::MODE_ENABLED ||
-             StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-                 nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN);
+  MOZ_ASSERT(StaticPrefs::privacy_bounceTrackingProtection_enabled_AtStartup());
   mBounceTrackingProtection = BounceTrackingProtection::GetSingleton();
 };
 
 BounceTrackingState::~BounceTrackingState() {
-  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Verbose,
-          ("BounceTrackingState destructor"));
-
   if (sBounceTrackingStates) {
     sBounceTrackingStates->Remove(mBrowserId);
   }
@@ -112,54 +108,20 @@ already_AddRefed<BounceTrackingState> BounceTrackingState::GetOrCreate(
   }
   sBounceTrackingStates->InsertOrUpdate(browserId, newBTS);
 
+  // And the storage observer.
+  if (!sStorageObserver) {
+    sStorageObserver = new BounceTrackingStorageObserver();
+    ClearOnShutdown(&sStorageObserver);
+
+    aRv = sStorageObserver->Init();
+    NS_ENSURE_SUCCESS(aRv, nullptr);
+  }
+
   return newBTS.forget();
 };
 
 // static
 void BounceTrackingState::ResetAll() { Reset(nullptr, nullptr); }
-
-// static
-void BounceTrackingState::DestroyAll() {
-  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug, ("%s", __FUNCTION__));
-  if (!sBounceTrackingStates) {
-    return;
-  }
-
-  // Fully reset all BounceTrackingStates, so even if some don't get destroyed
-  // straight away things like running timers are stopped.
-  BounceTrackingState::Reset(nullptr, nullptr);
-
-  // Destroy all BounceTrackingState objects.
-  for (auto iter = sBounceTrackingStates->Iter(); !iter.Done(); iter.Next()) {
-    WeakPtr<BounceTrackingState> bts = iter.Data();
-    // Need to remove the element from the map prior to calling Destroy()
-    // because the destructor also updates the map and we can't iterate and
-    // externally modify the map at the same time. This way the Remove() call of
-    // the destructor is a no-op.
-    iter.Remove();
-    if (!bts) {
-      continue;
-    }
-    // Destroy the BounceTrackingState by dropping references to it. This is
-    // best effort. If something still holds a reference it still stay alive
-    // longer.
-    // Tell the web progress to drop the BTS reference.
-    RefPtr<dom::BrowsingContext> browsingContext =
-        bts->CurrentBrowsingContext();
-    if (!browsingContext) {
-      continue;
-    }
-    dom::BrowsingContextWebProgress* webProgress =
-        browsingContext->Canonical()->GetWebProgress();
-    if (!webProgress) {
-      continue;
-    }
-    webProgress->DropBounceTrackingState();
-  }
-
-  // Clean up the map.
-  sBounceTrackingStates = nullptr;
-}
 
 // static
 void BounceTrackingState::ResetAllForOriginAttributes(
@@ -175,19 +137,14 @@ void BounceTrackingState::ResetAllForOriginAttributesPattern(
 
 nsresult BounceTrackingState::Init(
     dom::BrowsingContextWebProgress* aWebProgress) {
-  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-          ("BounceTrackingState::%s", __FUNCTION__));
-
   MOZ_ASSERT(!mIsInitialized,
              "BounceTrackingState must not be initialized twice.");
   mIsInitialized = true;
 
   NS_ENSURE_ARG_POINTER(aWebProgress);
-  NS_ENSURE_TRUE(StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-                         nsIBounceTrackingProtection::MODE_ENABLED ||
-                     StaticPrefs::privacy_bounceTrackingProtection_mode() ==
-                         nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN,
-                 NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(
+      StaticPrefs::privacy_bounceTrackingProtection_enabled_AtStartup(),
+      NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mBounceTrackingProtection, NS_ERROR_FAILURE);
 
   // Store the browser ID so we can get the associated BC later without having
@@ -203,8 +160,11 @@ nsresult BounceTrackingState::Init(
 
   // Add a listener for window load. See BounceTrackingState::OnStateChange for
   // the listener code.
-  return aWebProgress->AddProgressListener(this,
-                                           nsIWebProgress::NOTIFY_STATE_WINDOW);
+  nsresult rv = aWebProgress->AddProgressListener(
+      this, nsIWebProgress::NOTIFY_STATE_WINDOW);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
 }
 
 void BounceTrackingState::ResetBounceTrackingRecord() {
@@ -266,10 +226,8 @@ bool BounceTrackingState::ShouldCreateBounceTrackingStateForWebProgress(
     dom::BrowsingContextWebProgress* aWebProgress) {
   NS_ENSURE_TRUE(aWebProgress, false);
 
-  uint8_t mode = StaticPrefs::privacy_bounceTrackingProtection_mode();
-  // Classification / purging is disabled.
-  if (mode != nsIBounceTrackingProtection::MODE_ENABLED &&
-      mode != nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
+  // Feature is globally disabled.
+  if (!StaticPrefs::privacy_bounceTrackingProtection_enabled_AtStartup()) {
     return false;
   }
 

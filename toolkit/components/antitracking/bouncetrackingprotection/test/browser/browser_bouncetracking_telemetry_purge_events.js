@@ -22,14 +22,7 @@ add_setup(async function () {
 
 async function runTest(useDryRunMode) {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      [
-        "privacy.bounceTrackingProtection.mode",
-        useDryRunMode
-          ? Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN
-          : Ci.nsIBounceTrackingProtection.MODE_ENABLED,
-      ],
-    ],
+    set: [["privacy.bounceTrackingProtection.enableDryRunMode", useDryRunMode]],
   });
 
   is(

@@ -1,6 +1,6 @@
 [DEFAULT]
 prefs = [
-  "privacy.bounceTrackingProtection.mode=1",
+  "privacy.bounceTrackingProtection.enabled=true",
   "privacy.bounceTrackingProtection.enableTestMode=true",
 ]
 

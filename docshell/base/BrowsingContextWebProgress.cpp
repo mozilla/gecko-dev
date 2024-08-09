@@ -178,10 +178,6 @@ BrowsingContextWebProgress::GetBounceTrackingState() {
   return do_AddRef(mBounceTrackingState);
 }
 
-void BrowsingContextWebProgress::DropBounceTrackingState() {
-  mBounceTrackingState = nullptr;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // nsIWebProgressListener
 
