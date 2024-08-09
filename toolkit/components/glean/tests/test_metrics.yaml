@@ -748,6 +748,9 @@ test_only.ipc:
       extra3_longer_name:
         type: boolean
         description: "Some extra data again. Also tests extras with underscores"
+      extra4CamelCase:
+        type: boolean
+        description: "Some extra data again. Also tests extras with Capitals."
     description: |
       This is a test-only metric.
       Just recording some events.

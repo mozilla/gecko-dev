@@ -220,6 +220,7 @@ mod test {
             extra1: Some("a-valid-value".into()),
             extra2: Some(37),
             extra3_longer_name: Some(false),
+            extra4CamelCase: Some(true),
         };
         event.record(extra);
 
@@ -236,6 +237,15 @@ mod test {
                 .get("extra3_longer_name")
                 .unwrap()
                 == "false"
+        );
+        assert_eq!(
+            "true",
+            recorded[0]
+                .extra
+                .as_ref()
+                .unwrap()
+                .get("extra4CamelCase")
+                .unwrap()
         );
     }
 }

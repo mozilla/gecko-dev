@@ -154,13 +154,13 @@ add_task(async function test_fog_event_works() {
 
   // camelCase extras work.
   let extra5 = {
-    extra3LongerName: false,
+    extra4CamelCase: false,
   };
   Glean.testOnlyIpc.eventWithExtra.record(extra5);
   events = Glean.testOnlyIpc.eventWithExtra.testGetValue();
   Assert.equal(2, events.length, "Recorded one event too many.");
   expectedExtra = {
-    extra3_longer_name: "false",
+    extra4CamelCase: "false",
   };
   Assert.deepEqual(expectedExtra, events[1].extra);
 

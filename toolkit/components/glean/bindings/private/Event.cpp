@@ -21,22 +21,6 @@ JSObject* GleanEvent::WrapObject(JSContext* aCx,
   return dom::GleanEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-// Convert all capital letters to "_x" where "x" is the corresponding lowercase.
-nsCString camelToSnake(const nsACString& aCamel) {
-  nsCString snake;
-  const auto* start = aCamel.BeginReading();
-  const auto* end = aCamel.EndReading();
-  for (; start != end; ++start) {
-    if ('A' <= *start && *start <= 'Z') {
-      snake.AppendLiteral("_");
-      snake.Append(static_cast<char>(std::tolower(*start)));
-    } else {
-      snake.Append(*start);
-    }
-  }
-  return snake;
-}
-
 void GleanEvent::Record(
     const dom::Optional<dom::Record<nsCString, nsCString>>& aExtra) {
   if (!aExtra.WasPassed()) {
@@ -54,13 +38,10 @@ void GleanEvent::Record(
       // Pretend it wasn't here.
       continue;
     }
-    // We accept camelCase extra keys, but Glean requires snake_case.
-    auto snakeKey = camelToSnake(entry.mKey);
-
-    extraKeys.AppendElement(snakeKey);
+    extraKeys.AppendElement(entry.mKey);
     extraValues.AppendElement(entry.mValue);
 
-    if (snakeKey.EqualsLiteral("value")) {
+    if (entry.mKey.EqualsLiteral("value")) {
       telValue = entry.mValue;
     } else {
       telExtras.EmplaceBack(
