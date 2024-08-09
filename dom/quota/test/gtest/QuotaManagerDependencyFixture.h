@@ -48,8 +48,8 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
   /* Convenience method for tasks which must be called on PBackground thread */
   template <class Invokable, class... Args>
-  static void PerformOnBackgroundThread(Invokable&& aInvokable,
-                                        Args&&... aArgs) {
+  static auto PerformOnBackgroundThread(Invokable&& aInvokable, Args&&... aArgs)
+      -> std::invoke_result_t<Invokable, Args...> {
     return PerformOnThread(BackgroundTargetStrongRef(),
                            std::forward<Invokable>(aInvokable),
                            std::forward<Args>(aArgs)...);
@@ -57,7 +57,8 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
   /* Convenience method for tasks which must be executed on IO thread */
   template <class Invokable, class... Args>
-  static void PerformOnIOThread(Invokable&& aInvokable, Args&&... aArgs) {
+  static auto PerformOnIOThread(Invokable&& aInvokable, Args&&... aArgs)
+      -> std::invoke_result_t<Invokable, Args...> {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
@@ -66,26 +67,44 @@ class QuotaManagerDependencyFixture : public testing::Test {
                            std::forward<Args>(aArgs)...);
   }
 
-  template <class Invokable, class... Args>
-  static void PerformOnThread(nsISerialEventTarget* aTarget,
-                              Invokable&& aInvokable, Args&&... aArgs) {
+  template <class Invokable, class... Args,
+            bool ReturnTypeIsVoid =
+                std::is_same_v<std::invoke_result_t<Invokable, Args...>, void>>
+  static auto PerformOnThread(nsISerialEventTarget* aTarget,
+                              Invokable&& aInvokable, Args&&... aArgs)
+      -> std::invoke_result_t<Invokable, Args...> {
+    using ReturnType =
+        std::conditional_t<ReturnTypeIsVoid, bool,
+                           std::invoke_result_t<Invokable, Args...>>;
+
     bool done = false;
     auto boundTask =
         // For c++17, bind is cleaner than tuple for parameter pack forwarding
         // NOLINTNEXTLINE(modernize-avoid-bind)
         std::bind(std::forward<Invokable>(aInvokable),
                   std::forward<Args>(aArgs)...);
-    InvokeAsync(aTarget, __func__,
-                [boundTask = std::move(boundTask)]() mutable {
-                  boundTask();
-                  return BoolPromise::CreateAndResolve(true, __func__);
-                })
+    Maybe<ReturnType> maybeReturnValue;
+    InvokeAsync(
+        aTarget, __func__,
+        [boundTask = std::move(boundTask), &maybeReturnValue]() mutable {
+          if constexpr (ReturnTypeIsVoid) {
+            boundTask();
+            (void)maybeReturnValue;
+          } else {
+            maybeReturnValue.emplace(boundTask());
+          }
+          return BoolPromise::CreateAndResolve(true, __func__);
+        })
         ->Then(GetCurrentSerialEventTarget(), __func__,
                [&done](const BoolPromise::ResolveOrRejectValue& /* aValue */) {
                  done = true;
                });
 
     SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+
+    if constexpr (!ReturnTypeIsVoid) {
+      return maybeReturnValue.extract();
+    }
   }
 
   template <class Task>
