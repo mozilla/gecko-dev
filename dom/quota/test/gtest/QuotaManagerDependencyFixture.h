@@ -40,6 +40,8 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static void InitializeTemporaryOrigin(const OriginMetadata& aOriginMetadata);
   static void GetOriginUsage(const OriginMetadata& aOriginMetadata,
                              UsageInfo* aResult);
+  static void GetCachedOriginUsage(const OriginMetadata& aOriginMetadata,
+                                   UsageInfo* aResult);
   static void ClearStoragesForOrigin(const OriginMetadata& aOriginMetadata);
 
   static void InitializeTemporaryClient(const ClientMetadata& aClientMetadata);
