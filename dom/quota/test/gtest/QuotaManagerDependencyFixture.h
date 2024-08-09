@@ -15,6 +15,14 @@
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 
+// ENSURE_NO_FATAL_FAILURE is useful in non-void functions where
+// ASSERT_NO_FATAL_FAILURE can't be used.
+#define ENSURE_NO_FATAL_FAILURE(expr, ret) \
+  (expr);                                  \
+  if (HasFatalFailure()) {                 \
+    return ret;                            \
+  }
+
 #define QM_TEST_FAIL [](nsresult) { FAIL(); }
 
 namespace mozilla::dom::quota::test {
