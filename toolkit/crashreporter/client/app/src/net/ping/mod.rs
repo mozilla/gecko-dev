@@ -47,6 +47,7 @@ impl CrashPing<'_> {
 
     fn send_glean(&self) -> anyhow::Result<()> {
         glean::set_crash_ping_metrics(self.extra, self.minidump_hash)?;
+        log::debug!("submitting Glean crash ping");
         crate::glean::crash.submit(Some("crash"));
         Ok(())
     }

@@ -173,6 +173,9 @@ impl Config {
         }
 
         // Set the data dir if not already set.
+        // TODO bug 1910736: if we don't need to support VENDOR_KEY and PRODUCT_KEY in the extra
+        // file, it'd simplify the data_dir logic and things like glean initialization (which
+        // relies on the data dir).
         if self.data_dir.is_none() {
             let vendor = extra[VENDOR_KEY].as_str().unwrap_or(DEFAULT_VENDOR);
             let product = extra[PRODUCT_KEY].as_str().unwrap_or(DEFAULT_PRODUCT);

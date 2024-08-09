@@ -21,18 +21,20 @@
 //! and call [`run`](Builder::run) to execute code with the mock data set.
 
 use std::any::{Any, TypeId};
+use std::cell::RefCell;
 use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicPtr, Ordering::Relaxed};
+use std::sync::Arc;
 
 type MockDataMap = HashMap<Box<dyn MockKeyStored>, Box<dyn Any + Send + Sync>>;
 
 thread_local! {
-    static MOCK_DATA: AtomicPtr<MockDataMap> = Default::default();
+    static MOCK_DATA: RefCell<Option<Arc<MockDataMap>>> = Default::default();
 }
 
 /// A trait intended to be used as a trait object interface for mock keys.
-pub trait MockKeyStored: Any + std::fmt::Debug + Sync {
+pub trait MockKeyStored: Any + std::fmt::Debug + Send + Sync {
     fn eq(&self, other: &dyn MockKeyStored) -> bool;
     fn hash(&self, state: &mut DefaultHasher);
 }
@@ -74,15 +76,12 @@ pub trait MockKey: MockKeyStored + Sized {
     where
         F: FnOnce(&Self::Value) -> R,
     {
-        MOCK_DATA.with(move |ptr| {
-            let ptr = ptr.load(Relaxed);
-            if ptr.is_null() {
-                panic!("no mock data set");
-            }
-            unsafe { &*ptr }
+        MOCK_DATA.with_borrow(move |data| match data {
+            None => panic!("no mock data set"),
+            Some(d) => d
                 .get(self as &dyn MockKeyStored)
                 .and_then(move |b| b.downcast_ref())
-                .map(f)
+                .map(f),
         })
     }
 
@@ -101,7 +100,8 @@ pub trait MockKey: MockKeyStored + Sized {
 }
 
 /// Mock data which can be shared amongst threads.
-pub struct SharedMockData(AtomicPtr<MockDataMap>);
+#[derive(Clone)]
+pub struct SharedMockData(Option<Arc<MockDataMap>>);
 
 impl std::fmt::Debug for SharedMockData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -109,16 +109,10 @@ impl std::fmt::Debug for SharedMockData {
     }
 }
 
-impl Clone for SharedMockData {
-    fn clone(&self) -> Self {
-        SharedMockData(AtomicPtr::new(self.0.load(Relaxed)))
-    }
-}
-
 impl SharedMockData {
     /// Create a `SharedMockData` which stores the mock data from the current thread.
     pub fn new() -> Self {
-        MOCK_DATA.with(|ptr| SharedMockData(AtomicPtr::new(ptr.load(Relaxed))))
+        MOCK_DATA.with_borrow(|data| SharedMockData(data.clone()))
     }
 
     /// Set the mock data on the current thread.
@@ -126,14 +120,14 @@ impl SharedMockData {
     /// # Safety
     /// Callers must ensure that the mock data outlives the lifetime of the thread.
     pub unsafe fn set(self) {
-        MOCK_DATA.with(|ptr| ptr.store(self.0.into_inner(), Relaxed));
+        MOCK_DATA.with_borrow_mut(move |data| *data = self.0);
     }
 
     /// Call the given function with this mock data set.
-    pub fn call<R>(&self, f: impl FnOnce() -> R) -> R {
-        let prev = MOCK_DATA.with(|ptr| ptr.swap(self.0.load(Relaxed), Relaxed));
+    pub fn call<R>(self, f: impl FnOnce() -> R) -> R {
+        let prev = MOCK_DATA.replace(self.0);
         let ret = f();
-        MOCK_DATA.with(|ptr| ptr.store(prev, Relaxed));
+        MOCK_DATA.set(prev);
         ret
     }
 }
@@ -167,10 +161,7 @@ impl Builder {
     where
         F: FnOnce() -> R,
     {
-        MOCK_DATA.with(|ptr| ptr.store(&mut self.data, Relaxed));
-        let ret = f();
-        MOCK_DATA.with(|ptr| ptr.store(std::ptr::null_mut(), Relaxed));
-        ret
+        SharedMockData(Some(Arc::new(std::mem::take(&mut self.data)))).call(f)
     }
 }
 

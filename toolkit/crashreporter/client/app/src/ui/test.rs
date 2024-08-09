@@ -127,6 +127,7 @@ impl Interact {
 
     /// Cancel an Interact (which causes `wait_for_ready` to always return).
     pub fn cancel(&self) {
+        let _guard = self.state.interface.lock().unwrap();
         self.state.cancel.store(true, Relaxed);
         self.state.waiting_for_interface.notify_all();
     }
@@ -214,7 +215,8 @@ struct State {
 impl State {
     /// Set the interface for the interaction client to use.
     pub fn set_interface(&self, interface: UIInterface) {
-        *self.interface.lock().unwrap() = Some(interface);
+        let mut guard = self.interface.lock().unwrap();
+        *guard = Some(interface);
         self.waiting_for_interface.notify_all();
     }
 
