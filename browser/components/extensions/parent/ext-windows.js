@@ -119,7 +119,15 @@ this.windows = class extends ExtensionAPIPersistent {
           let windowId = Window.WINDOW_ID_NONE;
           let window = Services.focus.activeWindow;
           if (window && extension.canAccessWindow(window)) {
-            windowId = windowTracker.getId(window);
+            if (window.document.readyState !== "complete") {
+              // isBrowserWindow() is not reliable when the window is loading.
+              // Wait a little bit until it is ready.
+              window.addEventListener("load", listener, { once: true });
+              return;
+            }
+            if (windowTracker.isBrowserWindow(window)) {
+              windowId = windowTracker.getId(window);
+            }
           }
           if (windowId !== lastOnFocusChangedWindowId) {
             fire.async(windowId);
