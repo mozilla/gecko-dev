@@ -176,7 +176,8 @@ struct AtomCache : public MruCache<AtomTableKey, nsAtom*, AtomCache> {
   static HashNumber Hash(const AtomTableKey& aKey) { return aKey.mHash; }
   static bool Match(const AtomTableKey& aKey, const nsAtom* aVal) {
     MOZ_ASSERT(aKey.mUTF16String);
-    return aVal->Equals(aKey.mUTF16String, aKey.mLength);
+    return (aVal->hash() == aKey.mHash) &&
+           aVal->Equals(aKey.mUTF16String, aKey.mLength);
   }
 };
 
