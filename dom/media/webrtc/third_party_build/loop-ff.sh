@@ -216,7 +216,7 @@ echo_log "Save patch-stack"
 
 MODIFIED_BUILD_RELATED_FILE_CNT=`hg diff -c tip --stat \
     --include 'third_party/libwebrtc/**BUILD.gn' \
-    --include 'third_party/libwebrtc/webrtc.gni' \
+    --include 'third_party/libwebrtc/**/*.gni' \
     --include 'third_party/libwebrtc/.gn' \
     | grep -v "files changed" \
     | wc -l | tr -d " " || true`
@@ -236,7 +236,7 @@ Then complete these steps:
 After a successful build, you may resume this script:
     bash $SCRIPT_DIR/loop-ff.sh
 "
-echo_log "Modified BUILD.gn (or webrtc.gni) files: $MODIFIED_BUILD_RELATED_FILE_CNT"
+echo_log "Modified .gn, **/BUILD.gn, or **/*.gni files: $MODIFIED_BUILD_RELATED_FILE_CNT"
 MOZ_BUILD_CHANGE_CNT=0
 if [ "x$MODIFIED_BUILD_RELATED_FILE_CNT" != "x0" ]; then
   echo_log "Regenerate build files"
