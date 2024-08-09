@@ -51,12 +51,13 @@ add_task(async function testSeekRelative() {
   info(`start media`);
   await playMedia(tab, testVideoId);
 
-  const seekoffset = 5;
+  let seekoffset = 5;
   info(`seek forward ${seekoffset} seconds`);
   await PerformSeekRelative(tab, "seekforward", {
     seekOffset: seekoffset,
   });
 
+  seekoffset = 4;
   info(`seek backward ${seekoffset} seconds`);
   await PerformSeekRelative(tab, "seekbackward", {
     seekOffset: seekoffset,
@@ -104,7 +105,7 @@ async function PerformSeekTo(tab, seekDetails) {
     [testVideoId],
     Id => {
       const video = content.document.getElementById(Id);
-      return new Promise(r => (video.onseeked = r()));
+      return new Promise(r => (video.onseeked = () => r()));
     }
   );
   const { seekTime, fastSeek } = seekDetails;
@@ -127,7 +128,7 @@ async function PerformSeekRelative(tab, mode, seekDetails) {
         is(seekOffset, details.seekOffset, "Get correct seekoffset");
 
         content.document.getElementById(Id).currentTime +=
-          mode == "seekForward" ? seekOffset : -seekOffset;
+          mode == "seekforward" ? seekOffset : -seekOffset;
       });
     }
   );
@@ -136,7 +137,7 @@ async function PerformSeekRelative(tab, mode, seekDetails) {
     [testVideoId],
     Id => {
       const video = content.document.getElementById(Id);
-      return new Promise(r => (video.onseeked = r()));
+      return new Promise(r => (video.onseeked = () => r()));
     }
   );
   const { seekOffset } = seekDetails;

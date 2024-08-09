@@ -142,6 +142,8 @@ static inline Maybe<dom::MediaControlKey> GetPairedKey(Property aProperty) {
       return Some(dom::MediaControlKey::Play);
     case Property::eCanPause:
       return Some(dom::MediaControlKey::Pause);
+    case Property::eCanSeek:
+      return Some(dom::MediaControlKey::Seekto);
     default:
       return Nothing();
   }
@@ -213,13 +215,13 @@ static GVariant* HandleGetProperty(GDBusConnection* aConnection,
       return g_variant_new_boolean(false);
     // Play/Pause would be blocked if CanControl is false
     case Property::eCanControl:
-    case Property::eCanSeek:
       return g_variant_new_boolean(true);
     case Property::eCanRaise:
     case Property::eCanGoNext:
     case Property::eCanGoPrevious:
     case Property::eCanPlay:
     case Property::eCanPause:
+    case Property::eCanSeek:
       Maybe<dom::MediaControlKey> key = GetPairedKey(property.value());
       MOZ_ASSERT(key.isSome());
       return g_variant_new_boolean(handler->IsMediaKeySupported(key.value()));
@@ -843,6 +845,14 @@ GVariant* MPRISServiceHandler::GetMetadataAsGVariant() const {
     g_variant_builder_add(&builder, "{sv}", "mpris:artUrl",
                           g_variant_new_string(static_cast<const gchar*>(
                               mMPRISMetadata.mArtUrl.get())));
+  }
+  if (mPositionState.isSome()) {
+    CheckedInt64 length =
+        CheckedInt64((int64_t)mPositionState.value().mDuration) * 1000000;
+    if (length.isValid()) {
+      g_variant_builder_add(&builder, "{sv}", "mpris:length",
+                            g_variant_new_int64(length.value()));
+    }
   }
 
   return g_variant_builder_end(&builder);

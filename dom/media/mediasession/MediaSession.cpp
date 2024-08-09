@@ -140,10 +140,10 @@ void MediaSession::SetActionHandler(MediaSessionAction aAction,
   // this information to the chrome process in order to run the media session
   // actions update algorithm.
   // https://w3c.github.io/mediasession/#supported-media-session-actions
-  RefPtr<MediaSessionActionHandler>& hanlder = mActionHandlers[aAction];
-  if (!hanlder && aHandler) {
+  RefPtr<MediaSessionActionHandler>& handler = mActionHandlers[aAction];
+  if (!handler && aHandler) {
     NotifyEnableSupportedAction(aAction);
-  } else if (hanlder && !aHandler) {
+  } else if (handler && !aHandler) {
     NotifyDisableSupportedAction(aAction);
   }
   mActionHandlers[aAction] = aHandler;

@@ -1532,7 +1532,7 @@ const rollouts = [
       "dom/media/autoplay/test/mochitest/file_autoplay_policy_activation_window.html",
       "dom/media/autoplay/test/mochitest/test_autoplay_policy_permission.html",
       "dom/media/doctor/test/browser/browser_decoderDoctor.js",
-      "dom/media/mediasession/test/file_trigger_actionhanlder_window.html",
+      "dom/media/mediasession/test/file_trigger_actionhandler_window.html",
       "dom/media/test/browser/browser_telemetry_video_hardware_decoding_support.js",
       "dom/media/test/file_access_controls.html",
       "dom/media/test/manifest.js",

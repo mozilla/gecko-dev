@@ -38,7 +38,7 @@ SpecialPowers.pushPrefEnv({"set": [
 async function startTest() {
   for (const testCase of testCases) {
     info(`- loading test '${testCase.name}' in a new window -`);
-    const testURL = "file_trigger_actionhanlder_window.html";
+    const testURL = "file_trigger_actionhandler_window.html";
     const testWindow = window.open(testURL, "", "width=500,height=500");
     await new Promise(r => testWindow.onload = r);
 
