@@ -929,6 +929,7 @@ void DocAccessibleParent::Destroy() {
       CachedTableAccessible::Invalidate(acc);
     }
     ProxyDestroyed(acc);
+    // mAccessibles owns acc, so removing it deletes acc.
     iter.Remove();
   }
 

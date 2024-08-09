@@ -75,6 +75,7 @@ void RemoteAccessible::Shutdown() {
 
   mChildren.Clear();
   ProxyDestroyed(static_cast<RemoteAccessible*>(this));
+  // mDoc owns this RemoteAccessible, so RemoveAccessible deletes this.
   mDoc->RemoveAccessible(static_cast<RemoteAccessible*>(this));
 }
 
@@ -149,37 +150,23 @@ LocalAccessible* RemoteAccessible::OuterDocOfRemoteBrowser() const {
 }
 
 void RemoteAccessible::SetParent(RemoteAccessible* aParent) {
-  if (!aParent) {
-    mParent = kNoParent;
-  } else {
-    MOZ_ASSERT(!IsDoc() || !aParent->IsDoc());
-    mParent = aParent->ID();
-  }
+  MOZ_ASSERT(!IsDoc() || !AsDoc()->IsTopLevel(),
+             "Top level doc should not have remote parent");
+  MOZ_ASSERT(!IsDoc() || !aParent || !aParent->IsDoc(),
+             "Doc can't be direct parent of another doc");
+  MOZ_ASSERT(!IsDoc() || !aParent || aParent->IsOuterDoc(),
+             "Doc's parent must be OuterDoc");
+  mParent = aParent;
 }
 
 RemoteAccessible* RemoteAccessible::RemoteParent() const {
-  if (mParent == kNoParent) {
-    return nullptr;
-  }
-
-  // if we are not a document then are parent is another proxy in the same
-  // document.  That means we can just ask our document for the proxy with our
-  // parent id.
-  if (!IsDoc()) {
-    return Document()->GetAccessible(mParent);
-  }
-
-  // If we are a top level document then our parent is not a proxy.
-  if (AsDoc()->IsTopLevel()) {
-    return nullptr;
-  }
-
-  // Finally if we are a non top level document then our parent id is for a
-  // proxy in our parent document so get the proxy from there.
-  DocAccessibleParent* parentDoc = AsDoc()->ParentDoc();
-  MOZ_ASSERT(parentDoc);
-  MOZ_ASSERT(mParent);
-  return parentDoc->GetAccessible(mParent);
+  MOZ_ASSERT(!IsDoc() || !AsDoc()->IsTopLevel() || !mParent,
+             "Top level doc should not have RemoteParent");
+  MOZ_ASSERT(!IsDoc() || !mParent || mParent->mDoc != mDoc,
+             "Doc's parent should be in another doc");
+  MOZ_ASSERT(!IsDoc() || !mParent || mParent->IsOuterDoc(),
+             "Doc's parent should be in another doc");
+  return mParent;
 }
 
 void RemoteAccessible::ApplyCache(CacheUpdateType aUpdateType,
