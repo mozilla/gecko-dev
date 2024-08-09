@@ -42,7 +42,6 @@ uint64_t DocAccessibleParent::sMaxDocID = 0;
 
 DocAccessibleParent::DocAccessibleParent()
     : RemoteAccessible(this),
-      mParentDoc(kNoParentDoc),
 #if defined(XP_WIN)
       mEmulatedWindowHandle(nullptr),
 #endif  // defined(XP_WIN)
@@ -824,7 +823,6 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
   aChildDoc->SetParent(outerDoc);
   outerDoc->SetChildDoc(aChildDoc);
   mChildDocs.AppendElement(aChildDoc->mActorID);
-  aChildDoc->mParentDoc = mActorID;
 
   if (aCreating) {
     ProxyCreated(aChildDoc);
@@ -959,10 +957,10 @@ void DocAccessibleParent::Destroy() {
     return;
   }
 
-  if (DocAccessibleParent* parentDoc = thisDoc->ParentDoc()) {
-    parentDoc->RemoveChildDoc(thisDoc);
-  } else if (IsTopLevel()) {
+  if (IsTopLevel()) {
     GetAccService()->RemoteDocShutdown(this);
+  } else {
+    Unbind();
   }
 }
 
@@ -975,11 +973,10 @@ void DocAccessibleParent::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 DocAccessibleParent* DocAccessibleParent::ParentDoc() const {
-  if (mParentDoc == kNoParentDoc) {
-    return nullptr;
+  if (RemoteAccessible* parent = RemoteParent()) {
+    return parent->Document();
   }
-
-  return LiveDocs().Get(mParentDoc);
+  return nullptr;
 }
 
 bool DocAccessibleParent::CheckDocTree() const {

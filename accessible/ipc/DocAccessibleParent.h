@@ -157,8 +157,11 @@ class DocAccessibleParent : public RemoteAccessible,
       NotNull<PDocAccessibleParent*> aChildDoc, const uint64_t& aID) override;
 
   void Unbind() {
-    if (DocAccessibleParent* parent = ParentDoc()) {
-      parent->RemoveChildDoc(this);
+    if (RemoteAccessible* parent = RemoteParent()) {
+      DocAccessibleParent* parentDoc = parent->Document();
+      parent->ClearChildDoc(this);
+      DebugOnly<bool> result = parentDoc->mChildDocs.RemoveElement(mActorID);
+      MOZ_ASSERT(result);
     }
 
     SetParent(nullptr);
@@ -173,7 +176,6 @@ class DocAccessibleParent : public RemoteAccessible,
    * of the document this object represents.
    */
   DocAccessibleParent* ParentDoc() const;
-  static const uint64_t kNoParentDoc = UINT64_MAX;
 
   /**
    * Called when a document in a content process notifies the main process of a
@@ -193,21 +195,6 @@ class DocAccessibleParent : public RemoteAccessible,
 
   void RemovePendingOOPChildDoc(dom::BrowserBridgeParent* aBridge) {
     mPendingOOPChildDocs.Remove(aBridge);
-  }
-
-  /*
-   * Called when the document in the content process this object represents
-   * notifies the main process a child document has been removed.
-   */
-  void RemoveChildDoc(DocAccessibleParent* aChildDoc) {
-    RemoteAccessible* parent = aChildDoc->RemoteParent();
-    MOZ_ASSERT(parent);
-    if (parent) {
-      aChildDoc->RemoteParent()->ClearChildDoc(aChildDoc);
-    }
-    DebugOnly<bool> result = mChildDocs.RemoveElement(aChildDoc->mActorID);
-    aChildDoc->mParentDoc = kNoParentDoc;
-    MOZ_ASSERT(result);
   }
 
   void RemoveAccessible(RemoteAccessible* aAccessible) {
@@ -357,7 +344,6 @@ class DocAccessibleParent : public RemoteAccessible,
   void ShutdownOrPrepareForMove(RemoteAccessible* aAcc);
 
   nsTArray<uint64_t> mChildDocs;
-  uint64_t mParentDoc;
 
 #if defined(XP_WIN)
   // The handle associated with the emulated window that contains this document
