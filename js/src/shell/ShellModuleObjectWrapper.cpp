@@ -340,7 +340,8 @@ DEFINE_NATIVE_GETTER_FUNCTIONS(ModuleRequestObject, moduleType,
 static const JSPropertySpec ShellModuleRequestObjectWrapper_accessors[] = {
     JS_PSG("specifier", ShellModuleRequestObjectWrapper_specifierGetter, 0),
     JS_PSG("moduleType", ShellModuleRequestObjectWrapper_moduleTypeGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 DEFINE_GETTER_FUNCTIONS(ImportEntry, moduleRequest, ObjectOrNullValue,
                         SingleFilter<ShellModuleRequestObjectWrapper>)
@@ -356,7 +357,8 @@ static const JSPropertySpec ShellImportEntryWrapper_accessors[] = {
     JS_PSG("localName", ShellImportEntryWrapper_localNameGetter, 0),
     JS_PSG("lineNumber", ShellImportEntryWrapper_lineNumberGetter, 0),
     JS_PSG("columnNumber", ShellImportEntryWrapper_columnNumberGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 DEFINE_GETTER_FUNCTIONS(ExportEntry, exportName, StringOrNullValue, IdentFilter)
 DEFINE_GETTER_FUNCTIONS(ExportEntry, moduleRequest, ObjectOrNullValue,
@@ -374,7 +376,8 @@ static const JSPropertySpec ShellExportEntryWrapper_accessors[] = {
     JS_PSG("localName", ShellExportEntryWrapper_localNameGetter, 0),
     JS_PSG("lineNumber", ShellExportEntryWrapper_lineNumberGetter, 0),
     JS_PSG("columnNumber", ShellExportEntryWrapper_columnNumberGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 DEFINE_GETTER_FUNCTIONS(RequestedModule, moduleRequest, ObjectOrNullValue,
                         SingleFilter<ShellModuleRequestObjectWrapper>)
@@ -386,7 +389,8 @@ static const JSPropertySpec ShellRequestedModuleWrapper_accessors[] = {
     JS_PSG("moduleRequest", ShellRequestedModuleWrapper_moduleRequestGetter, 0),
     JS_PSG("lineNumber", ShellRequestedModuleWrapper_lineNumberGetter, 0),
     JS_PSG("columnNumber", ShellRequestedModuleWrapper_columnNumberGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 DEFINE_GETTER_FUNCTIONS(ModuleObject, namespace_, ObjectOrNullValue,
                         IdentFilter)
@@ -448,7 +452,8 @@ static const JSPropertySpec ShellModuleObjectWrapper_accessors[] = {
            ShellModuleObjectWrapper_asyncParentModulesGetter, 0),
     JS_PSG("pendingAsyncDependencies",
            ShellModuleObjectWrapper_maybePendingAsyncDependenciesGetter, 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 #undef DEFINE_GETTER_FUNCTIONS
 #undef DEFINE_NATIVE_GETTER_FUNCTIONS

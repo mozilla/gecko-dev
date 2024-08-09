@@ -686,7 +686,8 @@ const JSClass FileObject::class_ = {
     "File",
     JSCLASS_HAS_RESERVED_SLOTS(FileObject::NUM_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &FileObjectClassOps};
+    &FileObjectClassOps,
+};
 
 static FileObject* redirect(JSContext* cx, HandleString relFilename,
                             RCFile** globalFile) {
