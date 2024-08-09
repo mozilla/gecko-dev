@@ -227,13 +227,15 @@ class NavigationRegistry extends EventEmitter {
    * @param {object} data
    * @param {BrowsingContextDetails} data.contextDetails
    *     The details about the browsing context for this navigation.
+   * @param {string} data.errorName
+   *     The error message.
    * @param {string} data.url
    *     The URL as string for the navigation.
    * @returns {NavigationInfo}
    *     The created navigation or the ongoing navigation, if applicable.
    */
   notifyNavigationFailed(data) {
-    const { contextDetails, url } = data;
+    const { contextDetails, errorName, url } = data;
 
     const context = this.#getContextFromContextDetails(contextDetails);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
@@ -262,6 +264,7 @@ class NavigationRegistry extends EventEmitter {
 
     this.emit("navigation-failed", {
       contextId: context.id,
+      errorName,
       navigationId: navigation.navigationId,
       navigableId,
       url,
@@ -316,7 +319,11 @@ class NavigationRegistry extends EventEmitter {
       // Note: ideally we should monitor this using NS_BINDING_ABORTED,
       // but due to intermittent issues, when monitoring this in content processes,
       // we can't reliable use it.
-      notifyNavigationFailed({ contextDetails, url: navigation.url });
+      notifyNavigationFailed({
+        contextDetails,
+        errorName: "A new navigation interrupted an unfinished navigation",
+        url: navigation.url,
+      });
     }
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
@@ -456,6 +463,7 @@ class NavigationRegistry extends EventEmitter {
       contextDetails: {
         context: browsingContext,
       },
+      errorName: "Browsing context got discarded",
       url: navigation.url,
     });
 
@@ -475,6 +483,7 @@ class NavigationRegistry extends EventEmitter {
         contextDetails: {
           context: browsingContext,
         },
+        errorName: "Beforeunload prompt was rejected",
         // Bug 1908952. Add support for the "url" field.
       });
     }

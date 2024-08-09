@@ -44,7 +44,9 @@ export class NavigationListenerParent extends JSWindowActorParent {
           break;
         }
         case "NavigationListenerChild:navigationStopped": {
-          if (this.#isContentBlocked(data.status)) {
+          const errorName = ChromeUtils.getXPCOMErrorName(data.status);
+          if (this.#isContentBlocked(errorName)) {
+            payload.errorName = errorName;
             lazy.notifyNavigationFailed(payload);
           } else {
             lazy.notifyNavigationStopped(payload);
@@ -66,9 +68,7 @@ export class NavigationListenerParent extends JSWindowActorParent {
     }
   }
 
-  #isContentBlocked(status) {
-    const blockedReason = ChromeUtils.getXPCOMErrorName(status);
-
+  #isContentBlocked(blockedReason) {
     return [
       // If content is blocked with e.g. CSP meta tag.
       "NS_ERROR_CONTENT_BLOCKED",

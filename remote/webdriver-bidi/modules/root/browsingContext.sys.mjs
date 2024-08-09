@@ -1555,6 +1555,7 @@ class BrowsingContextModule extends RootBiDiModule {
     const resolveWhenStarted = wait === WaitCondition.None;
     const listener = new lazy.ProgressListener(webProgress, {
       expectNavigation: true,
+      navigationManager: this.messageHandler.navigationManager,
       resolveWhenStarted,
       targetURI,
       // In case the webprogress is already navigating, always wait for an
@@ -1655,13 +1656,12 @@ class BrowsingContextModule extends RootBiDiModule {
       };
     }
 
-    const navigated = listener.start();
+    const navigationId = lazy.registerNavigationId({
+      contextDetails: { context: webProgress.browsingContext },
+    });
+    const navigated = listener.start(navigationId);
 
     try {
-      const navigationId = lazy.registerNavigationId({
-        contextDetails: { context: webProgress.browsingContext },
-      });
-
       await startNavigationFn();
       await navigated;
 
