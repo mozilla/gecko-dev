@@ -22,9 +22,6 @@ support-files = ["accessiblecaret_magnifier.html"]
 ["test_border_radius_hit_testing.html"]
 support-files = ["border_radius_hit_testing_iframe.html"]
 
-["test_bug1909181.html"]
-support-files = ["file_bug1909181.html"]
-
 ["test_bug66619.html"]
 
 ["test_bug93077-1.html"]
