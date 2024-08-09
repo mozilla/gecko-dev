@@ -559,7 +559,7 @@ MarkupContainer.prototype = {
     this.markup.navigate(this);
     // Make container tabbable descendants tabbable and focus in.
     this.canFocus = true;
-    this.focus();
+    this.focus({ fromMouseEvent: true });
     event.stopPropagation();
 
     // Preventing the default behavior will avoid the body to gain focus on
@@ -821,12 +821,22 @@ MarkupContainer.prototype = {
 
   /**
    * Try to put keyboard focus on the current editor.
+   *
+   * @param {Object} options
+   * @param {Boolean} options.fromMouseEvent: Set to true if this is called from a mouse
+   *                  event to avoid applying :focus-visible style.
    */
-  focus() {
+  focus({ fromMouseEvent = false } = {}) {
     // Elements with tabindex of -1 are not focusable.
     const focusable = this.editor.elt.querySelector("[tabindex='0']");
     if (focusable) {
-      focusable.focus();
+      if (fromMouseEvent) {
+        // When focus is coming from a mouse event,
+        // prevent :focus-visible to be applied to the element
+        Services.focus.setFocus(focusable, Services.focus.FLAG_NOSHOWRING);
+      } else {
+        focusable.focus();
+      }
     }
   },
 
