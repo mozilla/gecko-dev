@@ -984,7 +984,18 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
                                        bool aHasPostData);
 
  private:
-  mozilla::ipc::IPCResult Attach(bool aFromIPC, ContentParent* aOriginProcess);
+  // Assert that this BrowsingContext is coherent relative to related
+  // BrowsingContexts. This will be run before the BrowsingContext is attached.
+  //
+  // A non-null string return value indicates that there was a coherency check
+  // failure, which will be handled with either a crash or IPC failure.
+  //
+  // If provided, `aOriginProcess` is the process which is responsible for the
+  // creation of this BrowsingContext.
+  [[nodiscard]] const char* BrowsingContextCoherencyChecks(
+      ContentParent* aOriginProcess);
+
+  void Attach(bool aFromIPC, ContentParent* aOriginProcess);
 
   // Recomputes whether we can execute scripts in this BrowsingContext based on
   // the value of AllowJavascript() and whether scripts are allowed in the
@@ -997,10 +1008,6 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   bool CanSetOriginAttributes();
 
   void AssertOriginAttributesMatchPrivateBrowsing();
-
-  // Assert that the BrowsingContext's LoadContext flags appear coherent
-  // relative to related BrowsingContexts.
-  void AssertCoherentLoadContext();
 
   friend class ::nsOuterWindowProxy;
   friend class ::nsGlobalWindowOuter;

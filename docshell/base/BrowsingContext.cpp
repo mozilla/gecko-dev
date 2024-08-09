@@ -578,9 +578,20 @@ mozilla::ipc::IPCResult BrowsingContext::CreateFromIPC(
   context->mRequestContextId = aInit.mRequestContextId;
   // NOTE: Private browsing ID is set by `SetOriginAttributes`.
 
+  if (const char* failure =
+          context->BrowsingContextCoherencyChecks(aOriginProcess)) {
+    mozilla::ipc::IProtocol* actor = aOriginProcess;
+    if (!actor) {
+      actor = ContentChild::GetSingleton();
+    }
+    return IPC_FAIL_UNSAFE_PRINTF(actor, "Incoherent BrowsingContext: %s",
+                                  failure);
+  }
+
   Register(context);
 
-  return context->Attach(/* aFromIPC */ true, aOriginProcess);
+  context->Attach(/* aFromIPC */ true, aOriginProcess);
+  return IPC_OK();
 }
 
 BrowsingContext::BrowsingContext(WindowContext* aParentWindow,
@@ -795,8 +806,64 @@ void BrowsingContext::Embed() {
   }
 }
 
-mozilla::ipc::IPCResult BrowsingContext::Attach(bool aFromIPC,
-                                                ContentParent* aOriginProcess) {
+const char* BrowsingContext::BrowsingContextCoherencyChecks(
+    ContentParent* aOriginProcess) {
+#define COHERENCY_ASSERT(condition) \
+  if (!(condition)) return "Assertion " #condition " failed";
+
+  if (mGroup->IsPotentiallyCrossOriginIsolated() !=
+      (Top()->GetOpenerPolicy() ==
+       nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP)) {
+    return "Invalid CrossOriginIsolated state";
+  }
+
+  if (aOriginProcess && !IsContent()) {
+    return "Content cannot create chrome BCs";
+  }
+
+  // LoadContext should generally match our opener or parent.
+  if (IsContent()) {
+    if (RefPtr<BrowsingContext> opener = GetOpener()) {
+      COHERENCY_ASSERT(opener->mType == mType);
+      COHERENCY_ASSERT(opener->mGroup == mGroup);
+      COHERENCY_ASSERT(opener->mUseRemoteTabs == mUseRemoteTabs);
+      COHERENCY_ASSERT(opener->mUseRemoteSubframes == mUseRemoteSubframes);
+      COHERENCY_ASSERT(opener->mPrivateBrowsingId == mPrivateBrowsingId);
+      COHERENCY_ASSERT(
+          opener->mOriginAttributes.EqualsIgnoringFPD(mOriginAttributes));
+    }
+  }
+  if (RefPtr<BrowsingContext> parent = GetParent()) {
+    COHERENCY_ASSERT(parent->mType == mType);
+    COHERENCY_ASSERT(parent->mGroup == mGroup);
+    COHERENCY_ASSERT(parent->mUseRemoteTabs == mUseRemoteTabs);
+    COHERENCY_ASSERT(parent->mUseRemoteSubframes == mUseRemoteSubframes);
+    COHERENCY_ASSERT(parent->mPrivateBrowsingId == mPrivateBrowsingId);
+    COHERENCY_ASSERT(
+        parent->mOriginAttributes.EqualsIgnoringFPD(mOriginAttributes));
+  }
+
+  // UseRemoteSubframes and UseRemoteTabs must match.
+  if (mUseRemoteSubframes && !mUseRemoteTabs) {
+    return "Cannot set useRemoteSubframes without also setting useRemoteTabs";
+  }
+
+  // Double-check OriginAttributes/Private Browsing
+  // Chrome browsing contexts must not have a private browsing OriginAttribute
+  // Content browsing contexts must maintain the equality:
+  // mOriginAttributes.mPrivateBrowsingId == mPrivateBrowsingId
+  if (IsChrome()) {
+    COHERENCY_ASSERT(mOriginAttributes.mPrivateBrowsingId == 0);
+  } else {
+    COHERENCY_ASSERT(mOriginAttributes.mPrivateBrowsingId ==
+                     mPrivateBrowsingId);
+  }
+#undef COHERENCY_ASSERT
+
+  return nullptr;
+}
+
+void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
   MOZ_DIAGNOSTIC_ASSERT(!mEverAttached);
   MOZ_DIAGNOSTIC_ASSERT_IF(aFromIPC, aOriginProcess || XRE_IsContentProcess());
   mEverAttached = true;
@@ -815,25 +882,15 @@ mozilla::ipc::IPCResult BrowsingContext::Attach(bool aFromIPC,
   MOZ_DIAGNOSTIC_ASSERT(mGroup);
   MOZ_DIAGNOSTIC_ASSERT(!mIsDiscarded);
 
-  if (mGroup->IsPotentiallyCrossOriginIsolated() !=
-      (Top()->GetOpenerPolicy() ==
-       nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP)) {
-    MOZ_DIAGNOSTIC_ASSERT(aFromIPC);
-    if (aFromIPC) {
-      auto* actor = aOriginProcess
-                        ? static_cast<mozilla::ipc::IProtocol*>(aOriginProcess)
-                        : static_cast<mozilla::ipc::IProtocol*>(
-                              ContentChild::GetSingleton());
-      return IPC_FAIL(
-          actor,
-          "Invalid CrossOriginIsolated state in BrowsingContext::Attach call");
-    } else {
-      MOZ_CRASH(
-          "Invalid CrossOriginIsolated state in BrowsingContext::Attach call");
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  // We'll already have checked this if `aFromIPC` is set before calling this
+  // function.
+  if (!aFromIPC) {
+    if (const char* failure = BrowsingContextCoherencyChecks(aOriginProcess)) {
+      MOZ_CRASH_UNSAFE_PRINTF("Incoherent BrowsingContext: %s", failure);
     }
   }
-
-  AssertCoherentLoadContext();
+#endif
 
   // Add ourselves either to our parent or BrowsingContextGroup's child list.
   // Important: We shouldn't return IPC_FAIL after this point, since the
@@ -915,7 +972,6 @@ mozilla::ipc::IPCResult BrowsingContext::Attach(bool aFromIPC,
   if (XRE_IsParentProcess()) {
     Canonical()->CanonicalAttach();
   }
-  return IPC_OK();
 }
 
 void BrowsingContext::Detach(bool aFromIPC) {
@@ -1766,40 +1822,6 @@ nsresult BrowsingContext::SetOriginAttributes(const OriginAttributes& aAttrs) {
   AssertOriginAttributesMatchPrivateBrowsing();
 
   return NS_OK;
-}
-
-void BrowsingContext::AssertCoherentLoadContext() {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  // LoadContext should generally match our opener or parent.
-  if (IsContent()) {
-    if (RefPtr<BrowsingContext> opener = GetOpener()) {
-      MOZ_DIAGNOSTIC_ASSERT(opener->mType == mType);
-      MOZ_DIAGNOSTIC_ASSERT(opener->mGroup == mGroup);
-      MOZ_DIAGNOSTIC_ASSERT(opener->mUseRemoteTabs == mUseRemoteTabs);
-      MOZ_DIAGNOSTIC_ASSERT(opener->mUseRemoteSubframes == mUseRemoteSubframes);
-      MOZ_DIAGNOSTIC_ASSERT(opener->mPrivateBrowsingId == mPrivateBrowsingId);
-      MOZ_DIAGNOSTIC_ASSERT(
-          opener->mOriginAttributes.EqualsIgnoringFPD(mOriginAttributes));
-    }
-  }
-  if (RefPtr<BrowsingContext> parent = GetParent()) {
-    MOZ_DIAGNOSTIC_ASSERT(parent->mType == mType);
-    MOZ_DIAGNOSTIC_ASSERT(parent->mGroup == mGroup);
-    MOZ_DIAGNOSTIC_ASSERT(parent->mUseRemoteTabs == mUseRemoteTabs);
-    MOZ_DIAGNOSTIC_ASSERT(parent->mUseRemoteSubframes == mUseRemoteSubframes);
-    MOZ_DIAGNOSTIC_ASSERT(parent->mPrivateBrowsingId == mPrivateBrowsingId);
-    MOZ_DIAGNOSTIC_ASSERT(
-        parent->mOriginAttributes.EqualsIgnoringFPD(mOriginAttributes));
-  }
-
-  // UseRemoteSubframes and UseRemoteTabs must match.
-  MOZ_DIAGNOSTIC_ASSERT(
-      !mUseRemoteSubframes || mUseRemoteTabs,
-      "Cannot set useRemoteSubframes without also setting useRemoteTabs");
-
-  // Double-check OriginAttributes/Private Browsing
-  AssertOriginAttributesMatchPrivateBrowsing();
-#endif
 }
 
 void BrowsingContext::AssertOriginAttributesMatchPrivateBrowsing() {
