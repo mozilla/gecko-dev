@@ -3378,12 +3378,6 @@
   value: false
   mirror: always
 
-# Is support for Permissions.revoke enabled?
-- name: dom.permissions.revoke.enable
-  type: bool
-  value: false
-  mirror: always
-
 # Is support for Element.requestPointerLock enabled?
 # This is added for accessibility purpose. When user has no way to exit
 # pointer lock (e.g. no keyboard available), they can use this pref to
