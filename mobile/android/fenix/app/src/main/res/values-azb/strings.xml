@@ -1929,6 +1929,59 @@
     <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill">آیریْ اَپ‌لرده اتوماتیک دوْلدور</string>
 
+    <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
+    <string name="preferences_android_autofill_description">جهازینداکی آیریْ اَپ‌لرده قوللانیجیْ آدلار و رمزلر دوْلدورولسون.</string>
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">رمز آرتیر</string>
+
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">رمزلری دؤنگل ائله</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">رمزلری جهازلار آرسیندا دؤنگل ائله</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">ساخلانمیش رمزلر</string>
+
+    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
+    <string name="preferences_passwords_saved_logins_description_empty_text_2">%s ساخلادیغیز ویا دؤنگل ائتدیغیر رمزلر بورادا لیست اوْلاجاق. ساخلادیغیر بوتون رمزلر کدلاناجاق.</string>
+    <!-- Clickable text for opening an external link for more information about Sync. -->
+    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">دؤنگل حاقیندا داها چوْخ بیلگی آل</string>
+    <!-- Preference to access list of login exceptions that we never save logins for -->
+    <string name="preferences_passwords_exceptions">آیریْ توتمالار</string>
+
+    <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_empty_2">%s بورادا لیست اوْلان سایتلار اوچون رمزلری  یاددا ساخلامیاجاق.</string>
+    <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_2">%s بو سایتلار اوچون رمزلری یاددا ساخلامیاجاق.</string>
+    <!-- Text on button to remove all saved login exceptions -->
+    <string name="preferences_passwords_exceptions_remove_all">بوتون آیریْ توتمالاریْ سیل</string>
+    <!-- The header for the site that a login is for -->
+    <string name="preferences_passwords_saved_logins_site">سایت</string>
+    <!-- The header for the username for a login -->
+    <string name="preferences_passwords_saved_logins_username">قوللانیجی آدی</string>
+    <!-- The header for the password for a login -->
+    <string name="preferences_passwords_saved_logins_password">رمز</string>
+    <!-- Shown in snackbar to tell user that the password has been copied -->
+    <string name="logins_password_copied">رمز کلیپبوردا کپی اوْلوندو</string>
+    <!-- Shown in snackbar to tell user that the username has been copied -->
+    <string name="logins_username_copied">قوللانیجیْ آدیْ کلیپبوردا کپی اوْلوندو</string>
+    <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins-->
+    <string name="saved_logins_copy_password">رمزی کپی ائله</string>
+    <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login-->
+    <string name="saved_logins_clear_password">رمزی پوْز</string>
+    <!-- Content Description (for screenreaders etc) read for the button to copy a username in logins -->
+    <string name="saved_login_copy_username">قوللانیجیْ آدینیْ کپی ائله</string>
+    <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
+    <string name="saved_login_clear_username">قوللانیجیْ آدیْ پوْز</string>
+    <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
+    <string name="saved_login_clear_hostname">هاست آدینیْ پوْز</string>
+    <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
+    <string name="saved_login_open_site">سایتی مرورگرده آچ</string>
+    <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
+    <string name="saved_login_reveal_password">رمزی گؤستر</string>
+
+    <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
+    <string name="saved_login_hide_password">رمزی گیزله</string>
+
     <!-- Translations feature-->
 
 
