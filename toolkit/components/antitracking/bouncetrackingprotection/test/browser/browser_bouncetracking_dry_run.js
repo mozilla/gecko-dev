@@ -86,7 +86,12 @@ add_setup(async function () {
 
 add_task(async function test_purge_in_regular_mode() {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.bounceTrackingProtection.enableDryRunMode", false]],
+    set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+      ],
+    ],
   });
 
   await runPurgeTest(true);
@@ -94,7 +99,12 @@ add_task(async function test_purge_in_regular_mode() {
 
 add_task(async function test_purge_in_dry_run_mode() {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.bounceTrackingProtection.enableDryRunMode", true]],
+    set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN,
+      ],
+    ],
   });
 
   await runPurgeTest(false);

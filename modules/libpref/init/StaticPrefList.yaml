@@ -14805,11 +14805,17 @@
   value: ""
   mirror: never
 
-# Main pref to enable / disable the feature.
-- name: privacy.bounceTrackingProtection.enabled
-  type: bool
-  value: true
-  mirror: once
+# Controls Bounce Tracking Protection behavior.
+# Set to 0 to fully disable. See nsIBounceTrackingProtection.idl for
+# documentation.
+- name: privacy.bounceTrackingProtection.mode
+  type: uint32_t
+#ifdef NIGHTLY_BUILD
+  value: 1
+#else
+  value: 3
+#endif
+  mirror: always
 
 # How long to wait for a client redirect after a navigation ends.
 - name: privacy.bounceTrackingProtection.clientBounceDetectionTimerPeriodMS
@@ -14841,14 +14847,6 @@
 - name: privacy.bounceTrackingProtection.requireStatefulBounces
   type: bool
   value: true
-  mirror: always
-
-# Enables a mode where if bounce tracking protection is enabled it classifies
-# but does not purge trackers. This mode is helpful for testing the feature
-# without risking data loss. Telemetry is still collected normally.
-- name: privacy.bounceTrackingProtection.enableDryRunMode
-  type: bool
-  value: @IS_NOT_NIGHTLY_BUILD@
   mirror: always
 
 # To be used in automated test environments to enable observer messages.

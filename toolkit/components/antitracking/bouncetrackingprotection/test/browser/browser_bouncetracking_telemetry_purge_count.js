@@ -23,7 +23,14 @@ function assertCounterNull() {
 
 async function testPurgeCount(isDryRunMode) {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.bounceTrackingProtection.enableDryRunMode", isDryRunMode]],
+    set: [
+      [
+        "privacy.bounceTrackingProtection.mode",
+        isDryRunMode
+          ? Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN
+          : Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+      ],
+    ],
   });
 
   assertCounterNull();

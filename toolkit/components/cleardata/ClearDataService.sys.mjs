@@ -40,9 +40,9 @@ XPCOMUtils.defineLazyServiceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "isBounceTrackingProtectionEnabled",
-  "privacy.bounceTrackingProtection.enabled",
-  false
+  "bounceTrackingProtectionMode",
+  "privacy.bounceTrackingProtection.mode",
+  Ci.nsIBounceTrackingProtection.MODE_DISABLED
 );
 
 /**
@@ -1798,14 +1798,20 @@ const IdentityCredentialStorageCleaner = {
 
 const BounceTrackingProtectionStateCleaner = {
   async deleteAll() {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     await lazy.bounceTrackingProtection.clearAll();
   },
 
   async deleteByPrincipal(aPrincipal) {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     let { baseDomain, originAttributes } = aPrincipal;
@@ -1816,21 +1822,30 @@ const BounceTrackingProtectionStateCleaner = {
   },
 
   async deleteByBaseDomain(aBaseDomain) {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     await lazy.bounceTrackingProtection.clearBySiteHost(aBaseDomain);
   },
 
   async deleteByRange(aFrom, aTo) {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     await lazy.bounceTrackingProtection.clearByTimeRange(aFrom, aTo);
   },
 
   async deleteByHost(aHost) {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     let baseDomain = getBaseDomainWithFallback(aHost);
@@ -1838,7 +1853,10 @@ const BounceTrackingProtectionStateCleaner = {
   },
 
   async deleteByOriginAttributes(aOriginAttributesPatternString) {
-    if (!lazy.isBounceTrackingProtectionEnabled) {
+    if (
+      lazy.bounceTrackingProtectionMode ==
+      Ci.nsIBounceTrackingProtection.MODE_DISABLED
+    ) {
       return;
     }
     await lazy.bounceTrackingProtection.clearByOriginAttributesPattern(

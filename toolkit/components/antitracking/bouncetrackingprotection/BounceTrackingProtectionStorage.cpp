@@ -19,6 +19,7 @@
 #include "mozilla/Services.h"
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsIBounceTrackingProtection.h"
 #include "nsIObserverService.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
@@ -56,6 +57,20 @@ BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
     const OriginAttributes& aOriginAttributes) {
   return mStateGlobal.GetOrInsertNew(aOriginAttributes, this,
                                      aOriginAttributes);
+}
+
+nsresult BounceTrackingProtectionStorage::ClearByType(
+    BounceTrackingProtectionStorage::EntryType aType) {
+  for (auto iter = mStateGlobal.Iter(); !iter.Done(); iter.Next()) {
+    BounceTrackingStateGlobal* stateGlobal = iter.Data();
+    MOZ_ASSERT(stateGlobal);
+    // Update in memory state. Skip storage so we can batch the writes later.
+    nsresult rv = stateGlobal->ClearByType(aType, true);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // Clear on-disk state for all OriginAttributes by type.
+  return DeleteDBEntriesByType(nullptr, aType);
 }
 
 nsresult BounceTrackingProtectionStorage::ClearBySiteHost(
@@ -262,6 +277,34 @@ nsresult BounceTrackingProtectionStorage::DeleteDBEntriesInTimeRange(
   return NS_OK;
 }
 
+nsresult BounceTrackingProtectionStorage::DeleteDBEntriesByType(
+    OriginAttributes* aOriginAttributes,
+    BounceTrackingProtectionStorage::EntryType aEntryType) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsresult rv = WaitForInitialization();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  RefPtr<BounceTrackingProtectionStorage> self = this;
+  Maybe<OriginAttributes> originAttributes;
+  if (aOriginAttributes) {
+    originAttributes.emplace(*aOriginAttributes);
+  }
+
+  IncrementPendingWrites();
+  mBackgroundThread->Dispatch(
+      NS_NewRunnableFunction(
+          "BounceTrackingProtectionStorage::DeleteDBEntriesByType",
+          [self, originAttributes, aEntryType]() {
+            nsresult rv = self->DeleteDataByType(self->mDatabaseConnection,
+                                                 originAttributes, aEntryType);
+            self->DecrementPendingWrites();
+            NS_ENSURE_SUCCESS_VOID(rv);
+          }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
+  return NS_OK;
+}
+
 nsresult
 BounceTrackingProtectionStorage::DeleteDBEntriesByOriginAttributesPattern(
     const OriginAttributesPattern& aOriginAttributesPattern) {
@@ -414,9 +457,9 @@ nsresult BounceTrackingProtectionStorage::Init() {
   MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug, ("%s", __FUNCTION__));
 
   // Init shouldn't be called if the feature is disabled.
-  NS_ENSURE_TRUE(
-      StaticPrefs::privacy_bounceTrackingProtection_enabled_AtStartup(),
-      NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+                     nsIBounceTrackingProtection::MODE_DISABLED,
+                 NS_ERROR_FAILURE);
 
   // Register a shutdown blocker so we can flush pending changes to disk before
   // shutdown.
@@ -778,6 +821,49 @@ nsresult BounceTrackingProtectionStorage::DeleteDataInTimeRange(
   if (aEntryType.isSome()) {
     rv = deleteStmt->BindInt32ByName("entryType"_ns,
                                      static_cast<int32_t>(*aEntryType));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return deleteStmt->Execute();
+}
+
+// static
+nsresult BounceTrackingProtectionStorage::DeleteDataByType(
+    mozIStorageConnection* aDatabaseConnection,
+    const Maybe<OriginAttributes>& aOriginAttributes,
+    BounceTrackingProtectionStorage::EntryType aEntryType) {
+  MOZ_ASSERT(!NS_IsMainThread(),
+             "Must not write to the table from the main thread.");
+  MOZ_ASSERT(aDatabaseConnection);
+  MOZ_ASSERT(aOriginAttributes.isNothing() ||
+             aOriginAttributes->mPrivateBrowsingId ==
+                 nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID);
+
+  nsAutoCString deleteQuery(
+      "DELETE FROM sites "
+      "WHERE entryType = :entryType"_ns);
+
+  if (aOriginAttributes) {
+    deleteQuery.AppendLiteral(
+        " AND originAttributeSuffix = :originAttributeSuffix");
+  }
+
+  deleteQuery.AppendLiteral(";");
+
+  nsCOMPtr<mozIStorageStatement> deleteStmt;
+  nsresult rv = aDatabaseConnection->CreateStatement(
+      deleteQuery, getter_AddRefs(deleteStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = deleteStmt->BindInt32ByName("entryType"_ns,
+                                   static_cast<int32_t>(aEntryType));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aOriginAttributes) {
+    nsAutoCString originAttributeSuffix;
+    aOriginAttributes->CreateSuffix(originAttributeSuffix);
+    rv = deleteStmt->BindUTF8StringByName("originAttributeSuffix"_ns,
+                                          originAttributeSuffix);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

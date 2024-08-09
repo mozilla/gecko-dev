@@ -57,6 +57,8 @@ static bool sInitFailed = false;
 // Initialized on first call of GetSingleton.
 Maybe<bool> BounceTrackingProtection::sFeatureIsEnabled;
 
+static const char kBTPModePref[] = "privacy.bounceTrackingProtection.mode";
+
 static constexpr uint32_t TRACKER_PURGE_FLAGS =
     nsIClearDataService::CLEAR_ALL_CACHES | nsIClearDataService::CLEAR_COOKIES |
     nsIClearDataService::CLEAR_DOM_STORAGES |
@@ -78,13 +80,8 @@ BounceTrackingProtection::GetSingleton() {
 
   // First call to GetSingleton, check main feature pref and record telemetry.
   if (sFeatureIsEnabled.isNothing()) {
-    if (StaticPrefs::privacy_bounceTrackingProtection_enabled_AtStartup()) {
-      sFeatureIsEnabled = Some(true);
-
-      glean::bounce_tracking_protection::enabled_at_startup.Set(true);
-      glean::bounce_tracking_protection::enabled_dry_run_mode_at_startup.Set(
-          StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode());
-    } else {
+    if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+        nsIBounceTrackingProtection::MODE_DISABLED) {
       sFeatureIsEnabled = Some(false);
 
       glean::bounce_tracking_protection::enabled_at_startup.Set(false);
@@ -94,6 +91,12 @@ BounceTrackingProtection::GetSingleton() {
       // Feature is disabled.
       return nullptr;
     }
+    sFeatureIsEnabled = Some(true);
+
+    glean::bounce_tracking_protection::enabled_at_startup.Set(true);
+    glean::bounce_tracking_protection::enabled_dry_run_mode_at_startup.Set(
+        StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+        nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN);
   }
   MOZ_ASSERT(sFeatureIsEnabled.isSome());
 
@@ -124,14 +127,17 @@ BounceTrackingProtection::GetSingleton() {
 }
 
 nsresult BounceTrackingProtection::Init() {
+  MOZ_ASSERT(StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+                 nsIBounceTrackingProtection::MODE_DISABLED,
+             "Mode pref must have an enabled state for init to be called.");
   MOZ_LOG(
       gBounceTrackingProtectionLog, LogLevel::Info,
-      ("Init BounceTrackingProtection. Config: enableDryRunMode: %d, "
+      ("Init BounceTrackingProtection. Config: mode: %d, "
        "bounceTrackingActivationLifetimeSec: %d, bounceTrackingGracePeriodSec: "
        "%d, bounceTrackingPurgeTimerPeriodSec: %d, "
        "clientBounceDetectionTimerPeriodMS: %d, requireStatefulBounces: %d, "
        "HasMigratedUserActivationData: %d",
-       StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode(),
+       StaticPrefs::privacy_bounceTrackingProtection_mode(),
        StaticPrefs::
            privacy_bounceTrackingProtection_bounceTrackingActivationLifetimeSec(),
        StaticPrefs::
@@ -153,6 +159,31 @@ nsresult BounceTrackingProtection::Init() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Error,
             ("user activation permission migration failed"));
+  }
+
+  // Register feature pref listener which dynamically enables or disables the
+  // feature depending on feature pref state.
+  rv = Preferences::RegisterCallback(&BounceTrackingProtection::OnPrefChange,
+                                     kBTPModePref);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Run the remaining init logic.
+  return OnModeChange(true);
+}
+
+nsresult BounceTrackingProtection::UpdateBounceTrackingPurgeTimer(
+    bool aShouldEnable) {
+  // Cancel the existing timer.
+  // If disabling: we're done now.
+  // If enabling: schedule a new timer so interval changes (as controlled by the
+  // pref) are taken into account.
+  if (mBounceTrackingPurgeTimer) {
+    mBounceTrackingPurgeTimer->Cancel();
+    mBounceTrackingPurgeTimer = nullptr;
+  }
+
+  if (!aShouldEnable) {
+    return NS_OK;
   }
 
   // Schedule timer for tracker purging. The timer interval is determined by
@@ -186,6 +217,82 @@ nsresult BounceTrackingProtection::Init() {
       },
       purgeTimerPeriod * PR_MSEC_PER_SEC, nsITimer::TYPE_REPEATING_SLACK,
       "mBounceTrackingPurgeTimer");
+}
+
+// static
+void BounceTrackingProtection::OnPrefChange(const char* aPref, void* aData) {
+  MOZ_ASSERT(sBounceTrackingProtection);
+  MOZ_ASSERT(strcmp(kBTPModePref, aPref) == 0);
+  sBounceTrackingProtection->OnModeChange(false);
+}
+
+nsresult BounceTrackingProtection::OnModeChange(bool aIsStartup) {
+  // Get feature mode from pref and ensure its within bounds.
+  uint8_t modeInt = StaticPrefs::privacy_bounceTrackingProtection_mode();
+  NS_ENSURE_TRUE(
+      modeInt >= 0 && modeInt <= nsIBounceTrackingProtection::MAX_MODE_VALUE,
+      NS_ERROR_FAILURE);
+  nsIBounceTrackingProtection::Modes mode =
+      static_cast<nsIBounceTrackingProtection::Modes>(modeInt);
+
+  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+          ("%s: mode: %d.", __FUNCTION__, mode));
+  if (sInitFailed) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult result = NS_OK;
+
+  if (!aIsStartup) {
+    // Clear bounce tracker candidate map for any mode change so it's not leaked
+    // into other modes. For example if we switch from dry-run mode into fully
+    // enabled we want a clean slate to not purge trackers that we've classified
+    // in dry-run mode. User activation data must be kept to avoid false
+    // positives.
+    MOZ_ASSERT(mStorage);
+    result = mStorage->ClearByType(
+        BounceTrackingProtectionStorage::EntryType::BounceTracker);
+  }
+
+  // On disable
+  if (mode == nsIBounceTrackingProtection::MODE_DISABLED ||
+      mode == nsIBounceTrackingProtection::MODE_ENABLED_STANDBY) {
+    // No further cleanup needed if we're just starting up.
+    if (aIsStartup) {
+      MOZ_ASSERT(!mStorageObserver);
+      MOZ_ASSERT(!mBounceTrackingPurgeTimer);
+      return result;
+    }
+
+    // Destroy storage observer to stop receiving storage notifications.
+    mStorageObserver = nullptr;
+
+    // Stop regular purging.
+    nsresult rv = UpdateBounceTrackingPurgeTimer(false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      result = rv;
+      // Even if this step fails try to do more cleanup.
+    }
+
+    // Clear all per-tab state.
+    BounceTrackingState::DestroyAll();
+    return result;
+  }
+
+  // On enable
+  MOZ_ASSERT(mode == nsIBounceTrackingProtection::MODE_ENABLED ||
+             mode == nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN);
+
+  // Create and init storage observer.
+  mStorageObserver = new BounceTrackingStorageObserver();
+  nsresult rv = mStorageObserver->Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Schedule regular purging.
+  rv = UpdateBounceTrackingPurgeTimer(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return result;
 }
 
 nsresult BounceTrackingProtection::RecordStatefulBounces(
@@ -611,6 +718,17 @@ BounceTrackingProtection::EnsureRemoteExceptionListService() {
 
 RefPtr<BounceTrackingProtection::PurgeBounceTrackersMozPromise>
 BounceTrackingProtection::PurgeBounceTrackers() {
+  // Only purge when the feature is actually enabled.
+  if (StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+          nsIBounceTrackingProtection::MODE_ENABLED &&
+      StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+          nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
+    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+            ("%s: Skip: Purging disabled via mode pref.", __FUNCTION__));
+    return PurgeBounceTrackersMozPromise::CreateAndReject(
+        nsresult::NS_ERROR_NOT_AVAILABLE, __func__);
+  }
+
   // Prevent multiple purge operations from running at the same time.
   if (mPurgeInProgress) {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
@@ -744,6 +862,14 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
   MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
           ("%s: %s", __FUNCTION__, aStateGlobal->Describe().get()));
 
+  // Ensure we only purge when pref configuration allows it.
+  if (StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+          nsIBounceTrackingProtection::MODE_ENABLED &&
+      StaticPrefs::privacy_bounceTrackingProtection_mode() !=
+          nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   const PRTime now = PR_Now();
 
   // 1. Remove hosts from the user activation map whose user activation flag has
@@ -841,7 +967,8 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
              __FUNCTION__, PromiseFlatCString(host).get(), bounceTime,
              aStateGlobal->Describe().get()));
 
-    if (StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()) {
+    if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+        nsIBounceTrackingProtection::MODE_ENABLED_DRY_RUN) {
       // In dry-run mode, we don't actually clear the data, but we still want to
       // resolve the promise to indicate that the data would have been cleared.
       cb->OnDataDeleted(0);
