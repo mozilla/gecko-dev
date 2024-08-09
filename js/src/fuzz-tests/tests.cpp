@@ -27,8 +27,11 @@ JS::PersistentRootedObject gGlobal;
 JSContext* gCx = nullptr;
 
 static const JSClass* getGlobalClass() {
-  static const JSClass c = {"global", JSCLASS_GLOBAL_FLAGS,
-                            &JS::DefaultGlobalClassOps};
+  static const JSClass c = {
+      "global",
+      JSCLASS_GLOBAL_FLAGS,
+      &JS::DefaultGlobalClassOps,
+  };
   return &c;
 }
 

@@ -3579,8 +3579,11 @@ static bool date_toTemporalInstant(JSContext* cx, unsigned argc, Value* vp) {
 #endif /* JS_HAS_TEMPORAL_API */
 
 static const JSFunctionSpec date_static_methods[] = {
-    JS_FN("UTC", date_UTC, 7, 0), JS_FN("parse", date_parse, 1, 0),
-    JS_FN("now", date_now, 0, 0), JS_FS_END};
+    JS_FN("UTC", date_UTC, 7, 0),
+    JS_FN("parse", date_parse, 1, 0),
+    JS_FN("now", date_now, 0, 0),
+    JS_FS_END,
+};
 
 static const JSFunctionSpec date_methods[] = {
     JS_FN("getTime", date_getTime, 0, 0),
@@ -3639,7 +3642,8 @@ static const JSFunctionSpec date_methods[] = {
     JS_FN("toString", date_toString, 0, 0),
     JS_FN("valueOf", date_valueOf, 0, 0),
     JS_SYM_FN(toPrimitive, date_toPrimitive, 1, JSPROP_READONLY),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static bool NewDateObject(JSContext* cx, const CallArgs& args, ClippedTime t) {
   MOZ_ASSERT(args.isConstructing());
@@ -3853,16 +3857,23 @@ static const ClassSpec DateObjectClassSpec = {
     nullptr,
     date_methods,
     nullptr,
-    FinishDateClassInit};
+    FinishDateClassInit,
+};
 
-const JSClass DateObject::class_ = {"Date",
-                                    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
-                                        JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
-                                    JS_NULL_CLASS_OPS, &DateObjectClassSpec};
+const JSClass DateObject::class_ = {
+    "Date",
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
+    JS_NULL_CLASS_OPS,
+    &DateObjectClassSpec,
+};
 
 const JSClass DateObject::protoClass_ = {
-    "Date.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_Date), JS_NULL_CLASS_OPS,
-    &DateObjectClassSpec};
+    "Date.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
+    JS_NULL_CLASS_OPS,
+    &DateObjectClassSpec,
+};
 
 JSObject* js::NewDateObjectMsec(JSContext* cx, ClippedTime t,
                                 HandleObject proto /* = nullptr */) {

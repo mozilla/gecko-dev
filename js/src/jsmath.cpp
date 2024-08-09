@@ -1117,13 +1117,19 @@ static JSObject* CreateMathObject(JSContext* cx, JSProtoKey key) {
   return NewTenuredObjectWithGivenProto(cx, &MathClass, proto);
 }
 
-static const ClassSpec MathClassSpec = {CreateMathObject,
-                                        nullptr,
-                                        math_static_methods,
-                                        math_static_properties,
-                                        nullptr,
-                                        nullptr,
-                                        nullptr};
+static const ClassSpec MathClassSpec = {
+    CreateMathObject,
+    nullptr,
+    math_static_methods,
+    math_static_properties,
+    nullptr,
+    nullptr,
+    nullptr,
+};
 
-const JSClass js::MathClass = {"Math", JSCLASS_HAS_CACHED_PROTO(JSProto_Math),
-                               JS_NULL_CLASS_OPS, &MathClassSpec};
+const JSClass js::MathClass = {
+    "Math",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Math),
+    JS_NULL_CLASS_OPS,
+    &MathClassSpec,
+};

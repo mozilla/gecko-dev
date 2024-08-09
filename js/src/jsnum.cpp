@@ -648,12 +648,15 @@ static bool num_parseInt(JSContext* cx, unsigned argc, Value* vp) {
 static const JSFunctionSpec number_functions[] = {
     JS_SELF_HOSTED_FN("isNaN", "Global_isNaN", 1, JSPROP_RESOLVING),
     JS_SELF_HOSTED_FN("isFinite", "Global_isFinite", 1, JSPROP_RESOLVING),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 const JSClass NumberObject::class_ = {
     "Number",
     JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_HAS_CACHED_PROTO(JSProto_Number),
-    JS_NULL_CLASS_OPS, &NumberObject::classSpec_};
+    JS_NULL_CLASS_OPS,
+    &NumberObject::classSpec_,
+};
 
 static bool Number(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1424,7 +1427,8 @@ static const JSFunctionSpec number_methods[] = {
     JS_FN("toFixed", num_toFixed, 1, 0),
     JS_FN("toExponential", num_toExponential, 1, 0),
     JS_FN("toPrecision", num_toPrecision, 1, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 bool js::IsInteger(double d) {
   return std::isfinite(d) && JS::ToInteger(d) == d;
@@ -1435,7 +1439,8 @@ static const JSFunctionSpec number_static_methods[] = {
     JS_SELF_HOSTED_FN("isInteger", "Number_isInteger", 1, 0),
     JS_SELF_HOSTED_FN("isNaN", "Number_isNaN", 1, 0),
     JS_SELF_HOSTED_FN("isSafeInteger", "Number_isSafeInteger", 1, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSPropertySpec number_static_properties[] = {
     JS_DOUBLE_PS("POSITIVE_INFINITY", mozilla::PositiveInfinity<double>(),
@@ -1455,7 +1460,8 @@ static const JSPropertySpec number_static_properties[] = {
     /* ES6 (May 2013 draft) 15.7.3.7 */
     JS_DOUBLE_PS("EPSILON", 2.2204460492503130808472633361816e-16,
                  JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 bool js::InitRuntimeNumberState(JSRuntime* rt) {
   // XXX If JS_HAS_INTL_API becomes true all the time at some point,
@@ -1600,7 +1606,8 @@ const ClassSpec NumberObject::classSpec_ = {
     number_static_properties,
     number_methods,
     nullptr,
-    NumberClassFinish};
+    NumberClassFinish,
+};
 
 static char* FracNumberToCString(ToCStringBuf* cbuf, double d, size_t* len) {
 #ifdef DEBUG

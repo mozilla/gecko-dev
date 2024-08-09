@@ -2136,7 +2136,11 @@ static void ResetEnteredCounts(const ICEntry* icEntry) {
 
 static const uint32_t MaxFoldedShapes = 16;
 
-const JSClass ShapeListObject::class_ = {"JIT ShapeList", 0, &classOps_};
+const JSClass ShapeListObject::class_ = {
+    "JIT ShapeList",
+    0,
+    &classOps_,
+};
 
 const JSClassOps ShapeListObject::classOps_ = {
     nullptr,                 // addProperty
