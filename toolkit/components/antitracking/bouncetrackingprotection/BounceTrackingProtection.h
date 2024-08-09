@@ -139,6 +139,13 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
   // is important so we don't purge data for sites the user has interacted with
   // before the feature was enabled.
   [[nodiscard]] nsresult MaybeMigrateUserInteractionPermissions();
+
+  // Log a warning about the classification of a site as a bounce tracker. The
+  // message is logged to the devtools console aBounceTrackingState is
+  // associated with.
+  [[nodiscard]] static nsresult LogBounceTrackersClassifiedToWebConsole(
+      BounceTrackingState* aBounceTrackingState,
+      const nsTArray<nsCString>& aSiteHosts);
 };
 
 }  // namespace mozilla
