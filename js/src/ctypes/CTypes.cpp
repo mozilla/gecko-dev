@@ -444,10 +444,14 @@ static bool Join(JSContext* cx, unsigned argc, Value* vp);
 // Class representing the 'ctypes' object itself. This exists to contain the
 // JS::CTypesCallbacks set of function pointers.
 static const JSClass sCTypesGlobalClass = {
-    "ctypes", JSCLASS_HAS_RESERVED_SLOTS(CTYPESGLOBAL_SLOTS)};
+    "ctypes",
+    JSCLASS_HAS_RESERVED_SLOTS(CTYPESGLOBAL_SLOTS),
+};
 
-static const JSClass sCABIClass = {"CABI",
-                                   JSCLASS_HAS_RESERVED_SLOTS(CABI_SLOTS)};
+static const JSClass sCABIClass = {
+    "CABI",
+    JSCLASS_HAS_RESERVED_SLOTS(CABI_SLOTS),
+};
 
 // Class representing ctypes.{C,Pointer,Array,Struct,Function}Type.prototype.
 // This exists to give said prototypes a class of "CType", and to provide
@@ -465,12 +469,17 @@ static const JSClassOps sCTypeProtoClassOps = {
     nullptr,            // trace
 };
 static const JSClass sCTypeProtoClass = {
-    "CType", JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
-    &sCTypeProtoClassOps};
+    "CType",
+    JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
+    &sCTypeProtoClassOps,
+};
 
 // Class representing ctypes.CData.prototype and the 'prototype' properties
 // of CTypes. This exists to give said prototypes a class of "CData".
-static const JSClass sCDataProtoClass = {"CData", 0};
+static const JSClass sCDataProtoClass = {
+    "CData",
+    0,
+};
 
 static const JSClassOps sCTypeClassOps = {
     nullptr,               // addProperty
@@ -487,7 +496,8 @@ static const JSClassOps sCTypeClassOps = {
 static const JSClass sCTypeClass = {
     "CType",
     JSCLASS_HAS_RESERVED_SLOTS(CTYPE_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sCTypeClassOps};
+    &sCTypeClassOps,
+};
 
 static const JSClassOps sCDataClassOps = {
     nullptr,             // addProperty
@@ -504,7 +514,8 @@ static const JSClassOps sCDataClassOps = {
 static const JSClass sCDataClass = {
     "CData",
     JSCLASS_HAS_RESERVED_SLOTS(CDATA_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sCDataClassOps};
+    &sCDataClassOps,
+};
 
 static const JSClassOps sCClosureClassOps = {
     nullptr,             // addProperty
@@ -521,12 +532,16 @@ static const JSClassOps sCClosureClassOps = {
 static const JSClass sCClosureClass = {
     "CClosure",
     JSCLASS_HAS_RESERVED_SLOTS(CCLOSURE_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sCClosureClassOps};
+    &sCClosureClassOps,
+};
 
 /*
  * Class representing the prototype of CDataFinalizer.
  */
-static const JSClass sCDataFinalizerProtoClass = {"CDataFinalizer", 0};
+static const JSClass sCDataFinalizerProtoClass = {
+    "CDataFinalizer",
+    0,
+};
 
 /*
  * Class representing instances of CDataFinalizer.
@@ -550,7 +565,8 @@ static const JSClass sCDataFinalizerClass = {
     "CDataFinalizer",
     JSCLASS_HAS_RESERVED_SLOTS(CDATAFINALIZER_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &sCDataFinalizerClassOps};
+    &sCDataFinalizerClassOps,
+};
 
 #define CTYPESFN_FLAGS (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)
 
@@ -574,22 +590,28 @@ static const JSPropertySpec sCTypeProps[] = {
     JS_PSG("prototype",
            (Property<CType::IsCTypeOrProto, CType::PrototypeGetter>::Fun),
            CTYPESACC_FLAGS),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sCTypeFunctions[] = {
     JS_FN("array", CType::CreateArray, 0, CTYPESFN_FLAGS),
     JS_FN("toString", CType::ToString, 0, CTYPESFN_FLAGS),
-    JS_FN("toSource", CType::ToSource, 0, CTYPESFN_FLAGS), JS_FS_END};
+    JS_FN("toSource", CType::ToSource, 0, CTYPESFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sCABIFunctions[] = {
     JS_FN("toSource", ABI::ToSource, 0, CABIFN_FLAGS),
-    JS_FN("toString", ABI::ToSource, 0, CABIFN_FLAGS), JS_FS_END};
+    JS_FN("toString", ABI::ToSource, 0, CABIFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSPropertySpec sCDataProps[] = {
     JS_PSGS("value", (Property<CData::IsCData, CData::ValueGetter>::Fun),
             (Property<CData::IsCData, CData::ValueSetter>::Fun),
             JSPROP_PERMANENT),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sCDataFunctions[] = {
     JS_FN("address", CData::Address, 0, CDATAFN_FLAGS),
@@ -599,7 +621,8 @@ static const JSFunctionSpec sCDataFunctions[] = {
     JS_FN("readTypedArray", CData::ReadTypedArray, 0, CDATAFN_FLAGS),
     JS_FN("toSource", CData::ToSource, 0, CDATAFN_FLAGS),
     JS_FN("toString", CData::ToSource, 0, CDATAFN_FLAGS),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sCDataFinalizerFunctions[] = {
     JS_FN("dispose", CDataFinalizer::Methods::Dispose, 0,
@@ -613,7 +636,8 @@ static const JSFunctionSpec sCDataFinalizerFunctions[] = {
           CDATAFINALIZERFN_FLAGS),
     JS_FN("toSource", CDataFinalizer::Methods::ToSource, 0,
           CDATAFINALIZERFN_FLAGS),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sPointerFunction =
     JS_FN("PointerType", PointerType::Create, 1, CTYPESCTOR_FLAGS);
@@ -623,12 +647,15 @@ static const JSPropertySpec sPointerProps[] = {
            (Property<PointerType::IsPointerType,
                      PointerType::TargetTypeGetter>::Fun),
            CTYPESACC_FLAGS),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sPointerInstanceFunctions[] = {
     JS_FN("isNull", PointerType::IsNull, 0, CTYPESFN_FLAGS),
     JS_FN("increment", PointerType::Increment, 0, CTYPESFN_FLAGS),
-    JS_FN("decrement", PointerType::Decrement, 0, CTYPESFN_FLAGS), JS_FS_END};
+    JS_FN("decrement", PointerType::Decrement, 0, CTYPESFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSPropertySpec sPointerInstanceProps[] = {
     JS_PSGS(
@@ -636,7 +663,8 @@ static const JSPropertySpec sPointerInstanceProps[] = {
         (Property<PointerType::IsPointer, PointerType::ContentsGetter>::Fun),
         (Property<PointerType::IsPointer, PointerType::ContentsSetter>::Fun),
         JSPROP_PERMANENT),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sArrayFunction =
     JS_FN("ArrayType", ArrayType::Create, 1, CTYPESCTOR_FLAGS);
@@ -650,18 +678,21 @@ static const JSPropertySpec sArrayProps[] = {
         "length",
         (Property<ArrayType::IsArrayOrArrayType, ArrayType::LengthGetter>::Fun),
         CTYPESACC_FLAGS),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sArrayInstanceFunctions[] = {
     JS_FN("addressOfElement", ArrayType::AddressOfElement, 1, CDATAFN_FLAGS),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSPropertySpec sArrayInstanceProps[] = {
     JS_PSG(
         "length",
         (Property<ArrayType::IsArrayOrArrayType, ArrayType::LengthGetter>::Fun),
         JSPROP_PERMANENT),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sStructFunction =
     JS_FN("StructType", StructType::Create, 2, CTYPESCTOR_FLAGS);
@@ -670,14 +701,18 @@ static const JSPropertySpec sStructProps[] = {
     JS_PSG("fields",
            (Property<StructType::IsStruct, StructType::FieldsArrayGetter>::Fun),
            CTYPESACC_FLAGS),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sStructFunctions[] = {
-    JS_FN("define", StructType::Define, 1, CDATAFN_FLAGS), JS_FS_END};
+    JS_FN("define", StructType::Define, 1, CDATAFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sStructInstanceFunctions[] = {
     JS_FN("addressOfField", StructType::AddressOfField, 1, CDATAFN_FLAGS),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sFunctionFunction =
     JS_FN("FunctionType", FunctionType::Create, 2, CTYPESCTOR_FLAGS);
@@ -699,15 +734,24 @@ static const JSPropertySpec sFunctionProps[] = {
            (Property<FunctionType::IsFunctionType,
                      FunctionType::IsVariadicGetter>::Fun),
            CTYPESACC_FLAGS),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sFunctionInstanceFunctions[] = {
     JS_FN("call", js::fun_call, 1, CDATAFN_FLAGS),
-    JS_FN("apply", js::fun_apply, 2, CDATAFN_FLAGS), JS_FS_END};
+    JS_FN("apply", js::fun_apply, 2, CDATAFN_FLAGS),
+    JS_FS_END,
+};
 
-static const JSClass sInt64ProtoClass = {"Int64", 0};
+static const JSClass sInt64ProtoClass = {
+    "Int64",
+    0,
+};
 
-static const JSClass sUInt64ProtoClass = {"UInt64", 0};
+static const JSClass sUInt64ProtoClass = {
+    "UInt64",
+    0,
+};
 
 static const JSClassOps sInt64ClassOps = {
     nullptr,              // addProperty
@@ -725,34 +769,42 @@ static const JSClassOps sInt64ClassOps = {
 static const JSClass sInt64Class = {
     "Int64",
     JSCLASS_HAS_RESERVED_SLOTS(INT64_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sInt64ClassOps};
+    &sInt64ClassOps,
+};
 
 static const JSClass sUInt64Class = {
     "UInt64",
     JSCLASS_HAS_RESERVED_SLOTS(INT64_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sInt64ClassOps};
+    &sInt64ClassOps,
+};
 
 static const JSFunctionSpec sInt64StaticFunctions[] = {
     JS_FN("compare", Int64::Compare, 2, CTYPESFN_FLAGS),
     JS_FN("lo", Int64::Lo, 1, CTYPESFN_FLAGS),
     JS_FN("hi", Int64::Hi, 1, CTYPESFN_FLAGS),
     // "join" is defined specially; see InitInt64Class.
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sUInt64StaticFunctions[] = {
     JS_FN("compare", UInt64::Compare, 2, CTYPESFN_FLAGS),
     JS_FN("lo", UInt64::Lo, 1, CTYPESFN_FLAGS),
     JS_FN("hi", UInt64::Hi, 1, CTYPESFN_FLAGS),
     // "join" is defined specially; see InitInt64Class.
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sInt64Functions[] = {
     JS_FN("toString", Int64::ToString, 0, CTYPESFN_FLAGS),
-    JS_FN("toSource", Int64::ToSource, 0, CTYPESFN_FLAGS), JS_FS_END};
+    JS_FN("toSource", Int64::ToSource, 0, CTYPESFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSFunctionSpec sUInt64Functions[] = {
     JS_FN("toString", UInt64::ToString, 0, CTYPESFN_FLAGS),
-    JS_FN("toSource", UInt64::ToSource, 0, CTYPESFN_FLAGS), JS_FS_END};
+    JS_FN("toSource", UInt64::ToSource, 0, CTYPESFN_FLAGS),
+    JS_FS_END,
+};
 
 static const JSPropertySpec sModuleProps[] = {
     JS_PSG("errno", (Property<IsCTypesGlobal, CData::ErrnoGetter>::Fun),
@@ -762,7 +814,8 @@ static const JSPropertySpec sModuleProps[] = {
            (Property<IsCTypesGlobal, CData::LastErrorGetter>::Fun),
            JSPROP_PERMANENT),
 #endif  // defined(XP_WIN)
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec sModuleFunctions[] = {
     JS_FN("CDataFinalizer", CDataFinalizer::Construct, 2, CTYPESFN_FLAGS),
@@ -770,7 +823,8 @@ static const JSFunctionSpec sModuleFunctions[] = {
     JS_FN("cast", CData::Cast, 2, CTYPESFN_FLAGS),
     JS_FN("getRuntime", CData::GetRuntime, 1, CTYPESFN_FLAGS),
     JS_FN("libraryName", Library::Name, 1, CTYPESFN_FLAGS),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 // Wrapper for arrays, to intercept indexed gets/sets.
 class CDataArrayProxyHandler : public ForwardingProxyHandler {

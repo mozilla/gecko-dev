@@ -57,13 +57,16 @@ static const JSClassOps sLibraryClassOps = {
 static const JSClass sLibraryClass = {
     "Library",
     JSCLASS_HAS_RESERVED_SLOTS(LIBRARY_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
-    &sLibraryClassOps};
+    &sLibraryClassOps,
+};
 
 #define CTYPESFN_FLAGS (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)
 
 static const JSFunctionSpec sLibraryFunctions[] = {
     JS_FN("close", Library::Close, 0, CTYPESFN_FLAGS),
-    JS_FN("declare", Library::Declare, 0, CTYPESFN_FLAGS), JS_FS_END};
+    JS_FN("declare", Library::Declare, 0, CTYPESFN_FLAGS),
+    JS_FS_END,
+};
 
 bool Library::Name(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
