@@ -150,8 +150,8 @@ export default class MozCheckbox extends MozLitElement {
         />
         <span class="label-content">
           ${this.iconTemplate()}
-          <span>
-            <span class="text">${this.label}</span>
+          <span class="text">
+            <span class="label">${this.label}</span>
             ${this.supportLinkTemplate()}
           </span>
         </span>

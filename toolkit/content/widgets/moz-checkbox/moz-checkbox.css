@@ -57,6 +57,6 @@ input,
   margin-inline-start: var(--checkbox-space-offset);
 }
 
-.text {
+.label {
   padding-inline-end: var(--space-xsmall);
 }
