@@ -50,8 +50,9 @@ pub fn set_crash_ping_metrics(
         };
         ( @set $metric:expr , quantity , $val:expr ) => {
             $metric.set(
-                $val.as_i64()
+                $val.as_str()
                     .context("expected a number")?
+                    .parse().context("couldn't parse quantity")?
             );
         };
         ( @set $metric:expr , seconds , $val:expr ) => {
@@ -177,38 +178,53 @@ fn convert_quota_manager_shutdown_timeout(
 
 fn convert_stack_traces(value: &serde_json::Value) -> anyhow::Result<serde_json::Value> {
     // glean stack_traces has a slightly different layout
-    let mut st = value.as_object().context("expected object")?.clone();
-    if let Some(v) = st.remove("status") {
-        if v != "OK" {
-            st.insert("error".into(), v.into());
-        }
-    }
+    // We explicitly create a new json object to ensure that only expected keys are kept.
+    let mut obj = serde_json::json! {{
+        "error": value["status"].as_str().and_then(|v| (v != "OK").then_some(v)),
+        "crash_type": value["crash_info"]["type"],
+        "crash_address": value["crash_info"]["address"],
+        "crash_thread": value["crass_info"]["crashing_thread"],
+        "main_module": value["main_module"],
+        "modules": value["modules"].as_array().map(|modules| {
+            modules.iter().map(|m| serde_json::json! {{
+                "base_address": m["base_addr"],
+                "end_address": m["end_addr"],
+                "code_id": m["code_id"],
+                "debug_file": m["debug_file"],
+                "debug_id": m["debug_id"],
+                "filename": m["filename"],
+                "version": m["version"]
+            }}).collect::<Vec<_>>()
+        }),
+        "threads": value["threads"].as_array().map(|threads| {
+            threads.iter().map(|t| serde_json::json! {{
+                "frames": t["frames"].as_array().map(|frames| {
+                    frames.iter().map(|f| serde_json::json! {{
+                        "module_index": f["module_index"],
+                        "ip": f["ip"],
+                        "trust": f["trust"]
+                    }}).collect::<Vec<_>>()
+                })
+            }}).collect::<Vec<_>>()
+        })
+    }};
+    remove_nulls(&mut obj);
+    Ok(obj)
+}
 
-    if let Some(mut v) = st.remove("crash_info").and_then(|v| match v {
-        serde_json::Value::Object(m) => Some(m),
-        _ => None,
-    }) {
-        if let Some(t) = v.remove("type") {
-            st.insert("crash_type".into(), t);
-        }
-        if let Some(a) = v.remove("address") {
-            st.insert("crash_address".into(), a);
-        }
-        if let Some(ct) = v.remove("crashing_thread") {
-            st.insert("crash_thread".into(), ct);
-        }
-    }
-
-    if let Some(modules) = st.get_mut("modules").and_then(|v| v.as_array_mut()) {
-        for m in modules.iter_mut().filter_map(|m| m.as_object_mut()) {
-            if let Some(v) = m.remove("base_addr") {
-                m.insert("base_address".into(), v);
+fn remove_nulls(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(m) => {
+            m.retain(|_, v| !v.is_null());
+            for v in m.values_mut() {
+                remove_nulls(v);
             }
-            if let Some(v) = m.remove("end_addr") {
-                m.insert("end_address".into(), v);
+        }
+        serde_json::Value::Array(v) => {
+            for v in v.iter_mut() {
+                remove_nulls(v);
             }
         }
+        _ => (),
     }
-
-    Ok(st.into())
 }
