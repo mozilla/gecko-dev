@@ -233,14 +233,22 @@ export class ModuleCache {
       moduleClass = this.#protocol.modules[moduleFolder][moduleName];
     }
 
-    if (moduleClass) {
-      lazy.logger.trace(
-        `Module ${moduleFolder}/${moduleName}.sys.mjs found for ${destinationType}`
-      );
-    } else {
-      lazy.logger.trace(
-        `Module ${moduleFolder}/${moduleName}.sys.mjs not found for ${destinationType}`
-      );
+    // Module hit/miss logs generate a lot of spam. Only log if verbose is true.
+    //
+    // Note: Due to https://bugzilla.mozilla.org/show_bug.cgi?id=1828395
+    // verbose is currently always false if the log level is trace.
+    // If those logs are needed before the bug is fixed, temporarily remove the
+    // condition.
+    if (lazy.Log.verbose) {
+      if (moduleClass) {
+        lazy.logger.trace(
+          `Module ${moduleFolder}/${moduleName}.sys.mjs found for ${destinationType}`
+        );
+      } else {
+        lazy.logger.trace(
+          `Module ${moduleFolder}/${moduleName}.sys.mjs not found for ${destinationType}`
+        );
+      }
     }
 
     return moduleClass;
