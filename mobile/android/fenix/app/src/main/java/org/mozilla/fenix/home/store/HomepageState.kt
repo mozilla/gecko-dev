@@ -71,7 +71,7 @@ internal sealed class HomepageState {
                         topSites = topSites,
                         showRecentTabs = shouldShowRecentTabs(settings),
                         recentTabs = recentTabs,
-                        cardBackgroundColor = wallpaperState.wallpaperCardColor,
+                        cardBackgroundColor = wallpaperState.cardBackgroundColor,
                     )
                 }
             }

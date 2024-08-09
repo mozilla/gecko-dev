@@ -92,7 +92,7 @@ class PocketStoriesViewHolder(
             PocketStories(
                 stories = stories ?: emptyList(),
                 contentPadding = horizontalPadding,
-                backgroundColor = wallpaperState.wallpaperCardColor,
+                backgroundColor = wallpaperState.cardBackgroundColor,
                 onStoryShown = interactor::onStoryShown,
                 onStoryClicked = interactor::onStoryClicked,
                 onDiscoverMoreClicked = interactor::onDiscoverMoreClicked,

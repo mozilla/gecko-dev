@@ -134,7 +134,7 @@ private fun HomepagePreview() {
                     topSites = FakeHomepagePreview.topSites(),
                     showRecentTabs = true,
                     recentTabs = FakeHomepagePreview.recentTabs(),
-                    cardBackgroundColor = WallpaperState.default.wallpaperCardColor,
+                    cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 ),
                 topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,

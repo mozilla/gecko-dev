@@ -57,7 +57,7 @@ class RecentlyVisitedViewHolder(
                     },
                 ),
             ),
-            backgroundColor = wallpaperState.wallpaperCardColor,
+            backgroundColor = wallpaperState.cardBackgroundColor,
             onRecentVisitClick = { recentlyVisitedItem, pageNumber ->
                 when (recentlyVisitedItem) {
                     is RecentHistoryHighlight -> {

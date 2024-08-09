@@ -5,7 +5,6 @@
 package org.mozilla.fenix.home.recentsyncedtabs.view
 
 import android.view.View
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.LifecycleOwner
@@ -16,7 +15,6 @@ import org.mozilla.fenix.compose.ComposeViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.wallpapers.Wallpaper
 import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
@@ -50,7 +48,6 @@ class RecentSyncedTabViewHolder(
         val recentSyncedTabState = components.appStore.observeAsComposableState { state -> state.recentSyncedTabState }
         val wallpaperState = components.appStore
             .observeAsComposableState { state -> state.wallpaperState }.value ?: WallpaperState.default
-        val isWallpaperNotDefault = !Wallpaper.nameIsDefault(wallpaperState.currentWallpaper.name)
 
         recentSyncedTabState.value?.let {
             val syncedTab = when (it) {
@@ -60,21 +57,15 @@ class RecentSyncedTabViewHolder(
                 is RecentSyncedTabState.Success -> it.tabs.firstOrNull()
             }
             val buttonBackgroundColor = when {
-                syncedTab != null && isWallpaperNotDefault -> FirefoxTheme.colors.layer1
-                syncedTab != null -> FirefoxTheme.colors.actionSecondary
+                syncedTab != null -> wallpaperState.buttonBackgroundColor
                 else -> FirefoxTheme.colors.layer3
-            }
-            val buttonTextColor = when {
-                wallpaperState.currentWallpaper.cardColorDark != null &&
-                    isSystemInDarkTheme() -> FirefoxTheme.colors.textPrimary
-                else -> FirefoxTheme.colors.textActionSecondary
             }
 
             RecentSyncedTab(
                 tab = syncedTab,
-                backgroundColor = wallpaperState.wallpaperCardColor,
+                backgroundColor = wallpaperState.cardBackgroundColor,
                 buttonBackgroundColor = buttonBackgroundColor,
-                buttonTextColor = buttonTextColor,
+                buttonTextColor = wallpaperState.buttonTextColor,
                 onRecentSyncedTabClick = recentSyncedTabInteractor::onRecentSyncedTabClicked,
                 onSeeAllSyncedTabsButtonClick = recentSyncedTabInteractor::onSyncedTabShowAllClicked,
                 onRemoveSyncedTab = recentSyncedTabInteractor::onRemovedRecentSyncedTab,

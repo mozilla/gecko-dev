@@ -71,7 +71,7 @@ class MessageCardViewHolder(
         }
 
         val messageCardColors = MessageCardColors.buildMessageCardColors(
-            backgroundColor = wallpaperState.wallpaperCardColor,
+            backgroundColor = wallpaperState.cardBackgroundColor,
             buttonColor = buttonColor,
             buttonTextColor = buttonTextColor,
         )

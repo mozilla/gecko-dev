@@ -27,11 +27,11 @@ data class WallpaperState(
     }
 
     /**
-     * Helper property used to obtain the [Color] to fill-in cards in front of a wallpaper.
+     * [Color] to use for a card background color against the current wallpaper.
      *
      * @return The appropriate light or dark wallpaper card [Color], if available, otherwise a default.
      */
-    val wallpaperCardColor: Color
+    val cardBackgroundColor: Color
         @Composable get() = when {
             currentWallpaper.cardColorLight != null && currentWallpaper.cardColorDark != null -> {
                 if (isSystemInDarkTheme()) {
@@ -42,6 +42,28 @@ data class WallpaperState(
             }
             else -> FirefoxTheme.colors.layer2
         }
+
+    /**
+     * [Color] to use for a button background color on the current wallpaper.
+     */
+    val buttonBackgroundColor: Color
+        @Composable get() = if (isCurrentWallpaperDefault()) {
+            FirefoxTheme.colors.actionSecondary
+        } else {
+            FirefoxTheme.colors.layer1
+        }
+
+    /**
+     * [Color] to use for button text on the current wallpaper.
+     */
+    val buttonTextColor: Color
+        @Composable get() = when {
+            currentWallpaper.cardColorDark != null &&
+                isSystemInDarkTheme() -> FirefoxTheme.colors.textPrimary
+            else -> FirefoxTheme.colors.textActionSecondary
+        }
+
+    private fun isCurrentWallpaperDefault(): Boolean = Wallpaper.nameIsDefault(currentWallpaper.name)
 
     /**
      * Run the Composable [run] block only if the current wallpaper's card colors are available.

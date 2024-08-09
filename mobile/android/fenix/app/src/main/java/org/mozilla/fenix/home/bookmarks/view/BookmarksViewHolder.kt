@@ -43,7 +43,7 @@ class BookmarksViewHolder(
 
         Bookmarks(
             bookmarks = bookmarks.value ?: emptyList(),
-            backgroundColor = wallpaperState.wallpaperCardColor,
+            backgroundColor = wallpaperState.cardBackgroundColor,
             onBookmarkClick = interactor::onBookmarkClicked,
             menuItems = listOf(
                 BookmarksMenuItem(
