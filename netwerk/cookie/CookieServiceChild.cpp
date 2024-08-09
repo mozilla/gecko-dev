@@ -346,139 +346,6 @@ void CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
 }
 
 NS_IMETHODIMP
-CookieServiceChild::GetCookieStringFromDocument(dom::Document* aDocument,
-                                                nsACString& aCookieString) {
-  NS_ENSURE_ARG(aDocument);
-
-  aCookieString.Truncate();
-
-  bool thirdParty = true;
-  nsPIDOMWindowInner* innerWindow = aDocument->GetInnerWindow();
-  // in gtests we don't have a window, let's consider those requests as 3rd
-  // party.
-  if (innerWindow) {
-    ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
-
-    if (thirdPartyUtil) {
-      Unused << thirdPartyUtil->IsThirdPartyWindow(
-          innerWindow->GetOuterWindow(), nullptr, &thirdParty);
-    }
-  }
-
-  nsCOMPtr<nsIPrincipal> cookiePrincipal =
-      aDocument->EffectiveCookiePrincipal();
-
-  nsTArray<nsCOMPtr<nsIPrincipal>> principals;
-  principals.AppendElement(cookiePrincipal);
-
-  // CHIPS - If CHIPS is enabled the partitioned cookie jar is always available
-  // (and therefore the partitioned principal), the unpartitioned cookie jar is
-  // only available in first-party or third-party with storageAccess contexts.
-  // In both cases, the document will have storage access.
-  bool isCHIPS = aDocument->CookieJarSettings()->GetPartitionForeign() &&
-                 StaticPrefs::network_cookie_CHIPS_enabled();
-  bool documentHasStorageAccess = false;
-  nsresult rv = aDocument->HasStorageAccessSync(documentHasStorageAccess);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (isCHIPS && documentHasStorageAccess) {
-    /// Assert that the cookie principal is unpartitioned.
-    MOZ_ASSERT(cookiePrincipal->OriginAttributesRef().mPartitionKey.IsEmpty());
-    // Only append the partitioned originAttributes if the partitionKey is set.
-    // The partitionKey could be empty for partitionKey in partitioned
-    // originAttributes if the document is for privilege context, such as the
-    // extension's background page.
-    if (!aDocument->PartitionedPrincipal()
-             ->OriginAttributesRef()
-             .mPartitionKey.IsEmpty()) {
-      principals.AppendElement(aDocument->PartitionedPrincipal());
-    }
-  }
-
-  for (auto& principal : principals) {
-    if (!CookieCommons::IsSchemeSupported(principal)) {
-      return NS_OK;
-    }
-
-    nsAutoCString baseDomain;
-    rv = CookieCommons::GetBaseDomain(principal, baseDomain);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return NS_OK;
-    }
-
-    CookieKey key(baseDomain, principal->OriginAttributesRef());
-    CookiesList* cookiesList = nullptr;
-    mCookiesMap.Get(key, &cookiesList);
-
-    if (!cookiesList) {
-      continue;
-    }
-
-    nsAutoCString hostFromURI;
-    rv = nsContentUtils::GetHostOrIPv6WithBrackets(principal, hostFromURI);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return NS_OK;
-    }
-
-    nsAutoCString pathFromURI;
-    principal->GetFilePath(pathFromURI);
-
-    bool isPotentiallyTrustworthy =
-        principal->GetIsOriginPotentiallyTrustworthy();
-    int64_t currentTimeInUsec = PR_Now();
-    int64_t currentTime = currentTimeInUsec / PR_USEC_PER_SEC;
-
-    cookiesList->Sort(CompareCookiesForSending());
-    for (uint32_t i = 0; i < cookiesList->Length(); i++) {
-      Cookie* cookie = cookiesList->ElementAt(i);
-      // check the host, since the base domain lookup is conservative.
-      if (!CookieCommons::DomainMatches(cookie, hostFromURI)) {
-        continue;
-      }
-
-      // We don't show HttpOnly cookies in content processes.
-      if (cookie->IsHttpOnly()) {
-        continue;
-      }
-
-      if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookieForDocument(
-                            cookie, aDocument)) {
-        continue;
-      }
-
-      // do not display the cookie if it is secure and the host scheme isn't
-      if (cookie->IsSecure() && !isPotentiallyTrustworthy) {
-        continue;
-      }
-
-      // if the nsIURI path doesn't match the cookie path, don't send it back
-      if (!CookieCommons::PathMatches(cookie, pathFromURI)) {
-        continue;
-      }
-
-      // check if the cookie has expired
-      if (cookie->Expiry() <= currentTime) {
-        continue;
-      }
-
-      if (!cookie->Name().IsEmpty() || !cookie->Value().IsEmpty()) {
-        if (!aCookieString.IsEmpty()) {
-          aCookieString.AppendLiteral("; ");
-        }
-        if (!cookie->Name().IsEmpty()) {
-          aCookieString.Append(cookie->Name().get());
-          aCookieString.AppendLiteral("=");
-          aCookieString.Append(cookie->Value().get());
-        } else {
-          aCookieString.Append(cookie->Value().get());
-        }
-      }
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 CookieServiceChild::GetCookieStringFromHttp(nsIURI* /*aHostURI*/,
                                             nsIChannel* /*aChannel*/,
                                             nsACString& /*aCookieString*/) {
@@ -783,6 +650,26 @@ NS_IMETHODIMP
 CookieServiceChild::RunInTransaction(
     nsICookieTransactionCallback* /*aCallback*/) {
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+void CookieServiceChild::GetCookiesFromHost(
+    const nsACString& aBaseDomain,
+    const mozilla::OriginAttributes& aOriginAttributes,
+    nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies) {
+  CookieKey key(aBaseDomain, aOriginAttributes);
+
+  CookiesList* cookiesList = nullptr;
+  mCookiesMap.Get(key, &cookiesList);
+
+  if (cookiesList) {
+    aCookies.AppendElements(*cookiesList);
+  }
+}
+
+void CookieServiceChild::StaleCookies(
+    const nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies,
+    int64_t aCurrentTimeInUsec) {
+  // Nothing to do here.
 }
 
 }  // namespace net

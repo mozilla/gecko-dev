@@ -818,5 +818,27 @@ bool CookieCommons::ChipsLimitEnabledAndChipsCookie(
          cookie.IsPartitioned() && cookie.RawIsPartitioned() && tcpEnabled;
 }
 
+void CookieCommons::ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
+                                        nsACString& aCookieString) {
+  for (Cookie* cookie : aCookieList) {
+    // check if we have anything to write
+    if (!cookie->Name().IsEmpty() || !cookie->Value().IsEmpty()) {
+      // if we've already added a cookie to the return list, append a "; " so
+      // that subsequent cookies are delimited in the final list.
+      if (!aCookieString.IsEmpty()) {
+        aCookieString.AppendLiteral("; ");
+      }
+
+      if (!cookie->Name().IsEmpty()) {
+        // we have a name and value - write both
+        aCookieString += cookie->Name() + "="_ns + cookie->Value();
+      } else {
+        // just write value
+        aCookieString += cookie->Value();
+      }
+    }
+  }
+}
+
 }  // namespace net
 }  // namespace mozilla

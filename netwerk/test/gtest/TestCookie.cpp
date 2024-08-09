@@ -154,7 +154,12 @@ void GetACookieNoHttp(nsICookieService* aCookieService, const char* aSpec,
                                   DocumentFlavorHTML);
   Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  Unused << aCookieService->GetCookieStringFromDocument(document, aCookie);
+  nsAutoString cookie;
+  ErrorResult err;
+  document->GetCookie(cookie, err);
+  MOZ_ASSERT(!err.Failed());
+
+  CopyUTF16toUTF8(cookie, aCookie);
 }
 
 // some #defines for comparison rules
