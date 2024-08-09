@@ -63,8 +63,6 @@ class CookieParser final {
     return mCookieData;
   }
 
-  void GetCookieString(nsACString& aCookieString) const;
-
   // Public for testing
   bool ParseMaxAgeAttribute(const nsACString& aMaxage, int64_t* aValue);
 
@@ -114,7 +112,6 @@ class CookieParser final {
   } mWarnings;
 
   CookieStruct mCookieData;
-  nsCString mCookieString;
 };
 
 }  // namespace net

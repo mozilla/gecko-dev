@@ -48,6 +48,9 @@ class CookieServiceChild final : public PCookieServiceChild,
 
   void RecordDocumentCookie(Cookie* aCookie, const OriginAttributes& aAttrs);
 
+  uint32_t CountCookiesFromHashTable(const nsACString& aBaseDomain,
+                                     const OriginAttributes& aOriginAttrs);
+
   static bool RequireThirdPartyCheck(nsILoadInfo* aLoadInfo);
 
   mozilla::ipc::IPCResult RecvTrackCookiesLoad(

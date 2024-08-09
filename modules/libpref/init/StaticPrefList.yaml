@@ -2319,12 +2319,6 @@
   value: 5
   mirror: once
 
-# Skip the security checks for document.cookie.
-- name: dom.cookie.testing.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Disable custom highlight API; implementation pending.
 - name: dom.customHighlightAPI.enabled
   type: RelaxedAtomicBool

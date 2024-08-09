@@ -107,6 +107,8 @@ class CookieCommons final {
       CookieParser& aCookieParser, dom::Document* aDocument,
       const nsACString& aCookieString, int64_t aCurrentTimeInUsec,
       nsIEffectiveTLDService* aTLDService, mozIThirdPartyUtil* aThirdPartyUtil,
+      std::function<bool(const nsACString&, const OriginAttributes&)>&&
+          aHasExistingCookiesLambda,
       nsACString& aBaseDomain, OriginAttributes& aAttrs);
 
   static already_AddRefed<nsICookieJarSettings> GetCookieJarSettings(
@@ -141,9 +143,6 @@ class CookieCommons final {
 
   static bool ChipsLimitEnabledAndChipsCookie(
       const Cookie& cookie, dom::BrowsingContext* aBrowsingContext);
-
-  static void ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
-                                  nsACString& aCookieString);
 };
 
 }  // namespace net
