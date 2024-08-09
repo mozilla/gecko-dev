@@ -3,16 +3,20 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" onload="m();">
+<svg class="reftest-wait" version="1.1" xmlns="http://www.w3.org/2000/svg">
 	<title>Testcase for dynamic rect changes</title>
 	<!-- From https://bugzilla.mozilla.org/show_bug.cgi?id=423998 -->
 	<script>
-		function m() {
+	document.addEventListener("MozReftestInvalidate", doTest, false);
+	setTimeout(doTest, 4000); // fallback for running outside reftest
+
+	function doTest() {
 		document.getElementById("rect1").setAttribute("fill", "lime");
 		document.getElementById("rect2").setAttribute("x", "50");
 		document.getElementById("rect3").setAttribute("transform", "translate(200,0)");
 		document.getElementById("rect4").removeAttribute("filter");
-		}
+		document.documentElement.removeAttribute('class');
+	}
 	</script>
 	<filter id="shadow" filterUnits="objectBoundingBox">
 		<feGaussianBlur in="SourceAlpha" stdDeviation="5"/>

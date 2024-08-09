@@ -8,6 +8,9 @@
   <script>
 <![CDATA[
 
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
+
 function doTest() {
   m = document.getElementById("m1");
   m.preserveAspectRatio.baseVal.align =

@@ -19,12 +19,13 @@
   <rect width="100%" height="100%" fill="lime"/>
   <use id="u" xlink:href="#r"/>
 
-  <script>
-    function test() {
+  <script type="text/javascript">
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
       document.getElementById("u").setAttribute("class", "use");
       document.documentElement.removeAttribute("class");
     }
-    window.addEventListener("MozReftestInvalidate", test, false);
-    setTimeout(test, 4000); // fallback for running outside reftest
   </script>
 </svg>

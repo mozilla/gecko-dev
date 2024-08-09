@@ -11,14 +11,13 @@
   <script type="application/ecmascript">
   <![CDATA[
 
-function doTest(event)
-{
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
+
+function doTest() {
   document.getElementById('div').style.display = 'block';
   document.documentElement.removeAttribute('class');
 }
-
-document.addEventListener("MozReftestInvalidate", doTest, false);
-setTimeout(doTest, 4000); // fallback for running outside reftest
 
   ]]>
   </script>

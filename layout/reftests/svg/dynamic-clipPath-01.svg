@@ -4,7 +4,6 @@
 -->
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
      class="reftest-wait"
-     onload="startTest()"
      xmlns:xlink="http://www.w3.org/1999/xlink">
   <title>Testing that dynamic changes to the element for a given ID are reflected in clip-path</title>
   <defs>
@@ -80,10 +79,8 @@
   <rect x="90%" width="11%" height="100%" fill="lime"/>
 
   <script>
-  function startTest() {
-    document.addEventListener("MozReftestInvalidate", doTest, false);
-    setTimeout(doTest, 4000); // fallback for running outside reftest
-  }
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
 
   function doTest() {
     // check that changing an id to "r2" lets u2 find it

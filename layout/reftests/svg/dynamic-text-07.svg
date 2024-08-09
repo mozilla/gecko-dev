@@ -2,15 +2,17 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait" onload="m();">
+<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait">
   <title>Testcase to check whitespace handling</title>
 
   <!-- From https://bugzilla.mozilla.org/show_bug.cgi?id=717870 -->
 
   <text id="t" x="10" y="50" font-size="50">A </text>
   <script>
-    function m()
-    {
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
       // Force frame construction
       document.documentElement.getBoundingClientRect();
 

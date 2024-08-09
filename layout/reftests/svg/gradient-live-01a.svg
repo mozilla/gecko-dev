@@ -4,7 +4,8 @@
 
 <script type="application/javascript">
   document.addEventListener("MozReftestInvalidate", doTest, false);
-  
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
   function doTest() {
     document.getElementById('grad1').removeChild(document.getElementById('red'));
     document.documentElement.removeAttribute('class');

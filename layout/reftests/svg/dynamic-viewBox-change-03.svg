@@ -2,17 +2,19 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait"
+<svg xmlns="http://www.w3.org/2000/svg"
      id="target" viewBox="-50 -50 20 20"
-     preserveAspectRatio="none">
+     preserveAspectRatio="none"
+     class="reftest-wait">
   <script>
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
   function doTest() {
     var target = document.getElementById("target");
     target.setAttribute("viewBox", "bogus value");
-    document.documentElement.removeAttribute("class");
+    document.documentElement.removeAttribute('class');
   }
-
-  document.addEventListener("MozReftestInvalidate", doTest, false);
   </script>
 
   <!-- Lime background to match pass.svg -->

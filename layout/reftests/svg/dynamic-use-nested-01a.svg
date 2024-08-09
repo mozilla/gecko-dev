@@ -1,15 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
      xmlns:xlink="http://www.w3.org/1999/xlink"
-     onload="boom();">
+     class="reftest-wait">
 
 <script><![CDATA[
 
 // reftest for bug 467498
 
-function boom()
-{
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
+
+function doTest() {
   var rect = document.getElementById("rect");
   rect.setAttribute("height", "100%");
+  document.documentElement.removeAttribute("class");
 }
 
 ]]></script>

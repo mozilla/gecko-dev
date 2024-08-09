@@ -6,6 +6,8 @@
   <title>Testcase for dynamic changes to fill-rule</title>
   <!-- From https://bugzilla.mozilla.org/show_bug.cgi?id=932762 -->
   <script>
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
 
 function doTest() {
   document.getElementById("p1").removeAttribute("style");

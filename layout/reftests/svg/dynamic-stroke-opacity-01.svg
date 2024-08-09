@@ -13,9 +13,12 @@
   <rect id="r" width="100%" height="50%" y="25%" stroke-opacity="0" stroke="lime" stroke-width="75%" fill="lime"/>
 
   <script>
-    window.addEventListener("MozReftestInvalidate", function() {
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
       document.getElementById("r").style.strokeOpacity = "1";
       document.documentElement.removeAttribute("class");
-    }, false);
+    }
   </script>
 </svg>

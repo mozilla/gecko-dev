@@ -6,11 +6,10 @@
   <!-- based on http://www.w3.org/TR/SVG/images/text/tspan05.svg -->
 
   <script type="text/javascript">
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
 
-document.addEventListener("MozReftestInvalidate", go, false);
-setTimeout(go, 4000); // fallback for running outside reftest
-
-function go() {
+function doTest() {
   document.getElementById("parent").setAttribute("rotate", "5,15,25,35,45,55");
   document.getElementById("child1").setAttribute("rotate", "-10,-20,-30,-40");
   document.getElementById("child2").setAttribute("rotate", "70,60,50,40,30,20,10");

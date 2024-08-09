@@ -8,13 +8,13 @@
 
   <script>
 
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
+
 function doTest() {
   document.getElementById("r").style.opacity = 1;
   document.documentElement.removeAttribute("class");
 }
-
-document.addEventListener("MozReftestInvalidate", doTest, false);
-setTimeout(doTest, 4000); // fallback for running outside reftest
 
   </script>
 

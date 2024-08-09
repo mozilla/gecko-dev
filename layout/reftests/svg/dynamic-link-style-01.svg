@@ -1,11 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
-     onload="setTimeout(function() { document.getElementById('r').removeAttribute('xlink:href'); }, 0);">
+     class="reftest-wait">
 
     <title>Testcase for dynamic changes to link styles</title>
 
     <!-- From https://bugzilla.mozilla.org/show_bug.cgi?id=398105 -->
-	
+
+    <script>
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
+      document.getElementById('r').removeAttribute('xlink:href');
+      document.documentElement.removeAttribute('class');
+    }
+    </script>
+
     <style type="text/css">
       a:link rect { fill: red; }
     </style>

@@ -2,18 +2,15 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait"
-  onload="startTest()">
+<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait">
 
 <script>
 <![CDATA[
 
-function startTest() {
-  document.addEventListener("MozReftestInvalidate", boom, false);
-  setTimeout(boom, 4000); // fallback for running outside reftest
-}
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
 
-function boom() {
+function doTest() {
   n = document.getElementById("m1");
   n.style.overflow = "visible";
   document.documentElement.removeAttribute("class");

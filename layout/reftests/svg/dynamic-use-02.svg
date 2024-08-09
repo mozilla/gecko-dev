@@ -4,14 +4,21 @@
 -->
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
-     style="background: lime;">
+     style="background: lime;"
+     class="reftest-wait">
   <defs>
     <rect width="100%" height="100%" id="r"/>
   </defs>
   <use id="u" xlink:href="#r" fill="red"/>
   <script type="text/javascript">
-    var u = document.getElementById("u");
-    u.getBoundingClientRect();
-    u.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
+      var u = document.getElementById("u");
+      u.getBoundingClientRect();
+      u.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+      document.documentElement.removeAttribute('class');
+    }
   </script>
 </svg>

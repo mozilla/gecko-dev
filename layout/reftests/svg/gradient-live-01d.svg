@@ -5,10 +5,10 @@
 <!-- Tests that gradients are live to stop addition. -->
 
 <script>
-document.addEventListener("MozReftestInvalidate", addBlueStop, false);
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
 
-function addBlueStop()
-{
+function doTest() {
   var stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
   stop.setAttribute("stop-color", "#0000dd");
   stop.setAttribute("offset", "0.5");

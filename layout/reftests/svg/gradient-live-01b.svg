@@ -1,9 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
-     class="reftest-wait" font-size="80">
+     font-size="80"
+     class="reftest-wait">
 
 <script type="application/javascript">
   document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
 
   function doTest() {
     document.getElementById('blue').setAttribute('offset', '0.5');

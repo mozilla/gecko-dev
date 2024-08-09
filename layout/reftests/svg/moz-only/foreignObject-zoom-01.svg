@@ -3,7 +3,7 @@
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
 <svg xmlns="http://www.w3.org/2000/svg"
-     onload="startTest()" reftest-zoom="2" class="reftest-wait"
+     reftest-zoom="2" class="reftest-wait"
      style="width:50%; height:50%;">
     
   <title>Testcase for zoomed foreignObject</title>
@@ -21,9 +21,9 @@
     </html>
   </foreignObject>
   <script type="text/javascript">
-  function startTest() {
-    document.addEventListener("MozReftestInvalidate", doTest, false);
-  }
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
   function doTest() {
     var elem = document.elementFromPoint(25, 25);
     var div = document.getElementById("div");

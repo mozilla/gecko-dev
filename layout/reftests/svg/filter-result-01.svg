@@ -2,7 +2,7 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg" onload="createFilter();">
+<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait">
 
   <title>Testcase for filter result property</title>
 
@@ -16,8 +16,12 @@
   </defs>
   <circle cx="100" cy="50" r="50" fill="yellow" filter="url('#f1')"/>
   <script type="text/javascript">
-    function createFilter() {
-      document.getElementById('gb').result.baseVal = 'blur';
-    }
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
+  function doTest() {
+    document.getElementById('gb').result.baseVal = 'blur';
+    document.documentElement.removeAttribute('class');
+  }
   </script>
 </svg>

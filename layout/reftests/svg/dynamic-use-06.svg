@@ -17,7 +17,6 @@
   </svg>
   <script type="text/javascript">
     <![CDATA[
-
     document.addEventListener("MozReftestInvalidate", doTest, false);
     setTimeout(doTest, 4000); // fallback for running outside reftest
 

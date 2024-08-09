@@ -22,6 +22,11 @@ iframe {
     </div>
     <script type="text/javascript">
       window.onload = function() {
+        document.addEventListener("MozReftestInvalidate", doTest, false);
+        setTimeout(doTest, 4000); // fallback for running outside reftest
+      }
+
+      function doTest() {
         document.getElementById("replace").setAttribute("src","fragmentIdentifier-rect-01.svg#svgView(viewBox(0,0,100,100);transform(translate(0,200)))");
         document.getElementById("remove").setAttribute("src","fragmentIdentifier-rect-01.svg#svgView(viewBox(0,200,100,100))");
         document.documentElement.removeAttribute("class");

@@ -13,10 +13,12 @@
   <use y="100" xlink:href="#t1"/>
 
   <script>
-    function test() {
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
       document.getElementsByTagName("tspan")[0].style.fill = "lime";
       document.documentElement.removeAttribute("class");
     }
-    window.addEventListener("MozReftestInvalidate", test, false);
   </script>
 </svg>

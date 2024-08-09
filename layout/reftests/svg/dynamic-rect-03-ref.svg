@@ -10,7 +10,7 @@
 		<feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
 	</filter>
 	<g filter="url(#shadow)">
-	<rect x="50" y="100" width="50" height="50"/>
-	<rect x="200" y="100" width="50" height="50"/>
+	<rect x="50" y="100" width="50" height="50" fill="blue" />
+	<rect x="200" y="100" width="50" height="50" fill="orange" />
 	</g>
 </svg>

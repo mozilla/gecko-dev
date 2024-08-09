@@ -35,12 +35,15 @@
   </text>
 
   <script>
-    window.addEventListener("MozReftestInvalidate", function() {
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
       [...document.querySelectorAll("[data-test]")].forEach(function(e) {
         var [name, value] = e.getAttribute("data-test").split("=");
         e.setAttribute(name, value);
       });
       document.documentElement.removeAttribute("class");
-    }, false);
+    }
   </script>
 </svg>

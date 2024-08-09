@@ -2,7 +2,7 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" class="reftest-wait">
 
   <title>Testcase ensuring fill works if applied before onload</title>
 
@@ -10,10 +10,14 @@
 
   <rect id="rect" width="100%" height="100%" fill="red"/>
 
-  <script id="script" type="application/javascript">
+  <script>
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
 
-  document.documentElement.childNodes[5].setAttribute('fill', 'lime');
-
+  function doTest() {
+    document.documentElement.childNodes[5].setAttribute('fill', 'lime');
+    document.documentElement.removeAttribute("class");
+  }
   </script>
 
 </svg>

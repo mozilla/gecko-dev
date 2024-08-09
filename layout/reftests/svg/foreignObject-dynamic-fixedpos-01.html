@@ -1,18 +1,24 @@
 <!DOCTYPE html>
 <div style="height: 100px">
 </div>
-<svg width="200" height="200" style="overflow: visible">
+<svg width="200" height="200" style="overflow: visible" class="reftest-wait">
   <foreignObject width="200" height="200">
     <div id="x" style="position:fixed; top: 0; left: 0">
       This is a test
     </div>
   </foreignObject>
   <script>
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
+  function doTest() {
     document.body.offsetWidth;
     var kid = document.getElementById("x");
     var parent = kid.parentNode;
     var nextSibling = kid.nextSibling;
     parent.removeChild(kid);
     parent.insertBefore(kid, nextSibling); 
+    document.documentElement.removeAttribute('class');
+  }
   </script>
 </svg>

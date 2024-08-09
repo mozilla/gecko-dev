@@ -2,7 +2,7 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg class="reftest-wait" xmlns="http://www.w3.org/2000/svg" version="1.1">
 
     <defs>
         <style type="text/css">
@@ -16,11 +16,13 @@
     </g>
 
     <script>
-        window.addEventListener(
-            "load",
-            function() { document.getElementById("rect").removeAttributeNS(null, "transform"); },
-            false
-        );
+        document.addEventListener("MozReftestInvalidate", doTest, false);
+        setTimeout(doTest, 4000); // fallback for running outside reftest
+
+        function doTest() {
+            document.getElementById("rect").removeAttribute('transform');
+            document.documentElement.removeAttribute('class');
+        }
     </script>
 
 </svg>

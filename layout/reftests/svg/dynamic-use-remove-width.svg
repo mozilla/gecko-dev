@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     class="reftest-wait">
 <!-- this is a test for https://bugzilla.mozilla.org/show_bug.cgi?id=521682 -->
 
   <defs>
@@ -10,11 +12,13 @@
   <use id="u" xlink:href="#d" height="100%" width="11%" />
 
   <script>
-  function boom()
-  {
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
+
+  function doTest() {
     document.getElementById("u").removeAttribute("width");
+    document.documentElement.removeAttribute('class');
   }
-  window.addEventListener("load", boom, false);
   </script>
 
 </svg>

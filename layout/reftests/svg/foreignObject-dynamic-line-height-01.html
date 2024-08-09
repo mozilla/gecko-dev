@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-  <svg>
+  <svg id="box">
     <foreignObject width="100" height="100">
       This is long text that wraps.
     </foreignObject>
   </svg>
   <script>
-    onload = function() {
-      var obj = document.querySelector("foreignObject");
-      window.w = obj.getBoundingClientRect().width;
-      obj.style.lineHeight = 3;
-      document.documentElement.className = "";
+    document.addEventListener("MozReftestInvalidate", doTest, false);
+    setTimeout(doTest, 4000); // fallback for running outside reftest
+
+    function doTest() {
+      document.querySelector("foreignObject").style.lineHeight = 3;
+      document.documentElement.removeAttribute('class');
     }
   </script>
 </htmml>

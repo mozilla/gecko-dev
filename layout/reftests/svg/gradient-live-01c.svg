@@ -4,6 +4,7 @@
 
  <script type="application/javascript">
    document.addEventListener("MozReftestInvalidate", doTest, false);
+   setTimeout(doTest, 4000); // fallback for running outside reftest
 
    function doTest() {
      document.getElementById('blue').setAttribute('stop-color', '#0000dd');

@@ -2,9 +2,7 @@
     Any copyright is dedicated to the Public Domain.
     http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<svg xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    class="reftest-wait" onload="set_lime_class();">
+<svg class="reftest-wait" xmlns="http://www.w3.org/2000/svg">
  <title>Test invalidation on setting .className.baseVal</title>
  <style type="text/css">
 
@@ -13,8 +11,10 @@
  </style>
  <script>
 
-function set_lime_class()
-{
+document.addEventListener("MozReftestInvalidate", doTest, false);
+setTimeout(doTest, 4000); // fallback for running outside reftest
+
+function doTest() {
  document.getElementById('rect').className.baseVal = 'lime';
  document.documentElement.removeAttribute('class');
 }

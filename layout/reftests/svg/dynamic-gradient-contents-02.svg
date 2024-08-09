@@ -3,8 +3,7 @@
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="reftest-wait"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     onload="startTest()">
+     xmlns:xlink="http://www.w3.org/1999/xlink">
   <title>Testing that dynamic changes to the parent element are reflected in gradients</title>
   <defs id="d">
     <linearGradient id="g1" gradientUnits="objectBoundingBox" x2="0" y2="1">
@@ -22,10 +21,8 @@
   </g>
 
   <script>
-  function startTest() {
-    document.addEventListener("MozReftestInvalidate", doTest, false);
-    setTimeout(doTest, 4000); // fallback for running outside reftest
-  }
+  document.addEventListener("MozReftestInvalidate", doTest, false);
+  setTimeout(doTest, 4000); // fallback for running outside reftest
 
   function doTest() {
     document.getElementById("g").setAttribute("fill", "url(#g2)");

@@ -18,7 +18,10 @@
       }
     </style>
     <script>
-      function go() {
+      document.addEventListener("MozReftestInvalidate", doTest, false);
+      setTimeout(doTest, 4000); // fallback for running outside reftest
+
+      function doTest() {
         clear();
         insert();
       }
@@ -49,7 +52,7 @@
       }
     </script>
   </head>
-  <body onload="go();">
+  <body>
     <div id='container' class="masked"></div>
 
     <!-- BEGIN SVG MASK: -->
