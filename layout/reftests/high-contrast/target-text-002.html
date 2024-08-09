@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<title>::target-text with custom colors should be replaced with mark/marktext</title>
+<style>
+::target-text {
+    background: #FF0000;
+    color: #0000FF;
+}
+</style>
+<script>
+location.hash = ':~:text=Some selected text';
+</script>
+<body>
+<span>Some selected text</span>
+</body>
+</html>

@@ -34,6 +34,9 @@ test-pref(browser.display.suppress_canvas_background_image_on_forced_colors,fals
 needs-focus == selection-001.html selection-001-ref.html
 pref(browser.display.document_color_use,0) needs-focus != selection-001.html selection-001-ref.html
 
+pref(dom.text_fragments.enabled,true) == target-text-001.html target-text-001-ref.html
+pref(dom.text_fragments.enabled,true) == target-text-002.html target-text-001-ref.html
+
 == color-transparent-001.html about:blank
 != color-transparent-002.html about:blank
 != semi-transparent-overlay.html about:blank
