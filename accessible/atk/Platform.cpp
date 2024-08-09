@@ -6,15 +6,20 @@
 
 #include "Platform.h"
 
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/GRefPtr.h"
+#include "mozilla/GUniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIGSettingsService.h"
 #include "nsMai.h"
 #include "nsServiceManagerUtils.h"
+#include "nsWindow.h"
 #include "prenv.h"
 #include "prlink.h"
 
 #ifdef MOZ_ENABLE_DBUS
-#  include <dbus/dbus.h>
+#  include "mozilla/widget/AsyncDBus.h"
 #endif
 #include <gtk/gtk.h>
 
@@ -148,124 +153,127 @@ void a11y::PlatformShutdown() {
 
 static const char sAccEnv[] = "GNOME_ACCESSIBILITY";
 #ifdef MOZ_ENABLE_DBUS
-static DBusPendingCall* sPendingCall = nullptr;
+StaticRefPtr<GDBusProxy> sA11yBusProxy;
+StaticRefPtr<GCancellable> sCancellable;
 #endif
 
+static void StartAccessibility() {
+  if (nsWindow* window = nsWindow::GetFocusedWindow()) {
+    window->DispatchActivateEventAccessible();
+  }
+}
+
+static void A11yBusProxyPropertyChanged(GDBusProxy* aProxy,
+                                        GVariant* aChangedProperties,
+                                        char** aInvalidatedProperties,
+                                        gpointer aUserData) {
+  gboolean isEnabled;
+  g_variant_lookup(aChangedProperties, "IsEnabled", "b", &isEnabled);
+  if (isEnabled) {
+    StartAccessibility();
+  }
+}
+
+// Called from `nsWindow::Create()` before the window is shown.
 void a11y::PreInit() {
 #ifdef MOZ_ENABLE_DBUS
-  static bool sChecked = FALSE;
-  if (sChecked) return;
+  static bool sInited = false;
+  if (sInited) {
+    return;
+  }
+  sInited = true;
+  sCancellable = dont_AddRef(g_cancellable_new());
 
-  sChecked = TRUE;
+  widget::CreateDBusProxyForBus(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE,
+                                /* aInterfaceInfo = */ nullptr, "org.a11y.Bus",
+                                "/org/a11y/bus", "org.a11y.Status",
+                                sCancellable)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
 
-  // dbus is only checked if GNOME_ACCESSIBILITY is unset
-  // also make sure that a session bus address is available to prevent dbus from
-  // starting a new one.  Dbus confuses the test harness when it creates a new
-  // process (see bug 693343)
-  if (PR_GetEnv(sAccEnv) || !PR_GetEnv("DBUS_SESSION_BUS_ADDRESS")) return;
+          [](RefPtr<GDBusProxy>&& aProxy) {
+            sA11yBusProxy = std::move(aProxy);
+            sCancellable = nullptr;
+            g_signal_connect(sA11yBusProxy, "g-properties-changed",
+                             G_CALLBACK(A11yBusProxyPropertyChanged), nullptr);
+            RefPtr<GVariant> isEnabled = dont_AddRef(
+                g_dbus_proxy_get_cached_property(sA11yBusProxy, "IsEnabled"));
+            if (isEnabled && g_variant_get_boolean(isEnabled)) {
+              // If a window is already focused, `StartAccessibility()` will
+              // initialize a11y by sending an activate event. If the window has
+              // not yet been shown/focused, nothing will happen. We now have
+              // the `IsEnabled` property cached so when `ShouldA11yBeEnabled()`
+              // is called from `nsWindow::Show()`, a root accessible will be
+              // created and events will be dispatched henceforth.
+              StartAccessibility();
+            }
+          },
+          [](GUniquePtr<GError>&& aError) {
+            sCancellable = nullptr;
+            if (!g_error_matches(aError.get(), G_IO_ERROR,
+                                 G_IO_ERROR_CANCELLED)) {
+              g_warning(
+                  "Failed to create DBus proxy for org.a11y.Bus: "
+                  "%s\n",
+                  aError->message);
+            }
+          });
 
-  DBusConnection* bus = dbus_bus_get(DBUS_BUS_SESSION, nullptr);
-  if (!bus) return;
+  RunOnShutdown([] {
+    if (sCancellable) {
+      g_cancellable_cancel(sCancellable);
+      sCancellable = nullptr;
+    }
 
-  dbus_connection_set_exit_on_disconnect(bus, FALSE);
-
-  static const char* iface = "org.a11y.Status";
-  static const char* member = "IsEnabled";
-  DBusMessage* message;
-  message =
-      dbus_message_new_method_call("org.a11y.Bus", "/org/a11y/bus",
-                                   "org.freedesktop.DBus.Properties", "Get");
-  if (!message) goto dbus_done;
-
-  dbus_message_append_args(message, DBUS_TYPE_STRING, &iface, DBUS_TYPE_STRING,
-                           &member, DBUS_TYPE_INVALID);
-  dbus_connection_send_with_reply(bus, message, &sPendingCall, 1000);
-  dbus_message_unref(message);
-
-dbus_done:
-  dbus_connection_unref(bus);
+    if (sA11yBusProxy) {
+      sA11yBusProxy = nullptr;
+    }
+  });
 #endif
 }
 
 bool a11y::ShouldA11yBeEnabled() {
-  static bool sChecked = false, sShouldEnable = false;
-  if (sChecked) return sShouldEnable;
-
-  sChecked = true;
-
   EPlatformDisabledState disabledState = PlatformDisabledState();
   if (disabledState == ePlatformIsDisabled) {
-    return sShouldEnable = false;
+    return false;
   }
   if (disabledState == ePlatformIsForceEnabled) {
-    return sShouldEnable = true;
+    return true;
   }
 
   // check if accessibility enabled/disabled by environment variable
-  const char* envValue = PR_GetEnv(sAccEnv);
-  if (envValue) return sShouldEnable = !!atoi(envValue);
+  if (const char* envValue = PR_GetEnv(sAccEnv)) {
+    return !!atoi(envValue);
+  }
 
 #ifdef MOZ_ENABLE_DBUS
-  PreInit();
-  bool dbusSuccess = false;
-  DBusMessage* reply = nullptr;
-  if (!sPendingCall) goto dbus_done;
-
-  dbus_pending_call_block(sPendingCall);
-  reply = dbus_pending_call_steal_reply(sPendingCall);
-  dbus_pending_call_unref(sPendingCall);
-  sPendingCall = nullptr;
-  if (!reply ||
-      dbus_message_get_type(reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN ||
-      strcmp(dbus_message_get_signature(reply), DBUS_TYPE_VARIANT_AS_STRING)) {
-    goto dbus_done;
-  }
-
-  DBusMessageIter iter, iter_variant, iter_struct;
-  dbus_bool_t dResult;
-  dbus_message_iter_init(reply, &iter);
-  dbus_message_iter_recurse(&iter, &iter_variant);
-  switch (dbus_message_iter_get_arg_type(&iter_variant)) {
-    case DBUS_TYPE_STRUCT:
-      // at-spi2-core 2.2.0-2.2.1 had a bug where it returned a struct
-      dbus_message_iter_recurse(&iter_variant, &iter_struct);
-      if (dbus_message_iter_get_arg_type(&iter_struct) == DBUS_TYPE_BOOLEAN) {
-        dbus_message_iter_get_basic(&iter_struct, &dResult);
-        sShouldEnable = dResult;
-        dbusSuccess = true;
-      }
-
-      break;
-    case DBUS_TYPE_BOOLEAN:
-      dbus_message_iter_get_basic(&iter_variant, &dResult);
-      sShouldEnable = dResult;
-      dbusSuccess = true;
-      break;
-    default:
-      break;
-  }
-
-dbus_done:
-  if (reply) dbus_message_unref(reply);
-
-  if (dbusSuccess) return sShouldEnable;
-#endif
-
-// check GSettings
-#define GSETINGS_A11Y_INTERFACE "org.gnome.desktop.interface"
-#define GSETINGS_A11Y_KEY "toolkit-accessibility"
-  nsCOMPtr<nsIGSettingsService> gsettings =
-      do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
-  nsCOMPtr<nsIGSettingsCollection> a11y_settings;
-
-  if (gsettings) {
-    gsettings->GetCollectionForSchema(nsLiteralCString(GSETINGS_A11Y_INTERFACE),
-                                      getter_AddRefs(a11y_settings));
-    if (a11y_settings) {
-      a11y_settings->GetBoolean(nsLiteralCString(GSETINGS_A11Y_KEY),
-                                &sShouldEnable);
+  if (sA11yBusProxy) {
+    RefPtr<GVariant> isEnabled = dont_AddRef(
+        g_dbus_proxy_get_cached_property(sA11yBusProxy, "IsEnabled"));
+    // result can be null if proxy isn't actually working.
+    if (isEnabled) {
+      return g_variant_get_boolean(isEnabled);
     }
   }
+#endif
 
-  return sShouldEnable;
+  // check GSettings
+  nsCOMPtr<nsIGSettingsService> gsettings =
+      do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
+
+  if (gsettings) {
+    bool shouldEnable = false;
+    nsCOMPtr<nsIGSettingsCollection> a11y_settings;
+    gsettings->GetCollectionForSchema(
+        nsLiteralCString("org.gnome.desktop.interface"),
+        getter_AddRefs(a11y_settings));
+    if (a11y_settings) {
+      a11y_settings->GetBoolean(nsLiteralCString("toolkit-accessibility"),
+                                &shouldEnable);
+    }
+
+    return shouldEnable;
+  }
+
+  return false;
 }

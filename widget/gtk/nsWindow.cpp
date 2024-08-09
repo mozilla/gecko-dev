@@ -1008,7 +1008,9 @@ void nsWindow::Show(bool aState) {
   if (!aState) mNeedsShow = false;
 
 #ifdef ACCESSIBILITY
-  if (aState && a11y::ShouldA11yBeEnabled()) CreateRootAccessible();
+  if (aState && a11y::ShouldA11yBeEnabled()) {
+    CreateRootAccessible();
+  }
 #endif
 
   NativeShow(aState);
@@ -8918,9 +8920,9 @@ void nsWindow::DispatchEventToRootAccessible(uint32_t aEventType) {
   }
 
   // Get the root document accessible and fire event to it.
-  a11y::LocalAccessible* acc = GetRootAccessible();
-  if (acc) {
-    accService->FireAccessibleEvent(aEventType, acc);
+  CreateRootAccessible();
+  if (mRootAccessible) {
+    accService->FireAccessibleEvent(aEventType, mRootAccessible);
   }
 }
 
