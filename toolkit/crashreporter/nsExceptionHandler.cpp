@@ -381,18 +381,65 @@ static void SetJitExceptionHandler() {
     js::SetJitExceptionHandler(JitExceptionHandler);
 }
 #  endif
+#endif  // defined(XP_WIN)
 
-/**
- * Reserve some VM space. In the event that we crash because VM space is
- * being leaked without leaking memory, freeing this space before taking
- * the minidump will allow us to collect a minidump.
- *
- * This size is bigger than xul.dll plus some extra for MinidumpWriteDump
- * allocations.
- */
-static const SIZE_T kReserveSize = 0x5000000;  // 80 MB
-static void* gBreakpadReservedVM;
+static struct ReservedResources {
+#if defined(XP_WIN) && !defined(HAVE_64BIT_BUILD)
+  // This should be bigger than xul.dll plus a bit of extra space for
+  // MinidumpWriteDump allocations.
+  static const SIZE_T kReserveSize = 0x5000000;  // 80 MB
+  void* mVirtualMemory;
+#elif defined(XP_LINUX)
+  // Breakpad in-process minidump generator uses at least two file descriptors,
+  // one for the minidump file and one to parse resources (files under /proc,
+  // modules, etc...). We reserve another couple to play it safe.
+  static const size_t kReservedFDs = 4;
+  std::array<int, kReservedFDs> mFileDescriptors;
 #endif
+
+  ReservedResources()
+#if defined(XP_WIN) && !defined(HAVE_64BIT_BUILD)
+      : mVirtualMemory(nullptr)
+#elif defined(XP_LINUX)
+      : mFileDescriptors{-1, -1, -1, -1}
+#endif
+  {
+  }
+} gReservedResources;
+
+static void ReserveResources() {
+#if defined(XP_WIN) && !defined(HAVE_64BIT_BUILD)
+  // Reserve some VM space. In the event that we crash because VM space is
+  // being leaked without leaking memory, freeing this space before taking
+  // the minidump will allow us to collect a minidump. No need to check if
+  // this allocation succeeded as we don't require it to.
+  MOZ_ASSERT(gReservedResources.mVirtualMemory == nullptr);
+  gReservedResources.mVirtualMemory = VirtualAlloc(
+      nullptr, ReservedResources::kReserveSize, MEM_RESERVE, PAGE_NOACCESS);
+#elif defined(XP_LINUX)
+  for (size_t i = 0; i < ReservedResources::kReservedFDs; i++) {
+    MOZ_ASSERT(gReservedResources.mFileDescriptors[i] < 0);
+    gReservedResources.mFileDescriptors[i] =
+        static_cast<int>(syscall(__NR_memfd_create, "mozreserved", 0));
+  }
+#endif
+}
+
+static void ReleaseResources() {
+#if defined(XP_WIN) && !defined(HAVE_64BIT_BUILD)
+  if (gReservedResources.mVirtualMemory) {
+    VirtualFree(gReservedResources.mVirtualMemory, 0, MEM_RELEASE);
+    gReservedResources.mVirtualMemory = nullptr;
+  }
+#elif defined(XP_LINUX)
+  for (size_t i = 0; i < ReservedResources::kReservedFDs; i++) {
+    if (gReservedResources.mFileDescriptors[i] > 0) {
+      close(gReservedResources.mFileDescriptors[i]);
+      gReservedResources.mFileDescriptors[i] = -1;
+    }
+  }
+#endif  // defined(XP_WIN)
+}
 
 #ifdef XP_LINUX
 static inline void my_u64tostring(uint64_t aValue, char* aBuffer,
@@ -1697,19 +1744,6 @@ static bool BuildTempPath(PathStringT& aResult) {
 
 #ifdef XP_WIN
 
-static void ReserveBreakpadVM() {
-  if (!gBreakpadReservedVM) {
-    gBreakpadReservedVM =
-        VirtualAlloc(nullptr, kReserveSize, MEM_RESERVE, PAGE_NOACCESS);
-  }
-}
-
-static void FreeBreakpadVM() {
-  if (gBreakpadReservedVM) {
-    VirtualFree(gBreakpadReservedVM, 0, MEM_RELEASE);
-  }
-}
-
 static bool IsCrashingException(EXCEPTION_POINTERS* exinfo) {
   if (!exinfo) {
     return true;
@@ -1736,15 +1770,16 @@ static bool IsCrashingException(EXCEPTION_POINTERS* exinfo) {
 
 // Do various actions to prepare the child process for minidump generation.
 // This includes disabling the I/O interposer and DLL blocklist which both
-// would get in the way. We also free the address space we had reserved in
-// 32-bit builds to free room for the minidump generation to do its work.
+// would get in the way. We also free the resources we have reserved, such as
+// address space on 32-bit Windows builds and file descriptors on Linux so that
+// they're available to the minidump generation code.
 static void PrepareForMinidump() {
   mozilla::IOInterposer::Disable();
+  ReleaseResources();
 #if defined(XP_WIN)
 #  if defined(DEBUG) && defined(HAS_DLL_BLOCKLIST)
   DllBlocklist_Shutdown();
 #  endif
-  FreeBreakpadVM();
 #endif  // XP_WIN
 }
 
@@ -1990,9 +2025,9 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory, bool force /*=false*/) {
     return NS_ERROR_FAILURE;
   }
 
-#ifdef XP_WIN
-  ReserveBreakpadVM();
+  ReserveResources();
 
+#ifdef XP_WIN
   // Pre-load psapi.dll to prevent it from being loaded during exception
   // handling.
   ::LoadLibraryW(L"psapi.dll");
