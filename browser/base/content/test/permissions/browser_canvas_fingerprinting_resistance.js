@@ -70,14 +70,17 @@ function enableResistFingerprinting(
 ) {
   return SpecialPowers.pushPrefEnv({
     set: [
-      ["privacy.resistFingerprinting", true],
+      ["privacy.fingerprintingProtection", true],
+      [
+        "privacy.fingerprintingProtection.overrides",
+        "+CanvasRandomization,+CanvasImageExtractionPrompt,+CanvasExtractionFromThirdPartiesIsBlocked" +
+          (autoDeclineNoInput
+            ? ",+CanvasExtractionBeforeUserInputIsBlocked"
+            : ""),
+      ],
       [
         "privacy.resistFingerprinting.randomDataOnCanvasExtract",
         randomDataOnCanvasExtract,
-      ],
-      [
-        "privacy.resistFingerprinting.autoDeclineNoUserInputCanvasPrompts",
-        autoDeclineNoInput,
       ],
     ],
   });
