@@ -5030,12 +5030,7 @@ AMTelemetry = {
    * @param {object} extraVars
    * @returns {object} The formatted extra vars.
    */
-  formatExtraVars({ addon, ...extraVars }) {
-    if (addon) {
-      extraVars.addonId = addon.id;
-      extraVars.type = addon.type;
-    }
-
+  formatExtraVars(extraVars) {
     // All the extra_vars in a telemetry event have to be strings.
     for (var [key, value] of Object.entries(extraVars)) {
       if (value == undefined) {
@@ -5043,10 +5038,6 @@ AMTelemetry = {
       } else {
         extraVars[key] = this.convertToString(value);
       }
-    }
-
-    if (extraVars.addonId) {
-      extraVars.addonId = this.getTrimmedString(extraVars.addonId);
     }
 
     return extraVars;
@@ -5217,7 +5208,7 @@ AMTelemetry = {
       extra: {},
     });
     Glean.addonsManager.reportSuspiciousSite.record(
-      this.formatExtraVars({ suspiciousSite: site })
+      this.formatExtraVars({ suspicious_site: site })
     );
   },
 
