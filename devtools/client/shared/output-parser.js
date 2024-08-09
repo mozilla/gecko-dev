@@ -2134,7 +2134,8 @@ class OutputParser {
     const attrs = Object.getOwnPropertyNames(attributes);
 
     for (const attr of attrs) {
-      if (attributes[attr]) {
+      const attrValue = attributes[attr];
+      if (attrValue !== null && attrValue !== undefined) {
         node.setAttribute(attr, attributes[attr]);
       }
     }
@@ -2263,20 +2264,20 @@ class OutputParser {
     const defaults = {
       useDefaultColorUnit: true,
       defaultColorUnit: "authored",
-      angleClass: "",
-      angleSwatchClass: "",
-      bezierClass: "",
-      bezierSwatchClass: "",
-      colorClass: "",
-      colorSwatchClass: "",
+      angleClass: null,
+      angleSwatchClass: null,
+      bezierClass: null,
+      bezierSwatchClass: null,
+      colorClass: null,
+      colorSwatchClass: null,
       filterSwatch: false,
-      flexClass: "",
-      gridClass: "",
-      shapeClass: "",
-      shapeSwatchClass: "",
+      flexClass: null,
+      gridClass: null,
+      shapeClass: null,
+      shapeSwatchClass: null,
       supportsColor: false,
-      urlClass: "",
-      fontFamilyClass: "",
+      urlClass: null,
+      fontFamilyClass: null,
       baseURI: undefined,
       getVariableData: null,
       unmatchedClass: null,

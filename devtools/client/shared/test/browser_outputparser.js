@@ -907,6 +907,17 @@ function testParseVariable(doc, parser) {
           ')</span>' +
         '</span>',
     },
+    {
+      text: "var(--refers-empty)",
+      variables: {
+        "--refers-empty": { value: "var(--empty)", computedValue: "" },
+      },
+      expected:
+        // prettier-ignore
+        "<span>var(" +
+          '<span data-variable="--refers-empty = var(--empty)" data-variable-computed="">--refers-empty</span>)' +
+        "</span>",
+    },
   ];
 
   for (const test of TESTS) {

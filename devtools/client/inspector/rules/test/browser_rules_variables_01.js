@@ -52,4 +52,9 @@ add_task(async function () {
     header: "--nested-with-function = var(--theme-color)",
     computed: "light-dark(chartreuse, seagreen)",
   });
+
+  await assertVariableTooltipForProperty(view, "div", "background", {
+    header: "--nested-with-empty = var(--empty)",
+    computed: "",
+  });
 });
