@@ -102,15 +102,7 @@ void QuotaManagerDependencyFixture::InitializeStorage() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
-
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    Await(quotaManager->InitializeStorage());
   });
 }
 
@@ -122,21 +114,12 @@ void QuotaManagerDependencyFixture::StorageInitialized(bool* aResult) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
-
-    quotaManager->StorageInitialized()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [aResult, &done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          if (aValue.IsResolve()) {
-            *aResult = aValue.ResolveValue();
-          } else {
-            *aResult = false;
-          }
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    auto value = Await(quotaManager->StorageInitialized());
+    if (value.IsResolve()) {
+      *aResult = value.ResolveValue();
+    } else {
+      *aResult = false;
+    }
   });
 }
 
@@ -160,15 +143,7 @@ void QuotaManagerDependencyFixture::ShutdownStorage() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
-
-    quotaManager->ShutdownStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    Await(quotaManager->ShutdownStorage());
   });
 }
 
@@ -187,17 +162,9 @@ void QuotaManagerDependencyFixture::ClearStoragesForOrigin(
     QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
            QM_TEST_FAIL);
 
-    bool done = false;
-
-    quotaManager
-        ->ClearStoragesForOrigin(/* aPersistenceType */ Nothing(),
-                                 principalInfo, /* aClientType */ Nothing())
-        ->Then(GetCurrentSerialEventTarget(), __func__,
-               [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-                 done = true;
-               });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    Await(quotaManager->ClearStoragesForOrigin(/* aPersistenceType */ Nothing(),
+                                               principalInfo,
+                                               /* aClientType */ Nothing()));
   });
 }
 

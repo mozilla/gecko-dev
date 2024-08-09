@@ -117,6 +117,44 @@ class QuotaManagerDependencyFixture : public testing::Test {
     });
   }
 
+  /* Convenience method for defering execution of code until the promise has
+   * been resolved or rejected */
+  template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
+  static typename MozPromise<ResolveValueT, RejectValueT,
+                             IsExclusive>::ResolveOrRejectValue
+  Await(RefPtr<MozPromise<ResolveValueT, RejectValueT, IsExclusive>> aPromise) {
+    using PromiseType = MozPromise<ResolveValueT, RejectValueT,
+                                   /* IsExclusive */ false>;
+    using ResolveOrRejectValue = typename PromiseType::ResolveOrRejectValue;
+
+    ResolveOrRejectValue value;
+
+    bool done = false;
+
+    auto SelectResolveOrRejectCallback = [&value, &done]() {
+      if constexpr (IsExclusive) {
+        return [&value, &done](ResolveOrRejectValue&& aValue) {
+          value = std::move(aValue);
+
+          done = true;
+        };
+      } else {
+        return [&value, &done](const ResolveOrRejectValue& aValue) {
+          value = aValue;
+
+          done = true;
+        };
+      }
+    };
+
+    aPromise->Then(GetCurrentSerialEventTarget(), __func__,
+                   SelectResolveOrRejectCallback());
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+
+    return value;
+  }
+
   static const nsCOMPtr<nsISerialEventTarget>& BackgroundTargetStrongRef() {
     return sBackgroundTarget;
   }
