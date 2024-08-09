@@ -28,31 +28,29 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static void StorageInitialized(bool* aResult);
   static void AssertStorageInitialized();
   static void AssertStorageNotInitialized();
+  static void ClearStorage();
   static void ShutdownStorage();
 
+  static void InitializeTemporaryStorage();
+  static void TemporaryStorageInitialized(bool* aResult);
+  static void AssertTemporaryStorageInitialized();
+  static void AssertTemporaryStorageNotInitialized();
+  static void ShutdownTemporaryStorage();
+
+  static void InitializeTemporaryOrigin(const OriginMetadata& aOriginMetadata);
+  static void GetOriginUsage(const OriginMetadata& aOriginMetadata,
+                             UsageInfo* aResult = nullptr);
   static void ClearStoragesForOrigin(const OriginMetadata& aOriginMetadata);
+
+  static void InitializeTemporaryClient(const ClientMetadata& aClientMetadata);
 
   /* Convenience method for tasks which must be called on PBackground thread */
   template <class Invokable, class... Args>
   static void PerformOnBackgroundThread(Invokable&& aInvokable,
                                         Args&&... aArgs) {
-    bool done = false;
-    auto boundTask =
-        // For c++17, bind is cleaner than tuple for parameter pack forwarding
-        // NOLINTNEXTLINE(modernize-avoid-bind)
-        std::bind(std::forward<Invokable>(aInvokable),
-                  std::forward<Args>(aArgs)...);
-    InvokeAsync(BackgroundTargetStrongRef(), __func__,
-                [boundTask = std::move(boundTask)]() mutable {
-                  boundTask();
-                  return BoolPromise::CreateAndResolve(true, __func__);
-                })
-        ->Then(GetCurrentSerialEventTarget(), __func__,
-               [&done](const BoolPromise::ResolveOrRejectValue& /* aValue */) {
-                 done = true;
-               });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    return PerformOnThread(BackgroundTargetStrongRef(),
+                           std::forward<Invokable>(aInvokable),
+                           std::forward<Args>(aArgs)...);
   }
 
   /* Convenience method for tasks which must be executed on IO thread */
@@ -61,19 +59,27 @@ class QuotaManagerDependencyFixture : public testing::Test {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
+    return PerformOnThread(quotaManager->IOThread(),
+                           std::forward<Invokable>(aInvokable),
+                           std::forward<Args>(aArgs)...);
+  }
+
+  template <class Invokable, class... Args>
+  static void PerformOnThread(nsISerialEventTarget* aTarget,
+                              Invokable&& aInvokable, Args&&... aArgs) {
     bool done = false;
     auto boundTask =
         // For c++17, bind is cleaner than tuple for parameter pack forwarding
         // NOLINTNEXTLINE(modernize-avoid-bind)
         std::bind(std::forward<Invokable>(aInvokable),
                   std::forward<Args>(aArgs)...);
-    InvokeAsync(quotaManager->IOThread(), __func__,
+    InvokeAsync(aTarget, __func__,
                 [boundTask = std::move(boundTask)]() mutable {
                   boundTask();
                   return BoolPromise::CreateAndResolve(true, __func__);
                 })
         ->Then(GetCurrentSerialEventTarget(), __func__,
-               [&done](const BoolPromise::ResolveOrRejectValue& value) {
+               [&done](const BoolPromise::ResolveOrRejectValue& /* aValue */) {
                  done = true;
                });
 

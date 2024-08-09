@@ -12,6 +12,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/gtest/MozAssertions.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
@@ -30,7 +31,7 @@ class RequestResolver final : public nsIQuotaCallback {
  public:
   RequestResolver() : mDone(false) {}
 
-  bool Done() const { return mDone; }
+  bool IsDone() const { return mDone; }
 
   NS_DECL_ISUPPORTS
 
@@ -45,6 +46,17 @@ class RequestResolver final : public nsIQuotaCallback {
 
   bool mDone;
 };
+
+void CreateContentPrincipalInfo(const nsACString& aOrigin,
+                                mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
+  nsCOMPtr<nsIPrincipal> principal =
+      BasePrincipal::CreateContentPrincipal(aOrigin);
+  QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+  mozilla::ipc::PrincipalInfo principalInfo;
+  QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &aPrincipalInfo)),
+         QM_TEST_FAIL);
+}
 
 }  // namespace
 
@@ -69,6 +81,7 @@ void QuotaManagerDependencyFixture::InitializeFixture() {
   nsresult rv = observer->Observe(nullptr, "profile-do-change", nullptr);
   ASSERT_NS_SUCCEEDED(rv);
 
+  // Force creation of the quota manager.
   ASSERT_NO_FATAL_FAILURE(EnsureQuotaManager());
 
   QuotaManager* quotaManager = QuotaManager::Get();
@@ -138,6 +151,16 @@ void QuotaManagerDependencyFixture::AssertStorageNotInitialized() {
 }
 
 // static
+void QuotaManagerDependencyFixture::ClearStorage() {
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    Await(quotaManager->ClearStorage());
+  });
+}
+
+// static
 void QuotaManagerDependencyFixture::ShutdownStorage() {
   PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -148,23 +171,125 @@ void QuotaManagerDependencyFixture::ShutdownStorage() {
 }
 
 // static
-void QuotaManagerDependencyFixture::ClearStoragesForOrigin(
-    const OriginMetadata& aOriginMetadata) {
-  PerformOnBackgroundThread([&aOriginMetadata]() {
+void QuotaManagerDependencyFixture::InitializeTemporaryStorage() {
+  PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    nsCOMPtr<nsIPrincipal> principal =
-        BasePrincipal::CreateContentPrincipal(aOriginMetadata.mOrigin);
-    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+    Await(quotaManager->InitializeTemporaryStorage());
+  });
+}
 
-    mozilla::ipc::PrincipalInfo principalInfo;
-    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
-           QM_TEST_FAIL);
+// static
+void QuotaManagerDependencyFixture::TemporaryStorageInitialized(bool* aResult) {
+  ASSERT_TRUE(aResult);
+
+  PerformOnBackgroundThread([aResult]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    auto value = Await(quotaManager->TemporaryStorageInitialized());
+    if (value.IsResolve()) {
+      *aResult = value.ResolveValue();
+    } else {
+      *aResult = false;
+    }
+  });
+}
+
+// static
+void QuotaManagerDependencyFixture::AssertTemporaryStorageInitialized() {
+  bool result;
+  ASSERT_NO_FATAL_FAILURE(TemporaryStorageInitialized(&result));
+  ASSERT_TRUE(result);
+}
+
+// static
+void QuotaManagerDependencyFixture::AssertTemporaryStorageNotInitialized() {
+  bool result;
+  ASSERT_NO_FATAL_FAILURE(TemporaryStorageInitialized(&result));
+  ASSERT_FALSE(result);
+}
+
+// static
+void QuotaManagerDependencyFixture::ShutdownTemporaryStorage() {
+  // TODO: It would be nice to have a dedicated operation for shutting down
+  // temporary storage.
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+}
+
+// static
+void QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
+    const OriginMetadata& aOriginMetadata) {
+  mozilla::ipc::PrincipalInfo principalInfo;
+  ASSERT_NO_FATAL_FAILURE(
+      CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
+
+  PerformOnBackgroundThread([persistenceType = aOriginMetadata.mPersistenceType,
+                             principalInfo = std::move(principalInfo)]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    Await(quotaManager->InitializeTemporaryOrigin(persistenceType,
+                                                  principalInfo));
+  });
+}
+
+// static
+void QuotaManagerDependencyFixture::GetOriginUsage(
+    const OriginMetadata& aOriginMetadata, UsageInfo* aResult) {
+  mozilla::ipc::PrincipalInfo principalInfo;
+  ASSERT_NO_FATAL_FAILURE(
+      CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
+
+  PerformOnBackgroundThread(
+      [aResult, principalInfo = std::move(principalInfo)]() {
+        QuotaManager* quotaManager = QuotaManager::Get();
+        ASSERT_TRUE(quotaManager);
+
+        auto value = Await(quotaManager->GetOriginUsage(
+            principalInfo, /* aFromMemory */ false));
+        if (value.IsResolve()) {
+          *aResult = value.ResolveValue();
+        } else {
+          *aResult = UsageInfo();
+        }
+      });
+}
+
+// static
+void QuotaManagerDependencyFixture::ClearStoragesForOrigin(
+    const OriginMetadata& aOriginMetadata) {
+  mozilla::ipc::PrincipalInfo principalInfo;
+  ASSERT_NO_FATAL_FAILURE(
+      CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
+
+  PerformOnBackgroundThread([principalInfo = std::move(principalInfo)]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
 
     Await(quotaManager->ClearStoragesForOrigin(/* aPersistenceType */ Nothing(),
                                                principalInfo,
                                                /* aClientType */ Nothing()));
+  });
+}
+
+// static
+void QuotaManagerDependencyFixture::InitializeTemporaryClient(
+    const ClientMetadata& aClientMetadata) {
+  mozilla::ipc::PrincipalInfo principalInfo;
+  ASSERT_NO_FATAL_FAILURE(
+      CreateContentPrincipalInfo(aClientMetadata.mOrigin, principalInfo));
+
+  PerformOnBackgroundThread([persistenceType = aClientMetadata.mPersistenceType,
+                             principalInfo = std::move(principalInfo),
+                             clientType = aClientMetadata.mClientType]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    Await(quotaManager->InitializeTemporaryClient(persistenceType,
+                                                  principalInfo, clientType));
   });
 }
 
@@ -200,6 +325,9 @@ ClientMetadata QuotaManagerDependencyFixture::GetOtherTestClientMetadata() {
 
 // static
 void QuotaManagerDependencyFixture::EnsureQuotaManager() {
+  // This is needed to satisfy the IsCallerChrome check in
+  // QuotaManagerService::StorageName. In more detail, accessing the Subject
+  // Principal without an AutoJSAPI on the stack is forbidden.
   AutoJSAPI jsapi;
 
   bool ok = jsapi.Init(xpc::PrivilegedJunkScope());
@@ -222,7 +350,7 @@ void QuotaManagerDependencyFixture::EnsureQuotaManager() {
   ASSERT_NS_SUCCEEDED(rv);
 
   SpinEventLoopUntil("Promise is fulfilled"_ns,
-                     [&resolver]() { return resolver->Done(); });
+                     [&resolver]() { return resolver->IsDone(); });
 }
 
 nsCOMPtr<nsISerialEventTarget> QuotaManagerDependencyFixture::sBackgroundTarget;
