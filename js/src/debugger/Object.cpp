@@ -99,7 +99,10 @@ const JSClassOps DebuggerObject::classOps_ = {
 };
 
 const JSClass DebuggerObject::class_ = {
-    "Object", JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS), &classOps_};
+    "Object",
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
+    &classOps_,
+};
 
 void DebuggerObject::trace(JSTracer* trc) {
   // There is a barrier on private pointers, so the Unbarriered marking
@@ -1508,7 +1511,8 @@ const JSPropertySpec DebuggerObject::properties_[] = {
     JS_DEBUG_PSG("isProxy", isProxyGetter),
     JS_DEBUG_PSG("proxyTarget", proxyTargetGetter),
     JS_DEBUG_PSG("proxyHandler", proxyHandlerGetter),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSPropertySpec DebuggerObject::promiseProperties_[] = {
     JS_DEBUG_PSG("isPromise", isPromiseGetter),
@@ -1521,7 +1525,8 @@ const JSPropertySpec DebuggerObject::promiseProperties_[] = {
     JS_DEBUG_PSG("promiseResolutionSite", promiseResolutionSiteGetter),
     JS_DEBUG_PSG("promiseID", promiseIDGetter),
     JS_DEBUG_PSG("promiseDependentPromises", promiseDependentPromisesGetter),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec DebuggerObject::methods_[] = {
     JS_DEBUG_FN("isExtensible", isExtensibleMethod, 0),
@@ -1557,7 +1562,8 @@ const JSFunctionSpec DebuggerObject::methods_[] = {
     JS_DEBUG_FN("unsafeDereference", unsafeDereferenceMethod, 0),
     JS_DEBUG_FN("unwrap", unwrapMethod, 0),
     JS_DEBUG_FN("getPromiseReactions", getPromiseReactionsMethod, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 /* static */
 NativeObject* DebuggerObject::initClass(JSContext* cx,

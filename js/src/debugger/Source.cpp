@@ -68,7 +68,10 @@ const JSClassOps DebuggerSource::classOps_ = {
 };
 
 const JSClass DebuggerSource::class_ = {
-    "Source", JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS), &classOps_};
+    "Source",
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
+    &classOps_,
+};
 
 /* static */
 NativeObject* DebuggerSource::initClass(JSContext* cx,
@@ -691,7 +694,10 @@ const JSPropertySpec DebuggerSource::properties_[] = {
     JS_DEBUG_PSG("introductionType", getIntroductionType),
     JS_DEBUG_PSG("elementAttributeName", getElementProperty),
     JS_DEBUG_PSGS("sourceMapURL", getSourceMapURL, setSourceMapURL),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec DebuggerSource::methods_[] = {
-    JS_DEBUG_FN("reparse", reparse, 0), JS_FS_END};
+    JS_DEBUG_FN("reparse", reparse, 0),
+    JS_FS_END,
+};

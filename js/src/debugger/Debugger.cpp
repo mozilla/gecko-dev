@@ -4164,15 +4164,18 @@ const JSClassOps DebuggerInstanceObject::classOps_ = {
 };
 
 const JSClass DebuggerInstanceObject::class_ = {
-    "Debugger", JSCLASS_HAS_RESERVED_SLOTS(Debugger::JSSLOT_DEBUG_COUNT),
-    &classOps_};
+    "Debugger",
+    JSCLASS_HAS_RESERVED_SLOTS(Debugger::JSSLOT_DEBUG_COUNT),
+    &classOps_,
+};
 
 static_assert(Debugger::JSSLOT_DEBUG_PROTO_START == 0,
               "DebuggerPrototypeObject only needs slots for the proto objects");
 
 const JSClass DebuggerPrototypeObject::class_ = {
     "DebuggerPrototype",
-    JSCLASS_HAS_RESERVED_SLOTS(Debugger::JSSLOT_DEBUG_PROTO_STOP)};
+    JSCLASS_HAS_RESERVED_SLOTS(Debugger::JSSLOT_DEBUG_PROTO_STOP),
+};
 
 static Debugger* Debugger_fromThisValue(JSContext* cx, const CallArgs& args,
                                         const char* fnname) {
@@ -6755,7 +6758,8 @@ const JSPropertySpec Debugger::properties[] = {
                   setInspectNativeCallArguments),
     JS_DEBUG_PSG("memory", getMemory),
     JS_STRING_SYM_PS(toStringTag, "Debugger", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec Debugger::methods[] = {
     JS_DEBUG_FN("addDebuggee", addDebuggee, 1),
@@ -6782,7 +6786,8 @@ const JSFunctionSpec Debugger::methods[] = {
     JS_DEBUG_FN("disableUnlimitedStacksCapturing",
                 disableUnlimitedStacksCapturing, 1),
     JS_DEBUG_FN("collectNativeTrace", collectNativeTrace, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 const JSPropertySpec Debugger::static_properties[]{
     JS_INT32_PS("TRACING_EVENT_KIND_FUNCTION_ENTER",
@@ -6809,10 +6814,13 @@ const JSPropertySpec Debugger::static_properties[]{
     JS_INT32_PS("IMPLEMENTATION_WASM",
                 int32_t(ExecutionTracer::ImplementationType::Wasm),
                 JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec Debugger::static_methods[]{
-    JS_FN("isCompilableUnit", Debugger::isCompilableUnit, 1, 0), JS_FS_END};
+    JS_FN("isCompilableUnit", Debugger::isCompilableUnit, 1, 0),
+    JS_FS_END,
+};
 
 DebuggerScript* Debugger::newDebuggerScript(
     JSContext* cx, Handle<DebuggerScriptReferent> referent) {
@@ -7106,7 +7114,9 @@ void DebuggerDebuggeeLink::clearLinkSlot() {
 }
 
 const JSClass DebuggerDebuggeeLink::class_ = {
-    "DebuggerDebuggeeLink", JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS)};
+    "DebuggerDebuggeeLink",
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
+};
 
 /* static */
 bool DebugAPI::handleBaselineOsr(JSContext* cx, InterpreterFrame* from,

@@ -77,7 +77,10 @@ const JSClassOps DebuggerScript::classOps_ = {
 };
 
 const JSClass DebuggerScript::class_ = {
-    "Script", JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS), &classOps_};
+    "Script",
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
+    &classOps_,
+};
 
 void DebuggerScript::trace(JSTracer* trc) {
   // This comes from a private pointer, so no barrier needed.
@@ -2486,7 +2489,8 @@ const JSPropertySpec DebuggerScript::properties_[] = {
     JS_DEBUG_PSG("mainOffset", getMainOffset),
     JS_DEBUG_PSG("global", getGlobal),
     JS_DEBUG_PSG("format", getFormat),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("getChildScripts", getChildScripts, 0),
@@ -2508,4 +2512,6 @@ const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("getAllOffsets", getAllOffsets, 0),
     JS_DEBUG_FN("getAllColumnOffsets", getAllColumnOffsets, 0),
     JS_DEBUG_FN("getLineOffsets", getLineOffsets, 1),
-    JS_DEBUG_FN("getOffsetLocation", getOffsetLocation, 0), JS_FS_END};
+    JS_DEBUG_FN("getOffsetLocation", getOffsetLocation, 0),
+    JS_FS_END,
+};
