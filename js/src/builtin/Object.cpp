@@ -2447,12 +2447,14 @@ static const JSFunctionSpec object_methods[] = {
     JS_SELF_HOSTED_FN("__defineSetter__", "ObjectDefineSetter", 2, 0),
     JS_SELF_HOSTED_FN("__lookupGetter__", "ObjectLookupGetter", 1, 0),
     JS_SELF_HOSTED_FN("__lookupSetter__", "ObjectLookupSetter", 1, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSPropertySpec object_properties[] = {
     JS_SELF_HOSTED_GETSET("__proto__", "$ObjectProtoGetter",
                           "$ObjectProtoSetter", 0),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static const JSFunctionSpec object_static_methods[] = {
     JS_FN("assign", obj_assign, 2, 0),
@@ -2480,7 +2482,8 @@ static const JSFunctionSpec object_static_methods[] = {
     JS_SELF_HOSTED_FN("fromEntries", "ObjectFromEntries", 1, 0),
     JS_SELF_HOSTED_FN("hasOwn", "ObjectHasOwn", 2, 0),
     JS_SELF_HOSTED_FN("groupBy", "ObjectGroupBy", 2, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static JSObject* CreateObjectConstructor(JSContext* cx, JSProtoKey key) {
   Rooted<GlobalObject*> self(cx, cx->global());
@@ -2557,10 +2560,14 @@ static const ClassSpec PlainObjectClassSpec = {
     CreateObjectConstructor, CreateObjectPrototype,
     object_static_methods,   nullptr,
     object_methods,          object_properties,
-    FinishObjectClassInit};
+    FinishObjectClassInit,
+};
 
-const JSClass PlainObject::class_ = {"Object",
-                                     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-                                     JS_NULL_CLASS_OPS, &PlainObjectClassSpec};
+const JSClass PlainObject::class_ = {
+    "Object",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
+    JS_NULL_CLASS_OPS,
+    &PlainObjectClassSpec,
+};
 
 const JSClass* const js::ObjectClassPtr = &PlainObject::class_;

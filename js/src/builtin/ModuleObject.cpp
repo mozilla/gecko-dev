@@ -156,7 +156,8 @@ void RequestedModule::trace(JSTracer* trc) {
 
 /* static */ const JSClass ResolvedBindingObject::class_ = {
     "ResolvedBinding",
-    JSCLASS_HAS_RESERVED_SLOTS(ResolvedBindingObject::SlotCount)};
+    JSCLASS_HAS_RESERVED_SLOTS(ResolvedBindingObject::SlotCount),
+};
 
 ModuleObject* ResolvedBindingObject::module() const {
   Value value = getReservedSlot(ModuleSlot);
@@ -202,7 +203,8 @@ void ImportAttribute::trace(JSTracer* trc) {
 // ModuleRequestObject
 /* static */ const JSClass ModuleRequestObject::class_ = {
     "ModuleRequest",
-    JSCLASS_HAS_RESERVED_SLOTS(ModuleRequestObject::SlotCount)};
+    JSCLASS_HAS_RESERVED_SLOTS(ModuleRequestObject::SlotCount),
+};
 
 DEFINE_ATOM_OR_NULL_ACCESSOR_METHOD(ModuleRequestObject, specifier,
                                     SpecifierSlot)
@@ -902,7 +904,8 @@ Maybe<uint32_t> CyclicModuleFields::maybePendingAsyncDependencies() const {
     "Module",
     JSCLASS_HAS_RESERVED_SLOTS(ModuleObject::SlotCount) |
         JSCLASS_BACKGROUND_FINALIZE,
-    &ModuleObject::classOps_};
+    &ModuleObject::classOps_,
+};
 
 /* static */
 bool ModuleObject::isInstance(HandleValue value) {
@@ -2612,7 +2615,8 @@ const JSClass DynamicImportContextObject::class_ = {
     "DynamicImportContextObject",
     JSCLASS_HAS_RESERVED_SLOTS(DynamicImportContextObject::SlotCount) |
         JSCLASS_SLOT0_IS_NSISUPPORTS | JSCLASS_FOREGROUND_FINALIZE,
-    &DynamicImportContextObject::classOps_};
+    &DynamicImportContextObject::classOps_,
+};
 static_assert(DynamicImportContextObject::ReferencingPrivateSlot == 0);
 
 /* static */

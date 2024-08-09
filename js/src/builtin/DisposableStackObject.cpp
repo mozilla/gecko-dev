@@ -591,7 +591,9 @@ static bool AdoptClosure(JSContext* cx, unsigned argc, JS::Value* vp) {
 
 const JSPropertySpec DisposableStackObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "DisposableStack", JSPROP_READONLY),
-    JS_PSG("disposed", disposed, 0), JS_PS_END};
+    JS_PSG("disposed", disposed, 0),
+    JS_PS_END,
+};
 
 const JSFunctionSpec DisposableStackObject::methods[] = {
     JS_FN("use", DisposableStackObject::use, 1, 0),
@@ -601,7 +603,9 @@ const JSFunctionSpec DisposableStackObject::methods[] = {
     JS_FN("adopt", DisposableStackObject::adopt, 2, 0),
     // @@dispose is re-defined in finishInit so that it has the
     // same identity as |dispose|.
-    JS_SYM_FN(dispose, DisposableStackObject::dispose, 0, 0), JS_FS_END};
+    JS_SYM_FN(dispose, DisposableStackObject::dispose, 0, 0),
+    JS_FS_END,
+};
 
 const ClassSpec DisposableStackObject::classSpec_ = {
     GenericCreateConstructor<DisposableStackObject::construct, 0,

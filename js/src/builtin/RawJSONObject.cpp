@@ -11,8 +11,10 @@
 
 using namespace js;
 
-const JSClass RawJSONObject::class_ = {"RawJSON",
-                                       JSCLASS_HAS_RESERVED_SLOTS(SlotCount)};
+const JSClass RawJSONObject::class_ = {
+    "RawJSON",
+    JSCLASS_HAS_RESERVED_SLOTS(SlotCount),
+};
 
 /* static */
 RawJSONObject* RawJSONObject::create(JSContext* cx,

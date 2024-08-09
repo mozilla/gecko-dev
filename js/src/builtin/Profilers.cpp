@@ -363,7 +363,8 @@ static const JSFunctionSpec profiling_functions[] = {
     JS_FN("stopCallgrind", StopCallgrind, 0, 0),
     JS_FN("dumpCallgrind", DumpCallgrind, 1, 0),
 #  endif
-    JS_FS_END};
+    JS_FS_END,
+};
 
 #endif
 

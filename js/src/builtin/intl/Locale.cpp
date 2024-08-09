@@ -47,7 +47,9 @@ const JSClass LocaleObject::class_ = {
     "Intl.Locale",
     JSCLASS_HAS_RESERVED_SLOTS(LocaleObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_Locale),
-    JS_NULL_CLASS_OPS, &LocaleObject::classSpec_};
+    JS_NULL_CLASS_OPS,
+    &LocaleObject::classSpec_,
+};
 
 const JSClass& LocaleObject::protoClass_ = PlainObject::class_;
 
@@ -1275,7 +1277,9 @@ static const JSFunctionSpec locale_methods[] = {
     JS_FN("maximize", Locale_maximize, 0, 0),
     JS_FN("minimize", Locale_minimize, 0, 0),
     JS_FN("toString", Locale_toString, 0, 0),
-    JS_FN("toSource", Locale_toSource, 0, 0), JS_FS_END};
+    JS_FN("toSource", Locale_toSource, 0, 0),
+    JS_FS_END,
+};
 
 static const JSPropertySpec locale_properties[] = {
     JS_PSG("baseName", Locale_baseName, 0),
@@ -1289,7 +1293,8 @@ static const JSPropertySpec locale_properties[] = {
     JS_PSG("script", Locale_script, 0),
     JS_PSG("region", Locale_region, 0),
     JS_STRING_SYM_PS(toStringTag, "Intl.Locale", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const ClassSpec LocaleObject::classSpec_ = {
     GenericCreateConstructor<Locale, 1, gc::AllocKind::FUNCTION>,
@@ -1299,7 +1304,8 @@ const ClassSpec LocaleObject::classSpec_ = {
     locale_methods,
     locale_properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 bool js::intl_ValidateAndCanonicalizeLanguageTag(JSContext* cx, unsigned argc,
                                                  Value* vp) {

@@ -141,18 +141,28 @@ const JSClass WeakSetObject::class_ = {
     "WeakSet",
     JSCLASS_HAS_RESERVED_SLOTS(SlotCount) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_WeakSet) | JSCLASS_BACKGROUND_FINALIZE,
-    &WeakCollectionObject::classOps_, &WeakSetObject::classSpec_};
+    &WeakCollectionObject::classOps_,
+    &WeakSetObject::classSpec_,
+};
 
 const JSClass WeakSetObject::protoClass_ = {
-    "WeakSet.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_WeakSet),
-    JS_NULL_CLASS_OPS, &WeakSetObject::classSpec_};
+    "WeakSet.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_WeakSet),
+    JS_NULL_CLASS_OPS,
+    &WeakSetObject::classSpec_,
+};
 
 const JSPropertySpec WeakSetObject::properties[] = {
-    JS_STRING_SYM_PS(toStringTag, "WeakSet", JSPROP_READONLY), JS_PS_END};
+    JS_STRING_SYM_PS(toStringTag, "WeakSet", JSPROP_READONLY),
+    JS_PS_END,
+};
 
 const JSFunctionSpec WeakSetObject::methods[] = {
-    JS_FN("add", add, 1, 0), JS_FN("delete", delete_, 1, 0),
-    JS_FN("has", has, 1, 0), JS_FS_END};
+    JS_FN("add", add, 1, 0),
+    JS_FN("delete", delete_, 1, 0),
+    JS_FN("has", has, 1, 0),
+    JS_FS_END,
+};
 
 WeakSetObject* WeakSetObject::create(JSContext* cx,
                                      HandleObject proto /* = nullptr */) {

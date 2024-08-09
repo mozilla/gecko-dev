@@ -74,7 +74,9 @@ const JSClass NumberFormatObject::class_ = {
     JSCLASS_HAS_RESERVED_SLOTS(NumberFormatObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_NumberFormat) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &NumberFormatObject::classOps_, &NumberFormatObject::classSpec_};
+    &NumberFormatObject::classOps_,
+    &NumberFormatObject::classSpec_,
+};
 
 const JSClass& NumberFormatObject::protoClass_ = PlainObject::class_;
 
@@ -117,7 +119,8 @@ const ClassSpec NumberFormatObject::classSpec_ = {
     numberFormat_methods,
     numberFormat_properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /**
  * 15.1.1 Intl.NumberFormat ( [ locales [ , options ] ] )

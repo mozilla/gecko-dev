@@ -101,4 +101,5 @@ const JSClass TupleObject::class_ = {
     "TupleObject",
     JSCLASS_HAS_RESERVED_SLOTS(SlotCount) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_Tuple),
-    &TupleObjectClassOps};
+    &TupleObjectClassOps,
+};

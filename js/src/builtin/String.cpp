@@ -457,7 +457,9 @@ const JSClass StringObject::class_ = {
     "String",
     JSCLASS_HAS_RESERVED_SLOTS(StringObject::RESERVED_SLOTS) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_String),
-    &StringObjectClassOps, &StringObject::classSpec_};
+    &StringObjectClassOps,
+    &StringObject::classSpec_,
+};
 
 /*
  * Perform the initial |RequireObjectCoercible(thisv)| and |ToString(thisv)|
@@ -4317,7 +4319,8 @@ const ClassSpec StringObject::classSpec_ = {
     nullptr,
     string_methods,
     nullptr,
-    StringClassFinish};
+    StringClassFinish,
+};
 
 #define ____ false
 

@@ -70,7 +70,9 @@ const JSClass DateTimeFormatObject::class_ = {
     JSCLASS_HAS_RESERVED_SLOTS(DateTimeFormatObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_DateTimeFormat) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &DateTimeFormatObject::classOps_, &DateTimeFormatObject::classSpec_};
+    &DateTimeFormatObject::classOps_,
+    &DateTimeFormatObject::classSpec_,
+};
 
 const JSClass& DateTimeFormatObject::protoClass_ = PlainObject::class_;
 
@@ -83,7 +85,8 @@ static bool dateTimeFormat_toSource(JSContext* cx, unsigned argc, Value* vp) {
 static const JSFunctionSpec dateTimeFormat_static_methods[] = {
     JS_SELF_HOSTED_FN("supportedLocalesOf",
                       "Intl_DateTimeFormat_supportedLocalesOf", 1, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec dateTimeFormat_methods[] = {
     JS_SELF_HOSTED_FN("resolvedOptions", "Intl_DateTimeFormat_resolvedOptions",
@@ -94,12 +97,14 @@ static const JSFunctionSpec dateTimeFormat_methods[] = {
     JS_SELF_HOSTED_FN("formatRangeToParts",
                       "Intl_DateTimeFormat_formatRangeToParts", 2, 0),
     JS_FN("toSource", dateTimeFormat_toSource, 0, 0),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSPropertySpec dateTimeFormat_properties[] = {
     JS_SELF_HOSTED_GET("format", "$Intl_DateTimeFormat_format_get", 0),
     JS_STRING_SYM_PS(toStringTag, "Intl.DateTimeFormat", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static bool DateTimeFormat(JSContext* cx, unsigned argc, Value* vp);
 
@@ -111,7 +116,8 @@ const ClassSpec DateTimeFormatObject::classSpec_ = {
     dateTimeFormat_methods,
     dateTimeFormat_properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /**
  * 12.2.1 Intl.DateTimeFormat([ locales [, options]])

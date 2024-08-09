@@ -198,11 +198,15 @@ const JSClass MapIteratorObject::class_ = {
     "Map Iterator",
     JSCLASS_HAS_RESERVED_SLOTS(MapIteratorObject::SlotCount) |
         JSCLASS_FOREGROUND_FINALIZE | JSCLASS_SKIP_NURSERY_FINALIZE,
-    &MapIteratorObjectClassOps, JS_NULL_CLASS_SPEC,
-    &MapIteratorObjectClassExtension};
+    &MapIteratorObjectClassOps,
+    JS_NULL_CLASS_SPEC,
+    &MapIteratorObjectClassExtension,
+};
 
 const JSFunctionSpec MapIteratorObject::methods[] = {
-    JS_SELF_HOSTED_FN("next", "MapIteratorNext", 0, 0), JS_FS_END};
+    JS_SELF_HOSTED_FN("next", "MapIteratorNext", 0, 0),
+    JS_FS_END,
+};
 
 static inline ValueMap::Range* MapIteratorObjectRange(NativeObject* obj) {
   MOZ_ASSERT(obj->is<MapIteratorObject>());
@@ -1126,11 +1130,15 @@ const JSClass SetIteratorObject::class_ = {
     "Set Iterator",
     JSCLASS_HAS_RESERVED_SLOTS(SetIteratorObject::SlotCount) |
         JSCLASS_FOREGROUND_FINALIZE | JSCLASS_SKIP_NURSERY_FINALIZE,
-    &SetIteratorObjectClassOps, JS_NULL_CLASS_SPEC,
-    &SetIteratorObjectClassExtension};
+    &SetIteratorObjectClassOps,
+    JS_NULL_CLASS_SPEC,
+    &SetIteratorObjectClassExtension,
+};
 
 const JSFunctionSpec SetIteratorObject::methods[] = {
-    JS_SELF_HOSTED_FN("next", "SetIteratorNext", 0, 0), JS_FS_END};
+    JS_SELF_HOSTED_FN("next", "SetIteratorNext", 0, 0),
+    JS_FS_END,
+};
 
 static inline ValueSet::Range* SetIteratorObjectRange(NativeObject* obj) {
   MOZ_ASSERT(obj->is<SetIteratorObject>());

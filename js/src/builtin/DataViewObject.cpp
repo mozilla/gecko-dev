@@ -1166,13 +1166,16 @@ const JSFunctionSpec DataViewObject::methods[] = {
                     DataViewSetBigInt64),
     JS_INLINABLE_FN("setBigUint64", DataViewObject::fun_setBigUint64, 2, 0,
                     DataViewSetBigUint64),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 const JSPropertySpec DataViewObject::properties[] = {
     JS_PSG("buffer", DataViewObject::bufferGetter, 0),
     JS_PSG("byteLength", DataViewObject::byteLengthGetter, 0),
     JS_PSG("byteOffset", DataViewObject::byteOffsetGetter, 0),
-    JS_STRING_SYM_PS(toStringTag, "DataView", JSPROP_READONLY), JS_PS_END};
+    JS_STRING_SYM_PS(toStringTag, "DataView", JSPROP_READONLY),
+    JS_PS_END,
+};
 
 JS_PUBLIC_API JSObject* JS_NewDataView(JSContext* cx, HandleObject buffer,
                                        size_t byteOffset, size_t byteLength) {

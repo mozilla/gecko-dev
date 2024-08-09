@@ -72,6 +72,8 @@ static const JSClassOps RecordObjectClassOps = {
     nullptr,      // trace
 };
 
-const JSClass RecordObject::class_ = {"RecordObject",
-                                      JSCLASS_HAS_RESERVED_SLOTS(SlotCount),
-                                      &RecordObjectClassOps};
+const JSClass RecordObject::class_ = {
+    "RecordObject",
+    JSCLASS_HAS_RESERVED_SLOTS(SlotCount),
+    &RecordObjectClassOps,
+};

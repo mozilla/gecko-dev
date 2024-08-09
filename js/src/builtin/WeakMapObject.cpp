@@ -310,15 +310,26 @@ const JSClass WeakMapObject::class_ = {
     "WeakMap",
     JSCLASS_HAS_RESERVED_SLOTS(SlotCount) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_WeakMap) | JSCLASS_BACKGROUND_FINALIZE,
-    &WeakCollectionObject::classOps_, &WeakMapObject::classSpec_};
+    &WeakCollectionObject::classOps_,
+    &WeakMapObject::classSpec_,
+};
 
 const JSClass WeakMapObject::protoClass_ = {
-    "WeakMap.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_WeakMap),
-    JS_NULL_CLASS_OPS, &WeakMapObject::classSpec_};
+    "WeakMap.prototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_WeakMap),
+    JS_NULL_CLASS_OPS,
+    &WeakMapObject::classSpec_,
+};
 
 const JSPropertySpec WeakMapObject::properties[] = {
-    JS_STRING_SYM_PS(toStringTag, "WeakMap", JSPROP_READONLY), JS_PS_END};
+    JS_STRING_SYM_PS(toStringTag, "WeakMap", JSPROP_READONLY),
+    JS_PS_END,
+};
 
 const JSFunctionSpec WeakMapObject::methods[] = {
-    JS_FN("has", has, 1, 0), JS_FN("get", get, 1, 0),
-    JS_FN("delete", delete_, 1, 0), JS_FN("set", set, 2, 0), JS_FS_END};
+    JS_FN("has", has, 1, 0),
+    JS_FN("get", get, 1, 0),
+    JS_FN("delete", delete_, 1, 0),
+    JS_FN("set", set, 2, 0),
+    JS_FS_END,
+};

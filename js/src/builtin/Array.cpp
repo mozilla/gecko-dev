@@ -5117,9 +5117,11 @@ static const JSFunctionSpec array_methods[] = {
 
     JS_SELF_HOSTED_FN("toReversed", "ArrayToReversed", 0, 0),
     JS_SELF_HOSTED_FN("toSorted", "ArrayToSorted", 1, 0),
-    JS_FN("toSpliced", array_toSpliced, 2, 0), JS_FN("with", array_with, 2, 0),
+    JS_FN("toSpliced", array_toSpliced, 2, 0),
+    JS_FN("with", array_with, 2, 0),
 
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSFunctionSpec array_static_methods[] = {
     JS_INLINABLE_FN("isArray", array_isArray, 1, 0, ArrayIsArray),
@@ -5127,10 +5129,13 @@ static const JSFunctionSpec array_static_methods[] = {
     JS_SELF_HOSTED_FN("fromAsync", "ArrayFromAsync", 3, 0),
     JS_FN("of", array_of, 0, 0),
 
-    JS_FS_END};
+    JS_FS_END,
+};
 
 const JSPropertySpec array_static_props[] = {
-    JS_SELF_HOSTED_SYM_GET(species, "$ArraySpecies", 0), JS_PS_END};
+    JS_SELF_HOSTED_SYM_GET(species, "$ArraySpecies", 0),
+    JS_PS_END,
+};
 
 static inline bool ArrayConstructorImpl(JSContext* cx, CallArgs& args,
                                         bool isConstructor) {
@@ -5406,12 +5411,15 @@ static const ClassSpec ArrayObjectClassSpec = {
     array_static_props,
     array_methods,
     nullptr,
-    array_proto_finish};
+    array_proto_finish,
+};
 
 const JSClass ArrayObject::class_ = {
     "Array",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Array) | JSCLASS_DELAY_METADATA_BUILDER,
-    &ArrayObjectClassOps, &ArrayObjectClassSpec};
+    &ArrayObjectClassOps,
+    &ArrayObjectClassSpec,
+};
 
 ArrayObject* js::NewDenseEmptyArray(JSContext* cx) {
   return NewArray<0>(cx, 0, GenericObject);
