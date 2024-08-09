@@ -177,11 +177,10 @@ static auto CreateDocumentLoadInfo(CanonicalBrowsingContext* aBrowsingContext,
 
 // Construct a LoadInfo object to use when creating the internal channel for an
 // Object/Embed load.
-static auto CreateObjectLoadInfo(nsDocShellLoadState* aLoadState,
-                                 uint64_t aInnerWindowId,
-                                 nsContentPolicyType aContentPolicyType,
-                                 uint32_t aSandboxFlags)
-    -> already_AddRefed<LoadInfo> {
+static auto CreateObjectLoadInfo(
+    nsDocShellLoadState* aLoadState, uint64_t aInnerWindowId,
+    nsContentPolicyType aContentPolicyType,
+    uint32_t aSandboxFlags) -> already_AddRefed<LoadInfo> {
   RefPtr<WindowGlobalParent> wgp =
       WindowGlobalParent::GetByInnerWindowId(aInnerWindowId);
   MOZ_RELEASE_ASSERT(wgp);
@@ -1023,8 +1022,8 @@ auto DocumentLoadListener::OpenObject(
     uint64_t aInnerWindowId, nsLoadFlags aLoadFlags,
     nsContentPolicyType aContentPolicyType, bool aUrgentStart,
     dom::ContentParent* aContentParent,
-    ObjectUpgradeHandler* aObjectUpgradeHandler, nsresult* aRv)
-    -> RefPtr<OpenPromise> {
+    ObjectUpgradeHandler* aObjectUpgradeHandler,
+    nsresult* aRv) -> RefPtr<OpenPromise> {
   LOG(("DocumentLoadListener [%p] OpenObject [uri=%s]", this,
        aLoadState->URI()->GetSpecOrDefault().get()));
 
@@ -1231,10 +1230,9 @@ void DocumentLoadListener::CleanupParentLoadAttempt(uint64_t aLoadIdent) {
   registrar->DeregisterChannels(aLoadIdent);
 }
 
-auto DocumentLoadListener::ClaimParentLoad(DocumentLoadListener** aListener,
-                                           uint64_t aLoadIdent,
-                                           Maybe<uint64_t> aChannelId)
-    -> RefPtr<OpenPromise> {
+auto DocumentLoadListener::ClaimParentLoad(
+    DocumentLoadListener** aListener, uint64_t aLoadIdent,
+    Maybe<uint64_t> aChannelId) -> RefPtr<OpenPromise> {
   nsCOMPtr<nsIRedirectChannelRegistrar> registrar =
       RedirectChannelRegistrar::GetOrCreate();
 
