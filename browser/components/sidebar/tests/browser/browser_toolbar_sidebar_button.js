@@ -202,3 +202,35 @@ add_task(async function test_states_for_hide_sidebar() {
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();
 }).skip(); //bug 1896421
+
+add_task(async function test_sidebar_button_runtime_pref_enabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", false]],
+  });
+  let button = document.getElementById("sidebar-button");
+  Assert.ok(
+    BrowserTestUtils.isVisible(button),
+    "The sidebar button is visible"
+  );
+
+  CustomizableUI.removeWidgetFromArea("sidebar-button");
+  Assert.ok(
+    BrowserTestUtils.isHidden(button),
+    "The sidebar button is not visible after being removed"
+  );
+
+  // rever the pref change, this should cause the button to be placed in the nav-bar
+  await SpecialPowers.popPrefEnv();
+  button = document.getElementById("sidebar-button");
+  Assert.ok(
+    BrowserTestUtils.isVisible(button),
+    "The sidebar button is visible again when the pref is flipped"
+  );
+
+  let widgetPlacement = CustomizableUI.getPlacementOfWidget("sidebar-button");
+  Assert.equal(
+    widgetPlacement.area,
+    CustomizableUI.AREA_NAVBAR,
+    "The sidebar button is in the nav-bar"
+  );
+});
