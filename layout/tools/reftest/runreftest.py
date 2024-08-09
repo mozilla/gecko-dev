@@ -482,6 +482,11 @@ class RefTest(object):
         elif manifests:
             prefs["reftest.manifests"] = json.dumps(manifests)
 
+        # Avoid unncessary recursion when MOZHARNESS_TEST_PATHS is set
+        prefs["reftest.mozharness_test_paths"] = (
+            len(os.environ.get("MOZHARNESS_TEST_PATHS", "")) > 0
+        )
+
         # default fission to True
         prefs["fission.autostart"] = True
         if options.disableFission:

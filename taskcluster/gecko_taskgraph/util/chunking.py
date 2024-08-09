@@ -75,8 +75,13 @@ def guess_mozinfo_from_task(task, repo="", test_tags=[]):
         "ccov": setting["build"].get("ccov", False),
         "debug": setting["build"]["type"] in ("debug", "debug-isolated-process"),
         "tsan": setting["build"].get("tsan", False),
+        "mingwclang": setting["build"].get("mingwclang", False),
         "nightly_build": repo in ["mozilla-central", "autoland", "try", ""],  # trunk
+        "repo": repo,
     }
+    # the following are used to evaluate reftest skip-if
+    info["release_or_beta"] = not info["nightly_build"]  # TO BE VALIDATED
+    info["webrtc"] = not info["mingwclang"]
 
     for platform in ("android", "linux", "mac", "win"):
         if p_os["name"].startswith(platform):
@@ -112,14 +117,16 @@ def guess_mozinfo_from_task(task, repo="", test_tags=[]):
         info["toolkit"] = "cocoa"
     else:
         info["toolkit"] = "gtk"
+        info["display"] = setting["platform"].get("display", "x11")
 
     # guess os_version
     os_versions = {
         ("linux", "1804"): "18.04",
         ("macosx", "1015"): "10.15",
-        ("macosx", "1100"): "11.00",
-        ("windows", "10"): "10.0",
-        ("windows", "11"): "11.0",
+        ("macosx", "1100"): "11.20",
+        ("macosx", "1400"): "14.40",
+        ("windows", "10"): "10.2009",
+        ("windows", "11"): "11.2009",
     }
     for (name, old_ver), new_ver in os_versions.items():
         if p_os["name"] == name and p_os["version"] == old_ver:
@@ -264,8 +271,8 @@ class DefaultLoader(BaseManifestLoader):
         )
 
     @memoize
-    def get_manifests(self, suite, mozinfo):
-        mozinfo = dict(mozinfo)
+    def get_manifests(self, suite, frozen_mozinfo):
+        mozinfo = dict(frozen_mozinfo)
         # Compute all tests for the given suite/subsuite.
         tests = self.get_tests(suite)
 
