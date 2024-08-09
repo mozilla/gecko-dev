@@ -36,9 +36,11 @@ static const JSClassOps BarkWhenTracedClassClassOps = {
     BarkWhenTracedClass::trace,     // trace
 };
 
-const JSClass BarkWhenTracedClass::class_ = {"BarkWhenTracedClass",
-                                             JSCLASS_FOREGROUND_FINALIZE,
-                                             &BarkWhenTracedClassClassOps};
+const JSClass BarkWhenTracedClass::class_ = {
+    "BarkWhenTracedClass",
+    JSCLASS_FOREGROUND_FINALIZE,
+    &BarkWhenTracedClassClassOps,
+};
 
 struct Kennel {
   PersistentRootedObject obj;

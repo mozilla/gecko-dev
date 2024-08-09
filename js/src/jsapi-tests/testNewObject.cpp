@@ -115,7 +115,11 @@ BEGIN_TEST(testNewObject_1) {
       constructHook,  // construct
       nullptr,        // trace
   };
-  static const JSClass cls = {"testNewObject_1", 0, &clsOps};
+  static const JSClass cls = {
+      "testNewObject_1",
+      0,
+      &clsOps,
+  };
   JS::RootedObject ctor(cx, JS_NewObject(cx, &cls));
   CHECK(ctor);
   JS::RootedValue ctorVal(cx, JS::ObjectValue(*ctor));
@@ -226,7 +230,10 @@ static bool Base_constructor(JSContext* cx, unsigned argc, JS::Value* vp) {
 
 END_TEST(testNewObject_Subclassing)
 
-static const JSClass TestClass = {"TestObject", JSCLASS_HAS_RESERVED_SLOTS(0)};
+static const JSClass TestClass = {
+    "TestObject",
+    JSCLASS_HAS_RESERVED_SLOTS(0),
+};
 
 BEGIN_TEST(testNewObject_elements) {
   Rooted<NativeObject*> obj(

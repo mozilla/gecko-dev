@@ -343,8 +343,11 @@ class JSAPIRuntimeTest : public JSAPITest {
   }
 
   static const JSClass* basicGlobalClass() {
-    static const JSClass c = {"global", JSCLASS_GLOBAL_FLAGS,
-                              &JS::DefaultGlobalClassOps};
+    static const JSClass c = {
+        "global",
+        JSCLASS_GLOBAL_FLAGS,
+        &JS::DefaultGlobalClassOps,
+    };
     return &c;
   }
 

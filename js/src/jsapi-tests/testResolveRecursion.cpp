@@ -28,7 +28,10 @@ BEGIN_TEST(testResolveRecursion) {
   };
 
   static const JSClass my_resolve_class = {
-      "MyResolve", JSCLASS_HAS_RESERVED_SLOTS(SlotCount), &my_resolve_classOps};
+      "MyResolve",
+      JSCLASS_HAS_RESERVED_SLOTS(SlotCount),
+      &my_resolve_classOps,
+  };
 
   obj1.init(cx, JS_NewObject(cx, &my_resolve_class));
   CHECK(obj1);
@@ -169,7 +172,9 @@ const JSClass* getGlobalClass() override {
 
   static const JSClass myGlobalClass = {
       "testResolveRecursion_InitStandardClasses_myGlobalClass",
-      JSCLASS_GLOBAL_FLAGS, &myGlobalClassOps};
+      JSCLASS_GLOBAL_FLAGS,
+      &myGlobalClassOps,
+  };
 
   return &myGlobalClass;
 }

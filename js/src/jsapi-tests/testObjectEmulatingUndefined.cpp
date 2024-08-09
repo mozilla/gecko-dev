@@ -5,7 +5,9 @@
 #include "jsapi-tests/tests.h"
 
 static const JSClass ObjectEmulatingUndefinedClass = {
-    "ObjectEmulatingUndefined", JSCLASS_EMULATES_UNDEFINED};
+    "ObjectEmulatingUndefined",
+    JSCLASS_EMULATES_UNDEFINED,
+};
 
 static bool ObjectEmulatingUndefinedConstructor(JSContext* cx, unsigned argc,
                                                 JS::Value* vp) {

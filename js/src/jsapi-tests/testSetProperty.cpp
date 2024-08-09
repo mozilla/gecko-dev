@@ -47,7 +47,9 @@ const JSClass* getGlobalClass(void) override {
 
   static const JSClass noResolveGlobalClass = {
       "testSetProperty_InheritedGlobalSetter_noResolveGlobalClass",
-      JSCLASS_GLOBAL_FLAGS, &noResolveGlobalClassOps};
+      JSCLASS_GLOBAL_FLAGS,
+      &noResolveGlobalClassOps,
+  };
 
   return &noResolveGlobalClass;
 }

@@ -29,9 +29,11 @@ static const JSClassOps CounterClassOps = {
     nullptr,     // trace
 };
 
-static const JSClass CounterClass = {"Counter", /* name */
-                                     0,         /* flags */
-                                     &CounterClassOps};
+static const JSClass CounterClass = {
+    "Counter", /* name */
+    0,         /* flags */
+    &CounterClassOps,
+};
 
 BEGIN_TEST(testPropCache_bug505798) {
   g_counter = 0;

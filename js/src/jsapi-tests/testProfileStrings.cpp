@@ -26,7 +26,10 @@ static void reset(JSContext* cx) {
   js::EnableContextProfilingStack(cx, true);
 }
 
-static const JSClass ptestClass = {"Prof", 0};
+static const JSClass ptestClass = {
+    "Prof",
+    0,
+};
 
 static bool test_fn(JSContext* cx, unsigned argc, JS::Value* vp) {
   peakStackPointer = profilingStack.stackPointer;
@@ -61,8 +64,12 @@ static bool Prof(JSContext* cx, unsigned argc, JS::Value* vp) {
 }
 
 static const JSFunctionSpec ptestFunctions[] = {
-    JS_FN("test_fn", test_fn, 0, 0), JS_FN("test_fn2", test_fn2, 0, 0),
-    JS_FN("enable", enable, 0, 0), JS_FN("disable", disable, 0, 0), JS_FS_END};
+    JS_FN("test_fn", test_fn, 0, 0),
+    JS_FN("test_fn2", test_fn2, 0, 0),
+    JS_FN("enable", enable, 0, 0),
+    JS_FN("disable", disable, 0, 0),
+    JS_FS_END,
+};
 
 static JSObject* initialize(JSContext* cx) {
   js::SetContextProfilingStack(cx, &profilingStack);

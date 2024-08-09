@@ -34,7 +34,10 @@ class TestTracer final : public JS::CallbackTracer {
         found(false) {}
 };
 
-static const JSClass TestClass = {"TestClass", JSCLASS_HAS_RESERVED_SLOTS(1)};
+static const JSClass TestClass = {
+    "TestClass",
+    JSCLASS_HAS_RESERVED_SLOTS(1),
+};
 
 BEGIN_TEST(testPrivateGCThingValue) {
   JS::RootedObject obj(cx, JS_NewObject(cx, &TestClass));

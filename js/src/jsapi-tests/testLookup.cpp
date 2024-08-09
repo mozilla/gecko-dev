@@ -36,8 +36,10 @@ BEGIN_TEST(testLookup_bug522590) {
 }
 END_TEST(testLookup_bug522590)
 
-static const JSClass DocumentAllClass = {"DocumentAll",
-                                         JSCLASS_EMULATES_UNDEFINED};
+static const JSClass DocumentAllClass = {
+    "DocumentAll",
+    JSCLASS_EMULATES_UNDEFINED,
+};
 
 bool document_resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                       bool* resolvedp) {
@@ -86,7 +88,11 @@ static const JSClassOps document_classOps = {
     nullptr,           // trace
 };
 
-static const JSClass document_class = {"document", 0, &document_classOps};
+static const JSClass document_class = {
+    "document",
+    0,
+    &document_classOps,
+};
 
 BEGIN_TEST(testLookup_bug570195) {
   JS::RootedObject obj(cx, JS_NewObject(cx, &document_class));
