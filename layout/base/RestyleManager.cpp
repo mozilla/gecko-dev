@@ -1306,7 +1306,7 @@ static void ApplyRenderingChangeToTree(PresShell* aPresShell, nsIFrame* aFrame,
     // the html element, we propagate the repaint change hint to the
     // viewport. This is necessary for background and scrollbar colors
     // propagation.
-    if (aFrame->IsPrimaryFrameOfRootOrBodyElement()) {
+    if (aFrame->ShouldPropagateRepaintsToRoot()) {
       nsIFrame* rootFrame = aPresShell->GetRootFrame();
       MOZ_ASSERT(rootFrame, "No root frame?");
       DoApplyRenderingChangeToTree(rootFrame, nsChangeHint_RepaintFrame);

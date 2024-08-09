@@ -2686,7 +2686,8 @@ void nsCSSFrameConstructor::SetUpDocElementContainingBlock(
         ScrollContainerFrame (if needed)
           nsCanvasFrame [abs-cb]
             root element frame (nsBlockFrame, SVGOuterSVGFrame,
-                                nsTableWrapperFrame, nsPlaceholderFrame)
+                                nsTableWrapperFrame, nsPlaceholderFrame,
+                                nsFlexContainerFrame, nsGridContainerFrame)
 
   Print presentation, non-XUL
 
@@ -2698,7 +2699,9 @@ void nsCSSFrameConstructor::SetUpDocElementContainingBlock(
                 nsPageContentFrame [fixed-cb]
                   nsCanvasFrame [abs-cb]
                     root element frame (nsBlockFrame, SVGOuterSVGFrame,
-                                        nsTableWrapperFrame, nsPlaceholderFrame)
+                                        nsTableWrapperFrame, nsPlaceholderFrame,
+                                        nsFlexContainerFrame,
+                                        nsGridContainerFrame)
 
   Print-preview presentation, non-XUL
 
@@ -2712,7 +2715,9 @@ void nsCSSFrameConstructor::SetUpDocElementContainingBlock(
                     nsCanvasFrame [abs-cb]
                       root element frame (nsBlockFrame, SVGOuterSVGFrame,
                                           nsTableWrapperFrame,
-                                          nsPlaceholderFrame)
+                                          nsPlaceholderFrame,
+                                          nsFlexContainerFrame,
+                                          nsGridContainerFrame)
 
   Print/print preview of XUL is not supported.
   [fixed-cb]: the default containing block for fixed-pos content

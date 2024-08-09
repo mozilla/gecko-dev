@@ -118,6 +118,9 @@ skip-if = [
 ]
 
 ["test_animated_css_image.html"]
+support-files = [
+  "../animated_image_test_list.js"
+]
 
 ["test_animated_gif.html"]
 support-files = ["child.html"]

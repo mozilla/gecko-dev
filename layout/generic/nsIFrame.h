@@ -2468,7 +2468,7 @@ class nsIFrame : public nsQueryFrame {
     }
   }
 
-  bool IsPrimaryFrameOfRootOrBodyElement() const;
+  bool ShouldPropagateRepaintsToRoot() const;
 
   /**
    * @return true if this frame is used as a fieldset's rendered legend.
