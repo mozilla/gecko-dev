@@ -17,33 +17,119 @@
   </head>
   <body>
     <h1 data-l10n-id="about-inference-header"></h1>
-    <p data-l10n-id="about-inference-description"></p>
+    <p>
+      <span data-l10n-id="about-inference-description"></span>
 
-    <a
-      href="https://firefox-source-docs.mozilla.org/toolkit/components/ml"
-      data-l10n-id="about-inference-learn-more"
-    ></a>
+      <a
+        href="https://firefox-source-docs.mozilla.org/toolkit/components/ml"
+        data-l10n-id="about-inference-learn-more"
+      ></a>
+    </p>
 
     <div id="warning" data-l10n-id="about-inference-warning"></div>
 
-    <div id="generalInfo">
-      <ul>
-        <li>
-          <span data-l10n-id="about-inference-simd-supported"></span>:
-          <span id="onnxSimd"></span>
-        </li>
-        <li>
-          <span data-l10n-id="about-inference-onnx-runtime-file"></span>:
-          <span id="onnxRuntime"></span>
-        </li>
-      </ul>
+    <div id="content">
+      <div class="fieldset-container">
+        <fieldset>
+          <legend>Inference Pad</legend>
+
+          Predefined example:
+          <select id="predefined">
+            <option value="summary">Summary</option>
+            <option value="image-to-text">Image To Text</option>
+            <option value="zero">Zero Shot Classification</option>
+            <option value="ner">NER</option>
+          </select>
+
+          <hr />
+          <div class="form-container">
+            <div>
+              Pick a Model Hub to use:
+              <span class="tooltip"
+                >ℹ️
+                <span class="tooltiptext">
+                  If you want to use Hugging Face, start Firefox with
+                  MOZ_ALLOW_EXTERNAL_ML_HUB=1
+                </span>
+              </span>
+
+              <select id="modelHub">
+                <option value="mozilla">Mozilla</option>
+                <option value="hf">Hugging Face</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="taskName">Task:</label>
+              <select id="taskName">
+                <option value="summarization">Summarization</option>
+                <option value="image-to-text">Image to text</option>
+                <option value="token-classification">
+                  NER (Token Classification)
+                </option>
+                <option value="zero-shot-classification">
+                  Zero Shot Classification
+                </option>
+              </select>
+            </div>
+            <div>
+              <label for="modelId">Model id:</label>
+              <span class="tooltip"
+                >ℹ️
+                <span class="tooltiptext"
+                  >The model needs to be compatible with Transformers.js</span
+                >
+              </span>
+
+              <input
+                type="text"
+                id="modelId"
+                value="mozilla/text_summarization"
+              />
+            </div>
+            <div>
+              <label for="modelRevision">Model Revision:</label>
+              <span class="tooltip"
+                >ℹ️
+                <span class="tooltiptext"
+                  >This is typically the branch of the model repository.</span
+                >
+              </span>
+
+              <input type="text" id="modelRevision" value="main" />
+            </div>
+            <div>
+              <label for="inferencePad">Input data:</label>
+              <span class="tooltip"
+                >ℹ️
+                <span class="tooltiptext"
+                  >Keep the JSON valid, with the provided keys.</span
+                >
+              </span>
+
+              <textarea id="inferencePad"></textarea>
+            </div>
+            <div>
+              <input type="button" id="inferenceButton" value="Run Inference" />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-l10n-id="about-inference-processes-title"></legend>
+          <div id="runningInference"></div>
+          <h3>Downloads</h3>
+          <div id="downloads"></div>
+          <h3>Console</h3>
+          <textarea readonly id="console"></textarea>
+        </fieldset>
+      </div>
+
+      <fieldset class="large">
+        <legend data-l10n-id="about-inference-models-title"></legend>
+        <p data-l10n-id="about-inference-downloads-description"></p>
+        <div id="modelFiles"></div>
+      </fieldset>
     </div>
-
-    <h2 data-l10n-id="about-inference-processes-title"></h2>
-    <div id="runningInference"></div>
-
-    <h2 data-l10n-id="about-inference-models-title"></h2>
-    <p data-l10n-id="about-inference-downloads-description"></p>
-    <div id="modelFiles"></div>
   </body>
 </html>

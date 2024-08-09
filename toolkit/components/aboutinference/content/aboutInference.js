@@ -13,8 +13,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
-  detectSimdSupport: "chrome://global/content/ml/Utils.sys.mjs",
-  getRuntimeWasmFilename: "chrome://global/content/ml/Utils.sys.mjs",
   DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
 });
 
@@ -31,6 +29,53 @@ const MODEL_HUB_URL_TEMPLATE = Services.prefs.getStringPref(
 
 let modelHub = null;
 let modelCache = null;
+
+/**
+ * Presets for the pad
+ */
+const INFERENCE_PAD_PRESETS = {
+  "image-to-text": {
+    inputArgs: [
+      "https://huggingface.co/datasets/mishig/sample_images/resolve/main/football-match.jpg",
+    ],
+    runOptions: {},
+    task: "image-to-text",
+    modelId: "Xenova/vit-gpt2-image-captioning",
+    modelRevision: "main",
+    modelHub: "hf",
+  },
+  ner: {
+    inputArgs: ["Sarah lives in the United States of America"],
+    runOptions: {},
+    task: "token-classification",
+    modelId: "Xenova/bert-base-NER",
+    modelRevision: "main",
+    modelHub: "hf",
+  },
+  summary: {
+    inputArgs: [
+      "The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest man-made structure in the world, a title it held for 41 years until the Chrysler Building in New York City was finished in 1930. It was the first structure to reach a height of 300 metres. Due to the addition of a broadcasting aerial at the top of the tower in 1957, it is now taller than the Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second tallest free-standing structure in France after the Millau Viaduct.",
+    ],
+    runOptions: {
+      max_length: 100,
+    },
+    task: "summarization",
+    modelId: "Xenova/long-t5-tglobal-base-16384-book-summary",
+    modelRevision: "main",
+    modelHub: "hf",
+  },
+  zero: {
+    inputArgs: [
+      "Last week I upgraded my iOS version and ever since then my phone has been overheating whenever I use your app.",
+      ["mobile", "billing", "website", "account access"],
+    ],
+    runOptions: {},
+    task: "zero-shot-classification",
+    modelId: "Xenova/mobilebert-uncased-mnli",
+    modelRevision: "main",
+    modelHub: "hf",
+  },
+};
 
 /**
  * Gets an instance of ModelHub. Initializes it if it doesn't already exist.
@@ -125,6 +170,9 @@ async function displayInfo() {
   if (!ML_ENABLE) {
     let warning = document.getElementById("warning");
     warning.style.display = "block";
+    document.getElementById("content").style.display = "none";
+  } else {
+    document.getElementById("content").style.display = "block";
   }
 
   let cache = await lazy.IndexedDBCache.init();
@@ -206,20 +254,186 @@ async function displayInfo() {
   modelFilesDiv.appendChild(fragment);
 
   await displayProcessInfo();
-  document.getElementById("onnxRuntime").textContent =
-    lazy.getRuntimeWasmFilename();
+}
 
-  if (lazy.detectSimdSupport()) {
-    document.l10n.setAttributes(
-      document.getElementById("onnxSimd"),
-      "about-inference-yes"
-    );
-  } else {
-    document.l10n.setAttributes(
-      document.getElementById("onnxSimd"),
-      "about-inference-no"
-    );
+function setSelectOption(selectId, optionValue) {
+  const selectElement = document.getElementById(selectId);
+  if (!selectElement) {
+    console.error(`No select element found with ID: ${selectId}`);
+    return;
   }
+
+  const options = selectElement.options;
+  if (!options) {
+    console.error(`No options found for select element with ID: ${selectId}`);
+    return;
+  }
+
+  for (let i = 0; i < options.length; i++) {
+    if (options[i].value === optionValue) {
+      selectElement.selectedIndex = i;
+      return;
+    }
+  }
+
+  console.warn(`No option found with value: ${optionValue}`);
+}
+
+function loadExample(name) {
+  let data = INFERENCE_PAD_PRESETS[name];
+  let padContent = { inputArgs: data.inputArgs, runOptions: data.runOptions };
+  document.getElementById("inferencePad").value = JSON.stringify(
+    padContent,
+    null,
+    2
+  );
+  setSelectOption("taskName", data.task);
+  document.getElementById("modelId").value = data.modelId;
+  document.getElementById("modelRevision").value = data.modelRevision;
+  setSelectOption("modelHub", data.modelHub);
+}
+
+function formatJSON() {
+  const textarea = document.getElementById("inferencePad");
+  const jsonInput = textarea.value;
+
+  const jsonObject = JSON.parse(jsonInput);
+  const formattedJson = JSON.stringify(jsonObject, null, 2); // Pretty-print with 2 spaces
+  textarea.value = formattedJson;
+}
+
+async function runInference() {
+  document.getElementById("console").value = "";
+  const inferencePadValue = document.getElementById("inferencePad").value;
+  const modelId = document.getElementById("modelId").value;
+  const modelRevision = document.getElementById("modelRevision").value;
+  const taskName = document.getElementById("taskName").value;
+
+  let inputData;
+  try {
+    inputData = JSON.parse(inferencePadValue);
+  } catch (error) {
+    alert("Invalid JSON input");
+    return;
+  }
+
+  const modelHubRootUrl = "https://huggingface.co";
+  const modelHubUrlTemplate = "{model}/resolve/{revision}";
+
+  const initData = {
+    modelId,
+    modelRevision,
+    tokenizerRevision: modelRevision,
+    processorRevision: modelRevision,
+    tokenizerId: modelId,
+    processorId: modelId,
+    taskName,
+    engineId: "about:inference",
+    modelHubRootUrl,
+    modelHubUrlTemplate,
+  };
+
+  const { createEngine } = ChromeUtils.importESModule(
+    "chrome://global/content/ml/EngineProcess.sys.mjs"
+  );
+
+  appendTextConsole("Creating engine if needed");
+  let engine;
+  try {
+    engine = await createEngine(initData, appendConsole);
+  } catch (e) {
+    appendTextConsole(e);
+    throw e;
+  }
+
+  appendTextConsole("Running inference request");
+
+  const request = { args: inputData.inputArgs, options: inputData.runOptions };
+
+  let res;
+
+  try {
+    res = await engine.run(request);
+  } catch (e) {
+    appendTextConsole(e);
+    if (
+      e.message.includes("Invalid model hub root url: https://huggingface.co")
+    ) {
+      appendTextConsole(
+        "Make sure you started Firefox with MOZ_ALLOW_EXTERNAL_ML_HUB=1"
+      );
+    }
+
+    throw e;
+  }
+
+  appendTextConsole(`Results: ${JSON.stringify(res, null, 2)}`);
+  // Add your code here to handle the data object
+  // For example, send it to a server or process it further
+}
+
+function updateDownloadProgress(data) {
+  const downloadsContainer = document.getElementById("downloads");
+
+  const progressPercentage = Math.round(data.progress) || 100;
+  let progressBarContainer = document.getElementById(data.id);
+
+  // does not exist, we add it.
+  if (!progressBarContainer) {
+    // Create a new progress bar container
+    progressBarContainer = document.createElement("div");
+    progressBarContainer.id = data.id;
+    progressBarContainer.className = "progress-bar-container";
+
+    // Create the label
+    const label = document.createElement("div");
+    label.textContent = data.metadata.file;
+    progressBarContainer.appendChild(label);
+
+    // Create the progress bar
+    const progressBar = document.createElement("div");
+    progressBar.className = "progress-bar";
+
+    const progressBarFill = document.createElement("div");
+    progressBarFill.className = "progress-bar-fill";
+    progressBarFill.style.width = `${progressPercentage}%`;
+    progressBarFill.textContent = `${progressPercentage}%`;
+    progressBar.appendChild(progressBarFill);
+    progressBarContainer.appendChild(progressBar);
+    // Add the progress bar container to the downloads div
+    downloadsContainer.appendChild(progressBarContainer);
+  } else {
+    // Update the existing progress bar
+    const progressBarFill =
+      progressBarContainer.querySelector(".progress-bar-fill");
+    progressBarFill.style.width = `${progressPercentage}%`;
+    progressBarFill.textContent = `${progressPercentage}%`;
+  }
+
+  if (progressBarContainer && progressPercentage === 100) {
+    downloadsContainer.removeChild(progressBarContainer);
+  }
+}
+
+function appendConsole(data) {
+  let text;
+  const textarea = document.getElementById("console");
+  switch (data.type) {
+    case "loading_from_cache":
+      text = `Loading ${data.metadata.file} from cache`;
+      break;
+    case "downloading":
+      updateDownloadProgress(data);
+      return;
+    default:
+      text = JSON.stringify(data);
+  }
+  textarea.value += (textarea.value ? "\n" : "") + text;
+}
+
+function appendTextConsole(text) {
+  const textarea = document.getElementById("console");
+  textarea.value += (textarea.value ? "\n" : "") + text;
 }
 
 /**
@@ -227,7 +441,24 @@ async function displayInfo() {
  *
  * @async
  */
+
+var selectedHub;
+var selectedPreset;
+
 window.onload = async function () {
   await displayInfo();
+  loadExample("summary");
   setInterval(displayInfo, 5000);
+  document
+    .getElementById("inferenceButton")
+    .addEventListener("click", runInference);
+  document.getElementById("modelHub").addEventListener("change", function () {
+    var selectedOption = this.options[this.selectedIndex];
+    selectedHub = selectedOption.value;
+  });
+  document.getElementById("predefined").addEventListener("change", function () {
+    var selectedOption = this.options[this.selectedIndex];
+    selectedPreset = selectedOption.value;
+    loadExample(selectedPreset);
+  });
 };

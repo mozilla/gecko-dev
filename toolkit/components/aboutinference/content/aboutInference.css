@@ -57,4 +57,148 @@ tr:nth-child(odd) td {
 
 #warning {
   display: none;
+  border: 1px solid red;
+  padding: 10px;
+  color: red;
+}
+
+textarea {
+  width: 100%;
+  height: calc(1.2em * 20);
+  box-sizing: border-box;
+ }
+
+legend {
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 5px;
+}
+
+.fieldset-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+fieldset {
+  width: 49%;
+  padding: 10px;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+fieldset.large {
+  width: 100%;
+}
+
+legend {
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 5px;
+}
+
+.form-container {
+  margin: auto;
+  padding-right: 10px;
+}
+
+.form-container div {
+  margin-bottom: 15px;
+}
+
+.form-container label {
+  display: inline-block;
+  font-weight: bold;
+}
+
+.form-container input[type="text"],
+.form-container select,
+.form-container textarea {
+  width: 100%;
+  padding: 8px;
+  margin-left: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-container textarea {
+  height: 200px;
+  resize: vertical;
+}
+
+.form-container input[type="button"] {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.form-container input[type="button"]:hover {
+  background-color: #45a049;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  max-width: 300px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip .tooltiptext::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: black transparent transparent transparent;
+}
+
+.progress-bar-container {
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  width: 100%;
+  background-color: #f3f3f3;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 20px;
+  background-color: #4caf50;
+  text-align: center;
+  color: white;
+  padding-left: 5px;
+  line-height: 20px;
+  border-radius: 5px;
 }
