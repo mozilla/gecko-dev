@@ -263,14 +263,7 @@ nsStyleFont::nsStyleFont(const Document& aDocument)
 nsChangeHint nsStyleFont::CalcDifference(const nsStyleFont& aNewData) const {
   MOZ_ASSERT(mXTextScale == aNewData.mXTextScale,
              "expected -x-text-scale to be the same on both nsStyleFonts");
-  // A change to mLanguage can affect the generated-content for quotes in
-  // descendant frames, so we have to reconstruct frames in order to update
-  // any quote marks that may be present.
-  if (mLanguage != aNewData.mLanguage) {
-    return nsChangeHint_ReconstructFrame;
-  }
-
-  if (mSize != aNewData.mSize ||
+  if (mSize != aNewData.mSize || mLanguage != aNewData.mLanguage ||
       mExplicitLanguage != aNewData.mExplicitLanguage ||
       mMathVariant != aNewData.mMathVariant ||
       mMathStyle != aNewData.mMathStyle ||
