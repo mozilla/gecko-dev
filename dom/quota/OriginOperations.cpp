@@ -1457,11 +1457,11 @@ nsresult GetOriginUsageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   AUTO_PROFILER_LABEL("GetOriginUsageOp::DoDirectoryWork", OTHER);
 
   if (mFromMemory) {
-    // Ensure temporary storage is initialized. If temporary storage hasn't been
-    // initialized yet, the method will initialize it by traversing the
-    // repositories for temporary and default storage (including our origin).
-    QM_TRY(MOZ_TO_RESULT(
-        aQuotaManager.EnsureTemporaryStorageIsInitializedInternal()));
+    // If temporary storage hasn't been initialized yet, there's no cached
+    // usage to report.
+    if (!aQuotaManager.IsTemporaryStorageInitializedInternal()) {
+      return NS_OK;
+    }
 
     // Get cached usage (the method doesn't have to stat any files). File usage
     // is not tracked in memory separately, so just add to the database usage.
