@@ -293,7 +293,8 @@ static_assert(SuspenderObjectDataSlot == SuspenderObject::DataSlot);
 const JSClass SuspenderObject::class_ = {
     "SuspenderObject",
     JSCLASS_HAS_RESERVED_SLOTS(SlotCount) | JSCLASS_BACKGROUND_FINALIZE,
-    &SuspenderObject::classOps_};
+    &SuspenderObject::classOps_,
+};
 
 const JSClassOps SuspenderObject::classOps_ = {
     nullptr,   // addProperty

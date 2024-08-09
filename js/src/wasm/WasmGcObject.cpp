@@ -464,7 +464,7 @@ static const JSClassOps WasmArrayObjectClassOps = {
     WasmArrayObject::obj_trace,
 };
 static const ClassExtension WasmArrayObjectClassExt = {
-    WasmArrayObject::obj_moved /* objectMovedOp */
+    WasmArrayObject::obj_moved, /* objectMovedOp */
 };
 const JSClass WasmArrayObject::class_ = {
     "WasmArrayObject",
@@ -473,7 +473,8 @@ const JSClass WasmArrayObject::class_ = {
     &WasmArrayObjectClassOps,
     JS_NULL_CLASS_SPEC,
     &WasmArrayObjectClassExt,
-    &WasmGcObject::objectOps_};
+    &WasmGcObject::objectOps_,
+};
 
 //=========================================================================
 // WasmStructObject
@@ -609,7 +610,7 @@ static const JSClassOps WasmStructObjectOutlineClassOps = {
     WasmStructObject::obj_trace,
 };
 static const ClassExtension WasmStructObjectOutlineClassExt = {
-    WasmStructObject::obj_moved /* objectMovedOp */
+    WasmStructObject::obj_moved, /* objectMovedOp */
 };
 const JSClass WasmStructObject::classOutline_ = {
     "WasmStructObject",
@@ -618,7 +619,8 @@ const JSClass WasmStructObject::classOutline_ = {
     &WasmStructObjectOutlineClassOps,
     JS_NULL_CLASS_SPEC,
     &WasmStructObjectOutlineClassExt,
-    &WasmGcObject::objectOps_};
+    &WasmGcObject::objectOps_,
+};
 
 // Structs that only have inline data get a different class without a
 // finalizer. This class should otherwise be identical to the class for
@@ -636,7 +638,7 @@ static const JSClassOps WasmStructObjectInlineClassOps = {
     WasmStructObject::obj_trace,
 };
 static const ClassExtension WasmStructObjectInlineClassExt = {
-    nullptr /* objectMovedOp */
+    nullptr, /* objectMovedOp */
 };
 const JSClass WasmStructObject::classInline_ = {
     "WasmStructObject",
@@ -644,4 +646,5 @@ const JSClass WasmStructObject::classInline_ = {
     &WasmStructObjectInlineClassOps,
     JS_NULL_CLASS_SPEC,
     &WasmStructObjectInlineClassExt,
-    &WasmGcObject::objectOps_};
+    &WasmGcObject::objectOps_,
+};

@@ -1024,20 +1024,25 @@ const ClassSpec WasmModuleObject::classSpec_ = {
     WasmModuleObject::methods,
     WasmModuleObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 const JSPropertySpec WasmModuleObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Module", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
-const JSFunctionSpec WasmModuleObject::methods[] = {JS_FS_END};
+const JSFunctionSpec WasmModuleObject::methods[] = {
+    JS_FS_END,
+};
 
 const JSFunctionSpec WasmModuleObject::static_methods[] = {
     JS_FN("imports", WasmModuleObject::imports, 1, JSPROP_ENUMERATE),
     JS_FN("exports", WasmModuleObject::exports, 1, JSPROP_ENUMERATE),
     JS_FN("customSections", WasmModuleObject::customSections, 2,
           JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 /* static */
 void WasmModuleObject::finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -1637,7 +1642,8 @@ const ClassSpec WasmInstanceObject::classSpec_ = {
     WasmInstanceObject::methods,
     WasmInstanceObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 static bool IsInstance(HandleValue v) {
   return v.isObject() && v.toObject().is<WasmInstanceObject>();
@@ -1661,11 +1667,16 @@ bool WasmInstanceObject::exportsGetter(JSContext* cx, unsigned argc,
 const JSPropertySpec WasmInstanceObject::properties[] = {
     JS_PSG("exports", WasmInstanceObject::exportsGetter, JSPROP_ENUMERATE),
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Instance", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
-const JSFunctionSpec WasmInstanceObject::methods[] = {JS_FS_END};
+const JSFunctionSpec WasmInstanceObject::methods[] = {
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmInstanceObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmInstanceObject::static_methods[] = {
+    JS_FS_END,
+};
 
 bool WasmInstanceObject::isNewborn() const {
   MOZ_ASSERT(is<WasmInstanceObject>());
@@ -2325,7 +2336,9 @@ const JSClass WasmMemoryObject::class_ = {
     JSCLASS_DELAY_METADATA_BUILDER |
         JSCLASS_HAS_RESERVED_SLOTS(WasmMemoryObject::RESERVED_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &WasmMemoryObject::classOps_, &WasmMemoryObject::classSpec_};
+    &WasmMemoryObject::classOps_,
+    &WasmMemoryObject::classSpec_,
+};
 
 const JSClass& WasmMemoryObject::protoClass_ = PlainObject::class_;
 
@@ -2354,7 +2367,8 @@ const ClassSpec WasmMemoryObject::classSpec_ = {
     WasmMemoryObject::methods,
     WasmMemoryObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /* static */
 void WasmMemoryObject::finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -2484,7 +2498,8 @@ bool WasmMemoryObject::bufferGetter(JSContext* cx, unsigned argc, Value* vp) {
 const JSPropertySpec WasmMemoryObject::properties[] = {
     JS_PSG("buffer", WasmMemoryObject::bufferGetter, JSPROP_ENUMERATE),
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Memory", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 /* static */
 bool WasmMemoryObject::growImpl(JSContext* cx, const CallArgs& args) {
@@ -2566,13 +2581,18 @@ const JSFunctionSpec WasmMemoryObject::methods[] = {
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
     JS_FN("type", WasmMemoryObject::type, 0, JSPROP_ENUMERATE),
 #endif
-    JS_FN("grow", WasmMemoryObject::grow, 1, JSPROP_ENUMERATE), JS_FS_END};
+    JS_FN("grow", WasmMemoryObject::grow, 1, JSPROP_ENUMERATE),
+    JS_FS_END,
+};
 
 const JSFunctionSpec WasmMemoryObject::memoryControlMethods[] = {
     JS_FN("discard", WasmMemoryObject::discard, 2, JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmMemoryObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmMemoryObject::static_methods[] = {
+    JS_FS_END,
+};
 
 ArrayBufferObjectMaybeShared& WasmMemoryObject::buffer() const {
   return getReservedSlot(BUFFER_SLOT)
@@ -2830,7 +2850,9 @@ const JSClass WasmTableObject::class_ = {
     JSCLASS_DELAY_METADATA_BUILDER |
         JSCLASS_HAS_RESERVED_SLOTS(WasmTableObject::RESERVED_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &WasmTableObject::classOps_, &WasmTableObject::classSpec_};
+    &WasmTableObject::classOps_,
+    &WasmTableObject::classSpec_,
+};
 
 const JSClass& WasmTableObject::protoClass_ = PlainObject::class_;
 
@@ -2844,7 +2866,8 @@ const ClassSpec WasmTableObject::classSpec_ = {
     WasmTableObject::methods,
     WasmTableObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 bool WasmTableObject::isNewborn() const {
   MOZ_ASSERT(is<WasmTableObject>());
@@ -3017,7 +3040,8 @@ bool WasmTableObject::lengthGetter(JSContext* cx, unsigned argc, Value* vp) {
 const JSPropertySpec WasmTableObject::properties[] = {
     JS_PSG("length", WasmTableObject::lengthGetter, JSPROP_ENUMERATE),
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Table", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 static bool ToTableIndexOrDelta(JSContext* cx, HandleValue v,
                                 const Table& table, const char* noun,
@@ -3191,9 +3215,13 @@ const JSFunctionSpec WasmTableObject::methods[] = {
 #endif
     JS_FN("get", WasmTableObject::get, 1, JSPROP_ENUMERATE),
     JS_FN("set", WasmTableObject::set, 2, JSPROP_ENUMERATE),
-    JS_FN("grow", WasmTableObject::grow, 1, JSPROP_ENUMERATE), JS_FS_END};
+    JS_FN("grow", WasmTableObject::grow, 1, JSPROP_ENUMERATE),
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmTableObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmTableObject::static_methods[] = {
+    JS_FS_END,
+};
 
 Table& WasmTableObject::table() const {
   return *(Table*)getReservedSlot(TABLE_SLOT).toPrivate();
@@ -3244,7 +3272,9 @@ const JSClass WasmGlobalObject::class_ = {
     "WebAssembly.Global",
     JSCLASS_HAS_RESERVED_SLOTS(WasmGlobalObject::RESERVED_SLOTS) |
         JSCLASS_BACKGROUND_FINALIZE,
-    &WasmGlobalObject::classOps_, &WasmGlobalObject::classSpec_};
+    &WasmGlobalObject::classOps_,
+    &WasmGlobalObject::classSpec_,
+};
 
 const JSClass& WasmGlobalObject::protoClass_ = PlainObject::class_;
 
@@ -3258,7 +3288,8 @@ const ClassSpec WasmGlobalObject::classSpec_ = {
     WasmGlobalObject::methods,
     WasmGlobalObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /* static */
 void WasmGlobalObject::trace(JSTracer* trc, JSObject* obj) {
@@ -3454,16 +3485,20 @@ const JSPropertySpec WasmGlobalObject::properties[] = {
     JS_PSGS("value", WasmGlobalObject::valueGetter,
             WasmGlobalObject::valueSetter, JSPROP_ENUMERATE),
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Global", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 const JSFunctionSpec WasmGlobalObject::methods[] = {
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
     JS_FN("type", WasmGlobalObject::type, 0, JSPROP_ENUMERATE),
 #endif
     JS_FN("valueOf", WasmGlobalObject::valueGetter, 0, JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmGlobalObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmGlobalObject::static_methods[] = {
+    JS_FS_END,
+};
 
 bool WasmGlobalObject::isMutable() const {
   return getReservedSlot(MUTABLE_SLOT).toBoolean();
@@ -3529,7 +3564,9 @@ const JSClass WasmTagObject::class_ = {
     "WebAssembly.Tag",
     JSCLASS_HAS_RESERVED_SLOTS(WasmTagObject::RESERVED_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &WasmTagObject::classOps_, &WasmTagObject::classSpec_};
+    &WasmTagObject::classOps_,
+    &WasmTagObject::classSpec_,
+};
 
 const JSClass& WasmTagObject::protoClass_ = PlainObject::class_;
 
@@ -3543,7 +3580,8 @@ const ClassSpec WasmTagObject::classSpec_ = {
     WasmTagObject::methods,
     WasmTagObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /* static */
 void WasmTagObject::finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -3621,7 +3659,8 @@ WasmTagObject* WasmTagObject::create(JSContext* cx,
 
 const JSPropertySpec WasmTagObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Tag", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
 /* static */
@@ -3646,9 +3685,12 @@ const JSFunctionSpec WasmTagObject::methods[] = {
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
     JS_FN("type", WasmTagObject::type, 0, JSPROP_ENUMERATE),
 #endif
-    JS_FS_END};
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmTagObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmTagObject::static_methods[] = {
+    JS_FS_END,
+};
 
 const TagType* WasmTagObject::tagType() const {
   return (const TagType*)getFixedSlot(TYPE_SLOT).toPrivate();
@@ -3682,7 +3724,9 @@ const JSClass WasmExceptionObject::class_ = {
     "WebAssembly.Exception",
     JSCLASS_HAS_RESERVED_SLOTS(WasmExceptionObject::RESERVED_SLOTS) |
         JSCLASS_FOREGROUND_FINALIZE,
-    &WasmExceptionObject::classOps_, &WasmExceptionObject::classSpec_};
+    &WasmExceptionObject::classOps_,
+    &WasmExceptionObject::classSpec_,
+};
 
 const JSClass& WasmExceptionObject::protoClass_ = PlainObject::class_;
 
@@ -3696,7 +3740,8 @@ const ClassSpec WasmExceptionObject::classSpec_ = {
     WasmExceptionObject::methods,
     WasmExceptionObject::properties,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 /* static */
 void WasmExceptionObject::finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -3925,7 +3970,8 @@ Value WasmExceptionObject::wrappedJSValue() const {
 const JSPropertySpec WasmExceptionObject::properties[] = {
     JS_PSG("stack", WasmExceptionObject::getStack, 0),
     JS_STRING_SYM_PS(toStringTag, "WebAssembly.Exception", JSPROP_READONLY),
-    JS_PS_END};
+    JS_PS_END,
+};
 
 /* static */
 bool WasmExceptionObject::isImpl(JSContext* cx, const CallArgs& args) {
@@ -4080,9 +4126,12 @@ wasm::AnyRef WasmExceptionObject::loadRefArg(size_t offset) const {
 const JSFunctionSpec WasmExceptionObject::methods[] = {
     JS_FN("is", WasmExceptionObject::isMethod, 1, JSPROP_ENUMERATE),
     JS_FN("getArg", WasmExceptionObject::getArg, 2, JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
-const JSFunctionSpec WasmExceptionObject::static_methods[] = {JS_FS_END};
+const JSFunctionSpec WasmExceptionObject::static_methods[] = {
+    JS_FS_END,
+};
 
 const TagType* WasmExceptionObject::tagType() const {
   return (const TagType*)getReservedSlot(TYPE_SLOT).toPrivate();
@@ -4369,19 +4418,27 @@ static JSObject* CreateWasmFunctionConstructor(JSContext* cx, JSProtoKey key) {
 }
 
 const JSFunctionSpec WasmFunctionMethods[] = {
-    JS_FN("type", WasmFunctionType, 0, 0), JS_FS_END};
+    JS_FN("type", WasmFunctionType, 0, 0),
+    JS_FS_END,
+};
 
-const ClassSpec WasmFunctionClassSpec = {CreateWasmFunctionConstructor,
-                                         CreateWasmFunctionPrototype,
-                                         nullptr,
-                                         nullptr,
-                                         WasmFunctionMethods,
-                                         nullptr,
-                                         nullptr,
-                                         ClassSpec::DontDefineConstructor};
+const ClassSpec WasmFunctionClassSpec = {
+    CreateWasmFunctionConstructor,
+    CreateWasmFunctionPrototype,
+    nullptr,
+    nullptr,
+    WasmFunctionMethods,
+    nullptr,
+    nullptr,
+    ClassSpec::DontDefineConstructor,
+};
 
 const JSClass js::WasmFunctionClass = {
-    "WebAssembly.Function", 0, JS_NULL_CLASS_OPS, &WasmFunctionClassSpec};
+    "WebAssembly.Function",
+    0,
+    JS_NULL_CLASS_OPS,
+    &WasmFunctionClassSpec,
+};
 
 #endif
 
@@ -5401,12 +5458,15 @@ const ClassSpec WasmSuspendingObject::classSpec_ = {
     nullptr,
     nullptr,
     nullptr,
-    ClassSpec::DontDefineConstructor};
+    ClassSpec::DontDefineConstructor,
+};
 
 const JSClass WasmSuspendingObject::class_ = {
     "Suspending",
     JSCLASS_HAS_RESERVED_SLOTS(WasmSuspendingObject::RESERVED_SLOTS),
-    JS_NULL_CLASS_OPS, &classSpec_};
+    JS_NULL_CLASS_OPS,
+    &classSpec_,
+};
 
 const JSClass& WasmSuspendingObject::protoClass_ = PlainObject::class_;
 
@@ -5461,7 +5521,9 @@ static bool WebAssembly_promising(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 static const JSFunctionSpec WebAssembly_jspi_methods[] = {
-    JS_FN("promising", WebAssembly_promising, 1, JSPROP_ENUMERATE), JS_FS_END};
+    JS_FN("promising", WebAssembly_promising, 1, JSPROP_ENUMERATE),
+    JS_FS_END,
+};
 
 bool js::IsWasmSuspendingObject(JSObject* obj) {
   return obj->is<WasmSuspendingObject>();
@@ -5494,7 +5556,8 @@ static bool WebAssembly_mozIntGemm(JSContext* cx, unsigned argc, Value* vp) {
 
 static const JSFunctionSpec WebAssembly_mozIntGemm_methods[] = {
     JS_FN("mozIntGemm", WebAssembly_mozIntGemm, 0, JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 #endif  // ENABLE_WASM_MOZ_INTGEMM
 
@@ -5507,10 +5570,13 @@ static const JSFunctionSpec WebAssembly_static_methods[] = {
           JSPROP_ENUMERATE),
     JS_FN("instantiateStreaming", WebAssembly_instantiateStreaming, 1,
           JSPROP_ENUMERATE),
-    JS_FS_END};
+    JS_FS_END,
+};
 
 static const JSPropertySpec WebAssembly_static_properties[] = {
-    JS_STRING_SYM_PS(toStringTag, "WebAssembly", JSPROP_READONLY), JS_PS_END};
+    JS_STRING_SYM_PS(toStringTag, "WebAssembly", JSPROP_READONLY),
+    JS_PS_END,
+};
 
 static JSObject* CreateWebAssemblyObject(JSContext* cx, JSProtoKey key) {
   MOZ_RELEASE_ASSERT(HasSupport(cx));
@@ -5643,12 +5709,15 @@ WasmNamespaceObject* WasmNamespaceObject::getOrCreate(JSContext* cx) {
 static const ClassSpec WebAssemblyClassSpec = {
     CreateWebAssemblyObject,       nullptr, WebAssembly_static_methods,
     WebAssembly_static_properties, nullptr, nullptr,
-    WebAssemblyClassFinish};
+    WebAssemblyClassFinish,
+};
 
 const JSClass js::WasmNamespaceObject::class_ = {
     "WebAssembly",
     JSCLASS_HAS_CACHED_PROTO(JSProto_WebAssembly) |
         JSCLASS_HAS_RESERVED_SLOTS(WasmNamespaceObject::RESERVED_SLOTS),
-    JS_NULL_CLASS_OPS, &WebAssemblyClassSpec};
+    JS_NULL_CLASS_OPS,
+    &WebAssemblyClassSpec,
+};
 
 // Sundry
