@@ -56,9 +56,9 @@ using mozilla::IsAsciiDigit;
 using mozilla::IsAsciiHexDigit;
 using mozilla::RangedPtr;
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-void JSONTokenizer<CharT, ParserT, StringBuilderT>::getTextPosition(
-    uint32_t* column, uint32_t* line) {
+template <typename CharT, typename ParserT>
+void JSONTokenizer<CharT, ParserT>::getTextPosition(uint32_t* column,
+                                                    uint32_t* line) {
   CharPtr ptr = begin;
   uint32_t col = 1;
   uint32_t row = 1;
@@ -82,9 +82,8 @@ static inline bool IsJSONWhitespace(char16_t c) {
   return c == '\t' || c == '\r' || c == '\n' || c == ' ';
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-bool JSONTokenizer<CharT, ParserT,
-                   StringBuilderT>::consumeTrailingWhitespaces() {
+template <typename CharT, typename ParserT>
+bool JSONTokenizer<CharT, ParserT>::consumeTrailingWhitespaces() {
   for (; current < end; current++) {
     if (!IsJSONWhitespace(*current)) {
       return false;
@@ -93,8 +92,8 @@ bool JSONTokenizer<CharT, ParserT,
   return true;
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::advance() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advance() {
   while (current < end && IsJSONWhitespace(*current)) {
     current++;
   }
@@ -185,8 +184,8 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::advance() {
   }
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::advancePropertyName() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advancePropertyName() {
   MOZ_ASSERT(current[-1] == ',');
 
   while (current < end && IsJSONWhitespace(*current)) {
@@ -205,9 +204,8 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::advancePropertyName() {
   return token(JSONToken::Error);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken
-JSONTokenizer<CharT, ParserT, StringBuilderT>::advancePropertyColon() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advancePropertyColon() {
   MOZ_ASSERT(current[-1] == '"');
 
   while (current < end && IsJSONWhitespace(*current)) {
@@ -244,9 +242,8 @@ static inline void AssertPastValue(const RangedPtr<const CharT> current) {
              IsAsciiDigit(current[-1]));
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken
-JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterProperty() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advanceAfterProperty() {
   AssertPastValue(current);
 
   while (current < end && IsJSONWhitespace(*current)) {
@@ -271,9 +268,8 @@ JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterProperty() {
   return token(JSONToken::Error);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken
-JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterObjectOpen() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advanceAfterObjectOpen() {
   MOZ_ASSERT(current[-1] == '{');
 
   while (current < end && IsJSONWhitespace(*current)) {
@@ -297,9 +293,8 @@ JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterObjectOpen() {
   return token(JSONToken::Error);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken
-JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterArrayElement() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::advanceAfterArrayElement() {
   AssertPastValue(current);
 
   while (current < end && IsJSONWhitespace(*current)) {
@@ -324,10 +319,10 @@ JSONTokenizer<CharT, ParserT, StringBuilderT>::advanceAfterArrayElement() {
   return token(JSONToken::Error);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
+template <typename CharT, typename ParserT>
 template <JSONStringType ST>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::stringToken(
-    const CharPtr start, size_t length) {
+JSONToken JSONTokenizer<CharT, ParserT>::stringToken(const CharPtr start,
+                                                     size_t length) {
   if (!parser->handler.template setStringValue<ST>(start, length,
                                                    getSource())) {
     return JSONToken::OOM;
@@ -335,27 +330,26 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::stringToken(
   return JSONToken::String;
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
+template <typename CharT, typename ParserT>
 template <JSONStringType ST>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::stringToken(
-    StringBuilderT& builder) {
+JSONToken JSONTokenizer<CharT, ParserT>::stringToken(StringBuilder& builder) {
   if (!parser->handler.template setStringValue<ST>(builder, getSource())) {
     return JSONToken::OOM;
   }
   return JSONToken::String;
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::numberToken(double d) {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::numberToken(double d) {
   if (!parser->handler.setNumberValue(d, getSource())) {
     return JSONToken::OOM;
   }
   return JSONToken::Number;
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
+template <typename CharT, typename ParserT>
 template <JSONStringType ST>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::readString() {
+JSONToken JSONTokenizer<CharT, ParserT>::readString() {
   MOZ_ASSERT(current < end);
   MOZ_ASSERT(*current == '"');
 
@@ -396,7 +390,7 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::readString() {
    * of unescaped characters into a temporary buffer, then an escaped
    * character, and repeat until the entire string is consumed.
    */
-  StringBuilderT builder(parser->handler.context());
+  StringBuilder builder(parser->handler.context());
   do {
     if (start < current && !builder.append(start.get(), current.get())) {
       return token(JSONToken::OOM);
@@ -496,8 +490,8 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::readString() {
   return token(JSONToken::Error);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::readNumber() {
+template <typename CharT, typename ParserT>
+JSONToken JSONTokenizer<CharT, ParserT>::readNumber() {
   MOZ_ASSERT(current < end);
   MOZ_ASSERT(IsAsciiDigit(*current) || *current == '-');
 
@@ -595,8 +589,8 @@ JSONToken JSONTokenizer<CharT, ParserT, StringBuilderT>::readNumber() {
   return numberToken(negative ? -d : d);
 }
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
-void JSONTokenizer<CharT, ParserT, StringBuilderT>::error(const char* msg) {
+template <typename CharT, typename ParserT>
+void JSONTokenizer<CharT, ParserT>::error(const char* msg) {
   parser->error(msg);
 }
 

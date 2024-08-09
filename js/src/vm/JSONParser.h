@@ -51,10 +51,12 @@ enum class JSONToken {
 
 enum class JSONStringType { PropertyName, LiteralValue };
 
-template <typename CharT, typename ParserT, typename StringBuilderT>
+template <typename CharT, typename ParserT>
 class MOZ_STACK_CLASS JSONTokenizer {
  public:
   using CharPtr = mozilla::RangedPtr<const CharT>;
+
+  using StringBuilder = typename ParserT::StringBuilder;
 
  protected:
   CharPtr sourceStart;
@@ -82,14 +84,12 @@ class MOZ_STACK_CLASS JSONTokenizer {
   explicit JSONTokenizer(mozilla::Range<const CharT> data, ParserT* parser)
       : JSONTokenizer(data.begin(), data.begin(), data.end(), parser) {}
 
-  JSONTokenizer(JSONTokenizer<CharT, ParserT, StringBuilderT>&& other) noexcept
+  JSONTokenizer(JSONTokenizer<CharT, ParserT>&& other) noexcept
       : JSONTokenizer(other.sourceStart, other.current, other.begin, other.end,
                       other.parser) {}
 
-  JSONTokenizer(const JSONTokenizer<CharT, ParserT, StringBuilderT>& other) =
-      delete;
-  void operator=(const JSONTokenizer<CharT, ParserT, StringBuilderT>& other) =
-      delete;
+  JSONTokenizer(const JSONTokenizer<CharT, ParserT>& other) = delete;
+  void operator=(const JSONTokenizer<CharT, ParserT>& other) = delete;
 
   void fixupParser(ParserT* newParser) { parser = newParser; }
 
@@ -119,7 +119,7 @@ class MOZ_STACK_CLASS JSONTokenizer {
   template <JSONStringType ST>
   JSONToken stringToken(const CharPtr start, size_t length);
   template <JSONStringType ST>
-  JSONToken stringToken(StringBuilderT& builder);
+  JSONToken stringToken(StringBuilder& builder);
 
   JSONToken numberToken(double d);
 
@@ -525,8 +525,7 @@ template <typename CharT, typename HandlerT>
 class MOZ_STACK_CLASS JSONPerHandlerParser {
   using ContextT = typename HandlerT::ContextT;
 
-  using Tokenizer = JSONTokenizer<CharT, JSONPerHandlerParser<CharT, HandlerT>,
-                                  typename HandlerT::StringBuilder>;
+  using Tokenizer = JSONTokenizer<CharT, JSONPerHandlerParser<CharT, HandlerT>>;
 
  public:
   using StringBuilder = typename HandlerT::StringBuilder;
