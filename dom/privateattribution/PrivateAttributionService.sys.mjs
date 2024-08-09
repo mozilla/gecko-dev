@@ -81,14 +81,10 @@ export class PrivateAttributionService {
       impression.index = index;
       impression.lastImpression = now;
       impression[prop] = now;
-      const _prop = this.camelToSnake(prop);
-      Glean.privateAttribution.saveImpression[_prop].add(1);
 
       await this.updateImpression(impressionStore, ad, impression);
-      Glean.privateAttribution.saveImpression.success.add(1);
     } catch (e) {
       console.error(e);
-      Glean.privateAttribution.saveImpression.error.add(1);
     }
   }
 
@@ -128,10 +124,8 @@ export class PrivateAttributionService {
 
       await this.updateBudget(budget, value, targetHost);
       await this.sendDapReport(task, index, histogramSize, value);
-      Glean.privateAttribution.measureConversion.success.add(1);
     } catch (e) {
       console.error(e);
-      Glean.privateAttribution.measureConversion.error.add(1);
     }
   }
 
@@ -153,8 +147,6 @@ export class PrivateAttributionService {
 
     // Set attribution model properties
     const prop = this.getModelProp(model);
-    const _prop = this.camelToSnake(prop);
-    Glean.privateAttribution.measureConversion[_prop].add(1);
 
     // Find the most relevant impression
     const lookbackWindow = now - days * DAY_IN_MILLI;
@@ -243,7 +235,6 @@ export class PrivateAttributionService {
     try {
       return await this.openDatabase();
     } catch {
-      Glean.privateAttribution.database.reset.add(1);
       await lazy.IndexedDB.deleteDatabase(this.dbName);
       return this.openDatabase();
     }
@@ -272,8 +263,7 @@ export class PrivateAttributionService {
     await this.dapTelemetrySender.sendDAPMeasurement(
       task,
       measurement,
-      DAP_TIMEOUT_MILLI,
-      "conversion"
+      DAP_TIMEOUT_MILLI
     );
   }
 
@@ -288,13 +278,6 @@ export class PrivateAttributionService {
         AppConstants.MOZ_TELEMETRY_REPORTING &&
         lazy.gIsPPAEnabled)
     );
-  }
-
-  camelToSnake(camelStr) {
-    const snakeStr = camelStr.replace(/([A-Z])/g, function (match) {
-      return "_" + match.toLowerCase();
-    });
-    return snakeStr;
   }
 
   QueryInterface = ChromeUtils.generateQI([Ci.nsIPrivateAttributionService]);

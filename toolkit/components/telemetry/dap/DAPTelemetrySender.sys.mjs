@@ -98,7 +98,7 @@ export const DAPTelemetrySender = new (class {
     }
   }
 
-  async sendTestReports(tasks, timeout, reason) {
+  async sendTestReports(tasks, timeout) {
     for (let task of tasks) {
       let measurement;
       if (task.measurement_type == "u8") {
@@ -110,13 +110,13 @@ export const DAPTelemetrySender = new (class {
         measurement[19] += 1;
       }
 
-      await this.sendDAPMeasurement(task, measurement, timeout, reason);
+      await this.sendDAPMeasurement(task, measurement, timeout);
     }
   }
 
   async timedSendTestReports(tasks) {
     lazy.logConsole.debug("Sending on timer.");
-    await this.sendTestReports(tasks, 30 * 1000, "periodic");
+    await this.sendTestReports(tasks, 30 * 1000);
     lazy.setTimeout(
       () => this.timedSendTestReports(tasks),
       this.timeout_value()
@@ -136,7 +136,7 @@ export const DAPTelemetrySender = new (class {
    * @param {number} measurement
    *   The measured value for which a report is generated.
    */
-  async sendDAPMeasurement(task, measurement, timeout, reason) {
+  async sendDAPMeasurement(task, measurement, timeout) {
     task.leader_endpoint = lazy.LEADER;
     if (!task.leader_endpoint) {
       throw new Error(`Preference ${PREF_LEADER} not set`);
@@ -155,20 +155,16 @@ export const DAPTelemetrySender = new (class {
         measurement,
         controller.signal
       );
-      Glean.dap.reportGenerationStatus.success.add(1);
       await this.sendReport(
         task.leader_endpoint,
         task.id,
         report,
-        controller.signal,
-        reason
+        controller.signal
       );
     } catch (e) {
       if (e.name === "AbortError") {
-        Glean.dap.reportGenerationStatus.abort.add(1);
         lazy.logConsole.error("Aborted DAP report generation: ", e);
       } else {
-        Glean.dap.reportGenerationStatus.failure.add(1);
         lazy.logConsole.error("DAP report generation failed: " + e);
       }
 
@@ -200,11 +196,9 @@ export const DAPTelemetrySender = new (class {
     ]);
     if (leader_config_bytes == null) {
       lazy.logConsole.error("HPKE config download failed for leader.");
-      Glean.dap.reportGenerationStatus.hpke_leader_fail.add(1);
     }
     if (helper_config_bytes == null) {
       lazy.logConsole.error("HPKE config download failed for helper.");
-      Glean.dap.reportGenerationStatus.hpke_helper_fail.add(1);
     }
     if (abortSignal.aborted) {
       throw new DOMException("HPKE config download was aborted", "AbortError");
@@ -287,7 +281,7 @@ export const DAPTelemetrySender = new (class {
    * @returns Promise
    * @resolves {undefined} Once the attempt to send the report completes, whether or not it was successful.
    */
-  async sendReport(leader_endpoint, task_id, report, abortSignal, reason) {
+  async sendReport(leader_endpoint, task_id, report, abortSignal) {
     const upload_path = leader_endpoint + "/tasks/" + task_id + "/reports";
     try {
       let response = await fetch(upload_path, {
@@ -298,11 +292,6 @@ export const DAPTelemetrySender = new (class {
       });
 
       if (response.status != 200) {
-        if (response.status == 502) {
-          Glean.dap.uploadStatus.http_502.add(1);
-        } else {
-          Glean.dap.uploadStatus.http_error.add(1);
-        }
         const content_type = response.headers.get("content-type");
         if (content_type && content_type === "application/json") {
           // A JSON error from the DAP server.
@@ -319,21 +308,12 @@ export const DAPTelemetrySender = new (class {
         }
       } else {
         lazy.logConsole.debug("DAP report sent");
-        Glean.dap.uploadStatus.success.add(1);
       }
     } catch (err) {
       if (err.name === "AbortError") {
         lazy.logConsole.error("Aborted DAP report sending: ", err);
-        if (reason == "periodic") {
-          Glean.dap.uploadStatus.abort_timed.add(1);
-        } else if (reason == "shutdown") {
-          Glean.dap.uploadStatus.abort_shutdown.add(1);
-        } else {
-          Glean.dap.uploadStatus.abort.add(1);
-        }
       } else {
         lazy.logConsole.error("Failed to send report: ", err);
-        Glean.dap.uploadStatus.failure.add(1);
       }
 
       throw err;

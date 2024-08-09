@@ -127,17 +127,14 @@ add_setup(async function () {
 
 add_task(async function testVerificationTask() {
   Services.fog.testResetFOG();
-  let before = Glean.dap.uploadStatus.success.testGetValue() ?? 0;
-  await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
-  let after = Glean.dap.uploadStatus.success.testGetValue() ?? 0;
 
-  Assert.equal(before + 2, after, "Successful submissions should be counted.");
+  await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
+
   Assert.ok(received, "Report upload successful.");
 });
 
 add_task(async function testNetworkError() {
   Services.fog.testResetFOG();
-  let before = Glean.dap.reportGenerationStatus.failure.testGetValue() ?? 0;
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/invalid-endpoint");
 
   let thrownErr;
@@ -148,11 +145,4 @@ add_task(async function testNetworkError() {
   }
 
   Assert.equal("HPKE config download failed.", thrownErr.message);
-
-  let after = Glean.dap.reportGenerationStatus.failure.testGetValue() ?? 0;
-  Assert.equal(
-    before + 1,
-    after,
-    "Failed report generation should be counted."
-  );
 });

@@ -54,12 +54,11 @@ class MockDAPTelemetrySender {
     this.receivedMeasurements = [];
   }
 
-  async sendDAPMeasurement(task, measurement, timeout, reason) {
+  async sendDAPMeasurement(task, measurement, timeout) {
     this.receivedMeasurements.push({
       task,
       measurement,
       timeout,
-      reason,
     });
   }
 }
@@ -204,7 +203,6 @@ add_task(async function testSuccessfulConversion() {
     task: { id: TASK_ID, time_precision: 60, measurement_type: "vecu8" },
     measurement: [0, 1, 0, 0, 0],
     timeout: 30000,
-    reason: "conversion",
   };
 
   const receivedMeasurement = mockSender.receivedMeasurements.pop();
@@ -657,7 +655,7 @@ add_task(async function testHistogramSize() {
   Assert.equal(mockSender.receivedMeasurements.length, 0);
 });
 
-add_task(async function testTelemetry() {
+add_task(async function testWithRealDAPSender() {
   Services.fog.testResetFOG();
 
   // Omit mocking DAP telemetry sender in this test to defend against mock sender getting out of sync
@@ -667,15 +665,6 @@ add_task(async function testTelemetry() {
   const privateAttribution = new PrivateAttributionService({
     testForceEnabled: true,
   });
-
-  const saveImpressionSuccessCount =
-    Glean.privateAttribution.saveImpression.success.testGetValue() ?? 0;
-  const saveImpressionFailureCount =
-    Glean.privateAttribution.saveImpression.error.testGetValue() ?? 0;
-  const measureConversionSuccessCount =
-    Glean.privateAttribution.measureConversion.success.testGetValue() ?? 0;
-  const measureConversionFailureCount =
-    Glean.privateAttribution.measureConversion.error.testGetValue() ?? 0;
 
   const sourceHost = "source-telemetry.test";
   const targetHost = "target-telemetry.test";
@@ -690,31 +679,6 @@ add_task(async function testTelemetry() {
     targetHost
   );
 
-  Assert.equal(
-    Glean.privateAttribution.saveImpression.last_view.testGetValue() ?? 0,
-    saveImpressionSuccessCount + 1,
-    "Successful saveImpression call for type==view"
-  );
-
-  await privateAttribution.onAttributionEvent(
-    sourceHost,
-    "click",
-    adIndex,
-    adIdentifier,
-    targetHost
-  );
-
-  Assert.equal(
-    Glean.privateAttribution.saveImpression.success.testGetValue() ?? 0,
-    saveImpressionSuccessCount + 2,
-    "Successful saveImpression calls."
-  );
-  Assert.equal(
-    Glean.privateAttribution.saveImpression.error.testGetValue() ?? 0,
-    saveImpressionFailureCount,
-    "Failed saveImpression calls."
-  );
-
   await privateAttribution.onAttributionConversion(
     targetHost,
     TASK_ID,
@@ -725,21 +689,15 @@ add_task(async function testTelemetry() {
     [sourceHost]
   );
 
-  Assert.equal(
-    Glean.privateAttribution.measureConversion.last_view.testGetValue() ?? 0,
-    measureConversionSuccessCount + 1,
-    "Successful measureConversion call for type==view"
-  );
-  Assert.equal(
-    Glean.privateAttribution.measureConversion.success.testGetValue() ?? 0,
-    measureConversionSuccessCount + 1,
-    "Successful measureConversion calls."
-  );
-  Assert.equal(
-    Glean.privateAttribution.measureConversion.error.testGetValue() ?? 0,
-    measureConversionFailureCount,
-    "Failed measureConversion calls."
-  );
-
   await mockServer.stop();
+
+  Assert.equal(mockServer.receivedReports.length, 1);
+
+  const expectedReport = {
+    contentType: "application/dap-report",
+    size: 1318,
+  };
+
+  const receivedReport = mockServer.receivedReports.pop();
+  Assert.deepEqual(receivedReport, expectedReport);
 });
