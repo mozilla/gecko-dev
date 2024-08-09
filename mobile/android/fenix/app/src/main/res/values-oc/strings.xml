@@ -108,6 +108,11 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Navegatz mai rapidament amb lo nòu sistèma de navegacion</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Aquesta barra s’amaga quand vos desplaçatz enbàs per ganhar d’espaci suplementari.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Sus un site web, aquesta barra s’amaga quand vos desplaçatz enbàs per ganhar d’espaci suplementari.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Accès a la camèra necessari. Anatz als paramètres Android, tocatz Autorizacions puèi Autorizar.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -424,6 +429,9 @@
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Quand vos connectatz e activatz la sincronizacion, vòstra seguretat es renfortida. Firefox chifra vòstres senhals, marcapaginas e encara mai de causas.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox chifra los senhals, los marcapaginas, e encara mai quand utilizatz la sincronizacion.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Connexion</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
