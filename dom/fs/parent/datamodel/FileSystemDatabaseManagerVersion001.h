@@ -55,6 +55,8 @@ class FileSystemDatabaseManagerVersion001 : public FileSystemDatabaseManager {
   static Result<Usage, QMResult> GetFileUsage(
       const FileSystemConnection& aConnection);
 
+  Result<quota::UsageInfo, QMResult> GetUsage() const override;
+
   nsresult UpdateUsage(const FileId& aFileId) override;
 
   Result<EntryId, QMResult> GetOrCreateDirectory(

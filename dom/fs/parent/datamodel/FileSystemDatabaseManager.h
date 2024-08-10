@@ -69,6 +69,16 @@ class FileSystemDatabaseManager {
       const quota::OriginMetadata& aOriginMetadata);
 
   /**
+   * @brief Obtains the current total usage.
+   *
+   * @return Result<quota::UsageInfo, QMResult> On success,
+   *  - field UsageInfo::DatabaseUsage contains the sum of current
+   *    total database and file usage,
+   *  - field UsageInfo::FileUsage is not used and should be equal to Nothing.
+   */
+  virtual Result<quota::UsageInfo, QMResult> GetUsage() const = 0;
+
+  /**
    * @brief Refreshes the stored file size.
    *
    * @param aEntry EntryId of the file whose size is refreshed.
