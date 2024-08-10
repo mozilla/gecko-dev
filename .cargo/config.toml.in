@@ -55,6 +55,11 @@ git = "https://github.com/jfkthame/mapped_hyph.git"
 rev = "c7651a0cffff41996ad13c44f689bd9cd2192c01"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/kenz-gelsoft/glslopt-rs?rev=f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b"]
+git = "https://github.com/kenz-gelsoft/glslopt-rs"
+rev = "f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/kenz-gelsoft/lmdb-rs?rev=9a481259e3b15932bd88bc90a8d7dc49e7ac9cd6"]
 git = "https://github.com/kenz-gelsoft/lmdb-rs"
 rev = "9a481259e3b15932bd88bc90a8d7dc49e7ac9cd6"
