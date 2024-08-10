@@ -130,20 +130,32 @@ void CreateRegisteredDataManager(
   ASSERT_TRUE(aRegisteredDataManager->MutableDatabaseManagerPtr());
 }
 
-void CheckUsageEqualTo(const quota::UsageInfo& aUsage, uint64_t expected) {
-  EXPECT_TRUE(aUsage.FileUsage().isNothing());
+void GetUsageValue(const quota::UsageInfo& aUsage, uint64_t& aValue) {
   auto dbUsage = aUsage.DatabaseUsage();
   ASSERT_TRUE(dbUsage.isSome());
-  const auto actual = dbUsage.value();
-  ASSERT_EQ(actual, expected);
+  aValue = dbUsage.value();
 }
 
-void CheckUsageGreaterThan(const quota::UsageInfo& aUsage, uint64_t expected) {
+void CheckUsageIsNothing(const quota::UsageInfo& aUsage) {
+  EXPECT_TRUE(aUsage.FileUsage().isNothing());
+  auto dbUsage = aUsage.DatabaseUsage();
+  ASSERT_TRUE(dbUsage.isNothing());
+}
+
+void CheckUsageEqualTo(const quota::UsageInfo& aUsage, uint64_t aExpected) {
   EXPECT_TRUE(aUsage.FileUsage().isNothing());
   auto dbUsage = aUsage.DatabaseUsage();
   ASSERT_TRUE(dbUsage.isSome());
   const auto actual = dbUsage.value();
-  ASSERT_GT(actual, expected);
+  ASSERT_EQ(actual, aExpected);
+}
+
+void CheckUsageGreaterThan(const quota::UsageInfo& aUsage, uint64_t aExpected) {
+  EXPECT_TRUE(aUsage.FileUsage().isNothing());
+  auto dbUsage = aUsage.DatabaseUsage();
+  ASSERT_TRUE(dbUsage.isSome());
+  const auto actual = dbUsage.value();
+  ASSERT_GT(actual, aExpected);
 }
 
 }  // namespace mozilla::dom::fs::test

@@ -44,6 +44,22 @@ class TestFileSystemUsageTracking
     });
   }
 
+  void LockExclusive(const EntryId& aEntryId) {
+    ASSERT_TRUE(mDataManager);
+
+    TEST_TRY_UNWRAP(FileId fileId,
+                    PerformOnBackgroundThread([this, &aEntryId]() {
+                      return mDataManager->LockExclusive(aEntryId);
+                    }));
+  }
+
+  void UnlockExclusive(const EntryId& aEntryId) {
+    ASSERT_TRUE(mDataManager);
+
+    PerformOnBackgroundThread(
+        [this, &aEntryId]() { mDataManager->UnlockExclusive(aEntryId); });
+  }
+
   void CreateNewEmptyFile(EntryId& aEntryId) {
     ASSERT_TRUE(mDataManager);
 
@@ -141,118 +157,142 @@ class TestFileSystemUsageTracking
 };
 
 TEST_F(TestFileSystemUsageTracking, CheckUsageBeforeAnyFilesOnDisk) {
-  // For uninitialized database, file usage is nothing
+  // For uninitialized database, origin usage is nothing
   quota::UsageInfo usageNow;
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_TRUE(usageNow.DatabaseUsage().isNothing());
-  EXPECT_TRUE(usageNow.FileUsage().isNothing());
+  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
 
   // Initialize database
   ASSERT_NO_FATAL_FAILURE(EnsureDataManager());
 
   // After initialization,
-  // * database size is not zero
+  // * database usage is not zero
   // * GetDatabaseUsage and GetOriginUsage should agree
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageGreaterThan(usageNow, 0u));
-  const auto initialDbUsage = usageNow.DatabaseUsage().value();
+
+  uint64_t initialDbUsage;
+  ASSERT_NO_FATAL_FAILURE(GetUsageValue(usageNow, initialDbUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 
-  // Create a new file
+  // Create a new empty file
   EntryId testFileId;
   ASSERT_NO_FATAL_FAILURE(CreateNewEmptyFile(testFileId));
 
   // After a new file has been created (only in the database),
-  // * database size has increased
-  // * GetOriginUsage and GetDatabaseUsage should agree
-  const auto expectedUse = initialDbUsage + 2 * GetPageSize();
-
-  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, expectedUse));
+  // * database usage has increased
+  // * GetDatabaseUsage and GetOriginUsage should agree
+  const auto increasedDbUsage = initialDbUsage + 2 * GetPageSize();
 
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, expectedUse));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
+
+  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
 }
 
 TEST_F(TestFileSystemUsageTracking, WritesToFilesShouldIncreaseUsage) {
   // Initialize database
   ASSERT_NO_FATAL_FAILURE(EnsureDataManager());
 
+  // Create a new empty file
   EntryId testFileId;
   ASSERT_NO_FATAL_FAILURE(CreateNewEmptyFile(testFileId));
 
   quota::UsageInfo usageNow;
-  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_TRUE(usageNow.DatabaseUsage().isSome());
-  const auto testFileDbUsage = usageNow.DatabaseUsage().value();
-
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, testFileDbUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageGreaterThan(usageNow, 0u));
+
+  uint64_t initialDbUsage;
+  ASSERT_NO_FATAL_FAILURE(GetUsageValue(usageNow, initialDbUsage));
+
+  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 
   // Fill the file with some content
+  ASSERT_NO_FATAL_FAILURE(LockExclusive(testFileId));
+
   const nsCString& testData = GetTestData();
 
   ASSERT_NO_FATAL_FAILURE(WriteDataToFile(testFileId, testData));
 
-  // In this test we don't lock the file -> no rescan is expected
-  // and GetDatabaseUsage should return the previous value
+  // After the content has been written to the file,
+  // * database usage is the same (the usage is updated later during file
+  //   unlocking)
+  // * origin usage has increased
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, testFileDbUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 
-  // When data manager unlocks the file, it should call update
-  // but in this test we call it directly
-  ASSERT_NO_FATAL_FAILURE(UpdateDatabaseUsage(FileId(testFileId)));
+  const auto increasedDbUsage = initialDbUsage + testData.Length();
 
-  const auto expectedTotalUsage = testFileDbUsage + testData.Length();
-
-  // Disk usage should have increased after writing
-  ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, expectedTotalUsage));
-
-  // The usage values should now agree
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, expectedTotalUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
+
+  ASSERT_NO_FATAL_FAILURE(UnlockExclusive(testFileId));
+
+  // After the file has been unlocked,
+  // * database usage has increased
+  // * GetDatabaseUsage and GetOriginUsage should now agree
+  ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
+
+  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
 }
 
 TEST_F(TestFileSystemUsageTracking, RemovingFileShouldDecreaseUsage) {
   // Initialize database
   ASSERT_NO_FATAL_FAILURE(EnsureDataManager());
 
+  // Create a new empty file
   EntryId testFileId;
   ASSERT_NO_FATAL_FAILURE(CreateNewEmptyFile(testFileId));
 
   quota::UsageInfo usageNow;
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_TRUE(usageNow.DatabaseUsage().isSome());
-  const auto testFileDbUsage = usageNow.DatabaseUsage().value();
+  ASSERT_NO_FATAL_FAILURE(CheckUsageGreaterThan(usageNow, 0u));
+
+  uint64_t initialDbUsage;
+  ASSERT_NO_FATAL_FAILURE(GetUsageValue(usageNow, initialDbUsage));
+
+  ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 
   // Fill the file with some content
+  ASSERT_NO_FATAL_FAILURE(LockExclusive(testFileId));
+
   const nsCString& testData = GetTestData();
-  const auto expectedTotalUsage = testFileDbUsage + testData.Length();
 
   ASSERT_NO_FATAL_FAILURE(WriteDataToFile(testFileId, testData));
 
-  // Currently, usage is expected to be updated on unlock by data manager
-  // but here UpdateUsage() is called directly
-  ASSERT_NO_FATAL_FAILURE(UpdateDatabaseUsage(FileId(testFileId)));
+  ASSERT_NO_FATAL_FAILURE(UnlockExclusive(testFileId));
 
-  // At least some file disk usage should have appeared after unlocking
+  // After the file has been unlocked,
+  // * database usage has increased
+  // * GetDatabaseUsage and GetOriginUsage should now agree
+  const auto increasedDbUsage = initialDbUsage + testData.Length();
+
+  ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
+
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, expectedTotalUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, increasedDbUsage));
 
+  // Remove the file
   bool wasRemoved;
   ASSERT_NO_FATAL_FAILURE(RemoveFile(wasRemoved));
   ASSERT_TRUE(wasRemoved);
 
-  // Removes cascade and usage table should be up to date immediately
+  // After the file has been removed,
+  // * database usage has decreased (to the initial value)
+  // * GetDatabaseUsage and GetOriginUsage should agree
   ASSERT_NO_FATAL_FAILURE(GetDatabaseUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, testFileDbUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 
-  // GetOriginUsage should agree
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, testFileDbUsage));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, initialDbUsage));
 }
 
 }  // namespace mozilla::dom::fs::test
