@@ -24,11 +24,12 @@ namespace mozilla::dom::fs::test {
 class TestFileSystemUsageTracking
     : public quota::test::QuotaManagerDependencyFixture {
  protected:
-  void SetUp() override { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
+  static void SetUpTestCase() { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
+
+  static void TearDownTestCase() { ASSERT_NO_FATAL_FAILURE(ShutdownFixture()); }
 
   void TearDown() override {
-    EXPECT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
-    ASSERT_NO_FATAL_FAILURE(ShutdownFixture());
+    ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
   }
 };
 
