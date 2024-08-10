@@ -36,7 +36,7 @@ class ViewportUtils {
        APZCCallbackHelper::UpdateCallbackTransform. See that method's
        documentation for additional details. */
   template <typename Units = CSSPixel>
-  static gfx::Matrix4x4Typed<Units, Units> GetVisualToLayoutTransform(
+  static gfx::Matrix4x4TypedFlagged<Units, Units> GetVisualToLayoutTransform(
       layers::ScrollableLayerGuid::ViewID aScrollId);
 
   /* The functions below apply GetVisualToLayoutTransform() or its inverse
@@ -117,9 +117,10 @@ class ViewportUtils {
 // translation unit (in this case, ViewportUtils.cpp) will contain the
 // definitions of these instantiations. This allows us to keep the definition
 // out-of-line in the source.
-extern template CSSToCSSMatrix4x4 ViewportUtils::GetVisualToLayoutTransform<
-    CSSPixel>(layers::ScrollableLayerGuid::ViewID);
-extern template LayoutDeviceToLayoutDeviceMatrix4x4
+extern template CSSToCSSMatrix4x4Flagged
+    ViewportUtils::GetVisualToLayoutTransform<CSSPixel>(
+        layers::ScrollableLayerGuid::ViewID);
+extern template LayoutDeviceToLayoutDeviceMatrix4x4Flagged
     ViewportUtils::GetVisualToLayoutTransform<LayoutDevicePixel>(
         layers::ScrollableLayerGuid::ViewID);
 

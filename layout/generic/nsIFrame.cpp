@@ -7424,7 +7424,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
 
   if (isTransformed || zoomedContentRoot) {
     MOZ_ASSERT(GetParent());
-    Matrix4x4 result;
+    Matrix4x4Flagged result;
     int32_t scaleFactor =
         ((aFlags & IN_CSS_UNITS) ? AppUnitsPerCSSPixel()
                                  : PresContext()->AppUnitsPerDevPixel());
@@ -7433,6 +7433,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
      * coordinates to our parent.
      */
     if (isTransformed) {
+      // Note: this converts from Matrix4x4 to Matrix4x4Flagged.
       result = nsDisplayTransform::GetResultingTransformMatrix(
           this, nsPoint(), scaleFactor,
           nsDisplayTransform::INCLUDE_PERSPECTIVE);
@@ -7448,7 +7449,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
                          NSAppUnitsToFloatPixels(delta.y, scaleFactor), 0.0f);
 
     if (zoomedContentRoot) {
-      Matrix4x4 layoutToVisual;
+      Matrix4x4Flagged layoutToVisual;
       ScrollableLayerGuid::ViewID targetScrollId =
           nsLayoutUtils::FindOrCreateIDFor(zoomedContentRoot->GetContent());
       if (aFlags & nsIFrame::IN_CSS_UNITS) {
