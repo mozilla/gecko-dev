@@ -6,7 +6,7 @@
   <head>
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src chrome:;img-src data:; object-src 'none'; connect-src https: http://localhost:*"
+      content="default-src chrome:;img-src data:; object-src 'none'"
     />
     <meta name="color-scheme" content="light dark" />
     <title data-l10n-id="about-inference-title"></title>
@@ -26,9 +26,7 @@
       ></a>
     </p>
 
-    <div id="warning">
-      browser.ml.enable is set to False ! Toggle it to activate local inference.
-    </div>
+    <div id="warning" data-l10n-id="about-inference-warning"></div>
 
     <div id="content">
       <div class="fieldset-container">
@@ -131,59 +129,6 @@
         <legend data-l10n-id="about-inference-models-title"></legend>
         <p data-l10n-id="about-inference-downloads-description"></p>
         <div id="modelFiles"></div>
-      </fieldset>
-    </div>
-
-    <div class="fieldset-container">
-      <fieldset>
-        <legend>HTTP Inference Pad</legend>
-        <div class="form-container">
-          <div>
-            <label for="http.endpoint">HTTP endpoint:</label>
-            <input
-              type="text"
-              id="http.endpoint"
-              value="http://localhost:8080/v1/chat/completions"
-            />
-          </div>
-          <div>
-            <label for="http.model">Model:</label>
-            <span class="tooltip">
-              ℹ️
-              <span class="tooltiptext">
-                Some endpoints require a specific model.
-              </span>
-            </span>
-
-            <input type="text" id="http.model" />
-          </div>
-          <div>
-            <label for="http.bearer">Bearer token:</label>
-            <span class="tooltip">
-              ℹ️
-              <span class="tooltiptext">
-                Some endpoints require tokens for access.
-              </span>
-            </span>
-
-            <input type="text" id="http.bearer" />
-          </div>
-          <div>
-            <label for="http.prompt">Prompt:</label>
-            <textarea id="http.prompt">Tell me about %tabTitle%</textarea>
-          </div>
-          <div>
-            <input type="button" id="http.button" value="Run HTTP Inference" />
-          </div>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>HTTP Inference Data</legend>
-        <h3>Context</h3>
-        <div id="http.context"></div>
-        <h3>Output</h3>
-        <textarea readonly id="http.output"></textarea>
       </fieldset>
     </div>
   </body>
