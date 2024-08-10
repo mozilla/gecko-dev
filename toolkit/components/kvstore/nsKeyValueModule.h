@@ -7,10 +7,9 @@
 
 #include "nsID.h"
 
-// Implemented in Rust.
 extern "C" {
+// Implemented in Rust.
 nsresult nsKeyValueServiceConstructor(REFNSIID aIID, void** aResult);
-nsresult nsSQLiteKeyValueServiceConstructor(REFNSIID aIID, void** aResult);
 }  // extern "C"
 
 #endif  // defined nsKeyValueModule_h

@@ -50,12 +50,12 @@ interface nsIKeyValueService : nsISupports {
      */
     void getOrCreate(
         in nsIKeyValueDatabaseCallback callback,
-        in AString path,
+        in AUTF8String path,
         in AUTF8String name);
 
     void getOrCreateWithOptions(
         in nsIKeyValueDatabaseCallback callback,
-        in AString path,
+        in AUTF8String path,
         in AUTF8String name,
         [optional] in nsIKeyValueService_RecoveryStrategy recoveryStrategy);
 };
@@ -152,16 +152,6 @@ interface nsIKeyValueDatabase : nsISupports {
         in nsIKeyValueEnumeratorCallback callback,
         [optional] in AUTF8String fromKey,
         [optional] in AUTF8String toKey);
-
-    /**
-     * Closes the database, so that subsequent attempts to read from or
-     * write to it will fail. Does nothing if the database is already closed.
-     *
-     * This operation always succeeds if the implementation supports
-     * closing a database (that is, it's not possible for a database to
-     * fail to close), and always fails if it doesn't.
-     */
-    void close(in nsIKeyValueVoidCallback callback);
 };
 
 /**

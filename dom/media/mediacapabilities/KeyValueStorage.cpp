@@ -74,7 +74,8 @@ RefPtr<GenericPromise> KeyValueStorage::Init() {
 
   nsString path;
   profileDir->GetPath(path);
-  keyValueService->GetOrCreate(callback, path, mDatabaseName);
+  keyValueService->GetOrCreate(callback, NS_ConvertUTF16toUTF8(path),
+                               mDatabaseName);
   return callback->Ensure();
 }
 
