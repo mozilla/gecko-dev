@@ -21,6 +21,8 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.GeckoSession.ScrollDelegate
+import org.mozilla.geckoview.PanZoomController
+import org.mozilla.geckoview.ScreenLength
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 import java.io.ByteArrayOutputStream
@@ -1044,5 +1046,40 @@ class DynamicToolbarTest : BaseSessionTest() {
             backgroundColor,
             equalTo("rgb(0, 128, 0)"),
         )
+    }
+
+    @WithDisplay(height = SCREEN_HEIGHT, width = SCREEN_WIDTH)
+    @Test
+    fun bug1909181() {
+        val reference = getComparisonScreenshot(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        val dynamicToolbarMaxHeight = SCREEN_HEIGHT / 2
+        sessionRule.display?.run { setDynamicToolbarMaxHeight(dynamicToolbarMaxHeight) }
+
+        // Set active since setVerticalClipping call affects only for foreground tab.
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(BaseSessionTest.BUG1909181_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        // Zoom in the document.
+        mainSession.setResolutionAndScaleTo(5.0f)
+        mainSession.flushApzRepaints()
+
+        mainSession.panZoomController.scrollBy(
+            ScreenLength.zero(),
+            ScreenLength.fromPixels(500.0),
+            PanZoomController.SCROLL_BEHAVIOR_AUTO,
+        )
+
+        // Simulate the dynamic toolbar being hidden by the scroll
+        sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight) }
+
+        mainSession.flushApzRepaints()
+        mainSession.flushApzRepaints()
+
+        sessionRule.display?.let {
+            assertScreenshotResult(it.capturePixels(), reference)
+        }
     }
 }
