@@ -4,34 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
+
 #include "FileSystemParentTypes.h"
 #include "TestHelpers.h"
 #include "datamodel/FileSystemDataManager.h"
 #include "datamodel/FileSystemDatabaseManager.h"
-#include "datamodel/FileSystemFileManager.h"
 #include "gtest/gtest.h"
-#include "mozIStorageService.h"
-#include "mozStorageCID.h"
+#include "mozilla/Result.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/FileSystemQuotaClientFactory.h"
 #include "mozilla/dom/PFileSystemManager.h"
-#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/QMResult.h"
+#include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/FileStreams.h"
-#include "mozilla/dom/quota/QuotaCommon.h"
-#include "mozilla/dom/quota/QuotaManager.h"
-#include "mozilla/dom/quota/QuotaManagerService.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/dom/quota/test/QuotaManagerDependencyFixture.h"
-#include "mozilla/gtest/MozAssertions.h"
 #include "nsIFile.h"
-#include "nsIFileURL.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
-#include "nsIQuotaCallbacks.h"
-#include "nsIQuotaRequests.h"
-#include "nsNetUtil.h"
-#include "nsScriptSecurityManager.h"
+#include "nsString.h"
 
 namespace mozilla::dom::fs::test {
 

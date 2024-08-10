@@ -12,6 +12,7 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/dom/FileSystemTypes.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
+#include "mozilla/dom/quota/ResultExtensions.h"
 
 namespace testing::internal {
 
