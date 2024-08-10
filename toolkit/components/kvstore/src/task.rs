@@ -8,7 +8,7 @@ use crossbeam_utils::atomic::AtomicCell;
 use error::KeyValueError;
 use moz_task::Task;
 use nserror::{nsresult, NS_ERROR_FAILURE};
-use nsstring::nsCString;
+use nsstring::{nsCString, nsString};
 use owned_value::owned_to_variant;
 use rkv::backend::{
     BackendEnvironmentBuilder, BackendInfo, RecoveryStrategy, SafeMode, SafeModeDatabase,
@@ -16,7 +16,6 @@ use rkv::backend::{
 };
 use rkv::{OwnedValue, StoreError, StoreOptions, Value};
 use std::{
-    path::Path,
     str,
     sync::{Arc, RwLock},
 };
@@ -166,7 +165,7 @@ fn passive_resize(env: &Rkv, wanted: usize) -> Result<(), StoreError> {
 
 pub struct GetOrCreateWithOptionsTask {
     callback: AtomicCell<Option<ThreadBoundRefPtr<nsIKeyValueDatabaseCallback>>>,
-    path: nsCString,
+    path: nsString,
     name: nsCString,
     strategy: RecoveryStrategy,
     result: AtomicCell<Option<Result<RkvStoreTuple, KeyValueError>>>,
@@ -175,7 +174,7 @@ pub struct GetOrCreateWithOptionsTask {
 impl GetOrCreateWithOptionsTask {
     pub fn new(
         callback: RefPtr<nsIKeyValueDatabaseCallback>,
-        path: nsCString,
+        path: nsString,
         name: nsCString,
         strategy: RecoveryStrategy,
     ) -> GetOrCreateWithOptionsTask {
@@ -203,11 +202,9 @@ impl Task for GetOrCreateWithOptionsTask {
                 let mut builder = Rkv::environment_builder::<SafeMode>();
                 builder.set_corruption_recovery_strategy(self.strategy);
                 let mut manager = Manager::singleton().write()?;
-                // Note that path canonicalization is diabled to work around crashes on Fennec:
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1531887
-                let path = Path::new(str::from_utf8(&self.path)?);
+                let path = crate::fs::canonicalize(&*self.path)?;
                 let rkv = manager.get_or_create_from_builder(
-                    path,
+                    path.as_path(),
                     builder,
                     Rkv::from_builder::<SafeMode>,
                 )?;

@@ -19,6 +19,7 @@ extern crate thiserror;
 extern crate xpcom;
 
 mod error;
+mod fs;
 mod owned_value;
 mod task;
 
@@ -27,7 +28,7 @@ use error::KeyValueError;
 use libc::c_void;
 use moz_task::{create_background_task_queue, DispatchOptions, TaskRunnable};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
-use nsstring::{nsACString, nsCString};
+use nsstring::{nsACString, nsAString, nsCString, nsString};
 use owned_value::{owned_to_variant, variant_to_owned};
 use rkv::backend::{RecoveryStrategy, SafeModeDatabase, SafeModeEnvironment};
 use rkv::OwnedValue;
@@ -100,7 +101,7 @@ impl KeyValueService {
     xpcom_method!(
         get_or_create => GetOrCreate(
             callback: *const nsIKeyValueDatabaseCallback,
-            path: *const nsACString,
+            path: *const nsAString,
             name: *const nsACString
         )
     );
@@ -108,12 +109,12 @@ impl KeyValueService {
     fn get_or_create(
         &self,
         callback: &nsIKeyValueDatabaseCallback,
-        path: &nsACString,
+        path: &nsAString,
         name: &nsACString,
     ) -> Result<(), nsresult> {
         let task = Box::new(GetOrCreateWithOptionsTask::new(
             RefPtr::new(callback),
-            nsCString::from(path),
+            nsString::from(path),
             nsCString::from(name),
             RecoveryStrategy::Error,
         ));
@@ -125,7 +126,7 @@ impl KeyValueService {
     xpcom_method!(
         get_or_create_with_options => GetOrCreateWithOptions(
             callback: *const nsIKeyValueDatabaseCallback,
-            path: *const nsACString,
+            path: *const nsAString,
             name: *const nsACString,
             strategy: u8
         )
@@ -134,7 +135,7 @@ impl KeyValueService {
     fn get_or_create_with_options(
         &self,
         callback: &nsIKeyValueDatabaseCallback,
-        path: &nsACString,
+        path: &nsAString,
         name: &nsACString,
         xpidl_strategy: u8,
     ) -> Result<(), nsresult> {
@@ -146,7 +147,7 @@ impl KeyValueService {
         };
         let task = Box::new(GetOrCreateWithOptionsTask::new(
             RefPtr::new(callback),
-            nsCString::from(path),
+            nsString::from(path),
             nsCString::from(name),
             strategy,
         ));

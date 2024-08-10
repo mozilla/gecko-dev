@@ -50,12 +50,12 @@ interface nsIKeyValueService : nsISupports {
      */
     void getOrCreate(
         in nsIKeyValueDatabaseCallback callback,
-        in AUTF8String path,
+        in AString path,
         in AUTF8String name);
 
     void getOrCreateWithOptions(
         in nsIKeyValueDatabaseCallback callback,
-        in AUTF8String path,
+        in AString path,
         in AUTF8String name,
         [optional] in nsIKeyValueService_RecoveryStrategy recoveryStrategy);
 };
