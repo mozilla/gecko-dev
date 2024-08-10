@@ -30,6 +30,14 @@ GTEST_API_ ::testing::AssertionResult CmpHelperSTREQ(const char* s1_expression,
 #define ASSERT_NSEQ(lhs, rhs) \
   ASSERT_STREQ(GetStaticErrorName((lhs)), GetStaticErrorName((rhs)))
 
+#define TEST_TRY_META(tempVar, expr)            \
+  auto MOZ_REMOVE_PAREN(tempVar) = (expr);      \
+  ASSERT_TRUE(MOZ_REMOVE_PAREN(tempVar).isOk()) \
+  << GetStaticErrorName(                        \
+      mozilla::ToNSResult(MOZ_REMOVE_PAREN(tempVar).unwrapErr()));
+
+#define TEST_TRY(expr) TEST_TRY_META(MOZ_UNIQUE_VAR(testVar), expr)
+
 #define TEST_TRY_UNWRAP_META(tempVar, target, expr)                \
   auto MOZ_REMOVE_PAREN(tempVar) = (expr);                         \
   ASSERT_TRUE(MOZ_REMOVE_PAREN(tempVar).isOk())                    \
