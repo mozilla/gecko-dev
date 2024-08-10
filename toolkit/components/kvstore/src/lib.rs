@@ -21,13 +21,14 @@ extern crate xpcom;
 mod error;
 mod fs;
 mod owned_value;
+mod skv;
 mod task;
 
 use atomic_refcell::AtomicRefCell;
 use error::KeyValueError;
 use libc::c_void;
 use moz_task::{create_background_task_queue, DispatchOptions, TaskRunnable};
-use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
+use nserror::{nsresult, NS_ERROR_FAILURE, NS_ERROR_NOT_IMPLEMENTED, NS_OK};
 use nsstring::{nsACString, nsAString, nsCString, nsString};
 use owned_value::{owned_to_variant, variant_to_owned};
 use rkv::backend::{RecoveryStrategy, SafeModeDatabase, SafeModeEnvironment};
@@ -342,6 +343,16 @@ impl KeyValueDatabase {
             TaskRunnable::new("KVDatabase::Enumerate", task)?,
             &self.queue,
         )
+    }
+
+    xpcom_method!(
+        close => Close(
+            callback: *const nsIKeyValueVoidCallback
+        )
+    );
+
+    fn close(&self, _callback: &nsIKeyValueVoidCallback) -> Result<(), nsresult> {
+        Err(NS_ERROR_NOT_IMPLEMENTED)
     }
 }
 

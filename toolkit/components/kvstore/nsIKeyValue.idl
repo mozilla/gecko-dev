@@ -152,6 +152,16 @@ interface nsIKeyValueDatabase : nsISupports {
         in nsIKeyValueEnumeratorCallback callback,
         [optional] in AUTF8String fromKey,
         [optional] in AUTF8String toKey);
+
+    /**
+     * Closes the database, so that subsequent attempts to read from or
+     * write to it will fail. Does nothing if the database is already closed.
+     *
+     * This operation always succeeds if the implementation supports
+     * closing a database (that is, it's not possible for a database to
+     * fail to close), and always fails if it doesn't.
+     */
+    void close(in nsIKeyValueVoidCallback callback);
 };
 
 /**
