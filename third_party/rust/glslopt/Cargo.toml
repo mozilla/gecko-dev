@@ -9,11 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "glslopt"
 version = "0.1.10"
 authors = ["Jamie Nicol <jnicol@mozilla.com>"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Optimizes GLSL shader code"
 readme = "README.md"
 keywords = [
@@ -26,5 +36,9 @@ keywords = [
 license = "MIT"
 repository = "https://github.com/jamienicol/glslopt-rs"
 
-[build-dependencies.cc]
-version = "1.0"
+[lib]
+name = "glslopt"
+path = "src/lib.rs"
+
+[build-dependencies]
+cc = "1.0"
