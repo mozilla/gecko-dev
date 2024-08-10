@@ -320,7 +320,8 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
     mMissingFonts = MakeUnique<gfxMissingFontRecorder>();
   }
 
-  if (StaticPrefs::layout_dynamic_toolbar_max_height() > 0) {
+  if (StaticPrefs::layout_dynamic_toolbar_max_height() > 0 &&
+      IsRootContentDocumentCrossProcess()) {
     // The pref for dynamic toolbar max height is only used in reftests so it's
     // fine to set here.
     mDynamicToolbarMaxHeight = StaticPrefs::layout_dynamic_toolbar_max_height();
@@ -3127,13 +3128,21 @@ nscoord nsPresContext::GetDynamicToolbarMaxHeightInAppUnits() const {
   if (mDynamicToolbarMaxHeight == 0) {
     return 0;
   }
-  return CSSPixel::ToAppUnits(ScreenCoord(GetDynamicToolbarMaxHeight()) /
-                              GetMVMScale(mPresShell));
+  return CSSPixel::ToAppUnits(
+      ScreenCoord(GetDynamicToolbarMaxHeight()) /
+      // For viewport units the dynamic toolbar height needs to be the height
+      // as if this document is scaled by 1.0 whatever the current zoom scale
+      // is.
+      (CSSToDevPixelScale() * LayoutDeviceToScreenScale(1.0)));
 }
 
 nscoord nsPresContext::GetBimodalDynamicToolbarHeightInAppUnits() const {
+  if (mDynamicToolbarMaxHeight == 0) {
+    return 0;
+  }
   return GetDynamicToolbarState() == DynamicToolbarState::Collapsed
-             ? GetDynamicToolbarMaxHeightInAppUnits()
+             ? CSSPixel::ToAppUnits(ScreenCoord(GetDynamicToolbarMaxHeight()) /
+                                    GetMVMScale(mPresShell))
              : 0;
 }
 

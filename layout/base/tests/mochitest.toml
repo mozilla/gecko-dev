@@ -606,5 +606,8 @@ support-files = [
   "transformed_scrolling_repaints_3_window_frame.html",
 ]
 
+["test_viewport_units_with_dynamic_toolbar.html"]
+support-files = ["file_viewport_units_with_dynamic_toolbar.html"]
+
 ["test_zoom_restore_bfcache.html"]
 support-files = ["file_zoom_restore_bfcache.html"]
