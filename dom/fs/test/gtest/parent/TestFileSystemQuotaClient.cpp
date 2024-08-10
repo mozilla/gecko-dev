@@ -4,26 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <algorithm>
-
+#include "FileSystemParentTestHelpers.h"
 #include "FileSystemParentTypes.h"
 #include "TestHelpers.h"
 #include "datamodel/FileSystemDataManager.h"
 #include "datamodel/FileSystemDatabaseManager.h"
 #include "gtest/gtest.h"
-#include "mozilla/Result.h"
-#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/FileSystemQuotaClientFactory.h"
 #include "mozilla/dom/PFileSystemManager.h"
-#include "mozilla/dom/QMResult.h"
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
-#include "mozilla/dom/quota/FileStreams.h"
-#include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/dom/quota/test/QuotaManagerDependencyFixture.h"
-#include "nsIFile.h"
-#include "nsString.h"
 
 namespace mozilla::dom::fs::test {
 
@@ -38,11 +30,6 @@ quota::OriginMetadata GetTestQuotaOriginMetadata() {
 
 class TestFileSystemQuotaClient
     : public quota::test::QuotaManagerDependencyFixture {
- public:
-  static const int sPage = 64 * 512;
-  // ExceedsPreallocation value may depend on platform and sqlite version!
-  static const int sExceedsPreallocation = sPage;
-
  protected:
   void SetUp() override { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
 
@@ -50,122 +37,6 @@ class TestFileSystemQuotaClient
     EXPECT_NO_FATAL_FAILURE(
         ClearStoragesForOrigin(GetTestQuotaOriginMetadata()));
     ASSERT_NO_FATAL_FAILURE(ShutdownFixture());
-  }
-
-  static const Name& GetTestFileName() {
-    static Name testFileName = []() {
-      nsCString testCFileName;
-      testCFileName.SetLength(sExceedsPreallocation);
-      std::fill(testCFileName.BeginWriting(), testCFileName.EndWriting(), 'x');
-      return NS_ConvertASCIItoUTF16(testCFileName.BeginReading(),
-                                    sExceedsPreallocation);
-    }();
-
-    return testFileName;
-  }
-
-  static uint64_t BytesOfName(const Name& aName) {
-    return static_cast<uint64_t>(aName.Length() * sizeof(Name::char_type));
-  }
-
-  static const nsCString& GetTestData() {
-    static const nsCString sTestData = "There is a way out of every box"_ns;
-    return sTestData;
-  }
-
-  static void CreateNewEmptyFile(
-      data::FileSystemDatabaseManager* const aDatabaseManager,
-      const FileSystemChildMetadata& aFileSlot, EntryId& aEntryId) {
-    // The file should not exist yet
-    Result<EntryId, QMResult> existingTestFile =
-        aDatabaseManager->GetOrCreateFile(aFileSlot, /* create */ false);
-    ASSERT_TRUE(existingTestFile.isErr());
-    ASSERT_NSEQ(NS_ERROR_DOM_NOT_FOUND_ERR,
-                ToNSResult(existingTestFile.unwrapErr()));
-
-    // Create a new file
-    TEST_TRY_UNWRAP(aEntryId, aDatabaseManager->GetOrCreateFile(
-                                  aFileSlot, /* create */ true));
-  }
-
-  static void WriteDataToFile(
-      data::FileSystemDatabaseManager* const aDatabaseManager,
-      const EntryId& aEntryId, const nsCString& aData) {
-    TEST_TRY_UNWRAP(FileId fileId, aDatabaseManager->EnsureFileId(aEntryId));
-    ASSERT_FALSE(fileId.IsEmpty());
-
-    ContentType type;
-    TimeStamp lastModMilliS = 0;
-    Path path;
-    nsCOMPtr<nsIFile> fileObj;
-    ASSERT_NSEQ(NS_OK,
-                aDatabaseManager->GetFile(aEntryId, fileId, FileMode::EXCLUSIVE,
-                                          type, lastModMilliS, path, fileObj));
-
-    uint32_t written = 0;
-    ASSERT_NE(written, aData.Length());
-
-    const quota::OriginMetadata& testOriginMeta = GetTestQuotaOriginMetadata();
-
-    TEST_TRY_UNWRAP(nsCOMPtr<nsIOutputStream> fileStream,
-                    quota::CreateFileOutputStream(
-                        quota::PERSISTENCE_TYPE_DEFAULT, testOriginMeta,
-                        quota::Client::FILESYSTEM, fileObj));
-
-    auto finallyClose = MakeScopeExit(
-        [&fileStream]() { ASSERT_NSEQ(NS_OK, fileStream->Close()); });
-    ASSERT_NSEQ(NS_OK,
-                fileStream->Write(aData.get(), aData.Length(), &written));
-
-    ASSERT_EQ(aData.Length(), written);
-  }
-
-  /* Static for use in callbacks */
-  static void CreateRegisteredDataManager(
-      Registered<data::FileSystemDataManager>& aRegisteredDataManager) {
-    bool done = false;
-
-    data::FileSystemDataManager::GetOrCreateFileSystemDataManager(
-        GetTestQuotaOriginMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&aRegisteredDataManager,
-             &done](Registered<data::FileSystemDataManager>
-                        registeredDataManager) mutable {
-              auto doneOnReturn = MakeScopeExit([&done]() { done = true; });
-
-              ASSERT_TRUE(registeredDataManager->IsOpen());
-              aRegisteredDataManager = std::move(registeredDataManager);
-            },
-            [&done](nsresult rejectValue) {
-              auto doneOnReturn = MakeScopeExit([&done]() { done = true; });
-
-              ASSERT_NSEQ(NS_OK, rejectValue);
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    ASSERT_TRUE(aRegisteredDataManager);
-    ASSERT_TRUE(aRegisteredDataManager->IsOpen());
-    ASSERT_TRUE(aRegisteredDataManager->MutableDatabaseManagerPtr());
-  }
-
-  static void CheckUsageEqualTo(const quota::UsageInfo& aUsage,
-                                uint64_t expected) {
-    EXPECT_TRUE(aUsage.FileUsage().isNothing());
-    auto dbUsage = aUsage.DatabaseUsage();
-    ASSERT_TRUE(dbUsage.isSome());
-    const auto actual = dbUsage.value();
-    ASSERT_EQ(actual, expected);
-  }
-
-  static void CheckUsageGreaterThan(const quota::UsageInfo& aUsage,
-                                    uint64_t expected) {
-    EXPECT_TRUE(aUsage.FileUsage().isNothing());
-    auto dbUsage = aUsage.DatabaseUsage();
-    ASSERT_TRUE(dbUsage.isSome());
-    const auto actual = dbUsage.value();
-    ASSERT_GT(actual, expected);
   }
 };
 
@@ -203,7 +74,7 @@ TEST_F(TestFileSystemQuotaClient, CheckUsageBeforeAnyFilesOnDisk) {
       // After a new file has been created (only in the database),
       // * database size has increased
       // * GetUsageForOrigin and InitOrigin should agree
-      const auto expectedUse = initialDbUsage + 2 * sPage;
+      const auto expectedUse = initialDbUsage + 2 * GetPageSize();
 
       TEST_TRY_UNWRAP(usageNow, quotaClient->GetUsageForOrigin(
                                     quota::PERSISTENCE_TYPE_DEFAULT,
@@ -236,7 +107,8 @@ TEST_F(TestFileSystemQuotaClient, CheckUsageBeforeAnyFilesOnDisk) {
 
     // Initialize database
     Registered<data::FileSystemDataManager> rdm;
-    ASSERT_NO_FATAL_FAILURE(CreateRegisteredDataManager(rdm));
+    ASSERT_NO_FATAL_FAILURE(
+        CreateRegisteredDataManager(GetTestQuotaOriginMetadata(), rdm));
 
     // Run tests with an initialized database
     PerformOnIOThread(std::move(ioTask), std::move(quotaClient),
@@ -278,7 +150,8 @@ TEST_F(TestFileSystemQuotaClient, WritesToFilesShouldIncreaseUsage) {
       // Fill the file with some content
       const nsCString& testData = GetTestData();
 
-      ASSERT_NO_FATAL_FAILURE(WriteDataToFile(dbm, testFileId, testData));
+      ASSERT_NO_FATAL_FAILURE(WriteDataToFile(GetTestQuotaOriginMetadata(), dbm,
+                                              testFileId, testData));
 
       // In this test we don't lock the file -> no rescan is expected
       // and InitOrigin should return the previous value
@@ -311,7 +184,8 @@ TEST_F(TestFileSystemQuotaClient, WritesToFilesShouldIncreaseUsage) {
 
     // Initialize database
     Registered<data::FileSystemDataManager> rdm;
-    ASSERT_NO_FATAL_FAILURE(CreateRegisteredDataManager(rdm));
+    ASSERT_NO_FATAL_FAILURE(
+        CreateRegisteredDataManager(GetTestQuotaOriginMetadata(), rdm));
 
     // Run tests with an initialized database
     PerformOnIOThread(std::move(ioTask), std::move(quotaClient),
@@ -355,7 +229,8 @@ TEST_F(TestFileSystemQuotaClient, TrackedFilesOnInitOriginShouldCauseRescan) {
           const auto& testData = GetTestData();
           const auto expectedTotalUsage = testFileDbUsage + testData.Length();
 
-          ASSERT_NO_FATAL_FAILURE(WriteDataToFile(dbm, *testFileId, testData));
+          ASSERT_NO_FATAL_FAILURE(WriteDataToFile(GetTestQuotaOriginMetadata(),
+                                                  dbm, *testFileId, testData));
 
           // We don't call update now - because the file is tracked and
           // InitOrigin should perform a rescan
@@ -378,7 +253,8 @@ TEST_F(TestFileSystemQuotaClient, TrackedFilesOnInitOriginShouldCauseRescan) {
 
     // Initialize database
     Registered<data::FileSystemDataManager> rdm;
-    ASSERT_NO_FATAL_FAILURE(CreateRegisteredDataManager(rdm));
+    ASSERT_NO_FATAL_FAILURE(
+        CreateRegisteredDataManager(GetTestQuotaOriginMetadata(), rdm));
 
     PerformOnIOThread(std::move(fileCreation),
                       rdm->MutableDatabaseManagerPtr());
@@ -418,7 +294,8 @@ TEST_F(TestFileSystemQuotaClient, RemovingFileShouldDecreaseUsage) {
       const nsCString& testData = GetTestData();
       const auto expectedTotalUsage = testFileDbUsage + testData.Length();
 
-      ASSERT_NO_FATAL_FAILURE(WriteDataToFile(dbm, testFileId, testData));
+      ASSERT_NO_FATAL_FAILURE(WriteDataToFile(GetTestQuotaOriginMetadata(), dbm,
+                                              testFileId, testData));
 
       // Currently, usage is expected to be updated on unlock by data manager
       // but here UpdateUsage() is called directly
@@ -453,7 +330,8 @@ TEST_F(TestFileSystemQuotaClient, RemovingFileShouldDecreaseUsage) {
 
     // Initialize database
     Registered<data::FileSystemDataManager> rdm;
-    ASSERT_NO_FATAL_FAILURE(CreateRegisteredDataManager(rdm));
+    ASSERT_NO_FATAL_FAILURE(
+        CreateRegisteredDataManager(GetTestQuotaOriginMetadata(), rdm));
 
     // Run tests with an initialized database
     PerformOnIOThread(std::move(ioTask), std::move(quotaClient),
