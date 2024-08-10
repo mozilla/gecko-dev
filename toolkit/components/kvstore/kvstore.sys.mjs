@@ -2,16 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const gKeyValueService = Cc["@mozilla.org/key-value-service;1"].getService(
-  Ci.nsIKeyValueService
-);
-
-function promisify(fn, ...args) {
-  return new Promise((resolve, reject) => {
-    fn({ resolve, reject }, ...args);
-  });
-}
-
 /**
  * This module wraps the nsIKeyValue* interfaces in a Promise-based API.
  * To use it, import it, then call the KeyValueService.getOrCreate() method
@@ -27,31 +17,52 @@ function promisify(fn, ...args) {
  * for key/value storage.
  */
 
+function promisify(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    fn({ resolve, reject }, ...args);
+  });
+}
+
 export class KeyValueService {
   static RecoveryStrategy = {
-    ERROR: gKeyValueService.ERROR,
-    DISCARD: gKeyValueService.DISCARD,
-    RENAME: gKeyValueService.RENAME,
+    ERROR: Ci.nsIKeyValueService.ERROR,
+    DISCARD: Ci.nsIKeyValueService.DISCARD,
+    RENAME: Ci.nsIKeyValueService.RENAME,
   };
+
+  static #service = Cc["@mozilla.org/key-value-service;1"].getService(
+    Ci.nsIKeyValueService
+  );
 
   static async getOrCreate(dir, name) {
     return new KeyValueDatabase(
-      await promisify(gKeyValueService.getOrCreate, dir, name)
+      await promisify(this.#service.getOrCreate, dir, name)
     );
   }
 
   static async getOrCreateWithOptions(
     dir,
     name,
-    { strategy = gKeyValueService.RENAME } = {}
+    { strategy = Ci.nsIKeyValueService.RENAME } = {}
   ) {
     return new KeyValueDatabase(
-      await promisify(
-        gKeyValueService.getOrCreateWithOptions,
-        dir,
-        name,
-        strategy
-      )
+      await promisify(this.#service.getOrCreateWithOptions, dir, name, strategy)
+    );
+  }
+}
+
+/**
+ * An experimental key-value storage service that uses
+ * SQLite for persistence.
+ */
+export class SQLiteKeyValueService {
+  static #service = Cc["@mozilla.org/sqlite-key-value-service;1"].getService(
+    Ci.nsIKeyValueService
+  );
+
+  static async getOrCreate(dir, name) {
+    return new KeyValueDatabase(
+      await promisify(this.#service.getOrCreate, dir, name)
     );
   }
 }
@@ -176,6 +187,10 @@ class KeyValueDatabase {
     return new KeyValueEnumerator(
       await promisify(this.database.enumerate, from_key, to_key)
     );
+  }
+
+  async close() {
+    return promisify(this.database.close);
   }
 }
 
