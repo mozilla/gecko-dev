@@ -574,13 +574,17 @@ bool BrowserTabsRemoteAutostart() {
   gBrowserTabsRemoteAutostart = true;
   E10sStatus status = kE10sEnabledByDefault;
 
-  // We use "are non-local connections disabled" as a proxy for
-  // "are we running some kind of automated test". It would be nicer to use
-  // xpc::IsInAutomation(), but that depends on some prefs being set, which
-  // they are not in (at least) gtests (where we can't) and xpcshell.
-  // Long-term, hopefully we can make all tests e10s-friendly,
-  // then we could remove this automation-only env variable.
-  if (gBrowserTabsRemoteAutostart && xpc::AreNonLocalConnectionsDisabled()) {
+// We are checking to ensure that either MOZILLA_OFFICIAL is undefined or that
+// xpc::AreNonLocalConnectionsDisabled() is true. If either check matches,
+// we move on to check the MOZ_FORCE_DISABLE_E10S environment variable which
+// must equal "1" to proceed with disabling e10s.
+#if defined(MOZILLA_OFFICIAL)
+  bool allowDisablingE10s = xpc::AreNonLocalConnectionsDisabled();
+#else
+  bool allowDisablingE10s = true;
+#endif
+
+  if (gBrowserTabsRemoteAutostart && allowDisablingE10s) {
     const char* forceDisable = PR_GetEnv("MOZ_FORCE_DISABLE_E10S");
     if (forceDisable && !strcmp(forceDisable, "1")) {
       gBrowserTabsRemoteAutostart = false;
