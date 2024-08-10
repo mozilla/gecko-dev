@@ -2457,7 +2457,8 @@ dependencies = [
 [[package]]
 name = "glslopt"
 version = "0.1.10"
-source = "git+https://github.com/kenz-gelsoft/glslopt-rs?rev=f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b#f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee5be629003d587bab188f3e2e3b010aa2cde7c41ec967b3a244f388d4d81877"
 dependencies = [
  "cc",
 ]
@@ -3380,7 +3381,8 @@ dependencies = [
 [[package]]
 name = "lmdb-rkv-sys"
 version = "0.11.2"
-source = "git+https://github.com/kenz-gelsoft/lmdb-rs?rev=c246a7b064a067feaf9d611c20b418af261477d0#c246a7b064a067feaf9d611c20b418af261477d0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61b9ce6b3be08acefa3003c57b7565377432a89ec24476bbe72e11d101f852fe"
 dependencies = [
  "cc",
  "libc",
