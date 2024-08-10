@@ -236,3 +236,6 @@ mio_0_8 = { package = "mio", git = "https://github.com/glandium/mio", rev = "9a2
 # Patch `gpu-descriptor` 0.3.0 to remove unnecessary `allocator-api2` dep.:
 # Still waiting for the now-merged <https://github.com/zakarumych/gpu-descriptor/pull/40> to be released.
 gpu-descriptor = { git = "https://github.com/zakarumych/gpu-descriptor", rev = "7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d" }
+
+# Patch for Haiku
+lmdb-rkv-sys = { git = "https://github.com/kenz-gelsoft/lmdb-rs", rev = "9a481259e3b15932bd88bc90a8d7dc49e7ac9cd6" }
