@@ -5,11 +5,9 @@
 extern crate xpcom;
 
 use crossbeam_utils::atomic::AtomicCell;
-use error::KeyValueError;
 use moz_task::Task;
 use nserror::{nsresult, NS_ERROR_FAILURE};
 use nsstring::{nsCString, nsString};
-use owned_value::owned_to_variant;
 use rkv::backend::{
     BackendEnvironmentBuilder, BackendInfo, RecoveryStrategy, SafeMode, SafeModeDatabase,
     SafeModeEnvironment,
@@ -27,9 +25,11 @@ use xpcom::{
     },
     RefPtr, ThreadBoundRefPtr,
 };
-use KeyValueDatabase;
-use KeyValueEnumerator;
-use KeyValuePairResult;
+
+use crate::{
+    error::KeyValueError, owned_value::owned_to_variant, KeyValueDatabase, KeyValueEnumerator,
+    KeyValuePairResult,
+};
 
 type Manager = rkv::Manager<SafeModeEnvironment>;
 type Rkv = rkv::Rkv<SafeModeEnvironment>;

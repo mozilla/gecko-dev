@@ -1,8 +1,9 @@
 [package]
 name = "kvstore"
 version = "0.1.0"
-authors = ["Myk Melez <myk@mykzilla.org>"]
+authors = ["Myk Melez <myk@mykzilla.org>", "Lina Butler <lina@yakshaving.ninja>"]
 license = "MPL-2.0"
+edition = "2021"
 
 [dependencies]
 atomic_refcell = "0.1"
