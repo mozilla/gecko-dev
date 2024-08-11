@@ -96,8 +96,8 @@ function getMouseCoordsRelativeToScreenInDevicePixels() {
 
 function isCloselyLeftOnTopOf(aCoordsP1, aCoordsP2, aDelta = 10) {
   return (
-    Math.abs(aCoordsP2.x - aCoordsP1.x) < aDelta &&
-    Math.abs(aCoordsP2.y - aCoordsP1.y) < aDelta
+    Math.abs(aCoordsP2.x - aCoordsP1.x) <= aDelta &&
+    Math.abs(aCoordsP2.y - aCoordsP1.y) <= aDelta
   );
 }
 

@@ -137,6 +137,7 @@ export var ClipboardContextMenu = {
       // actor parents will receive the corresponding event.
       this._menupopup.openPopup(null, {
         isContextMenu: true,
+        position: "overlap",
         x: mouseXInCSSPixels.value,
         y: mouseYInCSSPixels.value,
       });
