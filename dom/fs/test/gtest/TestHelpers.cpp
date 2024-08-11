@@ -53,6 +53,11 @@ quota::OriginMetadata GetTestOriginMetadata() {
                                quota::PERSISTENCE_TYPE_DEFAULT};
 }
 
+quota::ClientMetadata GetTestClientMetadata() {
+  return quota::ClientMetadata{GetTestOriginMetadata(),
+                               quota::Client::FILESYSTEM};
+}
+
 const Origin& GetTestOrigin() {
   static const Origin origin = "http://example.com"_ns;
   return origin;

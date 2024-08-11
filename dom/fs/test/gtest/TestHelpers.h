@@ -62,6 +62,7 @@ namespace mozilla::dom {
 
 namespace quota {
 
+struct ClientMetadata;
 struct OriginMetadata;
 
 }  // namespace quota
@@ -69,6 +70,7 @@ struct OriginMetadata;
 namespace fs::test {
 
 quota::OriginMetadata GetTestOriginMetadata();
+quota::ClientMetadata GetTestClientMetadata();
 
 const Origin& GetTestOrigin();
 
