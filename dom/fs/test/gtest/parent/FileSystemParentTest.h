@@ -1,0 +1,73 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef DOM_FS_TEST_GTEST_PARENT_FILESYSTEMPARENTTEST_H_
+#define DOM_FS_TEST_GTEST_PARENT_FILESYSTEMPARENTTEST_H_
+
+#include "mozilla/dom/FileSystemHelpers.h"
+#include "mozilla/dom/FileSystemTypes.h"
+#include "mozilla/dom/quota/test/QuotaManagerDependencyFixture.h"
+#include "nsStringFwd.h"
+
+namespace mozilla::dom {
+
+namespace quota {
+
+class UsageInfo;
+
+}  // namespace quota
+
+namespace fs {
+
+struct FileId;
+
+namespace data {
+
+class FileSystemDataManager;
+
+}  // namespace data
+}  // namespace fs
+}  // namespace mozilla::dom
+
+namespace mozilla::dom::fs::test {
+
+class FileSystemParentTest : public quota::test::QuotaManagerDependencyFixture {
+ protected:
+  FileSystemParentTest();
+
+  ~FileSystemParentTest();
+
+  static void SetUpTestCase();
+
+  static void TearDownTestCase();
+
+  void TearDown() override;
+
+  static void GetOriginUsage(quota::UsageInfo& aResult);
+
+  void EnsureDataManager();
+
+  void LockExclusive(const EntryId& aEntryId);
+
+  void UnlockExclusive(const EntryId& aEntryId);
+
+  void CreateNewEmptyFile(EntryId& aEntryId);
+
+  void WriteDataToFile(EntryId& aEntryId, const nsCString& aData);
+
+  void RemoveFile(bool& aWasRemoved);
+
+  void GetDatabaseUsage(quota::UsageInfo& aDatabaseUsage);
+
+  void UpdateDatabaseUsage(const FileId& aFileId);
+
+ private:
+  Registered<data::FileSystemDataManager> mDataManager;
+};
+
+}  // namespace mozilla::dom::fs::test
+
+#endif  // DOM_FS_TEST_GTEST_PARENT_FILESYSTEMPARENTTEST_H_

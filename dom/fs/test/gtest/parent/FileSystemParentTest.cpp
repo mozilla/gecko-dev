@@ -1,0 +1,158 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "FileSystemParentTest.h"
+
+#include "FileSystemParentTestHelpers.h"
+#include "TestHelpers.h"
+#include "datamodel/FileSystemDataManager.h"
+#include "datamodel/FileSystemDatabaseManager.h"
+#include "gtest/gtest.h"
+#include "mozilla/dom/PFileSystemManager.h"
+
+namespace mozilla::dom::fs::test {
+
+FileSystemParentTest::FileSystemParentTest() = default;
+
+FileSystemParentTest::~FileSystemParentTest() = default;
+
+// static
+void FileSystemParentTest::SetUpTestCase() {
+  ASSERT_NO_FATAL_FAILURE(InitializeFixture());
+}
+
+// static
+void FileSystemParentTest::TearDownTestCase() {
+  ASSERT_NO_FATAL_FAILURE(ShutdownFixture());
+}
+
+void FileSystemParentTest::TearDown() {
+  PerformOnBackgroundThread([this]() { mDataManager = nullptr; });
+
+  ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
+}
+
+//  static
+void FileSystemParentTest::GetOriginUsage(quota::UsageInfo& aResult) {
+  ASSERT_NO_FATAL_FAILURE(QuotaManagerDependencyFixture::GetOriginUsage(
+      GetTestOriginMetadata(), &aResult));
+}
+
+void FileSystemParentTest::EnsureDataManager() {
+  PerformOnBackgroundThread([this]() {
+    ASSERT_NO_FATAL_FAILURE(test::CreateRegisteredDataManager(
+        GetTestOriginMetadata(), mDataManager));
+  });
+}
+
+void FileSystemParentTest::LockExclusive(const EntryId& aEntryId) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY_UNWRAP(FileId fileId, PerformOnBackgroundThread([this, &aEntryId]() {
+                    return mDataManager->LockExclusive(aEntryId);
+                  }));
+}
+
+void FileSystemParentTest::UnlockExclusive(const EntryId& aEntryId) {
+  ASSERT_TRUE(mDataManager);
+
+  PerformOnBackgroundThread(
+      [this, &aEntryId]() { mDataManager->UnlockExclusive(aEntryId); });
+}
+
+void FileSystemParentTest::CreateNewEmptyFile(EntryId& aEntryId) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY_UNWRAP(
+      EntryId testFileId,
+      PerformOnThread(
+          mDataManager->MutableIOTaskQueuePtr(),
+          [this]() -> Result<EntryId, QMResult> {
+            data::FileSystemDatabaseManager* databaseManager =
+                mDataManager->MutableDatabaseManagerPtr();
+
+            QM_TRY_UNWRAP(const EntryId rootId,
+                          data::GetRootHandle(GetTestOrigin()));
+            FileSystemChildMetadata fileData(rootId, GetTestFileName());
+
+            EntryId testFileId;
+            ENSURE_NO_FATAL_FAILURE(
+                test::CreateNewEmptyFile(databaseManager, fileData, testFileId),
+                Err(QMResult(NS_ERROR_FAILURE)));
+
+            return testFileId;
+          }));
+
+  aEntryId = testFileId;
+}
+
+void FileSystemParentTest::WriteDataToFile(EntryId& aEntryId,
+                                           const nsCString& aData) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY(PerformOnThread(mDataManager->MutableIOTaskQueuePtr(),
+                           [this, &aEntryId, &aData]() -> Result<Ok, QMResult> {
+                             data::FileSystemDatabaseManager* databaseManager =
+                                 mDataManager->MutableDatabaseManagerPtr();
+
+                             ENSURE_NO_FATAL_FAILURE(
+                                 test::WriteDataToFile(GetTestOriginMetadata(),
+                                                       databaseManager,
+                                                       aEntryId, aData),
+                                 Err(QMResult(NS_ERROR_FAILURE)));
+
+                             return Ok{};
+                           }));
+}
+
+void FileSystemParentTest::RemoveFile(bool& aWasRemoved) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY_UNWRAP(
+      bool wasRemoved,
+      PerformOnThread(mDataManager->MutableIOTaskQueuePtr(),
+                      [this]() -> Result<bool, QMResult> {
+                        data::FileSystemDatabaseManager* databaseManager =
+                            mDataManager->MutableDatabaseManagerPtr();
+
+                        QM_TRY_UNWRAP(const EntryId rootId,
+                                      data::GetRootHandle(GetTestOrigin()));
+
+                        QM_TRY_RETURN(databaseManager->RemoveFile(
+                            {rootId, GetTestFileName()}));
+                      }));
+
+  aWasRemoved = wasRemoved;
+}
+
+void FileSystemParentTest::GetDatabaseUsage(quota::UsageInfo& aDatabaseUsage) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY_UNWRAP(
+      auto databaseUsage,
+      PerformOnThread(mDataManager->MutableIOTaskQueuePtr(), [this]() {
+        data::FileSystemDatabaseManager* databaseManager =
+            mDataManager->MutableDatabaseManagerPtr();
+
+        QM_TRY_RETURN(databaseManager->GetUsage());
+      }));
+
+  aDatabaseUsage = databaseUsage;
+}
+
+void FileSystemParentTest::UpdateDatabaseUsage(const FileId& aFileId) {
+  ASSERT_TRUE(mDataManager);
+
+  TEST_TRY(PerformOnThread(
+      mDataManager->MutableIOTaskQueuePtr(), [this, &aFileId]() {
+        data::FileSystemDatabaseManager* databaseManager =
+            mDataManager->MutableDatabaseManagerPtr();
+
+        QM_TRY_RETURN(MOZ_TO_RESULT(databaseManager->UpdateUsage(aFileId)));
+      }));
+}
+
+}  // namespace mozilla::dom::fs::test

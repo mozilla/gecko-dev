@@ -4,157 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "FileSystemParentTest.h"
 #include "FileSystemParentTestHelpers.h"
 #include "FileSystemParentTypes.h"
-#include "TestHelpers.h"
-#include "datamodel/FileSystemDataManager.h"
-#include "datamodel/FileSystemDatabaseManager.h"
 #include "gtest/gtest.h"
-#include "mozilla/dom/PFileSystemManager.h"
 #include "mozilla/dom/quota/UsageInfo.h"
-#include "mozilla/dom/quota/test/QuotaManagerDependencyFixture.h"
 
 // This file is intended for integration tests which verify usage tracking
 // without any restart in between.
 
 namespace mozilla::dom::fs::test {
 
-class TestFileSystemUsageTracking
-    : public quota::test::QuotaManagerDependencyFixture {
- protected:
-  static void SetUpTestCase() { ASSERT_NO_FATAL_FAILURE(InitializeFixture()); }
-
-  static void TearDownTestCase() { ASSERT_NO_FATAL_FAILURE(ShutdownFixture()); }
-
-  void TearDown() override {
-    PerformOnBackgroundThread([this]() { mDataManager = nullptr; });
-
-    ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
-  }
-
-  static void GetOriginUsage(quota::UsageInfo& aResult) {
-    ASSERT_NO_FATAL_FAILURE(QuotaManagerDependencyFixture::GetOriginUsage(
-        GetTestOriginMetadata(), &aResult));
-  }
-
-  void EnsureDataManager() {
-    PerformOnBackgroundThread([this]() {
-      ASSERT_NO_FATAL_FAILURE(test::CreateRegisteredDataManager(
-          GetTestOriginMetadata(), mDataManager));
-    });
-  }
-
-  void LockExclusive(const EntryId& aEntryId) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY_UNWRAP(FileId fileId,
-                    PerformOnBackgroundThread([this, &aEntryId]() {
-                      return mDataManager->LockExclusive(aEntryId);
-                    }));
-  }
-
-  void UnlockExclusive(const EntryId& aEntryId) {
-    ASSERT_TRUE(mDataManager);
-
-    PerformOnBackgroundThread(
-        [this, &aEntryId]() { mDataManager->UnlockExclusive(aEntryId); });
-  }
-
-  void CreateNewEmptyFile(EntryId& aEntryId) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY_UNWRAP(
-        EntryId testFileId,
-        PerformOnThread(mDataManager->MutableIOTaskQueuePtr(),
-                        [this]() -> Result<EntryId, QMResult> {
-                          data::FileSystemDatabaseManager* databaseManager =
-                              mDataManager->MutableDatabaseManagerPtr();
-
-                          QM_TRY_UNWRAP(const EntryId rootId,
-                                        data::GetRootHandle(GetTestOrigin()));
-                          FileSystemChildMetadata fileData(rootId,
-                                                           GetTestFileName());
-
-                          EntryId testFileId;
-                          ENSURE_NO_FATAL_FAILURE(
-                              test::CreateNewEmptyFile(databaseManager,
-                                                       fileData, testFileId),
-                              Err(QMResult(NS_ERROR_FAILURE)));
-
-                          return testFileId;
-                        }));
-
-    aEntryId = testFileId;
-  }
-
-  void WriteDataToFile(EntryId& aEntryId, const nsCString& aData) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY(PerformOnThread(
-        mDataManager->MutableIOTaskQueuePtr(),
-        [this, &aEntryId, &aData]() -> Result<Ok, QMResult> {
-          data::FileSystemDatabaseManager* databaseManager =
-              mDataManager->MutableDatabaseManagerPtr();
-
-          ENSURE_NO_FATAL_FAILURE(
-              test::WriteDataToFile(GetTestOriginMetadata(), databaseManager,
-                                    aEntryId, aData),
-              Err(QMResult(NS_ERROR_FAILURE)));
-
-          return Ok{};
-        }));
-  }
-
-  void RemoveFile(bool& aWasRemoved) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY_UNWRAP(
-        bool wasRemoved,
-        PerformOnThread(mDataManager->MutableIOTaskQueuePtr(),
-                        [this]() -> Result<bool, QMResult> {
-                          data::FileSystemDatabaseManager* databaseManager =
-                              mDataManager->MutableDatabaseManagerPtr();
-
-                          QM_TRY_UNWRAP(const EntryId rootId,
-                                        data::GetRootHandle(GetTestOrigin()));
-
-                          QM_TRY_RETURN(databaseManager->RemoveFile(
-                              {rootId, GetTestFileName()}));
-                        }));
-
-    aWasRemoved = wasRemoved;
-  }
-
-  void GetDatabaseUsage(quota::UsageInfo& aDatabaseUsage) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY_UNWRAP(
-        auto databaseUsage,
-        PerformOnThread(mDataManager->MutableIOTaskQueuePtr(), [this]() {
-          data::FileSystemDatabaseManager* databaseManager =
-              mDataManager->MutableDatabaseManagerPtr();
-
-          QM_TRY_RETURN(databaseManager->GetUsage());
-        }));
-
-    aDatabaseUsage = databaseUsage;
-  }
-
-  void UpdateDatabaseUsage(const FileId& aFileId) {
-    ASSERT_TRUE(mDataManager);
-
-    TEST_TRY(PerformOnThread(
-        mDataManager->MutableIOTaskQueuePtr(), [this, &aFileId]() {
-          data::FileSystemDatabaseManager* databaseManager =
-              mDataManager->MutableDatabaseManagerPtr();
-
-          QM_TRY_RETURN(MOZ_TO_RESULT(databaseManager->UpdateUsage(aFileId)));
-        }));
-  }
-
- private:
-  Registered<data::FileSystemDataManager> mDataManager;
-};
+class TestFileSystemUsageTracking : public FileSystemParentTest {};
 
 TEST_F(TestFileSystemUsageTracking, CheckUsageBeforeAnyFilesOnDisk) {
   // For uninitialized database, origin usage is nothing
