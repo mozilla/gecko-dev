@@ -11,9 +11,10 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
+  HttpInference: "chrome://global/content/ml/HttpInference.sys.mjs",
   IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
-  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
 });
 
 /**
@@ -436,6 +437,56 @@ function appendTextConsole(text) {
   textarea.value += (textarea.value ? "\n" : "") + text;
 }
 
+async function runHttpInference() {
+  const output = document.getElementById("http.output");
+  output.value = "…";
+  output.value = await lazy.HttpInference.completion(
+    ["bearer", "endpoint", "model", "prompt"].reduce(
+      (config, key) => {
+        config[key] = document.getElementById("http." + key).value;
+        return config;
+      },
+      { onStream: val => (output.value = val) }
+    ),
+    await updateHttpContext()
+  );
+}
+
+async function updateHttpContext() {
+  const limit = document.getElementById("http.limit").value;
+  const { AboutNewTab, gBrowser, isBlankPageURL } =
+    window.browsingContext.topChromeWindow;
+  const recentTabs = gBrowser.tabs
+    .filter(
+      tab =>
+        !isBlankPageURL(tab.linkedBrowser.currentURI.spec) &&
+        tab != gBrowser.selectedTab
+    )
+    .toSorted((a, b) => b.lastSeenActive - a.lastSeenActive)
+    .slice(0, limit)
+    .map(tab => tab.label);
+  const context = {
+    recentTabs,
+    stories: Object.values(
+      AboutNewTab.activityStream.store.getState().DiscoveryStream.feeds.data
+    )[0]
+      ?.data.recommendations.slice(0, limit)
+      .map(rec => rec.title),
+    tabTitle: recentTabs[0],
+  };
+
+  const output = document.getElementById("http.context");
+  output.innerHTML = "";
+  const table = output.appendChild(document.createElement("table"));
+  Object.entries(context).forEach(([key, val]) => {
+    const tr = table.appendChild(document.createElement("tr"));
+    tr.appendChild(document.createElement("td")).textContent = `%${key}%`;
+    tr.appendChild(document.createElement("td")).textContent = val;
+  });
+
+  return context;
+}
+
 /**
  * Initializes the display of information when the window loads and sets an interval to update it.
  *
@@ -461,4 +512,12 @@ window.onload = async function () {
     selectedPreset = selectedOption.value;
     loadExample(selectedPreset);
   });
+
+  document
+    .getElementById("http.button")
+    .addEventListener("click", runHttpInference);
+  document
+    .getElementById("http.limit")
+    .addEventListener("change", updateHttpContext);
+  updateHttpContext();
 };

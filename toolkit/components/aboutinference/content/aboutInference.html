@@ -26,7 +26,9 @@
       ></a>
     </p>
 
-    <div id="warning" data-l10n-id="about-inference-warning"></div>
+    <div id="warning">
+      browser.ml.enable is set to False ! Toggle it to activate local inference.
+    </div>
 
     <div id="content">
       <div class="fieldset-container">
@@ -129,6 +131,62 @@
         <legend data-l10n-id="about-inference-models-title"></legend>
         <p data-l10n-id="about-inference-downloads-description"></p>
         <div id="modelFiles"></div>
+      </fieldset>
+    </div>
+
+    <div class="fieldset-container">
+      <fieldset>
+        <legend>HTTP Inference Pad</legend>
+        <div class="form-container">
+          <div>
+            <label for="http.endpoint">HTTP endpoint:</label>
+            <input
+              id="http.endpoint"
+              type="text"
+              value="http://localhost:8080/v1/chat/completions"
+            />
+          </div>
+          <div>
+            <label for="http.model">Model:</label>
+            <span class="tooltip">
+              ℹ️
+              <span class="tooltiptext"
+                >Some endpoints require a specific model.</span
+              >
+            </span>
+            <input id="http.model" type="text" />
+          </div>
+          <div>
+            <label for="http.bearer">Bearer token:</label>
+            <span class="tooltip">
+              ℹ️
+              <span class="tooltiptext"
+                >Some endpoints require a token for access.</span
+              >
+            </span>
+            <input id="http.bearer" type="text" />
+          </div>
+          <div>
+            <label for="http.prompt">Prompt:</label>
+            <textarea id="http.prompt">
+Suggest a story from %stories% to read after "%tabTitle%"</textarea
+            >
+          </div>
+          <div>
+            <input id="http.button" type="button" value="Run HTTP Inference" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>HTTP Inference Data</legend>
+        <h3>
+          Context
+          <input id="http.limit" max="120" min="1" type="range" value="10" />
+        </h3>
+        <div id="http.context"></div>
+        <h3>Output</h3>
+        <textarea id="http.output" readonly></textarea>
       </fieldset>
     </div>
   </body>

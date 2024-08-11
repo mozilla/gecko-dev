@@ -13,6 +13,7 @@ toolkit.jar:
     content/global/ml/ort.js                   (vendor/ort.js)
     content/global/ml/transformers.js          (vendor/transformers.js)
 #ifdef NIGHTLY_BUILD
+    content/global/ml/HttpInference.sys.mjs    (content/HttpInference.sys.mjs)
     content/global/ml/ort-dev.js               (vendor/ort-dev.js)
     content/global/ml/transformers-dev.js      (vendor/transformers-dev.js)
 #endif

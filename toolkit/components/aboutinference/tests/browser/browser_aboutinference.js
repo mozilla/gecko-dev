@@ -39,7 +39,10 @@ add_task(async function test_about_inference_disabled() {
       const element = document.querySelector(selectors.warning);
       const { display } = window.getComputedStyle(element);
       is(display, "block", "The warning should be visible");
-      Assert.equal(element.textContent, "browser.ml.enable is set to False !");
+      Assert.stringContains(
+        element.textContent,
+        "browser.ml.enable is set to False !"
+      );
     },
   });
 });
