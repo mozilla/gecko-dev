@@ -513,7 +513,7 @@ void HTMLImageElement::UnbindFromTree(UnbindContext& aContext) {
       OwnerDoc()->RemoveResponsiveContent(this);
       mInDocResponsiveContent = false;
     }
-    UpdateSourceSyncAndQueueImageTask(false);
+    UpdateSourceSyncAndQueueImageTask(false, /* aNotify = */ false);
   }
 }
 
