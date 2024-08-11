@@ -24,6 +24,11 @@ OS_LIBS += CONFIG["DL_LIBS"]
 if CONFIG["OS_TARGET"] == "Android":
     OS_LIBS += ["m"]
 
+if CONFIG["OS_ARCH"] == "Haiku":
+    OS_LIBS += [
+        "network",
+    ]
+
 if CONFIG["OS_ARCH"] == "WINNT":
     OS_LIBS += [
         "advapi32",
