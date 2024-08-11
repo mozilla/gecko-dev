@@ -331,25 +331,6 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   };
 
   /**
-   * Struct to report state changes
-   */
-  struct AutoStateChanger {
-    AutoStateChanger(nsImageLoadingContent* aImageContent, bool aNotify)
-        : mImageContent(aImageContent), mNotify(aNotify) {
-      mImageContent->mStateChangerDepth++;
-    }
-    ~AutoStateChanger() {
-      mImageContent->mStateChangerDepth--;
-      mImageContent->UpdateImageState(mNotify);
-    }
-
-    nsImageLoadingContent* mImageContent;
-    bool mNotify;
-  };
-
-  friend struct AutoStateChanger;
-
-  /**
    * Method to fire an event once we know what's going on with the image load.
    *
    * @param aEventType "load", or "error" depending on how things went
@@ -550,15 +531,8 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
    */
   uint32_t mRequestGeneration;
 
-  bool mLoadingEnabled : 1;
-
  protected:
-  /**
-   * The state we had the last time we checked whether we needed to notify the
-   * document of a state change.  These are maintained by UpdateImageState.
-   */
-  bool mLoading : 1;
-
+  bool mLoadingEnabled : 1;
   /**
    * Flag to indicate whether the channel should be mark as urgent-start.
    * It should be set in *Element and passed to nsContentUtils::LoadImage.
@@ -570,29 +544,20 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   // Represents the image is deferred loading until this element gets visible.
   bool mLazyLoading : 1;
 
- private:
-  /* The number of nested AutoStateChangers currently tracking our state. */
-  uint8_t mStateChangerDepth;
+  // Whether we have a pending load task scheduled (HTMLImageElement only).
+  bool mHasPendingLoadTask : 1;
 
+  // If true, force frames to synchronously decode images on draw.
+  bool mSyncDecodingHint : 1;
+
+  // Whether we're in the doc responsive content set (HTMLImageElement only).
+  bool mInDocResponsiveContent : 1;
+
+ private:
   // Flags to indicate whether each of the current and pending requests are
   // registered with the refresh driver.
   bool mCurrentRequestRegistered;
   bool mPendingRequestRegistered;
-
-  // TODO:
-  // Bug 1353685: Should ServiceWorker call SetBlockedRequest?
-  //
-  // This member is used in SetBlockedRequest, if it's true, then this call is
-  // triggered from LoadImage.
-  // If this is false, it means this call is from other places like
-  // ServiceWorker, then we will ignore call to SetBlockedRequest for now.
-  //
-  // Also we use this variable to check if some evil code is reentering
-  // LoadImage.
-  bool mIsStartingImageLoad;
-
-  // If true, force frames to synchronously decode images on draw.
-  bool mSyncDecodingHint;
 };
 
 #endif  // nsImageLoadingContent_h__

@@ -267,7 +267,11 @@ class HTMLImageElement final : public nsGenericHTMLElement,
   // Update the responsive source synchronously and queues a task to run
   // LoadSelectedImage pending stable state.
   void UpdateSourceSyncAndQueueImageTask(
-      bool aAlwaysLoad, const HTMLSourceElement* aSkippedSource = nullptr);
+      bool aAlwaysLoad, bool aNotify,
+      const HTMLSourceElement* aSkippedSource = nullptr);
+
+  // Clears the current image load task.
+  void ClearImageLoadTask();
 
   // True if we have a srcset attribute or a <picture> parent, regardless of if
   // any valid responsive sources were parsed from either.
@@ -396,9 +400,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
   void SetResponsiveSelector(RefPtr<ResponsiveImageSelector>&& aSource);
   void SetDensity(double aDensity);
 
-  // Queue an image load task (via microtask).
-  void QueueImageLoadTask(bool aAlwaysLoad);
-
   RefPtr<ImageLoadTask> mPendingImageLoadTask;
   nsCOMPtr<nsIURI> mSrcURI;
   nsCOMPtr<nsIPrincipal> mSrcTriggeringPrincipal;
@@ -408,7 +409,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
   nsCOMPtr<nsIURI> mLastSelectedSource;
   // Last pixel density that was selected.
   double mCurrentDensity = 1.0;
-  bool mInDocResponsiveContent = false;
 };
 
 }  // namespace dom

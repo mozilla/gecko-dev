@@ -104,14 +104,13 @@ nsImageLoadingContent::nsImageLoadingContent()
       mOutstandingDecodePromises(0),
       mRequestGeneration(0),
       mLoadingEnabled(true),
-      mLoading(false),
       mUseUrgentStartForChannel(false),
       mLazyLoading(false),
-      mStateChangerDepth(0),
+      mHasPendingLoadTask(false),
+      mSyncDecodingHint(false),
+      mInDocResponsiveContent(false),
       mCurrentRequestRegistered(false),
-      mPendingRequestRegistered(false),
-      mIsStartingImageLoad(false),
-      mSyncDecodingHint(false) {
+      mPendingRequestRegistered(false) {
   if (!nsContentUtils::GetImgLoaderForChannel(nullptr, nullptr)) {
     mLoadingEnabled = false;
   }
@@ -174,12 +173,6 @@ void nsImageLoadingContent::Notify(imgIRequest* aRequest, int32_t aType,
     }
   }
 
-  if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
-    // Have to check for state changes here, since we might have been in
-    // the LOADING state before.
-    UpdateImageState(true);
-  }
-
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
     uint32_t reqStatus;
     aRequest->GetImageStatus(&reqStatus);
@@ -216,7 +209,6 @@ void nsImageLoadingContent::Notify(imgIRequest* aRequest, int32_t aType,
     if (container) {
       container->PropagateUseCounters(GetOurOwnerDoc());
     }
-
     UpdateImageState(true);
   }
 }
@@ -238,9 +230,6 @@ void nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest,
     return;
   }
 
-  // Our state may change. Watch it.
-  AutoStateChanger changer(this, true);
-
   // If the pending request is loaded, switch to it.
   if (aRequest == mPendingRequest) {
     MakePendingRequestCurrent();
@@ -260,6 +249,7 @@ void nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest,
   MaybeResolveDecodePromises();
   LargestContentfulPaint::MaybeProcessImageForElementTiming(mCurrentRequest,
                                                             element);
+  UpdateImageState(true);
 }
 
 void nsImageLoadingContent::OnUnlockedDraw() {
@@ -952,8 +942,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   // XXX what about shouldProcess?
 
   // Our state might change. Watch it.
-  AutoStateChanger changer(this, true);
-
+  auto updateStateOnExit = MakeScopeExit([&] { UpdateImageState(true); });
   // Do the load.
   nsCOMPtr<nsIURI> uri;
   aChannel->GetOriginalURI(getter_AddRefs(uri));
@@ -1026,11 +1015,6 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
                                           nsLoadFlags aLoadFlags,
                                           Document* aDocument,
                                           nsIPrincipal* aTriggeringPrincipal) {
-  MOZ_ASSERT(!mIsStartingImageLoad, "some evil code is reentering LoadImage.");
-  if (mIsStartingImageLoad) {
-    return NS_OK;
-  }
-
   // Pending load/error events need to be canceled in some situations. This
   // is not documented in the spec, but can cause site compat problems if not
   // done. See bug 1309461 and https://github.com/whatwg/html/issues/1872.
@@ -1065,9 +1049,6 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
     }
   }
 
-  AutoRestore<bool> guard(mIsStartingImageLoad);
-  mIsStartingImageLoad = true;
-
   // Data documents, or documents from DOMParser shouldn't perform image
   // loading.
   //
@@ -1099,7 +1080,7 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
   }
 
   // From this point on, our image state could change. Watch it.
-  AutoStateChanger changer(this, aNotify);
+  auto updateStateOnExit = MakeScopeExit([&] { UpdateImageState(aNotify); });
 
   // Sanity check.
   //
@@ -1333,49 +1314,29 @@ CSSIntSize nsImageLoadingContent::GetWidthHeightForImage() {
 }
 
 void nsImageLoadingContent::UpdateImageState(bool aNotify) {
-  if (mStateChangerDepth > 0) {
-    // Ignore this call; we'll update our state when the outermost state changer
-    // is destroyed. Need this to work around the fact that some ImageLib
-    // stuff is actually sync and hence we can get OnStopDecode called while
-    // we're still under LoadImage, and OnStopDecode doesn't know anything about
-    // aNotify.
-    // XXX - This machinery should be removed after bug 521604.
-    return;
-  }
-
   Element* thisElement = AsContent()->AsElement();
-
-  mLoading = false;
-
-  Element::AutoStateChangeNotifier notifier(*thisElement, aNotify);
-  thisElement->RemoveStatesSilently(ElementState::BROKEN);
-
-  // If we were blocked, we're broken, so are we if we don't have an image
-  // request at all or the image has errored.
-  if (!mCurrentRequest) {
-    if (!mLazyLoading) {
-      // In case of non-lazy loading, no current request means error, since we
-      // weren't disabled or suppressed
-      thisElement->AddStatesSilently(ElementState::BROKEN);
-      RejectDecodePromises(NS_ERROR_DOM_IMAGE_BROKEN);
+  const bool isBroken = [&] {
+    if (mLazyLoading || mHasPendingLoadTask) {
+      return false;
     }
-  } else {
+    if (!mCurrentRequest) {
+      return true;
+    }
     uint32_t currentLoadStatus;
     nsresult rv = mCurrentRequest->GetImageStatus(&currentLoadStatus);
-    if (NS_FAILED(rv) || (currentLoadStatus & imgIRequest::STATUS_ERROR)) {
-      thisElement->AddStatesSilently(ElementState::BROKEN);
-      RejectDecodePromises(NS_ERROR_DOM_IMAGE_BROKEN);
-    } else if (!(currentLoadStatus & imgIRequest::STATUS_SIZE_AVAILABLE)) {
-      mLoading = true;
-    }
+    return NS_FAILED(rv) || currentLoadStatus & imgIRequest::STATUS_ERROR;
+  }();
+  thisElement->SetStates(ElementState::BROKEN, isBroken, aNotify);
+  if (isBroken) {
+    RejectDecodePromises(NS_ERROR_DOM_IMAGE_BROKEN);
   }
 }
 
 void nsImageLoadingContent::CancelImageRequests(bool aNotify) {
   RejectDecodePromises(NS_ERROR_DOM_IMAGE_INVALID_REQUEST);
-  AutoStateChanger changer(this, aNotify);
   ClearPendingRequest(NS_BINDING_ABORTED, Some(OnNonvisible::DiscardImages));
   ClearCurrentRequest(NS_BINDING_ABORTED, Some(OnNonvisible::DiscardImages));
+  UpdateImageState(aNotify);
 }
 
 Document* nsImageLoadingContent::GetOurOwnerDoc() {
