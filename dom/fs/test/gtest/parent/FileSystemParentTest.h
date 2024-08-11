@@ -46,9 +46,19 @@ class FileSystemParentTest : public quota::test::QuotaManagerDependencyFixture {
 
   void TearDown() override;
 
+  static void InitializeTemporaryOrigin();
+
   static void GetOriginUsage(quota::UsageInfo& aResult);
 
+  static void GetCachedOriginUsage(quota::UsageInfo& aResult);
+
+  static void InitializeTemporaryClient();
+
+  static void GetStaticDatabaseUsage(quota::UsageInfo& aDatabaseUsage);
+
   void EnsureDataManager();
+
+  void ReleaseDataManager();
 
   void LockExclusive(const EntryId& aEntryId);
 

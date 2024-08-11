@@ -30,9 +30,16 @@ void FileSystemParentTest::TearDownTestCase() {
 }
 
 void FileSystemParentTest::TearDown() {
-  PerformOnBackgroundThread([this]() { mDataManager = nullptr; });
+  ReleaseDataManager();
 
   ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
+}
+
+// static
+void FileSystemParentTest::InitializeTemporaryOrigin() {
+  ASSERT_NO_FATAL_FAILURE(
+      QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
+          GetTestOriginMetadata()));
 }
 
 //  static
@@ -41,11 +48,50 @@ void FileSystemParentTest::GetOriginUsage(quota::UsageInfo& aResult) {
       GetTestOriginMetadata(), &aResult));
 }
 
+//  static
+void FileSystemParentTest::GetCachedOriginUsage(quota::UsageInfo& aResult) {
+  ASSERT_NO_FATAL_FAILURE(QuotaManagerDependencyFixture::GetCachedOriginUsage(
+      GetTestOriginMetadata(), &aResult));
+}
+
+// static
+void FileSystemParentTest::InitializeTemporaryClient() {
+  ASSERT_NO_FATAL_FAILURE(
+      QuotaManagerDependencyFixture::InitializeTemporaryClient(
+          GetTestClientMetadata()));
+}
+
+// static
+void FileSystemParentTest::GetStaticDatabaseUsage(
+    quota::UsageInfo& aDatabaseUsage) {
+  quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
+  ASSERT_TRUE(quotaManager);
+
+  TEST_TRY_UNWRAP(
+      auto databaseUsage,
+      PerformOnThread(
+          quotaManager->IOThread(), []() -> Result<quota::UsageInfo, QMResult> {
+            QM_TRY_INSPECT(
+                const ResultConnection& conn,
+                data::GetStorageConnection(GetTestOriginMetadata(),
+                                           /* aDirectoryLockId */ -1));
+
+            return data::FileSystemDatabaseManager::GetUsage(
+                conn, GetTestOriginMetadata());
+          }));
+
+  aDatabaseUsage = databaseUsage;
+}
+
 void FileSystemParentTest::EnsureDataManager() {
   PerformOnBackgroundThread([this]() {
     ASSERT_NO_FATAL_FAILURE(test::CreateRegisteredDataManager(
         GetTestOriginMetadata(), mDataManager));
   });
+}
+
+void FileSystemParentTest::ReleaseDataManager() {
+  PerformOnBackgroundThread([this]() { mDataManager = nullptr; });
 }
 
 void FileSystemParentTest::LockExclusive(const EntryId& aEntryId) {
