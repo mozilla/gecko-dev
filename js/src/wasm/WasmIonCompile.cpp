@@ -268,6 +268,7 @@ class FunctionCompiler {
   const FuncCompileInput& func_;
   const ValTypeVector& locals_;
   size_t lastReadCallSite_;
+  size_t numCallRefs_;
 
   TempAllocator& alloc_;
   MIRGraph& graph_;
@@ -319,6 +320,7 @@ class FunctionCompiler {
         func_(func),
         locals_(locals),
         lastReadCallSite_(0),
+        numCallRefs_(0),
         alloc_(mirGen.alloc()),
         graph_(mirGen.graph()),
         info_(compileInfo),
@@ -345,6 +347,7 @@ class FunctionCompiler {
         func_(func),
         locals_(locals),
         lastReadCallSite_(0),
+        numCallRefs_(0),
         alloc_(callerCompiler_->alloc_),
         graph_(callerCompiler_->graph_),
         info_(compileInfo),
@@ -519,6 +522,9 @@ class FunctionCompiler {
     MOZ_ASSERT(inDeadCode());
     MOZ_ASSERT(done());
     MOZ_ASSERT(func_.callSiteLineNums.length() == lastReadCallSite_);
+    MOZ_ASSERT_IF(
+        compilerEnv().mode() == CompileMode::LazyTiering,
+        codeMeta_.getFuncDefCallRefs(funcIndex()).length == numCallRefs_);
   }
 
   /************************* Read-only interface (after local scope setup) */
@@ -5058,6 +5064,25 @@ class FunctionCompiler {
     return TrapSiteInfo(wasm::BytecodeOffset(readBytecodeOffset()));
   }
 
+  CallRefHint readCallRefHint() {
+    // We don't track anything if we're not using lazy tiering
+    if (compilerEnv_.mode() != CompileMode::LazyTiering) {
+      return CallRefHint::unknown();
+    }
+
+    // We don't track anything when inside dead code
+    if (inDeadCode()) {
+      return CallRefHint::unknown();
+    }
+
+    CallRefMetricsRange rangeInModule =
+        codeMeta_.getFuncDefCallRefs(funcIndex());
+    uint32_t localIndex = numCallRefs_++;
+    MOZ_RELEASE_ASSERT(localIndex < rangeInModule.length);
+    uint32_t moduleIndex = rangeInModule.begin + localIndex;
+    return codeMeta_.getCallRefHint(moduleIndex);
+  }
+
 #if DEBUG
   bool done() const { return iter_.done(); }
 #endif
@@ -7697,7 +7722,7 @@ static bool EmitBrOnNonNull(FunctionCompiler& f) {
 
 static bool EmitCallRef(FunctionCompiler& f) {
   uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
-
+  f.readCallRefHint();
   const FuncType* funcType;
   MDefinition* callee;
   DefVector args;

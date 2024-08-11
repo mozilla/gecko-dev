@@ -2176,6 +2176,9 @@ bool WasmInstanceObject::getExportedFunction(
       return false;
     }
 
+    MOZ_ASSERT(fun->isTenured());
+    STATIC_ASSERT_WASM_FUNCTIONS_TENURED;
+
     // asm.js does not support jit entries.
     fun->setWasmFuncIndex(funcIndex);
   } else {
@@ -2196,6 +2199,9 @@ bool WasmInstanceObject::getExportedFunction(
     if (!fun) {
       return false;
     }
+
+    MOZ_ASSERT(fun->isTenured());
+    STATIC_ASSERT_WASM_FUNCTIONS_TENURED;
 
     // Some applications eagerly access all table elements which currently
     // triggers worst-case behavior for lazy stubs, since each will allocate a

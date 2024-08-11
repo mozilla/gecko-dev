@@ -1816,6 +1816,10 @@ void BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
   CalleeDesc callee = CalleeDesc::wasmFuncRef();
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
+  if (compilerEnv_.mode() == CompileMode::LazyTiering) {
+    masm.updateCallRefMetrics(WasmCallRefReg, WasmCallRefCallScratchReg0,
+                              WasmCallRefCallScratchReg1);
+  }
   masm.wasmCallRef(desc, callee, fastCallOffset, slowCallOffset);
 }
 
@@ -12134,6 +12138,7 @@ bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
     }
 
     size_t unwindInfoBefore = masm.codeRangeUnwindInfos().length();
+    size_t callRefMetricsBefore = masm.callRefMetricsPatches().length();
 
     // One-pass baseline compilation.
 
@@ -12149,6 +12154,8 @@ bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
     FuncOffsets offsets(f.finish());
     bool hasUnwindInfo =
         unwindInfoBefore != masm.codeRangeUnwindInfos().length();
+    size_t callRefMetricsAfter = masm.callRefMetricsPatches().length();
+    size_t callRefMetricsLength = callRefMetricsAfter - callRefMetricsBefore;
 
     // Record this function's code range
     if (!code->codeRanges.emplaceBack(func.index, offsets, hasUnwindInfo)) {
@@ -12156,7 +12163,9 @@ bool js::wasm::BaselineCompileFunctions(const CodeMetadata& codeMeta,
     }
 
     // Record this function's specific feature usage
-    if (!code->funcs.emplaceBack(func.index, f.iter_.featureUsage())) {
+    if (!code->funcs.emplaceBack(
+            func.index, f.iter_.featureUsage(),
+            CallRefMetricsRange(callRefMetricsBefore, callRefMetricsLength))) {
       return false;
     }
 

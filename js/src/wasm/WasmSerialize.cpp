@@ -1213,6 +1213,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 
   MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
   MOZ_TRY(CodePodVector(coder, &item->funcDefFeatureUsages));
+  MOZ_TRY(CodePodVector(coder, &item->funcDefCallRefs));
   MOZ_TRY((CodeNullablePtr<
            mode, SharedBytes,
            &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
@@ -1225,6 +1226,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePod(coder, &item->tablesOffsetStart));
   MOZ_TRY(CodePod(coder, &item->tagsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->instanceDataLength));
+  MOZ_TRY(CodePod(coder, &item->numCallRefMetrics));
 
   if constexpr (mode == MODE_DECODE) {
     // Initialize debugging state to disabled

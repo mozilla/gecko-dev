@@ -747,6 +747,15 @@ void MacroAssembler::patchCallToNop(uint8_t* callsite) {
   Assembler::patchCallToFiveByteNop(callsite);
 }
 
+CodeOffset MacroAssembler::move32WithPatch(Register dest) {
+  movl(Imm32(-1), dest);
+  return CodeOffset(currentOffset());
+}
+
+void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
+  X86Encoding::SetInt32(masm.data() + offset.offset(), n);
+}
+
 // ===============================================================
 // Jit Frames.
 

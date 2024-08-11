@@ -206,6 +206,7 @@ static constexpr Register WasmTableCallIndexReg = ABINonArgReg3;
 // Registers used for ref calls.
 static constexpr Register WasmCallRefCallScratchReg0 = ABINonArgReg0;
 static constexpr Register WasmCallRefCallScratchReg1 = ABINonArgReg1;
+static constexpr Register WasmCallRefCallScratchReg2 = ABINonArgReg2;
 static constexpr Register WasmCallRefReg = ABINonArgReg3;
 
 // Registers used for wasm tail calls operations.
@@ -1309,8 +1310,8 @@ class Assembler : public AssemblerShared {
   static const uint32_t* GetCF32Target(Iter* iter);
 
   static uintptr_t GetPointer(uint8_t*);
-  static const uint32_t* GetPtr32Target(InstructionIterator iter,
-                                        Register* dest = nullptr,
+  template <class Iter>
+  static const uint32_t* GetPtr32Target(Iter iter, Register* dest = nullptr,
                                         RelocStyle* rs = nullptr);
 
   bool oom() const;

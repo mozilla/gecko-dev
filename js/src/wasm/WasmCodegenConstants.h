@@ -70,6 +70,10 @@ static const uint32_t MinSuperTypeVectorLength = 8;
 // BaseScript/SelfHostedLazyScript.
 static const uint32_t JumpTableJitEntryOffset = 0;
 
+// Some JIT code relies on wasm exported functions not being nursery allocated.
+// This assert tracks those locations for future updating, if this changes.
+#define STATIC_ASSERT_WASM_FUNCTIONS_TENURED
+
 }  // namespace wasm
 }  // namespace js
 

@@ -2260,6 +2260,7 @@ Instance::Instance(JSContext* cx, Handle<WasmInstanceObject*> object,
       tables_(std::move(tables)),
       maybeDebug_(std::move(maybeDebug)),
       debugFilter_(nullptr),
+      callRefMetrics_(nullptr),
       maxInitializedGlobalsIndexPlus1_(0) {
   for (size_t i = 0; i < N_BASELINE_SCRATCH_WORDS; i++) {
     baselineScratchWords_[i] = 0;
@@ -2306,6 +2307,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   resetInterrupt(cx);
   jumpTable_ = code_->tieringJumpTable();
   debugFilter_ = nullptr;
+  callRefMetrics_ = nullptr;
   addressOfNeedsIncrementalBarrier_ =
       cx->compartment()->zone()->addressOfNeedsIncrementalBarrier();
   addressOfNurseryPosition_ = cx->nursery().addressOfPosition();
@@ -2597,6 +2599,17 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
     }
   }
 
+  if (code().mode() == CompileMode::LazyTiering) {
+    callRefMetrics_ = (CallRefMetrics*)js_calloc(codeMeta().numCallRefMetrics,
+                                                 sizeof(CallRefMetrics));
+    if (!callRefMetrics_) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+  } else {
+    MOZ_ASSERT(codeMeta().numCallRefMetrics == 0);
+  }
+
   // Add observers if our tables may grow
   for (const SharedTable& table : tables_) {
     if (table->movingGrowable() && !table->addMovingGrowObserver(cx, object_)) {
@@ -2650,6 +2663,9 @@ Instance::~Instance() {
   if (debugFilter_) {
     js_free(debugFilter_);
   }
+  if (callRefMetrics_) {
+    js_free(callRefMetrics_);
+  }
 
   // Any pending exceptions should have been consumed.
   MOZ_ASSERT(pendingException_.isNull());
@@ -2691,6 +2707,23 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {
   funcDefInstanceData(funcIndex)->hotnessCounter = INT32_MAX;
+}
+
+void Instance::submitCallRefHints(uint32_t funcIndex) {
+  CallRefMetricsRange funcRange = codeMeta().getFuncDefCallRefs(funcIndex);
+  for (uint32_t callRefIndex = funcRange.begin;
+       callRefIndex < funcRange.begin + funcRange.length; callRefIndex++) {
+    CallRefMetrics& metrics = callRefMetrics_[callRefIndex];
+    if (metrics.state == CallRefMetrics::State::Monomorphic &&
+        metrics.callCount >= 1) {
+      uint32_t funcIndex =
+          wasm::ExportedFunctionToFuncIndex(metrics.monomorphicTarget);
+      codeMeta().setCallRefHint(callRefIndex,
+                                CallRefHint::inlineFunc(funcIndex));
+    } else {
+      codeMeta().setCallRefHint(callRefIndex, CallRefHint::unknown());
+    }
+  }
 }
 
 bool Instance::debugFilter(uint32_t funcIndex) const {
@@ -2768,6 +2801,13 @@ void Instance::tracePrivate(JSTracer* trc) {
   for (uint32_t typeIndex = 0; typeIndex < types->length(); typeIndex++) {
     TypeDefInstanceData* typeDefData = typeDefInstanceData(typeIndex);
     TraceNullableEdge(trc, &typeDefData->shape, "wasm shape");
+  }
+
+  if (callRefMetrics_) {
+    for (uint32_t i = 0; i < codeMeta().numCallRefMetrics; i++) {
+      TraceNullableEdge(trc, &callRefMetrics_[i].monomorphicTarget,
+                        "indirect call target");
+    }
   }
 
   TraceNullableEdge(trc, &pendingException_, "wasm pending exception value");

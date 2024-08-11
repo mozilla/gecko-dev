@@ -4442,6 +4442,27 @@ void MacroAssembler::patchCallToNop(uint8_t* call) {
   new (inst) InstNOP();
 }
 
+CodeOffset MacroAssembler::move32WithPatch(Register dest) {
+  return movWithPatch(ImmWord(uintptr_t(-1)), dest);
+}
+
+void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
+  Register dest;
+  Assembler::RelocStyle rs;
+
+  {
+    BufferInstructionIterator iter(BufferOffset(offset.offset()), &m_buffer);
+    DebugOnly<const uint32_t*> val = GetPtr32Target(iter, &dest, &rs);
+    MOZ_ASSERT(uint32_t((const uint32_t*)val) == uint32_t(-1));
+  }
+
+  // Patch over actual instructions.
+  {
+    BufferInstructionIterator iter(BufferOffset(offset.offset()), &m_buffer);
+    MacroAssembler::ma_mov_patch(Imm32(n), dest, Always, rs, iter);
+  }
+}
+
 void MacroAssembler::pushReturnAddress() { push(lr); }
 
 void MacroAssembler::popReturnAddress() { pop(lr); }

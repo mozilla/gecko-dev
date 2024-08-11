@@ -686,6 +686,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
 
+  CodeOffset move32WithPatch(Register dest) DEFINED_ON(x86_shared, arm, arm64);
+  void patchMove32(CodeOffset offset, int32_t n)
+      DEFINED_ON(x86_shared, arm, arm64);
+
  public:
   // ===============================================================
   // [SMDOC] JIT-to-C++ Function Calls (callWithABI)
@@ -3970,6 +3974,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
                          const wasm::CalleeDesc& callee,
                          const ReturnCallAdjustmentInfo& retCallInfo);
 #endif  // ENABLE_WASM_TAIL_CALLS
+
+  void updateCallRefMetrics(const Register funcRef, const Register scratch1,
+                            const Register scratch2);
 
   // WasmTableCallIndexReg must contain the index of the indirect call.
   // This is for asm.js calls only.

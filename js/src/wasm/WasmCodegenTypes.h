@@ -293,6 +293,26 @@ WASM_DECLARE_CACHEABLE_POD(CallFarJump);
 
 using CallFarJumpVector = Vector<CallFarJump, 0, SystemAllocPolicy>;
 
+class CallRefMetricsPatch {
+ private:
+  // The offset of where to patch in the offset of the CallRefMetrics.
+  uint32_t offsetOfOffsetPatch_;
+
+  WASM_CHECK_CACHEABLE_POD(offsetOfOffsetPatch_);
+
+ public:
+  explicit CallRefMetricsPatch(uint32_t offsetOfIndexPatch)
+      : offsetOfOffsetPatch_(offsetOfIndexPatch) {}
+
+  uint32_t offsetOfOffsetPatch() const { return offsetOfOffsetPatch_; }
+  void offsetOffsetBy(uint32_t indexOffset) {
+    offsetOfOffsetPatch_ += indexOffset;
+  }
+};
+
+WASM_DECLARE_CACHEABLE_POD(CallRefMetricsPatch);
+WASM_DECLARE_POD_VECTOR(CallRefMetricsPatch, CallRefMetricsPatchVector)
+
 // On trap, the bytecode offset to be reported in callstacks is saved.
 
 struct TrapData {

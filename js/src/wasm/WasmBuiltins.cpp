@@ -700,13 +700,18 @@ static void WasmHandleRequestTierUp(Instance* instance) {
   // possible.  So set the counter to "infinity" right now.
   instance->resetHotnessCounter(funcIndex);
 
+  // Submit the collected profiling information for call_ref to be available
+  // for compilation.
+  instance->submitCallRefHints(funcIndex);
+
   // Try to Ion-compile it.  Note that `ok == true` signifies either
   // "duplicate request" or "not a duplicate, and compilation succeeded".
   bool ok = codeBlock->code->requestTierUp(funcIndex);
 
-  // If compilation failed, there's no feasible way to recover.
+  // If compilation failed, there's no feasible way to recover. We use the
+  // 'off thread' logging mechanism to avoid possibly triggering a GC.
   if (!ok) {
-    wasm::Log(cx, "Failed to tier-up function=%d in instance=%p.", funcIndex,
+    wasm::LogOffThread("Failed to tier-up function=%d in instance=%p.", funcIndex,
               instance);
   }
 }

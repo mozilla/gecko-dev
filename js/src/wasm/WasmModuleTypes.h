@@ -253,6 +253,76 @@ WASM_DECLARE_CACHEABLE_POD(FuncDefRange);
 
 using FuncDefRangeVector = Vector<FuncDefRange, 0, SystemAllocPolicy>;
 
+struct CallRefMetricsRange {
+  explicit CallRefMetricsRange() {}
+  explicit CallRefMetricsRange(uint32_t begin, uint32_t length)
+      : begin(begin), length(length) {}
+
+  uint32_t begin = 0;
+  uint32_t length = 0;
+
+  void offsetBy(uint32_t offset) { begin += offset; }
+
+  WASM_CHECK_CACHEABLE_POD(begin, length);
+};
+
+// A compact plain data summary of CallRefMetrics for use by our function
+// compilers. See CallRefMetrics in WasmInstanceData.h for more information.
+//
+// We cannot allow the metrics collected by an instance to directly be read
+// from our function compilers because they contain thread-local data and are
+// written into without any synchronization.
+//
+// Instead, CodeMetadata contains an array of CallRefHint that every instance
+// writes into when it has a function that requests a tier-up. This array is
+// 1:1 with the non-threadsafe CallRefMetrics that is stored on the instance.
+//
+// This class must be thread safe, as it's read and written from different
+// threads.
+class CallRefHint {
+ public:
+  using Repr = uint32_t;
+
+ private:
+  Repr state_;
+
+  static constexpr Repr UnknownState = 0;
+  static constexpr Repr FirstInlineFuncState = UnknownState + 1;
+
+  explicit CallRefHint(uint32_t state) : state_(state) {}
+
+ public:
+  static CallRefHint unknown() { return CallRefHint(UnknownState); }
+  static CallRefHint inlineFunc(uint32_t funcIndex) {
+    return CallRefHint(FirstInlineFuncState + funcIndex);
+  }
+
+  static CallRefHint fromRepr(Repr repr) { return CallRefHint(repr); }
+  Repr toRepr() const { return state_; }
+
+  // This call_ref is to an unknown target, emit a normal indirect call.
+  bool isUnknown() const { return state_ == UnknownState; }
+
+  // This call_ref is to a single target from the same instance, try to inline
+  // it if there is budget for it.
+  bool isInlineFunc() const { return state_ >= FirstInlineFuncState; }
+
+  // The function index to inline.
+  uint32_t inlineFuncIndex() const {
+    MOZ_ASSERT(isInlineFunc());
+    return state_ - FirstInlineFuncState;
+  }
+};
+
+using MutableCallRefHint = mozilla::Atomic<CallRefHint::Repr>;
+using MutableCallRefHints =
+    mozilla::UniquePtr<MutableCallRefHint[], JS::FreePolicy>;
+
+WASM_DECLARE_CACHEABLE_POD(CallRefMetricsRange);
+
+using CallRefMetricsRangeVector =
+    Vector<CallRefMetricsRange, 0, SystemAllocPolicy>;
+
 enum class BranchHint : uint8_t { Unlikely = 0, Likely = 1, Invalid = 2 };
 
 // Stores pairs of <BranchOffset, BranchHint>

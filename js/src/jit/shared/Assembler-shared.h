@@ -646,6 +646,7 @@ class AssemblerShared {
   wasm::SymbolicAccessVector symbolicAccesses_;
   wasm::TryNoteVector tryNotes_;
   wasm::CodeRangeUnwindInfoVector codeRangesUnwind_;
+  wasm::CallRefMetricsPatchVector callRefMetricsPatches_;
 
 #ifdef DEBUG
   // To facilitate figuring out which part of SM created each instruction as
@@ -727,6 +728,9 @@ class AssemblerShared {
               uint32_t pcOffset) {
     enoughMemory_ &= codeRangesUnwind_.emplaceBack(pcOffset, unwindHow);
   }
+  void append(wasm::CallRefMetricsPatch patch) {
+    enoughMemory_ &= callRefMetricsPatches_.append(patch);
+  }
 
   wasm::CallSiteVector& callSites() { return callSites_; }
   wasm::CallSiteTargetVector& callSiteTargets() { return callSiteTargets_; }
@@ -735,6 +739,9 @@ class AssemblerShared {
   wasm::TryNoteVector& tryNotes() { return tryNotes_; }
   wasm::CodeRangeUnwindInfoVector& codeRangeUnwindInfos() {
     return codeRangesUnwind_;
+  }
+  wasm::CallRefMetricsPatchVector& callRefMetricsPatches() {
+    return callRefMetricsPatches_;
   }
 };
 

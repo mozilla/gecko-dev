@@ -622,10 +622,11 @@ uintptr_t Assembler::GetPointer(uint8_t* instPtr) {
   return ret;
 }
 
-const uint32_t* Assembler::GetPtr32Target(InstructionIterator start,
-                                          Register* dest, RelocStyle* style) {
-  Instruction* load1 = start.cur();
-  Instruction* load2 = start.next();
+template <class Iter>
+const uint32_t* Assembler::GetPtr32Target(Iter iter, Register* dest,
+                                          RelocStyle* style) {
+  Instruction* load1 = iter.cur();
+  Instruction* load2 = iter.next();
 
   if (load1->is<InstMovW>() && load2->is<InstMovT>()) {
     if (style) {
@@ -673,6 +674,11 @@ const uint32_t* Assembler::GetPtr32Target(InstructionIterator start,
 
   MOZ_CRASH("unsupported relocation");
 }
+
+template const uint32_t* Assembler::GetPtr32Target<InstructionIterator>(
+    InstructionIterator iter, Register* dest, RelocStyle* style);
+template const uint32_t* Assembler::GetPtr32Target<BufferInstructionIterator>(
+    BufferInstructionIterator iter, Register* dest, RelocStyle* style);
 
 static JitCode* CodeFromJump(InstructionIterator* jump) {
   uint8_t* target = (uint8_t*)Assembler::GetCF32Target(jump);

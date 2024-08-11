@@ -62,11 +62,16 @@ struct FuncCompileInput {
 using FuncCompileInputVector = Vector<FuncCompileInput, 8, SystemAllocPolicy>;
 
 struct FuncCompileOutput {
-  FuncCompileOutput(uint32_t index, FeatureUsage featureUsage)
-      : index(index), featureUsage(featureUsage) {}
+  FuncCompileOutput(
+      uint32_t index, FeatureUsage featureUsage,
+      CallRefMetricsRange callRefMetricsRange = CallRefMetricsRange())
+      : index(index),
+        featureUsage(featureUsage),
+        callRefMetricsRange(callRefMetricsRange) {}
 
   uint32_t index;
   FeatureUsage featureUsage;
+  CallRefMetricsRange callRefMetricsRange;
 };
 
 using FuncCompileOutputVector = Vector<FuncCompileOutput, 8, SystemAllocPolicy>;
@@ -88,6 +93,7 @@ struct CompiledCode {
   StackMaps stackMaps;
   TryNoteVector tryNotes;
   CodeRangeUnwindInfoVector codeRangeUnwindInfos;
+  CallRefMetricsPatchVector callRefMetricsPatches;
   FeatureUsage featureUsage;
 
   [[nodiscard]] bool swap(jit::MacroAssembler& masm);
@@ -104,6 +110,7 @@ struct CompiledCode {
     stackMaps.clear();
     tryNotes.clear();
     codeRangeUnwindInfos.clear();
+    callRefMetricsPatches.clear();
     featureUsage = FeatureUsage::None;
     MOZ_ASSERT(empty());
   }
@@ -113,7 +120,7 @@ struct CompiledCode {
            callSites.empty() && callSiteTargets.empty() && trapSites.empty() &&
            symbolicAccesses.empty() && codeLabels.empty() && tryNotes.empty() &&
            stackMaps.empty() && codeRangeUnwindInfos.empty() &&
-           featureUsage == FeatureUsage::None;
+           callRefMetricsPatches.empty() && featureUsage == FeatureUsage::None;
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -207,6 +214,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // Data that is moved into the Module/Code as the result of finish()
   FuncDefRangeVector funcDefRanges_;
   FeatureUsageVector funcDefFeatureUsages_;
+  CallRefMetricsRangeVector funcDefCallRefMetrics_;
   FuncImportVector funcImports_;
   UniqueLinkData sharedStubsLinkData_;
   UniqueCodeBlock sharedStubsCodeBlock_;
@@ -225,6 +233,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   CallSiteTargetVector callSiteTargets_;
   uint32_t lastPatchedCallSite_;
   uint32_t startOfUnpatchedCallsites_;
+  uint32_t numCallRefMetrics_;
 
   // Parallel compilation
   bool parallel_;

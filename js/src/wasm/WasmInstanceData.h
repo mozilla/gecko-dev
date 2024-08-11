@@ -191,6 +191,28 @@ struct FunctionTableElem {
   Instance* instance;
 };
 
+// A collection of metrics for a `call_ref` instruction. This is tracked by
+// baseline when we are using lazy tiering to perform speculative inlining.
+//
+// See MacroAssembler::updateCallRefMetrics for how this is written into.
+//
+// Because it contains thread-local data and is written into without
+// synchronization, we cannot access this directly from our function compilers
+// and so we use CallRefHints for that (see WasmModuleTypes.h).
+//
+// TODO: pack this better.
+struct CallRefMetrics {
+  enum State : uint32_t {
+    Unknown,
+    Monomorphic,
+    Polymorphic,
+  };
+
+  State state;
+  uint32_t callCount;
+  GCPtr<JSFunction*> monomorphicTarget;
+};
+
 }  // namespace wasm
 }  // namespace js
 

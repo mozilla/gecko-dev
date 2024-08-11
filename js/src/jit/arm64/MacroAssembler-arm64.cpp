@@ -1451,6 +1451,27 @@ void MacroAssembler::patchCallToNop(uint8_t* call) {
   nop(instr);
 }
 
+CodeOffset MacroAssembler::move32WithPatch(Register dest) {
+  AutoForbidPoolsAndNops afp(this,
+                             /* max number of instructions in scope = */ 3);
+  CodeOffset offs = CodeOffset(currentOffset());
+  movz(ARMRegister(dest, 64), 0, 0);
+  movk(ARMRegister(dest, 64), 0, 16);
+  return offs;
+}
+
+void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
+  Instruction* i1 = getInstructionAt(BufferOffset(offset.offset()));
+  MOZ_ASSERT(i1->IsMovz());
+  i1->SetInstructionBits(i1->InstructionBits() |
+                         ImmMoveWide(n));
+
+  Instruction* i2 = getInstructionAt(BufferOffset(offset.offset() + 4));
+  MOZ_ASSERT(i2->IsMovk());
+  i2->SetInstructionBits(i2->InstructionBits() |
+                         ImmMoveWide(n >> 16));
+}
+
 void MacroAssembler::pushReturnAddress() {
   MOZ_RELEASE_ASSERT(!sp.Is(GetStackPointer64()), "Not valid");
   push(lr);

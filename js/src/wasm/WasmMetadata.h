@@ -7,6 +7,8 @@
 #ifndef wasm_WasmMetadata_h
 #define wasm_WasmMetadata_h
 
+#include "mozilla/Atomics.h"
+
 #include "wasm/WasmBinaryTypes.h"
 #include "wasm/WasmInstanceData.h"  // various of *InstanceData
 #include "wasm/WasmModuleTypes.h"
@@ -195,11 +197,25 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // available while doing a 'tier-1' or 'once' compilation.
   FeatureUsageVector funcDefFeatureUsages;
 
+  // Tracks the range of CallRefMetrics created for each function definition in
+  // this module. This is only accessible after we've decoded the code section.
+  // This means it is not available while doing a 'tier-1' or 'once'
+  // compilation.
+  CallRefMetricsRangeVector funcDefCallRefs;
+
   // The bytecode for this module. Only available for debuggable modules, or if
   // doing lazy tiering. This is only accessible after we've decoded the whole
   // module. This means it is not available while doing a 'tier-1' or 'once'
   // compilation.
   SharedBytes bytecode;
+
+  // An array of hints to use when compiling a call_ref. This is only
+  // accessible after we've decoded the code section. This means it is not
+  // available while doing a 'tier-1' or 'once' compilation.
+  //
+  // This is written into when an instance requests a function to be tiered up,
+  // and read from our function compilers.
+  MutableCallRefHints callRefHints;
 
   // Whether this module was compiled with debugging support.
   bool debugEnabled;
@@ -230,12 +246,16 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The total size of the instance data.
   uint32_t instanceDataLength;
 
+  // The number of call ref metrics in Instance::callRefs_
+  uint32_t numCallRefMetrics;
+
   explicit CodeMetadata(const CompileArgs* compileArgs = nullptr,
                         ModuleKind kind = ModuleKind::Wasm)
       : kind(kind),
         compileArgs(compileArgs),
         numFuncImports(0),
         numGlobalImports(0),
+        callRefHints(nullptr),
         debugEnabled(false),
         debugHash(),
         funcDefsOffsetStart(UINT32_MAX),
@@ -244,7 +264,8 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
         memoriesOffsetStart(UINT32_MAX),
         tablesOffsetStart(UINT32_MAX),
         tagsOffsetStart(UINT32_MAX),
-        instanceDataLength(UINT32_MAX) {}
+        instanceDataLength(UINT32_MAX),
+        numCallRefMetrics(UINT32_MAX) {}
 
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!types);
@@ -316,6 +337,21 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     MOZ_ASSERT(funcIndex >= numFuncImports);
     uint32_t funcDefIndex = funcIndex - numFuncImports;
     return funcDefFeatureUsages[funcDefIndex];
+  }
+  CallRefMetricsRange getFuncDefCallRefs(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex >= numFuncImports);
+    uint32_t funcDefIndex = funcIndex - numFuncImports;
+    return funcDefCallRefs[funcDefIndex];
+  }
+
+  CallRefHint getCallRefHint(uint32_t callRefIndex) const {
+    if (!callRefHints) {
+      return CallRefHint::unknown();
+    }
+    return CallRefHint::fromRepr(callRefHints[callRefIndex]);
+  }
+  void setCallRefHint(uint32_t callRefIndex, CallRefHint hint) const {
+    callRefHints[callRefIndex] = hint.toRepr();
   }
 
   // This gets names for wasm only.
