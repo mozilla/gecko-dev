@@ -2051,6 +2051,38 @@ static bool WasmDisassemble(JSContext* cx, unsigned argc, Value* vp) {
   return false;
 }
 
+static bool WasmFunctionTier(JSContext* cx, unsigned argc, Value* vp) {
+  if (!wasm::HasSupport(cx)) {
+    JS_ReportErrorASCII(cx, "wasm support unavailable");
+    return false;
+  }
+
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  args.rval().set(UndefinedValue());
+
+  if (!args.get(0).isObject()) {
+    JS_ReportErrorASCII(cx, "argument is not an object");
+    return false;
+  }
+
+  RootedFunction func(cx, args[0].toObject().maybeUnwrapIf<JSFunction>());
+  if (func && wasm::IsWasmExportedFunction(func)) {
+    uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
+    wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
+    wasm::Tier tier = instance.code().funcTier(funcIndex);
+    RootedString tierString(cx, JS_NewStringCopyZ(cx, wasm::ToString(tier)));
+    if (!tierString) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+    args.rval().set(StringValue(tierString));
+    return true;
+  }
+  JS_ReportErrorASCII(cx, "argument is not an exported wasm function");
+  return false;
+}
+
 static bool ToIonDumpContents(JSContext* cx, HandleValue value,
                               wasm::IonDumpContents* contents) {
   RootedString option(cx, JS::ToString(cx, value));
@@ -10056,6 +10088,10 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "      ImportInterpExit - wasm-to-C++ stubs\n"
 "      ImportJitExit    - wasm-to-jitted-JS stubs\n"
 "      all              - all kinds, including obscure ones\n"),
+
+    JS_FN_HELP("wasmFunctionTier", WasmFunctionTier, 1, 0,
+"wasmFunctionTier(wasmFunc)\n",
+"  Returns the best compiled tier for a function. Either 'baseline' or 'optimized'."),
 
     JS_FN_HELP("wasmHasTier2CompilationCompleted", WasmHasTier2CompilationCompleted, 1, 0,
 "wasmHasTier2CompilationCompleted(module)",

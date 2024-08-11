@@ -1,19 +1,66 @@
-// |jit-test| skip-if: !wasmGcEnabled(); test-also=-P wasm_experimental_compile_pipeline;
+// |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_experimental_compile_pipeline;
 
-// Basic test that call_ref profiling information works. Will be expanded in
-// a future commit.
-let {test} = wasmEvalText(`
-(module
-  (type $refType (func (result i32)))
-  (func $ref (export "ref") (result i32)
-    i32.const 1
-  )
-  (func (export "test") (result i32)
-    ref.func $ref
-    call_ref $refType
-  )
-)`).exports;
+const tierUpThreshold = 1;
+let {importFunc} = wasmEvalText(`
+  (module (func (export "importFunc") (result i32) i32.const 2))
+`).exports;
+let testFuncs = [
+  [importFunc, 2],
+  ["trueFunc", 1],
+  ["falseFunc", 0],
+  ["trapFunc", WebAssembly.RuntimeError],
+  [null, WebAssembly.RuntimeError],
+];
+function invokeTestWith(exports, exportThing, expected) {
+  let targetFunc;
+  if (exportThing instanceof WebAssembly.Function) {
+    targetFunc = exportThing;
+  } else if (exportThing === null) {
+    targetFunc = null;
+  } else {
+    targetFunc = exports[exportThing];
+  }
 
-for (let i = 0; i < 10; i++) {
-  assertEq(test(), 1);
+  if (expected === WebAssembly.RuntimeError) {
+    assertErrorMessage(() => exports.test(targetFunc), WebAssembly.RuntimeError, /./);
+  } else {
+    assertEq(exports.test(targetFunc), expected);
+  }
+}
+
+for ([funcToInline, funcToInlineExpected] of testFuncs) {
+  let exports = wasmEvalText(`
+  (module
+    (type $booleanFunc (func (result i32)))
+
+    (func $importFunc (import "" "importFunc") (result i32))
+    (func $trueFunc (export "trueFunc") (result i32)
+      i32.const 1
+    )
+    (func $falseFunc (export "falseFunc") (result i32)
+      i32.const 0
+    )
+    (func $trapFunc (export "trapFunc") (result i32)
+      unreachable
+    )
+
+    (func (export "test") (param (ref null $booleanFunc)) (result i32)
+      local.get 0
+      call_ref $booleanFunc
+    )
+  )`, {"": {importFunc}}).exports;
+  let test = exports["test"];
+
+  // Force a tier-up of the function, calling the same function every time
+  assertEq(wasmFunctionTier(test), "baseline");
+  for (let i = 0; i <= tierUpThreshold; i++) {
+    invokeTestWith(exports, funcToInline, funcToInlineExpected);
+  }
+  assertEq(wasmFunctionTier(test), "optimized");
+
+  // Now that we've inlined something, try calling it with every test function
+  // and double check we get the expected behavior
+  for ([testFunc, testFuncExpected] of testFuncs) {
+    invokeTestWith(exports, testFunc, testFuncExpected);
+  }
 }

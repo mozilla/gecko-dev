@@ -46,6 +46,17 @@ enum class Tier {
   Serialized = Optimized
 };
 
+static constexpr const char* ToString(Tier tier) {
+  switch (tier) {
+    case wasm::Tier::Baseline:
+      return "baseline";
+    case wasm::Tier::Optimized:
+      return "optimized";
+    default:
+      return "unknown";
+  }
+}
+
 // Iterator over tiers present in a tiered data structure.
 
 class Tiers {

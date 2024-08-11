@@ -2309,9 +2309,11 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Initialize the hotness counters, if relevant
   if (code().mode() == CompileMode::LazyTiering) {
+    // Set every function so that the first time it executes, it will trip the
+    // hotness counter to negative and force a tier-up.
     for (uint32_t funcIndex = codeMeta().numFuncImports;
          funcIndex < codeMeta().numFuncs(); funcIndex++) {
-      funcDefInstanceData(funcIndex)->hotnessCounter = 1;
+      funcDefInstanceData(funcIndex)->hotnessCounter = 0;
     }
   }
 
@@ -2700,12 +2702,14 @@ void Instance::resetHotnessCounter(uint32_t funcIndex) {
 }
 
 void Instance::submitCallRefHints(uint32_t funcIndex) {
-  CallRefMetricsRange funcRange = codeMeta().getFuncDefCallRefs(funcIndex);
-  for (uint32_t callRefIndex = funcRange.begin;
-       callRefIndex < funcRange.begin + funcRange.length; callRefIndex++) {
+  uint32_t callCountThreshold =
+      JS::Prefs::wasm_experimental_inline_call_ref_threshold();
+  CallRefMetricsRange range = codeMeta().getFuncDefCallRefs(funcIndex);
+  for (uint32_t callRefIndex = range.begin;
+       callRefIndex < range.begin + range.length; callRefIndex++) {
     CallRefMetrics& metrics = callRefMetrics_[callRefIndex];
     if (metrics.state == CallRefMetrics::State::Monomorphic &&
-        metrics.callCount >= 1) {
+        metrics.callCount >= callCountThreshold) {
       uint32_t funcIndex =
           wasm::ExportedFunctionToFuncIndex(metrics.monomorphicTarget);
       codeMeta().setCallRefHint(callRefIndex,

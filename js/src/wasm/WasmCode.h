@@ -1128,6 +1128,9 @@ class Code : public ShareableBase<Code> {
   bool funcHasTier(uint32_t funcIndex, Tier tier) const {
     return funcCodeBlock(funcIndex).tier() == tier;
   }
+  Tier funcTier(uint32_t funcIndex) const {
+    return funcCodeBlock(funcIndex).tier();
+  }
 
   const LinkData* codeBlockLinkData(const CodeBlock& block) const;
   void clearLinkData() const;
@@ -1179,6 +1182,8 @@ class Code : public ShareableBase<Code> {
     }
     return block->lookupUnwindInfo(pc);
   }
+  // Search through this code to find which tier a code range is from. Returns
+  // false if this code range was not found.
   bool lookupFunctionTier(const CodeRange* codeRange, Tier* tier) const;
 
   // To save memory, profilingLabels_ are generated lazily when profiling mode

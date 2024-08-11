@@ -8270,6 +8270,12 @@
   mirror: always
   set_spidermonkey_pref: always
 
+- name: javascript.options.wasm_experimental_inline_call_ref_threshold
+  type: uint32_t
+  value: 1
+  mirror: always
+  set_spidermonkey_pref: always
+
 # Support for pretenuring allocations based on their allocation site.
 - name: javascript.options.site_based_pretenuring
   type: bool
