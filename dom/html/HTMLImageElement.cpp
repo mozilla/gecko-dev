@@ -124,7 +124,13 @@ HTMLImageElement::HTMLImageElement(
   AddStatesSilently(ElementState::BROKEN);
 }
 
-HTMLImageElement::~HTMLImageElement() { nsImageLoadingContent::Destroy(); }
+HTMLImageElement::~HTMLImageElement() {
+  nsImageLoadingContent::Destroy();
+  if (mInDocResponsiveContent) {
+    OwnerDoc()->RemoveResponsiveContent(this);
+    mInDocResponsiveContent = false;
+  }
+}
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLImageElement, nsGenericHTMLElement,
                                    mResponsiveSelector)
@@ -346,6 +352,16 @@ void HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
 
     mSrcsetTriggeringPrincipal = aMaybeScriptedPrincipal;
 
+    if (aValue) {
+      if (!mInDocResponsiveContent) {
+        OwnerDoc()->AddResponsiveContent(this);
+        mInDocResponsiveContent = true;
+      }
+    } else if (mInDocResponsiveContent && !IsInPicture()) {
+      OwnerDoc()->RemoveResponsiveContent(this);
+      mInDocResponsiveContent = false;
+    }
+
     PictureSourceSrcsetChanged(this, attrVal.String(), aNotify);
   } else if (aName == nsGkAtoms::sizes) {
     // Mark channel as urgent-start before load image if the image load is
@@ -462,16 +478,13 @@ nsresult HTMLImageElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
   UpdateFormOwner();
 
-  const bool inPicture = IsInPicture();
-  const bool srcsetOrPicture = inPicture || HasAttr(nsGkAtoms::srcset);
-  if (srcsetOrPicture && aContext.InComposedDoc() && !mInDocResponsiveContent) {
-    aContext.OwnerDoc().AddResponsiveContent(this);
-    mInDocResponsiveContent = true;
-  }
-
   // Mark channel as urgent-start before load image if the image load is
   // initiated by a user interaction.
-  if (inPicture) {
+  if (IsInPicture()) {
+    if (!mInDocResponsiveContent) {
+      OwnerDoc()->AddResponsiveContent(this);
+      mInDocResponsiveContent = true;
+    }
     mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
     UpdateSourceSyncAndQueueImageTask(false);
   }
@@ -486,14 +499,22 @@ void HTMLImageElement::UnbindFromTree(UnbindContext& aContext) {
       UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
     }
   }
-
-  if (mInDocResponsiveContent) {
-    OwnerDoc()->RemoveResponsiveContent(this);
-    mInDocResponsiveContent = false;
-  }
+  // Our in-pictureness can only change if we're the unbind root.
+  const bool wasInPicture = IsInPicture();
 
   nsImageLoadingContent::UnbindFromTree();
   nsGenericHTMLElement::UnbindFromTree(aContext);
+
+  if (wasInPicture != IsInPicture()) {
+    MOZ_ASSERT(wasInPicture);
+    MOZ_ASSERT(aContext.IsUnbindRoot(this));
+    MOZ_ASSERT(mInDocResponsiveContent);
+    if (!HasAttr(nsGkAtoms::srcset)) {
+      OwnerDoc()->RemoveResponsiveContent(this);
+      mInDocResponsiveContent = false;
+    }
+    UpdateSourceSyncAndQueueImageTask(false);
+  }
 }
 
 void HTMLImageElement::UpdateFormOwner() {
@@ -523,6 +544,11 @@ void HTMLImageElement::UpdateFormOwner() {
 
 void HTMLImageElement::NodeInfoChanged(Document* aOldDoc) {
   nsGenericHTMLElement::NodeInfoChanged(aOldDoc);
+
+  if (mInDocResponsiveContent) {
+    aOldDoc->RemoveResponsiveContent(this);
+    OwnerDoc()->AddResponsiveContent(this);
+  }
 
   // Reparse the URI if needed. Note that we can't check whether we already have
   // a parsed URI, because it might be null even if we have a valid src
@@ -861,11 +887,6 @@ void HTMLImageElement::PictureSourceSrcsetChanged(nsIContent* aSourceNode,
       principal = source->GetSrcsetTriggeringPrincipal();
     }
     mResponsiveSelector->SetCandidatesFromSourceSet(aNewValue, principal);
-  }
-
-  if (!mInDocResponsiveContent && IsInComposedDoc()) {
-    OwnerDoc()->AddResponsiveContent(this);
-    mInDocResponsiveContent = true;
   }
 
   // This always triggers the image update steps per the spec, even if we are
