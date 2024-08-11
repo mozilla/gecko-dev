@@ -959,13 +959,14 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     // by Code::lazyFuncSegments.
     MOZ_ASSERT(mode() == CompileMode::LazyTiering);
 
-    // Try to allocate from Code::lazyFuncSegments.
+    // Try to allocate from Code::lazyFuncSegments. We do not allow a last-ditch
+    // GC here as we may be running in OOL-code that is not ready for a GC.
     uint8_t* codeStart = nullptr;
     uint32_t codeLength = 0;
     uint32_t metadataBias = 0;
     codeBlock_->segment = CodeSegment::createFromMasmWithBumpAlloc(
-        *masm_, *linkData_, partialTieringCode_, &codeStart, &codeLength,
-        &metadataBias);
+        *masm_, *linkData_, partialTieringCode_, /* allowLastDitchGC = */ false,
+        &codeStart, &codeLength, &metadataBias);
     if (!codeBlock_->segment) {
       warnf("failed to allocate executable memory for module");
       return nullptr;

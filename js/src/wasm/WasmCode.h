@@ -218,19 +218,22 @@ class CodeSegment : public ShareableBase<CodeSegment> {
 
   // Create a new, empty code segment.  Allocation granularity is
   // ExecutableCodePageSize (64KB).
-  static RefPtr<CodeSegment> createEmpty(size_t capacityBytes);
+  static RefPtr<CodeSegment> createEmpty(size_t capacityBytes,
+                                         bool allowLastDitchGC = true);
 
   // Create a new code segment and copy/link code from `masm` into it.
   // Allocation granularity is ExecutableCodePageSize (64KB).
   static RefPtr<CodeSegment> createFromMasm(jit::MacroAssembler& masm,
                                             const LinkData& linkData,
-                                            const Code* maybeCode);
+                                            const Code* maybeCode,
+                                            bool allowLastDitchGC = true);
 
   // Create a new code segment and copy/link code from `unlinkedBytes` into
   // it.  Allocation granularity is ExecutableCodePageSize (64KB).
   static RefPtr<CodeSegment> createFromBytes(const uint8_t* unlinkedBytes,
                                              size_t unlinkedBytesLength,
-                                             const LinkData& linkData);
+                                             const LinkData& linkData,
+                                             bool allowLastDitchGC = true);
 
   // Allocate code space at a hardware page granularity, taking space from
   // `code->lazyFuncSegments`, and copy/link code from `masm` into it.  If an
@@ -245,7 +248,7 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   // value returned in `*metadataBias`.
   static RefPtr<CodeSegment> createFromMasmWithBumpAlloc(
       jit::MacroAssembler& masm, const LinkData& linkData, const Code* code,
-      uint8_t** codeStartOut, uint32_t* codeLengthOut,
+      bool allowLastDitchGC, uint8_t** codeStartOut, uint32_t* codeLengthOut,
       uint32_t* metadataBiasOut);
 
   // For this CodeSegment, perform linking on the area
@@ -305,7 +308,7 @@ using SharedCodeSegmentVector = Vector<SharedCodeSegment, 0, SystemAllocPolicy>;
 
 extern UniqueCodeBytes AllocateCodeBytes(
     mozilla::Maybe<jit::AutoMarkJitCodeWritableForThread>& writable,
-    uint32_t codeLength);
+    uint32_t codeLength, bool allowLastDitchGC);
 extern bool StaticallyLink(jit::AutoMarkJitCodeWritableForThread& writable,
                            uint8_t* base, const LinkData& linkData,
                            const Code* maybeCode);
@@ -1224,6 +1227,7 @@ void PatchDebugSymbolicAccesses(uint8_t* codeBase, jit::MacroAssembler& masm);
 // it is guaranteed to be a multiple of the machine's page size.
 SharedCodeSegment AllocateCodePagesFrom(SharedCodeSegmentVector& lazySegments,
                                         uint32_t bytesNeeded,
+                                        bool allowLastDitchGC,
                                         size_t* offsetInSegment,
                                         size_t* roundedUpAllocationSize);
 

@@ -67,7 +67,8 @@ static uint32_t RoundupCodeLength(uint32_t codeLength) {
 }
 
 UniqueCodeBytes wasm::AllocateCodeBytes(
-    Maybe<AutoMarkJitCodeWritableForThread>& writable, uint32_t codeLength) {
+    Maybe<AutoMarkJitCodeWritableForThread>& writable, uint32_t codeLength,
+    bool allowLastDitchGC) {
   if (codeLength > MaxCodeBytesPerProcess) {
     return nullptr;
   }
@@ -82,7 +83,7 @@ UniqueCodeBytes wasm::AllocateCodeBytes(
   // If the allocation failed and the embedding gives us a last-ditch attempt
   // to purge all memory (which, in gecko, does a purging GC/CC/GC), do that
   // then retry the allocation.
-  if (!p) {
+  if (!p && allowLastDitchGC) {
     if (OnLargeAllocationFailure) {
       OnLargeAllocationFailure();
       p = AllocateExecutableMemory(roundedCodeLength,
@@ -312,11 +313,13 @@ bool CodeSegment::linkAndMakeExecutable(
 }
 
 /* static */
-SharedCodeSegment CodeSegment::createEmpty(size_t capacityBytes) {
+SharedCodeSegment CodeSegment::createEmpty(size_t capacityBytes,
+                                           bool allowLastDitchGC) {
   uint32_t codeLength = 0;
   uint32_t codeCapacity = RoundupCodeLength(capacityBytes);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
-  UniqueCodeBytes codeBytes = AllocateCodeBytes(writable, codeCapacity);
+  UniqueCodeBytes codeBytes =
+      AllocateCodeBytes(writable, codeCapacity, allowLastDitchGC);
   if (!codeBytes) {
     return nullptr;
   }
@@ -327,7 +330,8 @@ SharedCodeSegment CodeSegment::createEmpty(size_t capacityBytes) {
 /* static */
 SharedCodeSegment CodeSegment::createFromMasm(MacroAssembler& masm,
                                               const LinkData& linkData,
-                                              const Code* maybeCode) {
+                                              const Code* maybeCode,
+                                              bool allowLastDitchGC) {
   uint32_t codeLength = masm.bytesNeeded();
   if (codeLength == 0) {
     return js_new<CodeSegment>(nullptr, 0, 0);
@@ -335,7 +339,8 @@ SharedCodeSegment CodeSegment::createFromMasm(MacroAssembler& masm,
 
   uint32_t codeCapacity = RoundupCodeLength(codeLength);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
-  UniqueCodeBytes codeBytes = AllocateCodeBytes(writable, codeCapacity);
+  UniqueCodeBytes codeBytes =
+      AllocateCodeBytes(writable, codeCapacity, allowLastDitchGC);
   if (!codeBytes) {
     return nullptr;
   }
@@ -355,7 +360,8 @@ SharedCodeSegment CodeSegment::createFromMasm(MacroAssembler& masm,
 /* static */
 SharedCodeSegment CodeSegment::createFromBytes(const uint8_t* unlinkedBytes,
                                                size_t unlinkedBytesLength,
-                                               const LinkData& linkData) {
+                                               const LinkData& linkData,
+                                               bool allowLastDitchGC) {
   uint32_t codeLength = unlinkedBytesLength;
   if (codeLength == 0) {
     return js_new<CodeSegment>(nullptr, 0, 0);
@@ -363,7 +369,8 @@ SharedCodeSegment CodeSegment::createFromBytes(const uint8_t* unlinkedBytes,
 
   uint32_t codeCapacity = RoundupCodeLength(codeLength);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
-  UniqueCodeBytes codeBytes = AllocateCodeBytes(writable, codeLength);
+  UniqueCodeBytes codeBytes =
+      AllocateCodeBytes(writable, codeLength, allowLastDitchGC);
   if (!codeBytes) {
     return nullptr;
   }
@@ -383,12 +390,14 @@ SharedCodeSegment CodeSegment::createFromBytes(const uint8_t* unlinkedBytes,
 // and CodeSegment::createFromMasmWithBumpAlloc
 SharedCodeSegment js::wasm::AllocateCodePagesFrom(
     SharedCodeSegmentVector& lazySegments, uint32_t bytesNeeded,
-    size_t* offsetInSegment, size_t* roundedUpAllocationSize) {
+    bool allowLastDitchGC, size_t* offsetInSegment,
+    size_t* roundedUpAllocationSize) {
   size_t codeLength = CodeSegment::PageRoundup(bytesNeeded);
 
   if (lazySegments.length() == 0 ||
       !lazySegments[lazySegments.length() - 1]->hasSpace(codeLength)) {
-    SharedCodeSegment newSegment = CodeSegment::createEmpty(codeLength);
+    SharedCodeSegment newSegment =
+        CodeSegment::createEmpty(codeLength, allowLastDitchGC);
     if (!newSegment) {
       return nullptr;
     }
@@ -414,7 +423,7 @@ SharedCodeSegment js::wasm::AllocateCodePagesFrom(
 /* static */
 SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
     jit::MacroAssembler& masm, const LinkData& linkData, const Code* code,
-    uint8_t** codeStartOut, uint32_t* codeLengthOut,
+    bool allowLastDitchGC, uint8_t** codeStartOut, uint32_t* codeLengthOut,
     uint32_t* metadataBiasOut) {
   // Here's a picture that illustrates the relationship of the various
   // variables.  This is an example for a machine with a 4KB page size, for an
@@ -491,7 +500,7 @@ SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
     // Find a CodeSegment that has enough space
     size_t offsetInSegment = 0;
     segment = AllocateCodePagesFrom(guard->lazyFuncSegments, requestLength,
-                                    &offsetInSegment,
+                                    allowLastDitchGC, &offsetInSegment,
                                     /*roundedUpAllocationSize=*/nullptr);
     if (!segment) {
       return nullptr;
@@ -607,7 +616,8 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   size_t codeLength = 0;
   CodeSegment* segment =
       AllocateCodePagesFrom(guard->lazyStubSegments, masm.bytesNeeded(),
-                            &offsetInSegment, &codeLength)
+                            /* allowLastDitchGC = */ true, &offsetInSegment,
+                            &codeLength)
           .get();
   if (!segment) {
     return false;
