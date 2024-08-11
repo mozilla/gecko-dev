@@ -1029,10 +1029,6 @@ bool ModuleGenerator::prepareTier1() {
     return false;
   }
 
-  for (size_t i = 0; i < codeMeta_->numFuncImports; i++) {
-    funcImports_[i] = FuncImport(codeMeta_->offsetOfFuncImportInstanceData(i));
-  }
-
   // The shared stubs code will contains function definitions for each imported
   // function.
   if (!FuncToCodeRangeMap::createDense(0, codeMeta_->numFuncImports,

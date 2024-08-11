@@ -53,6 +53,7 @@ namespace wasm {
 struct FuncDefInstanceData;
 class FuncImport;
 struct FuncImportInstanceData;
+struct FuncExportInstanceData;
 struct MemoryDesc;
 struct MemoryInstanceData;
 class GlobalDesc;
@@ -226,7 +227,8 @@ class alignas(16) Instance {
   FuncDefInstanceData* funcDefInstanceData(uint32_t funcIndex) const;
   TypeDefInstanceData* typeDefInstanceData(uint32_t typeIndex) const;
   const void* addressOfGlobalCell(const GlobalDesc& globalDesc) const;
-  FuncImportInstanceData& funcImportInstanceData(const FuncImport& fi);
+  FuncImportInstanceData& funcImportInstanceData(uint32_t funcIndex);
+  FuncExportInstanceData& funcExportInstanceData(uint32_t funcExportIndex);
   MemoryInstanceData& memoryInstanceData(uint32_t memoryIndex) const;
   TableInstanceData& tableInstanceData(uint32_t tableIndex) const;
   TagInstanceData& tagInstanceData(uint32_t tagIndex) const;
@@ -402,6 +404,11 @@ class alignas(16) Instance {
 
   WasmInstanceObject* object() const;
   WasmInstanceObject* objectUnbarriered() const;
+
+  // Get or create the exported function wrapper for a function index.
+
+  [[nodiscard]] bool getExportedFunction(JSContext* cx, uint32_t funcIndex,
+                                         MutableHandleFunction result);
 
   // Execute the given export given the JS call arguments, storing the return
   // value in args.rval.

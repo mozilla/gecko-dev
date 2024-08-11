@@ -114,6 +114,12 @@ struct FuncDefInstanceData {
   int32_t hotnessCounter;
 };
 
+// FuncExportInstanceData maintains the exported function JS wrapper for an
+// exported function.
+struct FuncExportInstanceData {
+  GCPtr<JSFunction*> func;
+};
+
 // FuncImportInstanceData describes the region of wasm global memory allocated
 // in the instance's thread-local storage for a function import. This is
 // accessed directly from JIT code and mutated by Instance as exits become

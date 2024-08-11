@@ -30,9 +30,9 @@ using namespace js;
 using namespace js::wasm;
 
 void wasm::Log(JSContext* cx, const char* fmt, ...) {
-  MOZ_ASSERT(!cx->isExceptionPending());
+  MOZ_ASSERT(!cx->isExceptionPending() || cx->isThrowingOutOfMemory());
 
-  if (!cx->options().wasmVerbose()) {
+  if (!cx->options().wasmVerbose() || cx->isThrowingOutOfMemory()) {
     return;
   }
 

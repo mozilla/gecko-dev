@@ -17,90 +17,6 @@
 namespace js {
 namespace wasm {
 
-// A FuncExport represents a single function definition inside a wasm Module
-// that has been exported one or more times. A FuncExport represents an
-// internal entry point that can be called via function definition index by
-// Instance::callExport(). To allow O(log(n)) lookup of a FuncExport by
-// function definition index, the FuncExportVector is stored sorted by
-// function definition index.
-
-class FuncExport {
-  uint32_t funcIndex_;
-  uint32_t eagerInterpEntryOffset_;  // Machine code offset
-  bool hasEagerStubs_;
-
-  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_, hasEagerStubs_);
-
- public:
-  FuncExport() = default;
-  explicit FuncExport(uint32_t funcIndex, bool hasEagerStubs) {
-    funcIndex_ = funcIndex;
-    eagerInterpEntryOffset_ = UINT32_MAX;
-    hasEagerStubs_ = hasEagerStubs;
-  }
-  void initEagerInterpEntryOffset(uint32_t entryOffset) {
-    MOZ_ASSERT(eagerInterpEntryOffset_ == UINT32_MAX);
-    MOZ_ASSERT(hasEagerStubs());
-    eagerInterpEntryOffset_ = entryOffset;
-  }
-
-  bool hasEagerStubs() const { return hasEagerStubs_; }
-  uint32_t funcIndex() const { return funcIndex_; }
-  uint32_t eagerInterpEntryOffset() const {
-    MOZ_ASSERT(eagerInterpEntryOffset_ != UINT32_MAX);
-    MOZ_ASSERT(hasEagerStubs());
-    return eagerInterpEntryOffset_;
-  }
-  void offsetBy(uint32_t delta) { eagerInterpEntryOffset_ += delta; }
-};
-
-WASM_DECLARE_CACHEABLE_POD(FuncExport);
-
-using FuncExportVector = Vector<FuncExport, 0, SystemAllocPolicy>;
-
-// A FuncImport contains the runtime metadata needed to implement a call to an
-// imported function. Each function import has two call stubs: an optimized path
-// into JIT code and a slow path into the generic C++ js::Invoke and these
-// offsets of these stubs are stored so that function-import callsites can be
-// dynamically patched at runtime.
-
-class FuncImport {
- private:
-  uint32_t instanceOffset_;
-  uint32_t interpExitCodeOffset_;  // Machine code offset
-  uint32_t jitExitCodeOffset_;     // Machine code offset
-
-  WASM_CHECK_CACHEABLE_POD(instanceOffset_, interpExitCodeOffset_,
-                           jitExitCodeOffset_);
-
- public:
-  FuncImport()
-      : instanceOffset_(0), interpExitCodeOffset_(0), jitExitCodeOffset_(0) {}
-
-  explicit FuncImport(uint32_t instanceOffset) {
-    instanceOffset_ = instanceOffset;
-    interpExitCodeOffset_ = 0;
-    jitExitCodeOffset_ = 0;
-  }
-
-  void initInterpExitOffset(uint32_t off) {
-    MOZ_ASSERT(!interpExitCodeOffset_);
-    interpExitCodeOffset_ = off;
-  }
-  void initJitExitOffset(uint32_t off) {
-    MOZ_ASSERT(!jitExitCodeOffset_);
-    jitExitCodeOffset_ = off;
-  }
-
-  uint32_t instanceOffset() const { return instanceOffset_; }
-  uint32_t interpExitCodeOffset() const { return interpExitCodeOffset_; }
-  uint32_t jitExitCodeOffset() const { return jitExitCodeOffset_; }
-};
-
-WASM_DECLARE_CACHEABLE_POD(FuncImport)
-
-using FuncImportVector = Vector<FuncImport, 0, SystemAllocPolicy>;
-
 // ==== Printing of names
 //
 // The Developer-Facing Display Conventions section of the WebAssembly Web
@@ -163,6 +79,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // code section so that we can validate instructions that reference data
   // segments.
   mozilla::Maybe<uint32_t> dataCount;
+
+  // A sorted vector of the index of every function that is exported from this
+  // module. An index into this vector is a 'exported function index' and can
+  // be used to lookup exported functions on an instance.
+  Uint32Vector exportedFuncIndices;
 
   // asm.js tables are homogenous and only store functions of the same type.
   // This maps from a function type to the table index to use for an indirect
@@ -231,6 +152,9 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The start offset of the FuncImportInstanceData[] section of the instance
   // data. There is one entry for every imported function.
   uint32_t funcImportsOffsetStart;
+  // The start offset of the FuncExportInstanceData[] section of the instance
+  // data. There is one entry for every exported function.
+  uint32_t funcExportsOffsetStart;
   // The start offset of the TypeDefInstanceData[] section of the instance
   // data. There is one entry for every type.
   uint32_t typeDefsOffsetStart;
@@ -343,6 +267,12 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     uint32_t funcDefIndex = funcIndex - numFuncImports;
     return funcDefCallRefs[funcDefIndex];
   }
+
+  // Find the exported function index for a function index
+  uint32_t findFuncExportIndex(uint32_t funcIndex) const;
+
+  // The number of functions that are exported in this module
+  uint32_t numExportedFuncs() const { return exportedFuncIndices.length(); }
 
   CallRefHint getCallRefHint(uint32_t callRefIndex) const {
     if (!callRefHints) {

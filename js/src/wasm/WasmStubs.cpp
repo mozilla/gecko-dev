@@ -1887,7 +1887,7 @@ static bool AddStackCheckForImportFunctionEntry(jit::MacroAssembler& masm,
 //  - normal entries, so that, if the import is re-exported, an entry stub can
 //    be generated and called without any special cases
 static bool GenerateImportFunction(jit::MacroAssembler& masm,
-                                   const FuncImport& fi,
+                                   uint32_t funcImportInstanceOffset,
                                    const FuncType& funcType,
                                    CallIndirectId callIndirectId,
                                    FuncOffsets* offsets, StackMaps* stackMaps) {
@@ -1942,7 +1942,7 @@ static bool GenerateImportFunction(jit::MacroAssembler& masm,
   // Call the import exit stub.
   CallSiteDesc desc(CallSiteDesc::Import);
   MoveSPForJitABI(masm);
-  masm.wasmCallImport(desc, CalleeDesc::import(fi.instanceOffset()));
+  masm.wasmCallImport(desc, CalleeDesc::import(funcImportInstanceOffset));
 
   // Restore the instance register and pinned regs, per wasm function ABI.
   masm.loadPtr(
@@ -2131,7 +2131,8 @@ static bool GenerateImportInterpExit(MacroAssembler& masm, const FuncImport& fi,
 // Generate a stub that is called via the internal ABI derived from the
 // signature of the import and calls into a compatible JIT function,
 // having boxed all the ABI arguments into the JIT stack frame layout.
-static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
+static bool GenerateImportJitExit(MacroAssembler& masm,
+                                  uint32_t funcImportInstanceOffset,
                                   const FuncType& funcType,
                                   unsigned funcImportIndex,
                                   uint32_t fallbackOffset, Label* throwLabel,
@@ -2205,7 +2206,7 @@ static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
   // exit.
   masm.loadPtr(
       Address(InstanceReg, Instance::offsetInData(
-                               fi.instanceOffset() +
+                               funcImportInstanceOffset +
                                offsetof(FuncImportInstanceData, callable))),
       callee);
 
@@ -3062,8 +3063,9 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
         CallIndirectId::forFunc(codeMeta, funcIndex);
 
     FuncOffsets wrapperOffsets;
-    if (!GenerateImportFunction(masm, fi, funcType, callIndirectId,
-                                &wrapperOffsets, &code->stackMaps)) {
+    if (!GenerateImportFunction(
+            masm, codeMeta.offsetOfFuncImportInstanceData(funcIndex), funcType,
+            callIndirectId, &wrapperOffsets, &code->stackMaps)) {
       return false;
     }
     if (!code->codeRanges.emplaceBack(funcIndex, wrapperOffsets,
@@ -3088,8 +3090,9 @@ bool wasm::GenerateStubs(const CodeMetadata& codeMeta,
     }
 
     ImportOffsets jitOffsets;
-    if (!GenerateImportJitExit(masm, fi, funcType, funcIndex,
-                               interpOffsets.begin, &throwLabel, &jitOffsets)) {
+    if (!GenerateImportJitExit(
+            masm, codeMeta.offsetOfFuncImportInstanceData(funcIndex), funcType,
+            funcIndex, interpOffsets.begin, &throwLabel, &jitOffsets)) {
       return false;
     }
     if (!code->codeRanges.emplaceBack(CodeRange::ImportJitExit, funcIndex,

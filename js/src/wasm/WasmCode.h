@@ -344,6 +344,84 @@ struct LazyFuncExport {
 
 using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 
+// A FuncExport represents a single function definition inside a wasm Module
+// that has been exported one or more times. A FuncExport represents an
+// internal entry point that can be called via function definition index by
+// Instance::callExport(). To allow O(log(n)) lookup of a FuncExport by
+// function definition index, the FuncExportVector is stored sorted by
+// function definition index.
+
+class FuncExport {
+  uint32_t funcIndex_;
+  uint32_t eagerInterpEntryOffset_;  // Machine code offset
+  bool hasEagerStubs_;
+
+  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_, hasEagerStubs_);
+
+ public:
+  FuncExport() = default;
+  explicit FuncExport(uint32_t funcIndex, bool hasEagerStubs) {
+    funcIndex_ = funcIndex;
+    eagerInterpEntryOffset_ = UINT32_MAX;
+    hasEagerStubs_ = hasEagerStubs;
+  }
+  void initEagerInterpEntryOffset(uint32_t entryOffset) {
+    MOZ_ASSERT(eagerInterpEntryOffset_ == UINT32_MAX);
+    MOZ_ASSERT(hasEagerStubs());
+    eagerInterpEntryOffset_ = entryOffset;
+  }
+
+  bool hasEagerStubs() const { return hasEagerStubs_; }
+  uint32_t funcIndex() const { return funcIndex_; }
+  uint32_t eagerInterpEntryOffset() const {
+    MOZ_ASSERT(eagerInterpEntryOffset_ != UINT32_MAX);
+    MOZ_ASSERT(hasEagerStubs());
+    return eagerInterpEntryOffset_;
+  }
+  void offsetBy(uint32_t delta) {
+    if (hasEagerStubs()) {
+      eagerInterpEntryOffset_ += delta;
+    }
+  }
+};
+
+WASM_DECLARE_CACHEABLE_POD(FuncExport);
+
+using FuncExportVector = Vector<FuncExport, 0, SystemAllocPolicy>;
+
+// A FuncImport contains the runtime metadata needed to implement a call to an
+// imported function. Each function import has two call stubs: an optimized path
+// into JIT code and a slow path into the generic C++ js::Invoke and these
+// offsets of these stubs are stored so that function-import callsites can be
+// dynamically patched at runtime.
+
+class FuncImport {
+ private:
+  uint32_t interpExitCodeOffset_;  // Machine code offset
+  uint32_t jitExitCodeOffset_;     // Machine code offset
+
+  WASM_CHECK_CACHEABLE_POD(interpExitCodeOffset_, jitExitCodeOffset_);
+
+ public:
+  FuncImport() : interpExitCodeOffset_(0), jitExitCodeOffset_(0) {}
+
+  void initInterpExitOffset(uint32_t off) {
+    MOZ_ASSERT(!interpExitCodeOffset_);
+    interpExitCodeOffset_ = off;
+  }
+  void initJitExitOffset(uint32_t off) {
+    MOZ_ASSERT(!jitExitCodeOffset_);
+    jitExitCodeOffset_ = off;
+  }
+
+  uint32_t interpExitCodeOffset() const { return interpExitCodeOffset_; }
+  uint32_t jitExitCodeOffset() const { return jitExitCodeOffset_; }
+};
+
+WASM_DECLARE_CACHEABLE_POD(FuncImport)
+
+using FuncImportVector = Vector<FuncImport, 0, SystemAllocPolicy>;
+
 static const uint32_t BAD_CODE_RANGE = UINT32_MAX;
 
 class FuncToCodeRangeMap {
