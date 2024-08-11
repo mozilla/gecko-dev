@@ -50,7 +50,7 @@ def test_only_important_manifests(params, full_task_graph, filter_tasks):
             ]
 
             # Manifest scheduling is disabled for mochitest-ally.
-            if attr("unittest_suite") in ["mochitest-a11y", "crashtest", "reftest"]:
+            if attr("unittest_suite") in ["mochitest-a11y"]:
                 assert len(unimportant) > 0
             else:
                 assert unimportant == []
