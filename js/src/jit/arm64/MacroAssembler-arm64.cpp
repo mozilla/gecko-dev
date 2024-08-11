@@ -1463,13 +1463,11 @@ CodeOffset MacroAssembler::move32WithPatch(Register dest) {
 void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
   Instruction* i1 = getInstructionAt(BufferOffset(offset.offset()));
   MOZ_ASSERT(i1->IsMovz());
-  i1->SetInstructionBits(i1->InstructionBits() |
-                         ImmMoveWide(n));
+  i1->SetInstructionBits(i1->InstructionBits() | ImmMoveWide(n));
 
   Instruction* i2 = getInstructionAt(BufferOffset(offset.offset() + 4));
   MOZ_ASSERT(i2->IsMovk());
-  i2->SetInstructionBits(i2->InstructionBits() |
-                         ImmMoveWide(n >> 16));
+  i2->SetInstructionBits(i2->InstructionBits() | ImmMoveWide(n >> 16));
 }
 
 void MacroAssembler::pushReturnAddress() {

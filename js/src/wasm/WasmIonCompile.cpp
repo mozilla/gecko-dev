@@ -7835,8 +7835,7 @@ static bool EmitCallRef(FunctionCompiler& f) {
     return true;
   }
 
-  if (hint.isInlineFunc() &&
-      f.shouldInlineCallDirect(hint.inlineFuncIndex())) {
+  if (hint.isInlineFunc() && f.shouldInlineCallDirect(hint.inlineFuncIndex())) {
     DefVector results;
     if (!EmitSpeculativeInlineCallRef(f, bytecodeOffset, *funcType,
                                       hint.inlineFuncIndex(), callee, args,

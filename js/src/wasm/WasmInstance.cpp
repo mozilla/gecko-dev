@@ -2768,8 +2768,8 @@ void Instance::tracePrivate(JSTracer* trc) {
                       "wasm import");
   }
 
-  for (uint32_t funcExportIndex = 0; funcExportIndex < codeMeta().numExportedFuncs();
-       funcExportIndex++) {
+  for (uint32_t funcExportIndex = 0;
+       funcExportIndex < codeMeta().numExportedFuncs(); funcExportIndex++) {
     TraceNullableEdge(trc, &funcExportInstanceData(funcExportIndex).func,
                       "wasm func export");
   }

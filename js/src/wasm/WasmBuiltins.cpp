@@ -711,8 +711,8 @@ static void WasmHandleRequestTierUp(Instance* instance) {
   // If compilation failed, there's no feasible way to recover. We use the
   // 'off thread' logging mechanism to avoid possibly triggering a GC.
   if (!ok) {
-    wasm::LogOffThread("Failed to tier-up function=%d in instance=%p.", funcIndex,
-              instance);
+    wasm::LogOffThread("Failed to tier-up function=%d in instance=%p.",
+                       funcIndex, instance);
   }
 }
 
