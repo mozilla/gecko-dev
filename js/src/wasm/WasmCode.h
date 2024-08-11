@@ -354,27 +354,36 @@ using LazyFuncExportVector = Vector<LazyFuncExport, 0, SystemAllocPolicy>;
 class FuncExport {
   uint32_t funcIndex_;
   uint32_t eagerInterpEntryOffset_;  // Machine code offset
-  bool hasEagerStubs_;
 
-  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_, hasEagerStubs_);
+  WASM_CHECK_CACHEABLE_POD(funcIndex_, eagerInterpEntryOffset_);
+
+  // Sentinel value that this FuncExport will get eager stubs
+  static constexpr uint32_t PENDING_EAGER_STUBS = UINT32_MAX - 1;
+
+  // Sentinel value that this FuncExport will not eager stubs
+  static constexpr uint32_t NO_EAGER_STUBS = UINT32_MAX;
 
  public:
   FuncExport() = default;
   explicit FuncExport(uint32_t funcIndex, bool hasEagerStubs) {
     funcIndex_ = funcIndex;
-    eagerInterpEntryOffset_ = UINT32_MAX;
-    hasEagerStubs_ = hasEagerStubs;
+    eagerInterpEntryOffset_ =
+        hasEagerStubs ? PENDING_EAGER_STUBS : NO_EAGER_STUBS;
   }
   void initEagerInterpEntryOffset(uint32_t entryOffset) {
-    MOZ_ASSERT(eagerInterpEntryOffset_ == UINT32_MAX);
+    MOZ_ASSERT(eagerInterpEntryOffset_ == PENDING_EAGER_STUBS);
+    MOZ_ASSERT(entryOffset != PENDING_EAGER_STUBS &&
+               entryOffset != NO_EAGER_STUBS);
     MOZ_ASSERT(hasEagerStubs());
     eagerInterpEntryOffset_ = entryOffset;
   }
 
-  bool hasEagerStubs() const { return hasEagerStubs_; }
+  bool hasEagerStubs() const {
+    return eagerInterpEntryOffset_ != NO_EAGER_STUBS;
+  }
   uint32_t funcIndex() const { return funcIndex_; }
   uint32_t eagerInterpEntryOffset() const {
-    MOZ_ASSERT(eagerInterpEntryOffset_ != UINT32_MAX);
+    MOZ_ASSERT(eagerInterpEntryOffset_ != PENDING_EAGER_STUBS);
     MOZ_ASSERT(hasEagerStubs());
     return eagerInterpEntryOffset_;
   }
