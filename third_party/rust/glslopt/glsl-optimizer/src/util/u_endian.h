@@ -27,7 +27,7 @@
 #ifndef U_ENDIAN_H
 #define U_ENDIAN_H
 
-#ifdef HAVE_ENDIAN_H
+#if defined(HAVE_ENDIAN_H) || defined(__HAIKU__)
 #include <endian.h>
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN

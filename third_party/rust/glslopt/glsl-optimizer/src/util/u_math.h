@@ -676,6 +676,9 @@ util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t 
 #define MAX4( A, B, C, D ) ((A) > (B) ? MAX3(A, C, D) : MAX3(B, C, D))
 
 
+#ifdef __HAIKU__
+#undef ALIGN
+#endif
 /**
  * Align a value up to an alignment value
  *

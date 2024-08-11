@@ -735,7 +735,7 @@ fp64(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-int64(const _mesa_glsl_parse_state *state)
+int64_(const _mesa_glsl_parse_state *state)
 {
    return state->has_int64();
 }
@@ -1617,10 +1617,10 @@ builtin_builder::create_builtins()
                 _##NAME(fp64, glsl_type::dvec2_type),  \
                 _##NAME(fp64, glsl_type::dvec3_type),  \
                 _##NAME(fp64, glsl_type::dvec4_type),  \
-                _##NAME(int64, glsl_type::int64_t_type), \
-                _##NAME(int64, glsl_type::i64vec2_type),  \
-                _##NAME(int64, glsl_type::i64vec3_type),  \
-                _##NAME(int64, glsl_type::i64vec4_type),  \
+                _##NAME(int64_, glsl_type::int64_t_type), \
+                _##NAME(int64_, glsl_type::i64vec2_type),  \
+                _##NAME(int64_, glsl_type::i64vec3_type),  \
+                _##NAME(int64_, glsl_type::i64vec4_type),  \
                 NULL);
 
 #define FIUD_VEC(NAME)                                            \
@@ -1639,14 +1639,14 @@ builtin_builder::create_builtins()
                 _##NAME(fp64, glsl_type::dvec2_type),  \
                 _##NAME(fp64, glsl_type::dvec3_type),  \
                 _##NAME(fp64, glsl_type::dvec4_type),  \
-                _##NAME(int64, glsl_type::int64_t_type), \
-                _##NAME(int64, glsl_type::i64vec2_type),  \
-                _##NAME(int64, glsl_type::i64vec3_type),  \
-                _##NAME(int64, glsl_type::i64vec4_type),  \
-                _##NAME(int64, glsl_type::uint64_t_type), \
-                _##NAME(int64, glsl_type::u64vec2_type),  \
-                _##NAME(int64, glsl_type::u64vec3_type),  \
-                _##NAME(int64, glsl_type::u64vec4_type),  \
+                _##NAME(int64_, glsl_type::int64_t_type), \
+                _##NAME(int64_, glsl_type::i64vec2_type),  \
+                _##NAME(int64_, glsl_type::i64vec3_type),  \
+                _##NAME(int64_, glsl_type::i64vec4_type),  \
+                _##NAME(int64_, glsl_type::uint64_t_type), \
+                _##NAME(int64_, glsl_type::u64vec2_type),  \
+                _##NAME(int64_, glsl_type::u64vec3_type),  \
+                _##NAME(int64_, glsl_type::u64vec4_type),  \
                 NULL);
 
 #define IU(NAME)                                \
@@ -1683,14 +1683,14 @@ builtin_builder::create_builtins()
                 _##NAME(fp64, glsl_type::dvec2_type), \
                 _##NAME(fp64, glsl_type::dvec3_type), \
                 _##NAME(fp64, glsl_type::dvec4_type), \
-                _##NAME(int64, glsl_type::int64_t_type), \
-                _##NAME(int64, glsl_type::i64vec2_type),  \
-                _##NAME(int64, glsl_type::i64vec3_type),  \
-                _##NAME(int64, glsl_type::i64vec4_type),  \
-                _##NAME(int64, glsl_type::uint64_t_type), \
-                _##NAME(int64, glsl_type::u64vec2_type),  \
-                _##NAME(int64, glsl_type::u64vec3_type),  \
-                _##NAME(int64, glsl_type::u64vec4_type),  \
+                _##NAME(int64_, glsl_type::int64_t_type), \
+                _##NAME(int64_, glsl_type::i64vec2_type),  \
+                _##NAME(int64_, glsl_type::i64vec3_type),  \
+                _##NAME(int64_, glsl_type::i64vec4_type),  \
+                _##NAME(int64_, glsl_type::uint64_t_type), \
+                _##NAME(int64_, glsl_type::u64vec2_type),  \
+                _##NAME(int64_, glsl_type::u64vec3_type),  \
+                _##NAME(int64_, glsl_type::u64vec4_type),  \
                 NULL);
 
 #define FIUD2_MIXED(NAME)                                                                 \
@@ -1730,20 +1730,20 @@ builtin_builder::create_builtins()
                 _##NAME(fp64, glsl_type::dvec3_type, glsl_type::dvec3_type),           \
                 _##NAME(fp64, glsl_type::dvec4_type, glsl_type::dvec4_type),           \
                                                                         \
-                _##NAME(int64, glsl_type::int64_t_type, glsl_type::int64_t_type),           \
-                _##NAME(int64, glsl_type::i64vec2_type, glsl_type::int64_t_type),           \
-                _##NAME(int64, glsl_type::i64vec3_type, glsl_type::int64_t_type),           \
-                _##NAME(int64, glsl_type::i64vec4_type, glsl_type::int64_t_type),           \
-                _##NAME(int64, glsl_type::i64vec2_type, glsl_type::i64vec2_type),           \
-                _##NAME(int64, glsl_type::i64vec3_type, glsl_type::i64vec3_type),           \
-                _##NAME(int64, glsl_type::i64vec4_type, glsl_type::i64vec4_type),           \
-                _##NAME(int64, glsl_type::uint64_t_type, glsl_type::uint64_t_type),           \
-                _##NAME(int64, glsl_type::u64vec2_type, glsl_type::uint64_t_type),           \
-                _##NAME(int64, glsl_type::u64vec3_type, glsl_type::uint64_t_type),           \
-                _##NAME(int64, glsl_type::u64vec4_type, glsl_type::uint64_t_type),           \
-                _##NAME(int64, glsl_type::u64vec2_type, glsl_type::u64vec2_type),           \
-                _##NAME(int64, glsl_type::u64vec3_type, glsl_type::u64vec3_type),           \
-                _##NAME(int64, glsl_type::u64vec4_type, glsl_type::u64vec4_type),           \
+                _##NAME(int64_, glsl_type::int64_t_type, glsl_type::int64_t_type),           \
+                _##NAME(int64_, glsl_type::i64vec2_type, glsl_type::int64_t_type),           \
+                _##NAME(int64_, glsl_type::i64vec3_type, glsl_type::int64_t_type),           \
+                _##NAME(int64_, glsl_type::i64vec4_type, glsl_type::int64_t_type),           \
+                _##NAME(int64_, glsl_type::i64vec2_type, glsl_type::i64vec2_type),           \
+                _##NAME(int64_, glsl_type::i64vec3_type, glsl_type::i64vec3_type),           \
+                _##NAME(int64_, glsl_type::i64vec4_type, glsl_type::i64vec4_type),           \
+                _##NAME(int64_, glsl_type::uint64_t_type, glsl_type::uint64_t_type),           \
+                _##NAME(int64_, glsl_type::u64vec2_type, glsl_type::uint64_t_type),           \
+                _##NAME(int64_, glsl_type::u64vec3_type, glsl_type::uint64_t_type),           \
+                _##NAME(int64_, glsl_type::u64vec4_type, glsl_type::uint64_t_type),           \
+                _##NAME(int64_, glsl_type::u64vec2_type, glsl_type::u64vec2_type),           \
+                _##NAME(int64_, glsl_type::u64vec3_type, glsl_type::u64vec3_type),           \
+                _##NAME(int64_, glsl_type::u64vec4_type, glsl_type::u64vec4_type),           \
                 NULL);
 
    F(radians)
@@ -1865,15 +1865,15 @@ builtin_builder::create_builtins()
                 _mix_sel(shader_integer_mix, glsl_type::bvec3_type, glsl_type::bvec3_type),
                 _mix_sel(shader_integer_mix, glsl_type::bvec4_type, glsl_type::bvec4_type),
 
-                _mix_sel(int64, glsl_type::int64_t_type, glsl_type::bool_type),
-                _mix_sel(int64, glsl_type::i64vec2_type, glsl_type::bvec2_type),
-                _mix_sel(int64, glsl_type::i64vec3_type, glsl_type::bvec3_type),
-                _mix_sel(int64, glsl_type::i64vec4_type, glsl_type::bvec4_type),
+                _mix_sel(int64_, glsl_type::int64_t_type, glsl_type::bool_type),
+                _mix_sel(int64_, glsl_type::i64vec2_type, glsl_type::bvec2_type),
+                _mix_sel(int64_, glsl_type::i64vec3_type, glsl_type::bvec3_type),
+                _mix_sel(int64_, glsl_type::i64vec4_type, glsl_type::bvec4_type),
 
-                _mix_sel(int64, glsl_type::uint64_t_type,  glsl_type::bool_type),
-                _mix_sel(int64, glsl_type::u64vec2_type, glsl_type::bvec2_type),
-                _mix_sel(int64, glsl_type::u64vec3_type, glsl_type::bvec3_type),
-                _mix_sel(int64, glsl_type::u64vec4_type, glsl_type::bvec4_type),
+                _mix_sel(int64_, glsl_type::uint64_t_type,  glsl_type::bool_type),
+                _mix_sel(int64_, glsl_type::u64vec2_type, glsl_type::bvec2_type),
+                _mix_sel(int64_, glsl_type::u64vec3_type, glsl_type::bvec3_type),
+                _mix_sel(int64_, glsl_type::u64vec4_type, glsl_type::bvec4_type),
                 NULL);
 
    add_function("step",
@@ -1973,10 +1973,10 @@ builtin_builder::create_builtins()
    add_function("packDouble2x32",    _packDouble2x32(fp64),                   NULL);
    add_function("unpackDouble2x32",  _unpackDouble2x32(fp64),                 NULL);
 
-   add_function("packInt2x32",     _packInt2x32(int64),                    NULL);
-   add_function("unpackInt2x32",   _unpackInt2x32(int64),                  NULL);
-   add_function("packUint2x32",    _packUint2x32(int64),                   NULL);
-   add_function("unpackUint2x32",  _unpackUint2x32(int64),                 NULL);
+   add_function("packInt2x32",     _packInt2x32(int64_),                    NULL);
+   add_function("unpackInt2x32",   _unpackInt2x32(int64_),                  NULL);
+   add_function("packUint2x32",    _packUint2x32(int64_),                   NULL);
+   add_function("unpackUint2x32",  _unpackUint2x32(int64_),                 NULL);
 
    FD(length)
    FD(distance)

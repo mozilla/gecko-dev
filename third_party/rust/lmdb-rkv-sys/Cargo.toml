@@ -9,35 +9,64 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+bench = []
+
 [package]
 name = "lmdb-rkv-sys"
 version = "0.11.2"
-authors = ["Dan Burkert <dan@danburkert.com>", "Victor Porof <vporof@mozilla.com>"]
+authors = [
+    "Dan Burkert <dan@danburkert.com>",
+    "Victor Porof <vporof@mozilla.com>",
+]
 build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rust bindings for liblmdb."
 homepage = "https://github.com/mozilla/lmdb-rs"
 documentation = "https://docs.rs/lmdb-rkv-sys"
 readme = "../README.md"
-keywords = ["LMDB", "database", "storage-engine", "bindings", "library"]
-categories = ["database", "external-ffi-bindings"]
+keywords = [
+    "LMDB",
+    "database",
+    "storage-engine",
+    "bindings",
+    "library",
+]
+categories = [
+    "database",
+    "external-ffi-bindings",
+]
 license = "Apache-2.0"
 repository = "https://github.com/mozilla/lmdb-rs.git"
 
 [lib]
 name = "lmdb_sys"
-[dependencies.libc]
-version = "0.2"
+path = "src/lib.rs"
+
+[[test]]
+name = "lmdb"
+path = "tests/lmdb.rs"
+
+[[test]]
+name = "simple"
+path = "tests/simple.rs"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.0"
+pkg-config = "0.3"
+
 [build-dependencies.bindgen]
 version = "0.53.2"
 features = ["runtime"]
 optional = true
 default-features = false
-
-[build-dependencies.cc]
-version = "1.0"
-
-[build-dependencies.pkg-config]
-version = "0.3"
 
 [features]
 default = []
@@ -52,6 +81,7 @@ mdb_idl_logn_9 = []
 with-asan = []
 with-fuzzer = []
 with-fuzzer-no-link = []
+
 [badges.appveyor]
 repository = "mozilla/lmdb-rs"
 

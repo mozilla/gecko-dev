@@ -2138,6 +2138,12 @@ criteria = "safe-to-deploy"
 delta = "6.0.1 -> 6.0.2"
 notes = "I'm the author of the changes in this version of the crate."
 
+[[audits.glslopt]]
+who = "KENZ <KENZ.gelsoft@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.10 -> 0.1.10@git:f9fb33cdab7d55ee0b06fbde64f61be74bd4ef2b"
+importable = false
+
 [[audits.goblin]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -2612,6 +2618,12 @@ who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
 version = "0.14.0"
 notes = "Victor and Myk developed this crate at Mozilla."
+
+[[audits.lmdb-rkv-sys]]
+who = "KENZ <KENZ.gelsoft@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.11.2 -> 0.11.2@git:9a481259e3b15932bd88bc90a8d7dc49e7ac9cd6"
+importable = false
 
 [[audits.lock_api]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
