@@ -1954,6 +1954,8 @@
     <string name="preferences_passwords_exceptions_description_2">%s بو سایتلار اوچون رمزلری یاددا ساخلامیاجاق.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">بوتون آیریْ توتمالاریْ سیل</string>
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">رمزلرده آختار</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">سایت</string>
     <!-- The header for the username for a login -->
@@ -1981,6 +1983,105 @@
 
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">رمزی گیزله</string>
+
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">ساخلانمیش رمزلریزه باخماق اوچون کیلیدی آچین</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_title_2">ساخلانمیش رمزلریزی قوْرویون</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_message_2">باشقا جهازیز وارسا، یاددا ساخلادیغیز رمزلریزه گیرمک‌دن قوْروماق اوچون جهاز کیلیدی نمونه‌سی، پین و یا رمز وئرین.</string>
+    <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_later">داها سوْنرا</string>
+    <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_set_up_now">ایندی قورون</string>
+    <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their logins -->
+    <string name="logins_biometric_prompt_message_pin">جهازیزین کیلیدینی آچین</string>
+    <!-- Title for Accessibility Force Enable Zoom Preference -->
+    <string name="preference_accessibility_force_enable_zoom">بوتون سایتلاری بؤیوت</string>
+
+    <!-- Summary for Accessibility Force Enable Zoom Preference -->
+    <string name="preference_accessibility_force_enable_zoom_summary">سیخیشدیرما و یاخینلاشدیرما حرکتینه اجازه وئرمین سایتلاردادا بو حرکتی گوجلندیر.</string>
+    <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
+    <string name="saved_logins_sort_strategy_alphabetically">آد (ا-ی)</string>
+    <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
+    <string name="saved_logins_sort_strategy_last_used">سوْن ایشه آلما</string>
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">رمزلری سریه سالما منوسو</string>
+
+    <!-- Autofill -->
+    <!-- Preference and title for managing the autofill settings -->
+    <string name="preferences_autofill">اؤز اؤزونه دوْلدورما</string>
+
+    <!-- Preference and title for managing the settings for addresses -->
+    <string name="preferences_addresses">آدرس‌لر</string>
+
+    <!-- Preference and title for managing the settings for payment methods -->
+    <string name="preferences_credit_cards_2">پول تؤکمه یؤل‌لاری</string>
+
+    <!-- Preference for saving and autofilling credit cards -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">پول تؤکمه یول‌لارینیْ یاددا ساخلایین و دوْلدورون</string>
+    <!-- Preference summary for saving and autofilling payment method data. Parameter will be replaced by app name. -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s ساخلادیغیز بوتون پول تؤکمه یول‌لارینیْ رمزلشدیریر</string>
+
+    <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
+    <string name="preferences_credit_cards_sync_cards_across_devices">کارتلاری جهازلار آرسیندا دؤنگل ائله</string>
+    <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
+    <string name="preferences_credit_cards_sync_cards">کارتلاری دؤنگل ائله</string>
+    <!-- Preference option for adding a card -->
+    <string name="preferences_credit_cards_add_credit_card_2">کارت آرتیر</string>
+    <!-- Preference option for managing saved cards -->
+    <string name="preferences_credit_cards_manage_saved_cards_2">کارت‌لاری ایداره ائله</string>
+    <!-- Preference option for adding an address -->
+    <string name="preferences_addresses_add_address">آدرس آرتیر</string>
+    <!-- Preference option for managing saved addresses -->
+    <string name="preferences_addresses_manage_addresses">آدرس‌لری ایداره ائله</string>
+
+    <!-- Preference for saving and filling addresses -->
+    <string name="preferences_addresses_save_and_autofill_addresses_2">آدرس‌لری ساخلا و دوْلدور</string>
+
+    <!-- Preference summary for saving and filling address data -->
+    <string name="preferences_addresses_save_and_autofill_addresses_summary_2">تلفن شماره‌لرینه و ایمیل آدرس‌لرینه شامل‌دیر</string>
+
+    <!-- Title of the "Add card" screen -->
+    <string name="credit_cards_add_card">کارت آرتیر</string>
+    <!-- Title of the "Edit card" screen -->
+    <string name="credit_cards_edit_card">کارت دوزه‌لیشی</string>
+    <!-- The header for the card number of a credit card -->
+    <string name="credit_cards_card_number">کارت شماره‌سی</string>
+    <!-- The header for the expiration date of a credit card -->
+    <string name="credit_cards_expiration_date">مدتی قوتولما تاریخی</string>
+
+    <!-- The label for the expiration date month of a credit card to be used by a11y services-->
+    <string name="credit_cards_expiration_date_month">مدتی قوتولما آییْ</string>
+    <!-- The label for the expiration date year of a credit card to be used by a11y services-->
+    <string name="credit_cards_expiration_date_year">مدتی قوتولما ایلی</string>
+    <!-- The header for the name on the credit card -->
+    <string name="credit_cards_name_on_card">کارتین اوستونده‌کی آد</string>
+    <!-- The text for the "Delete card" menu item for deleting a credit card -->
+    <string name="credit_cards_menu_delete_card">کارتیْ سیل</string>
+    <!-- The text for the "Delete card" button for deleting a credit card -->
+    <string name="credit_cards_delete_card_button">کارتیْ سیل</string>
+    <!-- The text for the confirmation message of "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_confirmation_2">کارت سیلین‌سین؟</string>
+    <!-- The text for the positive button on "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_button">سیل</string>
+    <!-- The title for the "Save" menu item for saving a credit card -->
+    <string name="credit_cards_menu_save">ساخلا</string>
+    <!-- The text for the "Save" button for saving a credit card -->
+    <string name="credit_cards_save_button">ساخلا</string>
+    <!-- The text for the "Cancel" button for cancelling adding, updating or deleting a credit card -->
+    <string name="credit_cards_cancel_button">لغو</string>
+    <!-- Title of the "Saved cards" screen -->
+    <string name="credit_cards_saved_cards">یاددا ساخلانان کارتلار</string>
+
+    <!-- Error message for card number validation -->
+    <string name="credit_cards_number_validation_error_message_2"> بیر گئچرلی کارت شماره‌سی وئر</string>
+    <!-- Error message for card name on card validation -->
+    <string name="credit_cards_name_on_card_validation_error_message_2">بیر آد وئر</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
+    <string name="credit_cards_biometric_prompt_message">یاددا ساخلادیغیز کارتلاری گؤرمک اوچون کیلیدی آچین</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_title_2">یاددا ساخلادیغیز پول تؤکمه یوللاریزیْ قوْرویون</string>
 
     <!-- Translations feature-->
 
