@@ -19,10 +19,19 @@ static mozilla::LazyLogModule sLog("Windows11LimitedAccessFeatures");
 // Fall back function defined in the #else
 #ifndef __MINGW32__
 
+#  include "mozilla/ErrorResult.h"
 #  include "nsString.h"
+#  include "nsCOMPtr.h"
+#  include "nsComponentManagerUtils.h"
+#  include "nsIWindowsRegKey.h"
 #  include "nsWindowsHelpers.h"
+#  include "nsICryptoHash.h"
 
 #  include "mozilla/Atomics.h"
+#  include "mozilla/Base64.h"
+#  include "mozilla/Char16.h"
+#  include "mozilla/WinHeaderOnlyUtils.h"
+#  include "WinUtils.h"
 
 #  include <wrl.h>
 #  include <inspectable.h>
@@ -110,24 +119,87 @@ using namespace mozilla;
 https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/TaskbarManager/CppUnpackagedDesktopTaskbarPin
  */
 
-struct LimitedAccessFeatureInfo {
-  const nsCString debugName;
-  const nsString feature;
-  const nsString token;
-  const nsString attestation;
-};
+/**
+ * Unlocks a Windows Limited Access Feature (LAF) by generating a token and
+ * attestation.
+ *
+ * This function first retrieves the LAF key from the registry using
+ * the LAF identifier and then combines the lafId, lafKey, and PFN
+ * into a token.
+ *
+ * Applying Base64(SHA256Encode("<lafId>!<lafKey>!<PFN>")[0..16]) yields the
+ * complete LAF token for unlocking.
+ *
+ * Taking the last 13 characters of the PFN yields the publisher identifier
+ * which is used in the following boilerplate:
+ * "<PFN[-13]> has registered their use of <lafId> with Microsoft and
+ * agrees to the terms of use."
+ *
+ * @return {LimitedAccessFeatureInfo} containing the generated
+ *   token and attestation upon success. Contains empty strings for
+ *   these fields upon failure.
+ */
+static mozilla::Result<LimitedAccessFeatureInfo, nsresult>
+GenerateLimitedAccessFeatureInfo(const nsCString& debugName,
+                                 const nsString& lafId) {
+  nsresult rv;
+  // Read registry key for a given Limited Access Feature with ID lafId.
+  nsAutoString keyData;
+  nsCOMPtr<nsIWindowsRegKey> regKey =
+      do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  const nsAutoString regPath =
+      u"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModel\\LimitedAccessFeatures\\"_ns +
+      lafId;
+  rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE, regPath,
+                    nsIWindowsRegKey::ACCESS_READ);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  rv = regKey->ReadStringValue(u""_ns, keyData);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
 
-static LimitedAccessFeatureInfo limitedAccessFeatureInfo[] = {
-    {// Win11LimitedAccessFeatureType::Taskbar
-     "Win11LimitedAccessFeatureType::Taskbar"_ns,
-     u"com.microsoft.windows.taskbar.pin"_ns, u"kRFiWpEK5uS6PMJZKmR7MQ=="_ns,
-     u"pcsmm0jrprpb2 has registered their use of "_ns
-     u"com.microsoft.windows.taskbar.pin with Microsoft and agrees to the "_ns
-     u"terms "_ns
-     u"of use."_ns}};
+  // Get Package Family Name (PFN) and assemble a string to hash.
+  // First convert this string to SHA256, take the first 16 bytes
+  // only, and then read as base 64.
+  nsAutoCString hashStringResult;
+  nsAutoString encodedToken;
+  // The non-MSIX family name must match whatever value is in create_rc.py
+  // Currently this is MozillaFirefox_pcsmm0jrprpb2
+  nsAutoString familyName;
+  if (widget::WinUtils::HasPackageIdentity()) {
+    familyName = nsDependentString(mozilla::GetPackageFamilyName().get());
+  } else {
+    familyName = u"MozillaFirefox_pcsmm0jrprpb2"_ns;
+  }
+  const nsAutoCString hashString =
+      NS_ConvertUTF16toUTF8(lafId + u"!"_ns + keyData + u"!"_ns + familyName);
 
-static_assert(mozilla::ArrayLength(limitedAccessFeatureInfo) ==
-              kWin11LimitedAccessFeatureTypeCount);
+  nsCOMPtr<nsICryptoHash> cryptoHash =
+      do_CreateInstance("@mozilla.org/security/hash;1", &rv);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  rv = cryptoHash->Init(nsICryptoHash::SHA256);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  rv = cryptoHash->Update(reinterpret_cast<const uint8_t*>(hashString.get()),
+                          hashString.Length());
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  rv = cryptoHash->Finish(false, hashStringResult);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+
+  // Keep only first 16 bytes and encode
+  hashStringResult.Truncate(hashStringResult.Length() - 16);
+  rv = Base64Encode(hashStringResult, encodedToken);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+
+  // The PFN contains a package ID in the last 13 characters.
+  // This ID is based on the value in the publisher field of the
+  // AppManifest. This ID is used to assemble the attestation.
+  familyName.Cut(0, familyName.Length() - 13);
+  nsAutoString attestation =
+      familyName + u" has registered their use of "_ns + lafId +
+      u" with Microsoft and agrees to the terms of use."_ns;
+  LimitedAccessFeatureInfo result = {debugName, lafId, encodedToken,
+                                     attestation};
+  return result;
+}
 
 /**
  Implementation of the Win11LimitedAccessFeaturesInterface.
@@ -141,7 +213,7 @@ class Win11LimitedAccessFeatures : public Win11LimitedAccessFeaturesInterface {
  private:
   AtomicState& GetState(Win11LimitedAccessFeatureType feature);
   Result<bool, HRESULT> UnlockImplementation(
-      Win11LimitedAccessFeatureType feature);
+      const LimitedAccessFeatureInfo& lafInfo);
 
   /**
    * Store the state as an atomic so that it can be safely accessed from
@@ -175,6 +247,18 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::Unlock(
     Win11LimitedAccessFeatureType feature) {
   AtomicState& atomicState = GetState(feature);
 
+  // Win11LimitedAccessFeatureType::Taskbar
+  auto taskbarLafInfo = GenerateLimitedAccessFeatureInfo(
+      "Win11LimitedAccessFeatureType::Taskbar"_ns,
+      u"com.microsoft.windows.taskbar.pin"_ns);
+  if (taskbarLafInfo.isErr()) {
+    LAF_LOG(LogLevel::Debug, "Unlocking taskbar failed with error %d",
+            NS_ERROR_GET_CODE(taskbarLafInfo.unwrapErr()));
+    return Err(E_FAIL);
+  }
+
+  LimitedAccessFeatureInfo limitedAccessFeatureInfo[] = {
+      taskbarLafInfo.unwrap()};
   const auto& lafInfo = limitedAccessFeatureInfo[static_cast<int>(feature)];
 
   LAF_LOG(LogLevel::Debug,
@@ -193,7 +277,7 @@ Result<bool, HRESULT> Win11LimitedAccessFeatures::Unlock(
   // both threads will unlock the feature. This situation is unlikely, but even
   // if it happens, it's not a problem.
 
-  auto result = UnlockImplementation(feature);
+  auto result = UnlockImplementation(lafInfo);
 
   int newState = Locked;
   if (!result.isErr() && result.unwrap()) {
@@ -223,11 +307,9 @@ Win11LimitedAccessFeatures::AtomicState& Win11LimitedAccessFeatures::GetState(
 }
 
 Result<bool, HRESULT> Win11LimitedAccessFeatures::UnlockImplementation(
-    Win11LimitedAccessFeatureType feature) {
+    const LimitedAccessFeatureInfo& lafInfo) {
   ComPtr<ILimitedAccessFeaturesStatics> limitedAccessFeatures;
   ComPtr<ILimitedAccessFeatureRequestResult> limitedAccessFeaturesResult;
-
-  const auto& lafInfo = limitedAccessFeatureInfo[static_cast<int>(feature)];
 
   HRESULT hr = RoGetActivationFactory(
       HStringReference(
@@ -277,6 +359,12 @@ RefPtr<Win11LimitedAccessFeaturesInterface>
 CreateWin11LimitedAccessFeaturesInterface() {
   RefPtr<Win11LimitedAccessFeaturesInterface> result;
   return result;
+}
+
+static mozilla::Result<LimitedAccessFeatureInfo, nsresult>
+GenerateLimitedAccessFeatureInfo(const nsCString& debugName,
+                                 const nsString& lafId) {
+  return mozilla::Err(NS_ERROR_NOT_IMPLEMENTED);
 }
 
 #endif
