@@ -1620,7 +1620,7 @@ static bool DecodeStructType(Decoder& d, CodeMetadata* codeMeta,
     return d.fail("too many fields in struct");
   }
 
-  StructFieldVector fields;
+  FieldTypeVector fields;
   if (!fields.resize(numFields)) {
     return false;
   }
