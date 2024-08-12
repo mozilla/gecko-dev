@@ -171,12 +171,17 @@ GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
 
 #endif
 
-const gint kEvents = GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK |
-                     GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
-                     GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
-                     GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
-                     GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK |
-                     GDK_POINTER_MOTION_MASK | GDK_PROPERTY_CHANGE_MASK;
+const gint kShellEvents =
+    GDK_TOUCHPAD_GESTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
+    GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK |
+    GDK_BUTTON_RELEASE_MASK |  // Mouse buttons
+    GDK_POINTER_MOTION_MASK |  // Mouse cursor motion
+    GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK;
+
+const gint kContainerEvents = GDK_EXPOSURE_MASK |   // draw signal
+                              GDK_STRUCTURE_MASK |  // map/unmap signals
+                              GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
+                              GDK_PROPERTY_CHANGE_MASK;  // notify::* signals
 
 /* utility functions */
 static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
@@ -6202,8 +6207,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       GTK_WIDGET(mContainer),
       StaticPrefs::widget_transparent_windows_AtStartup());
 
-  gtk_widget_add_events(GTK_WIDGET(mContainer), kEvents);
-  gtk_widget_add_events(mShell, GDK_PROPERTY_CHANGE_MASK);
+  gtk_widget_add_events(mShell, kShellEvents);
+  gtk_widget_add_events(GTK_WIDGET(mContainer), kContainerEvents);
   gtk_widget_set_app_paintable(
       mShell, StaticPrefs::widget_transparent_windows_AtStartup());
 
@@ -6370,24 +6375,22 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   // and propagate up to the first widget that handles the events, so we
   // need only connect on mShell, if it exists, to catch events on its
   // window and windows of mContainer.
-  g_signal_connect(mContainer, "enter-notify-event",
-                   G_CALLBACK(enter_notify_event_cb), nullptr);
-  g_signal_connect(mContainer, "leave-notify-event",
-                   G_CALLBACK(leave_notify_event_cb), nullptr);
-  g_signal_connect(mContainer, "motion-notify-event",
-                   G_CALLBACK(motion_notify_event_cb), nullptr);
-  g_signal_connect(mContainer, "button-press-event",
+  g_signal_connect(mShell, "button-press-event",
                    G_CALLBACK(button_press_event_cb), nullptr);
-  g_signal_connect(mContainer, "button-release-event",
+  g_signal_connect(mShell, "button-release-event",
                    G_CALLBACK(button_release_event_cb), nullptr);
-  g_signal_connect(mContainer, "scroll-event", G_CALLBACK(scroll_event_cb),
+  g_signal_connect(mShell, "enter-notify-event",
+                   G_CALLBACK(enter_notify_event_cb), nullptr);
+  g_signal_connect(mShell, "leave-notify-event",
+                   G_CALLBACK(leave_notify_event_cb), nullptr);
+  g_signal_connect(mShell, "motion-notify-event",
+                   G_CALLBACK(motion_notify_event_cb), nullptr);
+  g_signal_connect(mShell, "scroll-event", G_CALLBACK(scroll_event_cb),
                    nullptr);
   if (gtk_check_version(3, 18, 0) == nullptr) {
-    g_signal_connect(mContainer, "event", G_CALLBACK(generic_event_cb),
-                     nullptr);
+    g_signal_connect(mShell, "event", G_CALLBACK(generic_event_cb), nullptr);
   }
-  g_signal_connect(mContainer, "touch-event", G_CALLBACK(touch_event_cb),
-                   nullptr);
+  g_signal_connect(mShell, "touch-event", G_CALLBACK(touch_event_cb), nullptr);
 
   LOG("  nsWindow type %d %s\n", int(mWindowType),
       mIsPIPWindow ? "PIP window" : "");
