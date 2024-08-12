@@ -171,18 +171,6 @@ GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
 
 #endif
 
-const gint kShellEvents =
-    GDK_TOUCHPAD_GESTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
-    GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK |
-    GDK_BUTTON_RELEASE_MASK |  // Mouse buttons
-    GDK_POINTER_MOTION_MASK |  // Mouse cursor motion
-    GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK;
-
-const gint kContainerEvents = GDK_EXPOSURE_MASK |   // draw signal
-                              GDK_STRUCTURE_MASK |  // map/unmap signals
-                              GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
-                              GDK_PROPERTY_CHANGE_MASK;  // notify::* signals
-
 /* utility functions */
 static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
                                gdouble aMouseY);
@@ -6207,10 +6195,14 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       GTK_WIDGET(mContainer),
       StaticPrefs::widget_transparent_windows_AtStartup());
 
-  gtk_widget_add_events(mShell, kShellEvents);
-  gtk_widget_add_events(GTK_WIDGET(mContainer), kContainerEvents);
   gtk_widget_set_app_paintable(
       mShell, StaticPrefs::widget_transparent_windows_AtStartup());
+
+#ifdef MOZ_X11
+  if (GdkIsX11Display()) {
+    gtk_widget_set_double_buffered(GTK_WIDGET(mContainer), FALSE);
+  }
+#endif
 
   if (mTransparencyBitmapForTitlebar) {
     moz_container_force_default_visual(mContainer);
@@ -6274,13 +6266,32 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                         DevicePixelsToGdkCoordRoundDown(mBounds.y));
   }
 
+  GtkSettings* default_settings = gtk_settings_get_default();
+  g_signal_connect_after(default_settings, "notify::gtk-xft-dpi",
+                         G_CALLBACK(settings_xft_dpi_changed_cb), this);
+
+  GdkScreen* screen = gtk_widget_get_screen(mShell);
+  if (!g_signal_handler_find(screen, G_SIGNAL_MATCH_FUNC, 0, 0, nullptr,
+                             FuncToGpointer(screen_composited_changed_cb),
+                             nullptr)) {
+    g_signal_connect(screen, "composited-changed",
+                     G_CALLBACK(screen_composited_changed_cb), nullptr);
+  }
+
   // Also label mShell toplevel window,
   // property_notify_event_cb callback also needs to find its way home
   g_object_set_data(G_OBJECT(GetToplevelGdkWindow()), "nsWindow", this);
   g_object_set_data(G_OBJECT(mContainer), "nsWindow", this);
   g_object_set_data(G_OBJECT(mShell), "nsWindow", this);
 
-  // attach listeners for events
+  // mShell signal events
+  gtk_widget_add_events(mShell,
+                        GDK_VISIBILITY_NOTIFY_MASK | GDK_ENTER_NOTIFY_MASK |
+                            GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK |
+                            GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
+                            GDK_SMOOTH_SCROLL_MASK | GDK_SCROLL_MASK |
+                            GDK_TOUCHPAD_GESTURE_MASK | GDK_TOUCH_MASK);
+
   g_signal_connect(mShell, "configure_event", G_CALLBACK(configure_event_cb),
                    nullptr);
   g_signal_connect(mShell, "delete_event", G_CALLBACK(delete_event_cb),
@@ -6295,21 +6306,11 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                    G_CALLBACK(widget_composited_changed_cb), nullptr);
   g_signal_connect(mShell, "property-notify-event",
                    G_CALLBACK(property_notify_event_cb), nullptr);
-
   if (mWindowType == WindowType::TopLevel) {
     g_signal_connect_after(mShell, "size_allocate",
                            G_CALLBACK(toplevel_window_size_allocate_cb),
                            nullptr);
   }
-
-  GdkScreen* screen = gtk_widget_get_screen(mShell);
-  if (!g_signal_handler_find(screen, G_SIGNAL_MATCH_FUNC, 0, 0, nullptr,
-                             FuncToGpointer(screen_composited_changed_cb),
-                             nullptr)) {
-    g_signal_connect(screen, "composited-changed",
-                     G_CALLBACK(screen_composited_changed_cb), nullptr);
-  }
-
   gtk_drag_dest_set((GtkWidget*)mShell, (GtkDestDefaults)0, nullptr, 0,
                     (GdkDragAction)0);
   g_signal_connect(mShell, "drag_motion", G_CALLBACK(drag_motion_event_cb),
@@ -6320,56 +6321,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                    nullptr);
   g_signal_connect(mShell, "drag_data_received",
                    G_CALLBACK(drag_data_received_event_cb), nullptr);
-
-  GtkSettings* default_settings = gtk_settings_get_default();
-  g_signal_connect_after(default_settings, "notify::gtk-xft-dpi",
-                         G_CALLBACK(settings_xft_dpi_changed_cb), this);
-
-  // Widget signals
-  g_signal_connect_after(mContainer, "size_allocate",
-                         G_CALLBACK(size_allocate_cb), nullptr);
-  g_signal_connect(mContainer, "hierarchy-changed",
-                   G_CALLBACK(hierarchy_changed_cb), nullptr);
-  g_signal_connect(mContainer, "notify::scale-factor",
-                   G_CALLBACK(scale_changed_cb), nullptr);
-  // Initialize mHasMappedToplevel.
-  hierarchy_changed_cb(GTK_WIDGET(mContainer), nullptr);
-  // Expose, focus, key, and drag events are sent even to GTK_NO_WINDOW
-  // widgets.
-  g_signal_connect(G_OBJECT(mContainer), "draw", G_CALLBACK(expose_event_cb),
-                   nullptr);
-  g_signal_connect(mContainer, "focus_in_event", G_CALLBACK(focus_in_event_cb),
-                   nullptr);
-  g_signal_connect(mContainer, "focus_out_event",
-                   G_CALLBACK(focus_out_event_cb), nullptr);
-  g_signal_connect(mContainer, "key_press_event",
-                   G_CALLBACK(key_press_event_cb), nullptr);
-  g_signal_connect(mContainer, "key_release_event",
-                   G_CALLBACK(key_release_event_cb), nullptr);
-
-#ifdef MOZ_X11
-  if (GdkIsX11Display()) {
-    gtk_widget_set_double_buffered(GTK_WIDGET(mContainer), FALSE);
-  }
-#endif
-#ifdef MOZ_WAYLAND
-  // Initialize the window specific VsyncSource early in order to avoid races
-  // with BrowserParent::UpdateVsyncParentVsyncDispatcher().
-  // Only use for toplevel windows for now, see bug 1619246.
-  if (GdkIsWaylandDisplay() &&
-      StaticPrefs::widget_wayland_vsync_enabled_AtStartup() &&
-      IsTopLevelWindowType()) {
-    mWaylandVsyncSource = new WaylandVsyncSource(this);
-    mWaylandVsyncDispatcher = new VsyncDispatcher(mWaylandVsyncSource);
-    LOG_VSYNC("  created WaylandVsyncSource");
-  }
-#endif
-
-  // We create input contexts for all containers, except for
-  // toplevel popup windows
-  if (mWindowType != WindowType::Popup) {
-    mIMContext = new IMContextWrapper(this);
-  }
 
   // These events are sent to the owning widget of the relevant window
   // and propagate up to the first widget that handles the events, so we
@@ -6391,6 +6342,51 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     g_signal_connect(mShell, "event", G_CALLBACK(generic_event_cb), nullptr);
   }
   g_signal_connect(mShell, "touch-event", G_CALLBACK(touch_event_cb), nullptr);
+
+  // mContainer widget signals
+  gtk_widget_add_events(GTK_WIDGET(mContainer),
+                        GDK_EXPOSURE_MASK |       // draw signal
+                            GDK_STRUCTURE_MASK |  // map/unmap signals
+                            GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
+                            GDK_PROPERTY_CHANGE_MASK);  // notify::* signals
+
+  g_signal_connect_after(mContainer, "size_allocate",
+                         G_CALLBACK(size_allocate_cb), nullptr);
+  g_signal_connect(mContainer, "hierarchy-changed",
+                   G_CALLBACK(hierarchy_changed_cb), nullptr);
+  g_signal_connect(mContainer, "notify::scale-factor",
+                   G_CALLBACK(scale_changed_cb), nullptr);
+  // Initialize mHasMappedToplevel.
+  hierarchy_changed_cb(GTK_WIDGET(mContainer), nullptr);
+  g_signal_connect(G_OBJECT(mContainer), "draw", G_CALLBACK(expose_event_cb),
+                   nullptr);
+  g_signal_connect(mContainer, "focus_in_event", G_CALLBACK(focus_in_event_cb),
+                   nullptr);
+  g_signal_connect(mContainer, "focus_out_event",
+                   G_CALLBACK(focus_out_event_cb), nullptr);
+  g_signal_connect(mContainer, "key_press_event",
+                   G_CALLBACK(key_press_event_cb), nullptr);
+  g_signal_connect(mContainer, "key_release_event",
+                   G_CALLBACK(key_release_event_cb), nullptr);
+
+#ifdef MOZ_WAYLAND
+  // Initialize the window specific VsyncSource early in order to avoid races
+  // with BrowserParent::UpdateVsyncParentVsyncDispatcher().
+  // Only use for toplevel windows for now, see bug 1619246.
+  if (GdkIsWaylandDisplay() &&
+      StaticPrefs::widget_wayland_vsync_enabled_AtStartup() &&
+      IsTopLevelWindowType()) {
+    mWaylandVsyncSource = new WaylandVsyncSource(this);
+    mWaylandVsyncDispatcher = new VsyncDispatcher(mWaylandVsyncSource);
+    LOG_VSYNC("  created WaylandVsyncSource");
+  }
+#endif
+
+  // We create input contexts for all containers, except for
+  // toplevel popup windows
+  if (mWindowType != WindowType::Popup) {
+    mIMContext = new IMContextWrapper(this);
+  }
 
   LOG("  nsWindow type %d %s\n", int(mWindowType),
       mIsPIPWindow ? "PIP window" : "");
