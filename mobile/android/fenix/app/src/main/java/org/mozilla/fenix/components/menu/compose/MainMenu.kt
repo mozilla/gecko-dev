@@ -143,7 +143,10 @@ private fun QuitMenuGroup(
 ) {
     MenuGroup {
         MenuItem(
-            label = stringResource(id = R.string.delete_browsing_data_on_quit_action),
+            label = stringResource(
+                id = R.string.browser_menu_delete_browsing_data_on_quit,
+                stringResource(id = R.string.app_name),
+            ),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_cross_circle_fill_24),
             state = MenuItemState.WARNING,
             onClick = onQuitMenuClick,
