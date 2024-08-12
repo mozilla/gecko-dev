@@ -192,11 +192,13 @@ static void GatherEnterpriseCertsForLocation(DWORD locationFlag,
       EnterpriseCert enterpriseCert(certificate->pbCertEncoded,
                                     certificate->cbCertEncoded,
                                     location.mIsRoot);
-      if (!enterpriseCert.IsKnownRoot(rootsModule)) {
+      if (enterpriseCert.GetIsRoot() ||
+          !enterpriseCert.IsKnownRoot(rootsModule)) {
         certs.AppendElement(std::move(enterpriseCert));
         numImported++;
       } else {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("skipping known root cert"));
+        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+                ("skipping intermediate that is a known root cert"));
       }
     }
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
@@ -450,13 +452,15 @@ OSStatus GatherEnterpriseCertsMacOS(nsTArray<EnterpriseCert>& certs,
         certificateTrustResult == CertificateTrustResult::CanUseAsTrustAnchor;
     EnterpriseCert enterpriseCert(CFDataGetBytePtr(der.get()),
                                   CFDataGetLength(der.get()), isRoot);
-    if (!enterpriseCert.IsKnownRoot(rootsModule)) {
+    if (enterpriseCert.GetIsRoot() ||
+        !enterpriseCert.IsKnownRoot(rootsModule)) {
       certs.AppendElement(std::move(enterpriseCert));
       numImported++;
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
               ("importing as %s", isRoot ? "root" : "intermediate"));
     } else {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("skipping known root cert"));
+      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+              ("skipping intermediate that is a known root cert"));
     }
   }
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("imported %u certs", numImported));
@@ -481,11 +485,13 @@ void GatherEnterpriseCertsAndroid(nsTArray<EnterpriseCert>& certs,
     EnterpriseCert enterpriseCert(
         reinterpret_cast<uint8_t*>(root->GetElements().Elements()),
         root->Length(), true);
-    if (!enterpriseCert.IsKnownRoot(rootsModule)) {
+    if (enterpriseCert.GetIsRoot() ||
+        !enterpriseCert.IsKnownRoot(rootsModule)) {
       certs.AppendElement(std::move(enterpriseCert));
       numImported++;
     } else {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("skipping known root cert"));
+      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+              ("skipping intermediate that is a known root cert"));
     }
   }
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("imported %u certs", numImported));
