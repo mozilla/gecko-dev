@@ -114,6 +114,10 @@
   background-image: url("chrome://global/skin/media/audio.svg");
 }
 
+.fxview-tab-row-button.delete-button::part(button) {
+  background-image: url("chrome://global/skin/icons/delete.svg");
+}
+
 .fxview-tab-row-button.dismiss-button::part(button) {
   background-image: url("chrome://global/skin/icons/close.svg");
 }

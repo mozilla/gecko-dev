@@ -144,7 +144,7 @@ export class SidebarHistory extends SidebarPage {
     return html`<sidebar-tab-list
       maxTabsLength="-1"
       .searchQuery=${searchQuery}
-      secondaryActionClass="dismiss-button"
+      secondaryActionClass="delete-button"
       .tabItems=${tabItems}
       @fxview-tab-list-primary-action=${this.onPrimaryAction}
       @fxview-tab-list-secondary-action=${this.onSecondaryAction}
