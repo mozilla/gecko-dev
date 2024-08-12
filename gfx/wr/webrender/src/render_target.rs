@@ -1253,7 +1253,8 @@ fn build_mask_tasks(
                         &mut gpu_buffer_builder.f32,
                         rect,
                         rect,
-                        &pattern,
+                        pattern.base_color,
+                        pattern.texture_input.task_id,
                         &[QuadSegment {
                             rect: tile.tile_rect,
                             task_id: tile.task_id,
@@ -1322,7 +1323,8 @@ fn build_mask_tasks(
                 &mut gpu_buffer_builder.f32,
                 task_world_rect.cast_unit(),
                 task_world_rect.cast_unit(),
-                &pattern,
+                pattern.base_color,
+                pattern.texture_input.task_id,
                 &[],
                 ScaleOffset::identity(),
             );

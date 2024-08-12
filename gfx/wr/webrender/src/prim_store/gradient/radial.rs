@@ -108,6 +108,7 @@ pub struct RadialGradientTemplate {
 impl PatternBuilder for RadialGradientTemplate {
     fn build(
         &self,
+        _sub_rect: Option<DeviceRect>,
         _ctx: &PatternBuilderContext,
         state: &mut PatternBuilderState,
     ) -> Pattern {
@@ -123,6 +124,19 @@ impl PatternBuilder for RadialGradientTemplate {
             &self.stops,
             state.frame_gpu_data,
         )
+    }
+
+    fn get_base_color(
+        &self,
+        _ctx: &PatternBuilderContext,
+    ) -> ColorF {
+        ColorF::WHITE
+    }
+
+    fn use_shared_pattern(
+        &self,
+    ) -> bool {
+        true
     }
 }
 
