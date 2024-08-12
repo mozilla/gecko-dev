@@ -661,6 +661,18 @@ class Tagged {
   T value_;
 };
 
+// Adapted from v8/src/objects/casting.h
+
+template <typename To, typename From>
+inline Tagged<To> UncheckedCast(Tagged<From> value) {
+  return Tagged<To>(To::cast(value));
+}
+
+template <typename To, typename From>
+inline Tagged<To> Cast(const From& value) {
+  return UncheckedCast<To>(Tagged(value));
+}
+
 // A fixed-size array with Objects (aka Values) as element types.
 // Implemented using the dense elements of an ArrayObject.
 // Used for named captures.
@@ -738,6 +750,17 @@ class ByteArray : public HeapObject {
   }
 
   friend class SMRegExpMacroAssembler;
+};
+
+// A byte array that can be trusted to not contain malicious data.
+// See https://issues.chromium.org/issues/40069826.
+class TrustedByteArray : public ByteArray {
+ public:
+  static TrustedByteArray cast(Object object) {
+    TrustedByteArray b;
+    b.setValue(object.value());
+    return b;
+  }
 };
 
 // This is only used in assertions. In debug builds, we put a magic value
@@ -910,6 +933,14 @@ template <typename T>
 inline Handle<T> handle(T object, Isolate* isolate) {
   return Handle<T>(object, isolate);
 }
+
+// DirectHandle is currently an optional feature, when disabled, it is defined
+// as a normal indirect Handle. A DirectHandle points directly at the V8 JS
+// Heap, normal Handles have an extra layer of indirection. This distinction
+// does not matter for our implementation. See:
+// https://github.com/v8/v8/blob/887ec63c43e23c4fefba1c52d4525654bdc71e5b/src/common/globals.h#L1000-L1003
+template <typename T>
+using DirectHandle = Handle<T>;
 
 // RAII Guard classes
 
@@ -1167,6 +1198,9 @@ class Isolate {
   inline Factory* factory() { return this; }
 
   Handle<ByteArray> NewByteArray(
+      int length, AllocationType allocation = AllocationType::kYoung);
+
+  Handle<TrustedByteArray> NewTrustedByteArray(
       int length, AllocationType allocation = AllocationType::kYoung);
 
   // Allocates a fixed array initialized with undefined values.
