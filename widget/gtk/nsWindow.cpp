@@ -8349,8 +8349,7 @@ static gboolean motion_notify_event_cb(GtkWidget* widget,
   }
 
   window->OnMotionNotifyEvent(event);
-
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean button_press_event_cb(GtkWidget* widget,
@@ -8372,7 +8371,7 @@ static gboolean button_press_event_cb(GtkWidget* widget,
     WaylandDragWorkaround(window, event);
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean button_release_event_cb(GtkWidget* widget,
@@ -8390,7 +8389,7 @@ static gboolean button_release_event_cb(GtkWidget* widget,
 
   window->OnButtonReleaseEvent(event);
 
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean focus_in_event_cb(GtkWidget* widget, GdkEventFocus* event) {
@@ -8562,8 +8561,7 @@ static gboolean scroll_event_cb(GtkWidget* widget, GdkEventScroll* event) {
   }
 
   window->OnScrollEvent(event);
-
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean visibility_notify_event_cb(GtkWidget* widget,
@@ -8687,6 +8685,7 @@ static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent) {
 // This function called generic because there is no signal specific to touchpad
 // pinch events.
 static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
+  // Keep routing other that touchpad events to child widgets
   if (aEvent->type != GDK_TOUCHPAD_PINCH) {
     return FALSE;
   }
@@ -8696,7 +8695,6 @@ static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
       reinterpret_cast<GdkEventTouchpadPinch*>(aEvent);
 
   RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
-
   if (!window) {
     return FALSE;
   }
