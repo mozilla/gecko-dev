@@ -1088,7 +1088,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Emër koleksioni</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Rimertojeni</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Rimertojeni</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Hiqe</string>
 
@@ -1218,6 +1218,15 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Jepni terma kërkimi</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Shko mbrapsht</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Shtoni një dosje të re</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Mbylli faqerojtësit</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Kërkoni te faqerojtësit</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1730,6 +1739,8 @@
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Krijues Shenjash Gishtash të Dyshuar</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Aktivizon mbrojtje nga shenja gishtash, për të ndalur krijues të dyshuar shenjash gishtash.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Krijues Shenjash Gishtash të Ditur</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
@@ -2169,8 +2180,10 @@
     <string name="top_sites_rename_dialog_title">Emër</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Emër shkurtoreje</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL shkurtoreje</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">OK</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Anuloje</string>
 
@@ -2180,6 +2193,17 @@
     <string name="top_sites_menu_sponsor_privacy">Sponsorët tanë &amp; privatësia jonë</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">I sponsorizuar</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Përpunoni</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Përpunoni shkurtore</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Ruaje</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Jepni një URL të vlefshme</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2641,11 +2665,11 @@
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Të anulohet shkarkimi i %1$s?</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Të anulohet shkarkimi i %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Po</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Po</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Jo</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Jo</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2779,6 +2803,12 @@
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Mjete CFR</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Që të dilet nga mënyra “sa krejt ekrani”, tërhiqeni që nga kreu dhe përdorni gjestin për mbrapsht</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Që të dilet nga mënyra “sa krejt ekrani”, tërhiqeni që nga kreu dhe shtypni tastin për mbrapsht</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

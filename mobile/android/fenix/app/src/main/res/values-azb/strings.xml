@@ -2083,6 +2083,20 @@
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_title_2">یاددا ساخلادیغیز پول تؤکمه یوللاریزیْ قوْرویون</string>
 
+    <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_set_up_now">ایندی قوْش</string>
+
+    <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_later">داها سوْنرا</string>
+    <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
+    <string name="credit_cards_biometric_prompt_message_pin">جهازیزین کیلیدینی آچین</string>
+    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+    <string name="credit_cards_biometric_prompt_unlock_message_2">یاددا ساخلادیغیز پول تؤکمه یوللاریزیْ ایشه آلماق اوچون کیلیدی آچین</string>
+    <!-- Title of the "Add address" screen -->
+    <string name="addresses_add_address">آدرس آرتیر</string>
+    <!-- Title of the "Edit address" screen -->
+    <string name="addresses_edit_address">آدرس دوزه‌لیشی</string>
+
     <!-- Translations feature-->
 
 
