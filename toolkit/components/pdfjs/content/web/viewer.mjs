@@ -640,11 +640,11 @@ const defaultOptions = {
   },
   enableAltTextModelDownload: {
     value: true,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE + OptionKind.EVENT_DISPATCH
   },
   enableGuessAltText: {
     value: true,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE + OptionKind.EVENT_DISPATCH
   },
   enableHighlightEditor: {
     value: false,
@@ -1707,14 +1707,14 @@ class DownloadManager {
     this.downloadData(data, filename, contentType);
     return false;
   }
-  download(data, url, filename, options = {}) {
+  download(data, url, filename) {
     const blobUrl = data ? URL.createObjectURL(new Blob([data], {
       type: "application/pdf"
     })) : null;
     FirefoxCom.request("download", {
       blobUrl,
       originalUrl: url,
-      filename,
+      filename
     });
   }
 }
@@ -1831,9 +1831,11 @@ class FirefoxScripting {
   }
 }
 class MLManager {
+  #abortSignal = null;
   #enabled = null;
+  #eventBus = null;
   #ready = null;
-  eventBus = null;
+  #requestResolvers = null;
   hasProgress = false;
   static #AI_ALT_TEXT_MODEL_NAME = "moz-image-to-text";
   constructor({
@@ -1845,6 +1847,31 @@ class MLManager {
     this.enableAltTextModelDownload = enableAltTextModelDownload;
     this.enableGuessAltText = enableGuessAltText;
   }
+  setEventBus(eventBus, abortSignal) {
+    this.#eventBus = eventBus;
+    this.#abortSignal = abortSignal;
+    eventBus._on("enablealttextmodeldownload", ({
+      value
+    }) => {
+      if (this.enableAltTextModelDownload === value) {
+        return;
+      }
+      if (value) {
+        this.downloadModel("altText");
+      } else {
+        this.deleteModel("altText");
+      }
+    }, {
+      signal: abortSignal
+    });
+    eventBus._on("enableguessalttext", ({
+      value
+    }) => {
+      this.toggleService("altText", value);
+    }, {
+      signal: abortSignal
+    });
+  }
   async isEnabledFor(name) {
     return this.enableGuessAltText && !!(await this.#enabled?.get(name));
   }
@@ -1852,13 +1879,14 @@ class MLManager {
     return this.#ready?.has(name) ?? false;
   }
   async deleteModel(name) {
-    if (name !== "altText") {
+    if (name !== "altText" || !this.enableAltTextModelDownload) {
       return;
     }
     this.enableAltTextModelDownload = false;
     this.#ready?.delete(name);
     this.#enabled?.delete(name);
-    await Promise.all([this.toggleService("altText", false), FirefoxCom.requestAsync("mlDelete", MLManager.#AI_ALT_TEXT_MODEL_NAME)]);
+    await this.toggleService("altText", false);
+    await FirefoxCom.requestAsync("mlDelete", MLManager.#AI_ALT_TEXT_MODEL_NAME);
   }
   async loadModel(name) {
     if (name === "altText" && this.enableAltTextModelDownload) {
@@ -1866,7 +1894,7 @@ class MLManager {
     }
   }
   async downloadModel(name) {
-    if (name !== "altText") {
+    if (name !== "altText" || this.enableAltTextModelDownload) {
       return null;
     }
     this.enableAltTextModelDownload = true;
@@ -1876,16 +1904,46 @@ class MLManager {
     if (data?.name !== "altText") {
       return null;
     }
+    const resolvers = this.#requestResolvers ||= new Set();
+    const resolver = Promise.withResolvers();
+    resolvers.add(resolver);
     data.service = MLManager.#AI_ALT_TEXT_MODEL_NAME;
-    return FirefoxCom.requestAsync("mlGuess", data);
+    FirefoxCom.requestAsync("mlGuess", data).then(response => {
+      if (resolvers.has(resolver)) {
+        resolver.resolve(response);
+        resolvers.delete(resolver);
+      }
+    }).catch(reason => {
+      if (resolvers.has(resolver)) {
+        resolver.reject(reason);
+        resolvers.delete(resolver);
+      }
+    });
+    return resolver.promise;
+  }
+  async #cancelAllRequests() {
+    if (!this.#requestResolvers) {
+      return;
+    }
+    for (const resolver of this.#requestResolvers) {
+      resolver.resolve({
+        cancel: true
+      });
+    }
+    this.#requestResolvers.clear();
+    this.#requestResolvers = null;
   }
   async toggleService(name, enabled) {
-    if (name !== "altText") {
+    if (name !== "altText" || this.enableGuessAltText === enabled) {
       return;
     }
     this.enableGuessAltText = enabled;
-    if (enabled && this.enableAltTextModelDownload) {
-      await this.#loadAltTextEngine(false);
+    if (enabled) {
+      if (this.enableAltTextModelDownload) {
+        await this.#loadAltTextEngine(false);
+      }
+    } else {
+      this.#cancelAllRequests();
     }
   }
   async #loadAltTextEngine(listenToProgress) {
@@ -1904,24 +1962,27 @@ class MLManager {
     });
     (this.#enabled ||= new Map()).set("altText", promise);
     if (listenToProgress) {
+      const ac = new AbortController();
+      const signal = AbortSignal.any([this.#abortSignal, ac.signal]);
       this.hasProgress = true;
-      const callback = ({
+      window.addEventListener("loadAIEngineProgress", ({
         detail
       }) => {
-        this.eventBus.dispatch("loadaiengineprogress", {
+        this.#eventBus.dispatch("loadaiengineprogress", {
           source: this,
           detail
         });
         if (detail.finished) {
+          ac.abort();
           this.hasProgress = false;
-          window.removeEventListener("loadAIEngineProgress", callback);
         }
-      };
-      window.addEventListener("loadAIEngineProgress", callback);
+      }, {
+        signal
+      });
       promise.then(ok => {
         if (!ok) {
+          ac.abort();
           this.hasProgress = false;
-          window.removeEventListener("loadAIEngineProgress", callback);
         }
       });
     }
@@ -2034,7 +2095,6 @@ class NewAltTextManager {
   #title;
   #uiManager;
   #previousAltText = null;
-  #telemetryData = null;
   constructor({
     descriptionContainer,
     dialog,
@@ -2099,7 +2159,20 @@ class NewAltTextManager {
       this.#toggleTitle();
       this.#toggleDisclaimer();
     });
+    eventBus._on("enableguessalttext", ({
+      value
+    }) => {
+      this.#toggleGuessAltText(value, false);
+    });
     this.#overlayManager.register(dialog);
+    this.#learnMore.addEventListener("click", () => {
+      this.#currentEditor._reportTelemetry({
+        action: "pdfjs.image.alt_text.info",
+        data: {
+          topic: "alt_text"
+        }
+      });
+    });
   }
   #toggleLoading(value) {
     if (!this.#uiManager || this.#isAILoading === value) {
@@ -2181,13 +2254,12 @@ class NewAltTextManager {
     let hasError = false;
     try {
       const altText = await this.#currentEditor.mlGuessAltText(this.#imageData, false);
-      if (altText === null) {
-        throw new Error("No valid response from the AI service.");
-      }
-      this.#guessedAltText = altText;
-      this.#wasAILoading = this.#isAILoading;
-      if (this.#isAILoading) {
-        this.#addAltText(altText);
+      if (altText) {
+        this.#guessedAltText = altText;
+        this.#wasAILoading = this.#isAILoading;
+        if (this.#isAILoading) {
+          this.#addAltText(altText);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -2302,6 +2374,20 @@ class NewAltTextManager {
     this.#currentEditor.altTextData = {
       cancel: true
     };
+    const altText = this.#textarea.value.trim();
+    this.#currentEditor._reportTelemetry({
+      action: "pdfjs.image.alt_text.dismiss",
+      data: {
+        alt_text_type: altText ? "present" : "empty",
+        flow: this.#firstTime ? "image_add" : "alt_text_edit"
+      }
+    });
+    this.#currentEditor._reportTelemetry({
+      action: "pdfjs.image.image_added",
+      data: {
+        alt_text_modal: false
+      }
+    });
     this.#finish();
   }
   #finish() {
@@ -2314,10 +2400,6 @@ class NewAltTextManager {
     canvas.remove();
     canvas.width = canvas.height = 0;
     this.#imageData = null;
-    this.#currentEditor._reportTelemetry(this.#telemetryData || {
-      action: "alt_text_cancel"
-    });
-    this.#telemetryData = null;
     this.#toggleLoading(false);
     this.#uiManager?.addEditListeners();
     this.#currentEditor.altTextFinish();
@@ -2331,13 +2413,32 @@ class NewAltTextManager {
       altText,
       decorative: false
     };
-    this.#telemetryData = {
-      action: "alt_text_save",
-      alt_text_description: !!altText,
-      alt_text_edit: !!this.#previousAltText && this.#previousAltText !== altText,
-      alt_text_decorative: false,
-      alt_text_altered: this.#guessedAltText && this.#guessedAltText !== altText
-    };
+    this.#currentEditor.altTextData.guessedAltText = this.#guessedAltText;
+    if (this.#guessedAltText && this.#guessedAltText !== altText) {
+      const guessedWords = new Set(this.#guessedAltText.split(/\s+/));
+      const words = new Set(altText.split(/\s+/));
+      this.#currentEditor._reportTelemetry({
+        action: "pdfjs.image.alt_text.user_edit",
+        data: {
+          total_words: guessedWords.size,
+          words_removed: guessedWords.difference(words).size,
+          words_added: words.difference(guessedWords).size
+        }
+      });
+    }
+    this.#currentEditor._reportTelemetry({
+      action: "pdfjs.image.image_added",
+      data: {
+        alt_text_modal: true
+      }
+    });
+    this.#currentEditor._reportTelemetry({
+      action: "pdfjs.image.alt_text.save",
+      data: {
+        alt_text_type: altText ? "present" : "empty",
+        flow: this.#firstTime ? "image_add" : "alt_text_edit"
+      }
+    });
     this.#finish();
   }
   destroy() {
@@ -2348,6 +2449,7 @@ class NewAltTextManager {
 class ImageAltTextSettings {
   #aiModelSettings;
   #createModelButton;
+  #downloadModelButton;
   #dialog;
   #eventBus;
   #mlManager;
@@ -2366,6 +2468,7 @@ class ImageAltTextSettings {
     this.#dialog = dialog;
     this.#aiModelSettings = aiModelSettings;
     this.#createModelButton = createModelButton;
+    this.#downloadModelButton = downloadModelButton;
     this.#showAltTextDialogButton = showAltTextDialogButton;
     this.#overlayManager = overlayManager;
     this.#eventBus = eventBus;
@@ -2380,31 +2483,81 @@ class ImageAltTextSettings {
     createModelButton.addEventListener("click", async e => {
       const checked = this.#togglePref("enableGuessAltText", e);
       await mlManager.toggleService("altText", checked);
+      this.#reportTelemetry({
+        type: "stamp",
+        action: "pdfjs.image.alt_text.settings_ai_generation_check",
+        data: {
+          status: checked
+        }
+      });
     });
-    showAltTextDialogButton.addEventListener("click", this.#togglePref.bind(this, "enableNewAltTextWhenAddingImage"));
-    deleteModelButton.addEventListener("click", async () => {
-      await mlManager.deleteModel("altText");
-      aiModelSettings.classList.toggle("download", true);
-      createModelButton.disabled = true;
-      createModelButton.setAttribute("aria-pressed", false);
+    showAltTextDialogButton.addEventListener("click", e => {
+      const checked = this.#togglePref("enableNewAltTextWhenAddingImage", e);
+      this.#reportTelemetry({
+        type: "stamp",
+        action: "pdfjs.image.alt_text.settings_edit_alt_text_check",
+        data: {
+          status: checked
+        }
+      });
+    });
+    deleteModelButton.addEventListener("click", this.#delete.bind(this, true));
+    downloadModelButton.addEventListener("click", this.#download.bind(this, true));
+    closeButton.addEventListener("click", this.#finish.bind(this));
+    learnMore.addEventListener("click", () => {
+      this.#reportTelemetry({
+        type: "stamp",
+        action: "pdfjs.image.alt_text.info",
+        data: {
+          topic: "ai_generation"
+        }
+      });
+    });
+    eventBus._on("enablealttextmodeldownload", ({
+      value
+    }) => {
+      if (value) {
+        this.#download(false);
+      } else {
+        this.#delete(false);
+      }
+    });
+    this.#overlayManager.register(dialog);
+  }
+  #reportTelemetry(data) {
+    this.#eventBus.dispatch("reporttelemetry", {
+      source: this,
+      details: {
+        type: "editing",
+        data
+      }
+    });
+  }
+  async #download(isFromUI = false) {
+    if (isFromUI) {
+      this.#downloadModelButton.disabled = true;
+      const span = this.#downloadModelButton.firstChild;
+      span.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-downloading-model-button");
+      await this.#mlManager.downloadModel("altText");
+      span.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-download-model-button");
+      this.#createModelButton.disabled = false;
+      this.#setPref("enableGuessAltText", true);
+      this.#mlManager.toggleService("altText", true);
+      this.#setPref("enableAltTextModelDownload", true);
+      this.#downloadModelButton.disabled = false;
+    }
+    this.#aiModelSettings.classList.toggle("download", false);
+    this.#createModelButton.setAttribute("aria-pressed", true);
+  }
+  async #delete(isFromUI = false) {
+    if (isFromUI) {
+      await this.#mlManager.deleteModel("altText");
       this.#setPref("enableGuessAltText", false);
       this.#setPref("enableAltTextModelDownload", false);
-    });
-    downloadModelButton.addEventListener("click", async () => {
-      downloadModelButton.disabled = true;
-      downloadModelButton.firstChild.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-downloading-model-button");
-      await mlManager.downloadModel("altText");
-      aiModelSettings.classList.toggle("download", false);
-      downloadModelButton.firstChild.setAttribute("data-l10n-id", "pdfjs-editor-alt-text-settings-download-model-button");
-      createModelButton.disabled = false;
-      createModelButton.setAttribute("aria-pressed", true);
-      this.#setPref("enableGuessAltText", true);
-      mlManager.toggleService("altText", true);
-      this.#setPref("enableAltTextModelDownload", true);
-      downloadModelButton.disabled = false;
-    });
-    closeButton.addEventListener("click", this.#finish.bind(this));
-    this.#overlayManager.register(dialog);
+    }
+    this.#aiModelSettings.classList.toggle("download", true);
+    this.#createModelButton.disabled = true;
+    this.#createModelButton.setAttribute("aria-pressed", false);
   }
   async open({
     enableGuessAltText,
@@ -2418,6 +2571,10 @@ class ImageAltTextSettings {
     this.#showAltTextDialogButton.setAttribute("aria-pressed", enableNewAltTextWhenAddingImage);
     this.#aiModelSettings.classList.toggle("download", !enableAltTextModelDownload);
     await this.#overlayManager.open(this.#dialog);
+    this.#reportTelemetry({
+      type: "stamp",
+      action: "pdfjs.image.alt_text.settings_displayed"
+    });
   }
   #togglePref(name, {
     target
@@ -2728,6 +2885,15 @@ class AnnotationEditorParams {
       dispatchEvent("INK_OPACITY", this.valueAsNumber);
     });
     editorStampAddImage.addEventListener("click", () => {
+      this.eventBus.dispatch("reporttelemetry", {
+        source: this,
+        details: {
+          type: "editing",
+          data: {
+            action: "pdfjs.image.add_image_click"
+          }
+        }
+      });
       dispatchEvent("CREATE");
     });
     editorFreeHighlightThickness.addEventListener("input", function () {
@@ -6525,8 +6691,7 @@ const SIDEBAR_RESIZING_CLASS = "sidebarResizing";
 const UI_NOTIFICATION_CLASS = "pdfSidebarNotification";
 class PDFSidebar {
   #isRTL = false;
-  #mouseMoveBound = this.#mouseMove.bind(this);
-  #mouseUpBound = this.#mouseUp.bind(this);
+  #mouseAC = null;
   #outerContainerWidth = null;
   #width = null;
   constructor({
@@ -6693,10 +6858,14 @@ class PDFSidebar {
     }
   }
   #addEventListeners() {
+    const {
+      eventBus,
+      outerContainer
+    } = this;
     this.sidebarContainer.addEventListener("transitionend", evt => {
       if (evt.target === this.sidebarContainer) {
-        this.outerContainer.classList.remove("sidebarMoving");
-        this.eventBus.dispatch("resize", {
+        outerContainer.classList.remove("sidebarMoving");
+        eventBus.dispatch("resize", {
           source: this
         });
       }
@@ -6711,7 +6880,7 @@ class PDFSidebar {
       this.switchView(SidebarView.OUTLINE);
     });
     this.outlineButton.addEventListener("dblclick", () => {
-      this.eventBus.dispatch("toggleoutlinetree", {
+      eventBus.dispatch("toggleoutlinetree", {
         source: this
       });
     });
@@ -6722,12 +6891,12 @@ class PDFSidebar {
       this.switchView(SidebarView.LAYERS);
     });
     this.layersButton.addEventListener("dblclick", () => {
-      this.eventBus.dispatch("resetlayers", {
+      eventBus.dispatch("resetlayers", {
         source: this
       });
     });
     this._currentOutlineItemButton.addEventListener("click", () => {
-      this.eventBus.dispatch("currentoutlineitem", {
+      eventBus.dispatch("currentoutlineitem", {
         source: this
       });
     });
@@ -6739,7 +6908,7 @@ class PDFSidebar {
         this.switchView(SidebarView.THUMBS);
       }
     };
-    this.eventBus._on("outlineloaded", evt => {
+    eventBus._on("outlineloaded", evt => {
       onTreeLoaded(evt.outlineCount, this.outlineButton, SidebarView.OUTLINE);
       evt.currentOutlineItemPromise.then(enabled => {
         if (!this.isInitialViewSet) {
@@ -6748,13 +6917,13 @@ class PDFSidebar {
         this._currentOutlineItemButton.disabled = !enabled;
       });
     });
-    this.eventBus._on("attachmentsloaded", evt => {
+    eventBus._on("attachmentsloaded", evt => {
       onTreeLoaded(evt.attachmentsCount, this.attachmentsButton, SidebarView.ATTACHMENTS);
     });
-    this.eventBus._on("layersloaded", evt => {
+    eventBus._on("layersloaded", evt => {
       onTreeLoaded(evt.layersCount, this.layersButton, SidebarView.LAYERS);
     });
-    this.eventBus._on("presentationmodechanged", evt => {
+    eventBus._on("presentationmodechanged", evt => {
       if (evt.state === PresentationModeState.NORMAL && this.visibleView === SidebarView.THUMBS) {
         this.onUpdateThumbnails();
       }
@@ -6763,11 +6932,16 @@ class PDFSidebar {
       if (evt.button !== 0) {
         return;
       }
-      this.outerContainer.classList.add(SIDEBAR_RESIZING_CLASS);
-      window.addEventListener("mousemove", this.#mouseMoveBound);
-      window.addEventListener("mouseup", this.#mouseUpBound);
+      outerContainer.classList.add(SIDEBAR_RESIZING_CLASS);
+      this.#mouseAC = new AbortController();
+      const opts = {
+        signal: this.#mouseAC.signal
+      };
+      window.addEventListener("mousemove", this.#mouseMove.bind(this), opts);
+      window.addEventListener("mouseup", this.#mouseUp.bind(this), opts);
+      window.addEventListener("blur", this.#mouseUp.bind(this), opts);
     });
-    this.eventBus._on("resize", evt => {
+    eventBus._on("resize", evt => {
       if (evt.source !== window) {
         return;
       }
@@ -6779,12 +6953,12 @@ class PDFSidebar {
         this.#updateWidth(this.#width);
         return;
       }
-      this.outerContainer.classList.add(SIDEBAR_RESIZING_CLASS);
+      outerContainer.classList.add(SIDEBAR_RESIZING_CLASS);
       const updated = this.#updateWidth(this.#width);
       Promise.resolve().then(() => {
-        this.outerContainer.classList.remove(SIDEBAR_RESIZING_CLASS);
+        outerContainer.classList.remove(SIDEBAR_RESIZING_CLASS);
         if (updated) {
-          this.eventBus.dispatch("resize", {
+          eventBus.dispatch("resize", {
             source: this
           });
         }
@@ -6821,8 +6995,8 @@ class PDFSidebar {
     this.eventBus.dispatch("resize", {
       source: this
     });
-    window.removeEventListener("mousemove", this.#mouseMoveBound);
-    window.removeEventListener("mouseup", this.#mouseUpBound);
+    this.#mouseAC?.abort();
+    this.#mouseAC = null;
   }
 }
 
@@ -9096,7 +9270,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.195";
+    const viewerVersion = "4.5.252";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -9430,10 +9604,8 @@ class PDFViewer {
       this._resetView();
       this.findController?.setDocument(null);
       this._scriptingManager?.setDocument(null);
-      if (this.#annotationEditorUIManager) {
-        this.#annotationEditorUIManager.destroy();
-        this.#annotationEditorUIManager = null;
-      }
+      this.#annotationEditorUIManager?.destroy();
+      this.#annotationEditorUIManager = null;
     }
     this.pdfDocument = pdfDocument;
     if (!pdfDocument) {
@@ -10943,6 +11115,12 @@ class Toolbar {
           } = options.editorStampButton;
           return classList.contains("toggled") ? AnnotationEditorType.NONE : AnnotationEditorType.STAMP;
         }
+      },
+      telemetry: {
+        type: "editing",
+        data: {
+          action: "pdfjs.image.icon_click"
+        }
       }
     }];
     this.#bindListeners(buttons);
@@ -11001,7 +11179,8 @@ class Toolbar {
     for (const {
       element,
       eventName,
-      eventDetails
+      eventDetails,
+      telemetry
     } of buttons) {
       element.addEventListener("click", evt => {
         if (eventName !== null) {
@@ -11009,6 +11188,12 @@ class Toolbar {
             source: this,
             ...eventDetails,
             isFromKeyboard: evt.detail === 0
+          });
+        }
+        if (telemetry) {
+          eventBus.dispatch("reporttelemetry", {
+            source: this,
+            details: telemetry
           });
         }
       });
@@ -11419,9 +11604,7 @@ const PDFViewerApplication = {
     } = this;
     let eventBus;
     eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
-    if (this.mlManager) {
-      this.mlManager.eventBus = eventBus;
-    }
+    this.mlManager?.setEventBus(eventBus, this._globalAbortController.signal);
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
@@ -11829,14 +12012,14 @@ const PDFViewerApplication = {
       });
     });
   },
-  async download(options = {}) {
+  async download() {
     let data;
     try {
       data = await this.pdfDocument.getData();
     } catch {}
-    this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
+    this.downloadManager.download(data, this._downloadUrl, this._docFilename);
   },
-  async save(options = {}) {
+  async save() {
     if (this._saveInProgress) {
       return;
     }
@@ -11844,10 +12027,10 @@ const PDFViewerApplication = {
     await this.pdfScriptingManager.dispatchWillSave();
     try {
       const data = await this.pdfDocument.saveDocument();
-      this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
+      this.downloadManager.download(data, this._downloadUrl, this._docFilename);
     } catch (reason) {
       console.error(`Error when saving the document: ${reason.message}`);
-      await this.download(options);
+      await this.download();
     } finally {
       await this.pdfScriptingManager.dispatchDidSave();
       this._saveInProgress = false;
@@ -11862,12 +12045,12 @@ const PDFViewerApplication = {
       });
     }
   },
-  async downloadOrSave(options = {}) {
+  async downloadOrSave() {
     const {
       classList
     } = this.appConfig.appContainer;
     classList.add("wait");
-    await (this.pdfDocument?.annotationStorage.size > 0 ? this.save(options) : this.download(options));
+    await (this.pdfDocument?.annotationStorage.size > 0 ? this.save() : this.download());
     classList.remove("wait");
   },
   async _documentError(key, moreInfo = null) {
@@ -13282,8 +13465,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.5.195";
-const pdfjsBuild = "a372bf8f4";
+const pdfjsVersion = "4.5.252";
+const pdfjsBuild = "e44e4db52";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
