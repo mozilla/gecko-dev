@@ -42,7 +42,7 @@ function resetStorage() {
   });
 }
 
-function getStorageUsage(fromMemory) {
+function getStorageUsage() {
   return new Promise(function(resolve) {
     var qms = SpecialPowers.Services.qms;
     var principal = SpecialPowers.wrap(document).nodePrincipal;
@@ -50,20 +50,28 @@ function getStorageUsage(fromMemory) {
       var result = request.result;
       resolve(result.usage);
     });
+    qms.getUsageForPrincipal(principal, cb);
+  });
+}
 
-    // Actually, the flag is used to distingulish getting group usage and origin
-    // usage, but we utilize this to get usage from in-memory and the disk.
-    // Default value for "fromMemory" is false.
-    qms.getUsageForPrincipal(principal, cb, !!fromMemory);
+function getCachedStorageUsage() {
+  return new Promise(function(resolve) {
+    var qms = SpecialPowers.Services.qms;
+    var principal = SpecialPowers.wrap(document).nodePrincipal;
+    var cb = SpecialPowers.wrapCallback(function(request) {
+      var result = request.result;
+      resolve(result);
+    });
+    var request = qms.getCachedUsageForPrincipal(principal);
+    request.callback = cb;
   });
 }
 
 async function verifyUsage() {
-  // Although it returns group usage when passing true, it calculate the usage
-  // from tracking usage object (in-memory object) in QuotaManager.
-  let memoryUsage = await getStorageUsage(/* fromMemory */ true);
-  // This will returns the origin usage by re-calculating usage from directory.
-  let diskUsage = await getStorageUsage(/* fromMemory */ false);
+  // This returns origin usage by calculating it from an in-memory object.
+  let memoryUsage = await getCachedStorageUsage();
+  // This returns origin usage by calculating it from file sizes on disk.
+  let diskUsage = await getStorageUsage();
 
   is(memoryUsage, diskUsage,
      "In-memory usage and disk usage should be the same.");

@@ -148,12 +148,12 @@ TEST_F(TestFileSystemOriginInitialization, EmptyOriginDirectory) {
 
   // After temporary storage shutdown,
   // * origin usage is still nothing
-  // * cached origin usage is nothing
+  // * cached origin is still zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
@@ -161,7 +161,7 @@ TEST_F(TestFileSystemOriginInitialization, EmptyOriginDirectory) {
 
   // After repeated temporary storage initialization,
   // * origin usage is still nothing
-  // * cached origin usage is zero again
+  // * cached origin is still zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
 
@@ -204,19 +204,19 @@ TEST_F(TestFileSystemOriginInitialization, EmptyFileSystemDirectory) {
 
   // After temporary storage shutdown,
   // * origin usage is still nothing
-  // * cached origin usage is nothing
+  // * cached origin usage is still zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
 
   // After repeated temporary storage initialization,
   // * origin usage is still nothing
-  // * cached origin usage is zero again
+  // * cached origin usage is still zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
 
@@ -266,12 +266,12 @@ TEST_F(TestFileSystemOriginInitialization, EmptyFileSystemDatabase) {
 
   // After temporary storage shutdown,
   // * origin usage is still the same as before shutdown
-  // * cached origin usage is nothing
+  // * cached origin usage is zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeShutdownUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
@@ -332,12 +332,12 @@ TEST_F(TestFileSystemOriginInitialization, EmptyFileSystemFile) {
 
   // After temporary storage shutdown,
   // * origin usage is still the same as before shutdown
-  // * cached origin usage is nothing
+  // * cached origin usage is zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeShutdownUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
@@ -419,12 +419,12 @@ TEST_F(TestFileSystemOriginInitialization, NonEmptyFileSystemFile) {
 
   // After temporary storage shutdown,
   // * origin usage is still the same as before shutdown
-  // * cached origin usage is nothing
+  // * cached origin usage is zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeShutdownUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
@@ -512,7 +512,7 @@ TEST_F(TestFileSystemOriginInitialization,
   // After temporary storage shutdown,
   // * static database usage is the same as before writing
   // * origin usage is still the same as before shutdown
-  // * cached origin usage is nothing
+  // * cached origin usage is zero
   ASSERT_NO_FATAL_FAILURE(GetStaticDatabaseUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeWriteUsage));
 
@@ -520,7 +520,7 @@ TEST_F(TestFileSystemOriginInitialization,
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeShutdownUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
@@ -599,12 +599,12 @@ TEST_F(TestFileSystemOriginInitialization, RemovedFileSystemFile) {
 
   // After temporary storage shutdown,
   // * origin usage is still the same as before shutdown
-  // * cached origin usage is nothing
+  // * cached origin usage is zero
   ASSERT_NO_FATAL_FAILURE(GetOriginUsage(usageNow));
   ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, beforeShutdownUsage));
 
   ASSERT_NO_FATAL_FAILURE(GetCachedOriginUsage(usageNow));
-  ASSERT_NO_FATAL_FAILURE(CheckUsageIsNothing(usageNow));
+  ASSERT_NO_FATAL_FAILURE(CheckUsageEqualTo(usageNow, 0u));
 
   // Initialize temporary storage again.
   ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());

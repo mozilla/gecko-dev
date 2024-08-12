@@ -7,12 +7,12 @@
 // it is loaded into.
 /* global SpecialPowers */
 
-import { getUsageForOrigin } from "./StorageUtils.mjs";
+import { getCachedUsageForOrigin } from "./StorageUtils.mjs";
 
 export const Utils = {
   async getCachedOriginUsage() {
     const principal = SpecialPowers.wrap(document).nodePrincipal;
-    const result = await getUsageForOrigin(principal, true);
-    return result.usage;
+    const result = await getCachedUsageForOrigin(principal);
+    return result;
   },
 };

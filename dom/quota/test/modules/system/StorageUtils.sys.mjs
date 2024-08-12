@@ -44,11 +44,10 @@ export function clearStoragePrefs(optionalPrefsToClear) {
   }
 }
 
-export async function getUsageForOrigin(principal, fromMemory) {
-  const request = Services.qms.getUsageForPrincipal(
+export async function getCachedUsageForOrigin(principal) {
+  const request = Services.qms.getCachedUsageForPrincipal(
     principal,
-    function () {},
-    fromMemory
+    function () {}
   );
 
   await new Promise(function (resolve) {

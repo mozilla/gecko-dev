@@ -4,7 +4,7 @@
  */
 
 import {
-  getUsageForOrigin,
+  getCachedUsageForOrigin,
   resetStorage,
 } from "resource://testing-common/dom/quota/test/modules/StorageUtils.sys.mjs";
 
@@ -13,8 +13,8 @@ export const Utils = {
     const principal = Cc["@mozilla.org/systemprincipal;1"].createInstance(
       Ci.nsIPrincipal
     );
-    const result = await getUsageForOrigin(principal, true);
-    return result.usage;
+    const result = await getCachedUsageForOrigin(principal);
+    return result;
   },
 
   async shrinkStorageSize(size) {

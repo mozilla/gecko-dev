@@ -69,13 +69,13 @@ add_task(async function testSteps() {
   async function verifyUsage(success) {
     info("Verifying usage in memory");
 
-    let request = getOriginUsage(principal, /* fromMemory */ true);
+    let request = getCachedOriginUsage(principal);
     await requestFinished(request);
 
     if (success) {
-      is(request.result.usage, data.usage, "Correct usage");
+      is(request.result, data.usage, "Correct usage");
     } else {
-      is(request.result.usage, 0, "Zero usage");
+      is(request.result, 0, "Zero usage");
     }
 
     info("Verifying usage on disk");

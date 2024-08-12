@@ -54,8 +54,8 @@ async function testSteps() {
 
   info("Getting origin usage");
 
-  request = getOriginUsage(principal, /* fromMemory */ true);
+  request = getCachedOriginUsage(principal);
   await requestFinished(request);
 
-  is(request.result.usage, originUsage, "Correct origin usage");
+  is(request.result, originUsage, "Correct origin usage");
 }
