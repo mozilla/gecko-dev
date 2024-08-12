@@ -1054,38 +1054,11 @@ inline base::Vector<const base::uc16> String::GetCharVector(
   return flat.ToUC16Vector();
 }
 
-class JSRegExp : public HeapObject {
+class JSRegExp {
  public:
-  JSRegExp() : HeapObject() {}
-  JSRegExp(js::RegExpShared* re) { setValue(JS::PrivateGCThingValue(re)); }
-
-  // ******************************************************
-  // Methods that are called from inside the implementation
-  // ******************************************************
-  void TierUpTick() { inner()->tierUpTick(); }
-
-  Object bytecode(bool is_latin1) const {
-    return Object(JS::PrivateValue(inner()->getByteCode(is_latin1)));
-  }
-
-  // TODO: should we expose this?
-  uint32_t backtrack_limit() const { return 0; }
-
-  static JSRegExp cast(Object object) {
-    JSRegExp regexp;
-    js::gc::Cell* regexpShared = object.value().toGCThing();
-    MOZ_ASSERT(regexpShared->is<js::RegExpShared>());
-    regexp.setValue(JS::PrivateGCThingValue(regexpShared));
-    return regexp;
-  }
-
   // Each capture (including the match itself) needs two registers.
   static constexpr int RegistersForCaptureCount(int count) {
     return (count + 1) * 2;
-  }
-
-  inline uint32_t max_register_count() const {
-    return inner()->getMaxRegisters();
   }
 
   // ******************************
@@ -1095,6 +1068,37 @@ class JSRegExp : public HeapObject {
   static constexpr int kMaxCaptures = (1 << 15) - 1;
 
   static constexpr int kNoBacktrackLimit = 0;
+};
+
+class IrRegExpData : public HeapObject {
+ public:
+  IrRegExpData() : HeapObject() {}
+  IrRegExpData(js::RegExpShared* re) { setValue(JS::PrivateGCThingValue(re)); }
+
+  // ******************************************************
+  // Methods that are called from inside the implementation
+  // ******************************************************
+  void TierUpTick() { inner()->tierUpTick(); }
+
+  Tagged<TrustedByteArray> bytecode(bool is_latin1) const {
+    return TrustedByteArray::cast(
+        Object(JS::PrivateValue(inner()->getByteCode(is_latin1))));
+  }
+
+  // TODO: should we expose this?
+  uint32_t backtrack_limit() const { return 0; }
+
+  static IrRegExpData cast(Object object) {
+    IrRegExpData regexp;
+    js::gc::Cell* regexpShared = object.value().toGCThing();
+    MOZ_ASSERT(regexpShared->is<js::RegExpShared>());
+    regexp.setValue(JS::PrivateGCThingValue(regexpShared));
+    return regexp;
+  }
+
+  inline uint32_t max_register_count() const {
+    return inner()->getMaxRegisters();
+  }
 
  private:
   js::RegExpShared* inner() const {

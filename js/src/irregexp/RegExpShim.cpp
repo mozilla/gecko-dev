@@ -83,7 +83,7 @@ Handle<T>::Handle(T object, Isolate* isolate)
 template Handle<ByteArray>::Handle(ByteArray b, Isolate* isolate);
 template Handle<TrustedByteArray>::Handle(TrustedByteArray b, Isolate* isolate);
 template Handle<HeapObject>::Handle(const JS::Value& v, Isolate* isolate);
-template Handle<JSRegExp>::Handle(JSRegExp re, Isolate* isolate);
+template Handle<IrRegExpData>::Handle(IrRegExpData re, Isolate* isolate);
 template Handle<String>::Handle(String s, Isolate* isolate);
 
 template <typename T>

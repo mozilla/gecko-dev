@@ -68,7 +68,7 @@ using v8::internal::Zone;
 using v8::internal::ZoneVector;
 
 using V8HandleString = v8::internal::Handle<v8::internal::String>;
-using V8HandleRegExp = v8::internal::Handle<v8::internal::JSRegExp>;
+using V8HandleRegExp = v8::internal::Handle<v8::internal::IrRegExpData>;
 
 using namespace v8::internal::regexp_compiler_constants;
 
@@ -900,7 +900,7 @@ RegExpRunStatus Interpret(JSContext* cx, MutableHandleRegExpShared re,
   MOZ_ASSERT(re->getByteCode(input->hasLatin1Chars()));
 
   HandleScope handleScope(cx->isolate);
-  V8HandleRegExp wrappedRegExp(v8::internal::JSRegExp(re), cx->isolate);
+  V8HandleRegExp wrappedRegExp(v8::internal::IrRegExpData(re), cx->isolate);
   V8HandleString wrappedInput(v8::internal::String(input), cx->isolate);
 
   static_assert(static_cast<int32_t>(RegExpRunStatus::Error) ==
