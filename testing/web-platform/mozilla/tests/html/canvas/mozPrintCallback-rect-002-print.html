@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1908969">
+<link rel="match" href="mozPrintCallback-rect-002-print-ref.html">
+<style>
+  canvas {
+    background: yellow;
+    transform: scale(4);
+    transform-origin: 0 0;
+  }
+</style>
+<canvas id="myCanvas" width="80" height="80"></canvas>
+<script>
+  myCanvas.mozPrintCallback = function (obj) {
+    let ctx = obj.context;
+    ctx.fillStyle = "cyan";
+    ctx.fillRect(0, 0, 60, 60);
+    obj.done();
+  }
+</script>
