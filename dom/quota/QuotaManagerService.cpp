@@ -152,6 +152,17 @@ struct ResponseTypeTraits<BoolResponse> {
 };
 
 template <>
+struct ResponseTypeTraits<UInt64Response> {
+  static constexpr auto kType = UInt64Response::Tuint64_t;
+
+  static RefPtr<nsVariant> CreateVariant(const UInt64Response& aResponse) {
+    RefPtr<nsVariant> variant = new nsVariant();
+    variant->SetAsUint64(aResponse.get_uint64_t());
+    return variant;
+  }
+};
+
+template <>
 struct ResponseTypeTraits<OriginUsageMetadataArrayResponse> {
   static constexpr auto kType =
       OriginUsageMetadataArrayResponse::TOriginUsageMetadataArray;
@@ -236,6 +247,9 @@ class ResponsePromiseResolveOrRejectCallback {
 using BoolResponsePromiseResolveOrRejectCallback =
     ResponsePromiseResolveOrRejectCallback<Request, BoolResponsePromise,
                                            BoolResponse>;
+using UInt64ResponsePromiseResolveOrRejectCallback =
+    ResponsePromiseResolveOrRejectCallback<Request, UInt64ResponsePromise,
+                                           UInt64Response>;
 using OriginUsageMetadataArrayResponsePromiseResolveOrRejectCallback =
     ResponsePromiseResolveOrRejectCallback<
         UsageRequest, OriginUsageMetadataArrayResponsePromise,
@@ -913,6 +927,37 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
              UsageInfoResponsePromiseResolveOrRejectCallback(request));
 
   request->SetBackgroundActor(usageRequestChild);
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::GetCachedUsageForPrincipal(nsIPrincipal* aPrincipal,
+                                                nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  QM_TRY_INSPECT(
+      const auto& principalInfo,
+      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+        PrincipalInfo principalInfo;
+        QM_TRY(MOZ_TO_RESULT(
+            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+
+        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
+               Err(NS_ERROR_INVALID_ARG));
+
+        return principalInfo;
+      }()));
+
+  RefPtr<Request> request = new Request();
+
+  mBackgroundActor->SendGetCachedOriginUsage(principalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             UInt64ResponsePromiseResolveOrRejectCallback(request));
 
   request.forget(_retval);
   return NS_OK;

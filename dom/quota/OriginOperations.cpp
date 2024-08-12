@@ -511,6 +511,30 @@ class GetFullOriginMetadataOp
   void CloseDirectory() override;
 };
 
+class GetCachedOriginUsageOp
+    : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<uint64_t>> {
+  const PrincipalInfo mPrincipalInfo;
+  PrincipalMetadata mPrincipalMetadata;
+  uint64_t mUsage;
+
+ public:
+  GetCachedOriginUsageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                         const PrincipalInfo& aPrincipalInfo);
+
+ private:
+  ~GetCachedOriginUsageOp() = default;
+
+  nsresult DoInit(QuotaManager& aQuotaManager) override;
+
+  RefPtr<BoolPromise> OpenDirectory() override;
+
+  nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
+
+  uint64_t GetResolveValue() override;
+
+  void CloseDirectory() override;
+};
+
 class ClearStorageOp final
     : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<bool>> {
  public:
@@ -861,6 +885,13 @@ RefPtr<QuotaRequestBase> CreateGetFullOriginMetadataOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const GetFullOriginMetadataParams& aParams) {
   return MakeRefPtr<GetFullOriginMetadataOp>(std::move(aQuotaManager), aParams);
+}
+
+RefPtr<ResolvableNormalOriginOp<uint64_t>> CreateGetCachedOriginUsageOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
+  return MakeRefPtr<GetCachedOriginUsageOp>(std::move(aQuotaManager),
+                                            aPrincipalInfo);
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateClearStorageOp(
@@ -1950,6 +1981,71 @@ void GetFullOriginMetadataOp::CloseDirectory() {
   AssertIsOnOwningThread();
 
   SafeDropDirectoryLock(mDirectoryLock);
+}
+
+GetCachedOriginUsageOp::GetCachedOriginUsageOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const PrincipalInfo& aPrincipalInfo)
+    : OpenStorageDirectoryHelper(std::move(aQuotaManager),
+                                 "dom::quota::GetCachedOriginUsageOp"),
+      mPrincipalInfo(aPrincipalInfo),
+      mUsage(0) {
+  AssertIsOnOwningThread();
+}
+
+nsresult GetCachedOriginUsageOp::DoInit(QuotaManager& aQuotaManager) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(
+      mPrincipalMetadata,
+      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+
+  mPrincipalMetadata.AssertInvariants();
+
+  return NS_OK;
+}
+
+RefPtr<BoolPromise> GetCachedOriginUsageOp::OpenDirectory() {
+  AssertIsOnOwningThread();
+
+  return OpenStorageDirectory(
+      Nullable<PersistenceType>(),
+      OriginScope::FromOrigin(mPrincipalMetadata.mOrigin),
+      Nullable<Client::Type>(),
+      /* aExclusive */ false);
+}
+
+nsresult GetCachedOriginUsageOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(mUsage == 0);
+
+  AUTO_PROFILER_LABEL("GetCachedOriginUsageOp::DoDirectoryWork", OTHER);
+
+  // If temporary storage hasn't been initialized yet, there's no cached usage
+  // to report.
+  if (!aQuotaManager.IsTemporaryStorageInitializedInternal()) {
+    return NS_OK;
+  }
+
+  // Get cached usage (the method doesn't have to stat any files).
+  mUsage = aQuotaManager.GetOriginUsage(mPrincipalMetadata);
+
+  return NS_OK;
+}
+
+uint64_t GetCachedOriginUsageOp::GetResolveValue() {
+  AssertIsOnOwningThread();
+
+  return mUsage;
+}
+
+void GetCachedOriginUsageOp::CloseDirectory() {
+  AssertIsOnOwningThread();
+
+  if (mDirectoryLock) {
+    mDirectoryLock->Drop();
+    mDirectoryLock = nullptr;
+  }
 }
 
 ClearStorageOp::ClearStorageOp(

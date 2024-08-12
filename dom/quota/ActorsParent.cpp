@@ -5743,6 +5743,20 @@ RefPtr<UsageInfoPromise> QuotaManager::GetOriginUsage(
   return getOriginUsageOp->OnResults();
 }
 
+RefPtr<UInt64Promise> QuotaManager::GetCachedOriginUsage(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  auto getCachedOriginUsageOp = CreateGetCachedOriginUsageOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo);
+
+  RegisterNormalOriginOp(*getCachedOriginUsageOp);
+
+  getCachedOriginUsageOp->RunImmediately();
+
+  return getCachedOriginUsageOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
     const Maybe<PersistenceType>& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo,

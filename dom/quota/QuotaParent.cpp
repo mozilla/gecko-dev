@@ -110,6 +110,9 @@ class PromiseResolveOrRejectCallback<PromiseType, ResolverType, false>
 
 using BoolPromiseResolveOrRejectCallback =
     PromiseResolveOrRejectCallback<BoolPromise, BoolResponseResolver, false>;
+using UInt64PromiseResolveOrRejectCallback =
+    PromiseResolveOrRejectCallback<UInt64Promise, UInt64ResponseResolver,
+                                   false>;
 using OriginUsageMetadataArrayPromiseResolveOrRejectCallback =
     PromiseResolveOrRejectCallback<OriginUsageMetadataArrayPromise,
                                    OriginUsageMetadataArrayResponseResolver,
@@ -594,6 +597,30 @@ mozilla::ipc::IPCResult Quota::RecvGetOriginUsage(
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           UsageInfoPromiseResolveOrRejectCallback(this, std::move(aResolve)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvGetCachedOriginUsage(
+    const PrincipalInfo& aPrincipalInfo,
+    GetCachedOriginUsageResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveUInt64ResponseAndReturn(aResolver));
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveUInt64ResponseAndReturn(aResolver));
+
+  quotaManager->GetCachedOriginUsage(aPrincipalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             UInt64PromiseResolveOrRejectCallback(this, std::move(aResolver)));
 
   return IPC_OK();
 }

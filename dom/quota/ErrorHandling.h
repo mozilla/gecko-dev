@@ -27,6 +27,8 @@ class ResolveResponseAndReturn {
 
 using ResolveBoolResponseAndReturn =
     ResolveResponseAndReturn<mozilla::ipc::BoolResponseResolver>;
+using ResolveUInt64ResponseAndReturn =
+    ResolveResponseAndReturn<mozilla::ipc::UInt64ResponseResolver>;
 using ResolveNSResultResponseAndReturn =
     ResolveResponseAndReturn<mozilla::ipc::NSResultResponseResolver>;
 

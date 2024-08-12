@@ -310,6 +310,12 @@ function getOriginUsage(principal, fromMemory = false) {
   return request;
 }
 
+function getCachedOriginUsage(principal) {
+  let request = Services.qms.getCachedUsageForPrincipal(principal);
+
+  return request;
+}
+
 function getCurrentUsage(usageHandler) {
   let principal = Cc["@mozilla.org/systemprincipal;1"].createInstance(
     Ci.nsIPrincipal

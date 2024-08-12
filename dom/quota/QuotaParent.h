@@ -80,6 +80,10 @@ class Quota final : public PQuotaParent {
       ManagedEndpoint<PQuotaUsageRequestParent>&& aParentEndpoint,
       GetOriginUsageResolver&& aResolve) override;
 
+  virtual mozilla::ipc::IPCResult RecvGetCachedOriginUsage(
+      const PrincipalInfo& aPrincipalInfo,
+      GetCachedOriginUsageResolver&& aResolve) override;
+
   virtual mozilla::ipc::IPCResult RecvClearStoragesForOrigin(
       const Maybe<PersistenceType>& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo, const Maybe<Type>& aClientType,

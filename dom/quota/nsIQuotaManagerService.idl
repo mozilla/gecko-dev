@@ -186,6 +186,20 @@ interface nsIQuotaManagerService : nsISupports
                        [optional] in boolean aFromMemory);
 
   /**
+   * Gets usage cached in memory for the given origin.
+   *
+   * This mechanism uses cached quota usage and does not perform any I/O on its
+   * own, but it may be delayed by QuotaManager operations that do need to
+   * perform I/O on the QuotaManager I/O thread.
+   *
+   * @param aPrincipal
+   *        A principal for the origin whose cached usage is being queried.
+   * Note:  Origin usage here represents only non-persistent usage of an origin.
+   */
+  [must_use] nsIQuotaRequest
+  getCachedUsageForPrincipal(in nsIPrincipal aPrincipal);
+
+  /**
    * Asynchronously lists all origins and returns them as plain strings.
    */
   [must_use] nsIQuotaRequest

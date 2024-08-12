@@ -11,6 +11,7 @@ support-files = [
   "createLocalStorage_profile.zip",
   "defaultStorageDirectory_shared.json",
   "defaultStorageDirectory_shared.zip",
+  "getCachedUsageForPrincipal_profile.zip",
   "getUsageForPrincipal_profile.zip",
   "getUsage_profile.zip",
   "groupMismatch_profile.zip",
@@ -25,6 +26,9 @@ support-files = [
   "tempMetadataCleanup_profile.zip",
   "unknownFiles_profile.zip",
 ]
+
+["make_getCachedUsageForPrincipal.js"]
+skip-if = ["true"] # Only used for recreating getCachedUsageForPrincipal_profile.zip
 
 ["make_getUsageForPrincipal.js"]
 skip-if = ["true"] # Only used for recreating getUsageForPrincipal_profile.zip
@@ -52,6 +56,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 ["test_createLocalStorage.js"]
 
 ["test_estimateOrigin.js"]
+
+["test_getCachedUsageForPrincipal.js"]
 
 ["test_getUsage.js"]
 

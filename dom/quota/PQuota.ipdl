@@ -38,6 +38,12 @@ union BoolResponse
   bool;
 };
 
+union UInt64Response
+{
+  nsresult;
+  uint64_t;
+};
+
 } // namespace ipc
 
 namespace dom {
@@ -158,6 +164,9 @@ parent:
                        bool fromMemory,
                        ManagedEndpoint<PQuotaUsageRequestParent> parentEndpoint)
       returns(UsageInfoResponse response);
+
+  async GetCachedOriginUsage(PrincipalInfo principalInfo)
+      returns(UInt64Response response);
 
   async ClearStoragesForOrigin(PersistenceType? persistenceType,
                                PrincipalInfo principalInfo,

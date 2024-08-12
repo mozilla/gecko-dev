@@ -106,6 +106,10 @@ RefPtr<QuotaRequestBase> CreateGetFullOriginMetadataOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const GetFullOriginMetadataParams& aParams);
 
+RefPtr<ResolvableNormalOriginOp<uint64_t>> CreateGetCachedOriginUsageOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
+
 RefPtr<ResolvableNormalOriginOp<bool>> CreateClearStorageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
