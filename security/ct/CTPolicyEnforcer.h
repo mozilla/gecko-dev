@@ -10,15 +10,14 @@
 #include "CTLog.h"
 #include "CTVerifyResult.h"
 #include "mozpkix/Result.h"
+#include "mozpkix/Time.h"
 
 namespace mozilla {
 namespace ct {
 
-// Information about the compliance of the TLS connection with the
-// Certificate Transparency policy.
+// A helper enum to describe the result of running CheckCTPolicyCompliance on a
+// collection of verified SCTs.
 enum class CTPolicyCompliance {
-  // Compliance not checked or not applicable.
-  Unknown,
   // The connection complied with the certificate policy
   // by including SCTs that satisfy the policy.
   Compliant,
@@ -30,34 +29,30 @@ enum class CTPolicyCompliance {
   NotDiverseScts,
 };
 
-// Checks whether a TLS connection complies with the current CT policy.
-// The implemented policy is based on the Mozilla CT Policy draft 0.1.0
-// (see https://docs.google.com/document/d/
-// 1rnqYYwscAx8WhS-MCdTiNzYQus9e37HuVyafQvEeNro/edit).
+// Checks the collected verified SCTs for compliance with the CT policy.
+// The policy is based on Chrome's policy as described here:
+// https://googlechrome.github.io/CertificateTransparency/ct_policy.html
+// This policy (as well as Chrome's), is very similar to Apple's:
+// https://support.apple.com/en-us/103214
+// Essentially, the policy can be satisfied in two ways, depending on the
+// source of the collected SCTs.
+// For embedded SCTs, at least one must be from a log that was Admissible
+// (Qualified, Usable, or ReadOnly) at the time of the check. There must be
+// SCTs from N distinct logs that were Admissible or Retired at the time of the
+// check, where N depends on the lifetime of the certificate. If the
+// certificate lifetime is less than or equal to 180 days, N is 2. Otherwise, N
+// is 3. Among these SCTs, at least two must be issued from distinct log
+// operators.
+// For SCTs delivered via the TLS handshake or an OCSP response, at least two
+// must be from a log that was Admissible at the time of the check. Among these
+// SCTs, at least two must be issued from distinct log operators.
 //
-// NOTE: CT DIVERSITY REQUIREMENT IS TBD, PENDING FINALIZATION
-// OF MOZILLA CT POLICY. Specifically:
-// 1. CT log operators being CA-dependent is not currently taken into account
-// (see CTDiversityPolicy.h).
-// 2. The preexisting certificate exception provision of the operator diversity
-// requirement is not implemented (see "CT Qualified" section of the policy and
-// CheckOperatorDiversityCompliance in CTPolicyEnforcer.cpp).
-class CTPolicyEnforcer {
- public:
-  // |verifiedSct| - SCTs present on the connection along with their
-  // verification status.
-  // |certLifetimeInCalendarMonths| - certificate lifetime in full calendar
-  // months (i.e. rounded down), based on the notBefore/notAfter fields.
-  // |dependentOperators| - which CT log operators are dependent on the CA
-  // that issued the certificate. SCTs issued by logs associated with such
-  // operators are treated differenly when evaluating the policy.
-  // See CTDiversityPolicy class.
-  // |compliance| - the result of the compliance check.
-  void CheckCompliance(const VerifiedSCTList& verifiedScts,
-                       size_t certLifetimeInCalendarMonths,
-                       const CTLogOperatorList& dependentOperators,
-                       CTPolicyCompliance& compliance);
-};
+// |verifiedSct| - SCTs present on the connection along with their verification
+// status.
+// |certLifetime| - certificate lifetime, based on the notBefore/notAfter
+// fields.
+CTPolicyCompliance CheckCTPolicyCompliance(const VerifiedSCTList& verifiedScts,
+                                           pkix::Duration certLifetime);
 
 }  // namespace ct
 }  // namespace mozilla

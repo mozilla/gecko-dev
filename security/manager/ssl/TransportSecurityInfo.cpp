@@ -1028,12 +1028,12 @@ uint16_t TransportSecurityInfo::ConvertCertificateTransparencyInfoToStatus(
     const mozilla::psm::CertificateTransparencyInfo& info) {
   using mozilla::ct::CTPolicyCompliance;
 
-  if (!info.enabled) {
+  if (!info.enabled || info.policyCompliance.isNothing()) {
     // CT disabled.
     return nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
   }
 
-  switch (info.policyCompliance) {
+  switch (*info.policyCompliance) {
     case CTPolicyCompliance::Compliant:
       return nsITransportSecurityInfo::
           CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
@@ -1043,7 +1043,6 @@ uint16_t TransportSecurityInfo::ConvertCertificateTransparencyInfoToStatus(
     case CTPolicyCompliance::NotDiverseScts:
       return nsITransportSecurityInfo ::
           CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS;
-    case CTPolicyCompliance::Unknown:
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
   }

@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 #include "AppTrustDomain.h"
-#include "CTDiversityPolicy.h"
 #include "CTKnownLogs.h"
 #include "CTLogVerifier.h"
 #include "ExtendedValidation.h"
@@ -39,53 +38,6 @@ using namespace mozilla::psm;
 
 mozilla::LazyLogModule gCertVerifierLog("certverifier");
 
-// Returns the certificate validity period in calendar months (rounded down).
-// "extern" to allow unit tests in CTPolicyEnforcerTest.cpp.
-extern mozilla::pkix::Result GetCertLifetimeInFullMonths(Time certNotBefore,
-                                                         Time certNotAfter,
-                                                         size_t& months) {
-  if (certNotBefore >= certNotAfter) {
-    MOZ_ASSERT_UNREACHABLE("Expected notBefore < notAfter");
-    return mozilla::pkix::Result::FATAL_ERROR_INVALID_ARGS;
-  }
-  uint64_t notBeforeSeconds;
-  Result rv = SecondsSinceEpochFromTime(certNotBefore, &notBeforeSeconds);
-  if (rv != Success) {
-    return rv;
-  }
-  uint64_t notAfterSeconds;
-  rv = SecondsSinceEpochFromTime(certNotAfter, &notAfterSeconds);
-  if (rv != Success) {
-    return rv;
-  }
-  // PRTime is microseconds
-  PRTime notBeforePR = static_cast<PRTime>(notBeforeSeconds) * 1000000;
-  PRTime notAfterPR = static_cast<PRTime>(notAfterSeconds) * 1000000;
-
-  PRExplodedTime explodedNotBefore;
-  PRExplodedTime explodedNotAfter;
-
-  PR_ExplodeTime(notBeforePR, PR_LocalTimeParameters, &explodedNotBefore);
-  PR_ExplodeTime(notAfterPR, PR_LocalTimeParameters, &explodedNotAfter);
-
-  PRInt32 signedMonths =
-      (explodedNotAfter.tm_year - explodedNotBefore.tm_year) * 12 +
-      (explodedNotAfter.tm_month - explodedNotBefore.tm_month);
-  if (explodedNotAfter.tm_mday < explodedNotBefore.tm_mday) {
-    --signedMonths;
-  }
-
-  // Can't use `mozilla::AssertedCast<size_t>(signedMonths)` below
-  // since it currently generates a warning on Win x64 debug.
-  if (signedMonths < 0) {
-    MOZ_ASSERT_UNREACHABLE("Expected explodedNotBefore < explodedNotAfter");
-    return mozilla::pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  months = static_cast<size_t>(signedMonths);
-
-  return Success;
-}
-
 namespace mozilla {
 namespace psm {
 
@@ -98,7 +50,7 @@ static const unsigned int MIN_RSA_BITS_WEAK = 1024;
 void CertificateTransparencyInfo::Reset() {
   enabled = false;
   verifyResult.Reset();
-  policyCompliance = CTPolicyCompliance::Unknown;
+  policyCompliance.reset();
 }
 
 CertVerifier::CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
@@ -268,9 +220,6 @@ void CertVerifier::LoadKnownCTLogs() {
 
     mCTVerifier->AddLog(std::move(logVerifier));
   }
-  // TBD: Initialize mCTDiversityPolicy with the CA dependency map
-  // of the known CT logs operators.
-  mCTDiversityPolicy = MakeUnique<CTDiversityPolicy>();
 }
 
 Result CertVerifier::VerifyCertificateTransparencyPolicy(
@@ -324,7 +273,7 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
     if (ctInfo) {
       CTVerifyResult emptyResult;
       ctInfo->verifyResult = std::move(emptyResult);
-      ctInfo->policyCompliance = CTPolicyCompliance::NotEnoughScts;
+      ctInfo->policyCompliance.emplace(CTPolicyCompliance::NotEnoughScts);
     }
     return Success;
   }
@@ -396,30 +345,14 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
   if (rv != Success) {
     return rv;
   }
-  size_t lifetimeInMonths;
-  rv = GetCertLifetimeInFullMonths(notBefore, notAfter, lifetimeInMonths);
-  if (rv != Success) {
-    return rv;
-  }
+  Duration certLifetime(notBefore, notAfter);
 
-  CTLogOperatorList allOperators;
-  GetCTLogOperatorsFromVerifiedSCTList(result.verifiedScts, allOperators);
-
-  CTLogOperatorList dependentOperators;
-  rv = mCTDiversityPolicy->GetDependentOperators(builtChain, allOperators,
-                                                 dependentOperators);
-  if (rv != Success) {
-    return rv;
-  }
-
-  CTPolicyEnforcer ctPolicyEnforcer;
-  CTPolicyCompliance ctPolicyCompliance;
-  ctPolicyEnforcer.CheckCompliance(result.verifiedScts, lifetimeInMonths,
-                                   dependentOperators, ctPolicyCompliance);
+  CTPolicyCompliance ctPolicyCompliance =
+      CheckCTPolicyCompliance(result.verifiedScts, certLifetime);
 
   if (ctInfo) {
     ctInfo->verifyResult = std::move(result);
-    ctInfo->policyCompliance = ctPolicyCompliance;
+    ctInfo->policyCompliance.emplace(ctPolicyCompliance);
   }
   return Success;
 }

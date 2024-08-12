@@ -497,17 +497,10 @@ void GatherCertificateTransparencyTelemetry(
   Telemetry::Accumulate(Telemetry::SSL_SCTS_PER_CONNECTION, sctsCount);
 
   // Report CT Policy compliance by CA.
-  switch (info.policyCompliance) {
-    case ct::CTPolicyCompliance::Compliant:
-      break;
-    case ct::CTPolicyCompliance::NotEnoughScts:
-    case ct::CTPolicyCompliance::NotDiverseScts:
-      AccumulateTelemetryForRootCA(
-          Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, rootCert);
-      break;
-    case ct::CTPolicyCompliance::Unknown:
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
+  if (info.policyCompliance.isSome() &&
+      *info.policyCompliance != ct::CTPolicyCompliance::Compliant) {
+    AccumulateTelemetryForRootCA(
+        Telemetry::SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2, rootCert);
   }
 }
 

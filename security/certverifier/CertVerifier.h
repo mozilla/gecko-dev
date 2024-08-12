@@ -39,7 +39,6 @@ namespace ct {
 // dependent headers and force us to export them in moz.build.
 // Just forward-declare the classes here instead.
 class MultiLogCTVerifier;
-class CTDiversityPolicy;
 
 }  // namespace ct
 }  // namespace mozilla
@@ -105,9 +104,7 @@ class PinningTelemetryInfo {
 
 class CertificateTransparencyInfo {
  public:
-  CertificateTransparencyInfo()
-      : enabled(false),
-        policyCompliance(mozilla::ct::CTPolicyCompliance::Unknown) {
+  CertificateTransparencyInfo() : enabled(false), policyCompliance(Nothing()) {
     Reset();
   }
 
@@ -116,7 +113,7 @@ class CertificateTransparencyInfo {
   // Verification result of the processed SCTs.
   mozilla::ct::CTVerifyResult verifyResult;
   // Connection compliance to the CT Policy.
-  mozilla::ct::CTPolicyCompliance policyCompliance;
+  Maybe<mozilla::ct::CTPolicyCompliance> policyCompliance;
 
   void Reset();
 };
@@ -266,7 +263,6 @@ class CertVerifier {
   // We only have a forward declarations of these classes (see above)
   // so we must allocate dynamically.
   UniquePtr<mozilla::ct::MultiLogCTVerifier> mCTVerifier;
-  UniquePtr<mozilla::ct::CTDiversityPolicy> mCTDiversityPolicy;
 
   void LoadKnownCTLogs();
   mozilla::pkix::Result VerifyCertificateTransparencyPolicy(

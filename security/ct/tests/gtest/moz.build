@@ -37,7 +37,6 @@ UNIFIED_SOURCES += [
     "BTSerializationTest.cpp",
     "BTSignedTreeHeadTest.cpp",
     "BTVerificationTest.cpp",
-    "CTDiversityPolicyTest.cpp",
     "CTLogVerifierTest.cpp",
     "CTObjectsExtractorTest.cpp",
     "CTPolicyEnforcerTest.cpp",

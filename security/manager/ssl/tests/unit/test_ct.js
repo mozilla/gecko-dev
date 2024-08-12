@@ -26,11 +26,9 @@ registerCleanupFunction(() => {
 function run_test() {
   Services.prefs.setIntPref("security.pki.certificate_transparency.mode", 1);
   add_tls_server_setup("BadCertAndPinningServer", "test_ct");
-  // These certificates have a validity period of 800 days, which is a little
-  // over 2 years and 2 months. This gets rounded down to 2 years (since it's
-  // less than 2 years and 3 months). Our policy requires N + 1 embedded SCTs,
-  // where N is 2 in this case. So, a policy-compliant certificate would have at
-  // least 3 SCTs.
+  // These certificates have a validity period of 800 days, which is greater
+  // than 180 days. Our policy requires 3 embedded SCTs for certificates with a
+  // validity period greater than 180 days.
   add_connection_test(
     "ct-valid.example.com",
     PRErrorCodeSuccess,

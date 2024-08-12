@@ -21,7 +21,6 @@ EXPORTS += [
 UNIFIED_SOURCES += [
     "BTVerifier.cpp",
     "Buffer.cpp",
-    "CTDiversityPolicy.cpp",
     "CTLogVerifier.cpp",
     "CTObjectsExtractor.cpp",
     "CTPolicyEnforcer.cpp",
