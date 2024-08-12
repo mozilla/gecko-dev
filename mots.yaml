@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-08-02T14:33:27.873770+00:00'
+updated_at: '2024-08-06T20:18:03.867977+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -4116,7 +4116,6 @@ modules:
       - *ahal
     peers:
       - *jmaher
-      - *gbrown
     meta:
       components:
         - 'Testing :: Mochitest'
@@ -4127,7 +4126,7 @@ modules:
       - testing/mozbase
     excludes: []
     owners:
-      - *gbrown
+      - *jmaher
     peers:
       - *ahal
       - *ato
@@ -4224,8 +4223,6 @@ modules:
     excludes: []
     owners:
       - *jmaher
-    peers:
-      - *gbrown
     meta:
       components:
         - Testing::XPCShell Harness
@@ -4372,5 +4369,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 6410cc12ee3bad1c67d4d797975e16bb4339cab7
-  export: c3de175b04f17bbfeff4fd79b44521be63f74b51
+  config: 9993289c5d1a3c73c69ff0950cae2569a6b439a2
+  export: 695e3878613bf0b0d717fc4f09199ca72434d288
