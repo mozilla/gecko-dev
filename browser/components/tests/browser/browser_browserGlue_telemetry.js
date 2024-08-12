@@ -14,10 +14,16 @@ add_task(function check_startup_pinned_telemetry() {
         AppConstants.platform === "win" &&
         Services.sysinfo.getProperty("hasWinPackageId")
       ) {
-        TelemetryTestUtils.assertScalarUnset(
+        TelemetryTestUtils.assertScalar(
           scalars,
-          "os.environment.is_taskbar_pinned"
+          "os.environment.is_taskbar_pinned",
+          false,
+          "Pin set on win MSIX"
         );
+        // Bug 1911343: Pinning regular browsing on MSIX
+        // causes false positives when checking for private
+        // browsing. As a result no telemetry is logged regarding
+        // private pin status.
         TelemetryTestUtils.assertScalarUnset(
           scalars,
           "os.environment.is_taskbar_pinned_private"

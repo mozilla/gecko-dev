@@ -2757,12 +2757,20 @@ BrowserGlue.prototype = {
                 winTaskbar.defaultGroupId
               )
             );
-            Services.telemetry.scalarSet(
-              "os.environment.is_taskbar_pinned_private",
-              await shellService.isCurrentAppPinnedToTaskbarAsync(
-                winTaskbar.defaultPrivateGroupId
-              )
-            );
+            // Bug 1911343: Pinning regular browsing on MSIX
+            // causes false positives when checking for private
+            // browsing.
+            if (
+              AppConstants.platform === "win" &&
+              !Services.sysinfo.getProperty("hasWinPackageId")
+            ) {
+              Services.telemetry.scalarSet(
+                "os.environment.is_taskbar_pinned_private",
+                await shellService.isCurrentAppPinnedToTaskbarAsync(
+                  winTaskbar.defaultPrivateGroupId
+                )
+              );
+            }
           } catch (ex) {
             console.error(ex);
           }

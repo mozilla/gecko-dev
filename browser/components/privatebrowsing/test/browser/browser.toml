@@ -36,7 +36,7 @@ tags = "trackingprotection"
 skip-if = [
   "os == 'mac'",
   "os == 'linux'",
-  "os == 'win' && msix", # We don't support pinning in MSIX builds
+  "os == 'win' && msix", # We don't support private pinning in MSIX builds
 ]
 
 ["browser_privatebrowsing_about_default_promo.js"]

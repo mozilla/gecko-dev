@@ -44,7 +44,7 @@ support-files = [
 ["browser_sma_pin_firefox.js"]
 
 ["browser_sma_pin_private_firefox.js"]
-skip-if = ["os != 'win'"]
+run-if = ["(os == 'win' && !msix)"] # Bug 1911343
 
 ["browser_sma_pin_start_menu.js"]
 run-if = ["(os == 'win' && msix)"]

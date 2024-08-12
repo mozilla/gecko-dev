@@ -431,6 +431,16 @@ let ShellServiceInternal = {
       return false;
     }
 
+    // Bug 1758770: Pinning private browsing on MSIX is currently
+    // not possible.
+    if (
+      privateBrowsing &&
+      AppConstants.platform === "win" &&
+      Services.sysinfo.getProperty("hasWinPackageId")
+    ) {
+      return false;
+    }
+
     // Currently this only works on certain Windows versions.
     try {
       // First check if we can even pin the app where an exception means no.
