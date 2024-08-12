@@ -416,6 +416,11 @@ class WinUtils {
    * returns the LayoutDeviceIntRegion.
    */
   static LayoutDeviceIntRegion ConvertHRGNToRegion(HRGN aRgn);
+  /**
+   * Performs the inverse of ConvertHRGNToRegion.
+   * The region must be cleaned up with DeleteObject().
+   */
+  static HRGN RegionToHRGN(const LayoutDeviceIntRegion&);
 
   /**
    * ToIntRect converts a Windows RECT to a LayoutDeviceIntRect.
@@ -424,6 +429,8 @@ class WinUtils {
    * returns the LayoutDeviceIntRect.
    */
   static LayoutDeviceIntRect ToIntRect(const RECT& aRect);
+  /** Performs the inverse of ToIntRect */
+  static RECT ToWinRect(const LayoutDeviceIntRect& aRect);
 
   /**
    * Returns true if the context or IME state is enabled.  Otherwise, false.
