@@ -38,11 +38,21 @@ add_task(async function test_main() {
     },
     { file: "helper_fission_animation_styling_in_oopif.html" },
     { file: "helper_fission_force_empty_hit_region.html" },
+    { file: "helper_fission_touch.html" },
+    {
+      file: "helper_fission_tap.html",
+      prefs: [["apz.max_tap_time", 10000]],
+    },
     { file: "helper_fission_inactivescroller_under_oopif.html" },
+    {
+      file: "helper_fission_tap_on_zoomed.html",
+      prefs: [["apz.max_tap_time", 10000]],
+    },
     {
       file: "helper_fission_tap_in_nested_iframe_on_zoomed.html",
       prefs: [["apz.max_tap_time", 10000]],
     },
+    { file: "helper_fission_scroll_handoff.html" },
     { file: "helper_fission_large_subframe.html" },
     { file: "helper_fission_initial_displayport.html" },
     { file: "helper_fission_checkerboard_severity.html" },

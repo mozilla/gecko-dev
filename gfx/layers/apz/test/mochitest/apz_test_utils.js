@@ -1329,6 +1329,7 @@ async function setupIframe(aIFrame, aURL) {
 
   await SpecialPowers.spawn(aIFrame, [], async () => {
     await content.wrappedJSObject.waitUntilApzStable();
+    await SpecialPowers.contentTransformsReceived(content);
   });
 }
 
@@ -1338,7 +1339,4 @@ async function setupCrossOriginIFrame(aIFrame, aUrl) {
   let iframeURL = SimpleTest.getTestFileURL(aUrl);
   iframeURL = iframeURL.replace(window.location.origin, "https://example.com");
   await setupIframe(aIFrame, iframeURL);
-  await SpecialPowers.spawn(aIFrame, [], async () => {
-    await SpecialPowers.contentTransformsReceived(content);
-  });
 }
