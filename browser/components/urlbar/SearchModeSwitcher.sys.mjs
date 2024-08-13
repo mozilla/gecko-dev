@@ -169,10 +169,13 @@ export class SearchModeSwitcher {
     }
   }
 
-  observe(_subject, topic, _data) {
+  observe(_subject, topic, data) {
     switch (topic) {
       case "browser-search-engine-modified": {
         this.#engineListNeedsRebuild = true;
+        if (data === "engine-default") {
+          this.#updateSearchIcon();
+        }
         break;
       }
     }
