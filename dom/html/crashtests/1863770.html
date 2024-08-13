@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const table = document.getElementById('table');
+    const caption = document.createElement('caption');
+    const anchor = document.createElement('a');
+    const span = document.createElement('span');
+    const input = document.createElement('input');
+    span.setAttribute('lang', '\0');
+    input.setAttribute('type', 'number');
+    input.setAttribute('value', 119);
+    anchor.appendChild(input);
+    span.appendChild(anchor);
+    caption.appendChild(span);
+    table.appendChild(caption);
+    setTimeout(() => {
+      const input2 = document.createElement('input');
+      input2.setAttribute('type', 'number');
+      input2.setAttribute('value', "+");
+      span.appendChild(input2);
+      input2.valueAsDecimal;
+
+      document.documentElement.removeAttribute("class");
+    }, 0);
+  });
+</script>
+<table id="table"></table>
+</html>

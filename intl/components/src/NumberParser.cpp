@@ -6,12 +6,13 @@
 namespace mozilla::intl {
 
 /*static*/ Result<UniquePtr<NumberParser>, ICUError> NumberParser::TryCreate(
-    const char* aLocale, bool aUseGrouping) {
+    std::string_view aLocale, bool aUseGrouping) {
   UniquePtr<NumberParser> nf = MakeUnique<NumberParser>();
 
   UErrorCode status = U_ZERO_ERROR;
   nf->mNumberFormat =
-      unum_open(UNUM_DECIMAL, nullptr, 0, aLocale, nullptr, &status);
+      unum_open(UNUM_DECIMAL, nullptr, 0, AssertNullTerminatedString(aLocale),
+                nullptr, &status);
   if (U_FAILURE(status)) {
     return Err(ToICUError(status));
   }
