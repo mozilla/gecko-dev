@@ -16,8 +16,8 @@
 #  include <unistd.h>
 #endif
 
-nsGZFileWriter::nsGZFileWriter(Operation aMode)
-    : mMode(aMode), mInitialized(false), mFinished(false), mGZFile(nullptr) {}
+nsGZFileWriter::nsGZFileWriter()
+    : mInitialized(false), mFinished(false), mGZFile(nullptr) {}
 
 nsGZFileWriter::~nsGZFileWriter() {
   if (mInitialized && !mFinished) {
@@ -34,7 +34,7 @@ nsresult nsGZFileWriter::Init(nsIFile* aFile) {
   // gzip can own.  Then close our FILE, leaving only gzip's fd open.
 
   FILE* file;
-  nsresult rv = aFile->OpenANSIFileDesc(mMode == Create ? "wb" : "ab", &file);
+  nsresult rv = aFile->OpenANSIFileDesc("wb", &file);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -46,7 +46,7 @@ nsresult nsGZFileWriter::InitANSIFileDesc(FILE* aFile) {
     return NS_ERROR_FAILURE;
   }
 
-  mGZFile = gzdopen(dup(fileno(aFile)), mMode == Create ? "wb" : "ab");
+  mGZFile = gzdopen(dup(fileno(aFile)), "wb");
   fclose(aFile);
 
   // gzdopen returns nullptr on error.
