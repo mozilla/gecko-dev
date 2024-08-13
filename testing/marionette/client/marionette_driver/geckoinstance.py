@@ -400,7 +400,7 @@ class GeckoInstance(object):
         args = {
             "binary": self.binary,
             "profile": self.profile,
-            "cmdargs": ["-no-remote", "-marionette"] + self.app_args,
+            "cmdargs": ["-marionette"] + self.app_args,
             "env": env,
             "symbols_path": self.symbols_path,
             "process_args": process_args,

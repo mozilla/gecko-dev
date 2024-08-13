@@ -208,6 +208,12 @@ const startupPhases = {
       read: 1,
       close: 1,
     },
+    {
+      // This is the startup lock used to restrict only one Firefox startup at a time.
+      path: "TmpD:firefox-default/parent.lock",
+      condition: WIN,
+      stat: 1,
+    },
   ],
 
   "before opening first browser window": [
