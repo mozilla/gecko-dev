@@ -261,6 +261,9 @@ export IPHONEOS_SDK_DIR
 PATH := $(topsrcdir)/build/macosx:$(PATH)
 endif
 endif
+# Use the same prefix as set through modules/zlib/src/mozzconf.h
+# for libz-rs-sys, since we still use the headers from there.
+export LIBZ_RS_SYS_PREFIX=MOZ_Z_
 
 ifndef RUSTC_BOOTSTRAP
 RUSTC_BOOTSTRAP := mozglue_static,qcms
