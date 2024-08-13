@@ -15,8 +15,8 @@ deb12-mercurial:
         using: debian-package
         dist: bookworm
         tarball:
-            url: https://www.mercurial-scm.org/release/mercurial-6.4.3.tar.gz
-            sha256: a77fb62d325934a83a00b2fc6db109f44c67b86768fc40490366f513640c7f64
+            url: https://www.mercurial-scm.org/release/mercurial-6.8.1.tar.gz
+            sha256: 030e8a7a6d590e4eaeb403ee25675615cd80d236f3ab8a0b56dcc84181158b05
         pre-build-command: >-
             cp -r contrib/packaging/debian debian &&
             sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.deb12moz1/" \

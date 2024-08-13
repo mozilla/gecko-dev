@@ -90,8 +90,8 @@ ub18-mercurial:
         symbol: Ub18(hg)
     run:
         tarball:
-            url: https://www.mercurial-scm.org/release/mercurial-6.4.3.tar.gz
-            sha256: a77fb62d325934a83a00b2fc6db109f44c67b86768fc40490366f513640c7f64
+            url: https://www.mercurial-scm.org/release/mercurial-6.8.1.tar.gz
+            sha256: 030e8a7a6d590e4eaeb403ee25675615cd80d236f3ab8a0b56dcc84181158b05
         pre-build-command: >-
             apt-get install python3.8-dev &&
             export DEB_HG_PYTHON_VERSIONS="3.8" &&
@@ -119,8 +119,8 @@ ub20-mercurial:
         symbol: Ub20(hg)
     run:
         tarball:
-            url: https://www.mercurial-scm.org/release/mercurial-6.4.3.tar.gz
-            sha256: a77fb62d325934a83a00b2fc6db109f44c67b86768fc40490366f513640c7f64
+            url: https://www.mercurial-scm.org/release/mercurial-6.8.1.tar.gz
+            sha256: 030e8a7a6d590e4eaeb403ee25675615cd80d236f3ab8a0b56dcc84181158b05
         dist: focal
         pre-build-command: >-
             cp -r contrib/packaging/debian debian &&
@@ -160,8 +160,8 @@ ub22-mercurial:
         symbol: Ub22(hg)
     run:
         tarball:
-            url: https://www.mercurial-scm.org/release/mercurial-6.4.3.tar.gz
-            sha256: a77fb62d325934a83a00b2fc6db109f44c67b86768fc40490366f513640c7f64
+            url: https://www.mercurial-scm.org/release/mercurial-6.8.1.tar.gz
+            sha256: 030e8a7a6d590e4eaeb403ee25675615cd80d236f3ab8a0b56dcc84181158b05
         dist: jammy
         pre-build-command: >-
             cp -r contrib/packaging/debian debian &&
