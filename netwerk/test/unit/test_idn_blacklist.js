@@ -121,17 +121,9 @@ const testcases = [
 ];
 
 function run_test() {
-  var pbi = Services.prefs;
-  var oldProfile = pbi.getCharPref(
-    "network.IDN.restriction_profile",
-    "moderate"
-  );
   var idnService = Cc["@mozilla.org/network/idn-service;1"].getService(
     Ci.nsIIDNService
   );
-
-  pbi.setCharPref("network.IDN.restriction_profile", "moderate");
-
   for (var j = 0; j < testcases.length; ++j) {
     var test = testcases[j];
     var URL = test[0] + ".com";
@@ -159,5 +151,4 @@ function run_test() {
       equal(escape(result), escape(punycodeURL));
     }
   }
-  pbi.setCharPref("network.IDN.restriction_profile", oldProfile);
 }

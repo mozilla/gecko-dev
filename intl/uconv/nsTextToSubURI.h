@@ -28,8 +28,7 @@ class nsTextToSubURI : public nsITextToSubURI {
                                       const nsCString& aURI,
                                       nsAString& _retval);
 
-  // Characters defined in netwerk/dns/IDNCharacterBlocklist.inc or via the
-  // network.IDN.extra_allowed_chars and network.IDN.extra_blocked_chars prefs.
+  // Characters defined in netwerk/dns/IDNCharacterBlocklist.inc
   nsTArray<mozilla::net::BlocklistRange> mIDNBlocklist;
 };
 

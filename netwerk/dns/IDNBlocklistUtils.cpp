@@ -4,7 +4,6 @@
 
 #include "IDNBlocklistUtils.h"
 
-#include "mozilla/Preferences.h"
 #include "nsStringFwd.h"
 
 namespace mozilla {
@@ -56,29 +55,6 @@ void InitializeBlocklist(nsTArray<BlocklistRange>& aBlocklist) {
   for (auto const& arr : sBlocklistPairs) {
     // The hardcoded pairs are already sorted.
     aBlocklist.AppendElement(std::make_pair(arr[0], arr[1]));
-  }
-
-  nsAutoString extraAllowed;
-  nsresult rv =
-      Preferences::GetString("network.IDN.extra_allowed_chars", extraAllowed);
-  if (NS_SUCCEEDED(rv) && !extraAllowed.IsEmpty()) {
-    const char16_t* cur = extraAllowed.BeginReading();
-    const char16_t* end = extraAllowed.EndReading();
-    // Characters in the allowed list are removed from the blocklist.
-    for (; cur < end; ++cur) {
-      RemoveCharFromBlocklist(*cur, aBlocklist);
-    }
-  }
-
-  nsAutoString extraBlocked;
-  rv = Preferences::GetString("network.IDN.extra_blocked_chars", extraBlocked);
-  // We add each extra blocked character to the blocklist as a separate range.
-  if (NS_SUCCEEDED(rv) && !extraBlocked.IsEmpty()) {
-    for (size_t i = 0; i < extraBlocked.Length(); ++i) {
-      aBlocklist.AppendElement(
-          std::make_pair(extraBlocked[i], extraBlocked[i]));
-    }
-    aBlocklist.Sort(BlocklistEntryComparator());
   }
 }
 

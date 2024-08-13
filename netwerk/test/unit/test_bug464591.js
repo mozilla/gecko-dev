@@ -17,18 +17,6 @@ let badURIs = [
   ["www.e%00xample.com%e2%88%95www.mozill%d0%b0.com%e2%81%84www.mozill%61.org"],
 ];
 
-let prefData = [
-  {
-    name: "network.enableIDN",
-    newVal: true,
-  },
-];
-
-let prefIdnBlackList = {
-  name: "network.IDN.extra_blocked_chars",
-  minimumList: "\u2215\u0430\u2044",
-};
-
 function stringToURL(str) {
   return Cc["@mozilla.org/network/standard-url-mutator;1"]
     .createInstance(Ci.nsIStandardURLMutator)
@@ -38,37 +26,6 @@ function stringToURL(str) {
 }
 
 function run_test() {
-  // Make sure our prefs are set such that this test actually means something
-  let prefs = Services.prefs;
-  for (let pref of prefData) {
-    prefs.setBoolPref(pref.name, pref.newVal);
-  }
-
-  prefIdnBlackList.set = false;
-  try {
-    prefIdnBlackList.oldVal = prefs.getComplexValue(
-      prefIdnBlackList.name,
-      Ci.nsIPrefLocalizedString
-    ).data;
-    prefs.getComplexValue(
-      prefIdnBlackList.name,
-      Ci.nsIPrefLocalizedString
-    ).data = prefIdnBlackList.minimumList;
-    prefIdnBlackList.set = true;
-  } catch (e) {}
-
-  registerCleanupFunction(function () {
-    for (let pref of prefData) {
-      prefs.clearUserPref(pref.name);
-    }
-    if (prefIdnBlackList.set) {
-      prefs.getComplexValue(
-        prefIdnBlackList.name,
-        Ci.nsIPrefLocalizedString
-      ).data = prefIdnBlackList.oldVal;
-    }
-  });
-
   for (let i = 0; i < reference.length; ++i) {
     try {
       let result = stringToURL("http://" + reference[i][0]).host;

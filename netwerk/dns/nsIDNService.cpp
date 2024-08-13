@@ -33,9 +33,6 @@ using mozilla::Preferences;
 
 //-----------------------------------------------------------------------------
 
-#define NS_NET_PREF_EXTRAALLOWED "network.IDN.extra_allowed_chars"
-#define NS_NET_PREF_EXTRABLOCKED "network.IDN.extra_blocked_chars"
-#define NS_NET_PREF_IDNRESTRICTION "network.IDN.restriction_profile"
 #define ISNUMERIC(c) ((c) >= '0' && (c) <= '9')
 
 template <int N>
@@ -161,55 +158,10 @@ static bool isDigitLookalike(char32_t aChar) {
 /* Implementation file */
 NS_IMPL_ISUPPORTS(nsIDNService, nsIIDNService)
 
-static const char* gCallbackPrefs[] = {
-    NS_NET_PREF_EXTRAALLOWED,
-    NS_NET_PREF_EXTRABLOCKED,
-    NS_NET_PREF_IDNRESTRICTION,
-    nullptr,
-};
-
 nsresult nsIDNService::Init() {
   MOZ_ASSERT(NS_IsMainThread());
-  // Take a strong reference for our listener with the preferences service,
-  // which we will release on shutdown.
-  // It's OK if we remove the observer a bit early, as it just means we won't
-  // respond to `network.IDN.extra_{allowed,blocked}_chars` and
-  // `network.IDN.restriction_profile` pref changes during shutdown.
-  Preferences::RegisterPrefixCallbacks(PrefChanged, gCallbackPrefs, this);
-  RunOnShutdown(
-      [self = RefPtr{this}]() mutable {
-        Preferences::UnregisterPrefixCallbacks(PrefChanged, gCallbackPrefs,
-                                               self.get());
-        self = nullptr;
-      },
-      ShutdownPhase::XPCOMWillShutdown);
-  prefsChanged(nullptr);
-
+  InitializeBlocklist(mIDNBlocklist);
   return NS_OK;
-}
-
-void nsIDNService::prefsChanged(const char* pref) {
-  MOZ_ASSERT(NS_IsMainThread());
-  AutoWriteLock lock(mLock);
-
-  if (!pref || nsLiteralCString(NS_NET_PREF_EXTRAALLOWED).Equals(pref) ||
-      nsLiteralCString(NS_NET_PREF_EXTRABLOCKED).Equals(pref)) {
-    InitializeBlocklist(mIDNBlocklist);
-  }
-  if (!pref || nsLiteralCString(NS_NET_PREF_IDNRESTRICTION).Equals(pref)) {
-    nsAutoCString profile;
-    if (NS_FAILED(
-            Preferences::GetCString(NS_NET_PREF_IDNRESTRICTION, profile))) {
-      profile.Truncate();
-    }
-    if (profile.EqualsLiteral("moderate")) {
-      mRestrictionProfile = eModeratelyRestrictiveProfile;
-    } else if (profile.EqualsLiteral("high")) {
-      mRestrictionProfile = eHighlyRestrictiveProfile;
-    } else {
-      mRestrictionProfile = eASCIIOnlyProfile;
-    }
-  }
 }
 
 nsIDNService::nsIDNService() { MOZ_ASSERT(NS_IsMainThread()); }
@@ -303,19 +255,8 @@ enum class DigitLookalikeStatus { Ignore, Safe, Block };
 
 bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
                                mozilla::Span<const char32_t> aTLD) {
-  restrictionProfile profile{eASCIIOnlyProfile};
-  {
-    AutoReadLock lock(mLock);
-
-    if (!isOnlySafeChars(aLabel, mIDNBlocklist)) {
-      return false;
-    }
-
-    // We should never get here if the label is ASCII
-    if (mRestrictionProfile == eASCIIOnlyProfile) {
-      return false;
-    }
-    profile = mRestrictionProfile;
+  if (!isOnlySafeChars(aLabel, mIDNBlocklist)) {
+    return false;
   }
 
   mozilla::Span<const char32_t>::const_iterator current = aLabel.cbegin();
@@ -346,7 +287,7 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     Script script = UnicodeProperties::GetScriptCode(ch);
     if (script != Script::COMMON && script != Script::INHERITED &&
         script != lastScript) {
-      if (illegalScriptCombo(profile, script, savedScript)) {
+      if (illegalScriptCombo(script, savedScript)) {
         return false;
       }
     }
@@ -588,24 +529,15 @@ static const ScriptCombo scriptComboTable[13][9] = {
     /* KORE */ {FAIL, FAIL, FAIL, KORE, KORE, FAIL, FAIL, KORE, FAIL},
     /* HNLT */ {CHNA, FAIL, FAIL, KORE, HNLT, JPAN, JPAN, HNLT, FAIL}};
 
-bool nsIDNService::illegalScriptCombo(restrictionProfile profile, Script script,
-                                      ScriptCombo& savedScript) {
+bool nsIDNService::illegalScriptCombo(Script script, ScriptCombo& savedScript) {
   if (savedScript == ScriptCombo::UNSET) {
     savedScript = findScriptIndex(script);
     return false;
   }
 
   savedScript = scriptComboTable[savedScript][findScriptIndex(script)];
-  /*
-   * Special case combinations that depend on which profile is in use
-   * In the Highly Restrictive profile Latin is not allowed with any
-   *  other script
-   *
-   * In the Moderately Restrictive profile Latin mixed with any other
-   *  single script is allowed.
-   */
-  return ((savedScript == OTHR && profile == eHighlyRestrictiveProfile) ||
-          savedScript == FAIL);
+
+  return savedScript == OTHR || savedScript == FAIL;
 }
 
 extern "C" MOZ_EXPORT bool mozilla_net_is_label_safe(const char32_t* aLabel,

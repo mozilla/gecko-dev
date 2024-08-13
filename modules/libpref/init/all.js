@@ -1350,31 +1350,6 @@ pref("network.websocket.delay-failed-reconnects", true);
 // Equal to the DEFAULT_RECONNECTION_TIME_VALUE value in nsEventSource.cpp
 pref("dom.server-events.default-reconnection-time", 5000); // in milliseconds
 
-// TLDs are treated as IDN-unsafe and punycode will be used for displaying them
-// in the UI (e.g. URL bar), unless they conform to one of the profiles
-// specified in
-// https://www.unicode.org/reports/tr39/#Restriction_Level_Detection
-// If "network.IDN.restriction_profile" is "high", the Highly Restrictive
-// profile is used.
-// If "network.IDN.restriction_profile" is "moderate", the Moderately
-// Restrictive profile is used.
-// In all other cases, the ASCII-Only profile is used.
-pref("network.IDN.restriction_profile", "high");
-
-// If a domain includes any of the blocklist characters, it may be a spoof
-// attempt and so we always display the domain name as punycode.
-// For a complete list of the blocked IDN characters see:
-//   netwerk/dns/IDNCharacterBlocklist.inc
-
-// This pref may contain characters that will override the hardcoded blocklist,
-// so their presence in a domain name will not cause it to be displayed as
-// punycode.
-// Note that this only removes the characters from the blocklist, but there may
-// be other rules in place that cause it to be displayed as punycode.
-pref("network.IDN.extra_allowed_chars", "");
-// This pref may contain additional blocklist characters
-pref("network.IDN.extra_blocked_chars", "");
-
 // This preference specifies a list of domains for which DNS lookups will be
 // IPv4 only. Works around broken DNS servers which can't handle IPv6 lookups
 // and/or allows the user to disable IPv6 on a per-domain basis. See bug 68796.

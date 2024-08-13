@@ -50,10 +50,7 @@ inline bool CharInBlocklist(char16_t aChar,
   return aBlocklist.ContainsSorted(aChar, BlocklistPairToCharComparator());
 }
 
-// Initializes the blocklist based on the statically defined list and the
-// values of the following preferences:
-//     - network.IDN.extra_allowed_chars
-//     - network.IDN.extra_blocked_chars
+// Initializes the blocklist based on the statically defined list
 void InitializeBlocklist(nsTArray<BlocklistRange>& aBlocklist);
 
 void RemoveCharFromBlocklist(char16_t aChar,
