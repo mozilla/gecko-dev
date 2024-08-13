@@ -8,7 +8,6 @@
 #include "nsIFile.h"
 #include "nsString.h"
 #include "zlib.h"
-#include "mozilla/ScopeExit.h"
 
 #ifdef XP_WIN
 #  include <io.h>
@@ -17,11 +16,8 @@
 #  include <unistd.h>
 #endif
 
-nsGZFileWriter::nsGZFileWriter()
-    : mInitialized(false), mFinished(false), mGZFile(nullptr) {
-  mZStream.avail_out = sizeof(mBuffer);
-  mZStream.next_out = mBuffer;
-}
+nsGZFileWriter::nsGZFileWriter(Operation aMode)
+    : mMode(aMode), mInitialized(false), mFinished(false), mGZFile(nullptr) {}
 
 nsGZFileWriter::~nsGZFileWriter() {
   if (mInitialized && !mFinished) {
@@ -38,7 +34,7 @@ nsresult nsGZFileWriter::Init(nsIFile* aFile) {
   // gzip can own.  Then close our FILE, leaving only gzip's fd open.
 
   FILE* file;
-  nsresult rv = aFile->OpenANSIFileDesc("wb", &file);
+  nsresult rv = aFile->OpenANSIFileDesc(mMode == Create ? "wb" : "ab", &file);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -50,13 +46,14 @@ nsresult nsGZFileWriter::InitANSIFileDesc(FILE* aFile) {
     return NS_ERROR_FAILURE;
   }
 
-  int err = deflateInit2(&mZStream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-                         MAX_WBITS + /* gzip encoding */ 16,
-                         /* DEF_MEM_LEVEL */ 8, Z_DEFAULT_STRATEGY);
-  if (err != Z_OK) {
+  mGZFile = gzdopen(dup(fileno(aFile)), mMode == Create ? "wb" : "ab");
+  fclose(aFile);
+
+  // gzdopen returns nullptr on error.
+  if (NS_WARN_IF(!mGZFile)) {
     return NS_ERROR_FAILURE;
   }
-  mGZFile = aFile;
+
   mInitialized = true;
 
   return NS_OK;
@@ -75,34 +72,14 @@ nsresult nsGZFileWriter::Write(const nsACString& aStr) {
     return NS_OK;
   }
 
-  mZStream.avail_in = aStr.Length();
-  mZStream.next_in =
-      reinterpret_cast<Bytef*>(const_cast<char*>(aStr.BeginReading()));
+  // gzwrite never does a short write -- that is, the return value should
+  // always be either 0 or aStr.Length(), and we shouldn't have to call it
+  // multiple times in order to get it to read the whole buffer.
+  int rv = gzwrite(mGZFile, aStr.BeginReading(), aStr.Length());
+  if (NS_WARN_IF(rv != static_cast<int>(aStr.Length()))) {
+    return NS_ERROR_FAILURE;
+  }
 
-  auto cleanup = mozilla::MakeScopeExit([&] {
-    mZStream.avail_in = 0;
-    mZStream.next_in = nullptr;
-  });
-  auto onerror = mozilla::MakeScopeExit([&] {
-    mFinished = true;
-    fclose(mGZFile);
-  });
-
-  do {
-    if (mZStream.avail_out == 0) {
-      if (fwrite(mBuffer, 1, sizeof(mBuffer), mGZFile) != sizeof(mBuffer)) {
-        return NS_ERROR_FAILURE;
-      }
-      mZStream.avail_out = sizeof(mBuffer);
-      mZStream.next_out = mBuffer;
-    }
-    int err = deflate(&mZStream, Z_NO_FLUSH);
-    if (err == Z_STREAM_ERROR) {
-      return NS_ERROR_FAILURE;
-    }
-  } while (mZStream.avail_in);
-
-  onerror.release();
   return NS_OK;
 }
 
@@ -111,29 +88,10 @@ nsresult nsGZFileWriter::Finish() {
     return NS_ERROR_FAILURE;
   }
 
-  mZStream.avail_in = 0;
-  mZStream.next_in = nullptr;
+  mFinished = true;
+  gzclose(mGZFile);
 
-  auto cleanup = mozilla::MakeScopeExit([&] {
-    mFinished = true;
-    fclose(mGZFile);
-  });
-
-  int err;
-  do {
-    err = deflate(&mZStream, Z_FINISH);
-    if (err == Z_STREAM_ERROR) {
-      return NS_ERROR_FAILURE;
-    }
-    size_t length = sizeof(mBuffer) - mZStream.avail_out;
-    if (fwrite(mBuffer, 1, length, mGZFile) != length) {
-      return NS_ERROR_FAILURE;
-    }
-    mZStream.avail_out = sizeof(mBuffer);
-    mZStream.next_out = mBuffer;
-  } while (err != Z_STREAM_END);
-
-  // Ignore errors from fclose; it's not like there's anything we can do about
+  // Ignore errors from gzclose; it's not like there's anything we can do about
   // it, at this point!
   return NS_OK;
 }
