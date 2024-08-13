@@ -1477,34 +1477,6 @@ with only_when(compile_environment):
     )
 
 
-# Optimization flags
-# ==============================================================
-@depends(
-    target,
-    c_compiler,
-    configured_moz_optimize_flags,
-    when="--enable-compile-environment",
-)
-@imports(_from="mozbuild.shellutil", _import="split")
-def moz_js_optimize_flags(target, compiler, configured_moz_optimize_flags):
-    if configured_moz_optimize_flags:
-        return configured_moz_optimize_flags
-
-    if target.kernel in ("Darwin", "Linux"):
-        flags = ["-O3"]
-        if target.os == "Android" and compiler.type == "gcc":
-            flags += ["-fno-reorder-functions"]
-        return flags
-    elif target.kernel == "WINNT":
-        return ["-O2"]
-    else:
-        return ["-O"]
-
-
-set_config("MOZ_JS_OPTIMIZE_FLAGS", moz_js_optimize_flags, when=~js_build)
-set_config("MOZ_OPTIMIZE_FLAGS", moz_js_optimize_flags, when=js_build)
-
-
 # link executables against mozglue
 # ==============================================================
 @depends(

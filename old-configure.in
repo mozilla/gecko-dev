@@ -36,6 +36,39 @@ fi
 fi # COMPILE_ENVIRONMENT
 
 dnl ========================================================
+dnl System overrides of the defaults for target
+dnl ========================================================
+
+case "$target" in
+*-darwin*)
+    MOZ_OPTIMIZE_FLAGS="-O3"
+    ;;
+
+*-android*|*-linuxandroid*)
+    MOZ_OPTIMIZE_FLAGS="-O2"
+    ;;
+
+*-*linux*)
+    if test "$CC_TYPE" != clang-cl ; then
+        MOZ_OPTIMIZE_FLAGS="-O2"
+    fi
+    ;;
+*-mingw*)
+    MOZ_OPTIMIZE_FLAGS="-O2"
+    ;;
+esac
+
+if test -z "$MOZ_OPTIMIZE_FLAGS"; then
+    MOZ_OPTIMIZE_FLAGS="-O"
+fi
+
+
+dnl Mozilla specific options
+dnl ========================================================
+dnl The macros used for command line options
+dnl are defined in build/autoconf/altoptions.m4.
+
+dnl ========================================================
 dnl =
 dnl = Application
 dnl =
@@ -90,6 +123,18 @@ if test -f "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"; then
 fi
 
 AC_SUBST(MOZ_BRANDING_DIRECTORY)
+
+dnl ========================================================
+dnl = Enable code optimization. ON by default.
+dnl ========================================================
+
+# Use value from moz.configure if one is defined. Else use our computed
+# value.
+if test -n "${MOZ_CONFIGURE_OPTIMIZE_FLAGS}"; then
+    MOZ_OPTIMIZE_FLAGS=${MOZ_CONFIGURE_OPTIMIZE_FLAGS}
+fi
+
+AC_SUBST_LIST(MOZ_OPTIMIZE_FLAGS)
 
 
 dnl ========================================================

@@ -514,11 +514,6 @@ class TargetCompileFlags(BaseCompileFlags):
     def _optimize_flags(self):
         if not self._context.config.substs.get("MOZ_OPTIMIZE"):
             return []
-        # js/src/* have their own optimization flag.
-        if self._context.relsrcdir == "js/src" or self._context.relsrcdir.startswith(
-            "js/src/"
-        ):
-            return self._context.config.substs.get("MOZ_JS_OPTIMIZE_FLAGS")
         return self._context.config.substs.get("MOZ_OPTIMIZE_FLAGS")
 
     def __setitem__(self, key, value):
