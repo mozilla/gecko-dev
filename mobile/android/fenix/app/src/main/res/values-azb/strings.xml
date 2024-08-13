@@ -2083,6 +2083,8 @@
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_title_2">یاددا ساخلادیغیز پول تؤکمه یوللاریزیْ قوْرویون</string>
 
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="credit_cards_warning_dialog_message_3">آیری نفرین جهازیزیْ اَله توشمه‌سی دوروموندا یاددا ساخلادیغیز پول تؤکمه یوللاریزیْ گیرمکدن قوْروماق اوچون جهاز کیلیدی الگوسو، پین و یا رمز وئرین.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">ایندی قوْش</string>
 
@@ -2096,6 +2098,34 @@
     <string name="addresses_add_address">آدرس آرتیر</string>
     <!-- Title of the "Edit address" screen -->
     <string name="addresses_edit_address">آدرس دوزه‌لیشی</string>
+
+    <!-- Title of the "Manage addresses" screen -->
+    <string name="addresses_manage_addresses">آدرس‌لری ایداره ائله</string>
+    <!-- The header for the name of an address. Name represents a person's full name, typically made up of a first, middle and last name, e.g. John Joe Doe. -->
+    <string name="addresses_name">آد</string>
+    <!-- The header for the street address of an address -->
+    <string name="addresses_street_address">خیابان آدرسی</string>
+
+    <!-- The header for the city of an address -->
+    <string name="addresses_city">شهر</string>
+    <!-- The header for the subregion of an address when "state" should be used -->
+    <string name="addresses_state">منطقه</string>
+    <!-- The header for the subregion of an address when "province" should be used -->
+    <string name="addresses_province">ایالت</string>
+    <!-- The header for the zip code of an address -->
+    <string name="addresses_zip">زیپ</string>
+    <!-- The header for the country or region of an address -->
+    <string name="addresses_country">اؤلکه یا بؤلگه</string>
+    <!-- The header for the phone number of an address -->
+    <string name="addresses_phone">تلفن</string>
+    <!-- The header for the email of an address -->
+    <string name="addresses_email">ایمیل</string>
+    <!-- The text for the "Save" button for saving an address -->
+    <string name="addresses_save_button">ساخلا</string>
+    <!-- The text for the "Cancel" button for cancelling adding, updating or deleting an address -->
+    <string name="addresses_cancel_button">لغو</string>
+    <!-- The text for the "Delete address" button for deleting an address -->
+    <string name="addressess_delete_address_button">آدرسی سیل</string>
 
     <!-- Translations feature-->
 
