@@ -918,6 +918,84 @@ function testParseVariable(doc, parser) {
           '<span data-variable="--refers-empty = var(--empty)" data-variable-computed="">--refers-empty</span>)' +
         "</span>",
     },
+    {
+      text: "hsl(50, 70%, var(--foo))",
+      variables: {
+        "--foo": "40%",
+      },
+      expected:
+        // prettier-ignore
+        `<span data-color="hsl(50, 70%, 40%)">` +
+          `<span>`+
+            `hsl(50, 70%, ` +
+            `<span>` +
+              `var(` +
+                `<span data-variable="--foo = 40%">--foo</span>` +
+              `)` +
+            `</span>)` +
+          `</span>` +
+        `</span>`,
+    },
+    {
+      text: "var(--bar)",
+      variables: {
+        "--foo": "40%",
+        "--bar": "hsl(50, 70%, var(--foo))",
+      },
+      expected:
+        // prettier-ignore
+        `<span data-color="hsl(50, 70%, 40%)">` +
+          `<span>` +
+            `var(` +
+              `<span data-variable="--bar = hsl(50, 70%, var(--foo))" data-variable-computed="hsl(50, 70%, 40%)">--bar</span>` +
+            `)` +
+          `</span>` +
+        `</span>`,
+    },
+    {
+      text: "var(--primary)",
+      variables: {
+        "--primary": "hsl(10, 100%, var(--fur))",
+        "--fur": "var(--bar)",
+        "--bar": "var(--foo)",
+        "--foo": "50%",
+      },
+      expected:
+        // prettier-ignore
+        `<span data-color="hsl(10, 100%, 50%)">` +
+          `<span>` +
+            `var(` +
+              `<span data-variable="--primary = hsl(10, 100%, var(--fur))" data-variable-computed="hsl(10, 100%, 50%)">--primary</span>` +
+            `)` +
+          `</span>` +
+        `</span>`,
+    },
+    {
+      text: "oklch(var(--fur) 20 var(--boo))",
+      variables: {
+        "--fur": "var(--baz)",
+        "--baz": "var(--foo)",
+        "--foo": "10",
+        "--boo": "30",
+      },
+      expected:
+        // prettier-ignore
+        `<span data-color="oklch(10 20 30)">` +
+          `<span>oklch(` +
+            `<span>` +
+              `var(` +
+                `<span data-variable="--fur = var(--baz)" data-variable-computed="10">--fur</span>` +
+              `)` +
+            `</span>` +
+            ` 20 ` +
+            `<span>` +
+              `var(` +
+                `<span data-variable="--boo = 30">--boo</span>` +
+              `)` +
+            `</span>` +
+          `)</span>` +
+        `</span>`,
+    },
   ];
 
   const target = doc.querySelector("div");

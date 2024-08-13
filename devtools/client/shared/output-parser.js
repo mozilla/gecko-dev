@@ -240,13 +240,9 @@ class OutputParser {
         options.getVariableData
       ) {
         sawVariable = true;
-        const { node, value, fallbackValue } = this.#parseVariable(
-          token,
-          text,
-          tokenStream,
-          options
-        );
-        functionData.push({ node, value, fallbackValue });
+        const { node, value, computedValue, fallbackValue } =
+          this.#parseVariable(token, text, tokenStream, options);
+        functionData.push({ node, value, computedValue, fallbackValue });
       } else if (token.tokenType === "Function") {
         ++depth;
       }
@@ -415,6 +411,7 @@ class OutputParser {
     return {
       node: variableNode,
       value: varSubsitutedValue,
+      computedValue: varComputedValue,
       fallbackValue: varFallbackValue,
     };
   }
@@ -504,25 +501,28 @@ class OutputParser {
             lowerCaseFunctionName === "var" &&
             options.getVariableData
           ) {
-            const { node: variableNode, value } = this.#parseVariable(
-              token,
-              text,
-              tokenStream,
-              options
-            );
+            const {
+              node: variableNode,
+              value,
+              computedValue,
+            } = this.#parseVariable(token, text, tokenStream, options);
 
+            const variableValue = computedValue ?? value;
             // InspectorUtils.isValidCSSColor returns true for `light-dark()` function,
             // but `#isValidColor` returns false. As the latter is used in #appendColor,
             // we need to check that both functions return true.
             const colorObj =
-              value && colorOK() && InspectorUtils.isValidCSSColor(value)
-                ? new colorUtils.CssColor(value)
+              value &&
+              colorOK() &&
+              InspectorUtils.isValidCSSColor(variableValue)
+                ? new colorUtils.CssColor(variableValue)
                 : null;
+
             if (colorObj && this.#isValidColor(colorObj)) {
               const colorFunctionEntry = this.#stack.findLast(
                 entry => entry.isColorTakingFunction
               );
-              this.#appendColor(value, {
+              this.#appendColor(variableValue, {
                 ...options,
                 colorObj,
                 variableContainer: variableNode,
@@ -548,7 +548,9 @@ class OutputParser {
                     if (typeof data === "string") {
                       return data;
                     }
-                    return data.value ?? data.fallbackValue;
+                    return (
+                      data.computedValue ?? data.value ?? data.fallbackValue
+                    );
                   })
                   .join("") +
                 ")";
