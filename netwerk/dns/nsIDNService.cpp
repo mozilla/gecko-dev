@@ -115,6 +115,45 @@ static bool isCJKIdeograph(char32_t aChar) {
   }
 }
 
+static bool isDigitLookalike(char32_t aChar) {
+  switch (aChar) {
+    case 0x03B8:  // θ
+    case 0x0968:  // २
+    case 0x09E8:  // ২
+    case 0x0A68:  // ੨
+    case 0x0AE8:  // ૨
+    case 0x0CE9:  // ೩
+    case 0x0577:  // շ
+    case 0x0437:  // з
+    case 0x0499:  // ҙ
+    case 0x04E1:  // ӡ
+    case 0x0909:  // उ
+    case 0x0993:  // ও
+    case 0x0A24:  // ਤ
+    case 0x0A69:  // ੩
+    case 0x0AE9:  // ૩
+    case 0x0C69:  // ౩
+    case 0x1012:  // ဒ
+    case 0x10D5:  // ვ
+    case 0x10DE:  // პ
+    case 0x0A5C:  // ੜ
+    case 0x10D9:  // კ
+    case 0x0A6B:  // ੫
+    case 0x4E29:  // 丩
+    case 0x3110:  // ㄐ
+    case 0x0573:  // ճ
+    case 0x09EA:  // ৪
+    case 0x0A6A:  // ੪
+    case 0x0B6B:  // ୫
+    case 0x0AED:  // ૭
+    case 0x0B68:  // ୨
+    case 0x0C68:  // ౨
+      return true;
+    default:
+      return false;
+  }
+}
+
 //-----------------------------------------------------------------------------
 // nsIDNService
 //-----------------------------------------------------------------------------
@@ -252,6 +291,14 @@ enum ScriptCombo : int32_t {
   FAIL = 13,
 };
 
+// Ignore - set if the label contains any character that is neither a digit nor
+// a digit lookalike (simply ignore the rest of the label).
+// Safe - set if the label contains no digit lookalike characters.
+// Block - set if the label contains a digit lookalike character, and this
+// remains unchanged if the label consists solely of non-digit and non-digit
+// lookalike characters.
+enum class DigitLookalikeStatus { Ignore, Safe, Block };
+
 }  // namespace mozilla::net
 
 bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
@@ -278,6 +325,7 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
   char32_t previousChar = 0;
   char32_t baseChar = 0;  // last non-diacritic seen (base char for marks)
   char32_t savedNumberingSystem = 0;
+  DigitLookalikeStatus digitLookalikeStatus = DigitLookalikeStatus::Safe;
 // Simplified/Traditional Chinese check temporarily disabled -- bug 857481
 #if 0
   HanVariantType savedHanVariant = HVT_NotHan;
@@ -370,6 +418,16 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     if (ch == 0xB7 && (!TLDEqualsLiteral(aTLD, "cat") || previousChar != 'l' ||
                        current == end || *current != 'l')) {
       return false;
+    }
+
+    // Ignore digit lookalikes if there is a non-digit and non-digit lookalike
+    // character. If aLabel only consists of digits and digit lookalikes or
+    // digit lookalikes, return false.
+    if (digitLookalikeStatus != DigitLookalikeStatus::Ignore &&
+        !ISNUMERIC(ch)) {
+      digitLookalikeStatus = isDigitLookalike(ch)
+                                 ? DigitLookalikeStatus::Block
+                                 : DigitLookalikeStatus::Ignore;
     }
 
     // Disallow Icelandic confusables for domains outside Icelandic and Faroese
@@ -486,7 +544,7 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
 
     previousChar = ch;
   }
-  return true;
+  return digitLookalikeStatus != DigitLookalikeStatus::Block;
 }
 
 // Scripts that we care about in illegalScriptCombo

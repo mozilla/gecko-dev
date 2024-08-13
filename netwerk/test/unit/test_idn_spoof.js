@@ -81,14 +81,14 @@ let testCases = [
   ["xn---123-kbjl2j0bl2k.in", "\u0939\u093f\u0928\u094d\u0926\u0940-123.in", kSafe],
 
   // Block mixed numeric + numeric lookalike (12.com, using U+0577).
-  ["xn--1-xcc.com", "1\u0577.com", kUnsafe, "DISABLED"],
+  ["xn--1-xcc.com", "1\u0577.com", kUnsafe],
 
   // Block mixed numeric lookalike + numeric (੨0.com, uses U+0A68).
   ["xn--0-6ee.com", "\u0a680.com", kUnsafe],
   // Block fully numeric lookalikes (৪੨.com using U+09EA and U+0A68).
   ["xn--47b6w.com", "\u09ea\u0a68.com", kUnsafe],
   // Block single script digit lookalikes (using three U+0A68 characters).
-  ["xn--qccaa.com", "\u0a68\u0a68\u0a68.com", kUnsafe, "DISABLED"],
+  ["xn--qccaa.com", "\u0a68\u0a68\u0a68.com", kUnsafe],
 
   // URL test with mostly numbers and one confusable character
   // Georgian 'd' 4000.com
@@ -371,26 +371,26 @@ let testCases = [
   //
   // Bengali:
   ["xn--07be.com", "\u09e6\u09e8.com", kUnsafe, "DISABLED"],
-  ["xn--27be.com", "\u09e8\u09ea.com", kUnsafe, "DISABLED"],
+  ["xn--27be.com", "\u09e8\u09ea.com", kUnsafe],
   ["xn--77ba.com", "\u09ed\u09ed.com", kUnsafe, "DISABLED"],
   // Gurmukhi:
-  ["xn--qcce.com", "\u0a68\u0a6a.com", kUnsafe, "DISABLED"],
+  ["xn--qcce.com", "\u0a68\u0a6a.com", kUnsafe],
   ["xn--occe.com", "\u0a66\u0a68.com", kUnsafe, "DISABLED"],
-  ["xn--rccd.com", "\u0a6b\u0a69.com", kUnsafe, "DISABLED"],
+  ["xn--rccd.com", "\u0a6b\u0a69.com", kUnsafe],
   ["xn--pcca.com", "\u0a67\u0a67.com", kUnsafe, "DISABLED"],
   // Telugu:
-  ["xn--drcb.com", "\u0c69\u0c68.com", kUnsafe, "DISABLED"],
+  ["xn--drcb.com", "\u0c69\u0c68.com", kUnsafe],
   // Devanagari:
   ["xn--d4be.com", "\u0966\u0968.com", kUnsafe, "DISABLED"],
   // Kannada:
   ["xn--yucg.com", "\u0ce6\u0ce9.com", kUnsafe, "DISABLED"],
   ["xn--yuco.com", "\u0ce6\u0ced.com", kUnsafe, "DISABLED"],
   // Oriya:
-  ["xn--1jcf.com", "\u0b6b\u0b68.com", kUnsafe, "DISABLED"],
+  ["xn--1jcf.com", "\u0b6b\u0b68.com", kUnsafe],
   ["xn--zjca.com", "\u0b66\u0b66.com", kUnsafe, "DISABLED"],
   // Gujarati:
   ["xn--cgce.com", "\u0ae6\u0ae8.com", kUnsafe, "DISABLED"],
-  ["xn--fgci.com", "\u0ae9\u0aed.com", kUnsafe, "DISABLED"],
+  ["xn--fgci.com", "\u0ae9\u0aed.com", kUnsafe],
   ["xn--dgca.com", "\u0ae7\u0ae7.com", kUnsafe, "DISABLED"],
 
   // wmhtb.com
@@ -495,37 +495,37 @@ let testCases = [
   ["xn--s5a8h3a.com", "\u04cf\u050d\u0503.com", kUnsafe],
 
   // 1շ34567890.com
-  ["xn--134567890-gnk.com", "1\u057734567890.com", kUnsafe, "DISABLED"],
+  ["xn--134567890-gnk.com", "1\u057734567890.com", kUnsafe],
   // ꓲ2345б7890.com
   ["xn--23457890-e7g93622b.com", "\ua4f22345\u04317890.com", kUnsafe],
   // 1ᒿ345б7890.com
   ["xn--13457890-e7g0943b.com", "1\u14bf345\u04317890.com", kUnsafe],
   // 12з4567890.com
-  ["xn--124567890-10h.com", "12\u04374567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-10h.com", "12\u04374567890.com", kUnsafe],
   // 12ҙ4567890.com
-  ["xn--124567890-1ti.com", "12\u04994567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-1ti.com", "12\u04994567890.com", kUnsafe],
   // 12ӡ4567890.com
-  ["xn--124567890-mfj.com", "12\u04e14567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-mfj.com", "12\u04e14567890.com", kUnsafe],
   // 12उ4567890.com
-  ["xn--124567890-m3r.com", "12\u09094567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-m3r.com", "12\u09094567890.com", kUnsafe],
   // 12ও4567890.com
-  ["xn--124567890-17s.com", "12\u09934567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-17s.com", "12\u09934567890.com", kUnsafe],
   // 12ਤ4567890.com
-  ["xn--124567890-hfu.com", "12\u0a244567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-hfu.com", "12\u0a244567890.com", kUnsafe],
   // 12ဒ4567890.com
-  ["xn--124567890-6s6a.com", "12\u10124567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-6s6a.com", "12\u10124567890.com", kUnsafe],
   // 12ვ4567890.com
-  ["xn--124567890-we8a.com", "12\u10D54567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-we8a.com", "12\u10D54567890.com", kUnsafe],
   // 12პ4567890.com
-  ["xn--124567890-hh8a.com", "12\u10DE4567890.com", kUnsafe, "DISABLED"],
+  ["xn--124567890-hh8a.com", "12\u10DE4567890.com", kUnsafe],
   // 123ㄐ567890.com
-  ["xn--123567890-dr5h.com", "123ㄐ567890.com", kUnsafe, "DISABLED"],
+  ["xn--123567890-dr5h.com", "123ㄐ567890.com", kUnsafe],
   // 123Ꮞ567890.com
   ["xn--123567890-dm4b.com", "123\u13ce567890.com", kUnsafe],
   // 12345б7890.com
   ["xn--123457890-fzh.com", "12345\u04317890.com", kUnsafe, "DISABLED"],
   // 12345ճ7890.com
-  ["xn--123457890-fmk.com", "12345ճ7890.com", kUnsafe, "DISABLED"],
+  ["xn--123457890-fmk.com", "12345ճ7890.com", kUnsafe],
   // 1234567ȣ90.com
   ["xn--123456790-6od.com", "1234567\u022390.com", kUnsafe],
   // 12345678୨0.com
@@ -862,13 +862,13 @@ let testCases = [
   ["xn--google-8m4e.com", "google\u309A.com", kUnsafe],
 
   // Small letter theta looks like a zero.
-  ["xn--123456789-yzg.com", "123456789\u03b8.com", kUnsafe, "DISABLED"],
+  ["xn--123456789-yzg.com", "123456789\u03b8.com", kUnsafe],
 
   ["xn--est-118d.net", "\u4e03est.net", kUnsafe],
   ["xn--est-918d.net", "\u4e05est.net", kUnsafe],
   ["xn--est-e28d.net", "\u4e06est.net", kUnsafe, "DISABLED"],
   ["xn--est-t18d.net", "\u4e01est.net", kUnsafe],
-  ["xn--3-cq6a.com", "\u4e293.com", kUnsafe, "DISABLED"],
+  ["xn--3-cq6a.com", "\u4e293.com", kUnsafe],
   ["xn--cxe-n68d.com", "c\u4e2bxe.com", kUnsafe, "DISABLED"],
   ["xn--cye-b98d.com", "cy\u4e42e.com", kUnsafe, "DISABLED"],
 
@@ -987,7 +987,7 @@ let testCases = [
 
   // Digit lookalike check of 16კ.com with character “კ” (U+10D9)
   // Test case for https://crbug.com/1156531
-  ["xn--16-1ik.com", "16\u10d9.com", kUnsafe, "DISABLED"],
+  ["xn--16-1ik.com", "16\u10d9.com", kUnsafe],
 
   // Skeleton generator check of officeკ65.com with character “კ” (U+10D9)
   // Test case for https://crbug.com/1156531
@@ -995,7 +995,7 @@ let testCases = [
 
   // Digit lookalike check of 16ੜ.com with character “ੜ” (U+0A5C)
   // Test case for https://crbug.com/1156531 (missed skeleton map)
-  ["xn--16-ogg.com", "16\u0a5c.com", kUnsafe, "DISABLED"],
+  ["xn--16-ogg.com", "16\u0a5c.com", kUnsafe],
 
   // Skeleton generator check of officeੜ65.com with character “ੜ” (U+0A5C)
   // Test case for https://crbug.com/1156531 (missed skeleton map)
