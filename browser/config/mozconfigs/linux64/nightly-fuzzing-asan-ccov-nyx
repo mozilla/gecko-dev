@@ -1,0 +1,5 @@
+. "$topsrcdir/browser/config/mozconfigs/linux64/nightly-fuzzing-asan-nyx"
+
+mk_add_options "export AFL_LLVM_INSTRUMENT=llvmcodecov"
+
+. "$topsrcdir/build/mozconfig.common.override"
