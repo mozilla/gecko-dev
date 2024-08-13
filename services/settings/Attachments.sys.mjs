@@ -247,7 +247,7 @@ export class Downloader {
           const blob = new Blob([fileBytes]);
 
           // 5. Save to cache
-          this.cacheImpl.set(record.id, { record, blob });
+          await this.cacheImpl.set(record.id, { record, blob });
 
           stream.close();
           zStream.close();
