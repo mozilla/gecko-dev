@@ -12,11 +12,15 @@
     ];
 
     var subtests = [
-      { "file": "helper_fission_transforms.html", "prefs": prefs },
       {
         "file": "helper_fission_tap.html",
         "prefs": [["apz.max_tap_time", 10000]],
       },
+      {
+        "file": "helper_fission_tap_on_zoomed.html",
+        "prefs": [["apz.max_tap_time", 10000]],
+      },
+      { "file": "helper_fission_transforms.html", "prefs": prefs },
     ];
 
     if (isApzEnabled()) {
