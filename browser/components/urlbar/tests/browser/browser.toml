@@ -233,6 +233,8 @@ support-files = [
 
 ["browser_enterAfterMouseOver.js"]
 
+["browser_focusContentDocumentEsc.js"]
+
 ["browser_focusedCmdK.js"]
 
 ["browser_groupLabels.js"]

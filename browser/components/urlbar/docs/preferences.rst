@@ -130,6 +130,10 @@ browser.urlbar.filter.javascript (boolean, default: true)
   When true, `javascript:` URLs are not included in search results for safety
   reasons.
 
+browser.urlbar.focusContentDocumentOnEsc (boolean, default: true)
+  Focus the content document when pressing the Escape key, if there's no
+  remaining typed history.
+
 browser.urlbar.formatting.enabled (boolean, default: true)
   Applies URL highlighting and other styling to the text in the urlbar input
   field. This should usually be enabled for security reasons.

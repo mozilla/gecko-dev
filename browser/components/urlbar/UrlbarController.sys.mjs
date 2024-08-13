@@ -283,6 +283,7 @@ export class UrlbarController {
    *   will be deferred by the event bufferer, but preventDefault() and friends
    *   should still happen synchronously.
    */
+  // eslint-disable-next-line complexity
   handleKeyNavigation(event, executeAction = true) {
     const isMac = AppConstants.platform == "macosx";
     // Handle readline/emacs-style navigation bindings on Mac.
@@ -328,6 +329,12 @@ export class UrlbarController {
         if (executeAction) {
           if (this.view.isOpen) {
             this.view.close();
+          } else if (lazy.UrlbarPrefs.get("focusContentDocumentOnEsc")) {
+            if (this.browserWindow.gBrowser.userTypedValue) {
+              this.input.handleRevert(true);
+            } else {
+              this.browserWindow.gBrowser.selectedBrowser.focus();
+            }
           } else {
             this.input.handleRevert(true);
           }
