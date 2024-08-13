@@ -94,6 +94,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 export const GenAI = {
+  // Cache of potentially localized prompt
+  chatPromptPrefix: "",
+
   // Any chat provider can be used and those that match the URLs in this object
   // will allow for additional UI shown such as populating dropdown with a name,
   // showing links, and other special behaviors needed for individual providers.
@@ -487,6 +490,36 @@ export const GenAI = {
   },
 
   /**
+   * Updates chat prompt prefix.
+   */
+  async prepareChatPromptPrefix() {
+    if (
+      !this.chatPromptPrefix ||
+      this.chatLastPrefix != lazy.chatPromptPrefix
+    ) {
+      try {
+        // Check json for localized prefix
+        const prefixObj = JSON.parse(lazy.chatPromptPrefix);
+        this.chatPromptPrefix = (
+          await lazy.l10n.formatMessages([
+            {
+              id: prefixObj.l10nId,
+              args: { tabTitle: "%tabTitle%", selection: "%selection|12000%" },
+            },
+          ])
+        )[0].value;
+      } catch (ex) {
+        // Treat as plain text prefix
+        this.chatPromptPrefix = lazy.chatPromptPrefix;
+      }
+      if (this.chatPromptPrefix) {
+        this.chatPromptPrefix += "\n\n";
+      }
+      this.chatLastPrefix = lazy.chatPromptPrefix;
+    }
+  },
+
+  /**
    * Build a prompt with context.
    *
    * @param {MozMenuItem} item Use value falling back to label
@@ -496,7 +529,7 @@ export const GenAI = {
   buildChatPrompt(item, context = {}) {
     // Combine prompt prefix with the item then replace placeholders from the
     // original prompt (and not from context)
-    return (lazy.chatPromptPrefix + (item.value || item.label)).replace(
+    return (this.chatPromptPrefix + (item.value || item.label)).replace(
       // Handle %placeholder% as key|options
       /\%(\w+)(?:\|([^%]+))?\%/g,
       (placeholder, key, options) =>
@@ -523,6 +556,7 @@ export const GenAI = {
       selection: context.selection?.length ?? 0,
     });
 
+    await this.prepareChatPromptPrefix();
     const prompt = this.buildChatPrompt(promptObj, context);
 
     // Pass the prompt via GET url ?q= param or request header

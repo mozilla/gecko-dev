@@ -67,8 +67,11 @@ add_task(async function test_show_shortcuts() {
 
     Assert.ok(!SidebarController.isOpen, "Sidebar is closed");
     popup.querySelector("toolbarbutton").click();
+    const isOpen = await TestUtils.waitForCondition(
+      () => SidebarController.isOpen
+    );
 
-    Assert.ok(SidebarController.isOpen, "Chat opened sidebar");
+    Assert.ok(isOpen, "Chat opened sidebar");
     events = Glean.genaiChatbot.shortcutsPromptClick.testGetValue();
     Assert.equal(events.length, 1, "One shortcut clicked");
     Assert.equal(events[0].extra.prompt, "summarize", "Picked summarize");
