@@ -118,7 +118,7 @@ void QuotaUsageChecker::Start() {
   // Asynchronious getting quota usage for principal
   nsCOMPtr<nsIQuotaUsageRequest> usageRequest;
   if (NS_WARN_IF(NS_FAILED(qms->GetUsageForPrincipal(
-          mPrincipal, this, false, getter_AddRefs(usageRequest))))) {
+          mPrincipal, this, getter_AddRefs(usageRequest))))) {
     return;
   }
 

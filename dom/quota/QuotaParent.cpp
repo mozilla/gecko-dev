@@ -560,7 +560,7 @@ mozilla::ipc::IPCResult Quota::RecvGetUsage(
 }
 
 mozilla::ipc::IPCResult Quota::RecvGetOriginUsage(
-    const PrincipalInfo& aPrincipalInfo, const bool& aFromMemory,
+    const PrincipalInfo& aPrincipalInfo,
     ManagedEndpoint<PQuotaUsageRequestParent>&& aParentEndpoint,
     GetOriginUsageResolver&& aResolve) {
   AssertIsOnBackgroundThread();
@@ -585,8 +585,7 @@ mozilla::ipc::IPCResult Quota::RecvGetOriginUsage(
              std::move(aParentEndpoint), parentActor)),
          ResolveUsageInfoResponseAndReturn(aResolve));
 
-  quotaManager
-      ->GetOriginUsage(aPrincipalInfo, aFromMemory, std::move(cancelPromise))
+  quotaManager->GetOriginUsage(aPrincipalInfo, std::move(cancelPromise))
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [parentActor](const UsageInfoPromise::ResolveOrRejectValue& aValue) {

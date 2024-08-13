@@ -161,7 +161,6 @@ parent:
       returns(OriginUsageMetadataArrayResponse response);
 
   async GetOriginUsage(PrincipalInfo principalInfo,
-                       bool fromMemory,
                        ManagedEndpoint<PQuotaUsageRequestParent> parentEndpoint)
       returns(UsageInfoResponse response);
 

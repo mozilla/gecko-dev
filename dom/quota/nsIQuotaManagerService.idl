@@ -172,18 +172,11 @@ interface nsIQuotaManagerService : nsISupports
    *        A principal for the origin whose usage is being queried.
    * @param aCallback
    *        The callback that will be called when the usage is available.
-   * @param aFromMemory
-   *        An optional flag to indicate whether the cached usage should be
-   *        obtained. The default value is false.  Note that this operation may
-   *        still be delayed by other operations on the QM I/O thread that are
-   *        peforming I/O.
-   * Note:  Origin usage here represents total usage of an origin. However,
-   *        cached usage here represents only non-persistent usage of an origin.
+   * Note:  Origin usage here represents total usage of an origin.
    */
   [must_use] nsIQuotaUsageRequest
   getUsageForPrincipal(in nsIPrincipal aPrincipal,
-                       in nsIQuotaUsageCallback aCallback,
-                       [optional] in boolean aFromMemory);
+                       in nsIQuotaUsageCallback aCallback);
 
   /**
    * Gets usage cached in memory for the given origin.

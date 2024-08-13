@@ -5713,12 +5713,11 @@ RefPtr<OriginUsageMetadataArrayPromise> QuotaManager::GetUsage(
 }
 
 RefPtr<UsageInfoPromise> QuotaManager::GetOriginUsage(
-    const PrincipalInfo& aPrincipalInfo, bool aFromMemory,
-    RefPtr<BoolPromise> aOnCancelPromise) {
+    const PrincipalInfo& aPrincipalInfo, RefPtr<BoolPromise> aOnCancelPromise) {
   AssertIsOnOwningThread();
 
-  auto getOriginUsageOp = CreateGetOriginUsageOp(
-      WrapMovingNotNullUnchecked(this), aPrincipalInfo, aFromMemory);
+  auto getOriginUsageOp =
+      CreateGetOriginUsageOp(WrapMovingNotNullUnchecked(this), aPrincipalInfo);
 
   RegisterNormalOriginOp(*getOriginUsageOp);
 

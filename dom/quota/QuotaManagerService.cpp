@@ -890,7 +890,6 @@ QuotaManagerService::GetUsage(nsIQuotaUsageCallback* aCallback, bool aGetAll,
 NS_IMETHODIMP
 QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
                                           nsIQuotaUsageCallback* aCallback,
-                                          bool aFromMemory,
                                           nsIQuotaUsageRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
@@ -921,8 +920,7 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
   QM_TRY(MOZ_TO_RESULT(usageRequestParentEndpoint.IsValid()));
 
   mBackgroundActor
-      ->SendGetOriginUsage(principalInfo, aFromMemory,
-                           std::move(usageRequestParentEndpoint))
+      ->SendGetOriginUsage(principalInfo, std::move(usageRequestParentEndpoint))
       ->Then(GetCurrentSerialEventTarget(), __func__,
              UsageInfoResponsePromiseResolveOrRejectCallback(request));
 

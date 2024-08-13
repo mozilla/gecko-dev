@@ -76,7 +76,7 @@ class Quota final : public PQuotaParent {
       GetUsageResolver&& aResolve) override;
 
   virtual mozilla::ipc::IPCResult RecvGetOriginUsage(
-      const PrincipalInfo& aPrincipalInfo, const bool& aFromMemory,
+      const PrincipalInfo& aPrincipalInfo,
       ManagedEndpoint<PQuotaUsageRequestParent>&& aParentEndpoint,
       GetOriginUsageResolver&& aResolve) override;
 
