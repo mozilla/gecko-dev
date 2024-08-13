@@ -19,14 +19,14 @@ hls:
       tags:
         - 'Core :: Audio/Video: Playback'
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751#8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_sensitivity:
       - technical
     notification_emails:
       - media-alerts@mozilla.com
-    expires: 132
+    expires: 138
 
   canplay_supported:
     type: counter
@@ -36,14 +36,14 @@ hls:
       tags:
         - 'Core :: Audio/Video: Playback'
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751#8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_sensitivity:
       - technical
     notification_emails:
       - media-alerts@mozilla.com
-    expires: 132
+    expires: 138
 
   media_load:
     type: event
@@ -54,9 +54,9 @@ hls:
       tags:
         - 'Core :: Audio/Video: Playback'
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1672751#8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912183
     data_sensitivity:
       - technical
     notification_emails:
@@ -67,4 +67,4 @@ hls:
           The extension in the media file name, could be 'ts' (for MPEG-TS), 'mp4',
           'aac', 'mp3', ...
         type: string
-    expires: 132
+    expires: 138
