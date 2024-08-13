@@ -1,6 +1,6 @@
 $! make FreeType 2 under OpenVMS
 $!
-$! Copyright (C) 2003-2023 by
+$! Copyright (C) 2003-2024 by
 $! David Turner, Robert Wilhelm, and Werner Lemberg.
 $!
 $! This file is part of the FreeType project, and may only be used, modified,
@@ -55,7 +55,7 @@ $! Setup variables holding "config" information
 $!
 $ Make    = ""
 $ ccopt   = "/name=(as_is,short)/float=ieee"
-$ if ( x86_64 ) then cxxopt = "/name=(as_is,short)"
+$ if ( x86_64 ) then cxxopt = " -names2=shortened "
 $ lopts   = ""
 $ dnsrl   = ""
 $ aconf_in_file = "config.hin"
@@ -108,10 +108,15 @@ $ if ( have_bz2 ) then libdefs=libdefs+",FT_CONFIG_OPTION_USE_BZIP2=1"
 $ if ( have_png ) then libdefs=libdefs+",FT_CONFIG_OPTION_USE_PNG=1"
 $ if ( have_z ) then libdefs=libdefs+",FT_CONFIG_OPTION_SYSTEM_ZLIB=1"
 $ if ( have_harfbuzz ) then libdefs=libdefs+",FT_CONFIG_OPTION_USE_HARFBUZZ=1"
+$ libdefs_cxx = "-DFT2_BUILD_LIBRARY -DFT_CONFIG_OPTION_OLD_INTERNALS"
+$ if ( have_bz2 ) then libdefs_cxx=libdefs_cxx+" -DFT_CONFIG_OPTION_USE_BZIP2=1"
+$ if ( have_png ) then libdefs_cxx=libdefs_cxx+" -DFT_CONFIG_OPTION_USE_PNG=1"
+$ if ( have_z ) then libdefs_cxx=libdefs_cxx+" -DFT_CONFIG_OPTION_SYSTEM_ZLIB=1"
+$ if ( have_harfbuzz ) then libdefs_cxx=libdefs_cxx+" -DFT_CONFIG_OPTION_USE_HARFBUZZ=1"
 $ if libdefs .nes. ""
 $ then
 $   ccopt = ccopt + "/define=(" + libdefs + ")"
-$ if ( x86_64 ) then cxxopt = cxxopt + "/define=(" + libdefs + ")"
+$ if ( x86_64 ) then cxxopt = cxxopt + libdefs_cxx
 $ endif
 $!
 $ if f$locate("AS_IS",f$edit(ccopt,"UPCASE")) .lt. f$length(ccopt) -
@@ -313,18 +318,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -376,18 +381,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.autofit])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base] -Isys$library
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map nl: exclude hb_
-	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64\
-	/obj=$(MMS$TARGET_NAME)_64.obj $(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	$(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -438,18 +443,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.builds.vms],[--.include],[--.src.base])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64\
-	/obj=$(MMS$TARGET_NAME)_64.obj $(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	$(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -550,18 +555,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.bdf])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base])
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -612,18 +617,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.cache])/nowarn
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -677,18 +682,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.cff])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -739,18 +744,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.cid])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -801,18 +806,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.gxvalid])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -859,26 +864,21 @@ $ deck
 # LICENSE.TXT.  By continuing to use, modify, or distribute this file you
 # indicate that you have read the license and understand and accept it
 # fully.
-$EOD
-$ write out "COMP_FLAGS = ", ccopt
-$ if x86_64 then write out "CXXFLAGS = ", cxxopt
-$ copy sys$input: out
-$ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.gzip])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -927,26 +927,21 @@ $ deck
 # LICENSE.TXT.  By continuing to use, modify, or distribute this file you
 # indicate that you have read the license and understand and accept it
 # fully.
-$EOD
-$ write out "COMP_FLAGS = ", ccopt
-$ if x86_64 then write out "CXXFLAGS = ", cxxopt
-$ copy sys$input: out
-$ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.bzip2])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base] -Isys$library
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -993,26 +988,21 @@ $ deck
 # LICENSE.TXT.  By continuing to use, modify, or distribute this file you
 # indicate that you have read the license and understand and accept it
 # fully.
-$EOD
-$ write out "COMP_FLAGS = ", ccopt
-$ if x86_64 then write out "CXXFLAGS = ", cxxopt
-$ copy sys$input: out
-$ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.lzw])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1063,18 +1053,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.otvalid])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1137,18 +1127,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.pcf])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1199,18 +1189,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.pfr])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1261,18 +1251,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.psaux])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1323,18 +1313,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.psnames])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1385,18 +1375,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.psnames])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1447,18 +1437,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.raster])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1509,18 +1499,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.sfnt])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base] -Isys$library
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1571,18 +1561,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.smooth])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I [] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1633,18 +1623,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.svg])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1695,18 +1685,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.truetype])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1757,18 +1747,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.type1])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1821,18 +1811,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.type1])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
-	cc$(CFLAGS)/warn=noinfo/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
+	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1885,18 +1875,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.type42])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -1947,18 +1937,18 @@ $ deck
 
 CFLAGS=$(COMP_FLAGS)$(DEBUG)/include=([--.include],[--.src.winfonts])
 .ifdef X86
-CXXFLAGS=$(CXXCOMP_FLAGS)$(DEBUG)/list/show=all/include=([],[--.include],[--.src.base])
+CXXFLAGS=$(CXXCOMP_FLAGS) -I[] -I[--.include] -I[--.src.base]
 .endif
 
 .ifdef X86
 .c.obj :
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_cxx.obj $(MMS$TARGET_NAME).c
 	cc$(CFLAGS)/warn=noinfo/point=32/list/show=all $(MMS$TARGET_NAME).c
 	pipe link/map/full/exec=nl: $(MMS$TARGET_NAME).obj | copy sys$input nl:
 	mc sys$library:vms_auto64 $(MMS$TARGET_NAME).map
 	cc$(CFLAGS)/warn=(noinfo,disable=(MAYLOSEDATA3))/point=64/obj=$(MMS$TARGET_NAME)_64.obj\
 	$(MMS$TARGET_NAME)_64.c
-	cxx$(CXXFLAGS)/warn=noinfo/obj=$(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
+	clang $(CXXFLAGS) -o $(MMS$TARGET_NAME)_64_cxx.obj $(MMS$TARGET_NAME)_64.c
 	delete $(MMS$TARGET_NAME)_64.c;*
 .else
 .c.obj :
@@ -2001,7 +1991,6 @@ $   cparm = f$edit(p'i',"upcase")
 $   if cparm .eqs. "DEBUG"
 $   then
 $     ccopt = ccopt + "/noopt/deb"
-$     if x86_64 then cxxopt = cxxopt + "/noopt/deb"
 $     lopts = lopts + "/deb"
 $   endif
 $   if f$locate("CCOPT=",cparm) .lt. f$length(cparm)

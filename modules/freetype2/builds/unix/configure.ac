@@ -2,7 +2,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (C) 2001-2023 by
+# Copyright (C) 2001-2024 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -11,13 +11,13 @@
 # indicate that you have read the license and understand and accept it
 # fully.
 
-AC_INIT([FreeType], [2.13.2], [freetype@nongnu.org], [freetype])
+AC_INIT([FreeType], [2.13.3], [freetype@nongnu.org], [freetype])
 AC_CONFIG_SRCDIR([ftconfig.h.in])
 
 
 # Don't forget to update `docs/VERSIONS.TXT'!
 
-version_info='26:1:20'
+version_info='26:2:20'
 AC_SUBST([version_info])
 ft_version=`echo $version_info | tr : .`
 AC_SUBST([ft_version])

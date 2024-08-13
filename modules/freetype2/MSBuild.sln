@@ -1,6 +1,20 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio Express 2012 for Windows Desktop
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freetype", "freetype.vcxproj", "{78B079BD-9FC7-4B9E-B4A6-96DA0F00248B}"
+#
+# You can build FreeType with MSBuild as follows
+#
+#    MSBuild.exe -t:Rebuild
+#                -p:Configuration=Debug
+#                -p:Platform=x64
+#                -p:UserDefines=FT_DEBUG_LOGGING
+#                   MSBuild.sln
+#
+# or with different appropriate switches. The library file
+# freetype.dll and/or freetype.lib should appear in the objs/
+# folder. A copy should be sent to ../freetype-demos/bin/
+# to be used with the demo programs.
+#
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freetype", "builds\windows\vc2010\freetype.vcxproj", "{78B079BD-9FC7-4B9E-B4A6-96DA0F00248B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

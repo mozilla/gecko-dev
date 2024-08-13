@@ -1,3 +1,1442 @@
+2024-08-12  Werner Lemberg  <wl@gnu.org>
+
+	* Version 2.13.3 released.
+	==========================
+
+	Tag sources with `VER-2-13-3'.
+
+	* docs/VERSION.TXT: Add entry for version 2.13.3.
+	* docs/CHANGES: Updated.
+	* docs/release, docs/README, builds/macs/README: Updated.
+
+	* README, src/base/ftver.rc, builds/windows/vc2010/index.html,
+	builds/windows/visualc/index.html, builds/windows/visualce/index.html,
+	builds/wince/vc2005-ce/index.html, builds/wince/vc2008-ce/index.html,
+	docs/freetype-config.1: s/2.13.2/2.13.3/, s/2132/2133/.
+
+	* include/freetype/freetype.h (FREETYPE_PATCH): Set to 3.
+
+	* builds/unix/configure.raw (version_info): Set to 26:2:20.
+	* CMakeLists.txt (VERSION_PATCH): Set to 3.
+
+2024-08-12  Werner Lemberg  <wl@gnu.org>
+
+	* meson.build: Install `freetype2.m4`.
+
+	Fixes #1290.
+
+2024-08-12  Werner Lemberg  <wl@gnu.org>
+
+	* src/*/*: Fix C++ compilation; fix clang warnings.
+
+2024-08-12  Werner Lemberg  <wl@gnu.org>
+
+	* subprojects/*.wrap: Updated.
+
+2024-08-12  Werner Lemberg  <wl@gnu.org>
+
+	Various minor documentation or formatting fixes.
+
+2024-08-07  Werner Lemberg  <wl@gnu.org>
+
+	tttables.h (FT_Get_CMap_Format): Minor documentation improvement.
+
+2024-08-05  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/truetype/ttgxvar.c (ft_var_readpacked*): Minor.
+
+2024-08-05  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/base/ftstream.c (FT_Stream_ReadFields): Switch to `FT_Offset`.
+
+2024-08-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/winfonts/winfnt.c (fnt_face_get_dll_font): Unwrap arithmetic.
+
+2024-08-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/base/ftstream.c (FT_Stream_ReadFields): Update condition.
+
+2024-08-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype/GX] Use more robust conditions.
+
+	* src/truetype/ttgxvar.c (ft_var_readpacked{points,deltas}): Rewrite
+	conditions to avoid undefined behavior.
+
+2024-07-31  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype/GX] Read points and deltas more carefully.
+
+	Hopefully fixes newly introduced buffer overflows:
+	  https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=70807
+	  https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=70809
+
+	* src/truetype/ttgxvar.c (ft_var_readpacked{points,deltas}): Explicitly
+	check stream frame limits and modify run counting.
+
+2024-07-30  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype/GX] Read stream more aggressively.
+
+	With ample checks against the table size, we should be able to use
+	macros without the limit checks and functional calls.
+
+	* src/truetype/ttgxvar.c (ft_var_readpacked{points,deltas}):
+	Use FT_NEXT_* instead of FT_GET_*.
+
+2024-07-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/ttload.c (tt_face_load_name): Shorten dereference.
+
+2024-07-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/autofit/afmodule.c (af_autofitter_load_glyph): Shorten deref.
+
+2024-07-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[bdf,pcf,winfonts,sfnt] Remove barely used marcros.
+
+	* include/freetype/internal/ftobjs.h (FT_FACE_SIZE, FT_SIZE_FACE):
+	Removed.
+	* src/bdf/bdfdrivr.c (BDF_Glyph_Load): Updated.
+	* src/pcf/pcfdrivr.c (PCF_Glyph_Load): Ditto.
+	* src/winfonts/winfnt.c (FNT_Load_Glyph): Ditto
+	* src/sfnt/ttbdf.c (tt_face_find_bdf_prop): Ditto.
+
+2024-07-27  Dan Rosser  <danoli3@gmail.com>
+
+	* include/freetype/internal/ftcalc.h (FT_MSB)[_M_ARM64EC]: Added.
+
+2024-07-19  Werner Lemberg  <wl@gnu.org>
+
+	* src/truetype/ttobjs.c (tt_size_run_prep): Correct scaling of CVT values.
+
+	This reverts the scaling behaviour introduced in commit 37580053.
+
+	Fixes issue #1005.
+
+2024-06-29  Philip Race  <philip.race@oracle.com>
+
+	* psobjs.c (ps_table_add): Check length before calling `FT_MEM_CPY`.
+
+	Fixes issue #1280.
+
+2024-06-29  Don Olmstead  <don.j.olmstead@gmail.com>
+
+	CMakeLists.txt: Respect FT_DISABLE_ZLIB value
+
+	The CMake build uses `find_package` to look for dependencies. Before calling `find_package` it looks to see if the dependency was disabled. If not the associated `_FOUND` variable will be set. This value is then checked to determine if the dependency is added.
+
+	However `find_package(PNG)` calls `find_package(ZLIB)` within its find module. So in the case of `FT_DISABLE_ZLIB=TRUE` and `FT_DISABLE_PNG=FALSE` the `ZLIB_FOUND` value can be set and even though `FT_DISABLE_ZLIB` is turned on.
+
+	Unset the value of `ZLIB_FOUND` after the call to `find_package(PNG)` so the value is only set when `FT_DISABLE_ZLIB` is turned off.
+
+2024-06-26  Werner Lemberg  <wl@gnu.org>
+
+	Make 'multi' build work again.
+
+	* src/psaux/psobjs.c: Include `psft.h`.
+
+	* src/sfnt/rules.mk (SFNT_DRV_SRC): Add `ttgpos.c`.
+
+	Fixes issue #1284.
+
+2024-06-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/truetype/ttgload.c (load_truetype_glyph): Unsigned fix.
+
+2024-06-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Use unsigned tags `FT_Outline`.
+
+	This change comes along with 2a7bb4596f56 ans is only meant to reduce
+	pointer casting in the code.
+
+	* include/freetype/ftimage.h (FT_Outline): Do it.
+	* src/*: Update `FT_Outline` users.
+
+2024-06-21  Ben Wagner  <bungeman@chromum.org>
+
+	[ttgxvar] Avoid "applying zero offset to null pointer"
+
+	In C it is undefined behavior to do arithmetic on a null pointer, including
+	adding zero. When using NotoSansKhmer[wdth,wght].ttf UBSAN produces a report
+	like
+
+	ttgxvar.c:1052:31: runtime error: applying zero offset to null pointer
+
+	when adding zero to `varData->deltaSet` (which is null) to produce `bytes`.
+	Protect against all the potential issues of this kind by returning early if
+	`varData->regionIdxCount == 0`.
+
+	* src/truetype/ttgxvar.c (tt_var_get_item_delta): early return on no regions
+
+2024-06-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Use unsigned point and contour indexing in `FT_Outline`.
+
+	This doubles the number or allowed points, see
+	    https://github.com/harfbuzz/harfbuzz/issues/4752
+
+	Although it is hardly practical to use more than 32767 points,
+	other font engines seem to support it.
+
+	* docs/CHANGES: Announce it.
+	* include/freetype/ftimage.h (FT_Outline): Do it and update limits.
+	* src/*: Update `FT_Outline` users.
+
+2024-06-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/pfr/pfrgload.c (pfr_glyph_curve_to): Avoid casting.
+
+2024-06-19  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/base/ftgloadr.c (FT_GlyphLoader_Prepare): Minor refactoring.
+
+2024-06-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[base, autofit, psaux] Remove unnecessary casting.
+	
+	* src/autofit/afhints.c (af_glyph_hints_reload): Remove (short) casting.
+	* src/base/ftgloadr.c (FT_GlyphLoader_Add): Ditto.
+	* src/psaux/psobjs.c ({t1,cff,ps}_builder_{add,close}_contour): Ditto.
+
+2024-06-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/ftimage.h: Explain standard types.
+
+2024-05-29  Ben Wagner  <bungeman@chromium.org>
+
+	[ttgxvar] Replace tabs with spaces
+
+	Also clarify comments around conversion and clamping.
+
+	* src/truetype/ttgxvar.c (ft_var_to_normalized): doit
+
+2024-05-27  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype/GX] Consolidate memory allocations.
+
+	* src/truetype/ttgxvar.c (tt_face_vary_cvt, TT_Vary_Apply_Glyph_Deltas):
+	Allocate and split bigger memory blocks, avoid unnecessary zeroing,
+	do not copy shared tuples, revise error exit paths.
+
+2024-05-26  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Whitespace.
+
+2024-05-24  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/truetype/ttgxvar.c (ft_var_apply_tuple): Reduce checks.
+
+2024-05-24  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Revert "[truetype] Reduce allocation scope."
+
+	This reverts commit 9ff4153cbfd60491f11bb56905ce6e20e94d23c7.
+
+2024-05-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype] Reduce allocation scope.
+
+	* src/truetype/ttgxvar.c (TT_Vary_Apply_Glyph_Deltas): Reduce scope
+	of `points_org` and 'points_out`.
+
+2024-05-23  Alexei Podtelezhnikov (Алексей Подтележников)  <apodtele@gmail.com>
+
+	* .gitlab-ci.yml: Disable UWP compilation.
+
+2024-05-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/internal/ftmemory.h (FT_MEM_DUP): Fix g++ error.
+
+2024-05-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cff, truetype] Validate variation axes immediately.
+
+	Instead of validating variation axes in every access, OpenType specs
+	suggest that peak = 0 be used to tag invalid ranges.  This implements
+	just that once during loading.
+
+	* src/cff/cffload.c (cff_blend_build_vector): Move the range checks...
+	(cff_vstore_load): ... here.
+	* src/truetype/ttgxvar.c (tt_var_get_item_delta): Ditto...
+	(tt_var_load_item_variation_store): ... ditto.
+
+2024-05-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cff, truetype] Rearrange variation range checks.
+	
+	This should achieve quicker results for common cases.
+	
+	* src/cff/cffload.c (cff_blend_build_vector): Rearrange conditionals.
+	* src/truetype/ttgxvar.c (tt_var_get_item_delta): Ditto.
+
+2024-05-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/truetype/ttgxvar.c (tt_var_get_item_delta): Align with specs.
+
+2024-05-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/truetype/ttgxvar.c (tt_var_get_item_delta): Minor refactoring.
+
+2024-05-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cff] Optimize the blend vector computations.
+
+	* src/cff/cffload.c (cff_blend_build_vector): Use FT_MulDiv and skip
+	multiplying by 1.
+
+2024-05-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[bdf] Use concise macros.
+
+	* src/bdf/bdflib.c (bdf_create_property): Use FT_STRDUP.
+	(bdf_parse_glyphs_, bdf_parse_start_): Use FT_DUP for brevity.
+
+2024-05-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Use FT_DUP to duplicate data.
+
+	* src/cache/ftcsbits.c (ftc_sbit_copy_bitmap): Use concise FT_MEM_DUP.
+
+2024-05-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[truetype, type1] Use FT_DUP to duplicate data.
+
+	* src/truetype/ttgload.c (TT_Load_Simple_Glyph): Use concise FT_DUP.
+	* src/truetype/ttgxvar.c (TT_Get_MM_Var): Ditto.
+	* src/type1/t1load.c (parse_subrs): Ditto.
+
+2024-05-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* builds/windows/ftsystem.c: Use _WINRT_DLL to check for UWP.
+
+	Fixes compilation using Windows GDK, reported by Erin Melucci.
+
+2024-05-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/ftmm.h: Include `freetype.h`.
+
+	Reported by Ben Wagner, see !326.
+
+2024-05-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[type1/MM] Safer handle arrays of different types.
+
+	* src/type1/t1load.c (parse_blend_design_map): Separately allocate...
+	(T1_Done_Blend): ... and free `design_points` and `blend_points`.
+
+2024-05-12  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/type1/t1load.c (parse_blend_design_map): Add risky cast.
+
+2024-05-12  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* docs/CHANGES: Mention the last commit.
+
+2024-05-12  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[type1/MM] Tighten headers.
+
+	* include/freetype/internal/t1types.h: Host PS_DesignMap and PS_Blend.
+	* include/freetype/ftmm.h: Host and document TT_MAX_MM_XXX.
+	* include/freetype/t1tables.h: Remove them from here.
+
+2024-05-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/pshinter/pshrec.c (ps_hints_stem): Correct argument.
+
+2024-05-08  Ben Wagner  <bungeman@chromium.org>
+
+	[psaux] Fix location and type order in initializer
+
+	`T1_FIELD_ZERO` is used to zero initialize a `T1_FieldRec`.
+	`T1_FIELD_ZERO` is currently initilizing `T1_FieldRec::location` with a
+	`T1_FieldType` and `T1_FieldRec::type` with a `T1_FieldLocation`. This
+	was detected with `-Wenum-conversion`.
+
+	* include/freetype/internal/psaux.h (T1_FIELD_ZERO): correct order of
+	initalizers
+
+2024-05-08  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/internal/psaux.h: Fix g++ warning.
+
+	Reported by Hin-Tak Leung.
+
+2024-05-08  Ben Wagner  <bungeman@chromium.org>
+
+	[colr] Avoid overflow in range checks
+
+	In 32 bit builds `FT_ULong` is 32 bits and can silently overflow when a
+	large number is read into one and then it is summed or multiplied with
+	another number.  Checks for range overflow must be written so that they
+	themselves do not overflow.  Also ensure that the table_size is always the
+	first part of the range check and consistently use `<` or `<=`.
+
+	* src/sfnt/ttcolr.c (tt_face_load_colr): Avoid overflow.
+	(find_base_glyph_v1_record): Remove old work-around.
+
+	Bug: https://issues.chromium.org/issues/41495455
+	Bug: https://issues.chromium.org/issues/40945818
+
+2024-05-06  Werner Lemberg  <wl@gnu.org>
+
+	.mailmap: Fix entry for Ben Wagner.
+
+2024-05-06  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[sdf, bsdf] Use shared FT_SqrtFixed.
+	
+	FT_SqrtFixed (95b0fe2a6dff) is faster and does not overflow.
+	
+	* src/sdf/ftsdfcommin.h (square_root): Replace with a macro.
+	* src/sdf/ftsdfcommin.c (square_root): Remove function.
+
+2024-05-04  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/autofit/aflatin.c (af_latin_metrics_scale_dim): Remove FT_ABS.
+
+	See
+	    https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=68679
+
+2024-05-03  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/sfwoff2.c (woff2_open_font): Fix copy-paste typo.
+
+2024-05-03  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[woff,woff2] Limit the number of tables and use FT_MSB.
+	
+	The upper limit of 4095 is implied by the SFNT header format
+	where the multiplication by 16 would overflow without it.
+	
+	* src/sfnt/sfwoff.c (woff_open_font): Updated.
+	* src/sfnt/sfwoff2.c (woff2_open_font): Ditto.
+
+2024-05-02  Ben Wanger  <bungeman@gmail.com>
+
+	[woff2] Disallow zero table font entries
+
+	The existing code already disallows zero table woff2 overall, but still
+	allows for individual CollectionFontEntry to create font instances with
+	zero tables. Such fonts are not useful so error early.
+
+	This also fixes an MSAN discovered issue where if a CollectionFontEntry
+	numTables is zero then the sfnt_header was not fully initialized.
+
+	* src/sfnt/sfwoff2.c (woff2_open_font): error on zero tables, always
+	initalize sfnt_header
+
+	Fixes: https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=68384
+
+2024-05-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[sfnt] Use faster macros in checksums.
+
+	* src/truetype/ttobjs.c (tt_synth_sfnt_checksum): Use FT_NEXT_XXX.
+	* src/sfnt/sfwoff2.c (compute_ULong_sum): Use macros.
+
+2024-05-01  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/sfwoff2.c (compute_ULong_sum): Clean up.
+
+2024-04-30  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* docs/CHANGES: Updated.
+
+2024-04-30  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/ftccache.c (FTC_Cache_RemoveFaceID): Remove nodes instantly.
+
+2024-04-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Remove unused `node_reset`.
+
+	* src/cache/ftcmru.h (FTC_MruListClassRec): Remove `node_reset` field.
+	* src/cache/ftcbasic.c (ftc_basic_{image,sbit}_family_class): Ditto.
+	* src/cache/ftcmanag.c (ftc_face_list_class): Ditto.
+	(ftc_size_node_reset): Remove function.
+	* src/cache/ftcglyph.h: Fix comment.
+
+2024-04-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/ftcmru.c (FTC_MruList_New): Do not reset nodes.
+
+	Resetting of the size nodes can crash, if a parent face purge happens
+	simultaneously and destroys the node. It is safer to create a new node.
+	Fixes #1270, reopened with a separate issue.
+
+2024-04-28  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/ftcimage.c (ftc_inode_weight): Formatting.
+
+2024-04-28  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Document the SDF spread further.
+
+2024-04-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/ftdriver.h: s/truncated/clamped/.
+
+2024-04-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Improve SDF documentation.
+
+2024-04-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Minor tweaks.
+
+	* src/cache/ftcimage.c (ftc_inode_free): Remove unnecessary check.
+	* src/cache/ftcmanag.c (FTC_Manager_Done): Do not zero before freeing.
+
+2024-04-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/ftcbasic.c: Cosmetic harmonization.
+
+2024-04-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Reduce type mismatches.
+
+	* src/cache/ftcbasic.c (FTC_BasicAttrRec): Match type of `load_flags`
+	to its main purpose in `FT_Load_Glyph`.
+	(FTC_ImageCache_Lookup{,Scaler},FTC_SBitCache_Lookup{,Scaler}): Updated.
+
+2024-04-19  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/{ftcbasic.c,ftccmap.c}: Use FTC_INLINE.
+
+2024-04-19  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Tweak headers.
+
+	* src/cache/ftccback.h: Include less and move `ftc_node_destroy`...
+	* src/cache/ftccache.h: ... to here.
+	* src/cache/ftcmanag.c: Include less.
+
+2024-04-19  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cache/ftcglyph.c [!FTC_INLINE]: Fix compilation.
+
+2024-04-17  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Improve MRU list management.
+	
+	* src/cache/ftcmru.c (FTC_MruList_Remove): Cosmetic.
+	(FTC_MruList_New): Accept only valid changes.
+	* src/cache/ftcmanag.c (ftc_size_node_done):  Simplify.
+
+2024-04-17  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cache] Fix error handling.
+
+	Manipulate the cache after a face is requested or a size is looked up
+	successfully. Fixes #1270.
+
+	* src/cache/ftcmanag.c (ftc_size_node_init, ftc_size_node_reset,
+	ftc_face_node_init): Check for errors before accepting a change.
+	* src/cache/ftcmru.c (FTC_MruList_New): Do nothing if reset fails.
+
+2024-04-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[smooth] Switch to vertical bisections.
+
+	With horizontal bisections, the smallest section is a whole single
+	scanline. Almost horizontal lines or other complex scanlines can
+	easily overflow the rendering pool. Switching to vertical bisections
+	splits the scanlines and should rule out the overflows.  Fixes #1269.
+
+	* src/smooth/ftgrays.c (gray_convert_glyph): Bisect vertically.
+
+2024-04-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/smooth/ftgrays.c (gray_convert_glyph): Refactor for convenience.
+
+2024-04-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[smooth] Store persistent clipping box.
+
+	* src/smooth/ftgrays.c (gray_TWorker, gray_raster_render): Add and set
+	the new structure field.
+	(gray_convert_glyph): Use it.
+
+2024-03-08  Ben Wanger  <bungeman@gmail.com>
+
+	[colr] Ensure enough bytes for PaintColrLayers
+
+	* src/sfnt/ttcolr.c (read_paint): check that there are five additional
+	bytes to be read when reading PaintColrLayers.
+
+	Reported as
+
+	  https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=66566
+
+2024-03-08  Ben Wagner  <bungeman@gmail.com>
+
+	Avoid n^2 scanning for binary data.
+
+	When creating a CID parser the location of the 'StartData' or '/sfnts'
+	tokens needs to be known.  However, the token parser requires that the
+	entire document be in memory and flattening the entire stream into memory is
+	to be avoided.
+
+	To avoid forcing the entire stream into memory, previously this code would
+	scan through the stream looking for 'StartData' or '/sfnts' as strings.
+	However, these strings could have been in a comment or string token, so the
+	stream would be read into memory up to that point and the parser run to
+	check that these strings were actually tokens.  This forced a parser restart
+	from the beginning each time; as a result, data with many 'StartData'
+	non-tokens would take n^2 time to check.
+
+	* src/cid/cidparse.c (cid_parser_new): Change algorithm to make the initial
+	scan look for the last possible 'StartData' or '/sfnts' string in the
+	stream.  The stream is read forward instead of backward as a typical normal
+	CID font will have one 'StartData' toward the beginning of the data and it
+	it much faster to read the data from beginning to end instead of end to
+	beginning.  For memory-based fonts the limit is set to the end of the stream
+	since the stream is already in memory.  Then the parser is run once to look
+	for 'StartData' or '/sfnts' tokens.  If they are found the parser is re-set
+	to reflect this new information.
+
+	Reported as
+
+	  https://issues.chromium.org/issues/40201695
+
+2024-03-06  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* CMakeLists.txt: Bump required version to 3.5.
+	
+	Fixes #1267.
+
+2024-03-04  Jordan Williams  <jordan@jwillikers.com>
+
+	meson: Use the standard dependency mechanism to find bzip2
+
+	This follows standard conventions in Meson by using the pkg-config file.
+	This change allows Conan to switch to the Meson build system.
+
+2024-02-29  Ben Wanger  <bungeman@gmail.com>
+
+	[cff, truetype] Always set up default variable instance.
+
+	For default variable instances `cff_face_init` did not set the blend.  This
+	mostly worked as later use of the unset blend produced the default
+	variation.  However, if a user called `TT_Get_MM_Var` the blend would be
+	partially set up, but not fully.  In particular the number of axes, the axis
+	definitions, and the instance locations would be set up, but not the current
+	instance location (`coords` and `normalizedcoords`).  This could lead to the
+	default instances of CFF2 fonts erroring on any use of `blend`.
+
+	Ensure the default variable instance is fully set up by always calling
+	`FT_Set_Named_Instance` on a variable face.
+
+	* src/cff/cffobjs.c (cff_face_init): Call `FT_Set_Named_Instance` on
+	default instances.
+	* src/truetype/ttobjs.c (tt_face_init): Ditto.
+
+	Fixes #1268.
+
+2024-02-23  Werner Lemberg  <wl@gnu.org>
+
+	* src/truetype/ttgxvar.c (ft_var_to_normalized): Integer overflow.
+
+	Reported as
+
+	  https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=66543
+
+2024-01-27  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Update all copyright notices.
+
+2024-01-27  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/ttgpos.c (tt_gpos_get_glyph_class): Fix warning C4018.
+
+2024-01-27  David Saltzman  <davidbsaltzman@gmail.com>
+
+	Add support for kerning from 'GPOS' tables.
+
+	This commit adds support for kerning from 'GPOS' tables, while maintaining
+	support for basic 'kern' tables.  `FT_HAS_KERNING` will be true for a font
+	with either available and `FT_Get_Kerning` will still use the basic 'kern'
+	table data if avilable, otherwise check the GPOS 'kern' feature.
+
+	This feature is disabled by default; it can be enabled with the
+	`TT_CONFIG_OPTION_GPOS_KERNING` flag.
+
+	Only basic kerning (pair positioning with just an x advance) is supported
+	from the GPOS layout features; support for that was added to make the
+	existing `FT_Get_Kerning` API more consistently functional.  FreeType does
+	not intend to extend itself to further GPOS functionality though; a
+	higher-level library like HarfBuzz can be used instead for that.
+
+	* include/freetype/config/ftoption.h, include/devel/ftoption.h
+	(TT_CONFIG_OPTION_GPOS_KERNING): New configuration option.
+
+	* include/freetype/internal/fttrace.h: Add `ttgpos` trace handler.
+
+	* include/freetype/internal/sfnt.h (SFNT_Interface): Add `load_gpos` and
+	`get_gpos_kerning` fields.
+	(FT_DEFINE_SFNT_INTERFACE): Updated.
+
+	* include/freetype/internal/tttypes.h: Include `fttypes.h`.
+	(TT_FaceRec) [TT_CONFIG_OPTION_GPOS_KERNING]: Add `gpos_table` and
+	`gpos_kerning_available` fields.
+
+	* src/sfnt/ttgpos.c, src/sfnt/ttgpos.h: New files.
+
+	* src/sfnt/sfdriver.c [TT_CONFIG_OPTION_GPOS_KERNING]: Include `ttgpos.h`.
+	(sfnt_interface): Updated.
+
+	* src/sfnt/sfnt.c: Include `ttgpos.c`.
+
+	* src/sfnt/sfobjs.c [TT_CONFIG_OPTION_GPOS_KERNING]: Include `ttgpos.h`.
+	(sfnt_load_face) [TT_CONFIG_OPTION_GPOS_KERNING]: Load and free GPOS kerning
+	data; check GPOS kerning availability.
+
+	* src/truetype/ttdriver.c (tt_get_kerning): Use GPOS kerning if there's no
+	'kern' table.
+
+2024-01-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[smooth] Remove SSE2.
+
+	As a result of 7b308a29dd10, the regular 64-bit execution is now faster
+	than SSE2. The rendering speed of script fonts at 64 ppem or larger is
+	improved by about 3% without SSE2. See !314 for the testing results.
+
+	* src/smooth/ftgrays.c (gray_render_conic)[FT_INT64]: Remove SSE2 code.
+
+2024-01-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* CMakeLists.txt: Accommodate MingGW.
+
+	See https://github.com/StephanTLavavej/mingw-distro/issues/97.
+
+2024-01-08  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* src/sfnt/ttcolr.c (find_base_glyph_v1_record): Fix build in C90 mode.
+
+2024-01-07  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[base] Fix up Mac resource forks and dfonts.
+
+	* src/base/ftobjs.c (IsMacResource): Assign `face_index`.
+	* src/base/ftmac.c (FT_New_Face_From_Suitcase): Ditto after rework.
+
+2024-01-05  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[sfnt] Restrict POST version 1.0.
+
+	A font has surfaced with `post` version 1.0 and fewer than 258 glyphs.
+	Its glyphs did not correspond to their names. We now reject such `post`
+	strictly following specifications.
+
+	* src/sfnt/ttpost.c (tt_face_get_ps_name): Check the number of glyphs
+	for version 1.0.
+
+2024-01-03  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* .gitlab-ci.yml: Use detached CI pipelines.
+	
+	See issue freedesktop/freedesktop#540.
+
+2024-01-02  Werner Lemberg  <wl@gnu.org>
+
+	[sfnt] Guard access in 'COLR' v1 glyph binary search.
+
+	Reported as
+
+	  https://bugs.chromium.org/p/chromium/issues/detail?id=1505216
+
+	* src/sfnt/ttcolr.c (find_base_glyph_v1_record): Guard access of the search
+	pointer during binary search.  The pointer needs to be checked as we go as
+	the test that compares number of v1 glyphs with table size at the time of
+	loading the table is not sufficient on its own.
+
+	A scenario is possible in which the `BaseGlyphRecord` list extends into
+	non-`BaseGlyphRecord` parts of the 'COLR' v1 table (but passed the size
+	comparison check).  Then, at those locations, invalid glyph ID values are
+	read and may provoke an invalid read due to reassigning min and max values
+	during the binary search.
+
+2023-12-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[ci] Add support for MSBuild on Windows.
+
+	This adds msbuild job for VS2019 (x64).
+
+	* .gitlab-ci.yml: Added "windows msbuild vs2019 amd64".
+
+2023-12-14  Skef Iterum  <github@skef.org>
+
+	[CFF] Extract `BlueValues` as `Fixed` rather than `Int`.
+
+	This is a follow-up to commit 26a7f047,
+
+	  [cff] Make blend operator work with floats in private dicts.
+
+	which addressed the 'party baseline' bug.  However, the reporting user
+	indicated that the default location and some other points in design space
+	rendered OK, but other points in design space still had problems.  The most
+	obvious issue being that the x-heights of lower-case letters did not align;
+	see
+
+	  https://github.com/adobe-fonts/source-serif/issues/121#issuecomment-1773794136
+
+	After some analysis we determined that this was due to an interaction
+	between `BlueValue` rounding and the zone-based algorithm.  In short, for a
+	point to be considered in a zone it must fall within the bounds of the zone.
+	(There is a slop factor in some cases, but only a very small one.)  In the
+	Adobe-contributed side of the code, point values are not integer-rounded,
+	instead they're kept as (some form of) fixed.  Rounding just the `BlueValues`
+	means that points that need to be considered within a zone will fall outside
+	of it at some points in design space.
+
+	The majority of this patch changes the storage and parsing of `BlueValues`
+	to keep them as `FT_Fixed`.  No significant code changes were needed because
+	the values are converted to `Fixed` anyway when stored in `CF_BlueRec`.  No
+	attempt was made to address problems in the older pshinter code beyond
+	converting the values from `FT_Fixed` to `FT_Short` when copying the private
+	dictionary.  (However, as the point values are also rounded in that code,
+	the problem is much less likely to occur, although inconsistency between
+	rounding and truncation could cause an analogous problem.)
+
+	* include/freetype/internal/cfftypes.h (CFF_PrivateRec): Use `FT_Fixed` for
+	`blue_values`, `other_blues`, `family_blues`, and `family_other_blues`.
+
+	* src/cff/cffload.c (cff_blend_doBlend): Updated.
+
+	* src/cff/cffobjs.c (CFF_fixedToInt): New macro.
+	(cff_make_private_dict): Use it.
+
+	* src/cff/cffparse.h (cff_kind_delta_fixed): New enum value.
+
+	* src/cff/cffparse.c (do_fixed): Updated.
+	(CFF_FIELD_DELTA, CFF_FIELD_DELTA_FIXED, CFF_DELTA_KIND): New set of macros,
+	replacing `CFF_FIELD_DELTA`.
+	(cff_parser_run): Updated to handle fixed-float deltas.
+
+	* src/cff/cfftoken.h: Updated to use `CFF_FIELD_DELTA_FIXED` for blue
+	values.
+
+	* src/psaux/psblues.c (cf2_blueToFixed): Removed, no longer needed.
+	(cf2_blues_init): Updated.
+
+	* src/pxaux/psft.c, src/pxaux/psft.h (cf2_getBlueValues, cf2_getOtherBlues,
+	cf2_getFamilyBlues, cf2_getFamilyOtherBlues): Updated signatures.
+
+	* src/psaux/psobjs.c (t1_make_subfont): Updated.
+
+2023-12-14  Skef Iterum  <github@skef.org>
+
+	[psaux] Improve tracing.
+
+	* src/psaux/psintrp.c (cf2_doBlend, cf2_interpT2CharString [cf2_cmdBLEND]):
+	Show blended values.
+
+2023-12-14  Jouk Jansen  <joukj@hrem.nano.tudelft.nl>
+
+	* vms_make.com: Switch to `clang`.
+
+	Also add proper bzip2 support.
+
+2023-12-14  Werner Lemberg  <wl@gnu.org>
+
+	* src/truetype/ttgxvar.c (ft_var_to_normalized): Fix undefined left-shift.
+
+	Reported as
+
+	  https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=63723
+
+2023-12-07  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[msbuild] Streamline the process.
+
+	MSBuild.exe can now be fired from the root folder without options.
+
+	* builds/windows/vc2010/freetype.sln: Relocated to...
+	* MSBuild.sln: ... here with minor changes.
+	* MSBuild.rsp: New file with command line options.
+	* docs/INSTALL: Reference `MSBuild.sln`.
+
+2023-12-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Draw_Sweep): Swap stub conditions.
+
+2023-12-02  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftmisc.h (FT_MulDiv): Remove unused copy.
+
+2023-11-28  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Speed up Bézier arches with extrema.
+
+	While it is recommended to have an explicit point at each curve
+	extrema, they might be missing or outline could be rotated. This
+	leads to excessive bisections in raster to find them.  This change
+	helps to decrease the number of bisections.  The scanline
+	intersections remain monotonous, of course.
+
+	* src/raster/ftraster.c (Conic_To, Cubic_To): Check that control
+	points cross the scanlines to bisect.
+
+2023-11-25  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* docs/*: Typos.
+
+2023-11-24  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Eliminate intensive flow checking.
+
+	* src/raster/ftraster.c (Draw_Sweep): Pass the flow increment.
+	(Increment): Accept the flow increment.
+
+2023-11-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c: Comments, defines, includes, cleanups.
+
+2023-11-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (FT_Outline_Get_CBox ) [STANDALONE_]: Removed.
+
+2023-11-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Draw_Sweep): No-fault return.
+	(Render_Single_Pass): Updated.
+
+2023-11-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Sweep polishing.
+	
+	* src/raster/ftraster.c (*_Sweep_Span): Polish.
+	(*_Sweep_Drop): Restore tracing, polish.
+	(Draw_Sweep): Simplify the dropout processing loop.
+
+2023-11-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Rearrange dropout control.
+
+	This reduces the code duplication.
+
+	* src/raster/ftraster.c (Function_Sweep_Span): Change signature.
+	(Vertical_Sweep_Drop, Horizontal_Sweep_Drop): Focus on pixel setting
+	and move duplicated the dropout control logic to...
+	(Draw_Sweep): ... this function and refactor.
+	(Vertical_Sweep_Span, Horizontal_Sweep_Span): Minor.
+
+2023-11-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Use bitwise dropout mode interpretation.
+
+	* src/raster/ftraster.c (Vertical_Sweep_Drop, Horizontal_Sweep_Drop,
+	Draw_Sweep, Render_GLyph): Interpret dropout mode using bit masks.
+
+2023-11-16  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* docs/CHANGES: Updated.
+
+2023-11-16  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Keep only bottom y-turns.
+
+	This results in noticeable performance improvement.
+
+	* src/raster/ftraster.c (Insert_Y_Turns): All bottom y-turns are still
+	sorted and stored; only the maximum top y-turn is recorded now. The
+	function is renamed.
+	(End_Profile): Updated accordingly.
+	(Convert_Glyph): Reserve space for the top value.
+
+2023-11-15  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (End_Profile): Reduce branching.
+	(InsNew): Tweak condition.
+
+2023-11-15  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Draw_Sweep): Use more natural loop.
+
+2023-11-15  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Dissolve a loop.
+
+	* src/raster/ftraster.c (End_Profile): Set initial `X` here...
+	(Draw_Sweep): ... instead of here; delay the `start` decrement.
+
+2023-11-15  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c: Comments.
+
+2023-11-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Stylistic changes.
+	
+	* src/raster/ftraster.c (Line_To): Code it similar to curves;
+	shortcut the flat lines here...
+	(Line_Up): ... instead of here.
+
+2023-11-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Revise overshoot setting.
+	
+	* src/raster/ftraster.c (New_Profile, End_Profile): Deal with overshoots
+	locally.
+	(Line_To, Conic_To, Cubic_To): Update callers.
+
+2023-11-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Conic_To, Cubic_To): Fix recent regression.
+
+2023-11-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/ftimage.h: Fix type and link.
+
+2023-11-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Increment): Minor tweak.
+
+2023-11-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Get rid of the fresh flag.
+
+	* src/raster/ftraster.c (black_TWorker): Remove the fresh flag.
+	(New_Profile): Set the starting scanline here based on the current
+	coordinate and initialize the joint crossing if necessary.
+	(Line_Up, Bezier_Up): Do not deal with fresh and joint starts at all.
+	(Line_Down, Bezier_Down): Simplify.
+	(Conic_To, Cubic_To): Update the current coordinate after each
+	subsection.
+
+2023-11-12  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Get rid of the joint flag.
+
+	* src/raster/ftraster.c (Line_Up, Bezier_Up): Deal with the scanline
+	joints directly based on the initial y-coordinate.
+	(New_Profile, black_TWorker): Remove the boolean flag.
+
+2023-11-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Line_Up, Bezier_Up): Check "between" earlier.
+
+2023-11-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Line_Up): Updated and fixed up.
+
+	This largely synchronizes the entries into `Line_Up` and `Bezier_Up`.
+	Minor bugs in the remainder calculations and accumulations are fixed.
+
+2023-11-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (End_Profile, Convert_Glyph): Clean up.
+
+2023-11-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Bezier_Up): Improve joint and loop.
+
+2023-11-07  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Harmonize target bitmap navigation.
+
+	* src/raster/ftraster.c (black_TWorker): Store signed maximum indexes
+	in both directions instead of unsigned dimensions of the original bitmap.
+	(*_Sweep_*, Render_Glyph, ft_black_render): Updated all users.
+
+2023-11-06  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Bezier_Up): Improve flow.
+
+2023-11-06  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Reshuffle code for readability.
+
+	* src/raster/ftraster.c (Render_Glyph): Setup the rendering pool here.
+	(ft_black_render): Setup the target bitmap helpers here.
+
+2023-11-04  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Improve profile accounting during sweeping.
+
+	* src/raster/ftraster.c (TProfile): Get rid of `countL`.
+	(Draw_Sweep): Use `start` for countdown to activation.
+	(Horizontal_Sweep_Drop, Vertical_Sweep_Drop): Rely on `height` and
+	`offset` to verify profile ends for the stub detection.
+
+2023-11-04  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Consolidate profile increment to the next line.
+
+	* src/raster/ftraster.c (s/Sort/Increment): Rename this function to
+	reflect its true purpose, delete exhausted profiles here...
+	(Draw_Sweep): ... instead of here.
+
+2023-11-04  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Instantly remove profiles from linked lists.
+
+	* src/raster/ftraster.c (DelOld): Remove loopy function.
+	(Draw_Sweep): Implement instant profile removal.
+
+2023-11-03  Alexei Podtelezhnikov (Алексей Подтележников)  <apodtele@gmail.com>
+
+	[raster] Modify the split condition.
+
+	While curving close to a pixel center, vertical and horizontal pass
+	might split the curve differently and cause a rare dropout.  This
+	makes the split condition invariant of the sweep direction and more
+	robust.
+
+	* src/raster/ftraster.c (Bezier_Up): Modify the split condition.
+
+2023-11-03  Alexei Podtelezhnikov (Алексей Подтележников)  <apodtele@gmail.com>
+
+	[raster] Remove the jitter exception.
+
+	The jitter exception used to be applied when two neighboring pixels
+	were barely inside the outline. One the left one was turned on then,
+	which contradicts the OpenType specifications.  Intended to remove
+	glitches, it caused disappearing lines and was softened by adding an
+	exception to the exception (#54589).
+
+	* src/raster/ftraster.c (Vertical_Sweep_Span): Drop the jitter exception.
+
+2023-10-31  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Simplify dropout detection.
+	
+	* src/raster/ftrater.c (Draw_Sweep): Use a single dropout condition.
+
+2023-10-31  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Simplify sweeping entry and exit.
+
+	* src/raster/ftraster.c (Draw_Sweep): Use y-turns to set the range,
+	correctly set the initial position, directly loop through y_turns,
+	and remove a 5-gray remnant at exit.
+
+2023-10-26  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Switch to routine Int instead of Short.
+
+	This is mostly cosmetic and removes a few casts, plus Short is
+	promoted to Int in calculations anyway.
+
+	* src/raster/ftraster.c (Vertical_Sweep_Init, Vertical_Sweep_Span,
+	Vertical_Sweep_Drop, Horizontal_Sweep_Init, Horizontal_Sweep_Span,
+	Horizontal_Sweep_Drop, Draw_Sweep): Mostly s/Short/Int/ and remove
+	casting.
+
+2023-10-24  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Increase the raster pool density.
+
+	This only helps to delay the pool overflow and bisections to larger
+	sizes and benefits only very intricate glyphs at reasonable sizes.
+
+	* src/raster/ftraster.c (TProfile): Use Int instead of Long or PLong
+	when it is sufficient.
+	(New_Profile, End_Profuile, Bezier_Up, Sort): Updated accordingly.
+
+2023-10-23  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Slightly improve the pool design.
+
+	* src/raster/ftraster.c (TProfile): Include the variable array member
+	and repackage with pointers first.
+	(New_Profile): Advance the top using the variable array pointer.
+
+2023-10-22  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Clean up sweeping.
+
+	* src/raster/ftraster.c (Draw_Sweep): Zero initialize the working
+	lists directly and remove unnecessary y-turn checks.
+	(Init_Linked): Removed.
+
+2023-10-22  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Insert_Y_Turn): Improve flow.
+
+2023-10-22  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/pcf/pcfutil.c (BSWAP16): Limit clang support.
+
+	These ancient builtins have been supported by clang since 2013. We
+	condition it somewhat stricter but still around 2017.  This is more
+	portable than `__has_builtin`. Fixes #1260.
+
+2023-10-19  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Small optimizations.
+
+	* src/raster/ftraster.c (New_Profile): Set important fields only and
+	delay setting `gProfile` until...
+	(End_Profile): ... it is checked to be valid here.
+	(Convert_Glyph): Updated.
+
+2023-10-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Convert_Glyph): Remove redundant check.
+
+2023-10-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Fix linked profiles in contour loops.
+
+	This fixes a subtle bug when the last profile in a contour was not
+	properly short-circuited if it was still empty at `End_Profile`.
+	We finalize all linking in `Finalize_Profile_List` now and do nothing
+	else there.  The turns are added in `End_Profile`.
+
+	* src/raster/ftraster.c (Insert_Y_Turn): Moved up unchanged.
+	(End_Profile): Take care of turns but set only preliminary linking.
+	(Finalize_Profile_Table): Take care of linking and null-termination.
+	(Convert_Glyph): Adjusted accordingly.
+
+2023-10-15  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c: Improve tracing.
+
+2023-10-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Improve profile accounting.
+	
+	* src/raster/ftraster.c (End_Profile): Do not initiate next profile.
+	(New_Profile): Fully initiate new profile.
+	(Convert_Glyph): Clean up variables, initialize `fProfile` here.
+
+2023-10-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c (Convert_Glyph): Fix null-dereference.
+
+2023-10-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Fix pool overflow checking.
+
+	* src/raster/ftraster.c (New_Profile, End_Profile): Check for overflow
+	immediately.
+	(Convert_Glyph, Render_Single_Pass): Fix boundaries.
+
+2023-10-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[raster] Miscellaneous clean-ups.
+
+	* src/raster/ftraster.c (New_Profile): Use NULL.
+	(End_Profile): Optimize variables.
+	(Convert_Glyph): Do not initialize `cProfile` yet.
+	(Render_Single_Pass): Tracing.
+
+2023-10-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/smooth/ftgrays.c: Move the sweep functions...
+
+	... out of the setjmp/longjmp scope for readability.
+
+2023-10-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/raster/ftraster.c: Tracing updates.
+
+2023-10-09  Zachary Zollman  <zacharyzollman@pm.me>
+
+	fix typo in FT_Outline_Decompose note
+
+2023-09-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/smooth/ftgrays.c (gray_render_conic) [SSE2]: Improve flow.
+
+2023-09-26  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/gxvalid/gxvcommn.h (GXV_USHORT_TO_SHORT): Removed.
+
+2023-09-25  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Comment typos.
+
+2023-09-25  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/base/ftcalc.c (FT_MOVE_SIGN): Enclose assignments.
+
+2023-09-21  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* include/freetype/internal/ftcalc.h (FT_MSB): Define for Solaris 11.
+
+2023-09-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[psaux] Use `FT_SqrtFixed`.
+
+	* src/psaux/cffdecode.c <cff_op_sqrt>: Call `FT_SqrtFixed`.
+	* src/psaux/psintrp.c <cf2_escSQRT>: Ditto.
+
+2023-09-20  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[base] Reintroduce `FT_SqrtFixed`.
+
+	The general square root calculations are not necessary in FreeType.
+	For vector normalization or length, FreeType uses special functions.
+	It is, however, required in the legacy CFF specifications.
+
+	* src/base/ftcalc.c (FT_SqrtFixed): New function that uses either
+	Babylonian or bit-wise algorithm, whichever is faster for the given
+	situation.
+	* include/freetype/internal/ftcalc.h (FT_SqrtFixed): Declare it.
+
+2023-09-18  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/base/ftcalc.c /* FT_SqrtFixed */: Fix defunct overflow.
+
+2023-09-14  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/tools/apinames.c (read_header_file): Typos.
+
+2023-09-13  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Update 2 files
+
+	- /src/base/ftcalc.c
+	- /include/freetype/internal/ftcalc.h
+
+2023-09-13  Ben Wagner  <bungeman@chromium.org>
+
+	[base] Fix typo to correct predicate for call
+
+	* src/base/ftobj.c (FT_Get_Color_Glyph_Paint): check
+	`get_colr_glyph_paint` before calling `get_colr_glyph_paint` and not
+	`get_colr_layer`
+
+2023-09-12  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/psaux/cffdecode.c (cff_op_sqrt): Correct upper limit.
+
+2023-09-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/psaux/cffdecode.c (cff_op_sqrt): Improve initial guess.
+
+2023-09-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	src/psaux/psintrp.c (cf2_escSQRT): Improve initial guess.
+	
+	The worst number of iterations decreased from 11 to 5.
+
+2023-09-11  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/type1/t1afm.c (t1_get_index): Restore `strlen` call.
+
+	This reverts commit 8ed6d97446f2f3e5523da62eefbbf32ef7c1290e
+	and fixes
+	   https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=62246
+
+2023-09-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/cff/cffparse.c (CFF_Field_Handler): Some s/0/NULL/.
+
+2023-09-10  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[type1, cid, type42] Post-cleanup.
+
+	* include/freetype/internal/psaux.h (T1_FIELD_ZERO): Terminating macro.
+	* src/cid/cidload.c (cid_parse_dict): Use while-loop.
+	* src/type1/t1load.c (parse_dict): Ditto.
+	* src/type42/t42parse.c (t42_parse_dict): Ditto.
+
+2023-09-09  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Update forgotten array termini.
+
+	* src/cid/cidload.c (cid_field_records): Account for added `len`.
+	* src/type1/t1load.c (t1_keywords): Ditto.
+	* src/type42/t42parse.c (t42_keywords): Ditto.
+
+2023-09-09  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[type1, cid, type42] Streamline dictionary parsing.
+
+	When matching the keywords, we avoid calculating their lengths by
+	checking the stored values. This itself is a sufficient pre-check
+	before diving into `memcmp`. Therefore, we remove explicit check of
+	the first characters.
+
+	* include/freetype/internal/psaux.h (T1_FieldRec): Store length.
+	* src/cid/cidload.c (cid_parse_dict): Use `memcmp` and stored length.
+	* src/type1/t1load.c (parse_dict): Ditto.
+	* src/type42/t42parse.c (t42_parse_dict): Ditto.
+
+2023-09-09  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/type1/t1afm.c (t1_get_index): Avoid `strlen` call.
+
+	Instead, we check the terminal zero.
+
+2023-09-08  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/type1/t1driver.c (t1_ps_get_font_value): Avoid redundant null.
+
+2023-09-08  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[cff, truetype] Improve prefix and suffix removal.
+
+	* src/cff/cffobjs.c (remove_style): Rewrite using pointers.
+	(remove_subset_prefix): Unwrap loop and use `memmove`.
+	* src/truetype/ttobjs.c (tt_skip_pdffont_random_tag): Unwrap loop
+	and avoid `strlen`.
+
+2023-09-07  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/ttpost.c (load_format_20): Micro-optimize.
+
+2023-09-05  Werner Lemberg  <wl@gnu.org>
+
+	[autofit] Fix synchronization mistake between FreeType and ttfautohint.
+
+	Found by Behdad.
+
+	* src/autofit/aflatin.c (af_latin_metrics_init_blues): Fix array size of
+	`blue_sorted`: FreeType doesn't have artificial blue zones.
+
+2023-09-04  Werner Lemberg  <wl@gnu.org>
+
+	[autofit] Fix typos.
+
+	This also reduces the used heap size by a large factor.
+
+	From Behdad.
+
+	* src/autofit/afcjk.h (AF_CJKAxisRec): Use `AF_BLUE_STRINGSET_MAX_LEN`.
+	* src/autofit/aflatin.h (AF_LatinAxisRec): Ditto.
+
+2023-08-31  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/ttpost.c (load_format_20): Rework tracing.
+
+2023-08-30  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	[builds] Abbreviate the DLG submodule update.
+
+	* autogen.sh, builds/toplevel.mk: Revise the command options.
+
+2023-08-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	Comment added.
+
+2023-08-29  Alexei Podtelezhnikov  <apodtele@gmail.com>
+
+	* src/sfnt/ttpost.c (load_format_20): Permit long names.
+	
+	Fixes #1254.
+
+2023-08-27  Werner Lemberg  <wl@gnu.org>
+
+	[gzip] Update sources to zlib 1.13.
+
+2023-08-25  Werner Lemberg  <wl@gnu.org>
+
+	docs/release: Minor fixes.
+
+2023-08-25  Anurag Thakur  <anuthadev@gmail.com>
+
+	docs/freetype-web.txt: New file.
+
 2023-08-25  Werner Lemberg  <wl@gnu.org>
 
 	* Version 2.13.2 released.

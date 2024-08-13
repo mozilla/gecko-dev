@@ -10,7 +10,7 @@
  * accepted if you are using GCC for compilation (and probably by
  * other compilers too).
  *
- * Author: FreeType team, 2005-2019
+ * Author: FreeType team, 2005-2023
  *
  * This code is explicitly placed into the public domain.
  *
@@ -295,7 +295,7 @@ read_header_file( FILE*  file,
     p = buff;
 
     /* skip leading whitespace */
-    while ( *p && ( *p == ' ' || *p == '\\' ) )
+    while ( *p == ' ' || *p == '\t' )
       p++;
 
     /* skip empty lines */

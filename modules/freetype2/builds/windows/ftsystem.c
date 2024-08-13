@@ -4,7 +4,7 @@
  *
  *   Windows-specific FreeType low-level system interface (body).
  *
- * Copyright (C) 2021-2023 by
+ * Copyright (C) 2021-2024 by
  * David Turner, Robert Wilhelm, and Werner Lemberg.
  *
  * This file is part of the FreeType project, and may only be used,
@@ -196,8 +196,8 @@
   }
 
 
-  /* non-desktop Universal Windows Platform */
-#if defined( WINAPI_FAMILY ) && WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
+  /* support for Universal Windows Platform UWP, formerly WinRT */
+#ifdef _WINRT_DLL
 
 #define PACK_DWORD64( hi, lo )  ( ( (DWORD64)(hi) << 32 ) | (DWORD)(lo) )
 
@@ -248,10 +248,11 @@
                         dwCreationDisposition, &createExParams );
   }
 
-#endif
+#endif  /* _WINRT_DLL */
 
 
-#if defined( _WIN32_WCE )
+  /* support for Windows CE */
+#ifdef _WIN32_WCE
 
   /* malloc.h provides implementation of alloca()/_alloca() */
   #include <malloc.h>
@@ -291,9 +292,9 @@
                         dwFlagsAndAttributes, hTemplateFile );
   }
 
-#endif
+#endif  /* _WIN32_WCE */
 
-
+  /* support for really old Windows */
 #if defined( _WIN32_WCE ) || defined ( _WIN32_WINDOWS ) || \
     !defined( _WIN32_WINNT ) || _WIN32_WINNT <= 0x0400
 
@@ -311,7 +312,7 @@
       return TRUE;
   }
 
-#endif
+#endif  /* _WIN32_WCE || _WIN32_WINDOWS || _WIN32_WINNT <= 0x0400 */
 
 
   /* documentation is in ftobjs.h */

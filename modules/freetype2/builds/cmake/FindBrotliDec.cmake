@@ -1,6 +1,6 @@
 # FindBrotliDec.cmake
 #
-# Copyright (C) 2019-2023 by
+# Copyright (C) 2019-2024 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # Written by Werner Lemberg <wl@gnu.org>
