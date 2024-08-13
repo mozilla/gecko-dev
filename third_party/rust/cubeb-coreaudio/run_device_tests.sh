@@ -11,6 +11,7 @@ echo "RUST_BACKTRACE is set to ${RUST_BACKTRACE}\n"
 cargo test test_aggregate -- --ignored --nocapture
 
 cargo test test_switch_device -- --ignored --nocapture
+cargo test test_switch_while_paused -- --ignored --nocapture
 
 cargo test test_plug_and_unplug_device -- --ignored --nocapture
 

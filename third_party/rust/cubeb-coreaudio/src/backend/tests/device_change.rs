@@ -22,6 +22,8 @@ use super::utils::{
 };
 use super::*;
 use std::sync::{LockResult, WaitTimeoutResult};
+use std::thread;
+use std::time;
 
 // Switch default devices used by the active streams, to test stream reinitialization
 // ================================================================================================
@@ -70,6 +72,125 @@ fn test_switch_device_in_scope(scope: Scope) {
         if *guard >= devices.len() {
             break;
         }
+    });
+}
+
+#[ignore]
+#[test]
+fn test_switch_while_paused() {
+    test_switch_device_in_scope_while_paused(Scope::Input);
+    test_switch_device_in_scope_while_paused(Scope::Output);
+}
+
+fn test_switch_device_in_scope_while_paused(scope: Scope) {
+    println!(
+        "Switch default device for {:?} while the stream is paused.",
+        scope
+    );
+
+    // Do nothing if there is no 2 available devices at least.
+    let devices = test_get_devices_in_scope(scope.clone());
+    if devices.len() < 2 {
+        println!("Need 2 devices for {:?} at least. Skip.", scope);
+        return;
+    }
+
+    let mut device_switcher = TestDeviceSwitcher::new(scope.clone());
+
+    let notifier = Arc::new(Notifier::new(0));
+    let also_notifier = notifier.clone();
+    let listener = run_serially(|| {
+        test_create_device_change_listener(scope.clone(), move |_addresses| {
+            let mut cnt = notifier.lock().unwrap();
+            *cnt += 1;
+            notifier.notify(cnt);
+            NO_ERR
+        })
+    });
+    run_serially(|| listener.start());
+
+    let changed_watcher = Watcher::new(&also_notifier);
+    test_get_started_stream_in_scope(scope.clone(), move |stream| loop {
+        // pause the stream, change device, start the stream
+        // peek under the hood to the find the device in use currently
+        let stm = unsafe { &mut *(stream as *mut AudioUnitStream) };
+        let before = if scope == Scope::Output {
+            stm.core_stream_data.output_unit
+        } else {
+            stm.core_stream_data.input_unit
+        };
+
+        let check_devices = |current| {
+            stm.queue.run_sync(|| {
+                let (bus, unit, id) = if scope == Scope::Output {
+                    (
+                        AU_OUT_BUS,
+                        stm.core_stream_data.output_unit,
+                        stm.core_stream_data.output_device.id,
+                    )
+                } else {
+                    (
+                        AU_IN_BUS,
+                        stm.core_stream_data.input_unit,
+                        stm.core_stream_data.input_device.id,
+                    )
+                };
+                let mut device_id: AudioDeviceID = 0;
+                let mut size = std::mem::size_of::<AudioDeviceID>();
+                let status = audio_unit_get_property(
+                    unit,
+                    kAudioOutputUnitProperty_CurrentDevice,
+                    kAudioUnitScope_Global,
+                    bus,
+                    &mut device_id,
+                    &mut size,
+                );
+                if status != NO_ERR {
+                    panic!("Could not get device ID from audiounit");
+                }
+                assert_eq!(id, current);
+                assert_eq!(device_id, current);
+            });
+        };
+
+        check_devices(device_switcher.current());
+
+        // Pause the stream, and change the default device
+        assert_eq!(unsafe { OPS.stream_stop.unwrap()(stream) }, ffi::CUBEB_OK);
+
+        let start_cnt = changed_watcher.lock().unwrap().clone();
+        device_switcher.next();
+        let mut guard = changed_watcher.lock().unwrap();
+        guard = changed_watcher
+            .wait_while(guard, |cnt| *cnt == start_cnt)
+            .unwrap();
+        if *guard >= devices.len() {
+            break;
+        }
+
+        // Wait until the switch is effective and the stream has been marked for delayed
+        // reinitialization. delayed_reinit can only be access from the queue thread. Depending on
+        // the setup this can take some time so we sleep a bit to not hammer the main thread.
+        let mut switched = false;
+        while !switched {
+            switched = stm.queue.run_sync(|| stm.delayed_reinit).unwrap();
+            if !switched {
+                let ten_millis = time::Duration::from_millis(10);
+                thread::sleep(ten_millis);
+            }
+        }
+
+        // Start the stream, and check that the device in use isn't the same as before pausing
+        assert_eq!(unsafe { OPS.stream_start.unwrap()(stream) }, ffi::CUBEB_OK);
+
+        check_devices(device_switcher.current());
+
+        let after = if scope == Scope::Output {
+            stm.core_stream_data.output_unit
+        } else {
+            stm.core_stream_data.input_unit
+        };
+        assert_ne!(before, after);
     });
 }
 

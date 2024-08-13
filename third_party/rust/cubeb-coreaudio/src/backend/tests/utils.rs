@@ -780,6 +780,9 @@ impl TestDeviceSwitcher {
             }
         }
     }
+    pub fn current(&self) -> AudioObjectID {
+        self.devices[self.current_device_index]
+    }
 
     fn set_device(&self, device: AudioObjectID) -> std::result::Result<AudioObjectID, OSStatus> {
         test_set_default_device(device, self.scope.clone())
