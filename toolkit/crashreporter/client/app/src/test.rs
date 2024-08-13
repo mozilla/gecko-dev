@@ -78,7 +78,10 @@ where
     let ret = gui();
     // In case the gui failed before launching.
     i.cancel();
-    handle.join().unwrap();
+    // If the gui failed, it's possible the interact thread hit a panic. However we can't check
+    // whether `R` is in a failure state, so we ignore the result of joining the thread. If there
+    // is an error, a backtrace will show the thread's panic message.
+    let _ = handle.join();
     ret
 }
 
@@ -163,6 +166,8 @@ struct GuiTest {
     pub files: MockFiles,
     /// Whether glean should be initialized.
     enable_glean: bool,
+    /// Callback to call before `try_run` but after test setup.
+    before_run: Option<Box<dyn FnOnce()>>,
 }
 
 impl GuiTest {
@@ -216,13 +221,20 @@ impl GuiTest {
             mock,
             files: mock_files,
             enable_glean: false,
+            before_run: None,
         }
     }
 
+    /// Enable glean pings (which will serialize the test run with other glean tests).
     pub fn enable_glean_pings(&mut self) {
         self.enable_glean = true;
         self.mock
             .set(mock::MockHook::new("enable_glean_pings"), true);
+    }
+
+    /// Run the given callback after test setup but before running the tests.
+    pub fn before_run(&mut self, f: impl FnOnce() + 'static) {
+        self.before_run = Some(Box::new(f));
     }
 
     /// Run the test as configured, using the given function to interact with the GUI.
@@ -238,6 +250,7 @@ impl GuiTest {
             ref enable_glean,
             ..
         } = self;
+        let before_run = self.before_run.take();
         let mut config = Arc::new(std::mem::take(config));
 
         // Run the mock environment.
@@ -247,7 +260,15 @@ impl GuiTest {
             } else {
                 None
             };
-            gui_interact(move || try_run(&mut config), interact)
+            gui_interact(
+                move || {
+                    if let Some(f) = before_run {
+                        f();
+                    }
+                    try_run(&mut config)
+                },
+                interact,
+            )
         })
     }
 
@@ -739,7 +760,7 @@ fn glean_ping() {
     test.mock.set(
         net::http::MockHttp,
         Box::new(cc! { (received_glean_ping)
-            move | _request, url | {
+            move |_request, url| {
                 if url.starts_with("https://incoming.glean.example.com")
                 {
                     received_glean_ping.inc();
@@ -750,6 +771,80 @@ fn glean_ping() {
             }
         }),
     );
+    test.run(|interact| {
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+    received_glean_ping.assert_one();
+}
+
+#[test]
+fn glean_ping_extra_stack_trace_fields() {
+    let mut test = GuiTest::new();
+    test.enable_glean_pings();
+    let received_glean_ping = Counter::new();
+
+    const MINIDUMP_EXTRA_CONTENTS: &str = r#"{
+                            "Vendor": "FooCorp",
+                            "ProductName": "Bar",
+                            "ReleaseChannel": "release",
+                            "BuildID": "1234",
+                            "StackTraces": {
+                                "status": "OK",
+                                "foobar": "baz",
+                                "crash_info": {
+                                    "address": "0xcafe"
+                                }
+                            },
+                            "Version": "100.0",
+                            "ServerURL": "https://reports.example.com",
+                            "TelemetryServerURL": "https://telemetry.example.com",
+                            "TelemetryClientId": "telemetry_client",
+                            "TelemetryProfileGroupId": "telemetry_profile_group",
+                            "TelemetrySessionId": "telemetry_session",
+                            "SomeNestedJson": { "foo": "bar" },
+                            "URL": "https://url.example.com",
+                            "WindowsErrorReporting": "1"
+                        }"#;
+    test.files = {
+        let mock_files = MockFiles::new();
+        mock_files
+            .add_file_result(
+                "minidump.dmp",
+                Ok(MOCK_MINIDUMP_FILE.into()),
+                current_system_time(),
+            )
+            .add_file_result(
+                "minidump.extra",
+                Ok(MINIDUMP_EXTRA_CONTENTS.into()),
+                current_system_time(),
+            );
+        test.mock.set(MockFS, mock_files.clone());
+        mock_files
+    };
+    test.mock.set(
+        net::http::MockHttp,
+        Box::new(cc! { (received_glean_ping)
+            move |_request, url| {
+                if url.starts_with("https://incoming.glean.example.com")
+                {
+                    received_glean_ping.inc();
+                    Ok(Ok(vec![]))
+                } else {
+                    net::http::MockHttp::try_others()
+                }
+            }
+        }),
+    );
+
+    test.before_run(|| {
+        glean::crash.test_before_next_submit(|_| {
+            assert_eq!(
+                glean::crash::stack_traces.test_get_value(None),
+                Some(serde_json::json! {{"crash_address":"0xcafe"}})
+            );
+        });
+    });
+
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
