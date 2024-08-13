@@ -12,6 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
   Deferred: "chrome://remote/content/shared/Sync.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  NavigationListener:
+    "chrome://remote/content/shared/listeners/NavigationListener.sys.mjs",
   PromptListener:
     "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
@@ -142,6 +144,8 @@ export class ProgressListener {
 
   #deferredNavigation;
   #errorName;
+  #navigationId;
+  #navigationListener;
   #promptListener;
   #seenStartFlag;
   #targetURI;
@@ -158,6 +162,9 @@ export class ProgressListener {
    *     When set to `true`, the ProgressListener will ignore options.unloadTimeout
    *     and will only resolve when the expected navigation happens.
    *     Defaults to `false`.
+   * @param {NavigationManager=} options.navigationManager
+   *     The NavigationManager where navigations for the current session are
+   *     monitored.
    * @param {boolean=} options.resolveWhenStarted
    *     Flag to indicate that the Promise has to be resolved when the
    *     page load has been started. Otherwise wait until the page has
@@ -178,6 +185,7 @@ export class ProgressListener {
   constructor(webProgress, options = {}) {
     const {
       expectNavigation = false,
+      navigationManager = null,
       resolveWhenStarted = false,
       targetURI,
       unloadTimeout = DEFAULT_UNLOAD_TIMEOUT,
@@ -196,6 +204,15 @@ export class ProgressListener {
     this.#targetURI = targetURI;
     this.#unloadTimerId = null;
 
+    if (navigationManager !== null) {
+      this.#navigationListener = new lazy.NavigationListener(navigationManager);
+      this.#navigationListener.on(
+        "navigation-failed",
+        this.#onNavigationFailed
+      );
+      this.#navigationListener.startListening();
+    }
+
     this.#promptListener = new lazy.PromptListener();
     this.#promptListener.on("opened", this.#onPromptOpened);
     this.#promptListener.startListening();
@@ -205,6 +222,15 @@ export class ProgressListener {
     this.#promptListener.stopListening();
     this.#promptListener.off("opened", this.#onPromptOpened);
     this.#promptListener.destroy();
+
+    if (this.#navigationListener) {
+      this.#navigationListener.stopListening();
+      this.#navigationListener.off(
+        "navigation-failed",
+        this.#onNavigationFailed
+      );
+      this.#navigationListener.destroy();
+    }
   }
 
   get #messagePrefix() {
@@ -338,6 +364,17 @@ export class ProgressListener {
     return null;
   }
 
+  #onNavigationFailed = (eventName, data) => {
+    const { errorName, navigationId } = data;
+
+    if (this.#navigationId === navigationId) {
+      this.#trace(
+        `Received "navigation-failed" event with error=${errorName}. Stopping the navigation.`
+      );
+      this.stop({ error: new Error(errorName) });
+    }
+  };
+
   #onPromptOpened = (eventName, data) => {
     const { prompt, contentBrowser } = data;
     const { promptType } = prompt;
@@ -422,10 +459,14 @@ export class ProgressListener {
   /**
    * Start observing web progress changes.
    *
+   * @param {string=} navigationId
+   *     The UUID for the navigation.
    * @returns {Promise}
    *     A promise that will resolve when the navigation has been finished.
    */
-  start() {
+  start(navigationId) {
+    this.#navigationId = navigationId;
+
     if (this.#deferredNavigation) {
       throw new Error(`Progress listener already started`);
     }
