@@ -22,10 +22,6 @@ let prefData = [
     name: "network.enableIDN",
     newVal: true,
   },
-  {
-    name: "network.IDN_show_punycode",
-    newVal: false,
-  },
 ];
 
 let prefIdnBlackList = {

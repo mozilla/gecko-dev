@@ -173,7 +173,6 @@ avoid-blacklist-and-whitelist:
         - netwerk/base/nsIPermissionManager.idl
         - netwerk/base/nsIProtocolHandler.idl
         - netwerk/base/nsIOService.cpp
-        - netwerk/base/nsIURI.idl
         - netwerk/base/nsURLHelper.cpp
         - netwerk/cookie/CookieCommons.h
         - netwerk/dns/nsHostRecord.cpp

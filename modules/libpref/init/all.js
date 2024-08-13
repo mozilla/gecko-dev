@@ -1359,9 +1359,6 @@ pref("dom.server-events.default-reconnection-time", 5000); // in milliseconds
 // If "network.IDN.restriction_profile" is "moderate", the Moderately
 // Restrictive profile is used.
 // In all other cases, the ASCII-Only profile is used.
-// Note that these preferences are referred to ONLY when
-// "network.IDN_show_punycode" is false. In other words, all IDNs will be shown
-// in punycode if "network.IDN_show_punycode" is true.
 pref("network.IDN.restriction_profile", "high");
 
 // If a domain includes any of the blocklist characters, it may be a spoof

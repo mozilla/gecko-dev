@@ -284,7 +284,7 @@ interface nsIURI : nsISupports
     /**
      * If the URI has a punycode encoded hostname, this will hold the UTF8
      * representation of that hostname (if that representation doesn't contain
-     * blacklisted characters, and the network.IDN_show_punycode pref is false)
+     * blocklisted characters)
      * Otherwise, if the hostname is ASCII, it will return the same as .asciiHost
      */
     readonly attribute AUTF8String displayHost;
@@ -296,15 +296,13 @@ interface nsIURI : nsISupports
 
     /**
      * Returns the same as calling .spec, only with a UTF8 encoded hostname
-     * (if that hostname doesn't contain blacklisted characters, and
-     * the network.IDN_show_punycode pref is false)
+     * (if that hostname doesn't contain blocklisted characters)
      */
     readonly attribute AUTF8String displaySpec;
 
     /**
      * Returns the same as calling .prePath, only with a UTF8 encoded hostname
-     * (if that hostname doesn't contain blacklisted characters, and
-     * the network.IDN_show_punycode pref is false)
+     * (if that hostname doesn't contain blocklisted characters)
      */
     readonly attribute AUTF8String displayPrePath;
 

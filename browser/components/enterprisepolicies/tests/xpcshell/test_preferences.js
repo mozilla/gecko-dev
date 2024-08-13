@@ -7,7 +7,6 @@ const OLD_PREFERENCES_TESTS = [
   {
     policies: {
       Preferences: {
-        "network.IDN_show_punycode": true,
         "accessibility.force_disabled": 1,
         "security.default_personal_cert": "Select Automatically",
         "geo.enabled": 1,
@@ -15,7 +14,6 @@ const OLD_PREFERENCES_TESTS = [
       },
     },
     lockedPrefs: {
-      "network.IDN_show_punycode": true,
       "accessibility.force_disabled": 1,
       "security.default_personal_cert": "Select Automatically",
       "geo.enabled": true,
