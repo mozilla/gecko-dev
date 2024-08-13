@@ -25,7 +25,6 @@ UNSUPPORTED_FEATURES = set(
         "legacy-regexp",  # Bug 1306461
         "set-methods",  # Bug 1805038
         "explicit-resource-management",  # Bug 1569081
-        "regexp-modifiers",
         "promise-try",
         "source-phase-imports",
         "source-phase-imports-module-source",
@@ -50,6 +49,7 @@ FEATURE_CHECK_NEEDED = {
 }
 RELEASE_OR_BETA = set(
     [
+        "regexp-modifiers",
         "symbols-as-weakmap-keys",
     ]
 )
@@ -65,6 +65,7 @@ SHELL_OPTIONS = {
     "Float16Array": "--enable-float16array",
     "regexp-duplicate-named-groups": "--enable-regexp-duplicate-named-groups",
     "RegExp.escape": "--enable-regexp-escape",
+    "regexp-modifiers": "--enable-regexp-modifiers",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
