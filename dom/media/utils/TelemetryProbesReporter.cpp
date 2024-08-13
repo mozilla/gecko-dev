@@ -552,10 +552,10 @@ void TelemetryProbesReporter::ReportResultForMFCDMPlaybackIfNeeded(
   if (MOZ_LOG_TEST(gTelemetryProbesReporterLog, LogLevel::Debug)) {
     nsPrintfCString logMessage{
         "MFCDM EME_Playback event, keySystem=%s, videoCodec=%s, resolution=%s, "
-        "playedTime=%s",
+        "playedTime=%lf",
         NS_ConvertUTF16toUTF8(*keySystem).get(),
         mOwner->GetMediaInfo().mVideo.mMimeType.get(), aResolution.get(),
-        std::to_string(aTotalPlayTimeS).c_str()};
+        aTotalPlayTimeS};
     if (renderedFrames) {
       logMessage.Append(
           nsPrintfCString{", renderedFrames=%" PRIu64, *renderedFrames});
