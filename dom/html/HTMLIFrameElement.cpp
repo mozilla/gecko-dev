@@ -374,6 +374,9 @@ void HTMLIFrameElement::NodeInfoChanged(Document* aOldDoc) {
   if (mLazyLoading) {
     aOldDoc->GetLazyLoadObserver()->Unobserve(*this);
     mLazyLoading = false;
+  }
+
+  if (LoadingState() == Loading::Lazy) {
     SetLazyLoading();
   }
 }
