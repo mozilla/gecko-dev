@@ -330,8 +330,8 @@ void TelemetryProbesReporter::OntFirstFrameLoaded(
         extraData.resolution->get(),
         aFlags.contains(FirstFrameLoadedFlag::IsHardwareDecoding)};
     if (const auto keySystem = mOwner->GetKeySystem()) {
-      logMessage.Append(nsPrintfCString{
-          ", keySystem=%s", NS_ConvertUTF16toUTF8(*keySystem).get()});
+      logMessage.AppendPrintf(", keySystem=%s",
+                              NS_ConvertUTF16toUTF8(*keySystem).get());
     }
     LOG("%s", logMessage.get());
   }
@@ -557,12 +557,10 @@ void TelemetryProbesReporter::ReportResultForMFCDMPlaybackIfNeeded(
         mOwner->GetMediaInfo().mVideo.mMimeType.get(), aResolution.get(),
         aTotalPlayTimeS};
     if (renderedFrames) {
-      logMessage.Append(
-          nsPrintfCString{", renderedFrames=%" PRIu64, *renderedFrames});
+      logMessage.AppendPrintf(", renderedFrames=%" PRIu64, *renderedFrames);
     }
     if (droppedFrames) {
-      logMessage.Append(
-          nsPrintfCString{", droppedFrames=%" PRIu64, *droppedFrames});
+      logMessage.AppendPrintf(", droppedFrames=%" PRIu64, *droppedFrames);
     }
     LOG("%s", logMessage.get());
   }
