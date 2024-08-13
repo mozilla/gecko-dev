@@ -81,33 +81,43 @@ function parseAndRemoveField(obj, field) {
  * @returns {Object} The stack traces layout expected by the Glean crash.stackTraces metric.
  */
 function stackTracesLegacyToGlean(stackTraces) {
-  // Make a clone to fix up the values without altering the original.
-  stackTraces = structuredClone(stackTraces);
+  let ret = {};
   // Change "status" to "error", only populate if an error occurred.
   if ("status" in stackTraces && stackTraces.status !== "OK") {
-    stackTraces.error = stackTraces.status;
+    ret.error = stackTraces.status;
   }
-  delete stackTraces.status;
 
   // Change "crash_info" to flattened individual fields.
-  if ("crash_info" in stackTraces) {
-    stackTraces.crash_type = stackTraces.crash_info.type;
-    stackTraces.crash_address = stackTraces.crash_info.address;
-    stackTraces.crash_thread = stackTraces.crash_info.crashing_thread;
-    delete stackTraces.crash_info;
-  }
+  ret.crash_type = stackTraces.crash_info?.type;
+  ret.crash_address = stackTraces.crash_info?.address;
+  ret.crash_thread = stackTraces.crash_info?.crashing_thread;
+
+  ret.main_module = stackTraces.main_module;
 
   // Rename modules[].{base_addr,end_addr}
   if ("modules" in stackTraces) {
-    for (let module of stackTraces.modules) {
-      module.base_address = module.base_addr;
-      delete module.base_addr;
-      module.end_address = module.end_addr;
-      delete module.end_addr;
-    }
+    ret.modules = stackTraces.modules.map(module => ({
+      base_address: module.base_addr,
+      end_address: module.end_addr,
+      code_id: module.code_id,
+      debug_file: module.debug_file,
+      debug_id: module.debug_id,
+      filename: module.filename,
+      version: module.version,
+    }));
   }
 
-  return stackTraces;
+  if ("threads" in stackTraces) {
+    ret.threads = stackTraces.threads.map(thread => ({
+      frames: thread.frames.map(frame => ({
+        module_index: frame.module_index,
+        ip: frame.ip,
+        trust: frame.trust,
+      })),
+    }));
+  }
+
+  return ret;
 }
 
 /**
