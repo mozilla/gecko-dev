@@ -104,8 +104,6 @@ skip-if = [
 ["browser_dbg-browser-toolbox-workers.js"]
 skip-if = [
   "asan", # Bug 1591064, parent intercept mode is needed
-  "!nightly_build", # bug 1588154, Disable frequent fission intermittents
-  "fission", # Bug 1675020
 ]
 
 ["browser_dbg-call-stack.js"]
