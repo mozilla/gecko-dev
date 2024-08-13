@@ -49,8 +49,15 @@ class BounceTrackingState : public nsIWebProgressListener,
   // Reset state for all BounceTrackingState instances this includes resetting
   // BounceTrackingRecords and cancelling any running timers.
   static void ResetAll();
+
+  // Resets and destroys all BounceTrackingState objects. This is used when the
+  // feature gets disabled.
+  static void DestroyAll();
+
+  // Reset BounceTrackingState objects matching OriginAttributes.
   static void ResetAllForOriginAttributes(
       const OriginAttributes& aOriginAttributes);
+  // Same as above but for a pattern.
   static void ResetAllForOriginAttributesPattern(
       const OriginAttributesPattern& aPattern);
 

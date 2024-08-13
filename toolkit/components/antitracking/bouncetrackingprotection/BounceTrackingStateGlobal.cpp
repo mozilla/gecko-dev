@@ -206,6 +206,26 @@ nsresult BounceTrackingStateGlobal::RemoveBounceTrackers(
   return NS_OK;
 }
 
+nsresult BounceTrackingStateGlobal::ClearByType(
+    BounceTrackingProtectionStorage::EntryType aType, bool aSkipStorage) {
+  if (aType == BounceTrackingProtectionStorage::EntryType::BounceTracker) {
+    mBounceTrackers.Clear();
+  } else {
+    MOZ_ASSERT(aType ==
+               BounceTrackingProtectionStorage::EntryType::UserActivation);
+    mUserActivation.Clear();
+  }
+
+  if (aSkipStorage || !ShouldPersistToDisk()) {
+    return NS_OK;
+  }
+
+  NS_ENSURE_TRUE(mStorage, NS_ERROR_FAILURE);
+  return mStorage->DeleteDBEntriesByType(
+      &mOriginAttributes,
+      BounceTrackingProtectionStorage::EntryType::BounceTracker);
+}
+
 // static
 nsCString BounceTrackingStateGlobal::DescribeMap(
     const nsTHashMap<nsCStringHashKey, PRTime>& aMap) {

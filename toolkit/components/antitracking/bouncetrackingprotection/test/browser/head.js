@@ -231,15 +231,21 @@ async function navigateLinkClick(
  * run for the given browser.
  */
 async function waitForRecordBounces(browser) {
-  return TestUtils.topicObserved(
+  let { browserId } = browser.browsingContext;
+  info(
+    `waitForRecordBounces: Waiting for record bounces for browser: ${browserId}.`
+  );
+
+  await TestUtils.topicObserved(
     OBSERVER_MSG_RECORD_BOUNCES_FINISHED,
     subject => {
       // Ensure the message was dispatched for the browser we're interested in.
       let propBag = subject.QueryInterface(Ci.nsIPropertyBag2);
-      let browserId = propBag.getProperty("browserId");
-      return browser.browsingContext.browserId == browserId;
+      return browserId == propBag.getProperty("browserId");
     }
   );
+
+  info(`waitForRecordBounces: Recorded bounces for browser ${browserId}.`);
 }
 
 /**

@@ -4,6 +4,7 @@
 #ifndef mozilla_BounceTrackingProtection_h__
 #define mozilla_BounceTrackingProtection_h__
 
+#include "BounceTrackingStorageObserver.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MozPromise.h"
 #include "nsIBounceTrackingProtection.h"
@@ -79,12 +80,27 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
   // Initializes the singleton instance of BounceTrackingProtection.
   [[nodiscard]] nsresult Init();
 
+  // Listens for feature pref changes and enables / disables BTP.
+  static void OnPrefChange(const char* aPref, void* aData);
+
+  // Called by OnPrefChange when the mode pref changes.
+  // isStartup indicates whether this is the initial mode change after startup.
+  nsresult OnModeChange(bool aIsStartup);
+
+  // Schedules or cancels the periodic bounce tracker purging. If this method is
+  // called while purging is already scheduled it will cancel the existing timer
+  // and then start a new timer.
+  nsresult UpdateBounceTrackingPurgeTimer(bool aShouldEnable);
+
   // Keeps track of whether the feature is enabled based on pref state.
   // Initialized on first call of GetSingleton.
   static Maybe<bool> sFeatureIsEnabled;
 
   // Timer which periodically runs PurgeBounceTrackers.
   nsCOMPtr<nsITimer> mBounceTrackingPurgeTimer;
+
+  // Used to notify BounceTrackingState of storage and cookie access.
+  RefPtr<BounceTrackingStorageObserver> mStorageObserver;
 
   // Storage for user agent globals.
   RefPtr<BounceTrackingProtectionStorage> mStorage;

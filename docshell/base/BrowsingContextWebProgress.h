@@ -64,6 +64,10 @@ class BrowsingContextWebProgress final : public nsIWebProgress,
 
   already_AddRefed<BounceTrackingState> GetBounceTrackingState();
 
+  // Drops our reference to BounceTrackingState. This is used when the feature
+  // gets disabled.
+  void DropBounceTrackingState();
+
  private:
   virtual ~BrowsingContextWebProgress();
 

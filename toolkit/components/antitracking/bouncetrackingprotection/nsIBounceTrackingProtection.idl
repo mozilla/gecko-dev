@@ -7,6 +7,37 @@
 
 [scriptable, uuid(4866F748-29DA-4C10-8EAA-ED2F7851E6B1)]
 interface nsIBounceTrackingProtection : nsISupports {
+    /**
+    *  Modes for Bounce Tracking Protection
+    *
+    *  MODE_DISABLED - Feature fully disabled and not initialized at startup. No
+    *  user activation signals are collected. Requires a restart to apply.
+    *  MODE_ENABLED - Feature fully enabled. This includes: collection of user
+    *  activation signals, classification of bounce trackers, periodic purging
+    *  of bounce trackers.
+    *  MODE_ENABLED_STANDBY - Tracker classification and purging is disabled.
+    *  User activation signals are still collected and stored.
+    *  MODE_ENABLED_DRY_RUN - Dry-run mode: The feature is fully enabled, but
+    *  tracker purging is simulated. No site data is purged. Purge telemetry
+    *  still gets collected.  This mode is helpful for testing the feature
+    *  without risking data loss.
+    *
+    *  For toggling the feature in privacy settings UI switch between
+    *  MODE_ENABLED and MODE_NO_PURGE. This is important so that user activation
+    *  signals are still collected even if the feature is "turned off" for the
+    *  user.
+    *  Fully enabling / disabling the feature (MODE_DISABLED -> x or x ->
+    *  MODE_DISABLED) requires a restart to apply.
+    */
+    cenum Modes : 8 {
+        MODE_DISABLED = 0,
+        MODE_ENABLED = 1,
+        MODE_ENABLED_STANDBY = 2,
+        MODE_ENABLED_DRY_RUN = 3,
+        // Not a valid mode, only used for pref validation.
+        MAX_MODE_VALUE = 3,
+    };
+
     // Reset the global bounce tracking state, including the maps for tracking
     // bounce tracker candidates and user activation.
     void clearAll();
