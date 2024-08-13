@@ -21,6 +21,7 @@ const TELEMETRY_SERVER: &str = if cfg!(mock) {
 /// Initialize glean based on the given configuration.
 ///
 /// When mocking, this should be called on a thread where the mock data is present.
+#[cfg_attr(test, allow(dead_code))]
 pub fn init(cfg: &Config) {
     glean::initialize(config(cfg), client_info_metrics(cfg));
 }
@@ -95,7 +96,7 @@ mod uploader {
             };
 
             #[cfg(mock)]
-            return self.mock_data.call(do_send);
+            return self.mock_data.clone().call(do_send);
             #[cfg(not(mock))]
             return do_send();
         }
@@ -129,6 +130,9 @@ mod test {
 
     impl Drop for GleanTest {
         fn drop(&mut self) {
+            // `shutdown` ensures any uploads are executed and threads are joined.
+            // `test_reset_glean` does not do the same (found by source inspection).
+            glean::shutdown();
             glean::test_reset_glean(
                 ConfigurationBuilder::new(false, ::std::env::temp_dir(), "none.none").build(),
                 glean::ClientInfoMetrics::unknown(),

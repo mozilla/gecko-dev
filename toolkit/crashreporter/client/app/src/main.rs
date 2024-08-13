@@ -83,8 +83,6 @@ fn main() {
     let config_result = config.read_from_environment();
     config.log_target = Some(log_target);
 
-    glean::init(&config);
-
     let mut config = Arc::new(config);
 
     let result = config_result.and_then(|()| {
@@ -195,8 +193,6 @@ fn main() {
         cfg.restart_command = Some("mockfox".into());
         cfg.strings = Some(lang::load().unwrap());
 
-        glean::init(&cfg);
-
         let mut cfg = Arc::new(cfg);
         try_run(&mut cfg)
     });
@@ -237,12 +233,21 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
         }
 
         let extra = {
-            // Perform a few things which may change the config, then treat is as immutable.
+            // Perform a few things which may change the config, then treat it as immutable.
             let config = Arc::get_mut(config).expect("unexpected config references");
             let extra = config.load_extra_file()?;
             config.move_crash_data_to_pending()?;
             extra
         };
+
+        // Initialize glean here since it relies on the data directory (which will not change after
+        // this point). We could potentially initialize it even later (only just before we need
+        // it), however we may use it for more than just the crash ping in the future, in which
+        // case it makes more sense to do it as early as possible.
+        //
+        // When we are testing, glean will already be initialized (if needed).
+        #[cfg(not(test))]
+        glean::init(&config);
 
         logic::ReportCrash::new(config.clone(), extra)?.run()
     }
