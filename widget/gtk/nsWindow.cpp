@@ -171,6 +171,13 @@ GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
 
 #endif
 
+const gint kEvents = GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK |
+                     GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
+                     GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
+                     GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+                     GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK |
+                     GDK_POINTER_MOTION_MASK | GDK_PROPERTY_CHANGE_MASK;
+
 /* utility functions */
 static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
                                gdouble aMouseY);
@@ -219,6 +226,8 @@ static void scale_changed_cb(GtkWidget* widget, GParamSpec* aPSpec,
                              gpointer aPointer);
 static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent);
 static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent);
+
+static nsWindow* GetFirstNSWindowForGDKWindow(GdkWindow* aGdkWindow);
 
 #ifdef __cplusplus
 extern "C" {
@@ -396,6 +405,7 @@ nsWindow::nsWindow()
       mIsAlert(false),
       mWindowShouldStartDragging(false),
       mHasMappedToplevel(false),
+      mRetryPointerGrab(false),
       mPanInProgress(false),
       mTitlebarBackdropState(false),
       mIsChildWindow(false),
@@ -6195,14 +6205,10 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       GTK_WIDGET(mContainer),
       StaticPrefs::widget_transparent_windows_AtStartup());
 
+  gtk_widget_add_events(GTK_WIDGET(mContainer), kEvents);
+  gtk_widget_add_events(mShell, GDK_PROPERTY_CHANGE_MASK);
   gtk_widget_set_app_paintable(
       mShell, StaticPrefs::widget_transparent_windows_AtStartup());
-
-#ifdef MOZ_X11
-  if (GdkIsX11Display()) {
-    gtk_widget_set_double_buffered(GTK_WIDGET(mContainer), FALSE);
-  }
-#endif
 
   if (mTransparencyBitmapForTitlebar) {
     moz_container_force_default_visual(mContainer);
@@ -6266,32 +6272,13 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                         DevicePixelsToGdkCoordRoundDown(mBounds.y));
   }
 
-  GtkSettings* default_settings = gtk_settings_get_default();
-  g_signal_connect_after(default_settings, "notify::gtk-xft-dpi",
-                         G_CALLBACK(settings_xft_dpi_changed_cb), this);
-
-  GdkScreen* screen = gtk_widget_get_screen(mShell);
-  if (!g_signal_handler_find(screen, G_SIGNAL_MATCH_FUNC, 0, 0, nullptr,
-                             FuncToGpointer(screen_composited_changed_cb),
-                             nullptr)) {
-    g_signal_connect(screen, "composited-changed",
-                     G_CALLBACK(screen_composited_changed_cb), nullptr);
-  }
-
   // Also label mShell toplevel window,
   // property_notify_event_cb callback also needs to find its way home
   g_object_set_data(G_OBJECT(GetToplevelGdkWindow()), "nsWindow", this);
   g_object_set_data(G_OBJECT(mContainer), "nsWindow", this);
   g_object_set_data(G_OBJECT(mShell), "nsWindow", this);
 
-  // mShell signal events
-  gtk_widget_add_events(mShell,
-                        GDK_VISIBILITY_NOTIFY_MASK | GDK_ENTER_NOTIFY_MASK |
-                            GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK |
-                            GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
-                            GDK_SMOOTH_SCROLL_MASK | GDK_SCROLL_MASK |
-                            GDK_TOUCHPAD_GESTURE_MASK | GDK_TOUCH_MASK);
-
+  // attach listeners for events
   g_signal_connect(mShell, "configure_event", G_CALLBACK(configure_event_cb),
                    nullptr);
   g_signal_connect(mShell, "delete_event", G_CALLBACK(delete_event_cb),
@@ -6306,11 +6293,21 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                    G_CALLBACK(widget_composited_changed_cb), nullptr);
   g_signal_connect(mShell, "property-notify-event",
                    G_CALLBACK(property_notify_event_cb), nullptr);
+
   if (mWindowType == WindowType::TopLevel) {
     g_signal_connect_after(mShell, "size_allocate",
                            G_CALLBACK(toplevel_window_size_allocate_cb),
                            nullptr);
   }
+
+  GdkScreen* screen = gtk_widget_get_screen(mShell);
+  if (!g_signal_handler_find(screen, G_SIGNAL_MATCH_FUNC, 0, 0, nullptr,
+                             FuncToGpointer(screen_composited_changed_cb),
+                             nullptr)) {
+    g_signal_connect(screen, "composited-changed",
+                     G_CALLBACK(screen_composited_changed_cb), nullptr);
+  }
+
   gtk_drag_dest_set((GtkWidget*)mShell, (GtkDestDefaults)0, nullptr, 0,
                     (GdkDragAction)0);
   g_signal_connect(mShell, "drag_motion", G_CALLBACK(drag_motion_event_cb),
@@ -6322,34 +6319,11 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   g_signal_connect(mShell, "drag_data_received",
                    G_CALLBACK(drag_data_received_event_cb), nullptr);
 
-  // These events are sent to the owning widget of the relevant window
-  // and propagate up to the first widget that handles the events, so we
-  // need only connect on mShell, if it exists, to catch events on its
-  // window and windows of mContainer.
-  g_signal_connect(mShell, "button-press-event",
-                   G_CALLBACK(button_press_event_cb), nullptr);
-  g_signal_connect(mShell, "button-release-event",
-                   G_CALLBACK(button_release_event_cb), nullptr);
-  g_signal_connect(mShell, "enter-notify-event",
-                   G_CALLBACK(enter_notify_event_cb), nullptr);
-  g_signal_connect(mShell, "leave-notify-event",
-                   G_CALLBACK(leave_notify_event_cb), nullptr);
-  g_signal_connect(mShell, "motion-notify-event",
-                   G_CALLBACK(motion_notify_event_cb), nullptr);
-  g_signal_connect(mShell, "scroll-event", G_CALLBACK(scroll_event_cb),
-                   nullptr);
-  if (gtk_check_version(3, 18, 0) == nullptr) {
-    g_signal_connect(mShell, "event", G_CALLBACK(generic_event_cb), nullptr);
-  }
-  g_signal_connect(mShell, "touch-event", G_CALLBACK(touch_event_cb), nullptr);
+  GtkSettings* default_settings = gtk_settings_get_default();
+  g_signal_connect_after(default_settings, "notify::gtk-xft-dpi",
+                         G_CALLBACK(settings_xft_dpi_changed_cb), this);
 
-  // mContainer widget signals
-  gtk_widget_add_events(GTK_WIDGET(mContainer),
-                        GDK_EXPOSURE_MASK |       // draw signal
-                            GDK_STRUCTURE_MASK |  // map/unmap signals
-                            GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
-                            GDK_PROPERTY_CHANGE_MASK);  // notify::* signals
-
+  // Widget signals
   g_signal_connect_after(mContainer, "size_allocate",
                          G_CALLBACK(size_allocate_cb), nullptr);
   g_signal_connect(mContainer, "hierarchy-changed",
@@ -6358,6 +6332,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                    G_CALLBACK(scale_changed_cb), nullptr);
   // Initialize mHasMappedToplevel.
   hierarchy_changed_cb(GTK_WIDGET(mContainer), nullptr);
+  // Expose, focus, key, and drag events are sent even to GTK_NO_WINDOW
+  // widgets.
   g_signal_connect(G_OBJECT(mContainer), "draw", G_CALLBACK(expose_event_cb),
                    nullptr);
   g_signal_connect(mContainer, "focus_in_event", G_CALLBACK(focus_in_event_cb),
@@ -6369,6 +6345,11 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   g_signal_connect(mContainer, "key_release_event",
                    G_CALLBACK(key_release_event_cb), nullptr);
 
+#ifdef MOZ_X11
+  if (GdkIsX11Display()) {
+    gtk_widget_set_double_buffered(GTK_WIDGET(mContainer), FALSE);
+  }
+#endif
 #ifdef MOZ_WAYLAND
   // Initialize the window specific VsyncSource early in order to avoid races
   // with BrowserParent::UpdateVsyncParentVsyncDispatcher().
@@ -6387,6 +6368,29 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   if (mWindowType != WindowType::Popup) {
     mIMContext = new IMContextWrapper(this);
   }
+
+  // These events are sent to the owning widget of the relevant window
+  // and propagate up to the first widget that handles the events, so we
+  // need only connect on mShell, if it exists, to catch events on its
+  // window and windows of mContainer.
+  g_signal_connect(mContainer, "enter-notify-event",
+                   G_CALLBACK(enter_notify_event_cb), nullptr);
+  g_signal_connect(mContainer, "leave-notify-event",
+                   G_CALLBACK(leave_notify_event_cb), nullptr);
+  g_signal_connect(mContainer, "motion-notify-event",
+                   G_CALLBACK(motion_notify_event_cb), nullptr);
+  g_signal_connect(mContainer, "button-press-event",
+                   G_CALLBACK(button_press_event_cb), nullptr);
+  g_signal_connect(mContainer, "button-release-event",
+                   G_CALLBACK(button_release_event_cb), nullptr);
+  g_signal_connect(mContainer, "scroll-event", G_CALLBACK(scroll_event_cb),
+                   nullptr);
+  if (gtk_check_version(3, 18, 0) == nullptr) {
+    g_signal_connect(mContainer, "event", G_CALLBACK(generic_event_cb),
+                     nullptr);
+  }
+  g_signal_connect(mContainer, "touch-event", G_CALLBACK(touch_event_cb),
+                   nullptr);
 
   LOG("  nsWindow type %d %s\n", int(mWindowType),
       mIsPIPWindow ? "PIP window" : "");
@@ -8339,17 +8343,34 @@ static gboolean leave_notify_event_cb(GtkWidget* widget,
   return TRUE;
 }
 
+static nsWindow* GetFirstNSWindowForGDKWindow(GdkWindow* aGdkWindow) {
+  nsWindow* window;
+  while (!(window = get_window_for_gdk_window(aGdkWindow))) {
+    // The event has bubbled to the moz_container widget as passed into each
+    // caller's *widget parameter, but its corresponding nsWindow is an ancestor
+    // of the window that we need.  Instead, look at event->window and find the
+    // first ancestor nsWindow of it because event->window may be in a plugin.
+    aGdkWindow = gdk_window_get_parent(aGdkWindow);
+    if (!aGdkWindow) {
+      window = nullptr;
+      break;
+    }
+  }
+  return window;
+}
+
 static gboolean motion_notify_event_cb(GtkWidget* widget,
                                        GdkEventMotion* event) {
   UpdateLastInputEventTime(event);
 
-  RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(event->window);
   if (!window) {
     return FALSE;
   }
 
   window->OnMotionNotifyEvent(event);
-  return FALSE;
+
+  return TRUE;
 }
 
 static gboolean button_press_event_cb(GtkWidget* widget,
@@ -8360,7 +8381,7 @@ static gboolean button_press_event_cb(GtkWidget* widget,
     return FALSE;
   }
 
-  RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(event->window);
   if (!window) {
     return FALSE;
   }
@@ -8371,7 +8392,7 @@ static gboolean button_press_event_cb(GtkWidget* widget,
     WaylandDragWorkaround(window, event);
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 static gboolean button_release_event_cb(GtkWidget* widget,
@@ -8382,14 +8403,14 @@ static gboolean button_release_event_cb(GtkWidget* widget,
     return FALSE;
   }
 
-  RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(event->window);
   if (!window) {
     return FALSE;
   }
 
   window->OnButtonReleaseEvent(event);
 
-  return FALSE;
+  return TRUE;
 }
 
 static gboolean focus_in_event_cb(GtkWidget* widget, GdkEventFocus* event) {
@@ -8555,13 +8576,14 @@ static gboolean property_notify_event_cb(GtkWidget* aWidget,
 }
 
 static gboolean scroll_event_cb(GtkWidget* widget, GdkEventScroll* event) {
-  RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(event->window);
   if (NS_WARN_IF(!window)) {
     return FALSE;
   }
 
   window->OnScrollEvent(event);
-  return FALSE;
+
+  return TRUE;
 }
 
 static gboolean visibility_notify_event_cb(GtkWidget* widget,
@@ -8674,7 +8696,7 @@ static void scale_changed_cb(GtkWidget* widget, GParamSpec* aPSpec,
 static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent) {
   UpdateLastInputEventTime(aEvent);
 
-  RefPtr<nsWindow> window = get_window_for_gdk_window(aEvent->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(aEvent->window);
   if (!window) {
     return FALSE;
   }
@@ -8685,7 +8707,6 @@ static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent) {
 // This function called generic because there is no signal specific to touchpad
 // pinch events.
 static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
-  // Keep routing other that touchpad events to child widgets
   if (aEvent->type != GDK_TOUCHPAD_PINCH) {
     return FALSE;
   }
@@ -8694,7 +8715,8 @@ static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
   GdkEventTouchpadPinch* event =
       reinterpret_cast<GdkEventTouchpadPinch*>(aEvent);
 
-  RefPtr<nsWindow> window = get_window_for_gdk_window(event->window);
+  RefPtr<nsWindow> window = GetFirstNSWindowForGDKWindow(event->window);
+
   if (!window) {
     return FALSE;
   }
