@@ -70,7 +70,9 @@ class nsGZFileWriter final {
  private:
   bool mInitialized;
   bool mFinished;
-  gzFile mGZFile;
+  FILE* mGZFile;
+  z_stream mZStream = {};
+  Bytef mBuffer[8192];
 };
 
 #endif
