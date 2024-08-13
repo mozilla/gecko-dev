@@ -4,11 +4,54 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+const gInitializedWindows = new WeakSet();
+
 export var PopupBlockerObserver = {
-  handleEvent(aEvent) {
-    if (aEvent.type === "DOMUpdateBlockedPopups") {
-      this.onDOMUpdateBlockedPopups(aEvent);
+  handleEvent(event) {
+    switch (event.type) {
+      case "DOMUpdateBlockedPopups":
+        this.onDOMUpdateBlockedPopups(event);
+        break;
+      case "command":
+        this.onCommand(event);
+        break;
+      case "popupshowing":
+        this.fillPopupList(event);
+        break;
+      case "popuphiding":
+        this.onPopupHiding(event);
+        break;
     }
+  },
+
+  onCommand(event) {
+    if (event.target.hasAttribute("popupReportIndex")) {
+      PopupBlockerObserver.showBlockedPopup(event);
+      return;
+    }
+
+    switch (event.target.id) {
+      case "blockedPopupAllowSite":
+        this.toggleAllowPopupsForSite(event);
+        break;
+      case "blockedPopupEdit":
+        this.editPopupSettings(event);
+        break;
+      case "blockedPopupDontShowMessage":
+        this.dontShowMessage(event);
+        break;
+    }
+  },
+
+  ensureInitializedForWindow(win) {
+    if (gInitializedWindows.has(win)) {
+      return;
+    }
+    gInitializedWindows.add(win);
+    let popup = win.document.getElementById("blockedPopupOptions");
+    popup.addEventListener("command", this);
+    popup.addEventListener("popupshowing", this);
+    popup.addEventListener("popuphiding", this);
   },
 
   async onDOMUpdateBlockedPopups(aEvent) {
@@ -17,7 +60,6 @@ export var PopupBlockerObserver = {
     if (aEvent.originalTarget != gBrowser.selectedBrowser) {
       return;
     }
-
     gPermissionPanel.refreshPermissionIcons();
 
     let popupCount =
@@ -38,6 +80,7 @@ export var PopupBlockerObserver = {
     // notifications are per-browser, we don't need to worry about re-adding
     // it.
     if (gBrowser.selectedBrowser.popupBlocker.shouldShowNotification) {
+      this.ensureInitializedForWindow(window);
       if (Services.prefs.getBoolPref("privacy.popups.showBrowserMessage")) {
         const label = {
           "l10n-id":
