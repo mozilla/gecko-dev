@@ -113,6 +113,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Sus un site web, aquesta barra s’amaga quand vos desplaçatz enbàs per ganhar d’espaci suplementari.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Tocatz de longa las sagetas per sautar entre paginas de l’istoric d’aqueste onglet.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Accès a la camèra necessari. Anatz als paramètres Android, tocatz Autorizacions puèi Autorizar.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -285,9 +288,15 @@
     <string name="browser_menu_switch_to_mobile_site">Passar en version mobil</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Aisinas</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Mòde lectura, traduire, imprimir, partejar, dobrir dins una aplicacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Mòde lectura, imprimir, partejar, dobrir dins una aplicacion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Enregistrar</string>
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Apondre als marcapaginas, acorchis, acuèlh, colleccion, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Marcar aquesta pagina</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -911,6 +920,11 @@
     <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Cambiar d’onglet en lisant la barra d’aisinas cap las costats</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Dobrir los ligams en lisant la barra d’aisina amont</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Desplaçatz-vos per amagar la barra d’adreça e la barra d’aisinas</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Cambiatz d’onglet en lisant la barra d’adreça lateralament</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1766,6 +1780,8 @@
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Generadors d’emprentas numericas suspècte</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Activar la proteccion contra los generadors d’emprenta numerica per arrestar los que son suspèctes.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Generadors d’emprentas numericas coneguts</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
