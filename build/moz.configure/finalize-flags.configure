@@ -41,12 +41,23 @@ add_old_configure_assignment("LDFLAGS", os_ldflags)
 set_config("OS_LDFLAGS", os_ldflags)
 
 
-@depends(linker_optimize_flags, moz_optimize_flags, lto, c_compiler)
-def moz_optimize_ldflags(linker_optimize_flags, moz_optimize_flags, lto, c_compiler):
+set_config("MOZ_OPTIMIZE_FLAGS", moz_optimize_flags, when=~js_build)
+
+
+@depends(
+    linker_optimize_flags,
+    "MOZ_OPTIMIZE_FLAGS",
+    lto,
+    c_compiler,
+)
+@imports(_from="mozbuild.shellutil", _import="split")
+def moz_optimize_ldflags(linker_optimize_flags, env_optimize_flags, lto, c_compiler):
     flags = []
     if linker_optimize_flags:
         flags += linker_optimize_flags.ldflags
-    flags += moz_optimize_flags
+
+    if env_optimize_flags:
+        flags += split(env_optimize_flags[0])
 
     # When using llvm-based LTO, non numeric optimization levels are
     # not supported by the linker, so force the linker to use -O2 (
@@ -58,3 +69,20 @@ def moz_optimize_ldflags(linker_optimize_flags, moz_optimize_flags, lto, c_compi
 
 
 set_config("MOZ_OPTIMIZE_LDFLAGS", moz_optimize_ldflags)
+
+
+@depends(
+    try_compile(
+        includes=["stdio.h"],
+        body='puts("demat");',
+        flags=moz_optimize_flags,
+        language="C",
+        check_msg="for valid C compiler optimization flags",
+    ),
+    moz_optimize_flags,
+    when=moz_optimize,
+)
+@imports(_from="mozbuild.shellutil", _import="quote")
+def check_optimization_flags(check_result, moz_optimize_flags):
+    if not check_result:
+        die(f"Invalid C compiler optimization flags: {quote(*moz_optimize_flags)}")

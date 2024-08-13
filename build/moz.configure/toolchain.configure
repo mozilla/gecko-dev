@@ -98,36 +98,42 @@ def forced_pgo_optimization_level(target):
         return "-O3"
 
 
-@depends("--enable-optimize")
-def moz_optimize(option):
-    if len(option):
-        if "-O0" not in option[0]:
-            return "2"
-    elif option:
-        return "1"
-
-
-@depends("--enable-optimize", forced_pgo_optimization_level)
+@depends("--enable-optimize", "MOZ_OPTIMIZE_FLAGS")
 @imports(_from="mozbuild.shellutil", _import="split")
-def moz_optimize_flags(option, forced_pgo_optimization_level):
-    if len(option):
-        return split(option[0])
-    elif option and forced_pgo_optimization_level:
-        return [forced_pgo_optimization_level]
+def configured_moz_optimize_flags(enable_optimize, env_flags):
+    if len(enable_optimize):
+        return split(enable_optimize[0])
+    if len(env_flags):
+        return split(env_flags[0])
+
+
+@depends("--enable-optimize", "MOZ_OPTIMIZE_FLAGS")
+def moz_optimize(enable_optimize, env_flags):
+    return "1" if enable_optimize or env_flags else None
 
 
 set_config("MOZ_OPTIMIZE", moz_optimize)
-add_old_configure_assignment("MOZ_OPTIMIZE", moz_optimize)
-add_old_configure_assignment("MOZ_CONFIGURE_OPTIMIZE_FLAGS", moz_optimize_flags)
 
 
-@depends_if("MOZ_OPTIMIZE_FLAGS")
+@depends(
+    target, moz_optimize, configured_moz_optimize_flags, forced_pgo_optimization_level
+)
 @imports(_from="mozbuild.shellutil", _import="split")
-def moz_optimize_flags(env_optimize_flags):
-    return split(env_optimize_flags[0])
+def moz_optimize_flags(
+    target, moz_optimize, configured_moz_optimize_flags, forced_pgo_optimization_level
+):
+    if configured_moz_optimize_flags:
+        return configured_moz_optimize_flags
 
+    if moz_optimize and forced_pgo_optimization_level:
+        return [forced_pgo_optimization_level]
 
-add_old_configure_assignment("MOZ_OPTIMIZE_FLAGS", moz_optimize_flags)
+    if target.kernel == "Darwin":
+        return ["-O3"]
+    elif target.kernel in ("Linux", "WINNT"):
+        return ["-O2"]
+    else:
+        return ["-O"]
 
 
 # Android NDK
@@ -3878,20 +3884,3 @@ dtrace = check_header(
 
 set_config("HAVE_DTRACE", True, when=dtrace)
 set_define("INCLUDE_MOZILLA_DTRACE", True, when=dtrace)
-
-
-@depends(
-    try_compile(
-        includes=["stdio.h"],
-        body='puts("demat");',
-        flags=moz_optimize_flags,
-        language="C",
-        check_msg="for valid C compiler optimization flags",
-    ),
-    moz_optimize_flags,
-    when=moz_optimize,
-)
-@imports(_from="mozbuild.shellutil", _import="quote")
-def check_optimization_flags(check_result, moz_optimize_flags):
-    if not check_result:
-        die(f"Invalid C compiler optimization flags: {quote(*moz_optimize_flags)}")
