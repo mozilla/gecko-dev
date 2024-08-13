@@ -691,6 +691,8 @@ def real_host(value, shell):
             return split_triplet("x86_64-pc-windows-msvc")
         elif arch == "x86":
             return split_triplet("i686-pc-windows-msvc")
+        elif arch == "ARM64":
+            return split_triplet("aarch64-pc-windows-msvc")
 
     if not value:
         config_guess = os.path.join(
