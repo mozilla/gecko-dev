@@ -613,8 +613,8 @@ static bool MaybeGetAndClearExceptionAndStack(
  * be tedious, so the check in step 1 and the entirety of step 2 aren't
  * included.
  */
-static bool AbruptRejectPromise(JSContext* cx, CallArgs& args,
-                                HandleObject promiseObj, HandleObject reject) {
+bool js::AbruptRejectPromise(JSContext* cx, CallArgs& args,
+                             HandleObject promiseObj, HandleObject reject) {
   // Step 1.a. Perform
   //           ? Call(capability.[[Reject]], undefined, « value.[[Value]] »).
   RootedValue reason(cx);

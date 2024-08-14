@@ -27,7 +27,10 @@ class MOZ_STACK_CLASS UsingEmitter {
   // TODO: add state transition graph and state
   // management for this emitter. (Bug 1904346)
 
+  bool hasAwaitUsing_ = false;
+
   [[nodiscard]] bool emitDisposeLoop(
+      EmitterScope& es,
       CompletionKind initialCompletion = CompletionKind::Normal,
       DisposeJumpKind jumpKind = DisposeJumpKind::JumpOnError);
 
