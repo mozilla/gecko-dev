@@ -7,9 +7,8 @@ filter-input =
   .key = F
   .aria-label = Search Your Data
 
-menu-more-options-button = …
-  .aria-label = More
-  .title = Open commands menu
+menu-more-options-button =
+  .title = More options
 
 more-options-popup =
   .aria-label = More Options

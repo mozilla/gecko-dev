@@ -68,6 +68,11 @@ export class MegalistAlpha extends MozLitElement {
     });
   }
 
+  #openMenu(e) {
+    const panelList = this.shadowRoot.querySelector("panel-list");
+    panelList.toggle(e);
+  }
+
   #onSortByAlertsButtonClick() {
     this.displayMode = DISPLAY_MODES.ALERTS;
     this.#messageToViewModel("Command", {
@@ -185,16 +190,37 @@ export class MegalistAlpha extends MozLitElement {
     `;
   }
 
-  renderActionsPanel() {
+  renderMenu() {
     return html`
-      <panel-list>
-        <panel-item accesskey="N">Import from another browser…</panel-item>
-        <panel-item accesskey="O">Import from a file…</panel-item>
-        <panel-item accesskey="S">Export passwords</panel-item>
-        <panel-item accesskey="S">Remove all passwords</panel-item>
+      <moz-button
+        @click=${this.#openMenu}
+        type="icon ghost"
+        iconSrc="chrome://global/skin/icons/more.svg"
+        aria-expanded="false"
+        aria-haspopup="menu"
+        data-l10n-id="menu-more-options-button"
+        id="more-options-menubutton"
+      ></moz-button>
+      <panel-list
+        role="menu"
+        aria-labelledby="more-options-menubutton"
+        data-l10n-id="more-options-popup"
+      >
+        <panel-item
+          data-l10n-id="about-logins-menu-menuitem-import-from-another-browser"
+        ></panel-item>
+        <panel-item
+          data-l10n-id="about-logins-menu-menuitem-import-from-a-file"
+        ></panel-item>
+        <panel-item
+          data-l10n-id="about-logins-menu-menuitem-export-logins2"
+        ></panel-item>
+        <panel-item
+          data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
+        ></panel-item>
         <hr />
-        <panel-item accesskey="Q">Options</panel-item>
-        <panel-item accesskey="Q">Help</panel-item>
+        <panel-item data-l10n-id="menu-menuitem-preferences"></panel-item>
+        <panel-item data-l10n-id="about-logins-menu-menuitem-help"></panel-item>
       </panel-list>
     `;
   }
@@ -205,7 +231,7 @@ export class MegalistAlpha extends MozLitElement {
     }
 
     return html`<div class="second-row">
-      ${this.renderToggleButtons()} ${this.renderActionsPanel()}
+      ${this.renderToggleButtons()} ${this.renderMenu()}
     </div>`;
   }
 
