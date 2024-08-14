@@ -40,6 +40,7 @@ namespace mozilla::dom::quota {
 
 struct OriginMetadata;
 class OriginScope;
+class PersistenceScope;
 class QuotaManager;
 class UsageInfo;
 
@@ -140,7 +141,7 @@ class Client {
   // This method is called when origins are about to be cleared
   // (except the case when clearing is triggered by the origin eviction).
   virtual nsresult AboutToClearOrigins(
-      const Nullable<PersistenceType>& aPersistenceType,
+      const PersistenceScope& aPersistenceScope,
       const OriginScope& aOriginScope) {
     return NS_OK;
   }

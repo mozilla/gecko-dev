@@ -131,6 +131,7 @@
 #include "mozilla/dom/quota/ErrorHandling.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/OriginScope.h"
+#include "mozilla/dom/quota/PersistenceScope.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -13044,7 +13045,7 @@ nsresult Maintenance::OpenDirectory() {
 
   quotaManager
       ->OpenStorageDirectory(
-          Nullable<PersistenceType>(), OriginScope::FromNull(),
+          PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
           Nullable<Client::Type>(Client::IDB), /* aExclusive */ false,
           DirectoryLockCategory::None, SomeRef(mPendingDirectoryLock))
       ->Then(GetCurrentSerialEventTarget(), __func__,

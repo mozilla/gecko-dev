@@ -27,8 +27,9 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
 
     RefPtr<UniversalDirectoryLock> exclusiveDirectoryLock =
         DirectoryLockImpl::CreateInternal(
-            WrapNotNullUnchecked(quotaManager), Nullable<PersistenceType>(),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
+            WrapNotNullUnchecked(quotaManager),
+            PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+            Nullable<Client::Type>(),
             /* aExclusive */ true, DirectoryLockCategory::None);
 
     bool done = false;
@@ -46,8 +47,9 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
 
     RefPtr<UniversalDirectoryLock> sharedDirectoryLock =
         DirectoryLockImpl::CreateInternal(
-            WrapNotNullUnchecked(quotaManager), Nullable<PersistenceType>(),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
+            WrapNotNullUnchecked(quotaManager),
+            PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+            Nullable<Client::Type>(),
             /* aExclusive */ false, DirectoryLockCategory::None);
 
     ASSERT_TRUE(sharedDirectoryLock->MustWait());

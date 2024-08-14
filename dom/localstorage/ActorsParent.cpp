@@ -80,6 +80,7 @@
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FirstInitializationAttemptsImpl.h"
 #include "mozilla/dom/quota/OriginScope.h"
+#include "mozilla/dom/quota/PersistenceScope.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/StorageHelpers.h"
@@ -2637,9 +2638,8 @@ class QuotaClient final : public mozilla::dom::quota::Client {
       PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
       const AtomicBool& aCanceled) override;
 
-  nsresult AboutToClearOrigins(
-      const Nullable<PersistenceType>& aPersistenceType,
-      const OriginScope& aOriginScope) override;
+  nsresult AboutToClearOrigins(const PersistenceScope& aPersistenceScope,
+                               const OriginScope& aOriginScope) override;
 
   void OnOriginClearCompleted(PersistenceType aPersistenceType,
                               const nsACString& aOrigin) override;
@@ -8458,7 +8458,7 @@ Result<UsageInfo, nsresult> QuotaClient::GetUsageForOrigin(
 }
 
 nsresult QuotaClient::AboutToClearOrigins(
-    const Nullable<PersistenceType>& aPersistenceType,
+    const PersistenceScope& aPersistenceScope,
     const OriginScope& aOriginScope) {
   AssertIsOnIOThread();
 
@@ -8476,8 +8476,8 @@ nsresult QuotaClient::AboutToClearOrigins(
   // So this method clears the archived data and shadow database entries for
   // given origin scope, but only if it's a privacy-related origin clearing.
 
-  if (!aPersistenceType.IsNull() &&
-      aPersistenceType.Value() != PERSISTENCE_TYPE_DEFAULT) {
+  if (!aPersistenceScope.IsNull() &&
+      aPersistenceScope.GetValue() != PERSISTENCE_TYPE_DEFAULT) {
     return NS_OK;
   }
 

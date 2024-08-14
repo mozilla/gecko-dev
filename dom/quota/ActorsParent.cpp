@@ -1960,20 +1960,19 @@ uint64_t QuotaManager::CollectOriginsForEviction(
     nsTArray<NotNull<const DirectoryLockImpl*>> privateStorageLocks;
 
     for (NotNull<const DirectoryLockImpl*> const lock : mDirectoryLocks) {
-      const Nullable<PersistenceType>& persistenceType =
-          lock->NullablePersistenceType();
+      const PersistenceScope& persistenceScope = lock->PersistenceScopeRef();
 
-      if (persistenceType.IsNull()) {
+      if (persistenceScope.IsNull()) {
         temporaryStorageLocks.AppendElement(lock);
         defaultStorageLocks.AppendElement(lock);
-      } else if (persistenceType.Value() == PERSISTENCE_TYPE_TEMPORARY) {
+      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_TEMPORARY) {
         temporaryStorageLocks.AppendElement(lock);
-      } else if (persistenceType.Value() == PERSISTENCE_TYPE_DEFAULT) {
+      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_DEFAULT) {
         defaultStorageLocks.AppendElement(lock);
-      } else if (persistenceType.Value() == PERSISTENCE_TYPE_PRIVATE) {
+      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_PRIVATE) {
         privateStorageLocks.AppendElement(lock);
       } else {
-        MOZ_ASSERT(persistenceType.Value() == PERSISTENCE_TYPE_PERSISTENT);
+        MOZ_ASSERT(persistenceScope.GetValue() == PERSISTENCE_TYPE_PERSISTENT);
 
         // Do nothing here, persistent origins don't need to be collected ever.
       }
@@ -4949,7 +4948,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeStorage() {
   AssertIsOnOwningThread();
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      Nullable<PersistenceType>(), OriginScope::FromNull(),
+      PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
       Nullable<Client::Type>(),
       /* aExclusive */ false);
 
@@ -5124,14 +5123,14 @@ RefPtr<BoolPromise> QuotaManager::TemporaryStorageInitialized() {
 }
 
 RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
-    const Nullable<PersistenceType>& aPersistenceType,
-    const OriginScope& aOriginScope, const Nullable<Client::Type>& aClientType,
-    bool aExclusive, DirectoryLockCategory aCategory,
+    const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
+    const Nullable<Client::Type>& aClientType, bool aExclusive,
+    DirectoryLockCategory aCategory,
     Maybe<RefPtr<UniversalDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
-      CreateDirectoryLockInternal(Nullable<PersistenceType>(),
+      CreateDirectoryLockInternal(PersistenceScope::CreateFromNull(),
                                   OriginScope::FromNull(),
                                   Nullable<Client::Type>(),
                                   /* aExclusive */ false);
@@ -5147,7 +5146,7 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
   }
 
   RefPtr<UniversalDirectoryLock> universalDirectoryLock =
-      CreateDirectoryLockInternal(aPersistenceType, aOriginScope, aClientType,
+      CreateDirectoryLockInternal(aPersistenceScope, aOriginScope, aClientType,
                                   aExclusive, aCategory);
 
   RefPtr<BoolPromise> universalDirectoryLockPromise =
@@ -5209,7 +5208,7 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
   nsTArray<RefPtr<BoolPromise>> promises;
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
-      CreateDirectoryLockInternal(Nullable<PersistenceType>(),
+      CreateDirectoryLockInternal(PersistenceScope::CreateFromNull(),
                                   OriginScope::FromNull(),
                                   Nullable<Client::Type>(),
                                   /* aExclusive */ false);
@@ -5280,13 +5279,13 @@ RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(
 }
 
 RefPtr<UniversalDirectoryLock> QuotaManager::CreateDirectoryLockInternal(
-    const Nullable<PersistenceType>& aPersistenceType,
-    const OriginScope& aOriginScope, const Nullable<Client::Type>& aClientType,
-    bool aExclusive, DirectoryLockCategory aCategory) {
+    const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
+    const Nullable<Client::Type>& aClientType, bool aExclusive,
+    DirectoryLockCategory aCategory) {
   AssertIsOnOwningThread();
 
   return DirectoryLockImpl::CreateInternal(WrapNotNullUnchecked(this),
-                                           aPersistenceType, aOriginScope,
+                                           aPersistenceScope, aOriginScope,
                                            aClientType, aExclusive, aCategory);
 }
 
@@ -5304,7 +5303,7 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
   // thread).
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      Nullable<PersistenceType>(PERSISTENCE_TYPE_PERSISTENT),
+      PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
       OriginScope::FromOrigin(principalMetadata.mOrigin),
       Nullable<Client::Type>(), /* aExclusive */ false);
 
@@ -5413,7 +5412,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   // thread).
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      Nullable<PersistenceType>(aPersistenceType),
+      PersistenceScope::CreateFromValue(aPersistenceType),
       OriginScope::FromOrigin(principalMetadata.mOrigin),
       Nullable<Client::Type>(), /* aExclusive */ false);
 
@@ -5576,7 +5575,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage() {
   AssertIsOnOwningThread();
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      Nullable<PersistenceType>(), OriginScope::FromNull(),
+      PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
       Nullable<Client::Type>(),
       /* aExclusive */ false);
 
@@ -5921,19 +5920,18 @@ Result<bool, nsresult> QuotaManager::EnsureOriginDirectory(
 }
 
 nsresult QuotaManager::AboutToClearOrigins(
-    const Nullable<PersistenceType>& aPersistenceType,
-    const OriginScope& aOriginScope,
+    const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
     const Nullable<Client::Type>& aClientType) {
   AssertIsOnIOThread();
 
   if (aClientType.IsNull()) {
     for (Client::Type type : AllClientTypes()) {
       QM_TRY(MOZ_TO_RESULT((*mClients)[type]->AboutToClearOrigins(
-          aPersistenceType, aOriginScope)));
+          aPersistenceScope, aOriginScope)));
     }
   } else {
     QM_TRY(MOZ_TO_RESULT((*mClients)[aClientType.Value()]->AboutToClearOrigins(
-        aPersistenceType, aOriginScope)));
+        aPersistenceScope, aOriginScope)));
   }
 
   return NS_OK;
