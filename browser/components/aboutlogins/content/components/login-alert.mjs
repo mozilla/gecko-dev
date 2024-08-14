@@ -7,8 +7,9 @@ import {
   ifDefined,
   guard,
 } from "chrome://global/content/vendor/lit.all.mjs";
-
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-support-link.mjs";
 
 export class LoginAlert extends MozLitElement {
   static get properties() {
@@ -77,9 +78,8 @@ export class VulnerablePasswordAlert extends MozLitElement {
           slot="action"
           class="alert-learn-more-link"
           data-l10n-id="about-logins-vulnerable-alert-learn-more-link"
-          href="https://support.mozilla.org/1/firefox/114.0.1/Darwin/en-CA/lockwise-alerts"
-          rel="noreferrer"
-          target="_blank"
+          is="moz-support-link"
+          support-page="lockwise-alerts"
         ></a>
       </login-alert>
     `;
