@@ -92,9 +92,9 @@ void nsRemoteService::UnlockStartup() {
   }
 }
 
-RemoteResult nsRemoteService::StartClient(const char* aStartupToken) {
+nsresult nsRemoteService::StartClient(const char* aStartupToken) {
   if (mProfile.IsEmpty()) {
-    return REMOTE_NOT_FOUND;
+    return NS_ERROR_FAILURE;
   }
 
   UniquePtr<nsRemoteClient> client;
@@ -109,28 +109,14 @@ RemoteResult nsRemoteService::StartClient(const char* aStartupToken) {
 #elif defined(XP_DARWIN)
   client = MakeUnique<nsMacRemoteClient>();
 #else
-  return REMOTE_NOT_FOUND;
+  return NS_ERROR_NOT_AVAILABLE;
 #endif
 
   nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
-  if (NS_FAILED(rv)) return REMOTE_NOT_FOUND;
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCString response;
-  bool success = false;
-  rv =
-      client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc, gArgv,
-                              aStartupToken, getter_Copies(response), &success);
-  // did the command fail?
-  if (!success) return REMOTE_NOT_FOUND;
-
-  // The "command not parseable" error is returned when the
-  // nsICommandLineHandler throws a NS_ERROR_ABORT.
-  if (response.EqualsLiteral("500 command not parseable"))
-    return REMOTE_ARG_BAD;
-
-  if (NS_FAILED(rv)) return REMOTE_NOT_FOUND;
-
-  return REMOTE_FOUND;
+  return client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc, gArgv,
+                                 aStartupToken);
 }
 
 void nsRemoteService::StartupServer() {

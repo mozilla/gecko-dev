@@ -4937,14 +4937,14 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #  else
       const nsCString startupToken;
 #  endif
-      RemoteResult rr = mRemoteService->StartClient(
+      rv = mRemoteService->StartClient(
           startupToken.IsEmpty() ? nullptr : startupToken.get());
-      if (rr == REMOTE_FOUND) {
+      if (NS_SUCCEEDED(rv)) {
         *aExitFlag = true;
         mRemoteService->UnlockStartup();
         return 0;
       }
-      if (rr == REMOTE_ARG_BAD) {
+      if (rv == NS_ERROR_INVALID_ARG) {
         mRemoteService->UnlockStartup();
         return 1;
       }

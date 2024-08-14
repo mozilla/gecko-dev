@@ -36,9 +36,10 @@ nsDBusRemoteClient::~nsDBusRemoteClient() {
   LOG("nsDBusRemoteClient::~nsDBusRemoteClient");
 }
 
-nsresult nsDBusRemoteClient::SendCommandLine(
-    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
-    const char* aStartupToken, char** aResponse, bool* aWindowFound) {
+nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
+                                             const char* aProfile, int32_t argc,
+                                             char** argv,
+                                             const char* aStartupToken) {
   NS_ENSURE_TRUE(aProfile, NS_ERROR_INVALID_ARG);
 
   LOG("nsDBusRemoteClient::SendCommandLine");
@@ -53,8 +54,6 @@ nsresult nsDBusRemoteClient::SendCommandLine(
 
   nsresult rv = DoSendDBusCommandLine(aProfile, commandLine, commandLineLength);
   free(commandLine);
-
-  *aWindowFound = NS_SUCCEEDED(rv);
 
   LOG("DoSendDBusCommandLine %s", NS_SUCCEEDED(rv) ? "OK" : "FAILED");
   return rv;
@@ -152,5 +151,5 @@ nsresult nsDBusRemoteClient::DoSendDBusCommandLine(const char* aProfile,
   }
 #endif
 
-  return reply ? NS_OK : NS_ERROR_FAILURE;
+  return reply ? NS_OK : NS_ERROR_NOT_AVAILABLE;
 }

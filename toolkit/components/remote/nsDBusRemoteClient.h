@@ -24,8 +24,8 @@ class nsDBusRemoteClient : public nsRemoteClient {
 
   nsresult Init() override { return NS_OK; };
   nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                           int32_t argc, char** argv, const char* aStartupToken,
-                           char** aResponse, bool* aSucceeded) override;
+                           int32_t argc, char** argv,
+                           const char* aStartupToken) override;
   void Shutdown();
 
  private:

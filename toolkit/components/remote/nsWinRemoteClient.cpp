@@ -14,18 +14,17 @@ using namespace mozilla;
 
 nsresult nsWinRemoteClient::Init() { return NS_OK; }
 
-nsresult nsWinRemoteClient::SendCommandLine(
-    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
-    const char* aStartupToken, char** aResponse, bool* aSucceeded) {
-  *aSucceeded = false;
-
+nsresult nsWinRemoteClient::SendCommandLine(const char* aProgram,
+                                            const char* aProfile, int32_t argc,
+                                            char** argv,
+                                            const char* aStartupToken) {
   nsString className;
   BuildClassName(aProgram, aProfile, className);
 
   HWND handle = ::FindWindowW(className.get(), 0);
 
   if (!handle) {
-    return NS_OK;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   WCHAR cwd[MAX_PATH];
@@ -37,8 +36,6 @@ nsresult nsWinRemoteClient::SendCommandLine(
   ::SetForegroundWindow(handle);
   ::SendMessageW(handle, WM_COPYDATA, 0,
                  reinterpret_cast<LPARAM>(sender.CopyData()));
-
-  *aSucceeded = true;
 
   return NS_OK;
 }
