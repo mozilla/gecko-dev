@@ -77,9 +77,4 @@ interface nsIIDNService : nsISupports
      * off using the `idna` crate directly.
      */
     AUTF8String convertACEtoUTF8(in ACString input);
-
-    /**
-     * DO NOT USE! Checks if the input string is ACE encoded or not.
-     */
-    boolean isACE(in ACString input);
 };

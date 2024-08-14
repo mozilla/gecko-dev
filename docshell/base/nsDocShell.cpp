@@ -5992,29 +5992,16 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
           //
           // If this string was passed through nsStandardURL by
           // chance, then it may have been converted from UTF-8 to
-          // ACE, which would result in a completely bogus keyword
+          // Punycode, which would result in a completely bogus keyword
           // query.  Here we try to recover the original Unicode
           // value, but this is not 100% correct since the value may
           // have been normalized per the IDN normalization rules.
           //
           // Since we don't have access to the exact original string
           // that was entered by the user, this will just have to do.
-          //
-          // XXX: Since we are not trying to use the result as an
-          // actual domain name, label-wise Punycode decode would
-          // likely be more appropriate than the full ToUnicode
-          // operation.
-          bool isACE;
           nsAutoCString utf8Host;
-          nsCOMPtr<nsIIDNService> idnSrv =
-              do_GetService(NS_IDNSERVICE_CONTRACTID);
-          if (idnSrv && NS_SUCCEEDED(idnSrv->IsACE(host, &isACE)) && isACE &&
-              NS_SUCCEEDED(idnSrv->ConvertACEtoUTF8(host, utf8Host))) {
-            info = KeywordToURI(utf8Host, aUsePrivateBrowsing);
-
-          } else {
-            info = KeywordToURI(host, aUsePrivateBrowsing);
-          }
+          mozilla_net_recover_keyword_from_punycode(&host, &utf8Host);
+          info = KeywordToURI(utf8Host, aUsePrivateBrowsing);
         }
         if (info) {
           info->GetPreferredURI(getter_AddRefs(newURI));

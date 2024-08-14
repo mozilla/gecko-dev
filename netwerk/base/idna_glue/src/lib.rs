@@ -228,3 +228,34 @@ fn process<OutputUnicode: FnMut(&[char], &[char], bool) -> bool>(
     dst.assign(src);
     nserror::NS_OK
 }
+
+/// Not general-purpose! Only to be used from `nsDocShell::AttemptURIFixup`.
+#[no_mangle]
+pub unsafe extern "C" fn mozilla_net_recover_keyword_from_punycode(
+    src: *const nsACString,
+    dst: *mut nsACString,
+) {
+    let sink = &mut (*dst);
+    let mut seen_label = false;
+    for label in (*src).split(|b| *b == b'.') {
+        if seen_label {
+            sink.append(".");
+        }
+        seen_label = true;
+        // We know the Punycode prefix is in lower case if we got it from
+        // our own IDNA conversion code.
+        if let Some(punycode) = label.strip_prefix(b"xn--") {
+            // Not bothering to optimize this.
+            // Just unwrap, since we know our IDNA conversion code gives
+            // us ASCII here.
+            let utf8 = std::str::from_utf8(punycode).unwrap();
+            if let Some(decoded) = idna::punycode::decode_to_string(utf8) {
+                sink.append(&decoded);
+            } else {
+                sink.append(label);
+            }
+        } else {
+            sink.append(label);
+        }
+    }
+}

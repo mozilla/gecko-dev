@@ -183,32 +183,6 @@ NS_IMETHODIMP nsIDNService::ConvertACEtoUTF8(const nsACString& input,
   return NS_DomainToUnicodeAllowAnyGlyphfulASCII(input, _retval);
 }
 
-NS_IMETHODIMP nsIDNService::IsACE(const nsACString& input, bool* _retval) {
-  // look for the ACE prefix in the input string.  it may occur
-  // at the beginning of any segment in the domain name.  for
-  // example: "www.xn--ENCODED.com"
-
-  if (!IsAscii(input)) {
-    *_retval = false;
-    return NS_OK;
-  }
-
-  auto stringContains = [](const nsACString& haystack,
-                           const nsACString& needle) {
-    return std::search(haystack.BeginReading(), haystack.EndReading(),
-                       needle.BeginReading(), needle.EndReading(),
-                       [](unsigned char ch1, unsigned char ch2) {
-                         return tolower(ch1) == tolower(ch2);
-                       }) != haystack.EndReading();
-  };
-
-  *_retval =
-      StringBeginsWith(input, "xn--"_ns, nsCaseInsensitiveCStringComparator) ||
-      (!input.IsEmpty() && input[0] != '.' &&
-       stringContains(input, ".xn--"_ns));
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsIDNService::DomainToDisplay(const nsACString& input,
                                             nsACString& _retval) {
   nsresult rv = NS_DomainToDisplay(input, _retval);

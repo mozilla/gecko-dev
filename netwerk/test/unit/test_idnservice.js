@@ -7,6 +7,10 @@ const idnService = Cc["@mozilla.org/network/idn-service;1"].getService(
 );
 
 add_task(async function test_simple() {
+  function isACE(domain) {
+    return domain.startsWith("xn--") || domain.indexOf(".xn--") > -1;
+  }
+
   let reference = [
     // The 3rd element indicates whether the second element
     // is ACE-encoded
@@ -23,6 +27,6 @@ add_task(async function test_simple() {
     Assert.equal(idnService.convertUTF8toACE(reference[i][0]), reference[i][1]);
     Assert.equal(idnService.convertUTF8toACE(reference[i][1]), reference[i][1]);
     Assert.equal(idnService.convertACEtoUTF8(reference[i][1]), reference[i][0]);
-    Assert.equal(idnService.isACE(reference[i][1]), reference[i][2]);
+    Assert.equal(isACE(reference[i][1]), reference[i][2]);
   }
 });
