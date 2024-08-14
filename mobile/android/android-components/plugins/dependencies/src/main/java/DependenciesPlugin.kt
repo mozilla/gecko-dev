@@ -79,7 +79,7 @@ object Versions {
         const val navigation = "2.7.7"
         const val transition = "1.5.1"
         const val tracing = "1.2.0"
-        const val work = "2.9.0"
+        const val work = "2.9.1"
         const val arch = "2.2.0"
         const val localbroadcastmanager = "1.0.0"
         const val swiperefreshlayout = "1.1.0"
