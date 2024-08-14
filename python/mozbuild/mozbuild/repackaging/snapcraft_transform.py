@@ -5,7 +5,6 @@
 # vim: set expandtab tabstop=4 shiftwidth=4:
 
 import yaml
-from fluent.runtime.fallback import FluentLocalization, FluentResourceLoader
 
 from mozbuild.repackaging.desktop_file import generate_browser_desktop_entry
 
@@ -152,6 +151,9 @@ class SnapDesktopFile:
             "Icon": "/default256.png",
             "StartupWMClass": "{}-{}".format(appname, branchname),
         }
+
+        from fluent.runtime.fallback import FluentLocalization, FluentResourceLoader
+
         self.desktop = generate_browser_desktop_entry(
             log,
             build_variables,

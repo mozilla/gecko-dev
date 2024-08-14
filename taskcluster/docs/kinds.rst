@@ -619,6 +619,10 @@ repackage-signing-shippable-l10n-msix
 Repackage-signing-shippable-l10n-msix takes Windows MSIX packages produced in
 ```repackage-signing-shippable-l10n-msix``` and signs them.
 
+repackage-snap
+--------------
+Repackage current packaged build as a Snap package
+
 release-msix-push
 --------------------
 Pushes msix repackage to the Microsoft Store.
