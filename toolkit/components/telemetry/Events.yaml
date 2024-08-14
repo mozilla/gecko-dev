@@ -2864,7 +2864,7 @@ pictureinpicture:
     expiry_version: "never"
     release_channel_collection: opt-out
   opened_method:
-    objects: ["toggle", "contextMenu", "urlBar", "shortcut", "autoToggle"]
+    objects: ["toggle", "contextMenu", "urlBar", "shortcut", "autoPip"]
     description: >
       Records the method for opening the Picture-in-Picture window.
     extra_keys:
@@ -2978,6 +2978,20 @@ pictureinpicture.settings:
       - main
     bug_numbers:
       - 1639774
+    expiry_version: "never"
+    release_channel_collection: opt-out
+  enable_autotrigger:
+    objects: ["settings"]
+    description: Recorded when the Picture-in-Picture auto-trigger is enabled.
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes:
+      - main
+    bug_numbers:
+      - 1647800
+      - 1910505
     expiry_version: "never"
     release_channel_collection: opt-out
 

@@ -463,6 +463,10 @@ export let BrowserUsageTelemetry = {
     this._inited = true;
 
     Services.prefs.addObserver("browser.tabs.inTitlebar", this);
+    Services.prefs.addObserver(
+      "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled",
+      this
+    );
 
     this._recordUITelemetry();
 
@@ -529,6 +533,15 @@ export let BrowserUsageTelemetry = {
               Services.appinfo.drawInTitlebar ? "off" : "on",
               "pref"
             );
+            break;
+          case "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled":
+            if (Services.prefs.getBoolPref(data)) {
+              Services.telemetry.recordEvent(
+                "pictureinpicture.settings",
+                "enable_autotrigger",
+                "settings"
+              );
+            }
             break;
         }
         break;
