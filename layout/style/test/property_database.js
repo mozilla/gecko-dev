@@ -13443,7 +13443,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
     invalid_values: ["none", "--foo, auto", "auto, --bar", "foo"],
   };
 
-  gCSSProperties["position-try-options"] = {
+  gCSSProperties["position-try-fallbacks"] = {
     domProp: "positionTryFallbacks",
     inherited: false,
     type: CSS_TYPE_LONGHAND,
