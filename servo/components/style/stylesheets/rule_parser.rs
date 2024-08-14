@@ -23,6 +23,7 @@ use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::stylesheets::import_rule::{ImportLayer, ImportRule, ImportSupportsCondition};
 use crate::stylesheets::keyframes_rule::parse_keyframe_list;
 use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
+use crate::stylesheets::position_try_rule::PositionTryRule;
 use crate::stylesheets::scope_rule::{ScopeBounds, ScopeRule};
 use crate::stylesheets::starting_style_rule::StartingStyleRule;
 use crate::stylesheets::supports_rule::SupportsCondition;
@@ -239,6 +240,8 @@ pub enum AtRulePrelude {
     Scope(ScopeBounds),
     /// A @starting-style prelude.
     StartingStyle,
+    /// A @position-try prelude for Anchor Positioning.
+    PositionTry(DashedIdent),
 }
 
 impl AtRulePrelude {
@@ -261,6 +264,7 @@ impl AtRulePrelude {
             Self::Layer(..) => "layer",
             Self::Scope(..) => "scope",
             Self::StartingStyle => "starting-style",
+            Self::PositionTry(..) => "position-try",
         }
     }
 }
@@ -540,7 +544,8 @@ impl<'a, 'i> NestedRuleParser<'a, 'i> {
             AtRulePrelude::Keyframes(..) |
             AtRulePrelude::Page(..) |
             AtRulePrelude::Property(..) |
-            AtRulePrelude::Import(..) => !self.in_style_or_page_rule(),
+            AtRulePrelude::Import(..) |
+            AtRulePrelude::PositionTry(..) => !self.in_style_or_page_rule(),
             AtRulePrelude::Margin(..) => self.in_page_rule(),
         }
     }
@@ -730,6 +735,10 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
             "starting-style" if static_prefs::pref!("layout.css.starting-style-at-rules.enabled") => {
                 AtRulePrelude::StartingStyle
             },
+            "position-try" if static_prefs::pref!("layout.css.anchor-positioning.enabled") => {
+                let name = DashedIdent::parse(&self.context, input)?;
+                AtRulePrelude::PositionTry(name)
+            },
             _ => {
                 if static_prefs::pref!("layout.css.margin-rules.enabled") {
                     if let Some(margin_rule_type) = MarginRuleType::match_name(&name) {
@@ -914,6 +923,16 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                         .into_rules(self.shared_lock, source_location),
                     source_location,
                 }))
+            },
+            AtRulePrelude::PositionTry(name) => {
+                let declarations = self.nest_for_rule(CssRuleType::PositionTry, |p| {
+                    parse_property_declaration_list(&p.context, input, &[])
+                });
+                CssRule::PositionTry(Arc::new(self.shared_lock.wrap(PositionTryRule {
+                    name,
+                    block: Arc::new(self.shared_lock.wrap(declarations)),
+                    source_location: start.source_location(),
+                })))
             },
         };
         self.rules.push(rule);
