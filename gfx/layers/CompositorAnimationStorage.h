@@ -29,11 +29,6 @@ using SampledAnimationArray = AutoTArray<RefPtr<StyleAnimationValue>, 1>;
 
 struct AnimationTransform {
   /*
-   * This transform is calculated from sampleanimation in device pixel
-   * and used for layers (i.e. non WebRender)
-   */
-  gfx::Matrix4x4 mTransformInDevSpace;
-  /*
    * This transform is calculated from frame used for WebRender and used by
    * getOMTAStyle() for OMTA testing.
    */
