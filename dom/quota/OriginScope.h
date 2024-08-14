@@ -120,6 +120,7 @@ class OriginScope {
  public:
   OriginScope() : mData(Null()) {}
 
+  // XXX Consider renaming these static methods to Create
   static OriginScope FromOrigin(const nsACString& aOrigin) {
     return OriginScope(std::move(Origin(aOrigin)));
   }

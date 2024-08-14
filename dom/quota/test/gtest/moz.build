@@ -25,6 +25,7 @@ UNIFIED_SOURCES = [
     "TestForwardDecls.cpp",
     "TestOriginParser.cpp",
     "TestOriginScope.cpp",
+    "TestPersistenceScope.cpp",
     "TestPersistenceType.cpp",
     "TestQMResult.cpp",
     "TestQuotaCommon.cpp",

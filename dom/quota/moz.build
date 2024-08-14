@@ -64,6 +64,7 @@ EXPORTS.mozilla.dom.quota += [
     "NSSCipherStrategy.h",
     "OriginOperationCallbacks.h",
     "OriginScope.h",
+    "PersistenceScope.h",
     "PersistenceType.h",
     "PromiseUtils.h",
     "QuotaCommon.h",
