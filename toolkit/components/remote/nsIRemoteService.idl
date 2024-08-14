@@ -8,4 +8,24 @@
 [scriptable, builtinclass, uuid(f4ef671b-838c-48fd-bc44-0f6cf63bce91)]
 interface nsIRemoteService : nsISupports
 {
+  /**
+    * Sends command line arguments to another running instance.
+    * Note that the other instance must be on the same update channel. The
+    * profile argument should be the full path to the root profile folder. The
+    * other instance must also have not disabled the remoting service (e.g. with
+    * -no-remote on the command line).
+    *
+    * @param aProfile
+    *        The profile the running instance is using.
+    * @param aArgs
+    *        The command line arguments to send. Don't include the initial
+    *        binary path argument.
+    * @param aRaise
+    *        Whether the target instance's window should be brought to the
+    *        foreground. The actual effect of this is platform-dependent; see
+    *        comments in platform-specific implementations for further
+    *        information.
+    * @throws NS_ERROR_NOT_AVAILABLE if no running instance was found.
+    */
+  void sendCommandLine(in ACString aProfile, in Array<ACString> aArgs, [optional] in boolean aRaise);
 };

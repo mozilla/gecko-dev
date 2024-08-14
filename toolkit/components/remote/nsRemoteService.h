@@ -37,6 +37,8 @@ class nsRemoteService final : public nsIObserver, public nsIRemoteService {
 
  private:
   ~nsRemoteService();
+  nsresult SendCommandLine(const nsACString& aProfile, size_t aArgc,
+                           const char** aArgv, bool aRaise);
 
   mozilla::UniquePtr<nsRemoteServer> mRemoteServer;
   nsProfileLock mRemoteLock;

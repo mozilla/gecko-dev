@@ -98,8 +98,10 @@ void nsRemoteService::UnlockStartup() {
   }
 }
 
-nsresult nsRemoteService::StartClient() {
-  if (mProfile.IsEmpty()) {
+nsresult nsRemoteService::SendCommandLine(const nsACString& aProfile,
+                                          size_t aArgc, const char** aArgv,
+                                          bool aRaise) {
+  if (aProfile.IsEmpty()) {
     return NS_ERROR_FAILURE;
   }
 
@@ -121,8 +123,40 @@ nsresult nsRemoteService::StartClient() {
   nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc,
-                                 const_cast<const char**>(gArgv));
+  return client->SendCommandLine(mProgram.get(),
+                                 PromiseFlatCString(aProfile).get(), aArgc,
+                                 const_cast<const char**>(aArgv), aRaise);
+}
+
+NS_IMETHODIMP
+nsRemoteService::SendCommandLine(const nsACString& aProfile,
+                                 const nsTArray<nsCString>& aArgs,
+                                 bool aRaise) {
+#ifdef MOZ_WIDGET_GTK
+  // Linux clients block until they receive a response so it is impossible to
+  // send a remote command to the current profile.
+  if (aProfile.Equals(mProfile)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+#endif
+  nsAutoCString binaryPath;
+
+  nsTArray<const char*> args;
+  // Note that the command line must include an initial path to the binary but
+  // this is generally ignored.
+  args.SetCapacity(aArgs.Length() + 1);
+  args.AppendElement(binaryPath.get());
+
+  for (const nsCString& arg : aArgs) {
+    args.AppendElement(arg.get());
+  }
+
+  return SendCommandLine(aProfile, args.Length(), args.Elements(), aRaise);
+}
+
+nsresult nsRemoteService::StartClient() {
+  return SendCommandLine(mProfile, gArgc, const_cast<const char**>(gArgv),
+                         true);
 }
 
 void nsRemoteService::StartupServer() {
