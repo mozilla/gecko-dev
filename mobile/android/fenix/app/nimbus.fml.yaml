@@ -511,14 +511,7 @@ features:
         description: >
           When the feature is enabled then microsurveys can be used.
         type: Boolean
-        default: false
-    defaults:
-      - channel: developer
-        value:
-          enabled: false
-      - channel: nightly
-        value:
-          enabled: false
+        default: true
 
 types:
   objects: {}
