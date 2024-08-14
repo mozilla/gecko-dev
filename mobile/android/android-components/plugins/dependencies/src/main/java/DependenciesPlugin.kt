@@ -61,7 +61,7 @@ object Versions {
         const val browser = "1.8.0"
         const val biometric = "1.1.0"
         const val cardview = "1.0.0"
-        const val collection = "1.4.2"
+        const val collection = "1.4.3"
         const val compose_bom = "2024.06.00"
         const val constraintlayout = "2.1.4"
         const val coordinatorlayout = "1.2.0"
