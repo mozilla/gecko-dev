@@ -89,10 +89,11 @@ strong {
   color: var(--theme-body-color);
   padding: var(--block-padding) 8px;
   direction: ltr;
+  overflow-wrap: break-word;
   /* Try to show the content of the tooltip on a single line */
   inline-size: max-content;
-  word-break: break-word;
-  max-inline-size: 100vw;
+  min-inline-size: 60px;
+  max-inline-size: min(500px, 100vw);
 
   .variable-value:has(+ .variable-tooltip-section) {
     padding-block-end: var(--block-padding);
