@@ -13,6 +13,7 @@
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxWindowsPlatform.h"
+#include "mozilla/DataMutex.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
@@ -26,6 +27,7 @@
 #include "mozilla/layers/GpuProcessD3D11QueryMap.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/HelpersD3D11.h"
+#include "mozilla/layers/VideoProcessorD3D11.h"
 #include "mozilla/webrender/RenderD3D11TextureHost.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/webrender/WebRenderAPI.h"
@@ -969,7 +971,9 @@ already_AddRefed<gfx::DataSourceSurface> DXGITextureHostD3D11::GetAsSurface(
 }
 
 already_AddRefed<gfx::DataSourceSurface>
-DXGITextureHostD3D11::GetAsSurfaceWithDevice(ID3D11Device* const aDevice) {
+DXGITextureHostD3D11::GetAsSurfaceWithDevice(
+    ID3D11Device* const aDevice,
+    DataMutex<RefPtr<VideoProcessorD3D11>>& aVideoProcessorD3D11) {
   if (!aDevice) {
     return nullptr;
   }
@@ -1050,20 +1054,67 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(ID3D11Device* const aDevice) {
     }
   }
 
-  nsAutoCString error;
-  std::unique_ptr<DXVA2Manager> manager(
-      DXVA2Manager::CreateD3D11DXVA(nullptr, error, device));
-  if (!manager) {
-    gfxCriticalNoteOnce << "Failed to create DXVA2 manager!";
+  CD3D11_TEXTURE2D_DESC desc;
+  d3dTexture->GetDesc(&desc);
+
+  desc = CD3D11_TEXTURE2D_DESC(
+      DXGI_FORMAT_B8G8R8A8_UNORM, desc.Width, desc.Height, 1, 1,
+      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+  desc.MiscFlags =
+      D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED;
+
+  RefPtr<ID3D11Texture2D> copiedTexture;
+  HRESULT hr =
+      device->CreateTexture2D(&desc, nullptr, getter_AddRefs(copiedTexture));
+  if (FAILED(hr)) {
+    gfxCriticalNoteOnce << "Failed to create copiedTexture: " << gfx::hexa(hr);
     return nullptr;
   }
 
-  RefPtr<ID3D11Texture2D> copiedTexture;
-  HRESULT hr = manager->CopyToBGRATexture(d3dTexture, mArrayIndex,
-                                          getter_AddRefs(copiedTexture));
-  if (FAILED(hr)) {
-    gfxCriticalNoteOnce << "Failed to copy to BGRA texture: " << gfx::hexa(hr);
-    return nullptr;
+  {
+    auto lock = aVideoProcessorD3D11.Lock();
+    auto& videoProcessor = lock.ref();
+    if (videoProcessor && (videoProcessor->mDevice != device)) {
+      videoProcessor = nullptr;
+    }
+
+    if (!videoProcessor) {
+      videoProcessor = VideoProcessorD3D11::Create(device);
+      if (!videoProcessor) {
+        gfxCriticalNoteOnce << "Failed to create VideoProcessorD3D11";
+        return nullptr;
+      }
+    }
+
+    if (!videoProcessor->Init(mSize)) {
+      gfxCriticalNoteOnce << "Failed to init VideoProcessorD3D11";
+      return nullptr;
+    }
+
+    if (!videoProcessor->CallVideoProcessorBlt(this, d3dTexture,
+                                               copiedTexture)) {
+      gfxCriticalNoteOnce << "CallVideoProcessorBlt failed";
+      return nullptr;
+    }
+  }
+
+  {
+    // Wait VideoProcessorBlt gpu task complete.
+    RefPtr<ID3D11Query> query;
+    CD3D11_QUERY_DESC desc(D3D11_QUERY_EVENT);
+    hr = device->CreateQuery(&desc, getter_AddRefs(query));
+    if (FAILED(hr) || !query) {
+      gfxWarning() << "Could not create D3D11_QUERY_EVENT: " << gfx::hexa(hr);
+      return nullptr;
+    }
+
+    context->End(query);
+
+    BOOL result;
+    bool ret = WaitForFrameGPUQuery(device, context, query, &result);
+    if (!ret) {
+      gfxCriticalNoteOnce << "WaitForFrameGPUQuery() failed";
+    }
   }
 
   RefPtr<IDXGIResource1> resource;

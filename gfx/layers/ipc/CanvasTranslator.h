@@ -39,6 +39,7 @@ namespace layers {
 class SharedSurfacesHolder;
 class TextureData;
 class TextureHost;
+class VideoProcessorD3D11;
 
 class CanvasTranslator final : public gfx::InlineTranslator,
                                public PCanvasParent {
@@ -425,6 +426,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   const RefPtr<SharedSurfacesHolder> mSharedSurfacesHolder;
 #if defined(XP_WIN)
   RefPtr<ID3D11Device> mDevice;
+  DataMutex<RefPtr<VideoProcessorD3D11>> mVideoProcessorD3D11;
 #endif
   static StaticRefPtr<gfx::SharedContextWebgl> sSharedContext;
   RefPtr<gfx::SharedContextWebgl> mSharedContext;

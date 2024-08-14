@@ -7,6 +7,7 @@
 #include "CanvasTranslator.h"
 
 #include "gfxGradientCache.h"
+#include "mozilla/DataMutex.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/CanvasManagerParent.h"
 #include "mozilla/gfx/CanvasRenderThread.h"
@@ -33,6 +34,7 @@
 #if defined(XP_WIN)
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #  include "mozilla/layers/TextureD3D11.h"
+#  include "mozilla/layers/VideoProcessorD3D11.h"
 #endif
 
 namespace mozilla {
@@ -71,6 +73,9 @@ CanvasTranslator::CanvasTranslator(
     const dom::ContentParentId& aContentId, uint32_t aManagerId)
     : mTranslationTaskQueue(gfx::CanvasRenderThread::CreateWorkerTaskQueue()),
       mSharedSurfacesHolder(aSharedSurfacesHolder),
+#if defined(XP_WIN)
+      mVideoProcessorD3D11("CanvasTranslator::mVideoProcessorD3D11"),
+#endif
       mMaxSpinCount(StaticPrefs::gfx_canvas_remote_max_spin_count()),
       mContentId(aContentId),
       mManagerId(aManagerId),
@@ -424,6 +429,14 @@ void CanvasTranslator::ActorDestroy(ActorDestroyReason why) {
     MutexAutoLock lock(mCanvasTranslatorEventsLock);
     mPendingCanvasTranslatorEvents.clear();
   }
+
+#if defined(XP_WIN)
+  {
+    auto lock = mVideoProcessorD3D11.Lock();
+    auto& videoProcessor = lock.ref();
+    videoProcessor = nullptr;
+  }
+#endif
 
   DispatchToTaskQueue(NewRunnableMethod("CanvasTranslator::ClearTextureInfo",
                                         this,
@@ -1489,7 +1502,8 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
 
     // TODO reuse DataSourceSurface if no update.
 
-    usedSurf = textureHostD3D11->GetAsSurfaceWithDevice(mDevice);
+    usedSurf =
+        textureHostD3D11->GetAsSurfaceWithDevice(mDevice, mVideoProcessorD3D11);
     if (!usedSurf) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       usedDescriptor = Nothing();

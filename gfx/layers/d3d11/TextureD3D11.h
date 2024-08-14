@@ -54,6 +54,7 @@ class MOZ_RAII AutoTextureLock final {
 
 class CompositorD3D11;
 class IMFSampleUsageInfo;
+class VideoProcessorD3D11;
 
 class D3D11TextureData final : public TextureData {
  public:
@@ -360,7 +361,8 @@ class DXGITextureHostD3D11 : public TextureHost {
 
   // Return DataSourceSurface using aDevice withou readback to CPU.
   already_AddRefed<gfx::DataSourceSurface> GetAsSurfaceWithDevice(
-      ID3D11Device* const aDevice);
+      ID3D11Device* const aDevice,
+      DataMutex<RefPtr<VideoProcessorD3D11>>& aVideoProcessorD3D11);
 
   void CreateRenderTexture(
       const wr::ExternalImageId& aExternalImageId) override;
