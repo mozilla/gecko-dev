@@ -3,24 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.defineESModuleGetters(this, {
-  Downloads: "resource://gre/modules/Downloads.sys.mjs",
-  FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
 
 async function cleanupAfterTest() {
-  // We need to cleanup written profiles after a test
-  // Get the system downloads directory, and use it to build a profile file
-  let profile = FileUtils.File(await Downloads.getSystemDownloadsDirectory());
-
-  // Get the process ID
-  let pid = Services.appinfo.processID;
-
-  // write it to the profile file name
-  profile.append(`profile_0_${pid}.json`);
+  // Get the full path to the profile
+  let profile = await getFullProfilePath(Services.appinfo.processID);
 
   // remove the file!
-  await IOUtils.remove(profile.path, { ignoreAbsent: true });
+  await IOUtils.remove(profile, { ignoreAbsent: true });
 
   // Make sure the profiler is fully stopped, even if the test failed
   await Services.profiler.StopProfiler();
@@ -101,7 +92,7 @@ add_task(async () => {
 
 add_task(async () => {
   info(
-    "Test that stopping the profiler with a posix signal writes a profile file to the system download directory."
+    "Test that stopping the profiler with a posix signal writes a profile file disk."
   );
   registerCleanupFunction(cleanupAfterTest);
 
@@ -115,14 +106,9 @@ add_task(async () => {
   const threads = [];
   const features = [];
 
-  // Get the system downloads directory, and use it to build a profile file
-  let profile = FileUtils.File(await Downloads.getSystemDownloadsDirectory());
-
-  // Get the process ID
+  // get the full path to the expected profile file:
   let pid = Services.appinfo.processID;
-
-  // use the pid to construct the name of the profile, and resulting file
-  profile.append(`profile_0_${pid}.json`);
+  let profile = await getFullProfilePath(pid);
 
   // Start the profiler, and ensure that it's active
   await Services.profiler.StartProfiler(entries, interval, threads, features);
@@ -140,7 +126,7 @@ add_task(async () => {
 
   // Now that it's stopped, make sure that we have a profile file
   Assert.ok(
-    await IOUtils.exists(profile.path),
+    await IOUtils.exists(profile),
     "A profile file should be written to disk."
   );
 

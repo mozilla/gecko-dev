@@ -2,16 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-async function get_profile_path_on_disk(pid) {
-  // Get the system downloads directory, and use it to build a profile file
-  let profile = FileUtils.File(await Downloads.getSystemDownloadsDirectory());
-
-  // use the pid to construct the name of the profile, and resulting file
-  profile.append(`profile_0_${pid}.json`);
-
-  return profile;
-}
-
 function check_profile_contains_parent_and_content_pids(
   parent_pid,
   content_pid,
@@ -153,14 +143,14 @@ add_task(
 
       // Check that we have a profile written to disk:
       info(`Retrieving profile file.`);
-      let profile_file = await get_profile_path_on_disk(parent_pid);
+      let profile_file = await getFullProfilePath(parent_pid);
       Assert.ok(
-        await IOUtils.exists(profile_file.path),
+        await IOUtils.exists(profile_file),
         "A profile file should be written to disk."
       );
 
       // Read the profile from the json file
-      let profile = await IOUtils.readJSON(profile_file.path);
+      let profile = await IOUtils.readJSON(profile_file);
       info("Found this many proceses: " + profile.processes.length);
 
       // check for processes and the synthetic marker

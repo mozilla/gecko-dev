@@ -391,6 +391,21 @@ function escapeStringRegexp(string) {
 
 /** ------ Utility functions and definitions for raising POSIX signals ------ */
 
+ChromeUtils.defineESModuleGetters(this, {
+  Downloads: "resource://gre/modules/Downloads.sys.mjs",
+});
+
+// Find the path for a profile written to disk because of signals
+async function getFullProfilePath(pid) {
+  // Initially look for "MOZ_UPLOAD_DIR". If this exists, firefox will write the
+  // profile file here, so this is where we need to look.
+  let path = Services.env.get("MOZ_UPLOAD_DIR");
+  if (!path) {
+    path = await Downloads.getSystemDownloadsDirectory();
+  }
+  return PathUtils.join(path, `profile_0_${pid}.json`);
+}
+
 // Hardcode the constants SIGUSR1 and SIGUSR2.
 // This is an absolutely terrible idea, as they are implementation defined!
 // However, it turns out that for 99% of the platforms we care about, and for
