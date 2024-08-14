@@ -150,7 +150,7 @@ class nsNodeInfoManager final {
     }
     static bool Match(const mozilla::dom::NodeInfo::NodeInfoInner& aKey,
                       const mozilla::dom::NodeInfo* aVal) {
-      return aKey == aVal->mInner;
+      return (aKey.Hash() == aVal->mInner.Hash()) && (aKey == aVal->mInner);
     }
   };
 
