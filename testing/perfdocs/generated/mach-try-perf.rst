@@ -172,7 +172,7 @@ Ideally, you should be able to use compare view to be more specific in the retri
 Running Alert Tests
 -------------------
 
-To run all the tests that triggered a given alert, use ``./mach try perf --alert <ALERT-NUMBER>``. **It's recommended to use this when working with performance alerts.** The alert number can be found in comment 0 on any alert bug `such as this one <https://bugzilla.mozilla.org/show_bug.cgi?id=1844510>`_. As seen in the image below, the alert number can be found just above the summary table. The comparison that is produced will be based on the base revision in your local repository (i.e. the base revision your patches, if any, are based on).
+To run all the tests that triggered a given alert, use ``./mach try perf --alert <ALERT-NUMBER>``. Using this command will run all the tests that generated the alert summary ID provided in the regression bug. **It's recommended to use this when working with performance alerts.** The alert number can be found in comment 0 on any alert bug `such as this one <https://bugzilla.mozilla.org/show_bug.cgi?id=1844510>`_. As seen in the image below, the alert number can be found just above the summary table. The comparison that is produced will be based on the base revision in your local repository (i.e. the base revision your patches, if any, are based on).
 
 .. image:: ./comment-zero-alert-number.png
    :alt: Comment 0 containing an alert number just above the table.
