@@ -12,7 +12,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 // Additional events to listen with others to create the actor in BrowserGlue
-const EVENTS = ["mousedown", "mouseup"];
+const EVENTS = ["mousedown", "mouseup", "pagehide"];
 
 /**
  * JSWindowActor to detect content page events to send GenAI related data.
@@ -32,9 +32,11 @@ export class GenAIChild extends JSWindowActorChild {
   }
 
   handleEvent(event) {
-    const sendHide = () => this.sendQuery("GenAI:HideShortcuts", event.type);
+    const sendHide = () =>
+      this.sendAsyncMessage("GenAI:HideShortcuts", event.type);
     switch (event.type) {
       case "mousedown":
+        this.downSelection = this.getSelectionInfo().selection;
         this.downTime = Date.now();
         sendHide();
         break;
@@ -51,19 +53,23 @@ export class GenAIChild extends JSWindowActorChild {
         }
 
         // Show immediately on selection or allow long press with no selection
-        const selection =
-          this.contentWindow.getSelection()?.toString().trim() ?? "";
+        const selectionInfo = this.getSelectionInfo();
         const delay = Date.now() - (this.downTime ?? 0);
-        if (selection || delay > lazy.shortcutsDelay) {
-          this.sendQuery("GenAI:ShowShortcuts", {
+        if (
+          (selectionInfo.selection &&
+            selectionInfo.selection != this.downSelection) ||
+          delay > lazy.shortcutsDelay
+        ) {
+          this.sendAsyncMessage("GenAI:ShowShortcuts", {
+            ...selectionInfo,
             delay,
-            selection,
             x: event.screenX,
             y: event.screenY,
           });
         }
         break;
       }
+      case "pagehide":
       case "resize":
       case "scroll":
       case "selectionchange":
@@ -71,5 +77,34 @@ export class GenAIChild extends JSWindowActorChild {
         sendHide();
         break;
     }
+  }
+
+  /**
+   * Provide the selected text and input type.
+   *
+   * @returns {object} selection info
+   */
+  getSelectionInfo() {
+    // Handle regular selection outside of inputs
+    const { activeElement } = this.document;
+    const selection = this.contentWindow.getSelection()?.toString().trim();
+    if (selection) {
+      return {
+        inputType: activeElement.closest("[contenteditable]")
+          ? "contenteditable"
+          : "",
+        selection,
+      };
+    }
+
+    // Selection within input elements
+    const { selectionStart, value } = activeElement;
+    if (selectionStart != null && value != null) {
+      return {
+        inputType: activeElement.localName,
+        selection: value.slice(selectionStart, activeElement.selectionEnd),
+      };
+    }
+    return { inputType: "", selection: "" };
   }
 }

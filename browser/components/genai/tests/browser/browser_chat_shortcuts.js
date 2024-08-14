@@ -52,6 +52,7 @@ add_task(async function test_show_shortcuts() {
     let events = Glean.genaiChatbot.shortcutsDisplayed.testGetValue();
     Assert.equal(events.length, 1, "Shortcuts shown once");
     Assert.ok(events[0].extra.delay, "Waited some time");
+    Assert.equal(events[0].extra.inputType, "", "Not in input");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
     const popup = document.getElementById("ask-chat-shortcuts");
@@ -116,6 +117,43 @@ add_task(async function test_plain_clicks() {
 
     Assert.equal(stub.callCount, 1, "Modified click ignored");
   });
+
+  sandbox.restore();
+});
+
+/**
+ * Check that input selection can show shortcuts
+ */
+add_task(async function test_input_selection() {
+  const sandbox = sinon.createSandbox();
+  const stub = sandbox
+    .stub(GenAI, "handleShortcutsMessage")
+    .withArgs("GenAI:ShowShortcuts");
+
+  await BrowserTestUtils.withNewTab(
+    `data:text/html,<input value="input"/>`,
+    async browser => {
+      await SpecialPowers.spawn(browser, [], () => {
+        const input = content.document.querySelector("input");
+        input.focus();
+        input.selectionEnd = 3;
+      });
+
+      await BrowserTestUtils.synthesizeMouseAtCenter(
+        browser,
+        { type: "mouseup" },
+        browser
+      );
+
+      Assert.equal(stub.callCount, 1, "Show shortcuts once");
+      Assert.equal(
+        stub.firstCall.args[1].selection,
+        "inp",
+        "Got selected text from input"
+      );
+      Assert.equal(stub.firstCall.args[1].inputType, "input", "Got input type");
+    }
+  );
 
   sandbox.restore();
 });

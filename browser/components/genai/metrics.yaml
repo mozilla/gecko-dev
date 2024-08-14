@@ -207,6 +207,9 @@ genai.chatbot:
       delay:
         type: quantity
         description: Milliseconds from mousedown to showing.
+      inputType:
+        type: string
+        description: Type if user can edit, e.g., contenteditable, input, textarea.
       selection:
         type: quantity
         description: Selected text length.

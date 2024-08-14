@@ -263,21 +263,21 @@ export const GenAI = {
    * Add chat items to menu or popup.
    *
    * @param {MozBrowser} browser providing context
-   * @param {string} selection text
+   * @param {object} extraContext e.g., selection text
    * @param {Function} itemAdder creates and returns the item
    * @param {string} entry name
    * @param {Function} cleanup optional on item activation
    * @returns {object} context used for selecting prompts
    */
-  async addAskChatItems(browser, selection, itemAdder, entry, cleanup) {
+  async addAskChatItems(browser, extraContext, itemAdder, entry, cleanup) {
     // Prepare context used for both targeting and handling prompts
     const window = browser.ownerGlobal;
     const tab = window.gBrowser.getTabForBrowser(browser);
     const uri = browser.currentURI;
     const context = {
+      ...extraContext,
       entry,
       provider: lazy.chatProvider,
-      selection,
       tabTitle: (tab._labelIsContentTitle && tab.label) || "",
       url: uri.asciiHost + uri.filePath,
       window,
@@ -304,7 +304,7 @@ export const GenAI = {
     if (!lazy.chatEnabled || !lazy.chatShortcuts || lazy.chatProvider == "") {
       return;
     }
-    const stack = browser.closest(".browserStack");
+    const stack = browser?.closest(".browserStack");
     if (!stack) {
       return;
     }
@@ -338,7 +338,7 @@ export const GenAI = {
               vbox.innerHTML = "";
               const context = await this.addAskChatItems(
                 browser,
-                shortcuts.selection,
+                shortcuts.data,
                 promptObj => {
                   const button = vbox.appendChild(
                     document.createXULElement("toolbarbutton")
@@ -381,14 +381,14 @@ export const GenAI = {
                 { once: true }
               );
               Glean.genaiChatbot.shortcutsExpanded.record({
-                selection: shortcuts.selection.length,
+                selection: shortcuts.data.selection.length,
               });
             }
           });
         }
 
         // Save the latest selection so it can be used by popup
-        shortcuts.selection = data.selection;
+        shortcuts.data = data;
         if (shortcuts.hasAttribute("shown")) {
           return;
         }
@@ -396,6 +396,7 @@ export const GenAI = {
         shortcuts.toggleAttribute("shown");
         Glean.genaiChatbot.shortcutsDisplayed.record({
           delay: data.delay,
+          inputType: data.inputType,
           selection: data.selection.length,
         });
 
@@ -434,7 +435,7 @@ export const GenAI = {
     menu.menupopup?.remove();
     await this.addAskChatItems(
       nsContextMenu.browser,
-      nsContextMenu.selectionInfo.fullText ?? "",
+      { selection: nsContextMenu.selectionInfo.fullText ?? "" },
       promptObj => menu.appendItem(promptObj.label),
       "menu"
     );
