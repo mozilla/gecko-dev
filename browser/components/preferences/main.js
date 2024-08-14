@@ -1877,6 +1877,18 @@ var gMainPane = {
       return;
     }
 
+    // Track how often locale fallback order is changed.
+    // Drop the first locale and filter to only include the overlapping set
+    const prevLocales = Services.locale.requestedLocales.filter(
+      lc => selected.indexOf(lc) > 0
+    );
+    const newLocales = selected.filter(
+      (lc, i) => i > 0 && prevLocales.includes(lc)
+    );
+    if (prevLocales.some((lc, i) => newLocales[i] != lc)) {
+      this.gBrowserLanguagesDialog.recordTelemetry("set_fallback");
+    }
+
     switch (gMainPane.getLanguageSwitchTransitionType(selected)) {
       case "requires-restart":
         gMainPane.showConfirmLanguageChangeMessageBar(selected);

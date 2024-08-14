@@ -2601,6 +2601,7 @@ intl.ui.browserLanguage:
       - apply
       - accept
       - cancel
+      - set_fallback
     extra_keys:
       installId: The id for an install.
     products:
@@ -2609,6 +2610,7 @@ intl.ui.browserLanguage:
     notification_emails:
       - flod@mozilla.com
       - mstriemer@mozilla.com
+      - earo@mozilla.com
     release_channel_collection: opt-out
     record_in_processes: ["main"]
     bug_numbers:
@@ -2619,6 +2621,7 @@ intl.ui.browserLanguage:
       - 1739288
       - 1796396
       - 1861299
+      - 1911321
 
 network.dns:
   trrConfirmation:
