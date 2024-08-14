@@ -12,6 +12,7 @@
 const {AppConstants} = ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs");
 const {ComponentUtils} = ChromeUtils.importESModule("resource://gre/modules/ComponentUtils.sys.mjs");
 const {Preferences} = ChromeUtils.importESModule("resource://gre/modules/Preferences.sys.mjs");
+const {TestUtils} = ChromeUtils.importESModule("resource://testing-common/TestUtils.sys.mjs");
 const {XPCOMUtils} = ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -235,6 +236,85 @@ add_test(function test_generateSingletonFactory()
   // Now, for sanity, check that getService is also returning the same instance.
   Assert.equal(instance,
                Cc[XPCCOMPONENT_CONTRACTID].getService(Ci.nsISupports));
+
+  run_next_test();
+});
+
+/**
+ * Verify that category manager calling modules are loaded on-demand,
+ * and that caching doesn't break adding more modules as category entries
+ * at runtime.
+ */
+add_test(async function test_callModulesFromCategory() {
+  const MODULE1 = "resource://test/my_catman_1.sys.mjs";
+  const MODULE2 = "resource://test/my_catman_2.sys.mjs";
+  const CATEGORY = "test-modules-from-catman";
+  const OBSTOPIC1 = CATEGORY + "-notification";
+  const OBSTOPIC2 = CATEGORY + "-other-notification";
+
+  // The two modules both fire different observer topics to allow us to ensure
+  // they have been called. This helper just makes it easier to get only
+  // that return value as a result of a promise, as `topicObserved` also
+  // returns the "subject" of the observer notification, which we don't care about.
+  let rvFromModule = topic => TestUtils.topicObserved(topic).then(
+    ([_subj, data]) => data
+  );
+
+  // Start off with nothing in a category:
+  Assert.equal(Cu.isESModuleLoaded(MODULE1), false, "First module should not be loaded.");
+  let catEntries = Array.from(Services.catMan.enumerateCategory(CATEGORY));
+  Assert.deepEqual(catEntries, [], "Should be no entries for this category.");
+
+  try {
+    // There's nothing in this category right now so this should be a no-op.
+    XPCOMUtils.callModulesFromCategory(CATEGORY, "Hello");
+  } catch (ex) {
+    Assert.ok(false, `Should not have thrown but received an exception ${ex}`);
+  }
+
+  // Now add an item, check that calling it now works.
+  //
+  // Note that category manager observer notifications are async (they get
+  // dispatched as runnables) and so we have to wait for it to make sure that
+  // XPCOMUtils has had a chance of being told new entries have arrived.
+  let catManUpdated = TestUtils.topicObserved("xpcom-category-entry-added");
+
+  Services.catMan.addCategoryEntry(CATEGORY, MODULE1, `Module1.test`, false, false);
+  catEntries = Array.from(Services.catMan.enumerateCategory(CATEGORY));
+  Assert.equal(catEntries.length, 1);
+
+  // See note above.
+  await catManUpdated;
+
+  Assert.equal(Cu.isESModuleLoaded(MODULE1), false, "First module should still not be loaded.");
+
+  // This entry will cause an observer topic to notify, so ensure that happens.
+  let moduleResult = rvFromModule(OBSTOPIC1);
+  XPCOMUtils.callModulesFromCategory(CATEGORY, "Hello");
+  Assert.equal(Cu.isESModuleLoaded(MODULE1), true, "First module should be loaded sync.");
+  Assert.equal("Hello", await moduleResult, "Should have been called.");
+
+  // Now add another item, check that both are called.
+  catManUpdated = TestUtils.topicObserved("xpcom-category-entry-added");
+  Services.catMan.addCategoryEntry(CATEGORY, MODULE2, `Module2.othertest`, false, false);
+  await catManUpdated;
+
+  moduleResult = Promise.all([rvFromModule(OBSTOPIC1), rvFromModule(OBSTOPIC2)]);
+
+  XPCOMUtils.callModulesFromCategory(CATEGORY, "Hello");
+  Assert.deepEqual(["Hello", "Hello"], await moduleResult, "Both modules should have been called.");
+
+  // Now remove the first module again, check that only the second one notifies.
+  catManUpdated = TestUtils.topicObserved("xpcom-category-entry-removed");
+  Services.catMan.deleteCategoryEntry(CATEGORY, MODULE1, false);
+  await catManUpdated;
+  let ob = () => Assert.ok(false, "I shouldn't be called.");
+  Services.obs.addObserver(ob, OBSTOPIC1);
+
+  moduleResult = rvFromModule(OBSTOPIC2);
+  XPCOMUtils.callModulesFromCategory(CATEGORY, "Hello");
+  Assert.equal("Hello", await moduleResult, "Second module should still be called.");
+  Services.obs.removeObserver(ob, OBSTOPIC1);
 
   run_next_test();
 });

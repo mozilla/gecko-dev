@@ -31,6 +31,69 @@ function redefine(object, prop, value) {
   return value;
 }
 
+let lazy = {};
+ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
+  const CatManListenerManager = {
+    cachedModules: {},
+    cachedListeners: {},
+    // All 3 category manager notifications will have the category name
+    // as the `data` part of the observer notification.
+    observe(_subject, _topic, categoryName) {
+      delete this.cachedListeners[categoryName];
+    },
+    /**
+     * Fetch and parse category manager consumers for a given category name.
+     * Will use cachedListeners for the given category name if they exist.
+     */
+    getListeners(categoryName) {
+      if (Object.hasOwn(this.cachedListeners, categoryName)) {
+        return this.cachedListeners[categoryName];
+      }
+      let rv = Array.from(
+        Services.catMan.enumerateCategory(categoryName),
+        ({ data: module, value }) => {
+          try {
+            let [objName, method] = value.split(".");
+            if (!Object.hasOwn(this.cachedModules, module)) {
+              this.cachedModules[module] = ChromeUtils.importESModule(module);
+            }
+            let fn = async (...args) => {
+              try {
+                // This await doesn't do much as the caller won't await us,
+                // but means we can catch and report any exceptions.
+                await this.cachedModules[module][objName][method](...args);
+              } catch (ex) {
+                console.error(
+                  `Error in processing ${categoryName} for ${objName}`
+                );
+                console.error(ex);
+              }
+            };
+            return fn;
+          } catch (ex) {
+            console.error(
+              `Error processing category manifest for ${module}: ${value}`,
+              ex
+            );
+            return null;
+          }
+        }
+      );
+      // Remove any null entries.
+      rv = rv.filter(l => !!l);
+      this.cachedListeners[categoryName] = rv;
+      return rv;
+    },
+  };
+  Services.obs.addObserver(
+    CatManListenerManager,
+    "xpcom-category-entry-removed"
+  );
+  Services.obs.addObserver(CatManListenerManager, "xpcom-category-entry-added");
+  Services.obs.addObserver(CatManListenerManager, "xpcom-category-cleared");
+  return CatManListenerManager;
+});
+
 export var XPCOMUtils = {
   /**
    * Defines a getter on a specified object that will be created upon first use.
@@ -321,6 +384,22 @@ export var XPCOMUtils = {
       enumerable: true,
       writable: false,
     });
+  },
+
+  /**
+   * Invoke all the category manager consumers of a given JS consumer.
+   * Similar to the (C++-only) NS_CreateServicesFromCategory in that it'll
+   * abstract away the actual work of invoking the modules/services.
+   * Different in that it's JS-only and will invoke methods in modules
+   * instead of using XPCOM services.
+   */
+  callModulesFromCategory(categoryName, ...args) {
+    for (let listener of lazy.CatManListenerManager.getListeners(
+      categoryName
+    )) {
+      // Note that we deliberately do not await anything here.
+      listener(...args);
+    }
   },
 };
 
