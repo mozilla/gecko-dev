@@ -182,9 +182,13 @@ class RequestListContent extends Component {
    * So it is needed in ComponentDidMount and ComponentDidUpdate. See Bug 1532914.
    */
   onResize() {
-    const parent = this.refs.scrollEl.parentNode;
-    this.refs.scrollEl.style.width = parent.offsetWidth + "px";
-    this.refs.scrollEl.style.height = parent.offsetHeight + "px";
+    // Wait for the next animation frame to measure the parentNode dimensions.
+    // Bug 1900682.
+    requestAnimationFrame(() => {
+      const parent = this.refs.scrollEl.parentNode;
+      this.refs.scrollEl.style.width = parent.offsetWidth + "px";
+      this.refs.scrollEl.style.height = parent.offsetHeight + "px";
+    });
   }
 
   onIntersect(entries) {
