@@ -40,7 +40,7 @@ extern char** gArgv;
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(nsRemoteService, nsIObserver)
+NS_IMPL_ISUPPORTS(nsRemoteService, nsIObserver, nsIRemoteService)
 
 nsRemoteService::nsRemoteService(const char* aProgram) : mProgram(aProgram) {
   ToLowerCase(mProgram);

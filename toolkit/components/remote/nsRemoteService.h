@@ -10,15 +10,17 @@
 
 #include "nsRemoteServer.h"
 #include "nsIObserver.h"
+#include "nsIRemoteService.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIFile.h"
 #include "nsProfileLock.h"
 
-class nsRemoteService final : public nsIObserver {
+class nsRemoteService final : public nsIObserver, public nsIRemoteService {
  public:
   // We will be a static singleton, so don't use the ordinary methods.
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIREMOTESERVICE
 
   explicit nsRemoteService(const char* aProgram);
   void SetProfile(nsACString& aProfile);
