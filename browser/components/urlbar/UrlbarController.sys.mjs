@@ -604,7 +604,7 @@ export class UrlbarController {
   /**
    * Triggers a "dismiss" engagement for the selected result if one is selected
    * and it's not the heuristic. Providers that can respond to dismissals of
-   * their results should implement `onLegacyEngagement()`, handle the
+   * their results should implement `onEngagement()`, handle the
    * dismissal, and call `controller.removeResult()`.
    *
    * @param {Event} event

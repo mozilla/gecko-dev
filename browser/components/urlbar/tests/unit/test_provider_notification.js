@@ -28,7 +28,6 @@ add_setup(async function () {
     onAbandonment: () => {},
     onImpression: () => {},
     onSearchSessionEnd: () => {},
-    onLegacyEngagement: () => {},
   });
 
   secondProvider = new UrlbarTestUtils.TestProvider({
@@ -278,7 +277,6 @@ add_task(async function testProviderPresenceInMap() {
     "onAbandonment",
     "onImpression",
     "onSearchSessionEnd",
-    "onLegacyEngagement",
   ];
 
   for (const method of notificationMethods) {

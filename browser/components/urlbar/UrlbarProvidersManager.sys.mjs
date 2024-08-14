@@ -107,7 +107,6 @@ class ProvidersManager {
       onImpression: new Set(),
       onAbandonment: new Set(),
       onSearchSessionEnd: new Set(),
-      onLegacyEngagement: new Set(),
     };
     for (let [symbol, module] of Object.entries(localProviderModules)) {
       let { [symbol]: provider } = ChromeUtils.importESModule(module);
@@ -446,14 +445,6 @@ class ProvidersManager {
         details
       );
     }
-
-    this.#notifyLegacyEngagement(
-      this.providersByNotificationType.onLegacyEngagement,
-      state,
-      queryContext,
-      details,
-      controller
-    );
   }
 
   #notifyEngagement(engagementProviders, queryContext, controller, details) {
@@ -513,24 +504,6 @@ class ProvidersManager {
         queryContext,
         controller,
         details
-      );
-    }
-  }
-
-  #notifyLegacyEngagement(
-    legacyEngagementProviders,
-    state,
-    queryContext,
-    details,
-    controller
-  ) {
-    for (const provider of legacyEngagementProviders) {
-      provider.tryMethod(
-        "onLegacyEngagement",
-        state,
-        queryContext,
-        details,
-        controller
       );
     }
   }

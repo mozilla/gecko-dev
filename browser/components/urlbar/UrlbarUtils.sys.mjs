@@ -2542,55 +2542,6 @@ export class UrlbarProvider {
    */
 
   /**
-   * Called when the user starts and ends an engagement with the urlbar. This is
-   * called for all providers who have implemented this method.
-   *
-   * @param {string} _state
-   *   The state of the engagement, one of the following strings:
-   *
-   *   engagement
-   *       The user picked a result in the urlbar or used paste-and-go.
-   *   abandonment
-   *       The urlbar was blurred (i.e., lost focus).
-   * @param {UrlbarQueryContext} _queryContext
-   *   The engagement's query context.
-   * @param {object} _details
-   *   This object is non-empty only when `state` is "engagement" or
-   *   "abandonment", and it describes the search string and engaged result.
-   *
-   *   For "engagement", it has the following properties:
-   *
-   *   {UrlbarResult} result
-   *       The engaged result. If a result itself was picked, this will be it.
-   *       If an element related to a result was picked (like a button or menu
-   *       command), this will be that result. This property will be present if
-   *       and only if `state` == "engagement", so it can be used to quickly
-   *       tell when the user engaged with a result.
-   *   {Element} element
-   *       The picked DOM element.
-   *   {boolean} isSessionOngoing
-   *       True if the search session remains ongoing or false if the engagement
-   *       ended it. Typically picking a result ends the session but not always.
-   *       Picking a button or menu command may not end the session; dismissals
-   *       do not, for example.
-   *   {string} searchString
-   *       The search string for the engagement's query.
-   *   {number} selIndex
-   *       The index of the picked result.
-   *   {string} selType
-   *       The type of the selected result.  See TelemetryEvent.record() in
-   *       UrlbarController.sys.mjs.
-   *   {string} provider
-   *       The name of the provider that produced the picked result.
-   *
-   *   For "abandonment", only `searchString` is defined.
-   * @param {UrlbarController} _controller
-   *  The associated controller.
-   *
-   * onLegacyEngagement(_state, _queryContext, _details, _controller) {}
-   */
-
-  /**
    * Called before a result from the provider is selected. See `onSelection`
    * for details on what that means.
    *

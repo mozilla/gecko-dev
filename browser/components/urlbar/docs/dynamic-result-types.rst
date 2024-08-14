@@ -153,7 +153,7 @@ appropriate to your use case.
 
 If any elements created in the view for your results can be picked with the
 keyboard or mouse, then be sure to implement your provider's
-``onLegacyEngagement`` method.
+``onEngagement`` method.
 
 For help on implementing providers in general, see the address bar's
 `Architecture Overview`__.

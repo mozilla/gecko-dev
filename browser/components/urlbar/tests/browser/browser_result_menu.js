@@ -247,7 +247,7 @@ add_task(async function firefoxSuggest() {
   Assert.greater(
     onEngagementCallCount,
     0,
-    "onLegacyEngagement() should have been called"
+    "onEngagement() should have been called"
   );
   Assert.equal(
     UrlbarTestUtils.getResultCount(window),

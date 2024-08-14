@@ -1513,10 +1513,6 @@ class TestProvider extends UrlbarProvider {
    *   {@link UrlbarView.#selectElement} method is called.
    * @param {Function} [options.onEngagement]
    *   If given, a function that will be called when engagement.
-   * @param {Function} [options.onLegacyEngagement]
-   *   If given, a function that will be called when engagement.
-   *   onLegacyEngagement() is implemented for those who rely on the
-   *   older implementation of onEngagement()
    * @param {Function} [options.onAbandonment]
    *   If given, a function that will be called when abandonment.
    * @param {Function} [options.onImpression]
@@ -1540,7 +1536,6 @@ class TestProvider extends UrlbarProvider {
     onAbandonment = null,
     onImpression = null,
     onSearchSessionEnd = null,
-    onLegacyEngagement = null,
     delayResultsPromise = null,
   } = {}) {
     if (delayResultsPromise && addTimeout) {
@@ -1578,10 +1573,6 @@ class TestProvider extends UrlbarProvider {
 
     if (onSearchSessionEnd) {
       this.onSearchSessionEnd = onSearchSessionEnd.bind(this);
-    }
-
-    if (onLegacyEngagement) {
-      this.onLegacyEngagement = onLegacyEngagement.bind(this);
     }
   }
 
