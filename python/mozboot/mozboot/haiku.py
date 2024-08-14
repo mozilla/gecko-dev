@@ -11,16 +11,19 @@ class HaikuBootstrapper(BaseBootstrapper):
 
         self.packages = [
             "make",
-            "pkgconf",
+            "pkgconfig",
             "rust_bin",
         ]
 
         self.browser_packages = [
+            "dbus_devel",
             "dbus_glib_devel",
             "gtk3_devel",
-            "llvm12",
+            "libevent_devel",
+            "libvpx_devel",
             "nasm",
             "nodejs16",
+            "nspr_devel",
         ]
 
     def pkgman_install(self, *packages):
