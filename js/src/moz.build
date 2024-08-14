@@ -509,6 +509,11 @@ elif CONFIG["OS_ARCH"] == "WASI":
         "threading/noop/NoopThread.cpp",
     ]
 else:
+    if CONFIG["OS_ARCH"] == "Haiku":
+        DEFINES["_GNU_SOURCE"] = True
+        OS_LIBS += [
+            "gnu",
+        ]
     UNIFIED_SOURCES += [
         "threading/posix/CpuCount.cpp",
         "threading/posix/PosixThread.cpp",
