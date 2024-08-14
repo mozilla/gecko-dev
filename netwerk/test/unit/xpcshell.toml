@@ -315,9 +315,6 @@ skip-if = [
   "os != 'android'",
 ]
 
-["test_bug1889130.js"]
-skip-if = ["os == 'win'"] # skip because 0.0.0.0 is invalid in windows platform
-
 ["test_cache-control_request.js"]
 
 ["test_cache-entry-id.js"]
