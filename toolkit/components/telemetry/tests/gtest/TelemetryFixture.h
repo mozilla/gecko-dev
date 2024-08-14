@@ -13,12 +13,14 @@
 
 class TelemetryTestFixture : public ::testing::Test {
  protected:
-  TelemetryTestFixture() : mCleanGlobal(nullptr) {}
-  virtual void SetUp();
+  TelemetryTestFixture() = default;
+  virtual void SetUp() final;
+  virtual void TestSpecificSetUp() {};
 
-  JSObject* mCleanGlobal;
+  JSObject* mCleanGlobal = nullptr;
 
   nsCOMPtr<nsITelemetry> mTelemetry;
+  bool mSetupCalled = false;
 };
 
 // AutoJSAPI is annotated with MOZ_STACK_CLASS and thus cannot be

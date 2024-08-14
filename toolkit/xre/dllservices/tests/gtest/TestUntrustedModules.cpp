@@ -184,18 +184,13 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
     EXPECT_TRUE(!!dll);
   }
 
-  virtual void SetUp() override {
+  void TestSpecificSetUp() override {
     wprintf(L"UntrustedModulesFixture::Setup top\n");
     ::InitOnceExecuteOnce(&sInitLoadOnce, InitialModuleLoadOnce, nullptr,
                           nullptr);
-    // Run this after InitialModulesLoadOnce to make sure mCleanGlobal (which
-    // gets created here) doesn't get GC'd.
-    TelemetryTestFixture::SetUp();
     wprintf(
         L"UntrustedModulesFixture::Setup after base call, mCleanGlobal is %p\n",
         mCleanGlobal);
-    wprintf(L"UntrustedModulesFixture::Setup mCleanGlobal->shape is %p\n",
-            reinterpret_cast<const JS::shadow::Object*>(mCleanGlobal)->shape);
     wprintf(L"UntrustedModulesFixture::Setup bottom\n");
   }
 
