@@ -14,7 +14,7 @@
 #include "frontend/ParserAtom.h"  // frontend::ParserAtomsTable, frontend::ParserAtom
 #include "frontend/ScriptIndex.h"  // ScriptIndex
 #include "frontend/Stencil.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/EnvironmentObject.h"
 #include "vm/ErrorReporting.h"  // MaybePrintAndClearPendingException
 #include "vm/JSScript.h"

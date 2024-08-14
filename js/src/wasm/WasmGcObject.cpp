@@ -14,7 +14,7 @@
 #include "js/PropertySpec.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
 #include "js/Vector.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"

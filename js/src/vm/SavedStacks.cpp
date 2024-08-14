@@ -28,7 +28,7 @@
 #include "js/Stack.h"
 #include "js/Vector.h"
 #include "util/DifferentialTesting.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/Compartment.h"
 #include "vm/FrameIter.h"
 #include "vm/GeckoProfiler.h"

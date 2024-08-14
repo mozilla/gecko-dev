@@ -8,7 +8,7 @@
 
 #include <string_view>
 
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/Interpreter.h"
 #include "vm/Shape.h"
 #include "vm/Stack.h"

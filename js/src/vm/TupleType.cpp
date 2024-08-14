@@ -16,7 +16,7 @@
 
 #include "js/TypeDecls.h"
 #include "js/Value.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/EqualityOperations.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"

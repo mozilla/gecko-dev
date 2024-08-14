@@ -56,7 +56,7 @@
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
 #include "js/Value.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSAtomState.h"

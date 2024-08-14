@@ -32,7 +32,7 @@
 #include "js/Value.h"              // JS::Value
 #include "util/CompleteFile.h"     // js::FileContents, js::ReadCompleteFile
 #include "util/Identifier.h"       // js::IsIdentifier
-#include "util/StringBuffer.h"     // js::StringBuilder
+#include "util/StringBuilder.h"    // js::StringBuilder
 #include "vm/EnvironmentObject.h"  // js::CreateNonSyntacticEnvironmentChain
 #include "vm/ErrorReporting.h"  // js::ErrorMetadata, js::ReportCompileErrorLatin1
 #include "vm/Interpreter.h"     // js::Execute

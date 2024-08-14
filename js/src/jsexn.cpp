@@ -43,7 +43,7 @@
 #include "js/Warnings.h"  // JS::{,Set}WarningReporter
 #include "js/Wrapper.h"
 #include "util/Memory.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/Compartment.h"
 #include "vm/ErrorObject.h"
 #include "vm/FrameIter.h"    // js::NonBuiltinFrameIter

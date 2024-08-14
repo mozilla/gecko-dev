@@ -25,7 +25,7 @@
 #include "js/PropertySpec.h"
 #include "js/UniquePtr.h"
 #include "util/Identifier.h"  // js::IsIdentifier
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/BooleanObject.h"
 #include "vm/DateObject.h"

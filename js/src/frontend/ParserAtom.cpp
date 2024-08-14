@@ -13,11 +13,11 @@
 #include "jsnum.h"  // CharsToNumber
 
 #include "frontend/CompilationStencil.h"
-#include "js/GCAPI.h"           // JS::AutoSuppressGCAnalysis
-#include "js/Printer.h"         // Sprinter, QuoteString
-#include "util/Identifier.h"    // IsIdentifier
-#include "util/StringBuffer.h"  // StringBuilder
-#include "util/Text.h"          // AsciiDigitToNumber
+#include "js/GCAPI.h"            // JS::AutoSuppressGCAnalysis
+#include "js/Printer.h"          // Sprinter, QuoteString
+#include "util/Identifier.h"     // IsIdentifier
+#include "util/StringBuilder.h"  // StringBuilder
+#include "util/Text.h"           // AsciiDigitToNumber
 #include "util/Unicode.h"
 #include "vm/JSContext.h"
 #include "vm/Runtime.h"

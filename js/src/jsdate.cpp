@@ -46,7 +46,7 @@
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
 #include "util/DifferentialTesting.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/DateObject.h"
 #include "vm/DateTime.h"

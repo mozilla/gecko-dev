@@ -43,7 +43,7 @@
 #include "js/PropertySpec.h"        // JS_{PS,FN}{,_END}
 #include "js/Stack.h"               // BuildStackString
 #include "js/StreamConsumer.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/ErrorObject.h"
 #include "vm/FunctionFlags.h"      // js::FunctionFlags

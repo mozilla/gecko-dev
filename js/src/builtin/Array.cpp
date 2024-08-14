@@ -32,7 +32,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
 #include "util/Poison.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/EqualityOperations.h"

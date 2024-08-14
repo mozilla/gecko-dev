@@ -180,7 +180,7 @@
 #include "threading/Thread.h"
 #include "util/CompleteFile.h"  // js::FileContents, js::ReadCompleteFile
 #include "util/DifferentialTesting.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "util/WindowsWrapper.h"
 #include "vm/ArgumentsObject.h"

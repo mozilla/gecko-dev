@@ -29,7 +29,7 @@
 #include "js/StableStringChars.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/BooleanObject.h"       // js::BooleanObject
 #include "vm/EqualityOperations.h"  // js::SameValue
 #include "vm/Interpreter.h"

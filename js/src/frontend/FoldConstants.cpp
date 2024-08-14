@@ -18,8 +18,8 @@
 #include "frontend/Parser-macros.h"  // MOZ_TRY_VAR_OR_RETURN
 #include "frontend/ParserAtom.h"     // ParserAtomsTable, TaggedParserAtomIndex
 #include "js/Conversions.h"
-#include "js/Stack.h"           // JS::NativeStackLimit
-#include "util/StringBuffer.h"  // StringBuilder
+#include "js/Stack.h"            // JS::NativeStackLimit
+#include "util/StringBuilder.h"  // StringBuilder
 
 using namespace js;
 using namespace js::frontend;

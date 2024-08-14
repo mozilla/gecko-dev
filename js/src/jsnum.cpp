@@ -44,7 +44,7 @@
 #include "js/PropertySpec.h"
 #include "util/DoubleToString.h"
 #include "util/Memory.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/BigIntType.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSAtomUtils.h"  // Atomize, AtomizeString

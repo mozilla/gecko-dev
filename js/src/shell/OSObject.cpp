@@ -47,7 +47,7 @@
 #include "shell/jsshell.h"
 #include "shell/StringUtils.h"
 #include "util/GetPidProvider.h"  // getpid()
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "util/WindowsWrapper.h"
 #include "vm/JSObject.h"

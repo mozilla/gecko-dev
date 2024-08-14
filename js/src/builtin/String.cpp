@@ -46,7 +46,7 @@
 #include "js/PropertySpec.h"
 #include "js/StableStringChars.h"
 #include "js/UniquePtr.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Unicode.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"

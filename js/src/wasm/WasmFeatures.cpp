@@ -22,7 +22,7 @@
 #include "jit/JitContext.h"
 #include "jit/JitOptions.h"
 #include "js/Prefs.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/JSContext.h"
 #include "vm/Realm.h"
 #include "vm/StringType.h"

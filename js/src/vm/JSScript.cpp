@@ -57,7 +57,7 @@
 #include "js/Utility.h"  // JS::UniqueChars
 #include "js/Value.h"    // JS::Value
 #include "util/Poison.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/BigIntType.h"  // JS::BigInt
 #include "vm/BytecodeIterator.h"

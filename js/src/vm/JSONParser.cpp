@@ -37,14 +37,14 @@
 #include "js/TypeDecls.h"  // Latin1Char
 #include "js/Utility.h"    // js_delete
 #include "js/Value.h"  // JS::Value, JS::BooleanValue, JS::NullValue, JS::NumberValue, JS::StringValue
-#include "js/Vector.h"          // Vector
-#include "util/StringBuffer.h"  // JSStringBuilder
-#include "vm/ArrayObject.h"     // ArrayObject
-#include "vm/ErrorReporting.h"  // ReportCompileErrorLatin1, ErrorMetadata
-#include "vm/JSAtomUtils.h"     // AtomizeChars
-#include "vm/JSContext.h"       // JSContext
-#include "vm/PlainObject.h"     // NewPlainObjectWithMaybeDuplicateKeys
-#include "vm/Realm.h"           // JS::Realm
+#include "js/Vector.h"           // Vector
+#include "util/StringBuilder.h"  // JSStringBuilder
+#include "vm/ArrayObject.h"      // ArrayObject
+#include "vm/ErrorReporting.h"   // ReportCompileErrorLatin1, ErrorMetadata
+#include "vm/JSAtomUtils.h"      // AtomizeChars
+#include "vm/JSContext.h"        // JSContext
+#include "vm/PlainObject.h"      // NewPlainObjectWithMaybeDuplicateKeys
+#include "vm/Realm.h"            // JS::Realm
 #include "vm/StringType.h"  // JSString, JSAtom, JSLinearString, NewStringCopyN, NameToId
 
 #include "vm/JSAtomUtils-inl.h"  // AtomToId

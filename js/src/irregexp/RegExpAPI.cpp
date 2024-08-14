@@ -32,7 +32,7 @@
 #include "js/ColumnNumber.h"  // JS::ColumnNumberOneOrigin, JS::ColumnNumberOffset
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/friend/StackLimits.h"    // js::ReportOverRecursed
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/MatchPairs.h"
 #include "vm/PlainObject.h"
 #include "vm/RegExpShared.h"

@@ -49,9 +49,9 @@
 #include "js/ErrorReport.h"           // JSErrorBase
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/HashTable.h"
-#include "js/RegExpFlags.h"     // JS::RegExpFlags
-#include "js/Stack.h"           // JS::NativeStackLimit
-#include "util/StringBuffer.h"  // StringBuilder
+#include "js/RegExpFlags.h"      // JS::RegExpFlags
+#include "js/Stack.h"            // JS::NativeStackLimit
+#include "util/StringBuilder.h"  // StringBuilder
 #include "vm/BytecodeUtil.h"
 #include "vm/FunctionFlags.h"          // js::FunctionFlags
 #include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind

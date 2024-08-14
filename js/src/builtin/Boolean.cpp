@@ -14,7 +14,7 @@
 
 #include "jit/InlinableNatives.h"
 #include "js/PropertySpec.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/BigIntType.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"

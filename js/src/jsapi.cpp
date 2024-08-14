@@ -77,7 +77,7 @@
 #include "js/WrapperCallbacks.h"
 #include "proxy/DOMProxy.h"
 #include "util/Identifier.h"  // IsIdentifier
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "vm/BoundFunctionObject.h"
 #include "vm/EnvironmentObject.h"

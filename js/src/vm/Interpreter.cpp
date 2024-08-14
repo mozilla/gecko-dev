@@ -41,7 +41,7 @@
 #include "js/Printer.h"
 #include "proxy/DeadObjectProxy.h"
 #include "util/CheckedArithmetic.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
 #include "vm/BigIntType.h"

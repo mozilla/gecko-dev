@@ -28,7 +28,7 @@
 #include "builtin/temporal/ZonedDateTime.h"
 #include "gc/Policy.h"
 #include "js/RootingAPI.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/StringType.h"
 
 using namespace js;

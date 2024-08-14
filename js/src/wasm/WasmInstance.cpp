@@ -37,7 +37,7 @@
 #include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Stack.h"                 // JS::NativeStackLimitMin
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "util/Unicode.h"
 #include "vm/ArrayBufferObject.h"

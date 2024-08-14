@@ -36,7 +36,7 @@
 #include "js/Utility.h"
 #include "js/Value.h"
 #include "js/Wrapper.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/GlobalObject.h"
 #include "vm/Iteration.h"
 #include "vm/JSAtomUtils.h"  // ClassName

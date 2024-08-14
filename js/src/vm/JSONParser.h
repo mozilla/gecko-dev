@@ -21,10 +21,10 @@
 #include "gc/GC.h"                      // AutoSelectGCHeap
 #include "js/GCVector.h"                // JS::GCVector
 #include "js/RootingAPI.h"  // JS::Handle, JS::MutableHandle, MutableWrappedPtrOperations
-#include "js/Value.h"           // JS::Value, JS::BooleanValue, JS::NullValue
-#include "js/Vector.h"          // Vector
-#include "util/StringBuffer.h"  // JSStringBuilder
-#include "vm/StringType.h"      // JSString, JSAtom
+#include "js/Value.h"            // JS::Value, JS::BooleanValue, JS::NullValue
+#include "js/Vector.h"           // Vector
+#include "util/StringBuilder.h"  // JSStringBuilder
+#include "vm/StringType.h"       // JSString, JSAtom
 
 struct JSContext;
 class JSTracer;

@@ -43,7 +43,7 @@
 #include "js/UniquePtr.h"
 #include "js/Wrapper.h"
 #include "util/DifferentialTesting.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "util/Text.h"
 #include "util/WindowsWrapper.h"
 #include "vm/ArrayBufferObject.h"

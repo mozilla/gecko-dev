@@ -14,7 +14,7 @@
 #include "frontend/ParserAtom.h"  // ParserAtomsTable
 #include "frontend/SharedContext.h"
 #include "util/Poison.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 
 using namespace js;
 using namespace js::frontend;

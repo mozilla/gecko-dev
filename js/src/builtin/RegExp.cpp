@@ -18,7 +18,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_NEWREGEXP_FLAGGED
 #include "js/PropertySpec.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
 #include "vm/RegExpObject.h"

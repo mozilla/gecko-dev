@@ -14,7 +14,7 @@
 #include "js/Array.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
-#include "util/StringBuffer.h"
+#include "util/StringBuilder.h"
 #include "vm/ArrayObject.h"
 #include "vm/EqualityOperations.h"
 #include "vm/JSAtomUtils.h"  // AtomizeString, EnsureAtomized
