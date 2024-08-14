@@ -125,7 +125,9 @@ class AvailableMemoryWatcherFixture : public TelemetryTestFixture {
   static constexpr uint32_t kStateChangeTimeoutMs = 20000;
   static constexpr uint32_t kNotificationTimeoutMs = 20000;
 
-  void TelemetrySetUp() override {
+  void SetUp() override {
+    TelemetryTestFixture::SetUp();
+
     mObserverSvc = do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     ASSERT_TRUE(mObserverSvc);
 

@@ -394,7 +394,9 @@ class AvailableMemoryWatcherFixture : public TelemetryTestFixture {
   MemoryEater mMemEater;
   nsAutoHandle mLowMemoryHandle;
 
-  void TestSpecificSetUp() override {
+  void SetUp() override {
+    TelemetryTestFixture::SetUp();
+
     mObserverSvc = do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     ASSERT_TRUE(mObserverSvc);
 
