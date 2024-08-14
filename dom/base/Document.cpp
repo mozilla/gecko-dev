@@ -18193,6 +18193,13 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccessForOrigin(
   // This prevents usage of other transient activation-gated APIs.
   ConsumeTransientUserGestureActivation();
 
+  ContentChild* cc = ContentChild::GetSingleton();
+  if (!cc) {
+    // TODO(bug 1778561): Make this work in non-content processes.
+    promise->MaybeRejectWithUndefined();
+    return promise.forget();
+  }
+
   // Step 4a: Start the async part of this function. Check the cookie
   // permission, but this can't be done in this process. We needs the cookie
   // permission of the URL as if it were embedded on this page, so we need to
