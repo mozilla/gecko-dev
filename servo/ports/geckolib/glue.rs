@@ -37,7 +37,7 @@ use style::font_face::{self, FontFaceSourceFormat, FontFaceSourceListComponent, 
 use style::gecko::arc_types::{
     LockedCounterStyleRule, LockedCssRules, LockedDeclarationBlock, LockedFontFaceRule,
     LockedImportRule, LockedKeyframe, LockedKeyframesRule, LockedMediaList, LockedPageRule,
-    LockedStyleRule,
+    LockedPositionTryRule, LockedStyleRule,
 };
 use style::gecko::data::{
     AuthorStyles, GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl,
@@ -136,8 +136,9 @@ use style::stylesheets::{
     CssRules, CssRulesHelpers, DocumentRule, FontFaceRule, FontFeatureValuesRule,
     FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
     MarginRule, MediaRule, NamespaceRule, Origin, OriginSet, PagePseudoClassFlags, PageRule,
-    PropertyRule, SanitizationData, SanitizationKind, ScopeRule, StartingStyleRule, StyleRule,
-    StylesheetContents, StylesheetLoader as StyleStylesheetLoader, SupportsRule, UrlExtraData,
+    PositionTryRule, PropertyRule, SanitizationData, SanitizationKind, ScopeRule,
+    StartingStyleRule, StyleRule, StylesheetContents, StylesheetLoader as StyleStylesheetLoader,
+    SupportsRule, UrlExtraData,
 };
 use style::stylist::{add_size_of_ua_cache, AuthorStylesEnabled, RuleInclusion, Stylist};
 use style::thread_state;
@@ -2572,6 +2573,13 @@ impl_group_rule_funcs! { (StartingStyle, StartingStyleRule, StartingStyleRule),
     changed: Servo_StyleSet_StartingStyleRuleChanged,
 }
 
+impl_basic_rule_funcs! { (PositionTry, PositionTryRule, Locked<PositionTryRule>),
+    getter: Servo_CssRules_GetPositionTryRuleAt,
+    debug: Servo_PositionTryRule_Debug,
+    to_css: Servo_PositionTryRule_GetCssText,
+    changed: Servo_StyleSet_PositionTryRuleChanged,
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetStyle(
     rule: &LockedStyleRule,
@@ -4035,6 +4043,31 @@ counter_style_descriptors! {
         eCSSCounterDesc_UNKNOWN,
         eCSSCounterDesc_COUNT,
     ]
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_PositionTryRule_GetName(
+    rule: &LockedPositionTryRule,
+    result: &mut nsACString,
+) {
+    read_locked_arc(rule, |rule: &PositionTryRule| rule.name.to_css(&mut CssWriter::new(result)).unwrap());
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PositionTryRule_GetStyle(
+    rule: &LockedPositionTryRule,
+) -> Strong<LockedDeclarationBlock> {
+    read_locked_arc(rule, |rule: &PositionTryRule| rule.block.clone().into())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PositionTryRule_SetStyle(
+    rule: &LockedPositionTryRule,
+    declarations: &LockedDeclarationBlock,
+) {
+    write_locked_arc(rule, |rule: &mut PositionTryRule| {
+        rule.block = unsafe { Arc::from_raw_addrefed(declarations) };
+    })
 }
 
 #[no_mangle]
