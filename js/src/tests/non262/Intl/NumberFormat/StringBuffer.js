@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// The implementation of the format function uses the C++ StringBuffer class,
+// The implementation of the format function uses the C++ StringBuilder class,
 // which changes its storage model at 32 characters, and uses it in a way which
 // also means that there's no room for null-termination at this limit.
 // This test makes sure that none of this affects the output.

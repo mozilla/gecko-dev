@@ -214,7 +214,7 @@ static MOZ_ALWAYS_INLINE JSAtom* AppendBoundFunctionPrefix(JSContext* cx,
     }
   }
 
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.append("bound ") || !sb.append(str)) {
     return nullptr;
   }

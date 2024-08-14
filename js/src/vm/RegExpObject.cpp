@@ -394,7 +394,7 @@ static MOZ_ALWAYS_INLINE bool IsRegExpLineTerminator(const char16_t c) {
 }
 
 static MOZ_ALWAYS_INLINE bool AppendEscapedLineTerminator(
-    StringBuffer& sb, const JS::Latin1Char c) {
+    StringBuilder& sb, const JS::Latin1Char c) {
   switch (c) {
     case '\n':
       if (!sb.append('n')) {
@@ -412,7 +412,7 @@ static MOZ_ALWAYS_INLINE bool AppendEscapedLineTerminator(
   return true;
 }
 
-static MOZ_ALWAYS_INLINE bool AppendEscapedLineTerminator(StringBuffer& sb,
+static MOZ_ALWAYS_INLINE bool AppendEscapedLineTerminator(StringBuilder& sb,
                                                           const char16_t c) {
   switch (c) {
     case '\n':
@@ -442,9 +442,9 @@ static MOZ_ALWAYS_INLINE bool AppendEscapedLineTerminator(StringBuffer& sb,
 }
 
 template <typename CharT>
-static MOZ_ALWAYS_INLINE bool SetupBuffer(StringBuffer& sb,
-                                          const CharT* oldChars, size_t oldLen,
-                                          const CharT* it) {
+static MOZ_ALWAYS_INLINE bool SetupBuilder(StringBuilder& sb,
+                                           const CharT* oldChars, size_t oldLen,
+                                           const CharT* it) {
   if constexpr (std::is_same_v<CharT, char16_t>) {
     if (!sb.ensureTwoByteChars()) {
       return false;
@@ -459,9 +459,9 @@ static MOZ_ALWAYS_INLINE bool SetupBuffer(StringBuffer& sb,
   return true;
 }
 
-// Note: leaves the string buffer empty if no escaping need be performed.
+// Note: leaves the string builder empty if no escaping need be performed.
 template <typename CharT>
-static bool EscapeRegExpPattern(StringBuffer& sb, const CharT* oldChars,
+static bool EscapeRegExpPattern(StringBuilder& sb, const CharT* oldChars,
                                 size_t oldLen) {
   bool inBrackets = false;
   bool previousCharacterWasBackslash = false;
@@ -478,7 +478,7 @@ static bool EscapeRegExpPattern(StringBuffer& sb, const CharT* oldChars,
         if (sb.empty()) {
           // This is the first char we've seen that needs escaping,
           // copy everything up to this point.
-          if (!SetupBuffer(sb, oldChars, oldLen, it)) {
+          if (!SetupBuilder(sb, oldChars, oldLen, it)) {
             return false;
           }
         }
@@ -495,7 +495,7 @@ static bool EscapeRegExpPattern(StringBuffer& sb, const CharT* oldChars,
       if (sb.empty()) {
         // This is the first char we've seen that needs escaping,
         // copy everything up to this point.
-        if (!SetupBuffer(sb, oldChars, oldLen, it)) {
+        if (!SetupBuilder(sb, oldChars, oldLen, it)) {
           return false;
         }
       }

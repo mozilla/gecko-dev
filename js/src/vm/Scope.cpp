@@ -693,11 +693,11 @@ template <size_t ArrayLength>
 static JSAtom* GenerateWasmName(JSContext* cx,
                                 const char (&prefix)[ArrayLength],
                                 uint32_t index) {
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.append(prefix)) {
     return nullptr;
   }
-  if (!NumberValueToStringBuffer(NumberValue(index), sb)) {
+  if (!NumberValueToStringBuilder(NumberValue(index), sb)) {
     return nullptr;
   }
 

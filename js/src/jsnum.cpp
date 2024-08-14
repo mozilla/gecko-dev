@@ -743,7 +743,7 @@ static bool num_toSource(JSContext* cx, unsigned argc, Value* vp) {
 
   JSStringBuilder sb(cx);
   if (!sb.append("(new Number(") ||
-      !NumberValueToStringBuffer(NumberValue(d), sb) || !sb.append("))")) {
+      !NumberValueToStringBuilder(NumberValue(d), sb) || !sb.append("))")) {
     return false;
   }
 
@@ -1896,7 +1896,7 @@ JSString* js::Int32ToStringWithBase(JSContext* cx, int32_t i, int32_t base,
   return StringToUpperCase(cx, str);
 }
 
-bool js::NumberValueToStringBuffer(const Value& v, StringBuffer& sb) {
+bool js::NumberValueToStringBuilder(const Value& v, StringBuilder& sb) {
   /* Convert to C-string. */
   ToCStringBuf cbuf;
   const char* cstr;

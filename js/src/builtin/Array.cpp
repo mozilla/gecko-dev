@@ -1151,7 +1151,7 @@ static bool array_toSource(JSContext* cx, unsigned argc, Value* vp) {
 template <typename SeparatorOp>
 static bool ArrayJoinDenseKernel(JSContext* cx, SeparatorOp sepOp,
                                  Handle<NativeObject*> obj, uint64_t length,
-                                 StringBuffer& sb, uint32_t* numProcessed) {
+                                 StringBuilder& sb, uint32_t* numProcessed) {
   // This loop handles all elements up to initializedLength. If
   // length > initLength we rely on the second loop to add the
   // other elements.
@@ -1175,11 +1175,11 @@ static bool ArrayJoinDenseKernel(JSContext* cx, SeparatorOp sepOp,
         return false;
       }
     } else if (elem.isNumber()) {
-      if (!NumberValueToStringBuffer(elem, sb)) {
+      if (!NumberValueToStringBuilder(elem, sb)) {
         return false;
       }
     } else if (elem.isBoolean()) {
-      if (!BooleanToStringBuffer(elem.toBoolean(), sb)) {
+      if (!BooleanToStringBuilder(elem.toBoolean(), sb)) {
         return false;
       }
     } else if (elem.isObject() || elem.isSymbol()) {
@@ -1213,7 +1213,7 @@ static bool ArrayJoinDenseKernel(JSContext* cx, SeparatorOp sepOp,
 
 template <typename SeparatorOp>
 static bool ArrayJoinKernel(JSContext* cx, SeparatorOp sepOp, HandleObject obj,
-                            uint64_t length, StringBuffer& sb) {
+                            uint64_t length, StringBuilder& sb) {
   // Step 6.
   uint32_t numProcessed = 0;
 
@@ -1239,7 +1239,7 @@ static bool ArrayJoinKernel(JSContext* cx, SeparatorOp sepOp, HandleObject obj,
 
       // Steps 7.c-d.
       if (!v.isNullOrUndefined()) {
-        if (!ValueToStringBuffer(cx, v, sb)) {
+        if (!ValueToStringBuilder(cx, v, sb)) {
           return false;
         }
       }
@@ -1345,7 +1345,7 @@ bool js::array_join(JSContext* cx, unsigned argc, Value* vp) {
 
   // Various optimized versions of steps 6-7.
   if (seplen == 0) {
-    auto sepOp = [](StringBuffer&) { return true; };
+    auto sepOp = [](StringBuilder&) { return true; };
     if (!ArrayJoinKernel(cx, sepOp, obj, length, sb)) {
       return false;
     }
@@ -1353,19 +1353,21 @@ bool js::array_join(JSContext* cx, unsigned argc, Value* vp) {
     char16_t c = sepstr->latin1OrTwoByteChar(0);
     if (c <= JSString::MAX_LATIN1_CHAR) {
       Latin1Char l1char = Latin1Char(c);
-      auto sepOp = [l1char](StringBuffer& sb) { return sb.append(l1char); };
+      auto sepOp = [l1char](StringBuilder& sb) { return sb.append(l1char); };
       if (!ArrayJoinKernel(cx, sepOp, obj, length, sb)) {
         return false;
       }
     } else {
-      auto sepOp = [c](StringBuffer& sb) { return sb.append(c); };
+      auto sepOp = [c](StringBuilder& sb) { return sb.append(c); };
       if (!ArrayJoinKernel(cx, sepOp, obj, length, sb)) {
         return false;
       }
     }
   } else {
     Handle<JSLinearString*> sepHandle = sepstr;
-    auto sepOp = [sepHandle](StringBuffer& sb) { return sb.append(sepHandle); };
+    auto sepOp = [sepHandle](StringBuilder& sb) {
+      return sb.append(sepHandle);
+    };
     if (!ArrayJoinKernel(cx, sepOp, obj, length, sb)) {
       return false;
     }
@@ -1730,9 +1732,9 @@ struct StringifiedElement {
 
 struct SortComparatorStringifiedElements {
   JSContext* const cx;
-  const StringBuffer& sb;
+  const StringBuilder& sb;
 
-  SortComparatorStringifiedElements(JSContext* cx, const StringBuffer& sb)
+  SortComparatorStringifiedElements(JSContext* cx, const StringBuilder& sb)
       : cx(cx), sb(sb) {}
 
   bool operator()(const StringifiedElement& a, const StringifiedElement& b,
@@ -1919,7 +1921,7 @@ static bool SortLexicographically(JSContext* cx,
                                   size_t len) {
   MOZ_ASSERT(vec.length() >= len);
 
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   Vector<StringifiedElement, 0, TempAllocPolicy> strElements(cx);
 
   /* MergeSort uses the upper half as scratch space. */
@@ -1934,7 +1936,7 @@ static bool SortLexicographically(JSContext* cx,
       return false;
     }
 
-    if (!ValueToStringBuffer(cx, vec[i], sb)) {
+    if (!ValueToStringBuilder(cx, vec[i], sb)) {
       return false;
     }
 

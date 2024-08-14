@@ -930,7 +930,8 @@ JSLinearString* JSScript::sourceData(JSContext* cx, HandleScript script) {
                                            script->sourceEnd());
 }
 
-bool BaseScript::appendSourceDataForToString(JSContext* cx, StringBuffer& buf) {
+bool BaseScript::appendSourceDataForToString(JSContext* cx,
+                                             StringBuilder& buf) {
   MOZ_ASSERT(scriptSource()->hasSourceText());
   return scriptSource()->appendSubstring(cx, buf, toStringStart(),
                                          toStringEnd());
@@ -1332,7 +1333,7 @@ JSLinearString* ScriptSource::substringDontDeflate(JSContext* cx, size_t start,
   return NewStringCopyNDontDeflate<CanGC>(cx, units.asChars(), len);
 }
 
-bool ScriptSource::appendSubstring(JSContext* cx, StringBuffer& buf,
+bool ScriptSource::appendSubstring(JSContext* cx, StringBuilder& buf,
                                    size_t start, size_t stop) {
   MOZ_ASSERT(start <= stop);
 

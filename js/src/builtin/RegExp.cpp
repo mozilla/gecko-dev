@@ -1927,7 +1927,7 @@ static void DoReplace(Handle<JSLinearString*> matched,
                       size_t tailPos, Handle<CapturesVector> captures,
                       Handle<CapturesVector> namedCaptures,
                       Handle<JSLinearString*> replacement,
-                      size_t firstDollarIndex, StringBuffer& sb) {
+                      size_t firstDollarIndex, StringBuilder& sb) {
   JS::AutoCheckCannotGC nogc;
   const CharT* replacementBegin = replacement->chars<CharT>(nogc);
   const CharT* currentChar = replacementBegin;

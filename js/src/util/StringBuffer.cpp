@@ -25,7 +25,7 @@ template <typename CharT, class Buffer>
 static CharT* ExtractWellSized(Buffer& cb) {
   size_t capacity = cb.capacity();
   size_t length = cb.length();
-  StringBufferAllocPolicy allocPolicy = cb.allocPolicy();
+  StringBuilderAllocPolicy allocPolicy = cb.allocPolicy();
 
   CharT* buf = cb.extractOrCopyRawBuffer();
   if (!buf) {
@@ -52,7 +52,7 @@ static CharT* ExtractWellSized(Buffer& cb) {
   return buf;
 }
 
-char16_t* StringBuffer::stealChars() {
+char16_t* StringBuilder::stealChars() {
   // stealChars shouldn't be used with JSStringBuilder because JSStringBuilder
   // reserves space for the header bytes in the vector.
   MOZ_RELEASE_ASSERT(numHeaderChars_ == 0);
@@ -64,7 +64,7 @@ char16_t* StringBuffer::stealChars() {
   return ExtractWellSized<char16_t>(twoByteChars());
 }
 
-bool StringBuffer::inflateChars() {
+bool StringBuilder::inflateChars() {
   MOZ_ASSERT(isLatin1());
 
   TwoByteCharBuffer twoByte(latin1Chars().allocPolicy());
@@ -105,14 +105,14 @@ bool StringBuffer::inflateChars() {
   return true;
 }
 
-bool StringBuffer::append(const frontend::ParserAtomsTable& parserAtoms,
-                          frontend::TaggedParserAtomIndex atom) {
+bool StringBuilder::append(const frontend::ParserAtomsTable& parserAtoms,
+                           frontend::TaggedParserAtomIndex atom) {
   return parserAtoms.appendTo(*this, atom);
 }
 
 template <typename CharT>
-JSLinearString* StringBuffer::finishStringInternal(JSContext* cx,
-                                                   gc::Heap heap) {
+JSLinearString* StringBuilder::finishStringInternal(JSContext* cx,
+                                                    gc::Heap heap) {
   // The Vector must include space for the mozilla::StringBuffer header.
   MOZ_ASSERT(numHeaderChars_ == numHeaderChars<CharT>());
 #ifdef DEBUG
@@ -201,7 +201,7 @@ JSLinearString* JSStringBuilder::finishString(gc::Heap heap) {
                     : finishStringInternal<char16_t>(maybeCx_, heap);
 }
 
-JSAtom* StringBuffer::finishAtom() {
+JSAtom* StringBuilder::finishAtom() {
   MOZ_ASSERT(maybeCx_);
 
   size_t len = length();
@@ -215,7 +215,7 @@ JSAtom* StringBuffer::finishAtom() {
   return atom;
 }
 
-frontend::TaggedParserAtomIndex StringBuffer::finishParserAtom(
+frontend::TaggedParserAtomIndex StringBuilder::finishParserAtom(
     frontend::ParserAtomsTable& parserAtoms, FrontendContext* fc) {
   size_t len = length();
   if (len == 0) {
@@ -229,8 +229,8 @@ frontend::TaggedParserAtomIndex StringBuffer::finishParserAtom(
   return result;
 }
 
-bool js::ValueToStringBufferSlow(JSContext* cx, const Value& arg,
-                                 StringBuffer& sb) {
+bool js::ValueToStringBuilderSlow(JSContext* cx, const Value& arg,
+                                  StringBuilder& sb) {
   RootedValue v(cx, arg);
   if (!ToPrimitive(cx, JSTYPE_STRING, &v)) {
     return false;
@@ -240,10 +240,10 @@ bool js::ValueToStringBufferSlow(JSContext* cx, const Value& arg,
     return sb.append(v.toString());
   }
   if (v.isNumber()) {
-    return NumberValueToStringBuffer(v, sb);
+    return NumberValueToStringBuilder(v, sb);
   }
   if (v.isBoolean()) {
-    return BooleanToStringBuffer(v.toBoolean(), sb);
+    return BooleanToStringBuilder(v.toBoolean(), sb);
   }
   if (v.isNull()) {
     return sb.append(cx->names().null);

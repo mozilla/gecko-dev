@@ -745,7 +745,7 @@ bool js::obj_toString(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 17.
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.append("[object ") || !sb.append(tag.toString()) || !sb.append(']')) {
     return false;
   }

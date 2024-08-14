@@ -986,19 +986,20 @@ JS_PUBLIC_API SavedFrameResult GetSavedFrameParent(
   return SavedFrameResult::Ok;
 }
 
-static bool FormatStackFrameLine(js::StringBuffer& sb,
+static bool FormatStackFrameLine(js::StringBuilder& sb,
                                  JS::Handle<js::SavedFrame*> frame) {
   if (frame->isWasm()) {
     // See comment in WasmFrameIter::computeLine().
     return sb.append("wasm-function[") &&
-           NumberValueToStringBuffer(NumberValue(frame->wasmFuncIndex()), sb) &&
+           NumberValueToStringBuilder(NumberValue(frame->wasmFuncIndex()),
+                                      sb) &&
            sb.append(']');
   }
 
-  return NumberValueToStringBuffer(NumberValue(frame->getLine()), sb);
+  return NumberValueToStringBuilder(NumberValue(frame->getLine()), sb);
 }
 
-static bool FormatStackFrameColumn(js::StringBuffer& sb,
+static bool FormatStackFrameColumn(js::StringBuilder& sb,
                                    JS::Handle<js::SavedFrame*> frame) {
   if (frame->isWasm()) {
     // See comment in WasmFrameIter::computeLine().
@@ -1011,11 +1012,11 @@ static bool FormatStackFrameColumn(js::StringBuffer& sb,
     return sb.append("0x") && sb.append(cstr, cstrlen);
   }
 
-  return NumberValueToStringBuffer(
+  return NumberValueToStringBuilder(
       NumberValue(frame->getColumn().oneOriginValue()), sb);
 }
 
-static bool FormatSpiderMonkeyStackFrame(JSContext* cx, js::StringBuffer& sb,
+static bool FormatSpiderMonkeyStackFrame(JSContext* cx, js::StringBuilder& sb,
                                          JS::Handle<js::SavedFrame*> frame,
                                          size_t indent, bool skippedAsync) {
   RootedString asyncCause(cx, frame->getAsyncCause());
@@ -1032,7 +1033,7 @@ static bool FormatSpiderMonkeyStackFrame(JSContext* cx, js::StringBuffer& sb,
          FormatStackFrameColumn(sb, frame) && sb.append('\n');
 }
 
-static bool FormatV8StackFrame(JSContext* cx, js::StringBuffer& sb,
+static bool FormatV8StackFrame(JSContext* cx, js::StringBuilder& sb,
                                JS::Handle<js::SavedFrame*> frame, size_t indent,
                                bool lastFrame) {
   Rooted<JSAtom*> name(cx, frame->getFunctionDisplayName());
@@ -1061,7 +1062,7 @@ JS_PUBLIC_API bool BuildStackString(JSContext* cx, JSPrincipals* principals,
   MOZ_ASSERT(format != js::StackFormat::Default);
 
   // Enter a new block to constrain the scope of possibly entering the stack's
-  // realm. This ensures that when we finish the StringBuffer, we are back in
+  // realm. This ensures that when we finish the StringBuilder, we are back in
   // the cx's original compartment, and fulfill our contract with callers to
   // place the output string in the cx's current realm.
   {

@@ -62,7 +62,7 @@
 #include "js/ColumnNumber.h"  // JS::LimitedColumnNumberOneOrigin, JS::ColumnNumberOffset
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/friend/StackLimits.h"    // AutoCheckRecursionLimit
-#include "util/StringBuffer.h"        // StringBuffer
+#include "util/StringBuffer.h"        // StringBuilder
 #include "vm/BytecodeUtil.h"  // JOF_*, IsArgOp, IsLocalOp, SET_UINT24, SET_ICINDEX, BytecodeFallsThrough, BytecodeIsJumpTarget
 #include "vm/CompletionKind.h"      // CompletionKind
 #include "vm/FunctionPrefixKind.h"  // FunctionPrefixKind
@@ -10214,7 +10214,7 @@ bool BytecodeEmitter::emitCreateMemberInitializers(ClassEmitter& ce,
             TaggedParserAtomIndex name =
                 classMethod->name().as<NameNode>().atom();
             AccessorType accessorType = classMethod->accessorType();
-            StringBuffer storedMethodName(fc);
+            StringBuilder storedMethodName(fc);
             if (!storedMethodName.append(parserAtoms(), name)) {
               return false;
             }
@@ -10492,7 +10492,7 @@ bool BytecodeEmitter::emitPrivateMethodInitializers(ClassEmitter& ce,
     // private method body.
     TaggedParserAtomIndex name = classMethod->name().as<NameNode>().atom();
     AccessorType accessorType = classMethod->accessorType();
-    StringBuffer storedMethodName(fc);
+    StringBuilder storedMethodName(fc);
     if (!storedMethodName.append(parserAtoms(), name)) {
       return false;
     }

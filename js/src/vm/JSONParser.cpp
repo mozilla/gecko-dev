@@ -1344,7 +1344,7 @@ class MOZ_STACK_CLASS DelegateHandler {
 
   class JSONStringBuilder {
    public:
-    StringBuffer buffer;
+    StringBuilder buffer;
 
     explicit JSONStringBuilder(FrontendContext* fc) : buffer(fc) {}
 

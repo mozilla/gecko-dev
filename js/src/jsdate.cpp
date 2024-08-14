@@ -3475,7 +3475,7 @@ static bool date_toSource(JSContext* cx, unsigned argc, Value* vp) {
 
   JSStringBuilder sb(cx);
   if (!sb.append("(new Date(") ||
-      !NumberValueToStringBuffer(unwrapped->UTCTime(), sb) ||
+      !NumberValueToStringBuilder(unwrapped->UTCTime(), sb) ||
       !sb.append("))")) {
     return false;
   }

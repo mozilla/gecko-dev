@@ -40,7 +40,7 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
   // When naming a function, the buffer where the name is built.
   // When we are not under resolveFun, buf_ is empty.
-  StringBuffer buf_;
+  StringBuilder buf_;
 
   /* Test whether a ParseNode represents a function invocation */
   bool isCall(ParseNode* pn) {

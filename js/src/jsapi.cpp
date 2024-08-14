@@ -3637,7 +3637,7 @@ JS_PUBLIC_API bool JS_Stringify(JSContext* cx, MutableHandleValue vp,
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   cx->check(replacer, space);
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.ensureTwoByteChars()) {
     return false;
   }
@@ -3656,7 +3656,7 @@ JS_PUBLIC_API bool JS::ToJSON(JSContext* cx, HandleValue value,
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   cx->check(replacer, space);
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.ensureTwoByteChars()) {
     return false;
   }
@@ -3677,7 +3677,7 @@ JS_PUBLIC_API bool JS::ToJSONMaybeSafely(JSContext* cx, JS::HandleObject input,
   CHECK_THREAD(cx);
   cx->check(input);
 
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (!sb.ensureTwoByteChars()) {
     return false;
   }

@@ -909,7 +909,7 @@ class ScriptSource {
   JSLinearString* substringDontDeflate(JSContext* cx, size_t start,
                                        size_t stop);
 
-  [[nodiscard]] bool appendSubstring(JSContext* cx, js::StringBuffer& buf,
+  [[nodiscard]] bool appendSubstring(JSContext* cx, js::StringBuilder& buf,
                                      size_t start, size_t stop);
 
   void setParameterListEnd(uint32_t parameterListEnd) {
@@ -1547,7 +1547,7 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   SourceExtent extent() const { return extent_; }
 
   [[nodiscard]] bool appendSourceDataForToString(JSContext* cx,
-                                                 js::StringBuffer& buf);
+                                                 js::StringBuilder& buf);
 
   // Line number (1-origin)
   uint32_t lineno() const { return extent_.lineno; }

@@ -54,7 +54,7 @@ MOZ_ALWAYS_INLINE bool bool_toSource_impl(JSContext* cx, const CallArgs& args) {
   bool b = ThisBooleanValue(args.thisv());
 
   JSStringBuilder sb(cx);
-  if (!sb.append("(new Boolean(") || !BooleanToStringBuffer(b, sb) ||
+  if (!sb.append("(new Boolean(") || !BooleanToStringBuilder(b, sb) ||
       !sb.append("))")) {
     return false;
   }

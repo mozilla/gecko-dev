@@ -47,7 +47,7 @@ class ArrayObject;
 class JS_PUBLIC_API GenericPrinter;
 class JSONPrinter;
 class PropertyName;
-class StringBuffer;
+class StringBuilder;
 
 namespace frontend {
 class ParserAtomsTable;
@@ -2098,11 +2098,11 @@ static MOZ_ALWAYS_INLINE JSString* ToString(JSContext* cx, JS::HandleValue v) {
 
 /*
  * This function implements E-262-3 section 9.8, toString. Convert the given
- * value to a string of characters appended to the given buffer. On error, the
- * passed buffer may have partial results appended.
+ * value to a string of characters appended to the given builder. On error, the
+ * passed builder may have partial results appended.
  */
-inline bool ValueToStringBuffer(JSContext* cx, const Value& v,
-                                StringBuffer& sb);
+inline bool ValueToStringBuilder(JSContext* cx, const Value& v,
+                                 StringBuilder& sb);
 
 } /* namespace js */
 

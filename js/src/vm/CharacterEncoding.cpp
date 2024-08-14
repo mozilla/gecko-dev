@@ -870,7 +870,7 @@ JS_PUBLIC_API JS::UniqueWideChars JS::EncodeUtf8ToWide(JSContext* cx,
 #endif
 }
 
-bool StringBuffer::append(const Utf8Unit* units, size_t len) {
+bool StringBuilder::append(const Utf8Unit* units, size_t len) {
   MOZ_ASSERT(maybeCx_);
 
   if (isLatin1()) {

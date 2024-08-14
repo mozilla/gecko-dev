@@ -499,7 +499,7 @@ static JSAtom* NameToPrefixedFunctionName(JSContext* cx, JSString* nameStr,
                                           FunctionPrefixKind prefixKind) {
   MOZ_ASSERT(prefixKind != FunctionPrefixKind::None);
 
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (prefixKind == FunctionPrefixKind::Get) {
     if (!sb.append("get ")) {
       return nullptr;
@@ -823,7 +823,7 @@ JSString* js::FunctionToString(JSContext* cx, HandleFunction fun,
     }
   }
 
-  // Fast path for the common case, to avoid StringBuffer overhead.
+  // Fast path for the common case, to avoid StringBuilder overhead.
   if (!addParentheses && haveSource) {
     FunctionToStringCache& cache = cx->zone()->functionToStringCache();
     if (JSString* str = cache.lookup(fun->baseScript())) {
@@ -1907,7 +1907,7 @@ static JSAtom* SymbolToFunctionName(JSContext* cx, JS::Symbol* symbol,
   }
 
   // Step 5 (reordered).
-  StringBuffer sb(cx);
+  StringBuilder sb(cx);
   if (prefixKind == FunctionPrefixKind::Get) {
     if (!sb.append("get ")) {
       return nullptr;

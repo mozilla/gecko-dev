@@ -260,12 +260,12 @@ static void ReportSyntaxError(TokenStreamAnyChars& ts,
 
   // Create the windowed string, not including the potential line
   // terminator.
-  StringBuffer windowBuf(ts.context());
+  StringBuilder windowBuf(ts.context());
   if (!windowBuf.append(windowStart, windowEnd)) {
     return;
   }
 
-  // The line of context must be null-terminated, and StringBuffer doesn't
+  // The line of context must be null-terminated, and StringBuilder doesn't
   // make that happen unless we force it to.
   if (!windowBuf.append('\0')) {
     return;

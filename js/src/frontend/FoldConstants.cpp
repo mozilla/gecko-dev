@@ -19,7 +19,7 @@
 #include "frontend/ParserAtom.h"     // ParserAtomsTable, TaggedParserAtomIndex
 #include "js/Conversions.h"
 #include "js/Stack.h"           // JS::NativeStackLimit
-#include "util/StringBuffer.h"  // StringBuffer
+#include "util/StringBuffer.h"  // StringBuilder
 
 using namespace js;
 using namespace js::frontend;
@@ -1229,8 +1229,8 @@ static bool FoldAdd(FoldInfo info, ParseNode** nodePtr) {
       MOZ_ASSERT((*current)->isKind(ParseNodeKind::StringExpr));
 
       // To avoid unnecessarily copy when there's no strings after the
-      // first item, lazily construct StringBuffer and append the first item.
-      mozilla::Maybe<StringBuffer> accum;
+      // first item, lazily construct StringBuilder and append the first item.
+      mozilla::Maybe<StringBuilder> accum;
       TaggedParserAtomIndex firstAtom;
       firstAtom = (*current)->as<NameNode>().atom();
 
