@@ -47,15 +47,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Valitud</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title">Hiljuti salvestatud</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2">Kuva kõiki järjehoidjaid</string>
-
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove">Eemalda</string>
-
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s on Mozilla poolt toodetud.</string>
 
@@ -145,8 +136,8 @@
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">Uus privaatne kaart</string>
 
-    <!-- Shortcut action to open Passwords screens -->
-    <string name="home_screen_shortcut_open_password_screen">Paroolide otsetee</string>
+    <!-- Shortcut action to open Passwords screen -->
+    <string name="home_screen_shortcut_passwords">Paroolid</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -185,12 +176,8 @@
     <string name="browser_menu_refresh">Värskenda</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Peata</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Lisad</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Konto andmed</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">Lisad puuduvad</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Abi</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -206,8 +193,6 @@
     <string name="browser_menu_open_in_regular_tab">Ava tavalisel kaardil</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Lisa avaekraanile</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Lisa</string>
 
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Uuesti sünkroniseerimise nupp</string>
@@ -245,6 +230,9 @@
     <string name="browser_menu_edit">Muuda</string>
     <!-- Button shown on the home page that opens the Customize home settings -->
     <string name="browser_menu_customize_home_1">Kohanda avalehte</string>
+
+    <!-- Browser menu label that navigates to the Password screen -->
+    <string name="browser_menu_passwords">Paroolid</string>
 
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
@@ -407,7 +395,7 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Konto</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Tööriistariba</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Tööriistariba</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Teema</string>
     <!-- Preference for customizing the home screen -->
@@ -456,9 +444,6 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Kasutatakse välist allalaadimishaldurit</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Lisad</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Teavitused</string>
 
@@ -467,9 +452,6 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">Keelatud</string>
 
-    <!-- Add-on Preferences -->
-    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
-    <string name="preferences_customize_amo_collection">Kohandatud lisade kollektsioon</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Olgu</string>
 
@@ -479,14 +461,10 @@
     <string name="customize_addon_collection_hint">Kollektsiooni nimi</string>
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Kollektsiooni omanik (kasutaja ID)</string>
-    <!-- Toast shown after confirming the custom add-on collection configuration -->
-    <string name="toast_customize_addon_collection_done">Lisade kollektsiooni on muudetud. Muudatuste rakendamiseks väljutakse äpist…</string>
 
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Hiljutised kaardid</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks">Hiljutised järjehoidjad</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Hiljuti külastatud</string>
@@ -513,8 +491,8 @@
     <string name="preferences_sync_history">Ajalugu</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Järjehoidjad</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Kasutajakontod</string>
+    <!-- Preference for syncing passwords -->
+    <string name="preferences_sync_logins_2">Paroolid</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Avatud kaardid</string>
     <!-- Preference for signing out -->
@@ -538,8 +516,6 @@
         The first parameter is the application name, the second is the device manufacturer name
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s seadmes %2$s %3$s</string>
-    <!-- Preference for syncing credit cards -->
-    <string name="preferences_sync_credit_cards">Krediitkaardid</string>
 
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Aadressid</string>
@@ -614,7 +590,7 @@
     <string name="preference_gestures_dynamic_toolbar">Kerimisel tööriistariba peidetakse</string>
 
     <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Tööriistaribal küljele libistamisel vahetatakse kaarte</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Tööriistaribal küljele libistamisel vahetatakse kaarte</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Üles libistamisel avatakse kaarte</string>
 
@@ -778,7 +754,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Kollektsiooni nimi</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Muuda nime</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Muuda nime</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Eemalda</string>
 
@@ -1130,14 +1106,10 @@
     <string name="qr_scanner_dialog_invalid_ok">Olgu</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Kas oled kindel, et soovid kustutada kollektsiooni %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Selle kaardi kustutamine kustutab kogu kollektsiooni. Sa võid luua uue kollektsiooni igal ajal.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Kas kustutada kollektsioon %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Kustuta</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Täisekraanirežiimi sisenemine</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Täisekraanirežiimi sisenemine</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL kopeeritud</string>
     <!-- Sample text for accessibility font size -->
@@ -1286,7 +1258,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Krüptorahakaevurid</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Seadmetuvastajad</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Seadmetuvastajad</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Üksikasjad</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1311,9 +1283,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Takistab pahatahtlike skriptide juurdepääsu sinu seadmele krüptoraha kaevandamiseks.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Seadmetuvastajad</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Seadmetuvastajad</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Peatab teie seadme kohta jälitamiseks kasutatavate kordumatult tuvastatavate andmete kogumise.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Peatab teie seadme kohta jälitamiseks kasutatavate kordumatult tuvastatavate andmete kogumise.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Jälitav sisu</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1387,10 +1359,9 @@
     <string name="add_to_homescreen_description_2">Sa võid lisada selle lehe oma seadme avaekraanile, et pääseda sellele kiirelt ligi ja kasutada seda äpi sarnase kasutuskogemusega.</string>
 
     <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">Kasutajatunnused ja paroolid</string>
+    <string name="preferences_passwords_logins_and_passwords_2">Paroolid</string>
     <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">Kasutajatunnuste ja paroolide salvestamine</string>
-
+    <string name="preferences_passwords_save_logins_2">Salvesta paroolid</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Pakutakse salvestamist</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1404,30 +1375,19 @@
     <string name="preferences_android_autofill">Täidetakse automaatselt teistes äppides</string>
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Kasutajanimesid ja paroole täidetakse teisest seadmes olevates äppides.</string>
-    <!-- Preference option for adding a login -->
-    <string name="preferences_logins_add_login">Lisa uus konto</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">Kasutajatunnuste sünkroniseerimine</string>
-    <!-- Preference for syncing saved logins in Fenix, when not signed in-->
-    <string name="preferences_passwords_sync_logins_across_devices">Sünkroniseeri kasutajatunnused seadmete vahel</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">Salvestatud kasutajakontod</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">%si salvestatud või sünkroniseeritud kasutajakontod ilmuvad siin nähtavale.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">Rohkem teavet Synci kohta.</string>
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">Lisa parool</string>
+
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">Salvestatud paroolid</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Erandid</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">Kasutajatunnused ja paroolid, mida ei salvestata, ilmuvad siin nähtavale.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">Järgmiste saitide kasutajatunnuseid ja paroole ei salvestata.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Kustuta kõik erandid</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">Otsi kasutajakontosid</string>
 
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">Otsi paroole</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Sait</string>
     <!-- The header for the username for a login -->
@@ -1454,13 +1414,9 @@
     <string name="saved_login_reveal_password">Kuva parooli</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Varja parool</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">Salvestatud kasutajatunnuste vaatamiseks ava lukk</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">Kaitse oma kasutajatunnuseid ja paroole</string>
 
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">Seadista seadme lukustusmuster, PIN või parool, et kaitsta salvestatud kasutajatunnuseid ja paroole juurdepääsu eest, kui keegi teine peaks saama sinu seadme enda kasutusse.</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">Salvestatud paroolide vaatamiseks ava lukk</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Hiljem</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1476,37 +1432,21 @@
     <string name="saved_logins_sort_strategy_alphabetically">Nimi (A-Y)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Viimati kasutatud</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">Sordi kasutajatunnuseid</string>
 
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">Automaatne täitmine</string>
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">Aadressid</string>
-    <!-- Preference and title for managing the settings for credit cards -->
-    <string name="preferences_credit_cards">Krediitkaardid</string>
 
-    <!-- Preference for saving and autofilling credit cards -->
-    <string name="preferences_credit_cards_save_and_autofill_cards">Kaartide andmed täidetakse ja salvestatakse automaatselt</string>
-    <!-- Preference summary for saving and autofilling credit card data -->
-    <string name="preferences_credit_cards_save_and_autofill_cards_summary">Andmed on krüptitud</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Sünkroniseeri kaardid seadmete vahel</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Kaardid sünkroniseeritakse</string>
-    <!-- Preference option for adding a credit card -->
-    <string name="preferences_credit_cards_add_credit_card">Lisa krediitkaart</string>
-    <!-- Preference option for managing saved credit cards -->
-    <string name="preferences_credit_cards_manage_saved_cards">Halda salvestatud kaarte</string>
     <!-- Preference option for adding an address -->
     <string name="preferences_addresses_add_address">Lisa aadress</string>
     <!-- Preference option for managing saved addresses -->
     <string name="preferences_addresses_manage_addresses">Halda aadresse</string>
-    <!-- Preference for saving and autofilling addresses -->
-    <string name="preferences_addresses_save_and_autofill_addresses">Aadressid salvestatakse ja täidetakse automaatselt</string>
-    <!-- Preference summary for saving and autofilling address data -->
-    <string name="preferences_addresses_save_and_autofill_addresses_summary">Lisa ka teave nagu numbrid, e-post ja postitamise aadress</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Kaardi lisamine</string>
@@ -1526,8 +1466,6 @@
     <string name="credit_cards_menu_delete_card">Kustuta kaart</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">Kustuta kaart</string>
-    <!-- The text for the confirmation message of "Delete card" dialog -->
-    <string name="credit_cards_delete_dialog_confirmation">Kas oled kindel, et soovid selle krediitkaardi kustutada?</string>
     <!-- The text for the positive button on "Delete card" dialog -->
     <string name="credit_cards_delete_dialog_button">Kustuta</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
@@ -1538,25 +1476,15 @@
     <string name="credit_cards_cancel_button">Loobu</string>
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Salvestatud kaardid</string>
-    <!-- Error message for credit card number validation -->
-    <string name="credit_cards_number_validation_error_message">Palun sisesta korrektne krediitkaardi number</string>
 
-    <!-- Error message for credit card name on card validation -->
-    <string name="credit_cards_name_on_card_validation_error_message">Palun täida see väli</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Salvestatud kaartide vaatamiseks ava lukk</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_title">Kaitse oma krediitkaarte</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="credit_cards_warning_dialog_message">Seadista seadme lukustusmuster, PIN või parool, et kaitsta salvestatud krediitkaarte juurdepääsu eest, kui keegi teine peaks saama sinu seadme enda kasutusse.</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_set_up_now">Seadista kohe</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_later">Hiljem</string>
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Seadme lahtilukustamine</string>
-    <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored credit card information -->
-    <string name="credit_cards_biometric_prompt_unlock_message">Salvestatud krediitkaardi andmete vaatamiseks ava lukk</string>
 
     <!-- Title of the "Add address" screen -->
     <string name="addresses_add_address">Aadressi lisamine</string>
@@ -1564,12 +1492,6 @@
     <string name="addresses_edit_address">Aadressi muutmine</string>
     <!-- Title of the "Manage addresses" screen -->
     <string name="addresses_manage_addresses">Aadressi haldamine</string>
-    <!-- The header for the first name of an address -->
-    <string name="addresses_first_name">Eesnimi</string>
-    <!-- The header for the middle name of an address -->
-    <string name="addresses_middle_name">Teine nimi</string>
-    <!-- The header for the last name of an address -->
-    <string name="addresses_last_name">Perekonnanimi</string>
     <!-- The header for the street address of an address -->
     <string name="addresses_street_address">Tänava aadress</string>
     <!-- The header for the city of an address -->
@@ -1592,9 +1514,6 @@
     <string name="addresses_cancel_button">Loobu</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">Kustuta aadress</string>
-
-    <!-- The title for the "Delete address" confirmation dialog -->
-    <string name="addressess_confirm_dialog_message">Kas oled kindel, et soovid selle aadressi kustutada?</string>
 
     <!-- The text for the positive button on "Delete address" dialog -->
     <string name="addressess_confirm_dialog_ok_button">Kustuta</string>
@@ -1674,31 +1593,21 @@
     <string name="login_menu_delete_button">Kustuta</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Muuda</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">Kas oled kindel, et soovid selle kasutajakonto kustutada?</string>
+    <!-- Message in delete confirmation dialog for password -->
+    <string name="login_deletion_confirmation_2">Kas oled kindel, et soovid selle parooli kustutada?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Kustuta</string>
 
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">Loobu</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">Kasutajakontode sätted</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">Muudetav tekstiväli kasutajakonto veebiaadressi jaoks.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">Muudetav tekstiväli kasutajakonto kasutajanime jaoks.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">Muudetav tekstiväli kasutajakonto parooli jaoks.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">Salvesta kasutajakonto muudatused.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">Muuda</string>
-    <!--  The page title for adding new login. -->
-    <string name="add_login">Lisa uus kasutajakonto</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">Parool on nõutud</string>
-    <!--  The error message in add login view when username field is blank. -->
-    <string name="saved_login_username_required">Kasutajanimi on nõutud</string>
+    <!--  The saved password options menu description. -->
+    <string name="login_options_menu_2">Paroolide sätted</string>
+    <!--  The page title for editing a saved password. -->
+    <string name="edit_2">Parooli muutmine</string>
+    <!--  The page title for adding new password. -->
+    <string name="add_login_2">Lisa parool</string>
+    <!--  Error text displayed underneath the password field when it is in an error case. -->
+    <string name="saved_login_password_required_2">Sisesta parool</string>
     <!--  The error message in add login view when hostname field is blank. -->
     <string name="saved_login_hostname_required" tools:ignore="UnusedResources">Saidi aadress on nõutud</string>
     <!-- Voice search button content description  -->
@@ -1749,7 +1658,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Otsetee nimi</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">Olgu</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">Olgu</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Loobu</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -1790,7 +1699,7 @@
     <string name="radio_preference_info_content_description">Rohkema teabe jaoks puuduta</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description">Liigu üles</string>
+    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Liigu üles</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Sulge</string>
