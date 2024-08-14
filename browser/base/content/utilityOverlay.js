@@ -20,7 +20,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  ReportBrokenSite: "resource:///modules/ReportBrokenSite.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
 });

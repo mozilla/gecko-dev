@@ -9,6 +9,10 @@ const { UrlClassifierTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlClassifierTestUtils.sys.mjs"
 );
 
+const { ReportBrokenSite } = ChromeUtils.importESModule(
+  "resource:///modules/ReportBrokenSite.sys.mjs"
+);
+
 const BASE_URL =
   "https://example.com/browser/browser/components/reportbrokensite/test/browser/";
 

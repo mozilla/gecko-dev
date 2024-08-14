@@ -7,6 +7,7 @@
 ChromeUtils.defineESModuleGetters(this, {
   ContentBlockingAllowList:
     "resource://gre/modules/ContentBlockingAllowList.sys.mjs",
+  ReportBrokenSite: "resource:///modules/ReportBrokenSite.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
@@ -1376,6 +1377,8 @@ var gProtectionsHandler = {
     if (!this._protectionsPopup) {
       let wrapper = document.getElementById("template-protections-popup");
       this._protectionsPopup = wrapper.content.firstElementChild;
+      this._protectionsPopup.addEventListener("popupshown", this);
+      this._protectionsPopup.addEventListener("popuphidden", this);
       wrapper.replaceWith(wrapper.content);
 
       this.maybeSetMilestoneCounterText();

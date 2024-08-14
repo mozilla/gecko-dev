@@ -43,7 +43,7 @@ add_task(async function testOtherMenus() {
   const menus = [appMenu, ProtectionsPanel(), HelpMenu()];
 
   async function forceMenuItemStateUpdate() {
-    window.ReportBrokenSite.enableOrDisableMenuitems(window);
+    ReportBrokenSite.enableOrDisableMenuitems(window);
 
     // the hidden/disabled state of all of the menuitems may not update until one
     // is rendered; then the related <command>'s state is propagated to them all.

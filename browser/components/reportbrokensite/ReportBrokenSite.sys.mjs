@@ -166,8 +166,7 @@ class ViewState {
   }
 
   ensureReasonOrderingMatchesPref() {
-    const randomizeReasons =
-      this.#doc.ownerGlobal.ReportBrokenSite.randomizeReasons;
+    const { randomizeReasons } = ReportBrokenSite;
     if (randomizeReasons != this.#randomizeReasons) {
       if (randomizeReasons) {
         this.#randomizeReasonsOrdering();
@@ -183,17 +182,15 @@ class ViewState {
   }
 
   get isReasonValid() {
-    const { reasonEnabled, reasonIsOptional } =
-      this.#doc.ownerGlobal.ReportBrokenSite;
+    const { reasonEnabled, reasonIsOptional } = ReportBrokenSite;
     return (
       !reasonEnabled || reasonIsOptional || this.reasonInput.checkValidity()
     );
   }
 
   get isDescriptionValid() {
-    const { descriptionIsOptional } = this.#doc.ownerGlobal.ReportBrokenSite;
     return (
-      descriptionIsOptional ||
+      ReportBrokenSite.descriptionIsOptional ||
       gDescriptionCheckRE.test(this.descriptionInput.value)
     );
   }
@@ -427,6 +424,12 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
       panelview.selectedElement = state.okayButton;
       panelview.focusSelectedElement();
     });
+
+    win.document
+      .getElementById("cmd_reportBrokenSite")
+      .addEventListener("command", e => {
+        this.open(e);
+      });
   }
 
   enableOrDisableMenuitems(selectedbrowser) {

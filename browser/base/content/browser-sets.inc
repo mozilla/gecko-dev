@@ -51,7 +51,7 @@
 #ifdef XP_MACOSX
     <command id="cmd_findSelection" />
 #endif
-    <command id="cmd_reportBrokenSite" oncommand="ReportBrokenSite.open(event);" />
+    <command id="cmd_reportBrokenSite"/>
     <command id="cmd_translate" />
     <!-- work-around bug 392512 -->
     <command id="Browser:AddBookmarkAs" />
