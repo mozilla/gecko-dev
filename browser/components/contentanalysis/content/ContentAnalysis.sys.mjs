@@ -212,10 +212,11 @@ export const ContentAnalysis = {
    * Registers for various messages/events that will indicate the
    * need for communicating something to the user.
    */
-  initialize(doc) {
+  initialize(window) {
     if (!lazy.gContentAnalysis.isActive) {
       return;
     }
+    let doc = window.document;
     if (!this.isInitialized) {
       this.isInitialized = true;
       this.initializeDownloadCA();

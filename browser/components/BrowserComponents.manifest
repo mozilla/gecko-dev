@@ -8,3 +8,9 @@
 #   mobile/android: {aa3c5121-dab2-40e2-81ca-7ea25febc110}
 
 category app-startup nsBrowserGlue @mozilla.org/browser/browserglue;1 application={ec8030f7-c20a-464f-9b0e-13a3a9e97384} application={aa3c5121-dab2-40e2-81ca-7ea25febc110}
+
+# Browser window lifecycle callers.
+category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.mjs ContentAnalysis.initialize
+category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup
+category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys.mjs ReportBrokenSite.init
+category browser-window-delayed-startup resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.init
