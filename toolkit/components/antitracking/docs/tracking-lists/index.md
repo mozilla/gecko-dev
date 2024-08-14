@@ -76,9 +76,73 @@ We intend to migrate the ETP list management to leverage RS. Benefits include,
 * **GCP Integration:** Since RS already integrates with GCP, no additional setup or team would be required for cloud storage and no migration would be required from aws to gcp.
 * **Shavar Deprecation:** Shifting to RS allows for the complete deprecation of Shavar, simplifying the overall architecture.
 
-Code to publish ETP lists directly to RS already exists within the shavar-list-creation project ([https://github.com/mozilla-services/shavar-list-creation/blob/main/publish2cloud.py#L218](https://github.com/mozilla-services/shavar-list-creation/blob/main/publish2cloud.py#L218)). However, this functionality is currently disabled and requires addressing issues identified by the SRE team, such as incomplete updates on the RS side
 
-## Known Pain Points
+### How to run the shavar-lists-creation scripts for Remote Settings
+
+
+
+The remote settings upload logic is contained within the [shavar-list-creation](https://github.com/mozilla-services/shavar-list-creation) repo. There are certain environment variables that need to be set to run these scripts locally.
+
+
+
+1. Set your environment variables using `export KEY=value` in your terminal or directly in your bash/zshrc file
+
+```
+# The server locations are as follows
+# dev: https://remote-settings-dev.allizom.org/v1
+# stage: https://remote-settings.allizom.org/v1
+# prod: https://remote-settings.mozilla.org/v1
+export SERVER="server_location"
+
+# For testing purposes, we use auth tokens, but the server uses userpass. To run locally, set the auth method to tokens
+export REMOTE_SETTINGS_AUTH_METHOD="token"
+
+# Get your auth token by logging into the server using single sign on, it will be of the format "Bearer token_string"
+export AUTHORIZATION="Bearer your_token"
+
+# Since this script is used for both shavar and remote settings, we need to set an execution environment. JENKINS is used for the shavar server, and GKE is used for remote settings. Since we are concerned with remote settings here, set it to GKE
+export EXECUTION_ENVIRONMENT="GKE"
+
+# Lastly, we want to set which server we are uploading to, make sure you set this based on the AUTHORIZATION and SERVER you have set
+export ENVIRONMENT="dev"
+```
+
+2. Once these environment variables are set, we can directly run the scripts to upload to the server. The `settings.py` code will use one of rs_dev.ini, rs_stage.ini, rs_prod.ini based on where you mean to upload to. These ini files already have rs upload enabled and s3 upload disabled.
+```
+python3 lists2safebrowsing.py
+```
+
+### Remote settings execution environment
+
+The scripts are run daily on the google cloud servers (GKE) for each environment (dev, stage and prod). The scripts compare the lists from shavar-prod-lists and the ones already uploaded using the chunknum values, and only trigger an update if theres a new change.
+
+Dev changes are automatically updated without a reviewer on remote settings. Stage and prod changes require a reviewer to merge the changes in. An email is sent out when there are new changes.
+
+## Migration from Shavar to Remote Settings
+
+As of August 2024, we are in the final stages of transitioning completely from Shavar to Remote Settings for providing versioned lists to Firefox.
+
+However, Shavar support will be needed for an extended period to support older firefox versions.
+
+### Versioning in Remote Settings
+
+Remote Settings implements versioning through the use of `filter_expression` tags on lists. These tags indicate which version of Firefox each list supports.
+
+#### How it works:
+1. When an update is triggered, Firefox clients receive all Remote Settings lists.
+2. Upon fetching, each client retrieves the specific list that matches its `filter_expression`.
+
+This approach ensures that each Firefox version receives the appropriate list tailored to its capabilities and requirements.
+
+### Maintaining Nightly Builds
+
+#### Important Note
+The **master** branch in the [shavar-prod-lists](https://github.com/mozilla-services/shavar-prod-lists/branches) repository provides the list for Nightly builds. To maintain consistency and prevent issues:
+
+- **Do not** create a new branch for Nightly versions without first updating the `lists2safebrowsing.py` script. Adding a new branch could lead to errors since the script uses the master branch as the latest list, which is what is used for Nightly versions.
+- Ensure all changes to the Nightly list are properly reflected in the script to avoid discrepancies.
+
+## Known Pain Points of Shavar
 
 * **Frequent Build Errors:** We frequently encounter errors during the build process, as evidenced in the shavar-ci channel. Investigating and resolving these errors should be a priority to ensure a smooth publishing workflow.
 * **Inconsistent Versioning Rules:** Branching for different versions currently follows a set of undocumented rules. These rules need to be reviewed, standardized, and documented to eliminate confusion and potential bugs. A thorough review can identify and address any lingering bugs from the system's inception.
