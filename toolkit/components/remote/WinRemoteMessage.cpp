@@ -9,17 +9,24 @@
 
 using namespace mozilla;
 
-WinRemoteMessageSender::WinRemoteMessageSender(const wchar_t* aCommandLine,
-                                               const wchar_t* aWorkingDir)
-    : mData({static_cast<DWORD>(
-          WinRemoteMessageVersion::CommandLineAndWorkingDirInUtf16)}) {
-  mUtf16Buffer.Append(aCommandLine);
-  mUtf16Buffer.Append(u'\0');
-  mUtf16Buffer.Append(aWorkingDir);
-  mUtf16Buffer.Append(u'\0');
+#define MOZ_MAGIC_COPYDATA_PREFIX "🔥🦊"
 
-  char16_t* mutableBuffer;
-  mData.cbData = mUtf16Buffer.GetMutableData(&mutableBuffer) * sizeof(char16_t);
+WinRemoteMessageSender::WinRemoteMessageSender(int32_t aArgc,
+                                               const char** aArgv,
+                                               const nsAString& aWorkingDir)
+    : mData({static_cast<DWORD>(
+          WinRemoteMessageVersion::NullSeparatedArguments)}) {
+  mCmdLineBuffer.AppendLiteral(MOZ_MAGIC_COPYDATA_PREFIX "\0");
+  AppendUTF16toUTF8(aWorkingDir, mCmdLineBuffer);
+  mCmdLineBuffer.Append('\0');
+
+  for (int32_t i = 0; i < aArgc; i++) {
+    mCmdLineBuffer.Append(aArgv[i]);
+    mCmdLineBuffer.Append('\0');
+  }
+
+  char* mutableBuffer;
+  mData.cbData = mCmdLineBuffer.GetMutableData(&mutableBuffer);
   mData.lpData = mutableBuffer;
 }
 
@@ -52,12 +59,65 @@ nsresult WinRemoteMessageReceiver::ParseV2(const nsAString& aBuffer) {
                             nsICommandLine::STATE_REMOTE_AUTO);
 }
 
+nsresult WinRemoteMessageReceiver::ParseV3(const nsACString& aBuffer) {
+  nsCOMPtr<nsIFile> workingDir;
+
+  // String should start with the magic sequence followed by null
+  int32_t nextNul = aBuffer.FindChar('\0');
+  if (nextNul < 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!Substring(aBuffer, 0, nextNul)
+           .EqualsLiteral(MOZ_MAGIC_COPYDATA_PREFIX)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  int32_t pos = nextNul + 1;
+  nextNul = aBuffer.FindChar('\0', pos);
+  if (nextNul < 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult rv = NS_NewLocalFile(
+      NS_ConvertUTF8toUTF16(Substring(aBuffer, pos, nextNul - pos)), false,
+      getter_AddRefs(workingDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  pos = nextNul + 1;
+  nsTArray<const char*> argv;
+
+  while (true) {
+    nextNul = aBuffer.FindChar('\0', pos);
+    if (nextNul < 0) {
+      break;
+    }
+
+    // Because each argument is null terminated we can just add the pointer to
+    // the array directly.
+    argv.AppendElement(aBuffer.BeginReading() + pos);
+    pos = nextNul + 1;
+  }
+
+  // There should always be at least one argument, the path to the binary.
+  if (argv.IsEmpty()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mCommandLine = new nsCommandLine();
+  return mCommandLine->Init(argv.Length(), argv.Elements(), workingDir,
+                            nsICommandLine::STATE_REMOTE_AUTO);
+}
+
 nsresult WinRemoteMessageReceiver::Parse(const COPYDATASTRUCT* aMessageData) {
   switch (static_cast<WinRemoteMessageVersion>(aMessageData->dwData)) {
     case WinRemoteMessageVersion::CommandLineAndWorkingDirInUtf16:
-      return ParseV2(nsDependentSubstring(
-          reinterpret_cast<char16_t*>(aMessageData->lpData),
-          aMessageData->cbData / sizeof(char16_t)));
+      return ParseV2(
+          nsDependentSubstring(reinterpret_cast<wchar_t*>(aMessageData->lpData),
+                               aMessageData->cbData / sizeof(char16_t)));
+    case WinRemoteMessageVersion::NullSeparatedArguments:
+      return ParseV3(nsDependentCSubstring(
+          reinterpret_cast<char*>(aMessageData->lpData), aMessageData->cbData));
     default:
       MOZ_ASSERT_UNREACHABLE("Unsupported message version");
       return NS_ERROR_FAILURE;
@@ -67,3 +127,5 @@ nsresult WinRemoteMessageReceiver::Parse(const COPYDATASTRUCT* aMessageData) {
 nsICommandLineRunner* WinRemoteMessageReceiver::CommandLineRunner() {
   return mCommandLine;
 }
+
+#undef MOZ_MAGIC_COPYDATA_PREFIX

@@ -115,7 +115,8 @@ nsresult nsRemoteService::StartClient(const char* aStartupToken) {
   nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc, gArgv,
+  return client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc,
+                                 const_cast<const char**>(gArgv),
                                  aStartupToken);
 }
 

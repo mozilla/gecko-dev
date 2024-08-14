@@ -20,7 +20,7 @@ nsresult nsMacRemoteClient::Init() { return NS_OK; }
 
 nsresult nsMacRemoteClient::SendCommandLine(const char* aProgram,
                                             const char* aProfile, int32_t argc,
-                                            char** argv,
+                                            const char** argv,
                                             const char* aDesktopStartupID) {
   mozilla::MacAutoreleasePool pool;
 

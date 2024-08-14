@@ -25,8 +25,8 @@
 //     treated as valid (bug 1847458).
 //
 // Whenever possible, we should retain backwards compatibility for currently-
-// supported ESR versions. (Any future versions should probably contain a magic
-// cookie of some sort to reduce the chances of variants of bug 1847458.)
+// supported ESR versions. Any future versions should contain a magic cookie of
+// some sort, as v3 does, to reduce the chances of variants of bug 1847458.
 enum class WinRemoteMessageVersion : uint32_t {
   // "<CommandLine>\0" in utf8
   /* CommandLineOnly = 0, */
@@ -34,18 +34,19 @@ enum class WinRemoteMessageVersion : uint32_t {
   // "<CommandLine>\0<WorkingDir>\0" in utf8
   /* CommandLineAndWorkingDir = 1, */
 
-  // L"<CommandLine>\0<WorkingDir>\0" in utf16
+  // L"<CommandLine>\0<WorkingDir>\0" in utf16, used by ESR 128
   CommandLineAndWorkingDirInUtf16 = 2,
+
+  // L"🔥🦊\0<WorkingDir>\0<Arg0>\0<Arg1>\0..." in utf8
+  NullSeparatedArguments = 3,
 };
 
 class WinRemoteMessageSender final {
   COPYDATASTRUCT mData;
-  nsAutoString mUtf16Buffer;
-  nsAutoCString mUtf8Buffer;
 
  public:
-  WinRemoteMessageSender(const wchar_t* aCommandLine,
-                         const wchar_t* aWorkingDir);
+  WinRemoteMessageSender(int32_t aArgc, const char** aArgv,
+                         const nsAString& aWorkingDir);
 
   WinRemoteMessageSender(const WinRemoteMessageSender&) = delete;
   WinRemoteMessageSender(WinRemoteMessageSender&&) = delete;
@@ -53,12 +54,16 @@ class WinRemoteMessageSender final {
   WinRemoteMessageSender& operator=(WinRemoteMessageSender&&) = delete;
 
   COPYDATASTRUCT* CopyData();
+
+ private:
+  nsCString mCmdLineBuffer;
 };
 
 class WinRemoteMessageReceiver final {
   nsCOMPtr<nsICommandLineRunner> mCommandLine;
 
   nsresult ParseV2(const nsAString& aBuffer);
+  nsresult ParseV3(const nsACString& aBuffer);
 
  public:
   WinRemoteMessageReceiver() = default;

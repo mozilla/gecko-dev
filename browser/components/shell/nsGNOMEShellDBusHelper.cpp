@@ -261,8 +261,8 @@ static void ActivateResultID(
       0) {
     const char* urlList[3] = {"unused", "--search",
                               aSearchResult->GetSearchTerm().get()};
-    commandLine = ConstructCommandLine(std::size(urlList), (char**)urlList,
-                                       nullptr, &tmp);
+    commandLine =
+        ConstructCommandLine(std::size(urlList), urlList, nullptr, &tmp);
   } else {
     int keyIndex = atoi(aResultID);
     nsCOMPtr<nsINavHistoryResultNode> child;
@@ -279,8 +279,8 @@ static void ActivateResultID(
     }
 
     const char* urlList[2] = {"unused", uri.get()};
-    commandLine = ConstructCommandLine(std::size(urlList), (char**)urlList,
-                                       nullptr, &tmp);
+    commandLine =
+        ConstructCommandLine(std::size(urlList), urlList, nullptr, &tmp);
   }
 
   if (commandLine) {
@@ -305,7 +305,8 @@ static void DBusLaunchWithAllResults(
 
   // Allocate space for all found results, "unused", "--search" and
   // potential search request.
-  char** urlList = (char**)moz_xmalloc(sizeof(char*) * (childCount + 3));
+  const char** urlList =
+      (const char**)moz_xmalloc(sizeof(char*) * (childCount + 3));
   int urlListElements = 0;
 
   urlList[urlListElements++] = strdup("unused");
@@ -342,7 +343,7 @@ static void DBusLaunchWithAllResults(
   }
 
   for (int i = 0; i < urlListElements; i++) {
-    free(urlList[i]);
+    free((void*)urlList[i]);
   }
   free(urlList);
 }

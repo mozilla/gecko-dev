@@ -140,7 +140,7 @@ static int HandleBadWindow(Display* display, XErrorEvent* event) {
 
 nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
                                           const char* aProfile, int32_t argc,
-                                          char** argv,
+                                          const char** argv,
                                           const char* aStartupToken) {
   NS_ENSURE_TRUE(aProgram, NS_ERROR_INVALID_ARG);
 
@@ -522,7 +522,7 @@ nsresult nsXRemoteClient::FreeLock(Window aWindow) {
 }
 
 nsresult nsXRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc,
-                                            char** argv,
+                                            const char** argv,
                                             const char* aStartupToken,
                                             bool* aDestroyed) {
   *aDestroyed = false;

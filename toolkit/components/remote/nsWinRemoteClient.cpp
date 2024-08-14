@@ -16,7 +16,7 @@ nsresult nsWinRemoteClient::Init() { return NS_OK; }
 
 nsresult nsWinRemoteClient::SendCommandLine(const char* aProgram,
                                             const char* aProfile, int32_t argc,
-                                            char** argv,
+                                            const char** argv,
                                             const char* aStartupToken) {
   nsString className;
   BuildClassName(aProgram, aProfile, className);
@@ -29,7 +29,7 @@ nsresult nsWinRemoteClient::SendCommandLine(const char* aProgram,
 
   WCHAR cwd[MAX_PATH];
   _wgetcwd(cwd, MAX_PATH);
-  WinRemoteMessageSender sender(::GetCommandLineW(), cwd);
+  WinRemoteMessageSender sender(argc, argv, nsDependentString(cwd));
 
   // Bring the already running Mozilla process to the foreground.
   // nsWindow will restore the window (if minimized) and raise it.
