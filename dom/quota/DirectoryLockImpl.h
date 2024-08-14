@@ -213,7 +213,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   // OriginDirectoryLock interface
 
   PersistenceType GetPersistenceType() const override {
-    MOZ_DIAGNOSTIC_ASSERT(!mPersistenceScope.IsNull());
+    MOZ_DIAGNOSTIC_ASSERT(mPersistenceScope.IsValue());
 
     return mPersistenceScope.GetValue();
   }
@@ -271,7 +271,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
       bool aInternal, ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
       DirectoryLockCategory aCategory) {
     MOZ_ASSERT_IF(aOriginScope.IsOrigin(), !aOriginScope.GetOrigin().IsEmpty());
-    MOZ_ASSERT_IF(!aInternal, !aPersistenceScope.IsNull());
+    MOZ_ASSERT_IF(!aInternal, aPersistenceScope.IsValue());
     MOZ_ASSERT_IF(!aInternal,
                   aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
     MOZ_ASSERT_IF(!aInternal, !aGroup.IsEmpty());

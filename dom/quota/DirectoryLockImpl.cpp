@@ -38,7 +38,7 @@ DirectoryLockImpl::DirectoryLockImpl(
       mRegistered(false) {
   AssertIsOnOwningThread();
   MOZ_ASSERT_IF(aOriginScope.IsOrigin(), !aOriginScope.GetOrigin().IsEmpty());
-  MOZ_ASSERT_IF(!aInternal, !aPersistenceScope.IsNull());
+  MOZ_ASSERT_IF(!aInternal, aPersistenceScope.IsValue());
   MOZ_ASSERT_IF(!aInternal,
                 aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
   MOZ_ASSERT_IF(!aInternal, !aGroup.IsEmpty());
@@ -377,14 +377,20 @@ void DirectoryLockImpl::Log() const {
 
   QM_LOG(("DirectoryLockImpl [%p]", this));
 
-  nsCString persistenceType;
+  nsCString persistenceScope;
   if (mPersistenceScope.IsNull()) {
-    persistenceType.AssignLiteral("null");
-  } else {
-    persistenceType.Assign(
+    persistenceScope.AssignLiteral("null");
+  } else if (mPersistenceScope.IsValue()) {
+    persistenceScope.Assign(
         PersistenceTypeToString(mPersistenceScope.GetValue()));
+  } else {
+    MOZ_ASSERT(mPersistenceScope.IsSet());
+    for (auto persistenceType : mPersistenceScope.GetSet()) {
+      persistenceScope.Append(PersistenceTypeToString(persistenceType) +
+                              " "_ns);
+    }
   }
-  QM_LOG(("  mPersistenceType: %s", persistenceType.get()));
+  QM_LOG(("  mPersistenceScope: %s", persistenceScope.get()));
 
   QM_LOG(("  mGroup: %s", mGroup.get()));
 

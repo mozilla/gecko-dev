@@ -2403,6 +2403,8 @@ nsresult ClearOriginOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
                   mClientType);
     }
   } else {
+    MOZ_ASSERT(mPersistenceScope.IsValue());
+
     DeleteFiles(
         aQuotaManager,
         OriginMetadata(mPrincipalMetadata, mPersistenceScope.GetValue()),
@@ -2459,6 +2461,8 @@ nsresult ClearStoragesForOriginPrefixOp::DoDirectoryWork(
                   Nullable<Client::Type>());
     }
   } else {
+    MOZ_ASSERT(mPersistenceScope.IsValue());
+
     DeleteFiles(aQuotaManager, mPersistenceScope.GetValue(),
                 OriginScope::FromPrefix(mPrefix), Nullable<Client::Type>());
   }

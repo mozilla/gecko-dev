@@ -45,6 +45,20 @@ TEST(DOM_Quota_PersistenceScope, MatchesValue)
   }
 
   {
+    const auto persistenceScope(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_TEMPORARY, PERSISTENCE_TYPE_DEFAULT));
+
+    ASSERT_FALSE(persistenceScope.Matches(
+        PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT)));
+    ASSERT_TRUE(persistenceScope.Matches(
+        PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_TEMPORARY)));
+    ASSERT_TRUE(persistenceScope.Matches(
+        PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_DEFAULT)));
+    ASSERT_FALSE(persistenceScope.Matches(
+        PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PRIVATE)));
+  }
+
+  {
     const auto persistenceScope(PersistenceScope::CreateFromNull());
 
     ASSERT_TRUE(persistenceScope.Matches(
@@ -55,6 +69,58 @@ TEST(DOM_Quota_PersistenceScope, MatchesValue)
         PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_DEFAULT)));
     ASSERT_TRUE(persistenceScope.Matches(
         PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PRIVATE)));
+  }
+}
+
+TEST(DOM_Quota_PersistenceScope, MatchesSet)
+{
+  // Test each persistence scope type against particular persistence types.
+
+  {
+    const auto persistenceScope(
+        PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT));
+
+    ASSERT_TRUE(persistenceScope.Matches(
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_PERSISTENT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT, PERSISTENCE_TYPE_PRIVATE)));
+  }
+
+  {
+    const auto persistenceScope(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_TEMPORARY, PERSISTENCE_TYPE_DEFAULT));
+
+    ASSERT_FALSE(persistenceScope.Matches(
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_PERSISTENT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT, PERSISTENCE_TYPE_PRIVATE)));
+  }
+
+  {
+    const auto persistenceScope(PersistenceScope::CreateFromNull());
+
+    ASSERT_TRUE(persistenceScope.Matches(
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_PERSISTENT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT)));
+    ASSERT_TRUE(persistenceScope.Matches(PersistenceScope::CreateFromSet(
+        PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+        PERSISTENCE_TYPE_DEFAULT, PERSISTENCE_TYPE_PRIVATE)));
   }
 }
 

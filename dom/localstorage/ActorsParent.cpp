@@ -8476,8 +8476,8 @@ nsresult QuotaClient::AboutToClearOrigins(
   // So this method clears the archived data and shadow database entries for
   // given origin scope, but only if it's a privacy-related origin clearing.
 
-  if (!aPersistenceScope.IsNull() &&
-      aPersistenceScope.GetValue() != PERSISTENCE_TYPE_DEFAULT) {
+  if (!aPersistenceScope.Matches(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_DEFAULT))) {
     return NS_OK;
   }
 

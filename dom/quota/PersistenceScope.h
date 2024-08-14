@@ -8,6 +8,7 @@
 #define DOM_QUOTA_PERSISTENCESCOPE_H_
 
 #include "mozilla/Assertions.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/Variant.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 
@@ -23,9 +24,18 @@ class PersistenceScope {
     PersistenceType GetValue() const { return mValue; }
   };
 
+  class Set {
+    EnumSet<PersistenceType> mSet;
+
+   public:
+    explicit Set(const EnumSet<PersistenceType>& aSet) : mSet(aSet) {}
+
+    const EnumSet<PersistenceType>& GetSet() const { return mSet; }
+  };
+
   struct Null {};
 
-  using DataType = Variant<Value, Null>;
+  using DataType = Variant<Value, Set, Null>;
 
   DataType mData;
 
@@ -37,11 +47,18 @@ class PersistenceScope {
     return PersistenceScope(std::move(Value(aValue)));
   }
 
+  template <typename... Args>
+  static PersistenceScope CreateFromSet(Args... aArgs) {
+    return PersistenceScope(std::move(Set(EnumSet<PersistenceType>(aArgs...))));
+  }
+
   static PersistenceScope CreateFromNull() {
     return PersistenceScope(std::move(Null()));
   }
 
   bool IsValue() const { return mData.is<Value>(); }
+
+  bool IsSet() const { return mData.is<Set>(); }
 
   bool IsNull() const { return mData.is<Null>(); }
 
@@ -57,6 +74,12 @@ class PersistenceScope {
     return mData.as<Value>().GetValue();
   }
 
+  const EnumSet<PersistenceType>& GetSet() const {
+    MOZ_ASSERT(IsSet());
+
+    return mData.as<Set>().GetSet();
+  }
+
   bool Matches(const PersistenceScope& aOther) const {
     struct Matcher {
       const PersistenceScope& mThis;
@@ -67,6 +90,8 @@ class PersistenceScope {
         return mThis.MatchesValue(aOther);
       }
 
+      bool operator()(const Set& aOther) { return mThis.MatchesSet(aOther); }
+
       bool operator()(const Null& aOther) { return true; }
     };
 
@@ -76,6 +101,8 @@ class PersistenceScope {
  private:
   // Move constructors
   explicit PersistenceScope(const Value&& aValue) : mData(aValue) {}
+
+  explicit PersistenceScope(const Set&& aSet) : mData(aSet) {}
 
   explicit PersistenceScope(const Null&& aNull) : mData(aNull) {}
 
@@ -92,6 +119,10 @@ class PersistenceScope {
         return aThis.GetValue() == mOther.GetValue();
       }
 
+      bool operator()(const Set& aThis) {
+        return aThis.GetSet().contains(mOther.GetValue());
+      }
+
       bool operator()(const Null& aThis) {
         // Null covers everything.
         return true;
@@ -99,6 +130,34 @@ class PersistenceScope {
     };
 
     return mData.match(ValueMatcher(aOther));
+  }
+
+  bool MatchesSet(const Set& aOther) const {
+    struct SetMatcher {
+      const Set& mOther;
+
+      explicit SetMatcher(const Set& aOther) : mOther(aOther) {}
+
+      bool operator()(const Value& aThis) {
+        return mOther.GetSet().contains(aThis.GetValue());
+      }
+
+      bool operator()(const Set& aThis) {
+        for (auto persistenceType : aThis.GetSet()) {
+          if (mOther.GetSet().contains(persistenceType)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      bool operator()(const Null& aThis) {
+        // Null covers everything.
+        return true;
+      }
+    };
+
+    return mData.match(SetMatcher(aOther));
   }
 
   bool operator==(const PersistenceScope& aOther) = delete;

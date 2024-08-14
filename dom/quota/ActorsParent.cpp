@@ -1962,19 +1962,19 @@ uint64_t QuotaManager::CollectOriginsForEviction(
     for (NotNull<const DirectoryLockImpl*> const lock : mDirectoryLocks) {
       const PersistenceScope& persistenceScope = lock->PersistenceScopeRef();
 
-      if (persistenceScope.IsNull()) {
+      if (persistenceScope.Matches(
+              PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_TEMPORARY))) {
         temporaryStorageLocks.AppendElement(lock);
-        defaultStorageLocks.AppendElement(lock);
-      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_TEMPORARY) {
-        temporaryStorageLocks.AppendElement(lock);
-      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_DEFAULT) {
-        defaultStorageLocks.AppendElement(lock);
-      } else if (persistenceScope.GetValue() == PERSISTENCE_TYPE_PRIVATE) {
-        privateStorageLocks.AppendElement(lock);
-      } else {
-        MOZ_ASSERT(persistenceScope.GetValue() == PERSISTENCE_TYPE_PERSISTENT);
+      }
 
-        // Do nothing here, persistent origins don't need to be collected ever.
+      if (persistenceScope.Matches(
+              PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_DEFAULT))) {
+        defaultStorageLocks.AppendElement(lock);
+      }
+
+      if (persistenceScope.Matches(
+              PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PRIVATE))) {
+        privateStorageLocks.AppendElement(lock);
       }
     }
 
