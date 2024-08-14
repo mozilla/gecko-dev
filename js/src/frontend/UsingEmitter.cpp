@@ -26,15 +26,23 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   MOZ_ASSERT(initialCompletion != CompletionKind::Return);
 
   if (hasAwaitUsing_) {
+    // Awaits can cause suspension of the current frame and
+    // the erasure of the frame's return value, thus we preserve
+    // the frame's return value on the value stack.
+    if (!bce_->emit1(JSOp::GetRval)) {
+      // [stack] RVAL
+      return false;
+    }
+
     // Step 1. Let needsAwait be false.
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] NEEDS-AWAIT
+      // [stack] RVAL NEEDS-AWAIT
       return false;
     }
 
     // Step 2. Let hasAwaited be false.
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED
+      // [stack] RVAL NEEDS-AWAIT HAS-AWAITED
       return false;
     }
   }
@@ -42,25 +50,30 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   // corresponds to completion parameter
   if (initialCompletion == CompletionKind::Throw) {
     if (!bce_->emit1(JSOp::True)) {
-      // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING
+      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
       return false;
     }
     if (!bce_->emit1(JSOp::Exception)) {
-      // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC
+      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC
       return false;
     }
   } else {
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING
+      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
       return false;
     }
     if (!bce_->emit1(JSOp::Undefined)) {
-      // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING UNDEF
+      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING UNDEF
       return false;
     }
   }
 
   // [stack] ...
+
+  // For the purpose of readbility RVAL has been omitted from
+  // the stack comments below and is assumed to be present,
+  // we mention it again below at the completion steps when we
+  // use it.
 
   // We do the iteration in reverse order as per spec,
   // there can be the case when count is 0 and hence index
@@ -335,9 +348,40 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (!bce_->emitPickN(7)) {
-    // [stack] ... RESOURCES INDEX HINT METHOD VALUE EXC2 EXC THROWING
-    return false;
+  if (initialCompletion == CompletionKind::Throw &&
+      bce_->sc->isSuspendableContext() &&
+      bce_->sc->asSuspendableContext()->isGenerator()) {
+    // [stack] ... EXC2 EXC
+
+    // Generator closure is implemented by throwing a magic value
+    // thus when we have a throw completion we must check whether
+    // the pending exception is a generator closing exception and overwrite
+    // it with the normal exception here or else we will end up exposing
+    // the magic value to user program.
+    if (!bce_->emit1(JSOp::IsGenClosing)) {
+      // [stack] ... EXC2 EXC GEN-CLOSING
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Not)) {
+      // [stack] ... EXC2 EXC !GEN-CLOSING
+      return false;
+    }
+
+    if (!bce_->emitPickN(8)) {
+      // [stack] ... EXC2 EXC (!GEN-CLOSING) THROWING
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::BitAnd)) {
+      // [stack] ... EXC2 EXC (!GEN-CLOSING & THROWING)
+      return false;
+    }
+  } else {
+    if (!bce_->emitPickN(7)) {
+      // [stack] ... RESOURCES INDEX HINT METHOD VALUE EXC2 EXC THROWING
+      return false;
+    }
   }
 
   // [stack] NEEDS-AWAIT? HAS-AWAITED? ... EXC2 EXC THROWING
@@ -527,6 +571,20 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   if (!bce_->emit1(JSOp::Swap)) {
     // [stack] EXC THROWING
     return false;
+  }
+
+  if (hasAwaitUsing_) {
+    // [stack] RVAL EXC THROWING
+
+    if (!bce_->emitPickN(2)) {
+      // [stack] EXC THROWING RVAL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::SetRval)) {
+      // [stack] EXC THROWING
+      return false;
+    }
   }
 
   InternalIfEmitter ifThrow(bce_);
