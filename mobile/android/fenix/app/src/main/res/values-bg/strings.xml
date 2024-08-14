@@ -52,7 +52,7 @@
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Отметки</string>
     <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
-    <string name="home_bookmarks_show_all_content_description">Показване на всички отметки</string>
+    <string name="home_bookmarks_show_all_content_description">Всички отметки</string>
     <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
     <string name="home_bookmarks_menu_item_remove">Премахване</string>
 
@@ -202,7 +202,7 @@
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Разширения</string>
     <!-- Browser menu button that opens the extensions manager -->
-    <string name="browser_menu_manage_extensions">Управление на добавки</string>
+    <string name="browser_menu_manage_extensions">Управление на разширенията</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Открийте още разширения</string>
     <!-- Browser menu button that opens account settings -->
@@ -333,7 +333,7 @@
          history and go back to the home screen. -->
     <string name="browser_toolbar_erase">Изчистване историята на разглеждане</string>
     <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
-    <string name="browser_toolbar_translate">Превеждане на страницатa</string>
+    <string name="browser_toolbar_translate">Превеждане на страницата</string>
 
     <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
          The first parameter is the name of the language that is displayed in the original page. (For example: English)
@@ -416,7 +416,7 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">бележка за поверителността на Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text">Бележка за поверителността на Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Обичаме да ви пазим в безопасност</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
@@ -428,8 +428,6 @@
     <string name="juno_onboarding_default_browser_description_nimbus_3">Нашият браузър с нестопанска цел помага да спрете компаниите да ви следват тайно в мрежата.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Повече от 100 милиона души защитават поверителността си, като избират браузър, поддържан от организация с нестопанска цел.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Познати тракери? Автоматично блокиране. Разширения? Опитайте всички 700. PDF файлове? Вграденият четец ги прави лесни за управление.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Нашият четец,  разработван от организация  с нестопанска цел ви помага да не бъдете следени тайно в мрежата.\n\nНаучете повече в нашето съобщение за поверителност.</string>
     <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
@@ -761,7 +759,7 @@
     <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
     <string name="wallpaper_artist_series_title">Серия за художници</string>
     <!-- Description text for the artist series wallpapers with learn more link. The first parameter is the learn more string defined in wallpaper_learn_more. "Independent voices" is the name of the wallpaper collection -->
-    <string name="wallpaper_artist_series_description_with_learn_more">Колекцията независими гласове. %s</string>
+    <string name="wallpaper_artist_series_description_with_learn_more">Колекцията „Независими гласове“. %s</string>
     <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
     <string name="wallpaper_artist_series_description">Колекцията независими гласове.</string>
     <!-- Wallpaper onboarding dialog header text. -->
@@ -919,9 +917,9 @@
     <string name="preference_gestures_swipe_toolbar_show_tabs">Плъзване нагоре на лентата с инструменти отваря раздели</string>
 
     <!-- Preference for using the dynamic toolbars -->
-    <string name="preference_gestures_dynamic_toolbar_2">Превъртете, за да скриете адресната лента и лентата с инструменти</string>
+    <string name="preference_gestures_dynamic_toolbar_2">Плъзване за скриване на адресната и лентата с инструменти</string>
     <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Плъзнете адресната лента настрани, за да превключите разделите</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Плъзване на адресната лента настрани превключва разделите</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -2499,7 +2497,7 @@
     The second parameter is the name of the language that the page was translated to, for example, "English". -->
     <string name="translations_bottom_sheet_title_translation_completed">Страницата е преведена от %1$s на %2$s</string>
     <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. The first parameter is the name of the application, for example, "Fenix". -->
-    <string name="translations_bottom_sheet_title_first_time">Опитайте с поверителни преводи след %1$s</string>
+    <string name="translations_bottom_sheet_title_first_time">Опитайте поверителни преводи с %1$s</string>
     <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. The first parameter is clickable text with a link, for example, "Learn more". -->
     <string name="translations_bottom_sheet_info_message">За ваша поверителност, преводите никога не напускат устройството ви. Нови езици и подобрения очакват скоро! %1$s</string>
     <!-- Text that links to additional information about the Firefox translations feature. -->
@@ -2693,11 +2691,11 @@
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Отмяна на изтегляне на %1$s?</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Отмяна на изтегляне на %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Да</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Да</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Не</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Не</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform

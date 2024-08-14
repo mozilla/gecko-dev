@@ -915,7 +915,7 @@
     <string name="preference_gestures_swipe_toolbar_show_tabs">Llusgo’r bar offer i fyny i agor tabiau</string>
 
     <!-- Preference for using the dynamic toolbars -->
-    <string name="preference_gestures_dynamic_toolbar_2">Sgroliwch i guddio\'r bar cyfeiriad a\'r bar offer</string>
+    <string name="preference_gestures_dynamic_toolbar_2">Sgrolio i guddio\'r bar cyfeiriad a\'r bar offer</string>
     <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
     <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Llusgo’r bar cyfeiriad ar draws i newid tabiau</string>
 
@@ -2645,7 +2645,7 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
     The first parameter is the language name, for example, "Spanish".
     The second parameter is the language file size, for example, "(3.91 KB)". -->
-    <string name="download_languages_item_content_description_download_in_progress_state">Rhoi\'r gorau i llwytho %1$s (%2$s) i lawr</string>
+    <string name="download_languages_item_content_description_download_in_progress_state">Rhoi\'r gorau i lwytho %1$s (%2$s) i lawr</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Llwytho i Lawr</string>
 

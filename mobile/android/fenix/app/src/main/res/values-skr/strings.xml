@@ -1072,7 +1072,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">مجموعہ ناں</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">ناں وٹاؤ</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">ناں وٹاؤ</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ہٹاؤ</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1202,6 +1202,9 @@
     <string name="bookmark_undo_deletion">اݨ کیتا کرو</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">ڳولݨ ٹرماں درج کرو</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">واپس ون٘ڄو</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2159,7 +2162,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">شارٹ کٹ ناں</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ٹھیک ہے</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ٹھیک ہے</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">منسوخ کرو</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -2169,6 +2172,13 @@
     <string name="top_sites_menu_sponsor_privacy">ساݙے سپانسر تے تہاݙی رازداری</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">سپانسر تھئے</string>
+
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">محفوظ</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">ٹھیک یوآرایل درج کرو</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">یوآرایل</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2608,9 +2618,9 @@
     <string name="delete_language_file_dialog_negative_button_text">منسوخ</string>
 
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">جیا</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">جیا</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">کو</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">کو</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
