@@ -48,6 +48,12 @@ nsRemoteService::nsRemoteService(const char* aProgram) : mProgram(aProgram) {
 
 void nsRemoteService::SetProfile(nsACString& aProfile) { mProfile = aProfile; }
 
+#ifdef MOZ_WIDGET_GTK
+void nsRemoteService::SetStartupToken(nsACString& aStartupToken) {
+  mStartupToken = aStartupToken;
+}
+#endif
+
 void nsRemoteService::LockStartup() {
   nsCOMPtr<nsIFile> mutexDir;
   nsresult rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
@@ -92,7 +98,7 @@ void nsRemoteService::UnlockStartup() {
   }
 }
 
-nsresult nsRemoteService::StartClient(const char* aStartupToken) {
+nsresult nsRemoteService::StartClient() {
   if (mProfile.IsEmpty()) {
     return NS_ERROR_FAILURE;
   }
@@ -100,9 +106,9 @@ nsresult nsRemoteService::StartClient(const char* aStartupToken) {
   UniquePtr<nsRemoteClient> client;
 #ifdef MOZ_WIDGET_GTK
 #  if defined(MOZ_ENABLE_DBUS)
-  client = MakeUnique<nsDBusRemoteClient>();
+  client = MakeUnique<nsDBusRemoteClient>(mStartupToken);
 #  else
-  client = MakeUnique<nsXRemoteClient>();
+  client = MakeUnique<nsXRemoteClient>(mStartupToken);
 #  endif
 #elif defined(XP_WIN)
   client = MakeUnique<nsWinRemoteClient>();
@@ -116,8 +122,7 @@ nsresult nsRemoteService::StartClient(const char* aStartupToken) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   return client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc,
-                                 const_cast<const char**>(gArgv),
-                                 aStartupToken);
+                                 const_cast<const char**>(gArgv));
 }
 
 void nsRemoteService::StartupServer() {

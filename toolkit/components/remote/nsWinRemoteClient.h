@@ -18,8 +18,7 @@ class nsWinRemoteClient : public nsRemoteClient {
   nsresult Init() override;
 
   nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                           int32_t argc, const char** argv,
-                           const char* aStartupToken) override;
+                           int32_t argc, const char** argv) override;
 };
 
 #endif  // nsWinRemoteClient_h__

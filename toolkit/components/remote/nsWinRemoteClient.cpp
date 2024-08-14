@@ -16,8 +16,7 @@ nsresult nsWinRemoteClient::Init() { return NS_OK; }
 
 nsresult nsWinRemoteClient::SendCommandLine(const char* aProgram,
                                             const char* aProfile, int32_t argc,
-                                            const char** argv,
-                                            const char* aStartupToken) {
+                                            const char** argv) {
   nsString className;
   BuildClassName(aProgram, aProfile, className);
 
