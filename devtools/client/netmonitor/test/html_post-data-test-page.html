@@ -58,6 +58,7 @@
           const xhr = new XMLHttpRequest();
           xhr.open("POST", address, true);
           xhr.setRequestHeader("custom-header-xxx", "custom-value-xxx");
+          xhr.setRequestHeader("Priority", "u=3")
 
           xhr.onreadystatechange = function() {
             if (this.readyState == this.DONE) {
