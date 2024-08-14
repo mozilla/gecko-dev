@@ -438,6 +438,38 @@ networking:
       - https_regular
       - https_private
 
+  fetch_keepalive_discard_count:
+    type: labeled_counter
+    description: >
+      Counts how many fetch keepalive requests are dropped due to configured
+      resource limits.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
+    notification_emails:
+      - smayya@mozilla.com
+    expires: 138
+    labels:
+      - total_keepalive_limit
+      - per_origin_limit
+
+  fetch_keepalive_request_count:
+    type: labeled_counter
+    description: >
+      Counts how many fetch keepalive requests are made. This counter helps us to
+      understand the adoption of fetch keepalive for firefox.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
+    notification_emails:
+      - smayya@mozilla.com
+    expires: 138
+    labels:
+      - worker
+      - main
+
   http_content_onstart_delay:
     type: timing_distribution
     time_unit: millisecond

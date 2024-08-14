@@ -42,6 +42,7 @@
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/URLSearchParams.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/net/CookieJarSettings.h"
 
 #include "BodyExtractor.h"
@@ -690,6 +691,8 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
 
     actor->DoFetchOp(ipcArgs);
 
+    mozilla::glean::networking::fetch_keepalive_request_count.Get("main"_ns)
+        .Add(1);
     return p.forget();
   } else {
     WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
@@ -759,6 +762,12 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
       ipcArgs.isWorkerRequest() = true;
 
       actor->DoFetchOp(ipcArgs);
+
+      if (internalRequest->GetKeepalive()) {
+        mozilla::glean::networking::fetch_keepalive_request_count
+            .Get("worker"_ns)
+            .Add(1);
+      }
 
       return p.forget();
     }
