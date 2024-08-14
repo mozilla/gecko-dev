@@ -29,6 +29,11 @@ class nsRemoteClient {
    * @param aProgram This is the preferred program that we want to use
    * for this particular command.
    *
+   * @param aUsername This allows someone to only talk to an instance
+   * of the server that's running under a particular username.  If
+   * this isn't specified here it's pulled from the LOGNAME
+   * environmental variable if it's set.
+   *
    * @param aProfile This allows you to specify a particular server
    * running under a named profile.  If it is not specified the
    * profile is not checked.
@@ -37,13 +42,23 @@ class nsRemoteClient {
    *
    * @param argv The command-line arguments.
    *
-   * @param aRaise Whether the target instance's window should be brought to the
-   * foreground. The actual effect of this is platform-dependent; see comments
-   * in platform-specific implementations for further information.
+   * @param aStartupToken the contents of the DESKTOP_STARTUP_ID environment
+   * variable defined by the Startup Notification specification, or the
+   * XDG_ACTIVATION_TOKEN defined by Wayland.
+   * http://standards.freedesktop.org/startup-notification-spec/startup-notification-0.1.txt
+   * https://wayland.app/protocols/xdg-activation-v1
+   *
+   * @param aResponse If there is a response, it will be here.  This
+   * includes error messages.  The string is allocated using stdlib
+   * string functions, so free it with free().
+   *
+   * @return true if succeeded, false if no running instance was found.
+   *
    */
   virtual nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                                   int32_t argc, const char** argv,
-                                   bool aRaise) = 0;
+                                   int32_t argc, char** argv,
+                                   const char* aStartupToken, char** aResponse,
+                                   bool* aSucceeded) = 0;
 };
 
 #endif  // TOOLKIT_COMPONENTS_REMOTE_NSREMOTECLIENT_H_

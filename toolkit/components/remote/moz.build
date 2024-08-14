@@ -11,18 +11,6 @@ SOURCES += [
     "nsRemoteService.cpp",
 ]
 
-BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
-
-XPCOM_MANIFESTS += [
-    "components.conf",
-]
-
-XPIDL_SOURCES += [
-    "nsIRemoteService.idl",
-]
-
-XPIDL_MODULE = "toolkitremote"
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     SOURCES += [
         "nsUnixRemoteServer.cpp",

@@ -28,8 +28,7 @@ static mozilla::LazyLogModule sRemoteLm("nsDBusRemoteClient");
 
 using namespace mozilla;
 
-nsDBusRemoteClient::nsDBusRemoteClient(nsACString& aStartupToken)
-    : mStartupToken(aStartupToken) {
+nsDBusRemoteClient::nsDBusRemoteClient() {
   LOG("nsDBusRemoteClient::nsDBusRemoteClient");
 }
 
@@ -37,20 +36,16 @@ nsDBusRemoteClient::~nsDBusRemoteClient() {
   LOG("nsDBusRemoteClient::~nsDBusRemoteClient");
 }
 
-nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
-                                             const char* aProfile, int32_t argc,
-                                             const char** argv, bool aRaise) {
-  // aRaise is unused on this platform.
+nsresult nsDBusRemoteClient::SendCommandLine(
+    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
+    const char* aStartupToken, char** aResponse, bool* aWindowFound) {
   NS_ENSURE_TRUE(aProfile, NS_ERROR_INVALID_ARG);
 
   LOG("nsDBusRemoteClient::SendCommandLine");
 
   int commandLineLength;
-  char* commandLine = ConstructCommandLine(
-      argc, argv,
-      mStartupToken.IsEmpty() ? nullptr
-                              : PromiseFlatCString(mStartupToken).get(),
-      &commandLineLength);
+  char* commandLine =
+      ConstructCommandLine(argc, argv, aStartupToken, &commandLineLength);
   if (!commandLine) {
     LOG("  failed to create command line");
     return NS_ERROR_FAILURE;
@@ -58,6 +53,8 @@ nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
 
   nsresult rv = DoSendDBusCommandLine(aProfile, commandLine, commandLineLength);
   free(commandLine);
+
+  *aWindowFound = NS_SUCCEEDED(rv);
 
   LOG("DoSendDBusCommandLine %s", NS_SUCCEEDED(rv) ? "OK" : "FAILED");
   return rv;
@@ -155,5 +152,5 @@ nsresult nsDBusRemoteClient::DoSendDBusCommandLine(const char* aProfile,
   }
 #endif
 
-  return reply ? NS_OK : NS_ERROR_NOT_AVAILABLE;
+  return reply ? NS_OK : NS_ERROR_FAILURE;
 }

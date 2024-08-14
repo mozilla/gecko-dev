@@ -59,8 +59,7 @@ static mozilla::LazyLogModule sRemoteLm("nsXRemoteClient");
 static int (*sOldHandler)(Display*, XErrorEvent*);
 static bool sGotBadWindow;
 
-nsXRemoteClient::nsXRemoteClient(nsACString& aStartupToken)
-    : mStartupToken(aStartupToken) {
+nsXRemoteClient::nsXRemoteClient() {
   mDisplay = 0;
   mInitialized = false;
   mMozVersionAtom = 0;
@@ -139,13 +138,14 @@ static int HandleBadWindow(Display* display, XErrorEvent* event) {
   return (*sOldHandler)(display, event);
 }
 
-nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
-                                          const char* aProfile, int32_t argc,
-                                          const char** argv, bool aRaise) {
-  // aRaise is unused on this platform.
+nsresult nsXRemoteClient::SendCommandLine(
+    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
+    const char* aStartupToken, char** aResponse, bool* aWindowFound) {
   NS_ENSURE_TRUE(aProgram, NS_ERROR_INVALID_ARG);
 
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("nsXRemoteClient::SendCommandLine"));
+
+  *aWindowFound = false;
 
   // FindBestWindow() iterates down the window hierarchy, so catch X errors
   // when windows get destroyed before being accessed.
@@ -153,9 +153,12 @@ nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
 
   Window w = FindBestWindow(aProgram, aProfile);
 
-  nsresult rv = w ? NS_OK : NS_ERROR_NOT_AVAILABLE;
+  nsresult rv = NS_OK;
 
   if (w) {
+    // ok, let the caller know that we at least found a window.
+    *aWindowFound = true;
+
     // Ignore BadWindow errors up to this point.  The last request from
     // FindBestWindow() was a synchronous XGetWindowProperty(), so no need to
     // Sync.  Leave the error handler installed to detect if w gets destroyed.
@@ -171,10 +174,7 @@ nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
 
     if (NS_SUCCEEDED(rv)) {
       // send our command
-      rv = DoSendCommandLine(w, argc, argv,
-                             mStartupToken.IsEmpty()
-                                 ? nullptr
-                                 : PromiseFlatCString(mStartupToken).get(),
+      rv = DoSendCommandLine(w, argc, argv, aStartupToken, aResponse,
                              &destroyed);
 
       // if the window was destroyed, don't bother trying to free the
@@ -527,8 +527,9 @@ nsresult nsXRemoteClient::FreeLock(Window aWindow) {
 }
 
 nsresult nsXRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc,
-                                            const char** argv,
+                                            char** argv,
                                             const char* aStartupToken,
+                                            char** aResponse,
                                             bool* aDestroyed) {
   *aDestroyed = false;
 
@@ -540,16 +541,9 @@ nsresult nsXRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc,
                   commandLineLength);
   free(commandLine);
 
-  char* response;
-  if (!WaitForResponse(aWindow, &response, aDestroyed, mMozCommandLineAtom))
+  if (!WaitForResponse(aWindow, aResponse, aDestroyed, mMozCommandLineAtom))
     return NS_ERROR_FAILURE;
 
-  if (strcmp(response, "500 command not parseable") == 0) {
-    free(response);
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  free(response);
   return NS_OK;
 }
 

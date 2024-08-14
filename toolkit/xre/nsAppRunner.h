@@ -28,9 +28,6 @@
 #include "nsCOMPtr.h"
 #include "nsStringFwd.h"
 #include "nsXULAppAPI.h"
-#ifdef MOZ_HAS_REMOTE
-#  include "nsIRemoteService.h"
-#endif
 
 class nsINativeAppSupport;
 class nsXREDirProvider;
@@ -84,10 +81,6 @@ int32_t CompareCompatVersions(const nsACString& aOldCompatVersion,
  */
 nsresult NS_CreateNativeAppSupport(nsINativeAppSupport** aResult);
 already_AddRefed<nsINativeAppSupport> NS_GetNativeAppSupport();
-
-#ifdef MOZ_HAS_REMOTE
-already_AddRefed<nsIRemoteService> GetRemoteService();
-#endif
 
 /**
  * Try to acquire exclusive access to the specified profile directory.

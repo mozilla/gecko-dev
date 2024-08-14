@@ -40,19 +40,13 @@ extern char** gArgv;
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(nsRemoteService, nsIObserver, nsIRemoteService)
+NS_IMPL_ISUPPORTS(nsRemoteService, nsIObserver)
 
 nsRemoteService::nsRemoteService(const char* aProgram) : mProgram(aProgram) {
   ToLowerCase(mProgram);
 }
 
 void nsRemoteService::SetProfile(nsACString& aProfile) { mProfile = aProfile; }
-
-#ifdef MOZ_WIDGET_GTK
-void nsRemoteService::SetStartupToken(nsACString& aStartupToken) {
-  mStartupToken = aStartupToken;
-}
-#endif
 
 void nsRemoteService::LockStartup() {
   nsCOMPtr<nsIFile> mutexDir;
@@ -98,65 +92,45 @@ void nsRemoteService::UnlockStartup() {
   }
 }
 
-nsresult nsRemoteService::SendCommandLine(const nsACString& aProfile,
-                                          size_t aArgc, const char** aArgv,
-                                          bool aRaise) {
-  if (aProfile.IsEmpty()) {
-    return NS_ERROR_FAILURE;
+RemoteResult nsRemoteService::StartClient(const char* aStartupToken) {
+  if (mProfile.IsEmpty()) {
+    return REMOTE_NOT_FOUND;
   }
 
   UniquePtr<nsRemoteClient> client;
 #ifdef MOZ_WIDGET_GTK
 #  if defined(MOZ_ENABLE_DBUS)
-  client = MakeUnique<nsDBusRemoteClient>(mStartupToken);
+  client = MakeUnique<nsDBusRemoteClient>();
 #  else
-  client = MakeUnique<nsXRemoteClient>(mStartupToken);
+  client = MakeUnique<nsXRemoteClient>();
 #  endif
 #elif defined(XP_WIN)
   client = MakeUnique<nsWinRemoteClient>();
 #elif defined(XP_DARWIN)
   client = MakeUnique<nsMacRemoteClient>();
 #else
-  return NS_ERROR_NOT_AVAILABLE;
+  return REMOTE_NOT_FOUND;
 #endif
 
   nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) return REMOTE_NOT_FOUND;
 
-  return client->SendCommandLine(mProgram.get(),
-                                 PromiseFlatCString(aProfile).get(), aArgc,
-                                 const_cast<const char**>(aArgv), aRaise);
-}
+  nsCString response;
+  bool success = false;
+  rv =
+      client->SendCommandLine(mProgram.get(), mProfile.get(), gArgc, gArgv,
+                              aStartupToken, getter_Copies(response), &success);
+  // did the command fail?
+  if (!success) return REMOTE_NOT_FOUND;
 
-NS_IMETHODIMP
-nsRemoteService::SendCommandLine(const nsACString& aProfile,
-                                 const nsTArray<nsCString>& aArgs,
-                                 bool aRaise) {
-#ifdef MOZ_WIDGET_GTK
-  // Linux clients block until they receive a response so it is impossible to
-  // send a remote command to the current profile.
-  if (aProfile.Equals(mProfile)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-#endif
-  nsAutoCString binaryPath;
+  // The "command not parseable" error is returned when the
+  // nsICommandLineHandler throws a NS_ERROR_ABORT.
+  if (response.EqualsLiteral("500 command not parseable"))
+    return REMOTE_ARG_BAD;
 
-  nsTArray<const char*> args;
-  // Note that the command line must include an initial path to the binary but
-  // this is generally ignored.
-  args.SetCapacity(aArgs.Length() + 1);
-  args.AppendElement(binaryPath.get());
+  if (NS_FAILED(rv)) return REMOTE_NOT_FOUND;
 
-  for (const nsCString& arg : aArgs) {
-    args.AppendElement(arg.get());
-  }
-
-  return SendCommandLine(aProfile, args.Length(), args.Elements(), aRaise);
-}
-
-nsresult nsRemoteService::StartClient() {
-  return SendCommandLine(mProfile, gArgc, const_cast<const char**>(gArgv),
-                         true);
+  return REMOTE_FOUND;
 }
 
 void nsRemoteService::StartupServer() {

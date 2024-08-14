@@ -18,10 +18,12 @@ using namespace mozilla;
 
 nsresult nsMacRemoteClient::Init() { return NS_OK; }
 
-nsresult nsMacRemoteClient::SendCommandLine(const char* aProgram,
-                                            const char* aProfile, int32_t argc,
-                                            const char** argv, bool aRaise) {
+nsresult nsMacRemoteClient::SendCommandLine(
+    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
+    const char* aDesktopStartupID, char** aResponse, bool* aSucceeded) {
   mozilla::MacAutoreleasePool pool;
+
+  *aSucceeded = false;
 
   nsString className;
   BuildClassName(aProgram, aProfile, className);
@@ -42,7 +44,7 @@ nsresult nsMacRemoteClient::SendCommandLine(const char* aProgram,
       NSString* argument = [NSString stringWithUTF8String:argv[i]];
       [argumentsArray addObject:argument];
     }
-    NSDictionary* dict = @{@"args" : argumentsArray, @"raise" : @(aRaise)};
+    NSDictionary* dict = @{@"args" : argumentsArray};
 
     NSData* data = [NSKeyedArchiver archivedDataWithRootObject:dict];
 
@@ -51,9 +53,11 @@ nsresult nsMacRemoteClient::SendCommandLine(const char* aProgram,
 
     CFMessagePortInvalidate(messageServer);
     CFRelease(messageServer);
+    *aSucceeded = true;
 
-    return NS_OK;
+  } else {
+    // Remote Server not found. Doing nothing.
   }
 
-  return NS_ERROR_NOT_AVAILABLE;
+  return NS_OK;
 }

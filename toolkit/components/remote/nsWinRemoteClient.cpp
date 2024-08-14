@@ -14,31 +14,31 @@ using namespace mozilla;
 
 nsresult nsWinRemoteClient::Init() { return NS_OK; }
 
-nsresult nsWinRemoteClient::SendCommandLine(const char* aProgram,
-                                            const char* aProfile, int32_t argc,
-                                            const char** argv, bool aRaise) {
+nsresult nsWinRemoteClient::SendCommandLine(
+    const char* aProgram, const char* aProfile, int32_t argc, char** argv,
+    const char* aStartupToken, char** aResponse, bool* aSucceeded) {
+  *aSucceeded = false;
+
   nsString className;
   BuildClassName(aProgram, aProfile, className);
 
   HWND handle = ::FindWindowW(className.get(), 0);
 
   if (!handle) {
-    return NS_ERROR_NOT_AVAILABLE;
+    return NS_OK;
   }
 
   WCHAR cwd[MAX_PATH];
   _wgetcwd(cwd, MAX_PATH);
-  WinRemoteMessageSender sender(argc, argv, nsDependentString(cwd));
+  WinRemoteMessageSender sender(::GetCommandLineW(), cwd);
 
-  if (aRaise) {
-    // Because we are the running process we have permission to raise the target
-    // instance to the foreground. We can do so for the hidden message window as
-    // we have its handle here. The target instance is then able to raise any
-    // window it chooses to as part of handling the command line.
-    ::SetForegroundWindow(handle);
-  }
+  // Bring the already running Mozilla process to the foreground.
+  // nsWindow will restore the window (if minimized) and raise it.
+  ::SetForegroundWindow(handle);
   ::SendMessageW(handle, WM_COPYDATA, 0,
                  reinterpret_cast<LPARAM>(sender.CopyData()));
+
+  *aSucceeded = true;
 
   return NS_OK;
 }

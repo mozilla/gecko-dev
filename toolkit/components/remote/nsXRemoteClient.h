@@ -10,13 +10,14 @@
 
 class nsXRemoteClient : public nsRemoteClient {
  public:
-  explicit nsXRemoteClient(nsACString& aStartupToken);
+  nsXRemoteClient();
   ~nsXRemoteClient();
 
   virtual nsresult Init() override;
   virtual nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                                   int32_t argc, const char** argv,
-                                   bool aRaise) override;
+                                   int32_t argc, char** argv,
+                                   const char* aStartupToken, char** aResponse,
+                                   bool* aSucceeded) override;
   void Shutdown();
 
  private:
@@ -25,8 +26,9 @@ class nsXRemoteClient : public nsRemoteClient {
   nsresult GetLock(Window aWindow, bool* aDestroyed);
   nsresult FreeLock(Window aWindow);
   Window FindBestWindow(const char* aProgram, const char* aProfile);
-  nsresult DoSendCommandLine(Window aWindow, int32_t argc, const char** argv,
-                             const char* aStartupToken, bool* aDestroyed);
+  nsresult DoSendCommandLine(Window aWindow, int32_t argc, char** argv,
+                             const char* aStartupToken, char** aResponse,
+                             bool* aDestroyed);
   bool WaitForResponse(Window aWindow, char** aResponse, bool* aDestroyed,
                        Atom aCommandAtom);
 
@@ -44,5 +46,4 @@ class nsXRemoteClient : public nsRemoteClient {
   char* mLockData;
 
   bool mInitialized;
-  nsACString& mStartupToken;
 };
