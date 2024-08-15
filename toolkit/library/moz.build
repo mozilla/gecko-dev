@@ -157,8 +157,12 @@ USE_LIBS += [
     "nss",
     "psshparser",
     "sqlite",
-    "zlib",
 ]
+
+if not CONFIG["USE_LIBZ_RS"]:
+    USE_LIBS += [
+        "zlib",
+    ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     # The mozgtk library is a workaround that makes Gtk+ use libwayland-client
