@@ -602,11 +602,14 @@ impl TabsStorage {
         // Delete entries from pending closures that do not exist in the new remote tabs
         let delete_sql = "
          DELETE FROM remote_tab_commands
-         WHERE NOT EXISTS (
-             SELECT 1 FROM new_remote_tabs
-             WHERE new_remote_tabs.device_id = remote_tab_commands.device_id
-             AND :command_close_tab = remote_tab_commands.command
-             AND new_remote_tabs.url = remote_tab_commands.url
+         WHERE
+            (device_id IN (SELECT device_id from new_remote_tabs))
+         AND
+         (
+            url NOT IN (
+            SELECT url from new_remote_tabs
+            WHERE new_remote_tabs.device_id = device_id
+            AND :command_close_tab = remote_tab_commands.command)
          )";
         conn.execute(
             delete_sql,
@@ -1450,5 +1453,82 @@ mod tests {
             .add_remote_tab_command("device-1", &command)
             .unwrap());
         assert_eq!(storage.get_unsent_commands().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_remove_pending_closures_only_affects_target_device() {
+        env_logger::try_init().ok();
+        let mut storage =
+            TabsStorage::new_with_mem_path("test_remove_pending_closures_target_device");
+        let now = Timestamp::now();
+
+        let db = storage.open_if_exists().unwrap().unwrap();
+
+        // Insert two devices into the tabs db
+        db.execute(
+            "INSERT INTO tabs (guid, record, last_modified) VALUES ('device-1', '', :now);",
+            rusqlite::named_params! { ":now" : now },
+        )
+        .unwrap();
+
+        db.execute(
+            "INSERT INTO tabs (guid, record, last_modified) VALUES ('device-2', '', :now);",
+            rusqlite::named_params! { ":now" : now },
+        )
+        .unwrap();
+
+        // Add three commands, two for device-1 and one for device-2
+        storage
+            .add_remote_tab_command(
+                "device-1",
+                &RemoteCommand::close_tab("https://example1.com"),
+            )
+            .unwrap();
+
+        storage
+            .add_remote_tab_command(
+                "device-1",
+                &RemoteCommand::close_tab("https://example2.com"),
+            )
+            .unwrap();
+
+        storage
+            .add_remote_tab_command(
+                "device-2",
+                &RemoteCommand::close_tab("https://example3.com"),
+            )
+            .unwrap();
+
+        // Pretend only device-1 "synced", example2.com tab was closed
+        let new_records = vec![(
+            TabsRecord {
+                id: "device-1".to_string(),
+                client_name: "".to_string(),
+                tabs: vec![TabsRecordTab {
+                    url_history: vec!["https://example1.com".to_string()],
+                    ..Default::default()
+                }],
+            },
+            ServerTimestamp::default(),
+        )];
+
+        storage.remove_old_pending_closures(&new_records).unwrap();
+
+        let reopen_db = storage.open_if_exists().unwrap().unwrap();
+        let remaining_commands: Vec<(String, String)> = reopen_db
+            .prepare("SELECT device_id, url FROM remote_tab_commands")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>, _>>()
+            .unwrap();
+        // We should only have removed 1 command from the list
+        assert_eq!(remaining_commands.len(), 2);
+        assert!(remaining_commands
+            .contains(&("device-1".to_string(), "https://example1.com".to_string())));
+        assert!(remaining_commands
+            .contains(&("device-2".to_string(), "https://example3.com".to_string())));
     }
 }
