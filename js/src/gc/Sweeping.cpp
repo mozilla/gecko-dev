@@ -566,23 +566,32 @@ IncrementalProgress GCRuntime::markWeakReferencesInCurrentGroup(
 
 IncrementalProgress GCRuntime::markGrayRoots(SliceBudget& budget,
                                              gcstats::PhaseKind phase) {
-  MOZ_ASSERT(marker().markColor() == MarkColor::Gray);
+  MOZ_ASSERT(marker().markColor() == MarkColor::Black);
 
   gcstats::AutoPhase ap(stats(), phase);
 
-  AutoUpdateLiveCompartments updateLive(this);
-  marker().setRootMarkingMode(true);
-  auto guard =
-      mozilla::MakeScopeExit([this]() { marker().setRootMarkingMode(false); });
+  {
+    AutoSetMarkColor setColorGray(marker(), MarkColor::Gray);
 
-  IncrementalProgress result =
-      traceEmbeddingGrayRoots(marker().tracer(), budget);
-  if (result == NotFinished) {
-    return NotFinished;
+    AutoUpdateLiveCompartments updateLive(this);
+    marker().setRootMarkingMode(true);
+    auto guard = mozilla::MakeScopeExit(
+        [this]() { marker().setRootMarkingMode(false); });
+
+    IncrementalProgress result =
+        traceEmbeddingGrayRoots(marker().tracer(), budget);
+    if (result == NotFinished) {
+      return NotFinished;
+    }
+
+    Compartment::traceIncomingCrossCompartmentEdgesForZoneGC(
+        marker().tracer(), Compartment::GrayEdges);
   }
 
+  // Also mark any incoming cross compartment edges that were originally gray
+  // but have been marked black by a barrier.
   Compartment::traceIncomingCrossCompartmentEdgesForZoneGC(
-      marker().tracer(), Compartment::GrayEdges);
+      marker().tracer(), Compartment::BlackEdges);
 
   return Finished;
 }
@@ -1143,8 +1152,6 @@ bool GCRuntime::zoneInCurrentSweepGroup(Zone* zone) const {
 IncrementalProgress GCRuntime::markGrayRootsInCurrentGroup(
     JS::GCContext* gcx, SliceBudget& budget) {
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
-
-  AutoSetMarkColor setColorGray(marker(), MarkColor::Gray);
 
   // Check that the zone state is set correctly for the current sweep group as
   // that determines what gets marked.
