@@ -59,7 +59,8 @@ static mozilla::LazyLogModule sRemoteLm("nsXRemoteClient");
 static int (*sOldHandler)(Display*, XErrorEvent*);
 static bool sGotBadWindow;
 
-nsXRemoteClient::nsXRemoteClient() {
+nsXRemoteClient::nsXRemoteClient(nsACString& aStartupToken)
+    : mStartupToken(aStartupToken) {
   mDisplay = 0;
   mInitialized = false;
   mMozVersionAtom = 0;
@@ -140,8 +141,7 @@ static int HandleBadWindow(Display* display, XErrorEvent* event) {
 
 nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
                                           const char* aProfile, int32_t argc,
-                                          const char** argv,
-                                          const char* aStartupToken) {
+                                          const char** argv) {
   NS_ENSURE_TRUE(aProgram, NS_ERROR_INVALID_ARG);
 
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("nsXRemoteClient::SendCommandLine"));
@@ -170,7 +170,11 @@ nsresult nsXRemoteClient::SendCommandLine(const char* aProgram,
 
     if (NS_SUCCEEDED(rv)) {
       // send our command
-      rv = DoSendCommandLine(w, argc, argv, aStartupToken, &destroyed);
+      rv = DoSendCommandLine(w, argc, argv,
+                             mStartupToken.IsEmpty()
+                                 ? nullptr
+                                 : PromiseFlatCString(mStartupToken).get(),
+                             &destroyed);
 
       // if the window was destroyed, don't bother trying to free the
       // lock.

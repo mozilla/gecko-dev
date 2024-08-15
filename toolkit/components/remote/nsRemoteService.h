@@ -22,11 +22,14 @@ class nsRemoteService final : public nsIObserver {
 
   explicit nsRemoteService(const char* aProgram);
   void SetProfile(nsACString& aProfile);
+#ifdef MOZ_WIDGET_GTK
+  void SetStartupToken(nsACString& aStartupToken);
+#endif
 
   void LockStartup();
   void UnlockStartup();
 
-  nsresult StartClient(const char* aStartupToken);
+  nsresult StartClient();
   void StartupServer();
   void ShutdownServer();
 
@@ -38,6 +41,9 @@ class nsRemoteService final : public nsIObserver {
   nsCOMPtr<nsIFile> mRemoteLockDir;
   nsCString mProgram;
   nsCString mProfile;
+#ifdef MOZ_WIDGET_GTK
+  nsCString mStartupToken;
+#endif
 };
 
 #endif  // TOOLKIT_COMPONENTS_REMOTE_NSREMOTESERVER_H_

@@ -4934,11 +4934,9 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
       if (GdkIsX11Display() && startupToken.IsEmpty())
         startupToken = SynthesizeStartupToken();
 #    endif /* MOZ_X11 */
-#  else
-      const nsCString startupToken;
+      mRemoteService->SetStartupToken(startupToken);
 #  endif
-      rv = mRemoteService->StartClient(
-          startupToken.IsEmpty() ? nullptr : startupToken.get());
+      rv = mRemoteService->StartClient();
       if (NS_SUCCEEDED(rv)) {
         *aExitFlag = true;
         mRemoteService->UnlockStartup();
