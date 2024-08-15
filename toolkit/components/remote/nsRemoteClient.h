@@ -36,9 +36,14 @@ class nsRemoteClient {
    * @param argc The number of command-line arguments.
    *
    * @param argv The command-line arguments.
+   *
+   * @param aRaise Whether the target instance's window should be brought to the
+   * foreground. The actual effect of this is platform-dependent; see comments
+   * in platform-specific implementations for further information.
    */
   virtual nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                                   int32_t argc, const char** argv) = 0;
+                                   int32_t argc, const char** argv,
+                                   bool aRaise) = 0;
 };
 
 #endif  // TOOLKIT_COMPONENTS_REMOTE_NSREMOTECLIENT_H_

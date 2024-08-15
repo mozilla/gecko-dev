@@ -39,7 +39,8 @@ nsDBusRemoteClient::~nsDBusRemoteClient() {
 
 nsresult nsDBusRemoteClient::SendCommandLine(const char* aProgram,
                                              const char* aProfile, int32_t argc,
-                                             const char** argv) {
+                                             const char** argv, bool aRaise) {
+  // aRaise is unused on this platform.
   NS_ENSURE_TRUE(aProfile, NS_ERROR_INVALID_ARG);
 
   LOG("nsDBusRemoteClient::SendCommandLine");

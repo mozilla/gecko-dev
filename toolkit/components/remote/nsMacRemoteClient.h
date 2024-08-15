@@ -20,7 +20,8 @@ class nsMacRemoteClient : public nsRemoteClient {
   nsresult Init() override;
 
   nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                           int32_t argc, const char** argv) override;
+                           int32_t argc, const char** argv,
+                           bool aRaise) override;
 };
 
 #endif  // TOOLKIT_COMPONENTS_REMOTE_NSMACREMOTECLIENT_H_

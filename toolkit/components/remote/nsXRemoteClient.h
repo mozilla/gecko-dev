@@ -15,7 +15,8 @@ class nsXRemoteClient : public nsRemoteClient {
 
   virtual nsresult Init() override;
   virtual nsresult SendCommandLine(const char* aProgram, const char* aProfile,
-                                   int32_t argc, const char** argv) override;
+                                   int32_t argc, const char** argv,
+                                   bool aRaise) override;
   void Shutdown();
 
  private:

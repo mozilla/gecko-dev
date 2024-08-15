@@ -11,6 +11,8 @@ SOURCES += [
     "nsRemoteService.cpp",
 ]
 
+BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
+
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
