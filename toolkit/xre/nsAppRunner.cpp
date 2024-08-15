@@ -4908,43 +4908,60 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 
 #if defined(MOZ_HAS_REMOTE)
   if (mRemoteService) {
-    // We want a unique profile name to identify the remote instance.
-    nsCString profileName;
-    if (profile) {
-      rv = profile->GetName(profileName);
-    }
-    if (!profile || NS_FAILED(rv) || profileName.IsEmpty()) {
-      // Couldn't get a name from the profile. Use the directory name?
-      nsString leafName;
-      rv = mProfD->GetLeafName(leafName);
-      if (NS_SUCCEEDED(rv)) {
-        CopyUTF16toUTF8(leafName, profileName);
-      }
-    }
+    // Use the full profile path to identify the profile.
+    nsCString profilePath;
 
-    mRemoteService->SetProfile(profileName);
-
-    if (!mDisableRemoteClient) {
-      // Try to remote the entire command line. If this fails, start up
-      // normally.
-#  ifdef MOZ_WIDGET_GTK
-      auto& startupToken =
-          GdkIsWaylandDisplay() ? mXDGActivationToken : mDesktopStartupID;
-#    ifdef MOZ_X11
-      if (GdkIsX11Display() && startupToken.IsEmpty())
-        startupToken = SynthesizeStartupToken();
-#    endif /* MOZ_X11 */
-      mRemoteService->SetStartupToken(startupToken);
+#  ifdef XP_WIN
+    nsString path;
+    rv = mProfD->GetPath(path);
+    if (NS_SUCCEEDED(rv)) {
+      CopyUTF16toUTF8(path, profilePath);
+    }
+#  else
+    rv = mProfD->GetNativePath(profilePath);
 #  endif
-      rv = mRemoteService->StartClient();
-      if (NS_SUCCEEDED(rv)) {
-        *aExitFlag = true;
-        mRemoteService->UnlockStartup();
-        return 0;
-      }
-      if (rv == NS_ERROR_INVALID_ARG) {
-        mRemoteService->UnlockStartup();
-        return 1;
+
+    if (NS_SUCCEEDED(rv)) {
+      mRemoteService->SetProfile(profilePath);
+
+      if (!mDisableRemoteClient) {
+        // Try to remote the entire command line. If this fails, start up
+        // normally.
+#  ifdef MOZ_WIDGET_GTK
+        auto& startupToken =
+            GdkIsWaylandDisplay() ? mXDGActivationToken : mDesktopStartupID;
+#    ifdef MOZ_X11
+        if (GdkIsX11Display() && startupToken.IsEmpty()) {
+          startupToken = SynthesizeStartupToken();
+        }
+#    endif /* MOZ_X11 */
+        mRemoteService->SetStartupToken(startupToken);
+#  endif
+        rv = mRemoteService->StartClient();
+
+        if (rv == NS_ERROR_NOT_AVAILABLE && profile) {
+          // Older versions would use the profile name in preference to the
+          // path.
+          nsCString profileName;
+          profile->GetName(profileName);
+          mRemoteService->SetProfile(profileName);
+
+          rv = mRemoteService->StartClient();
+
+          // Reset back to the path.
+          mRemoteService->SetProfile(profilePath);
+        }
+
+        if (NS_SUCCEEDED(rv)) {
+          *aExitFlag = true;
+          mRemoteService->UnlockStartup();
+          return 0;
+        }
+
+        if (rv == NS_ERROR_INVALID_ARG) {
+          mRemoteService->UnlockStartup();
+          return 1;
+        }
       }
     }
   }
