@@ -96,7 +96,7 @@ pub use self::position::PositionVisibility;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex,
 };
-pub use self::position::{InsetArea, InsetAreaKeyword};
+pub use self::position::{PositionArea, PositionAreaKeyword};
 pub use self::ratio::Ratio;
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;

@@ -247,6 +247,18 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
+    "position-area",
+    "PositionArea",
+    "computed::PositionArea::none()",
+    engines="gecko",
+    initial_specified_value="specified::PositionArea::none()",
+    animation_type="discrete",
+    gecko_pref="layout.css.anchor-positioning.enabled",
+    spec="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-area",
+    affects="layout",
+)}
+
+${helpers.predefined_type(
     "position-visibility",
     "PositionVisibility",
     "computed::PositionVisibility::ALWAYS",
@@ -255,18 +267,6 @@ ${helpers.predefined_type(
     animation_type="discrete",
     gecko_pref="layout.css.anchor-positioning.enabled",
     spec="https://drafts.csswg.org/css-anchor-position-1/#propdef-position-visibility",
-    affects="layout",
-)}
-
-${helpers.predefined_type(
-    "inset-area",
-    "InsetArea",
-    "computed::InsetArea::none()",
-    engines="gecko",
-    initial_specified_value="specified::InsetArea::none()",
-    animation_type="discrete",
-    gecko_pref="layout.css.anchor-positioning.enabled",
-    spec="https://drafts.csswg.org/css-anchor-position-1/#typedef-inset-area",
     affects="layout",
 )}
 

@@ -590,13 +590,13 @@ impl Parse for DashedIdentAndOrTryTactic {
 )]
 #[repr(u8)]
 /// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
-/// [ [<dashed-ident> || <try-tactic>] | <'inset-area'> ]
+/// [ [<dashed-ident> || <try-tactic>] | <'position-area'> ]
 pub enum PositionTryFallbacksItem {
     /// `<dashed-ident> || <try-tactic>`
     IdentAndOrTactic(DashedIdentAndOrTryTactic),
-    #[parse(parse_fn = "InsetArea::parse_except_none")]
-    /// `<inset-area>`
-    InsetArea(InsetArea),
+    #[parse(parse_fn = "PositionArea::parse_except_none")]
+    /// `<position-area>`
+    PositionArea(PositionArea),
 }
 
 #[derive(
@@ -759,9 +759,9 @@ impl PositionVisibility {
 )]
 #[allow(missing_docs)]
 #[repr(u8)]
-/// Possible values for the `inset-area` preperty's keywords.
-/// https://drafts.csswg.org/css-anchor-position-1/#propdef-inset-area
-pub enum InsetAreaKeyword {
+/// Possible values for the `position-area` preperty's keywords.
+/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+pub enum PositionAreaKeyword {
     #[default]
     None,
 
@@ -832,7 +832,7 @@ pub enum InsetAreaKeyword {
 }
 
 #[allow(missing_docs)]
-impl InsetAreaKeyword {
+impl PositionAreaKeyword {
     #[inline]
     pub fn none() -> Self {
         Self::None
@@ -930,7 +930,7 @@ impl InsetAreaKeyword {
 }
 
 #[inline]
-fn is_compatible_pairing(first: InsetAreaKeyword, second: InsetAreaKeyword) -> bool {
+fn is_compatible_pairing(first: PositionAreaKeyword, second: PositionAreaKeyword) -> bool {
     if first.is_none() || second.is_none() {
         // `none` is not allowed as one of the keywords when two keywords are
         // provided.
@@ -985,22 +985,22 @@ fn is_compatible_pairing(first: InsetAreaKeyword, second: InsetAreaKeyword) -> b
     ToShmem,
 )]
 #[repr(C)]
-/// https://drafts.csswg.org/css-anchor-position-1/#propdef-inset-area
-pub struct InsetArea {
+/// https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+pub struct PositionArea {
     /// First keyword, if any.
-    pub first: InsetAreaKeyword,
+    pub first: PositionAreaKeyword,
     /// Second keyword, if any.
-    #[css(skip_if = "InsetAreaKeyword::is_none")]
-    pub second: InsetAreaKeyword,
+    #[css(skip_if = "PositionAreaKeyword::is_none")]
+    pub second: PositionAreaKeyword,
 }
 
 #[allow(missing_docs)]
-impl InsetArea {
+impl PositionArea {
     #[inline]
     pub fn none() -> Self {
         Self {
-            first: InsetAreaKeyword::None,
-            second: InsetAreaKeyword::None,
+            first: PositionAreaKeyword::None,
+            second: PositionAreaKeyword::None,
         }
     }
 
@@ -1022,7 +1022,7 @@ impl InsetArea {
         allow_none: bool,
     ) -> Result<Self, ParseError<'i>> {
         let mut location = input.current_source_location();
-        let mut first = InsetAreaKeyword::parse(input)?;
+        let mut first = PositionAreaKeyword::parse(input)?;
         if first.is_none() {
             if allow_none {
                 return Ok(Self::none());
@@ -1031,12 +1031,12 @@ impl InsetArea {
         }
 
         location = input.current_source_location();
-        let second = input.try_parse(InsetAreaKeyword::parse);
-        if let Ok(InsetAreaKeyword::None) = second {
+        let second = input.try_parse(PositionAreaKeyword::parse);
+        if let Ok(PositionAreaKeyword::None) = second {
             // `none` is only allowed as a single value
             return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        let mut second = second.unwrap_or(InsetAreaKeyword::None);
+        let mut second = second.unwrap_or(PositionAreaKeyword::None);
         if second.is_none() {
             // Either there was no second keyword and try_parse returned a
             // BasicParseErrorKind::EndOfInput, or else the second "keyword"
@@ -1062,16 +1062,16 @@ impl InsetArea {
             // since their meaning is inferred from their order. However, if
             // both keywords are the same, only one should be set.
             if first == second {
-                second = InsetAreaKeyword::None;
+                second = PositionAreaKeyword::None;
             }
-        } else if second == InsetAreaKeyword::SpanAll {
+        } else if second == PositionAreaKeyword::SpanAll {
             // Span-all is the default behavior, so specifying `span-all` is
             // superfluous.
-            second = InsetAreaKeyword::None;
-        } else if first == InsetAreaKeyword::SpanAll {
+            second = PositionAreaKeyword::None;
+        } else if first == PositionAreaKeyword::SpanAll {
             // Same here, but the non-superfluous keyword must come first.
             first = second;
-            second = InsetAreaKeyword::None;
+            second = PositionAreaKeyword::None;
         } else if first.is_vertical() ||
             second.is_horizontal() ||
             first.is_inline() ||
@@ -1087,7 +1087,7 @@ impl InsetArea {
     }
 }
 
-impl Parse for InsetArea {
+impl Parse for PositionArea {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

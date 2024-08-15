@@ -13355,8 +13355,17 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
     ],
   };
 
-  gCSSProperties["inset-area"] = {
-    domProp: "insetArea",
+  gCSSProperties["position-anchor"] = {
+    domProp: "positionAnchor",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["auto"],
+    other_values: ["--foo"],
+    invalid_values: ["none", "--foo, auto", "auto, --bar", "foo"],
+  };
+
+  gCSSProperties["position-area"] = {
+    domProp: "positionArea",
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["none"],
@@ -13432,15 +13441,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
       "span-self-inline-start start",
       "end span-self-start",
     ],
-  };
-
-  gCSSProperties["position-anchor"] = {
-    domProp: "positionAnchor",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: ["auto"],
-    other_values: ["--foo"],
-    invalid_values: ["none", "--foo, auto", "auto, --bar", "foo"],
   };
 
   gCSSProperties["position-try-fallbacks"] = {
