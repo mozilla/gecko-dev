@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(this, {
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
-let defaultTestEngine, tab;
+let tab;
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -27,7 +27,6 @@ add_setup(async function () {
     },
     { setAsDefault: true }
   );
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
 
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
@@ -37,7 +36,7 @@ add_setup(async function () {
 async function checkSearchString(searchString, isIpv6) {
   info("Search for term:", searchString);
   let [searchUrl] = UrlbarUtils.getSearchQueryUrl(
-    defaultTestEngine,
+    Services.search.defaultEngine,
     searchString
   );
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(

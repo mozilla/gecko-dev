@@ -33,30 +33,45 @@ support-files = ["mixed_active.html"]
 ["browser_UrlbarInput_privateFeature.js"]
 
 ["browser_UrlbarInput_searchTerms.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_backgroundTabs.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_modifiedUrl.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_moveTab.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_popup.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_remote_settings_sync.js"]
 
 ["browser_UrlbarInput_searchTerms_revert.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_searchBar.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_searchMode.js"]
+tags = "persisted-search"
+
+["browser_UrlbarInput_searchTerms_searchModeSwitcher.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_strings.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_stringsUnsafe.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_switch_tab.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_telemetry.js"]
+tags = "persisted-search"
 
 ["browser_UrlbarInput_setURI.js"]
 https_first_disabled = true

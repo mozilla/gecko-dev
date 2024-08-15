@@ -21,7 +21,6 @@ function waitForPopupNotification() {
 // The main search string used in tests.
 const SEARCH_TERM = "chocolate";
 const PREF_FEATUREGATE = "browser.urlbar.showSearchTerms.featureGate";
-let defaultTestEngine;
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -36,46 +35,10 @@ add_setup(async function () {
     { setAsDefault: true }
   );
 
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
-
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
   });
 });
-
-async function searchWithTab(
-  searchString,
-  tab = null,
-  engine = defaultTestEngine,
-  expectedPersistedSearchTerms = true
-) {
-  if (!tab) {
-    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  }
-
-  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(engine, searchString);
-  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-    tab.linkedBrowser,
-    false,
-    expectedSearchUrl
-  );
-
-  gURLBar.focus();
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus,
-    value: searchString,
-    fireInputEvent: true,
-  });
-  EventUtils.synthesizeKey("KEY_Enter");
-  await browserLoadedPromise;
-
-  if (expectedPersistedSearchTerms) {
-    assertSearchStringIsInUrlbar(searchString);
-  }
-
-  return { tab, expectedSearchUrl };
-}
 
 // A notification should cause the urlbar to revert while
 // the search term persists.
@@ -110,7 +73,7 @@ add_task(async function generic_popup_no_revert_when_persist_is_disabled() {
   let { tab } = await searchWithTab(
     SEARCH_TERM,
     null,
-    defaultTestEngine,
+    Services.search.defaultEngine,
     false
   );
 

@@ -5,8 +5,6 @@
 // These tests check the behavior of the Urlbar when search terms are shown
 // and the user switches between tabs.
 
-let defaultTestEngine;
-
 // The main search keyword used in tests
 const SEARCH_STRING = "chocolate cake";
 
@@ -23,43 +21,11 @@ add_setup(async function () {
     },
     { setAsDefault: true }
   );
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
 
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
   });
 });
-
-async function searchWithTab(
-  searchString,
-  tab = null,
-  engine = defaultTestEngine
-) {
-  if (!tab) {
-    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  }
-
-  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(engine, searchString);
-  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-    tab.linkedBrowser,
-    false,
-    expectedSearchUrl
-  );
-
-  gURLBar.focus();
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus,
-    value: searchString,
-    fireInputEvent: true,
-  });
-  EventUtils.synthesizeKey("KEY_Enter");
-  await browserLoadedPromise;
-
-  assertSearchStringIsInUrlbar(searchString);
-
-  return { tab, expectedSearchUrl };
-}
 
 // Users should be able to search, change the tab, and come
 // back to the original tab to see the search term again
@@ -88,14 +54,25 @@ add_task(async function change_tab() {
 add_task(async function user_overwrites_search_term() {
   let { tab: tab1 } = await searchWithTab(SEARCH_STRING);
 
-  gURLBar.focus();
-  gURLBar.select();
-  EventUtils.sendString("another_word");
+  let modifiedSearchTerm = SEARCH_STRING + " ideas";
+  await UrlbarTestUtils.inputIntoURLBar(window, modifiedSearchTerm);
+  gURLBar.blur();
 
   Assert.notEqual(
     gURLBar.value,
     SEARCH_STRING,
     `Search string ${SEARCH_STRING} should not be in the url bar`
+  );
+
+  Assert.ok(
+    !gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
+  Assert.equal(
+    gURLBar.getAttribute("pageproxystate"),
+    "invalid",
+    "Page proxy state."
   );
 
   // Open a new tab, switch back to the first and
@@ -105,8 +82,19 @@ add_task(async function user_overwrites_search_term() {
 
   Assert.equal(
     gURLBar.value,
-    "another_word",
-    "another_word should be in the url bar"
+    modifiedSearchTerm,
+    `${modifiedSearchTerm} should be in the url bar`
+  );
+
+  Assert.ok(
+    !gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
+  Assert.equal(
+    gURLBar.getAttribute("pageproxystate"),
+    "invalid",
+    "Page proxy state."
   );
 
   BrowserTestUtils.removeTab(tab1);
@@ -115,7 +103,7 @@ add_task(async function user_overwrites_search_term() {
 
 // If a user clears the URL bar, and goes to a different tab,
 // and returns to the initial tab, it should show the search term again.
-add_task(async function user_overwrites_search_term() {
+add_task(async function user_overwrites_search_term_with_blank_string() {
   let { tab: tab1 } = await searchWithTab(SEARCH_STRING);
 
   gURLBar.focus();
@@ -123,16 +111,16 @@ add_task(async function user_overwrites_search_term() {
   EventUtils.sendKey("delete");
 
   Assert.equal(gURLBar.value, "", "Empty string should be in url bar.");
+  gURLBar.blur();
 
   // Open a new tab, switch back to the first and check
   // the blank string is replaced with the search string.
   let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await BrowserTestUtils.switchTab(gBrowser, tab1);
 
-  assertSearchStringIsInUrlbar(SEARCH_STRING, {
-    pageProxyState: "invalid",
-    userTypedValue: "",
-  });
+  // Technically, the userTypedValue is a blank string instead of null because
+  // they cleared it.
+  assertSearchStringIsInUrlbar(SEARCH_STRING, { userTypedValue: "" });
 
   BrowserTestUtils.removeTab(tab1);
   BrowserTestUtils.removeTab(tab2);

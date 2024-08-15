@@ -4,8 +4,6 @@
 
 // These tests check the behavior of the Urlbar when using search mode
 
-let defaultTestEngine;
-
 // The main search string used in tests
 const SEARCH_STRING = "chocolate cake";
 
@@ -19,7 +17,6 @@ add_setup(async function () {
     search_url: "https://www.example.com/",
     search_url_get_params: "q={searchTerms}&pc=fake_code",
   });
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
 
   await SearchTestUtils.installSearchExtension(
     {
@@ -40,8 +37,10 @@ add_setup(async function () {
 add_task(async function non_default_search() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
+  let engine = Services.search.getEngineByName("MozSearch");
+
   let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(
-    defaultTestEngine,
+    engine,
     SEARCH_STRING
   );
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(
@@ -55,7 +54,7 @@ add_task(async function non_default_search() {
     value: SEARCH_STRING,
   });
   await UrlbarTestUtils.enterSearchMode(window, {
-    engineName: defaultTestEngine.name,
+    engineName: engine.name,
   });
   gURLBar.focus();
   EventUtils.synthesizeKey("KEY_Enter");

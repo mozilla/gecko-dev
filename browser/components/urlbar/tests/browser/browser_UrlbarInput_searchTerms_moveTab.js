@@ -12,8 +12,6 @@
   during the tab swap.
 */
 
-let originalEngine, defaultTestEngine;
-
 // The main search keyword used in tests
 const SEARCH_STRING = "chocolate cake";
 
@@ -22,56 +20,21 @@ add_setup(async function () {
     set: [["browser.urlbar.showSearchTerms.featureGate", true]],
   });
 
-  await SearchTestUtils.installSearchExtension({
-    name: "MozSearch",
-    search_url: "https://www.example.com/",
-    search_url_get_params: "q={searchTerms}&pc=fake_code",
-  });
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
-
-  originalEngine = await Services.search.getDefault();
-  await Services.search.setDefault(
-    defaultTestEngine,
-    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  await SearchTestUtils.installSearchExtension(
+    {
+      name: "MozSearch",
+      search_url: "https://www.example.com/",
+      search_url_get_params: "q={searchTerms}&pc=fake_code",
+    },
+    {
+      setAsDefault: true,
+    }
   );
 
   registerCleanupFunction(async function () {
-    await Services.search.setDefault(
-      originalEngine,
-      Ci.nsISearchService.CHANGE_REASON_UNKNOWN
-    );
     await PlacesUtils.history.clear();
   });
 });
-
-async function searchWithTab(
-  searchString,
-  tab = null,
-  engine = defaultTestEngine
-) {
-  if (!tab) {
-    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  }
-
-  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(engine, searchString);
-  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-    tab.linkedBrowser,
-    false,
-    expectedSearchUrl
-  );
-
-  gURLBar.focus();
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus,
-    value: searchString,
-    fireInputEvent: true,
-  });
-  EventUtils.synthesizeKey("KEY_Enter");
-  await browserLoadedPromise;
-
-  return { tab, expectedSearchUrl };
-}
 
 // Move a tab showing the search term into its own window.
 add_task(async function move_tab_into_new_window() {
@@ -106,7 +69,7 @@ add_task(async function move_tab_into_existing_window() {
 
   // Load the default SERP into the second window.
   let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(
-    defaultTestEngine,
+    Services.search.defaultEngine,
     SEARCH_STRING
   );
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(

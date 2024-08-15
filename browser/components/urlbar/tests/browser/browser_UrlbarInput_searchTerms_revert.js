@@ -5,8 +5,6 @@
 // These tests check the behavior of the Urlbar when search terms are shown
 // and the user reverts the Urlbar.
 
-let defaultTestEngine;
-
 // The main search keyword used in tests
 const SEARCH_STRING = "chocolate cake";
 
@@ -23,43 +21,11 @@ add_setup(async function () {
     },
     { setAsDefault: true }
   );
-  defaultTestEngine = Services.search.getEngineByName("MozSearch");
 
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
   });
 });
-
-async function searchWithTab(
-  searchString,
-  tab = null,
-  engine = defaultTestEngine
-) {
-  if (!tab) {
-    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  }
-
-  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(engine, searchString);
-  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-    tab.linkedBrowser,
-    false,
-    expectedSearchUrl
-  );
-
-  gURLBar.focus();
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus,
-    value: searchString,
-    fireInputEvent: true,
-  });
-  EventUtils.synthesizeKey("KEY_Enter");
-  await browserLoadedPromise;
-
-  assertSearchStringIsInUrlbar(searchString);
-
-  return { tab, expectedSearchUrl };
-}
 
 function synthesizeRevert() {
   gURLBar.focus();
@@ -123,7 +89,10 @@ add_task(async function revert_and_change_tab() {
   await BrowserTestUtils.switchTab(gBrowser, tab);
 
   // Because the urlbar is focused, the pageproxystate should be invalid.
-  assertSearchStringIsInUrlbar(SEARCH_STRING, { pageProxyState: "invalid" });
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    pageProxyState: "invalid",
+    persistSearchTerms: false,
+  });
 
   BrowserTestUtils.removeTab(tab);
   BrowserTestUtils.removeTab(tab2);
