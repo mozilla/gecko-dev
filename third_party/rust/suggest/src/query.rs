@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::{LabeledTimingSample, Suggestion, SuggestionProvider};
+use crate::SuggestionProvider;
 
 /// A query for suggestions to show in the address bar.
 #[derive(Clone, Debug, Default)]
@@ -10,11 +10,6 @@ pub struct SuggestionQuery {
     pub keyword: String,
     pub providers: Vec<SuggestionProvider>,
     pub limit: Option<i32>,
-}
-
-pub struct QueryWithMetricsResult {
-    pub suggestions: Vec<Suggestion>,
-    pub query_times: Vec<LabeledTimingSample>,
 }
 
 impl SuggestionQuery {

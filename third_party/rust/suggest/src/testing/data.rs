@@ -456,10 +456,8 @@ pub fn snowglobe_fakespot() -> JsonValue {
     json!({
         "fakespot_grade": "B",
         "product_id": "amazon-ABC",
-        "keywords": "",
-        "product_type": "snow globe",
         "rating": 4.7,
-        "score": 0.8,
+        "score": 0.7,
         "title": "Make Your Own Glitter Snow Globes",
         "total_reviews": 152,
         "url": "http://amazon.com/dp/ABC"
@@ -474,7 +472,7 @@ pub fn snowglobe_suggestion() -> Suggestion {
         title: "Make Your Own Glitter Snow Globes".into(),
         total_reviews: 152,
         url: "http://amazon.com/dp/ABC".into(),
-        score: 0.3 + 0.00008,
+        score: 0.7,
         icon: Some("fakespot-icon-amazon-data".as_bytes().to_vec()),
         icon_mimetype: Some("image/png".into()),
     }
@@ -486,8 +484,6 @@ pub fn simpsons_fakespot() -> JsonValue {
         // Use a product ID that doesn't match the ingested icons to test what happens.  In this
         // case, icon and icon_mimetype for the returned Suggestion should both be None.
         "product_id": "vendorwithouticon-XYZ",
-        "keywords": "",
-        "product_type": "",
         "rating": 4.9,
         "score": 0.9,
         "title": "The Simpsons: Skinner's Sense of Snow (DVD)",
@@ -504,7 +500,7 @@ pub fn simpsons_suggestion() -> Suggestion {
         title: "The Simpsons: Skinner's Sense of Snow (DVD)".into(),
         total_reviews: 14000,
         url: "http://vendorwithouticon.com/dp/XYZ".into(),
-        score: 0.3 + 0.00009,
+        score: 0.9,
         icon: None,
         icon_mimetype: None,
     }

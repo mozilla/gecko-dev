@@ -11,7 +11,9 @@ namespace mozilla::uniffi {
 
 using dom::ArrayBuffer;
 
-OwnedRustBuffer::OwnedRustBuffer(const RustBuffer& aBuf) : mBuf(aBuf) {}
+OwnedRustBuffer::OwnedRustBuffer(const RustBuffer& aBuf) : mBuf(aBuf) {
+  MOZ_ASSERT(IsValid());
+}
 
 OwnedRustBuffer OwnedRustBuffer::FromArrayBuffer(
     const ArrayBuffer& aArrayBuffer) {
