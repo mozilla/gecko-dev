@@ -560,17 +560,25 @@ fn return_value_to_js_value(v: &wast::core::WastRetCore<'_>) -> Result<String> {
         F32(x) => f32_pattern_to_js_value(x),
         F64(x) => f64_pattern_to_js_value(x),
         RefNull(x) => match x {
-            Some(wast::core::HeapType::Any) => format!("value('anyref', null)"),
-            Some(wast::core::HeapType::Exn) => format!("value('exnref', null)"),
-            Some(wast::core::HeapType::Eq) => format!("value('eqref', null)"),
-            Some(wast::core::HeapType::Array) => format!("value('arrayref', null)"),
-            Some(wast::core::HeapType::Struct) => format!("value('structref', null)"),
-            Some(wast::core::HeapType::I31) => format!("value('i31ref', null)"),
-            Some(wast::core::HeapType::None) => format!("value('nullref', null)"),
-            Some(wast::core::HeapType::Func) => format!("value('anyfunc', null)"),
-            Some(wast::core::HeapType::NoFunc) => format!("value('nullfuncref', null)"),
-            Some(wast::core::HeapType::Extern) => format!("value('externref', null)"),
-            Some(wast::core::HeapType::NoExtern) => format!("value('nullexternref', null)"),
+            Some(wast::core::HeapType::Abstract { shared: false, ty }) => {
+                match ty {
+                    wast::core::AbstractHeapType::Any => format!("value('anyref', null)"),
+                    wast::core::AbstractHeapType::Exn => format!("value('exnref', null)"),
+                    wast::core::AbstractHeapType::Eq => format!("value('eqref', null)"),
+                    wast::core::AbstractHeapType::Array => format!("value('arrayref', null)"),
+                    wast::core::AbstractHeapType::Struct => format!("value('structref', null)"),
+                    wast::core::AbstractHeapType::I31 => format!("value('i31ref', null)"),
+                    wast::core::AbstractHeapType::None => format!("value('nullref', null)"),
+                    wast::core::AbstractHeapType::Func => format!("value('anyfunc', null)"),
+                    wast::core::AbstractHeapType::NoFunc => format!("value('nullfuncref', null)"),
+                    wast::core::AbstractHeapType::Extern => format!("value('externref', null)"),
+                    wast::core::AbstractHeapType::NoExtern => format!("value('nullexternref', null)"),
+                    other => bail!(
+                        "couldn't convert ref.null {:?} to a js assertion value",
+                        other
+                    ),
+                }
+            }
             None => "null".to_string(),
             other => bail!(
                 "couldn't convert ref.null {:?} to a js assertion value",

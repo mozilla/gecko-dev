@@ -1,6 +1,6 @@
 [[repos]]
 name = 'spec'
-commit = 'b1fbe1a89'
+commit = 'b1fbe1a8'
 
 [[repos]]
 name = 'threads'
@@ -12,7 +12,7 @@ commit = 'a78b98a6'
 
 [[repos]]
 name = 'memory64'
-commit = '9edc82d34'
+commit = '9edc82d3'
 
 [[repos]]
 name = 'relaxed-simd'
@@ -32,11 +32,11 @@ commit = 'c2c00d81c'
 
 [[repos]]
 name = 'function-references'
-commit = 'eab6b36ca'
+commit = 'eab6b36c'
 
 [[repos]]
 name = 'exception-handling'
-commit = '98e4eb60d'
+commit = '98e4eb60'
 
 [[repos]]
 name = 'gc'
