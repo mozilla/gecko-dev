@@ -811,7 +811,7 @@ load 1776079.html
 asserts(0-2) load 1791606.html
 load 1799749.html
 asserts(0-1) load 1807958.html # asserts from integer overflow & bogus sizes
-load 1816574.html
+asserts(0-14) load 1816574.html # Bug 1913247
 load 1821603.html
 load 1822118.html
 load 1825434.html
