@@ -1536,6 +1536,70 @@ TEST_F(TestQuotaManager,
 }
 
 TEST_F(TestQuotaManager,
+       InitializeTemporaryStorage_OtherExclusiveDirectoryLockAcquired) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    bool done = false;
+
+    quotaManager->InitializeStorage()->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
+          QuotaManager* quotaManager = QuotaManager::Get();
+          ASSERT_TRUE(quotaManager);
+
+          ASSERT_TRUE(quotaManager->IsStorageInitialized());
+
+          done = true;
+        });
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+
+    RefPtr<UniversalDirectoryLock> directoryLock =
+        quotaManager->CreateDirectoryLockInternal(
+            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+            OriginScope::FromNull(), Nullable<Client::Type>(),
+            /* aExclusive */ true);
+
+    done = false;
+
+    directoryLock->Acquire()->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
+          done = true;
+        });
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+
+    done = false;
+
+    quotaManager->InitializeTemporaryStorage()->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
+          QuotaManager* quotaManager = QuotaManager::Get();
+          ASSERT_TRUE(quotaManager);
+
+          ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+
+          done = true;
+        });
+
+    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+
+    directoryLock->Drop();
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+TEST_F(TestQuotaManager,
        InitializeTemporaryStorage_FinishedWithScheduledShutdown) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 

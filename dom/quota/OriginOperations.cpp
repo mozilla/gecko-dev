@@ -1993,7 +1993,9 @@ RefPtr<BoolPromise> GetCachedOriginUsageOp::OpenDirectory() {
   AssertIsOnOwningThread();
 
   return OpenStorageDirectory(
-      PersistenceScope::CreateFromNull(),
+      PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                      PERSISTENCE_TYPE_DEFAULT,
+                                      PERSISTENCE_TYPE_PRIVATE),
       OriginScope::FromOrigin(mPrincipalMetadata.mOrigin),
       Nullable<Client::Type>(),
       /* aExclusive */ false);
@@ -2775,7 +2777,9 @@ RefPtr<BoolPromise> EstimateOp::OpenDirectory() {
 
   // XXX In theory, we should be locking entire group, not just one origin.
   return OpenStorageDirectory(
-      PersistenceScope::CreateFromValue(mOriginMetadata.mPersistenceType),
+      PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                      PERSISTENCE_TYPE_DEFAULT,
+                                      PERSISTENCE_TYPE_PRIVATE),
       OriginScope::FromOrigin(mOriginMetadata.mOrigin),
       Nullable<Client::Type>(),
       /* aExclusive */ false);

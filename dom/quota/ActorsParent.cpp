@@ -5575,8 +5575,9 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage() {
   AssertIsOnOwningThread();
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
-      PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-      Nullable<Client::Type>(),
+      PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                      PERSISTENCE_TYPE_DEFAULT),
+      OriginScope::FromNull(), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
   // If temporary storage is initialized but there's a clear storage or
