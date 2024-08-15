@@ -16,3 +16,35 @@ Each ``BackupResource`` subclass is registered for use by the
 .. js:autoclass:: BackupResource
   :members:
   :private-members:
+
+.. js:autoclass:: AddonsBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: CookiesBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: CredentialsAndSecurityBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: FormHistoryBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: MiscDataBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: PlacesBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: PreferencesBackupResource
+  :members:
+  :private-members:
+
+.. js:autoclass:: SessionStoreBackupResource
+  :members:
+  :private-members:
