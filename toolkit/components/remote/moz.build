@@ -11,6 +11,16 @@ SOURCES += [
     "nsRemoteService.cpp",
 ]
 
+XPCOM_MANIFESTS += [
+    "components.conf",
+]
+
+XPIDL_SOURCES += [
+    "nsIRemoteService.idl",
+]
+
+XPIDL_MODULE = "toolkitremote"
+
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     SOURCES += [
         "nsUnixRemoteServer.cpp",
