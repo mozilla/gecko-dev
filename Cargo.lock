@@ -2333,7 +2333,6 @@ dependencies = [
  "kvstore",
  "l10nregistry",
  "l10nregistry-ffi",
- "libz-rs-sys",
  "lmdb-rkv-sys",
  "localization-ffi",
  "log",
@@ -3417,14 +3416,6 @@ version = "0.1.3"
 dependencies = [
  "lazy_static",
  "libc",
-]
-
-[[package]]
-name = "libz-rs-sys"
-version = "0.2.1"
-source = "git+https://github.com/memorysafety/zlib-rs?rev=52bf342af25a1c995b226308f3445216e631def4#52bf342af25a1c995b226308f3445216e631def4"
-dependencies = [
- "zlib-rs",
 ]
 
 [[package]]
@@ -7237,8 +7228,3 @@ dependencies = [
  "memchr",
  "thiserror",
 ]
-
-[[package]]
-name = "zlib-rs"
-version = "0.2.1"
-source = "git+https://github.com/memorysafety/zlib-rs?rev=52bf342af25a1c995b226308f3445216e631def4#52bf342af25a1c995b226308f3445216e631def4"
