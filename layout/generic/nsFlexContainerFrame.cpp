@@ -4864,7 +4864,7 @@ Maybe<nscoord> nsFlexContainerFrame::GetNaturalBaselineBOffset(
 }
 
 void nsFlexContainerFrame::UnionInFlowChildOverflow(
-    OverflowAreas& aOverflowAreas) {
+    OverflowAreas& aOverflowAreas, bool aAsIfScrolled) {
   // The CSS Overflow spec [1] requires that a scrollable container's
   // scrollable overflow should include the following areas.
   //
@@ -4882,6 +4882,7 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
   //
   // [1] https://drafts.csswg.org/css-overflow-3/#scrollable.
   const bool isScrolledContent =
+      aAsIfScrolled ||
       Style()->GetPseudoType() == PseudoStyleType::scrolledContent;
   bool anyScrolledContentItem = false;
   // Union of normal-positioned margin boxes for all the items.
@@ -4931,8 +4932,9 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
   }
 }
 
-void nsFlexContainerFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas) {
-  UnionInFlowChildOverflow(aOverflowAreas);
+void nsFlexContainerFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
+                                              bool aAsIfScrolled) {
+  UnionInFlowChildOverflow(aOverflowAreas, aAsIfScrolled);
   // Union with child frames, skipping the principal list since we already
   // handled those above.
   nsLayoutUtils::UnionChildOverflow(this, aOverflowAreas,

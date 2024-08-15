@@ -25,6 +25,7 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "nsFontMetrics.h"
+#include "nsFlexContainerFrame.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "nsScrollbarFrame.h"
 #include "nsINode.h"
@@ -6893,24 +6894,107 @@ nsRect ScrollContainerFrame::GetScrolledRect() const {
 }
 
 StyleDirection ScrollContainerFrame::GetScrolledFrameDir() const {
+  return GetScrolledFrameDir(mScrolledFrame);
+}
+
+StyleDirection ScrollContainerFrame::GetScrolledFrameDir(
+    const nsIFrame* aScrolledFrame) {
   // If the scrolled frame has unicode-bidi: plaintext, the paragraph
   // direction set by the text content overrides the direction of the frame
-  if (mScrolledFrame->StyleTextReset()->mUnicodeBidi ==
+  if (aScrolledFrame->StyleTextReset()->mUnicodeBidi ==
       StyleUnicodeBidi::Plaintext) {
-    if (nsIFrame* child = mScrolledFrame->PrincipalChildList().FirstChild()) {
+    if (nsIFrame* child = aScrolledFrame->PrincipalChildList().FirstChild()) {
       return nsBidiPresUtils::ParagraphDirection(child) ==
-                     mozilla::intl::BidiDirection::LTR
+                     intl::BidiDirection::LTR
                  ? StyleDirection::Ltr
                  : StyleDirection::Rtl;
     }
   }
-  return IsBidiLTR() ? StyleDirection::Ltr : StyleDirection::Rtl;
+  return aScrolledFrame->GetWritingMode().IsBidiLTR() ? StyleDirection::Ltr
+                                                      : StyleDirection::Rtl;
+}
+
+auto ScrollContainerFrame::ComputePerAxisScrollDirections(
+    const nsIFrame* aScrolledFrame) -> PerAxisScrollDirections {
+  auto wm = aScrolledFrame->GetWritingMode();
+  auto dir = GetScrolledFrameDir(aScrolledFrame);
+  wm.SetDirectionFromBidiLevel(dir == StyleDirection::Rtl
+                                   ? intl::BidiEmbeddingLevel::RTL()
+                                   : intl::BidiEmbeddingLevel::LTR());
+  bool scrollToRight = wm.IsPhysicalLTR();
+  bool scrollToBottom =
+      !wm.IsVertical() || wm.GetInlineDir() == WritingMode::InlineDir::TTB;
+  if (aScrolledFrame->IsFlexContainerFrame()) {
+    // In a flex container, the children flow (and overflow) along the flex
+    // container's main axis and cross axis. These are analogous to the
+    // inline/block axes, and by default they correspond exactly to those axes;
+    // but the flex container's CSS (e.g. flex-direction: column-reverse) may
+    // have swapped and/or reversed them, and we need to account for that here.
+    const FlexboxAxisInfo info(aScrolledFrame);
+    const bool isMainAxisVertical = info.mIsRowOriented == wm.IsVertical();
+    if (info.mIsMainAxisReversed) {
+      if (isMainAxisVertical) {
+        scrollToBottom = !scrollToBottom;
+      } else {
+        scrollToRight = !scrollToRight;
+      }
+    }
+    if (info.mIsCrossAxisReversed) {
+      if (isMainAxisVertical) {
+        scrollToRight = !scrollToRight;
+      } else {
+        scrollToBottom = !scrollToBottom;
+      }
+    }
+  }
+  return {scrollToRight, scrollToBottom};
 }
 
 nsRect ScrollContainerFrame::GetUnsnappedScrolledRectInternal(
     const nsRect& aScrolledOverflowArea, const nsSize& aScrollPortSize) const {
-  return nsLayoutUtils::GetScrolledRect(mScrolledFrame, aScrolledOverflowArea,
-                                        aScrollPortSize, GetScrolledFrameDir());
+  nscoord x1 = aScrolledOverflowArea.x, x2 = aScrolledOverflowArea.XMost(),
+          y1 = aScrolledOverflowArea.y, y2 = aScrolledOverflowArea.YMost();
+  auto dirs = ComputePerAxisScrollDirections(mScrolledFrame);
+  // Clamp the horizontal start-edge (x1 or x2, depending whether the logical
+  // axis that corresponds to horizontal progresses from left-to-right or
+  // right-to-left).
+  if (dirs.mToRight) {
+    if (x1 < 0) {
+      x1 = 0;
+    }
+  } else {
+    if (x2 > aScrollPortSize.width) {
+      x2 = aScrollPortSize.width;
+    }
+    // When the scrolled frame chooses a size larger than its available width
+    // (because its padding alone is larger than the available width), we need
+    // to keep the start-edge of the scroll frame anchored to the start-edge of
+    // the scrollport.
+    // When the scrolled frame is RTL, this means moving it in our left-based
+    // coordinate system, so we need to compensate for its extra width here by
+    // effectively repositioning the frame.
+    nscoord extraWidth =
+        std::max(0, mScrolledFrame->GetSize().width - aScrollPortSize.width);
+    x2 += extraWidth;
+  }
+
+  // Similarly, clamp the vertical start-edge (y1 or y2, depending whether the
+  // logical axis that corresponds to vertical progresses from top-to-bottom or
+  // buttom-to-top).
+  if (dirs.mToBottom) {
+    if (y1 < 0) {
+      y1 = 0;
+    }
+  } else {
+    if (y2 > aScrollPortSize.height) {
+      y2 = aScrollPortSize.height;
+    }
+    nscoord extraHeight =
+        std::max(0, mScrolledFrame->GetSize().height - aScrollPortSize.height);
+    y2 += extraHeight;
+  }
+
+  return nsRect(x1, y1, x2 - x1, y2 - y1);
 }
 
 nsMargin ScrollContainerFrame::GetActualScrollbarSizes(

@@ -466,7 +466,8 @@ void SVGOuterSVGFrame::DidReflow(nsPresContext* aPresContext,
 }
 
 /* virtual */
-void SVGOuterSVGFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas) {
+void SVGOuterSVGFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
+                                          bool aAsIfScrolled) {
   // See the comments in Reflow above.
 
   // WARNING!! Keep this in sync with Reflow above!

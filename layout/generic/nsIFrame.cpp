@@ -8045,8 +8045,9 @@ bool nsIFrame::DoesClipChildrenInBothAxes() const {
 }
 
 /* virtual */
-void nsIFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas) {
-  if (!DoesClipChildrenInBothAxes()) {
+void nsIFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
+                                  bool aAsIfScrolled) {
+  if (aAsIfScrolled || !DoesClipChildrenInBothAxes()) {
     nsLayoutUtils::UnionChildOverflow(this, aOverflowAreas);
   }
 }
