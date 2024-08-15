@@ -417,7 +417,7 @@ endif
 ifeq (Darwin,$(OS_ARCH))
 ifeq (,$(filter -Zsanitizer=%,$(RUSTFLAGS)))
 ifneq (,$(filter -fsanitize=%,$(LDFLAGS)))
-force-cargo-program-build: CARGO_RUSTCFLAGS += -C default-linker-libraries=yes
+$(TARGET_RECIPES): RUSTFLAGS += -C default-linker-libraries=yes
 endif
 endif
 endif
