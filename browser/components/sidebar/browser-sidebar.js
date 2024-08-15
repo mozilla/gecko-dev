@@ -206,6 +206,7 @@ var SidebarController = {
   _switcherTarget: null,
   _switcherArrow: null,
   _inited: false,
+  _uninitializing: false,
   _switcherListenersAdded: false,
   _verticalNewTabListenerAdded: false,
   _localesObserverAdded: false,
@@ -225,6 +226,10 @@ var SidebarController = {
 
   get initialized() {
     return this._inited;
+  },
+
+  get uninitializing() {
+    return this._uninitializing;
   },
 
   get sidebarContainer() {
@@ -341,6 +346,9 @@ var SidebarController = {
   },
 
   uninit() {
+    // Set a flag to allow us to ignore pref changes while the host document is being unloaded.
+    this._uninitializing = true;
+
     // If this is the last browser window, persist various values that should be
     // remembered for after a restart / reopening a browser window.
     let enumerator = Services.wm.getEnumerator("navigator:browser");
@@ -1335,14 +1343,22 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "_positionStart",
   SidebarController.POSITION_START_PREF,
   true,
-  SidebarController.setPosition.bind(SidebarController)
+  () => {
+    if (!SidebarController.uninitializing) {
+      SidebarController.setPosition();
+    }
+  }
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampEnabled",
   "sidebar.revamp",
   false,
-  SidebarController.toggleRevampSidebar.bind(SidebarController)
+  () => {
+    if (!SidebarController.uninitializing) {
+      SidebarController.toggleRevampSidebar();
+    }
+  }
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
@@ -1361,5 +1377,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarVerticalTabsEnabled",
   "sidebar.verticalTabs",
   false,
-  SidebarController.toggleTabstrip.bind(SidebarController)
+  () => {
+    if (!SidebarController.uninitializing) {
+      SidebarController.toggleTabstrip();
+    }
+  }
 );
