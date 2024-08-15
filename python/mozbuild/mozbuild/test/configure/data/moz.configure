@@ -11,7 +11,14 @@ option("--enable-simple", help="Enable simple")
 option("--enable-with-env", env="MOZ_WITH_ENV", help="Enable with env")
 
 # Optional values
-option("--enable-values", nargs="*", help="Enable values")
+option("--enable-values", nargs="*", metavar="V", help="Enable values V")
+
+# Optional values
+option("--enable-others", nargs="+", metavar="V", help="Enable other values V")
+
+# Optional values with fixed nargs number
+option("--enable-triplet", nargs=3, metavar="V", help="Enable triplet V")
+set_config("TRIPLET", depends("--enable-triplet")(lambda x: x and x[0]))
 
 # Optional values from a set of choices
 option("--enable-choices", nargs="*", choices=("a", "b", "c"), help="Enable choices")
@@ -158,6 +165,14 @@ def returned_choices(values):
 
 set_config("CHOICES", returned_choices)
 
+
+@depends("--enable-others")
+def other_choices(values):
+    return values
+
+
+set_config("OTHER_CHOICES", other_choices)
+
 # Unusual case: an option can default to enabled, but still allow for optional
 # values. In that case, both --disable and --enable options will be shown in
 # configure --help, and the help message needs to include both variants.
@@ -186,7 +201,7 @@ include("included.configure")
 
 # It is also possible for the include file path to come from the result of a
 # @depends function.
-option("--enable-include", nargs=1, help="Include")
+option("--enable-include", nargs=1, metavar="I", help="Include I")
 
 
 @depends("--enable-include")
@@ -200,7 +215,7 @@ include(include_path)
 # decorator.
 # The order of the decorators matter: @imports needs to appear after other
 # decorators.
-option("--with-imports", nargs="?", help="Imports")
+option("--with-imports", nargs="?", metavar="I", help="Imports I")
 
 
 # A limited set of functions from os.path are exposed by default.

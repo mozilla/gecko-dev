@@ -206,6 +206,7 @@ class Option(object):
         "choices",
         "help",
         "possible_origins",
+        "metavar",
         "category",
         "define_depth",
     )
@@ -220,6 +221,7 @@ class Option(object):
         choices=None,
         category=None,
         help=None,
+        metavar=None,
         define_depth=0,
     ):
         if not name and not env:
@@ -270,6 +272,12 @@ class Option(object):
             raise InvalidOptionError("DefineDepth must be an integer")
         if not help:
             raise InvalidOptionError("A help string must be provided")
+        if metavar and not nargs:
+            raise InvalidOptionError("A metavar can only be given when nargs is set")
+        if metavar and not name:
+            raise InvalidOptionError(
+                "metavar must not be set on environment-only option"
+            )
         if possible_origins and not istupleofstrings(possible_origins):
             raise InvalidOptionError("possible_origins must be a tuple of strings")
         self.possible_origins = possible_origins
@@ -337,6 +345,7 @@ class Option(object):
                 raise InvalidOptionError("Not enough `choices` for `nargs`")
         self.choices = choices
         self.help = help
+        self.metavar = metavar
         self.category = category or _infer_option_category(define_depth)
 
     @staticmethod

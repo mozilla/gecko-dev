@@ -53,6 +53,7 @@ class TestConfigure(unittest.TestCase):
                 "CHOICES": NegativeOptionValue(),
                 "DEFAULTED": PositiveOptionValue(("not-simple",)),
                 "IS_GCC": NegativeOptionValue(),
+                "OTHER_CHOICES": NegativeOptionValue(),
                 "REMAINDER": (
                     PositiveOptionValue(),
                     NegativeOptionValue(),
@@ -63,6 +64,7 @@ class TestConfigure(unittest.TestCase):
                     PositiveOptionValue(),
                 ),
                 "SIMPLE": NegativeOptionValue(),
+                "TRIPLET": NegativeOptionValue(),
                 "VALUES": NegativeOptionValue(),
                 "VALUES2": NegativeOptionValue(),
                 "VALUES3": NegativeOptionValue(),
@@ -86,7 +88,9 @@ class TestConfigure(unittest.TestCase):
             "  Options from python/mozbuild/mozbuild/test/configure/data/moz.configure:\n"
             "    --enable-simple           Enable simple\n"
             "    --enable-with-env         Enable with env\n"
-            "    --enable-values           Enable values\n"
+            "    --enable-values[=V,...]   Enable values V\n"
+            "    --enable-others=V,...     Enable other values V\n"
+            "    --enable-triplet=V,V,V    Enable triplet V\n"
             "    --enable-choices={a,b,c}  Enable choices\n"
             "    --without-thing           Build without thing\n"
             "    --with-stuff              Build with stuff\n"
@@ -96,8 +100,8 @@ class TestConfigure(unittest.TestCase):
             "    --returned-choices        Choices\n"
             "    --enable-foo={x,y}        Enable Foo\n"
             "    --disable-foo             Disable Foo\n"
-            "    --enable-include          Include\n"
-            "    --with-imports            Imports\n"
+            "    --enable-include=I        Include I\n"
+            "    --with-imports[=I]        Imports I\n"
             "    --indirect-option         Indirectly defined option\n"
             "\n"
             "  Options from python/mozbuild/mozbuild/test/configure/data/included.configure:\n"
@@ -128,7 +132,9 @@ class TestConfigure(unittest.TestCase):
             "  Options from python/mozbuild/mozbuild/test/configure/data/moz.configure:\n"
             "    --enable-simple           Enable simple\n"
             "    --enable-with-env         Enable with env\n"
-            "    --enable-values           Enable values\n"
+            "    --enable-values[=V,...]   Enable values V\n"
+            "    --enable-others=V,...     Enable other values V\n"
+            "    --enable-triplet=V,V,V    Enable triplet V\n"
             "    --enable-choices={a,b,c}  Enable choices\n"
             "    --without-thing           Build without thing\n"
             "    --with-stuff              Build with stuff\n"
@@ -139,8 +145,8 @@ class TestConfigure(unittest.TestCase):
             "                              Choices\n"
             "    --enable-foo={x,y}        Enable Foo\n"
             "    --disable-foo             Disable Foo\n"
-            "    --enable-include          Include\n"
-            "    --with-imports            Imports\n"
+            "    --enable-include=I        Include I\n"
+            "    --with-imports[=I]        Imports I\n"
             "    --indirect-option         Indirectly defined option\n"
             "\n"
             "  Options from python/mozbuild/mozbuild/test/configure/data/included.configure:\n"
