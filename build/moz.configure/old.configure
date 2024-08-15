@@ -96,11 +96,7 @@ def old_configure_options(*options):
 
 @old_configure_options(
     "--cache-file",
-    "--datadir",
     "--enable-official-branding",
-    "--includedir",
-    "--libdir",
-    "--prefix",
     "--with-branding",
     "--x-includes",
     "--x-libraries",
@@ -126,6 +122,9 @@ def old_configure_for(old_configure_path, extra_env=None):
     @depends(
         prepare_configure,
         prepare_configure_options,
+        "--prefix",
+        "--includedir",
+        "--libdir",
         prefer_mozillabuild_path,
         altered_path,
         extra_env,
@@ -154,6 +153,9 @@ def old_configure_for(old_configure_path, extra_env=None):
     def old_configure(
         prepare_configure,
         prepare_configure_options,
+        prefix,
+        includedir,
+        libdir,
         prefer_mozillabuild_path,
         altered_path,
         extra_env,
@@ -270,7 +272,16 @@ def old_configure_for(old_configure_path, extra_env=None):
                 except OSError as e:
                     die("Failed re-creating old-configure: %s" % e.message)
 
-        cmd = [shell, old_configure] + prepare_configure_options.options
+        old_configure_options = {
+            "prefix": prefix[0],
+            "includedir": includedir[0],
+            "libdir": libdir[0],
+        }
+        cmd = (
+            [shell, old_configure]
+            + prepare_configure_options.options
+            + [f"--{k}={v}" for k, v in old_configure_options.items()]
+        )
 
         env = dict(os.environ)
 

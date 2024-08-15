@@ -54,6 +54,11 @@ define([AC_SUBST_FFLAGS], )
 define([AC_SUBST_DEFS], )
 define([AC_SUBST_LDFLAGS], )
 define([AC_SUBST_LIBS], )
+define([AC_SUBST_exec_prefix], )
+define([AC_SUBST_prefix], )
+define([AC_SUBST_datadir], )
+define([AC_SUBST_libdir], )
+define([AC_SUBST_includedir], )
 
 dnl Wrap AC_DEFINE to store values in a format suitable for python.
 dnl autoconf's AC_DEFINE still needs to be used to fill confdefs.h,

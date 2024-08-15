@@ -1338,3 +1338,37 @@ def valid_mozillabuild_version(mozillabuild_version):
         die(
             f"Please upgrade MozillaBuild. You can find a recent version at: https://wiki.mozilla.org/MozillaBuild"
         )
+
+
+# old-school options for controlling install step
+# ==============================================================
+option(
+    "--prefix",
+    nargs=1,
+    metavar="PREFIX",
+    default="/usr/local",
+    help="install files using PREFIX as root directory",
+)
+set_config("prefix", depends("--prefix")(lambda prefix: prefix[0]))
+
+# Unlike autoconf, we don't offer these as a customisation point.
+set_config("exec_prefix", depends("--prefix")(lambda prefix: prefix[0]))
+set_config("datadir", depends("--prefix")(lambda prefix: f"{prefix[0]}/share"))
+
+option(
+    "--includedir",
+    nargs=1,
+    metavar="DIR",
+    default=depends("--prefix")(lambda prefix: f"{prefix[0]}/include"),
+    help="C header files in DIR",
+)
+set_config("includedir", depends("--includedir")(lambda idir: idir[0]))
+
+option(
+    "--libdir",
+    nargs=1,
+    metavar="DIR",
+    default=depends("--prefix")(lambda prefix: f"{prefix[0]}/lib"),
+    help="object code libraries in DIR",
+)
+set_config("libdir", depends("--libdir")(lambda ldir: ldir[0]))
