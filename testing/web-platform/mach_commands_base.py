@@ -50,9 +50,7 @@ class WebPlatformTestsRunner(object):
                 logger.info(e.help())
                 return 1
         elif kwargs["product"] == "firefox_android":
-            from wptrunner import wptcommandline
-
-            kwargs = wptcommandline.check_args(self.setup.kwargs_common(kwargs))
+            kwargs = self.setup.kwargs_firefox_android(kwargs)
         else:
             kwargs = self.setup.kwargs_wptrun(kwargs)
 

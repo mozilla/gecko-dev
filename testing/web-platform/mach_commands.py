@@ -33,47 +33,11 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
 
         tests_src_path = os.path.join(self._here, "tests")
 
-        if (
-            kwargs["product"] in {"firefox", "firefox_android"}
-            and kwargs["specialpowers_path"] is None
-        ):
-            kwargs["specialpowers_path"] = os.path.join(
-                self.distdir, "xpi-stage", "specialpowers@mozilla.org.xpi"
-            )
-
-        if kwargs["product"] == "firefox_android":
-            # package_name may be different in the future
-            package_name = kwargs["package_name"]
-            if not package_name:
-                kwargs[
-                    "package_name"
-                ] = package_name = "org.mozilla.geckoview.test_runner"
-
-            # Note that this import may fail in non-firefox-for-android trees
-            from mozrunner.devices.android_device import (
-                InstallIntent,
-                get_adb_path,
-                verify_android_device,
-            )
-
-            kwargs["adb_binary"] = get_adb_path(self)
-            install = (
-                InstallIntent.NO if kwargs.pop("no_install") else InstallIntent.YES
-            )
-            verify_android_device(
-                self, install=install, verbose=False, xre=True, app=package_name
-            )
-
-            if kwargs["certutil_binary"] is None:
-                kwargs["certutil_binary"] = os.path.join(
-                    os.environ.get("MOZ_HOST_BIN"), "certutil"
+        if kwargs["product"] in {"firefox", "firefox_android"}:
+            if kwargs["specialpowers_path"] is None:
+                kwargs["specialpowers_path"] = os.path.join(
+                    self.distdir, "xpi-stage", "specialpowers@mozilla.org.xpi"
                 )
-
-            if kwargs["install_fonts"] is None:
-                kwargs["install_fonts"] = True
-
-            if not kwargs["device_serial"]:
-                kwargs["device_serial"] = ["emulator-5554"]
 
         if kwargs["config"] is None:
             kwargs["config"] = os.path.join(
@@ -118,27 +82,11 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if kwargs["binary"] is None:
             kwargs["binary"] = self.get_binary_path()
 
+        if kwargs["webdriver_binary"] is None:
+            kwargs["webdriver_binary"] = self.find_webdriver_binary()
+
         if kwargs["certutil_binary"] is None:
             kwargs["certutil_binary"] = self.get_binary_path("certutil")
-
-        if kwargs["webdriver_binary"] is None:
-            try_paths = [self.get_binary_path("geckodriver", validate_exists=False)]
-            ext = ".exe" if sys.platform in ["win32", "msys", "cygwin"] else ""
-            for build_type in ["release", "debug"]:
-                try_paths.append(
-                    os.path.join(
-                        self.topsrcdir, "target", build_type, f"geckodriver{ext}"
-                    )
-                )
-            found_paths = []
-            for path in try_paths:
-                if os.path.exists(path):
-                    found_paths.append(path)
-
-            if found_paths:
-                # Pick the most recently modified version
-                found_paths.sort(key=os.path.getmtime)
-                kwargs["webdriver_binary"] = found_paths[-1]
 
         if kwargs["install_fonts"] is None:
             kwargs["install_fonts"] = True
@@ -151,6 +99,47 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
 
         if kwargs["stackfix_dir"] is None:
             kwargs["stackfix_dir"] = self.bindir
+
+        kwargs = wptcommandline.check_args(kwargs)
+
+        return kwargs
+
+    def kwargs_firefox_android(self, kwargs):
+        from wptrunner import wptcommandline
+
+        kwargs = self.kwargs_common(kwargs)
+
+        # package_name may be different in the future
+        package_name = kwargs["package_name"]
+        if not package_name:
+            kwargs["package_name"] = package_name = "org.mozilla.geckoview.test_runner"
+
+        # Note that this import may fail in non-firefox-for-android trees
+        from mozrunner.devices.android_device import (
+            InstallIntent,
+            get_adb_path,
+            verify_android_device,
+        )
+
+        kwargs["adb_binary"] = get_adb_path(self)
+        install = InstallIntent.NO if kwargs.pop("no_install") else InstallIntent.YES
+        verify_android_device(
+            self, install=install, verbose=False, xre=True, app=package_name
+        )
+
+        if kwargs["webdriver_binary"] is None:
+            kwargs["webdriver_binary"] = self.find_webdriver_binary()
+
+        if kwargs["certutil_binary"] is None:
+            kwargs["certutil_binary"] = os.path.join(
+                os.environ.get("MOZ_HOST_BIN"), "certutil"
+            )
+
+        if kwargs["install_fonts"] is None:
+            kwargs["install_fonts"] = True
+
+        if not kwargs["device_serial"]:
+            kwargs["device_serial"] = ["emulator-5554"]
 
         kwargs = wptcommandline.check_args(kwargs)
 
@@ -232,6 +221,27 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if not os.path.exists(ahem_dest) and os.path.exists(ahem_src):
             with open(ahem_src, "rb") as src, open(ahem_dest, "wb") as dest:
                 dest.write(src.read())
+
+    def find_webdriver_binary(self):
+        ext = ".exe" if sys.platform in ["win32", "msys", "cygwin"] else ""
+        try_paths = [
+            self.get_binary_path("geckodriver", validate_exists=False),
+            os.path.join(self.topobjdir, "dist", "host", "bin", f"geckodriver{ext}"),
+        ]
+
+        for build_type in ["release", "debug"]:
+            try_paths.append(
+                os.path.join(self.topsrcdir, "target", build_type, f"geckodriver{ext}")
+            )
+        found_paths = []
+        for path in try_paths:
+            if os.path.exists(path):
+                found_paths.append(path)
+
+        if found_paths:
+            # Pick the most recently modified version
+            found_paths.sort(key=os.path.getmtime)
+            return found_paths[-1]
 
 
 class WebPlatformTestsServeRunner(MozbuildObject):
