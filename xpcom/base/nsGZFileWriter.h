@@ -26,9 +26,7 @@ class nsGZFileWriter final {
   virtual ~nsGZFileWriter();
 
  public:
-  enum Operation { Append, Create };
-
-  explicit nsGZFileWriter(Operation aMode = Create);
+  explicit nsGZFileWriter();
 
   NS_INLINE_DECL_REFCOUNTING(nsGZFileWriter)
 
@@ -70,7 +68,6 @@ class nsGZFileWriter final {
   nsresult Finish();
 
  private:
-  Operation mMode;
   bool mInitialized;
   bool mFinished;
   gzFile mGZFile;
