@@ -3002,6 +3002,7 @@ def pdbstr_paths(valid_windows_sdk_dir, host):
     vc_host = {
         "x86": "x86",
         "x86_64": "x64",
+        "aarch64": "arm64",
     }.get(host.cpu)
 
     return [

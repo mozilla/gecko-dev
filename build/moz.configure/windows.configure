@@ -441,6 +441,7 @@ def sdk_bin_path(valid_windows_sdk_dir, valid_ucrt_sdk_dir, host):
     vc_host = {
         "x86": "x86",
         "x86_64": "x64",
+        "aarch64": "arm64",
     }.get(host.cpu)
 
     # From version 10.0.15063.0 onwards the bin path contains the version number.

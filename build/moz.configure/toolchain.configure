@@ -832,6 +832,7 @@ def vc_compiler_paths_for_version(host, env, vc_path, winsysroot):
     host_dir = {
         "x86_64": "Hostx64",
         "x86": "Hostx86",
+        "aarch64": "Hostarm64",
     }.get(host.cpu)
     if host_dir:
         path = os.path.join(path, "bin", host_dir)
