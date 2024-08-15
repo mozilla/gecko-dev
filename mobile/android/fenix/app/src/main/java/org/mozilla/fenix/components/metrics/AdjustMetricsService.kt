@@ -23,6 +23,7 @@ import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.FirstSession
 import org.mozilla.fenix.ext.settings
 
+@Deprecated("Adjust is disabled", level = DeprecationLevel.ERROR)
 class AdjustMetricsService(
     private val application: Application,
     private val storage: MetricsStorage,

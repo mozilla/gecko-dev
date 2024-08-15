@@ -69,7 +69,7 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_marketing_telemetry).apply {
             isChecked = (context.settings().isMarketingTelemetryEnabled) && (!Config.channel.isMozillaOnline)
             onPreferenceChangeListener = SharedPreferenceUpdater()
-            isVisible = !Config.channel.isMozillaOnline
+            isVisible = false
         }
     }
 
