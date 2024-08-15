@@ -40,8 +40,8 @@ static char* estrcpy(const char* s, char* d) {
 /* Construct a command line from given args and desktop startup ID.
  * Returned buffer must be released by free().
  */
-char* ConstructCommandLine(int32_t argc, char** argv, const char* aStartupToken,
-                           int* aCommandLineLength) {
+char* ConstructCommandLine(int32_t argc, const char** argv,
+                           const char* aStartupToken, int* aCommandLineLength) {
   char cwdbuf[MAX_PATH];
   if (!getcwd(cwdbuf, MAX_PATH)) return nullptr;
 
