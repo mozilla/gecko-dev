@@ -90,14 +90,18 @@ export default class TabHoverPreviewPanel {
 
   _hasValidThumbnailState(tab) {
     return (
-      tab && tab.linkedBrowser && !tab.getAttribute("pending") && !tab.selected
+      this._prefDisplayThumbnail &&
+      tab &&
+      tab.linkedBrowser &&
+      !tab.getAttribute("pending") &&
+      !tab.selected
     );
   }
 
   _maybeRequestThumbnail() {
     let tab = this._tab;
 
-    if (!this._prefDisplayThumbnail || !this._hasValidThumbnailState(tab)) {
+    if (!this._hasValidThumbnailState(tab)) {
       return;
     }
     let thumbnailCanvas = this._win.document.createElement("canvas");
