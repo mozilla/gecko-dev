@@ -10,8 +10,11 @@
 //!
 //! All benchmarks are defined as structs that implement either the [Benchmark] or [BenchmarkWithInput]
 
+use std::sync::atomic::{AtomicU32, Ordering};
+
 pub mod client;
 pub mod ingest;
+pub mod query;
 
 /// Trait for simple benchmarks
 ///
@@ -37,4 +40,9 @@ pub trait BenchmarkWithInput {
 
     /// Perform the operations that we're benchmarking.
     fn benchmarked_code(&self, input: Self::Input);
+}
+
+fn unique_db_filename() -> String {
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    format!("db{}.sqlite", COUNTER.fetch_add(1, Ordering::Relaxed))
 }

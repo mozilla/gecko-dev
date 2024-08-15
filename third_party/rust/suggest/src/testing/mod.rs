@@ -13,18 +13,10 @@ use serde_json::Value as JsonValue;
 
 /// Trait with utility functions for JSON handling in the tests
 pub trait JsonExt {
-    fn into_map(self) -> serde_json::Map<String, JsonValue>;
     fn merge(self, other: JsonValue) -> JsonValue;
 }
 
 impl JsonExt for JsonValue {
-    fn into_map(self) -> serde_json::Map<String, JsonValue> {
-        match self {
-            Self::Object(map) => map,
-            _ => panic!("into_map called on non-object: {self:?}"),
-        }
-    }
-
     fn merge(mut self, mut other: JsonValue) -> JsonValue {
         let self_map = match &mut self {
             JsonValue::Object(obj) => obj,
