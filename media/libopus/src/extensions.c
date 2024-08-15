@@ -69,24 +69,23 @@ opus_int32 skip_extension(const unsigned char **data, opus_int32 len, opus_int32
          return 0;
       } else {
          opus_int32 bytes=0;
+         opus_int32 lacing;
          *header_size = 1;
          do {
             (*data)++;
             len--;
-            if (len == 0)
+            if (len < 1)
                return -1;
-            bytes += **data;
+            lacing = **data;
+            bytes += lacing;
             (*header_size)++;
-         } while (**data == 255);
+            len -= lacing;
+         } while (lacing == 255);
+         if (len < 1)
+            return -1;
          (*data)++;
          len--;
-         if (bytes <= len)
-         {
-            len -= bytes;
-            *data += bytes;
-         } else {
-            return -1;
-         }
+         *data += bytes;
          return len;
       }
    }

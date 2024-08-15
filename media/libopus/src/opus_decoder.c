@@ -1297,18 +1297,18 @@ bad_arg:
 static int dred_find_payload(const unsigned char *data, opus_int32 len, const unsigned char **payload, int *dred_frame_offset)
 {
    const unsigned char *data0;
-   int len0;
+   opus_int32 len0;
    int frame = 0;
-   int ret;
+   int nb_frames;
    const unsigned char *frames[48];
    opus_int16 size[48];
    int frame_size;
 
    *payload = NULL;
    /* Get the padding section of the packet. */
-   ret = opus_packet_parse_impl(data, len, 0, NULL, frames, size, NULL, NULL, &data0, &len0);
-   if (ret < 0)
-      return ret;
+   nb_frames = opus_packet_parse_impl(data, len, 0, NULL, frames, size, NULL, NULL, &data0, &len0);
+   if (nb_frames < 0)
+      return nb_frames;
    frame_size = opus_packet_get_samples_per_frame(data, 48000);
    data = data0;
    len = len0;
@@ -1331,6 +1331,9 @@ static int dred_find_payload(const unsigned char *data, opus_int32 len, const un
             frame++;
          } else {
             frame += data0[1];
+         }
+         if (frame >= nb_frames) {
+           break;
          }
       } else if (id == DRED_EXTENSION_ID)
       {
