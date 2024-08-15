@@ -901,6 +901,7 @@ void ArrayBufferObject::detach(JSContext* cx,
   auto& innerViews = ObjectRealm::get(buffer).innerViews.get();
   if (InnerViewTable::ViewVector* views =
           innerViews.maybeViewsUnbarriered(buffer)) {
+    AutoTouchingGrayThings tgt;
     for (size_t i = 0; i < views->length(); i++) {
       JSObject* view = (*views)[i];
       view->as<ArrayBufferViewObject>().notifyBufferDetached();
@@ -950,6 +951,7 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
   auto& innerViews = ObjectRealm::get(this).innerViews.get();
   if (InnerViewTable::ViewVector* views =
           innerViews.maybeViewsUnbarriered(this)) {
+    AutoTouchingGrayThings tgt;
     for (auto& view : *views) {
       view->notifyBufferResized();
     }
