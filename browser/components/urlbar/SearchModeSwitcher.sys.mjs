@@ -317,7 +317,8 @@ export class SearchModeSwitcher {
     let search = "";
     let opts = null;
     if (engine) {
-      search = gBrowser.userTypedValue || "";
+      search =
+        gBrowser.userTypedValue ?? gBrowser.selectedBrowser.searchTerms ?? "";
       opts = { searchEngine: engine, searchModeEntry: "searchbutton" };
     } else if (restrict) {
       search = restrict + " " + (gBrowser.userTypedValue || "");

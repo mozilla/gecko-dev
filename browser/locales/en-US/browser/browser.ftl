@@ -580,6 +580,10 @@ urlbar-go-button =
   .tooltiptext = Go to the address in the Location Bar
 urlbar-page-action-button =
   .tooltiptext = Page actions
+urlbar-revert-button =
+  .tooltiptext = Show the address in the Location Bar
+urlbar-show-page-actions-button =
+  .tooltiptext = Show all page actions
 
 ## Action text shown in urlbar results, usually appended after the search
 ## string or the url, like "result value - action text".

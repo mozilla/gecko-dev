@@ -312,27 +312,6 @@
                        data-l10n-id="urlbar-storage-access-anchor"/>
               </box>
             </box>
-            <toolbarbutton id="urlbar-searchmode-switcher"
-                           data-action="openpopup"
-                           align="center"
-                           role="button"
-                           aria-haspopup="menu"
-                           aria-expanded="false"
-                           tooltip="dynamic-shortcut-tooltip"
-                           class="chromeclass-toolbar-additional">
-              <image id="searchmode-switcher-icon" />
-              <image id="searchmode-switcher-dropmarker"
-                     data-l10n-id="urlbar-searchmode-dropmarker"
-                     class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
-            </toolbarbutton>
-            <box id="searchmode-switcher-chicklet">
-              <label id="searchmode-switcher-title" />
-              <toolbarbutton id="searchmode-switcher-close"
-                             data-action="exitsearchmode"
-                             role="button"
-                             tooltip="dynamic-shortcut-tooltip"
-                             class="toolbarbutton-icon close-button" />
-            </box>
             <box id="urlbar-label-box" align="center">
               <label id="urlbar-label-switchtab" class="urlbar-label" data-l10n-id="urlbar-switch-to-tab"/>
               <label id="urlbar-label-extension" class="urlbar-label" data-l10n-id="urlbar-extension"/>
@@ -341,32 +320,64 @@
             <html:div id="urlbar-search-mode-indicator">
               <html:span id="urlbar-search-mode-indicator-title"/>
               <html:div id="urlbar-search-mode-indicator-close"
-                     class="close-button"
-                     role="button"
-                     aria-labelledby="urlbar-search-mode-indicator-close urlbar-search-mode-indicator-title"
-                     data-l10n-id="urlbar-search-mode-indicator-close"/>
+                        class="close-button"
+                        role="button"
+                        aria-labelledby="urlbar-search-mode-indicator-close urlbar-search-mode-indicator-title"
+                        data-l10n-id="urlbar-search-mode-indicator-close"/>
             </html:div>
-            <moz-input-box tooltip="aHTMLTooltip"
-                           class="urlbar-input-box"
-                           flex="1"
-                           role="combobox"
-                           aria-owns="urlbar-results">
-              <html:input id="urlbar-scheme"
-                          required="required"/>
-              <html:input id="urlbar-input"
-                          class="urlbar-input"
-                          anonid="input"
-                          aria-controls="urlbar-results"
-                          aria-autocomplete="both"
-                          inputmode="mozAwesomebar"
-                          data-l10n-id="urlbar-placeholder"
-                          data-l10n-attrs="placeholder"/>
-            </moz-input-box>
+            <hbox class="urlbar-searchmode-and-input-box-container" flex="1">
+              <toolbarbutton id="urlbar-searchmode-switcher"
+                             data-action="openpopup"
+                             align="center"
+                             role="button"
+                             aria-haspopup="menu"
+                             aria-expanded="false"
+                             tooltip="dynamic-shortcut-tooltip"
+                             class="chromeclass-toolbar-additional">
+                <image id="searchmode-switcher-icon" />
+                <image id="searchmode-switcher-dropmarker"
+                       data-l10n-id="urlbar-searchmode-dropmarker"
+                       class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
+              </toolbarbutton>
+              <box id="searchmode-switcher-chicklet">
+                <label id="searchmode-switcher-title" />
+                <toolbarbutton id="searchmode-switcher-close"
+                               data-action="exitsearchmode"
+                               role="button"
+                               tooltip="dynamic-shortcut-tooltip"
+                               class="toolbarbutton-icon close-button" />
+              </box>
+              <moz-input-box tooltip="aHTMLTooltip"
+                             class="urlbar-input-box"
+                             flex="1"
+                             role="combobox"
+                             aria-owns="urlbar-results">
+                <html:input id="urlbar-scheme"
+                            required="required"/>
+                <html:input id="urlbar-input"
+                            class="urlbar-input"
+                            anonid="input"
+                            aria-controls="urlbar-results"
+                            aria-autocomplete="both"
+                            inputmode="mozAwesomebar"
+                            data-l10n-id="urlbar-placeholder"
+                            data-l10n-attrs="placeholder"/>
+              </moz-input-box>
+              <image class="urlbar-icon urlbar-revert-button"
+                     role="button"
+                     onclick="gURLBar.handleRevert(true)"
+                     data-l10n-id="urlbar-revert-button"/>
+            </hbox>
             <image class="urlbar-icon urlbar-go-button"
                    role="button"
                    keyNav="false"
                    onclick="gURLBar.handleCommand(event);"
                    data-l10n-id="urlbar-go-button"/>
+            <image class="urlbar-icon urlbar-show-page-actions-button"
+                   role="button"
+                   onclick="gURLBar.handleRevert(true)"
+                   data-l10n-id="urlbar-show-page-actions-button"
+                   align="center"/>
             <hbox id="page-action-buttons" context="pageActionContextMenu" align="center">
               <toolbartabstop/>
               <hbox id="contextual-feature-recommendation" role="button" hidden="true">
