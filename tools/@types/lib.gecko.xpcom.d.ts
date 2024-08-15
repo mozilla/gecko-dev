@@ -7707,7 +7707,6 @@ interface nsICookieService extends nsISupports {
   readonly BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN: 5;
   readonly BEHAVIOR_LAST: 5;
 
-  getCookieStringFromDocument(aDocument: Document): string;
   getCookieStringFromHttp(aURI: nsIURI, aChannel: nsIChannel): string;
   setCookieStringFromDocument(aDocument: Document, aCookie: string): void;
   setCookieStringFromHttp(aURI: nsIURI, aCookie: string, aChannel: nsIChannel): void;

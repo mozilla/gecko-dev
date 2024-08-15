@@ -300,7 +300,7 @@ add_task(
 // CookieService::SetCookieStringFromHttp() call.
 
 // Get partitioned and unpartitioned cookies from document (child).
-// This calls CookieServiceChild::GetCookieStringFromDocument() internally.
+// This uses CookieServiceChild internally.
 add_task(
   async function test_chips_send_partitioned_and_unpartitioned_document_child() {
     const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);

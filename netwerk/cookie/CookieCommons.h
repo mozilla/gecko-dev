@@ -143,6 +143,9 @@ class CookieCommons final {
 
   static bool ChipsLimitEnabledAndChipsCookie(
       const Cookie& cookie, dom::BrowsingContext* aBrowsingContext);
+
+  static void ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
+                                  nsACString& aCookieString);
 };
 
 }  // namespace net
