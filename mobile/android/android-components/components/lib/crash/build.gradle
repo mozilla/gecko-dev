@@ -94,10 +94,7 @@ dependencies {
     testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
 }
 
-ext {
-    gleanNamespace = "mozilla.telemetry.glean"
-    gleanPythonEnvDir = gradle.mozconfig.substs.GRADLE_GLEAN_PARSER_VENV
-}
+ext.gleanNamespace = "mozilla.telemetry.glean"
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply from: '../../../android-lint.gradle'
 apply from: '../../../publish.gradle'
