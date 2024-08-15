@@ -51,10 +51,9 @@ extern "C" {
   void uniffi_suggest_fn_method_suggeststore_dismiss_suggestion(void*, RustBuffer, RustCallStatus*);
   RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_global_config(void*, RustCallStatus*);
   RustBuffer uniffi_suggest_fn_method_suggeststore_fetch_provider_config(void*, RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_suggest_fn_method_suggeststore_ingest(void*, RustBuffer, RustCallStatus*);
+  void uniffi_suggest_fn_method_suggeststore_ingest(void*, RustBuffer, RustCallStatus*);
   void uniffi_suggest_fn_method_suggeststore_interrupt(void*, RustBuffer, RustCallStatus*);
   RustBuffer uniffi_suggest_fn_method_suggeststore_query(void*, RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_suggest_fn_method_suggeststore_query_with_metrics(void*, RustBuffer, RustCallStatus*);
   void* uniffi_suggest_fn_clone_suggeststorebuilder(void*, RustCallStatus*);
   void uniffi_suggest_fn_free_suggeststorebuilder(void*, RustCallStatus*);
   void* uniffi_suggest_fn_constructor_suggeststorebuilder_new(RustCallStatus*);
@@ -781,7 +780,6 @@ private:
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mConstraints;
 
     // MakeRustCall stores the result of the call in these fields
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
     void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
@@ -797,12 +795,10 @@ public:
 
     void MakeRustCall() override {
         RustCallStatus callStatus{};
-        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
-            uniffi_suggest_fn_method_suggeststore_ingest(
-                ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
-                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mConstraints)),
-                &callStatus
-            )
+        uniffi_suggest_fn_method_suggeststore_ingest(
+            ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mConstraints)),
+            &callStatus
         );
 
         mUniffiCallStatusCode = callStatus.code;
@@ -812,12 +808,6 @@ public:
     }
 
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-        ScaffoldingConverter<RustBuffer>::IntoJs(
-          aCx,
-          std::move(mUniffiReturnValue),
-          aDest,
-          aError
-        );
     }
 };
 class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreInterrupt : public UniffiHandlerBase {
@@ -882,52 +872,6 @@ public:
         RustCallStatus callStatus{};
         mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
             uniffi_suggest_fn_method_suggeststore_query(
-                ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
-                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mQuery)),
-                &callStatus
-            )
-        );
-
-        mUniffiCallStatusCode = callStatus.code;
-        if (callStatus.error_buf.data) {
-            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
-        }
-    }
-
-    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-        ScaffoldingConverter<RustBuffer>::IntoJs(
-          aCx,
-          std::move(mUniffiReturnValue),
-          aDest,
-          aError
-        );
-    }
-};
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQueryWithMetrics : public UniffiHandlerBase {
-private:
-    // PrepareRustArgs stores the resulting arguments in these fields
-    typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mQuery;
-
-    // MakeRustCall stores the result of the call in these fields
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
-
-public:
-    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
-        ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
-        if (aError.Failed()) {
-            return;
-        }
-        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mQuery, aError);
-        if (aError.Failed()) {
-            return;
-        }
-    }
-
-    void MakeRustCall() override {
-        RustCallStatus callStatus{};
-        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
-            uniffi_suggest_fn_method_suggeststore_query_with_metrics(
                 ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoRust(std::move(mPtr)),
                 ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mQuery)),
                 &callStatus
@@ -2325,103 +2269,100 @@ UniquePtr<UniffiHandlerBase> UniFFIGetHandler(uint64_t aId) {
     case 21: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQuery>();
     }
-    case 22: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQueryWithMetrics>();
-    }
-    case 24: {
+    case 23: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststorebuilderNew>();
     }
-    case 25: {
+    case 24: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderBuild>();
     }
-    case 26: {
+    case 25: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
     }
-    case 27: {
+    case 26: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
     }
-    case 28: {
+    case 27: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
     }
-    case 29: {
+    case 28: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
     }
-    case 30: {
+    case 29: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
     }
-    case 31: {
+    case 30: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnFuncRawSuggestionUrlMatches>();
     }
-    case 33: {
+    case 32: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
     }
-    case 34: {
+    case 33: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
     }
-    case 35: {
+    case 34: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
     }
-    case 36: {
+    case 35: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
     }
-    case 37: {
+    case 36: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
     }
-    case 39: {
+    case 38: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineApply>();
     }
-    case 40: {
+    case 39: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
     }
-    case 41: {
+    case 40: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineLastSync>();
     }
-    case 42: {
+    case 41: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
     }
-    case 43: {
+    case 42: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineReset>();
     }
-    case 44: {
+    case 43: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
     }
-    case 45: {
+    case 44: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
     }
-    case 46: {
+    case 45: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
     }
-    case 47: {
+    case 46: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
     }
-    case 48: {
+    case 47: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
     }
-    case 49: {
+    case 48: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncId>();
     }
-    case 50: {
+    case 49: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
     }
-    case 51: {
+    case 50: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineWipe>();
     }
-    case 53: {
+    case 52: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnConstructorTabsstoreNew>();
     }
-    case 54: {
+    case 53: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreBridgedEngine>();
     }
-    case 55: {
+    case 54: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreGetAll>();
     }
-    case 56: {
+    case 55: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
     }
-    case 57: {
+    case 56: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
     }
-    case 58: {
+    case 57: {
         return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreSetLocalTabs>();
     }
 

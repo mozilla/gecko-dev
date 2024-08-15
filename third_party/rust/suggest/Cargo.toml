@@ -21,12 +21,8 @@ description = "Manages sponsored and web suggestions for Firefox Suggest"
 readme = "README.md"
 license = "MPL-2.0"
 
-[lib]
-bench = false
-
 [[bin]]
 name = "debug_ingestion_sizes"
-bench = false
 required-features = ["benchmark_api"]
 
 [[bench]]
@@ -41,7 +37,6 @@ extend = "1.1"
 log = "0.4"
 once_cell = "1.5"
 parking_lot = ">=0.11,<=0.12"
-rmp-serde = "1.3"
 serde_json = "1"
 thiserror = "1"
 uniffi = "0.27.1"

@@ -6,7 +6,7 @@ use crate::config::RemoteSettingsConfig;
 use crate::error::{RemoteSettingsError, Result};
 use crate::{RemoteSettingsServer, UniffiCustomTypeConverter};
 use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     borrow::Cow,
     time::{Duration, Instant},
@@ -215,20 +215,20 @@ impl Client {
 
 /// Data structure representing the top-level response from the Remote Settings.
 /// [last_modified] will be extracted from the etag header of the response.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RemoteSettingsResponse {
     pub records: Vec<RemoteSettingsRecord>,
     pub last_modified: u64,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 struct RecordsResponse {
     data: Vec<RemoteSettingsRecord>,
 }
 
 /// A parsed Remote Settings record. Records can contain arbitrary fields, so clients
 /// are required to further extract expected values from the [fields] member.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct RemoteSettingsRecord {
     pub id: String,
     pub last_modified: u64,
@@ -241,7 +241,7 @@ pub struct RemoteSettingsRecord {
 
 /// Attachment metadata that can be optionally attached to a [Record]. The [location] should
 /// included in calls to [Client::get_attachment].
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct Attachment {
     pub filename: String,
     pub mimetype: String,

@@ -116,6 +116,7 @@ dictionary SuggestionQuery {
 };
 
 dictionary SuggestIngestionConstraints {
+    u64? max_suggestions = null;
     sequence<SuggestionProvider>? providers = null;
     // Only ingest if the table `suggestions` is empty.
     //
@@ -125,26 +126,6 @@ dictionary SuggestIngestionConstraints {
     // there is a schema upgrade that causes the database to be thrown away, then the
     // `empty_only=true` ingestion that runs on startup will repopulate it.
     boolean empty_only = false;
-};
-
-dictionary SuggestIngestionMetrics {
-    // Samples for the `suggest.ingestion_time` metric
-    sequence<LabeledTimingSample> ingestion_times;
-    // Samples for the `suggest.ingestion_download_time` metric
-    sequence<LabeledTimingSample> download_times;
-};
-
-dictionary QueryWithMetricsResult {
-    sequence<Suggestion> suggestions;
-    // Samples for the `suggest.query_time` metric
-    sequence<LabeledTimingSample> query_times;
-};
-
-/// A single sample for a labeled timing distribution metric
-dictionary LabeledTimingSample {
-    string label;
-    // Time in microseconds
-    u64 value;
 };
 
 dictionary SuggestGlobalConfig {
@@ -172,9 +153,6 @@ interface SuggestStore {
     sequence<Suggestion> query(SuggestionQuery query);
 
     [Throws=SuggestApiError]
-    QueryWithMetricsResult query_with_metrics(SuggestionQuery query);
-
-    [Throws=SuggestApiError]
     void dismiss_suggestion(string raw_suggestion_url);
 
     [Throws=SuggestApiError]
@@ -187,7 +165,7 @@ interface SuggestStore {
     void interrupt(optional InterruptKind? kind = null);
 
     [Throws=SuggestApiError]
-    SuggestIngestionMetrics ingest(SuggestIngestionConstraints constraints);
+    void ingest(SuggestIngestionConstraints constraints);
 
     [Throws=SuggestApiError]
     void clear();
