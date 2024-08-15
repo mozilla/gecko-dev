@@ -72,6 +72,9 @@ async function echo(request, _model, _tokenizer, _processor, config) {
   }
   result.echo = request.data;
 
+  // Sleeping to simulate inference latency
+  await new Promise(resolve => setTimeout(resolve, request.sleepTime ?? 100));
+
   return {
     metrics: {
       tokenizingTime: 0,
