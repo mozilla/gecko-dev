@@ -1047,6 +1047,15 @@ export class TranslationsParent extends JSWindowActorParent {
   static #languagePairs = null;
 
   /**
+   * Clears the cached list of language pairs, notifying observers that the
+   * available language pairs have changed.
+   */
+  static #clearCachedLanguagePairs() {
+    TranslationsParent.#languagePairs = null;
+    Services.obs.notifyObservers(null, "translations:language-pairs-changed");
+  }
+
+  /**
    * Get the list of translation pairs supported by the translations engine.
    *
    * @returns {Promise<Array<LanguagePair>>}
@@ -1066,7 +1075,7 @@ export class TranslationsParent extends JSWindowActorParent {
           return Array.from(languagePairMap.values());
         });
       TranslationsParent.#languagePairs.catch(() => {
-        TranslationsParent.#languagePairs = null;
+        TranslationsParent.#clearCachedLanguagePairs();
       });
     }
     return TranslationsParent.#languagePairs;
@@ -1316,7 +1325,7 @@ export class TranslationsParent extends JSWindowActorParent {
     }
 
     // Invalidate cached data.
-    TranslationsParent.#languagePairs = null;
+    TranslationsParent.#clearCachedLanguagePairs();
     TranslationsParent.#translationModelRecords = null;
 
     // Language model attachments will only be downloaded when they are used.
@@ -2362,8 +2371,8 @@ export class TranslationsParent extends JSWindowActorParent {
     TranslationsParent.#translationsWasmRemoteClient = null;
 
     // Derived data.
+    TranslationsParent.#clearCachedLanguagePairs();
     TranslationsParent.#preferredLanguages = null;
-    TranslationsParent.#languagePairs = null;
     TranslationsParent.#isTranslationsEngineSupported = null;
   }
 
