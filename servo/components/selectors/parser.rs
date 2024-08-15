@@ -251,7 +251,7 @@ pub trait Parser<'i> {
         false
     }
 
-    /// Whether to parse the `:where` pseudo-class.
+    /// Whether to parse `:is` and `:where` pseudo-classes.
     fn parse_is_and_where(&self) -> bool {
         false
     }
