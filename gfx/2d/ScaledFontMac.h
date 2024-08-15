@@ -62,8 +62,6 @@ class ScaledFontMac : public ScaledFontBase {
 
   bool UseSubpixelPosition() const override { return true; }
 
-  bool UseFontSmoothing() const { return mUseFontSmoothing; }
-
   cairo_font_face_t* CreateCairoFontFace(
       cairo_font_options_t* aFontOptions) override;
 
