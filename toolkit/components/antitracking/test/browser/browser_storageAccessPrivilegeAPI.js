@@ -331,7 +331,7 @@ add_task(async function test_privilege_api_with_dFPI() {
     document.cookie = "name=unpartitioned";
     is(
       document.cookie,
-      "name=unpartitioned; name=partitioned",
+      "name=partitioned; name=unpartitioned",
       "Successfully set cookies. Both partitioned and unpartitioned cookies should be available"
     );
   });
@@ -343,7 +343,7 @@ add_task(async function test_privilege_api_with_dFPI() {
 
     is(
       document.cookie,
-      "name=unpartitioned; name=partitioned",
+      "name=partitioned; name=unpartitioned",
       "Some cookies for unpartitioned context"
     );
   });
