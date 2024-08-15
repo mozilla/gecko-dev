@@ -229,6 +229,10 @@ enum class DigitLookalikeStatus { Ignore, Safe, Block };
 
 bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
                                mozilla::Span<const char32_t> aTLD) {
+  if (StaticPrefs::network_IDN_show_punycode()) {
+    return false;
+  }
+
   if (!isOnlySafeChars(aLabel, mIDNBlocklist)) {
     return false;
   }

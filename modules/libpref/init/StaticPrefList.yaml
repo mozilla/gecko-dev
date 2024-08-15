@@ -12394,6 +12394,13 @@
   value: 393216
   mirror: always
 
+# Treat all Unicode labels as confusable/unsafe so that they show up
+# as Punycode in the UI.
+- name: network.IDN_show_punycode
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # If set to true, IOService.offline depends on IOService.connectivity.
 - name: network.offline-mirrors-connectivity
   type: RelaxedAtomicBool
