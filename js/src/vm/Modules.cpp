@@ -1960,7 +1960,10 @@ void js::AsyncModuleExecutionFulfilled(JSContext* cx,
     } else if (m->hasTopLevelAwait()) {
       // Step 12.b. Else if m.[[HasTLA]] is true, then:
       // Step 12.b.i. Perform ExecuteAsyncModule(m).
-      MOZ_ALWAYS_TRUE(ExecuteAsyncModule(cx, m));
+      if (!ExecuteAsyncModule(cx, m)) {
+        MOZ_ASSERT(cx->isThrowingOutOfMemory() || cx->isThrowingOverRecursed());
+        cx->clearPendingException();
+      }
     } else {
       // Step 12.c. Else:
       // Step 12.c.i. Let result be m.ExecuteModule().
