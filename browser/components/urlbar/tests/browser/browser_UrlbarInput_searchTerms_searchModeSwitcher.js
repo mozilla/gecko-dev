@@ -166,10 +166,14 @@ add_task(async function select_non_default_engine_and_modify_search_and_blur() {
   popup.querySelector("toolbarbutton[label=NonDefault]").click();
   await popupHidden;
 
-  // Bug 1909301: When the search term doesn't change, blurring the address bar
-  // causes the search mode switcher to not show correct data.
   EventUtils.synthesizeKey("s");
   gURLBar.blur();
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "NonDefault",
+    isGeneralPurposeEngine: false,
+    entry: "other",
+  });
 
   info("Search terms should no longer be persisting.");
   Assert.ok(
@@ -183,6 +187,87 @@ add_task(async function select_non_default_engine_and_modify_search_and_blur() {
   );
 
   BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function select_non_default_engine_and_blur() {
+  let { tab } = await searchWithTab(SEARCH_STRING);
+
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the NonDefault menu button and enter Search Mode.");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  await popupHidden;
+
+  gURLBar.blur();
+
+  info("Verify search mode and search string.");
+  Assert.equal(
+    gURLBar.value,
+    SEARCH_STRING,
+    "Urlbar value matches search string."
+  );
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "NonDefault",
+    isGeneralPurposeEngine: false,
+    entry: "other",
+  });
+
+  Assert.ok(
+    !gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+  Assert.equal(
+    gURLBar.getAttribute("pageproxystate"),
+    "invalid",
+    "Page proxy state."
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function select_non_default_engine_and_blur_and_switch_tab() {
+  let { tab } = await searchWithTab(SEARCH_STRING);
+
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the NonDefault menu button and enter Search Mode.");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  await popupHidden;
+
+  gURLBar.blur();
+
+  info("Open a new tab so the address bar no longer has the same search mode.");
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:newtab",
+    false
+  );
+
+  info(
+    "Switch back to the original tab to ensure the previous selected search mode is retained."
+  );
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "NonDefault",
+    isGeneralPurposeEngine: false,
+    entry: "other",
+  });
+  Assert.ok(
+    !gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+  Assert.equal(
+    gURLBar.getAttribute("pageproxystate"),
+    "invalid",
+    "Page proxy state."
+  );
+
+  BrowserTestUtils.removeTab(tab);
+  BrowserTestUtils.removeTab(tab2);
 });
 
 add_task(async function revert_button() {

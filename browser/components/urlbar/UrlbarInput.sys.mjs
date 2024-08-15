@@ -420,7 +420,7 @@ export class UrlbarInput {
     ) {
       if (this.window.gBrowser.selectedBrowser.searchTerms) {
         value = this.window.gBrowser.selectedBrowser.searchTerms;
-        valid = !dueToSessionRestore;
+        valid = !dueToSessionRestore && !this.window.gBrowser.userTypedValue;
         if (!isSameDocument) {
           Services.telemetry.scalarAdd(
             "urlbar.persistedsearchterms.view_count",
@@ -3582,7 +3582,10 @@ export class UrlbarInput {
     this._isHandoffSession = false;
     this.removeAttribute("focused");
 
-    if (this._revertOnBlurValue == this.value) {
+    if (
+      this._revertOnBlurValue == this.value &&
+      !this.window.gBrowser.selectedBrowser.searchTerms
+    ) {
       this.handleRevert();
     } else if (
       this._autofillPlaceholder &&
