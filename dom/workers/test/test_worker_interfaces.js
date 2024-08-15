@@ -138,9 +138,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AudioData", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "AudioDecoder" },
+  { name: "AudioDecoder", android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "AudioEncoder" },
+  { name: "AudioEncoder", android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Blob", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -370,13 +370,13 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "URLSearchParams", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoColorSpace", insecureContext: true },
+  { name: "VideoColorSpace", insecureContext: true, android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoDecoder" },
+  { name: "VideoDecoder", android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoEncoder" },
+  { name: "VideoEncoder", android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoFrame", insecureContext: true },
+  { name: "VideoFrame", insecureContext: true, android: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WebGL2RenderingContext", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
