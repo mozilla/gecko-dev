@@ -29,11 +29,11 @@
   color-scheme: dark;
 }
 
-.sidebar-panel[lwt-sidebar] .sidebar-placesTreechildren::-moz-tree-row(selected) {
-  background-color: light-dark(hsla(0,0%,80%,.3), rgba(249,249,250,.1));
-}
+.sidebar-panel[lwt-sidebar] .sidebar-placesTreechildren {
+  &::-moz-tree-row(selected) {
+    background-color: light-dark(hsla(0,0%,80%,.3), rgba(249,249,250,.1));
+  }
 
-.sidebar-panel[lwt-sidebar="dark"] .sidebar-placesTreechildren {
   &::-moz-tree-image(selected),
   &::-moz-tree-twisty(selected),
   &::-moz-tree-cell-text(selected) {
@@ -42,7 +42,7 @@
 }
 
 .sidebar-panel[lwt-sidebar-highlight] .sidebar-placesTreechildren {
-  &::-moz-tree-row(selected,focus) {
+  &::-moz-tree-row(selected, focus) {
     background-color: var(--lwt-sidebar-highlight-background-color);
   }
 
