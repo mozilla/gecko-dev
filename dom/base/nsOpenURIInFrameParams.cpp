@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsOpenURIInFrameParams.h"
+#include "nsIContentSecurityPolicy.h"
 #include "nsIOpenWindowInfo.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/Element.h"

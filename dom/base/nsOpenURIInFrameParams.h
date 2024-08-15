@@ -8,10 +8,11 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsFrameLoaderOwner.h"
-#include "nsIContentSecurityPolicy.h"
 #include "nsIPrincipal.h"
 #include "nsIReferrerInfo.h"
 #include "nsString.h"
+
+class nsIContentSecurityPolicy;
 
 namespace mozilla {
 class OriginAttributes;

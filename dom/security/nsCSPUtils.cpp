@@ -12,6 +12,7 @@
 #include "nsCSPParser.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIConsoleService.h"
+#include "nsIContentSecurityPolicy.h"
 #include "nsIChannel.h"
 #include "nsICryptoHash.h"
 #include "nsIScriptError.h"
@@ -1537,6 +1538,10 @@ void nsCSPDirective::toDomCSPStruct(mozilla::dom::CSP& outCSP) const {
     default:
       NS_ASSERTION(false, "cannot find directive to convert CSP to JSON");
   }
+}
+
+bool nsCSPDirective::isDefaultDirective() const {
+  return mDirective == nsIContentSecurityPolicy::DEFAULT_SRC_DIRECTIVE;
 }
 
 void nsCSPDirective::getReportURIs(nsTArray<nsString>& outReportURIs) const {

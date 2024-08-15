@@ -57,6 +57,7 @@
 #include "nsReadableUtils.h"
 #include "nsSandboxFlags.h"
 
+#include "nsIContentPolicy.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
 #include "nsILoadGroup.h"

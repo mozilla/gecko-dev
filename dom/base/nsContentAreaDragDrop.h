@@ -10,8 +10,8 @@
 #include "nsCOMPtr.h"
 
 #include "nsITransferable.h"
-#include "nsIContentSecurityPolicy.h"
 
+class nsIContentSecurityPolicy;
 class nsICookieJarSettings;
 class nsPIDOMWindowOuter;
 class nsITransferable;

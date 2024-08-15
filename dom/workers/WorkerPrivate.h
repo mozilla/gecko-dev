@@ -43,13 +43,14 @@
 #include "mozilla/StaticPrefs_extensions.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
-#include "nsIContentSecurityPolicy.h"
+#include "nsIContentPolicy.h"
 #include "nsIEventTarget.h"
 #include "nsILoadInfo.h"
 #include "nsRFPService.h"
 #include "nsTObserverArray.h"
 #include "stdint.h"
 
+class nsIContentSecurityPolicy;
 class nsIThreadInternal;
 
 namespace JS {

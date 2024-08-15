@@ -7,7 +7,7 @@
 #ifndef mozilla_net_InterceptionInfo_h
 #define mozilla_net_InterceptionInfo_h
 
-#include "nsIContentSecurityPolicy.h"
+#include "nsIContentPolicy.h"
 #include "nsIInterceptionInfo.h"
 #include "nsIPrincipal.h"
 #include "nsIRedirectHistoryEntry.h"

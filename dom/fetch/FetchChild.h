@@ -11,7 +11,6 @@
 #include "mozilla/dom/PFetchChild.h"
 #include "mozilla/dom/SerializedStackHolder.h"
 #include "nsIConsoleReportCollector.h"
-#include "nsIContentSecurityPolicy.h"
 #include "nsISupports.h"
 #include "nsIWorkerChannelInfo.h"
 

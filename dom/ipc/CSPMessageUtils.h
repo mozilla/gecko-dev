@@ -9,7 +9,8 @@
 
 #include "ipc/IPCMessageUtils.h"
 #include "nsCOMPtr.h"
-#include "nsIContentSecurityPolicy.h"
+
+class nsIContentSecurityPolicy;
 
 namespace IPC {
 

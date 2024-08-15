@@ -8,7 +8,6 @@
 #define nsCSPUtils_h___
 
 #include "nsCOMPtr.h"
-#include "nsIContentSecurityPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsIURI.h"
 #include "nsString.h"
@@ -483,9 +482,7 @@ class nsCSPDirective {
     mSrcs = aSrcs.Clone();
   }
 
-  inline bool isDefaultDirective() const {
-    return mDirective == nsIContentSecurityPolicy::DEFAULT_SRC_DIRECTIVE;
-  }
+  bool isDefaultDirective() const;
 
   virtual bool equals(CSPDirective aDirective) const;
 

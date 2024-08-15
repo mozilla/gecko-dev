@@ -25,7 +25,6 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsISizeOfEventTarget.h"
 #include "nsIInputStream.h"
-#include "nsIContentSecurityPolicy.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
