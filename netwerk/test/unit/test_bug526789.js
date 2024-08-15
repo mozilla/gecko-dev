@@ -234,7 +234,7 @@ add_task(async () => {
   await testDomainCookie("http://co.uk/", "co.uk");
 
   // Test that trailing dots are treated differently for purposes of the
-  // 'domain' attribute when using setCookieStringFromDocument.
+  // 'domain' attribute.
   await testTrailingDotCookie("http://localhost/", "localhost");
   await testTrailingDotCookie("http://foo.com/", "foo.com");
 

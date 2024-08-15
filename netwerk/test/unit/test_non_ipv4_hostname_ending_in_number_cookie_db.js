@@ -4,7 +4,7 @@
 // Note that E2E test doesn't seem possible via setting a cookie
 // from xpcshell (main process) since:
 // 1. setCookieStringFromHttp requires a valid URL
-// 2. setCookieStringFromDocument requires access to the document
+// 2. document.cookie requires access to the document
 // 3. Services.cookies.add() is just a backdoor that will bypass
 // Similarly, even with a browser test, in order to call
 // content.document.cookie we would need to SpecialPowers.spawn

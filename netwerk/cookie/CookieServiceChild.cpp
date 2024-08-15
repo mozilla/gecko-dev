@@ -272,17 +272,6 @@ IPCResult CookieServiceChild::RecvTrackCookiesLoad(
   return IPC_OK();
 }
 
-uint32_t CookieServiceChild::CountCookiesFromHashTable(
-    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttrs) {
-  CookiesList* cookiesList = nullptr;
-
-  nsCString baseDomain;
-  CookieKey key(aBaseDomain, aOriginAttrs);
-  mCookiesMap.Get(key, &cookiesList);
-
-  return cookiesList ? cookiesList->Length() : 0;
-}
-
 /* static */ bool CookieServiceChild::RequireThirdPartyCheck(
     nsILoadInfo* aLoadInfo) {
   if (!aLoadInfo) {
@@ -353,123 +342,6 @@ CookieServiceChild::GetCookieStringFromHttp(nsIURI* /*aHostURI*/,
 }
 
 NS_IMETHODIMP
-CookieServiceChild::SetCookieStringFromDocument(
-    dom::Document* aDocument, const nsACString& aCookieString) {
-  NS_ENSURE_ARG(aDocument);
-
-  nsCOMPtr<nsIURI> documentURI;
-  nsAutoCString baseDomain;
-  OriginAttributes attrs;
-
-  // This function is executed in this context, I don't need to keep objects
-  // alive.
-  auto hasExistingCookiesLambda = [&](const nsACString& aBaseDomain,
-                                      const OriginAttributes& aAttrs) {
-    return !!CountCookiesFromHashTable(aBaseDomain, aAttrs);
-  };
-
-  auto* basePrincipal = BasePrincipal::Cast(aDocument->NodePrincipal());
-  basePrincipal->GetURI(getter_AddRefs(documentURI));
-  if (NS_WARN_IF(!documentURI)) {
-    // Document's principal is not a content or null (may be system), so
-    // can't set cookies
-    return NS_OK;
-  }
-
-  // Console report takes care of the correct reporting at the exit of this
-  // method.
-  RefPtr<ConsoleReportCollector> crc = new ConsoleReportCollector();
-  auto scopeExit = MakeScopeExit([&] { crc->FlushConsoleReports(aDocument); });
-
-  CookieParser cookieParser(crc, documentURI);
-
-  RefPtr<Cookie> cookie = CookieCommons::CreateCookieFromDocument(
-      cookieParser, aDocument, aCookieString, PR_Now(), mTLDService,
-      mThirdPartyUtil, hasExistingCookiesLambda, baseDomain, attrs);
-  if (!cookie) {
-    return NS_OK;
-  }
-
-  bool thirdParty = true;
-  nsPIDOMWindowInner* innerWindow = aDocument->GetInnerWindow();
-  // in gtests we don't have a window, let's consider those requests as 3rd
-  // party.
-  if (innerWindow) {
-    ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
-
-    if (thirdPartyUtil) {
-      Unused << thirdPartyUtil->IsThirdPartyWindow(
-          innerWindow->GetOuterWindow(), nullptr, &thirdParty);
-    }
-  }
-
-  if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookieForDocument(
-                        cookie, aDocument)) {
-    return NS_OK;
-  }
-
-  CookieKey key(baseDomain, attrs);
-  CookiesList* cookies = mCookiesMap.Get(key);
-
-  if (cookies) {
-    // We need to see if the cookie we're setting would overwrite an httponly
-    // or a secure one. This would not affect anything we send over the net
-    // (those come from the parent, which already checks this),
-    // but script could see an inconsistent view of things.
-
-    // CHIPS - If the cookie has the "Partitioned" attribute set it will be
-    // stored in the partitioned cookie jar.
-    bool needPartitioned = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                           cookie->RawIsPartitioned();
-    nsCOMPtr<nsIPrincipal> principal =
-        needPartitioned ? aDocument->PartitionedPrincipal()
-                        : aDocument->EffectiveCookiePrincipal();
-    bool isPotentiallyTrustworthy =
-        principal->GetIsOriginPotentiallyTrustworthy();
-
-    for (uint32_t i = 0; i < cookies->Length(); ++i) {
-      RefPtr<Cookie> existingCookie = cookies->ElementAt(i);
-      if (existingCookie->Name().Equals(cookie->Name()) &&
-          existingCookie->Host().Equals(cookie->Host()) &&
-          existingCookie->Path().Equals(cookie->Path())) {
-        // Can't overwrite an httponly cookie from a script context.
-        if (existingCookie->IsHttpOnly()) {
-          return NS_OK;
-        }
-
-        // prevent insecure cookie from overwriting a secure one in insecure
-        // context.
-        if (existingCookie->IsSecure() && !isPotentiallyTrustworthy) {
-          return NS_OK;
-        }
-      }
-    }
-  }
-
-  RecordDocumentCookie(cookie, attrs);
-
-  if (CanSend()) {
-    nsTArray<CookieStruct> cookiesToSend;
-    cookiesToSend.AppendElement(cookie->ToIPC());
-
-    // Asynchronously call the parent.
-    dom::WindowGlobalChild* windowGlobalChild =
-        aDocument->GetWindowGlobalChild();
-
-    // If there is no WindowGlobalChild fall back to PCookieService SetCookies.
-    if (NS_WARN_IF(!windowGlobalChild)) {
-      SendSetCookies(baseDomain, attrs, documentURI, false, thirdParty,
-                     cookiesToSend);
-      return NS_OK;
-    }
-    windowGlobalChild->SendSetCookies(baseDomain, attrs, documentURI, false,
-                                      thirdParty, cookiesToSend);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
                                             const nsACString& aCookieString,
                                             nsIChannel* aChannel) {
@@ -518,7 +390,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
       result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
       result.contains(ThirdPartyAnalysis::IsStorageAccessPermissionGranted),
       aCookieString,
-      CountCookiesFromHashTable(baseDomain, storagePrincipalOriginAttributes),
+      HasExistingCookies(baseDomain, storagePrincipalOriginAttributes),
       storagePrincipalOriginAttributes, &rejectedReason);
 
   if (cookieStatus != STATUS_ACCEPTED &&
@@ -653,9 +525,8 @@ CookieServiceChild::RunInTransaction(
 }
 
 void CookieServiceChild::GetCookiesFromHost(
-    const nsACString& aBaseDomain,
-    const mozilla::OriginAttributes& aOriginAttributes,
-    nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies) {
+    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes,
+    nsTArray<RefPtr<Cookie>>& aCookies) {
   CookieKey key(aBaseDomain, aOriginAttributes);
 
   CookiesList* cookiesList = nullptr;
@@ -666,10 +537,88 @@ void CookieServiceChild::GetCookiesFromHost(
   }
 }
 
-void CookieServiceChild::StaleCookies(
-    const nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies,
-    int64_t aCurrentTimeInUsec) {
+void CookieServiceChild::StaleCookies(const nsTArray<RefPtr<Cookie>>& aCookies,
+                                      int64_t aCurrentTimeInUsec) {
   // Nothing to do here.
+}
+
+bool CookieServiceChild::HasExistingCookies(
+    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes) {
+  CookiesList* cookiesList = nullptr;
+
+  CookieKey key(aBaseDomain, aOriginAttributes);
+  mCookiesMap.Get(key, &cookiesList);
+
+  return cookiesList ? cookiesList->Length() : 0;
+}
+
+void CookieServiceChild::AddCookieFromDocument(
+    CookieParser& aCookieParser, const nsACString& aBaseDomain,
+    const OriginAttributes& aOriginAttributes, Cookie& aCookie,
+    int64_t aCurrentTimeInUsec, nsIURI* aDocumentURI, bool aThirdParty,
+    dom::Document* aDocument) {
+  MOZ_ASSERT(aDocumentURI);
+  MOZ_ASSERT(aDocument);
+
+  CookieKey key(aBaseDomain, aOriginAttributes);
+  CookiesList* cookies = mCookiesMap.Get(key);
+
+  if (cookies) {
+    // We need to see if the cookie we're setting would overwrite an httponly
+    // or a secure one. This would not affect anything we send over the net
+    // (those come from the parent, which already checks this),
+    // but script could see an inconsistent view of things.
+
+    // CHIPS - If the cookie has the "Partitioned" attribute set it will be
+    // stored in the partitioned cookie jar.
+    bool needPartitioned = StaticPrefs::network_cookie_CHIPS_enabled() &&
+                           aCookie.RawIsPartitioned();
+    nsCOMPtr<nsIPrincipal> principal =
+        needPartitioned ? aDocument->PartitionedPrincipal()
+                        : aDocument->EffectiveCookiePrincipal();
+    bool isPotentiallyTrustworthy =
+        principal->GetIsOriginPotentiallyTrustworthy();
+
+    for (uint32_t i = 0; i < cookies->Length(); ++i) {
+      RefPtr<Cookie> existingCookie = cookies->ElementAt(i);
+      if (existingCookie->Name().Equals(aCookie.Name()) &&
+          existingCookie->Host().Equals(aCookie.Host()) &&
+          existingCookie->Path().Equals(aCookie.Path())) {
+        // Can't overwrite an httponly cookie from a script context.
+        if (existingCookie->IsHttpOnly()) {
+          return;
+        }
+
+        // prevent insecure cookie from overwriting a secure one in insecure
+        // context.
+        if (existingCookie->IsSecure() && !isPotentiallyTrustworthy) {
+          return;
+        }
+      }
+    }
+  }
+
+  RecordDocumentCookie(&aCookie, aOriginAttributes);
+
+  if (CanSend()) {
+    nsTArray<CookieStruct> cookiesToSend;
+    cookiesToSend.AppendElement(aCookie.ToIPC());
+
+    // Asynchronously call the parent.
+    dom::WindowGlobalChild* windowGlobalChild =
+        aDocument->GetWindowGlobalChild();
+
+    // If there is no WindowGlobalChild fall back to PCookieService SetCookies.
+    if (NS_WARN_IF(!windowGlobalChild)) {
+      SendSetCookies(aBaseDomain, aOriginAttributes, aDocumentURI, false,
+                     aThirdParty, cookiesToSend);
+      return;
+    }
+
+    windowGlobalChild->SendSetCookies(aBaseDomain, aOriginAttributes,
+                                      aDocumentURI, false, aThirdParty,
+                                      cookiesToSend);
+  }
 }
 
 }  // namespace net

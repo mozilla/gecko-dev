@@ -420,77 +420,6 @@ CookieService::GetCookieStringFromHttp(nsIURI* aHostURI, nsIChannel* aChannel,
 }
 
 NS_IMETHODIMP
-CookieService::SetCookieStringFromDocument(Document* aDocument,
-                                           const nsACString& aCookieString) {
-  NS_ENSURE_ARG(aDocument);
-
-  if (!IsInitialized()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> documentURI;
-  nsAutoCString baseDomain;
-  OriginAttributes attrs;
-
-  int64_t currentTimeInUsec = PR_Now();
-
-  // This function is executed in this context, I don't need to keep objects
-  // alive.
-  auto hasExistingCookiesLambda = [&](const nsACString& aBaseDomain,
-                                      const OriginAttributes& aAttrs) {
-    CookieStorage* storage = PickStorage(aAttrs);
-    return !!storage->CountCookiesFromHost(aBaseDomain,
-                                           aAttrs.mPrivateBrowsingId);
-  };
-
-  auto* basePrincipal = BasePrincipal::Cast(aDocument->NodePrincipal());
-  basePrincipal->GetURI(getter_AddRefs(documentURI));
-  if (NS_WARN_IF(!documentURI)) {
-    // Document's principal is not a content or null (may be system), so
-    // can't set cookies
-    return NS_OK;
-  }
-
-  // Console report takes care of the correct reporting at the exit of this
-  // method.
-  RefPtr<ConsoleReportCollector> crc = new ConsoleReportCollector();
-  auto scopeExit = MakeScopeExit([&] { crc->FlushConsoleReports(aDocument); });
-
-  CookieParser cookieParser(crc, documentURI);
-
-  RefPtr<Cookie> cookie = CookieCommons::CreateCookieFromDocument(
-      cookieParser, aDocument, aCookieString, currentTimeInUsec, mTLDService,
-      mThirdPartyUtil, hasExistingCookiesLambda, baseDomain, attrs);
-  if (!cookie) {
-    return NS_OK;
-  }
-
-  bool thirdParty = true;
-  nsPIDOMWindowInner* innerWindow = aDocument->GetInnerWindow();
-  // in gtests we don't have a window, let's consider those requests as 3rd
-  // party.
-  if (innerWindow) {
-    ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
-
-    if (thirdPartyUtil) {
-      Unused << thirdPartyUtil->IsThirdPartyWindow(
-          innerWindow->GetOuterWindow(), nullptr, &thirdParty);
-    }
-  }
-
-  if (thirdParty && !CookieCommons::ShouldIncludeCrossSiteCookieForDocument(
-                        cookie, aDocument)) {
-    return NS_OK;
-  }
-
-  // add the cookie to the list. AddCookie() takes care of logging.
-  PickStorage(attrs)->AddCookie(
-      &cookieParser, baseDomain, attrs, cookie, currentTimeInUsec, documentURI,
-      aCookieString, false, thirdParty, aDocument->GetBrowsingContext());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
                                        const nsACString& aCookieHeader,
                                        nsIChannel* aChannel) {
@@ -1694,9 +1623,8 @@ bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
 }
 
 void CookieService::GetCookiesFromHost(
-    const nsACString& aBaseDomain,
-    const mozilla::OriginAttributes& aOriginAttributes,
-    nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies) {
+    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes,
+    nsTArray<RefPtr<Cookie>>& aCookies) {
   if (!IsInitialized()) {
     return;
   }
@@ -1705,9 +1633,8 @@ void CookieService::GetCookiesFromHost(
   storage->GetCookiesFromHost(aBaseDomain, aOriginAttributes, aCookies);
 }
 
-void CookieService::StaleCookies(
-    const nsTArray<RefPtr<mozilla::net::Cookie>>& aCookies,
-    int64_t aCurrentTimeInUsec) {
+void CookieService::StaleCookies(const nsTArray<RefPtr<Cookie>>& aCookies,
+                                 int64_t aCurrentTimeInUsec) {
   if (!IsInitialized()) {
     return;
   }
@@ -1725,6 +1652,38 @@ void CookieService::StaleCookies(
 
   CookieStorage* storage = PickStorage(originAttributes);
   storage->StaleCookies(aCookies, aCurrentTimeInUsec);
+}
+
+bool CookieService::HasExistingCookies(
+    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes) {
+  if (!IsInitialized()) {
+    return false;
+  }
+
+  CookieStorage* storage = PickStorage(aOriginAttributes);
+  return !!storage->CountCookiesFromHost(aBaseDomain,
+                                         aOriginAttributes.mPrivateBrowsingId);
+}
+
+void CookieService::AddCookieFromDocument(
+    CookieParser& aCookieParser, const nsACString& aBaseDomain,
+    const OriginAttributes& aOriginAttributes, Cookie& aCookie,
+    int64_t aCurrentTimeInUsec, nsIURI* aDocumentURI, bool aThirdParty,
+    Document* aDocument) {
+  MOZ_ASSERT(aDocumentURI);
+  MOZ_ASSERT(aDocument);
+
+  if (!IsInitialized()) {
+    return;
+  }
+
+  nsAutoCString cookieString;
+  aCookieParser.GetCookieString(cookieString);
+
+  PickStorage(aOriginAttributes)
+      ->AddCookie(&aCookieParser, aBaseDomain, aOriginAttributes, &aCookie,
+                  aCurrentTimeInUsec, aDocumentURI, cookieString, false,
+                  aThirdParty, aDocument->GetBrowsingContext());
 }
 
 }  // namespace net

@@ -157,7 +157,7 @@ void GetACookieNoHttp(nsICookieService* aCookieService, const char* aSpec,
   nsAutoString cookie;
   ErrorResult err;
   document->GetCookie(cookie, err);
-  MOZ_ASSERT(!err.Failed());
+  EXPECT_TRUE(!err.Failed());
 
   CopyUTF16toUTF8(cookie, aCookie);
 }
@@ -213,6 +213,9 @@ void InitPrefs(nsIPrefBranch* aPrefBranch) {
   Preferences::SetBool("network.cookieJarSettings.unblocked_for_testing", true);
   Preferences::SetBool("dom.securecontext.allowlist_onions", false);
   Preferences::SetBool("network.cookie.sameSite.schemeful", false);
+
+  // Disable a few security checks for document.cookie
+  Preferences::SetBool("dom.cookie.testing.enabled", true);
 }
 
 TEST(TestCookie, TestCookieMain)

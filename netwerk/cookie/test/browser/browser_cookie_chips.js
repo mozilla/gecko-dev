@@ -82,9 +82,9 @@ const unpartitionedOAs = createOriginAttributes("");
 
 // Set partitioned and unpartitioned cookie from first-party document.
 // CHIPS "Partitioned" cookie MUST always be stored in partitioned jar.
-// This calls CookieServiceChild::SetCookieStringFromDocument() internally.
-// CookieService::SetCookieStringFromDocument() is not explicitly tested since
-// CHIPS are in the common function CookieCommons::CreateCookieFromDocument().
+// This uses CookieServiceChild internally. CookieService is not explicitly
+// tested since CHIPS are in the common function
+// CookieCommons::CreateCookieFromDocument().
 add_task(
   async function test_chips_store_partitioned_document_first_party_child() {
     const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
@@ -126,9 +126,9 @@ add_task(
 
 // Set partitioned and unpartitioned cookie from third-party document with storage
 // access. CHIPS "Partitioned" cookie MUST always be stored in partitioned jar.
-// This calls CookieServiceChild::SetCookieStringFromDocument() internally.
-// CookieService::SetCookieStringFromDocument() is not explicitly tested since
-// CHIPS are in the common function CookieCommons::CreateCookieFromDocument().
+// This uses CookieServiceChild internally.  CookieService is not explicitly
+// tested since CHIPS are in the common function
+// CookieCommons::CreateCookieFromDocument().
 add_task(
   async function test_chips_store_partitioned_document_third_party_storage_access_child() {
     const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
