@@ -47,11 +47,11 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">Обновяване на регистрацията?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-    <string name="mozac_feature_prompt_login_update_headline_2">Актуализиране на паролата?</string>
+    <string name="mozac_feature_prompt_login_update_headline_2">Обновяване на паролата?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Добавяне на потребител към запазената парола?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline_2">Актуализиране на потребителското име?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline_2">Обновяване на потребителското име?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Етикет към поле изискващо въвеждане</string>
@@ -104,11 +104,11 @@
     <!-- Content description for expanding the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Разгъване на предложени регистрации</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description_2">Разгъване на запазените пароли</string>
+    <string name="mozac_feature_prompts_expand_logins_content_description_2">Разгъване на запазени пароли</string>
     <!-- Content description for collapsing the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Сгъване на предложени регистрации</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description_2">Сгъване на запазените пароли</string>
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">Сгъване на запазени пароли</string>
     <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
     <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">Предложени регистрации</string>
 
@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Предлагане на силна парола</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Предлагане на силна парола</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Използвайте силна парола</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Използвайте силна парола: %1$s</string>
@@ -127,9 +125,9 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Използвате силна парола?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволно генерирана парола. Получете бърз достъп до паролите си, като ги запишете в профила си.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволна парола. Получете бърз достъп до паролите си, като ги запазите в профила си.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитете профилите си, като използвате силна, произволно генерирана парола. Ще бъде запазен в профила ви за бъдеща употреба.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитете профилите си, като използвате силна, произволна парола. Ще бъде запазена в профила ви за бъдеща употреба.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Използване на парола</string>
@@ -160,11 +158,11 @@
     <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Разгъва предложения списък с банкови карти</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Разгъване на запазените карти</string>
+    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Разгъване на запазени карти</string>
     <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Сгъва предложения списък с банкови карти</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Сгъване на запазените карти</string>
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Сгъване на запазени карти</string>
     <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">Управление на банкови карти</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
@@ -178,7 +176,7 @@
     <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">Номерът на карата ще бъде шифрован. Кодът за сигурност няма да бъде запазен.</string>
 
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s шифрова номера на картата ви. Кодът ви за сигурност няма да бъде запазен.</string>
+    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s шифрова номера на картата. Кодът за сигурност няма да бъде запазен.</string>
 
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
@@ -186,11 +184,11 @@
     <!-- Content description for expanding the select addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Разгъване на предложени адреси</string>
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description_2">Разгъване на запазените адреси</string>
+    <string name="mozac_feature_prompts_expand_address_content_description_2">Разгъване на запазени адреси</string>
     <!-- Content description for collapsing the select address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">Свиване на предложени адреси</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description_2">Сгъване на запазените адреси</string>
+    <string name="mozac_feature_prompts_collapse_address_content_description_2">Сгъване на запазени адреси</string>
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">Управление на адреси</string>
 
