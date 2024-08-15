@@ -1,10 +1,14 @@
 [DEFAULT]
 support-files = [
   "file_pdfjs_test.pdf",
+  "file_empty_test.pdf",
   "head.js",
 ]
 
 ["browser_pdfjs_alttext_load_engine.js"]
+skip-if = ["!nightly_build"] # Bug 1890946
+
+["browser_pdfjs_alttext_telemetry.js"]
 skip-if = ["!nightly_build"] # Bug 1890946
 
 ["browser_pdfjs_alttext_two_tabs.js"]

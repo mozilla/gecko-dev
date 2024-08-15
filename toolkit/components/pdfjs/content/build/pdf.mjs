@@ -3576,7 +3576,7 @@ class AltText {
       if (this.#useNewAltTextFlow) {
         this.#editor._reportTelemetry({
           action: "pdfjs.image.alt_text.image_status_label_clicked",
-          label: this.#label
+          data: { label: this.#label },
         });
       }
     };
@@ -3710,7 +3710,7 @@ class AltText {
       const type = label === "review" ? "to-review" : label;
       this.#editor._reportTelemetry({
         action: "pdfjs.image.alt_text.image_status_label_displayed",
-        label
+        data: { label },
       });
       button.classList.toggle("done", !!this.#altText);
       AltText._l10nPromise.get(`pdfjs-editor-new-alt-text-${type}-button-label`).then(msg => {
@@ -17158,7 +17158,7 @@ class StampEditor extends AnnotationEditor {
   get telemetryFinalData() {
     return {
       type: "stamp",
-      hasAltText: this.hasAltTextData()
+      hasAltText: !!this.altTextData?.altText,
     };
   }
   static computeTelemetryFinalData(data) {
