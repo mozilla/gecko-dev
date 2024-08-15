@@ -32,6 +32,8 @@ pub enum ContextualParseError<'a> {
     InvalidKeyframeRule(&'a str, ParseError<'a>),
     /// A font feature values rule was not valid.
     InvalidFontFeatureValuesRule(&'a str, ParseError<'a>),
+    /// A keyframe property declaration was not recognized.
+    UnsupportedKeyframePropertyDeclaration(&'a str, ParseError<'a>),
     /// A rule was invalid for some reason.
     InvalidRule(&'a str, ParseError<'a>),
     /// A rule was not recognized.
@@ -171,6 +173,10 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
             },
             ContextualParseError::InvalidFontFeatureValuesRule(rule, ref err) => {
                 write!(f, "Invalid font feature value rule: '{}', ", rule)?;
+                parse_error_to_str(err, f)
+            },
+            ContextualParseError::UnsupportedKeyframePropertyDeclaration(decl, ref err) => {
+                write!(f, "Unsupported keyframe property declaration: '{}', ", decl)?;
                 parse_error_to_str(err, f)
             },
             ContextualParseError::InvalidRule(rule, ref err) => {

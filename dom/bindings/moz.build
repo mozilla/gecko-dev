@@ -207,9 +207,3 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
         entry_point="generateCSSPageDescriptors",
         inputs=["!/layout/style/ServoCSSPropList.py"],
     )
-    GeneratedFile(
-        "CSSPositionTryDescriptors.webidl",
-        script="GenerateCSSPropListWebIDL.py",
-        entry_point="generateCSSPositionTryDescriptors",
-        inputs=["!/layout/style/ServoCSSPropList.py"],
-    )

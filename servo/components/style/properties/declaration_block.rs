@@ -1455,12 +1455,7 @@ impl<'i> DeclarationParserState<'i> {
             PropertyDeclaration::parse_into(&mut self.declarations, id, context, input)
         })?;
         self.importance = match input.try_parse(parse_important) {
-            Ok(()) => {
-                if !context.allows_important_declarations() {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportantDeclaration));
-                }
-                Importance::Important
-            },
+            Ok(()) => Importance::Important,
             Err(_) => Importance::Normal,
         };
         // In case there is still unparsed text in the declaration, we should roll back.
@@ -1614,20 +1609,12 @@ fn report_one_css_error<'i>(
                 return;
             }
         }
-        // Was able to parse property ID - Either an invalid value, or is constrained
-        // by the rule block it's in to be invalid. In the former case, we need to unwrap
-        // the error to be more specific.
-        if !matches!(
-            error.kind,
-            ParseErrorKind::Custom(StyleParseErrorKind::UnexpectedImportantDeclaration)
-        ) {
-            error = match *property {
-                PropertyId::Custom(ref c) => {
-                    StyleParseErrorKind::new_invalid(format!("--{}", c), error)
-                },
-                _ => StyleParseErrorKind::new_invalid(property.non_custom_id().unwrap().name(), error),
-            };
-        }
+        error = match *property {
+            PropertyId::Custom(ref c) => {
+                StyleParseErrorKind::new_invalid(format!("--{}", c), error)
+            },
+            _ => StyleParseErrorKind::new_invalid(property.non_custom_id().unwrap().name(), error),
+        };
     }
 
     let location = error.location;

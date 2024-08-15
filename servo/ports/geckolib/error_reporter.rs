@@ -196,6 +196,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedFontPaletteValuesDescriptor(s, err) |
             ContextualParseError::InvalidKeyframeRule(s, err) |
             ContextualParseError::InvalidFontFeatureValuesRule(s, err) |
+            ContextualParseError::UnsupportedKeyframePropertyDeclaration(s, err) |
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
@@ -275,9 +276,6 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 StyleParseErrorKind::OtherInvalidValue(_) => {
                     (cstr!("PEValueParsingError"), Action::Drop)
                 },
-                StyleParseErrorKind::UnexpectedImportantDeclaration => {
-                    (cstr!("PEImportantDeclError"), Action::Drop)
-                },
                 _ => (cstr!("PEUnknownProperty"), Action::Drop),
             },
             ContextualParseError::UnsupportedPropertyDeclaration(..) => {
@@ -288,6 +286,9 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             },
             ContextualParseError::InvalidKeyframeRule(..) => {
                 (cstr!("PEKeyframeBadName"), Action::Nothing)
+            },
+            ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) => {
+                (cstr!("PEBadSelectorKeyframeRuleIgnored"), Action::Nothing)
             },
             ContextualParseError::InvalidRule(
                 _,

@@ -397,7 +397,6 @@ with Files("WebTransport*"):
 GENERATED_WEBIDL_FILES = [
     "CSS2Properties.webidl",
     "CSSPageDescriptors.webidl",
-    "CSSPositionTryDescriptors.webidl",
 ]
 
 PREPROCESSED_WEBIDL_FILES = [
@@ -501,7 +500,6 @@ WEBIDL_FILES = [
     "CSSMozDocumentRule.webidl",
     "CSSNamespaceRule.webidl",
     "CSSPageRule.webidl",
-    "CSSPositionTryRule.webidl",
     "CSSPropertyRule.webidl",
     "CSSPseudoElement.webidl",
     "CSSRule.webidl",

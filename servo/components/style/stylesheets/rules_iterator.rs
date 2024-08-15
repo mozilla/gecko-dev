@@ -70,8 +70,7 @@ where
             CssRule::Property(_) |
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) |
-            CssRule::FontPaletteValues(_) |
-            CssRule::PositionTry(_) => None,
+            CssRule::FontPaletteValues(_) => None,
             CssRule::Page(ref page_rule) => {
                 let page_rule = page_rule.read_with(guard);
                 let rules = page_rule.rules.read_with(guard);
