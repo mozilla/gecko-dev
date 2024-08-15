@@ -261,11 +261,7 @@ nsHTTPCompressConv::OnStopRequest(nsIRequest* request, nsresult aStatus) {
     if (fpChannel && !isPending) {
       fpChannel->ForcePending(true);
     }
-    bool allowTruncatedEmpty =
-        StaticPrefs::network_compress_allow_truncated_empty_brotli();
-    if (mBrotli && ((allowTruncatedEmpty && NS_FAILED(mBrotli->mStatus)) ||
-                    (!allowTruncatedEmpty && mBrotli->mTotalOut == 0 &&
-                     !mBrotli->mBrotliStateIsStreamEnd))) {
+    if (mBrotli && NS_FAILED(mBrotli->mStatus)) {
       status = NS_ERROR_INVALID_CONTENT_ENCODING;
     }
     LOG(("nsHttpCompresssConv %p onstop brotlihandler rv %" PRIx32 "\n", this,
