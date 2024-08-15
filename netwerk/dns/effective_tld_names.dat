@@ -6723,7 +6723,7 @@ org.zw
 
 // newGTLDs
 
-// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2024-07-12T15:14:39Z
+// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2024-08-12T15:17:09Z
 // This list is auto-generated, don't edit it manually.
 // aaa : American Automobile Association, Inc.
 // https://www.iana.org/domains/root/db/aaa.html
@@ -9037,7 +9037,7 @@ maison
 // https://www.iana.org/domains/root/db/makeup.html
 makeup
 
-// man : MAN SE
+// man : MAN Truck & Bus SE
 // https://www.iana.org/domains/root/db/man.html
 man
 
@@ -11219,7 +11219,7 @@ cc.ua
 inf.ua
 ltd.ua
 
-// 611coin : https://611project.org/
+// 611 blockchain domain name system : https://611project.net/
 611.to
 
 // A2 Hosting
@@ -13895,6 +13895,15 @@ pixolino.com
 // Submitted by Vasiliy Sheredeko <piphon@gmail.com>
 na4u.ru
 
+// IONOS SE : https://www.ionos.com/,
+// IONOS Group SE: https://www.ionos-group.com/
+// submitted by Henrik Willert <security@ionos.com>
+apps-1and1.com
+live-website.com
+apps-1and1.net
+websitebuilder.online
+app-ionos.space
+
 // iopsys software solutions AB : https://iopsys.eu/
 // Submitted by Roman Azarenko <roman.azarenko@iopsys.eu>
 iopsys.se
@@ -13910,6 +13919,10 @@ ir.md
 // is-a.dev : https://www.is-a.dev
 // Submitted by William Harrison <admin@m.is-a.dev>
 is-a.dev
+
+// is-a-good.dev : https://is-a-good.dev
+// Submitted by William Harrison <webmaster@is-a-good.dev>
+is-a-good.dev
 
 // IServ GmbH : https://iserv.de
 // Submitted by Mario Hoberg <info@iserv.de>
@@ -14089,6 +14102,10 @@ lpusercontent.com
 // Submitted by Lelux Admin <publisuffix@lelux.site>
 lelux.site
 
+// libp2p project : https://libp2p.io
+// Submitted by Interplanetary Shipyard <psl@ipshipyard.com>
+libp2p.direct
+
 // Libre IT Ltd : https://libre.nz
 // Submitted by Tomas Maggio <support@libre.nz>
 runcontainers.dev
@@ -14119,13 +14136,14 @@ ip.linodeusercontent.com
 // Submitted by Victor Velchev <admin@liquidnetlimited.com>
 we.bs
 
+// Listen53 : https://www.l53.net
+// Submitted by Gerry Keh <biz@l53.net>
+filegear-sg.me
+ggff.net
+
 // Localcert : https://localcert.dev
 // Submitted by Lann Martin <security@localcert.dev>
 *.user.localcert.dev
-
-// localzone.xyz
-// Submitted by Kenny Niehage <hello@yahe.sh>
-localzone.xyz
 
 // Log'in Line : https://www.loginline.com/
 // Submitted by Rémi Mach <remi.mach@loginline.com>
@@ -14287,6 +14305,10 @@ cloudapp.net
 trafficmanager.net
 blob.core.windows.net
 servicebus.windows.net
+
+// MikroTik: https://mikrotik.com
+// Submitted by MikroTik SysAdmin Team <support@mikrotik.com>
+sn.mynetname.net
 
 // minion.systems : http://minion.systems
 // Submitted by Robert Böttinger <r@minion.systems>
@@ -14591,6 +14613,7 @@ simplesite.pl
 
 // Open Domains : https://open-domains.net
 // Submitted by William Harrison <admin@open-domains.net>
+is-a-fullstack.dev
 is-cool.dev
 is-not-a.dev
 localplayer.dev
@@ -15643,6 +15666,10 @@ pages.wiardweb.com
 toolforge.org
 wmcloud.org
 wmflabs.org
+
+// William Harrison : https://wdh.gg
+// Submitted by William Harrison <domains@wdh.gg>
+*.wdh.app
 
 // WISP : https://wisp.gg
 // Submitted by Stepan Fedotov <stepan@wisp.gg>
