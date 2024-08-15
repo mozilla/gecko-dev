@@ -24,6 +24,10 @@
 #include "skia/include/core/SkRegion.h"
 #include "skia/include/effects/SkImageFilters.h"
 #include "skia/include/private/base/SkMalloc.h"
+#include "skia/src/core/SkEffectPriv.h"
+#include "skia/src/core/SkRasterPipeline.h"
+#include "skia/src/core/SkWriteBuffer.h"
+#include "skia/src/shaders/SkEmptyShader.h"
 #include "Blur.h"
 #include "Logging.h"
 #include "Tools.h"
@@ -1252,7 +1256,8 @@ static bool CanDrawFont(ScaledFont* aFont) {
 void DrawTargetSkia::DrawGlyphs(ScaledFont* aFont, const GlyphBuffer& aBuffer,
                                 const Pattern& aPattern,
                                 const StrokeOptions* aStrokeOptions,
-                                const DrawOptions& aOptions) {
+                                const DrawOptions& aOptions,
+                                SkShader* aShader) {
   if (!CanDrawFont(aFont)) {
     return;
   }
@@ -1288,6 +1293,10 @@ void DrawTargetSkia::DrawGlyphs(ScaledFont* aFont, const GlyphBuffer& aBuffer,
 
   skiaFont->SetupSkFontDrawOptions(font);
 
+  if (aShader) {
+    paint.mPaint.setShader(sk_ref_sp(aShader));
+  }
+
   // Limit the amount of internal batch allocations Skia does.
   const uint32_t kMaxGlyphBatchSize = 8192;
 
@@ -1304,6 +1313,51 @@ void DrawTargetSkia::DrawGlyphs(ScaledFont* aFont, const GlyphBuffer& aBuffer,
     sk_sp<SkTextBlob> text = builder.make();
     mCanvas->drawTextBlob(text, 0, 0, paint.mPaint);
   }
+}
+
+// This shader overrides the luminance color used to generate the preblend
+// tables for glyphs, without actually changing the rasterized color. This is
+// necesary for subpixel AA blending which requires both the mask and color
+// as separate inputs.
+class GlyphMaskShader : public SkEmptyShader {
+ public:
+  explicit GlyphMaskShader(const DeviceColor& aColor)
+      : mColor({aColor.r, aColor.g, aColor.b, aColor.a}) {}
+
+  bool onAsLuminanceColor(SkColor4f* aLum) const override {
+    *aLum = mColor;
+    return true;
+  }
+
+  bool isOpaque() const override { return true; }
+  bool isConstant() const override { return true; }
+
+  void flatten(SkWriteBuffer& buffer) const override {
+    buffer.writeColor4f(mColor);
+  }
+
+  bool appendStages(const SkStageRec& rec,
+                    const SkShaders::MatrixRec&) const override {
+    rec.fPipeline->appendConstantColor(rec.fAlloc,
+                                       SkColor4f{1, 1, 1, 1}.premul().vec());
+    return true;
+  }
+
+ private:
+  SkColor4f mColor;
+};
+
+void DrawTargetSkia::DrawGlyphMask(ScaledFont* aFont,
+                                   const GlyphBuffer& aBuffer,
+                                   const DeviceColor& aColor,
+                                   const StrokeOptions* aStrokeOptions,
+                                   const DrawOptions& aOptions) {
+  // Draw a mask using the GlyphMaskShader that can be used for subpixel AA
+  // but that uses the gamma preblend weighting of the given color, even though
+  // the mask itself does not use that color.
+  sk_sp<GlyphMaskShader> shader = sk_make_sp<GlyphMaskShader>(aColor);
+  DrawGlyphs(aFont, aBuffer, ColorPattern(DeviceColor(1, 1, 1, 1)),
+             aStrokeOptions, aOptions, shader.get());
 }
 
 Maybe<Rect> DrawTargetSkia::GetGlyphLocalBounds(
