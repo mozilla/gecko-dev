@@ -1713,12 +1713,21 @@ def compiler(
     # Set CC/CXX/HOST_CC/HOST_CXX for old-configure, which needs the wrapper
     # and the flags that were part of the user input for those variables to
     # be provided.
-    add_old_configure_assignment(
-        var,
-        depends_if(valid_compiler)(
-            lambda x: list(x.wrapper) + [x.compiler] + list(x.flags)
-        ),
-    )
+    if var in ("CC", "CXX"):
+        # FIXME: we should return a plain list here.
+        @depends_if(valid_compiler)
+        @imports(_from="mozbuild.shellutil", _import="quote")
+        def value(x):
+            return quote(*x.wrapper, x.compiler, *x.flags)
+
+        set_config(var, value)
+    else:
+        add_old_configure_assignment(
+            var,
+            depends_if(valid_compiler)(
+                lambda x: list(x.wrapper) + [x.compiler] + list(x.flags)
+            ),
+        )
 
     if host_or_target is target:
         add_old_configure_assignment(

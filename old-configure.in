@@ -12,30 +12,6 @@ AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
 
 dnl ========================================================
-dnl Checks for compilers.
-dnl ========================================================
-
-if test "$COMPILE_ENVIRONMENT"; then
-
-# This prevents mingw from adding .exe when generating executable. Internal use
-# only.
-ac_exeext=.out
-
-if test "$target" != "$host"; then
-    MOZ_CROSS_COMPILER
-else
-    AC_PROG_CC
-    case "$target" in
-    *-mingw*)
-      # Work around the conftest.exe access problem on Windows
-      sleep 2
-    esac
-    AC_PROG_CXX
-fi
-
-fi # COMPILE_ENVIRONMENT
-
-dnl ========================================================
 dnl =
 dnl = Application
 dnl =

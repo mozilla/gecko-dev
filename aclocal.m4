@@ -5,7 +5,6 @@ dnl
 
 builtin(include, build/autoconf/hooks.m4)dnl
 builtin(include, build/autoconf/config.status.m4)dnl
-builtin(include, build/autoconf/toolchain.m4)dnl
 builtin(include, build/autoconf/altoptions.m4)dnl
 
 # Read the user's .mozconfig script.  We can't do this in
