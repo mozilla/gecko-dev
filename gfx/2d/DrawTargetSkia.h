@@ -16,7 +16,6 @@
 #endif
 
 class SkCanvas;
-class SkShader;
 class SkSurface;
 
 namespace mozilla {
@@ -163,11 +162,6 @@ class DrawTargetSkia : public DrawTarget {
                                   const StrokeOptions* aStrokeOptions,
                                   const DrawOptions& aOptions);
 
-  void DrawGlyphMask(ScaledFont* aFont, const GlyphBuffer& aBuffer,
-                     const DeviceColor& aColor,
-                     const StrokeOptions* aStrokeOptions = nullptr,
-                     const DrawOptions& aOptions = DrawOptions());
-
  private:
   friend class SourceSurfaceSkia;
 
@@ -178,8 +172,7 @@ class DrawTargetSkia : public DrawTarget {
   void DrawGlyphs(ScaledFont* aFont, const GlyphBuffer& aBuffer,
                   const Pattern& aPattern,
                   const StrokeOptions* aStrokeOptions = nullptr,
-                  const DrawOptions& aOptions = DrawOptions(),
-                  SkShader* aShader = nullptr);
+                  const DrawOptions& aOptions = DrawOptions());
 
   struct PushedLayer {
     PushedLayer(bool aOldPermitSubpixelAA, SourceSurface* aMask)
