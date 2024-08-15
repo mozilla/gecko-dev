@@ -26,9 +26,6 @@ AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
 
 AC_SUBST(MOZ_APP_DISPLAYNAME)
 
-AC_SUBST(HOST_CC)
-AC_SUBST(HOST_CXX)
-
 dnl Set various defines and substitutions
 dnl ========================================================
 

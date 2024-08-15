@@ -166,9 +166,6 @@ AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")
 
 AC_SUBST(MOZ_APP_MAXVERSION)
 
-AC_SUBST(HOST_CC)
-AC_SUBST(HOST_CXX)
-
 dnl Set various defines and substitutions
 dnl ========================================================
 

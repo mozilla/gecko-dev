@@ -1713,7 +1713,7 @@ def compiler(
     # Set CC/CXX/HOST_CC/HOST_CXX for old-configure, which needs the wrapper
     # and the flags that were part of the user input for those variables to
     # be provided.
-    if var in ("CC", "CXX"):
+    if var in ("CC", "CXX", "HOST_CC", "HOST_CXX"):
         # FIXME: we should return a plain list here.
         @depends_if(valid_compiler)
         @imports(_from="mozbuild.shellutil", _import="quote")
