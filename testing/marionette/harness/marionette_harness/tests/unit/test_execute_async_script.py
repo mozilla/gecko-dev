@@ -41,7 +41,7 @@ class TestExecuteAsyncContent(MarionetteTestCase):
         self.assertEqual(1, self.marionette.execute_async_script("arguments[0](1);"))
 
     def test_script_timeout_error(self):
-        with self.assertRaisesRegexp(ScriptTimeoutException, "Timed out after 100 ms"):
+        with self.assertRaisesRegex(ScriptTimeoutException, "Timed out after 100 ms"):
             self.marionette.execute_async_script("var x = 1;", script_timeout=100)
 
     def test_script_timeout_reset_after_timeout_error(self):

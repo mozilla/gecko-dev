@@ -417,7 +417,7 @@ class TestClick(ClickBaseTestCase):
         button = self.marionette.find_element(By.TAG_NAME, "button")
         self.assertEqual("none", button.value_of_css_property("pointer-events"))
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.ElementClickInterceptedException,
             "does not have pointer events enabled",
         ):

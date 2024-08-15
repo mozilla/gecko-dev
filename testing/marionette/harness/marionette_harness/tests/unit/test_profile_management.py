@@ -146,7 +146,7 @@ class TestQuitRestartWithWorkspace(WorkspaceProfileManagement):
 
 class TestSwitchProfileFailures(BaseProfileManagement):
     def test_raise_for_switching_profile_while_instance_is_running(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.MarionetteException, "instance is not running"
         ):
             self.marionette.instance.switch_profile()

@@ -153,7 +153,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.marionette.quit(in_app=False)
 
         self.assertEqual(self.marionette.session, None)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -162,7 +162,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.marionette.quit(in_app=False, clean=True)
 
         self.assertEqual(self.marionette.session, None)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -176,14 +176,14 @@ class TestQuitRestart(MarionetteTestCase):
 
     def test_quit_no_in_app_and_clean(self):
         # Test that in_app and clean cannot be used in combination
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, "cannot be triggered with the clean flag set"
         ):
             self.marionette.quit(in_app=True, clean=True)
 
     def test_restart_no_in_app_and_clean(self):
         # Test that in_app and clean cannot be used in combination
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, "cannot be triggered with the clean flag set"
         ):
             self.marionette.restart(in_app=True, clean=True)
@@ -206,7 +206,7 @@ class TestQuitRestart(MarionetteTestCase):
     def test_restart_safe_mode_requires_in_app(self):
         self.assertFalse(self.is_safe_mode, "Safe Mode is unexpectedly enabled")
 
-        with self.assertRaisesRegexp(ValueError, "in_app restart is required"):
+        with self.assertRaisesRegex(ValueError, "in_app restart is required"):
             self.marionette.restart(in_app=False, safe_mode=True)
 
         self.assertFalse(self.is_safe_mode, "Safe Mode is unexpectedly enabled")
@@ -264,7 +264,7 @@ class TestQuitRestart(MarionetteTestCase):
         )
 
     def test_in_app_restart_with_non_callable_callback(self):
-        with self.assertRaisesRegexp(ValueError, "is not callable"):
+        with self.assertRaisesRegex(ValueError, "is not callable"):
             self.marionette.restart(callback=4)
 
         self.assertEqual(self.marionette.instance.runner.returncode, None)
@@ -278,7 +278,7 @@ class TestQuitRestart(MarionetteTestCase):
             self.marionette.shutdown_timeout = 5
             self.marionette.startup_timeout = 0
 
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 IOError, "Process unexpectedly quit without restarting"
             ):
                 self.marionette.restart(callback=lambda: self.shutdown(restart=False))
@@ -294,7 +294,7 @@ class TestQuitRestart(MarionetteTestCase):
             self.marionette.shutdown_timeout = 5
             self.marionette.startup_timeout = 0
 
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 IOError, "the connection to Marionette server is lost"
             ):
                 self.marionette.restart(in_app=True, callback=lambda: False)
@@ -336,7 +336,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.marionette.delete_session()
         self.marionette.start_session(capabilities={"moz:windowless": True})
 
-        with self.assertRaisesRegexp(ValueError, "in_app restart is required"):
+        with self.assertRaisesRegex(ValueError, "in_app restart is required"):
             self.marionette.restart(in_app=False, silent=True)
 
         self.marionette.delete_session()
@@ -357,7 +357,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.assertEqual(self.marionette.instance.runner.returncode, 0)
 
         self.assertEqual(self.marionette.session, None)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -386,7 +386,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.assertEqual(self.marionette.instance.runner.returncode, 0)
 
         self.assertEqual(self.marionette.session, None)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -407,7 +407,7 @@ class TestQuitRestart(MarionetteTestCase):
         self.assertEqual(self.marionette.is_shutting_down, False)
 
         self.assertEqual(self.marionette.session, None)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -420,7 +420,7 @@ class TestQuitRestart(MarionetteTestCase):
         )
 
     def test_in_app_quit_with_non_callable_callback(self):
-        with self.assertRaisesRegexp(ValueError, "is not callable"):
+        with self.assertRaisesRegex(ValueError, "is not callable"):
             self.marionette.quit(callback=4)
         self.assertEqual(self.marionette.instance.runner.returncode, None)
         self.assertEqual(self.marionette.is_shutting_down, False)
@@ -430,7 +430,7 @@ class TestQuitRestart(MarionetteTestCase):
             timeout = self.marionette.shutdown_timeout
             self.marionette.shutdown_timeout = 5
 
-            with self.assertRaisesRegexp(IOError, "Process still running"):
+            with self.assertRaisesRegex(IOError, "Process still running"):
                 self.marionette.quit(in_app=True, callback=lambda: False)
 
             self.assertNotEqual(self.marionette.instance.runner.returncode, None)
@@ -444,7 +444,7 @@ class TestQuitRestart(MarionetteTestCase):
         def errorneous_callback():
             raise Exception("foo")
 
-        with self.assertRaisesRegexp(Exception, "foo"):
+        with self.assertRaisesRegex(Exception, "foo"):
             self.marionette.quit(in_app=True, callback=errorneous_callback)
         self.assertEqual(self.marionette.instance.runner.returncode, None)
         self.assertEqual(self.marionette.is_shutting_down, False)

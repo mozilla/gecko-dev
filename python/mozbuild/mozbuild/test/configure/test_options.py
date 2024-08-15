@@ -322,7 +322,7 @@ class TestOption(unittest.TestCase):
 
         # For usability reasons, we raise TypeError when attempting to compare
         # against a non-tuple.
-        with self.assertRaisesRegexp(TypeError, "cannot compare a"):
+        with self.assertRaisesRegex(TypeError, "cannot compare a"):
             val == "foo"
 
         # But we allow empty option values to compare otherwise we can't
@@ -899,14 +899,14 @@ class TestCommandLineHelper(unittest.TestCase):
         self.assertEqual("--foo", option)
 
         bar = Option("--bar", possible_origins=("mozconfig",))
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidOptionError,
             "--bar can not be set by command-line. Values are accepted from: mozconfig",
         ):
             helper.handle(bar)
 
         baz = Option(env="BAZ", possible_origins=("implied",))
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidOptionError,
             "BAZ=1 can not be set by environment. Values are accepted from: implied",
         ):

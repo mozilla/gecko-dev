@@ -180,13 +180,13 @@ class TestCapabilityMatching(MarionetteTestCase):
 
         for value in ["", "EAGER", True, 42, {}, []]:
             print(f"invalid strategy {value}")
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 errors.SessionNotCreatedException, "InvalidArgumentError"
             ):
                 self.marionette.start_session({"pageLoadStrategy": value})
 
     def test_set_window_rect(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.SessionNotCreatedException, "InvalidArgumentError"
         ):
             self.marionette.start_session({"setWindowRect": False})
@@ -236,7 +236,7 @@ class TestCapabilityMatching(MarionetteTestCase):
         self.delete_session()
         for handler in ["", "ACCEPT", True, 42, []]:
             print(f"invalid unhandled prompt behavior {handler}")
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 errors.SessionNotCreatedException, "InvalidArgumentError"
             ):
                 self.marionette.start_session({"unhandledPromptBehavior": handler})
@@ -265,7 +265,7 @@ class TestCapabilityMatching(MarionetteTestCase):
         self.delete_session()
         for handler in [{"foo": "accept"}, {"alert": "bar"}]:
             print(f"invalid unhandled prompt behavior {handler}")
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 errors.SessionNotCreatedException, "InvalidArgumentError"
             ):
                 self.marionette.start_session({"unhandledPromptBehavior": handler})

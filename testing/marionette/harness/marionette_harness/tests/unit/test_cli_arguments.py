@@ -99,7 +99,7 @@ class TestCommandLineArguments(MarionetteTestCase):
     def test_startup_timeout(self):
         try:
             self.marionette.quit()
-            with self.assertRaisesRegexp(IOError, "Process killed after 0s"):
+            with self.assertRaisesRegex(IOError, "Process killed after 0s"):
                 # Use a small enough timeout which should always cause an IOError
                 self.marionette.start_session(timeout=0)
         finally:

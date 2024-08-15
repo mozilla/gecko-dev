@@ -831,21 +831,21 @@ class TestConfigure(unittest.TestCase):
             mozpath.join(test_data_path, "imply_option", "imm.configure")
         )
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidOptionError,
             "--enable-foo' implied by 'imply_option at %s:7' conflicts "
             "with '--disable-foo' from the command-line" % config_path,
         ):
             get_config(["--disable-foo"])
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidOptionError,
             "--enable-bar=foo,bar' implied by 'imply_option at %s:18' "
             "conflicts with '--enable-bar=a,b,c' from the command-line" % config_path,
         ):
             get_config(["--enable-bar=a,b,c"])
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidOptionError,
             "--enable-baz=BAZ' implied by 'imply_option at %s:29' "
             "conflicts with '--enable-baz=QUUX' from the command-line" % config_path,

@@ -58,14 +58,14 @@ class TestScreenOrientation(MarionetteTestCase):
 
     @skip_if_desktop("Not supported in Firefox")
     def test_set_invalid_orientation(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.MarionetteException, unknown_orientation.format("cheese")
         ):
             self.marionette.set_orientation("cheese")
 
     @skip_if_desktop("Not supported in Firefox")
     def test_set_null_orientation(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.MarionetteException, unknown_orientation.format("null")
         ):
             self.marionette.set_orientation(None)

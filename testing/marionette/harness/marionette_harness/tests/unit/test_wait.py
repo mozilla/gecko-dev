@@ -261,14 +261,14 @@ class WaitUntilTest(MarionetteTestCase):
         self.assertEqual(self.clock.ticks, 2)
 
     def test_timeout_elapsed_duration(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.TimeoutException, "Timed out after 2.0 seconds"
         ):
             self.wt.until(lambda x: x.true(wait=4), is_true=at_third_attempt)
 
     def test_timeout_elapsed_rounding(self):
         wt = Wait(self.m, clock=SequenceClock([1, 0.01, 1]), timeout=0)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.TimeoutException, "Timed out after 1.0 seconds"
         ):
             wt.until(lambda x: x.true(), is_true=now)
@@ -278,7 +278,7 @@ class WaitUntilTest(MarionetteTestCase):
             self.clock.sleep(11)
             return mn.false()
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.TimeoutException, "Timed out after 11.0 seconds"
         ):
             self.wt.until(callback)
@@ -291,7 +291,7 @@ class WaitUntilTest(MarionetteTestCase):
             self.clock.sleep(0.5)
             return mn.false()
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.TimeoutException, "Timed out after 10.0 seconds"
         ):
             self.wt.until(callback)
@@ -304,7 +304,7 @@ class WaitUntilTest(MarionetteTestCase):
             self.clock.sleep(2)
             return mn.false()
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             errors.TimeoutException, "Timed out after 10.0 seconds"
         ):
             self.wt.until(callback)

@@ -124,14 +124,14 @@ class TestCrash(BaseCrashTestCase):
             sys.stdout, sys.stderr = self.old_out, self.old_err
 
     def test_crash_chrome_process(self):
-        self.assertRaisesRegexp(IOError, "Process crashed", self.crash, parent=True)
+        self.assertRaisesRegex(IOError, "Process crashed", self.crash, parent=True)
 
         # A crash results in a non zero exit code
         self.assertNotIn(self.marionette.instance.runner.returncode, (None, 0))
 
         self.assertEqual(self.marionette.crashed, 1)
         self.assertIsNone(self.marionette.session)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -146,7 +146,7 @@ class TestCrash(BaseCrashTestCase):
         # browsing context will be gone first. As such the raised NoSuchWindowException
         # has to be ignored. To check for the IOError, further commands have to
         # be executed until the process is gone.
-        with self.assertRaisesRegexp(IOError, "Content process crashed"):
+        with self.assertRaisesRegex(IOError, "Content process crashed"):
             self.crash(parent=False)
             Wait(
                 self.marionette,
@@ -162,7 +162,7 @@ class TestCrash(BaseCrashTestCase):
 
         self.assertEqual(self.marionette.crashed, 1)
         self.assertIsNone(self.marionette.session)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSessionIdException, "Please start a session"
         ):
             self.marionette.get_url()
@@ -180,7 +180,7 @@ class TestCrashInSetUp(BaseCrashTestCase):
     def setUp(self):
         super(TestCrashInSetUp, self).setUp()
 
-        self.assertRaisesRegexp(IOError, "Process crashed", self.crash, parent=True)
+        self.assertRaisesRegex(IOError, "Process crashed", self.crash, parent=True)
 
         # A crash results in a non zero exit code
         self.assertNotIn(self.marionette.instance.runner.returncode, (None, 0))
@@ -196,7 +196,7 @@ class TestCrashInSetUp(BaseCrashTestCase):
 class TestCrashInTearDown(BaseCrashTestCase):
     def tearDown(self):
         try:
-            self.assertRaisesRegexp(IOError, "Process crashed", self.crash, parent=True)
+            self.assertRaisesRegex(IOError, "Process crashed", self.crash, parent=True)
 
             # A crash results in a non zero exit code
             self.assertNotIn(self.marionette.instance.runner.returncode, (None, 0))

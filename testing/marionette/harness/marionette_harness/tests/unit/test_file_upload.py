@@ -96,7 +96,7 @@ class TestFileUpload(MarionetteTestCase):
 
     def test_illegal_file(self):
         self.marionette.navigate(single)
-        with self.assertRaisesRegexp(errors.MarionetteException, "File not found"):
+        with self.assertRaisesRegex(errors.MarionetteException, "File not found"):
             self.input.send_keys("rochefort")
 
     def test_upload(self):

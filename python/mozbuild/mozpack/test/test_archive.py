@@ -74,7 +74,7 @@ class TestArchive(unittest.TestCase):
         try:
             tp = os.path.join(d, "test.tar")
             with open(tp, "wb") as fh:
-                with self.assertRaisesRegexp(ValueError, "not a regular"):
+                with self.assertRaisesRegex(ValueError, "not a regular"):
                     create_tar_from_files(fh, {"test": d})
         finally:
             shutil.rmtree(d)
@@ -95,9 +95,9 @@ class TestArchive(unittest.TestCase):
 
             tp = os.path.join(d, "test.tar")
             with open(tp, "wb") as fh:
-                with self.assertRaisesRegexp(ValueError, "cannot add file with setuid"):
+                with self.assertRaisesRegex(ValueError, "cannot add file with setuid"):
                     create_tar_from_files(fh, {"test": uid})
-                with self.assertRaisesRegexp(ValueError, "cannot add file with setuid"):
+                with self.assertRaisesRegex(ValueError, "cannot add file with setuid"):
                     create_tar_from_files(fh, {"test": gid})
         finally:
             shutil.rmtree(d)
