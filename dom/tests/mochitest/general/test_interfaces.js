@@ -187,13 +187,13 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AudioData", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "AudioDecoder", android: false },
+  { name: "AudioDecoder" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AudioBufferSourceNode", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AudioDestinationNode", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "AudioEncoder", android: false },
+  { name: "AudioEncoder" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AudioListener", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -415,9 +415,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ElementInternals", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "EncodedAudioChunk", insecureContext: true, android: false },
+  { name: "EncodedAudioChunk", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "EncodedVideoChunk", insecureContext: true, android: false },
+  { name: "EncodedVideoChunk", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ErrorEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1460,11 +1460,11 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ValidityState", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoColorSpace", insecureContext: true, android: false },
+  { name: "VideoColorSpace", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoDecoder", android: false },
+  { name: "VideoDecoder" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "VideoEncoder", android: false },
+  { name: "VideoEncoder" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "VideoFrame", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
