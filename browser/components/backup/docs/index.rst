@@ -10,6 +10,7 @@ into a single file that can be easily restored from.
 .. toctree::
    :maxdepth: 3
 
+   architecture
    backup-service
    backup-resources
    backup-ui-actors
