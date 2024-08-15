@@ -8167,7 +8167,7 @@
 
 -   name: javascript.options.wasm_exnref
     type: bool
-    value: @IS_EARLY_BETA_OR_EARLIER@
+    value: true
     mirror: always
     set_spidermonkey_pref: startup
 
