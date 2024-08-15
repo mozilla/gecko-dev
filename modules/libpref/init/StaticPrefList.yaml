@@ -6904,6 +6904,11 @@
   mirror: once
 
 #ifdef XP_WIN
+  # Use IDCompositionFilterEffect to color manage dcomp surfaces.
+-   name: gfx.webrender.dcomp.color-manage-with-filters
+    type: RelaxedAtomicBool
+    value: false
+    mirror: always
   # Whether to use an overlay of hardware decoded video with DirectComposition
 -   name: gfx.webrender.dcomp-video-hw-overlay-win
     type: bool
