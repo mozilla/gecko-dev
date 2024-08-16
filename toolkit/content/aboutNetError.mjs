@@ -433,7 +433,7 @@ function initPage() {
       learnMore.hidden = false;
 
       const netErrorInfo = document.getNetErrorInfo();
-      recordSecurityUITelemetry(
+      void recordSecurityUITelemetry(
         "security.ui.tlserror",
         "load",
         "abouttlserror",
@@ -992,7 +992,7 @@ function initPageCertError() {
   }
 
   const failedCertInfo = document.getFailedCertSecurityInfo();
-  recordSecurityUITelemetry(
+  void recordSecurityUITelemetry(
     "security.ui.certerror",
     "load",
     "aboutcerterror",
@@ -1002,7 +1002,7 @@ function initPageCertError() {
   setCertErrorDetails();
 }
 
-function recordSecurityUITelemetry(category, evt, objectName, errorInfo) {
+async function recordSecurityUITelemetry(category, evt, objectName, errorInfo) {
   // Truncate the error code to avoid going over the allowed
   // string size limit for telemetry events.
   let errorCode = errorInfo.errorCodeString.substring(0, 40);
@@ -1015,6 +1015,21 @@ function recordSecurityUITelemetry(category, evt, objectName, errorInfo) {
   if (evt == "load") {
     extraKeys.channel_status = errorInfo.channelStatus.toString();
   }
+  if (category == "security.ui.certerror" && evt == "load") {
+    extraKeys.issued_by_cca = false.toString();
+    let issuer = errorInfo.certChainStrings.at(-1);
+    if (issuer && errorCode == "SEC_ERROR_UNKNOWN_ISSUER") {
+      try {
+        let parsed = await parse(pemToDER(issuer));
+        extraKeys.issued_by_cca = (
+          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2022 SPL" ||
+          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2015 SPL"
+        ).toString();
+      } catch (e) {
+        console.error("error parsing issuer certificate:", e);
+      }
+    }
+  }
   RPMRecordTelemetryEvent(category, evt, objectName, errorCode, extraKeys);
 }
 
@@ -1022,7 +1037,7 @@ function recordClickTelemetry(e) {
   let target = e.originalTarget;
   let telemetryId = target.dataset.telemetryId;
   let failedCertInfo = document.getFailedCertSecurityInfo();
-  recordSecurityUITelemetry(
+  void recordSecurityUITelemetry(
     "security.ui.certerror",
     "click",
     telemetryId,

@@ -11,6 +11,8 @@ support-files = [
 
 ["browser_aboutCertError.js"]
 
+["browser_aboutCertError_cca_telemetry.js"]
+
 ["browser_aboutCertError_clockSkew.js"]
 
 ["browser_aboutCertError_exception.js"]

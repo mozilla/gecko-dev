@@ -3266,6 +3266,7 @@ security.ui.certerror:
       is_frame: If the error page is loaded in an iframe.
       has_sts: If the error page is for a site with HSTS headers or with a pinned key.
       channel_status: The status of the failed channel, as an nsresult.
+      issued_by_cca: If trusting the CCA India roots would fix this error.
   click:
     objects: [
       "advanced_button",
