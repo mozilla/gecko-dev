@@ -13436,7 +13436,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
       "left self-top",
       "right block-end",
       "top self-end",
-      "y-self-end x-end",
       "inline-start self-block-end",
       "span-self-inline-start start",
       "end span-self-start",
@@ -13460,12 +13459,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
       "end span-start",
       "center span-all",
     ],
-    invalid_values: [
-      "foo",
-      "none none",
-      "span-y-start self-block-end",
-      "flip-block flip-start",
-    ],
+    invalid_values: ["foo", "none none", "span-y-start self-block-end"],
   };
 
   gCSSProperties["position-try-order"] = {
@@ -13475,7 +13469,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.anchor-positioning.enabled")) {
     initial_values: ["normal"],
     other_values: [
       "most-width",
-      "most-heigh",
+      "most-height",
       "most-block-size",
       "most-inline-size",
     ],
