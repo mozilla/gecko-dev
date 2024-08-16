@@ -9,8 +9,9 @@ use serde_json::json;
 use serde_json::Value as JsonValue;
 
 use crate::{
-    rs::{Client, Record, RecordRequest},
-    testing::JsonExt,
+    db::SuggestDao,
+    error::Error,
+    rs::{Client, Collection, Record, SuggestRecordId, SuggestRecordType},
     Result,
 };
 
@@ -19,100 +20,125 @@ use crate::{
 /// MockRemoteSettingsClient uses the builder pattern for its API: most methods input `self` and
 /// return a modified version of it.
 pub struct MockRemoteSettingsClient {
-    pub records: HashMap<String, Vec<Record>>,
+    pub records: Vec<Record>,
+    pub attachments: HashMap<String, Vec<u8>>,
     pub last_modified_timestamp: u64,
 }
 
 impl Default for MockRemoteSettingsClient {
     fn default() -> Self {
         Self {
-            records: HashMap::new(),
+            records: Vec::new(),
+            attachments: HashMap::new(),
             last_modified_timestamp: 100,
         }
     }
 }
 
+fn record_type_for_str(record_type_str: &str) -> SuggestRecordType {
+    for record_type in SuggestRecordType::all() {
+        if record_type.as_str() == record_type_str {
+            return *record_type;
+        }
+    }
+    panic!("Invalid record type string: {record_type_str}");
+}
+
 impl MockRemoteSettingsClient {
+    // Consuming Builder API, this is best for constructing the initial client
+    pub fn with_record(mut self, record_type: &str, record_id: &str, items: JsonValue) -> Self {
+        self.add_record(record_type, record_id, items);
+        self
+    }
+
+    pub fn with_icon(mut self, icon: MockIcon) -> Self {
+        self.add_icon(icon);
+        self
+    }
+
+    pub fn with_record_but_no_attachment(mut self, record_type: &str, record_id: &str) -> Self {
+        self.add_record_but_no_attachment(record_type, record_id);
+        self
+    }
+
+    pub fn with_inline_record(
+        mut self,
+        record_type: &str,
+        record_id: &str,
+        inline_data: JsonValue,
+    ) -> Self {
+        self.add_inline_record(record_type, record_id, inline_data);
+        self
+    }
+
+    // Non-Consuming Builder API, this is best for updating an existing client
+
     /// Add a record to the mock data
     ///
     /// A single record typically contains multiple items in the attachment data.  Pass all of them
     /// as the `items` param.
-    pub fn with_record(mut self, record_type: &str, record_id: &str, items: JsonValue) -> Self {
+    pub fn add_record(
+        &mut self,
+        record_type: &str,
+        record_id: &str,
+        items: JsonValue,
+    ) -> &mut Self {
         let location = format!("{record_type}-{record_id}.json");
-        let records = self.records.entry(record_type.to_string()).or_default();
-        records.push(Record {
-            id: record_id.to_string(),
+        self.records.push(Record {
+            id: SuggestRecordId::new(record_id.to_string()),
+            collection: record_type_for_str(record_type).collection(),
             last_modified: self.last_modified_timestamp,
-            deleted: false,
             attachment: Some(Attachment {
                 filename: location.clone(),
                 mimetype: "application/json".into(),
                 hash: "".into(),
                 size: 0,
-                location,
+                location: location.clone(),
             }),
-            fields: json!({"type": record_type}).into_map(),
-            attachment_data: Some(
-                serde_json::to_vec(&items).expect("error serializing attachment data"),
-            ),
+            payload: serde_json::from_value(json!({"type": record_type})).unwrap(),
         });
-        self
-    }
-
-    /// Add a tombstone record
-    ///
-    /// This is used by remote settings to indicated a deleted record
-    pub fn with_tombstone(mut self, record_type: &str, record_id: &str) -> Self {
-        let records = self.records.entry(record_type.to_string()).or_default();
-        records.push(Record {
-            id: record_id.to_string(),
-            last_modified: self.last_modified_timestamp,
-            deleted: true,
-            attachment: None,
-            attachment_data: None,
-            fields: json!({}).into_map(),
-        });
+        self.attachments.insert(
+            location,
+            serde_json::to_vec(&items).expect("error serializing attachment data"),
+        );
         self
     }
 
     /// Add a record for an icon to the mock data
-    pub fn with_icon(mut self, icon: MockIcon) -> Self {
+    pub fn add_icon(&mut self, icon: MockIcon) -> &mut Self {
         let icon_id = icon.id;
         let record_id = format!("icon-{icon_id}");
         let location = format!("icon-{icon_id}.png");
-        let records = self.records.entry("icon".to_string()).or_default();
-        records.push(Record {
-            id: record_id.to_string(),
+        self.records.push(Record {
+            id: SuggestRecordId::new(record_id.to_string()),
             last_modified: self.last_modified_timestamp,
-            deleted: false,
+            collection: Collection::Quicksuggest,
             attachment: Some(Attachment {
                 filename: location.clone(),
                 mimetype: icon.mimetype.into(),
                 hash: "".into(),
                 size: 0,
-                location,
+                location: location.clone(),
             }),
-            fields: json!({"type": "icon"}).into_map(),
-            attachment_data: Some(icon.data.as_bytes().to_vec()),
+            payload: serde_json::from_value(json!({"type": "icon"})).unwrap(),
         });
+        self.attachments
+            .insert(location, icon.data.as_bytes().to_vec());
         self
     }
 
-    /// Add a tombstone record for an icon
-    pub fn with_icon_tombstone(self, icon: MockIcon) -> Self {
-        self.with_tombstone("icon", &format!("icon-{}", icon.id))
-    }
-
     /// Add a record without attachment data
-    pub fn with_record_but_no_attachment(mut self, record_type: &str, record_id: &str) -> Self {
-        let records = self.records.entry(record_type.to_string()).or_default();
-        records.push(Record {
-            id: record_id.to_string(),
+    pub fn add_record_but_no_attachment(
+        &mut self,
+        record_type: &str,
+        record_id: &str,
+    ) -> &mut Self {
+        self.records.push(Record {
+            id: SuggestRecordId::new(record_id.to_string()),
+            collection: record_type_for_str(record_type).collection(),
             last_modified: self.last_modified_timestamp,
-            deleted: false,
             attachment: None,
-            fields: json!({"type": record_type}).into_map(),
-            attachment_data: None,
+            payload: serde_json::from_value(json!({"type": record_type})).unwrap(),
         });
         self
     }
@@ -121,26 +147,99 @@ impl MockRemoteSettingsClient {
     ///
     /// Use this for record types like weather where the data it stored in the record itself rather
     /// than in an attachment.
-    pub fn with_inline_record(
-        mut self,
+    pub fn add_inline_record(
+        &mut self,
         record_type: &str,
         record_id: &str,
         inline_data: JsonValue,
-    ) -> Self {
-        let records = self.records.entry(record_type.to_string()).or_default();
-        records.push(Record {
-            id: record_id.to_string(),
+    ) -> &mut Self {
+        self.records.push(Record {
+            id: SuggestRecordId::new(record_id.to_string()),
+            collection: record_type_for_str(record_type).collection(),
             last_modified: self.last_modified_timestamp,
-            deleted: false,
-            fields: json!({
+            payload: serde_json::from_value(json!({
                 "type": record_type,
                 record_type: inline_data,
-            })
-            .into_map(),
+            }))
+            .unwrap(),
             attachment: None,
-            attachment_data: None,
         });
         self
+    }
+
+    // Update API, these use the &mut builder pattern, since they're used with already built
+    // clients
+
+    /// Update a record, storing a new payload and bumping the modified time
+    pub fn update_record(
+        &mut self,
+        record_type: &str,
+        record_id: &str,
+        items: JsonValue,
+    ) -> &mut Self {
+        let record = self
+            .records
+            .iter_mut()
+            .find(|r| r.id.as_str() == record_id)
+            .unwrap_or_else(|| panic!("update_record: {record_id} not found"));
+        let attachment_data = self
+            .attachments
+            .get_mut(
+                &record
+                    .attachment
+                    .as_ref()
+                    .expect("update_record: no attachment")
+                    .location,
+            )
+            .unwrap_or_else(|| panic!("update_record: attachment not found for {record_id}"));
+
+        record.last_modified += 1;
+        record.payload = serde_json::from_value(json!({"type": record_type})).unwrap();
+        *attachment_data = serde_json::to_vec(&items).expect("error serializing attachment data");
+        self
+    }
+
+    /// Update an icon record, storing a new payload and bumping the modified time
+    pub fn update_icon(&mut self, icon: MockIcon) -> &mut Self {
+        let icon_id = &icon.id;
+        let record_id = format!("icon-{icon_id}");
+        let record = self
+            .records
+            .iter_mut()
+            .find(|r| r.id.as_str() == record_id)
+            .unwrap_or_else(|| panic!("update_icon: {record_id} not found"));
+        let attachment_data = self
+            .attachments
+            .get_mut(
+                &record
+                    .attachment
+                    .as_ref()
+                    .expect("update_icon: no attachment")
+                    .location,
+            )
+            .unwrap_or_else(|| panic!("update_icon: attachment not found for {icon_id}"));
+
+        record.last_modified += 1;
+        *attachment_data = icon.data.as_bytes().to_vec();
+        self
+    }
+
+    /// Delete a record and it's attachment
+    pub fn delete_record(&mut self, collection: &str, record_id: &str) -> &mut Self {
+        let idx = self
+            .records
+            .iter()
+            .position(|r| r.id.as_str() == record_id && r.collection.name() == collection)
+            .unwrap_or_else(|| panic!("delete_record: {collection}:{record_id} not found"));
+        let deleted = self.records.remove(idx);
+        if let Some(a) = deleted.attachment {
+            self.attachments.remove(&a.location);
+        }
+        self
+    }
+
+    pub fn delete_icon(&mut self, icon: MockIcon) -> &mut Self {
+        self.delete_record("quicksuggest", &format!("icon-{}", icon.id))
     }
 }
 
@@ -151,11 +250,23 @@ pub struct MockIcon {
 }
 
 impl Client for MockRemoteSettingsClient {
-    fn get_records(&self, request: RecordRequest) -> Result<Vec<Record>> {
-        // Note: limit and modified time are ignored
-        Ok(match self.records.get(&request.record_type) {
-            Some(records) => records.clone(),
-            None => vec![],
-        })
+    fn get_records(&self, collection: Collection, _db: &mut SuggestDao) -> Result<Vec<Record>> {
+        Ok(self
+            .records
+            .iter()
+            .filter(|r| collection == r.record_type().collection())
+            .cloned()
+            .collect())
+    }
+
+    fn download_attachment(&self, record: &Record) -> Result<Vec<u8>> {
+        match &record.attachment {
+            None => Err(Error::MissingAttachment(record.id.to_string())),
+            Some(a) => Ok(self
+                .attachments
+                .get(&a.location)
+                .expect("Attachment not in hash map")
+                .clone()),
+        }
     }
 }

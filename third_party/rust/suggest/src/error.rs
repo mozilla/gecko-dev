@@ -20,8 +20,8 @@ pub enum Error {
         context: String,
     },
 
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error("Serialization error: {0}")]
+    Serialization(String),
 
     #[error("Error from Remote Settings: {0}")]
     RemoteSettings(#[from] RemoteSettingsError),
@@ -48,6 +48,24 @@ impl Error {
 impl From<rusqlite::Error> for Error {
     fn from(e: rusqlite::Error) -> Self {
         Self::sql(e, "<none>")
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Self::Serialization(e.to_string())
+    }
+}
+
+impl From<rmp_serde::decode::Error> for Error {
+    fn from(e: rmp_serde::decode::Error) -> Self {
+        Self::Serialization(e.to_string())
+    }
+}
+
+impl From<rmp_serde::encode::Error> for Error {
+    fn from(e: rmp_serde::encode::Error) -> Self {
+        Self::Serialization(e.to_string())
     }
 }
 

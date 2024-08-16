@@ -19,6 +19,8 @@ const REMOTE_SETTINGS_RECORDS = [
         total_reviews: 167,
         product_id: "amazon-0",
         score: 0.68416834,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/fakespot-1",
@@ -28,6 +30,8 @@ const REMOTE_SETTINGS_RECORDS = [
         total_reviews: 100,
         product_id: "amazon-1",
         score: 0.5,
+        keywords: "",
+        product_type: "",
       },
     ],
   },

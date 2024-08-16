@@ -30,6 +30,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-0",
         score: 0.01,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/1-review-item",
@@ -39,6 +41,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-1",
         score: 0.1,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/2-reviews-item",
@@ -48,6 +52,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-2",
         score: 0.2,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/1000-reviews-item",
@@ -57,6 +63,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-3",
         score: 0.3,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/99999-reviews-item",
@@ -66,6 +74,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-4",
         score: 0.4,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/100000-reviews-item",
@@ -75,6 +85,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-5",
         score: 0.5,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/png-image-item",
@@ -84,6 +96,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "amazon-6",
         score: 0.6,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/svg-image-item",
@@ -93,6 +107,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "bestbuy-1",
         score: 0.7,
+        keywords: "",
+        product_type: "",
       },
       {
         url: "https://example.com/no-image-item",
@@ -102,6 +118,8 @@ const REMOTE_SETTINGS_RECORDS = [
         fakespot_grade: "A",
         product_id: "walmart-1",
         score: 0.8,
+        keywords: "",
+        product_type: "",
       },
     ],
   },

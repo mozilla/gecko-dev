@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+use std::fmt;
+
 use rusqlite::{
     types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
     Result as RusqliteResult,
@@ -23,6 +25,22 @@ pub enum SuggestionProvider {
     Weather = 7,
     AmpMobile = 8,
     Fakespot = 9,
+}
+
+impl fmt::Display for SuggestionProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Amp => write!(f, "amp"),
+            Self::Wikipedia => write!(f, "wikipedia"),
+            Self::Amo => write!(f, "amo"),
+            Self::Pocket => write!(f, "pocket"),
+            Self::Yelp => write!(f, "yelp"),
+            Self::Mdn => write!(f, "mdn"),
+            Self::Weather => write!(f, "weather"),
+            Self::AmpMobile => write!(f, "ampmobile"),
+            Self::Fakespot => write!(f, "fakespot"),
+        }
+    }
 }
 
 impl FromSql for SuggestionProvider {
@@ -66,52 +84,17 @@ impl SuggestionProvider {
         }
     }
 
-    pub(crate) fn records_for_provider(&self) -> Vec<SuggestRecordType> {
+    pub(crate) fn record_type(&self) -> SuggestRecordType {
         match self {
-            SuggestionProvider::Amp => {
-                vec![
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Wikipedia => {
-                vec![
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Amo => {
-                vec![SuggestRecordType::Amo, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Pocket => {
-                vec![SuggestRecordType::Pocket, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Yelp => {
-                vec![
-                    SuggestRecordType::Yelp,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Mdn => {
-                vec![SuggestRecordType::Mdn, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Weather => {
-                vec![SuggestRecordType::Weather, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::AmpMobile => {
-                vec![
-                    SuggestRecordType::AmpMobile,
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Fakespot => {
-                vec![SuggestRecordType::Fakespot]
-            }
+            SuggestionProvider::Amp => SuggestRecordType::AmpWikipedia,
+            SuggestionProvider::Wikipedia => SuggestRecordType::AmpWikipedia,
+            SuggestionProvider::Amo => SuggestRecordType::Amo,
+            SuggestionProvider::Pocket => SuggestRecordType::Pocket,
+            SuggestionProvider::Yelp => SuggestRecordType::Yelp,
+            SuggestionProvider::Mdn => SuggestRecordType::Mdn,
+            SuggestionProvider::Weather => SuggestRecordType::Weather,
+            SuggestionProvider::AmpMobile => SuggestRecordType::AmpMobile,
+            SuggestionProvider::Fakespot => SuggestRecordType::Fakespot,
         }
     }
 }

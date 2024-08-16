@@ -27,6 +27,8 @@ add_setup(async function test_setup() {
             fakespot_grade: "A",
             product_id: "amazon-0",
             score: 0.01,
+            keywords: "",
+            product_type: "",
           },
         ],
       },
