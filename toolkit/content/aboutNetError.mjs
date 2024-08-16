@@ -160,11 +160,6 @@ function setupAdvancedButton() {
     if (panel.hidden) {
       // Reveal
       revealAdvancedPanelSlowlyAsync();
-
-      // send event to trigger telemetry ping
-      document.dispatchEvent(
-        new CustomEvent("AboutNetErrorUIExpanded", { bubbles: true })
-      );
     } else {
       // Hide
       panel.hidden = true;
