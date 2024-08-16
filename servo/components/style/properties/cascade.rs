@@ -578,7 +578,7 @@ struct Declarations<'a> {
     /// Whether we have any prioritary property. This is just a minor optimization.
     has_prioritary_properties: bool,
     /// A list of all the applicable longhand declarations.
-    longhand_declarations: SmallVec<[Declaration<'a>; 32]>,
+    longhand_declarations: SmallVec<[Declaration<'a>; 64]>,
     /// The prioritary property position data.
     prioritary_positions: [PrioritaryDeclarationPosition; property_counts::PRIORITARY],
 }
