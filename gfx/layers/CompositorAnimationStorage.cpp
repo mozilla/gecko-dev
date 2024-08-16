@@ -152,8 +152,8 @@ void CompositorAnimationStorage::SetAnimatedValue(
   if (!aPreviousValue) {
     MOZ_ASSERT(!mAnimatedValues.Contains(aId));
     mAnimatedValues.InsertOrUpdate(
-        aId, MakeUnique<AnimatedValue>(gfx::Matrix4x4(), aFrameTransform, aData,
-                                       std::move(aValue)));
+        aId,
+        MakeUnique<AnimatedValue>(aFrameTransform, aData, std::move(aValue)));
     return;
   }
   MOZ_ASSERT(aPreviousValue->Is<AnimationTransform>());

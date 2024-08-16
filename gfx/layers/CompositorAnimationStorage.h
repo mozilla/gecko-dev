@@ -29,11 +29,6 @@ using SampledAnimationArray = AutoTArray<RefPtr<StyleAnimationValue>, 1>;
 
 struct AnimationTransform {
   /*
-   * This transform is calculated from sampleanimation in device pixel
-   * and used for layers (i.e. non WebRender)
-   */
-  gfx::Matrix4x4 mTransformInDevSpace;
-  /*
    * This transform is calculated from frame used for WebRender and used by
    * getOMTAStyle() for OMTA testing.
    */
@@ -64,12 +59,10 @@ struct AnimatedValue final {
     return mValue.is<T>();
   }
 
-  AnimatedValue(const gfx::Matrix4x4& aTransformInDevSpace,
-                const gfx::Matrix4x4& aFrameTransform,
+  AnimatedValue(const gfx::Matrix4x4& aFrameTransform,
                 const TransformData& aData, SampledAnimationArray&& aValue)
-      : mValue(AsVariant(AnimationTransform{
-            aTransformInDevSpace, aFrameTransform, aData, std::move(aValue)})) {
-  }
+      : mValue(AsVariant(
+            AnimationTransform{aFrameTransform, aData, std::move(aValue)})) {}
 
   explicit AnimatedValue(const float& aValue) : mValue(AsVariant(aValue)) {}
 
