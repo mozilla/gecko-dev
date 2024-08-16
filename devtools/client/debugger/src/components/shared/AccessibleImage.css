@@ -86,8 +86,11 @@
 }
 
 .img.file {
-  mask-image: url(chrome://devtools/content/debugger/images/file-small.svg);
-  mask-size: 12px 12px;
+  background-image: url(chrome://devtools/content/debugger/images/file-small.svg);
+  background-size: 12px 12px;
+  background-color: transparent !important;
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-color);
 }
 
 .img.folder {
