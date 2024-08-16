@@ -674,7 +674,6 @@ class nsWindow final : public nsBaseWidget {
   bool mIsAlert : 1;
   bool mWindowShouldStartDragging : 1;
   bool mHasMappedToplevel : 1;
-  bool mRetryPointerGrab : 1;
   bool mPanInProgress : 1;
   // Draw titlebar with :backdrop css state (inactive/unfocused).
   bool mTitlebarBackdropState : 1;

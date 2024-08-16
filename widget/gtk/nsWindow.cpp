@@ -405,7 +405,6 @@ nsWindow::nsWindow()
       mIsAlert(false),
       mWindowShouldStartDragging(false),
       mHasMappedToplevel(false),
-      mRetryPointerGrab(false),
       mPanInProgress(false),
       mTitlebarBackdropState(false),
       mIsChildWindow(false),
