@@ -5220,6 +5220,24 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
     promises.AppendElement(storageDirectoryLock->Acquire());
   }
 
+  RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
+
+  if (IsBestEffortPersistenceType(aClientMetadata.mPersistenceType)) {
+    temporaryStorageDirectoryLock = CreateDirectoryLockInternal(
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                        PERSISTENCE_TYPE_DEFAULT),
+        OriginScope::FromNull(), Nullable<Client::Type>(),
+        /* aExclusive */ false);
+
+    if (mTemporaryStorageInitialized &&
+        !IsDirectoryLockBlockedByUninitStorageOperation(
+            temporaryStorageDirectoryLock)) {
+      temporaryStorageDirectoryLock = nullptr;
+    } else {
+      promises.AppendElement(temporaryStorageDirectoryLock->Acquire());
+    }
+  }
+
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
       CreateDirectoryLock(aClientMetadata, /* aExclusive */ false);
 
@@ -5255,6 +5273,25 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
 
                return self->InitializeStorage(std::move(storageDirectoryLock));
              })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this), temporaryStorageDirectoryLock =
+                                    std::move(temporaryStorageDirectoryLock)](
+              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+            if (aValue.IsReject()) {
+              SafeDropDirectoryLockIfNotDropped(temporaryStorageDirectoryLock);
+
+              return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                  __func__);
+            }
+
+            if (!temporaryStorageDirectoryLock) {
+              return BoolPromise::CreateAndResolve(true, __func__);
+            }
+
+            return self->InitializeTemporaryStorage(
+                std::move(temporaryStorageDirectoryLock));
+          })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [clientDirectoryLock = std::move(clientDirectoryLock)](
                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
