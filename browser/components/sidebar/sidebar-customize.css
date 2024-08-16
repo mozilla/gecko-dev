@@ -42,15 +42,13 @@
   border-radius: var(--border-radius-medium);
   background-color: var(--toolbar-bgcolor);
   color: var(--toolbar-color);
-  padding-inline: var(--space-xsmall);
+  padding-inline: var(--space-medium);
 }
 
 .extension-item {
   display: flex;
-  height: 2.6em;
   gap: var(--space-small);
-  align-items: center;
-  padding-block: var(--space-xsmall);
+  padding-block: var(--space-medium);
   box-sizing: border-box;
 
   &:not(:last-of-type){
@@ -60,7 +58,7 @@
 
 .customize-extensions-heading {
   margin: 0;
-  font-weight: inherit;
+  font-weight: var(--font-weight-bold);
 }
 
 moz-radio-group,
@@ -73,17 +71,14 @@ moz-fieldset {
     background-color: var(--toolbar-bgcolor);
     color: var(--toolbar-color);
     gap: 0;
-    padding-inline: var(--space-xsmall);
+    padding-inline: var(--space-medium);
   }
 }
 
 moz-radio,
 moz-checkbox {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: 2.6em;
-  padding-block: var(--space-xsmall);
+  padding-block: var(--space-medium);
   box-sizing: border-box;
 
   &:not(:last-of-type) {
