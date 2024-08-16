@@ -15,6 +15,7 @@ prefs = [
   "layout.css.transform-box-content-stroke.enabled=true",
   "layout.css.transition-behavior.enabled=true",
   "layout.css.field-sizing.enabled=true",
+  "layout.css.anchor-positioning.enabled=true",
 ]
 support-files = [
   "animation_utils.js",

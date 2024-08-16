@@ -170,6 +170,8 @@ pub enum StyleParseErrorKind<'i> {
     AnimationPropertyInKeyframeBlock,
     /// The property is not allowed within a page rule.
     NotAllowedInPageRule,
+    /// `!important` declarations are disallowed in `@position-try`.
+    PositionTryUnexpectedImportantDeclaration,
 }
 
 impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {

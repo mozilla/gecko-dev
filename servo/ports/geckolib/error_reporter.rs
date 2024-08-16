@@ -276,6 +276,9 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 StyleParseErrorKind::OtherInvalidValue(_) => {
                     (cstr!("PEValueParsingError"), Action::Drop)
                 },
+                StyleParseErrorKind::PositionTryUnexpectedImportantDeclaration => {
+                    (cstr!("PEPositionTryImportantDeclError"), Action::Drop)
+                },
                 _ => (cstr!("PEUnknownProperty"), Action::Drop),
             },
             ContextualParseError::UnsupportedPropertyDeclaration(..) => {

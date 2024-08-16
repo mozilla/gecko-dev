@@ -1458,6 +1458,15 @@ impl<'i> DeclarationParserState<'i> {
             Ok(()) => Importance::Important,
             Err(_) => Importance::Normal,
         };
+        if context
+            .nesting_context
+            .rule_types
+            .contains(CssRuleType::PositionTry) &&
+            matches!(self.importance, Importance::Important)
+        {
+            return Err(input
+                .new_custom_error(StyleParseErrorKind::PositionTryUnexpectedImportantDeclaration));
+        }
         // In case there is still unparsed text in the declaration, we should roll back.
         input.expect_exhausted()?;
         self.output_block
@@ -1609,12 +1618,20 @@ fn report_one_css_error<'i>(
                 return;
             }
         }
-        error = match *property {
-            PropertyId::Custom(ref c) => {
-                StyleParseErrorKind::new_invalid(format!("--{}", c), error)
-            },
-            _ => StyleParseErrorKind::new_invalid(property.non_custom_id().unwrap().name(), error),
-        };
+        // Was able to parse property ID - Either an invalid value, or is constrained
+        // by the rule block it's in to be invalid. In the former case, we need to unwrap
+        // the error to be more specific.
+        if !matches!(
+            error.kind,
+            ParseErrorKind::Custom(StyleParseErrorKind::PositionTryUnexpectedImportantDeclaration)
+        ) {
+            error = match *property {
+                PropertyId::Custom(ref c) => {
+                    StyleParseErrorKind::new_invalid(format!("--{}", c), error)
+                },
+                _ => StyleParseErrorKind::new_invalid(property.non_custom_id().unwrap().name(), error),
+            };
+        }
     }
 
     let location = error.location;
