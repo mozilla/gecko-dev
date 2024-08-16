@@ -163,15 +163,8 @@ pub enum StyleParseErrorKind<'i> {
     InvalidFilter(CowRcStr<'i>, Token<'i>),
     /// The property declaration contained an invalid value.
     OtherInvalidValue(CowRcStr<'i>),
-    /// The declaration contained an animation property, and we were parsing
-    /// this as a keyframe block (so that property should be ignored).
-    ///
-    /// See: https://drafts.csswg.org/css-animations/#keyframes
-    AnimationPropertyInKeyframeBlock,
-    /// The property is not allowed within a page rule.
-    NotAllowedInPageRule,
-    /// `!important` declarations are disallowed in `@position-try`.
-    PositionTryUnexpectedImportantDeclaration,
+    /// `!important` declarations are disallowed in `@position-try` or keyframes.
+    UnexpectedImportantDeclaration,
 }
 
 impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {

@@ -131,6 +131,12 @@ impl<'a> ParserContext<'a> {
         self.nesting_context.rule_types.contains(CssRuleType::Page)
     }
 
+    /// Returns whether !important declarations are forbidden.
+    #[inline]
+    pub fn allows_important_declarations(&self) -> bool {
+        !self.nesting_context.rule_types.intersects(CssRuleTypes::IMPORTANT_FORBIDDEN)
+    }
+
     /// Get the rule type, which assumes that one is available.
     pub fn rule_types(&self) -> CssRuleTypes {
         self.nesting_context.rule_types
