@@ -297,7 +297,7 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
     if (doc) {
       let video = this.findVideoToPiP(doc);
       if (video && PictureInPictureChild.videoIsPlaying(video)) {
-        this.togglePictureInPicture({ video, reason: "autoToggle" }, false);
+        this.togglePictureInPicture({ video, reason: "autoPip" }, false);
       }
     }
   }
