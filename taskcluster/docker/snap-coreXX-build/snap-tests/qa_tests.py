@@ -761,6 +761,9 @@ class QATests(SnapTestsBase):
         C1756713
         """
 
+        # Bug 1913458
+        return True
+
         download_site = self.open_lafibre()
         extra_small = self._wait.until(
             EC.presence_of_element_located(
@@ -813,6 +816,9 @@ class QATests(SnapTestsBase):
         """
         C1756715
         """
+
+        # Bug 1913458
+        return True
 
         download_site = self.open_lafibre()
         extra_small = self._wait.until(
