@@ -15,7 +15,7 @@
     <string name="content_description_disable_private_browsing_button">Απενεργοποίηση ιδιωτικής περιήγησης</string>
 
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
-    <string name="search_hint">Αναζήτηση ή εισαγωγή διεύθυνσης</string>
+    <string name="search_hint">Αναζήτηση όρου ή εισαγωγή διεύθυνσης</string>
 
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
     <string name="search_hint_general_engine">Αναζήτηση στο διαδίκτυο</string>
@@ -889,7 +889,7 @@
 
     <!-- Turn On Sync Preferences -->
     <!-- Header of the Sync and save your data preference view -->
-    <string name="preferences_sync_2">Συγχρονισμός και αποθήκευση δεδομένων</string>
+    <string name="preferences_sync_2">Συγχρονισμός δεδομένων</string>
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Συνδεθείτε για επανασύνδεση</string>
     <!-- Preference for removing FxA account -->
@@ -1073,7 +1073,7 @@
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_private_tab">Προσθήκη ιδιωτικής καρτέλας</string>
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
-    <string name="tab_drawer_fab_content">Ιδιωτική</string>
+    <string name="tab_drawer_fab_content">Ιδιωτικη</string>
     <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
     <string name="tab_drawer_fab_sync">Συγχρονισμός</string>
     <!-- Text shown in the menu for sharing all tabs -->
@@ -1160,7 +1160,7 @@
     <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
     <string name="download_delete_single_item_snackbar">Το %1$s αφαιρέθηκε</string>
     <!-- Text shown when no download exists -->
-    <string name="download_empty_message_1">Κανένα ληφθέν αρχείο</string>
+    <string name="download_empty_message_1">Δεν υπάρχει κανένα αρχείο λήψης</string>
     <!-- History multi select title in app bar
     The first parameter is the number of downloads selected -->
     <string name="download_multi_select_title">%1$d επιλογή(ές)</string>
@@ -1236,7 +1236,7 @@
     <!-- Bookmark editing error missing or improper URL -->
     <string name="bookmark_invalid_url_error">Μη έγκυρο URL</string>
     <!-- Bookmark screen message for empty bookmarks folder -->
-    <string name="bookmarks_empty_message">Κανένας σελιδοδείκτης εδώ</string>
+    <string name="bookmarks_empty_message">Δεν υπάρχει κανένας σελιδοδείκτης εδώ</string>
     <!-- Bookmark snackbar message on deletion
      The first parameter is the host part of the URL of the bookmark deleted, if any -->
     <string name="bookmark_deletion_snackbar_message">Το «%1$s» διαγράφτηκε</string>
@@ -1423,7 +1423,7 @@
     <!-- An option from the share dialog to sign into sync -->
     <string name="sync_sign_in">Σύνδεση στο Sync</string>
      <!-- An option from the three dot menu to sync and save data -->
-    <string name="sync_menu_sync_and_save_data">Συγχρονισμός και αποθήκευση δεδομένων</string>
+    <string name="sync_menu_sync_and_save_data">Συγχρονισμός δεδομένων</string>
     <!-- An option from the share dialog to send link to all other sync devices -->
     <string name="sync_send_to_all">Αποστολή σε όλες τις συσκευές</string>
     <!-- An option from the share dialog to reconnect to sync -->
@@ -1648,7 +1648,7 @@
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Σάρωση</string>
     <!-- Text shown for settings option for sign with pairing -->
-    <string name="sign_in_with_camera">Σύνδεση με την κάμερά σας</string>
+    <string name="sign_in_with_camera">Συνδεθείτε με την κάμερά σας</string>
 
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Χρήση email</string>
@@ -2706,11 +2706,11 @@
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Ακύρωση λήψης της γλώσσας «%1$s»;</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Ακύρωση λήψης της γλώσσας «%1$s»;</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Ναι</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ναι</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Όχι</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Όχι</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform

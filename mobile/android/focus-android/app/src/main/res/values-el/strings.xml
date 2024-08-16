@@ -13,17 +13,17 @@
     <string name="action_save">Αποθήκευση</string>
 
     <!-- This text is shown in the URL bar when it's empty -->
-    <string name="urlbar_hint">Αναζήτηση ή εισαγωγή διεύθυνσης</string>
+    <string name="urlbar_hint">Αναζήτηση όρου ή εισαγωγή διεύθυνσης</string>
 
     <string name="teaser">Αυτόματη ιδιωτική περιήγηση.\nΠεριήγηση. Διαγραφή. Επανάληψη.</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
-    <string name="feedback_erase">Το ιστορικό περιήγησης έχει διαγραφτεί.</string>
+    <string name="feedback_erase">Το ιστορικό περιήγησης έχει διαγραφεί.</string>
 
-    <string name="feedback_erase2">Το ιστορικό περιήγησης απαλείφθηκε</string>
+    <string name="feedback_erase2">Το ιστορικό περιήγησης διαγράφηκε</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
-    <string name="feedback_erase_custom_tab">Το ιστορικό της καρτέλας έχει διαγραφτεί.</string>
+    <string name="feedback_erase_custom_tab">Το ιστορικό της καρτέλας έχει διαγραφεί.</string>
 
     <!-- This label is shown below the URL bar as soon as the user enters text. Clicking the label will perform a search -->
     <string name="search_hint">Αναζήτηση για «%1$s»</string>
@@ -160,7 +160,7 @@
 
     <!-- Preference category description for settings related to search, set default
     and autocomplete are settings a user can find and change inside the "search" settings screen -->
-    <string name="preference_search_summary">Ορισμός ως προεπιλογή, αυτόματη συμπλήρωση</string>
+    <string name="preference_search_summary">Ορισμός προεπιλογής, αυτόματη συμπλήρωση</string>
 
     <!-- Preference category description for settings screen for settings related to Mozilla -->
     <!-- About the app and help are links that are inside this menu -->
@@ -180,7 +180,7 @@
     <string name="preference_category_general">Γενικά</string>
 
     <!-- Preference summary for General Settings category; the two things users can find in this category -->
-    <string name="preference_general_summary2">Προεπιλεγμένος φυλλομετρητής, γλώσσα</string>
+    <string name="preference_general_summary2">Προεπιλεγμένο πρόγραμμα περιήγησης, γλώσσα</string>
 
     <!-- Preference category for settings about sending usage data -->
     <string name="preference_category_data_collection_use">Συλλογή και χρήση δεδομένων</string>
@@ -191,7 +191,7 @@
     <string name="preference_show_search_suggestions">Λήψη προτάσεων αναζήτησης</string>
     <!-- Description of the preference that enables/disables search suggestions
         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
-    <string name="preference_show_search_suggestions_summary">Το %1$s θα στέλνει όσα πληκτρολογείτε στη γραμμή διευθύνσεων στη μηχανή αναζήτησής σας</string>
+    <string name="preference_show_search_suggestions_summary">Το %1$s θα στέλνει στη μηχανή αναζήτησής σας όσα πληκτρολογείτε στη γραμμή διευθύνσεων</string>
 
     <!-- This label is shown below the name of the default search engine in settings -->
     <string name="preference_search_engine_default">Προεπιλογή</string>
@@ -213,14 +213,14 @@
 
     <!-- Summary for the toggle to enable autocomplete for the topsites list
     %s is a placeholder for the app name (e.g. Firefox Focus)-->
-    <string name="preference_autocomplete_topsite_summary2">Ενεργοποιήστε το για συμπλήρωση πάνω από 450 δημοφιλών URL στη γραμμή διευθύνσεων του %s.</string>
+    <string name="preference_autocomplete_topsite_summary2">Επιτρέπει την αυτόματη συμπλήρωση πάνω από 450 δημοφιλών URL στη γραμμή διευθύνσεων του %s.</string>
 
     <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
     <string name="preference_switch_autocomplete_user_list">Για ιστοτόπους που προσθέτετε</string>
 
     <!-- Summary for the toggle to enable autocomplete for the user-defined list
      %s is a placeholder for the app name (e.g. Firefox Focus)-->
-    <string name="preference_autocomplete_user_list_summary2">Ενεργοποιήστε το για συμπλήρωση των αγαπημένων σας URL στο %s.</string>
+    <string name="preference_autocomplete_user_list_summary2">Επιτρέπει την αυτόματη συμπλήρωση των αγαπημένων σας URL στο %s.</string>
 
     <!-- Preference category: Manage (user-defined) sites -->
     <string name="preference_category_autocomplete_manage_sites">Διαχείριση ιστοτόπων</string>
@@ -262,7 +262,7 @@
     <string name="preference_autocomplete_custom_summary">Προσθήκη και διαχείριση προσαρμοσμένων URL αυτόματης συμπλήρωσης.</string>
 
     <!-- Label for the "custom autocomplete URL" input field -->
-    <string name="preference_autocomplete_add_title">URL για προσθήκη</string>
+    <string name="preference_autocomplete_add_title">URL προς προσθήκη</string>
 
     <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Επικόλληση ή εισαγωγή URL</string>
@@ -292,11 +292,11 @@
 
     <string name="preference_category_privacy">Απόρρητο</string>
     <string name="preference_privacy_block_ads">Φραγή ιχνηλατών διαφημίσεων</string>
-    <string name="preference_privacy_block_ads_summary">Ορισμένες διαφημίσεις καταγράφουν επισκέψεις σε ιστοτόπους, ακόμη κι αν δεν τις πατήσετε</string>
+    <string name="preference_privacy_block_ads_summary">Ορισμένες διαφημίσεις καταγράφουν τις επισκέψεις σας σε ιστοτόπους, ακόμα κι αν δεν τις πατήσετε</string>
     <string name="preference_privacy_block_analytics">Φραγή ιχνηλατών ανάλυσης</string>
     <string name="preference_privacy_block_analytics_summary">Χρησιμοποιούνται για τη συλλογή, την ανάλυση και τη μέτρηση δραστηριοτήτων, όπως πατήματα και κυλίσεις</string>
-    <string name="preference_privacy_block_social">Φραγή ιχνηλατών κοινωνικών δικτύων</string>
-    <string name="preference_privacy_block_social_summary">Ενσωματώνονται σε ιστοτόπους για την καταγραφή των επισκέψεών σας και την εμφάνιση λειτουργιών, όπως κουμπιά κοινοποίησης</string>
+    <string name="preference_privacy_block_social">Φραγή ιχνηλατών μέσων κοινωνικής δικτύωσης</string>
+    <string name="preference_privacy_block_social_summary">Ενσωματώνονται σε ιστοτόπους για την καταγραφή των επισκέψεών σας και την εμφάνιση λειτουργιών, όπως κουμπιών κοινοποίησης</string>
     <string name="preference_privacy_block_content">Φραγή ιχνηλατών άλλου περιεχομένου</string>
     <string name="preference_privacy_block_content_summary2">Η ενεργοποίηση ενδέχεται να προκαλέσει την απρόσμενη συμπεριφορά ορισμένων σελίδων</string>
     <string name="preference_privacy_category_cookies">Φραγή cookie</string>
@@ -311,7 +311,7 @@
     <string name="preference_privacy_should_block_cookies_yes_option2">Ναι, παρακαλώ</string>
 
     <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
-    <string name="preference_security_biometric">Χρήση αποτυπώματος για ξεκλείδωμα εφαρμογής</string>
+    <string name="preference_security_biometric">Ξεκλείδωμα εφαρμογής με δακτυλικό αποτύπωμα</string>
 
     <!-- Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
         open when the app was last run to ensure that only the phone's owner can view a previous session.
@@ -326,7 +326,7 @@
      app's content (in our case especially the content of webpages) to show up in the "recent apps"
      screen. Additionally Android will prevent the user from taking screenshots or casting the app
      to other displays. -->
-    <string name="preference_privacy_stealth_summary">Απόκρυψη ιστοσελίδων κατά την εναλλαγή εφαρμογών και φραγή στιγμιότυπων.</string>
+    <string name="preference_privacy_stealth_summary">Απόκρυψη ιστοσελίδων κατά την εναλλαγή εφαρμογών και φραγή στιγμιότυπων οθόνης.</string>
 
     <string name="preference_category_security">Ασφάλεια</string>
 
@@ -352,7 +352,7 @@
     <string name="preference_mozilla_telemetry_summary">Μάθετε περισσότερα</string>
 
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="preference_mozilla_telemetry_summary2">Η Mozilla προσπαθεί συλλέγει μόνο όσα χρειάζεται για να παρέχει και να βελτιώνει το %1$s για όλους.</string>
+    <string name="preference_mozilla_telemetry_summary2">Η Mozilla προσπαθεί να συλλέγει μόνο όσα χρειάζεται για την παροχή και τη βελτίωση του %1$s για όλους.</string>
 
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Σημείωση απορρήτου</string>
@@ -393,8 +393,8 @@
     <string name="action_option_add_search_engine">Προσθήκη μηχανής αναζήτησης</string>
 
     <string name="search_add_manually_name_hint">Όνομα μηχανής αναζήτησης</string>
-    <string name="search_add_manually_string">Όρος αναζήτησης για χρήση</string>
-    <string name="search_add_manually_save">Αποθήκευση</string>
+    <string name="search_add_manually_string">Όρος αναζήτησης προς χρήση</string>
+    <string name="search_add_manually_save">Αποθηκευση</string>
 
     <!-- Example of search engine url -->
     <string name="search_add_manually_example">Παράδειγμα: example.com/search/?q=%s</string>
@@ -567,7 +567,7 @@
     <!-- First run tour (Privacy): Title -->
     <string name="firstrun_privacy_title">Κάντε το απόρρητο συνήθεια</string>
     <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="firstrun_privacy_text">Ορίστε το %1$s ως τον προεπιλεγμένο φυλλομετρητή για ιδιωτική περιήγηση σε ιστοτόπους που ανοίγουν από άλλες εφαρμογές.</string>
+    <string name="firstrun_privacy_text">Ορίστε το %1$s ως προεπιλογή για να απολαμβάνετε ιδιωτική περιήγηση σε ιστοτόπους που ανοίγουν από άλλες εφαρμογές.</string>
 
     <string name="firstrun_close_button">OK, κατάλαβα!</string>
     <string name="firstrun_skip_button">Παράλειψη</string>
@@ -577,13 +577,13 @@
     <string name="content_blocking_disabled">-</string>
 
     <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
-    <string name="dialog_addtohomescreen_action_add">Προσθήκη</string>
+    <string name="dialog_addtohomescreen_action_add">Προσθηκη</string>
 
     <!-- Label of the action that will add the current website to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_yes">ΝΑΙ</string>
 
     <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
-    <string name="dialog_addtohomescreen_action_cancel">Ακύρωση</string>
+    <string name="dialog_addtohomescreen_action_cancel">Ακυρωση</string>
 
     <!-- Label of the action that will close the dialog and not add anything to the home screen (shown in the confirmation dialog). -->
     <string name="dialog_addtohomescreen_action_no">ΟΧΙ</string>
@@ -606,7 +606,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
     -->
-    <string name="notification_browsing_session_channel_description">Οι ειδοποιήσεις σάς επιτρέπουν να διαγράψετε τη συνεδρία σας στο %1$s με ένα πάτημα. Δεν χρειάζεται να ανοίξετε την εφαρμογή ή να δείτε τι συμβαίνει στον φυλλομετρητή σας.</string>
+    <string name="notification_browsing_session_channel_description">Οι ειδοποιήσεις σάς επιτρέπουν να διαγράψετε τη συνεδρία σας στο %1$s με ένα πάτημα. Δεν χρειάζεται να ανοίξετε την εφαρμογή ή να δείτε τι συμβαίνει στο πρόγραμμα περιήγησής σας.</string>
 
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Διαγραφή ιστορικού περιήγησης</string>
@@ -815,7 +815,7 @@
     <string name="preference_option_phone_feature_allowed">Αποδοχή</string>
 
     <!--Label that indicates a permission is by the Android OS-->
-    <string name="phone_feature_blocked_by_android">Αποκλείστηκε από το Android</string>
+    <string name="phone_feature_blocked_by_android">Αποκλεισμός από το Android</string>
 
     <!-- Preference for allow autoplay audio and video-->
     <string name="preference_allow_audio_video_autoplay">Αποδοχή ήχου και βίντεο</string>
@@ -860,7 +860,7 @@
     <string name="biometric_prompt_title">Επιβεβαίωση με δακτυλικό αποτύπωμα</string>
 
     <!-- Subtitle text for biometric prompt pop-up -->
-    <string name="biometric_prompt_subtitle">Μπορείτε να χρησιμοποιήσετε το αποτύπωμά σας για να συνεχίσετε την τρέχουσα συνεδρία της εφαρμογής σας.</string>
+    <string name="biometric_prompt_subtitle">Μπορείτε να χρησιμοποιήσετε το δακτυλικό σας αποτύπωμα για να συνεχίσετε την τρέχουσα συνεδρία σας στην εφαρμογή.</string>
 
     <!-- Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
     while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened. -->
@@ -882,10 +882,10 @@
 
     <!-- Description for the prompt to enable search suggestions
         %1$s will be replaced by the app name (e.g. Firefox Focus) -->
-    <string name="enable_search_suggestion_description">Για να λάβετε προτάσεις, το %1$s πρέπει να στείλει ό,τι πληκτρολογείτε στη γραμμή διευθύνσεων στη μηχανή αναζήτησης.</string>
+    <string name="enable_search_suggestion_description"> Για να λαμβάνετε προτάσεις, το %1$s πρέπει να στέλνει στη μηχανή αναζήτησης ό,τι πληκτρολογείτε στη γραμμή διευθύνσεων.</string>
 
     <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
-    <string name="enable_search_suggestions_no">Όχι</string>
+    <string name="enable_search_suggestions_no">Οχι</string>
 
     <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_yes">Ναι</string>
@@ -1128,7 +1128,7 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Για έξοδο από πλήρη οθόνη, σύρετε από το πάνω μέρος και χρησιμοποιήστε τη χειρονομία επιστροφής</string>
+    <string name="exit_fullscreen_with_gesture">Για έξοδο από την πλήρη οθόνη, σύρετε από το πάνω μέρος και χρησιμοποιήστε τη χειρονομία επιστροφής</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Για έξοδο από πλήρη οθόνη, σύρετε από το πάνω μέρος και πατήστε το κουμπί επιστροφής</string>
+    <string name="exit_fullscreen_with_back_button">Για έξοδο από την πλήρη οθόνη, σύρετε από το πάνω μέρος και πατήστε το κουμπί επιστροφής</string>
 </resources>
