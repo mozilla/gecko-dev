@@ -29,6 +29,8 @@ skip-if = ["os == 'linux'"]  # Bug 1821461
 
 ["browser_translations_actor.js"]
 
+["browser_translations_actor_clear_cache.js"]
+
 ["browser_translations_actor_detected_langs.js"]
 
 ["browser_translations_actor_empty_langs.js"]
