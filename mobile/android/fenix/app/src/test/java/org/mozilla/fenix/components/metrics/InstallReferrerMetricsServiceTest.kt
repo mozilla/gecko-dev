@@ -114,9 +114,9 @@ internal class InstallReferrerMetricsServiceTest {
     }
 
     @Test
-    fun `WHEN Install referrer metrics service starts THEN then the service type should be data`() {
+    fun `WHEN Install referrer metrics service starts THEN then the service type should be marketing`() {
         val service = InstallReferrerMetricsService(context)
-        assertEquals(MetricServiceType.Data, service.type)
+        assertEquals(MetricServiceType.Marketing, service.type)
     }
 
     @Test

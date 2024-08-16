@@ -27,7 +27,7 @@ import java.net.URLDecoder
  */
 class InstallReferrerMetricsService(private val context: Context) : MetricsService {
     private val logger = Logger("InstallReferrerMetricsService")
-    override val type = MetricServiceType.Data
+    override val type = MetricServiceType.Marketing
 
     private var referrerClient: InstallReferrerClient? = null
 
