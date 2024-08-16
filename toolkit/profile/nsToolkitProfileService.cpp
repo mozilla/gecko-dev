@@ -1539,6 +1539,8 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
 
     if (EnvHasValue("XRE_RESTARTED_BY_PROFILE_MANAGER")) {
       mStartupReason = u"profile-manager"_ns;
+    } else if (EnvHasValue("XRE_RESTARTED_BY_PROFILE_SELECTOR")) {
+      mStartupReason = u"profile-selector"_ns;
     } else if (aIsResetting) {
       mStartupReason = u"profile-reset"_ns;
     } else {

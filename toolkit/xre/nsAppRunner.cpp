@@ -2792,11 +2792,9 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
   }
 }
 
-static const char kProfileManagerURL[] =
-    "chrome://mozapps/content/profile/profileSelection.xhtml";
-
-static ReturnAbortOnError ShowProfileManager(
-    nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative) {
+static ReturnAbortOnError ShowProfileDialog(
+    nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative,
+    const char* aDialogURL, const char* aTelemetryEnvVar) {
   nsresult rv;
 
   nsCOMPtr<nsIFile> profD, profLD;
@@ -2841,9 +2839,9 @@ static ReturnAbortOnError ShowProfileManager(
         features.AppendLiteral(",private");
       }
       nsCOMPtr<mozIDOMWindowProxy> newWindow;
-      rv = windowWatcher->OpenWindow(
-          nullptr, nsDependentCString(kProfileManagerURL), "_blank"_ns,
-          features, ioParamBlock, getter_AddRefs(newWindow));
+      rv = windowWatcher->OpenWindow(nullptr, nsDependentCString(aDialogURL),
+                                     "_blank"_ns, features, ioParamBlock,
+                                     getter_AddRefs(newWindow));
 
       NS_ENSURE_SUCCESS_LOG(rv, rv);
 
@@ -2873,13 +2871,12 @@ static ReturnAbortOnError ShowProfileManager(
   // User requested that we restart back into the profile manager.
   if (dialogReturn == nsIToolkitProfileService::restart) {
     SaveToEnv("XRE_RESTART_TO_PROFILE_MANAGER=1");
-    SaveToEnv("XRE_RESTARTED_BY_PROFILE_MANAGER=1");
   } else {
     MOZ_ASSERT(dialogReturn == nsIToolkitProfileService::launchWithProfile);
     SaveFileToEnv("XRE_PROFILE_PATH", profD);
     SaveFileToEnv("XRE_PROFILE_LOCAL_PATH", profLD);
-    SaveToEnv("XRE_RESTARTED_BY_PROFILE_MANAGER=1");
   }
+  SaveToEnv(aTelemetryEnvVar);
 
   if (gRestartedByOS) {
     // Re-add this argument when actually starting the application.
@@ -2896,6 +2893,25 @@ static ReturnAbortOnError ShowProfileManager(
   }
 #endif
   return LaunchChild(false, true);
+}
+
+static ReturnAbortOnError ShowProfileManager(
+    nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative) {
+  static const char kProfileManagerURL[] =
+      "chrome://mozapps/content/profile/profileSelection.xhtml";
+  static const char kTelemetryEnv[] = "XRE_RESTARTED_BY_PROFILE_MANAGER=1";
+
+  return ShowProfileDialog(aProfileSvc, aNative, kProfileManagerURL,
+                           kTelemetryEnv);
+}
+
+static ReturnAbortOnError ShowProfileSelector(
+    nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative) {
+  static const char kProfileSelectorURL[] = "about:profilemanager";
+  static const char kTelemetryEnv[] = "XRE_RESTARTED_BY_PROFILE_SELECTOR=1";
+
+  return ShowProfileDialog(aProfileSvc, aNative, kProfileSelectorURL,
+                           kTelemetryEnv);
 }
 
 static bool gDoMigration = false;
@@ -5068,24 +5084,31 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   }
 #endif
 
+  bool useSelectedProfile;
+  rv = mProfileSvc->GetStartWithLastProfile(&useSelectedProfile);
+  NS_ENSURE_SUCCESS(rv, 1);
+
   // We now know there is no existing instance using the selected profile. If
   // the profile wasn't selected by specific command line arguments and the
   // user has chosen to show the profile manager on startup then do that.
-  if (wasDefaultSelection) {
-    bool useSelectedProfile;
-    rv = mProfileSvc->GetStartWithLastProfile(&useSelectedProfile);
-    NS_ENSURE_SUCCESS(rv, 1);
-
-    if (!useSelectedProfile) {
-      rv = ShowProfileManager(mProfileSvc, mNativeApp);
-      if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
-        *aExitFlag = true;
-        return 0;
-      }
-      if (NS_FAILED(rv)) {
-        return 1;
-      }
+  if (wasDefaultSelection && !useSelectedProfile) {
+    rv = ShowProfileManager(mProfileSvc, mNativeApp);
+  } else if (profile) {
+    bool showSelector = false;
+    profile->GetShowProfileSelector(&showSelector);
+    if (showSelector) {
+      rv = ShowProfileSelector(mProfileSvc, mNativeApp);
+    } else {
+      rv = NS_OK;
     }
+  }
+
+  if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
+    *aExitFlag = true;
+    return 0;
+  }
+  if (NS_FAILED(rv)) {
+    return 1;
   }
 
   // We always want to lock the profile even if we're actually going to reset

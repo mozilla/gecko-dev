@@ -77,7 +77,7 @@ interface nsIToolkitProfile : nsISupports
      *
      * @throws NS_ERROR_FAILURE on set if storeID is null.
      */
-    attribute boolean showProfileSelector;
+    [infallible] attribute boolean showProfileSelector;
 
     /**
      * Removes the profile from the registry of profiles.

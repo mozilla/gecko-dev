@@ -6370,6 +6370,7 @@ startup:
       - 1570652
       - 1623406
       - 1749887
+      - 1893667
     description: >
       How the profile was selected during startup. One of the following reasons:
         unknown:
@@ -6377,6 +6378,8 @@ startup:
           occured.
         profile-manager:
           The profile was selected by the profile manager.
+        profile-selector:
+          The profile was selected by the profile selector window.
         profile-reset:
           The profile was selected for reset, normally this would mean a restart.
         restart:
@@ -6412,6 +6415,7 @@ startup:
       - jhollek@mozilla.com
       - echo@mozilla.com
       - shong@mozilla.com
+      - jhirsch@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
