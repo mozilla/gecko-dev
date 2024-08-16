@@ -319,10 +319,20 @@ class nsWindow final : public nsBaseWidget {
       const mozilla::WidgetKeyboardEvent& aEvent,
       nsTArray<mozilla::CommandInt>& aCommands) override;
 
+  // These methods are for toplevel windows only.
+  void ResizeTransparencyBitmap();
+  void ApplyTransparencyBitmap();
+  void ClearTransparencyBitmap();
+
   void SetTransparencyMode(TransparencyMode aMode) override;
   TransparencyMode GetTransparencyMode() override;
   void SetInputRegion(const InputRegion&) override;
+  nsresult UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
+                                                uint8_t* aAlphas,
+                                                int32_t aStride);
   void ReparentNativeWidget(nsIWidget* aNewParent) override;
+
+  void UpdateTitlebarTransparencyBitmap();
 
   nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
                                       NativeMouseMessage aNativeMessage,
@@ -407,7 +417,8 @@ class nsWindow final : public nsBaseWidget {
    */
   static GtkWindowDecoration GetSystemGtkWindowDecoration();
 
-  bool IsRemoteContent() const { return HasRemoteContent(); }
+  static bool TitlebarUseShapeMask();
+  bool IsRemoteContent() { return HasRemoteContent(); }
   void NativeMoveResizeWaylandPopupCallback(const GdkRectangle* aFinalSize,
                                             bool aFlippedX, bool aFlippedY);
   static bool IsToplevelWindowTransparent();
@@ -484,6 +495,9 @@ class nsWindow final : public nsBaseWidget {
   mozilla::Atomic<int, mozilla::Relaxed> mCeiledScaleFactor{1};
   double mFractionalScaleFactor = 0.0;
 
+  void UpdateAlpha(mozilla::gfx::SourceSurface* aSourceSurface,
+                   nsIntRect aBoundsRect);
+
   void NativeMoveResize(bool aMoved, bool aResized);
 
   void NativeShow(bool aAction);
@@ -505,6 +519,7 @@ class nsWindow final : public nsBaseWidget {
   GtkWidget* GetToplevelWidget() const;
   nsWindow* GetContainerWindow() const;
   Window GetX11Window();
+  bool GetShapedState();
   void EnsureGdkWindow();
   void SetUrgencyHint(GtkWidget* top_window, bool state);
   void SetDefaultIcon(void);
@@ -714,6 +729,10 @@ class nsWindow final : public nsBaseWidget {
    */
   bool mHiddenPopupPositioned : 1;
 
+  // The transparency bitmap is used instead of ARGB visual for toplevel
+  // window to draw titlebar.
+  bool mTransparencyBitmapForTitlebar : 1;
+
   // True when we're on compositing window manager and this
   // window is using visual with alpha channel.
   bool mHasAlphaVisual : 1;
@@ -775,6 +794,13 @@ class nsWindow final : public nsBaseWidget {
 
   // Whether we need to retry capturing the mouse because we' re not mapped yet.
   bool mNeedsToRetryCapturingMouse : 1;
+
+  // This bitmap tracks which pixels are transparent. We don't support
+  // full translucency at this time; each pixel is either fully opaque
+  // or fully transparent.
+  gchar* mTransparencyBitmap = nullptr;
+  int32_t mTransparencyBitmapWidth = 0;
+  int32_t mTransparencyBitmapHeight = 0;
 
   // all of our DND stuff
   void InitDragEvent(mozilla::WidgetDragEvent& aEvent);

@@ -29,10 +29,33 @@ using namespace mozilla::gfx;
 
 WindowSurfaceX11Image::WindowSurfaceX11Image(Display* aDisplay, Window aWindow,
                                              Visual* aVisual,
-                                             unsigned int aDepth)
-    : WindowSurfaceX11(aDisplay, aWindow, aVisual, aDepth) {}
+                                             unsigned int aDepth,
+                                             bool aIsShaped)
+    : WindowSurfaceX11(aDisplay, aWindow, aVisual, aDepth),
+      mTransparencyBitmap(nullptr),
+      mTransparencyBitmapWidth(0),
+      mTransparencyBitmapHeight(0),
+      mIsShaped(aIsShaped),
+      mWindowParent(0) {
+  if (!mIsShaped) {
+    return;
+  }
 
-WindowSurfaceX11Image::~WindowSurfaceX11Image() {}
+  Window root, *children = nullptr;
+  unsigned int childrenNum;
+  if (XQueryTree(mDisplay, mWindow, &root, &mWindowParent, &children,
+                 &childrenNum)) {
+    if (children) {
+      XFree((char*)children);
+    }
+  }
+}
+
+WindowSurfaceX11Image::~WindowSurfaceX11Image() {
+  if (mTransparencyBitmap) {
+    delete[] mTransparencyBitmap;
+  }
+}
 
 already_AddRefed<gfx::DrawTarget> WindowSurfaceX11Image::Lock(
     const LayoutDeviceIntRegion& aRegion) {
@@ -53,6 +76,13 @@ already_AddRefed<gfx::DrawTarget> WindowSurfaceX11Image::Lock(
     if (format == gfx::SurfaceFormat::UNKNOWN) {
       format = mDepth == 32 ? gfx::SurfaceFormat::A8R8G8B8_UINT32
                             : gfx::SurfaceFormat::X8R8G8B8_UINT32;
+    }
+
+    // Use alpha image format for shaped window as we derive
+    // the shape bitmap from alpha channel. Must match SHAPED_IMAGE_SURFACE_BPP
+    // and SHAPED_IMAGE_SURFACE_ALPHA_INDEX.
+    if (mIsShaped) {
+      format = gfx::SurfaceFormat::A8R8G8B8_UINT32;
     }
 
     mImageSurface = new gfxImageSurface(size, format);
@@ -82,6 +112,122 @@ already_AddRefed<gfx::DrawTarget> WindowSurfaceX11Image::Lock(
       ImageFormatToSurfaceFormat(format));
 }
 
+// The transparency bitmap routines are derived form the ones at nsWindow.cpp.
+// The difference here is that we compose to RGBA image and then create
+// the shape mask from final image alpha channel.
+static inline int32_t GetBitmapStride(int32_t width) { return (width + 7) / 8; }
+
+static bool ChangedMaskBits(gchar* aMaskBits, int32_t aMaskWidth,
+                            int32_t aMaskHeight, const nsIntRect& aRect,
+                            uint8_t* aImageData) {
+  int32_t stride = aMaskWidth * SHAPED_IMAGE_SURFACE_BPP;
+  int32_t x, y, xMax = aRect.XMost(), yMax = aRect.YMost();
+  int32_t maskBytesPerRow = GetBitmapStride(aMaskWidth);
+  for (y = aRect.y; y < yMax; y++) {
+    gchar* maskBytes = aMaskBits + y * maskBytesPerRow;
+    uint8_t* alphas = aImageData;
+    for (x = aRect.x; x < xMax; x++) {
+      bool newBit = *(alphas + SHAPED_IMAGE_SURFACE_ALPHA_INDEX) > 0x7f;
+      alphas += SHAPED_IMAGE_SURFACE_BPP;
+
+      gchar maskByte = maskBytes[x >> 3];
+      bool maskBit = (maskByte & (1 << (x & 7))) != 0;
+
+      if (maskBit != newBit) {
+        return true;
+      }
+    }
+    aImageData += stride;
+  }
+
+  return false;
+}
+
+static void UpdateMaskBits(gchar* aMaskBits, int32_t aMaskWidth,
+                           int32_t aMaskHeight, const nsIntRect& aRect,
+                           uint8_t* aImageData) {
+  int32_t stride = aMaskWidth * SHAPED_IMAGE_SURFACE_BPP;
+  int32_t x, y, xMax = aRect.XMost(), yMax = aRect.YMost();
+  int32_t maskBytesPerRow = GetBitmapStride(aMaskWidth);
+  for (y = aRect.y; y < yMax; y++) {
+    gchar* maskBytes = aMaskBits + y * maskBytesPerRow;
+    uint8_t* alphas = aImageData;
+    for (x = aRect.x; x < xMax; x++) {
+      bool newBit = *(alphas + SHAPED_IMAGE_SURFACE_ALPHA_INDEX) > 0x7f;
+      alphas += SHAPED_IMAGE_SURFACE_BPP;
+
+      gchar mask = 1 << (x & 7);
+      gchar maskByte = maskBytes[x >> 3];
+      // Note: '-newBit' turns 0 into 00...00 and 1 into 11...11
+      maskBytes[x >> 3] = (maskByte & ~mask) | (-newBit & mask);
+    }
+    aImageData += stride;
+  }
+}
+
+void WindowSurfaceX11Image::ResizeTransparencyBitmap(int aWidth, int aHeight) {
+  int32_t actualSize =
+      GetBitmapStride(mTransparencyBitmapWidth) * mTransparencyBitmapHeight;
+  int32_t newSize = GetBitmapStride(aWidth) * aHeight;
+
+  if (actualSize < newSize) {
+    delete[] mTransparencyBitmap;
+    mTransparencyBitmap = new gchar[newSize];
+  }
+
+  mTransparencyBitmapWidth = aWidth;
+  mTransparencyBitmapHeight = aHeight;
+}
+
+void WindowSurfaceX11Image::ApplyTransparencyBitmap() {
+  gfx::IntSize size = mWindowSurface->GetSize();
+  bool maskChanged = true;
+
+  if (!mTransparencyBitmap) {
+    mTransparencyBitmapWidth = size.width;
+    mTransparencyBitmapHeight = size.height;
+
+    int32_t byteSize =
+        GetBitmapStride(mTransparencyBitmapWidth) * mTransparencyBitmapHeight;
+    mTransparencyBitmap = new gchar[byteSize];
+  } else {
+    bool sizeChanged = (size.width != mTransparencyBitmapWidth ||
+                        size.height != mTransparencyBitmapHeight);
+
+    if (sizeChanged) {
+      ResizeTransparencyBitmap(size.width, size.height);
+    } else {
+      maskChanged = ChangedMaskBits(
+          mTransparencyBitmap, mTransparencyBitmapWidth,
+          mTransparencyBitmapHeight, nsIntRect(0, 0, size.width, size.height),
+          (uint8_t*)mImageSurface->Data());
+    }
+  }
+
+  if (maskChanged) {
+    UpdateMaskBits(mTransparencyBitmap, mTransparencyBitmapWidth,
+                   mTransparencyBitmapHeight,
+                   nsIntRect(0, 0, size.width, size.height),
+                   (uint8_t*)mImageSurface->Data());
+
+    // We use X11 calls where possible, because GDK handles expose events
+    // for shaped windows in a way that's incompatible with us (Bug 635903).
+    // It doesn't occur when the shapes are set through X.
+    Display* xDisplay = mWindowSurface->XDisplay();
+    Window xDrawable = mWindowSurface->XDrawable();
+    Pixmap maskPixmap = XCreateBitmapFromData(
+        xDisplay, xDrawable, mTransparencyBitmap, mTransparencyBitmapWidth,
+        mTransparencyBitmapHeight);
+    XShapeCombineMask(xDisplay, xDrawable, ShapeBounding, 0, 0, maskPixmap,
+                      ShapeSet);
+    if (mWindowParent) {
+      XShapeCombineMask(mDisplay, mWindowParent, ShapeBounding, 0, 0,
+                        maskPixmap, ShapeSet);
+    }
+    XFreePixmap(xDisplay, maskPixmap);
+  }
+}
+
 void WindowSurfaceX11Image::Commit(
     const LayoutDeviceIntRegion& aInvalidRegion) {
   RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateDrawTargetForCairoSurface(
@@ -97,6 +243,10 @@ void WindowSurfaceX11Image::Commit(
   gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
   if (bounds.IsEmpty()) {
     return;
+  }
+
+  if (mIsShaped) {
+    ApplyTransparencyBitmap();
   }
 
   uint32_t numRects = aInvalidRegion.GetNumRects();

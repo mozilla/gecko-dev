@@ -23,7 +23,7 @@ parent:
 
   async NotifyClientSizeChanged(LayoutDeviceIntSize aClientSize);
   async CleanupResources();
-  async SetRenderingSurface(uintptr_t aXWindow);
+  async SetRenderingSurface(uintptr_t aXWindow, bool aShaped);
 
 child:
 

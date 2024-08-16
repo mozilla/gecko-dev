@@ -48,6 +48,7 @@ struct _MozContainer {
   GtkContainer container;
   gboolean destroyed;
   struct Data {
+    gboolean force_default_visual = false;
 #ifdef MOZ_WAYLAND
     MozContainerWayland wl_container;
 #endif
@@ -63,6 +64,7 @@ GtkWidget* moz_container_new(void);
 void moz_container_unmap(GtkWidget* widget);
 void moz_container_put(MozContainer* container, GtkWidget* child_widget, gint x,
                        gint y);
+void moz_container_force_default_visual(MozContainer* container);
 void moz_container_class_init(MozContainerClass* klass);
 
 class nsWindow;
