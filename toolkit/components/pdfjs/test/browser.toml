@@ -7,6 +7,9 @@ support-files = [
 ["browser_pdfjs_alttext_load_engine.js"]
 skip-if = ["!nightly_build"] # Bug 1890946
 
+["browser_pdfjs_alttext_two_tabs.js"]
+skip-if = ["!nightly_build"] # Bug 1890946
+
 ["browser_pdfjs_caret_browsing_mode.js"]
 
 ["browser_pdfjs_chrome_events.js"]
