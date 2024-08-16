@@ -640,11 +640,11 @@ const defaultOptions = {
   },
   enableAltTextModelDownload: {
     value: true,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE + OptionKind.EVENT_DISPATCH
   },
   enableGuessAltText: {
     value: true,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE + OptionKind.EVENT_DISPATCH
   },
   enableHighlightEditor: {
     value: false,
@@ -1707,15 +1707,14 @@ class DownloadManager {
     this.downloadData(data, filename, contentType);
     return false;
   }
-  download(data, url, filename, options = {}) {
+  download(data, url, filename) {
     const blobUrl = data ? URL.createObjectURL(new Blob([data], {
       type: "application/pdf"
     })) : null;
     FirefoxCom.request("download", {
       blobUrl,
       originalUrl: url,
-      filename,
-      options
+      filename
     });
   }
 }
@@ -1867,9 +1866,11 @@ class FirefoxScripting {
   }
 }
 class MLManager {
+  #abortSignal = null;
   #enabled = null;
+  #eventBus = null;
   #ready = null;
-  eventBus = null;
+  #requestResolvers = null;
   hasProgress = false;
   static #AI_ALT_TEXT_MODEL_NAME = "moz-image-to-text";
   constructor({
@@ -1881,6 +1882,31 @@ class MLManager {
     this.enableAltTextModelDownload = enableAltTextModelDownload;
     this.enableGuessAltText = enableGuessAltText;
   }
+  setEventBus(eventBus, abortSignal) {
+    this.#eventBus = eventBus;
+    this.#abortSignal = abortSignal;
+    eventBus._on("enablealttextmodeldownload", ({
+      value
+    }) => {
+      if (this.enableAltTextModelDownload === value) {
+        return;
+      }
+      if (value) {
+        this.downloadModel("altText");
+      } else {
+        this.deleteModel("altText");
+      }
+    }, {
+      signal: abortSignal
+    });
+    eventBus._on("enableguessalttext", ({
+      value
+    }) => {
+      this.toggleService("altText", value);
+    }, {
+      signal: abortSignal
+    });
+  }
   async isEnabledFor(name) {
     return this.enableGuessAltText && !!(await this.#enabled?.get(name));
   }
@@ -1888,13 +1914,14 @@ class MLManager {
     return this.#ready?.has(name) ?? false;
   }
   async deleteModel(name) {
-    if (name !== "altText") {
+    if (name !== "altText" || !this.enableAltTextModelDownload) {
       return;
     }
     this.enableAltTextModelDownload = false;
     this.#ready?.delete(name);
     this.#enabled?.delete(name);
-    await Promise.all([this.toggleService("altText", false), FirefoxCom.requestAsync("mlDelete", MLManager.#AI_ALT_TEXT_MODEL_NAME)]);
+    await this.toggleService("altText", false);
+    await FirefoxCom.requestAsync("mlDelete", MLManager.#AI_ALT_TEXT_MODEL_NAME);
   }
   async loadModel(name) {
     if (name === "altText" && this.enableAltTextModelDownload) {
@@ -1902,7 +1929,7 @@ class MLManager {
     }
   }
   async downloadModel(name) {
-    if (name !== "altText") {
+    if (name !== "altText" || this.enableAltTextModelDownload) {
       return null;
     }
     this.enableAltTextModelDownload = true;
@@ -1912,16 +1939,46 @@ class MLManager {
     if (data?.name !== "altText") {
       return null;
     }
+    const resolvers = this.#requestResolvers ||= new Set();
+    const resolver = Promise.withResolvers();
+    resolvers.add(resolver);
     data.service = MLManager.#AI_ALT_TEXT_MODEL_NAME;
-    return FirefoxCom.requestAsync("mlGuess", data);
+    FirefoxCom.requestAsync("mlGuess", data).then(response => {
+      if (resolvers.has(resolver)) {
+        resolver.resolve(response);
+        resolvers.delete(resolver);
+      }
+    }).catch(reason => {
+      if (resolvers.has(resolver)) {
+        resolver.reject(reason);
+        resolvers.delete(resolver);
+      }
+    });
+    return resolver.promise;
+  }
+  async #cancelAllRequests() {
+    if (!this.#requestResolvers) {
+      return;
+    }
+    for (const resolver of this.#requestResolvers) {
+      resolver.resolve({
+        cancel: true
+      });
+    }
+    this.#requestResolvers.clear();
+    this.#requestResolvers = null;
   }
   async toggleService(name, enabled) {
-    if (name !== "altText") {
+    if (name !== "altText" || this.enableGuessAltText === enabled) {
       return;
     }
     this.enableGuessAltText = enabled;
-    if (enabled && this.enableAltTextModelDownload) {
-      await this.#loadAltTextEngine(false);
+    if (enabled) {
+      if (this.enableAltTextModelDownload) {
+        await this.#loadAltTextEngine(false);
+      }
+    } else {
+      this.#cancelAllRequests();
     }
   }
   async #loadAltTextEngine(listenToProgress) {
@@ -1940,24 +1997,27 @@ class MLManager {
     });
     (this.#enabled ||= new Map()).set("altText", promise);
     if (listenToProgress) {
+      const ac = new AbortController();
+      const signal = AbortSignal.any([this.#abortSignal, ac.signal]);
       this.hasProgress = true;
-      const callback = ({
+      window.addEventListener("loadAIEngineProgress", ({
         detail
       }) => {
-        this.eventBus.dispatch("loadaiengineprogress", {
+        this.#eventBus.dispatch("loadaiengineprogress", {
           source: this,
           detail
         });
         if (detail.finished) {
+          ac.abort();
           this.hasProgress = false;
-          window.removeEventListener("loadAIEngineProgress", callback);
         }
-      };
-      window.addEventListener("loadAIEngineProgress", callback);
+      }, {
+        signal
+      });
       promise.then(ok => {
         if (!ok) {
+          ac.abort();
           this.hasProgress = false;
-          window.removeEventListener("loadAIEngineProgress", callback);
         }
       });
     }
@@ -6093,7 +6153,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.195";
+    const viewerVersion = "4.5.252";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -6427,10 +6487,8 @@ class PDFViewer {
       this._resetView();
       this.findController?.setDocument(null);
       this._scriptingManager?.setDocument(null);
-      if (this.#annotationEditorUIManager) {
-        this.#annotationEditorUIManager.destroy();
-        this.#annotationEditorUIManager = null;
-      }
+      this.#annotationEditorUIManager?.destroy();
+      this.#annotationEditorUIManager = null;
     }
     this.pdfDocument = pdfDocument;
     if (!pdfDocument) {
@@ -7911,9 +7969,7 @@ const PDFViewerApplication = {
     } = this;
     let eventBus;
     eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
-    if (this.mlManager) {
-      this.mlManager.eventBus = eventBus;
-    }
+    this.mlManager?.setEventBus(eventBus, this._globalAbortController.signal);
     this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
@@ -8322,14 +8378,14 @@ const PDFViewerApplication = {
       });
     });
   },
-  async download(options = {}) {
+  async download() {
     let data;
     try {
       data = await this.pdfDocument.getData();
     } catch {}
-    this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
+    this.downloadManager.download(data, this._downloadUrl, this._docFilename);
   },
-  async save(options = {}) {
+  async save() {
     if (this._saveInProgress) {
       return;
     }
@@ -8337,10 +8393,10 @@ const PDFViewerApplication = {
     await this.pdfScriptingManager.dispatchWillSave();
     try {
       const data = await this.pdfDocument.saveDocument();
-      this.downloadManager.download(data, this._downloadUrl, this._docFilename, options);
+      this.downloadManager.download(data, this._downloadUrl, this._docFilename);
     } catch (reason) {
       console.error(`Error when saving the document: ${reason.message}`);
-      await this.download(options);
+      await this.download();
     } finally {
       await this.pdfScriptingManager.dispatchDidSave();
       this._saveInProgress = false;
@@ -8355,12 +8411,12 @@ const PDFViewerApplication = {
       });
     }
   },
-  async downloadOrSave(options = {}) {
+  async downloadOrSave() {
     const {
       classList
     } = this.appConfig.appContainer;
     classList.add("wait");
-    await (this.pdfDocument?.annotationStorage.size > 0 ? this.save(options) : this.download(options));
+    await (this.pdfDocument?.annotationStorage.size > 0 ? this.save() : this.download());
     classList.remove("wait");
   },
   async _documentError(key, moreInfo = null) {
@@ -9742,8 +9798,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.5.195";
-const pdfjsBuild = "a372bf8f4";
+const pdfjsVersion = "4.5.252";
+const pdfjsBuild = "e44e4db52";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

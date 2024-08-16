@@ -821,7 +821,6 @@
   .popup > .header .popupDate{
     display:inline-block;
     margin-left:calc(5px * var(--scale-factor));
-    width:-moz-fit-content;
     width:fit-content;
   }
 

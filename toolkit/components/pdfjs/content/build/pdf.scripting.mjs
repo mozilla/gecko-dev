@@ -1299,13 +1299,11 @@ class AForm {
       }
       for (const child of field.getArray()) {
         const number = this.AFMakeNumber(child.value);
-        if (number !== null) {
-          values.push(number);
-        }
+        values.push(number ?? 0);
       }
     }
     if (values.length === 0) {
-      event.value = cFunction === "PRD" ? 1 : 0;
+      event.value = 0;
       return;
     }
     const res = actions[cFunction](values);
@@ -1698,7 +1696,15 @@ class EventDispatcher {
       event.value = null;
       const target = this._objects[targetId];
       let savedValue = target.obj._getValue();
-      this.runActions(source, target, event, "Calculate");
+      try {
+        this.runActions(source, target, event, "Calculate");
+      } catch (error) {
+        const fieldId = target.obj._id;
+        const serializedError = serializeError(error);
+        serializedError.value = `Error when calculating value for field "${fieldId}"\n${serializedError.value}`;
+        this._externalCall("send", [serializedError]);
+        continue;
+      }
       if (!event.rc) {
         continue;
       }
@@ -4001,8 +4007,8 @@ function initSandbox(params) {
 
 ;// CONCATENATED MODULE: ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.5.195";
-const pdfjsBuild = "a372bf8f4";
+const pdfjsVersion = "4.5.252";
+const pdfjsBuild = "e44e4db52";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
