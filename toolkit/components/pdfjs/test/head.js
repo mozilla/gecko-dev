@@ -517,3 +517,28 @@ function makePDFJSHandler() {
 
   info("Pref action: " + handlerInfo.preferredAction);
 }
+
+async function testTelemetryEventExtra(record, expected, clear = true) {
+  await Services.fog.testFlushAllChildren();
+  const values = record.testGetValue();
+  Assert.equal(values.length, expected.length, "Should have the length");
+
+  for (let i = 0; i < expected.length; i++) {
+    const value = values[i];
+    Assert.deepEqual(
+      value?.extra ?? {},
+      expected[i],
+      `Should have the right value at index ${i}`
+    );
+  }
+  if (clear) {
+    Services.fog.testResetFOG();
+  }
+}
+
+function waitForPreviewVisible() {
+  return BrowserTestUtils.waitForCondition(function () {
+    let preview = document.querySelector(".printPreviewBrowser");
+    return preview && BrowserTestUtils.isVisible(preview);
+  });
+}
