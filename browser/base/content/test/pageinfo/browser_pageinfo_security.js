@@ -33,17 +33,23 @@ add_task(async function test_ShowCertificate() {
     "Security tab should be visible."
   );
 
-  async function openAboutCertificate() {
-    let loaded = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  async function openAboutCertificate(newWindow = false) {
+    let loadedBrowser = newWindow
+      ? BrowserTestUtils.waitForNewWindow({ waitForAnyURLLoaded: true }).then(
+          w => w.gBrowser.selectedBrowser
+        )
+      : BrowserTestUtils.waitForNewTab(gBrowser, null, true).then(
+          t => t.linkedBrowser
+        );
     let viewCertButton = pageInfoDoc.getElementById("security-view-cert");
     await TestUtils.waitForCondition(
       () => BrowserTestUtils.isVisible(viewCertButton),
       "view cert button should be visible."
     );
     viewCertButton.click();
-    await loaded;
+    let browser = await loadedBrowser;
 
-    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    await SpecialPowers.spawn(browser, [], async function () {
       let certificateSection = await ContentTaskUtils.waitForCondition(() => {
         return content.document.querySelector("certificate-section");
       }, "Certificate section found");
@@ -55,7 +61,11 @@ add_task(async function test_ShowCertificate() {
       is(commonName, "example.com", "Should have the same common name.");
     });
 
-    gBrowser.removeCurrentTab(); // closes about:certificate
+    if (newWindow) {
+      await BrowserTestUtils.closeWindow(browser.ownerGlobal);
+    } else {
+      browser.ownerGlobal.gBrowser.removeCurrentTab(); // closes about:certificate
+    }
   }
 
   await openAboutCertificate();
@@ -63,6 +73,11 @@ add_task(async function test_ShowCertificate() {
   gBrowser.selectedTab = tab1;
 
   await openAboutCertificate();
+
+  // Now try opening the cert as if we have no open windows.
+  BrowserWindowTracker.untrackForTestsOnly(window);
+  await openAboutCertificate(true /* use a window */);
+  BrowserWindowTracker.track(window);
 
   pageInfo.close();
   BrowserTestUtils.removeTab(tab1);
