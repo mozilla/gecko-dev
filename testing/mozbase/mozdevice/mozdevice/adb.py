@@ -901,14 +901,16 @@ class ADBDevice(ADBCommand):
         boot_completed = False
         while not boot_completed and (time.time() - start_time) <= float(timeout):
             try:
-                self.shell_output("/system/bin/ls /system/bin/ls", timeout=timeout)
+                self.shell_output(
+                    "/system/bin/ls /system/bin/ls", timeout=timeout, attempts=3
+                )
                 boot_completed = True
                 self._ls = "/system/bin/ls"
             except ADBError as e1:
                 self._logger.debug(f"detect /system/bin/ls {e1}")
                 try:
                     self.shell_output(
-                        "/system/xbin/ls /system/xbin/ls", timeout=timeout
+                        "/system/xbin/ls /system/xbin/ls", timeout=timeout, attempts=3
                     )
                     boot_completed = True
                     self._ls = "/system/xbin/ls"
@@ -927,7 +929,9 @@ class ADBDevice(ADBCommand):
         boot_completed = False
         while not boot_completed and (time.time() - start_time) <= float(timeout):
             try:
-                self.shell_output(f"{self._ls} -1A {ls_dir}", timeout=timeout)
+                self.shell_output(
+                    f"{self._ls} -1A {ls_dir}", timeout=timeout, attempts=3
+                )
                 boot_completed = True
                 self._ls += " -1A"
             except ADBError as e:
@@ -1107,11 +1111,11 @@ class ADBDevice(ADBCommand):
         # See https://github.com/aosp-mirror/platform_build/commit/
         # fbba7fe06312241c7eb8c592ec2ac630e4316d55
         stack_trace_dir = self.shell_output(
-            "getprop dalvik.vm.stack-trace-dir", timeout=timeout
+            "getprop dalvik.vm.stack-trace-dir", timeout=timeout, attempts=3
         )
         if not stack_trace_dir:
             stack_trace_file = self.shell_output(
-                "getprop dalvik.vm.stack-trace-file", timeout=timeout
+                "getprop dalvik.vm.stack-trace-file", timeout=timeout, attempts=3
             )
             if stack_trace_file:
                 stack_trace_dir = posixpath.dirname(stack_trace_file)
@@ -1142,7 +1146,7 @@ class ADBDevice(ADBCommand):
         """
         for attempt in range(self._device_ready_retry_attempts):
             sys_boot_completed = self.shell_output(
-                "getprop sys.boot_completed", timeout=timeout
+                "getprop sys.boot_completed", timeout=timeout, attempts=3
             )
             if sys_boot_completed == "1":
                 break
@@ -1268,7 +1272,7 @@ class ADBDevice(ADBCommand):
     def _sync(self, timeout=None):
         """Sync the file system using shell_output in order that exceptions
         are raised to the caller."""
-        self.shell_output("sync", timeout=timeout)
+        self.shell_output("sync", timeout=timeout, attempts=3)
 
     @staticmethod
     def _should_quote(arg):
@@ -2182,7 +2186,9 @@ class ADBDevice(ADBCommand):
 
                 adb_process.stdout_file.close()
 
-    def shell_output(self, cmd, env=None, cwd=None, timeout=None, enable_run_as=False):
+    def shell_output(
+        self, cmd, env=None, cwd=None, timeout=None, enable_run_as=False, attempts=1
+    ):
         """Executes an adb shell on the device returning stdout.
 
         :param str cmd: The command to be executed.
@@ -2200,6 +2206,20 @@ class ADBDevice(ADBCommand):
         :raises: :exc:`ADBTimeoutError`
                  :exc:`ADBError`
         """
+        for attempt in range(attempts):
+            try:
+                output = self._shell_output(
+                    cmd, env=env, cwd=cwd, timeout=timeout, enable_run_as=enable_run_as
+                )
+                return output
+            except ADBError:
+                if attempt >= attempts - 1:
+                    raise
+                # pause for an arbitrary length of time, to allow for recovery from
+                # intermittent failures that might persist for a short time
+                time.sleep(2)
+
+    def _shell_output(self, cmd, env=None, cwd=None, timeout=None, enable_run_as=False):
         adb_process = None
         try:
             adb_process = self.shell(
@@ -2346,7 +2366,7 @@ class ADBDevice(ADBCommand):
         :raises: :exc:`ADBTimeoutError`
                  :exc:`ADBError`
         """
-        output = self.shell_output("getprop %s" % prop, timeout=timeout)
+        output = self.shell_output("getprop %s" % prop, timeout=timeout, attempts=3)
         return output
 
     def get_state(self, timeout=None):
@@ -2421,7 +2441,9 @@ class ADBDevice(ADBCommand):
         self._logger.debug("get_ip_address: ifconfig")
         for interface in interfaces:
             try:
-                output = self.shell_output("ifconfig %s" % interface, timeout=timeout)
+                output = self.shell_output(
+                    "ifconfig %s" % interface, timeout=timeout, attempts=3
+                )
             except ADBError as e:
                 self._logger.warning(f"get_ip_address ifconfig {interface}: {str(e)}")
                 output = ""
@@ -2471,7 +2493,7 @@ class ADBDevice(ADBCommand):
             r"(\w+)\s+UP\s+([1-9]\d{0,2}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
         )
         try:
-            output = self.shell_output("netcfg", timeout=timeout)
+            output = self.shell_output("netcfg", timeout=timeout, attempts=3)
         except ADBError as e:
             self._logger.warning("get_ip_address netcfg: %s" % str(e))
             output = ""
@@ -2592,7 +2614,10 @@ class ADBDevice(ADBCommand):
             command.append(path)
             try:
                 self.shell_output(
-                    cmd=" ".join(command), timeout=timeout, enable_run_as=enable_run_as
+                    cmd=" ".join(command),
+                    timeout=timeout,
+                    enable_run_as=enable_run_as,
+                    attempts=3,
                 )
             except ADBProcessError as e:
                 if "No such file or directory" not in str(e):
@@ -2652,7 +2677,10 @@ class ADBDevice(ADBCommand):
             # command can simply be run as provided by the user.
             command.append(path)
             self.shell_output(
-                cmd=" ".join(command), timeout=timeout, enable_run_as=enable_run_as
+                cmd=" ".join(command),
+                timeout=timeout,
+                enable_run_as=enable_run_as,
+                attempts=3,
             )
 
     def _test_path(self, argument, path, timeout=None):
@@ -2770,6 +2798,7 @@ class ADBDevice(ADBCommand):
                     f"{self._ls} {path}",
                     timeout=timeout,
                     enable_run_as=enable_run_as,
+                    attempts=3,
                 ).splitlines()
                 self._logger.debug("list_files: data: %s" % data)
             except ADBError:
@@ -2841,6 +2870,7 @@ class ADBDevice(ADBCommand):
             f"{self._ls} {recursive_flag} {path}",
             timeout=timeout,
             enable_run_as=enable_run_as,
+            attempts=3,
         ).splitlines()
         for line in lines:
             stripped_line = line.strip()
@@ -3571,7 +3601,7 @@ class ADBDevice(ADBCommand):
             "diskstats",
         ):
             results[service] = self.shell_output(
-                "dumpsys %s" % service, timeout=timeout
+                "dumpsys %s" % service, timeout=timeout, attempts=3
             )
         return results
 
@@ -3608,19 +3638,19 @@ class ADBDevice(ADBCommand):
             info["battery"] = self.get_battery_percentage(timeout=timeout)
         if "disk" in directives:
             info["disk"] = self.shell_output(
-                "df /data /system /sdcard", timeout=timeout
+                "df /data /system /sdcard", timeout=timeout, attempts=3
             ).splitlines()
         if "id" in directives:
             info["id"] = self.command_output(["get-serialno"], timeout=timeout)
         if "os" in directives:
             info["os"] = self.get_prop("ro.build.display.id", timeout=timeout)
         if "process" in directives:
-            ps = self.shell_output("ps", timeout=timeout)
+            ps = self.shell_output("ps", timeout=timeout, attempts=3)
             info["process"] = ps.splitlines()
         if "systime" in directives:
-            info["systime"] = self.shell_output("date", timeout=timeout)
+            info["systime"] = self.shell_output("date", timeout=timeout, attempts=3)
         if "uptime" in directives:
-            uptime = self.shell_output("uptime", timeout=timeout)
+            uptime = self.shell_output("uptime", timeout=timeout, attempts=3)
             if uptime:
                 m = re.match(r"up time: ((\d+) days, )*(\d{2}):(\d{2}):(\d{2})", uptime)
                 if m:
@@ -3645,7 +3675,7 @@ class ADBDevice(ADBCommand):
     @property
     def enforcing(self):
         try:
-            enforce = self.shell_output("getenforce")
+            enforce = self.shell_output("getenforce", attempts=3)
         except ADBError as e:
             enforce = ""
             self._logger.warning("Unable to get SELinux enforcing due to %s." % e)
@@ -3658,7 +3688,7 @@ class ADBDevice(ADBCommand):
             Permissive, 0, Enforcing, 1 but it is not validated.
         """
         try:
-            self.shell_output("setenforce %s" % value)
+            self.shell_output("setenforce %s" % value, attempts=3)
             self._logger.info("Setting SELinux %s" % value)
         except ADBError as e:
             self._logger.warning("Unable to set SELinux Permissive due to %s." % e)
@@ -3683,7 +3713,7 @@ class ADBDevice(ADBCommand):
         percentage = 0
         cmd = "dumpsys battery"
         re_parameter = re.compile(r"\s+(\w+):\s+(\d+)")
-        lines = self.shell_output(cmd, timeout=timeout).splitlines()
+        lines = self.shell_output(cmd, timeout=timeout, attempts=3).splitlines()
         for line in lines:
             match = re_parameter.match(line)
             if match:
@@ -3726,7 +3756,7 @@ class ADBDevice(ADBCommand):
         verbose = self._verbose
         try:
             self._verbose = False
-            data = self.shell_output(cmd, timeout=timeout)
+            data = self.shell_output(cmd, timeout=timeout, attempts=3)
         except Exception as e:
             # dumpsys intermittently fails on some platforms.
             self._logger.info(f"_get_top_activity_P: Exception {cmd}: {e}")
@@ -3757,7 +3787,7 @@ class ADBDevice(ADBCommand):
         verbose = self._verbose
         try:
             self._verbose = False
-            data = self.shell_output(cmd, timeout=timeout)
+            data = self.shell_output(cmd, timeout=timeout, attempts=3)
         except Exception as e:
             # dumpsys intermittently fails on some platforms (4.3 arm emulator)
             self._logger.info(f"_get_top_activity_Q: Exception {cmd}: {e}")
@@ -3815,7 +3845,7 @@ class ADBDevice(ADBCommand):
                     # Invoke the pm list packages command to see if it is up and
                     # running.
                     data = self.shell_output(
-                        "pm list packages org.mozilla", timeout=timeout
+                        "pm list packages org.mozilla", timeout=timeout, attempts=3
                     )
                     if pm_error_string in data:
                         failure = data
@@ -3846,7 +3876,7 @@ class ADBDevice(ADBCommand):
                  :exc:`ADBError`
         """
         try:
-            self.shell_output("svc power stayon true", timeout=timeout)
+            self.shell_output("svc power stayon true", timeout=timeout, attempts=3)
         except ADBError as e:
             # Executing this via adb shell errors, but not interactively.
             # Any other exitcode is a real error.
@@ -3865,6 +3895,7 @@ class ADBDevice(ADBCommand):
             "appops set %s android:write_settings allow" % app_name,
             timeout=timeout,
             enable_run_as=False,
+            attempts=3,
         )
 
     def add_mock_location(self, app_name, timeout=None):
@@ -3876,6 +3907,7 @@ class ADBDevice(ADBCommand):
             "appops set %s android:mock_location allow" % app_name,
             timeout=timeout,
             enable_run_as=False,
+            attempts=3,
         )
 
     def grant_runtime_permissions(self, app_name, timeout=None):
@@ -3904,6 +3936,7 @@ class ADBDevice(ADBCommand):
                         f"pm grant {app_name} {permission}",
                         timeout=timeout,
                         enable_run_as=False,
+                        attempts=3,
                     )
                 except ADBError as e:
                     self._logger.warning(
@@ -4014,7 +4047,7 @@ class ADBDevice(ADBCommand):
                  :exc:`ADBError`
         """
         dump_packages = "dumpsys package packages"
-        packages_before = set(self.shell_output(dump_packages).split("\n"))
+        packages_before = set(self.shell_output(dump_packages, attempts=3).split("\n"))
         cmd = ["install"]
         if replace:
             cmd.append("-r")
@@ -4022,7 +4055,7 @@ class ADBDevice(ADBCommand):
         data = self.command_output(cmd, timeout=timeout)
         if data.find("Success") == -1:
             raise ADBError(f"install failed for {apk_path}. Got: {data}")
-        packages_after = set(self.shell_output(dump_packages).split("\n"))
+        packages_after = set(self.shell_output(dump_packages, attempts=3).split("\n"))
         packages_diff = packages_after - packages_before
         package_name = None
         re_pkg = re.compile(r"\s+pkg=Package{[^ ]+ (.*)}")
@@ -4047,7 +4080,10 @@ class ADBDevice(ADBCommand):
         """
         pm_error_string = "Error: Could not access the Package Manager"
         data = self.shell_output(
-            "pm list package %s" % app_name, timeout=timeout, enable_run_as=False
+            "pm list package %s" % app_name,
+            timeout=timeout,
+            enable_run_as=False,
+            attempts=3,
         )
         if pm_error_string in data:
             raise ADBError(pm_error_string)
@@ -4352,7 +4388,9 @@ class ADBDevice(ADBCommand):
                  :exc:`ADBError`
         """
         if self.version >= version_codes.HONEYCOMB:
-            self.shell_output("am force-stop %s" % app_name, timeout=timeout)
+            self.shell_output(
+                "am force-stop %s" % app_name, timeout=timeout, attempts=3
+            )
         else:
             num_tries = 0
             max_tries = 5

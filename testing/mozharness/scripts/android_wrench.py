@@ -236,7 +236,7 @@ class AndroidWrench(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
 
         self.verify_device()
         self.info("Logging device properties...")
-        self.info(self.shell_output("getprop"))
+        self.info(self.shell_output("getprop", attempts=3))
         self.info("Installing APK...")
         self.install_android_app(self.query_abs_dirs()["abs_apk_path"], replace=True)
 
