@@ -2943,7 +2943,6 @@ void MacroAssembler::flexibleDivMod32(Register rhs, Register srcDest,
                                       Register remOutput, bool isUnsigned,
                                       const LiveRegisterSet&) {
   vixl::UseScratchRegisterScope temps(this);
-  ARMRegister scratch = temps.AcquireW();
   ARMRegister src = temps.AcquireW();
 
   // Preserve src for remainder computation
@@ -2954,9 +2953,10 @@ void MacroAssembler::flexibleDivMod32(Register rhs, Register srcDest,
   } else {
     Sdiv(ARMRegister(srcDest, 32), src, ARMRegister(rhs, 32));
   }
-  // Compute remainder
-  Mul(scratch, ARMRegister(srcDest, 32), ARMRegister(rhs, 32));
-  Sub(ARMRegister(remOutput, 32), src, scratch);
+
+  // Compute the remainder: remOutput = src - (srcDest * rhs).
+  Msub(/* result= */ ARMRegister(remOutput, 32), ARMRegister(srcDest, 32),
+       ARMRegister(rhs, 32), src);
 }
 
 CodeOffset MacroAssembler::moveNearAddressWithPatch(Register dest) {

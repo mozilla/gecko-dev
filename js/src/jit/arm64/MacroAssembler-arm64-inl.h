@@ -564,8 +564,10 @@ void MacroAssembler::remainder32(Register rhs, Register srcDest,
   } else {
     Sdiv(scratch, ARMRegister(srcDest, 32), ARMRegister(rhs, 32));
   }
-  Mul(scratch, scratch, ARMRegister(rhs, 32));
-  Sub(ARMRegister(srcDest, 32), ARMRegister(srcDest, 32), scratch);
+
+  // Compute the remainder: srcDest = srcDest - (scratch * rhs).
+  Msub(/* result= */ ARMRegister(srcDest, 32), scratch, ARMRegister(rhs, 32),
+       ARMRegister(srcDest, 32));
 }
 
 void MacroAssembler::divFloat32(FloatRegister src, FloatRegister dest) {
