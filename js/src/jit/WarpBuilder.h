@@ -54,7 +54,6 @@ namespace jit {
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(ThrowWithoutJump))          \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(ThrowWithStackWithoutJump)) \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(TakeDisposeCapability))     \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(GetDisposableRecord))       \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(CreateSuppressedError))     \
   /* Records and Tuples */                                      \
   IF_RECORD_TUPLE(_(InitRecord))                                \

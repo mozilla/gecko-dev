@@ -8,6 +8,7 @@
 
 #include "mozilla/Maybe.h"
 
+#include "builtin/Array.h"
 #include "builtin/ModuleObject.h"
 #include "js/Exception.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -432,23 +433,23 @@ ModuleEnvironmentObject* ModuleEnvironmentObject::create(
 // consider having a common base class for LexicalEnvironmentObject and
 // ModuleEnvironmentObject containing all the common code and also
 // align method names with that of DisposableStack (Bug 1907736).
-static ListObject* initialiseAndSetDisposeCapabilityHelper(
+static ArrayObject* initialiseAndSetDisposeCapabilityHelper(
     JSContext* cx, JS::Handle<EnvironmentObject*> env, uint32_t slot) {
   JS::Value slotData = env->getReservedSlot(slot);
-  ListObject* disposablesList = nullptr;
+  ArrayObject* disposablesList = nullptr;
   if (slotData.isUndefined()) {
-    disposablesList = ListObject::create(cx);
+    disposablesList = NewDenseEmptyArray(cx);
     if (!disposablesList) {
       return nullptr;
     }
     env->setReservedSlot(slot, ObjectValue(*disposablesList));
   } else {
-    disposablesList = &slotData.toObject().as<ListObject>();
+    disposablesList = &slotData.toObject().as<ArrayObject>();
   }
   return disposablesList;
 }
 
-ListObject* ModuleEnvironmentObject::getOrCreateDisposeCapability(
+ArrayObject* ModuleEnvironmentObject::getOrCreateDisposeCapability(
     JSContext* cx) {
   Rooted<ModuleEnvironmentObject*> env(cx, this);
   return initialiseAndSetDisposeCapabilityHelper(
@@ -463,7 +464,7 @@ void ModuleEnvironmentObject::clearDisposables() {
   setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT, UndefinedValue());
 }
 
-ListObject* LexicalEnvironmentObject::getOrCreateDisposeCapability(
+ArrayObject* LexicalEnvironmentObject::getOrCreateDisposeCapability(
     JSContext* cx) {
   Rooted<LexicalEnvironmentObject*> env(cx, this);
   return initialiseAndSetDisposeCapabilityHelper(

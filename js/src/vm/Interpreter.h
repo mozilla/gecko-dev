@@ -17,7 +17,6 @@
 #include "vm/CheckIsObjectKind.h"  // CheckIsObjectKind
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  include "vm/ErrorObject.h"
-#  include "vm/List.h"
 #  include "vm/UsingHint.h"
 #endif
 #include "vm/Stack.h"
@@ -656,7 +655,7 @@ bool CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> objVal,
                               JS::MutableHandle<JS::Value> result);
 
 bool AddDisposableResource(JSContext* cx,
-                           JS::Handle<ListObject*> disposeCapability,
+                           JS::Handle<ArrayObject*> disposeCapability,
                            JS::Handle<JS::Value> val, UsingHint hint,
                            JS::Handle<mozilla::Maybe<JS::Value>> methodVal);
 #endif

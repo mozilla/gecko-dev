@@ -43,6 +43,9 @@ class DisposableRecordObject : public NativeObject {
     UsingHint hintVal = UsingHint(hint.toInt32());
     return hintVal;
   }
+
+  static SharedShape* assignInitialShape(JSContext* cx,
+                                         Handle<DisposableRecordObject*> self);
 };
 
 }  // namespace js

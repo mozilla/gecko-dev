@@ -125,12 +125,45 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
+  if (!bce_->emit1(JSOp::GetElem)) {
+    // [stack] ... RESOURCES INDEX RESOURCE
+    return false;
+  }
+
   // Step 3.a. Let value be resource.[[ResourceValue]].
   // Step 3.b. Let hint be resource.[[Hint]].
   // Step 3.c. Let method be resource.[[DisposeMethod]].
-  // TODO: Breakdown into using dense arrays and
-  // js objects (Bug 1911642).
-  if (!bce_->emit1(JSOp::GetDisposableRecord)) {
+  // TODO: Defer property accesses until they are actually
+  // needed. (Bug 1913432)
+  if (!bce_->emit1(JSOp::Dup)) {
+    // [stack] ... RESOURCES INDEX RESOURCE RESOURCE
+    return false;
+  }
+
+  if (!bce_->emitAtomOp(JSOp::GetProp,
+                        TaggedParserAtomIndex::WellKnown::hint())) {
+    // [stack] ... RESOURCES INDEX RESOURCE HINT
+    return false;
+  }
+
+  if (!bce_->emitDupAt(1)) {
+    // [stack] ... RESOURCES INDEX RESOURCE HINT RESOURCE
+    return false;
+  }
+
+  if (!bce_->emitAtomOp(JSOp::GetProp,
+                        TaggedParserAtomIndex::WellKnown::method())) {
+    // [stack] ... RESOURCES INDEX RESOURCE HINT METHOD
+    return false;
+  }
+
+  if (!bce_->emitPickN(2)) {
+    // [stack] ... RESOURCES INDEX HINT METHOD RESOURCE
+    return false;
+  }
+
+  if (!bce_->emitAtomOp(JSOp::GetProp,
+                        TaggedParserAtomIndex::WellKnown::value())) {
     // [stack] ... RESOURCES INDEX HINT METHOD VALUE
     return false;
   }

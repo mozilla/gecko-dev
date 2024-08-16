@@ -16,8 +16,8 @@ inline /* static */ js::DisposableRecordObject*
 js::DisposableRecordObject::create(JSContext* cx, JS::Handle<JS::Value> value,
                                    JS::Handle<JS::Value> method,
                                    UsingHint hint) {
-  DisposableRecordObject* obj =
-      NewObjectWithGivenProto<DisposableRecordObject>(cx, nullptr);
+  JS::Rooted<DisposableRecordObject*> obj(
+      cx, NewObjectWithGivenProto<DisposableRecordObject>(cx, nullptr));
   if (!obj) {
     return nullptr;
   }
@@ -25,6 +25,10 @@ js::DisposableRecordObject::create(JSContext* cx, JS::Handle<JS::Value> value,
   obj->initReservedSlot(VALUE_SLOT, value);
   obj->initReservedSlot(METHOD_SLOT, method);
   obj->initReservedSlot(HINT_SLOT, JS::Int32Value(int32_t(hint)));
+
+  if (!SharedShape::ensureInitialCustomShape<DisposableRecordObject>(cx, obj)) {
+    return nullptr;
+  }
 
   return obj;
 }

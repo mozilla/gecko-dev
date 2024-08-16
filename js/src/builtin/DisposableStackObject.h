@@ -8,7 +8,6 @@
 #define builtin_DisposableStackObject_h
 
 #include "vm/JSObject.h"
-#include "vm/List.h"
 #include "vm/NativeObject.h"
 
 namespace js {
@@ -35,11 +34,11 @@ class DisposableStackObject : public NativeObject {
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
 
-  ListObject* getOrCreateDisposeCapability(JSContext* cx);
+  ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
   bool disposeResources(JSContext* cx);
   inline bool isDisposableResourceStackEmpty() const;
   inline void clearDisposableResourceStack();
-  inline ListObject* nonEmptyDisposableResourceStack() const;
+  inline ArrayObject* nonEmptyDisposableResourceStack() const;
   inline DisposableState state() const;
   inline void setState(DisposableState state);
 

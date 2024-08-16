@@ -85,7 +85,6 @@
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSScript-inl.h"
-#include "vm/List-inl.h"
 #include "vm/NativeObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
 #include "vm/PlainObject-inl.h"  // js::CopyInitializerObject, js::CreateThis
@@ -1886,7 +1885,7 @@ ErrorObject* js::CreateSuppressedError(JSContext* cx,
 // 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
 bool js::AddDisposableResource(
-    JSContext* cx, JS::Handle<ListObject*> disposeCapability,
+    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability,
     JS::Handle<JS::Value> val, UsingHint hint,
     JS::Handle<mozilla::Maybe<JS::Value>> methodVal) {
   JS::Rooted<JS::Value> resource(cx);
@@ -1916,7 +1915,7 @@ bool js::AddDisposableResource(
   }
 
   // Step 3. Append resource to disposeCapability.[[DisposableResourceStack]].
-  return disposeCapability->append(cx, resource);
+  return NewbornArrayPush(cx, disposeCapability, resource);
 }
 #endif
 
@@ -2289,7 +2288,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
       ReservedRooted<Value> val(&rootValue0, REGS.sp[-1]);
       UsingHint hint = UsingHint(GET_UINT8(REGS.pc));
-      JS::Rooted<ListObject*> disposableCapability(cx);
+      JS::Rooted<ArrayObject*> disposableCapability(cx);
 
       if (env->is<LexicalEnvironmentObject>()) {
         disposableCapability =
@@ -2328,7 +2327,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
         PUSH_INT32(0);
       } else {
         PUSH_OBJECT(maybeDisposables.toObject());
-        PUSH_INT32(maybeDisposables.toObject().as<ListObject>().length());
+        PUSH_INT32(maybeDisposables.toObject()
+                       .as<ArrayObject>()
+                       .getDenseInitializedLength());
         if (env->is<LexicalEnvironmentObject>()) {
           env->as<LexicalEnvironmentObject>().clearDisposables();
         } else {
@@ -2337,34 +2338,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       }
     }
     END_CASE(TakeDisposeCapability)
-
-    CASE(GetDisposableRecord) {
-      ReservedRooted<JS::Value> disposeCapability(&rootValue0);
-      ReservedRooted<JS::Value> index(&rootValue1);
-      POP_COPY_TO(index);
-      POP_COPY_TO(disposeCapability);
-
-      JS::Rooted<ListObject*> disposables(
-          cx, &disposeCapability.toObject().as<ListObject>());
-      uint32_t idx = index.toInt32();
-      MOZ_ASSERT(idx < disposables->length());
-      DisposableRecordObject* disposableRecord =
-          &disposables->get(idx).toObject().as<DisposableRecordObject>();
-
-      UsingHint hint = disposableRecord->getHint();
-      JS::Value method = disposableRecord->getMethod();
-      JS::Value val = disposableRecord->getObject();
-
-      MOZ_ASSERT_IF(hint == UsingHint::Sync,
-                    method.isObject() && val.isObject());
-      MOZ_ASSERT_IF(hint == UsingHint::Async,
-                    (method.isObject() || method.isUndefined()) &&
-                        (val.isObject() || val.isUndefined()));
-      PUSH_INT32(int32_t(hint));
-      PUSH_COPY(method);
-      PUSH_COPY(val);
-    }
-    END_CASE(GetDisposableRecord)
 
     CASE(CreateSuppressedError) {
       ReservedRooted<JS::Value> error(&rootValue0);

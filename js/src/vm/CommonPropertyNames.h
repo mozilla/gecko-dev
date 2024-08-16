@@ -266,6 +266,7 @@
   MACRO_(hasOwn, "hasOwn")                                                     \
   MACRO_(hasOwnProperty, "hasOwnProperty")                                     \
   MACRO_(highWaterMark, "highWaterMark")                                       \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO_(hint, "hint"))                        \
   MACRO_(hour, "hour")                                                         \
   MACRO_(hour12, "hour12")                                                     \
   MACRO_(hourCycle, "hourCycle")                                               \
@@ -371,7 +372,7 @@
   MACRO_(maxOffset, "maxOffset")                                               \
   MACRO_(mergeFields, "mergeFields")                                           \
   MACRO_(message, "message")                                                   \
-  IF_DECORATORS(MACRO_(method, "method"))                                      \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT_OR_DECORATORS(MACRO_(method, "method"))      \
   MACRO_(meta, "meta")                                                         \
   MACRO_(microsecond, "microsecond")                                           \
   MACRO_(microseconds, "microseconds")                                         \

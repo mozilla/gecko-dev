@@ -2151,16 +2151,6 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         }
         MOZ_ASSERT(defIndex == 1);
         return write("COUNT");
-
-      case JSOp::GetDisposableRecord:
-        if (defIndex == 0) {
-          return write("HINT");
-        }
-        if (defIndex == 1) {
-          return write("METHOD");
-        }
-        MOZ_ASSERT(defIndex == 2);
-        return write("VALUE");
 #  endif
 
       default:

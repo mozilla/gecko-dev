@@ -3457,15 +3457,6 @@
      */ \
     IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(TakeDisposeCapability, take_dispose_capability, NULL, 1, 0, 2, JOF_BYTE)) \
     /*
-     * Get the disposable record contents from the given dispose capability and given index.
-     *
-     *   Category: Variables and scopes
-     *   Type: Entering and leaving environments
-     *   Operands:
-     *   Stack: disposeCapability, index => hint, method, value
-     */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(GetDisposableRecord, get_disposable_record, NULL, 1, 2, 3, JOF_BYTE)) \
-    /*
      * Push the current VariableEnvironment (the environment on the environment
      * chain designated to receive new variables).
      *
@@ -3729,13 +3720,14 @@
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
+    IF_RECORD_TUPLE(/* empty */, MACRO(241))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(242))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(243))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(244))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(245))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(246))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(247))     \
-    IF_RECORD_TUPLE(/* empty */, MACRO(248))     \
+    MACRO(248)                                   \
     MACRO(249)                                   \
     MACRO(250)                                   \
     MACRO(251)                                   \

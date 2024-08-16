@@ -665,7 +665,7 @@ class ModuleEnvironmentObject : public EnvironmentObject {
   uint32_t firstSyntheticValueSlot() { return RESERVED_SLOTS; }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  ListObject* getOrCreateDisposeCapability(JSContext* cx);
+  ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
 
   // Used to get the Disposable objects within the
   // lexical scope, it returns a ListObject* if there
@@ -786,7 +786,7 @@ class LexicalEnvironmentObject : public EnvironmentObject {
   bool isSyntactic() const { return !isExtensible() || isGlobal(); }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  ListObject* getOrCreateDisposeCapability(JSContext* cx);
+  ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
 
   // Used to get the Disposable objects within the
   // lexical scope, it returns a ListObject* if there

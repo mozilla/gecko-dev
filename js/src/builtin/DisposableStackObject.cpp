@@ -6,6 +6,7 @@
 
 #include "builtin/DisposableStackObject.h"
 
+#include "builtin/Array.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/PropertyAndElement.h"
 #include "js/PropertySpec.h"
@@ -13,11 +14,9 @@
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
-#include "vm/List.h"
 #include "vm/UsingHint.h"
 
 #include "vm/Interpreter-inl.h"
-#include "vm/List-inl.h"
 #include "vm/NativeObject-inl.h"
 
 using namespace js;
@@ -35,7 +34,7 @@ using namespace js;
   MOZ_ASSERT(initialDisposeCapability.isUndefined() ||
              initialDisposeCapability.isObject());
   MOZ_ASSERT_IF(initialDisposeCapability.isObject(),
-                initialDisposeCapability.toObject().is<ListObject>());
+                initialDisposeCapability.toObject().is<ArrayObject>());
 
   obj->initReservedSlot(DisposableStackObject::DISPOSABLE_RESOURCE_STACK_SLOT,
                         initialDisposeCapability);
@@ -86,11 +85,12 @@ using namespace js;
   return val.isObject() && val.toObject().is<DisposableStackObject>();
 }
 
-ListObject* DisposableStackObject::getOrCreateDisposeCapability(JSContext* cx) {
-  ListObject* disposablesList = nullptr;
+ArrayObject* DisposableStackObject::getOrCreateDisposeCapability(
+    JSContext* cx) {
+  ArrayObject* disposablesList = nullptr;
 
   if (isDisposableResourceStackEmpty()) {
-    disposablesList = ListObject::create(cx);
+    disposablesList = NewDenseEmptyArray(cx);
     if (!disposablesList) {
       return nullptr;
     }
@@ -111,12 +111,12 @@ inline void DisposableStackObject::clearDisposableResourceStack() {
   setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT, JS::UndefinedValue());
 }
 
-inline ListObject* DisposableStackObject::nonEmptyDisposableResourceStack()
+inline ArrayObject* DisposableStackObject::nonEmptyDisposableResourceStack()
     const {
   MOZ_ASSERT(!isDisposableResourceStackEmpty());
   return &getReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT)
               .toObject()
-              .as<ListObject>();
+              .as<ArrayObject>();
 }
 
 inline DisposableStackObject::DisposableState DisposableStackObject::state()
@@ -152,7 +152,7 @@ inline void DisposableStackObject::setState(DisposableState state) {
   // Step 4. Perform ?
   // AddDisposableResource(disposableStack.[[DisposeCapability]], value,
   // sync-dispose).
-  JS::Rooted<ListObject*> disposeCapability(
+  JS::Rooted<ArrayObject*> disposeCapability(
       cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
@@ -180,8 +180,8 @@ inline void DisposableStackObject::setState(DisposableState state) {
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
 template <typename ClearFn>
 MOZ_ALWAYS_INLINE bool DisposeResources(
-    JSContext* cx, JS::Handle<ListObject*> disposeCapability, ClearFn clear) {
-  uint32_t index = disposeCapability->length();
+    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability, ClearFn clear) {
+  uint32_t index = disposeCapability->getDenseInitializedLength();
 
   // hadError and latestException correspond to the completion value.
   MOZ_ASSERT(!cx->isExceptionPending());
@@ -192,7 +192,7 @@ MOZ_ALWAYS_INLINE bool DisposeResources(
   // disposeCapability.[[DisposableResourceStack]], in reverse list order, do
   while (index) {
     --index;
-    JS::Value val = disposeCapability->get(index);
+    JS::Value val = disposeCapability->getDenseElement(index);
 
     MOZ_ASSERT(val.isObject());
 
@@ -276,8 +276,8 @@ bool DisposableStackObject::disposeResources(JSContext* cx) {
     return true;
   }
 
-  JS::Rooted<ListObject*> disposeCapability(cx,
-                                            nonEmptyDisposableResourceStack());
+  JS::Rooted<ArrayObject*> disposeCapability(cx,
+                                             nonEmptyDisposableResourceStack());
 
   auto clearFn = [&]() { clearDisposableResourceStack(); };
 
@@ -366,7 +366,7 @@ static bool ThrowIfOnDisposeNotCallable(JSContext* cx,
   // Step 5. Perform ?
   // AddDisposableResource(disposableStack.[[DisposeCapability]], undefined,
   // sync-dispose, onDispose).
-  JS::Rooted<ListObject*> disposeCapability(
+  JS::Rooted<ArrayObject*> disposeCapability(
       cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
@@ -520,7 +520,7 @@ static bool AdoptClosure(JSContext* cx, unsigned argc, JS::Value* vp) {
   // Step 7. Perform ?
   // AddDisposableResource(disposableStack.[[DisposeCapability]], undefined,
   // sync-dispose, F).
-  JS::Rooted<ListObject*> disposeCapability(
+  JS::Rooted<ArrayObject*> disposeCapability(
       cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
