@@ -72,7 +72,7 @@ class ConsoleOutput extends Component {
       editorMode: PropTypes.bool.isRequired,
       cacheGeneration: PropTypes.number.isRequired,
       disableVirtualization: PropTypes.bool,
-      lastMessageId: PropTypes.string.isRequired,
+      lastMessageId: PropTypes.string,
     };
   }
 

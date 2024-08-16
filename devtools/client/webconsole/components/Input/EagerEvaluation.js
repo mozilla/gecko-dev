@@ -39,7 +39,6 @@ class EagerEvaluation extends Component {
   static get propTypes() {
     return {
       terminalEagerResult: PropTypes.any,
-      hud: PropTypes.object.isRequired,
       highlightDomElement: PropTypes.func.isRequired,
       unHighlightDomElement: PropTypes.func.isRequired,
     };

@@ -52,8 +52,13 @@ loader.lazyRequireGetter(
 class LazyMessageList extends Component {
   static get propTypes() {
     return {
-      viewportRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) })
-        .isRequired,
+      viewportRef: PropTypes.shape({
+        // Note that we can't use Element here because, the Element global is
+        // exposed from base-loader and is not the same as window.Element.
+        // Also PropTypes.instanceOf relies solely on `instanceof` and not on
+        // isInstance, so we really need to use the actual constructor.
+        current: PropTypes.instanceOf(window.Element),
+      }).isRequired,
       items: PropTypes.array.isRequired,
       itemsToKeepAlive: PropTypes.shape({
         has: PropTypes.func,

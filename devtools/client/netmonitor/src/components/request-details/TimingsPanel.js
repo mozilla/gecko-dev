@@ -42,7 +42,7 @@ class TimingsPanel extends Component {
     return {
       connector: PropTypes.object.isRequired,
       request: PropTypes.object.isRequired,
-      firstRequestStartedMs: PropTypes.number.isRequired,
+      firstRequestStartedMs: PropTypes.number,
     };
   }
 
