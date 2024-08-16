@@ -343,14 +343,6 @@ static GdkCursor* gCursorCache[eCursorCount];
 // only the button state bits are used.
 static guint gButtonState;
 
-static inline int32_t GetBitmapStride(int32_t width) {
-#if defined(MOZ_X11)
-  return (width + 7) / 8;
-#else
-  return cairo_format_stride_for_width(CAIRO_FORMAT_A1, width);
-#endif
-}
-
 static inline bool TimestampIsNewerThan(guint32 a, guint32 b) {
   // Timestamps are just the least significant bits of a monotonically
   // increasing function, and so the use of unsigned overflow arithmetic.
@@ -415,7 +407,6 @@ nsWindow::nsWindow()
       mPopupTrackInHierarchy(false),
       mPopupTrackInHierarchyConfigured(false),
       mHiddenPopupPositioned(false),
-      mTransparencyBitmapForTitlebar(false),
       mHasAlphaVisual(false),
       mPopupAnchored(false),
       mPopupContextMenu(false),
@@ -610,8 +601,6 @@ void nsWindow::Destroy() {
 
   MOZ_ASSERT(!gtk_widget_get_mapped(mShell));
   MOZ_ASSERT(!gtk_widget_get_mapped(GTK_WIDGET(mContainer)));
-
-  ClearTransparencyBitmap();
 
   DestroyLayerManager();
 
@@ -3888,27 +3877,6 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   // to the new bounds here.  The region is relative to this
   // window.
   region.And(region, LayoutDeviceIntRect(0, 0, mBounds.width, mBounds.height));
-
-  bool shaped = false;
-  if (TransparencyMode::Transparent == GetTransparencyMode()) {
-    auto* window = static_cast<nsWindow*>(GetTopLevelWidget());
-    if (mTransparencyBitmapForTitlebar) {
-      if (mSizeMode == nsSizeMode_Normal) {
-        window->UpdateTitlebarTransparencyBitmap();
-      } else {
-        window->ClearTransparencyBitmap();
-      }
-    } else {
-      if (mHasAlphaVisual) {
-        // Remove possible shape mask from when window manger was not
-        // previously compositing.
-        window->ClearTransparencyBitmap();
-      } else {
-        shaped = true;
-      }
-    }
-  }
-
   if (region.IsEmpty()) {
     LOG("quit, region.IsEmpty()");
     return TRUE;
@@ -3944,28 +3912,8 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   }
 
 #ifdef MOZ_X11
-  if (shaped) {
-    // Collapse update area to the bounding box. This is so we only have to
-    // call UpdateTranslucentWindowAlpha once. After we have dropped
-    // support for non-Thebes graphics, UpdateTranslucentWindowAlpha will be
-    // our private interface so we can rework things to avoid this.
-    dt->PushClipRect(Rect(boundsRect));
-
-    // The double buffering is done here to extract the shape mask.
-    // (The shape mask won't be necessary when a visual with an alpha
-    // channel is used on compositing window managers.)
-    layerBuffering = BufferMode::BUFFER_NONE;
-    RefPtr<DrawTarget> destDT =
-        dt->CreateSimilarDrawTarget(boundsRect.Size(), SurfaceFormat::B8G8R8A8);
-    if (!destDT || !destDT->IsValid()) {
-      return FALSE;
-    }
-    destDT->SetTransform(Matrix::Translation(-boundsRect.TopLeft()));
-    ctx.emplace(destDT, /* aPreserveTransform */ true);
-  } else {
-    gfxUtils::ClipToRegion(dt, region.ToUnknownRegion());
-    ctx.emplace(dt, /* aPreserveTransform */ true);
-  }
+  gfxUtils::ClipToRegion(dt, region.ToUnknownRegion());
+  ctx.emplace(dt, /* aPreserveTransform */ true);
 
 #  if 0
     // NOTE: Paint flashing region would be wrong for cairo, since
@@ -3980,7 +3928,6 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
 
 #endif  // MOZ_X11
 
-  bool painted = false;
   {
     if (renderer->GetBackendType() == LayersBackend::LAYERS_NONE) {
       if (GetTransparencyMode() == TransparencyMode::Transparent &&
@@ -3992,7 +3939,7 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
       }
       AutoLayerManagerSetup setupLayerManager(
           this, ctx.isNothing() ? nullptr : &ctx.ref(), layerBuffering);
-      painted = listener->PaintWindow(this, region);
+      listener->PaintWindow(this, region);
 
       // Re-get the listener since the will paint notification might have
       // killed it.
@@ -4004,26 +3951,8 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   }
 
 #ifdef MOZ_X11
-  // PaintWindow can Destroy us (bug 378273), avoid doing any paint
-  // operations below if that happened - it will lead to XError and exit().
-  if (shaped) {
-    if (MOZ_LIKELY(!mIsDestroyed)) {
-      if (painted) {
-        RefPtr<SourceSurface> surf = ctx->GetDrawTarget()->Snapshot();
-
-        UpdateAlpha(surf, boundsRect);
-
-        dt->DrawSurface(surf, Rect(boundsRect),
-                        Rect(0, 0, boundsRect.width, boundsRect.height),
-                        DrawSurfaceOptions(SamplingFilter::POINT),
-                        DrawOptions(1.0f, CompositionOp::OP_SOURCE));
-      }
-    }
-  }
-
   ctx.reset();
   dt->PopClip();
-
 #endif  // MOZ_X11
 
   EndRemoteDrawingInRegion(dt, region);
@@ -4041,33 +3970,6 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
 
   // check the return value!
   return TRUE;
-}
-
-void nsWindow::UpdateAlpha(SourceSurface* aSourceSurface,
-                           nsIntRect aBoundsRect) {
-  // We need to create our own buffer to force the stride to match the
-  // expected stride.
-  int32_t stride =
-      GetAlignedStride<4>(aBoundsRect.width, BytesPerPixel(SurfaceFormat::A8));
-  if (stride == 0) {
-    return;
-  }
-  int32_t bufferSize = stride * aBoundsRect.height;
-  auto imageBuffer = MakeUniqueFallible<uint8_t[]>(bufferSize);
-  {
-    RefPtr<DrawTarget> drawTarget = gfxPlatform::CreateDrawTargetForData(
-        imageBuffer.get(), aBoundsRect.Size(), stride, SurfaceFormat::A8);
-
-    if (drawTarget) {
-      drawTarget->DrawSurface(aSourceSurface,
-                              Rect(0, 0, aBoundsRect.width, aBoundsRect.height),
-                              Rect(0, 0, aSourceSurface->GetSize().width,
-                                   aSourceSurface->GetSize().height),
-                              DrawSurfaceOptions(SamplingFilter::POINT),
-                              DrawOptions(1.0f, CompositionOp::OP_SOURCE));
-    }
-  }
-  UpdateTranslucentWindowAlphaInternal(aBoundsRect, imageBuffer.get(), stride);
 }
 
 gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
@@ -5400,14 +5302,6 @@ void nsWindow::OnWindowStateEvent(GtkWidget* aWidget,
   if (mWidgetListener && mSizeMode != oldSizeMode) {
     mWidgetListener->SizeModeChanged(mSizeMode);
   }
-
-  if (mDrawInTitlebar && mTransparencyBitmapForTitlebar) {
-    if (mSizeMode == nsSizeMode_Normal && !mIsTiled) {
-      UpdateTitlebarTransparencyBitmap();
-    } else {
-      ClearTransparencyBitmap();
-    }
-  }
 }
 
 void nsWindow::OnDPIChanged() {
@@ -5850,10 +5744,6 @@ void nsWindow::EnsureGdkWindow() {
   }
 }
 
-bool nsWindow::GetShapedState() {
-  return mIsTransparent && !mHasAlphaVisual && !mTransparencyBitmapForTitlebar;
-}
-
 void nsWindow::ConfigureCompositor() {
   MOZ_DIAGNOSTIC_ASSERT(mIsMapped);
   MOZ_DIAGNOSTIC_ASSERT(mCompositorState == COMPOSITOR_ENABLED);
@@ -6049,21 +5939,11 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     }
   }
 
-  // Use X shape mask to draw round corners of Firefox titlebar.
-  // We don't use shape masks any more as we switched to ARGB visual
-  // by default and non-compositing screens use solid-csd decorations
-  // without round corners.
-  // Leave the shape mask code here as it can be used to draw round
-  // corners on EGL (https://gitlab.freedesktop.org/mesa/mesa/-/issues/149)
-  // or when custom titlebar theme is used.
-  mTransparencyBitmapForTitlebar = TitlebarUseShapeMask();
-
   // We have a toplevel window with transparency.
   // Calls to UpdateTitlebarTransparencyBitmap() from OnExposeEvent()
   // occur before SetTransparencyMode() receives TransparencyMode::Transparent
   // from layout, so set mIsTransparent here.
-  if (mWindowType == WindowType::TopLevel &&
-      (mHasAlphaVisual || mTransparencyBitmapForTitlebar)) {
+  if (mWindowType == WindowType::TopLevel && mHasAlphaVisual) {
     mIsTransparent = true;
   }
 
@@ -6206,10 +6086,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   gtk_widget_add_events(mShell, GDK_PROPERTY_CHANGE_MASK);
   gtk_widget_set_app_paintable(
       mShell, StaticPrefs::widget_transparent_windows_AtStartup());
-
-  if (mTransparencyBitmapForTitlebar) {
-    moz_container_force_default_visual(mContainer);
-  }
 
   // If we draw to mContainer window then configure it now because
   // gtk_container_add() realizes the child widget.
@@ -6671,8 +6547,7 @@ void nsWindow::ResumeCompositorImpl() {
   LOG("nsWindow::ResumeCompositorImpl()\n");
 
   MOZ_DIAGNOSTIC_ASSERT(mCompositorWidgetDelegate);
-  mCompositorWidgetDelegate->SetRenderingSurface(GetX11Window(),
-                                                 GetShapedState());
+  mCompositorWidgetDelegate->SetRenderingSurface(GetX11Window());
 
   // As WaylandStartVsync needs mCompositorWidgetDelegate this is the right
   // time to start it.
@@ -6817,8 +6692,6 @@ void nsWindow::NativeShow(bool aAction) {
         mPendingConfigures = 0;
       }
       gtk_widget_hide(mShell);
-
-      ClearTransparencyBitmap();  // Release some resources
     }
   }
 }
@@ -6861,7 +6734,7 @@ LayoutDeviceIntSize nsWindow::GetSafeWindowSize(LayoutDeviceIntSize aSize) {
 }
 
 void nsWindow::SetTransparencyMode(TransparencyMode aMode) {
-  bool isTransparent = aMode == TransparencyMode::Transparent;
+  const bool isTransparent = aMode == TransparencyMode::Transparent;
 
   if (mIsTransparent == isTransparent) {
     return;
@@ -6877,11 +6750,6 @@ void nsWindow::SetTransparencyMode(TransparencyMode aMode) {
     }
     return;
   }
-
-  if (!isTransparent) {
-    ClearTransparencyBitmap();
-  }  // else the new default alpha values are "all 1", so we don't
-  // need to change anything yet
 
   mIsTransparent = isTransparent;
 
@@ -7066,247 +6934,6 @@ bool nsWindow::IsChromeWindowTitlebar() {
 bool nsWindow::DoDrawTilebarCorners() {
   return IsChromeWindowTitlebar() && mSizeMode == nsSizeMode_Normal &&
          !mIsTiled;
-}
-
-void nsWindow::ResizeTransparencyBitmap() {
-  if (!mTransparencyBitmap) {
-    return;
-  }
-
-  if (mBounds.width == mTransparencyBitmapWidth &&
-      mBounds.height == mTransparencyBitmapHeight) {
-    return;
-  }
-
-  int32_t newRowBytes = GetBitmapStride(mBounds.width);
-  int32_t newSize = newRowBytes * mBounds.height;
-  auto* newBits = new gchar[newSize];
-  // fill new mask with "transparent", first
-  memset(newBits, 0, newSize);
-
-  // Now copy the intersection of the old and new areas into the new mask
-  int32_t copyWidth = std::min(mBounds.width, mTransparencyBitmapWidth);
-  int32_t copyHeight = std::min(mBounds.height, mTransparencyBitmapHeight);
-  int32_t oldRowBytes = GetBitmapStride(mTransparencyBitmapWidth);
-  int32_t copyBytes = GetBitmapStride(copyWidth);
-
-  int32_t i;
-  gchar* fromPtr = mTransparencyBitmap;
-  gchar* toPtr = newBits;
-  for (i = 0; i < copyHeight; i++) {
-    memcpy(toPtr, fromPtr, copyBytes);
-    fromPtr += oldRowBytes;
-    toPtr += newRowBytes;
-  }
-
-  delete[] mTransparencyBitmap;
-  mTransparencyBitmap = newBits;
-  mTransparencyBitmapWidth = mBounds.width;
-  mTransparencyBitmapHeight = mBounds.height;
-}
-
-static bool ChangedMaskBits(gchar* aMaskBits, int32_t aMaskWidth,
-                            int32_t aMaskHeight, const nsIntRect& aRect,
-                            uint8_t* aAlphas, int32_t aStride) {
-  int32_t x, y, xMax = aRect.XMost(), yMax = aRect.YMost();
-  int32_t maskBytesPerRow = GetBitmapStride(aMaskWidth);
-  for (y = aRect.y; y < yMax; y++) {
-    gchar* maskBytes = aMaskBits + y * maskBytesPerRow;
-    uint8_t* alphas = aAlphas;
-    for (x = aRect.x; x < xMax; x++) {
-      bool newBit = *alphas > 0x7f;
-      alphas++;
-
-      gchar maskByte = maskBytes[x >> 3];
-      bool maskBit = (maskByte & (1 << (x & 7))) != 0;
-
-      if (maskBit != newBit) {
-        return true;
-      }
-    }
-    aAlphas += aStride;
-  }
-
-  return false;
-}
-
-static void UpdateMaskBits(gchar* aMaskBits, int32_t aMaskWidth,
-                           int32_t aMaskHeight, const nsIntRect& aRect,
-                           uint8_t* aAlphas, int32_t aStride) {
-  int32_t x, y, xMax = aRect.XMost(), yMax = aRect.YMost();
-  int32_t maskBytesPerRow = GetBitmapStride(aMaskWidth);
-  for (y = aRect.y; y < yMax; y++) {
-    gchar* maskBytes = aMaskBits + y * maskBytesPerRow;
-    uint8_t* alphas = aAlphas;
-    for (x = aRect.x; x < xMax; x++) {
-      bool newBit = *alphas > 0x7f;
-      alphas++;
-
-      gchar mask = 1 << (x & 7);
-      gchar maskByte = maskBytes[x >> 3];
-      // Note: '-newBit' turns 0 into 00...00 and 1 into 11...11
-      maskBytes[x >> 3] = (maskByte & ~mask) | (-newBit & mask);
-    }
-    aAlphas += aStride;
-  }
-}
-
-void nsWindow::ApplyTransparencyBitmap() {
-#ifdef MOZ_X11
-  // We use X11 calls where possible, because GDK handles expose events
-  // for shaped windows in a way that's incompatible with us (Bug 635903).
-  // It doesn't occur when the shapes are set through X.
-  Display* xDisplay = GDK_WINDOW_XDISPLAY(mGdkWindow);
-  Window xDrawable = GDK_WINDOW_XID(mGdkWindow);
-  Pixmap maskPixmap = XCreateBitmapFromData(
-      xDisplay, xDrawable, mTransparencyBitmap, mTransparencyBitmapWidth,
-      mTransparencyBitmapHeight);
-  XShapeCombineMask(xDisplay, xDrawable, ShapeBounding, 0, 0, maskPixmap,
-                    ShapeSet);
-  XFreePixmap(xDisplay, maskPixmap);
-#endif  // MOZ_X11
-}
-
-void nsWindow::ClearTransparencyBitmap() {
-  if (!mTransparencyBitmap) {
-    return;
-  }
-
-  delete[] mTransparencyBitmap;
-  mTransparencyBitmap = nullptr;
-  mTransparencyBitmapWidth = 0;
-  mTransparencyBitmapHeight = 0;
-
-  if (!mShell) {
-    return;
-  }
-
-#ifdef MOZ_X11
-  if (MOZ_UNLIKELY(!mGdkWindow)) {
-    return;
-  }
-
-  Display* xDisplay = GDK_WINDOW_XDISPLAY(mGdkWindow);
-  Window xWindow = gdk_x11_window_get_xid(mGdkWindow);
-
-  XShapeCombineMask(xDisplay, xWindow, ShapeBounding, 0, 0, X11None, ShapeSet);
-#endif
-}
-
-nsresult nsWindow::UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
-                                                        uint8_t* aAlphas,
-                                                        int32_t aStride) {
-  NS_ASSERTION(mIsTransparent, "Window is not transparent");
-  NS_ASSERTION(!mTransparencyBitmapForTitlebar,
-               "Transparency bitmap is already used for titlebar rendering");
-
-  if (mTransparencyBitmap == nullptr) {
-    int32_t size = GetBitmapStride(mBounds.width) * mBounds.height;
-    mTransparencyBitmap = new gchar[size];
-    memset(mTransparencyBitmap, 255, size);
-    mTransparencyBitmapWidth = mBounds.width;
-    mTransparencyBitmapHeight = mBounds.height;
-  } else {
-    ResizeTransparencyBitmap();
-  }
-
-  nsIntRect rect;
-  rect.IntersectRect(aRect, nsIntRect(0, 0, mBounds.width, mBounds.height));
-
-  if (!ChangedMaskBits(mTransparencyBitmap, mBounds.width, mBounds.height, rect,
-                       aAlphas, aStride)) {
-    // skip the expensive stuff if the mask bits haven't changed; hopefully
-    // this is the common case
-    return NS_OK;
-  }
-
-  UpdateMaskBits(mTransparencyBitmap, mBounds.width, mBounds.height, rect,
-                 aAlphas, aStride);
-
-  if (!mNeedsShow) {
-    ApplyTransparencyBitmap();
-  }
-  return NS_OK;
-}
-
-void nsWindow::UpdateTitlebarTransparencyBitmap() {
-  NS_ASSERTION(mTransparencyBitmapForTitlebar,
-               "Transparency bitmap is already used to draw window shape");
-
-  if (!mGdkWindow || !mDrawInTitlebar ||
-      (mBounds.width == mTransparencyBitmapWidth &&
-       mBounds.height == mTransparencyBitmapHeight)) {
-    return;
-  }
-
-  bool maskCreate =
-      !mTransparencyBitmap || mBounds.width > mTransparencyBitmapWidth;
-
-  bool maskUpdate =
-      !mTransparencyBitmap || mBounds.width != mTransparencyBitmapWidth;
-
-  LayoutDeviceIntCoord radius = GetTitlebarRadius();
-  if (maskCreate) {
-    delete[] mTransparencyBitmap;
-    int32_t size = GetBitmapStride(mBounds.width) * radius;
-    mTransparencyBitmap = new gchar[size];
-    mTransparencyBitmapWidth = mBounds.width;
-  } else {
-    mTransparencyBitmapWidth = mBounds.width;
-  }
-  mTransparencyBitmapHeight = mBounds.height;
-
-  if (maskUpdate) {
-    cairo_surface_t* surface = cairo_image_surface_create(
-        CAIRO_FORMAT_A8, mTransparencyBitmapWidth, radius);
-    if (!surface) {
-      return;
-    }
-
-    cairo_t* cr = cairo_create(surface);
-
-    GtkWidgetState state;
-    memset((void*)&state, 0, sizeof(state));
-    GdkRectangle rect = {0, 0, mTransparencyBitmapWidth, radius};
-
-    moz_gtk_widget_paint(MOZ_GTK_HEADER_BAR, cr, &rect, &state, 0,
-                         GTK_TEXT_DIR_NONE);
-
-    cairo_destroy(cr);
-    cairo_surface_mark_dirty(surface);
-    cairo_surface_flush(surface);
-
-    UpdateMaskBits(mTransparencyBitmap, mTransparencyBitmapWidth, radius,
-                   nsIntRect(0, 0, mTransparencyBitmapWidth, radius),
-                   cairo_image_surface_get_data(surface),
-                   cairo_format_stride_for_width(CAIRO_FORMAT_A8,
-                                                 mTransparencyBitmapWidth));
-
-    cairo_surface_destroy(surface);
-  }
-
-#ifdef MOZ_X11
-  if (!mNeedsShow) {
-    Display* xDisplay = GDK_WINDOW_XDISPLAY(mGdkWindow);
-    Window xDrawable = GDK_WINDOW_XID(mGdkWindow);
-
-    Pixmap maskPixmap =
-        XCreateBitmapFromData(xDisplay, xDrawable, mTransparencyBitmap,
-                              mTransparencyBitmapWidth, radius);
-
-    XShapeCombineMask(xDisplay, xDrawable, ShapeBounding, 0, 0, maskPixmap,
-                      ShapeSet);
-
-    if (mTransparencyBitmapHeight > radius) {
-      XRectangle rect = {0, 0, (unsigned short)mTransparencyBitmapWidth,
-                         (unsigned short)(mTransparencyBitmapHeight - radius)};
-      XShapeCombineRectangles(xDisplay, xDrawable, ShapeBounding, 0, radius,
-                              &rect, 1, ShapeUnion, 0);
-    }
-
-    XFreePixmap(xDisplay, maskPixmap);
-  }
-#endif
 }
 
 GtkWidget* nsWindow::GetToplevelWidget() const { return mShell; }
@@ -9215,14 +8842,6 @@ void nsWindow::SetDrawsInTitlebar(bool aState) {
     gtk_widget_destroy(tmpWindow);
   }
 
-  if (mTransparencyBitmapForTitlebar) {
-    if (mDrawInTitlebar && mSizeMode == nsSizeMode_Normal && !mIsTiled) {
-      UpdateTitlebarTransparencyBitmap();
-    } else {
-      ClearTransparencyBitmap();
-    }
-  }
-
   // Recompute the input region (which should generally be null, but this is
   // enough to work around bug 1844497, which is probably a gtk bug).
   SetInputRegion(mInputRegion);
@@ -9685,24 +9304,6 @@ nsWindow::GtkWindowDecoration nsWindow::GetSystemGtkWindowDecoration() {
   return sGtkWindowDecoration;
 }
 
-bool nsWindow::TitlebarUseShapeMask() {
-  static int useShapeMask = []() {
-    // Don't use titlebar shape mask on Wayland
-    if (!GdkIsX11Display()) {
-      return false;
-    }
-
-    // We can't use shape masks on Mutter/X.org as we can't resize Firefox
-    // window there (Bug 1530252).
-    if (IsGnomeDesktopEnvironment()) {
-      return false;
-    }
-
-    return Preferences::GetBool("widget.titlebar-x11-use-shape-mask", false);
-  }();
-  return useShapeMask;
-}
-
 int32_t nsWindow::RoundsWidgetCoordinatesTo() { return GdkCeiledScaleFactor(); }
 
 void nsWindow::GetCompositorWidgetInitData(
@@ -9723,8 +9324,7 @@ void nsWindow::GetCompositorWidgetInitData(
   }
 #endif
   *aInitData = mozilla::widget::GtkCompositorWidgetInitData(
-      window, displayName, GetShapedState(), GdkIsX11Display(),
-      GetClientSize());
+      window, displayName, GdkIsX11Display(), GetClientSize());
 
 #ifdef MOZ_X11
   if (GdkIsX11Display()) {
@@ -10083,7 +9683,7 @@ void nsWindow::OnMap() {
 
 #ifdef MOZ_X11
     if (GdkIsX11Display()) {
-      mSurfaceProvider.Initialize(GetX11Window(), GetShapedState());
+      mSurfaceProvider.Initialize(GetX11Window());
 
       // Set window manager hint to keep fullscreen windows composited.
       //

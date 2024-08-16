@@ -6,9 +6,7 @@
 #include "GtkCompositorWidget.h"
 
 #include "mozilla/gfx/gfxVars.h"
-#include "mozilla/layers/CompositorThread.h"
 #include "mozilla/WidgetUtilsGtk.h"
-#include "mozilla/widget/InProcessCompositorWidget.h"
 #include "mozilla/widget/PlatformWidgetTypes.h"
 #include "nsWindow.h"
 
@@ -40,7 +38,7 @@ GtkCompositorWidget::GtkCompositorWidget(
                   "GtkCompositorWidget::mClientSize") {
 #if defined(MOZ_X11)
   if (GdkIsX11Display()) {
-    ConfigureX11Backend((Window)aInitData.XWindow(), aInitData.Shaped());
+    ConfigureX11Backend((Window)aInitData.XWindow());
     LOG("GtkCompositorWidget::GtkCompositorWidget() [%p] mXWindow %p\n",
         (void*)mWidget.get(), (void*)aInitData.XWindow());
   }
@@ -176,19 +174,18 @@ void GtkCompositorWidget::ConfigureWaylandBackend() {
 #endif
 
 #if defined(MOZ_X11)
-void GtkCompositorWidget::ConfigureX11Backend(Window aXWindow, bool aShaped) {
+void GtkCompositorWidget::ConfigureX11Backend(Window aXWindow) {
   // We don't have X window yet.
   if (!aXWindow) {
     mProvider.CleanupResources();
     return;
   }
   // Initialize the window surface provider
-  mProvider.Initialize(aXWindow, aShaped);
+  mProvider.Initialize(aXWindow);
 }
 #endif
 
-void GtkCompositorWidget::SetRenderingSurface(const uintptr_t aXWindow,
-                                              const bool aShaped) {
+void GtkCompositorWidget::SetRenderingSurface(const uintptr_t aXWindow) {
   LOG("GtkCompositorWidget::SetRenderingSurface() [%p]\n", mWidget.get());
 
 #if defined(MOZ_WAYLAND)
@@ -199,8 +196,8 @@ void GtkCompositorWidget::SetRenderingSurface(const uintptr_t aXWindow,
 #endif
 #if defined(MOZ_X11)
   if (GdkIsX11Display()) {
-    LOG("  configure XWindow %p shaped %d\n", (void*)aXWindow, aShaped);
-    ConfigureX11Backend((Window)aXWindow, aShaped);
+    LOG("  configure XWindow %p\n", (void*)aXWindow);
+    ConfigureX11Backend((Window)aXWindow);
   }
 #endif
 }

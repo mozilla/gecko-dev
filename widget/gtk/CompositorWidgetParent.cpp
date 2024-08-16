@@ -46,8 +46,8 @@ mozilla::ipc::IPCResult CompositorWidgetParent::RecvCleanupResources() {
 }
 
 mozilla::ipc::IPCResult CompositorWidgetParent::RecvSetRenderingSurface(
-    const uintptr_t& aXWindow, const bool& aShaped) {
-  SetRenderingSurface(aXWindow, aShaped);
+    const uintptr_t& aXWindow) {
+  SetRenderingSurface(aXWindow);
   return IPC_OK();
 }
 

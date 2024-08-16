@@ -3187,7 +3187,6 @@ pref("network.psl.onUpdate_notify", false);
 
 #ifdef MOZ_WIDGET_GTK
   pref("widget.disable-workspace-management", false);
-  pref("widget.titlebar-x11-use-shape-mask", false);
 #endif
 
 // All the Geolocation preferences are here.

@@ -49,7 +49,7 @@ class WindowSurfaceProvider final {
   bool Initialize(GtkCompositorWidget* aCompositorWidget);
 #endif
 #ifdef MOZ_X11
-  bool Initialize(Window aWindow, bool aIsShaped);
+  bool Initialize(Window aWindow);
   Window GetXWindow() const { return mXWindow; }
 #endif
 
@@ -89,7 +89,6 @@ class WindowSurfaceProvider final {
   GtkCompositorWidget* mCompositorWidget = nullptr;
 #endif
 #ifdef MOZ_X11
-  bool mIsShaped;
   int mXDepth;
   // Make mXWindow atomic to allow it read from different threads
   // and make tsan happy.

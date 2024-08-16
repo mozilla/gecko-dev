@@ -171,10 +171,7 @@ void moz_container_realize(GtkWidget* widget) {
   attributes.wclass = GDK_INPUT_OUTPUT;
   attributes.window_type = GDK_WINDOW_CHILD;
   MozContainer* container = MOZ_CONTAINER(widget);
-  attributes.visual =
-      container->data.force_default_visual
-          ? gdk_screen_get_system_visual(gtk_widget_get_screen(widget))
-          : gtk_widget_get_visual(widget);
+  attributes.visual = gtk_widget_get_visual(widget);
 
   window = gdk_window_new(parent, &attributes, attributes_mask);
 
@@ -226,10 +223,6 @@ void moz_container_size_allocate(GtkWidget* widget, GtkAllocation* allocation) {
                            allocation->y, allocation->width,
                            allocation->height);
   }
-}
-
-void moz_container_force_default_visual(MozContainer* container) {
-  container->data.force_default_visual = true;
 }
 
 nsWindow* moz_container_get_nsWindow(MozContainer* container) {
