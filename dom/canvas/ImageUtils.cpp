@@ -105,28 +105,37 @@ class ImageUtils::Impl {
   virtual ~Impl() = default;
 
   virtual Maybe<ImageBitmapFormat> GetFormat() const {
-    return GetImageBitmapFormatFromSurfaceFromat(Surface()->GetFormat());
+    if (DataSourceSurface* surface = Surface()) {
+      return GetImageBitmapFormatFromSurfaceFromat(surface->GetFormat());
+    }
+    return Nothing();
   }
 
   virtual uint32_t GetBufferLength() const {
-    DataSourceSurface::ScopedMap map(Surface(), DataSourceSurface::READ);
-    const uint32_t stride = map.GetStride();
-    const IntSize size = Surface()->GetSize();
-    return (uint32_t)(size.height * stride);
+    if (DataSourceSurface* surface = Surface()) {
+      DataSourceSurface::ScopedMap map(surface, DataSourceSurface::READ);
+      const uint32_t stride = map.GetStride();
+      const IntSize size = surface->GetSize();
+      return (uint32_t)(size.height * stride);
+    }
+    return 0;
   }
 
  protected:
   Impl() = default;
 
   DataSourceSurface* Surface() const {
-    if (!mSurface) {
-      RefPtr<SourceSurface> surface = mImage->GetAsSourceSurface();
-      MOZ_ASSERT(surface);
-
-      mSurface = surface->GetDataSurface();
-      MOZ_ASSERT(mSurface);
+    if (mSurface) {
+      return mSurface.get();
     }
 
+    RefPtr<SourceSurface> surface = mImage->GetAsSourceSurface();
+    if (NS_WARN_IF(!surface)) {
+      return nullptr;
+    }
+
+    mSurface = surface->GetDataSurface();
+    MOZ_ASSERT(mSurface);
     return mSurface.get();
   }
 
