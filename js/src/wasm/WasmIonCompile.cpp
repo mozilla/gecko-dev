@@ -2799,6 +2799,104 @@ class FunctionCompiler {
 
 #endif  // ENABLE_WASM_GC
 
+  [[nodiscard]] MDefinition* stringCast(MDefinition* string) {
+    auto* ins = MWasmTrapIfAnyRefIsNotJSString::New(
+        alloc(), string, wasm::Trap::BadCast, bytecodeOffset());
+    if (!ins) {
+      return ins;
+    }
+    curBlock_->add(ins);
+    return ins;
+  }
+
+  [[nodiscard]] MDefinition* stringTest(MDefinition* string) {
+    auto* ins = MWasmAnyRefIsJSString::New(alloc(), string);
+    if (!ins) {
+      return nullptr;
+    }
+    curBlock_->add(ins);
+    return ins;
+  }
+
+  [[nodiscard]] bool dispatchInlineBuiltinModuleFunc(
+      const BuiltinModuleFunc& builtinModuleFunc, const DefVector& params) {
+    BuiltinInlineOp inlineOp = builtinModuleFunc.inlineOp();
+    MOZ_ASSERT(inlineOp != BuiltinInlineOp::None);
+    switch (inlineOp) {
+      case BuiltinInlineOp::StringCast: {
+        MOZ_ASSERT(params.length() == 1);
+        MDefinition* string = params[0];
+        MDefinition* cast = stringCast(string);
+        if (!cast) {
+          return false;
+        }
+        iter().setResult(string);
+        return true;
+      }
+      case BuiltinInlineOp::StringTest: {
+        MOZ_ASSERT(params.length() == 1);
+        MDefinition* string = params[0];
+        MDefinition* test = stringTest(string);
+        if (!test) {
+          return false;
+        }
+        iter().setResult(test);
+        return true;
+      }
+      case BuiltinInlineOp::None:
+      case BuiltinInlineOp::Limit:
+        break;
+    }
+    MOZ_CRASH();
+  }
+
+  [[nodiscard]] bool callBuiltinModuleFunc(
+      const BuiltinModuleFunc& builtinModuleFunc, const DefVector& params) {
+    MOZ_ASSERT(!inDeadCode());
+
+    BuiltinInlineOp inlineOp = builtinModuleFunc.inlineOp();
+    if (inlineOp != BuiltinInlineOp::None) {
+      return dispatchInlineBuiltinModuleFunc(builtinModuleFunc, params);
+    }
+
+    // It's almost possible to use FunctionCompiler::emitInstanceCallN here.
+    // Unfortunately not currently possible though, since ::emitInstanceCallN
+    // expects an array of arguments along with a size, and that's not what is
+    // available here.  It would be possible if we were prepared to copy
+    // `builtinModuleFunc->params` into a fixed-sized (16 element?) array, add
+    // `memoryBase`, and make the call.
+    const SymbolicAddressSignature& callee = *builtinModuleFunc.sig();
+
+    CallCompileState args;
+    if (!passInstance(callee.argTypes[0], &args) ||
+        !passArgs(params, builtinModuleFunc.funcType()->args(), &args)) {
+      return false;
+    }
+
+    if (builtinModuleFunc.usesMemory()) {
+      if (!passArg(memoryBase(0), MIRType::Pointer, &args)) {
+        return false;
+      }
+    }
+
+    if (!finishCall(&args)) {
+      return false;
+    }
+
+    bool hasResult = !builtinModuleFunc.funcType()->results().empty();
+    MDefinition* result = nullptr;
+    MDefinition** resultOutParam = hasResult ? &result : nullptr;
+    if (!builtinInstanceMethodCall(callee, readBytecodeOffset(), args,
+                                   resultOutParam)) {
+      return false;
+    }
+
+    if (hasResult) {
+      iter().setResult(result);
+    }
+    return true;
+  }
+
   /*********************************************** Control flow generation */
 
   inline bool inDeadCode() const { return curBlock_ == nullptr; }
@@ -5724,6 +5822,14 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
 
   DefVector results;
   if (f.codeMeta().funcIsImport(funcIndex)) {
+    BuiltinModuleFuncId knownFuncImport =
+        f.codeMeta().knownFuncImport(funcIndex);
+    if (knownFuncImport != BuiltinModuleFuncId::None) {
+      const BuiltinModuleFunc& builtinModuleFunc =
+          BuiltinModuleFuncs::getFromId(knownFuncImport);
+      return f.callBuiltinModuleFunc(builtinModuleFunc, args);
+    }
+
     CallCompileState call;
     if (!EmitCallArgs(f, funcType, args, &call)) {
       return false;
@@ -8557,12 +8663,6 @@ static bool EmitExternConvertAny(FunctionCompiler& f) {
 #endif  // ENABLE_WASM_GC
 
 static bool EmitCallBuiltinModuleFunc(FunctionCompiler& f) {
-  // It's almost possible to use FunctionCompiler::emitInstanceCallN here.
-  // Unfortunately not currently possible though, since ::emitInstanceCallN
-  // expects an array of arguments along with a size, and that's not what is
-  // available here.  It would be possible if we were prepared to copy
-  // `builtinModuleFunc->params` into a fixed-sized (16 element?) array, add
-  // `memoryBase`, and make the call.
   const BuiltinModuleFunc* builtinModuleFunc;
 
   DefVector params;
@@ -8570,41 +8670,7 @@ static bool EmitCallBuiltinModuleFunc(FunctionCompiler& f) {
     return false;
   }
 
-  uint32_t bytecodeOffset = f.readBytecodeOffset();
-  const SymbolicAddressSignature& callee = *builtinModuleFunc->sig();
-
-  CallCompileState args;
-  if (!f.passInstance(callee.argTypes[0], &args)) {
-    return false;
-  }
-
-  if (!f.passArgs(params, builtinModuleFunc->funcType()->args(), &args)) {
-    return false;
-  }
-
-  if (builtinModuleFunc->usesMemory()) {
-    MDefinition* memoryBase = f.memoryBase(0);
-    if (!f.passArg(memoryBase, MIRType::Pointer, &args)) {
-      return false;
-    }
-  }
-
-  if (!f.finishCall(&args)) {
-    return false;
-  }
-
-  bool hasResult = !builtinModuleFunc->funcType()->results().empty();
-  MDefinition* result = nullptr;
-  MDefinition** resultOutParam = hasResult ? &result : nullptr;
-  if (!f.builtinInstanceMethodCall(callee, bytecodeOffset, args,
-                                   resultOutParam)) {
-    return false;
-  }
-
-  if (hasResult) {
-    f.iter().setResult(result);
-  }
-  return true;
+  return f.callBuiltinModuleFunc(*builtinModuleFunc, params);
 }
 
 bool EmitBodyExprs(FunctionCompiler& f) {

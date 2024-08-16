@@ -107,9 +107,12 @@ def main(c_out, yaml_path):
     for i in range(len(data)):
         op = data[i]
         sa = op["symbolic_address"]
+        inlineOp = "BuiltinInlineOp::None"
+        if "inline_op" in op:
+            inlineOp = f"BuiltinInlineOp::{op['inline_op']}"
         contents += (
             f"    M({op['op']}, \"{op['export']}\", "
-            f"{sa['name']}, {sa['type']}, {op['entry']}, {cppBool(op['uses_memory'])}, {i})\\\n"
+            f"{sa['name']}, {sa['type']}, {op['entry']}, {cppBool(op['uses_memory'])}, {inlineOp}, {i})\\\n"
         )
     contents += "\n"
 

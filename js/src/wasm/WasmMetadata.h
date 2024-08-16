@@ -17,6 +17,9 @@
 namespace js {
 namespace wasm {
 
+using BuiltinModuleFuncIdVector =
+    Vector<BuiltinModuleFuncId, 0, SystemAllocPolicy>;
+
 // ==== Printing of names
 //
 // The Developer-Facing Display Conventions section of the WebAssembly Web
@@ -50,6 +53,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   // The number of imported functions in the module.
   uint32_t numFuncImports;
+  // A vector of the builtin func id (or 'none') for all imported functions.
+  // This may be empty for internally constructed modules which don't care
+  // about this information.
+  BuiltinModuleFuncIdVector knownFuncImports;
   // The number of imported globals in the module.
   uint32_t numGlobalImports;
 
@@ -263,6 +270,15 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     uint32_t funcDefIndex = funcIndex - numFuncImports;
     return funcDefFeatureUsages[funcDefIndex];
   }
+
+  BuiltinModuleFuncId knownFuncImport(uint32_t funcIndex) const {
+    MOZ_ASSERT(funcIndex < numFuncImports);
+    if (knownFuncImports.empty()) {
+      return BuiltinModuleFuncId::None;
+    }
+    return knownFuncImports[funcIndex];
+  }
+
   CallRefMetricsRange getFuncDefCallRefs(uint32_t funcIndex) const {
     MOZ_ASSERT(funcIndex >= numFuncImports);
     uint32_t funcDefIndex = funcIndex - numFuncImports;

@@ -963,16 +963,28 @@ enum class ThreadOp {
 };
 
 enum class BuiltinModuleFuncId {
+  None = 0,
+
 // ------------------------------------------------------------------------
 // These are part/suffix of the MozOp::CallBuiltinModuleFunc operators that are
 // emitted internally when compiling intrinsic modules and are rejected by wasm
 // validation.
 // See wasm/WasmBuiltinModule.yaml for the list.
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, has_memory, \
-                           idx)                                             \
-  op = idx,  // NOLINT
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, uses_memory, \
+                           inline_op, idx)                                   \
+  op = idx + 1,  // NOLINT
   FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
 #undef VISIT_BUILTIN_FUNC
+
+  // Op limit.
+  Limit
+};
+
+enum class BuiltinInlineOp {
+  None = 0,
+
+  StringCast,
+  StringTest,
 
   // Op limit.
   Limit

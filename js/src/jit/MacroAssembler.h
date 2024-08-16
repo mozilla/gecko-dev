@@ -4082,6 +4082,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                           Register superDepth, Register scratch,
                                           Label* label, bool onSuccess);
 
+  // Extract the tag of wasm anyref `src`.
+  void extractWasmAnyRefTag(Register src, Register dest);
+
   // Branch if the wasm anyref `src` is or is not the null value.
   void branchWasmAnyRefIsNull(bool isNull, Register src, Label* label);
   // Branch if the wasm anyref `src` is or is not an I31.
@@ -4089,6 +4092,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Branch if the wasm anyref `src` is or is not a JSObject*.
   void branchWasmAnyRefIsObjectOrNull(bool isObject, Register src,
                                       Label* label);
+  // Branch if the wasm anyref `src` is or is not a JSString.
+  void branchWasmAnyRefIsJSString(bool isJSString, Register src, Register temp,
+                                  Label* label);
   // Branch if the wasm anyref `src` is or is not a GC thing.
   void branchWasmAnyRefIsGCThing(bool isGCThing, Register src, Label* label);
   // Branch if the wasm anyref `src` is or is not pointing to a nursery cell.

@@ -6759,6 +6759,11 @@ void MacroAssembler::branchWasmSTVIsSubtypeDynamicDepth(
   bind(&fallthrough);
 }
 
+void MacroAssembler::extractWasmAnyRefTag(Register src, Register dest) {
+  movePtr(src, dest);
+  andPtr(Imm32(int32_t(wasm::AnyRef::TagMask)), dest);
+}
+
 void MacroAssembler::branchWasmAnyRefIsNull(bool isNull, Register src,
                                             Label* label) {
   branchTestPtr(isNull ? Assembler::Zero : Assembler::NonZero, src, src, label);
@@ -6774,6 +6779,13 @@ void MacroAssembler::branchWasmAnyRefIsObjectOrNull(bool isObject, Register src,
                                                     Label* label) {
   branchTestPtr(isObject ? Assembler::Zero : Assembler::NonZero, src,
                 Imm32(int32_t(wasm::AnyRef::TagMask)), label);
+}
+
+void MacroAssembler::branchWasmAnyRefIsJSString(bool isJSString, Register src,
+                                                Register temp, Label* label) {
+  extractWasmAnyRefTag(src, temp);
+  branch32(isJSString ? Assembler::Equal : Assembler::NotEqual, temp,
+           Imm32(int32_t(wasm::AnyRefTag::String)), label);
 }
 
 void MacroAssembler::branchWasmAnyRefIsGCThing(bool isGCThing, Register src,

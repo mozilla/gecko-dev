@@ -636,6 +636,28 @@
   congruent_to: if_operands_equal
   alias_set: none
 
+- name: WasmAnyRefIsJSString
+  operands:
+    input: WasmAnyRef
+  type_policy: none
+  result_type: Int32
+  congruent_to: if_operands_equal
+  alias_set: none
+  movable: true
+  clone: true
+
+- name: WasmTrapIfAnyRefIsNotJSString
+  operands:
+    input: WasmAnyRef
+  arguments:
+    trap: wasm::Trap
+    bytecodeOffset: wasm::BytecodeOffset
+  type_policy: none
+  congruent_to: if_operands_equal
+  alias_set: none
+  guard: true
+  clone: true
+
 - name: WasmNewI31Ref
   operands:
     input: Int32

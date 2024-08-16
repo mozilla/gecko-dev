@@ -39,12 +39,10 @@ using mozilla::Some;
 
 BuiltinModuleFuncs* BuiltinModuleFuncs::singleton_ = nullptr;
 
-[[nodiscard]] bool BuiltinModuleFunc::init(const RefPtr<TypeContext>& types,
-                                           mozilla::Span<const ValType> params,
-                                           Maybe<ValType> result,
-                                           bool usesMemory,
-                                           const SymbolicAddressSignature* sig,
-                                           const char* exportName) {
+[[nodiscard]] bool BuiltinModuleFunc::init(
+    const RefPtr<TypeContext>& types, mozilla::Span<const ValType> params,
+    Maybe<ValType> result, bool usesMemory, const SymbolicAddressSignature* sig,
+    BuiltinInlineOp inlineOp, const char* exportName) {
   // This builtin must not have been initialized yet.
   MOZ_ASSERT(!recGroup_);
 
@@ -52,6 +50,7 @@ BuiltinModuleFuncs* BuiltinModuleFuncs::singleton_ = nullptr;
   exportName_ = exportName;
   sig_ = sig;
   usesMemory_ = usesMemory;
+  inlineOp_ = inlineOp;
 
   // Create a function type for the given params and result
   ValTypeVector paramVec;
@@ -83,13 +82,13 @@ bool BuiltinModuleFuncs::init() {
   }
 
 #define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, uses_memory,   \
-                           ...)                                                \
+                           inline_op, ...)                                     \
   const ValType op##Params[] =                                                 \
       DECLARE_BUILTIN_MODULE_FUNC_PARAM_VALTYPES_##op;                         \
   Maybe<ValType> op##Result = DECLARE_BUILTIN_MODULE_FUNC_RESULT_VALTYPE_##op; \
   if (!singleton_->funcs_[BuiltinModuleFuncId::op].init(                       \
           types, mozilla::Span<const ValType>(op##Params), op##Result,         \
-          uses_memory, &SASig##sa_name, export)) {                             \
+          uses_memory, &SASig##sa_name, inline_op, export)) {                  \
     return false;                                                              \
   }
   FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
@@ -342,12 +341,14 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
   return Nothing();
 }
 
-Maybe<const BuiltinModuleFunc*> wasm::ImportMatchesBuiltinModuleFunc(
-    mozilla::Span<const char> importName, BuiltinModuleId module) {
+bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
+                                          BuiltinModuleId module,
+                                          const BuiltinModuleFunc** matchedFunc,
+                                          BuiltinModuleFuncId* matchedFuncId) {
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
   // Imported string constants don't define any functions
   if (module == BuiltinModuleId::JSStringConstants) {
-    return Nothing();
+    return false;
   }
 
   // Only the wasm:js-string module defines functions at this point, and is
@@ -356,11 +357,13 @@ Maybe<const BuiltinModuleFunc*> wasm::ImportMatchesBuiltinModuleFunc(
   for (BuiltinModuleFuncId funcId : JSStringFuncs) {
     const BuiltinModuleFunc& func = BuiltinModuleFuncs::getFromId(funcId);
     if (importName == mozilla::MakeStringSpan(func.exportName())) {
-      return Some(&func);
+      *matchedFunc = &func;
+      *matchedFuncId = funcId;
+      return true;
     }
   }
 #endif  // ENABLE_WASM_JS_STRING_BUILTINS
-  return Nothing();
+  return false;
 }
 
 bool wasm::CompileBuiltinModule(JSContext* cx, BuiltinModuleId module,

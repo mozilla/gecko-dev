@@ -224,6 +224,7 @@
     name: StringTest
     type: Args_Int32_GeneralGeneral
   entry: Instance::stringTest
+  inline_op: StringTest
   export: test
   params:
     - 'externref'
@@ -236,6 +237,7 @@
     name: StringCast
     type: Args_General2
   entry: Instance::stringCast
+  inline_op: StringCast
   export: cast
   params:
     - 'externref'

@@ -4078,6 +4078,18 @@
   operands:
     input: WordSized
 
+- name: WasmAnyRefIsJSString
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
+- name: WasmTrapIfAnyRefIsNotJSString
+  mir_op: true
+  operands:
+    input: WordSized
+  num_temps: 1
+
 - name: WasmNewI31Ref
   mir_op: true
   result_type: WordSized
