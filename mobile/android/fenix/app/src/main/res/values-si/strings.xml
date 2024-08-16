@@ -183,6 +183,8 @@
     <string name="browser_menu_stop">නවතන්න</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">දිගු</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">තව දැනගන්න</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">දිගු කළමනාකරණය</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -259,6 +261,8 @@
     <string name="browser_menu_passwords">මුරපද</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">වැඩතල අඩවිය</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">ජංගම අඩවියට මාරුවෙන්න</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">මෙවලම්</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -1042,7 +1046,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">එකතුවෙහි නම</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">නම් කරන්න</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">නම් කරන්න</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ඉවත් කරන්න</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1168,6 +1172,13 @@
     <string name="bookmark_undo_deletion">පෙරසේ</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">සෙවුම් පද යොදන්න</string>
+
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">නව බහාලුමක් එක් කරන්න</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">පොත්යොමු වසන්න</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">පොත්යොමු සොයන්න</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2047,7 +2058,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">කෙටිමඟ නාමය</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">හරි</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">හරි</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">අවලංගු</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -2386,8 +2397,6 @@
     <string name="micro_survey_privacy_notice_2">පෞද්ගලිකත්‍ව දැන්වීම</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">යොමන්න</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">වසන්න</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">සමීක්ෂණය සම්පූර්ණයි</string>
     <!-- The survey completion confirmation text -->

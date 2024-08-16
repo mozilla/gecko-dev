@@ -119,6 +119,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Napauta ja pidä nuolia painettuna siirtyäksesi tämän välilehden historian sivujen välillä.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Uutta: yhdellä napautuksella taakse- ja eteenpäin osoittavat nuolet</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Nauti nopeammasta, aina käden ulottuvilla olevasta navigoinnista.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameran käyttöoikeus vaaditaan. Siirry Androidin asetuksiin, napauta käyttöoikeudet ja napauta salli.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -200,6 +206,14 @@
     <string name="browser_menu_stop">Pysäytä</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Laajennukset</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Tee %sista mieleisesi</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Laajennukset parantavat selaamistasi aina %sin ulkoasun ja toiminnan muuttamisesta yksityisyyden sekä turvallisuuden parantamiseen.</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Lue lisää</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Hallitse laajennuksia</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -320,6 +334,10 @@
     <string name="browser_menu_translated_to">Käännetty kielelle %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Tulosta…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Lopeta %1$s</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -2683,11 +2701,11 @@
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Perutaanko kielen %1$s lataus?</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Perutaanko kielen %1$s lataus?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Kyllä</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Kyllä</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Ei</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ei</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2769,8 +2787,6 @@
     <string name="micro_survey_privacy_notice_2">Tietosuojakäytäntö</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Lähetä</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Sulje</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Kysely valmis</string>
     <!-- The survey completion confirmation text -->

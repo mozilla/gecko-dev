@@ -2,4 +2,6 @@
 <resources>
     <string name="mozac_feature_customtabs_exit_button">Kembali ke aplikasi sebelumnya</string>
     <string name="mozac_feature_customtabs_share_link">Bagikan tautan</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the refresh button in the Custom Tabs toolbar -->
+    <string name="mozac_feature_customtabs_refresh_button">Segarkan</string>
 </resources>
