@@ -111,6 +111,7 @@ class BrowserToolbarIntegration(
             tabCounterListener.invoke()
         },
         store = store,
+        showMaskInPrivateMode = false,
     )
 
     @VisibleForTesting
