@@ -11,6 +11,7 @@ const CHROME_ONLY_TOGGLES = [
   "-moz-windows-accent-color-in-titlebar",
   "-moz-swipe-animation-enabled",
   "-moz-gtk-csd-available",
+  "-moz-gtk-csd-transparency-available",
   "-moz-gtk-csd-minimize-button",
   "-moz-gtk-csd-maximize-button",
   "-moz-gtk-csd-close-button",

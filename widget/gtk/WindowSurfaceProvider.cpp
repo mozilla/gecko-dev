@@ -46,7 +46,6 @@ WindowSurfaceProvider::WindowSurfaceProvider()
       mWindowSurfaceValid(false)
 #ifdef MOZ_X11
       ,
-      mIsShaped(false),
       mXDepth(0),
       mXWindow(0),
       mXVisual(nullptr)
@@ -78,7 +77,7 @@ bool WindowSurfaceProvider::Initialize(GtkCompositorWidget* aCompositorWidget) {
 }
 #endif
 #ifdef MOZ_X11
-bool WindowSurfaceProvider::Initialize(Window aWindow, bool aIsShaped) {
+bool WindowSurfaceProvider::Initialize(Window aWindow) {
   mWindowSurfaceValid = false;
 
   // Grab the window's visual and depth
@@ -91,7 +90,6 @@ bool WindowSurfaceProvider::Initialize(Window aWindow, bool aIsShaped) {
   mXWindow = aWindow;
   mXVisual = windowAttrs.visual;
   mXDepth = windowAttrs.depth;
-  mIsShaped = aIsShaped;
   return true;
 }
 #endif
@@ -106,7 +104,6 @@ void WindowSurfaceProvider::CleanupResources() {
   mXWindow = 0;
   mXVisual = 0;
   mXDepth = 0;
-  mIsShaped = false;
 #endif
 }
 
@@ -130,7 +127,7 @@ RefPtr<WindowSurface> WindowSurfaceProvider::CreateWindowSurface() {
     // 1. MIT-SHM
     // 2. XPutImage
 #  ifdef MOZ_HAVE_SHMIMAGE
-    if (!mIsShaped && nsShmImage::UseShm()) {
+    if (nsShmImage::UseShm()) {
       LOG(("Drawing to Window 0x%lx will use MIT-SHM\n", (Window)mXWindow));
       return MakeRefPtr<WindowSurfaceX11SHM>(DefaultXDisplay(), mXWindow,
                                              mXVisual, mXDepth);
@@ -139,7 +136,7 @@ RefPtr<WindowSurface> WindowSurfaceProvider::CreateWindowSurface() {
 
     LOG(("Drawing to Window 0x%lx will use XPutImage\n", (Window)mXWindow));
     return MakeRefPtr<WindowSurfaceX11Image>(DefaultXDisplay(), mXWindow,
-                                             mXVisual, mXDepth, mIsShaped);
+                                             mXVisual, mXDepth);
   }
 #endif
   MOZ_RELEASE_ASSERT(false);
@@ -187,7 +184,7 @@ WindowSurfaceProvider::StartRemoteDrawingInRegion(
     gfxWarningOnce()
         << "Failed to lock WindowSurface, falling back to XPutImage backend.";
     mWindowSurface = MakeRefPtr<WindowSurfaceX11Image>(
-        DefaultXDisplay(), mXWindow, mXVisual, mXDepth, mIsShaped);
+        DefaultXDisplay(), mXWindow, mXVisual, mXDepth);
     dt = mWindowSurface->Lock(aInvalidRegion);
   }
 #endif

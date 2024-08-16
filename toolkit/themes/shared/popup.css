@@ -43,6 +43,12 @@ panel {
     --panel-shadow-margin: 4px;
   }
 
+  /* On some linux WMs we need to draw square menus because alpha is not available */
+  @media (-moz-platform: linux) and (not (-moz-gtk-csd-transparency-available)) {
+    --panel-shadow-margin: 0px !important;
+    --panel-border-radius: 0px !important;
+  }
+
   @media (-moz-platform: macos) {
     appearance: auto;
     -moz-default-appearance: menupopup;

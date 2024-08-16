@@ -978,6 +978,12 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::GTKCSDAvailable:
       aResult = sCSDAvailable;
       break;
+    case IntID::GTKCSDTransparencyAvailable: {
+      auto* screen = gdk_screen_get_default();
+      aResult = gdk_screen_get_rgba_visual(screen) &&
+                gdk_screen_is_composited(screen);
+      break;
+    }
     case IntID::GTKCSDMaximizeButton:
       EnsureInit();
       aResult = mCSDMaximizeButton;

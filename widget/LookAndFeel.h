@@ -194,6 +194,12 @@ class LookAndFeel {
     GTKCSDAvailable,
 
     /*
+     * A boolean value indicating whether semi-transparent
+     * windows are available.
+     */
+    GTKCSDTransparencyAvailable,
+
+    /*
      * A boolean value indicating whether client-side decorations should
      * contain a minimize button.
      */

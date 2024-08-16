@@ -28,8 +28,7 @@ class CompositorWidgetChild final : public PCompositorWidgetChild,
 
   void NotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize) override;
   void CleanupResources() override;
-  void SetRenderingSurface(const uintptr_t aXWindow,
-                           const bool aShaped) override;
+  void SetRenderingSurface(const uintptr_t aXWindow) override;
 
  private:
   RefPtr<CompositorVsyncDispatcher> mVsyncDispatcher;

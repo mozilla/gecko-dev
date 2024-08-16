@@ -31,8 +31,7 @@ class PlatformCompositorWidgetDelegate : public CompositorWidgetDelegate {
   virtual GtkCompositorWidget* AsGtkCompositorWidget() { return nullptr; };
 
   virtual void CleanupResources() = 0;
-  virtual void SetRenderingSurface(const uintptr_t aXWindow,
-                                   const bool aShaped) = 0;
+  virtual void SetRenderingSurface(const uintptr_t aXWindow) = 0;
 
   // CompositorWidgetDelegate Overrides
 
@@ -79,8 +78,7 @@ class GtkCompositorWidget : public CompositorWidget,
   void CleanupResources() override;
 
   // Resume rendering with to given aXWindow (X11) or nsWindow (Wayland).
-  void SetRenderingSurface(const uintptr_t aXWindow,
-                           const bool aShaped) override;
+  void SetRenderingSurface(const uintptr_t aXWindow) override;
 
   // If we fail to set window size (due to different screen scale or so)
   // we can't paint the frame by compositor.
@@ -105,7 +103,7 @@ class GtkCompositorWidget : public CompositorWidget,
   void ConfigureWaylandBackend();
 #endif
 #if defined(MOZ_X11)
-  void ConfigureX11Backend(Window aXWindow, bool aShaped);
+  void ConfigureX11Backend(Window aXWindow);
 #endif
 #ifdef MOZ_LOGGING
   bool IsPopup();
