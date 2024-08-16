@@ -297,8 +297,9 @@ var FullPageTranslationsPanel = new (class {
         errorMessage: "full-page-translations-panel-error-message",
         errorMessageHint: "full-page-translations-panel-error-message-hint",
         errorHintAction: "full-page-translations-panel-translate-hint-action",
-        fromMenuList: "full-page-translations-panel-from",
         fromLabel: "full-page-translations-panel-from-label",
+        fromMenuList: "full-page-translations-panel-from",
+        fromMenuPopup: "full-page-translations-panel-from-menupopup",
         header: "full-page-translations-panel-header",
         intro: "full-page-translations-panel-intro",
         introLearnMoreLink:
@@ -311,6 +312,7 @@ var FullPageTranslationsPanel = new (class {
         restoreButton: "full-page-translations-panel-restore-button",
         toLabel: "full-page-translations-panel-to-label",
         toMenuList: "full-page-translations-panel-to",
+        toMenuPopup: "full-page-translations-panel-to-menupopup",
         translateButton: "full-page-translations-panel-translate",
         unsupportedHeader:
           "full-page-translations-panel-unsupported-language-header",

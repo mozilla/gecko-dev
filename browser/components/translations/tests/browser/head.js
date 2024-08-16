@@ -730,8 +730,9 @@ class FullPageTranslationsTestUtils {
         errorMessage: false,
         errorMessageHint: false,
         errorHintAction: false,
-        fromMenuList: false,
         fromLabel: false,
+        fromMenuList: false,
+        fromMenuPopup: false,
         header: false,
         intro: false,
         introLearnMoreLink: false,
@@ -739,6 +740,7 @@ class FullPageTranslationsTestUtils {
         restoreButton: false,
         toLabel: false,
         toMenuList: false,
+        toMenuPopup: false,
         translateButton: false,
         unsupportedHeader: false,
         unsupportedHint: false,
@@ -1359,15 +1361,49 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
+   * Changes the selected language by opening the dropdown menu for each provided language tag.
+   *
+   * @param {string} langTag - The BCP-47 language tag to select from the dropdown menu.
+   * @param {object} elements - Elements involved in the dropdown language selection process.
+   * @param {Element} elements.menuList - The element that triggers the dropdown menu.
+   * @param {Element} elements.menuPopup - The dropdown menu element containing selectable languages.
+   *
+   * @returns {Promise<void>}
+   */
+  static async #changeSelectedLanguage(langTag, elements) {
+    const { menuList, menuPopup } = elements;
+
+    await FullPageTranslationsTestUtils.waitForPanelPopupEvent(
+      "popupshown",
+      () => click(menuList)
+    );
+
+    const menuItem = menuPopup.querySelector(`[value="${langTag}"]`);
+    await FullPageTranslationsTestUtils.waitForPanelPopupEvent(
+      "popuphidden",
+      () => {
+        click(menuItem);
+        // Synthesizing a click on the menuitem isn't closing the popup
+        // as a click normally would, so this tab keypress is added to
+        // ensure the popup closes.
+        EventUtils.synthesizeKey("KEY_Tab");
+      }
+    );
+  }
+
+  /**
    * Switches the selected from-language to the provided language tag.
    *
    * @param {string} langTag - A BCP-47 language tag.
    */
-  static changeSelectedFromLanguage(langTag) {
+  static async changeSelectedFromLanguage(langTag) {
     logAction(langTag);
-    const { fromMenuList } = FullPageTranslationsPanel.elements;
-    fromMenuList.value = langTag;
-    fromMenuList.dispatchEvent(new Event("command", { bubbles: true }));
+    const { fromMenuList: menuList, fromMenuPopup: menuPopup } =
+      FullPageTranslationsPanel.elements;
+    await FullPageTranslationsTestUtils.#changeSelectedLanguage(langTag, {
+      menuList,
+      menuPopup,
+    });
   }
 
   /**
@@ -1375,11 +1411,14 @@ class FullPageTranslationsTestUtils {
    *
    * @param {string} langTag - A BCP-47 language tag.
    */
-  static changeSelectedToLanguage(langTag) {
+  static async changeSelectedToLanguage(langTag) {
     logAction(langTag);
-    const { toMenuList } = FullPageTranslationsPanel.elements;
-    toMenuList.value = langTag;
-    toMenuList.dispatchEvent(new Event("command", { bubbles: true }));
+    const { toMenuList: menuList, toMenuPopup: menuPopup } =
+      FullPageTranslationsPanel.elements;
+    await FullPageTranslationsTestUtils.#changeSelectedLanguage(langTag, {
+      menuList,
+      menuPopup,
+    });
   }
 
   /**
