@@ -37,6 +37,9 @@ support-files = ["readerModeRandom.sjs"]
 ["browser_readerMode_colorSchemePref.js"]
 support-files = ["readerModeArticle.html"]
 
+["browser_readerMode_customColorScheme.js"]
+support-files = ["readerModeArticle.html"]
+
 ["browser_readerMode_hidden_nodes.js"]
 support-files = ["readerModeArticleHiddenNodes.html"]
 
