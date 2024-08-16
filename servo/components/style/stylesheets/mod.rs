@@ -19,6 +19,7 @@ mod media_rule;
 mod namespace_rule;
 pub mod origin;
 mod page_rule;
+pub mod position_try_rule;
 mod property_rule;
 mod rule_list;
 mod rule_parser;
@@ -63,6 +64,7 @@ pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
 pub use self::page_rule::{PagePseudoClassFlags, PageRule, PageSelector, PageSelectors};
+pub use self::position_try_rule::PositionTryRule;
 pub use self::property_rule::PropertyRule;
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rule_parser::{InsertRuleContext, State, TopLevelRuleParser};
@@ -302,6 +304,7 @@ pub enum CssRule {
     LayerStatement(Arc<LayerStatementRule>),
     Scope(Arc<ScopeRule>),
     StartingStyle(Arc<StartingStyleRule>),
+    PositionTry(Arc<Locked<PositionTryRule>>),
 }
 
 impl CssRule {
@@ -354,6 +357,9 @@ impl CssRule {
             CssRule::Scope(ref rule) => {
                 rule.unconditional_shallow_size_of(ops) + rule.size_of(guard, ops)
             },
+            CssRule::PositionTry(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
         }
     }
 }
@@ -395,6 +401,8 @@ pub enum CssRuleType {
     Scope = 21,
     // https://drafts.csswg.org/css-transitions-2/#the-cssstartingstylerule-interface
     StartingStyle = 22,
+    // https://drafts.csswg.org/css-anchor-position-1/#om-position-try
+    PositionTry = 23,
 }
 
 impl CssRuleType {
@@ -484,6 +492,7 @@ impl CssRule {
             CssRule::Container(_) => CssRuleType::Container,
             CssRule::Scope(_) => CssRuleType::Scope,
             CssRule::StartingStyle(_) => CssRuleType::StartingStyle,
+            CssRule::PositionTry(_) => CssRuleType::PositionTry,
         }
     }
 
@@ -625,6 +634,12 @@ impl DeepCloneWithLock for CssRule {
             CssRule::StartingStyle(ref arc) => {
                 CssRule::StartingStyle(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
+            CssRule::PositionTry(ref arc) => {
+                let rule = arc.read_with(guard);
+                CssRule::PositionTry(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
+            },
         }
     }
 }
@@ -652,6 +667,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Container(ref rule) => rule.to_css(guard, dest),
             CssRule::Scope(ref rule) => rule.to_css(guard, dest),
             CssRule::StartingStyle(ref rule) => rule.to_css(guard, dest),
+            CssRule::PositionTry(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }
