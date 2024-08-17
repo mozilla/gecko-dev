@@ -782,6 +782,9 @@
 - name: BitAndAndBranch
   gen_boilerplate: false
 
+- name: BitAnd64AndBranch
+  gen_boilerplate: false
+
 # Takes a value and tests whether it is null, undefined, or is an object that
 # emulates |undefined|, as determined by the JSCLASS_EMULATES_UNDEFINED class
 # flag on unwrapped objects.  See also js::EmulatesUndefined.

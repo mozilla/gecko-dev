@@ -942,16 +942,9 @@ void LIRGenerator::visitTest(MTest* test) {
   //                 MConstant(0)
   //               )
   //        )
-  // and produce a single LBitAndAndBranch node.  This requires both `comp`
-  // and `bitAnd` to be marked emit-at-uses.  Since we can't use
-  // LBitAndAndBranch to represent a 64-bit AND on a 32-bit target, the 64-bit
-  // case is restricted to 64-bit targets.
+  // and produce a single LBitAnd{,64}AndBranch node. This requires both `comp`
+  // and `bitAnd` to be marked emit-at-uses.
   if (opd->isCompare() && opd->isEmittedAtUses()) {
-#ifdef JS_64BIT
-    constexpr bool targetIs64 = true;
-#else
-    constexpr bool targetIs64 = false;
-#endif
     MCompare* comp = opd->toCompare();
     Assembler::Condition compCond =
         JSOpToCondition(comp->compareType(), comp->jsop());
@@ -959,12 +952,12 @@ void LIRGenerator::visitTest(MTest* test) {
     MDefinition* compR = comp->rhs();
     if ((comp->compareType() == MCompare::Compare_Int32 ||
          comp->compareType() == MCompare::Compare_UInt32 ||
-         (targetIs64 && comp->compareType() == MCompare::Compare_Int64) ||
-         (targetIs64 && comp->compareType() == MCompare::Compare_UInt64)) &&
+         (comp->compareType() == MCompare::Compare_Int64) ||
+         (comp->compareType() == MCompare::Compare_UInt64)) &&
         (compCond == Assembler::Equal || compCond == Assembler::NotEqual) &&
         compR->isConstant() &&
         (compR->toConstant()->isInt32(0) ||
-         (targetIs64 && compR->toConstant()->isInt64(0))) &&
+         (compR->toConstant()->isInt64(0))) &&
         (compL->isBitAnd() || (compL->isWasmBinaryBitwise() &&
                                compL->toWasmBinaryBitwise()->subOpcode() ==
                                    MWasmBinaryBitwise::SubOpcode::And))) {
@@ -975,8 +968,7 @@ void LIRGenerator::visitTest(MTest* test) {
       MIRType bitAndLTy = bitAndL->type();
       MIRType bitAndRTy = bitAndR->type();
       if (bitAnd->isEmittedAtUses() && bitAndLTy == bitAndRTy &&
-          (bitAndLTy == MIRType::Int32 ||
-           (targetIs64 && bitAndLTy == MIRType::Int64))) {
+          (bitAndLTy == MIRType::Int32 || (bitAndLTy == MIRType::Int64))) {
         // Pattern match succeeded.
         ReorderCommutative(&bitAndL, &bitAndR, test);
         if (compCond == Assembler::Equal) {
@@ -986,11 +978,20 @@ void LIRGenerator::visitTest(MTest* test) {
         } else {
           MOZ_ASSERT_UNREACHABLE("inequality operators cannot be folded");
         }
-        MOZ_ASSERT_IF(!targetIs64, bitAndLTy == MIRType::Int32);
+
+        if (bitAndLTy == MIRType::Int64) {
+          auto lhs = useInt64RegisterAtStart(bitAndL);
+          auto rhs = useInt64RegisterOrConstantAtStart(bitAndR);
+          auto* lir = new (alloc())
+              LBitAnd64AndBranch(lhs, rhs, ifTrue, ifFalse, compCond);
+          add(lir, test);
+          return;
+        }
+
         LAllocation lhs = useRegisterAtStart(bitAndL);
         LAllocation rhs = useRegisterOrConstantAtStart(bitAndR);
-        auto* lir = new (alloc()) LBitAndAndBranch(
-            lhs, rhs, ifTrue, ifFalse, bitAndLTy == MIRType::Int64, compCond);
+        auto* lir =
+            new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse, compCond);
         add(lir, test);
         return;
       }
@@ -1124,8 +1125,7 @@ void LIRGenerator::visitTest(MTest* test) {
       ReorderCommutative(&left, &right, test);
       LAllocation lhs = useRegisterAtStart(left);
       LAllocation rhs = useRegisterOrConstantAtStart(right);
-      auto* lir = new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse,
-                                                 /*is64=*/false);
+      auto* lir = new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse);
       add(lir, test);
       return;
     }

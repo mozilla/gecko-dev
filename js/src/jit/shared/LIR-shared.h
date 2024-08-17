@@ -1296,17 +1296,14 @@ class LCompareBigIntInt32AndBranch : public LControlInstructionHelper<2, 2, 2> {
 };
 
 class LBitAndAndBranch : public LControlInstructionHelper<2, 2, 0> {
-  // This denotes only a single-word AND on the target.  Hence `is64_` is
-  // required to be `false` on a 32-bit target.
-  bool is64_;
   Assembler::Condition cond_;
 
  public:
   LIR_HEADER(BitAndAndBranch)
   LBitAndAndBranch(const LAllocation& left, const LAllocation& right,
-                   MBasicBlock* ifTrue, MBasicBlock* ifFalse, bool is64,
+                   MBasicBlock* ifTrue, MBasicBlock* ifFalse,
                    Assembler::Condition cond = Assembler::NonZero)
-      : LControlInstructionHelper(classOpcode), is64_(is64), cond_(cond) {
+      : LControlInstructionHelper(classOpcode), cond_(cond) {
     setOperand(0, left);
     setOperand(1, right);
     setSuccessor(0, ifTrue);
@@ -1317,7 +1314,37 @@ class LBitAndAndBranch : public LControlInstructionHelper<2, 2, 0> {
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
   const LAllocation* left() { return getOperand(0); }
   const LAllocation* right() { return getOperand(1); }
-  bool is64() const { return is64_; }
+  Assembler::Condition cond() const {
+    MOZ_ASSERT(cond_ == Assembler::Zero || cond_ == Assembler::NonZero);
+    return cond_;
+  }
+};
+
+class LBitAnd64AndBranch
+    : public LControlInstructionHelper<2, 2 * INT64_PIECES, 0> {
+  Assembler::Condition cond_;
+
+ public:
+  LIR_HEADER(BitAnd64AndBranch)
+
+  static const size_t Lhs = 0;
+  static const size_t Rhs = INT64_PIECES;
+
+  LBitAnd64AndBranch(const LInt64Allocation& left,
+                     const LInt64Allocation& right, MBasicBlock* ifTrue,
+                     MBasicBlock* ifFalse,
+                     Assembler::Condition cond = Assembler::NonZero)
+      : LControlInstructionHelper(classOpcode), cond_(cond) {
+    setInt64Operand(Lhs, left);
+    setInt64Operand(Rhs, right);
+    setSuccessor(0, ifTrue);
+    setSuccessor(1, ifFalse);
+  }
+
+  MBasicBlock* ifTrue() const { return getSuccessor(0); }
+  MBasicBlock* ifFalse() const { return getSuccessor(1); }
+  LInt64Allocation left() const { return getInt64Operand(LCompareI64::Lhs); }
+  LInt64Allocation right() const { return getInt64Operand(LCompareI64::Rhs); }
   Assembler::Condition cond() const {
     MOZ_ASSERT(cond_ == Assembler::Zero || cond_ == Assembler::NonZero);
     return cond_;

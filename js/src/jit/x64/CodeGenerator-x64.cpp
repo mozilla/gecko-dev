@@ -151,24 +151,6 @@ void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   masm.emitSet(JSOpToCondition(lir->jsop(), isSigned), output);
 }
 
-void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
-  Register regL = ToRegister(baab->left());
-  if (baab->is64()) {
-    if (baab->right()->isConstant()) {
-      masm.test64(regL, Imm64(ToInt64(baab->right())));
-    } else {
-      masm.test64(regL, ToRegister(baab->right()));
-    }
-  } else {
-    if (baab->right()->isConstant()) {
-      masm.test32(regL, Imm32(ToInt32(baab->right())));
-    } else {
-      masm.test32(regL, ToRegister(baab->right()));
-    }
-  }
-  emitBranch(baab->cond(), baab->ifTrue(), baab->ifFalse());
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

@@ -1271,18 +1271,6 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   }
 }
 
-void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* lir) {
-  if (lir->right()->isConstant()) {
-    masm.ma_and(ScratchRegister, ToRegister(lir->left()),
-                Imm32(ToInt32(lir->right())));
-  } else {
-    masm.as_and(ScratchRegister, ToRegister(lir->left()),
-                ToRegister(lir->right()));
-  }
-  emitBranch(ScratchRegister, ScratchRegister, lir->cond(), lir->ifTrue(),
-             lir->ifFalse());
-}
-
 void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
   masm.convertUInt32ToDouble(ToRegister(lir->input()),
                              ToFloatRegister(lir->output()));
