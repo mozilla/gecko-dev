@@ -1072,7 +1072,11 @@ void LIRGenerator::visitTest(MTest* test) {
     if (comp->compareType() == MCompare::Compare_Int64 ||
         comp->compareType() == MCompare::Compare_UInt64) {
       JSOp op = ReorderComparison(comp->jsop(), &left, &right);
-      lowerForCompareI64AndBranch(test, comp, op, left, right, ifTrue, ifFalse);
+      LInt64Allocation lhs = useInt64Register(left);
+      LInt64Allocation rhs = useInt64OrConstant(right);
+      auto* lir = new (alloc())
+          LCompareI64AndBranch(comp, op, lhs, rhs, ifTrue, ifFalse);
+      add(lir, test);
       return;
     }
 

@@ -198,17 +198,6 @@ template void LIRGeneratorARM64::lowerForShiftInt64(
     LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 1>* ins,
     MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
 
-void LIRGeneratorARM64::lowerForCompareI64AndBranch(MTest* mir, MCompare* comp,
-                                                    JSOp op, MDefinition* left,
-                                                    MDefinition* right,
-                                                    MBasicBlock* ifTrue,
-                                                    MBasicBlock* ifFalse) {
-  auto* lir = new (alloc())
-      LCompareI64AndBranch(comp, op, useInt64Register(left),
-                           useInt64RegisterOrConstant(right), ifTrue, ifFalse);
-  add(lir, mir);
-}
-
 void LIRGeneratorARM64::lowerForBitAndAndBranch(LBitAndAndBranch* baab,
                                                 MInstruction* mir,
                                                 MDefinition* lhs,

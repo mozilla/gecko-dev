@@ -47,9 +47,6 @@ class LIRGeneratorLOONG64 : public LIRGeneratorShared {
   void lowerForFPU(LInstructionHelper<1, 2, Temps>* ins, MDefinition* mir,
                    MDefinition* lhs, MDefinition* rhs);
 
-  void lowerForCompareI64AndBranch(MTest* mir, MCompare* comp, JSOp op,
-                                   MDefinition* left, MDefinition* right,
-                                   MBasicBlock* ifTrue, MBasicBlock* ifFalse);
   void lowerForBitAndAndBranch(LBitAndAndBranch* baab, MInstruction* mir,
                                MDefinition* lhs, MDefinition* rhs);
 
