@@ -69,11 +69,6 @@ class CodeGeneratorARM64 : public CodeGeneratorShared {
   void emitBranch(Assembler::Condition cond, MBasicBlock* ifTrue,
                   MBasicBlock* ifFalse);
 
-  void testNullEmitBranch(Assembler::Condition cond, const ValueOperand& value,
-                          MBasicBlock* ifTrue, MBasicBlock* ifFalse) {
-    cond = masm.testNull(cond, value);
-    emitBranch(cond, ifTrue, ifFalse);
-  }
   void testUndefinedEmitBranch(Assembler::Condition cond,
                                const ValueOperand& value, MBasicBlock* ifTrue,
                                MBasicBlock* ifFalse) {

@@ -12788,7 +12788,17 @@ void CodeGenerator::visitIsNullAndBranch(LIsNullAndBranch* lir) {
   const ValueOperand value = ToValue(lir, LIsNullAndBranch::Value);
 
   Assembler::Condition cond = JSOpToCondition(compareType, op);
-  testNullEmitBranch(cond, value, lir->ifTrue(), lir->ifFalse());
+
+  MBasicBlock* ifTrue = lir->ifTrue();
+  MBasicBlock* ifFalse = lir->ifFalse();
+
+  if (isNextBlock(ifFalse->lir())) {
+    masm.branchTestNull(cond, value, getJumpLabelForBranch(ifTrue));
+  } else {
+    masm.branchTestNull(Assembler::InvertCondition(cond), value,
+                        getJumpLabelForBranch(ifFalse));
+    jumpToBlock(ifTrue);
+  }
 }
 
 void CodeGenerator::visitIsUndefinedAndBranch(LIsUndefinedAndBranch* lir) {

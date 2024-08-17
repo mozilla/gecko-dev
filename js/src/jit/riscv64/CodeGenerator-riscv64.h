@@ -144,13 +144,6 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
   void visitOutOfLineWasmTruncateCheck(OutOfLineWasmTruncateCheck* ool);
 
  protected:
-  void testNullEmitBranch(Assembler::Condition cond, const ValueOperand& value,
-                          MBasicBlock* ifTrue, MBasicBlock* ifFalse) {
-    UseScratchRegisterScope temps(&masm);
-    Register scratch = temps.Acquire();
-    masm.splitTag(value.valueReg(), scratch);
-    emitBranch(scratch, ImmTag(JSVAL_TAG_NULL), cond, ifTrue, ifFalse);
-  }
   void testUndefinedEmitBranch(Assembler::Condition cond,
                                const ValueOperand& value, MBasicBlock* ifTrue,
                                MBasicBlock* ifFalse) {
