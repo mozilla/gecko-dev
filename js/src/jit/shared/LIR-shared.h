@@ -1259,6 +1259,35 @@ class LCompareFAndBranch : public LControlInstructionHelper<2, 2, 0> {
   MCompare* cmpMir() const { return cmpMir_; }
 };
 
+class LCompareBigIntInt32AndBranch : public LControlInstructionHelper<2, 2, 2> {
+  MCompare* cmpMir_;
+
+ public:
+  LIR_HEADER(CompareBigIntInt32AndBranch)
+  LCompareBigIntInt32AndBranch(MCompare* cmpMir, const LAllocation& left,
+                               const LAllocation& right,
+                               const LDefinition& temp1,
+                               const LDefinition& temp2, MBasicBlock* ifTrue,
+                               MBasicBlock* ifFalse)
+      : LControlInstructionHelper(classOpcode), cmpMir_(cmpMir) {
+    setOperand(0, left);
+    setOperand(1, right);
+    setTemp(0, temp1);
+    setTemp(1, temp2);
+    setSuccessor(0, ifTrue);
+    setSuccessor(1, ifFalse);
+  }
+
+  MBasicBlock* ifTrue() const { return getSuccessor(0); }
+  MBasicBlock* ifFalse() const { return getSuccessor(1); }
+  const LAllocation* left() { return getOperand(0); }
+  const LAllocation* right() { return getOperand(1); }
+  const LDefinition* temp1() { return getTemp(0); }
+  const LDefinition* temp2() { return getTemp(1); }
+  MTest* mir() const { return mir_->toTest(); }
+  MCompare* cmpMir() const { return cmpMir_; }
+};
+
 class LBitAndAndBranch : public LControlInstructionHelper<2, 2, 0> {
   // This denotes only a single-word AND on the target.  Hence `is64_` is
   // required to be `false` on a 32-bit target.

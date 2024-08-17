@@ -5075,6 +5075,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
                              Label* ifTrue, Label* ifFalse);
 
   /**
+   * Compare a BigInt and an Int32 value. Falls through to the false case.
+   */
+  void compareBigIntAndInt32(JSOp op, Register bigInt, Imm32 int32,
+                             Register scratch, Label* ifTrue, Label* ifFalse);
+
+  /**
    * Compare two BigInts for equality. Falls through if both BigInts are equal
    * to each other.
    *

@@ -776,6 +776,9 @@
   call_instruction: true
   mir_op: Compare
 
+- name: CompareBigIntInt32AndBranch
+  gen_boilerplate: false
+
 - name: BitAndAndBranch
   gen_boilerplate: false
 

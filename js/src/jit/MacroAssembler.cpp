@@ -2412,6 +2412,98 @@ void MacroAssembler::compareBigIntAndInt32(JSOp op, Register bigInt,
   }
 }
 
+void MacroAssembler::compareBigIntAndInt32(JSOp op, Register bigInt,
+                                           Imm32 int32, Register scratch,
+                                           Label* ifTrue, Label* ifFalse) {
+  MOZ_ASSERT(IsLooseEqualityOp(op) || IsRelationalOp(op));
+
+  static_assert(std::is_same_v<BigInt::Digit, uintptr_t>,
+                "BigInt digit can be loaded in a pointer-sized register");
+  static_assert(sizeof(BigInt::Digit) >= sizeof(uint32_t),
+                "BigInt digit stores at least an uint32");
+
+  // Comparison against zero doesn't require loading any BigInt digits.
+  if (int32.value == 0) {
+    switch (op) {
+      case JSOp::Eq:
+        branchIfBigIntIsZero(bigInt, ifTrue);
+        break;
+      case JSOp::Ne:
+        branchIfBigIntIsNonZero(bigInt, ifTrue);
+        break;
+      case JSOp::Lt:
+        branchIfBigIntIsNegative(bigInt, ifTrue);
+        break;
+      case JSOp::Le:
+        branchIfBigIntIsZero(bigInt, ifTrue);
+        branchIfBigIntIsNegative(bigInt, ifTrue);
+        break;
+      case JSOp::Gt:
+        branchIfBigIntIsZero(bigInt, ifFalse);
+        branchIfBigIntIsNonNegative(bigInt, ifTrue);
+        break;
+      case JSOp::Ge:
+        branchIfBigIntIsNonNegative(bigInt, ifTrue);
+        break;
+      default:
+        MOZ_CRASH("bad comparison operator");
+    }
+
+    // Fall through to the false case.
+    return;
+  }
+
+  // Jump to |ifTrue| resp. |ifFalse| if the BigInt is strictly less than
+  // resp. strictly greater than the int32 value, depending on the comparison
+  // operator.
+  Label* greaterThan;
+  Label* lessThan;
+  if (op == JSOp::Eq) {
+    greaterThan = ifFalse;
+    lessThan = ifFalse;
+  } else if (op == JSOp::Ne) {
+    greaterThan = ifTrue;
+    lessThan = ifTrue;
+  } else if (op == JSOp::Lt || op == JSOp::Le) {
+    greaterThan = ifFalse;
+    lessThan = ifTrue;
+  } else {
+    MOZ_ASSERT(op == JSOp::Gt || op == JSOp::Ge);
+    greaterThan = ifTrue;
+    lessThan = ifFalse;
+  }
+
+  // Test for mismatched signs.
+  if (int32.value > 0) {
+    branchIfBigIntIsNegative(bigInt, lessThan);
+  } else {
+    branchIfBigIntIsNonNegative(bigInt, greaterThan);
+  }
+
+  // Both signs are equal, load |abs(x)| in |scratch| and then compare the
+  // absolute numbers against each other.
+  //
+  // If the absolute value of the BigInt can't be expressed in an uint32/uint64,
+  // the result of the comparison is a constant.
+  Label* tooLarge = int32.value > 0 ? greaterThan : lessThan;
+  loadBigIntAbsolute(bigInt, scratch, tooLarge);
+
+  // Use the absolute value of the immediate.
+  ImmWord uint32 = ImmWord(mozilla::Abs(int32.value));
+
+  // Reverse the relational comparator for negative numbers.
+  // |-x < -y| <=> |+x > +y|.
+  // |-x ≤ -y| <=> |+x ≥ +y|.
+  // |-x > -y| <=> |+x < +y|.
+  // |-x ≥ -y| <=> |+x ≤ +y|.
+  if (int32.value < 0) {
+    op = ReverseCompareOp(op);
+  }
+
+  branchPtr(JSOpToCondition(op, /* isSigned = */ false), scratch, uint32,
+            ifTrue);
+}
+
 void MacroAssembler::equalBigInts(Register left, Register right, Register temp1,
                                   Register temp2, Register temp3,
                                   Register temp4, Label* notSameSign,
