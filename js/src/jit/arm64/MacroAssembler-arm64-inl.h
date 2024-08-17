@@ -1150,14 +1150,7 @@ void MacroAssembler::branch32(Condition cond, wasm::SymbolicAddress lhs,
 
 void MacroAssembler::branch64(Condition cond, Register64 lhs, Imm64 val,
                               Label* success, Label* fail) {
-  if (val.value == 0 && cond == Assembler::Equal) {
-    Cbz(ARMRegister(lhs.reg, 64), success);
-  } else if (val.value == 0 && cond == Assembler::NotEqual) {
-    Cbnz(ARMRegister(lhs.reg, 64), success);
-  } else {
-    Cmp(ARMRegister(lhs.reg, 64), val.value);
-    B(success, cond);
-  }
+  branchPtr(cond, lhs.reg, ImmWord(val.value), success);
   if (fail) {
     B(fail);
   }
@@ -1165,8 +1158,7 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Imm64 val,
 
 void MacroAssembler::branch64(Condition cond, Register64 lhs, Register64 rhs,
                               Label* success, Label* fail) {
-  Cmp(ARMRegister(lhs.reg, 64), ARMRegister(rhs.reg, 64));
-  B(success, cond);
+  branchPtr(cond, lhs.reg, rhs.reg, success);
   if (fail) {
     B(fail);
   }
