@@ -51,10 +51,6 @@ class CodeGeneratorWasm32 : public CodeGeneratorShared {
                             MBasicBlock*) {
     MOZ_CRASH();
   }
-  void testZeroEmitBranch(Assembler::Condition, Register, MBasicBlock*,
-                          MBasicBlock*) {
-    MOZ_CRASH();
-  }
   void emitTableSwitchDispatch(MTableSwitch*, Register, Register) {
     MOZ_CRASH();
   }

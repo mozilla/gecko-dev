@@ -111,10 +111,6 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
       jumpToBlock(mirTrue);
     }
   }
-  void testZeroEmitBranch(Assembler::Condition cond, Register reg,
-                          MBasicBlock* ifTrue, MBasicBlock* ifFalse) {
-    emitBranch(reg, Imm32(0), cond, ifTrue, ifFalse);
-  }
 
   void emitTableSwitchDispatch(MTableSwitch* mir, Register index,
                                Register base);
