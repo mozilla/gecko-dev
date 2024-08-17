@@ -30,9 +30,6 @@ void CodeGenerator::visitCompareI64(LCompareI64* lir) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
   MOZ_CRASH();
 }
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  MOZ_CRASH();
-}
 void CodeGenerator::visitCompareD(LCompareD* comp) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareF(LCompareF* comp) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareDAndBranch(LCompareDAndBranch* comp) {

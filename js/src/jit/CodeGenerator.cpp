@@ -1559,6 +1559,54 @@ void CodeGenerator::visitCompare(LCompare* comp) {
   }
 }
 
+void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
+  MCompare::CompareType compareType = comp->cmpMir()->compareType();
+  Assembler::Condition cond = JSOpToCondition(compareType, comp->jsop());
+  Register left = ToRegister(comp->left());
+  const LAllocation* right = comp->right();
+
+  MBasicBlock* ifTrue = comp->ifTrue();
+  MBasicBlock* ifFalse = comp->ifFalse();
+
+  // If the next block is the true case, invert the condition to fall through.
+  Label* label;
+  if (isNextBlock(ifTrue->lir())) {
+    cond = Assembler::InvertCondition(cond);
+    label = getJumpLabelForBranch(ifFalse);
+  } else {
+    label = getJumpLabelForBranch(ifTrue);
+  }
+
+  if (compareType == MCompare::Compare_Object ||
+      compareType == MCompare::Compare_Symbol ||
+      compareType == MCompare::Compare_UIntPtr ||
+      compareType == MCompare::Compare_WasmAnyRef) {
+    if (right->isConstant()) {
+      MOZ_ASSERT(compareType == MCompare::Compare_UIntPtr);
+      masm.branchPtr(cond, left, ImmWord(ToInt32(right)), label);
+    } else if (right->isRegister()) {
+      masm.branchPtr(cond, left, ToRegister(right), label);
+    } else {
+      masm.branchPtr(ReverseCondition(cond), ToAddress(right), left, label);
+    }
+  } else {
+    MOZ_ASSERT(compareType == MCompare::Compare_Int32 ||
+               compareType == MCompare::Compare_UInt32);
+
+    if (right->isConstant()) {
+      masm.branch32(cond, left, Imm32(ToInt32(right)), label);
+    } else if (right->isRegister()) {
+      masm.branch32(cond, left, ToRegister(right), label);
+    } else {
+      masm.branch32(ReverseCondition(cond), ToAddress(right), left, label);
+    }
+  }
+
+  if (!isNextBlock(ifTrue->lir())) {
+    jumpToBlock(ifFalse);
+  }
+}
+
 void CodeGenerator::assertObjectDoesNotEmulateUndefined(
     Register input, Register temp, const MInstruction* mir) {
 #if defined(DEBUG) || defined(FUZZING)

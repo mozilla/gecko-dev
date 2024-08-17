@@ -454,41 +454,6 @@ void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
   }
 }
 
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  const MCompare* mir = comp->cmpMir();
-  const MCompare::CompareType type = mir->compareType();
-  const LAllocation* lhs = comp->left();
-  const LAllocation* rhs = comp->right();
-  MBasicBlock* ifTrue = comp->ifTrue();
-  MBasicBlock* ifFalse = comp->ifFalse();
-  Register lhsReg = ToRegister(lhs);
-  const Assembler::Condition cond = JSOpToCondition(type, comp->jsop());
-
-  if (type == MCompare::Compare_Object || type == MCompare::Compare_Symbol ||
-      type == MCompare::Compare_UIntPtr ||
-      type == MCompare::Compare_WasmAnyRef) {
-    if (rhs->isConstant()) {
-      emitBranch(ToRegister(lhs), Imm32(ToInt32(rhs)), cond, ifTrue, ifFalse);
-    } else if (rhs->isGeneralReg()) {
-      emitBranch(lhsReg, ToRegister(rhs), cond, ifTrue, ifFalse);
-    } else {
-      MOZ_CRASH("NYI");
-    }
-    return;
-  }
-
-  if (rhs->isConstant()) {
-    emitBranch(lhsReg, Imm32(ToInt32(comp->right())), cond, ifTrue, ifFalse);
-  } else if (comp->right()->isGeneralReg()) {
-    emitBranch(lhsReg, ToRegister(rhs), cond, ifTrue, ifFalse);
-  } else {
-    // TODO(loong64): emitBranch with 32-bit comparision
-    ScratchRegisterScope scratch(masm);
-    masm.load32(ToAddress(rhs), scratch);
-    emitBranch(lhsReg, Register(scratch), cond, ifTrue, ifFalse);
-  }
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

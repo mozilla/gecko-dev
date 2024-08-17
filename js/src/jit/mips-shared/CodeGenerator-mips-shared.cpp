@@ -88,44 +88,6 @@ void OutOfLineBailout::accept(CodeGeneratorMIPSShared* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  MCompare* mir = comp->cmpMir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), comp->jsop());
-
-#ifdef JS_CODEGEN_MIPS64
-  if (mir->compareType() == MCompare::Compare_Object ||
-      mir->compareType() == MCompare::Compare_Symbol ||
-      mir->compareType() == MCompare::Compare_UIntPtr ||
-      mir->compareType() == MCompare::Compare_WasmAnyRef) {
-    if (comp->right()->isConstant()) {
-      MOZ_ASSERT(mir->compareType() == MCompare::Compare_UIntPtr);
-      emitBranch(ToRegister(comp->left()), Imm32(ToInt32(comp->right())), cond,
-                 comp->ifTrue(), comp->ifFalse());
-    } else if (comp->right()->isGeneralReg()) {
-      emitBranch(ToRegister(comp->left()), ToRegister(comp->right()), cond,
-                 comp->ifTrue(), comp->ifFalse());
-    } else {
-      masm.loadPtr(ToAddress(comp->right()), ScratchRegister);
-      emitBranch(ToRegister(comp->left()), ScratchRegister, cond,
-                 comp->ifTrue(), comp->ifFalse());
-    }
-    return;
-  }
-#endif
-
-  if (comp->right()->isConstant()) {
-    emitBranch(ToRegister(comp->left()), Imm32(ToInt32(comp->right())), cond,
-               comp->ifTrue(), comp->ifFalse());
-  } else if (comp->right()->isGeneralReg()) {
-    emitBranch(ToRegister(comp->left()), ToRegister(comp->right()), cond,
-               comp->ifTrue(), comp->ifFalse());
-  } else {
-    masm.load32(ToAddress(comp->right()), ScratchRegister);
-    emitBranch(ToRegister(comp->left()), ScratchRegister, cond, comp->ifTrue(),
-               comp->ifFalse());
-  }
-}
-
 bool CodeGeneratorMIPSShared::generateOutOfLineCode() {
   if (!CodeGeneratorShared::generateOutOfLineCode()) {
     return false;

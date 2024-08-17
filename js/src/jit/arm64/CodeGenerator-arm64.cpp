@@ -76,31 +76,6 @@ void OutOfLineBailout::accept(CodeGeneratorARM64* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  const MCompare* mir = comp->cmpMir();
-  const MCompare::CompareType type = mir->compareType();
-  const LAllocation* left = comp->left();
-  const LAllocation* right = comp->right();
-
-  if (type == MCompare::Compare_Object || type == MCompare::Compare_Symbol ||
-      type == MCompare::Compare_UIntPtr ||
-      type == MCompare::Compare_WasmAnyRef) {
-    if (right->isConstant()) {
-      MOZ_ASSERT(type == MCompare::Compare_UIntPtr);
-      masm.cmpPtr(ToRegister(left), Imm32(ToInt32(right)));
-    } else {
-      masm.cmpPtr(ToRegister(left), ToRegister(right));
-    }
-  } else if (right->isConstant()) {
-    masm.cmp32(ToRegister(left), Imm32(ToInt32(right)));
-  } else {
-    masm.cmp32(ToRegister(left), ToRegister(right));
-  }
-
-  Assembler::Condition cond = JSOpToCondition(type, comp->jsop());
-  emitBranch(cond, comp->ifTrue(), comp->ifFalse());
-}
-
 void CodeGeneratorARM64::bailoutIf(Assembler::Condition condition,
                                    LSnapshot* snapshot) {
   encode(snapshot);

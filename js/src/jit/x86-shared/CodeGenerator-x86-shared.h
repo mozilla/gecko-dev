@@ -101,9 +101,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
 
   bool generateOutOfLineCode();
 
-  void emitCompare(MCompare::CompareType type, const LAllocation* left,
-                   const LAllocation* right);
-
   // Emits a branch that directs control flow to the true block if |cond| is
   // true, and the false block if |cond| is false.
   void emitBranch(Assembler::Condition cond, MBasicBlock* ifTrue,

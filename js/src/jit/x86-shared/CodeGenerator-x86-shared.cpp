@@ -112,37 +112,6 @@ void CodeGenerator::visitTestFAndBranch(LTestFAndBranch* test) {
   emitBranch(Assembler::NotEqual, test->ifTrue(), test->ifFalse());
 }
 
-void CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type,
-                                         const LAllocation* left,
-                                         const LAllocation* right) {
-#ifdef JS_CODEGEN_X64
-  if (type == MCompare::Compare_Object || type == MCompare::Compare_Symbol ||
-      type == MCompare::Compare_UIntPtr ||
-      type == MCompare::Compare_WasmAnyRef) {
-    if (right->isConstant()) {
-      MOZ_ASSERT(type == MCompare::Compare_UIntPtr);
-      masm.cmpPtr(ToRegister(left), Imm32(ToInt32(right)));
-    } else {
-      masm.cmpPtr(ToRegister(left), ToOperand(right));
-    }
-    return;
-  }
-#endif
-
-  if (right->isConstant()) {
-    masm.cmp32(ToRegister(left), Imm32(ToInt32(right)));
-  } else {
-    masm.cmp32(ToRegister(left), ToOperand(right));
-  }
-}
-
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  MCompare* mir = comp->cmpMir();
-  emitCompare(mir->compareType(), comp->left(), comp->right());
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), comp->jsop());
-  emitBranch(cond, comp->ifTrue(), comp->ifFalse());
-}
-
 void CodeGenerator::visitCompareD(LCompareD* comp) {
   FloatRegister lhs = ToFloatRegister(comp->left());
   FloatRegister rhs = ToFloatRegister(comp->right());

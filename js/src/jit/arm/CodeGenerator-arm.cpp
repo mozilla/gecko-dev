@@ -63,25 +63,6 @@ void OutOfLineBailout::accept(CodeGeneratorARM* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
-  Assembler::Condition cond =
-      JSOpToCondition(comp->cmpMir()->compareType(), comp->jsop());
-  const LAllocation* left = comp->left();
-  const LAllocation* right = comp->right();
-
-  ScratchRegisterScope scratch(masm);
-
-  if (right->isConstant()) {
-    masm.ma_cmp(ToRegister(left), Imm32(ToInt32(right)), scratch);
-  } else if (right->isRegister()) {
-    masm.ma_cmp(ToRegister(left), ToRegister(right));
-  } else {
-    SecondScratchRegisterScope scratch2(masm);
-    masm.ma_cmp(ToRegister(left), Operand(ToAddress(right)), scratch, scratch2);
-  }
-  emitBranch(cond, comp->ifTrue(), comp->ifFalse());
-}
-
 bool CodeGeneratorARM::generateOutOfLineCode() {
   if (!CodeGeneratorShared::generateOutOfLineCode()) {
     return false;
