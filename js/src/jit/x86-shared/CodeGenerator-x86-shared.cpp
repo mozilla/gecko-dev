@@ -56,20 +56,25 @@ void OutOfLineBailout::accept(CodeGeneratorX86Shared* codegen) {
 
 void CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond,
                                         MBasicBlock* mirTrue,
-                                        MBasicBlock* mirFalse,
-                                        Assembler::NaNCond ifNaN) {
-  if (ifNaN == Assembler::NaN_IsFalse) {
-    jumpToBlock(mirFalse, Assembler::Parity);
-  } else if (ifNaN == Assembler::NaN_IsTrue) {
-    jumpToBlock(mirTrue, Assembler::Parity);
-  }
-
+                                        MBasicBlock* mirFalse) {
   if (isNextBlock(mirFalse->lir())) {
     jumpToBlock(mirTrue, cond);
   } else {
     jumpToBlock(mirFalse, Assembler::InvertCondition(cond));
     jumpToBlock(mirTrue);
   }
+}
+
+void CodeGeneratorX86Shared::emitBranch(Assembler::DoubleCondition cond,
+                                        MBasicBlock* ifTrue,
+                                        MBasicBlock* ifFalse,
+                                        Assembler::NaNCond ifNaN) {
+  if (ifNaN == Assembler::NaN_IsFalse) {
+    jumpToBlock(ifFalse, Assembler::Parity);
+  } else if (ifNaN == Assembler::NaN_IsTrue) {
+    jumpToBlock(ifTrue, Assembler::Parity);
+  }
+  emitBranch(Assembler::ConditionFromDoubleCondition(cond), ifTrue, ifFalse);
 }
 
 void CodeGenerator::visitDouble(LDouble* ins) {
@@ -194,8 +199,7 @@ void CodeGenerator::visitCompareDAndBranch(LCompareDAndBranch* comp) {
   }
 
   masm.compareDouble(cond, lhs, rhs);
-  emitBranch(Assembler::ConditionFromDoubleCondition(cond), comp->ifTrue(),
-             comp->ifFalse(), nanCond);
+  emitBranch(cond, comp->ifTrue(), comp->ifFalse(), nanCond);
 }
 
 void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
@@ -211,8 +215,7 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   }
 
   masm.compareFloat(cond, lhs, rhs);
-  emitBranch(Assembler::ConditionFromDoubleCondition(cond), comp->ifTrue(),
-             comp->ifFalse(), nanCond);
+  emitBranch(cond, comp->ifTrue(), comp->ifFalse(), nanCond);
 }
 
 void CodeGenerator::visitWasmStackArg(LWasmStackArg* ins) {
