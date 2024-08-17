@@ -112,6 +112,15 @@ static inline Register64 ToOutRegister64(LInstruction* ins) {
 #endif
 }
 
+static inline bool IsRegister64(const LInt64Allocation& a) {
+#if JS_BITS_PER_WORD == 32
+  MOZ_ASSERT(a.low().isRegister() == a.high().isRegister());
+  return a.low().isRegister();
+#else
+  return a.value().isRegister();
+#endif
+}
+
 static inline Register64 ToRegister64(const LInt64Allocation& a) {
 #if JS_BITS_PER_WORD == 32
   return Register64(ToRegister(a.high()), ToRegister(a.low()));
@@ -278,6 +287,17 @@ Address CodeGeneratorShared::ToAddress(const LAllocation& a) const {
 template <BaseRegForAddress Base>
 Address CodeGeneratorShared::ToAddress(const LAllocation* a) const {
   return ToAddress<Base>(*a);
+}
+
+template <BaseRegForAddress Base>
+Address CodeGeneratorShared::ToAddress(const LInt64Allocation& a) const {
+#if JS_BITS_PER_WORD == 32
+  Address low = ToAddress<Base>(a.low());
+  MOZ_ASSERT(HighWord(low) == ToAddress<Base>(a.high()));
+  return low;
+#else
+  return ToAddress<Base>(a.value());
+#endif
 }
 
 // static

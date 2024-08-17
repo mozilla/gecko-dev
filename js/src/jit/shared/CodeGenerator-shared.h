@@ -138,6 +138,9 @@ class CodeGeneratorShared : public LElementVisitor {
   template <BaseRegForAddress Base = BaseRegForAddress::Default>
   inline Address ToAddress(const LAllocation* a) const;
 
+  template <BaseRegForAddress Base = BaseRegForAddress::Default>
+  inline Address ToAddress(const LInt64Allocation& a) const;
+
   static inline Address ToAddress(Register elements, const LAllocation* index,
                                   Scalar::Type type,
                                   int32_t offsetAdjustment = 0);

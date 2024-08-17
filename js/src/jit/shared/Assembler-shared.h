@@ -305,6 +305,12 @@ struct Address {
 #endif
 
   Address() = delete;
+
+  bool operator==(const Address& other) const {
+    return base == other.base && offset == other.offset;
+  }
+
+  bool operator!=(const Address& other) const { return !(*this == other); }
 };
 
 #if JS_BITS_PER_WORD == 32
