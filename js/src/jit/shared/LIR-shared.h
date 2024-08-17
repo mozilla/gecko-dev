@@ -1004,6 +1004,7 @@ class LTestI64AndBranch : public LControlInstructionHelper<2, INT64_PIECES, 0> {
     setSuccessor(1, ifFalse);
   }
 
+  LInt64Allocation input() const { return getInt64Operand(0); }
   MBasicBlock* ifTrue() const { return getSuccessor(0); }
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
 };

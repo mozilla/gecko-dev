@@ -2860,15 +2860,6 @@ void CodeGenerator::visitBitNotI64(LBitNotI64* lir) {
   masm.ma_mvn(input.low, input.low);
 }
 
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-
-  masm.as_cmp(input.high, Imm8(0));
-  jumpToBlock(lir->ifTrue(), Assembler::NonZero);
-  masm.as_cmp(input.low, Imm8(0));
-  emitBranch(Assembler::NonZero, lir->ifTrue(), lir->ifFalse());
-}
-
 void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register memoryBase = ToRegister(lir->memoryBase());

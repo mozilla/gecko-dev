@@ -1450,15 +1450,6 @@ void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
   masm.notl(inputR.low);
 }
 
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-
-  masm.testl(input.high, input.high);
-  jumpToBlock(lir->ifTrue(), Assembler::NonZero);
-  masm.testl(input.low, input.low);
-  emitBranch(Assembler::NonZero, lir->ifTrue(), lir->ifFalse());
-}
-
 void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
   // LBitAndAndBranch only represents single-word ANDs, hence it can't be
   // 64-bit here.

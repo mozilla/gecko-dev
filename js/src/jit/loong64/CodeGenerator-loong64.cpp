@@ -718,14 +718,6 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   }
 }
 
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  MBasicBlock* ifTrue = lir->ifTrue();
-  MBasicBlock* ifFalse = lir->ifFalse();
-
-  emitBranch(input.reg, Imm32(0), Assembler::NonZero, ifTrue, ifFalse);
-}
-
 void CodeGenerator::visitMinMaxD(LMinMaxD* ins) {
   FloatRegister first = ToFloatRegister(ins->first());
   FloatRegister second = ToFloatRegister(ins->second());

@@ -964,9 +964,3 @@ void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
   MOZ_ASSERT(inputR == ToRegister(ins->output()));
   masm.notq(inputR);
 }
-
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register input = ToRegister(lir->input());
-  masm.testq(input, input);
-  emitBranch(Assembler::NonZero, lir->ifTrue(), lir->ifFalse());
-}

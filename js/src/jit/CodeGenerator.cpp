@@ -1485,6 +1485,24 @@ void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
   }
 }
 
+void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* test) {
+  Register64 input = ToRegister64(test->input());
+  MBasicBlock* ifTrue = test->ifTrue();
+  MBasicBlock* ifFalse = test->ifFalse();
+
+  if (isNextBlock(ifFalse->lir())) {
+    masm.branchTest64(Assembler::NonZero, input, input,
+                      getJumpLabelForBranch(ifTrue));
+  } else if (isNextBlock(ifTrue->lir())) {
+    masm.branchTest64(Assembler::Zero, input, input,
+                      getJumpLabelForBranch(ifFalse));
+  } else {
+    masm.branchTest64(Assembler::NonZero, input, input,
+                      getJumpLabelForBranch(ifTrue),
+                      getJumpLabelForBranch(ifFalse));
+  }
+}
+
 void CodeGenerator::visitTestBIAndBranch(LTestBIAndBranch* lir) {
   Register input = ToRegister(lir->input());
   MBasicBlock* ifTrue = lir->ifTrue();

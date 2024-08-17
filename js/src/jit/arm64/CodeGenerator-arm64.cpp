@@ -2567,23 +2567,6 @@ void CodeGenerator::visitWasmStackArgI64(LWasmStackArgI64* ins) {
   }
 }
 
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  MBasicBlock* mirTrue = lir->ifTrue();
-  MBasicBlock* mirFalse = lir->ifFalse();
-
-  // Jump to the True block if NonZero.
-  // Jump to the False block if Zero.
-  if (isNextBlock(mirFalse->lir())) {
-    masm.Cbnz(ARMRegister(input.reg, 64), getJumpLabelForBranch(mirTrue));
-  } else {
-    masm.Cbz(ARMRegister(input.reg, 64), getJumpLabelForBranch(mirFalse));
-    if (!isNextBlock(mirTrue->lir())) {
-      jumpToBlock(mirTrue);
-    }
-  }
-}
-
 void CodeGenerator::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir) {
   const LAllocation* input = lir->getOperand(0);
   Register output = ToRegister(lir->output());

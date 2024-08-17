@@ -446,14 +446,6 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   MOZ_ASSERT_IF(toType == MIRType::Float32, *(&output) == ReturnFloat32Reg);
 }
 
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-
-  branchToBlock(input.high, Imm32(0), lir->ifTrue(), Assembler::NonZero);
-  emitBranch(input.low, Imm32(0), Assembler::NonZero, lir->ifTrue(),
-             lir->ifFalse());
-}
-
 void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register64 output = ToOutRegister64(lir);

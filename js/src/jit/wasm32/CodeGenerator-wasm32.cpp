@@ -21,9 +21,6 @@ void CodeGenerator::visitWasmReinterpretToI64(LWasmReinterpretToI64* lir) {
   MOZ_CRASH();
 }
 void CodeGenerator::visitRotateI64(LRotateI64* lir) { MOZ_CRASH(); }
-void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
-  MOZ_CRASH();
-}
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) { MOZ_CRASH(); }
 void CodeGenerator::visitTestFAndBranch(LTestFAndBranch* test) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareI64(LCompareI64* lir) { MOZ_CRASH(); }
