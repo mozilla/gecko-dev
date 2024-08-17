@@ -1141,14 +1141,15 @@ void MacroAssembler::clz32(Register src, Register dest, bool knownNotZero) {
   ma_clz(src, dest);
 }
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
   ScratchRegisterScope scratch(*this);
 
   ma_clz(src.high, scratch);
   as_cmp(scratch, Imm8(32));
-  ma_mov(scratch, dest, LeaveCC, NotEqual);
-  ma_clz(src.low, dest, Equal);
-  as_add(dest, dest, Imm8(32), LeaveCC, Equal);
+  ma_mov(scratch, dest.low, LeaveCC, NotEqual);
+  ma_clz(src.low, dest.low, Equal);
+  as_add(dest.low, dest.low, Imm8(32), LeaveCC, Equal);
+  ma_mov(Imm32(0), dest.high);
 }
 
 void MacroAssembler::ctz32(Register src, Register dest, bool knownNotZero) {
@@ -1156,19 +1157,20 @@ void MacroAssembler::ctz32(Register src, Register dest, bool knownNotZero) {
   ma_ctz(src, dest, scratch);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
   Label done, high;
   as_cmp(src.low, Imm8(0));
   ma_b(&high, Equal);
 
-  ctz32(src.low, dest, /* knownNotZero = */ true);
+  ctz32(src.low, dest.low, /* knownNotZero = */ true);
   ma_b(&done);
 
   bind(&high);
-  ctz32(src.high, dest, /* knownNotZero = */ false);
-  as_add(dest, dest, Imm8(32));
+  ctz32(src.high, dest.low, /* knownNotZero = */ false);
+  as_add(dest.low, dest.low, Imm8(32));
 
   bind(&done);
+  ma_mov(Imm32(0), dest.high);
 }
 
 void MacroAssembler::popcnt32(Register input, Register output, Register tmp) {

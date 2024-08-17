@@ -2630,15 +2630,9 @@ static void XorImmI64(MacroAssembler& masm, int64_t c, RegI64 rsd) {
   masm.xor64(Imm64(c), rsd);
 }
 
-static void ClzI64(BaseCompiler& bc, RegI64 rsd) {
-  bc.masm.clz64(rsd, bc.lowPart(rsd));
-  bc.maybeClearHighPart(rsd);
-}
+static void ClzI64(BaseCompiler& bc, RegI64 rsd) { bc.masm.clz64(rsd, rsd); }
 
-static void CtzI64(BaseCompiler& bc, RegI64 rsd) {
-  bc.masm.ctz64(rsd, bc.lowPart(rsd));
-  bc.maybeClearHighPart(rsd);
-}
+static void CtzI64(BaseCompiler& bc, RegI64 rsd) { bc.masm.ctz64(rsd, rsd); }
 
 static void PopcntI64(BaseCompiler& bc, RegI64 rsd, RegI32 temp) {
   bc.masm.popcnt64(rsd, rsd, temp);

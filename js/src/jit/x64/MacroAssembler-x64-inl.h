@@ -480,30 +480,30 @@ void MacroAssembler::cmpPtrSet(Condition cond, T1 lhs, T2 rhs, Register dest) {
 // ===============================================================
 // Bit counting functions
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
   if (AssemblerX86Shared::HasLZCNT()) {
-    lzcntq(src.reg, dest);
+    lzcntq(src.reg, dest.reg);
     return;
   }
 
   Label nonzero;
-  bsrq(src.reg, dest);
+  bsrq(src.reg, dest.reg);
   j(Assembler::NonZero, &nonzero);
-  movq(ImmWord(0x7F), dest);
+  movq(ImmWord(0x7F), dest.reg);
   bind(&nonzero);
-  xorq(Imm32(0x3F), dest);
+  xorq(Imm32(0x3F), dest.reg);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
   if (AssemblerX86Shared::HasBMI1()) {
-    tzcntq(src.reg, dest);
+    tzcntq(src.reg, dest.reg);
     return;
   }
 
   Label nonzero;
-  bsfq(src.reg, dest);
+  bsfq(src.reg, dest.reg);
   j(Assembler::NonZero, &nonzero);
-  movq(ImmWord(64), dest);
+  movq(ImmWord(64), dest.reg);
   bind(&nonzero);
 }
 

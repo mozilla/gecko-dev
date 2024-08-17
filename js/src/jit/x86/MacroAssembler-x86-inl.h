@@ -616,79 +616,83 @@ void MacroAssembler::rotateRight64(Imm32 count, Register64 src, Register64 dest,
 // ===============================================================
 // Bit counting functions
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
   if (AssemblerX86Shared::HasLZCNT()) {
     Label nonzero, zero;
 
     testl(src.high, src.high);
     j(Assembler::Zero, &zero);
 
-    lzcntl(src.high, dest);
+    lzcntl(src.high, dest.low);
     jump(&nonzero);
 
     bind(&zero);
-    lzcntl(src.low, dest);
-    addl(Imm32(32), dest);
+    lzcntl(src.low, dest.low);
+    addl(Imm32(32), dest.low);
 
     bind(&nonzero);
+    xorl(dest.high, dest.high);
     return;
   }
 
-  // Because |dest| may be equal to |src.low|, we rely on BSR not modifying its
-  // output when the input is zero. AMD ISA documents BSR not modifying the
+  // Because |dest.low| may be equal to |src.low|, we rely on BSR not modifying
+  // its output when the input is zero. AMD ISA documents BSR not modifying the
   // output and current Intel CPUs follow AMD.
 
   Label nonzero, zero;
 
-  bsrl(src.high, dest);
+  bsrl(src.high, dest.low);
   j(Assembler::Zero, &zero);
-  orl(Imm32(32), dest);
+  orl(Imm32(32), dest.low);
   jump(&nonzero);
 
   bind(&zero);
-  bsrl(src.low, dest);
+  bsrl(src.low, dest.low);
   j(Assembler::NonZero, &nonzero);
-  movl(Imm32(0x7F), dest);
+  movl(Imm32(0x7F), dest.low);
 
   bind(&nonzero);
-  xorl(Imm32(0x3F), dest);
+  xorl(Imm32(0x3F), dest.low);
+  xorl(dest.high, dest.high);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
   if (AssemblerX86Shared::HasBMI1()) {
     Label nonzero, zero;
 
     testl(src.low, src.low);
     j(Assembler::Zero, &zero);
 
-    tzcntl(src.low, dest);
+    tzcntl(src.low, dest.low);
     jump(&nonzero);
 
     bind(&zero);
-    tzcntl(src.high, dest);
-    addl(Imm32(32), dest);
+    tzcntl(src.high, dest.low);
+    addl(Imm32(32), dest.low);
 
     bind(&nonzero);
+    xorl(dest.high, dest.high);
     return;
   }
 
-  // Because |dest| may be equal to |src.low|, we rely on BSF not modifying its
-  // output when the input is zero. AMD ISA documents BSF not modifying the
+  // Because |dest.low| may be equal to |src.low|, we rely on BSF not modifying
+  // its output when the input is zero. AMD ISA documents BSF not modifying the
   // output and current Intel CPUs follow AMD.
 
   Label done, nonzero;
 
-  bsfl(src.low, dest);
+  bsfl(src.low, dest.low);
   j(Assembler::NonZero, &done);
-  bsfl(src.high, dest);
+  bsfl(src.high, dest.low);
   j(Assembler::NonZero, &nonzero);
-  movl(Imm32(64), dest);
+  movl(Imm32(64), dest.low);
   jump(&done);
 
   bind(&nonzero);
-  orl(Imm32(32), dest);
+  orl(Imm32(32), dest.low);
 
   bind(&done);
+  xorl(dest.high, dest.high);
 }
 
 void MacroAssembler::popcnt64(Register64 src, Register64 dest, Register tmp) {

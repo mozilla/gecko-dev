@@ -752,12 +752,12 @@ void MacroAssembler::rotateRight64(Imm32 count, Register64 src, Register64 dest,
 
 // Bit counting functions
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
-  as_clz_d(dest, src.reg);
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
+  as_clz_d(dest.reg, src.reg);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
-  as_ctz_d(dest, src.reg);
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
+  as_ctz_d(dest.reg, src.reg);
 }
 
 void MacroAssembler::popcnt64(Register64 input, Register64 output,

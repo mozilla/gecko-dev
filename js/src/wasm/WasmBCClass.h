@@ -516,9 +516,6 @@ struct BaseCompiler final {
   // the low part of a pair.
   inline RegI32 maybeHighPart(RegI64 r);
 
-  // On 64-bit systems, do nothing.  On 32-bit systems, clear the high register.
-  inline void maybeClearHighPart(RegI64 r);
-
   //////////////////////////////////////////////////////////////////////////////
   //
   // Values and value stack: Low-level methods for moving Stk values of specific

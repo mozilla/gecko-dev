@@ -168,9 +168,9 @@ void MacroAssembler::rshift64Arithmetic(Register shift, Register64 srcDest) {
   MOZ_CRASH();
 }
 
-void MacroAssembler::clz64(Register64 src, Register dest) { MOZ_CRASH(); }
+void MacroAssembler::clz64(Register64 src, Register64 dest) { MOZ_CRASH(); }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) { MOZ_CRASH(); }
+void MacroAssembler::ctz64(Register64 src, Register64 dest) { MOZ_CRASH(); }
 
 void MacroAssembler::popcnt64(Register64 src, Register64 dest, Register temp) {
   MOZ_CRASH();

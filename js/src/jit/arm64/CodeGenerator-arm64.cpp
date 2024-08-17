@@ -2005,11 +2005,11 @@ void CodeGenerator::visitAddI64(LAddI64* lir) {
 }
 
 void CodeGenerator::visitClzI64(LClzI64* ins) {
-  masm.clz64(ToRegister64(ins->getInt64Operand(0)), ToRegister(ins->output()));
+  masm.clz64(ToRegister64(ins->getInt64Operand(0)), ToOutRegister64(lir));
 }
 
 void CodeGenerator::visitCtzI64(LCtzI64* ins) {
-  masm.ctz64(ToRegister64(ins->getInt64Operand(0)), ToRegister(ins->output()));
+  masm.ctz64(ToRegister64(ins->getInt64Operand(0)), ToOutRegister64(lir));
 }
 
 void CodeGenerator::visitMulI64(LMulI64* lir) {

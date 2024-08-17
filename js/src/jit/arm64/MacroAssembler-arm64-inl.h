@@ -922,13 +922,13 @@ void MacroAssembler::ctz32(Register src, Register dest, bool knownNotZero) {
   Clz(ARMRegister(dest, 32), ARMRegister(dest, 32));
 }
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
-  Clz(ARMRegister(dest, 64), ARMRegister(src.reg, 64));
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
+  Clz(ARMRegister(dest.reg, 64), ARMRegister(src.reg, 64));
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
-  Rbit(ARMRegister(dest, 64), ARMRegister(src.reg, 64));
-  Clz(ARMRegister(dest, 64), ARMRegister(dest, 64));
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
+  Rbit(ARMRegister(dest.reg, 64), ARMRegister(src.reg, 64));
+  Clz(ARMRegister(dest.reg, 64), ARMRegister(dest.reg, 64));
 }
 
 void MacroAssembler::popcnt32(Register src_, Register dest_, Register tmp_) {

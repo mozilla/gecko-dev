@@ -1455,8 +1455,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void ctz32(Register src, Register dest,
                     bool knownNotZero) PER_SHARED_ARCH;
 
-  inline void clz64(Register64 src, Register dest) PER_ARCH;
-  inline void ctz64(Register64 src, Register dest) PER_ARCH;
+  inline void clz64(Register64 src, Register64 dest) PER_ARCH;
+  inline void ctz64(Register64 src, Register64 dest) PER_ARCH;
 
   // On x86_shared, temp may be Invalid only if the chip has the POPCNT
   // instruction. On ARM, temp may never be Invalid.

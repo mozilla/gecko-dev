@@ -1309,12 +1309,12 @@ void MacroAssembler::clampIntToUint8(Register reg) {
 void MacroAssembler::clz32(Register src, Register dest, bool knownNotZero) {
   Clz32(dest, src);
 }
-void MacroAssembler::clz64(Register64 src, Register dest) {
-  Clz64(dest, src.reg);
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
+  Clz64(dest.reg, src.reg);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
-  Ctz64(dest, src.reg);
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
+  Ctz64(dest.reg, src.reg);
 }
 
 void MacroAssembler::cmp16Set(Condition cond, Address lhs, Imm32 rhs,

@@ -654,20 +654,22 @@ void MacroAssembler::cmp64Set(Condition cond, Address lhs, Imm64 rhs,
 // ===============================================================
 // Bit counting functions
 
-void MacroAssembler::clz64(Register64 src, Register dest) {
+void MacroAssembler::clz64(Register64 src, Register64 dest) {
   as_clz(ScratchRegister, src.high);
   as_clz(SecondScratchReg, src.low);
   as_movn(SecondScratchReg, zero, src.high);
-  as_addu(dest, ScratchRegister, SecondScratchReg);
+  as_addu(dest.low, ScratchRegister, SecondScratchReg);
+  ma_move(dest.high, zero);
 }
 
-void MacroAssembler::ctz64(Register64 src, Register dest) {
+void MacroAssembler::ctz64(Register64 src, Register64 dest) {
   as_movz(SecondScratchReg, src.high, src.low);
   as_movn(SecondScratchReg, src.low, src.low);
   ma_ctz(SecondScratchReg, SecondScratchReg);
   ma_li(ScratchRegister, Imm32(0x20));
   as_movn(ScratchRegister, zero, src.low);
-  as_addu(dest, SecondScratchReg, ScratchRegister);
+  as_addu(dest.low, SecondScratchReg, ScratchRegister);
+  ma_move(dest.high, zero);
 }
 
 void MacroAssembler::popcnt64(Register64 src, Register64 dest, Register tmp) {
