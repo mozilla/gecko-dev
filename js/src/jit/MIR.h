@@ -2815,6 +2815,7 @@ class MCompare : public MBinaryInstruction, public ComparePolicy::Data {
   [[nodiscard]] MDefinition* tryFoldStringCompare(TempAllocator& alloc);
   [[nodiscard]] MDefinition* tryFoldStringSubstring(TempAllocator& alloc);
   [[nodiscard]] MDefinition* tryFoldStringIndexOf(TempAllocator& alloc);
+  [[nodiscard]] MDefinition* tryFoldBigInt(TempAllocator& alloc);
 
  public:
   bool congruentTo(const MDefinition* ins) const override {

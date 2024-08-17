@@ -165,6 +165,11 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
   static uint64_t toUint64(const BigInt* x);
 
   // Return true if the BigInt is without loss of precision representable as an
+  // int32 and store the int32 value in the output. Otherwise return false and
+  // leave the value of the output parameter unspecified.
+  static bool isInt32(const BigInt* x, int32_t* result);
+
+  // Return true if the BigInt is without loss of precision representable as an
   // int64 and store the int64 value in the output. Otherwise return false and
   // leave the value of the output parameter unspecified.
   static bool isInt64(const BigInt* x, int64_t* result);

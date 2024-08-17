@@ -39,6 +39,7 @@
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Uint8Clamped.h"
 
+#include "vm/BytecodeUtil-inl.h"
 #include "vm/JSAtomUtils-inl.h"  // TypeName
 
 using namespace js;
@@ -5046,6 +5047,48 @@ MDefinition* MCompare::tryFoldStringIndexOf(TempAllocator& alloc) {
   return MNot::New(alloc, startsWith);
 }
 
+MDefinition* MCompare::tryFoldBigInt(TempAllocator& alloc) {
+  if (compareType() != Compare_BigInt) {
+    return this;
+  }
+
+  auto* left = lhs();
+  MOZ_ASSERT(left->type() == MIRType::BigInt);
+
+  auto* right = rhs();
+  MOZ_ASSERT(right->type() == MIRType::BigInt);
+
+  // One operand must be a constant.
+  if (!left->isConstant() && !right->isConstant()) {
+    return this;
+  }
+
+  auto* constant =
+      left->isConstant() ? left->toConstant() : right->toConstant();
+  auto* operand = left->isConstant() ? right : left;
+
+  // The constant must be representable as an Int32.
+  int32_t x;
+  if (!BigInt::isInt32(constant->toBigInt(), &x)) {
+    return this;
+  }
+
+  MConstant* int32Const = MConstant::New(alloc, Int32Value(x));
+  block()->insertBefore(this, int32Const);
+
+  auto op = jsop();
+  if (IsStrictEqualityOp(op)) {
+    // Compare_BigInt_Int32 is only valid for loose comparison.
+    op = op == JSOp::StrictEq ? JSOp::Eq : JSOp::Ne;
+  } else if (operand == right) {
+    // Reverse the comparison operator if the operands were reordered.
+    op = ReverseCompareOp(op);
+  }
+
+  return MCompare::New(alloc, operand, int32Const, op,
+                       MCompare::Compare_BigInt_Int32);
+}
+
 MDefinition* MCompare::foldsTo(TempAllocator& alloc) {
   bool result;
 
@@ -5075,6 +5118,10 @@ MDefinition* MCompare::foldsTo(TempAllocator& alloc) {
   }
 
   if (MDefinition* folded = tryFoldStringIndexOf(alloc); folded != this) {
+    return folded;
+  }
+
+  if (MDefinition* folded = tryFoldBigInt(alloc); folded != this) {
     return folded;
   }
 
