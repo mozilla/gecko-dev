@@ -48,12 +48,6 @@ void CodeGenerator::visitNegD(LNegD* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitNegF(LNegF* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitCopySignD(LCopySignD* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitCopySignF(LCopySignF* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitClzI(LClzI* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitClzI64(LClzI64* lir) { MOZ_CRASH(); }
-void CodeGenerator::visitCtzI(LCtzI* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitCtzI64(LCtzI64* lir) { MOZ_CRASH(); }
-void CodeGenerator::visitPopcntI(LPopcntI* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitPopcntI64(LPopcntI64* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitAddI(LAddI* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitAddI64(LAddI64* lir) { MOZ_CRASH(); }
 void CodeGenerator::visitSubI(LSubI* ins) { MOZ_CRASH(); }

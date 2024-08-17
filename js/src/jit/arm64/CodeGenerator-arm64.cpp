@@ -1110,18 +1110,6 @@ void CodeGenerator::visitMathF(LMathF* math) {
   }
 }
 
-void CodeGenerator::visitClzI(LClzI* lir) {
-  ARMRegister input = toWRegister(lir->input());
-  ARMRegister output = toWRegister(lir->output());
-  masm.Clz(output, input);
-}
-
-void CodeGenerator::visitCtzI(LCtzI* lir) {
-  Register input = ToRegister(lir->input());
-  Register output = ToRegister(lir->output());
-  masm.ctz32(input, output, /* knownNotZero = */ false);
-}
-
 void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
   emitTruncateDouble(ToFloatRegister(ins->input()), ToRegister(ins->output()),
                      ins->mir());
@@ -2004,14 +1992,6 @@ void CodeGenerator::visitAddI64(LAddI64* lir) {
   emitSimpleBinaryI64(lir, JSOp::Add);
 }
 
-void CodeGenerator::visitClzI64(LClzI64* ins) {
-  masm.clz64(ToRegister64(ins->getInt64Operand(0)), ToOutRegister64(lir));
-}
-
-void CodeGenerator::visitCtzI64(LCtzI64* ins) {
-  masm.ctz64(ToRegister64(ins->getInt64Operand(0)), ToOutRegister64(lir));
-}
-
 void CodeGenerator::visitMulI64(LMulI64* lir) {
   const LInt64Allocation lhs = lir->getInt64Operand(LMulI64::Lhs);
   const LInt64Allocation rhs = lir->getInt64Operand(LMulI64::Rhs);
@@ -2070,13 +2050,6 @@ void CodeGenerator::visitNotI64(LNotI64* lir) {
 
 void CodeGenerator::visitSubI64(LSubI64* lir) {
   emitSimpleBinaryI64(lir, JSOp::Sub);
-}
-
-void CodeGenerator::visitPopcntI(LPopcntI* ins) {
-  Register input = ToRegister(ins->input());
-  Register output = ToRegister(ins->output());
-  Register temp = ToRegister(ins->temp0());
-  masm.popcnt32(input, output, temp);
 }
 
 void CodeGenerator::visitBitOpI64(LBitOpI64* lir) {
@@ -2176,13 +2149,6 @@ void CodeGenerator::visitCopySignF(LCopySignF* ins) {
   masm.copySignFloat32(ToFloatRegister(ins->getOperand(0)),
                        ToFloatRegister(ins->getOperand(1)),
                        ToFloatRegister(ins->getDef(0)));
-}
-
-void CodeGenerator::visitPopcntI64(LPopcntI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register64 output = ToOutRegister64(lir);
-  Register temp = ToRegister(lir->getTemp(0));
-  masm.popcnt64(input, output, temp);
 }
 
 void CodeGenerator::visitRotateI64(LRotateI64* lir) {

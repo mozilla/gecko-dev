@@ -513,10 +513,11 @@ void MacroAssembler::popcnt64(Register64 src64, Register64 dest64,
   Register dest = dest64.reg;
 
   if (AssemblerX86Shared::HasPOPCNT()) {
-    MOZ_ASSERT(tmp == InvalidReg);
     popcntq(src, dest);
     return;
   }
+
+  MOZ_ASSERT(tmp != InvalidReg);
 
   if (src != dest) {
     movq(src, dest);

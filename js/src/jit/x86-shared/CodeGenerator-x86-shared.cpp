@@ -601,31 +601,6 @@ void CodeGenerator::visitMinMaxF(LMinMaxF* ins) {
   }
 }
 
-void CodeGenerator::visitClzI(LClzI* ins) {
-  Register input = ToRegister(ins->input());
-  Register output = ToRegister(ins->output());
-  bool knownNotZero = ins->mir()->operandIsNeverZero();
-
-  masm.clz32(input, output, knownNotZero);
-}
-
-void CodeGenerator::visitCtzI(LCtzI* ins) {
-  Register input = ToRegister(ins->input());
-  Register output = ToRegister(ins->output());
-  bool knownNotZero = ins->mir()->operandIsNeverZero();
-
-  masm.ctz32(input, output, knownNotZero);
-}
-
-void CodeGenerator::visitPopcntI(LPopcntI* ins) {
-  Register input = ToRegister(ins->input());
-  Register output = ToRegister(ins->output());
-  Register temp =
-      ins->temp0()->isBogusTemp() ? InvalidReg : ToRegister(ins->temp0());
-
-  masm.popcnt32(input, output, temp);
-}
-
 void CodeGenerator::visitPowHalfD(LPowHalfD* ins) {
   FloatRegister input = ToFloatRegister(ins->input());
   FloatRegister output = ToFloatRegister(ins->output());
@@ -2166,17 +2141,6 @@ void CodeGenerator::visitRotateI64(LRotateI64* lir) {
       masm.rotateRight64(ToRegister(count), input, output, temp);
     }
   }
-}
-
-void CodeGenerator::visitPopcntI64(LPopcntI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register64 output = ToOutRegister64(lir);
-  Register temp = InvalidReg;
-  if (!AssemblerX86Shared::HasPOPCNT()) {
-    temp = ToRegister(lir->getTemp(0));
-  }
-
-  masm.popcnt64(input, output, temp);
 }
 
 void CodeGenerator::visitSimd128(LSimd128* ins) {
