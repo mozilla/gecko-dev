@@ -765,16 +765,10 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Imm64 val,
     case Assembler::Equal:
       branch32(Assembler::NotEqual, lhs.low, val.low(), fail);
       branch32(Assembler::Equal, lhs.high, val.hi(), success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     case Assembler::NotEqual:
       branch32(Assembler::NotEqual, lhs.low, val.low(), success);
       branch32(Assembler::NotEqual, lhs.high, val.hi(), success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     case Assembler::LessThan:
     case Assembler::LessThanOrEqual:
@@ -794,9 +788,6 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Imm64 val,
       j(cond2, fail);
       cmp32(lhs.low, val.low());
       j(cond3, success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     }
     default:
@@ -806,6 +797,8 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Imm64 val,
 
   if (fallthrough) {
     bind(fail);
+  } else {
+    jump(fail);
   }
 }
 
@@ -823,16 +816,10 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Register64 rhs,
     case Assembler::Equal:
       branch32(Assembler::NotEqual, lhs.low, rhs.low, fail);
       branch32(Assembler::Equal, lhs.high, rhs.high, success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     case Assembler::NotEqual:
       branch32(Assembler::NotEqual, lhs.low, rhs.low, success);
       branch32(Assembler::NotEqual, lhs.high, rhs.high, success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     case Assembler::LessThan:
     case Assembler::LessThanOrEqual:
@@ -852,9 +839,6 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Register64 rhs,
       j(cond2, fail);
       cmp32(lhs.low, rhs.low);
       j(cond3, success);
-      if (!fallthrough) {
-        jump(fail);
-      }
       break;
     }
     default:
@@ -864,43 +848,111 @@ void MacroAssembler::branch64(Condition cond, Register64 lhs, Register64 rhs,
 
   if (fallthrough) {
     bind(fail);
+  } else {
+    jump(fail);
   }
 }
 
 void MacroAssembler::branch64(Condition cond, const Address& lhs, Imm64 val,
-                              Label* label) {
-  MOZ_ASSERT(cond == Assembler::NotEqual || cond == Assembler::Equal,
-             "other condition codes not supported");
+                              Label* success, Label* fail) {
+  bool fallthrough = false;
+  Label fallthroughLabel;
 
-  Label done;
-
-  if (cond == Assembler::Equal) {
-    branch32(Assembler::NotEqual, lhs, val.low(), &done);
-  } else {
-    branch32(Assembler::NotEqual, lhs, val.low(), label);
+  if (!fail) {
+    fail = &fallthroughLabel;
+    fallthrough = true;
   }
-  branch32(cond, Address(lhs.base, lhs.offset + sizeof(uint32_t)), val.hi(),
-           label);
 
-  bind(&done);
+  switch (cond) {
+    case Assembler::Equal:
+      branch32(Assembler::NotEqual, LowWord(lhs), val.low(), fail);
+      branch32(Assembler::Equal, HighWord(lhs), val.hi(), success);
+      break;
+    case Assembler::NotEqual:
+      branch32(Assembler::NotEqual, LowWord(lhs), val.low(), success);
+      branch32(Assembler::NotEqual, HighWord(lhs), val.hi(), success);
+      break;
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual: {
+      Assembler::Condition cond1 = Assembler::ConditionWithoutEqual(cond);
+      Assembler::Condition cond2 =
+          Assembler::ConditionWithoutEqual(Assembler::InvertCondition(cond));
+      Assembler::Condition cond3 = Assembler::UnsignedCondition(cond);
+
+      cmp32(HighWord(lhs), val.hi());
+      j(cond1, success);
+      j(cond2, fail);
+      cmp32(LowWord(lhs), val.low());
+      j(cond3, success);
+      break;
+    }
+    default:
+      MOZ_CRASH("Condition code not supported");
+      break;
+  }
+
+  if (fallthrough) {
+    bind(fail);
+  } else {
+    jump(fail);
+  }
 }
 
 void MacroAssembler::branch64(Condition cond, const Address& lhs,
-                              Register64 rhs, Label* label) {
-  MOZ_ASSERT(cond == Assembler::NotEqual || cond == Assembler::Equal,
-             "other condition codes not supported");
+                              Register64 rhs, Label* success, Label* fail) {
+  bool fallthrough = false;
+  Label fallthroughLabel;
 
-  Label done;
-
-  if (cond == Assembler::Equal) {
-    branch32(Assembler::NotEqual, lhs, rhs.low, &done);
-  } else {
-    branch32(Assembler::NotEqual, lhs, rhs.low, label);
+  if (!fail) {
+    fail = &fallthroughLabel;
+    fallthrough = true;
   }
-  branch32(cond, Address(lhs.base, lhs.offset + sizeof(uint32_t)), rhs.high,
-           label);
 
-  bind(&done);
+  switch (cond) {
+    case Assembler::Equal:
+      branch32(Assembler::NotEqual, LowWord(lhs), rhs.low, fail);
+      branch32(Assembler::Equal, HighWord(lhs), rhs.high, success);
+      break;
+    case Assembler::NotEqual:
+      branch32(Assembler::NotEqual, LowWord(lhs), rhs.low, success);
+      branch32(Assembler::NotEqual, HighWord(lhs), rhs.high, success);
+      break;
+    case Assembler::LessThan:
+    case Assembler::LessThanOrEqual:
+    case Assembler::GreaterThan:
+    case Assembler::GreaterThanOrEqual:
+    case Assembler::Below:
+    case Assembler::BelowOrEqual:
+    case Assembler::Above:
+    case Assembler::AboveOrEqual: {
+      Assembler::Condition cond1 = Assembler::ConditionWithoutEqual(cond);
+      Assembler::Condition cond2 =
+          Assembler::ConditionWithoutEqual(Assembler::InvertCondition(cond));
+      Assembler::Condition cond3 = Assembler::UnsignedCondition(cond);
+
+      cmp32(HighWord(lhs), rhs.high);
+      j(cond1, success);
+      j(cond2, fail);
+      cmp32(LowWord(lhs), rhs.low);
+      j(cond3, success);
+      break;
+    }
+    default:
+      MOZ_CRASH("Condition code not supported");
+      break;
+  }
+
+  if (fallthrough) {
+    bind(fail);
+  } else {
+    jump(fail);
+  }
 }
 
 void MacroAssembler::branch64(Condition cond, const Address& lhs,

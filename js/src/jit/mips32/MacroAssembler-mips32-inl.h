@@ -706,7 +706,7 @@ void MacroAssembler::popcnt64(Register64 src, Register64 dest, Register tmp) {
 // Branch functions
 
 void MacroAssembler::branch64(Condition cond, const Address& lhs, Imm64 val,
-                              Label* label) {
+                              Label* success, Label* fail) {
   MOZ_ASSERT(cond == Assembler::NotEqual || cond == Assembler::Equal,
              "other condition codes not supported");
 
@@ -724,7 +724,7 @@ void MacroAssembler::branch64(Condition cond, const Address& lhs, Imm64 val,
 }
 
 void MacroAssembler::branch64(Condition cond, const Address& lhs,
-                              Register64 rhs, Label* label) {
+                              Register64 rhs, Label* success, Label* fail) {
   MOZ_ASSERT(cond == Assembler::NotEqual || cond == Assembler::Equal,
              "other condition codes not supported");
 

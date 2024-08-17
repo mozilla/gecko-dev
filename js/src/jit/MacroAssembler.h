@@ -1480,7 +1480,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
 
-  // Only the NotEqual and Equal conditions are allowed.
   inline void cmp64Set(Condition cond, Address lhs, Imm64 rhs,
                        Register dest) PER_ARCH;
 
@@ -1547,15 +1546,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
                        Label* success, Label* fail = nullptr) PER_ARCH;
   inline void branch64(Condition cond, Register64 lhs, Register64 rhs,
                        Label* success, Label* fail = nullptr) PER_ARCH;
-  // Only the NotEqual and Equal conditions are allowed for the branch64
-  // variants with Address as lhs.
   inline void branch64(Condition cond, const Address& lhs, Imm64 val,
-                       Label* label) PER_ARCH;
+                       Label* success, Label* fail = nullptr) PER_ARCH;
   inline void branch64(Condition cond, const Address& lhs, Register64 rhs,
-                       Label* label) PER_ARCH;
+                       Label* success, Label* fail = nullptr) PER_ARCH;
 
   // Compare the value at |lhs| with the value at |rhs|.  The scratch
   // register *must not* be the base of |lhs| or |rhs|.
+  // Only the NotEqual and Equal conditions are allowed.
   inline void branch64(Condition cond, const Address& lhs, const Address& rhs,
                        Register scratch, Label* label) PER_ARCH;
 
