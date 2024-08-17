@@ -77,16 +77,6 @@ void CodeGeneratorX86Shared::emitBranch(Assembler::DoubleCondition cond,
   emitBranch(Assembler::ConditionFromDoubleCondition(cond), ifTrue, ifFalse);
 }
 
-void CodeGenerator::visitDouble(LDouble* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantDouble(ins->value(), ToFloatRegister(out));
-}
-
-void CodeGenerator::visitFloat32(LFloat32* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantFloat32(ins->value(), ToFloatRegister(out));
-}
-
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {
   const LAllocation* opd = test->input();
 

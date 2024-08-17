@@ -1230,12 +1230,6 @@ ValueOperand CodeGeneratorARM::ToTempValue(LInstruction* ins, size_t pos) {
   return ValueOperand(typeReg, payloadReg);
 }
 
-void CodeGenerator::visitValue(LValue* value) {
-  const ValueOperand out = ToOutValue(value);
-
-  masm.moveValue(value->value(), out);
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 
@@ -1285,16 +1279,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   // the output and the payload.
   masm.unboxNonDouble(ValueOperand(type, payload), output,
                       ValueTypeFromMIRType(mir->type()));
-}
-
-void CodeGenerator::visitDouble(LDouble* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantDouble(ins->value(), ToFloatRegister(out));
-}
-
-void CodeGenerator::visitFloat32(LFloat32* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantFloat32(ins->value(), ToFloatRegister(out));
 }
 
 void CodeGeneratorARM::splitTagForTest(const ValueOperand& value,

@@ -51,11 +51,6 @@ ValueOperand CodeGeneratorX86::ToTempValue(LInstruction* ins, size_t pos) {
   return ValueOperand(typeReg, payloadReg);
 }
 
-void CodeGenerator::visitValue(LValue* value) {
-  const ValueOperand out = ToOutValue(value);
-  masm.moveValue(value->value(), out);
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);
 

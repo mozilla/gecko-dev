@@ -4196,6 +4196,19 @@ void CodeGenerator::visitPointer(LPointer* lir) {
   masm.movePtr(ImmGCPtr(lir->gcptr()), ToRegister(lir->output()));
 }
 
+void CodeGenerator::visitDouble(LDouble* ins) {
+  masm.loadConstantDouble(ins->value(), ToFloatRegister(ins->output()));
+}
+
+void CodeGenerator::visitFloat32(LFloat32* ins) {
+  masm.loadConstantFloat32(ins->value(), ToFloatRegister(ins->output()));
+}
+
+void CodeGenerator::visitValue(LValue* value) {
+  ValueOperand result = ToOutValue(value);
+  masm.moveValue(value->value(), result);
+}
+
 void CodeGenerator::visitNurseryObject(LNurseryObject* lir) {
   Register output = ToRegister(lir->output());
   uint32_t nurseryIndex = lir->mir()->nurseryIndex();

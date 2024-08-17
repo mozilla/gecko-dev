@@ -1205,11 +1205,6 @@ ValueOperand CodeGeneratorARM64::ToTempValue(LInstruction* ins, size_t pos) {
   MOZ_CRASH("CodeGeneratorARM64::ToTempValue");
 }
 
-void CodeGenerator::visitValue(LValue* value) {
-  ValueOperand result = ToOutValue(value);
-  masm.moveValue(value->value(), result);
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LAllocation* in = box->getOperand(0);
   ValueOperand result = ToOutValue(box);
@@ -1291,16 +1286,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
     default:
       MOZ_CRASH("Given MIRType cannot be unboxed.");
   }
-}
-
-void CodeGenerator::visitDouble(LDouble* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantDouble(ins->value(), ToFloatRegister(out));
-}
-
-void CodeGenerator::visitFloat32(LFloat32* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantFloat32(ins->value(), ToFloatRegister(out));
 }
 
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {

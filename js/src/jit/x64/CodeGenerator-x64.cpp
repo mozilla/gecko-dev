@@ -40,11 +40,6 @@ Operand CodeGeneratorX64::ToOperand64(const LInt64Allocation& a64) {
   return Operand(ToAddress(a));
 }
 
-void CodeGenerator::visitValue(LValue* value) {
-  ValueOperand result = ToOutValue(value);
-  masm.moveValue(value->value(), result);
-}
-
 void CodeGenerator::visitBox(LBox* box) {
   const LAllocation* in = box->getOperand(0);
   ValueOperand result = ToOutValue(box);

@@ -1720,23 +1720,6 @@ void CodeGenerator::visitCopySignD(LCopySignD* ins) {
   masm.moveToDoubleHi(rhsi, output);
 }
 
-void CodeGenerator::visitValue(LValue* value) {
-  const ValueOperand out = ToOutValue(value);
-
-  masm.moveValue(value->value(), out);
-}
-
-void CodeGenerator::visitDouble(LDouble* ins) {
-  const LDefinition* out = ins->getDef(0);
-
-  masm.loadConstantDouble(ins->value(), ToFloatRegister(out));
-}
-
-void CodeGenerator::visitFloat32(LFloat32* ins) {
-  const LDefinition* out = ins->getDef(0);
-  masm.loadConstantFloat32(ins->value(), ToFloatRegister(out));
-}
-
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {
   FloatRegister input = ToFloatRegister(test->input());
   ScratchDoubleScope fpscratch(masm);

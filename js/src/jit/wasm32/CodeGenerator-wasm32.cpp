@@ -10,9 +10,6 @@
 
 using namespace js::jit;
 
-void CodeGenerator::visitDouble(LDouble*) { MOZ_CRASH(); }
-void CodeGenerator::visitFloat32(LFloat32* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitValue(LValue* value) { MOZ_CRASH(); }
 void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) { MOZ_CRASH(); }
 void CodeGenerator::visitWasmReinterpretFromI64(LWasmReinterpretFromI64* lir) {
   MOZ_CRASH();
