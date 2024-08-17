@@ -151,26 +151,6 @@ void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   masm.emitSet(JSOpToCondition(lir->jsop(), isSigned), output);
 }
 
-void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
-             mir->compareType() == MCompare::Compare_UInt64);
-
-  LInt64Allocation lhs = lir->getInt64Operand(LCompareI64::Lhs);
-  LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
-  Register lhsReg = ToRegister64(lhs).reg;
-
-  if (IsConstant(rhs)) {
-    masm.cmpPtr(lhsReg, ImmWord(ToInt64(rhs)));
-  } else {
-    masm.cmpPtr(lhsReg, ToOperand64(rhs));
-  }
-
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-  emitBranch(JSOpToCondition(lir->jsop(), isSigned), lir->ifTrue(),
-             lir->ifFalse());
-}
-
 void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
   Register regL = ToRegister(baab->left());
   if (baab->is64()) {

@@ -1179,6 +1179,12 @@ class LCompareI64AndBranch
   JSOp jsop() const { return jsop_; }
   MBasicBlock* ifTrue() const { return getSuccessor(0); }
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
+  LInt64Allocation left() const {
+    return getInt64Operand(LCompareI64AndBranch::Lhs);
+  }
+  LInt64Allocation right() const {
+    return getInt64Operand(LCompareI64AndBranch::Rhs);
+  }
   MTest* mir() const { return mir_->toTest(); }
   MCompare* cmpMir() const { return cmpMir_; }
   const char* extraName() const { return CodeName(jsop_); }

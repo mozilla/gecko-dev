@@ -430,30 +430,6 @@ void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   }
 }
 
-void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  const mozilla::DebugOnly<MCompare::CompareType> type = mir->compareType();
-  MOZ_ASSERT(type == MCompare::Compare_Int64 ||
-             type == MCompare::Compare_UInt64);
-
-  const LInt64Allocation lhs = lir->getInt64Operand(LCompareI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
-  Register lhsReg = ToRegister64(lhs).reg;
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-  Assembler::Condition cond = JSOpToCondition(lir->jsop(), isSigned);
-
-  if (IsConstant(rhs)) {
-    emitBranch(lhsReg, ImmWord(ToInt64(rhs)), cond, lir->ifTrue(),
-               lir->ifFalse());
-  } else if (rhs.value().isGeneralReg()) {
-    emitBranch(lhsReg, ToRegister64(rhs).reg, cond, lir->ifTrue(),
-               lir->ifFalse());
-  } else {
-    emitBranch(lhsReg, ToAddress(rhs.value()), cond, lir->ifTrue(),
-               lir->ifFalse());
-  }
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

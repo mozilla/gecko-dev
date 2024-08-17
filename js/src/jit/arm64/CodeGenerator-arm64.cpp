@@ -2627,28 +2627,6 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
   masm.debugAssertCanonicalInt32(output);
 }
 
-void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* comp) {
-  const MCompare* mir = comp->cmpMir();
-  const mozilla::DebugOnly<MCompare::CompareType> type = mir->compareType();
-  const LInt64Allocation left =
-      comp->getInt64Operand(LCompareI64AndBranch::Lhs);
-  const LInt64Allocation right =
-      comp->getInt64Operand(LCompareI64AndBranch::Rhs);
-
-  MOZ_ASSERT(type == MCompare::Compare_Int64 ||
-             type == MCompare::Compare_UInt64);
-  if (IsConstant(right)) {
-    masm.Cmp(ARMRegister(ToRegister64(left).reg, 64), ToInt64(right));
-  } else {
-    masm.Cmp(ARMRegister(ToRegister64(left).reg, 64),
-             ARMRegister(ToRegister64(right).reg, 64));
-  }
-
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-  Assembler::Condition cond = JSOpToCondition(comp->jsop(), isSigned);
-  emitBranch(cond, comp->ifTrue(), comp->ifFalse());
-}
-
 void CodeGenerator::visitWasmTruncateToInt32(LWasmTruncateToInt32* lir) {
   auto input = ToFloatRegister(lir->input());
   auto output = ToRegister(lir->output());
