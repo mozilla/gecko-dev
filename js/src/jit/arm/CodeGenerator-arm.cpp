@@ -63,27 +63,6 @@ void OutOfLineBailout::accept(CodeGeneratorARM* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitCompare(LCompare* comp) {
-  Assembler::Condition cond =
-      JSOpToCondition(comp->mir()->compareType(), comp->jsop());
-  const LAllocation* left = comp->getOperand(0);
-  const LAllocation* right = comp->getOperand(1);
-  const LDefinition* def = comp->getDef(0);
-
-  ScratchRegisterScope scratch(masm);
-
-  if (right->isConstant()) {
-    masm.ma_cmp(ToRegister(left), Imm32(ToInt32(right)), scratch);
-  } else if (right->isRegister()) {
-    masm.ma_cmp(ToRegister(left), ToRegister(right));
-  } else {
-    SecondScratchRegisterScope scratch2(masm);
-    masm.ma_cmp(ToRegister(left), Operand(ToAddress(right)), scratch, scratch2);
-  }
-  masm.ma_mov(Imm32(0), ToRegister(def));
-  masm.ma_mov(Imm32(1), ToRegister(def), cond);
-}
-
 void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
   Assembler::Condition cond =
       JSOpToCondition(comp->cmpMir()->compareType(), comp->jsop());

@@ -26,7 +26,6 @@ void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
 }
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) { MOZ_CRASH(); }
 void CodeGenerator::visitTestFAndBranch(LTestFAndBranch* test) { MOZ_CRASH(); }
-void CodeGenerator::visitCompare(LCompare* comp) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareI64(LCompareI64* lir) { MOZ_CRASH(); }
 void CodeGenerator::visitCompareI64AndBranch(LCompareI64AndBranch* lir) {
   MOZ_CRASH();

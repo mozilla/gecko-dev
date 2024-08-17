@@ -76,33 +76,6 @@ void OutOfLineBailout::accept(CodeGeneratorARM64* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitCompare(LCompare* comp) {
-  const MCompare* mir = comp->mir();
-  const MCompare::CompareType type = mir->compareType();
-  const Assembler::Condition cond = JSOpToCondition(type, comp->jsop());
-  const Register leftreg = ToRegister(comp->getOperand(0));
-  const LAllocation* right = comp->getOperand(1);
-  const Register defreg = ToRegister(comp->getDef(0));
-
-  if (type == MCompare::Compare_Object || type == MCompare::Compare_Symbol ||
-      type == MCompare::Compare_UIntPtr ||
-      type == MCompare::Compare_WasmAnyRef) {
-    if (right->isConstant()) {
-      MOZ_ASSERT(type == MCompare::Compare_UIntPtr);
-      masm.cmpPtrSet(cond, leftreg, Imm32(ToInt32(right)), defreg);
-    } else {
-      masm.cmpPtrSet(cond, leftreg, ToRegister(right), defreg);
-    }
-    return;
-  }
-
-  if (right->isConstant()) {
-    masm.cmp32Set(cond, leftreg, Imm32(ToInt32(right)), defreg);
-  } else {
-    masm.cmp32Set(cond, leftreg, ToRegister(right), defreg);
-  }
-}
-
 void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
   const MCompare* mir = comp->cmpMir();
   const MCompare::CompareType type = mir->compareType();

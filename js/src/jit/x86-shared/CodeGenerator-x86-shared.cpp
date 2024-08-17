@@ -136,13 +136,6 @@ void CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type,
   }
 }
 
-void CodeGenerator::visitCompare(LCompare* comp) {
-  MCompare* mir = comp->mir();
-  emitCompare(mir->compareType(), comp->left(), comp->right());
-  masm.emitSet(JSOpToCondition(mir->compareType(), comp->jsop()),
-               ToRegister(comp->output()));
-}
-
 void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
   MCompare* mir = comp->cmpMir();
   emitCompare(mir->compareType(), comp->left(), comp->right());
