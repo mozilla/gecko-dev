@@ -63,10 +63,6 @@ class LIRGeneratorNone : public LIRGeneratorShared {
                           MDefinition* v = nullptr) {
     MOZ_CRASH();
   }
-  void lowerForBitAndAndBranch(LBitAndAndBranch*, MInstruction*, MDefinition*,
-                               MDefinition*) {
-    MOZ_CRASH();
-  }
 
   void lowerConstantDouble(double, MInstruction*) { MOZ_CRASH(); }
   void lowerConstantFloat32(float, MInstruction*) { MOZ_CRASH(); }

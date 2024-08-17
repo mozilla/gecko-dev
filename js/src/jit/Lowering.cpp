@@ -955,8 +955,8 @@ void LIRGenerator::visitTest(MTest* test) {
     MCompare* comp = opd->toCompare();
     Assembler::Condition compCond =
         JSOpToCondition(comp->compareType(), comp->jsop());
-    MDefinition* compL = comp->getOperand(0);
-    MDefinition* compR = comp->getOperand(1);
+    MDefinition* compL = comp->lhs();
+    MDefinition* compR = comp->rhs();
     if ((comp->compareType() == MCompare::Compare_Int32 ||
          comp->compareType() == MCompare::Compare_UInt32 ||
          (targetIs64 && comp->compareType() == MCompare::Compare_Int64) ||
@@ -987,10 +987,11 @@ void LIRGenerator::visitTest(MTest* test) {
           MOZ_ASSERT_UNREACHABLE("inequality operators cannot be folded");
         }
         MOZ_ASSERT_IF(!targetIs64, bitAndLTy == MIRType::Int32);
-        lowerForBitAndAndBranch(
-            new (alloc()) LBitAndAndBranch(
-                ifTrue, ifFalse, bitAndLTy == MIRType::Int64, compCond),
-            test, bitAndL, bitAndR);
+        LAllocation lhs = useRegisterAtStart(bitAndL);
+        LAllocation rhs = useRegisterOrConstantAtStart(bitAndR);
+        auto* lir = new (alloc()) LBitAndAndBranch(
+            lhs, rhs, ifTrue, ifFalse, bitAndLTy == MIRType::Int64, compCond);
+        add(lir, test);
         return;
       }
     }
@@ -1116,13 +1117,16 @@ void LIRGenerator::visitTest(MTest* test) {
   // Check if the operand for this test is a bitand operation. If it is, we want
   // to emit an LBitAndAndBranch rather than an LTest*AndBranch.
   if (opd->isBitAnd() && opd->isEmittedAtUses()) {
-    MDefinition* lhs = opd->getOperand(0);
-    MDefinition* rhs = opd->getOperand(1);
-    if (lhs->type() == MIRType::Int32 && rhs->type() == MIRType::Int32) {
-      ReorderCommutative(&lhs, &rhs, test);
-      lowerForBitAndAndBranch(new (alloc()) LBitAndAndBranch(ifTrue, ifFalse,
-                                                             /*is64=*/false),
-                              test, lhs, rhs);
+    MBitAnd* bitAnd = opd->toBitAnd();
+    MDefinition* left = bitAnd->lhs();
+    MDefinition* right = bitAnd->rhs();
+    if (left->type() == MIRType::Int32 && right->type() == MIRType::Int32) {
+      ReorderCommutative(&left, &right, test);
+      LAllocation lhs = useRegisterAtStart(left);
+      LAllocation rhs = useRegisterOrConstantAtStart(right);
+      auto* lir = new (alloc()) LBitAndAndBranch(lhs, rhs, ifTrue, ifFalse,
+                                                 /*is64=*/false);
+      add(lir, test);
       return;
     }
   }

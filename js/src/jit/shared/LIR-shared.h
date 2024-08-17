@@ -1303,9 +1303,12 @@ class LBitAndAndBranch : public LControlInstructionHelper<2, 2, 0> {
 
  public:
   LIR_HEADER(BitAndAndBranch)
-  LBitAndAndBranch(MBasicBlock* ifTrue, MBasicBlock* ifFalse, bool is64,
+  LBitAndAndBranch(const LAllocation& left, const LAllocation& right,
+                   MBasicBlock* ifTrue, MBasicBlock* ifFalse, bool is64,
                    Assembler::Condition cond = Assembler::NonZero)
       : LControlInstructionHelper(classOpcode), is64_(is64), cond_(cond) {
+    setOperand(0, left);
+    setOperand(1, right);
     setSuccessor(0, ifTrue);
     setSuccessor(1, ifFalse);
   }

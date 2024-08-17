@@ -150,15 +150,6 @@ template void LIRGeneratorX86Shared::lowerForFPU(
     LInstructionHelper<1, 2, 1>* ins, MDefinition* mir, MDefinition* lhs,
     MDefinition* rhs);
 
-void LIRGeneratorX86Shared::lowerForBitAndAndBranch(LBitAndAndBranch* baab,
-                                                    MInstruction* mir,
-                                                    MDefinition* lhs,
-                                                    MDefinition* rhs) {
-  baab->setOperand(0, useRegisterAtStart(lhs));
-  baab->setOperand(1, useRegisterOrConstantAtStart(rhs));
-  add(baab, mir);
-}
-
 void LIRGeneratorX86Shared::lowerNegI(MInstruction* ins, MDefinition* input) {
   defineReuseInput(new (alloc()) LNegI(useRegisterAtStart(input)), ins, 0);
 }
