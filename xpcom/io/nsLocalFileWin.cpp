@@ -2774,11 +2774,12 @@ nsLocalFile::GetDiskSpaceAvailable(int64_t* aDiskSpaceAvailable) {
   }
 
   if (mFileInfo.type == PR_FILE_FILE) {
-    // Since GetDiskFreeSpaceExW works only on directories, use the parent.
+    // Since GetDiskFreeSpaceExW works only on directories, use the parent
+    // which must exist if we are a file.
     nsCOMPtr<nsIFile> parent;
-    if (NS_SUCCEEDED(GetParent(getter_AddRefs(parent))) && parent) {
-      return parent->GetDiskSpaceAvailable(aDiskSpaceAvailable);
-    }
+    rv = GetParent(getter_AddRefs(parent));
+    NS_ENSURE_SUCCESS(rv, rv);
+    return parent->GetDiskSpaceAvailable(aDiskSpaceAvailable);
   }
 
   int64_t dummy = 0;
