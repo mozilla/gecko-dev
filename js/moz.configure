@@ -1547,17 +1547,6 @@ def js_config_libs(nspr_libs, nspr_pkg_libs, instruments):
 
 set_config("JS_CONFIG_LIBS", js_config_libs)
 
-
-@depends(js_library_name, c_compiler, "--libdir")
-def js_config_moz_js_libs(js_library_name, compiler, libdir):
-    if compiler.type == "clang-cl":
-        return [f"{libdir}/{js_library_name}.lib"]
-    else:
-        return [f"-L{libdir}", "-l{js_library_name}"]
-
-
-set_config("JS_CONFIG_MOZ_JS_LIBS", js_config_moz_js_libs)
-
 #
 # Checks for library functions
 # ==============================================================

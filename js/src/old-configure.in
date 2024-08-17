@@ -22,6 +22,8 @@ dnl = Maintainer debug option (no --enable equivalent)
 dnl =
 dnl ========================================================
 
+AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
+
 AC_SUBST(MOZ_APP_DISPLAYNAME)
 
 dnl Set various defines and substitutions
@@ -31,6 +33,17 @@ AC_SUBST(MOZ_DEV_EDITION)
 if test -n "$MOZ_DEV_EDITION"; then
     AC_DEFINE(MOZ_DEV_EDITION)
 fi
+
+dnl ========================================================
+dnl JavaScript shell
+dnl ========================================================
+
+if test "$CC_TYPE" != clang-cl ; then
+JS_CONFIG_MOZ_JS_LIBS='-L${libdir} -l${JS_LIBRARY_NAME}'
+else
+JS_CONFIG_MOZ_JS_LIBS='${libdir}/${JS_LIBRARY_NAME}.lib'
+fi
+AC_SUBST(JS_CONFIG_MOZ_JS_LIBS)
 
 dnl Spit out some output
 dnl ========================================================
