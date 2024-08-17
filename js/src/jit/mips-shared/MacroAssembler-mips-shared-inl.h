@@ -553,15 +553,13 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
   }
 }
 
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              L label) {
+                              Label* label) {
   ma_b(lhs, rhs, label, cond);
 }
 
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 imm,
-                              L label) {
+                              Label* label) {
   ma_b(lhs, imm, label, cond);
 }
 
@@ -601,9 +599,8 @@ void MacroAssembler::branch32(Condition cond, wasm::SymbolicAddress addr,
   ma_b(SecondScratchReg, imm, label, cond);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, Register lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   ma_b(lhs, rhs, label, cond);
 }
 
@@ -627,9 +624,8 @@ void MacroAssembler::branchPtr(Condition cond, Register lhs, ImmWord rhs,
   ma_b(lhs, rhs, label, cond);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, const Address& lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   loadPtr(lhs, SecondScratchReg);
   branchPtr(cond, SecondScratchReg, rhs, label);
 }
@@ -801,9 +797,8 @@ void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
   branchPtr(cond, lhs, Imm32(0), label);
 }
 
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Register rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   if (lhs == rhs) {
@@ -814,9 +809,8 @@ void MacroAssembler::branchTest32(Condition cond, Register lhs, Register rhs,
   }
 }
 
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Imm32 rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   ma_and(ScratchRegister, lhs, rhs);
@@ -835,9 +829,8 @@ void MacroAssembler::branchTest32(Condition cond, const AbsoluteAddress& lhs,
   branchTest32(cond, SecondScratchReg, rhs, label);
 }
 
-template <class L>
 void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Register rhs,
-                                   L label) {
+                                   Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   if (lhs == rhs) {

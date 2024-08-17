@@ -413,8 +413,7 @@ void MacroAssembler::addPtr(ImmPtr imm, Register dest) {
 // ===============================================================
 // Branch functions
 
-template <class L>
-void MacroAssembler::branchIfFalseBool(Register reg, L label) {
+void MacroAssembler::branchIfFalseBool(Register reg, Label* label) {
   // Note that C++ bool is only 1 byte, so ignore the higher-order bits.
   branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
 }

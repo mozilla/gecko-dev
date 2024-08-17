@@ -541,9 +541,8 @@ void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
   branchPtr(cond, lhs, rhs, label);
 }
 
-template <class L>
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, L label) {
+                                  Register64 rhs, Register temp, Label* label) {
   branchTestPtr(cond, lhs.reg, rhs.reg, label);
 }
 
@@ -672,9 +671,8 @@ void MacroAssembler::branchTestPrimitive(Condition cond,
   branchTestPrimitive(cond, scratch2, label);
 }
 
-template <class L>
 void MacroAssembler::branchTestMagic(Condition cond, const ValueOperand& value,
-                                     L label) {
+                                     Label* label) {
   SecondScratchRegisterScope scratch2(*this);
   splitTag(value, scratch2);
   ma_b(scratch2, ImmTag(JSVAL_TAG_MAGIC), label, cond);

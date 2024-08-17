@@ -1502,12 +1502,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branch16(Condition cond, const Address& lhs, Imm32 rhs,
                        Label* label) PER_SHARED_ARCH;
 
-  template <class L>
   inline void branch32(Condition cond, Register lhs, Register rhs,
-                       L label) PER_SHARED_ARCH;
-  template <class L>
+                       Label* label) PER_SHARED_ARCH;
   inline void branch32(Condition cond, Register lhs, Imm32 rhs,
-                       L label) PER_SHARED_ARCH;
+                       Label* label) PER_SHARED_ARCH;
 
   inline void branch32(Condition cond, Register lhs, const Address& rhs,
                        Label* label) DEFINED_ON(arm64);
@@ -1557,9 +1555,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branch64(Condition cond, const Address& lhs, const Address& rhs,
                        Register scratch, Label* label) PER_ARCH;
 
-  template <class L>
   inline void branchPtr(Condition cond, Register lhs, Register rhs,
-                        L label) PER_SHARED_ARCH;
+                        Label* label) PER_SHARED_ARCH;
   inline void branchPtr(Condition cond, Register lhs, Imm32 rhs,
                         Label* label) PER_SHARED_ARCH;
   inline void branchPtr(Condition cond, Register lhs, ImmPtr rhs,
@@ -1569,9 +1566,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchPtr(Condition cond, Register lhs, ImmWord rhs,
                         Label* label) PER_SHARED_ARCH;
 
-  template <class L>
   inline void branchPtr(Condition cond, const Address& lhs, Register rhs,
-                        L label) PER_SHARED_ARCH;
+                        Label* label) PER_SHARED_ARCH;
   inline void branchPtr(Condition cond, const Address& lhs, ImmPtr rhs,
                         Label* label) PER_SHARED_ARCH;
   inline void branchPtr(Condition cond, const Address& lhs, ImmGCPtr rhs,
@@ -1688,33 +1684,29 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
                            Label* label) PER_SHARED_ARCH;
 
-  template <class L>
   inline void branchTest32(Condition cond, Register lhs, Register rhs,
-                           L label) PER_SHARED_ARCH;
-  template <class L>
+                           Label* label) PER_SHARED_ARCH;
   inline void branchTest32(Condition cond, Register lhs, Imm32 rhs,
-                           L label) PER_SHARED_ARCH;
+                           Label* label) PER_SHARED_ARCH;
   inline void branchTest32(Condition cond, const Address& lhs, Imm32 rhh,
                            Label* label) PER_SHARED_ARCH;
   inline void branchTest32(Condition cond, const AbsoluteAddress& lhs,
                            Imm32 rhs, Label* label)
       DEFINED_ON(arm, arm64, mips_shared, x86, x64, loong64, riscv64, wasm32);
 
-  template <class L>
   inline void branchTestPtr(Condition cond, Register lhs, Register rhs,
-                            L label) PER_SHARED_ARCH;
+                            Label* label) PER_SHARED_ARCH;
   inline void branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
                             Label* label) PER_SHARED_ARCH;
   inline void branchTestPtr(Condition cond, const Address& lhs, Imm32 rhs,
                             Label* label) PER_SHARED_ARCH;
 
-  template <class L>
+  // |temp| is unused on 64-bit targets.
   inline void branchTest64(Condition cond, Register64 lhs, Register64 rhs,
-                           Register temp, L label) PER_ARCH;
+                           Register temp, Label* label) PER_ARCH;
 
   // Branches to |label| if |reg| is false. |reg| should be a C++ bool.
-  template <class L>
-  inline void branchIfFalseBool(Register reg, L label);
+  inline void branchIfFalseBool(Register reg, Label* label);
 
   // Branches to |label| if |reg| is true. |reg| should be a C++ bool.
   inline void branchIfTrueBool(Register reg, Label* label);
@@ -2012,9 +2004,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               Label* label) PER_SHARED_ARCH;
   inline void branchTestMagic(Condition cond, const BaseIndex& address,
                               Label* label) PER_SHARED_ARCH;
-  template <class L>
   inline void branchTestMagic(Condition cond, const ValueOperand& value,
-                              L label)
+                              Label* label)
       DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
                  x86_shared);
 

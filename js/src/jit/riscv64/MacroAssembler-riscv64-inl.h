@@ -69,9 +69,8 @@ CodeOffset MacroAssembler::sub32FromStackPtrWithPatch(Register dest) {
   return offset;
 }
 
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Imm32 rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   UseScratchRegisterScope temps(this);
@@ -79,9 +78,8 @@ void MacroAssembler::branchTest32(Condition cond, Register lhs, Imm32 rhs,
   ma_and(scratch, lhs, rhs);
   ma_b(scratch, scratch, label, cond);
 }
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Register rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   if (lhs == rhs) {
@@ -93,9 +91,8 @@ void MacroAssembler::branchTest32(Condition cond, Register lhs, Register rhs,
     ma_b(scratch, scratch, label, cond);
   }
 }
-template <class L>
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, L label) {
+                                  Register64 rhs, Register temp, Label* label) {
   branchTestPtr(cond, lhs.reg, rhs.reg, label);
 }
 
@@ -489,15 +486,13 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
       MOZ_CRASH("unexpected condition");
   }
 }
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              L label) {
+                              Label* label) {
   ma_b(lhs, rhs, label, cond);
 }
 
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 imm,
-                              L label) {
+                              Label* label) {
   ma_b(lhs, imm, label, cond);
 }
 
@@ -658,9 +653,8 @@ void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
   branchPtr(cond, lhs, rhs, label);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, Register lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   ma_b(lhs, rhs, label, cond);
 }
 
@@ -688,9 +682,8 @@ void MacroAssembler::branchPtr(Condition cond, Register lhs, ImmWord rhs,
   ma_b(lhs, rhs, label, cond);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, const Address& lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
   loadPtr(lhs, scratch2);
@@ -967,9 +960,8 @@ void MacroAssembler::branchTestMagic(Condition cond, const BaseIndex& address,
   branchTestMagic(cond, tag, label);
 }
 
-template <class L>
 void MacroAssembler::branchTestMagic(Condition cond, const ValueOperand& value,
-                                     L label) {
+                                     Label* label) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
   splitTag(value, scratch2);
@@ -1070,9 +1062,8 @@ void MacroAssembler::branchTestPrimitive(Condition cond, Register tag,
   ma_b(tag, ImmTag(JS::detail::ValueUpperExclPrimitiveTag), label,
        (cond == Equal) ? Below : AboveOrEqual);
 }
-template <class L>
 void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Register rhs,
-                                   L label) {
+                                   Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   if (lhs == rhs) {

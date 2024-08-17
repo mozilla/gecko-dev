@@ -825,9 +825,8 @@ void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
   branchPtr(cond, lhs, rhs, label);
 }
 
-template <class L>
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, L label) {
+                                  Register64 rhs, Register temp, Label* label) {
   if (cond == Assembler::Zero || cond == Assembler::NonZero) {
     MOZ_ASSERT(lhs.low == rhs.low);
     MOZ_ASSERT(lhs.high == rhs.high);
@@ -941,9 +940,8 @@ void MacroAssembler::branchTestPrimitive(Condition cond,
   branchTestPrimitive(cond, value.typeReg(), label);
 }
 
-template <class L>
 void MacroAssembler::branchTestMagic(Condition cond, const ValueOperand& value,
-                                     L label) {
+                                     Label* label) {
   ma_b(value.typeReg(), ImmTag(JSVAL_TAG_MAGIC), label, cond);
 }
 

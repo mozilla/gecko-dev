@@ -504,16 +504,14 @@ void MacroAssembler::branch16(Condition cond, const Address& lhs, Imm32 rhs,
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Register rhs,
-                              L label) {
+                              Label* label) {
   cmp32(lhs, rhs);
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branch32(Condition cond, Register lhs, Imm32 rhs,
-                              L label) {
+                              Label* label) {
   cmp32(lhs, rhs);
   j(cond, label);
 }
@@ -554,9 +552,8 @@ void MacroAssembler::branch32(Condition cond, const Operand& lhs, Imm32 rhs,
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, Register lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   cmpPtr(lhs, rhs);
   j(cond, label);
 }
@@ -581,9 +578,8 @@ void MacroAssembler::branchPtr(Condition cond, Register lhs, ImmWord rhs,
   branchPtrImpl(cond, lhs, rhs, label);
 }
 
-template <class L>
 void MacroAssembler::branchPtr(Condition cond, const Address& lhs, Register rhs,
-                               L label) {
+                               Label* label) {
   branchPtrImpl(cond, lhs, rhs, label);
 }
 
@@ -723,18 +719,16 @@ void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Register rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   test32(lhs, rhs);
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branchTest32(Condition cond, Register lhs, Imm32 rhs,
-                                  L label) {
+                                  Label* label) {
   MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
              cond == NotSigned);
   test32(lhs, rhs);
@@ -749,9 +743,8 @@ void MacroAssembler::branchTest32(Condition cond, const Address& lhs, Imm32 rhs,
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Register rhs,
-                                   L label) {
+                                   Label* label) {
   testPtr(lhs, rhs);
   j(cond, label);
 }
@@ -1114,9 +1107,8 @@ void MacroAssembler::branchTestMagic(Condition cond, const BaseIndex& address,
   branchTestMagicImpl(cond, address, label);
 }
 
-template <class L>
 void MacroAssembler::branchTestMagic(Condition cond, const ValueOperand& value,
-                                     L label) {
+                                     Label* label) {
   branchTestMagicImpl(cond, value, label);
 }
 

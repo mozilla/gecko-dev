@@ -1059,9 +1059,8 @@ void MacroAssembler::branchTest32(Condition cond, const AbsoluteAddress& lhs,
   j(cond, label);
 }
 
-template <class L>
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, L label) {
+                                  Register64 rhs, Register temp, Label* label) {
   if (cond == Assembler::Zero || cond == Assembler::NonZero) {
     MOZ_ASSERT(lhs.low == rhs.low);
     MOZ_ASSERT(lhs.high == rhs.high);
