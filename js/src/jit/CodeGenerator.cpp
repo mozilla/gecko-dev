@@ -1470,18 +1470,31 @@ void CodeGenerator::testValueTruthy(const ValueOperand& value,
   // We fall through if the final test is truthy.
 }
 
-void CodeGenerator::visitTestBIAndBranch(LTestBIAndBranch* lir) {
-  Label* ifTrueLabel = getJumpLabelForBranch(lir->ifTrue());
-  Label* ifFalseLabel = getJumpLabelForBranch(lir->ifFalse());
-  Register input = ToRegister(lir->input());
+void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
+  Register input = ToRegister(test->input());
+  MBasicBlock* ifTrue = test->ifTrue();
+  MBasicBlock* ifFalse = test->ifFalse();
 
-  if (isNextBlock(lir->ifFalse()->lir())) {
-    masm.branchIfBigIntIsNonZero(input, ifTrueLabel);
-  } else if (isNextBlock(lir->ifTrue()->lir())) {
-    masm.branchIfBigIntIsZero(input, ifFalseLabel);
+  if (isNextBlock(ifFalse->lir())) {
+    masm.branchTest32(Assembler::NonZero, input, input,
+                      getJumpLabelForBranch(ifTrue));
   } else {
-    masm.branchIfBigIntIsZero(input, ifFalseLabel);
-    jumpToBlock(lir->ifTrue());
+    masm.branchTest32(Assembler::Zero, input, input,
+                      getJumpLabelForBranch(ifFalse));
+    jumpToBlock(ifTrue);
+  }
+}
+
+void CodeGenerator::visitTestBIAndBranch(LTestBIAndBranch* lir) {
+  Register input = ToRegister(lir->input());
+  MBasicBlock* ifTrue = lir->ifTrue();
+  MBasicBlock* ifFalse = lir->ifFalse();
+
+  if (isNextBlock(ifFalse->lir())) {
+    masm.branchIfBigIntIsNonZero(input, getJumpLabelForBranch(ifTrue));
+  } else {
+    masm.branchIfBigIntIsZero(input, getJumpLabelForBranch(ifFalse));
+    jumpToBlock(ifTrue);
   }
 }
 

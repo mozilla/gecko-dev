@@ -82,12 +82,6 @@ void CodeGenerator::visitFloat32(LFloat32* ins) {
   masm.loadConstantFloat32(ins->value(), ToFloatRegister(out));
 }
 
-void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
-  Register input = ToRegister(test->input());
-  masm.test32(input, input);
-  emitBranch(Assembler::NonZero, test->ifTrue(), test->ifFalse());
-}
-
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {
   const LAllocation* opd = test->input();
 

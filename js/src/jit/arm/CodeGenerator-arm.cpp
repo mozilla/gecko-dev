@@ -63,24 +63,6 @@ void OutOfLineBailout::accept(CodeGeneratorARM* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
-  const LAllocation* opd = test->getOperand(0);
-  MBasicBlock* ifTrue = test->ifTrue();
-  MBasicBlock* ifFalse = test->ifFalse();
-
-  // Test the operand
-  masm.as_cmp(ToRegister(opd), Imm8(0));
-
-  if (isNextBlock(ifFalse->lir())) {
-    jumpToBlock(ifTrue, Assembler::NonZero);
-  } else if (isNextBlock(ifTrue->lir())) {
-    jumpToBlock(ifFalse, Assembler::Zero);
-  } else {
-    jumpToBlock(ifFalse, Assembler::Zero);
-    jumpToBlock(ifTrue);
-  }
-}
-
 void CodeGenerator::visitCompare(LCompare* comp) {
   Assembler::Condition cond =
       JSOpToCondition(comp->mir()->compareType(), comp->jsop());

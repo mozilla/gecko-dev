@@ -88,14 +88,6 @@ void OutOfLineBailout::accept(CodeGeneratorMIPSShared* codegen) {
   codegen->visitOutOfLineBailout(this);
 }
 
-void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
-  const LAllocation* opd = test->getOperand(0);
-  MBasicBlock* ifTrue = test->ifTrue();
-  MBasicBlock* ifFalse = test->ifFalse();
-
-  emitBranch(ToRegister(opd), Imm32(0), Assembler::NonZero, ifTrue, ifFalse);
-}
-
 void CodeGenerator::visitCompare(LCompare* comp) {
   MCompare* mir = comp->mir();
   Assembler::Condition cond = JSOpToCondition(mir->compareType(), comp->jsop());

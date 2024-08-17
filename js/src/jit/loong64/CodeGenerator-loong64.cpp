@@ -819,14 +819,6 @@ void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* lir) {
   emitBranch(input.reg, Imm32(0), Assembler::NonZero, ifTrue, ifFalse);
 }
 
-void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
-  const LAllocation* opd = test->getOperand(0);
-  MBasicBlock* ifTrue = test->ifTrue();
-  MBasicBlock* ifFalse = test->ifFalse();
-
-  emitBranch(ToRegister(opd), Imm32(0), Assembler::NonZero, ifTrue, ifFalse);
-}
-
 void CodeGenerator::visitMinMaxD(LMinMaxD* ins) {
   FloatRegister first = ToFloatRegister(ins->first());
   FloatRegister second = ToFloatRegister(ins->second());
