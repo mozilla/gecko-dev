@@ -1151,6 +1151,8 @@ class LCompareI64 : public LInstructionHelper<1, 2 * INT64_PIECES, 0> {
   }
 
   JSOp jsop() const { return jsop_; }
+  LInt64Allocation left() const { return getInt64Operand(LCompareI64::Lhs); }
+  LInt64Allocation right() const { return getInt64Operand(LCompareI64::Rhs); }
   MCompare* mir() { return mir_->toCompare(); }
   const char* extraName() const { return CodeName(jsop_); }
 };

@@ -126,26 +126,6 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   }
 }
 
-void CodeGenerator::visitCompareI64(LCompareI64* lir) {
-  MCompare* mir = lir->mir();
-  MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
-             mir->compareType() == MCompare::Compare_UInt64);
-
-  const LInt64Allocation lhs = lir->getInt64Operand(LCompareI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
-  Register lhsReg = ToRegister64(lhs).reg;
-  Register output = ToRegister(lir->output());
-
-  if (IsConstant(rhs)) {
-    masm.cmpPtr(lhsReg, ImmWord(ToInt64(rhs)));
-  } else {
-    masm.cmpPtr(lhsReg, ToOperand64(rhs));
-  }
-
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-  masm.emitSet(JSOpToCondition(lir->jsop(), isSigned), output);
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

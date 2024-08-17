@@ -128,33 +128,6 @@ void CodeGeneratorMIPS64::splitTagForTest(const ValueOperand& value,
   masm.splitTag(value.valueReg(), tag);
 }
 
-void CodeGenerator::visitCompareI64(LCompareI64* lir) {
-  MCompare* mir = lir->mir();
-  MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
-             mir->compareType() == MCompare::Compare_UInt64);
-
-  const LInt64Allocation lhs = lir->getInt64Operand(LCompareI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
-  Register lhsReg = ToRegister64(lhs).reg;
-  Register output = ToRegister(lir->output());
-  Register rhsReg;
-  ScratchRegisterScope scratch(masm);
-
-  if (IsConstant(rhs)) {
-    rhsReg = scratch;
-    masm.ma_li(rhsReg, ImmWord(ToInt64(rhs)));
-  } else if (rhs.value().isGeneralReg()) {
-    rhsReg = ToRegister64(rhs).reg;
-  } else {
-    rhsReg = scratch;
-    masm.loadPtr(ToAddress(rhs.value()), rhsReg);
-  }
-
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-  masm.cmpPtrSet(JSOpToCondition(lir->jsop(), isSigned), lhsReg, rhsReg,
-                 output);
-}
-
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

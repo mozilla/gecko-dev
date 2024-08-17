@@ -152,43 +152,6 @@ static Operand toWOperand(const LAllocation* a) {
   return Operand(toWRegister(a));
 }
 
-// Let |cond| be an ARM64 condition code that we could reasonably use in a
-// conditional branch or select following a comparison instruction.  This
-// function returns the condition to use in the case where we swap the two
-// operands of the comparison instruction.
-static Assembler::Condition GetCondForSwappedOperands(
-    Assembler::Condition cond) {
-  // EQ and NE map to themselves
-  // Of the remaining 14 cases, 4 other pairings can meaningfully swap:
-  // HS -- LS
-  // LO -- HI
-  // GE -- LE
-  // GT -- LT
-  switch (cond) {
-    case vixl::eq:
-    case vixl::ne:
-      return cond;
-    case vixl::hs:
-      return vixl::ls;
-    case vixl::ls:
-      return vixl::hs;
-    case vixl::lo:
-      return vixl::hi;
-    case vixl::hi:
-      return vixl::lo;
-    case vixl::ge:
-      return vixl::le;
-    case vixl::le:
-      return vixl::ge;
-    case vixl::gt:
-      return vixl::lt;
-    case vixl::lt:
-      return vixl::gt;
-    default:
-      MOZ_CRASH("no meaningful swapped-operand condition");
-  }
-}
-
 void CodeGenerator::visitAddI(LAddI* ins) {
   const LAllocation* lhs = ins->getOperand(0);
   const LAllocation* rhs = ins->getOperand(1);
@@ -2263,30 +2226,6 @@ void CodeGenerator::visitWasmStore(LWasmStore* lir) {
 
   masm.wasmStore(mir->access(), ToAnyRegister(lir->value()),
                  ToRegister(lir->memoryBase()), ToRegister(lir->ptr()));
-}
-
-void CodeGenerator::visitCompareI64(LCompareI64* lir) {
-  MCompare* mir = lir->mir();
-  MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
-             mir->compareType() == MCompare::Compare_UInt64);
-
-  const LInt64Allocation lhs = lir->getInt64Operand(LCompareI64::Lhs);
-  const LInt64Allocation rhs = lir->getInt64Operand(LCompareI64::Rhs);
-  Register lhsReg = ToRegister64(lhs).reg;
-  Register output = ToRegister(lir->output());
-  bool isSigned = mir->compareType() == MCompare::Compare_Int64;
-
-  if (IsConstant(rhs)) {
-    masm.cmpPtrSet(JSOpToCondition(lir->jsop(), isSigned), lhsReg,
-                   ImmWord(ToInt64(rhs)), output);
-  } else if (rhs.value().isGeneralReg()) {
-    masm.cmpPtrSet(JSOpToCondition(lir->jsop(), isSigned), lhsReg,
-                   ToRegister64(rhs).reg, output);
-  } else {
-    masm.cmpPtrSet(
-        GetCondForSwappedOperands(JSOpToCondition(lir->jsop(), isSigned)),
-        ToAddress(rhs.value()), lhsReg, output);
-  }
 }
 
 void CodeGenerator::visitWasmSelect(LWasmSelect* lir) {
