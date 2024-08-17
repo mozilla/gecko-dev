@@ -5394,6 +5394,8 @@ class MBigIntPow : public MBigIntBinaryArithInstruction {
     return AliasSet::None();
   }
 
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
   bool canRecoverOnBailout() const override { return !canBeNegativeExponent(); }

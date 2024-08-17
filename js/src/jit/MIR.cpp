@@ -3284,6 +3284,37 @@ MDefinition* MPow::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+MDefinition* MBigIntPow::foldsTo(TempAllocator& alloc) {
+  auto* base = lhs();
+  MOZ_ASSERT(base->type() == MIRType::BigInt);
+
+  auto* power = rhs();
+  MOZ_ASSERT(power->type() == MIRType::BigInt);
+
+  // |power| must be a constant.
+  if (!power->isConstant()) {
+    return this;
+  }
+
+  int32_t pow;
+  if (BigInt::isInt32(power->toConstant()->toBigInt(), &pow)) {
+    // x ** 1n == x.
+    if (pow == 1) {
+      return base;
+    }
+
+    // x ** 2n == x*x.
+    if (pow == 2) {
+      auto* mul = MBigIntMul::New(alloc, base, base);
+      mul->setBailoutKind(bailoutKind());
+      return mul;
+    }
+  }
+
+  // No optimization
+  return this;
+}
+
 MDefinition* MInt32ToIntPtr::foldsTo(TempAllocator& alloc) {
   MDefinition* def = input();
   if (def->isConstant()) {
