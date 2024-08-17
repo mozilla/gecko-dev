@@ -33,6 +33,7 @@
 #include "js/ScalarType.h"            // js::Scalar::Type
 #include "util/Text.h"
 #include "util/Unicode.h"
+#include "vm/BigIntType.h"
 #include "vm/Float16.h"
 #include "vm/Iteration.h"    // js::NativeIterator
 #include "vm/PlainObject.h"  // js::PlainObject
@@ -4566,6 +4567,27 @@ static bool FoldComparison(JSOp op, T left, T right) {
   }
 }
 
+static bool FoldBigIntComparison(JSOp op, const BigInt* left, double right) {
+  switch (op) {
+    case JSOp::Lt:
+      return BigInt::lessThan(left, right).valueOr(false);
+    case JSOp::Le:
+      return !BigInt::lessThan(right, left).valueOr(true);
+    case JSOp::Gt:
+      return BigInt::lessThan(right, left).valueOr(false);
+    case JSOp::Ge:
+      return !BigInt::lessThan(left, right).valueOr(true);
+    case JSOp::StrictEq:
+    case JSOp::Eq:
+      return BigInt::equal(left, right);
+    case JSOp::StrictNe:
+    case JSOp::Ne:
+      return !BigInt::equal(left, right);
+    default:
+      MOZ_CRASH("Unexpected op.");
+  }
+}
+
 bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
   if (type() != MIRType::Boolean && type() != MIRType::Int32) {
     return false;
@@ -4686,42 +4708,69 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
   MConstant* lhs = left->toConstant();
   MConstant* rhs = right->toConstant();
 
-  // Fold away some String equality comparisons.
-  if (lhs->type() == MIRType::String && rhs->type() == MIRType::String) {
-    int32_t comp = 0;  // Default to equal.
-    if (left != right) {
-      comp = CompareStrings(&lhs->toString()->asLinear(),
-                            &rhs->toString()->asLinear());
+  switch (compareType()) {
+    case Compare_Int32:
+    case Compare_Double:
+    case Compare_Float32: {
+      *result =
+          FoldComparison(jsop_, lhs->numberToDouble(), rhs->numberToDouble());
+      return true;
     }
-    *result = FoldComparison(jsop_, comp, 0);
-    return true;
+    case Compare_UInt32: {
+      *result = FoldComparison(jsop_, uint32_t(lhs->toInt32()),
+                               uint32_t(rhs->toInt32()));
+      return true;
+    }
+    case Compare_Int64: {
+      *result = FoldComparison(jsop_, lhs->toInt64(), rhs->toInt64());
+      return true;
+    }
+    case Compare_UInt64: {
+      *result = FoldComparison(jsop_, uint64_t(lhs->toInt64()),
+                               uint64_t(rhs->toInt64()));
+      return true;
+    }
+    case Compare_UIntPtr: {
+      *result = FoldComparison(jsop_, uintptr_t(lhs->toIntPtr()),
+                               uintptr_t(rhs->toIntPtr()));
+      return true;
+    }
+    case Compare_String: {
+      int32_t comp = CompareStrings(&lhs->toString()->asLinear(),
+                                    &rhs->toString()->asLinear());
+      *result = FoldComparison(jsop_, comp, 0);
+      return true;
+    }
+    case Compare_BigInt: {
+      int32_t comp = BigInt::compare(lhs->toBigInt(), rhs->toBigInt());
+      *result = FoldComparison(jsop_, comp, 0);
+      return true;
+    }
+    case Compare_BigInt_Int32:
+    case Compare_BigInt_Double: {
+      *result =
+          FoldBigIntComparison(jsop_, lhs->toBigInt(), rhs->numberToDouble());
+      return true;
+    }
+    case Compare_BigInt_String: {
+      JSLinearString* linear = &rhs->toString()->asLinear();
+      if (!linear->hasIndexValue()) {
+        return false;
+      }
+      *result =
+          FoldBigIntComparison(jsop_, lhs->toBigInt(), linear->getIndexValue());
+      return true;
+    }
+
+    case Compare_Undefined:
+    case Compare_Null:
+    case Compare_Symbol:
+    case Compare_Object:
+    case Compare_WasmAnyRef:
+      return false;
   }
 
-  if (compareType_ == Compare_UInt32) {
-    *result = FoldComparison(jsop_, uint32_t(lhs->toInt32()),
-                             uint32_t(rhs->toInt32()));
-    return true;
-  }
-
-  if (compareType_ == Compare_Int64) {
-    *result = FoldComparison(jsop_, lhs->toInt64(), rhs->toInt64());
-    return true;
-  }
-
-  if (compareType_ == Compare_UInt64) {
-    *result = FoldComparison(jsop_, uint64_t(lhs->toInt64()),
-                             uint64_t(rhs->toInt64()));
-    return true;
-  }
-
-  if (lhs->isTypeRepresentableAsDouble() &&
-      rhs->isTypeRepresentableAsDouble()) {
-    *result =
-        FoldComparison(jsop_, lhs->numberToDouble(), rhs->numberToDouble());
-    return true;
-  }
-
-  return false;
+  MOZ_CRASH("unexpected compare type");
 }
 
 MDefinition* MCompare::tryFoldTypeOf(TempAllocator& alloc) {
