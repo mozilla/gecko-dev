@@ -119,6 +119,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tocje e ten fracadis lis frecis par passâ di une pagjine a chê altre te cronologjie di cheste schede.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Gnovis: frece indevant e indaûr cuntune tocjade sole</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Gjolditi une navigazion plui svelte e simpri a puartade di man.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -199,6 +205,14 @@
     <string name="browser_menu_stop">Ferme</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Estensions</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Personalize %s</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Lis estensions a miorin la tô navigazion, dal cambiâ l\'aspiet e il compuartament di %s al potenziâ la riservatece e la sigurece.</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Plui informazions</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Gjestìs estensions</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -316,6 +330,10 @@
     <string name="browser_menu_translated_to">Voltade par %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Stampe…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Siere %1$s</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -2775,8 +2793,6 @@
     <string name="micro_survey_privacy_notice_2">Informative su la riservatece</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Invie</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Siere</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Sondaç completât</string>
     <!-- The survey completion confirmation text -->

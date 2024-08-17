@@ -135,6 +135,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">بو تاغین گئچمیشینده صفحه‌لر آراسیندا گئچیش ائتمک اوچون فلش‌لره دوْخونون و باسیلیْ توتون.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">یئنی: بیر کلیک‌له دال و قاباخ فلش‌لری</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">هر زمان بارماقلاریزین اوجوندا اوْلان داها یئیین گزینمه‌‍‌نین کیفینی آپارین.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کامئرا ال چاتماسی لازیم.اندروید تنظیم‌لرینه گئدین، ایجازه‌لره توخونون و ایجازه وئرین.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -219,6 +225,14 @@
     <string name="browser_menu_stop">دوردور</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">اوزانتی‌لار</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">%s -نی اؤزوزه گؤتورون</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">اوزانتی‌لار، %s نین گؤرونوشو و عملکردینی دگیشمکدن گیزلیلیک و گؤونلیگی آرتیرماغا کیمی مروروزو یوخاریا آپاریر  </string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">آرتیق بیلین</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">اوزانتی‌ْ‌لار مودیریتی</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -340,6 +354,10 @@
     <string name="browser_menu_translated_to">%1$s دیلینه چئویر</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">پرینت…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">%1$s اَپ‌یندن چیخ</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -540,7 +558,7 @@
     <!-- Preference link to Learn more about Firefox Suggest -->
     <string name="preference_search_learn_about_fx_suggest">فایرفاکس تکلیفی حاقیندا آرتیق بیلگی آلین</string>
     <!-- Preference link to rating Fenix on the Play Store -->
-    <string name="preferences_rate">قوقل پلی‌ده امتیاز وئر</string>
+    <string name="preferences_rate">گوگل پلی‌ده امتیاز وئر</string>
     <!-- Preference linking to about page for Fenix
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="preferences_about">%1$s حاقیندا</string>
@@ -2126,6 +2144,31 @@
     <string name="addresses_cancel_button">لغو</string>
     <!-- The text for the "Delete address" button for deleting an address -->
     <string name="addressess_delete_address_button">آدرسی سیل</string>
+
+    <!-- The title for the "Delete address" confirmation dialog -->
+    <string name="addressess_confirm_dialog_message_2">بو آدرس سیلینسین؟</string>
+    <!-- The text for the positive button on "Delete address" dialog -->
+    <string name="addressess_confirm_dialog_ok_button">سیل</string>
+    <!-- The text for the negative button on "Delete address" dialog -->
+    <string name="addressess_confirm_dialog_cancel_button">لغو</string>
+    <!-- The text for the "Save address" menu item for saving an address -->
+    <string name="address_menu_save_address">آدرسی ساخلا</string>
+    <!-- The text for the "Delete address" menu item for deleting an address -->
+    <string name="address_menu_delete_address">آدرسی سیل</string>
+
+    <!-- Title of the Add search engine screen -->
+    <string name="search_engine_add_custom_search_engine_title">آختاریش موتورو آرتیر</string>
+    <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
+    <string name="search_engine_add_custom_search_engine_button_content_description">یئنی آختاریش موتورو آرتیر</string>
+    <!-- Title of the Edit search engine screen -->
+    <string name="search_engine_edit_custom_search_engine_title">آختاریش موتورو دوزت</string>
+    <!-- Text for the menu button to edit a search engine -->
+    <string name="search_engine_edit">دوزه‌لیش</string>
+    <!-- Text for the menu button to delete a search engine -->
+    <string name="search_engine_delete">سیل</string>
+
+    <!-- Label for the TextField in which user enters custom search engine name -->
+    <string name="search_add_custom_engine_name_label">آد</string>
 
     <!-- Translations feature-->
 
