@@ -826,7 +826,8 @@ void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
 }
 
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, Label* label) {
+                                  Register64 rhs, Register temp, Label* success,
+                                  Label* fail) {
   if (cond == Assembler::Zero || cond == Assembler::NonZero) {
     MOZ_ASSERT(lhs.low == rhs.low);
     MOZ_ASSERT(lhs.high == rhs.high);

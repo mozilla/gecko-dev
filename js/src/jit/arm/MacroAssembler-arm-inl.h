@@ -1974,18 +1974,71 @@ void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
 }
 
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, Label* label) {
-  if (cond == Assembler::Zero || cond == Assembler::NonZero) {
-    ScratchRegisterScope scratch(*this);
+                                  Register64 rhs, Register temp, Label* success,
+                                  Label* fail) {
+  bool fallthrough = false;
+  Label fallthroughLabel;
 
-    MOZ_ASSERT(lhs.low == rhs.low);
-    MOZ_ASSERT(lhs.high == rhs.high);
-    ma_orr(lhs.low, lhs.high, scratch);
-    branchTestPtr(cond, scratch, scratch, label);
+  if (!fail) {
+    fail = &fallthroughLabel;
+    fallthrough = true;
+  }
+
+  if (cond == Assembler::Zero || cond == Assembler::NonZero) {
+    if (lhs == rhs) {
+      ScratchRegisterScope scratch(*this);
+      ma_orr(lhs.low, lhs.high, scratch);
+      branchTest32(cond, scratch, scratch, success);
+    } else if (cond == Assembler::Zero) {
+      branchTest32(Assembler::NonZero, lhs.low, rhs.low, fail);
+      branchTest32(Assembler::Zero, lhs.high, rhs.high, success);
+    } else {
+      branchTest32(Assembler::NonZero, lhs.low, rhs.low, success);
+      branchTest32(Assembler::NonZero, lhs.high, rhs.high, success);
+    }
   } else if (cond == Assembler::Signed || cond == Assembler::NotSigned) {
-    branchTest32(cond, lhs.high, rhs.high, label);
+    branchTest32(cond, lhs.high, rhs.high, success);
   } else {
     MOZ_CRASH("Unsupported condition");
+  }
+
+  if (fallthrough) {
+    bind(fail);
+  } else {
+    jump(fail);
+  }
+}
+
+void MacroAssembler::branchTest64(Condition cond, Register64 lhs, Imm64 rhs,
+                                  Label* success, Label* fail) {
+  bool fallthrough = false;
+  Label fallthroughLabel;
+
+  if (!fail) {
+    fail = &fallthroughLabel;
+    fallthrough = true;
+  }
+
+  if (cond == Assembler::Zero || cond == Assembler::NonZero) {
+    if (rhs.hi().value == 0) {
+      branchTest32(cond, lhs.low, rhs.low(), success);
+    } else if (rhs.low().value == 0) {
+      branchTest32(cond, lhs.high, rhs.hi(), success);
+    } else if (cond == Assembler::Zero) {
+      branchTest32(Assembler::NonZero, lhs.low, rhs.low(), fail);
+      branchTest32(Assembler::Zero, lhs.high, rhs.hi(), success);
+    } else {
+      branchTest32(Assembler::NonZero, lhs.low, rhs.low(), success);
+      branchTest32(Assembler::NonZero, lhs.high, rhs.hi(), success);
+    }
+  } else {
+    MOZ_CRASH("Unsupported condition");
+  }
+
+  if (fallthrough) {
+    bind(fail);
+  } else {
+    jump(fail);
   }
 }
 

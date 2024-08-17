@@ -365,7 +365,13 @@ void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
 }
 
 void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
-                                  Register64 rhs, Register temp, Label* label) {
+                                  Register64 rhs, Register temp, Label* success,
+                                  Label* fail) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::branchTest64(Condition cond, Register64 lhs, Imm64 rhs,
+                                  Label* success, Label* fail) {
   MOZ_CRASH();
 }
 

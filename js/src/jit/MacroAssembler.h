@@ -1703,9 +1703,18 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchTestPtr(Condition cond, const Address& lhs, Imm32 rhs,
                             Label* label) PER_SHARED_ARCH;
 
-  // |temp| is unused on 64-bit targets.
+  // When a fail label is not defined it will fall through to next instruction,
+  // else jump to the fail label.
+  //
+  // On x86 if |lhs == rhs|, |temp| is used to generate a single branch
+  // instruction. Otherwise |temp| is unused and can be |InvalidReg|.
   inline void branchTest64(Condition cond, Register64 lhs, Register64 rhs,
-                           Register temp, Label* label) PER_ARCH;
+                           Register temp, Label* success,
+                           Label* fail = nullptr) PER_ARCH;
+  inline void branchTest64(Condition cond, Register64 lhs, Register64 rhs,
+                           Label* success, Label* fail = nullptr);
+  inline void branchTest64(Condition cond, Register64 lhs, Imm64 rhs,
+                           Label* success, Label* fail = nullptr) PER_ARCH;
 
   // Branches to |label| if |reg| is false. |reg| should be a C++ bool.
   inline void branchIfFalseBool(Register reg, Label* label);
