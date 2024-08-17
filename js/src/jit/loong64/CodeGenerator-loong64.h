@@ -144,14 +144,6 @@ class CodeGeneratorLOONG64 : public CodeGeneratorShared {
   void visitOutOfLineWasmTruncateCheck(OutOfLineWasmTruncateCheck* ool);
 
  protected:
-  void testUndefinedEmitBranch(Assembler::Condition cond,
-                               const ValueOperand& value, MBasicBlock* ifTrue,
-                               MBasicBlock* ifFalse) {
-    MOZ_ASSERT(value.valueReg() != SecondScratchReg);
-    masm.splitTag(value.valueReg(), SecondScratchReg);
-    emitBranch(SecondScratchReg, ImmTag(JSVAL_TAG_UNDEFINED), cond, ifTrue,
-               ifFalse);
-  }
   void testObjectEmitBranch(Assembler::Condition cond,
                             const ValueOperand& value, MBasicBlock* ifTrue,
                             MBasicBlock* ifFalse) {

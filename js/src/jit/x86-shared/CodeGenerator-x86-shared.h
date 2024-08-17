@@ -109,12 +109,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
   void emitBranch(Assembler::DoubleCondition cond, MBasicBlock* ifTrue,
                   MBasicBlock* ifFalse);
 
-  void testUndefinedEmitBranch(Assembler::Condition cond,
-                               const ValueOperand& value, MBasicBlock* ifTrue,
-                               MBasicBlock* ifFalse) {
-    cond = masm.testUndefined(cond, value);
-    emitBranch(cond, ifTrue, ifFalse);
-  }
   void testObjectEmitBranch(Assembler::Condition cond,
                             const ValueOperand& value, MBasicBlock* ifTrue,
                             MBasicBlock* ifFalse) {
