@@ -17,15 +17,6 @@ class CodeGeneratorMIPS64 : public CodeGeneratorMIPSShared {
   CodeGeneratorMIPS64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
       : CodeGeneratorMIPSShared(gen, graph, masm) {}
 
-  void testObjectEmitBranch(Assembler::Condition cond,
-                            const ValueOperand& value, MBasicBlock* ifTrue,
-                            MBasicBlock* ifFalse) {
-    MOZ_ASSERT(value.valueReg() != SecondScratchReg);
-    masm.splitTag(value.valueReg(), SecondScratchReg);
-    emitBranch(SecondScratchReg, ImmTag(JSVAL_TAG_OBJECT), cond, ifTrue,
-               ifFalse);
-  }
-
   void emitBigIntDiv(LBigIntDiv* ins, Register dividend, Register divisor,
                      Register output, Label* fail);
   void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
