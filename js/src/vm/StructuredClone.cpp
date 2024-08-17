@@ -491,6 +491,10 @@ struct JSStructuredCloneReader {
   // SameProcess is the widest (it can store anything it wants)
   // and DifferentProcess is the narrowest (it cannot contain pointers and must
   // be valid cross-process.)
+  //
+  // Although this can be initially set to other "unresolved" values (eg
+  // Unassigned), by the end of a successful readHeader() this will be resolved
+  // to SameProcess or DifferentProcess.
   JS::StructuredCloneScope allowedScope;
 
   const JS::CloneDataPolicy cloneDataPolicy;
@@ -3440,9 +3444,8 @@ bool JSStructuredCloneReader::readTransferMap() {
     }
 
     if (tag == SCTAG_TRANSFER_MAP_ARRAY_BUFFER) {
-      if (allowedScope == JS::StructuredCloneScope::DifferentProcess ||
-          allowedScope ==
-              JS::StructuredCloneScope::DifferentProcessForIndexedDB) {
+      MOZ_ASSERT(allowedScope <= JS::StructuredCloneScope::LastResolvedScope);
+      if (allowedScope == JS::StructuredCloneScope::DifferentProcess) {
         // Transferred ArrayBuffers in a DifferentProcess clone buffer
         // are treated as if they weren't Transferred at all. We should
         // only see SCTAG_TRANSFER_MAP_STORED_ARRAY_BUFFER.
@@ -3889,6 +3892,8 @@ bool JSStructuredCloneReader::read(MutableHandleValue vp, size_t nbytes) {
   if (!readHeader()) {
     return false;
   }
+  MOZ_ASSERT(allowedScope <= JS::StructuredCloneScope::LastResolvedScope,
+             "allowedScope should have been resolved by now");
 
   if (!readTransferMap()) {
     return false;

@@ -156,6 +156,13 @@ enum class StructuredCloneScope : uint32_t {
   DifferentProcess,
 
   /**
+   * Values greater than this are temporary markers used when the actual scope
+   * is not yet known. The allowed scope will be resolved by the time
+   * readHeader() is complete.
+   */
+  LastResolvedScope = DifferentProcess,
+
+  /**
    * Handle a backwards-compatibility case with IndexedDB (bug 1434308): when
    * reading, this means to treat legacy SameProcess data as if it were
    * DifferentProcess.
