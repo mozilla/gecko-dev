@@ -48,6 +48,8 @@ class PointerEvent : public MouseEvent {
   int32_t TiltX();
   int32_t TiltY();
   int32_t Twist();
+  double AltitudeAngle();
+  double AzimuthAngle();
   bool IsPrimary();
   void GetPointerType(nsAString& aPointerType);
   static bool EnableGetCoalescedEvents(JSContext* aCx, JSObject* aGlobal);
@@ -60,13 +62,18 @@ class PointerEvent : public MouseEvent {
  private:
   // This method returns the boolean to indicate whether spoofing pointer
   // event for fingerprinting resistance.
-  bool ShouldResistFingerprinting();
+  bool ShouldResistFingerprinting() const;
 
   nsTArray<RefPtr<PointerEvent>> mCoalescedEvents;
   nsTArray<RefPtr<PointerEvent>> mPredictedEvents;
 
   // This is used to store the pointerType assigned from constructor.
   Maybe<nsString> mPointerType;
+
+  Maybe<int32_t> mTiltX;
+  Maybe<int32_t> mTiltY;
+  Maybe<double> mAltitudeAngle;
+  Maybe<double> mAzimuthAngle;
 };
 
 void ConvertPointerTypeToString(uint16_t aPointerTypeSrc,

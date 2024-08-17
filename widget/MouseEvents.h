@@ -7,6 +7,7 @@
 #define mozilla_MouseEvents_h__
 
 #include <stdint.h>
+#include <math.h>
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventForwards.h"
@@ -69,6 +70,36 @@ class WidgetPointerHelper {
 
   explicit WidgetPointerHelper(const WidgetPointerHelper& aHelper) = default;
 
+  constexpr static double kPi =
+#ifdef M_PI
+      M_PI;
+#else
+      3.14159265358979323846;
+#endif
+  constexpr static double kHalfPi =
+#ifdef M_PI_2
+      M_PI_2;
+#else
+      1.57079632679489661923;
+#endif
+  constexpr static double kDoublePi = kPi * 2;
+
+  constexpr static double GetDefaultAltitudeAngle() { return kHalfPi; }
+  constexpr static double GetDefaultAzimuthAngle() { return 0.0; }
+
+  double ComputeAltitudeAngle() const {
+    return ComputeAltitudeAngle(tiltX, tiltY);
+  }
+  double ComputeAzimuthAngle() const {
+    return ComputeAzimuthAngle(tiltX, tiltY);
+  }
+
+  static double ComputeAltitudeAngle(int32_t aTiltX, int32_t aTiltY);
+  static double ComputeAzimuthAngle(int32_t aTiltX, int32_t aTiltY);
+
+  static double ComputeTiltX(double aAltitudeAngle, double aAzimuthAngle);
+  static double ComputeTiltY(double aAltitudeAngle, double aAzimuthAngle);
+
   void AssignPointerHelperData(const WidgetPointerHelper& aEvent,
                                bool aCopyCoalescedEvents = false) {
     pointerId = aEvent.pointerId;
@@ -81,6 +112,11 @@ class WidgetPointerHelper {
       mCoalescedWidgetEvents = aEvent.mCoalescedWidgetEvents;
     }
   }
+
+ private:
+  static int32_t GetValidTiltValue(int32_t aTilt);
+  static double GetValidAltitudeAngle(double aAltitudeAngle);
+  static double GetValidAzimuthAngle(double aAzimuthAngle);
 };
 
 /******************************************************************************

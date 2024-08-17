@@ -776,6 +776,151 @@ Modifier WidgetInputEvent::AccelModifier() {
 }
 
 /******************************************************************************
+ * mozilla::WidgetPointerHelper (MouseEvents.h)
+ ******************************************************************************/
+
+// static
+int32_t WidgetPointerHelper::GetValidTiltValue(int32_t aTilt) {
+  if (MOZ_LIKELY(aTilt >= -90 && aTilt <= 90)) {
+    return aTilt;
+  }
+  while (aTilt > 90) {
+    aTilt -= 180;
+  }
+  while (aTilt < -90) {
+    aTilt += 180;
+  }
+  MOZ_ASSERT(aTilt >= -90 && aTilt <= 90);
+  return aTilt;
+}
+
+// static
+double WidgetPointerHelper::GetValidAltitudeAngle(double aAltitudeAngle) {
+  if (MOZ_LIKELY(aAltitudeAngle >= 0.0 && aAltitudeAngle <= kHalfPi)) {
+    return aAltitudeAngle;
+  }
+  while (aAltitudeAngle > kHalfPi) {
+    aAltitudeAngle -= kHalfPi;
+  }
+  while (aAltitudeAngle < 0.0) {
+    aAltitudeAngle += kHalfPi;
+  }
+  MOZ_ASSERT(aAltitudeAngle >= 0.0 && aAltitudeAngle <= kHalfPi);
+  return aAltitudeAngle;
+}
+
+// static
+double WidgetPointerHelper::GetValidAzimuthAngle(double aAzimuthAngle) {
+  if (MOZ_LIKELY(aAzimuthAngle >= 0.0 && aAzimuthAngle <= kDoublePi)) {
+    return aAzimuthAngle;
+  }
+  while (aAzimuthAngle > kDoublePi) {
+    aAzimuthAngle -= kDoublePi;
+  }
+  while (aAzimuthAngle < 0.0) {
+    aAzimuthAngle += kDoublePi;
+  }
+  MOZ_ASSERT(aAzimuthAngle >= 0.0 && aAzimuthAngle <= kDoublePi);
+  return aAzimuthAngle;
+}
+
+// static
+double WidgetPointerHelper::ComputeAltitudeAngle(int32_t aTiltX,
+                                                 int32_t aTiltY) {
+  // https://w3c.github.io/pointerevents/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle
+  aTiltX = GetValidTiltValue(aTiltX);
+  aTiltY = GetValidTiltValue(aTiltY);
+  if (std::abs(aTiltX) == 90 || std::abs(aTiltY) == 90) {
+    return 0.0;
+  }
+  const double tiltXRadians = kPi / 180.0 * aTiltX;
+  const double tiltYRadians = kPi / 180.0 * aTiltY;
+  if (!aTiltX) {
+    return kHalfPi - std::abs(tiltYRadians);
+  }
+  if (!aTiltY) {
+    return kHalfPi - std::abs(tiltXRadians);
+  }
+  return std::atan(1.0 / std::sqrt(std::pow(std::tan(tiltXRadians), 2) +
+                                   std::pow(std::tan(tiltYRadians), 2)));
+}
+
+// static
+double WidgetPointerHelper::ComputeAzimuthAngle(int32_t aTiltX,
+                                                int32_t aTiltY) {
+  // https://w3c.github.io/pointerevents/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle
+  aTiltX = GetValidTiltValue(aTiltX);
+  aTiltY = GetValidTiltValue(aTiltY);
+  if (!aTiltX) {
+    if (aTiltY > 0) {
+      return kHalfPi;
+    }
+    return aTiltY < 0 ? 3.0 * kHalfPi : 0.0;
+  }
+
+  if (!aTiltY) {
+    return aTiltX < 0 ? kPi : 0.0;
+  }
+
+  if (std::abs(aTiltX) == 90 || std::abs(aTiltY) == 90) {
+    return 0.0;
+  }
+
+  const double tiltXRadians = kPi / 180.0 * aTiltX;
+  const double tiltYRadians = kPi / 180.0 * aTiltY;
+  const double azimuthAngle =
+      std::atan2(std::tan(tiltYRadians), std::tan(tiltXRadians));
+  return azimuthAngle < 0 ? azimuthAngle + kDoublePi : azimuthAngle;
+}
+
+// static
+double WidgetPointerHelper::ComputeTiltX(double aAltitudeAngle,
+                                         double aAzimuthAngle) {
+  // https://w3c.github.io/pointerevents/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle
+  aAltitudeAngle = GetValidAltitudeAngle(aAltitudeAngle);
+  aAzimuthAngle = GetValidAzimuthAngle(aAzimuthAngle);
+  if (aAltitudeAngle == 0.0) {
+    if ((aAzimuthAngle >= 0.0 && aAzimuthAngle < kHalfPi) ||
+        (aAzimuthAngle > 3 * kHalfPi && aAzimuthAngle <= kDoublePi)) {
+      return 90;  // pi / 2 * 180 / pi
+    }
+    if (aAzimuthAngle > kHalfPi && aAzimuthAngle < 3 * kHalfPi) {
+      return -90;  // -1 * pi / 2 * 180 / pi
+    }
+    MOZ_ASSERT(aAzimuthAngle == kHalfPi || aAzimuthAngle == 3 * kHalfPi);
+    return 0.0;
+  }
+
+  constexpr double radToDeg = 180.0 / kPi;
+  return std::floor(
+      std::atan(std::cos(aAzimuthAngle) / std::tan(aAltitudeAngle)) * radToDeg +
+      0.5);
+}
+
+// static
+double WidgetPointerHelper::ComputeTiltY(double aAltitudeAngle,
+                                         double aAzimuthAngle) {
+  // https://w3c.github.io/pointerevents/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle
+  aAltitudeAngle = GetValidAltitudeAngle(aAltitudeAngle);
+  aAzimuthAngle = GetValidAzimuthAngle(aAzimuthAngle);
+  if (aAltitudeAngle == 0.0) {
+    if (aAzimuthAngle > 0.0 && aAzimuthAngle < kPi) {
+      return 90;  // pi / 2 * 180 / pi
+    }
+    if (aAzimuthAngle > kPi && aAzimuthAngle < kDoublePi) {
+      return -90;  // -1 * pi / 2 * 180 / pi
+    }
+    MOZ_ASSERT(aAzimuthAngle == 0.0 || aAzimuthAngle == kPi ||
+               aAzimuthAngle == kDoublePi);
+    return 0.0;
+  }
+  constexpr double radToDeg = 180.0 / kPi;
+  return std::floor(
+      std::atan(std::sin(aAzimuthAngle) / std::tan(aAltitudeAngle)) * radToDeg +
+      0.5);
+}
+
+/******************************************************************************
  * mozilla::WidgetMouseEventBase (MouseEvents.h)
  ******************************************************************************/
 

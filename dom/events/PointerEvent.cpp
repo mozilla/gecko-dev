@@ -29,6 +29,10 @@ PointerEvent::PointerEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
   if (aEvent) {
     mEventIsInternal = false;
+    mTiltX.emplace(aEvent->tiltX);
+    mTiltY.emplace(aEvent->tiltY);
+    // mAltitudeAngle and mAzimuthAngle should be computed when they are
+    // requested by JS.
   } else {
     mEventIsInternal = true;
     mEvent->mRefPoint = LayoutDeviceIntPoint(0, 0);
@@ -126,20 +130,68 @@ already_AddRefed<PointerEvent> PointerEvent::Constructor(
   widgetEvent->mHeight = aParam.mHeight;
   widgetEvent->mPressure = aParam.mPressure;
   widgetEvent->tangentialPressure = aParam.mTangentialPressure;
-  widgetEvent->tiltX = aParam.mTiltX;
-  widgetEvent->tiltY = aParam.mTiltY;
   widgetEvent->twist = aParam.mTwist;
   widgetEvent->mInputSource =
       ConvertStringToPointerType(aParam.mPointerType, trusted);
   widgetEvent->mIsPrimary = aParam.mIsPrimary;
   widgetEvent->mButtons = aParam.mButtons;
 
+  if (aParam.mTiltX.WasPassed()) {
+    e->mTiltX.emplace(aParam.mTiltX.Value());
+  }
+  if (aParam.mTiltY.WasPassed()) {
+    e->mTiltY.emplace(aParam.mTiltY.Value());
+  }
+  if (aParam.mAltitudeAngle.WasPassed()) {
+    e->mAltitudeAngle.emplace(aParam.mAltitudeAngle.Value());
+  }
+  if (aParam.mAzimuthAngle.WasPassed()) {
+    e->mAzimuthAngle.emplace(aParam.mAzimuthAngle.Value());
+  }
   if (!aParam.mCoalescedEvents.IsEmpty()) {
     e->mCoalescedEvents.AppendElements(aParam.mCoalescedEvents);
   }
   if (!aParam.mPredictedEvents.IsEmpty()) {
     e->mPredictedEvents.AppendElements(aParam.mPredictedEvents);
   }
+
+  // If only tiltX and/or tiltY is set, altitudeAngle and azimuthAngle should
+  // be computed from them when they are requested by JS.
+  if ((e->mTiltX || e->mTiltY) && (!e->mAltitudeAngle && !e->mAzimuthAngle)) {
+    if (!e->mTiltX) {
+      e->mTiltX.emplace(0);
+    }
+    if (!e->mTiltY) {
+      e->mTiltY.emplace(0);
+    }
+  }
+  // If only altitudeAngle and/or azimuthAngle is set, tiltX and tiltY should be
+  // computed from them when they are requested by JS.
+  else if ((e->mAltitudeAngle || e->mAzimuthAngle) &&
+           (!e->mTiltX && !e->mTiltY)) {
+    if (!e->mAltitudeAngle) {
+      e->mAltitudeAngle.emplace(WidgetPointerHelper::GetDefaultAltitudeAngle());
+    }
+    if (!e->mAzimuthAngle) {
+      e->mAzimuthAngle.emplace(WidgetPointerHelper::GetDefaultAzimuthAngle());
+    }
+  }
+  // Otherwise, initialize the uninitialized values with their default values
+  else {
+    if (!e->mTiltX) {
+      e->mTiltX.emplace(0);
+    }
+    if (!e->mTiltY) {
+      e->mTiltY.emplace(0);
+    }
+    if (!e->mAltitudeAngle) {
+      e->mAltitudeAngle.emplace(WidgetPointerHelper::GetDefaultAltitudeAngle());
+    }
+    if (!e->mAzimuthAngle) {
+      e->mAzimuthAngle.emplace(WidgetPointerHelper::GetDefaultAzimuthAngle());
+    }
+  }
+
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
   return e.forget();
@@ -225,15 +277,55 @@ float PointerEvent::TangentialPressure() {
 }
 
 int32_t PointerEvent::TiltX() {
-  return ShouldResistFingerprinting() ? 0 : mEvent->AsPointerEvent()->tiltX;
+  if (ShouldResistFingerprinting()) {
+    return 0;
+  }
+  if (mTiltX.isSome()) {
+    return *mTiltX;
+  }
+  mTiltX.emplace(
+      WidgetPointerHelper::ComputeTiltX(*mAltitudeAngle, *mAzimuthAngle));
+  return *mTiltX;
 }
 
 int32_t PointerEvent::TiltY() {
-  return ShouldResistFingerprinting() ? 0 : mEvent->AsPointerEvent()->tiltY;
+  if (ShouldResistFingerprinting()) {
+    return 0;
+  }
+  if (mTiltY.isSome()) {
+    return *mTiltY;
+  }
+  mTiltY.emplace(
+      WidgetPointerHelper::ComputeTiltY(*mAltitudeAngle, *mAzimuthAngle));
+  return *mTiltY;
 }
 
 int32_t PointerEvent::Twist() {
   return ShouldResistFingerprinting() ? 0 : mEvent->AsPointerEvent()->twist;
+}
+
+double PointerEvent::AltitudeAngle() {
+  if (ShouldResistFingerprinting()) {
+    return WidgetPointerHelper::GetDefaultAltitudeAngle();
+  }
+  if (mAltitudeAngle.isSome()) {
+    return *mAltitudeAngle;
+  }
+  mAltitudeAngle.emplace(
+      WidgetPointerHelper::ComputeAltitudeAngle(*mTiltX, *mTiltY));
+  return *mAltitudeAngle;
+}
+
+double PointerEvent::AzimuthAngle() {
+  if (ShouldResistFingerprinting()) {
+    return WidgetPointerHelper::GetDefaultAzimuthAngle();
+  }
+  if (mAzimuthAngle.isSome()) {
+    return *mAzimuthAngle;
+  }
+  mAzimuthAngle.emplace(
+      WidgetPointerHelper::ComputeAzimuthAngle(*mTiltX, *mTiltY));
+  return *mAzimuthAngle;
 }
 
 bool PointerEvent::IsPrimary() { return mEvent->AsPointerEvent()->mIsPrimary; }
@@ -302,7 +394,7 @@ void PointerEvent::GetPredictedEvents(
   aPointerEvents.AppendElements(mPredictedEvents);
 }
 
-bool PointerEvent::ShouldResistFingerprinting() {
+bool PointerEvent::ShouldResistFingerprinting() const {
   // There are three simple situations we don't need to spoof this pointer
   // event.
   //   1. The pref privcy.resistFingerprinting' is false, we fast return here

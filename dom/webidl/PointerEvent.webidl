@@ -21,6 +21,8 @@ interface PointerEvent : MouseEvent
   readonly attribute long tiltX;
   readonly attribute long tiltY;
   readonly attribute long twist;
+  readonly attribute double altitudeAngle;
+  readonly attribute double azimuthAngle;
 
   readonly attribute DOMString pointerType;
   readonly attribute boolean isPrimary;
@@ -37,9 +39,11 @@ dictionary PointerEventInit : MouseEventInit
   long height = 1;
   float pressure = 0;
   float tangentialPressure = 0;
-  long tiltX = 0;
-  long tiltY = 0;
+  long tiltX;
+  long tiltY;
   long twist = 0;
+  double altitudeAngle;
+  double azimuthAngle;
   DOMString pointerType = "";
   boolean isPrimary = false;
   sequence<PointerEvent> coalescedEvents = [];
