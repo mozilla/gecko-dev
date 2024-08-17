@@ -1091,16 +1091,41 @@ void MacroAssembler::cmp32Set(Condition cond, T1 lhs, T2 rhs, Register dest) {
   emitSet(cond, dest);
 }
 
+void MacroAssembler::cmp64Set(Condition cond, Register64 lhs, Register64 rhs,
+                              Register dest) {
+  if (lhs.high == dest || lhs.low == dest || rhs.high == dest ||
+      rhs.low == dest) {
+    cmp64SetAliased(cond, lhs, rhs, dest);
+  } else {
+    cmp64SetNonAliased(cond, lhs, rhs, dest);
+  }
+}
+
+void MacroAssembler::cmp64Set(Condition cond, Register64 lhs, Imm64 rhs,
+                              Register dest) {
+  if (lhs.high == dest || lhs.low == dest) {
+    cmp64SetAliased(cond, lhs, rhs, dest);
+  } else {
+    cmp64SetNonAliased(cond, lhs, rhs, dest);
+  }
+}
+
+void MacroAssembler::cmp64Set(Condition cond, Address lhs, Register64 rhs,
+                              Register dest) {
+  if (lhs.base == dest || rhs.high == dest || rhs.low == dest) {
+    cmp64SetAliased(cond, lhs, rhs, dest);
+  } else {
+    cmp64SetNonAliased(cond, lhs, rhs, dest);
+  }
+}
+
 void MacroAssembler::cmp64Set(Condition cond, Address lhs, Imm64 rhs,
                               Register dest) {
-  Label success, done;
-
-  branch64(cond, lhs, rhs, &success);
-  move32(Imm32(0), dest);
-  jump(&done);
-  bind(&success);
-  move32(Imm32(1), dest);
-  bind(&done);
+  if (lhs.base == dest) {
+    cmp64SetAliased(cond, lhs, rhs, dest);
+  } else {
+    cmp64SetNonAliased(cond, lhs, rhs, dest);
+  }
 }
 
 template <typename T1, typename T2>
@@ -2735,6 +2760,34 @@ void MacroAssembler::fallibleUnboxPtr(const BaseIndex& src, Register dest,
 
 void MacroAssemblerARMCompat::incrementInt32Value(const Address& addr) {
   asMasm().add32(Imm32(1), ToPayload(addr));
+}
+
+template <typename T1, typename T2>
+void MacroAssemblerARMCompat::cmp64SetAliased(Condition cond, T1 lhs, T2 rhs,
+                                              Register dest) {
+  auto& masm = asMasm();
+
+  Label success, done;
+
+  masm.branch64(cond, lhs, rhs, &success);
+  masm.move32(Imm32(0), dest);
+  masm.jump(&done);
+  masm.bind(&success);
+  masm.move32(Imm32(1), dest);
+  masm.bind(&done);
+}
+
+template <typename T1, typename T2>
+void MacroAssemblerARMCompat::cmp64SetNonAliased(Condition cond, T1 lhs, T2 rhs,
+                                                 Register dest) {
+  auto& masm = asMasm();
+
+  Label done;
+
+  masm.move32(Imm32(1), dest);
+  masm.branch64(cond, lhs, rhs, &done);
+  masm.move32(Imm32(0), dest);
+  masm.bind(&done);
 }
 
 }  // namespace jit

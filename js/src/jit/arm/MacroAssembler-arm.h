@@ -1321,6 +1321,12 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   void cmpPtr(const Address& lhs, ImmGCPtr rhs);
   void cmpPtr(const Address& lhs, Imm32 rhs);
 
+  template <typename T1, typename T2>
+  inline void cmp64SetAliased(Condition cond, T1 lhs, T2 rhs, Register dest);
+
+  template <typename T1, typename T2>
+  inline void cmp64SetNonAliased(Condition cond, T1 lhs, T2 rhs, Register dest);
+
   void setStackArg(Register reg, uint32_t arg);
 
   void breakpoint();

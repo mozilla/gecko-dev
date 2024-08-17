@@ -1480,6 +1480,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
 
+  inline void cmp64Set(Condition cond, Register64 lhs, Register64 rhs,
+                       Register dest) PER_ARCH;
+
+  inline void cmp64Set(Condition cond, Register64 lhs, Imm64 rhs,
+                       Register dest) PER_ARCH;
+
+  inline void cmp64Set(Condition cond, Address lhs, Register64 rhs,
+                       Register dest) PER_ARCH;
+
   inline void cmp64Set(Condition cond, Address lhs, Imm64 rhs,
                        Register dest) PER_ARCH;
 
