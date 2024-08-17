@@ -771,10 +771,6 @@ static inline bool GetTempRegForIntArg(uint32_t usedIntArgs,
   return true;
 }
 
-inline Imm32 Imm64::firstHalf() const { return low(); }
-
-inline Imm32 Imm64::secondHalf() const { return hi(); }
-
 // Forbids nop filling for testing purposes.  Nestable, but nested calls have
 // no effect on the no-nops status; it is only the top level one that counts.
 class AutoForbidNops {

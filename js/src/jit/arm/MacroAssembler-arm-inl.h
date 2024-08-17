@@ -1452,12 +1452,12 @@ void MacroAssembler::branch64(Condition cond, const Address& lhs, Imm64 val,
   Label done;
 
   if (cond == Assembler::Equal) {
-    branch32(Assembler::NotEqual, lhs, val.firstHalf(), &done);
+    branch32(Assembler::NotEqual, lhs, val.low(), &done);
   } else {
-    branch32(Assembler::NotEqual, lhs, val.firstHalf(), label);
+    branch32(Assembler::NotEqual, lhs, val.low(), label);
   }
-  branch32(cond, Address(lhs.base, lhs.offset + sizeof(uint32_t)),
-           val.secondHalf(), label);
+  branch32(cond, Address(lhs.base, lhs.offset + sizeof(uint32_t)), val.hi(),
+           label);
 
   bind(&done);
 }

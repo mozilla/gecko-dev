@@ -167,9 +167,6 @@ struct Imm64 {
   Imm32 low() const { return Imm32(int32_t(value)); }
 
   Imm32 hi() const { return Imm32(int32_t(value >> 32)); }
-
-  inline Imm32 firstHalf() const;
-  inline Imm32 secondHalf() const;
 };
 
 #ifdef DEBUG

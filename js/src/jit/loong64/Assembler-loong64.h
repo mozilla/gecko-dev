@@ -812,10 +812,6 @@ inline bool is_uintN(int32_t x, unsigned n) {
   return !(x >> n);
 }
 
-inline Imm32 Imm64::firstHalf() const { return low(); }
-
-inline Imm32 Imm64::secondHalf() const { return hi(); }
-
 static constexpr int32_t SliceSize = 1024;
 typedef js::jit::AssemblerBuffer<SliceSize, Instruction> LOONGBuffer;
 

@@ -1691,7 +1691,7 @@ void MacroAssemblerMIPS64Compat::storeValue(JSValueType type, Register reg,
   if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
     store32(reg, dest);
     JSValueShiftedTag tag = (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
-    store32(((Imm64(tag)).secondHalf()), Address(dest.base, dest.offset + 4));
+    store32(((Imm64(tag)).hi()), Address(dest.base, dest.offset + 4));
   } else {
     ma_li(SecondScratchReg, ImmTag(JSVAL_TYPE_TO_TAG(type)));
     ma_dsll(SecondScratchReg, SecondScratchReg, Imm32(JSVAL_TAG_SHIFT));

@@ -1072,10 +1072,6 @@ class Operand {
   }
 };
 
-inline Imm32 Imm64::firstHalf() const { return low(); }
-
-inline Imm32 Imm64::secondHalf() const { return hi(); }
-
 class InstructionIterator {
  private:
   Instruction* inst_;

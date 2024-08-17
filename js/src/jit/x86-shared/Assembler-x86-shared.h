@@ -165,10 +165,6 @@ class Operand {
   }
 };
 
-inline Imm32 Imm64::firstHalf() const { return low(); }
-
-inline Imm32 Imm64::secondHalf() const { return hi(); }
-
 class CPUInfo {
  public:
   // As the SSE's were introduced in order, the presence of a later SSE implies

@@ -1770,7 +1770,7 @@ void MacroAssemblerRiscv64Compat::storeValue(JSValueType type, Register reg,
   if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
     store32(reg, dest);
     JSValueShiftedTag tag = (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
-    store32(((Imm64(tag)).secondHalf()), Address(dest.base, dest.offset + 4));
+    store32(((Imm64(tag)).hi()), Address(dest.base, dest.offset + 4));
   } else {
     ScratchRegisterScope SecondScratchReg(asMasm());
     MOZ_ASSERT(dest.base != SecondScratchReg);

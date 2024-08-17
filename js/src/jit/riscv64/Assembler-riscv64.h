@@ -89,9 +89,6 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 
 class MacroAssembler;
 
-inline Imm32 Imm64::secondHalf() const { return hi(); }
-inline Imm32 Imm64::firstHalf() const { return low(); }
-
 static constexpr uint32_t ABIStackAlignment = 8;
 static constexpr uint32_t CodeAlignment = 16;
 static constexpr uint32_t JitStackAlignment = 8;
