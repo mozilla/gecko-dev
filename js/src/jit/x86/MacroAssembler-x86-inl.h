@@ -965,16 +965,15 @@ void MacroAssembler::branch64(Condition cond, const Address& lhs,
 
   Label done;
 
-  load32(rhs, scratch);
+  load32(LowWord(rhs), scratch);
   if (cond == Assembler::Equal) {
-    branch32(Assembler::NotEqual, lhs, scratch, &done);
+    branch32(Assembler::NotEqual, LowWord(lhs), scratch, &done);
   } else {
-    branch32(Assembler::NotEqual, lhs, scratch, label);
+    branch32(Assembler::NotEqual, LowWord(lhs), scratch, label);
   }
 
-  load32(Address(rhs.base, rhs.offset + sizeof(uint32_t)), scratch);
-  branch32(cond, Address(lhs.base, lhs.offset + sizeof(uint32_t)), scratch,
-           label);
+  load32(HighWord(rhs), scratch);
+  branch32(cond, HighWord(lhs), scratch, label);
 
   bind(&done);
 }
