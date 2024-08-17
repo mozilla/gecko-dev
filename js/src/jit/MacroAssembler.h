@@ -1698,6 +1698,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                             Label* label) PER_SHARED_ARCH;
   inline void branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
                             Label* label) PER_SHARED_ARCH;
+  inline void branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                            Label* label) PER_ARCH;
   inline void branchTestPtr(Condition cond, const Address& lhs, Imm32 rhs,
                             Label* label) PER_SHARED_ARCH;
 

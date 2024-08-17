@@ -1963,6 +1963,11 @@ void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
   branchTest32(cond, lhs, rhs, label);
 }
 
+void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                                   Label* label) {
+  branchTest32(cond, lhs, Imm32(rhs.value), label);
+}
+
 void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
                                    Imm32 rhs, Label* label) {
   branchTest32(cond, lhs, rhs, label);

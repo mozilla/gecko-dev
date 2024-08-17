@@ -354,6 +354,11 @@ void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
   MOZ_CRASH();
 }
 
+void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                                   Label* label) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
                                    Imm32 rhs, Label* label) {
   MOZ_CRASH();

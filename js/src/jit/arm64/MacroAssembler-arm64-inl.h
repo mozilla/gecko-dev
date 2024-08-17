@@ -1595,6 +1595,12 @@ void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
   B(label, cond);
 }
 
+void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                                   Label* label) {
+  Tst(ARMRegister(lhs, 64), Operand(rhs.value));
+  B(label, cond);
+}
+
 void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
                                    Imm32 rhs, Label* label) {
   vixl::UseScratchRegisterScope temps(this);

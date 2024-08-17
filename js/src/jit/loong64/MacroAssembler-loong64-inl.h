@@ -1437,6 +1437,11 @@ void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
   ma_b(scratch, scratch, label, cond);
 }
 
+void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                                   Label* label) {
+  MOZ_CRASH("NYI");
+}
+
 void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
                                    Imm32 rhs, Label* label) {
   SecondScratchRegisterScope scratch2(asMasm());

@@ -979,6 +979,11 @@ void MacroAssembler::branch64(Condition cond, const Address& lhs,
   bind(&done);
 }
 
+void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
+                                   Label* label) {
+  branchTestPtr(cond, lhs, Imm32(rhs.value), label);
+}
+
 void MacroAssembler::branchPtr(Condition cond, const AbsoluteAddress& lhs,
                                Register rhs, Label* label) {
   branchPtrImpl(cond, lhs, rhs, label);
