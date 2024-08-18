@@ -458,7 +458,7 @@ export class UrlbarValueFormatter {
       return false;
     }
 
-    let alias = this._getSearchAlias();
+    let alias = this._findEngineAliasOrRestrictKeyword();
     if (!alias) {
       return false;
     }
@@ -516,7 +516,7 @@ export class UrlbarValueFormatter {
     return true;
   }
 
-  _getSearchAlias() {
+  _findEngineAliasOrRestrictKeyword() {
     // To determine whether the input contains a valid alias, check if the
     // selected result is a search result with an alias. If there is no selected
     // result, we check the first result in the view, for cases when we do not
@@ -529,12 +529,20 @@ export class UrlbarValueFormatter {
       this.urlbarInput.view.getResultAtIndex(0) ||
       this._selectedResult;
 
-    if (
-      this._selectedResult &&
-      this._selectedResult.type == lazy.UrlbarUtils.RESULT_TYPE.SEARCH
-    ) {
-      return this._selectedResult.payload.keyword || null;
+    if (!this._selectedResult) {
+      return null;
     }
+
+    let { type, payload } = this._selectedResult;
+
+    if (type === lazy.UrlbarUtils.RESULT_TYPE.SEARCH) {
+      return payload.keyword || null;
+    }
+
+    if (type === lazy.UrlbarUtils.RESULT_TYPE.RESTRICT) {
+      return payload.autofillKeyword || null;
+    }
+
     return null;
   }
 

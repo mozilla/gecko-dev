@@ -2128,7 +2128,9 @@ export class UrlbarInput {
   }) {
     if (
       !result ||
-      (checkValue && this.value.trim() != result.payload.keyword?.trim())
+      (checkValue &&
+        this.value.trim() != result.payload.keyword?.trim() &&
+        this.value.trim() != result.payload.autofillKeyword?.trim())
     ) {
       return false;
     }
@@ -2387,6 +2389,8 @@ export class UrlbarInput {
         return result.payload.content;
       case lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC:
         return result.payload.input || "";
+      case lazy.UrlbarUtils.RESULT_TYPE.RESTRICT:
+        return result.payload.autofillKeyword + " ";
     }
 
     // Always respect a set urlOverride property.

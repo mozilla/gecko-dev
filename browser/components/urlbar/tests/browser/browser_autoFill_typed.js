@@ -132,6 +132,84 @@ add_task(async function tokenAlias() {
   await cleanUp();
 });
 
+if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+  add_task(async function restrictKeywords() {
+    await typeAndCheck([
+      ["@", "@"],
+      ["h", "@history "],
+      ["i", "@history "],
+      ["s", "@history "],
+      ["t", "@history "],
+      ["o", "@history "],
+      ["r", "@history "],
+      ["y", "@history "],
+    ]);
+    gURLBar.value = "";
+
+    await typeAndCheck([
+      ["@", "@"],
+      ["H", "@History "],
+      ["i", "@History "],
+      ["S", "@HiStory "],
+      ["t", "@HiStory "],
+      ["O", "@HiStOry "],
+      ["r", "@HiStOry "],
+      ["Y", "@HiStOrY "],
+    ]);
+    gURLBar.value = "";
+
+    await typeAndCheck([
+      ["@", "@"],
+      ["t", "@tabs "],
+      ["a", "@tabs "],
+      ["b", "@tabs "],
+      ["s", "@tabs "],
+    ]);
+    gURLBar.value = "";
+
+    await typeAndCheck([
+      ["@", "@"],
+      ["T", "@Tabs "],
+      ["a", "@Tabs "],
+      ["B", "@TaBs "],
+      ["s", "@TaBs "],
+    ]);
+    gURLBar.value = "";
+
+    await typeAndCheck([
+      ["@", "@"],
+      // typing @b will autofill for bing engine first until we type `@bo` which is
+      // more specific to bookmarks
+      ["b", "@bing "],
+      ["o", "@bookmarks "],
+      ["o", "@bookmarks "],
+      ["k", "@bookmarks "],
+      ["m", "@bookmarks "],
+      ["a", "@bookmarks "],
+      ["r", "@bookmarks "],
+      ["k", "@bookmarks "],
+      ["s", "@bookmarks "],
+    ]);
+    gURLBar.value = "";
+
+    await typeAndCheck([
+      ["@", "@"],
+      // typing @b will autofill for bing engine first until we type `@bo` which is
+      // more specific to bookmarks
+      ["b", "@bing "],
+      ["O", "@bOokmarks "],
+      ["o", "@bOokmarks "],
+      ["K", "@bOoKmarks "],
+      ["m", "@bOoKmarks "],
+      ["A", "@bOoKmArks "],
+      ["r", "@bOoKmArks "],
+      ["K", "@bOoKmArKs "],
+      ["s", "@bOoKmArKs "],
+    ]);
+    await cleanUp();
+  });
+}
+
 async function typeAndCheck(values) {
   gURLBar.focus();
   for (let i = 0; i < values.length; i++) {

@@ -43,6 +43,7 @@ EXTRA_JS_MODULES += [
     "UrlbarProviderRecentSearches.sys.mjs",
     "UrlbarProviderRemoteTabs.sys.mjs",
     "UrlbarProviderRestrictKeywords.sys.mjs",
+    "UrlbarProviderRestrictKeywordsAutofill.sys.mjs",
     "UrlbarProviderSearchSuggestions.sys.mjs",
     "UrlbarProviderSearchTips.sys.mjs",
     "UrlbarProvidersManager.sys.mjs",
