@@ -62,10 +62,7 @@ export class MegalistAlpha extends MozLitElement {
 
   #onShowAllButtonClick() {
     this.displayMode = DISPLAY_MODES.ALL;
-    this.#messageToViewModel("Command", {
-      commandId: "SortByName",
-      snapshotId: 0,
-    });
+    this.#sendCommand("SortByName");
   }
 
   #openMenu(e) {
@@ -75,16 +72,23 @@ export class MegalistAlpha extends MozLitElement {
 
   #onSortByAlertsButtonClick() {
     this.displayMode = DISPLAY_MODES.ALERTS;
-    this.#messageToViewModel("Command", {
-      commandId: "SortByAlerts",
-      snapshotId: 0,
-    });
+    this.#sendCommand("SortByAlerts");
   }
 
   #messageToViewModel(messageName, data) {
     window.windowGlobalChild
       .getActor("Megalist")
       .sendAsyncMessage(messageName, data);
+  }
+
+  #sendCommand(commandId, options = {}) {
+    // TODO(Bug 1913302): snapshotId should be optional for global commands.
+    // Right now, we always pass 0 and overwrite when needed.
+    this.#messageToViewModel("Command", {
+      commandId,
+      snapshotId: 0,
+      ...options,
+    });
   }
 
   receiveShowSnapshots({ snapshots }) {
@@ -219,8 +223,14 @@ export class MegalistAlpha extends MozLitElement {
           data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
         ></panel-item>
         <hr />
-        <panel-item data-l10n-id="menu-menuitem-preferences"></panel-item>
-        <panel-item data-l10n-id="about-logins-menu-menuitem-help"></panel-item>
+        <panel-item
+          data-l10n-id="menu-menuitem-preferences"
+          @click=${() => this.#sendCommand("Settings")}
+        ></panel-item>
+        <panel-item
+          data-l10n-id="about-logins-menu-menuitem-help"
+          @click=${() => this.#sendCommand("Help")}
+        ></panel-item>
       </panel-list>
     `;
   }
