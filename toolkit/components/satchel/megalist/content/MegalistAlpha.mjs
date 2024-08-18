@@ -211,23 +211,29 @@ export class MegalistAlpha extends MozLitElement {
         data-l10n-id="more-options-popup"
       >
         <panel-item
+          action="import-from-browser"
           data-l10n-id="about-logins-menu-menuitem-import-from-another-browser"
         ></panel-item>
         <panel-item
+          action="import-from-file"
           data-l10n-id="about-logins-menu-menuitem-import-from-a-file"
         ></panel-item>
         <panel-item
+          action="export-logins"
           data-l10n-id="about-logins-menu-menuitem-export-logins2"
         ></panel-item>
         <panel-item
+          action="remove-all-logins"
           data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
         ></panel-item>
         <hr />
         <panel-item
+          action="open-preferences"
           data-l10n-id="menu-menuitem-preferences"
           @click=${() => this.#sendCommand("Settings")}
         ></panel-item>
         <panel-item
+          action="open-help"
           data-l10n-id="about-logins-menu-menuitem-help"
           @click=${() => this.#sendCommand("Help")}
         ></panel-item>

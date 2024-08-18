@@ -28,6 +28,12 @@ const ALERT_VALUES = {
   none: 2,
 };
 
+const SUPPORT_URL =
+  Services.urlFormatter.formatURLPref("app.support.baseURL") +
+  "password-manager-remember-delete-edit-logins";
+
+const PREFRENCES_URL = "about:preferences#privacy-logins";
+
 /**
  * Data source for Logins.
  *
@@ -120,8 +126,8 @@ export class LoginDataSource extends DataSourceBase {
 
       this.#header.executeImportFromBrowser = () => this.#importFromBrowser();
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
-      this.#header.executeSettings = () => this.#openPreferences();
-      this.#header.executeHelp = () => this.#getHelp();
+      this.#header.executeSettings = () => this.#openMenuLink(PREFRENCES_URL);
+      this.#header.executeHelp = () => this.#openMenuLink(SUPPORT_URL);
       this.#header.executeExport = async () => this.#exportAllPasswords();
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -493,24 +499,13 @@ export class LoginDataSource extends DataSourceBase {
     fp.open(fpCallback);
   }
 
-  #openPreferences() {
+  #openMenuLink(url) {
     const { BrowserWindowTracker } = ChromeUtils.importESModule(
       "resource:///modules/BrowserWindowTracker.sys.mjs"
     );
     const browser = BrowserWindowTracker.getTopWindow().gBrowser;
-    browser.ownerGlobal.openPreferences("privacy-logins");
-  }
-
-  #getHelp() {
-    const { BrowserWindowTracker } = ChromeUtils.importESModule(
-      "resource:///modules/BrowserWindowTracker.sys.mjs"
-    );
-    const browser = BrowserWindowTracker.getTopWindow().gBrowser;
-    const SUPPORT_URL =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "password-manager-remember-delete-edit-logins";
-    browser.ownerGlobal.openWebLinkIn(SUPPORT_URL, "tab", {
-      relatedToCurrent: true,
+    browser.ownerGlobal.switchToTabHavingURI(url, true, {
+      ignoreFragment: "whenComparingAndReplace",
     });
   }
 
