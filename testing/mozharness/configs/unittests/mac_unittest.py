@@ -13,7 +13,6 @@ if "MOZ_FETCHES_DIR" in os.environ:
 XPCSHELL_NAME = "xpcshell"
 HTTP3SERVER_NAME = "http3server"
 EXE_SUFFIX = ""
-DISABLE_SCREEN_SAVER = False
 ADJUST_MOUSE_AND_SCREEN = False
 #####
 config = {
@@ -181,10 +180,17 @@ config = {
         # NOTE 'enabled' is only here while we have unconsolidated configs
         {
             "name": "disable_screen_saver",
-            "cmd": ["xset", "s", "off", "s", "reset"],
+            "cmd": [
+                "defaults",
+                "-currentHost",
+                "write",
+                "com.apple.screensaver",
+                "idleTime",
+                "0",
+            ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": False,
-            "enabled": DISABLE_SCREEN_SAVER,
+            "enabled": True,
         },
         {
             "name": "disable_dock",
