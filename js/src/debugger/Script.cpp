@@ -1506,8 +1506,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSOp::TakeDisposeCapability:
     case JSOp::CreateSuppressedError:
-    case JSOp::ThrowWithoutJump:
-    case JSOp::ThrowWithStackWithoutJump:
 #endif
     case JSOp::Goto:
     case JSOp::TableSwitch:

@@ -10,39 +10,75 @@
 #include "frontend/TryEmitter.h"
 #include "frontend/WhileEmitter.h"
 #include "vm/CompletionKind.h"
-#include "vm/DisposeJumpKind.h"
 
 using namespace js;
 using namespace js::frontend;
 
 UsingEmitter::UsingEmitter(BytecodeEmitter* bce) : bce_(bce) {}
 
+bool UsingEmitter::emitThrowIfException() {
+  // [stack] EXC THROWING
+
+  InternalIfEmitter ifThrow(bce_);
+
+  if (!ifThrow.emitThenElse()) {
+    // [stack] EXC
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Throw)) {
+    // [stack]
+    return false;
+  }
+
+  if (!ifThrow.emitElse()) {
+    // [stack] EXC
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack]
+    return false;
+  }
+
+  if (!ifThrow.emitEnd()) {
+    // [stack]
+    return false;
+  }
+
+  return true;
+}
+
 // Explicit Resource Management Proposal
 // DisposeResources ( disposeCapability, completion )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
 bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
-                                   CompletionKind initialCompletion,
-                                   DisposeJumpKind jumpKind) {
+                                   CompletionKind initialCompletion) {
   MOZ_ASSERT(initialCompletion != CompletionKind::Return);
+
+  // [stack] # if CompletionKind::Throw
+  // [stack] EXC
+  // [stack] # otherwise (CompletionKind::Normal)
+  // [stack]
 
   if (hasAwaitUsing_) {
     // Awaits can cause suspension of the current frame and
     // the erasure of the frame's return value, thus we preserve
     // the frame's return value on the value stack.
     if (!bce_->emit1(JSOp::GetRval)) {
-      // [stack] RVAL
+      // [stack] EXC? RVAL
       return false;
     }
 
     // Step 1. Let needsAwait be false.
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] RVAL NEEDS-AWAIT
+      // [stack] EXC? RVAL NEEDS-AWAIT
       return false;
     }
 
     // Step 2. Let hasAwaited be false.
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] RVAL NEEDS-AWAIT HAS-AWAITED
+      // [stack] EXC? RVAL NEEDS-AWAIT HAS-AWAITED
       return false;
     }
   }
@@ -50,18 +86,29 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   // corresponds to completion parameter
   if (initialCompletion == CompletionKind::Throw) {
     if (!bce_->emit1(JSOp::True)) {
-      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
+      // [stack] EXC RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
       return false;
     }
-    if (!bce_->emit1(JSOp::Exception)) {
-      // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC
-      return false;
+
+    if (hasAwaitUsing_) {
+      // [stack] EXC RVAL NEEDS-AWAIT HAS-AWAITED THROWING
+      if (!bce_->emitPickN(4)) {
+        // [stack] RVAL NEEDS-AWAIT HAS-AWAITED THROWING EXC
+        return false;
+      }
+    } else {
+      // [stack] EXC THROWING
+      if (!bce_->emit1(JSOp::Swap)) {
+        // [stack] THROWING EXC
+        return false;
+      }
     }
   } else {
     if (!bce_->emit1(JSOp::False)) {
       // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
       return false;
     }
+
     if (!bce_->emit1(JSOp::Undefined)) {
       // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING UNDEF
       return false;
@@ -620,40 +667,6 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     }
   }
 
-  InternalIfEmitter ifThrow(bce_);
-
-  if (!ifThrow.emitThenElse()) {
-    // [stack] EXC
-    return false;
-  }
-
-  if (jumpKind == DisposeJumpKind::JumpOnError) {
-    if (!bce_->emit1(JSOp::Throw)) {
-      // [stack]
-      return false;
-    }
-  } else {
-    if (!bce_->emit1(JSOp::ThrowWithoutJump)) {
-      // [stack]
-      return false;
-    }
-  }
-
-  if (!ifThrow.emitElse()) {
-    // [stack] EXC
-    return false;
-  }
-
-  if (!bce_->emit1(JSOp::Pop)) {
-    // [stack]
-    return false;
-  }
-
-  if (!ifThrow.emitEnd()) {
-    // [stack]
-    return false;
-  }
-
   return true;
 }
 
@@ -677,19 +690,49 @@ bool UsingEmitter::prepareForAssignment(UsingHint hint) {
 bool UsingEmitter::prepareForForOfLoopIteration() {
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
-  return emitDisposeLoop(*es);
+
+  if (!emitDisposeLoop(*es)) {
+    // [stack] EXC THROWING
+    return false;
+  }
+
+  return emitThrowIfException();
 }
 
 bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
-  return emitDisposeLoop(*es, CompletionKind::Throw,
-                         DisposeJumpKind::NoJumpOnError);
+
+  // [stack] EXC STACK
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] STACK EXC
+    return false;
+  }
+
+  if (!emitDisposeLoop(*es, CompletionKind::Throw)) {
+    // [stack] STACK EXC THROWING
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack] STACK EXC
+    return false;
+  }
+
+  return bce_->emit1(JSOp::Swap);
+  // [stack] EXC STACK
 }
 
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
   MOZ_ASSERT(present->hasDisposables());
-  return emitDisposeLoop(*present);
+
+  if (!emitDisposeLoop(*present)) {
+    // [stack] EXC THROWING
+    return false;
+  }
+
+  return emitThrowIfException();
 }
 
 bool UsingEmitter::emitEnd() {
@@ -701,6 +744,12 @@ bool UsingEmitter::emitEnd() {
   // not have fallthrough behaviour in the normal completion case
   // see comment on controlInfo_ in TryEmitter.h
   if (!emitDisposeLoop(*es)) {
+    //     [stack] EXC THROWING
+    return false;
+  }
+
+  if (!emitThrowIfException()) {
+    //     [stack]
     return false;
   }
 
@@ -716,30 +765,26 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
-  if (!bce_->emitDupAt(2)) {
-    //     [stack] EXC STACK THROWING STACK
-    return false;
-  }
-
-  if (!bce_->emitDupAt(2)) {
-    //     [stack] EXC STACK THROWING EXC STACK
-    return false;
-  }
-
-  if (!bce_->emit1(JSOp::ThrowWithStackWithoutJump)) {
-    //     [stack] EXC STACK THROWING
+  if (!bce_->emitPickN(2)) {
+    //    [stack] STACK THROWING EXC
     return false;
   }
 
   if (!emitDisposeLoop(*es, CompletionKind::Throw)) {
-    //     [stack] EXC STACK THROWING
+    //     [stack] STACK THROWING EXC THROWING
     return false;
   }
 
-  // TODO: The additional code emitted by emitEnd is unreachable
-  // since we enter the finally only in the error case and
-  // DisposeDisposables always throws. Special case the
-  // TryEmitter to not emit in this case. (Bug 1908953)
+  if (!bce_->emit1(JSOp::Pop)) {
+    //     [stack] STACK THROWING EXC
+    return false;
+  }
+
+  if (!bce_->emitUnpickN(2)) {
+    //    [stack] EXC STACK THROWING
+    return false;
+  }
+
   if (!tryEmitter_->emitEnd()) {
     //     [stack]
     return false;

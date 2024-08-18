@@ -7,6 +7,7 @@
 #include "frontend/ForOfLoopControl.h"
 
 #include "frontend/BytecodeEmitter.h"  // BytecodeEmitter
+#include "frontend/EmitterScope.h"     // EmitterScope
 #include "frontend/IfEmitter.h"        // InternalIfEmitter
 #include "vm/CompletionKind.h"         // CompletionKind
 #include "vm/Opcodes.h"                // JSOp
@@ -38,15 +39,21 @@ bool ForOfLoopControl::emitBeginCodeNeedingIteratorClose(BytecodeEmitter* bce) {
 }
 
 bool ForOfLoopControl::emitEndCodeNeedingIteratorClose(BytecodeEmitter* bce) {
-  if (!tryCatch_->emitCatch(TryEmitter::ExceptionStack::Yes
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                            ,
-                            TryEmitter::ForForOfIteratorClose::Yes
-#endif
-                            )) {
+  if (!tryCatch_->emitCatch(TryEmitter::ExceptionStack::Yes)) {
     //              [stack] ITER ... EXCEPTION STACK
     return false;
   }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  // Explicit Resource Management Proposal
+  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
+  // Step 9.i.i.1 Set result to
+  // Completion(DisposeResources(iterationEnv.[[DisposeCapability]], result)).
+  if (!bce->innermostEmitterScope()->prepareForForOfIteratorCloseOnThrow()) {
+    //              [stack] ITER ... EXCEPTION STACK
+    return false;
+  }
+#endif
 
   unsigned slotFromTop = bce->bytecodeSection().stackDepth() - iterDepth_;
   if (!bce->emitDupAt(slotFromTop)) {

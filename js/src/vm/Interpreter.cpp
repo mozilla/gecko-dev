@@ -47,7 +47,6 @@
 #include "vm/BigIntType.h"
 #include "vm/BytecodeUtil.h"  // JSDVG_SEARCH_STACK
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-#  include "vm/DisposeJumpKind.h"
 #  include "vm/ErrorObject.h"
 #endif
 #include "vm/EqualityOperations.h"  // js::StrictlyEqual
@@ -2266,22 +2265,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(LeaveWith)
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    CASE(ThrowWithoutJump) {
-      ReservedRooted<Value> v(&rootValue0);
-      POP_COPY_TO(v);
-      MOZ_ALWAYS_FALSE(ThrowOperation(cx, v));
-    }
-    END_CASE(ThrowWithoutJump)
-
-    CASE(ThrowWithStackWithoutJump) {
-      ReservedRooted<Value> v(&rootValue0);
-      ReservedRooted<Value> stack(&rootValue1);
-      POP_COPY_TO(stack);
-      POP_COPY_TO(v);
-      MOZ_ALWAYS_FALSE(ThrowWithStackOperation(cx, v, stack));
-    }
-    END_CASE(ThrowWithStackWithoutJump)
-
     CASE(AddDisposable) {
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());

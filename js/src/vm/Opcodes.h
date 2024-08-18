@@ -2620,19 +2620,6 @@
      */ \
     MACRO(Throw, throw_, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Throw `exc` without jumping to error handling code.
-     *
-     * This sets the pending exception to `exc` but unlike Throw it doesnt jump
-     * to error-handling code. This is used in Disposable Scopes with for-of loops
-     * to set the updated pending exception in the error case of for-of loops.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands:
-     *   Stack: exc =>
-     */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(ThrowWithoutJump, throw_without_jump, NULL, 1, 1, 0, JOF_BYTE)) \
-    /*
      * Throw `exc`. (ノಠ益ಠ)ノ彡┴──┴
      *
      * This sets the pending exception to `exc`, the pending exception stack
@@ -2651,20 +2638,6 @@
      *   Stack: exc, stack =>
      */ \
     MACRO(ThrowWithStack, throw_with_stack, NULL, 1, 2, 0, JOF_BYTE) \
-    /*
-     * Throw `exc` without jumping to error handling code.
-     *
-     * This sets the pending exception to `exc`, the pending exception stack
-     * to `stack` but unlike ThrowWithStack it doesnt jump to error-handling
-     * code. This is used in Disposable Scopes to set the pending exception as the
-     * initial completion to be used while disposing resources.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands:
-     *   Stack: exc, stack =>
-     */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(ThrowWithStackWithoutJump, throw_with_stack_without_jump, NULL, 1, 2, 0, JOF_BYTE)) \
     /*
      * Create a suppressed error object and push it on the stack.
      *
@@ -3720,13 +3693,15 @@
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
+    IF_RECORD_TUPLE(/* empty */, MACRO(239))     \
+    IF_RECORD_TUPLE(/* empty */, MACRO(240))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(241))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(242))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(243))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(244))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(245))     \
-    IF_RECORD_TUPLE(/* empty */, MACRO(246))     \
-    IF_RECORD_TUPLE(/* empty */, MACRO(247))     \
+    MACRO(246)                                   \
+    MACRO(247)                                   \
     MACRO(248)                                   \
     MACRO(249)                                   \
     MACRO(250)                                   \

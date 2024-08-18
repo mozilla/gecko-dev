@@ -10,7 +10,6 @@
 
 #include "frontend/TryEmitter.h"
 #include "vm/CompletionKind.h"
-#include "vm/DisposeJumpKind.h"
 #include "vm/UsingHint.h"
 
 namespace js::frontend {
@@ -29,10 +28,11 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   bool hasAwaitUsing_ = false;
 
+  [[nodiscard]] bool emitThrowIfException();
+
   [[nodiscard]] bool emitDisposeLoop(
       EmitterScope& es,
-      CompletionKind initialCompletion = CompletionKind::Normal,
-      DisposeJumpKind jumpKind = DisposeJumpKind::JumpOnError);
+      CompletionKind initialCompletion = CompletionKind::Normal);
 
  public:
   explicit UsingEmitter(BytecodeEmitter* bce);

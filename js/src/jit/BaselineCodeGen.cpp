@@ -4893,19 +4893,6 @@ bool BaselineCodeGen<Handler>::emit_CreateSuppressedError() {
   // 1899500)
   MOZ_CRASH("CreateSuppressedError has not been implemented for baseline");
 }
-
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_ThrowWithStackWithoutJump() {
-  // TODO: ThrowWithStackWithoutJump to be implemented for Baseline (Bug
-  // 1899500)
-  MOZ_CRASH("ThrowWithStackWithoutJump has not been implemented for baseline");
-}
-
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_ThrowWithoutJump() {
-  // TODO: ThrowWithoutJump to be implemented for Baseline (Bug 1899500)
-  MOZ_CRASH("ThrowWithoutJump has not been implemented for baseline");
-}
 #endif
 
 template <typename Handler>
