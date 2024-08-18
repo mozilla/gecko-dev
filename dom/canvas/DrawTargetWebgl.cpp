@@ -4301,7 +4301,7 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
     if (xformBounds.IsEmpty()) {
       return true;
     }
-    IntRect fullBounds = RoundedOut(currentTransform.TransformBounds(*bounds));
+    IntRect fullBounds = RoundedOut(xformBounds);
     IntRect clipBounds = fullBounds.Intersect(clipRect);
     // Check if the bounds are completely clipped out.
     if (clipBounds.IsEmpty()) {

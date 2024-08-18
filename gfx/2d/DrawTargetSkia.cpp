@@ -1430,6 +1430,8 @@ Maybe<Rect> DrawTargetSkia::GetGlyphLocalBounds(
     return Nothing();
   }
 
+  // Inflate the bounds to account for potential font hinting.
+  bounds.Inflate(1);
   return Some(bounds);
 }
 
