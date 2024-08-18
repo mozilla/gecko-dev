@@ -22,8 +22,6 @@ dnl = Maintainer debug option (no --enable equivalent)
 dnl =
 dnl ========================================================
 
-AC_SUBST(MOZ_POST_PROGRAM_COMMAND)
-
 AC_SUBST(MOZ_APP_DISPLAYNAME)
 
 dnl Set various defines and substitutions
