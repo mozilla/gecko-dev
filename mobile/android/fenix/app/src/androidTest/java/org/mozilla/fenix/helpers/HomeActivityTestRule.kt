@@ -62,6 +62,7 @@ class HomeActivityTestRule(
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
+        isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -78,6 +79,7 @@ class HomeActivityTestRule(
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
+        this.isMicrosurveyEnabled = isMicrosurveyEnabled
     }
 
     /**
@@ -138,6 +140,7 @@ class HomeActivityTestRule(
             isWallpaperOnboardingEnabled = false,
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,
+            isMicrosurveyEnabled = false,
         )
     }
 }
@@ -179,6 +182,7 @@ class HomeActivityIntentTestRule internal constructor(
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
+        isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -195,6 +199,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
+        this.isMicrosurveyEnabled = isMicrosurveyEnabled
     }
 
     private val longTapUserPreference = getLongPressTimeout()
@@ -266,6 +271,7 @@ class HomeActivityIntentTestRule internal constructor(
         etpPolicy = getETPPolicy(settings)
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings)
         isNavigationToolbarEnabled = settings.navigationToolbarEnabled
+        isMicrosurveyEnabled = settings.microsurveyFeatureEnabled
     }
 
     companion object {
@@ -294,6 +300,7 @@ class HomeActivityIntentTestRule internal constructor(
             isWallpaperOnboardingEnabled = false,
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,
+            isMicrosurveyEnabled = false,
         )
     }
 }
