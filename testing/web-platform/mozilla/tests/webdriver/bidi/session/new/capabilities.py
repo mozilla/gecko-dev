@@ -52,7 +52,6 @@ async def test_proxy(
 @pytest.mark.parametrize(
     "value",
     [
-        None,
         "accept",
         "accept and notify",
         "dismiss",
@@ -65,13 +64,15 @@ async def test_unhandledPromptBehavior_string(new_session, match_capabilities, v
 
     bidi_session = await new_session(capabilities=capabilities)
 
-    if value is None:
-        assert (
-            bidi_session.capabilities.get("unhandledPromptBehavior")
-            == "dismiss and notify"
-        )
-    else:
-        assert bidi_session.capabilities.get("unhandledPromptBehavior") == value
+    assert bidi_session.capabilities.get("unhandledPromptBehavior") == value
+
+
+async def test_unhandledPromptBehavior_without_value(new_session, match_capabilities):
+    capabilities = match_capabilities("alwaysMatch", "unhandledPromptBehavior", None)
+
+    bidi_session = await new_session(capabilities=capabilities)
+
+    assert "unhandledPromptBehavior" not in bidi_session.capabilities
 
 
 @pytest.mark.parametrize("handler", ["accept", "dismiss", "ignore"])
