@@ -3788,6 +3788,11 @@ nsresult HTMLEditor::InsertLinkAroundSelectionAsAction(
     for (const uint32_t i : IntegerRange(attrCount)) {
       const BorrowedAttrInfo attrInfo = anchor->GetAttrInfoAt(i);
       if (const nsAttrName* attrName = attrInfo.mName) {
+        // We don't need to handle _moz_dirty attribute.  If it's required, the
+        // handler should add it to the new element.
+        if (attrName->IsAtom() && attrName->Equals(nsGkAtoms::mozdirty)) {
+          continue;
+        }
         RefPtr<nsAtom> attributeName = attrName->LocalName();
         MOZ_ASSERT(attrInfo.mValue);
         nsString attrValue;

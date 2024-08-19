@@ -10,6 +10,7 @@
 #include "EditorForwards.h"
 #include "HTMLEditor.h"       // for HTMLEditor
 #include "HTMLEditHelpers.h"  // for EditorInlineStyleAndValue
+#include "HTMLEditUtils.h"    // for HTMLEditUtils::IsContainerNode
 
 #include "mozilla/Attributes.h"
 #include "mozilla/OwningNonNull.h"
@@ -186,6 +187,13 @@ class MOZ_STACK_CLASS HTMLEditor::AutoInlineStyleSetter final
     mLastHandledPoint = aEndPoint;
   }
   void OnHandled(nsIContent& aContent) {
+    if (aContent.IsElement() && !HTMLEditUtils::IsContainerNode(aContent)) {
+      if (!mFirstHandledPoint.IsSet()) {
+        mFirstHandledPoint.Set(&aContent);
+      }
+      mLastHandledPoint.SetAfter(&aContent);
+      return;
+    }
     if (!mFirstHandledPoint.IsSet()) {
       mFirstHandledPoint.Set(&aContent, 0u);
     }
