@@ -40,6 +40,11 @@ add_setup(async function () {
     true
   );
 
+  SearchUtils.GENERAL_SEARCH_ENGINE_IDS = new Set([
+    "engine-resourceicon@search.mozilla.org",
+    "engine-reordered@search.mozilla.org",
+  ]);
+
   appDefault = await Services.search.getDefault();
   appPrivateDefault = await Services.search.getDefaultPrivate();
 });

@@ -127,6 +127,37 @@ export class AddonSearchEngine extends SearchEngine {
   }
 
   /**
+   * This will update the add-on search engine if there is no name change.
+   *
+   * @param {object} options
+   *   The options object.
+   * @param {object} [options.configuration]
+   *   The search engine configuration for application provided engines, that
+   *   may be overriding some of the WebExtension's settings.
+   * @param {string} [options.locale]
+   *   The locale to use from the extension for getting details of the search
+   *   engine.
+   * @returns {boolean}
+   *   Returns true if the engine was updated, false otherwise.
+   */
+  async updateIfNoNameChange({ configuration, locale }) {
+    let { baseURI, manifest } = await this.#getExtensionDetailsForLocale(
+      null,
+      locale
+    );
+
+    if (
+      this.name !=
+      manifest.chrome_settings_overrides.search_provider.name.trim()
+    ) {
+      return false;
+    }
+
+    this.#updateFromManifest(baseURI, manifest, locale, configuration);
+    return true;
+  }
+
+  /**
    * Whether or not this engine is provided by the application, e.g. it is
    * in the list of configured search engines. Overrides the definition in
    * `SearchEngine`.
@@ -150,6 +181,13 @@ export class AddonSearchEngine extends SearchEngine {
    */
   get inMemory() {
     return this.#isAppProvided;
+  }
+
+  get isGeneralPurposeEngine() {
+    return !!(
+      this._extensionID &&
+      lazy.SearchUtils.GENERAL_SEARCH_ENGINE_IDS.has(this._extensionID)
+    );
   }
 
   /**

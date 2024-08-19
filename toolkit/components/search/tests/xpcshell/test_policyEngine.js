@@ -42,6 +42,10 @@ add_setup(async function () {
 
   Services.fog.initializeFOG();
   await SearchTestUtils.useTestEngines();
+
+  SearchUtils.GENERAL_SEARCH_ENGINE_IDS = new Set([
+    "engine-resourceicon@search.mozilla.org",
+  ]);
 });
 
 add_task(async function test_enterprise_policy_engine() {

@@ -374,7 +374,6 @@ support-files = [
   "searchSuggestionEngine.xml",
   "searchSuggestionEngine2.xml",
   "searchSuggestionEngine.sjs",
-  "../../../search/test/browser/trendingSuggestionEngine.sjs",
 ]
 
 ["browser_populateAfterPushState.js"]

@@ -1,11 +1,11 @@
 {
-  "version": 10,
+  "version": 1,
   "buildID": "20121106",
   "locale": "en-US",
   "metaData": {},
   "engines": [
     {
-      "id": "engine1",
+      "id": "engine1@search.mozilla.orgdefault",
       "_name": "engine1",
       "_metaData": {
         "alias": "testAlias"
@@ -13,7 +13,7 @@
       "_isAppProvided": true
     },
     {
-      "id": "engine2",
+      "id": "engine2@search.mozilla.orgdefault",
       "_name": "engine2",
       "_metaData": {
         "alias": null,

@@ -124,7 +124,9 @@ add_setup(async function () {
 });
 
 add_task(async function test_engine_with_all_params_set() {
-  let engine = Services.search.getEngineById("testEngine");
+  let engine = Services.search.getEngineById(
+    "testEngine@search.mozilla.orgdefault"
+  );
   Assert.ok(engine, "Should have found the engine");
 
   Assert.equal(
@@ -182,7 +184,9 @@ add_task(async function test_engine_with_all_params_set() {
 });
 
 add_task(async function test_engine_with_some_params_set() {
-  let engine = Services.search.getEngineById("testOtherValuesEngine");
+  let engine = Services.search.getEngineById(
+    "testOtherValuesEngine@search.mozilla.orgdefault"
+  );
   Assert.ok(engine, "Should have found the engine");
 
   Assert.equal(
@@ -219,7 +223,9 @@ add_task(async function test_engine_with_some_params_set() {
 
 add_task(async function test_engine_remote_override() {
   // First check the existing engine doesn't have the overrides.
-  let engine = Services.search.getEngineById("override");
+  let engine = Services.search.getEngineById(
+    "override@search.mozilla.orgdefault"
+  );
   Assert.ok(engine, "Should have found the override engine");
 
   Assert.equal(engine.name, "override name", "Should have the expected name");
@@ -242,7 +248,7 @@ add_task(async function test_engine_remote_override() {
   await Services.search.wrappedJSObject.reset();
   await Services.search.init();
 
-  engine = Services.search.getEngineById("override");
+  engine = Services.search.getEngineById("override@search.mozilla.orgdefault");
   Assert.ok(engine, "Should have found the override engine");
 
   Assert.equal(engine.name, "override name", "Should have the expected name");

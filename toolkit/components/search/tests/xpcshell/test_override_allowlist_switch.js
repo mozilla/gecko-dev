@@ -16,7 +16,7 @@ const ENGINE_NAME = "Simple Engine";
 const ALLOWLIST = [
   {
     thirdPartyId: "simpleengine@tests.mozilla.org",
-    overridesAppIdv2: "simple",
+    overridesId: "simple@search.mozilla.org",
     urls: [
       { search_url: SEARCH_URL_BASE, search_url_get_params: SEARCH_URL_PARAMS },
     ],
@@ -24,7 +24,7 @@ const ALLOWLIST = [
   {
     thirdPartyId: "opensearch@search.mozilla.org",
     engineName: ENGINE_NAME,
-    overridesAppIdv2: "simple",
+    overridesId: "simple@search.mozilla.org",
     urls: [
       { search_url: SEARCH_URL_BASE, search_url_get_params: SEARCH_URL_PARAMS },
     ],
@@ -431,7 +431,7 @@ async function assertCorrectlySwitchedWhenExtended(
   await changeFn();
 
   await assertEngineCorrectlySet({
-    expectedId: "simple",
+    expectedId: "simple@search.mozilla.orgdefault",
     expectedAlias: "star",
     appEngineOverriden: true,
   });
@@ -459,7 +459,7 @@ async function assertCorrectlySwitchedWhenExtended(
     "Should not have attempted to display a notification box"
   );
   await assertEngineCorrectlySet({
-    expectedId: "simple",
+    expectedId: "simple@search.mozilla.orgdefault",
     expectedAlias: "star",
     appEngineOverriden: true,
   });

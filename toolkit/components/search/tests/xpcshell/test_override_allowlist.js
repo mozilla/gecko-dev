@@ -16,7 +16,7 @@ const kOverriddenEngineName = "Simple Engine";
 const allowlist = [
   {
     thirdPartyId: "test@thirdparty.example.com",
-    overridesAppIdv2: "simple",
+    overridesId: "simple@search.mozilla.org",
     urls: [],
   },
 ];
@@ -327,7 +327,7 @@ for (const test of tests) {
         {
           defaultSearchEngine: "simple-addon",
           defaultSearchEngineData: {
-            loadPath: "[app]simple",
+            loadPath: "[app]simple@search.mozilla.org",
             name: "Simple Engine",
             origin: "default",
             submissionURL: test.expected.searchUrl.replace("{searchTerms}", ""),

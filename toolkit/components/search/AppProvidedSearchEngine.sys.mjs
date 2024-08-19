@@ -299,11 +299,21 @@ export class AppProvidedSearchEngine extends SearchEngine {
    *   The saved settings for the user.
    */
   constructor({ config, settings }) {
+    // TODO Bug 1875912 - Remove the webextension.id and webextension.locale when
+    // we're ready to remove old search-config and use search-config-v2 for all
+    // clients. The id in appProvidedSearchEngine should be changed to
+    // engine.identifier.
+    let extensionId = config.webExtension.id;
+    let id = config.webExtension.id + config.webExtension.locale;
+
     super({
-      loadPath: "[app]" + config.identifier,
+      loadPath: "[app]" + extensionId,
       isAppProvided: true,
-      id: config.identifier,
+      id,
     });
+
+    this._extensionID = extensionId;
+    this._locale = config.webExtension.locale;
 
     this.#configurationId = config.identifier;
     this.#init(config);
@@ -336,6 +346,28 @@ export class AppProvidedSearchEngine extends SearchEngine {
     this._urls = [];
     this.#init(configuration);
     lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
+  }
+
+  /**
+   * This will update the application provided search engine if there is no
+   * name change.
+   *
+   * @param {object} options
+   *   The options object.
+   * @param {object} [options.configuration]
+   *   The search engine configuration for application provided engines.
+   * @param {string} [options.locale]
+   *   The locale to use for getting details of the search engine.
+   * @returns {boolean}
+   *   Returns true if the engine was updated, false otherwise.
+   */
+  async updateIfNoNameChange({ configuration, locale }) {
+    if (this.name != configuration.name.trim()) {
+      return false;
+    }
+
+    this.update({ locale, configuration });
+    return true;
   }
 
   /**

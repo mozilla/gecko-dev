@@ -76,7 +76,7 @@ async function checkLoadSettingProperties(
   );
   Assert.equal(engines[0].alias, "testAlias", "Should have set the alias");
   Assert.equal(engines[0].hidden, false, "Should have not hidden the engine");
-  Assert.equal(engines[0].id, "engine1");
+  Assert.equal(engines[0].id, "engine1@search.mozilla.orgdefault");
 
   Assert.equal(
     engines[1].name,
@@ -85,7 +85,7 @@ async function checkLoadSettingProperties(
   );
   Assert.equal(engines[1].alias, "", "Should have not set the alias");
   Assert.equal(engines[1].hidden, true, "Should have hidden the engine");
-  Assert.equal(engines[1].id, "engine2");
+  Assert.equal(engines[1].id, "engine2@search.mozilla.orgdefault");
 
   // The extra engine is the second in the list.
   isSubObjectOf(EXPECTED_ENGINE.engine, engines[2]);
@@ -109,7 +109,10 @@ async function checkLoadSettingProperties(
 
   let migratedSettingsFile = await promiseSettingsData();
 
-  Assert.equal(migratedSettingsFile.engines[0].id, "engine1");
+  Assert.equal(
+    migratedSettingsFile.engines[0].id,
+    "engine1@search.mozilla.orgdefault"
+  );
 
   removeSettingsFile();
 }
@@ -185,12 +188,12 @@ add_task(
 
     Assert.equal(
       migratedSettingsFile.metaData.defaultEngineId,
-      "engine2",
+      "engine2@search.mozilla.orgdefault",
       "When the metaData.current and associated hash are correct, the migration should set the defaultEngineId to the engine id."
     );
     Assert.equal(
       migratedSettingsFile.metaData.privateDefaultEngineId,
-      "engine2",
+      "engine2@search.mozilla.orgdefault",
       "When the metaData.private and associated hash are correct, the migration should set the privateDefaultEngineId to the private engine id."
     );
 
@@ -227,7 +230,7 @@ add_task(
 
     Assert.equal(
       migratedSettingsFile.metaData.defaultEngineId,
-      "engine2",
+      "engine2@search.mozilla.orgdefault",
       "Should ignore invalid metaData.hash when the default engine is application provided."
     );
     Assert.equal(
@@ -238,7 +241,7 @@ add_task(
 
     Assert.equal(
       migratedSettingsFile.metaData.privateDefaultEngineId,
-      "engine2",
+      "engine2@search.mozilla.orgdefault",
       "Should ignore invalid metaData.privateHash when the default private engine is application provided."
     );
     Assert.equal(
