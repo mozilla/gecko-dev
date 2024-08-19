@@ -30,29 +30,29 @@ add_task(async function test_translations_panel_switch_language() {
   FullPageTranslationsTestUtils.assertSelectedFromLanguage({ langTag: "es" });
   FullPageTranslationsTestUtils.assertSelectedToLanguage({ langTag: "en" });
 
-  FullPageTranslationsTestUtils.changeSelectedFromLanguage("en");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("en");
 
   ok(
     translateButton.disabled,
     "The translate button is disabled when the languages are the same"
   );
 
-  FullPageTranslationsTestUtils.changeSelectedFromLanguage("es");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("es");
 
   ok(
     !translateButton.disabled,
     "When the languages are different it can be translated"
   );
 
-  FullPageTranslationsTestUtils.changeSelectedFromLanguage("");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("");
 
   ok(
     translateButton.disabled,
     "The translate button is disabled nothing is selected."
   );
 
-  FullPageTranslationsTestUtils.changeSelectedFromLanguage("en");
-  FullPageTranslationsTestUtils.changeSelectedToLanguage("fr");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("en");
+  await FullPageTranslationsTestUtils.changeSelectedToLanguage("fr");
 
   ok(!translateButton.disabled, "The translate button can now be used");
 
