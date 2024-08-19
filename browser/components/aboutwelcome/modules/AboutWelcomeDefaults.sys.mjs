@@ -674,33 +674,87 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       },
     },
     {
-      id: "AW_AMO_INTRODUCE",
+      id: "AW_ADDONS_PICKER",
       // Show to en-* locales only
       targeting: "localeLanguageCode == 'en'",
       content: {
-        position: "split",
-        split_narrow_bkg_position: "-58px",
-        background:
-          "url('chrome://activity-stream/content/data/content/assets/mr-amo-collection.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
+        position: "center",
         progress_bar: true,
         logo: {},
-        title: { string_id: "amo-screen-title" },
-        subtitle: { string_id: "amo-screen-subtitle" },
-        primary_button: {
-          label: { string_id: "amo-screen-primary-cta" },
+        tiles: {
+          type: "addons-picker",
+          data: [
+            {
+              id: "jid1-MnnxcxisBPnSXQ@jetpack",
+              name: "Privacy Badger",
+              icon: "https://addons.mozilla.org/user-media/addon_icons/506/506646-64.png?modified=mcrushed",
+              type: "extension",
+              description: "Automatically learns to block invisible trackers.",
+              source_id: "ADD_EXTENSION_BUTTON",
+              action: {
+                type: "INSTALL_ADDON_FROM_URL",
+                data: {
+                  url: "https://addons.mozilla.org/firefox/downloads/file/4129240/privacy_badger17-2023.6.23.xpi",
+                  telemetrySource: "aboutwelcome-addon",
+                },
+              },
+            },
+            {
+              id: "@contain-facebook",
+              name: "Facebook Container",
+              icon: "https://addons.mozilla.org/user-media/addon_icons/954/954390-64.png?modified=97d4c956",
+              type: "extension",
+              description: "Prevent Facebook from tracking you around the web.",
+              source_id: "ADD_EXTENSION_BUTTON",
+              action: {
+                type: "INSTALL_ADDON_FROM_URL",
+                data: {
+                  url: "https://addons.mozilla.org/firefox/downloads/file/4141092/facebook_container-2.3.11.xpi",
+                  telemetrySource: "aboutwelcome-addon",
+                },
+              },
+            },
+            {
+              id: "{74145f27-f039-47ce-a470-a662b129930a}",
+              name: "ClearURLs",
+              icon: "https://addons.mozilla.org/user-media/addon_icons/839/839767-64.png?modified=b06fa7ed",
+              type: "extension",
+              description: "Removes tracking elements from URLs.",
+              source_id: "ADD_EXTENSION_BUTTON",
+              action: {
+                type: "INSTALL_ADDON_FROM_URL",
+                data: {
+                  url: "https://addons.mozilla.org/firefox/downloads/file/4064884/clearurls-1.26.1.xpi",
+                  telemetrySource: "aboutwelcome-addon",
+                },
+              },
+            },
+          ],
+        },
+        title: {
+          string_id: "amo-picker-title",
+        },
+        subtitle: {
+          string_id: "amo-picker-subtitle",
+        },
+        additional_button: {
+          label: {
+            string_id: "amo-picker-collection-link",
+          },
+          style: "link",
           action: {
             type: "OPEN_URL",
             data: {
-              args: "https://addons.mozilla.org/en-US/firefox/collections/4757633/25c2b44583534b3fa8fea977c419cd/?page=1&collection_sort=-added",
-              where: "tabshifted",
+              args: "https://addons.mozilla.org",
+              where: "tab",
             },
-            navigate: true,
           },
         },
         secondary_button: {
           label: {
             string_id: "mr2022-onboarding-secondary-skip-button-label",
           },
+          style: "secondary",
           action: {
             navigate: true,
           },
