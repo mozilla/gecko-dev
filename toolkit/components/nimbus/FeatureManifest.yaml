@@ -2242,18 +2242,6 @@ networkingAuth:
         branch: default
         pref: "network.auth.use_redirect_for_retries"
 
-networkingDenyIpAddrAny:
-  description: "Firefox Networking (Necko) Deny IP Address Any"
-  owner: vgosu@mozilla.com
-  hasExposure: false
-  variables:
-    denyIpAddrAny:
-      description: Whether to deny empty (0.0.0.0) IP addresses
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.socket.ip_addr_any.disabled"
-
 pingsender:
   description: "In-product usage of the pingsender telemetry reporter."
   owner: nalexander@mozilla.com

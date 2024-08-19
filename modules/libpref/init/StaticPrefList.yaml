@@ -12444,13 +12444,6 @@
   value: true
   mirror: always
 
-# Disable requests to 0.0.0.0
-# See Bug 1889130
-- name: network.socket.ip_addr_any.disabled
-  type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
-  mirror: always
-
 # Set true to allow resolving proxy for localhost
 - name: network.proxy.allow_hijacking_localhost
   type: RelaxedAtomicBool
