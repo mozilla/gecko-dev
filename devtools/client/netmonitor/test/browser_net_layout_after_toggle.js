@@ -23,6 +23,10 @@ add_task(async function () {
   const firstRequest = document.querySelectorAll(".request-list-item")[0];
   EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
 
+  // Wait for a reflow before measuring the request list height.
+  await new Promise(r =>
+    window.requestAnimationFrame(() => TestUtils.executeSoon(r))
+  );
   const requestsListHeight = getRequestsListHeight(document);
 
   info("Select the inspector");
