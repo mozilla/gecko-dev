@@ -4544,10 +4544,11 @@ var SessionStoreInternal = {
 
     let sidebarBox = aWindow.document.getElementById("sidebar-box");
     let command = sidebarBox.getAttribute("sidebarcommand");
-    // Store width and order from sidebar style
-    winData.sidebar = { style: sidebarBox.style.cssText };
     if (command && sidebarBox.getAttribute("checked") == "true") {
-      winData.sidebar.command = command;
+      winData.sidebar = {
+        command,
+        style: sidebarBox.style.cssText,
+      };
     } else if (winData.sidebar?.command) {
       delete winData.sidebar.command;
     }
@@ -5606,14 +5607,13 @@ var SessionStoreInternal = {
   restoreSidebar(aWindow, aSidebar, isPopup) {
     if (!isPopup) {
       let sidebarBox = aWindow.document.getElementById("sidebar-box");
-      // Always restore sidebar width and order
-      sidebarBox.setAttribute("style", aSidebar.style);
       if (
         aSidebar?.command &&
         (sidebarBox.getAttribute("sidebarcommand") != aSidebar.command ||
           !sidebarBox.getAttribute("checked"))
       ) {
         aWindow.SidebarController.showInitially(aSidebar.command);
+        sidebarBox.setAttribute("style", aSidebar.style);
       }
     }
     if (aSidebar && aWindow.SidebarController.sidebarRevampEnabled) {
