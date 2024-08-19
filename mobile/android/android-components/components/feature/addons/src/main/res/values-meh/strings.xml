@@ -76,8 +76,6 @@
     <string name="mozac_feature_addons_version">Versión</string>
     <!-- The author of an add-on. -->
     <string name="mozac_feature_addons_author">Autor</string>
-    <!-- The authors of an add-on. -->
-    <string name="mozac_feature_addons_authors" moz:removedIn="123" tools:ignore="UnusedResources">Autores</string>
     <!-- The last date that the add-on was updated. -->
     <string name="mozac_feature_addons_last_updated">Nu nɨ´ɨ actualización</string>
     <!-- The developer website (Homepage) of the add-on. -->
@@ -86,16 +84,12 @@
     <string name="mozac_feature_addons_learn_more">Ka´vi kue´eka jie´e permisos</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">Clasificación</string>
-    <!-- A link that points to the detail page of the add-on. -->
-    <string name="mozac_feature_addons_more_info_link" moz:removedIn="126" tools:ignore="UnusedResources">Kue\'eka jííe ka̱a̱ nánuku</string>
     <!-- A link that points to the detail page of the extension. -->
     <string name="mozac_feature_addons_more_info_link_2">Kue\'eka jííe extensión ya\'a</string>
     <!-- The settings of the add-on. -->
     <string name="mozac_feature_addons_settings">Ke´i</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_settings_on">Tɨɨn</string>
-    <!-- Indicates the add-on is disabled. -->
-    <string name="mozac_feature_addons_settings_off" moz:removedIn="125" tools:ignore="UnusedResources">Xina´va</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_allow_in_private_browsing">Jia\'a kaka yu\'unu</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
@@ -104,8 +98,6 @@
     <string name="mozac_feature_addons_not_allowed_in_private_browsing">Ntu satiñu nuu ventana yu\'u</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">Tee</string>
-    <!-- Indicates the add-on is disabled. -->
-    <string name="mozac_feature_addons_disabled" moz:removedIn="125" tools:ignore="UnusedResources">Chiyu´u</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
     <string name="mozac_feature_addons_installed_section">A nchu´un</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the recommended section. -->
@@ -140,34 +132,24 @@
     <string name="mozac_feature_addons_permissions_dialog_deny">Nkuvi jia´a</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Nkuvi-ka</string>
-    <!-- Accessibility content description to install add-on button. -->
-    <string name="mozac_feature_addons_install_addon_content_description" tools:ignore="UnusedResources" moz:removedIn="124">Chu´un ka̱a̱ chunta´an</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_install_addon_content_description_2">Chu´un %1$s</string>
     <!-- This is the label of a button to cancel an ongoing add-on installation. -->
     <string name="mozac_feature_addons_install_addon_dialog_cancel">Nkuvi-ka</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">Reseñas: %1$s</string>
-    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars and / separator and 5 the maximum number of stars e.g (2/5, 4.5/5 or 5/5)  . -->
-    <string name="mozac_feature_addons_rating_content_description" moz:removedIn="124" tools:ignore="UnusedResources">%1$.02f/5</string>
+    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+    <string name="mozac_feature_addons_rating_content_description_2">Calificación: %1$.02f de 5</string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">Ka̱a̱ chunta´an</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">Ke\'i ka̱a̱ chunta´an</string>
-    <!-- The title of the "crash" notification in the add-ons manager -->
-    <string name="mozac_feature_addons_manager_notification_title_text" moz:removedIn="126" tools:ignore="UnusedResources">Nna\'va daa ka̱a̱ chunta\'an</string>
     <!-- The title of the "crash" notification in the extensions manager -->
     <string name="mozac_feature_extensions_manager_notification_title_text">Nna\'va iin nunu daa extensiones</string>
-    <!-- The content of the "crash" notification in the add-ons manager -->
-    <string name="mozac_feature_addons_manager_notification_content_text" moz:removedIn="126" tools:ignore="UnusedResources">Iin a xíín kue\'e daa ka̱a̱ chunta´an ntu kuvi satiñu va\'a, jee ya\'a sá\'á a ka̱a̱ noo\'o ntu satiñu vatu.</string>
     <!-- The content of the "crash" notification in the extensions manager -->
     <string name="mozac_feature_extensions_manager_notification_content_text">Iin a xíín kue\'e daa ka̱a̱ chunta´an ntu kuvi satiñu va\'a, jee ya\'a sá\'á a ka̱a̱ noo\'o ntu satiñu va\'a.</string>
-    <!-- Button to re-enable the add-ons in the "crash" notification -->
-    <string name="mozac_feature_addons_manager_notification_restart_button" moz:removedIn="126" tools:ignore="UnusedResources">Nakajie\'e ka̱a̱ chunta´an</string>
     <!-- Button to re-enable the extensions in the "crash" notification -->
     <string name="mozac_feature_extensions_manager_notification_restart_button">Nkajie\'e daa extension</string>
-    <!-- Button in the add-ons manager that opens AMO in a tab -->
-    <string name="mozac_feature_addons_find_more_addons_button_text" moz:removedIn="126" tools:ignore="UnusedResources">Nánuku daa ka̱a̱ chunta´an</string>
     <!-- Button in the extensions manager that opens AMO in a tab -->
     <string name="mozac_feature_addons_find_more_extensions_button_text">Nánuku kue\'eka extensión</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
@@ -180,8 +162,6 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">Jiniñu\'u %1$d permisos jía </string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">Jiniñu\'u iin permiso jía </string>
-    <!-- Name of the "notification channel" used for displaying a notification for updating an add-on. See https://developer.android.com/training/notify-user/channels -->
-    <string name="mozac_feature_addons_updater_notification_channel" moz:removedIn="126" tools:ignore="UnusedResources">A jíía ka̱a̱ chunta´an</string>
     <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_updater_notification_channel_2">Daa a jíía extensiones</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
@@ -197,15 +177,9 @@
     <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Tee nuu %1$s</string>
     <!-- This is the caption for not yet supported screen caption -->
-    <string name="mozac_feature_addons_not_yet_supported_caption" moz:removedIn="126" tools:ignore="UnusedResources">Se moderniza la tecnología daa ka̱a̱ chunta´ande Firefox. Daa ka̱a̱ chunta´an ni\'ida marcos no compatibles desde Firefox 75 y más allá.</string>
-    <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">Vitan sá´ádani iin soporte para una selección inicial de extensiones recomendadas.</string>
-    <!-- This is the caption for the add-on installation progress overlay -->
-    <string name="mozac_add_on_install_progress_caption" moz:removedIn="126" tools:ignore="UnusedResources">Xinuu jee saa verificar ka̱a̱ chunta\'an</string>
     <!-- This is the caption for the extension installation progress overlay -->
     <string name="mozac_extension_install_progress_caption">Xinuun je ne\'ya extension…</string>
-    <!-- Error shown when something unexpected happened while trying to get the add-on list from the server -->
-    <string name="mozac_feature_addons_failed_to_query_add_ons" moz:removedIn="126" tools:ignore="UnusedResources">Ntu nkuvi nani\'i ka̱a̱ chunta´an!</string>
     <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
     <string name="mozac_feature_addons_failed_to_query_extensions">Failed to query Extensions!</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
@@ -214,18 +188,14 @@
     <string name="mozac_feature_addons_successfully_installed">%1$s nchu\'un vatu</string>
     <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Ntu nkuvi chu\'un %1$s</string>
-    <!-- Text shown after failing to install an add-on for which we don't have its name. -->
-    <string name="mozac_feature_addons_failed_to_install_generic" moz:removedIn="126" tools:ignore="UnusedResources">Ntu nkuvi chu\'un ka̱a̱ chunta´an.</string>
     <!-- Text shown after failing to install an extension for which we don't have its name. -->
     <string name="mozac_feature_addons_extension_failed_to_install">Ntu nkuvi chu\'un extensión ya\'a</string>
-    <!-- Text shown when attempting to install an add-on and a network error happened. -->
-    <string name="mozac_feature_addons_failed_to_install_network_error" moz:removedIn="126" tools:ignore="UnusedResources">Ka̱a̱ chunta´an ntu nkuvi xinuu jiee ntu nkuvi sá\'á conexión.</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Extensión ya\'a ntu nkuvi xinuun jiee iin tixin jíí conexión.</string>
-    <!-- Text shown when attempting to install an add-on and the downloaded file is corrupted. -->
-    <string name="mozac_feature_addons_failed_to_install_corrupt_error" moz:removedIn="126" tools:ignore="UnusedResources">Ka̱a̱ chunta´an ya´a ntu nkuvi chu´un jiee sa̱naan íyo iin a nna̱tá.</string>
+    <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">Ka̱a̱ chunta´an ya´a ntu nkuvi chu´un jiee sa̱naan ntu íyo vatu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
-    <string name="mozac_feature_addons_failed_to_install_not_signed_error" moz:removedIn="126" tools:ignore="UnusedResources">Ka̱a̱ chunta´an ya´a ntu nkuvi chu´un jiee nsa kutunio de íyo vatu.</string>
+    <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Ka̱a̱ chunta´an ya´a ntu nkuvi chu´un jiee ntu jinio de íyo vatu.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ntu nkuvi chu´un jiee ntu kunta´a va´a jii %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
@@ -248,12 +218,8 @@
     <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Ntu nkuvi xita %1$s</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Ka̱a̱ chunta´an ya\'a vaniji ne iin versión yata %1$s</string>
-    <!-- Text shown in not yet supported add-ons section in AddonsManagerAdapter. -->
-    <string name="mozac_feature_addons_unsupported_caption" moz:removedIn="126" tools:ignore="UnusedResources">1 Ka̱a̱ chunta´an</string>
     <!-- Text shown in not yet supported add-ons section. -->
     <string name="mozac_feature_addons_unsupported_caption_2">1 extension</string>
-    <!-- Text shown in not yet supported add-ons section in AddonsManagerAdapter - plural. %1$s is the number of unsupported add-ons -->
-    <string name="mozac_feature_addons_unsupported_caption_plural" moz:removedIn="126" tools:ignore="UnusedResources">%1$s daa ka̱a̱ chunta´an</string>
     <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
     <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s extensiones</string>
     <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
@@ -272,12 +238,8 @@
     <string name="mozac_feature_addons_updater_dialog_status">Estado:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%1$s nchiso nu %2$s</string>
-    <!-- Text shown in the dialog when add-on installation is completed. -->
-    <string name="mozac_feature_addons_installed_dialog_description" moz:removedIn="124" tools:ignore="UnusedResources">Síne nuu menú</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_description_2">Kivɨ %1$s nee %2$s menú.</string>
-    <!-- Confirmation button text for the dialog when add-on installation is completed. -->
-    <string name="mozac_feature_addons_installed_dialog_okay_button" moz:removedIn="124" tools:ignore="UnusedResources">OK, vatu!</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
