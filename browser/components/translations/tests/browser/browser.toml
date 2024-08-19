@@ -101,6 +101,8 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1863227
 
 ["browser_translations_full_page_telemetry_panel_auto_offer_settings.js"]
 
+["browser_translations_full_page_telemetry_retranslate.js"]
+
 ["browser_translations_full_page_telemetry_switch_languages.js"]
 
 ["browser_translations_full_page_telemetry_translation_failure.js"]
