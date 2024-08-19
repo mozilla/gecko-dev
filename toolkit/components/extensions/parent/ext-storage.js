@@ -283,6 +283,9 @@ this.storage = class extends ExtensionAPIPersistent {
         },
 
         session: {
+          get QUOTA_BYTES() {
+            return extensionStorageSession.QUOTA_BYTES;
+          },
           get(items) {
             return extensionStorageSession.get(extension, items);
           },
@@ -294,6 +297,9 @@ this.storage = class extends ExtensionAPIPersistent {
           },
           clear() {
             extensionStorageSession.clear(extension);
+          },
+          getBytesInUse(keys) {
+            return extensionStorageSession.getBytesInUse(extension, keys);
           },
           onChanged: new EventManager({
             context,

@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const { DefaultWeakMap, ExtensionError } = ExtensionUtils;
 
@@ -15,6 +16,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionCommon: "resource://gre/modules/ExtensionCommon.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "enforceSessionQuota",
+  "webextensions.storage.session.enforceQuota",
+  false
+);
 
 function isStructuredCloneHolder(value) {
   return (
@@ -484,12 +492,73 @@ ChromeUtils.defineLazyGetter(ExtensionStorage, "extensionDir", () =>
 
 ExtensionStorage.init();
 
+class QuotaMap extends Map {
+  static QUOTA_BYTES = 10485760;
+
+  bytesUsed = 0;
+
+  /**
+   * @param {string} key
+   * @param {StructuredCloneHolder} holder
+   */
+  dataSize(key, holder) {
+    // Using key.length is not really correct, but is probably less surprising
+    // for developers. We don't need an exact count, just ensure it's bounded.
+    return key.length + holder.dataSize;
+  }
+
+  /**
+   * @param {string} key
+   * @param {StructuredCloneHolder} holder
+   */
+  getSizeDelta(key, holder) {
+    let before = this.has(key) ? this.dataSize(key, this.get(key)) : 0;
+    return this.dataSize(key, holder) - before;
+  }
+
+  /** @param {Record<string, StructuredCloneHolder>} items */
+  checkQuota(items) {
+    let after = this.bytesUsed;
+    for (let [key, holder] of Object.entries(items)) {
+      after += this.getSizeDelta(key, holder);
+    }
+    if (lazy.enforceSessionQuota && after > QuotaMap.QUOTA_BYTES) {
+      throw new ExtensionError(
+        "QuotaExceededError: storage.session API call exceeded its quota limitations."
+      );
+    }
+  }
+
+  set(key, holder) {
+    this.checkQuota({ [key]: holder });
+    this.bytesUsed += this.getSizeDelta(key, holder);
+    return super.set(key, holder);
+  }
+
+  delete(key) {
+    if (this.has(key)) {
+      this.bytesUsed -= this.dataSize(key, this.get(key));
+    }
+    return super.delete(key);
+  }
+
+  clear() {
+    this.bytesUsed = 0;
+    super.clear();
+  }
+}
+
 export var extensionStorageSession = {
-  /** @type {WeakMap<Extension, Map<string, any>>} */
-  buckets: new DefaultWeakMap(_extension => new Map()),
+  /** @type {WeakMap<Extension, QuotaMap>} */
+  buckets: new DefaultWeakMap(_extension => new QuotaMap()),
 
   /** @type {WeakMap<Extension, Set<callback>>} */
   listeners: new DefaultWeakMap(_extension => new Set()),
+
+  get QUOTA_BYTES() {
+    // Even if quota is not enforced yet, report the future default of 10MB.
+    return QuotaMap.QUOTA_BYTES;
+  },
 
   /**
    * @param {Extension} extension
@@ -523,6 +592,10 @@ export var extensionStorageSession = {
   set(extension, items) {
     let bucket = this.buckets.get(extension);
 
+    // set() below also checks the quota for each item, but
+    // this check includes all inputs to avoid partial updates.
+    bucket.checkQuota(items);
+
     let changes = {};
     for (let [key, value] of Object.entries(items)) {
       changes[key] = {
@@ -554,6 +627,24 @@ export var extensionStorageSession = {
     }
     bucket.clear();
     this.notifyListeners(extension, changes);
+  },
+
+  /**
+   * @param {Extension} extension
+   * @param {null | undefined | string | string[] } keys
+   */
+  getBytesInUse(extension, keys) {
+    let bucket = this.buckets.get(extension);
+    if (keys == null) {
+      return bucket.bytesUsed;
+    }
+    let result = 0;
+    for (let k of [].concat(keys)) {
+      if (bucket.has(k)) {
+        result += bucket.dataSize(k, bucket.get(k));
+      }
+    }
+    return result;
   },
 
   registerListener(extension, listener) {

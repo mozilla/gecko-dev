@@ -168,7 +168,7 @@
         ]
       },
       {
-        "id": "StorageAreaSync",
+        "id": "StorageAreaWithUsage",
         "type": "object",
         "functions": [
           {
@@ -334,7 +334,7 @@
     ],
     "properties": {
       "sync": {
-        "$ref": "StorageAreaSync",
+        "$ref": "StorageAreaWithUsage",
         "description": "Items in the <code>sync</code> storage area are synced by the browser.",
         "properties": {
           "QUOTA_BYTES": {
@@ -386,8 +386,13 @@
       },
       "session": {
         "allowedContexts": ["devtools"],
-        "$ref": "StorageArea",
-        "description": "Items in the <code>session</code> storage area are kept in memory, and only until the either browser or extension is closed or reloaded."
+        "$ref": "StorageAreaWithUsage",
+        "description": "Items in the <code>session</code> storage area are kept in memory, and only until the either browser or extension is closed or reloaded.",
+        "properties": {
+          "QUOTA_BYTES": {
+            "description": "The maximum amount of data (in bytes, currently at 10MB) that can be stored in session storage, as measured by the StructuredCloneHolder of every value plus every key's length."
+          }
+        }
       }
     }
   }

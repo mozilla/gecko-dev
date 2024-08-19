@@ -48,6 +48,11 @@ class StructuredCloneBlob final : public nsIMemoryReporter {
                    bool aKeepData, JS::MutableHandle<JS::Value> aResult,
                    ErrorResult& aRv);
 
+  uint64_t DataSize() {
+    return mHolder.isSome() && mHolder->HasData() ? mHolder->BufferData().Size()
+                                                  : 0;
+  }
+
   nsISupports* GetParentObject() const { return nullptr; }
   JSObject* GetWrapper() const { return nullptr; }
 

@@ -18807,6 +18807,7 @@ declare var StreamFilterDataEvent: {
 };
 
 interface StructuredCloneHolder {
+    readonly dataSize: number;
     deserialize(global: any, keepData?: boolean): any;
 }
 

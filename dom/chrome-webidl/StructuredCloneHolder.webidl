@@ -29,6 +29,12 @@ interface StructuredCloneHolder {
               any data, optional object? global = null);
 
   /**
+   * Returns the size of serialized data in bytes. Note that this is smaller
+   * than the actual size of the object in memory, because of buffer sizes etc.
+   */
+  readonly attribute unsigned long long dataSize;
+
+  /**
    * Deserializes the structured clone data in the scope of the given global,
    * and returns the result.
    *
