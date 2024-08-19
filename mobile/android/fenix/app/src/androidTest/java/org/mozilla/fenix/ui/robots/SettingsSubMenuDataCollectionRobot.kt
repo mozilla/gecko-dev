@@ -35,7 +35,6 @@ class SettingsSubMenuDataCollectionRobot {
 
     fun verifyDataCollectionView(
         isUsageAndTechnicalDataEnabled: Boolean,
-        isMarketingDataEnabled: Boolean,
         studiesSummary: String,
     ) {
         assertUIObjectExists(
@@ -45,11 +44,6 @@ class SettingsSubMenuDataCollectionRobot {
             itemContainingText(getStringResource(R.string.preferences_usage_data_description)),
         )
         verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
-        assertUIObjectExists(
-            itemContainingText(getStringResource(R.string.preferences_marketing_data)),
-            itemContainingText(getStringResource(R.string.preferences_marketing_data_description2)),
-        )
-        verifyMarketingDataToggle(isMarketingDataEnabled)
         assertUIObjectExists(
             itemContainingText(getStringResource(R.string.preference_experiments_2)),
             itemContainingText(studiesSummary),
@@ -76,26 +70,6 @@ class SettingsSubMenuDataCollectionRobot {
         Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Verified that the \"Usage and technical data\" toggle is checked: $enabled")
     }
 
-    fun verifyMarketingDataToggle(enabled: Boolean) {
-        Log.i(TAG, "verifyMarketingDataToggle: Trying to verify that the \"Marketing data\" toggle is checked: $enabled")
-        onView(withText(R.string.preferences_marketing_data))
-            .check(
-                matches(
-                    hasCousin(
-                        allOf(
-                            withClassName(endsWith("Switch")),
-                            if (enabled) {
-                                isChecked()
-                            } else {
-                                isNotChecked()
-                            },
-                        ),
-                    ),
-                ),
-            )
-        Log.i(TAG, "verifyMarketingDataToggle: Verified that the \"Marketing data\" toggle is checked: $enabled")
-    }
-
     fun verifyStudiesToggle(enabled: Boolean) {
         Log.i(TAG, "verifyStudiesToggle: Trying to verify that the \"Studies\" toggle is checked: $enabled")
         onView(withId(R.id.studies_switch))
@@ -115,12 +89,6 @@ class SettingsSubMenuDataCollectionRobot {
         Log.i(TAG, "clickUsageAndTechnicalDataToggle: Trying to click the \"Usage and technical data\" toggle")
         itemContainingText(getStringResource(R.string.preference_usage_data)).click()
         Log.i(TAG, "clickUsageAndTechnicalDataToggle: Clicked the \"Usage and technical data\" toggle")
-    }
-
-    fun clickMarketingDataToggle() {
-        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Trying to click the \"Marketing data\" toggle")
-        itemContainingText(getStringResource(R.string.preferences_marketing_data)).click()
-        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Clicked the \"Marketing data\" toggle")
     }
 
     fun clickStudiesOption() {
