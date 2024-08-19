@@ -241,6 +241,7 @@ static const char* gCallbackPrefsForSocketProcess[] = {
     "network.proxy.allow_hijacking_localhost",
     "network.connectivity-service.",
     "network.captive-portal-service.testMode",
+    "network.socket.ip_addr_any.disabled",
     nullptr,
 };
 
