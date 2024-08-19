@@ -626,3 +626,30 @@ add_task(async function enumeration() {
   await database.delete("string-key");
   await database.delete("bool-key");
 });
+
+add_task(async function stats() {
+  const database = await SQLiteKeyValueService.getOrCreate(":memory:", "db");
+  Assert.strictEqual(await database.isEmpty(), true);
+  Assert.strictEqual(await database.count(), 0);
+  Assert.strictEqual(await database.size(), 0);
+
+  await database.put("int-key", 1234); // 12 (7 + 5) bytes.
+  Assert.strictEqual(await database.isEmpty(), false);
+  Assert.strictEqual(await database.count(), 1);
+  Assert.strictEqual(await database.size(), 12);
+
+  await database.put("double-key", 56.78); // 16 (10 + 6) bytes.
+  Assert.strictEqual(await database.isEmpty(), false);
+  Assert.strictEqual(await database.count(), 2);
+  Assert.strictEqual(await database.size(), 28);
+
+  await database.put("string-key", "Héllo, wőrld!"); // 27 (10 + 17) bytes.
+  Assert.strictEqual(await database.isEmpty(), false);
+  Assert.strictEqual(await database.count(), 3);
+  Assert.strictEqual(await database.size(), 55);
+
+  await database.put("bool-key", true); // 9 (8 + 1) bytes.
+  Assert.strictEqual(await database.isEmpty(), false);
+  Assert.strictEqual(await database.count(), 4);
+  Assert.strictEqual(await database.size(), 64);
+});

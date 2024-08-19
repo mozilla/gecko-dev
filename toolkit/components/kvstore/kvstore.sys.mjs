@@ -107,6 +107,18 @@ class KeyValueDatabase {
     this.database = database;
   }
 
+  isEmpty() {
+    return promisify(this.database.isEmpty);
+  }
+
+  count() {
+    return promisify(this.database.count);
+  }
+
+  size() {
+    return promisify(this.database.size);
+  }
+
   put(key, value) {
     return promisify(this.database.put, key, value);
   }

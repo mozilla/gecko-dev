@@ -70,6 +70,21 @@ interface nsIKeyValueService : nsISupports {
 [scriptable, builtinclass, rust_sync, uuid(c449398e-174c-425b-8195-da6aa0ccd9a5)]
 interface nsIKeyValueDatabase : nsISupports {
     /**
+     * Determine whether or not the database is empty.
+     */
+    void isEmpty(in nsIKeyValueVariantCallback callback);
+
+    /**
+     * Count the number of key/value pairs in the database.
+     */
+    void count(in nsIKeyValueVariantCallback callback);
+
+    /**
+     * Calculate the size, in bytes, of all keys and values in the database.
+     */
+    void size(in nsIKeyValueVariantCallback callback);
+
+    /**
      * Write the specified key/value pair to the database.
      */
     void put(
@@ -154,8 +169,11 @@ interface nsIKeyValueDatabase : nsISupports {
         [optional] in AUTF8String toKey);
 
     /**
-     * Closes the database, so that subsequent attempts to read from or
-     * write to it will fail. Does nothing if the database is already closed.
+     * Close the database.
+     *
+     * Subsequent attempts to read from or write to the database will fail.
+     * If the database is already closed, closing it again succeeds
+     * without effect.
      *
      * This operation always succeeds if the implementation supports
      * closing a database (that is, it's not possible for a database to

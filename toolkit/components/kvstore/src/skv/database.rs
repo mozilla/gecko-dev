@@ -95,15 +95,15 @@ impl<'a> Database<'a> {
                    v.key,
                    json(v.value) AS value
                  FROM
-                    data v
-                  JOIN
-                    dbs d
-                    ON d.id = v.db_id
-                  WHERE
-                    d.name = :name
-                    AND {fragment}
-                  ORDER BY
-                    v.key ASC
+                   data v
+                 JOIN
+                   dbs d
+                   ON d.id = v.db_id
+                 WHERE
+                   d.name = :name
+                   AND {fragment}
+                 ORDER BY
+                   v.key ASC
                 ",
             ))?;
             let params = match (fragment.start_param(), fragment.end_param()) {
@@ -126,6 +126,52 @@ impl<'a> Database<'a> {
                 .collect::<rusqlite::Result<Vec<_>>>()?;
             Ok(values)
         })
+    }
+
+    pub fn is_empty(&self) -> Result<bool, DatabaseError> {
+        // Using the writer here ensures that we'll wait for any in-progress
+        // transactions to commit, instead of returning an about-to-be-stale
+        // result.
+        let writer = self.store.writer()?;
+        Ok(writer.read(|conn| -> Result<_, DatabaseError> {
+            let mut statement = conn.prepare_cached(
+                "SELECT 1 FROM data WHERE db_id = (SELECT id FROM dbs WHERE name = :name)",
+            )?;
+            let exists = statement.exists(rusqlite::named_params! { ":name": self.name })?;
+            Ok(!exists)
+        })?)
+    }
+
+    pub fn count(&self) -> Result<i64, DatabaseError> {
+        // `is_empty` explains why we use the writer here.
+        let writer = self.store.writer()?;
+        Ok(writer.read(|conn| {
+            conn.query_row(
+                "SELECT count(*) FROM data WHERE db_id = (SELECT id FROM dbs WHERE name = :name)",
+                rusqlite::named_params! { ":name": self.name },
+                |row| row.get(0),
+            )
+        })?)
+    }
+
+    pub fn size(&self) -> Result<i64, DatabaseError> {
+        // `is_empty` explains why we use the writer here.
+        let writer = self.store.writer()?;
+        Ok(writer.read(|conn| {
+            conn.query_row(
+                // `octet_length(column)` uses the metadata to calculate the
+                // byte length of TEXT and BLOB values in the `column`, so
+                // it's efficient even for large values.
+                "SELECT
+                   ifnull(sum(octet_length(key) + octet_length(value)), 0)
+                 FROM
+                   data
+                 WHERE
+                   db_id = (SELECT id FROM dbs WHERE name = :name)",
+                rusqlite::named_params! { ":name": self.name },
+                |row| row.get(0),
+            )
+        })?)
     }
 
     /// Prepares a statement that can be used to query or check

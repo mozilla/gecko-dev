@@ -179,6 +179,36 @@ impl KeyValueDatabase {
     }
 
     xpcom_method!(
+        is_empty => IsEmpty(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+
+    fn is_empty(&self, _callback: &nsIKeyValueVariantCallback) -> Result<(), nsresult> {
+        Err(NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(
+        count => Count(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+
+    fn count(&self, _callback: &nsIKeyValueVariantCallback) -> Result<(), nsresult> {
+        Err(NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(
+        size => Size(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+
+    fn size(&self, _callback: &nsIKeyValueVariantCallback) -> Result<(), nsresult> {
+        Err(NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(
         put => Put(
             callback: *const nsIKeyValueVoidCallback,
             key: *const nsACString,

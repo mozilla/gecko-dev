@@ -130,6 +130,97 @@ impl KeyValueDatabase {
     }
 
     xpcom_method!(
+        is_empty => IsEmpty(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+    fn is_empty(&self, callback: &nsIKeyValueVariantCallback) -> Result<(), Infallible> {
+        let store = self.store();
+        let name = self.name.clone();
+        let request =
+            moz_task::spawn_blocking("skv:KeyValueDatabase:IsEmpty:Request", async move {
+                let store = store?;
+                let db = Database::new(&store, &name);
+                Ok(db.is_empty()?)
+            });
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local("skv:KeyValueDatabase:IsEmpty:Response", async move {
+            match signal.aborting(request).await {
+                Ok(b) => unsafe { callback.Resolve(b.into_variant().coerce()) },
+                Err(InterfaceError::Abort(_)) => unsafe {
+                    callback.Reject(&*nsCString::from("isEmpty: aborted"))
+                },
+                Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+            }
+        })
+        .detach();
+
+        Ok(())
+    }
+
+    xpcom_method!(
+        count => Count(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+    fn count(&self, callback: &nsIKeyValueVariantCallback) -> Result<(), Infallible> {
+        let store = self.store();
+        let name = self.name.clone();
+        let request = moz_task::spawn_blocking("skv:KeyValueDatabase:Count:Request", async move {
+            let store = store?;
+            let db = Database::new(&store, &name);
+            Ok(db.count()?)
+        });
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local("skv:KeyValueDatabase:Count:Response", async move {
+            match signal.aborting(request).await {
+                Ok(n) => unsafe { callback.Resolve(n.into_variant().coerce()) },
+                Err(InterfaceError::Abort(_)) => unsafe {
+                    callback.Reject(&*nsCString::from("count: aborted"))
+                },
+                Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+            }
+        })
+        .detach();
+
+        Ok(())
+    }
+
+    xpcom_method!(
+        size => Size(
+            callback: *const nsIKeyValueVariantCallback
+        )
+    );
+    fn size(&self, callback: &nsIKeyValueVariantCallback) -> Result<(), Infallible> {
+        let store = self.store();
+        let name = self.name.clone();
+        let request = moz_task::spawn_blocking("skv:KeyValueDatabase:Size:Request", async move {
+            let store = store?;
+            let db = Database::new(&store, &name);
+            Ok(db.size()?)
+        });
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local("skv:KeyValueDatabase:Size:Response", async move {
+            match signal.aborting(request).await {
+                Ok(n) => unsafe { callback.Resolve(n.into_variant().coerce()) },
+                Err(InterfaceError::Abort(_)) => unsafe {
+                    callback.Reject(&*nsCString::from("size: aborted"))
+                },
+                Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+            }
+        })
+        .detach();
+
+        Ok(())
+    }
+
+    xpcom_method!(
         put => Put(
             callback: *const nsIKeyValueVoidCallback,
             key: *const nsACString,
@@ -350,7 +441,6 @@ impl KeyValueDatabase {
     );
     fn clear(&self, callback: &nsIKeyValueVoidCallback) -> Result<(), Infallible> {
         let store = self.store();
-
         let name = self.name.clone();
         let request = moz_task::spawn_blocking("skv:KeyValueDatabase:Clear:Request", async move {
             let store = store?;
