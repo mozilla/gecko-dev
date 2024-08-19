@@ -98,6 +98,12 @@ add_task(async function test_passwords_menu_external_links() {
   const menu = passwordsSidebar.querySelector("panel-list");
   const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
 
+  // Select the button within the <panel-item> element, as that is the target we want to click.
+  // Triggering a click event directly on the <panel-item> would fail a11y tests because
+  // <panel-item>  has a default role="presentation," which cannot be overridden.
+  const menuItem = selector =>
+    menu.querySelector(selector).shadowRoot.querySelector("button");
+
   menuButton.click();
   await BrowserTestUtils.waitForEvent(menu, "shown");
 
@@ -106,7 +112,7 @@ add_task(async function test_passwords_menu_external_links() {
     PREFERENCES_URL
   );
 
-  menu.querySelector("[action='open-preferences']").click();
+  menuItem("[action='open-preferences']").click();
   await preferencesTabPromise;
   ok(true, "passwords settings in preferences opened.");
 
@@ -114,7 +120,7 @@ add_task(async function test_passwords_menu_external_links() {
   await BrowserTestUtils.waitForEvent(menu, "shown");
   const helpTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, SUPPORT_URL);
 
-  menu.querySelector("[action='open-help']").click();
+  menuItem("[action='open-help']").click();
   const helpTab = await helpTabPromise;
   ok(true, "support link opened.");
 
