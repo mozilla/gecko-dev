@@ -56,17 +56,12 @@ class SettingsPrivacyTest : TestSetup() {
         }.openSettingsSubMenuDataCollection {
             verifyDataCollectionView(
                 true,
-                true,
                 "On",
             )
             clickUsageAndTechnicalDataToggle()
             verifyUsageAndTechnicalDataToggle(false)
             clickUsageAndTechnicalDataToggle()
             verifyUsageAndTechnicalDataToggle(true)
-            clickMarketingDataToggle()
-            verifyMarketingDataToggle(false)
-            clickMarketingDataToggle()
-            verifyMarketingDataToggle(true)
             clickStudiesOption()
             verifyStudiesToggle(true)
             clickStudiesToggle()
