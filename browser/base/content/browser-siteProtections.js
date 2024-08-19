@@ -1387,7 +1387,6 @@ var gProtectionsHandler = {
         blocker.updateCategoryItem();
       }
 
-      this._protectionsPopup.addEventListener("click", this);
       this._protectionsPopup.addEventListener("command", this);
       this._protectionsPopup.addEventListener("popupshown", this);
       this._protectionsPopup.addEventListener("popuphidden", this);
@@ -1405,6 +1404,24 @@ var gProtectionsHandler = {
       notBlockingWhy.addEventListener("focus", openTooltip);
       notBlockingWhy.addEventListener("mouseout", closeTooltip);
       notBlockingWhy.addEventListener("blur", closeTooltip);
+
+      document
+        .getElementById("protections-popup-mainView-panel-header")
+        .addEventListener("click", event =>
+          gProtectionsHandler.onHeaderClicked(event)
+        );
+      document
+        .getElementById(
+          "protections-popup-trackers-blocked-counter-description"
+        )
+        .addEventListener("click", () =>
+          gProtectionsHandler.openProtections(true)
+        );
+      document
+        .getElementById("protections-popup-cookie-banner-switch")
+        .addEventListener("click", () =>
+          gProtectionsHandler.onCookieBannerClick()
+        );
     }
   },
 
@@ -2043,20 +2060,6 @@ var gProtectionsHandler = {
     this.reportBlockingEventTelemetry(event, isSimulated, previousState);
   },
 
-  onClick(event) {
-    switch (event.target.id) {
-      case "protections-popup-mainView-panel-header":
-        gProtectionsHandler.onHeaderClicked(event);
-        break;
-      case "protections-popup-trackers-blocked-counter-description":
-        gProtectionsHandler.openProtections(true);
-        break;
-      case "protections-popup-cookie-banner-switch":
-        gProtectionsHandler.onCookieBannerClick();
-        break;
-    }
-  },
-
   onCommand(event) {
     switch (event.target.id) {
       case "protections-popup-category-trackers":
@@ -2124,9 +2127,6 @@ var gProtectionsHandler = {
   // We handle focus here when the panel is shown.
   handleEvent(event) {
     switch (event.type) {
-      case "click":
-        this.onClick(event);
-        break;
       case "command":
         this.onCommand(event);
         break;
