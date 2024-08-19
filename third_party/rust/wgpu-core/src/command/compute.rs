@@ -484,15 +484,6 @@ impl Global {
         let indices = &state.device.tracker_indices;
         state.tracker.buffers.set_size(indices.buffers.size());
         state.tracker.textures.set_size(indices.textures.size());
-        state
-            .tracker
-            .bind_groups
-            .set_size(indices.bind_groups.size());
-        state
-            .tracker
-            .compute_pipelines
-            .set_size(indices.compute_pipelines.size());
-        state.tracker.query_sets.set_size(indices.query_sets.size());
 
         let timestamp_writes = if let Some(tw) = timestamp_writes.take() {
             tw.query_set
@@ -516,14 +507,12 @@ impl Global {
             // But no point in erroring over that nuance here!
             if let Some(range) = range {
                 unsafe {
-                    state
-                        .raw_encoder
-                        .reset_queries(query_set.raw.as_ref().unwrap(), range);
+                    state.raw_encoder.reset_queries(query_set.raw(), range);
                 }
             }
 
             Some(hal::ComputePassTimestampWrites {
-                query_set: query_set.raw.as_ref().unwrap(),
+                query_set: query_set.raw(),
                 beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
                 end_of_pass_write_index: tw.end_of_pass_write_index,
             })

@@ -7,7 +7,7 @@ use crate::{
         ResolvedBindGroupEntry, ResolvedBindingResource, ResolvedBufferBinding,
     },
     command, conv,
-    device::{bgl, life::WaitIdleError, queue, DeviceError, DeviceLostClosure, DeviceLostReason},
+    device::{bgl, life::WaitIdleError, DeviceError, DeviceLostClosure, DeviceLostReason},
     global::Global,
     hal_api::HalApi,
     id::{self, AdapterId, DeviceId, QueueId, SurfaceId},
@@ -28,11 +28,7 @@ use hal::Device as _;
 
 use wgt::{BufferAddress, TextureFormat};
 
-use std::{
-    borrow::Cow,
-    ptr::NonNull,
-    sync::{atomic::Ordering, Arc},
-};
+use std::{borrow::Cow, ptr::NonNull, sync::atomic::Ordering};
 
 use super::{ImplicitPipelineIds, UserClosures};
 
@@ -673,9 +669,6 @@ impl Global {
                 bgl.exclusive_pipeline
                     .set(binding_model::ExclusivePipeline::None)
                     .unwrap();
-
-                let bgl = Arc::new(bgl);
-
                 Ok(bgl)
             });
 
@@ -764,7 +757,7 @@ impl Global {
                 Err(e) => break 'error e,
             };
 
-            let id = fid.assign(Arc::new(layout));
+            let id = fid.assign(layout);
             api_log!("Device::create_pipeline_layout -> {id:?}");
             return (id, None);
         };
@@ -999,7 +992,7 @@ impl Global {
                 Err(e) => break 'error e,
             };
 
-            let id = fid.assign(Arc::new(shader));
+            let id = fid.assign(shader);
             api_log!("Device::create_shader_module -> {id:?}");
             return (id, None);
         };
@@ -1053,7 +1046,7 @@ impl Global {
                 Ok(shader) => shader,
                 Err(e) => break 'error e,
             };
-            let id = fid.assign(Arc::new(shader));
+            let id = fid.assign(shader);
             api_log!("Device::create_shader_module_spirv -> {id:?}");
             return (id, None);
         };
@@ -1103,7 +1096,7 @@ impl Global {
                 Err(e) => break 'error e,
             };
 
-            let id = fid.assign(Arc::new(command_buffer));
+            let id = fid.assign(command_buffer);
             api_log!("Device::create_command_encoder -> {id:?}");
             return (id.into_command_encoder_id(), None);
         };
@@ -1740,7 +1733,7 @@ impl Global {
             let cache = unsafe { device.create_pipeline_cache(desc) };
             match cache {
                 Ok(cache) => {
-                    let id = fid.assign(Arc::new(cache));
+                    let id = fid.assign(cache);
                     api_log!("Device::create_pipeline_cache -> {id:?}");
                     return (id, None);
                 }
@@ -2040,7 +2033,7 @@ impl Global {
     pub fn device_poll<A: HalApi>(
         &self,
         device_id: DeviceId,
-        maintain: wgt::Maintain<queue::WrappedSubmissionIndex>,
+        maintain: wgt::Maintain<crate::SubmissionIndex>,
     ) -> Result<bool, WaitIdleError> {
         api_log!("Device::poll {maintain:?}");
 
@@ -2049,15 +2042,6 @@ impl Global {
             .devices
             .get(device_id)
             .map_err(|_| DeviceError::InvalidDeviceId)?;
-
-        if let wgt::Maintain::WaitForSubmissionIndex(submission_index) = maintain {
-            if submission_index.queue_id != device_id.into_queue_id() {
-                return Err(WaitIdleError::WrongSubmissionIndex(
-                    submission_index.queue_id,
-                    device_id,
-                ));
-            }
-        }
 
         let DevicePoll {
             closures,
@@ -2071,7 +2055,7 @@ impl Global {
 
     fn poll_single_device<A: HalApi>(
         device: &crate::device::Device<A>,
-        maintain: wgt::Maintain<queue::WrappedSubmissionIndex>,
+        maintain: wgt::Maintain<crate::SubmissionIndex>,
     ) -> Result<DevicePoll, WaitIdleError> {
         let snatch_guard = device.snatchable_lock.read();
         let fence = device.fence.read();
@@ -2207,23 +2191,21 @@ impl Global {
             if !cache.device.is_valid() {
                 return None;
             }
-            if let Some(raw_cache) = cache.raw.as_ref() {
-                let mut vec = unsafe { cache.device.raw().pipeline_cache_get_data(raw_cache) }?;
-                let validation_key = cache.device.raw().pipeline_cache_validation_key()?;
+            let mut vec = unsafe { cache.device.raw().pipeline_cache_get_data(cache.raw()) }?;
+            let validation_key = cache.device.raw().pipeline_cache_validation_key()?;
 
-                let mut header_contents = [0; pipeline_cache::HEADER_LENGTH];
-                pipeline_cache::add_cache_header(
-                    &mut header_contents,
-                    &vec,
-                    &cache.device.adapter.raw.info,
-                    validation_key,
-                );
+            let mut header_contents = [0; pipeline_cache::HEADER_LENGTH];
+            pipeline_cache::add_cache_header(
+                &mut header_contents,
+                &vec,
+                &cache.device.adapter.raw.info,
+                validation_key,
+            );
 
-                let deleted = vec.splice(..0, header_contents).collect::<Vec<_>>();
-                debug_assert!(deleted.is_empty());
+            let deleted = vec.splice(..0, header_contents).collect::<Vec<_>>();
+            debug_assert!(deleted.is_empty());
 
-                return Some(vec);
-            }
+            return Some(vec);
         }
         None
     }
@@ -2434,7 +2416,9 @@ impl Global {
                 Ok((ptr, range_size))
             }
             resource::BufferMapState::Active {
-                ref ptr, ref range, ..
+                ref mapping,
+                ref range,
+                ..
             } => {
                 if offset < range.start {
                     return Err(BufferAccessError::OutOfBoundsUnderrun {
@@ -2453,7 +2437,7 @@ impl Global {
                 let relative_offset = (offset - range.start) as isize;
                 unsafe {
                     Ok((
-                        NonNull::new_unchecked(ptr.as_ptr().offset(relative_offset)),
+                        NonNull::new_unchecked(mapping.ptr.as_ptr().offset(relative_offset)),
                         range_size,
                     ))
                 }

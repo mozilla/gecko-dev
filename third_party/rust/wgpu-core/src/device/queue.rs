@@ -131,13 +131,6 @@ impl SubmittedWorkDoneClosure {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct WrappedSubmissionIndex {
-    pub queue_id: QueueId,
-    pub index: SubmissionIndex,
-}
-
 /// A texture or buffer to be freed soon.
 ///
 /// This is just a tagged raw texture or buffer, generally about to be added to
@@ -730,7 +723,7 @@ impl Global {
                         encoder,
                         &mut trackers.textures,
                         &device.alignments,
-                        device.zero_buffer.as_ref().unwrap(),
+                        &device.zero_buffer,
                         &device.snatchable_lock.read(),
                     )
                     .map_err(QueueWriteError::from)?;
@@ -997,7 +990,7 @@ impl Global {
                         encoder,
                         &mut trackers.textures,
                         &device.alignments,
-                        device.zero_buffer.as_ref().unwrap(),
+                        &device.zero_buffer,
                         &device.snatchable_lock.read(),
                     )
                     .map_err(QueueWriteError::from)?;
@@ -1044,7 +1037,7 @@ impl Global {
         &self,
         queue_id: QueueId,
         command_buffer_ids: &[id::CommandBufferId],
-    ) -> Result<WrappedSubmissionIndex, QueueSubmitError> {
+    ) -> Result<SubmissionIndex, QueueSubmitError> {
         profiling::scope!("Queue::submit");
         api_log!("Queue::submit {queue_id:?}");
 
@@ -1061,8 +1054,7 @@ impl Global {
             let snatch_guard = device.snatchable_lock.read();
 
             // Fence lock must be acquired after the snatch lock everywhere to avoid deadlocks.
-            let mut fence_guard = device.fence.write();
-            let fence = fence_guard.as_mut().unwrap();
+            let mut fence = device.fence.write();
             let submit_index = device
                 .active_submission_index
                 .fetch_add(1, Ordering::SeqCst)
@@ -1151,12 +1143,10 @@ impl Global {
                                 for texture in cmd_buf_trackers.textures.used_resources() {
                                     let should_extend = match texture.try_inner(&snatch_guard)? {
                                         TextureInner::Native { .. } => false,
-                                        TextureInner::Surface { ref raw, .. } => {
-                                            if raw.is_some() {
-                                                // Compare the Arcs by pointer as Textures don't implement Eq.
-                                                submit_surface_textures_owned
-                                                    .insert(Arc::as_ptr(&texture), texture.clone());
-                                            }
+                                        TextureInner::Surface { .. } => {
+                                            // Compare the Arcs by pointer as Textures don't implement Eq.
+                                            submit_surface_textures_owned
+                                                .insert(Arc::as_ptr(&texture), texture.clone());
 
                                             true
                                         }
@@ -1250,12 +1240,10 @@ impl Global {
                 for texture in pending_writes.dst_textures.values() {
                     match texture.try_inner(&snatch_guard)? {
                         TextureInner::Native { .. } => {}
-                        TextureInner::Surface { ref raw, .. } => {
-                            if raw.is_some() {
-                                // Compare the Arcs by pointer as Textures don't implement Eq
-                                submit_surface_textures_owned
-                                    .insert(Arc::as_ptr(texture), texture.clone());
-                            }
+                        TextureInner::Surface { .. } => {
+                            // Compare the Arcs by pointer as Textures don't implement Eq
+                            submit_surface_textures_owned
+                                .insert(Arc::as_ptr(texture), texture.clone());
 
                             unsafe {
                                 used_surface_textures
@@ -1299,10 +1287,11 @@ impl Global {
                     SmallVec::<[_; 2]>::with_capacity(submit_surface_textures_owned.len());
 
                 for texture in submit_surface_textures_owned.values() {
-                    submit_surface_textures.extend(match texture.inner.get(&snatch_guard) {
-                        Some(TextureInner::Surface { raw, .. }) => raw.as_ref(),
-                        _ => None,
-                    });
+                    let raw = match texture.inner.get(&snatch_guard) {
+                        Some(TextureInner::Surface { raw, .. }) => raw,
+                        _ => unreachable!(),
+                    };
+                    submit_surface_textures.push(raw);
                 }
 
                 unsafe {
@@ -1311,7 +1300,7 @@ impl Global {
                         .submit(
                             &hal_command_buffers,
                             &submit_surface_textures,
-                            (fence, submit_index),
+                            (&mut fence, submit_index),
                         )
                         .map_err(DeviceError::from)?;
                 }
@@ -1334,7 +1323,7 @@ impl Global {
 
             // This will schedule destruction of all resources that are no longer needed
             // by the user but used in the command stream, among other things.
-            let fence_guard = RwLockWriteGuard::downgrade(fence_guard);
+            let fence_guard = RwLockWriteGuard::downgrade(fence);
             let (closures, _) =
                 match device.maintain(fence_guard, wgt::Maintain::Poll, snatch_guard) {
                     Ok(closures) => closures,
@@ -1351,10 +1340,7 @@ impl Global {
 
         api_log!("Queue::submit to {queue_id:?} returned submit index {submit_index}");
 
-        Ok(WrappedSubmissionIndex {
-            queue_id,
-            index: submit_index,
-        })
+        Ok(submit_index)
     }
 
     pub fn queue_get_timestamp_period<A: HalApi>(

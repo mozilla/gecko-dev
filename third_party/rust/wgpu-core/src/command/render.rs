@@ -1193,7 +1193,7 @@ impl<'d, A: HalApi> RenderPassInfo<'d, A> {
             }
 
             Some(hal::RenderPassTimestampWrites {
-                query_set: query_set.raw.as_ref().unwrap(),
+                query_set: query_set.raw(),
                 beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
                 end_of_pass_write_index: tw.end_of_pass_write_index,
             })
@@ -1203,7 +1203,7 @@ impl<'d, A: HalApi> RenderPassInfo<'d, A> {
 
         let occlusion_query_set_hal = if let Some(query_set) = occlusion_query_set.as_ref() {
             query_set.same_device(device)?;
-            Some(query_set.raw.as_ref().unwrap())
+            Some(query_set.raw())
         } else {
             None
         };
@@ -1342,9 +1342,20 @@ impl Global {
             hub: &crate::hub::Hub<A>,
             desc: &RenderPassDescriptor<'_>,
             arc_desc: &mut ArcRenderPassDescriptor<A>,
+            device: &Device<A>,
         ) -> Result<(), CommandEncoderError> {
             let query_sets = hub.query_sets.read();
             let texture_views = hub.texture_views.read();
+
+            let max_color_attachments = device.limits.max_color_attachments as usize;
+            if desc.color_attachments.len() > max_color_attachments {
+                return Err(CommandEncoderError::InvalidColorAttachment(
+                    ColorAttachmentError::TooMany {
+                        given: desc.color_attachments.len(),
+                        limit: max_color_attachments,
+                    },
+                ));
+            }
 
             for color_attachment in desc.color_attachments.iter() {
                 if let Some(RenderPassColorAttachment {
@@ -1447,7 +1458,7 @@ impl Global {
             Err(e) => return make_err(e, arc_desc),
         };
 
-        let err = fill_arc_desc(hub, desc, &mut arc_desc).err();
+        let err = fill_arc_desc(hub, desc, &mut arc_desc, &cmd_buf.device).err();
 
         (RenderPass::new(Some(cmd_buf), arc_desc), err)
     }
@@ -1620,13 +1631,6 @@ impl Global {
             let indices = &device.tracker_indices;
             tracker.buffers.set_size(indices.buffers.size());
             tracker.textures.set_size(indices.textures.size());
-            tracker.views.set_size(indices.texture_views.size());
-            tracker.bind_groups.set_size(indices.bind_groups.size());
-            tracker
-                .render_pipelines
-                .set_size(indices.render_pipelines.size());
-            tracker.bundles.set_size(indices.bundles.size());
-            tracker.query_sets.set_size(indices.query_sets.size());
 
             let raw = &mut encoder.raw;
 
@@ -2716,9 +2720,7 @@ fn execute_bundle<A: HalApi>(
 ) -> Result<(), RenderPassErrorInner> {
     api_log!("RenderPass::execute_bundle {}", bundle.error_ident());
 
-    // Have to clone the bundle arc, otherwise we keep a mutable reference to the bundle
-    // while later trying to add the bundle's resources to the tracker.
-    let bundle = state.tracker.bundles.insert_single(bundle).clone();
+    let bundle = state.tracker.bundles.insert_single(bundle);
 
     bundle.same_device_as(cmd_buf.as_ref())?;
 
@@ -2769,7 +2771,6 @@ fn execute_bundle<A: HalApi>(
 
     unsafe {
         state.info.usage_scope.merge_render_bundle(&bundle.used)?;
-        state.tracker.add_from_render_bundle(&bundle.used)?;
     };
     state.reset_bundle();
     Ok(())

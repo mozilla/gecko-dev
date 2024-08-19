@@ -56,15 +56,15 @@ GPU_IMPL_JS_WRAP(Device)
 
 RefPtr<WebGPUChild> Device::GetBridge() { return mBridge; }
 
-Device::Device(Adapter* const aParent, RawId aId,
+Device::Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
                const ffi::WGPULimits& aRawLimits)
     : DOMEventTargetHelper(aParent->GetParentObject()),
-      mId(aId),
+      mId(aDeviceId),
       // features are filled in Adapter::RequestDevice
       mFeatures(new SupportedFeatures(aParent)),
       mLimits(new SupportedLimits(aParent, aRawLimits)),
       mBridge(aParent->mBridge),
-      mQueue(new class Queue(this, aParent->mBridge, aId)) {
+      mQueue(new class Queue(this, aParent->mBridge, aQueueId)) {
   mBridge->RegisterDevice(this);
 }
 

@@ -51,7 +51,12 @@ parent:
   async DeviceCreateBuffer(RawId deviceId, RawId bufferId, GPUBufferDescriptor desc, UnsafeSharedMemoryHandle shm);
 
   async InstanceRequestAdapter(GPURequestAdapterOptions options, RawId[] ids) returns (ByteBuf byteBuf);
-  async AdapterRequestDevice(RawId selfId, ByteBuf buf, RawId newId) returns (bool success);
+  async AdapterRequestDevice(
+      RawId adapterId,
+      ByteBuf descriptorBuf,
+      RawId newDeviceId,
+      RawId newQueueId
+  ) returns (bool success);
   async AdapterDrop(RawId selfId);
   // TODO: We want to return an array of compilation messages.
   async DeviceCreateShaderModule(RawId selfId, RawId bufferId, nsString label, nsCString code) returns (WebGPUCompilationMessage[] messages);

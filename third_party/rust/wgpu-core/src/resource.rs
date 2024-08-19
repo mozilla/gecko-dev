@@ -12,7 +12,7 @@ use crate::{
     init_tracker::{BufferInitTracker, TextureInitTracker},
     lock::{rank, Mutex, RwLock},
     resource_log,
-    snatch::{ExclusiveSnatchGuard, SnatchGuard, Snatchable},
+    snatch::{SnatchGuard, Snatchable},
     track::{SharedTrackerIndexAllocator, TextureSelector, TrackerIndex},
     Label, LabelHelpers,
 };
@@ -173,7 +173,7 @@ macro_rules! impl_labeled {
     };
 }
 
-pub(crate) trait Trackable: Labeled {
+pub(crate) trait Trackable {
     fn tracker_index(&self) -> TrackerIndex;
 }
 
@@ -229,7 +229,7 @@ pub(crate) enum BufferMapState<A: HalApi> {
     Waiting(BufferPendingMapping<A>),
     /// Mapped
     Active {
-        ptr: NonNull<u8>,
+        mapping: hal::BufferMapping,
         range: hal::MemoryRange,
         host: HostMap,
     },
@@ -431,7 +431,6 @@ pub struct Buffer<A: HalApi> {
     pub(crate) usage: wgt::BufferUsages,
     pub(crate) size: wgt::BufferAddress,
     pub(crate) initialization_status: RwLock<BufferInitTracker>,
-    pub(crate) sync_mapped_writes: Mutex<Option<hal::MemoryRange>>,
     /// The `label` from the descriptor used to create the resource.
     pub(crate) label: String,
     pub(crate) tracking_data: TrackingData,
@@ -669,13 +668,18 @@ impl<A: HalApi> Buffer<A> {
             BufferMapState::Waiting(pending) => {
                 return Ok(Some((pending.op, Err(BufferAccessError::MapAborted))));
             }
-            BufferMapState::Active { ptr, range, host } => {
+            BufferMapState::Active {
+                mapping,
+                range,
+                host,
+            } => {
+                #[allow(clippy::collapsible_if)]
                 if host == HostMap::Write {
                     #[cfg(feature = "trace")]
                     if let Some(ref mut trace) = *device.trace.lock() {
                         let size = range.end - range.start;
                         let data = trace.make_binary("bin", unsafe {
-                            std::slice::from_raw_parts(ptr.as_ptr(), size as usize)
+                            std::slice::from_raw_parts(mapping.ptr.as_ptr(), size as usize)
                         });
                         trace.add(trace::Action::WriteBuffer {
                             id: buffer_id,
@@ -684,7 +688,9 @@ impl<A: HalApi> Buffer<A> {
                             queued: false,
                         });
                     }
-                    let _ = (ptr, range);
+                    if !mapping.is_coherent {
+                        unsafe { device.raw().flush_mapped_ranges(raw_buf, iter::once(range)) };
+                    }
                 }
                 unsafe { device.raw().unmap_buffer(raw_buf) };
             }
@@ -947,17 +953,16 @@ pub(crate) enum TextureInner<A: HalApi> {
         raw: A::Texture,
     },
     Surface {
-        raw: Option<A::SurfaceTexture>,
+        raw: A::SurfaceTexture,
         parent_id: SurfaceId,
     },
 }
 
 impl<A: HalApi> TextureInner<A> {
-    pub(crate) fn raw(&self) -> Option<&A::Texture> {
+    pub(crate) fn raw(&self) -> &A::Texture {
         match self {
-            Self::Native { raw } => Some(raw),
-            Self::Surface { raw: Some(tex), .. } => Some(tex.borrow()),
-            _ => None,
+            Self::Native { raw } => raw,
+            Self::Surface { raw, .. } => raw.borrow(),
         }
     }
 }
@@ -967,11 +972,11 @@ pub enum TextureClearMode<A: HalApi> {
     BufferCopy,
     // View for clear via RenderPass for every subsurface (mip/layer/slice)
     RenderPass {
-        clear_views: SmallVec<[Option<A::TextureView>; 1]>,
+        clear_views: SmallVec<[ManuallyDrop<A::TextureView>; 1]>,
         is_color: bool,
     },
     Surface {
-        clear_view: Option<A::TextureView>,
+        clear_view: ManuallyDrop<A::TextureView>,
     },
     // Texture can't be cleared, attempting to do so will cause panic.
     // (either because it is impossible for the type of texture or it is being destroyed)
@@ -990,7 +995,7 @@ pub struct Texture<A: HalApi> {
     /// The `label` from the descriptor used to create the resource.
     pub(crate) label: String,
     pub(crate) tracking_data: TrackingData,
-    pub(crate) clear_mode: RwLock<TextureClearMode<A>>,
+    pub(crate) clear_mode: TextureClearMode<A>,
     pub(crate) views: Mutex<Vec<Weak<TextureView<A>>>>,
     pub(crate) bind_groups: Mutex<Vec<Weak<BindGroup<A>>>>,
 }
@@ -1025,7 +1030,7 @@ impl<A: HalApi> Texture<A> {
             },
             label: desc.label.to_string(),
             tracking_data: TrackingData::new(device.tracker_indices.textures.clone()),
-            clear_mode: RwLock::new(rank::TEXTURE_CLEAR_MODE, clear_mode),
+            clear_mode,
             views: Mutex::new(rank::TEXTURE_VIEWS, Vec::new()),
             bind_groups: Mutex::new(rank::TEXTURE_BIND_GROUPS, Vec::new()),
         }
@@ -1051,16 +1056,14 @@ impl<A: HalApi> Texture<A> {
 impl<A: HalApi> Drop for Texture<A> {
     fn drop(&mut self) {
         use hal::Device;
-        let mut clear_mode = self.clear_mode.write();
-        let clear_mode = &mut *clear_mode;
-        match *clear_mode {
+        match self.clear_mode {
             TextureClearMode::Surface {
                 ref mut clear_view, ..
             } => {
-                if let Some(view) = clear_view.take() {
-                    unsafe {
-                        self.device.raw().destroy_texture_view(view);
-                    }
+                // SAFETY: We are in the Drop impl and we don't use clear_view anymore after this point.
+                let raw = unsafe { ManuallyDrop::take(clear_view) };
+                unsafe {
+                    self.device.raw().destroy_texture_view(raw);
                 }
             }
             TextureClearMode::RenderPass {
@@ -1068,10 +1071,10 @@ impl<A: HalApi> Drop for Texture<A> {
                 ..
             } => {
                 clear_views.iter_mut().for_each(|clear_view| {
-                    if let Some(view) = clear_view.take() {
-                        unsafe {
-                            self.device.raw().destroy_texture_view(view);
-                        }
+                    // SAFETY: We are in the Drop impl and we don't use clear_view anymore after this point.
+                    let raw = unsafe { ManuallyDrop::take(clear_view) };
+                    unsafe {
+                        self.device.raw().destroy_texture_view(raw);
                     }
                 });
             }
@@ -1098,7 +1101,7 @@ impl<A: HalApi> Texture<A> {
     }
 
     pub(crate) fn raw<'a>(&'a self, snatch_guard: &'a SnatchGuard) -> Option<&'a A::Texture> {
-        self.inner.get(snatch_guard)?.raw()
+        Some(self.inner.get(snatch_guard)?.raw())
     }
 
     pub(crate) fn try_raw<'a>(
@@ -1107,16 +1110,10 @@ impl<A: HalApi> Texture<A> {
     ) -> Result<&'a A::Texture, DestroyedResourceError> {
         self.inner
             .get(guard)
-            .and_then(|t| t.raw())
+            .map(|t| t.raw())
             .ok_or_else(|| DestroyedResourceError(self.error_ident()))
     }
 
-    pub(crate) fn inner_mut<'a>(
-        &'a self,
-        guard: &'a mut ExclusiveSnatchGuard,
-    ) -> Option<&'a mut TextureInner<A>> {
-        self.inner.get_mut(guard)
-    }
     pub(crate) fn get_clear_view<'a>(
         clear_mode: &'a TextureClearMode<A>,
         desc: &'a wgt::TextureDescriptor<(), Vec<wgt::TextureFormat>>,
@@ -1130,7 +1127,7 @@ impl<A: HalApi> Texture<A> {
             TextureClearMode::None => {
                 panic!("Given texture can't be cleared")
             }
-            TextureClearMode::Surface { ref clear_view, .. } => clear_view.as_ref().unwrap(),
+            TextureClearMode::Surface { ref clear_view, .. } => clear_view,
             TextureClearMode::RenderPass {
                 ref clear_views, ..
             } => {
@@ -1141,7 +1138,7 @@ impl<A: HalApi> Texture<A> {
                 } else {
                     mip_level * desc.size.depth_or_array_layers
                 } + depth_or_layer;
-                clear_views[index as usize].as_ref().unwrap()
+                &clear_views[index as usize]
             }
         }
     }
@@ -1306,9 +1303,8 @@ impl Global {
         let hub = A::hub(self);
 
         if let Ok(device) = hub.devices.get(id) {
-            let hal_fence = device.fence.read();
-            let hal_fence = hal_fence.as_ref();
-            hal_fence_callback(hal_fence)
+            let fence = device.fence.read();
+            hal_fence_callback(Some(&fence))
         } else {
             hal_fence_callback(None)
         }
@@ -1691,7 +1687,7 @@ pub struct SamplerDescriptor<'a> {
 
 #[derive(Debug)]
 pub struct Sampler<A: HalApi> {
-    pub(crate) raw: Option<A::Sampler>,
+    pub(crate) raw: ManuallyDrop<A::Sampler>,
     pub(crate) device: Arc<Device<A>>,
     /// The `label` from the descriptor used to create the resource.
     pub(crate) label: String,
@@ -1704,19 +1700,19 @@ pub struct Sampler<A: HalApi> {
 
 impl<A: HalApi> Drop for Sampler<A> {
     fn drop(&mut self) {
-        if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
-            unsafe {
-                use hal::Device;
-                self.device.raw().destroy_sampler(raw);
-            }
+        resource_log!("Destroy raw {}", self.error_ident());
+        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
+        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
+        unsafe {
+            use hal::Device;
+            self.device.raw().destroy_sampler(raw);
         }
     }
 }
 
 impl<A: HalApi> Sampler<A> {
     pub(crate) fn raw(&self) -> &A::Sampler {
-        self.raw.as_ref().unwrap()
+        &self.raw
     }
 }
 
@@ -1787,7 +1783,7 @@ pub type QuerySetDescriptor<'a> = wgt::QuerySetDescriptor<Label<'a>>;
 
 #[derive(Debug)]
 pub struct QuerySet<A: HalApi> {
-    pub(crate) raw: Option<A::QuerySet>,
+    pub(crate) raw: ManuallyDrop<A::QuerySet>,
     pub(crate) device: Arc<Device<A>>,
     /// The `label` from the descriptor used to create the resource.
     pub(crate) label: String,
@@ -1797,12 +1793,12 @@ pub struct QuerySet<A: HalApi> {
 
 impl<A: HalApi> Drop for QuerySet<A> {
     fn drop(&mut self) {
-        if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
-            unsafe {
-                use hal::Device;
-                self.device.raw().destroy_query_set(raw);
-            }
+        resource_log!("Destroy raw {}", self.error_ident());
+        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
+        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
+        unsafe {
+            use hal::Device;
+            self.device.raw().destroy_query_set(raw);
         }
     }
 }
@@ -1815,7 +1811,7 @@ crate::impl_trackable!(QuerySet);
 
 impl<A: HalApi> QuerySet<A> {
     pub(crate) fn raw(&self) -> &A::QuerySet {
-        self.raw.as_ref().unwrap()
+        &self.raw
     }
 }
 

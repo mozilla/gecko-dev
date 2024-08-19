@@ -55,8 +55,8 @@ use std::{
 };
 
 use super::{
-    queue::{self, Queue},
-    DeviceDescriptor, DeviceError, UserClosures, ENTRYPOINT_FAILURE_ERROR, ZERO_BUFFER_SIZE,
+    queue::Queue, DeviceDescriptor, DeviceError, UserClosures, ENTRYPOINT_FAILURE_ERROR,
+    ZERO_BUFFER_SIZE,
 };
 
 /// Structure describing a logical device. Some members are internally mutable,
@@ -80,11 +80,11 @@ use super::{
 /// When locking pending_writes please check that trackers is not locked
 /// trackers should be locked only when needed for the shortest time possible
 pub struct Device<A: HalApi> {
-    raw: Option<A::Device>,
+    raw: ManuallyDrop<A::Device>,
     pub(crate) adapter: Arc<Adapter<A>>,
     pub(crate) queue: OnceCell<Weak<Queue<A>>>,
     queue_to_drop: OnceCell<A::Queue>,
-    pub(crate) zero_buffer: Option<A::Buffer>,
+    pub(crate) zero_buffer: ManuallyDrop<A::Buffer>,
     /// The `label` from the descriptor used to create the resource.
     label: String,
 
@@ -112,7 +112,7 @@ pub struct Device<A: HalApi> {
 
     // NOTE: if both are needed, the `snatchable_lock` must be consistently acquired before the
     // `fence` lock to avoid deadlocks.
-    pub(crate) fence: RwLock<Option<A::Fence>>,
+    pub(crate) fence: RwLock<ManuallyDrop<A::Fence>>,
     pub(crate) snatchable_lock: SnatchLock,
 
     /// Is this device valid? Valid is closely associated with "lose the device",
@@ -169,14 +169,19 @@ impl<A: HalApi> std::fmt::Debug for Device<A> {
 impl<A: HalApi> Drop for Device<A> {
     fn drop(&mut self) {
         resource_log!("Drop {}", self.error_ident());
-        let raw = self.raw.take().unwrap();
+        // SAFETY: We are in the Drop impl and we don't use self.raw anymore after this point.
+        let raw = unsafe { ManuallyDrop::take(&mut self.raw) };
+        // SAFETY: We are in the Drop impl and we don't use self.zero_buffer anymore after this point.
+        let zero_buffer = unsafe { ManuallyDrop::take(&mut self.zero_buffer) };
         // SAFETY: We are in the Drop impl and we don't use self.pending_writes anymore after this point.
         let pending_writes = unsafe { ManuallyDrop::take(&mut self.pending_writes.lock()) };
+        // SAFETY: We are in the Drop impl and we don't use self.fence anymore after this point.
+        let fence = unsafe { ManuallyDrop::take(&mut self.fence.write()) };
         pending_writes.dispose(&raw);
         self.command_allocator.dispose(&raw);
         unsafe {
-            raw.destroy_buffer(self.zero_buffer.take().unwrap());
-            raw.destroy_fence(self.fence.write().take().unwrap());
+            raw.destroy_buffer(zero_buffer);
+            raw.destroy_fence(fence);
             let queue = self.queue_to_drop.take().unwrap();
             raw.exit(queue);
         }
@@ -193,7 +198,7 @@ pub enum CreateDeviceError {
 
 impl<A: HalApi> Device<A> {
     pub(crate) fn raw(&self) -> &A::Device {
-        self.raw.as_ref().unwrap()
+        &self.raw
     }
     pub(crate) fn require_features(&self, feature: wgt::Features) -> Result<(), MissingFeatures> {
         if self.features.contains(feature) {
@@ -271,16 +276,16 @@ impl<A: HalApi> Device<A> {
         let downlevel = adapter.raw.capabilities.downlevel.clone();
 
         Ok(Self {
-            raw: Some(raw_device),
+            raw: ManuallyDrop::new(raw_device),
             adapter: adapter.clone(),
             queue: OnceCell::new(),
             queue_to_drop: OnceCell::new(),
-            zero_buffer: Some(zero_buffer),
+            zero_buffer: ManuallyDrop::new(zero_buffer),
             label: desc.label.to_string(),
             command_allocator,
             active_submission_index: AtomicU64::new(0),
             last_successful_submission_index: AtomicU64::new(0),
-            fence: RwLock::new(rank::DEVICE_FENCE, Some(fence)),
+            fence: RwLock::new(rank::DEVICE_FENCE, ManuallyDrop::new(fence)),
             snatchable_lock: unsafe { SnatchLock::new(rank::DEVICE_SNATCHABLE_LOCK) },
             valid: AtomicBool::new(true),
             trackers: Mutex::new(rank::DEVICE_TRACKERS, DeviceTracker::new()),
@@ -406,29 +411,36 @@ impl<A: HalApi> Device<A> {
     ///   return it to our callers.)
     pub(crate) fn maintain<'this>(
         &'this self,
-        fence_guard: crate::lock::RwLockReadGuard<Option<A::Fence>>,
-        maintain: wgt::Maintain<queue::WrappedSubmissionIndex>,
+        fence: crate::lock::RwLockReadGuard<ManuallyDrop<A::Fence>>,
+        maintain: wgt::Maintain<crate::SubmissionIndex>,
         snatch_guard: SnatchGuard,
     ) -> Result<(UserClosures, bool), WaitIdleError> {
         profiling::scope!("Device::maintain");
 
-        let fence = fence_guard.as_ref().unwrap();
-
         // Determine which submission index `maintain` represents.
         let submission_index = match maintain {
             wgt::Maintain::WaitForSubmissionIndex(submission_index) => {
-                // We don't need to check to see if the queue id matches
-                // as we already checked this from inside the poll call.
-                submission_index.index
+                let last_successful_submission_index = self
+                    .last_successful_submission_index
+                    .load(Ordering::Acquire);
+
+                if let wgt::Maintain::WaitForSubmissionIndex(submission_index) = maintain {
+                    if submission_index > last_successful_submission_index {
+                        return Err(WaitIdleError::WrongSubmissionIndex(
+                            submission_index,
+                            last_successful_submission_index,
+                        ));
+                    }
+                }
+
+                submission_index
             }
             wgt::Maintain::Wait => self
                 .last_successful_submission_index
                 .load(Ordering::Acquire),
             wgt::Maintain::Poll => unsafe {
-                self.raw
-                    .as_ref()
-                    .unwrap()
-                    .get_fence_value(fence)
+                self.raw()
+                    .get_fence_value(&fence)
                     .map_err(DeviceError::from)?
             },
         };
@@ -436,10 +448,8 @@ impl<A: HalApi> Device<A> {
         // If necessary, wait for that submission to complete.
         if maintain.is_wait() {
             unsafe {
-                self.raw
-                    .as_ref()
-                    .unwrap()
-                    .wait(fence, submission_index, CLEANUP_WAIT_MS)
+                self.raw()
+                    .wait(&fence, submission_index, CLEANUP_WAIT_MS)
                     .map_err(DeviceError::from)?
             };
         }
@@ -480,7 +490,7 @@ impl<A: HalApi> Device<A> {
 
         // Don't hold the locks while calling release_gpu_resources.
         drop(life_tracker);
-        drop(fence_guard);
+        drop(fence);
         drop(snatch_guard);
 
         if should_release_gpu_resource {
@@ -586,7 +596,6 @@ impl<A: HalApi> Device<A> {
                 rank::BUFFER_INITIALIZATION_STATUS,
                 BufferInitTracker::new(aligned_size),
             ),
-            sync_mapped_writes: Mutex::new(rank::BUFFER_SYNC_MAPPED_WRITES, None),
             map_state: Mutex::new(rank::BUFFER_MAP_STATE, resource::BufferMapState::Idle),
             label: desc.label.to_string(),
             tracking_data: TrackingData::new(self.tracker_indices.buffers.clone()),
@@ -600,8 +609,11 @@ impl<A: HalApi> Device<A> {
         } else if desc.usage.contains(wgt::BufferUsages::MAP_WRITE) {
             // buffer is mappable, so we are just doing that at start
             let map_size = buffer.size;
-            let ptr = if map_size == 0 {
-                std::ptr::NonNull::dangling()
+            let mapping = if map_size == 0 {
+                hal::BufferMapping {
+                    ptr: std::ptr::NonNull::dangling(),
+                    is_coherent: true,
+                }
             } else {
                 let snatch_guard: SnatchGuard = self.snatchable_lock.read();
                 map_buffer(
@@ -614,7 +626,7 @@ impl<A: HalApi> Device<A> {
                 )?
             };
             *buffer.map_state.lock() = resource::BufferMapState::Active {
-                ptr,
+                mapping,
                 range: 0..map_size,
                 host: HostMap::Write,
             };
@@ -683,7 +695,6 @@ impl<A: HalApi> Device<A> {
                 rank::BUFFER_INITIALIZATION_STATUS,
                 BufferInitTracker::new(0),
             ),
-            sync_mapped_writes: Mutex::new(rank::BUFFER_SYNC_MAPPED_WRITES, None),
             map_state: Mutex::new(rank::BUFFER_MAP_STATE, resource::BufferMapState::Idle),
             label: desc.label.to_string(),
             tracking_data: TrackingData::new(self.tracker_indices.buffers.clone()),
@@ -734,8 +745,12 @@ impl<A: HalApi> Device<A> {
                     desc.dimension,
                 ));
             }
+        }
 
-            // Compressed textures can only be 2D
+        if desc.dimension != wgt::TextureDimension::D2
+            && desc.dimension != wgt::TextureDimension::D3
+        {
+            // Compressed textures can only be 2D or 3D
             if desc.format.is_compressed() {
                 return Err(CreateTextureError::InvalidCompressedDimension(
                     desc.dimension,
@@ -765,6 +780,19 @@ impl<A: HalApi> Device<A> {
                         format: desc.format,
                     },
                 ));
+            }
+
+            if desc.dimension == wgt::TextureDimension::D3 {
+                // Only BCn formats with Sliced 3D feature can be used for 3D textures
+                if desc.format.is_bcn() {
+                    self.require_features(wgt::Features::TEXTURE_COMPRESSION_BC_SLICED_3D)
+                        .map_err(|error| CreateTextureError::MissingFeatures(desc.format, error))?;
+                } else {
+                    return Err(CreateTextureError::InvalidCompressedDimension(
+                        desc.dimension,
+                        desc.format,
+                    ));
+                }
             }
         }
 
@@ -901,9 +929,7 @@ impl<A: HalApi> Device<A> {
         };
 
         let raw_texture = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_texture(&hal_desc)
                 .map_err(DeviceError::from)?
         };
@@ -945,7 +971,7 @@ impl<A: HalApi> Device<A> {
                                     array_layer_count: Some(1),
                                 },
                             };
-                            clear_views.push(Some(
+                            clear_views.push(ManuallyDrop::new(
                                 unsafe { self.raw().create_texture_view(&raw_texture, &desc) }
                                     .map_err(DeviceError::from)?,
                             ));
@@ -1254,9 +1280,7 @@ impl<A: HalApi> Device<A> {
         };
 
         let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_texture_view(texture_raw, &hal_desc)
                 .map_err(|_| resource::CreateTextureViewError::OutOfMemory)?
         };
@@ -1391,15 +1415,13 @@ impl<A: HalApi> Device<A> {
         };
 
         let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_sampler(&hal_desc)
                 .map_err(DeviceError::from)?
         };
 
         let sampler = Sampler {
-            raw: Some(raw),
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             label: desc.label.to_string(),
             tracking_data: TrackingData::new(self.tracker_indices.samplers.clone()),
@@ -1418,7 +1440,7 @@ impl<A: HalApi> Device<A> {
         self: &Arc<Self>,
         desc: &pipeline::ShaderModuleDescriptor<'a>,
         source: pipeline::ShaderModuleSource<'a>,
-    ) -> Result<pipeline::ShaderModule<A>, pipeline::CreateShaderModuleError> {
+    ) -> Result<Arc<pipeline::ShaderModule<A>>, pipeline::CreateShaderModuleError> {
         self.check_is_valid()?;
 
         let (module, source) = match source {
@@ -1515,12 +1537,7 @@ impl<A: HalApi> Device<A> {
             label: desc.label.to_hal(self.instance_flags),
             runtime_checks: desc.shader_bound_checks.runtime_checks(),
         };
-        let raw = match unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .create_shader_module(&hal_desc, hal_shader)
-        } {
+        let raw = match unsafe { self.raw().create_shader_module(&hal_desc, hal_shader) } {
             Ok(raw) => raw,
             Err(error) => {
                 return Err(match error {
@@ -1535,12 +1552,16 @@ impl<A: HalApi> Device<A> {
             }
         };
 
-        Ok(pipeline::ShaderModule {
-            raw: Some(raw),
+        let module = pipeline::ShaderModule {
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             interface: Some(interface),
             label: desc.label.to_string(),
-        })
+        };
+
+        let module = Arc::new(module);
+
+        Ok(module)
     }
 
     #[allow(unused_unsafe)]
@@ -1548,7 +1569,7 @@ impl<A: HalApi> Device<A> {
         self: &Arc<Self>,
         desc: &pipeline::ShaderModuleDescriptor<'a>,
         source: &'a [u32],
-    ) -> Result<pipeline::ShaderModule<A>, pipeline::CreateShaderModuleError> {
+    ) -> Result<Arc<pipeline::ShaderModule<A>>, pipeline::CreateShaderModuleError> {
         self.check_is_valid()?;
 
         self.require_features(wgt::Features::SPIRV_SHADER_PASSTHROUGH)?;
@@ -1557,12 +1578,7 @@ impl<A: HalApi> Device<A> {
             runtime_checks: desc.shader_bound_checks.runtime_checks(),
         };
         let hal_shader = hal::ShaderInput::SpirV(source);
-        let raw = match unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .create_shader_module(&hal_desc, hal_shader)
-        } {
+        let raw = match unsafe { self.raw().create_shader_module(&hal_desc, hal_shader) } {
             Ok(raw) => raw,
             Err(error) => {
                 return Err(match error {
@@ -1577,18 +1593,22 @@ impl<A: HalApi> Device<A> {
             }
         };
 
-        Ok(pipeline::ShaderModule {
-            raw: Some(raw),
+        let module = pipeline::ShaderModule {
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             interface: None,
             label: desc.label.to_string(),
-        })
+        };
+
+        let module = Arc::new(module);
+
+        Ok(module)
     }
 
     pub(crate) fn create_command_encoder(
         self: &Arc<Self>,
         label: &crate::Label,
-    ) -> Result<command::CommandBuffer<A>, DeviceError> {
+    ) -> Result<Arc<command::CommandBuffer<A>>, DeviceError> {
         self.check_is_valid()?;
 
         let queue = self.get_queue().unwrap();
@@ -1597,13 +1617,11 @@ impl<A: HalApi> Device<A> {
             .command_allocator
             .acquire_encoder(self.raw(), queue.raw())?;
 
-        Ok(command::CommandBuffer::new(
-            encoder,
-            self,
-            #[cfg(feature = "trace")]
-            self.trace.lock().is_some(),
-            label,
-        ))
+        let command_buffer = command::CommandBuffer::new(encoder, self, label);
+
+        let command_buffer = Arc::new(command_buffer);
+
+        Ok(command_buffer)
     }
 
     /// Generate information about late-validated buffer bindings for pipelines.
@@ -1648,7 +1666,7 @@ impl<A: HalApi> Device<A> {
         label: &crate::Label,
         entry_map: bgl::EntryMap,
         origin: bgl::Origin,
-    ) -> Result<BindGroupLayout<A>, binding_model::CreateBindGroupLayoutError> {
+    ) -> Result<Arc<BindGroupLayout<A>>, binding_model::CreateBindGroupLayoutError> {
         #[derive(PartialEq)]
         enum WritableStorage {
             Yes,
@@ -1830,9 +1848,7 @@ impl<A: HalApi> Device<A> {
             entries: &hal_bindings,
         };
         let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_bind_group_layout(&hal_desc)
                 .map_err(DeviceError::from)?
         };
@@ -1847,16 +1863,19 @@ impl<A: HalApi> Device<A> {
             .validate(&self.limits)
             .map_err(binding_model::CreateBindGroupLayoutError::TooManyBindings)?;
 
-        Ok(BindGroupLayout {
-            raw: Some(raw),
+        let bgl = BindGroupLayout {
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             entries: entry_map,
             origin,
             exclusive_pipeline: OnceCell::new(),
             binding_count_validator: count_validator,
             label: label.to_string(),
-            tracking_data: TrackingData::new(self.tracker_indices.bind_group_layouts.clone()),
-        })
+        };
+
+        let bgl = Arc::new(bgl);
+
+        Ok(bgl)
     }
 
     pub(crate) fn create_buffer_binding<'a>(
@@ -1917,7 +1936,7 @@ impl<A: HalApi> Device<A> {
 
         let buffer = &bb.buffer;
 
-        used.buffers.add_single(buffer, internal_use);
+        used.buffers.insert_single(buffer.clone(), internal_use);
 
         buffer.same_device(self)?;
 
@@ -1998,14 +2017,14 @@ impl<A: HalApi> Device<A> {
 
     fn create_sampler_binding<'a>(
         self: &Arc<Self>,
-        used: &BindGroupStates<A>,
+        used: &mut BindGroupStates<A>,
         binding: u32,
         decl: &wgt::BindGroupLayoutEntry,
         sampler: &'a Arc<Sampler<A>>,
     ) -> Result<&'a A::Sampler, binding_model::CreateBindGroupError> {
         use crate::binding_model::CreateBindGroupError as Error;
 
-        used.samplers.add_single(sampler);
+        used.samplers.insert_single(sampler.clone());
 
         sampler.same_device(self)?;
 
@@ -2054,8 +2073,6 @@ impl<A: HalApi> Device<A> {
         used_texture_ranges: &mut Vec<TextureInitTrackerAction<A>>,
         snatch_guard: &'a SnatchGuard<'a>,
     ) -> Result<hal::TextureBinding<'a, A>, binding_model::CreateBindGroupError> {
-        used.views.add_single(view);
-
         view.same_device(self)?;
 
         let (pub_usage, internal_use) = self.texture_use_parameters(
@@ -2064,12 +2081,10 @@ impl<A: HalApi> Device<A> {
             view,
             "SampledTexture, ReadonlyStorageTexture or WriteonlyStorageTexture",
         )?;
-        let texture = &view.parent;
-        // Careful here: the texture may no longer have its own ref count,
-        // if it was deleted by the user.
-        used.textures
-            .add_single(texture, Some(view.selector.clone()), internal_use);
 
+        used.views.insert_single(view.clone(), internal_use);
+
+        let texture = &view.parent;
         texture.check_usage(pub_usage)?;
 
         used_texture_ranges.push(TextureInitTrackerAction {
@@ -2177,7 +2192,7 @@ impl<A: HalApi> Device<A> {
                     (res_index, num_bindings)
                 }
                 Br::Sampler(ref sampler) => {
-                    let sampler = self.create_sampler_binding(&used, binding, decl, sampler)?;
+                    let sampler = self.create_sampler_binding(&mut used, binding, decl, sampler)?;
 
                     let res_index = hal_samplers.len();
                     hal_samplers.push(sampler);
@@ -2189,7 +2204,8 @@ impl<A: HalApi> Device<A> {
 
                     let res_index = hal_samplers.len();
                     for sampler in samplers.iter() {
-                        let sampler = self.create_sampler_binding(&used, binding, decl, sampler)?;
+                        let sampler =
+                            self.create_sampler_binding(&mut used, binding, decl, sampler)?;
 
                         hal_samplers.push(sampler);
                     }
@@ -2256,9 +2272,7 @@ impl<A: HalApi> Device<A> {
             acceleration_structures: &[],
         };
         let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_bind_group(&hal_desc)
                 .map_err(DeviceError::from)?
         };
@@ -2473,7 +2487,8 @@ impl<A: HalApi> Device<A> {
     pub(crate) fn create_pipeline_layout(
         self: &Arc<Self>,
         desc: &binding_model::ResolvedPipelineLayoutDescriptor<A>,
-    ) -> Result<binding_model::PipelineLayout<A>, binding_model::CreatePipelineLayoutError> {
+    ) -> Result<Arc<binding_model::PipelineLayout<A>>, binding_model::CreatePipelineLayoutError>
+    {
         use crate::binding_model::CreatePipelineLayoutError as Error;
 
         self.check_is_valid()?;
@@ -2556,23 +2571,24 @@ impl<A: HalApi> Device<A> {
         };
 
         let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
+            self.raw()
                 .create_pipeline_layout(&hal_desc)
                 .map_err(DeviceError::from)?
         };
 
         drop(raw_bind_group_layouts);
 
-        Ok(binding_model::PipelineLayout {
-            raw: Some(raw),
+        let layout = binding_model::PipelineLayout {
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             label: desc.label.to_string(),
-            tracking_data: TrackingData::new(self.tracker_indices.pipeline_layouts.clone()),
             bind_group_layouts,
             push_constant_ranges: desc.push_constant_ranges.iter().cloned().collect(),
-        })
+        };
+
+        let layout = Arc::new(layout);
+
+        Ok(layout)
     }
 
     pub(crate) fn derive_pipeline_layout(
@@ -2601,7 +2617,6 @@ impl<A: HalApi> Device<A> {
                             bgl::Origin::Derived,
                         ) {
                             Ok(bgl) => {
-                                let bgl = Arc::new(bgl);
                                 e.insert(bgl.clone());
                                 Ok(bgl)
                             }
@@ -2619,7 +2634,6 @@ impl<A: HalApi> Device<A> {
         };
 
         let layout = self.create_pipeline_layout(&layout_desc)?;
-        let layout = Arc::new(layout);
         Ok(layout)
     }
 
@@ -2707,29 +2721,31 @@ impl<A: HalApi> Device<A> {
                 constants: desc.stage.constants.as_ref(),
                 zero_initialize_workgroup_memory: desc.stage.zero_initialize_workgroup_memory,
             },
-            cache: cache.as_ref().and_then(|it| it.raw.as_ref()),
+            cache: cache.as_ref().map(|it| it.raw()),
         };
 
-        let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .create_compute_pipeline(&pipeline_desc)
-        }
-        .map_err(|err| match err {
-            hal::PipelineError::Device(error) => {
-                pipeline::CreateComputePipelineError::Device(error.into())
-            }
-            hal::PipelineError::Linkage(_stages, msg) => {
-                pipeline::CreateComputePipelineError::Internal(msg)
-            }
-            hal::PipelineError::EntryPoint(_stage) => {
-                pipeline::CreateComputePipelineError::Internal(ENTRYPOINT_FAILURE_ERROR.to_string())
-            }
-        })?;
+        let raw =
+            unsafe { self.raw().create_compute_pipeline(&pipeline_desc) }.map_err(
+                |err| match err {
+                    hal::PipelineError::Device(error) => {
+                        pipeline::CreateComputePipelineError::Device(error.into())
+                    }
+                    hal::PipelineError::Linkage(_stages, msg) => {
+                        pipeline::CreateComputePipelineError::Internal(msg)
+                    }
+                    hal::PipelineError::EntryPoint(_stage) => {
+                        pipeline::CreateComputePipelineError::Internal(
+                            ENTRYPOINT_FAILURE_ERROR.to_string(),
+                        )
+                    }
+                    hal::PipelineError::PipelineConstants(_stages, msg) => {
+                        pipeline::CreateComputePipelineError::PipelineConstants(msg)
+                    }
+                },
+            )?;
 
         let pipeline = pipeline::ComputePipeline {
-            raw: Some(raw),
+            raw: ManuallyDrop::new(raw),
             layout: pipeline_layout,
             device: self.clone(),
             _shader_module: shader_module,
@@ -3286,28 +3302,28 @@ impl<A: HalApi> Device<A> {
             fragment_stage,
             color_targets,
             multiview: desc.multiview,
-            cache: cache.as_ref().and_then(|it| it.raw.as_ref()),
+            cache: cache.as_ref().map(|it| it.raw()),
         };
-        let raw = unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .create_render_pipeline(&pipeline_desc)
-        }
-        .map_err(|err| match err {
-            hal::PipelineError::Device(error) => {
-                pipeline::CreateRenderPipelineError::Device(error.into())
-            }
-            hal::PipelineError::Linkage(stage, msg) => {
-                pipeline::CreateRenderPipelineError::Internal { stage, error: msg }
-            }
-            hal::PipelineError::EntryPoint(stage) => {
-                pipeline::CreateRenderPipelineError::Internal {
-                    stage: hal::auxil::map_naga_stage(stage),
-                    error: ENTRYPOINT_FAILURE_ERROR.to_string(),
-                }
-            }
-        })?;
+        let raw =
+            unsafe { self.raw().create_render_pipeline(&pipeline_desc) }.map_err(
+                |err| match err {
+                    hal::PipelineError::Device(error) => {
+                        pipeline::CreateRenderPipelineError::Device(error.into())
+                    }
+                    hal::PipelineError::Linkage(stage, msg) => {
+                        pipeline::CreateRenderPipelineError::Internal { stage, error: msg }
+                    }
+                    hal::PipelineError::EntryPoint(stage) => {
+                        pipeline::CreateRenderPipelineError::Internal {
+                            stage: hal::auxil::map_naga_stage(stage),
+                            error: ENTRYPOINT_FAILURE_ERROR.to_string(),
+                        }
+                    }
+                    hal::PipelineError::PipelineConstants(stage, error) => {
+                        pipeline::CreateRenderPipelineError::PipelineConstants { stage, error }
+                    }
+                },
+            )?;
 
         let pass_context = RenderPassContext {
             attachments: AttachmentData {
@@ -3350,7 +3366,7 @@ impl<A: HalApi> Device<A> {
         };
 
         let pipeline = pipeline::RenderPipeline {
-            raw: Some(raw),
+            raw: ManuallyDrop::new(raw),
             layout: pipeline_layout,
             device: self.clone(),
             pass_context,
@@ -3384,7 +3400,7 @@ impl<A: HalApi> Device<A> {
     pub unsafe fn create_pipeline_cache(
         self: &Arc<Self>,
         desc: &pipeline::PipelineCacheDescriptor,
-    ) -> Result<pipeline::PipelineCache<A>, pipeline::CreatePipelineCacheError> {
+    ) -> Result<Arc<pipeline::PipelineCache<A>>, pipeline::CreatePipelineCacheError> {
         use crate::pipeline_cache;
 
         self.check_is_valid()?;
@@ -3420,10 +3436,12 @@ impl<A: HalApi> Device<A> {
         let cache = pipeline::PipelineCache {
             device: self.clone(),
             label: desc.label.to_string(),
-            tracking_data: TrackingData::new(self.tracker_indices.pipeline_caches.clone()),
             // This would be none in the error condition, which we don't implement yet
-            raw: Some(raw),
+            raw: ManuallyDrop::new(raw),
         };
+
+        let cache = Arc::new(cache);
+
         Ok(cache)
     }
 
@@ -3472,17 +3490,11 @@ impl<A: HalApi> Device<A> {
         &self,
         submission_index: crate::SubmissionIndex,
     ) -> Result<(), DeviceError> {
-        let guard = self.fence.read();
-        let fence = guard.as_ref().unwrap();
-        let last_done_index = unsafe { self.raw.as_ref().unwrap().get_fence_value(fence)? };
+        let fence = self.fence.read();
+        let last_done_index = unsafe { self.raw().get_fence_value(&fence)? };
         if last_done_index < submission_index {
-            unsafe {
-                self.raw
-                    .as_ref()
-                    .unwrap()
-                    .wait(fence, submission_index, !0)?
-            };
-            drop(guard);
+            unsafe { self.raw().wait(&fence, submission_index, !0)? };
+            drop(fence);
             let closures = self
                 .lock_life()
                 .triage_submissions(submission_index, &self.command_allocator);
@@ -3525,8 +3537,10 @@ impl<A: HalApi> Device<A> {
 
         let hal_desc = desc.map_label(|label| label.to_hal(self.instance_flags));
 
+        let raw = unsafe { self.raw().create_query_set(&hal_desc).unwrap() };
+
         let query_set = QuerySet {
-            raw: Some(unsafe { self.raw().create_query_set(&hal_desc).unwrap() }),
+            raw: ManuallyDrop::new(raw),
             device: self.clone(),
             label: desc.label.to_string(),
             tracking_data: TrackingData::new(self.tracker_indices.query_sets.clone()),
@@ -3596,17 +3610,11 @@ impl<A: HalApi> Device<A> {
     }
 
     pub fn get_hal_counters(&self) -> wgt::HalCounters {
-        self.raw
-            .as_ref()
-            .map(|raw| raw.get_internal_counters())
-            .unwrap_or_default()
+        self.raw().get_internal_counters()
     }
 
     pub fn generate_allocator_report(&self) -> Option<wgt::AllocatorReport> {
-        self.raw
-            .as_ref()
-            .map(|raw| raw.generate_allocator_report())
-            .unwrap_or_default()
+        self.raw().generate_allocator_report()
     }
 }
 
@@ -3617,10 +3625,7 @@ impl<A: HalApi> Device<A> {
             baked.encoder.reset_all(baked.list.into_iter());
         }
         unsafe {
-            self.raw
-                .as_ref()
-                .unwrap()
-                .destroy_command_encoder(baked.encoder);
+            self.raw().destroy_command_encoder(baked.encoder);
         }
     }
 
@@ -3632,11 +3637,7 @@ impl<A: HalApi> Device<A> {
             .load(Ordering::Acquire);
         if let Err(error) = unsafe {
             let fence = self.fence.read();
-            let fence = fence.as_ref().unwrap();
-            self.raw
-                .as_ref()
-                .unwrap()
-                .wait(fence, current_index, CLEANUP_WAIT_MS)
+            self.raw().wait(&fence, current_index, CLEANUP_WAIT_MS)
         } {
             log::error!("failed to wait for the device: {error}");
         }

@@ -370,10 +370,11 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
 
 ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
     RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
-    AdapterRequestDeviceResolver&& resolver) {
+    RawId aQueueId, AdapterRequestDeviceResolver&& resolver) {
   ErrorBuffer error;
-  ffi::wgpu_server_adapter_request_device(
-      mContext.get(), aAdapterId, ToFFI(&aByteBuf), aDeviceId, error.ToFFI());
+  ffi::wgpu_server_adapter_request_device(mContext.get(), aAdapterId,
+                                          ToFFI(&aByteBuf), aDeviceId, aQueueId,
+                                          error.ToFFI());
   if (ForwardError(0, error)) {
     uint8_t reasonDestroyed = 0;  // GPUDeviceLostReason::Destroyed
     auto maybeError = error.GetError();

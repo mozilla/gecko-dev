@@ -223,7 +223,7 @@ impl super::Device {
         )
         .map_err(|e| {
             let msg = format!("{e}");
-            crate::PipelineError::Linkage(map_naga_stage(naga_stage), msg)
+            crate::PipelineError::PipelineConstants(map_naga_stage(naga_stage), msg)
         })?;
 
         let entry_point_index = module
@@ -536,6 +536,7 @@ impl crate::Device for super::Device {
                 size: desc.size,
                 map_flags: 0,
                 data: Some(Arc::new(Mutex::new(vec![0; desc.size as usize]))),
+                offset_of_current_mapping: Arc::new(Mutex::new(0)),
             });
         }
 
@@ -635,6 +636,7 @@ impl crate::Device for super::Device {
             size: desc.size,
             map_flags,
             data,
+            offset_of_current_mapping: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -668,6 +670,7 @@ impl crate::Device for super::Device {
                     unsafe { self.shared.get_buffer_sub_data(gl, buffer.target, 0, slice) };
                     slice.as_mut_ptr()
                 } else {
+                    *buffer.offset_of_current_mapping.lock().unwrap() = range.start;
                     unsafe {
                         gl.map_buffer_range(
                             buffer.target,
@@ -693,6 +696,7 @@ impl crate::Device for super::Device {
                 unsafe { gl.bind_buffer(buffer.target, Some(raw)) };
                 unsafe { gl.unmap_buffer(buffer.target) };
                 unsafe { gl.bind_buffer(buffer.target, None) };
+                *buffer.offset_of_current_mapping.lock().unwrap() = 0;
             }
         }
     }
@@ -701,16 +705,20 @@ impl crate::Device for super::Device {
         I: Iterator<Item = crate::MemoryRange>,
     {
         if let Some(raw) = buffer.raw {
-            let gl = &self.shared.context.lock();
-            unsafe { gl.bind_buffer(buffer.target, Some(raw)) };
-            for range in ranges {
-                unsafe {
-                    gl.flush_mapped_buffer_range(
-                        buffer.target,
-                        range.start as i32,
-                        (range.end - range.start) as i32,
-                    )
-                };
+            if buffer.data.is_none() {
+                let gl = &self.shared.context.lock();
+                unsafe { gl.bind_buffer(buffer.target, Some(raw)) };
+                for range in ranges {
+                    let offset_of_current_mapping =
+                        *buffer.offset_of_current_mapping.lock().unwrap();
+                    unsafe {
+                        gl.flush_mapped_buffer_range(
+                            buffer.target,
+                            (range.start - offset_of_current_mapping) as i32,
+                            (range.end - range.start) as i32,
+                        )
+                    };
+                }
             }
         }
     }

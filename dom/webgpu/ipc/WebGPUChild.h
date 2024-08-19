@@ -40,7 +40,8 @@ struct PipelineCreationContext {
 };
 
 struct DeviceRequest {
-  RawId mId = 0;
+  RawId mDeviceId = 0;
+  RawId mQueueId = 0;
   RefPtr<DevicePromise> mPromise;
   // Note: we could put `ffi::WGPULimits` in here as well,
   //  but we don't want to #include ffi stuff in this header

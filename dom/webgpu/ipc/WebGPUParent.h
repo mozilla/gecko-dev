@@ -53,7 +53,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
       InstanceRequestAdapterResolver&& resolver);
   ipc::IPCResult RecvAdapterRequestDevice(
       RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
-      AdapterRequestDeviceResolver&& resolver);
+      RawId aQueueId, AdapterRequestDeviceResolver&& resolver);
   ipc::IPCResult RecvAdapterDrop(RawId aAdapterId);
   ipc::IPCResult RecvDeviceDestroy(RawId aDeviceId);
   ipc::IPCResult RecvDeviceDrop(RawId aDeviceId);

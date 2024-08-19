@@ -1242,7 +1242,7 @@ dependencies = [
 [[package]]
 name = "d3d12"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=9c6ae1beae2490ce44d99034f7f1faada936f3d8#9c6ae1beae2490ce44d99034f7f1faada936f3d8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c6a3d927345a81eeb13e9e3720002c4cc6f25e54#c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
 dependencies = [
  "bitflags 2.6.0",
  "libloading",
@@ -4027,7 +4027,7 @@ checksum = "a2983372caf4480544083767bf2d27defafe32af49ab4df3a0b7fc90793a3664"
 [[package]]
 name = "naga"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=9c6ae1beae2490ce44d99034f7f1faada936f3d8#9c6ae1beae2490ce44d99034f7f1faada936f3d8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c6a3d927345a81eeb13e9e3720002c4cc6f25e54#c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -5262,9 +5262,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.204"
+version = "1.0.208"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
+checksum = "cff085d2cb684faa248efb494c39b68e522822ac0de72ccf08109abde717cfb2"
 dependencies = [
  "serde_derive",
 ]
@@ -5290,9 +5290,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.204"
+version = "1.0.208"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
+checksum = "24008e81ff7613ed8e5ba0cfaf24e2c2f1e5b8a0495711e44fcd4882fca62bcf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6797,7 +6797,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=9c6ae1beae2490ce44d99034f7f1faada936f3d8#9c6ae1beae2490ce44d99034f7f1faada936f3d8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c6a3d927345a81eeb13e9e3720002c4cc6f25e54#c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -6822,7 +6822,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=9c6ae1beae2490ce44d99034f7f1faada936f3d8#9c6ae1beae2490ce44d99034f7f1faada936f3d8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c6a3d927345a81eeb13e9e3720002c4cc6f25e54#c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -6861,7 +6861,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=9c6ae1beae2490ce44d99034f7f1faada936f3d8#9c6ae1beae2490ce44d99034f7f1faada936f3d8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c6a3d927345a81eeb13e9e3720002c4cc6f25e54#c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",

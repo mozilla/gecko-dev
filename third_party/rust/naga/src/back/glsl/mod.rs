@@ -1313,14 +1313,13 @@ impl<'a, W: Write> Writer<'a, W> {
                     crate::MathFunction::Dot => {
                         // if the expression is a Dot product with integer arguments,
                         // then the args needs baking as well
-                        if let TypeInner::Scalar(crate::Scalar { kind, .. }) = *inner {
-                            match kind {
-                                crate::ScalarKind::Sint | crate::ScalarKind::Uint => {
-                                    self.need_bake_expressions.insert(arg);
-                                    self.need_bake_expressions.insert(arg1.unwrap());
-                                }
-                                _ => {}
-                            }
+                        if let TypeInner::Scalar(crate::Scalar {
+                            kind: crate::ScalarKind::Sint | crate::ScalarKind::Uint,
+                            ..
+                        }) = *inner
+                        {
+                            self.need_bake_expressions.insert(arg);
+                            self.need_bake_expressions.insert(arg1.unwrap());
                         }
                     }
                     crate::MathFunction::Pack4xI8
@@ -4821,7 +4820,7 @@ fn glsl_storage_format(format: crate::StorageFormat) -> Result<&'static str, Err
         Sf::Rgba8Sint => "rgba8i",
         Sf::Rgb10a2Uint => "rgb10_a2ui",
         Sf::Rgb10a2Unorm => "rgb10_a2",
-        Sf::Rg11b10Float => "r11f_g11f_b10f",
+        Sf::Rg11b10UFloat => "r11f_g11f_b10f",
         Sf::Rg32Uint => "rg32ui",
         Sf::Rg32Sint => "rg32i",
         Sf::Rg32Float => "rg32f",

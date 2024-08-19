@@ -18,7 +18,7 @@ use std::os::raw::c_char;
 use thiserror::Error;
 use wgt::{BufferAddress, DeviceLostReason, TextureFormat};
 
-use std::{iter, num::NonZeroU32, ptr};
+use std::{iter, num::NonZeroU32};
 
 pub mod any_device;
 pub(crate) mod bgl;
@@ -307,21 +307,18 @@ fn map_buffer<A: HalApi>(
     size: BufferAddress,
     kind: HostMap,
     snatch_guard: &SnatchGuard,
-) -> Result<ptr::NonNull<u8>, BufferAccessError> {
+) -> Result<hal::BufferMapping, BufferAccessError> {
     let raw_buffer = buffer.try_raw(snatch_guard)?;
     let mapping = unsafe {
         raw.map_buffer(raw_buffer, offset..offset + size)
             .map_err(DeviceError::from)?
     };
 
-    *buffer.sync_mapped_writes.lock() = match kind {
-        HostMap::Read if !mapping.is_coherent => unsafe {
+    if !mapping.is_coherent && kind == HostMap::Read {
+        unsafe {
             raw.invalidate_mapped_ranges(raw_buffer, iter::once(offset..offset + size));
-            None
-        },
-        HostMap::Write if !mapping.is_coherent => Some(offset..offset + size),
-        _ => None,
-    };
+        }
+    }
 
     assert_eq!(offset % wgt::COPY_BUFFER_ALIGNMENT, 0);
     assert_eq!(size % wgt::COPY_BUFFER_ALIGNMENT, 0);
@@ -339,9 +336,6 @@ fn map_buffer<A: HalApi>(
     // If this is a write mapping zeroing out the memory here is the only
     // reasonable way as all data is pushed to GPU anyways.
 
-    // No need to flush if it is flushed later anyways.
-    let zero_init_needs_flush_now =
-        mapping.is_coherent && buffer.sync_mapped_writes.lock().is_none();
     let mapped = unsafe { std::slice::from_raw_parts_mut(mapping.ptr.as_ptr(), size as usize) };
 
     for uninitialized in buffer
@@ -355,12 +349,12 @@ fn map_buffer<A: HalApi>(
             (uninitialized.start - offset) as usize..(uninitialized.end - offset) as usize;
         mapped[fill_range].fill(0);
 
-        if zero_init_needs_flush_now {
+        if !mapping.is_coherent && kind == HostMap::Read {
             unsafe { raw.flush_mapped_ranges(raw_buffer, iter::once(uninitialized)) };
         }
     }
 
-    Ok(mapping.ptr)
+    Ok(mapping)
 }
 
 #[derive(Clone, Debug)]
