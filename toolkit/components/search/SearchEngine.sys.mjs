@@ -604,7 +604,6 @@ export class SearchEngine {
   _searchUrlPublicSuffix = null;
   /**
    * The unique id of the Search Engine.
-   * The id is an UUID.
    *
    * @type {string}
    */

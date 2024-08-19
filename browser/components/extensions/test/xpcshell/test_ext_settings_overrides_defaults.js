@@ -239,7 +239,7 @@ add_task(async function test_extension_overriding_app_provided_default() {
   sinon.stub(settings, "get").returns([
     {
       thirdPartyId: "test@thirdparty.example.com",
-      overridesId: "test2@search.mozilla.org",
+      overridesAppIdv2: "test2",
       urls: [
         {
           search_url: "https://example.com/?q={searchTerms}&foo=myparams",

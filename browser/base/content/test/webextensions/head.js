@@ -720,12 +720,7 @@ add_setup(async function head_setup() {
     }
 
     for (let addon of await AddonManager.getAllAddons()) {
-      // Builtin search extensions may have been installed by SearchService
-      // during the test run, ignore those.
-      if (
-        !existingAddons.has(addon.id) &&
-        !(addon.isBuiltin && addon.id.endsWith("@search.mozilla.org"))
-      ) {
+      if (!existingAddons.has(addon.id)) {
         ok(
           false,
           `Addon ${addon.id} was left installed at the end of the test`

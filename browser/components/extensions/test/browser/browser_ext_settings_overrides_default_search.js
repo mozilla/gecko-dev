@@ -21,14 +21,14 @@ SearchTestUtils.init(this);
 const DEFAULT_ENGINE = {
   id: "basic",
   name: "basic",
-  loadPath: "[app]basic@search.mozilla.org",
+  loadPath: "[app]basic",
   submissionUrl:
     "https://mochi.test:8888/browser/browser/components/search/test/browser/?foo=1&search=",
 };
 const ALTERNATE_ENGINE = {
   id: "simple",
   name: "Simple Engine",
-  loadPath: "[app]simple@search.mozilla.org",
+  loadPath: "[app]simple",
   submissionUrl: "https://example.com/?sourceId=Mozilla-search&search=",
 };
 const ALTERNATE2_ENGINE = {
