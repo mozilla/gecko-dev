@@ -78,20 +78,16 @@ export class ScreenshotsComponentParent extends JSWindowActorParent {
         await ScreenshotsUtils.copyScreenshotFromRegion(region, browser);
         ScreenshotsUtils.exit(browser);
         break;
-      case "Screenshots:DownloadScreenshot": {
+      case "Screenshots:DownloadScreenshot":
         ScreenshotsUtils.closePanel(browser);
         ({ title, region } = message.data);
-        let downloadSucceeded =
-          await ScreenshotsUtils.downloadScreenshotFromRegion(
-            title,
-            region,
-            browser
-          );
-        if (downloadSucceeded) {
-          ScreenshotsUtils.exit(browser);
-        }
+        await ScreenshotsUtils.downloadScreenshotFromRegion(
+          title,
+          region,
+          browser
+        );
+        ScreenshotsUtils.exit(browser);
         break;
-      }
       case "Screenshots:OverlaySelection":
         ScreenshotsUtils.setPerBrowserState(browser, {
           hasOverlaySelection: message.data.hasSelection,
@@ -496,8 +492,6 @@ export var ScreenshotsUtils = {
     const gBrowser = browser.getTabBrowser();
     gBrowser.tabContainer.removeEventListener("TabSelect", this);
     browser.ownerDocument.removeEventListener("keydown", this);
-
-    this.revokeBlobURL(browser);
 
     this.browserToScreenshotsState.delete(browser);
     if (Cu.isInAutomation) {
@@ -951,32 +945,6 @@ export var ScreenshotsUtils = {
   },
 
   /**
-   * Revoke the object url of the current browsers screenshot.
-   *
-   * @param {browser} browser The current browser
-   */
-  revokeBlobURL(browser) {
-    let browserState = this.browserToScreenshotsState.get(browser);
-    if (browserState.blobURL) {
-      URL.revokeObjectURL(browserState.blobURL);
-    }
-  },
-
-  /**
-   * Set the blob url on the browser state so we can revoke on exit.
-   *
-   * @param {browser} browser The current browser
-   * @param {string} blobURL The object url for the screenshot
-   */
-  setBlobURL(browser, blobURL) {
-    // We shouldn't already have a blob URL on the browser
-    // but let's revoke just in case.
-    this.revokeBlobURL(browser);
-
-    this.setPerBrowserState(browser, { blobURL });
-  },
-
-  /**
    * The max dimension of any side of a canvas is 32767 and the max canvas area is
    * 124925329. If the width or height is greater or equal to 32766 we will crop the
    * screenshot to the max width. If the area is still too large for the canvas
@@ -1025,6 +993,12 @@ export var ScreenshotsUtils = {
    * @param type The type of screenshot taken.
    */
   async takeScreenshot(browser, type) {
+    this.closePanel(browser);
+    this.closeOverlay(browser, {
+      doNotResetMethods: true,
+      highlightRegions: true,
+    });
+
     Services.focus.setFocus(browser, 0);
 
     let rect;
@@ -1037,15 +1011,8 @@ export var ScreenshotsUtils = {
       lastUsedMethod = "visible";
     }
 
-    // Wait to close overlay until after we fetched bounds
-    this.closePanel(browser);
-    this.closeOverlay(browser, {
-      doNotResetMethods: true,
-      highlightRegions: true,
-    });
-
     let canvas = await this.createCanvas(rect, browser);
-    let blob = await canvas.convertToBlob();
+    let url = canvas.toDataURL();
 
     let dialog = await this.openPreviewDialog(browser);
     await dialog._dialogReady;
@@ -1053,9 +1020,7 @@ export var ScreenshotsUtils = {
       "screenshots-preview"
     );
 
-    let blobURL = URL.createObjectURL(blob);
-    this.setBlobURL(browser, blobURL);
-    screenshotsPreviewEl.previewImg.src = blobURL;
+    screenshotsPreviewEl.previewImg.src = url;
     screenshotsPreviewEl.focusButton(lazy.SCREENSHOTS_LAST_SAVED_METHOD);
 
     Services.prefs.setStringPref(
@@ -1090,11 +1055,14 @@ export var ScreenshotsUtils = {
 
     let browsingContext = BrowsingContext.get(browser.browsingContext.id);
 
-    let canvas = new OffscreenCanvas(
-      region.width * devicePixelRatio,
-      region.height * devicePixelRatio
+    let canvas = browser.ownerDocument.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "html:canvas"
     );
     let context = canvas.getContext("2d");
+
+    canvas.width = region.width * devicePixelRatio;
+    canvas.height = region.height * devicePixelRatio;
 
     const snapshotSize = Math.floor(MAX_SNAPSHOT_DIMENSION * devicePixelRatio);
 
@@ -1154,9 +1122,9 @@ export var ScreenshotsUtils = {
    */
   async copyScreenshotFromRegion(region, browser) {
     let canvas = await this.createCanvas(region, browser);
-    let blob = await canvas.convertToBlob();
+    let url = canvas.toDataURL();
 
-    await this.copyScreenshot(blob, browser, {
+    await this.copyScreenshot(url, browser, {
       object: "overlay_copy",
     });
   },
@@ -1164,13 +1132,13 @@ export var ScreenshotsUtils = {
   /**
    * Copy the image to the clipboard
    * This is called from the preview dialog
-   * @param blob The image data
+   * @param dataUrl The image data
    * @param browser The current browser
    * @param data Telemetry data
    */
-  async copyScreenshot(blob, browser, data) {
+  async copyScreenshot(dataUrl, browser, data) {
     // Guard against missing image data.
-    if (!blob) {
+    if (!dataUrl) {
       return;
     }
 
@@ -1178,9 +1146,12 @@ export var ScreenshotsUtils = {
       Ci.imgITools
     );
 
-    let buffer = await blob.arrayBuffer();
-    const imgDecoded = imageTools.decodeImageFromArrayBuffer(
-      buffer,
+    const base64Data = dataUrl.replace("data:image/png;base64,", "");
+
+    const image = atob(base64Data);
+    const imgDecoded = imageTools.decodeImageFromBuffer(
+      image,
+      image.length,
       "image/png"
     );
 
@@ -1231,33 +1202,28 @@ export var ScreenshotsUtils = {
    * @param title The title of the current page
    * @param region The bounds of the screenshot
    * @param browser The current browser
-   * @returns {Promise<boolean>} true if the download succeeds, otherwise false
    */
   async downloadScreenshotFromRegion(title, region, browser) {
     let canvas = await this.createCanvas(region, browser);
-    let blob = await canvas.convertToBlob();
-    let blobURL = URL.createObjectURL(blob);
-    this.setBlobURL(browser, blobURL);
+    let dataUrl = canvas.toDataURL();
 
-    return this.downloadScreenshot(title, blobURL, browser, {
+    await this.downloadScreenshot(title, dataUrl, browser, {
       object: "overlay_download",
     });
   },
 
   /**
-   * Download the screenshot.
-   * This will return false if the download doesn't succeed for any reason and
-   * will return true if the screenshot is downloaded successfully.
-   *
+   * Download the screenshot
+   * This is called from the preview dialog
    * @param title The title of the current page or null and getFilename will get the title
-   * @param blobURL The image data
+   * @param dataUrl The image data
    * @param browser The current browser
    * @param data Telemetry data
-   * @returns {Promise<boolean>} true if the downnload succeeded, otherwise false
+   * @returns true if the download succeeds, otherwise false
    */
-  async downloadScreenshot(title, blobURL, browser, data) {
+  async downloadScreenshot(title, dataUrl, browser, data) {
     // Guard against missing image data.
-    if (!blobURL) {
+    if (!dataUrl) {
       return false;
     }
 
@@ -1272,7 +1238,7 @@ export var ScreenshotsUtils = {
     // Create download and track its progress.
     try {
       const download = await lazy.Downloads.createDownload({
-        source: blobURL,
+        source: dataUrl,
         target: targetFile,
       });
 
