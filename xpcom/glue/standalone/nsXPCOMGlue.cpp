@@ -400,11 +400,12 @@ BootstrapResult GetBootstrap(const char* aXPCOMFile,
 #if defined(XP_WIN) && defined(_M_X64) && defined(MOZ_DIAGNOSTIC_ASSERT_ENABLED)
   auto check = reinterpret_cast<decltype(&XRE_CheckBlockScopeStaticVarInit)>(
       GetSymbol(sTop->libHandle, "XRE_CheckBlockScopeStaticVarInit"));
-  MOZ_DIAGNOSTIC_ASSERT(check);
 
   // Detect bug 1816848 ahead of the usual crash location.
   uint32_t xulTlsIndex = 0;
-  if (!check(&xulTlsIndex)) {
+  // HACK: if `check` is nullptr, xul.dll doesn't have the above export. Skip
+  // trying to perform the check. (See bug 1909898.)
+  if (check && !check(&xulTlsIndex)) {
     // Unload xul, then load it again while recording single-step data.
     XPCOMGlueUnload();
 
