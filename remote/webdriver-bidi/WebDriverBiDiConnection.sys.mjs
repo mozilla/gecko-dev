@@ -200,6 +200,20 @@ export class WebDriverBiDiConnection extends WebSocketConnection {
           this.#sessionConfigFlags,
           this
         );
+
+        // Until the spec (see: https://github.com/w3c/webdriver/issues/1834)
+        // is updated to specify what should be the default value for bidi session,
+        // remove this capability from the return value when it's not provided by a client.
+        if (!("unhandledPromptBehavior" in processedCapabilities)) {
+          // We don't want to modify the original `capabilities` field
+          // because it points to an original Capabilities object used by the session.
+          // Since before the result is sent to a client we're going anyway to call
+          // `JSON.stringify` on `result` which will call `toJSON` method recursively,
+          // we can call it already here for the `capabilities` property
+          // to update only the command response object.
+          result.capabilities = result.capabilities.toJSON();
+          delete result.capabilities.unhandledPromptBehavior;
+        }
       } else if (module === "session" && command === "status") {
         result = lazy.RemoteAgent.webDriverBiDi.getSessionReadinessStatus();
       } else {
