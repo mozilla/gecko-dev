@@ -1,5 +1,7 @@
 pluginManagement {
-    apply from: file('mobile/android/gradle/mozconfig.gradle')
+    if (!gradle.hasProperty("mozconfig")){
+        apply from: file('mobile/android/gradle/mozconfig.gradle')
+    }
 
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
