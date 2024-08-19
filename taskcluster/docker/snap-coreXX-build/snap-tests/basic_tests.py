@@ -72,49 +72,71 @@ class SnapTestsBase:
             self._expectations = json.load(j)
 
         rv = False
-        try:
-            first_tab = self._driver.window_handles[0]
-            channel = self.update_channel()
-            if self.is_esr_115():
-                channel = "esr-115"
-            for m in object_methods:
+        first_tab = self._driver.window_handles[0]
+        channel = self.update_channel()
+        if self.is_esr_115():
+            channel = "esr-115"
+        for m in object_methods:
+            self._logger.test_start(m)
+            expectations = (
+                self._expectations[m]
+                if not channel in self._expectations[m]
+                else self._expectations[m][channel]
+            )
+            self._driver.switch_to.window(first_tab)
+
+            try:
                 tabs_before = set(self._driver.window_handles)
-                self._driver.switch_to.window(first_tab)
-                self._logger.test_start(m)
-                expectations = (
-                    self._expectations[m]
-                    if not channel in self._expectations[m]
-                    else self._expectations[m][channel]
-                )
                 rv = getattr(self, m)(expectations)
+                tabs_after = set(self._driver.window_handles)
+                self._logger.info("tabs_after OK {}".format(tabs_after))
+
                 self._driver.switch_to.parent_frame()
                 if rv:
                     self._logger.test_end(m, status="OK")
                 else:
                     self._logger.test_end(m, status="FAIL")
+            except Exception as ex:
+                rv = False
+                test_status = "ERROR"
+                if isinstance(ex, AssertionError):
+                    test_status = "FAIL"
+                elif isinstance(ex, TimeoutException):
+                    test_status = "TIMEOUT"
+
+                test_message = repr(ex)
+                self.save_screenshot("screenshot_{}.png".format(test_status.lower()))
+                self._driver.switch_to.parent_frame()
+                self.save_screenshot(
+                    "screenshot_{}_parent.png".format(test_status.lower())
+                )
+                self._logger.test_end(m, status=test_status, message=test_message)
+                traceback.print_exc()
+
                 tabs_after = set(self._driver.window_handles)
+                self._logger.info("tabs_after EXCEPTION {}".format(tabs_after))
+            finally:
+                self._logger.info("tabs_before {}".format(tabs_before))
                 tabs_opened = tabs_after - tabs_before
                 self._logger.info("opened {} tabs".format(len(tabs_opened)))
+                self._logger.info("opened {} tabs".format(tabs_opened))
+                closed = 0
                 for tab in tabs_opened:
+                    self._logger.info("switch to {}".format(tab))
                     self._driver.switch_to.window(tab)
+                    self._logger.info("close {}".format(tab))
                     self._driver.close()
-                self._wait.until(EC.number_of_windows_to_be(len(tabs_before)))
-        except Exception as ex:
-            rv = False
-            test_status = "ERROR"
-            if isinstance(ex, AssertionError):
-                test_status = "FAIL"
-            elif isinstance(ex, TimeoutException):
-                test_status = "TIMEOUT"
+                    closed += 1
+                    self._logger.info(
+                        "wait EC.number_of_windows_to_be({})".format(
+                            len(tabs_after) - closed
+                        )
+                    )
+                    self._wait.until(
+                        EC.number_of_windows_to_be(len(tabs_after) - closed)
+                    )
 
-            test_message = repr(ex)
-            self.save_screenshot("screenshot_{}.png".format(test_status.lower()))
-            self._driver.switch_to.parent_frame()
-            self.save_screenshot("screenshot_{}_parent.png".format(test_status.lower()))
-            self._logger.test_end(m, status=test_status, message=test_message)
-            traceback.print_exc()
-        finally:
-            self._driver.switch_to.window(first_tab)
+                self._driver.switch_to.window(first_tab)
 
         if not "TEST_NO_QUIT" in os.environ.keys():
             self._driver.quit()
