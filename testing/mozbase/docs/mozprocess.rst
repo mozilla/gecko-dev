@@ -12,6 +12,16 @@ features beyond those available with python's subprocess:
 * the ability to specify handlers that will be called on process timeout
   and normal process termination
 
+Caveat Emptor!
+--------------
+Most mozprocess development happened before Python 3; some key features of mozprocess were intended to work around bugs and inadequacies in Python subprocess which are no longer a concern today. Today we know that mozprocess has many bugs of its own, and the module has struggled to find modern ownership: THIS MODULE IS POORLY MAINTAINED.
+
+At the same time, mozprocess has many clients and provides a convenient solution to some complex process handling needs. Our best advice:
+
+* for routine process handling needs, use Python subprocess -- NOT mozprocess
+* for convenient process handling with optional, simple output timeouts and/or output handling, use mozprocess.run_and_wait(); this is the simplest, most isolated, and most modern mozprocess interface
+* for more complex needs, use mozprocess ProcessHandlerMixin/ProcessHandler but proceed with caution!
+
 Running a process
 -----------------
 
@@ -145,7 +155,7 @@ A timeout can be provided to the *run()* method. If the process last more than t
 
 After execution, the property *timedOut* will be set to True if a timeout was reached.
 
-It is also possible to provide functions (*obj = ProcessHandler[Mixin](..., onTimeout=functions)*) that will be called if the timeout was reached.
+It is also possible to provide functions (*obj = ProcessHandler(..., onTimeout=functions)*) that will be called if the timeout was reached.
 
 .. code-block:: python
 
@@ -318,7 +328,11 @@ API Documentation
 -----------------
 
 .. module:: mozprocess
-.. autoclass:: ProcessHandlerMixin
-   :members: __init__, timedOut, commandline, run, kill, processOutputLine, onTimeout, onFinish, wait
-.. autoclass:: ProcessHandler
-   :members:
+
+  .. automethod:: mozprocess.run_and_wait
+
+  .. autoclass:: ProcessHandlerMixin
+     :members: __init__, timedOut, commandline, run, kill, processOutputLine, onTimeout, onFinish, wait
+
+  .. autoclass:: ProcessHandler
+     :members:
