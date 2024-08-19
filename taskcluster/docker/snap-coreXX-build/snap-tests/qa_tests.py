@@ -753,26 +753,26 @@ class QATests(SnapTestsBase):
         ), "download directory from pref should match new directory"
 
     def open_lafibre(self):
-        download_site = self.open_tab("https://ip.lafibre.info/test-debit.php")
+        download_site = self.open_tab("https://ip.lafibre.info/connectivite.php")
         return download_site
+
+    def get_lafibre_1M(self):
+        return self._wait.until(
+            EC.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    ".tableau tbody tr td a",
+                )
+            )
+        )
 
     def test_download_folder_change(self, exp):
         """
         C1756713
         """
 
-        # Bug 1913458
-        return True
-
         download_site = self.open_lafibre()
-        extra_small = self._wait.until(
-            EC.presence_of_element_located(
-                (
-                    By.CSS_SELECTOR,
-                    ".tableau > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2) > a:nth-child(1)",
-                )
-            )
-        )
+        extra_small = self.get_lafibre_1M()
         self._driver.execute_script("arguments[0].click();", extra_small)
 
         download_name = self.accept_download()
@@ -817,18 +817,8 @@ class QATests(SnapTestsBase):
         C1756715
         """
 
-        # Bug 1913458
-        return True
-
         download_site = self.open_lafibre()
-        extra_small = self._wait.until(
-            EC.presence_of_element_located(
-                (
-                    By.CSS_SELECTOR,
-                    ".tableau > tbody:nth-child(1) > tr:nth-child(6) > td:nth-child(2) > a:nth-child(1)",
-                )
-            )
-        )
+        extra_small = self.get_lafibre_1M()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             self.change_download_folder(None, tmpdir)
