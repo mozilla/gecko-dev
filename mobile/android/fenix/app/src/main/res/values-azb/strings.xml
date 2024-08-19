@@ -2170,6 +2170,65 @@
     <!-- Label for the TextField in which user enters custom search engine name -->
     <string name="search_add_custom_engine_name_label">آد</string>
 
+    <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
+    <string name="search_add_custom_engine_name_hint_2">آختاریش موتورو آدیْ</string>
+    <!-- Label for the TextField in which user enters custom search engine URL -->
+    <string name="search_add_custom_engine_url_label">آختاریش‌ین اینترنت آدرسی</string>
+    <!-- Placeholder text shown in the Search String TextField before a user enters text -->
+    <string name="search_add_custom_engine_search_string_hint_2">آختاریش اوچون ایشه آلیناجاق اینترنت آدرسی</string>
+    <!-- Description text for the Search String TextField. The %s is part of the string -->
+    <string name="search_add_custom_engine_search_string_example" formatted="false">ایستکی “%s” ایله دگیشدیرین. اؤرنک:\nhttps://www.google.com/search?q=%s</string>
+
+    <!-- Accessibility description for the form in which details about the custom search engine are entered -->
+    <string name="search_add_custom_engine_form_description">اؤزل آختاریش موتورو جزئیاتی</string>
+    <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
+    <string name="search_add_custom_engine_suggest_url_label">آختاریش تکلیفی API -یی (ایستگه باغلی)</string>
+
+    <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
+    <string name="search_add_custom_engine_suggest_string_hint">آختاریش تکلیفی API-ین اینترنت آدرسی</string>
+    <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
+    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">ایستکی “%s” ایله دگیشدیرین. اؤرنک:\nhttps://suggest queries.google.com/complete/search?client=firefox b=%s</string>
+    <!-- The text for the "Save" button for saving a custom search engine -->
+    <string name="search_custom_engine_save_button">ساخلا</string>
+
+    <!-- Text shown when a user leaves the name field empty -->
+    <string name="search_add_custom_engine_error_empty_name">آختاریش موتورون آدینی گیر</string>
+    <!-- Text shown when a user leaves the search string field empty -->
+    <string name="search_add_custom_engine_error_empty_search_string">بیر آختاریش عبارتی وئر</string>
+
+    <!-- Text shown when a user leaves out the required template string -->
+    <string name="search_add_custom_engine_error_missing_template">آختاریش عبارتین نمونه فرمتینه اویغون اوْلدوغونو یوْخلایین</string>
+
+    <!-- Text shown when we aren't able to validate the custom search query. The first parameter is the url of the custom search engine -->
+    <string name="search_add_custom_engine_error_cannot_reach">“%s” موتورونا باغلانماق خطاسیْ</string>
+    <!-- Text shown when a user creates a new search engine -->
+    <string name="search_add_custom_engine_success_message">%s یارادیلدیْ</string>
+    <!-- Text shown when a user successfully edits a custom search engine -->
+    <string name="search_edit_custom_engine_success_message">%s ساخلاندیْ</string>
+
+    <!-- Text shown when a user successfully deletes a custom search engine -->
+    <string name="search_delete_search_engine_success_message">%s سیلیندی</string>
+
+    <!-- Heading for the instructions to allow a permission -->
+    <string name="phone_feature_blocked_intro">اجازه وئرمک اوچون:</string>
+    <!-- First step for the allowing a permission -->
+    <string name="phone_feature_blocked_step_settings">1. اندروید تنظیم‌لرینه گئت</string>
+    <!-- Second step for the allowing a permission -->
+    <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>اجازه‌لری</b> ویرین]]></string>
+
+    <!-- Third step for the allowing a permission (Fore example: Camera) -->
+    <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> تغییرینی آچ]]></string>
+
+    <!-- Label that indicates a site is using a secure connection -->
+    <string name="quick_settings_sheet_secure_connection_2">باغلانتیْ گوونلی</string>
+    <!-- Label that indicates a site is using a insecure connection -->
+    <string name="quick_settings_sheet_insecure_connection_2">باغلانتیْ گوونلی دئییل</string>
+
+    <!-- Label to clear site data -->
+    <string name="clear_site_data">کوکی‌لر و سایت دیتالاریْ سیلین</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
+    <string name="confirm_clear_site_data"><![CDATA[<b>%s</b> سایتین بوتون کوکی‌لر و سایت دیتالارینیْ سیلمه‌گه آرخایینسیز؟]]></string>
+
     <!-- Translations feature-->
 
 

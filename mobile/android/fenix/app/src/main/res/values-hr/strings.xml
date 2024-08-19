@@ -110,6 +110,11 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Pregledavajte brže s novom navigacijom</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Ova traka se uvlači dok se pomičete prema dolje kako biste imali više prostora za pregledavanje.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Kod pregledavanja web-stranica, ova traka se uvlači dok se pomičete prema dolje kako biste imali više prostora za pregledavanje.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreban je pristup kameri. Otvori postavke Androida, odaberi dozvole i dopusti pristup kameri.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -191,6 +196,11 @@
     <string name="browser_menu_stop">Zaustavi</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Dodaci</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Učini %s svojim</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Saznaj više</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Upravljanje dodacima</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -288,6 +298,25 @@
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
     <string name="browser_menu_save_as_pdf">Spremi kao PDF…</string>
 
+    <!-- Browser menu label for turning ON reader view of the current visited page -->
+    <string name="browser_menu_turn_on_reader_view">Uključi prikaz čitača</string>
+    <!-- Browser menu label for turning OFF reader view of the current visited page -->
+    <string name="browser_menu_turn_off_reader_view">Isključi prikaz čitača</string>
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">Prevedi stranicu…</string>
+    <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
+         The first parameter is the name of the language that page was translated to (e.g. English). -->
+    <string name="browser_menu_translated_to">Prevedeno na %1$s</string>
+    <!-- Browser menu label for the print feature -->
+    <string name="browser_menu_print">Ispis…</string>
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Izađi iz %1$s</string>
+
+    <!-- Extensions management fragment -->
+    <!-- Text displayed when there are no extensions to be shown -->
+    <string name="extensions_management_no_extensions">Ovdje nema dodataka</string>
+
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">Početni zaslon</string>
@@ -295,6 +324,13 @@
     <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
          history and go back to the home screen. -->
     <string name="browser_toolbar_erase">Obriši povijest pretraživanja</string>
+
+    <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
+    <string name="browser_toolbar_translate">Prevedi stranicu</string>
+    <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
+         The first parameter is the name of the language that is displayed in the original page. (For example: English)
+         The second parameter is the name of the language which the page was translated to. (For example: French) -->
+    <string name="browser_toolbar_translated_successfully">Stranica prevedena s jezika %1$s na %2$s.</string>
 
     <!-- Locale Settings Fragment -->
     <!-- Content description for tick mark on selected language -->
@@ -368,8 +404,18 @@
     <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
     <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Ne sada</string>
 
+    <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
+    <!-- Description for learning more about our privacy notice. -->
+    <string name="juno_onboarding_privacy_notice_text">Firefoxova obavijest o privatnosti</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Volimo vas čuvati</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Saznaj zašto milijuni vole Firefox</string>
+    <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Sigurno pregledavanje s više izbora</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_3">Naš preglednik, koji podržava neprofitna organizacija, sprječava tvrtke da te tajno prate na webu.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Naš neprofitni preglednik pomaže spriječiti tvrtke da vas tajno prate na webu.\n\nSaznajte više u našoj obavijesti o privatnosti.</string>
     <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
@@ -500,6 +546,8 @@
     <string name="preferences_category_account">Račun</string>
     <!-- Preference for changing where the toolbar is positioned -->
     <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Alatna traka</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Položaj adresne trake</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Tema</string>
     <!-- Preference for customizing the home screen -->
@@ -510,11 +558,15 @@
     <string name="preferences_customize">Prilagodi</string>
     <!-- Preference description for banner about signing in -->
     <string name="preferences_sign_in_description_2">Prijavite se da biste sinkronizirali kartice, zabilješke, lozinke i više.</string>
+    <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
+    <string name="preferences_account_default_name_2">Mozilla račun</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
     <string name="preferences_account_sync_error">Ponovo se poveži za nastavak sinkronizacije</string>
     <!-- Preference for language -->
     <string name="preferences_language">Jezik</string>
 
+    <!-- Preference for translations -->
+    <string name="preferences_translations">Prijevodi</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Izbori za podatke</string>
     <!-- Preference for data collection -->
@@ -623,6 +675,13 @@
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Istražite više pozadina</string>
 
+    <!-- Button text of the Nimbus message for extensions general availability. -->
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Istraži dodatke</string>
+
+    <!-- Extension process crash dialog to user -->
+    <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
+    <string name="extension_process_crash_dialog_title">Dodaci su privremeno onemogućeni</string>
+
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
     <string name="preferences_manage_account">Upravljanje računom</string>
@@ -634,6 +693,8 @@
     <string name="preferences_sync_history">Povijest</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Zabilješke</string>
+    <!-- Preference for syncing passwords -->
+    <string name="preferences_sync_logins_2">Lozinke</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Otvorene kartice</string>
     <!-- Preference for signing out -->
@@ -659,6 +720,8 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s na %2$s %3$s</string>
 
+    <!-- Preference for syncing payment methods -->
+    <string name="preferences_sync_credit_cards_2">Načini plaćanja</string>
     <!-- Preference for syncing addresses -->
     <string name="preferences_sync_address">Adrese</string>
 
@@ -920,7 +983,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Naziv zbirke</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Preimenuj</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Preimenuj</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Ukloni</string>
 
@@ -1055,6 +1118,15 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Upiši tražene pojmove</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Idi natrag</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Dodaj novu mapu</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Zatvori zabilješke</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Pretraži zabilješke</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1589,6 +1661,10 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">Ovu stranicu lako možeš dodati na početni zaslon svog uređaja za brže pretraživanje s iskustvom sličnim aplikacijama.</string>
 
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">Lozinke</string>
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">Spremi lozinke</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Pitaj treba li se spremiti</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1602,11 +1678,22 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Ispuni korisnička imena i lozinke u drugim aplikacijama na tvom uređaju.</string>
 
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">Dodaj lozinku</string>
+
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">Sinkroniziraj lozinke</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">Sinkroniziraj lozinke među uređajima</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">Spremljene lozinke</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Iznimke</string>
 
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Obriši sve iznimke</string>
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">Pretraži lozinke</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Stranica</string>
     <!-- The header for the username for a login -->
@@ -1836,8 +1923,18 @@
     <string name="dialog_delete_positive">Izbriši</string>
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">Odustani</string>
+    <!--  The page title for editing a saved password. -->
+    <string name="edit_2">Uredi lozinku</string>
+    <!--  The page title for adding new password. -->
+    <string name="add_login_2">Dodaj lozinku</string>
+    <!--  Error text displayed underneath the password field when it is in an error case. -->
+    <string name="saved_login_password_required_2">Upiši lozinku</string>
+    <!--  The error message in add login view when username field is blank. -->
+    <string name="saved_login_username_required_2">Upiši korisničko ime</string>
     <!--  The error message in add login view when hostname field is blank. -->
     <string name="saved_login_hostname_required" tools:ignore="UnusedResources">Domena je potrebna</string>
+    <!--  The error message in add login view when hostname field is blank. -->
+    <string name="saved_login_hostname_required_2" tools:ignore="UnusedResources">Upiši web-adresu</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">Glasovno pretraživanje</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1890,8 +1987,10 @@
     <string name="top_sites_rename_dialog_title">Naziv</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Ime prečaca</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL prečaca</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">U redu</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">U redu</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Odustani</string>
 
@@ -1901,6 +2000,17 @@
     <string name="top_sites_menu_sponsor_privacy">Naši sponzori i tvoja privatnost</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Sponzorirano</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Uredi</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Uredi prečac</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Spremi</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Unesi važeći URL</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -1969,6 +2079,9 @@
     <string name="experiments_snackbar">Omogući telemetriju za slanje podataka.</string>
     <!-- Snackbar button text to navigate to telemetry settings.-->
     <string name="experiments_snackbar_button">Idi u postavke</string>
+
+    <!-- Clickable text that links to review quality check recommended products support article. -->
+    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Saznaj više</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
