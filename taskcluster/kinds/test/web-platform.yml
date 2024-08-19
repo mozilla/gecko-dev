@@ -338,6 +338,11 @@ web-platform-tests-webgpu-long:
     tier: 2
     max-run-time: 5400  # 90m
     variants: []  # We don't need sw or nofis testing.
+    run-on-projects:
+        by-test-platform:
+            android.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1836811
+            .*-wayland/debug.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1864700
+            default: ['trunk']
     mozharness:
         extra-options:
             - --test-type=testharness
