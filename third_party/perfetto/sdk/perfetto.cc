@@ -745,6 +745,10 @@ std::string GetCurExecutableDir();
 void* AlignedAlloc(size_t alignment, size_t size);
 void AlignedFree(void*);
 
+// Detects Sync-mode MTE (currently being tested in some Android builds).
+// This is known to use extra memory for the stack history buffer.
+bool IsSyncMemoryTaggingEnabled();
+
 // A RAII version of the above, which takes care of pairing Aligned{Alloc,Free}.
 template <typename T>
 struct AlignedDeleter {
@@ -2090,7 +2094,7 @@ inline Status OkStatus() {
   return Status();
 }
 
-PERFETTO_PRINTF_FORMAT(1, 2) Status ErrStatus(const char* format, ...);
+Status ErrStatus(const char* format, ...) PERFETTO_PRINTF_FORMAT(1, 2);
 
 }  // namespace base
 }  // namespace perfetto
@@ -6552,6 +6556,25 @@ std::optional<int32_t> GetTimezoneOffsetMins() {
 #include <mach/vm_page_size.h>
 #endif
 
+#if PERFETTO_BUILDFLAG(PERFETTO_OS_LINUX) || \
+    PERFETTO_BUILDFLAG(PERFETTO_OS_ANDROID)
+#include <linux/prctl.h>
+#include <sys/prctl.h>
+
+#ifndef PR_GET_TAGGED_ADDR_CTRL
+#define PR_GET_TAGGED_ADDR_CTRL 56
+#endif
+
+#ifndef PR_TAGGED_ADDR_ENABLE
+#define PR_TAGGED_ADDR_ENABLE (1UL << 0)
+#endif
+
+#ifndef PR_MTE_TCF_SYNC
+#define PR_MTE_TCF_SYNC (1UL << 1)
+#endif
+
+#endif  // OS_LINUX | OS_ANDROID
+
 #if PERFETTO_BUILDFLAG(PERFETTO_OS_WIN)
 #include <Windows.h>
 #include <io.h>
@@ -6829,6 +6852,23 @@ void AlignedFree(void* ptr) {
   _aligned_free(ptr);  // MSDN says it is fine to pass nullptr.
 #else
   free(ptr);
+#endif
+}
+
+bool IsSyncMemoryTaggingEnabled() {
+#if PERFETTO_BUILDFLAG(PERFETTO_OS_LINUX) || \
+    PERFETTO_BUILDFLAG(PERFETTO_OS_ANDROID)
+  // Compute only once per lifetime of the process.
+  static bool cached_value = [] {
+    const int res = prctl(PR_GET_TAGGED_ADDR_CTRL, 0, 0, 0, 0);
+    if (res < 0)
+      return false;
+    const uint32_t actl = static_cast<uint32_t>(res);
+    return (actl & PR_TAGGED_ADDR_ENABLE) && (actl & PR_MTE_TCF_SYNC);
+  }();
+  return cached_value;
+#else
+  return false;
 #endif
 }
 
@@ -7655,7 +7695,7 @@ void Watchdog::ThreadMain() {
 
     bool threshold_exceeded = false;
     guard.lock();
-    if (CheckMemory_Locked(rss_bytes)) {
+    if (CheckMemory_Locked(rss_bytes) && !IsSyncMemoryTaggingEnabled()) {
       threshold_exceeded = true;
       crash_reason = WatchdogCrashReason::kMemGuardrail;
     } else if (CheckCpu_Locked(cpu_time)) {
@@ -7901,7 +7941,7 @@ class UnixTaskRunner : public TaskRunner {
   void RunFileDescriptorWatch(PlatformHandle);
 
   ThreadChecker thread_checker_;
-  PlatformThreadId created_thread_id_ = GetThreadId();
+  std::atomic<PlatformThreadId> created_thread_id_ = GetThreadId();
 
   EventFd event_;
 
@@ -8223,7 +8263,7 @@ void UnixTaskRunner::WakeUp() {
 
 void UnixTaskRunner::Run() {
   PERFETTO_DCHECK_THREAD(thread_checker_);
-  created_thread_id_ = GetThreadId();
+  created_thread_id_.store(GetThreadId(), std::memory_order_relaxed);
   quit_ = false;
   for (;;) {
     int poll_timeout_ms;
@@ -8470,7 +8510,7 @@ void UnixTaskRunner::RemoveFileDescriptorWatch(PlatformHandle fd) {
 }
 
 bool UnixTaskRunner::RunsTasksOnCurrentThread() const {
-  return GetThreadId() == created_thread_id_;
+  return GetThreadId() == created_thread_id_.load(std::memory_order_relaxed);
 }
 
 }  // namespace base
@@ -16091,7 +16131,8 @@ ProtoLogConfig& ProtoLogConfig::operator=(ProtoLogConfig&&) = default;
 bool ProtoLogConfig::operator==(const ProtoLogConfig& other) const {
   return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_)
    && ::protozero::internal::gen_helpers::EqualsField(group_overrides_, other.group_overrides_)
-   && ::protozero::internal::gen_helpers::EqualsField(tracing_mode_, other.tracing_mode_);
+   && ::protozero::internal::gen_helpers::EqualsField(tracing_mode_, other.tracing_mode_)
+   && ::protozero::internal::gen_helpers::EqualsField(default_log_from_level_, other.default_log_from_level_);
 }
 
 int ProtoLogConfig::group_overrides_size() const { return static_cast<int>(group_overrides_.size()); }
@@ -16114,6 +16155,9 @@ bool ProtoLogConfig::ParseFromArray(const void* raw, size_t size) {
         break;
       case 2 /* tracing_mode */:
         field.get(&tracing_mode_);
+        break;
+      case 3 /* default_log_from_level */:
+        field.get(&default_log_from_level_);
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -16144,6 +16188,11 @@ void ProtoLogConfig::Serialize(::protozero::Message* msg) const {
   // Field 2: tracing_mode
   if (_has_field_[2]) {
     ::protozero::internal::gen_helpers::SerializeVarInt(2, tracing_mode_, msg);
+  }
+
+  // Field 3: default_log_from_level
+  if (_has_field_[3]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(3, default_log_from_level_, msg);
   }
 
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
@@ -16320,6 +16369,92 @@ void SurfaceFlingerTransactionsConfig::Serialize(::protozero::Message* msg) cons
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
+// gen_amalgamated begin source: gen/protos/perfetto/config/android/windowmanager_config.gen.cc
+// gen_amalgamated expanded: #include "perfetto/protozero/gen_field_helpers.h"
+// gen_amalgamated expanded: #include "perfetto/protozero/message.h"
+// gen_amalgamated expanded: #include "perfetto/protozero/packed_repeated_fields.h"
+// gen_amalgamated expanded: #include "perfetto/protozero/proto_decoder.h"
+// gen_amalgamated expanded: #include "perfetto/protozero/scattered_heap_buffer.h"
+// DO NOT EDIT. Autogenerated by Perfetto cppgen_plugin
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
+
+namespace perfetto {
+namespace protos {
+namespace gen {
+
+WindowManagerConfig::WindowManagerConfig() = default;
+WindowManagerConfig::~WindowManagerConfig() = default;
+WindowManagerConfig::WindowManagerConfig(const WindowManagerConfig&) = default;
+WindowManagerConfig& WindowManagerConfig::operator=(const WindowManagerConfig&) = default;
+WindowManagerConfig::WindowManagerConfig(WindowManagerConfig&&) noexcept = default;
+WindowManagerConfig& WindowManagerConfig::operator=(WindowManagerConfig&&) = default;
+
+bool WindowManagerConfig::operator==(const WindowManagerConfig& other) const {
+  return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_)
+   && ::protozero::internal::gen_helpers::EqualsField(log_frequency_, other.log_frequency_)
+   && ::protozero::internal::gen_helpers::EqualsField(log_level_, other.log_level_);
+}
+
+bool WindowManagerConfig::ParseFromArray(const void* raw, size_t size) {
+  unknown_fields_.clear();
+  bool packed_error = false;
+
+  ::protozero::ProtoDecoder dec(raw, size);
+  for (auto field = dec.ReadField(); field.valid(); field = dec.ReadField()) {
+    if (field.id() < _has_field_.size()) {
+      _has_field_.set(field.id());
+    }
+    switch (field.id()) {
+      case 1 /* log_frequency */:
+        field.get(&log_frequency_);
+        break;
+      case 2 /* log_level */:
+        field.get(&log_level_);
+        break;
+      default:
+        field.SerializeAndAppendTo(&unknown_fields_);
+        break;
+    }
+  }
+  return !packed_error && !dec.bytes_left();
+}
+
+std::string WindowManagerConfig::SerializeAsString() const {
+  ::protozero::internal::gen_helpers::MessageSerializer msg;
+  Serialize(msg.get());
+  return msg.SerializeAsString();
+}
+
+std::vector<uint8_t> WindowManagerConfig::SerializeAsArray() const {
+  ::protozero::internal::gen_helpers::MessageSerializer msg;
+  Serialize(msg.get());
+  return msg.SerializeAsArray();
+}
+
+void WindowManagerConfig::Serialize(::protozero::Message* msg) const {
+  // Field 1: log_frequency
+  if (_has_field_[1]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(1, log_frequency_, msg);
+  }
+
+  // Field 2: log_level
+  if (_has_field_[2]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(2, log_level_, msg);
+  }
+
+  protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
+}
+
+}  // namespace perfetto
+}  // namespace protos
+}  // namespace gen
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 // gen_amalgamated begin source: gen/protos/perfetto/config/ftrace/ftrace_config.gen.cc
 // gen_amalgamated expanded: #include "perfetto/protozero/gen_field_helpers.h"
 // gen_amalgamated expanded: #include "perfetto/protozero/message.h"
@@ -16349,6 +16484,7 @@ bool FtraceConfig::operator==(const FtraceConfig& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(ftrace_events_, other.ftrace_events_)
    && ::protozero::internal::gen_helpers::EqualsField(atrace_categories_, other.atrace_categories_)
    && ::protozero::internal::gen_helpers::EqualsField(atrace_apps_, other.atrace_apps_)
+   && ::protozero::internal::gen_helpers::EqualsField(atrace_categories_prefer_sdk_, other.atrace_categories_prefer_sdk_)
    && ::protozero::internal::gen_helpers::EqualsField(buffer_size_kb_, other.buffer_size_kb_)
    && ::protozero::internal::gen_helpers::EqualsField(drain_period_ms_, other.drain_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(drain_buffer_percent_, other.drain_buffer_percent_)
@@ -16373,6 +16509,7 @@ bool FtraceConfig::ParseFromArray(const void* raw, size_t size) {
   ftrace_events_.clear();
   atrace_categories_.clear();
   atrace_apps_.clear();
+  atrace_categories_prefer_sdk_.clear();
   syscall_events_.clear();
   function_filters_.clear();
   function_graph_roots_.clear();
@@ -16396,6 +16533,10 @@ bool FtraceConfig::ParseFromArray(const void* raw, size_t size) {
       case 3 /* atrace_apps */:
         atrace_apps_.emplace_back();
         ::protozero::internal::gen_helpers::DeserializeString(field, &atrace_apps_.back());
+        break;
+      case 28 /* atrace_categories_prefer_sdk */:
+        atrace_categories_prefer_sdk_.emplace_back();
+        ::protozero::internal::gen_helpers::DeserializeString(field, &atrace_categories_prefer_sdk_.back());
         break;
       case 10 /* buffer_size_kb */:
         field.get(&buffer_size_kb_);
@@ -16488,6 +16629,11 @@ void FtraceConfig::Serialize(::protozero::Message* msg) const {
   // Field 3: atrace_apps
   for (auto& it : atrace_apps_) {
     ::protozero::internal::gen_helpers::SerializeString(3, it, msg);
+  }
+
+  // Field 28: atrace_categories_prefer_sdk
+  for (auto& it : atrace_categories_prefer_sdk_) {
+    ::protozero::internal::gen_helpers::SerializeString(28, it, msg);
   }
 
   // Field 10: buffer_size_kb
@@ -18828,7 +18974,9 @@ bool SysStatsConfig::operator==(const SysStatsConfig& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(cpufreq_period_ms_, other.cpufreq_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(buddyinfo_period_ms_, other.buddyinfo_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(diskstat_period_ms_, other.diskstat_period_ms_)
-   && ::protozero::internal::gen_helpers::EqualsField(psi_period_ms_, other.psi_period_ms_);
+   && ::protozero::internal::gen_helpers::EqualsField(psi_period_ms_, other.psi_period_ms_)
+   && ::protozero::internal::gen_helpers::EqualsField(thermal_period_ms_, other.thermal_period_ms_)
+   && ::protozero::internal::gen_helpers::EqualsField(cpuidle_period_ms_, other.cpuidle_period_ms_);
 }
 
 bool SysStatsConfig::ParseFromArray(const void* raw, size_t size) {
@@ -18879,6 +19027,12 @@ bool SysStatsConfig::ParseFromArray(const void* raw, size_t size) {
         break;
       case 11 /* psi_period_ms */:
         field.get(&psi_period_ms_);
+        break;
+      case 12 /* thermal_period_ms */:
+        field.get(&thermal_period_ms_);
+        break;
+      case 13 /* cpuidle_period_ms */:
+        field.get(&cpuidle_period_ms_);
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -18954,6 +19108,16 @@ void SysStatsConfig::Serialize(::protozero::Message* msg) const {
   // Field 11: psi_period_ms
   if (_has_field_[11]) {
     ::protozero::internal::gen_helpers::SerializeVarInt(11, psi_period_ms_, msg);
+  }
+
+  // Field 12: thermal_period_ms
+  if (_has_field_[12]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(12, thermal_period_ms_, msg);
+  }
+
+  // Field 13: cpuidle_period_ms
+  if (_has_field_[13]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(13, cpuidle_period_ms_, msg);
   }
 
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
@@ -19339,6 +19503,7 @@ void ChromeConfig::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated expanded: #include "protos/perfetto/config/etw/etw_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/v8_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/chrome_config.gen.h"
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_transactions_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_layers_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/protolog_config.gen.h"
@@ -20115,6 +20280,7 @@ bool DataSourceConfig::operator==(const DataSourceConfig& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(protolog_config_, other.protolog_config_)
    && ::protozero::internal::gen_helpers::EqualsField(android_input_event_config_, other.android_input_event_config_)
    && ::protozero::internal::gen_helpers::EqualsField(pixel_modem_config_, other.pixel_modem_config_)
+   && ::protozero::internal::gen_helpers::EqualsField(windowmanager_config_, other.windowmanager_config_)
    && ::protozero::internal::gen_helpers::EqualsField(legacy_config_, other.legacy_config_)
    && ::protozero::internal::gen_helpers::EqualsField(for_testing_, other.for_testing_);
 }
@@ -20239,6 +20405,9 @@ bool DataSourceConfig::ParseFromArray(const void* raw, size_t size) {
         break;
       case 129 /* pixel_modem_config */:
         ::protozero::internal::gen_helpers::DeserializeString(field, &pixel_modem_config_);
+        break;
+      case 130 /* windowmanager_config */:
+        ::protozero::internal::gen_helpers::DeserializeString(field, &windowmanager_config_);
         break;
       case 1000 /* legacy_config */:
         ::protozero::internal::gen_helpers::DeserializeString(field, &legacy_config_);
@@ -20450,6 +20619,11 @@ void DataSourceConfig::Serialize(::protozero::Message* msg) const {
   // Field 129: pixel_modem_config
   if (_has_field_[129]) {
     msg->AppendString(129, pixel_modem_config_);
+  }
+
+  // Field 130: windowmanager_config
+  if (_has_field_[130]) {
+    msg->AppendString(130, windowmanager_config_);
   }
 
   // Field 1000: legacy_config
@@ -20673,6 +20847,7 @@ void InterceptorConfig::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated expanded: #include "protos/perfetto/config/etw/etw_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/v8_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/chrome_config.gen.h"
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_transactions_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_layers_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/protolog_config.gen.h"
@@ -21263,6 +21438,7 @@ void TestConfig_DummyFields::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated expanded: #include "protos/perfetto/config/etw/etw_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/v8_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/chrome_config.gen.h"
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_transactions_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_layers_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/protolog_config.gen.h"
@@ -24767,7 +24943,9 @@ bool ChromeFrameReporter::operator==(const ChromeFrameReporter& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(layer_tree_host_id_, other.layer_tree_host_id_)
    && ::protozero::internal::gen_helpers::EqualsField(has_high_latency_, other.has_high_latency_)
    && ::protozero::internal::gen_helpers::EqualsField(frame_type_, other.frame_type_)
-   && ::protozero::internal::gen_helpers::EqualsField(high_latency_contribution_stage_, other.high_latency_contribution_stage_);
+   && ::protozero::internal::gen_helpers::EqualsField(high_latency_contribution_stage_, other.high_latency_contribution_stage_)
+   && ::protozero::internal::gen_helpers::EqualsField(checkerboarded_needs_raster_, other.checkerboarded_needs_raster_)
+   && ::protozero::internal::gen_helpers::EqualsField(checkerboarded_needs_record_, other.checkerboarded_needs_record_);
 }
 
 bool ChromeFrameReporter::ParseFromArray(const void* raw, size_t size) {
@@ -24823,6 +25001,12 @@ bool ChromeFrameReporter::ParseFromArray(const void* raw, size_t size) {
       case 14 /* high_latency_contribution_stage */:
         high_latency_contribution_stage_.emplace_back();
         ::protozero::internal::gen_helpers::DeserializeString(field, &high_latency_contribution_stage_.back());
+        break;
+      case 15 /* checkerboarded_needs_raster */:
+        field.get(&checkerboarded_needs_raster_);
+        break;
+      case 16 /* checkerboarded_needs_record */:
+        field.get(&checkerboarded_needs_record_);
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -24913,6 +25097,16 @@ void ChromeFrameReporter::Serialize(::protozero::Message* msg) const {
   // Field 14: high_latency_contribution_stage
   for (auto& it : high_latency_contribution_stage_) {
     ::protozero::internal::gen_helpers::SerializeString(14, it, msg);
+  }
+
+  // Field 15: checkerboarded_needs_raster
+  if (_has_field_[15]) {
+    ::protozero::internal::gen_helpers::SerializeTinyVarInt(15, checkerboarded_needs_raster_, msg);
+  }
+
+  // Field 16: checkerboarded_needs_record
+  if (_has_field_[16]) {
+    ::protozero::internal::gen_helpers::SerializeTinyVarInt(16, checkerboarded_needs_record_, msg);
   }
 
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
@@ -28770,6 +28964,8 @@ void TrackEvent_LegacyEvent::Serialize(::protozero::Message* msg) const {
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/config/android/surfaceflinger_transactions_config.pbzero.cc
 // Intentionally empty (crbug.com/998165)
+// gen_amalgamated begin source: gen/protos/perfetto/config/android/windowmanager_config.pbzero.cc
+// Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/config/ftrace/ftrace_config.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/config/gpu/gpu_counter_config.pbzero.cc
@@ -28845,6 +29041,8 @@ void TrackEvent_LegacyEvent::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/generic.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/android_fs.pbzero.cc
+// Intentionally empty (crbug.com/998165)
+// gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/bcl_exynos.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/binder.pbzero.cc
 // Intentionally empty (crbug.com/998165)
@@ -37456,6 +37654,7 @@ TracingMuxerImpl::FindDataSourceRes TracingMuxerImpl::SetupDataSourceImpl(
     internal_state->data_source = rds.factory();
     internal_state->interceptor = nullptr;
     internal_state->interceptor_id = 0;
+    internal_state->will_notify_on_stop = rds.descriptor.will_notify_on_stop();
 
     if (cfg.has_interceptor_config()) {
       for (size_t j = 0; j < interceptors_.size(); j++) {
@@ -37668,6 +37867,7 @@ void TracingMuxerImpl::StopDataSource_AsyncEnd(TracingBackendId backend_id,
   const uint32_t mask = ~(1 << ds.instance_idx);
   ds.static_state->valid_instances.fetch_and(mask, std::memory_order_acq_rel);
 
+  bool will_notify_on_stop;
   // Take the mutex to prevent that the data source is in the middle of
   // a Trace() execution where it called GetDataSourceLocked() while we
   // destroy it.
@@ -37681,6 +37881,7 @@ void TracingMuxerImpl::StopDataSource_AsyncEnd(TracingBackendId backend_id,
     ds.internal_state->interceptor.reset();
     ds.internal_state->config.reset();
     ds.internal_state->async_stop_in_progress = false;
+    will_notify_on_stop = ds.internal_state->will_notify_on_stop;
     startup_buffer_reservation =
         ds.internal_state->startup_target_buffer_reservation.load(
             std::memory_order_relaxed);
@@ -37735,7 +37936,7 @@ void TracingMuxerImpl::StopDataSource_AsyncEnd(TracingBackendId backend_id,
     // Flush any commits that might have been batched by SharedMemoryArbiter.
     producer->service_->MaybeSharedMemoryArbiter()
         ->FlushPendingCommitDataRequests();
-    if (instance_id)
+    if (instance_id && will_notify_on_stop)
       producer->service_->NotifyDataSourceStopped(instance_id);
   }
   producer->SweepDeadServices();
@@ -41048,8 +41249,8 @@ const char* GetVersionCode();
 #ifndef GEN_PERFETTO_VERSION_GEN_H_
 #define GEN_PERFETTO_VERSION_GEN_H_
 
-#define PERFETTO_VERSION_STRING() "v46.0-7114ea53e"
-#define PERFETTO_VERSION_SCM_REVISION() "7114ea53e3297191d34072cd64cf8a7be7076bb6"
+#define PERFETTO_VERSION_STRING() "v47.0-a85300002"
+#define PERFETTO_VERSION_SCM_REVISION() "a853000023857ebd63b4c72802d795ba13a4ff33"
 
 #endif  // GEN_PERFETTO_VERSION_GEN_H_
 /*
@@ -50118,6 +50319,14 @@ void TracingServiceImpl::EmitSystemInfo(std::vector<TracePacket>* packets) {
   } else {
     PERFETTO_ELOG("Unable to read ro.soc.model");
   }
+
+  std::string hw_rev_value = base::GetAndroidProp("ro.boot.hardware.revision");
+  if (!hw_rev_value.empty()) {
+    info->set_android_hardware_revision(hw_rev_value);
+  } else {
+    PERFETTO_ELOG("Unable to read ro.boot.hardware.revision");
+  }
+
 #endif  // PERFETTO_BUILDFLAG(PERFETTO_OS_ANDROID)
   packet->set_trusted_uid(static_cast<int32_t>(uid_));
   packet->set_trusted_packet_sequence_id(kServicePacketSequenceID);
@@ -51461,6 +51670,7 @@ TracingService* InProcessTracingBackend::GetOrCreateService(
 // gen_amalgamated expanded: #include "protos/perfetto/config/etw/etw_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/v8_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/chrome_config.gen.h"
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_transactions_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_layers_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/protolog_config.gen.h"
@@ -53230,6 +53440,7 @@ void EnableTracingRequest::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated expanded: #include "protos/perfetto/config/etw/etw_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/v8_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/chrome/chrome_config.gen.h"
+// gen_amalgamated expanded: #include "protos/perfetto/config/android/windowmanager_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_transactions_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/surfaceflinger_layers_config.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/config/android/protolog_config.gen.h"
@@ -62515,7 +62726,7 @@ void ProducerIPCClientImpl::OnConnect() {
                                   std::move(on_cmd));
 
   // If there are pending Sync() requests, send them now.
-  for (const auto& pending_sync : pending_sync_reqs_)
+  for (auto& pending_sync : pending_sync_reqs_)
     Sync(std::move(pending_sync));
   pending_sync_reqs_.clear();
 }
