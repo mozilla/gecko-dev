@@ -47,6 +47,9 @@ class HomeScreenPopupManager(
         get() = showNavBarCFR.asStateFlow()
 
     override fun setNavbarCFRShown(cfrShown: Boolean) {
+        if (!cfrShown) {
+            settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
+        }
         isNavigationBarEnabled = !cfrShown
         settings.shouldShowNavigationBarCFR = !cfrShown
     }
