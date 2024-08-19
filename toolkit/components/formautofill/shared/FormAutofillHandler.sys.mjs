@@ -945,15 +945,15 @@ export class FormAutofillHandler {
    * value: The value of the element
    */
   collectFormFilledData() {
-    const filledData = {};
+    const filledData = new Map();
 
     for (const fieldDetail of this.fieldDetails) {
       const element = fieldDetail.element;
-      filledData[fieldDetail.elementId] = {
+      filledData.set(fieldDetail.elementId, {
         filledState: element.autofillState,
         filledValue: this.computeFillingValue(fieldDetail),
         value: element.value,
-      };
+      });
     }
     return filledData;
   }

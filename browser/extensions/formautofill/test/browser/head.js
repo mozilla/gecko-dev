@@ -886,7 +886,7 @@ function verifySectionAutofillResult(section, result, expectedSection) {
   fieldDetails.forEach((field, fieldIndex) => {
     const expected = expectedFieldDetails[fieldIndex];
     Assert.equal(
-      result[field.elementId].value,
+      result.get(field.elementId).value,
       expected.autofill ?? "",
       `Autofilled value for element(identifier:${field.identifier}, field name:${field.fieldName}) should be equal`
     );

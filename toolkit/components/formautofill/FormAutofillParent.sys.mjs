@@ -822,7 +822,7 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     const ids = section.fieldDetails.map(detail => detail.elementId);
 
-    let filledResult = {};
+    let filledResult = new Map();
     try {
       filledResult = await this.sendQuery("FormAutofill:FillFields", {
         focusedElementId: elementId,
@@ -830,10 +830,8 @@ export class FormAutofillParent extends JSWindowActorParent {
         profile,
       });
 
-      this.filledResult = {
-        ...(this.filledResult ?? {}),
-        ...filledResult,
-      };
+      this.filledResult = this.filledResult ?? new Map();
+      filledResult.forEach((value, key) => this.filledResult.set(key, value));
 
       section.onFilled(filledResult);
     } catch (e) {
@@ -845,11 +843,11 @@ export class FormAutofillParent extends JSWindowActorParent {
   }
 
   onFieldFilledModified(elementId) {
-    if (!this.filledResult?.[elementId]) {
+    if (!this.filledResult?.get(elementId)) {
       return;
     }
 
-    this.filledResult[elementId].filledState = FIELD_STATES.NORMAL;
+    this.filledResult.get(elementId).filledState = FIELD_STATES.NORMAL;
 
     const section = this.getSectionByElementId(elementId);
 
@@ -865,7 +863,7 @@ export class FormAutofillParent extends JSWindowActorParent {
       if (
         inputs.every(
           field =>
-            this.filledResult[field.elementId].filledState ==
+            this.filledResult.get(field.elementId).filledState ==
             FIELD_STATES.NORMAL
         )
       ) {

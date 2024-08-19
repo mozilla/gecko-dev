@@ -435,7 +435,7 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   async fillFields(focusedElementId, elementIds, profile) {
-    let result = {};
+    let result = new Map();
     try {
       Services.obs.notifyObservers(null, "autofill-fill-starting");
       const handler = this.#getHandlerByElementId(elementIds[0]);
