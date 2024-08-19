@@ -1,0 +1,15 @@
+---
+android-fenix:
+    description: Android formatting lint for Fenix
+    include: ['mobile/android/fenix']
+    exclude: []
+    extensions: ['java', 'kt']
+    support-files:
+        - 'mobile/android/**/Makefile.in'
+        - 'mobile/android/config/**'
+        - 'mobile/android/gradle.configure'
+        - 'mobile/android/**/moz.build'
+        - '**/*.gradle'
+    type: global
+    payload: android.lints:fenix_format
+    setup: android.lints:setup

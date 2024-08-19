@@ -1,0 +1,15 @@
+---
+android-fenix:
+    description: Android formatting lint for Focus
+    include: ['mobile/android/focus-android']
+    exclude: []
+    extensions: ['java', 'kt']
+    support-files:
+        - 'mobile/android/**/Makefile.in'
+        - 'mobile/android/config/**'
+        - 'mobile/android/gradle.configure'
+        - 'mobile/android/**/moz.build'
+        - '**/*.gradle'
+    type: global
+    payload: android.lints:focus_format
+    setup: android.lints:setup

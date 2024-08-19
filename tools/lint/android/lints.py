@@ -23,6 +23,11 @@ from mozpack.files import FileFinder
 # potentially expensive static analyses.
 GRADLE_LOCK_MAX_WAIT_SECONDS = 20 * 60
 
+EXCLUSION_FILES = [
+    os.path.join("tools", "rewriting", "Generated.txt"),
+    os.path.join("tools", "rewriting", "ThirdPartyPaths.txt"),
+]
+
 
 def setup(root, **setupargs):
     if setupargs.get("substs", {}).get("MOZ_BUILD_APP") != "mobile/android":
@@ -66,6 +71,41 @@ def gradle(log, topsrcdir=None, topobjdir=None, tasks=[], extra_args=[], verbose
         # Gradle and mozprocess do not get along well, so we use subprocess
         # directly.
         proc = subprocess.Popen(cmd_args, cwd=topsrcdir)
+        status = None
+        # Leave it to the subprocess to handle Ctrl+C. If it terminates as a result
+        # of Ctrl+C, proc.wait() will return a status code, and, we get out of the
+        # loop. If it doesn't, like e.g. gdb, we continue waiting.
+        while status is None:
+            try:
+                status = proc.wait()
+            except KeyboardInterrupt:
+                pass
+
+        try:
+            proc.wait()
+        except KeyboardInterrupt:
+            proc.kill()
+            raise
+
+        return proc.returncode
+
+
+def gradlew(log, topsrcdir=None, topobjdir=None, tasks=[], cwd=None):
+    sys.path.insert(0, os.path.join(topsrcdir, "mobile", "android"))
+    from gradle import gradle_lock
+
+    with gradle_lock(topobjdir, max_wait_seconds=GRADLE_LOCK_MAX_WAIT_SECONDS):
+        # The android-lint parameter can be used by gradle tasks to run special
+        # logic when they are run for a lint using
+        #   project.hasProperty('android-lint')
+        cmd_args = ["./gradlew"] + tasks
+
+        cmd = " ".join(shlex.quote(arg) for arg in cmd_args)
+        log.debug(cmd)
+
+        # Gradle and mozprocess do not get along well, so we use subprocess
+        # directly.
+        proc = subprocess.Popen(cmd_args, cwd=cwd)
         status = None
         # Leave it to the subprocess to handle Ctrl+C. If it terminates as a result
         # of Ctrl+C, proc.wait() will return a status code, and, we get out of the
@@ -151,6 +191,132 @@ def format(config, fix=None, **lintargs):
     if fix:
         return {"results": [], "fixed": len(results)}
     return results
+
+
+def fenix_format(config, fix=None, **lintargs):
+    return report_gradlew(
+        config,
+        fix,
+        os.path.join("mobile", "android", "fenix"),
+        **lintargs,
+    )
+
+
+def ac_format(config, fix=None, **lintargs):
+    return report_gradlew(
+        config,
+        fix,
+        os.path.join("mobile", "android", "android-components"),
+        **lintargs,
+    )
+
+
+def focus_format(config, fix=None, **lintargs):
+    return report_gradlew(
+        config,
+        fix,
+        os.path.join("mobile", "android", "focus-android"),
+        **lintargs,
+    )
+
+
+def report_gradlew(config, fix, subdir, **lintargs):
+    topsrcdir = lintargs["root"]
+    topobjdir = lintargs["topobjdir"]
+
+    if fix:
+        tasks = ["ktlintFormat", "detekt"]
+    else:
+        tasks = ["ktlint", "detekt"]
+
+    for task in tasks:
+        gradlew(
+            lintargs["log"],
+            topsrcdir=topsrcdir,
+            topobjdir=topobjdir,
+            tasks=[task],
+            cwd=os.path.join(topsrcdir, subdir),
+        )
+
+    reports = os.path.join(topsrcdir, subdir, "build", "reports")
+    results = []
+
+    excludes = []
+    for path in EXCLUSION_FILES:
+        with open(os.path.join(topsrcdir, path), "r") as fh:
+            for f in fh.readlines():
+                if "*" in f:
+                    excludes.extend(glob.glob(f.strip()))
+                elif f.startswith(subdir):
+                    excludes.append(f.strip())
+
+    try:
+        tree = ET.parse(
+            open(
+                os.path.join(
+                    reports,
+                    "detekt",
+                    "detekt.xml",
+                ),
+                "rt",
+            )
+        )
+        root = tree.getroot()
+
+        for file in root.findall("file"):
+            name = file.get("name")
+            if is_excluded_file(topsrcdir, excludes, name):
+                continue
+            for error in file:
+                err = {
+                    "rule": error.get("source"),
+                    "path": name,
+                    "lineno": int(error.get("line") or 0),
+                    "column": int(error.get("column") or 0),
+                    "message": error.get("message"),
+                    "level": "error",
+                }
+                results.append(result.from_config(config, **err))
+    except FileNotFoundError:
+        pass
+
+    try:
+        issues = json.load(
+            open(
+                os.path.join(
+                    reports,
+                    "ktlint",
+                    "ktlint.json",
+                ),
+                "rt",
+            )
+        )
+
+        for issue in issues:
+            name = issue["file"]
+            if is_excluded_file(topsrcdir, excludes, name):
+                continue
+            for error in issue["errors"]:
+                err = {
+                    "rule": error["rule"],
+                    "path": name,
+                    "lineno": error["line"],
+                    "column": error["column"],
+                    "message": error["message"],
+                    "level": "error",
+                }
+                results.append(result.from_config(config, **err))
+    except FileNotFoundError:
+        pass
+
+    return results
+
+
+def is_excluded_file(topsrcdir, excludes, file):
+    for path in excludes:
+        if file.startswith(os.path.join(topsrcdir, path)):
+            return True
+    return False
 
 
 def api_lint(config, **lintargs):

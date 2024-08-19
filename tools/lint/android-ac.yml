@@ -1,0 +1,15 @@
+---
+android-ac:
+    description: Android formatting lint for Android Components
+    include: ['mobile/android/android-components']
+    exclude: []
+    extensions: ['java', 'kt']
+    support-files:
+        - 'mobile/android/**/Makefile.in'
+        - 'mobile/android/config/**'
+        - 'mobile/android/gradle.configure'
+        - 'mobile/android/**/moz.build'
+        - '**/*.gradle'
+    type: global
+    payload: android.lints:ac_format
+    setup: android.lints:setup

@@ -177,7 +177,7 @@ tasks.register('ktlint', JavaExec) {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args "app/src/**/*.kt", "!**/build/**/*.kt", "--baseline=ktlint-baseline.xml"
+    args "app/src/**/*.kt", "!**/build/**/*.kt", "--baseline=ktlint-baseline.xml", "--reporter=json,output=build/reports/ktlint/ktlint.json"
 }
 
 tasks.register('ktlintFormat', JavaExec) {
