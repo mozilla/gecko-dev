@@ -37,14 +37,16 @@ performance.pageload:
       until it finished.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892660
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912186
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892660
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912186
     data_sensitivity:
       - technical
     notification_emails:
       - emilio@mozilla.com
       - perf-telemetry-alerts@mozilla.com
-    expires: 132
+    expires: 135
 
 performance.responsiveness:
   req_anim_frame_callback:
