@@ -32,7 +32,11 @@ var security = {
     certsStringURL = certsStringURL.join("&");
     let url = `about:certificate?${certsStringURL}`;
     let win = BrowserWindowTracker.getTopWindow();
-    win.switchToTabHavingURI(url, true, {});
+    if (win) {
+      win.switchToTabHavingURI(url, true, {});
+    } else {
+      URILoadingHelper.openTrustedLinkIn(window, url, "window");
+    }
   },
 
   async _getSecurityInfo() {
