@@ -59,6 +59,7 @@ class SettingsFragmentTest {
         every { testContext.components.core.engine.profiler } returns mockk(relaxed = true)
         every { testContext.components.core.client } returns client
         every { testContext.components.settings } returns mockk(relaxed = true)
+        every { testContext.components.core.store.state.translationEngine } returns mockk(relaxed = true)
         every { testContext.components.addonManager } returns mockk(relaxed = true)
         every { testContext.components.analytics } returns mockk(relaxed = true)
         every { testContext.components.backgroundServices } returns mockk(relaxed = true)

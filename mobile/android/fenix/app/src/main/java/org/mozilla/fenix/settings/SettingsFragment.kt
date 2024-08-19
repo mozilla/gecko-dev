@@ -168,7 +168,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>(
             getPreferenceKey(R.string.pref_key_translation),
-        )?.isVisible = FxNimbus.features.translations.value().globalSettingsEnabled
+        )?.isVisible = FxNimbus.features.translations.value().globalSettingsEnabled &&
+            requireContext().components.core.store.state.translationEngine.isEngineSupported == true
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
