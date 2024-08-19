@@ -21,6 +21,7 @@
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/intl/Localization.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
@@ -149,7 +150,6 @@ nsresult OCSPRequest::DispatchToMainThreadAndWait() {
     lock.Wait();
   }
 
-  TimeStamp endTime = TimeStamp::Now();
   // CERT_VALIDATION_HTTP_REQUEST_RESULT:
   // 0: request timed out
   // 1: request succeeded
@@ -161,19 +161,16 @@ nsresult OCSPRequest::DispatchToMainThreadAndWait() {
     Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 3);
   } else if (mResponseResult == NS_ERROR_NET_TIMEOUT) {
     Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 0);
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::CERT_VALIDATION_HTTP_REQUEST_CANCELED_TIME, mStartTime,
-        endTime);
+    mozilla::glean::ocsp_request_time::cancel.AccumulateRawDuration(
+        TimeStamp::Now() - mStartTime);
   } else if (NS_SUCCEEDED(mResponseResult)) {
     Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 1);
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::CERT_VALIDATION_HTTP_REQUEST_SUCCEEDED_TIME, mStartTime,
-        endTime);
+    mozilla::glean::ocsp_request_time::success.AccumulateRawDuration(
+        TimeStamp::Now() - mStartTime);
   } else {
     Telemetry::Accumulate(Telemetry::CERT_VALIDATION_HTTP_REQUEST_RESULT, 2);
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::CERT_VALIDATION_HTTP_REQUEST_FAILED_TIME, mStartTime,
-        endTime);
+    mozilla::glean::ocsp_request_time::failure.AccumulateRawDuration(
+        TimeStamp::Now() - mStartTime);
   }
   return rv;
 }

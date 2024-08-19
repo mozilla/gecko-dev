@@ -3867,42 +3867,6 @@
     "n_values": 16,
     "description": "HTTP result of OCSP, etc.. (0=canceled, 1=OK, 2=FAILED, 3=internal-error)"
   },
-  "CERT_VALIDATION_HTTP_REQUEST_CANCELED_TIME": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "bug_numbers": [1862062],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 200,
-    "description": "ms elapsed time of OCSP etc.. that was canceled"
-  },
-  "CERT_VALIDATION_HTTP_REQUEST_SUCCEEDED_TIME": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "bug_numbers": [1862062],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 200,
-    "description": "ms elapsed time of OCSP etc.. that succeeded"
-  },
-  "CERT_VALIDATION_HTTP_REQUEST_FAILED_TIME": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "bug_numbers": [1862062],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 200,
-    "description": "ms elapsed time of OCSP etc.. that failed"
-  },
   "SSL_KEY_EXCHANGE_ALGORITHM_FULL": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
@@ -10259,30 +10223,6 @@
     "expires_in_version": "never",
     "kind": "flag",
     "description": "Whether content ever accesed the Components shim in this session"
-  },
-  "SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "bug_numbers": [1862062],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 50,
-    "description": "Time spent on a successful cert verification in mozilla::pkix mode (ms)"
-  },
-  "SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "bug_numbers": [1862062],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 50,
-    "description": "Time spent on an initially failed cert verification in mozilla::pkix mode (ms)"
   },
   "CRASH_STORE_COMPRESSED_BYTES": {
     "record_in_processes": ["main", "content"],

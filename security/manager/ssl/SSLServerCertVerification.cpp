@@ -768,10 +768,10 @@ SSLServerCertVerificationJob::Run() {
       certificateTransparencyInfo, isCertChainRootBuiltInRoot,
       madeOCSPRequests);
 
+  TimeDuration elapsed = TimeStamp::Now() - jobStartTime;
   if (rv == Success) {
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX, jobStartTime,
-        TimeStamp::Now());
+    mozilla::glean::cert_verification_time::success.AccumulateRawDuration(
+        elapsed);
     Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, 1);
 
     mResultTask->Dispatch(
@@ -784,9 +784,8 @@ SSLServerCertVerificationJob::Run() {
     return NS_OK;
   }
 
-  Telemetry::AccumulateTimeDelta(
-      Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX,
-      jobStartTime, TimeStamp::Now());
+  mozilla::glean::cert_verification_time::failure.AccumulateRawDuration(
+      elapsed);
 
   PRErrorCode error = MapResultToPRErrorCode(rv);
   nsITransportSecurityInfo::OverridableErrorCategory overridableErrorCategory =

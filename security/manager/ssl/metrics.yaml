@@ -278,3 +278,95 @@ pkcs11:
       - dkeeler@mozilla.com
     expires: never
     unit: modules
+
+cert_verification_time:
+  success:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      The time it takes to successfully verify a certificate in a TLS handshake.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+
+  failure:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      The time it takes to fail to verify a certificate in a TLS handshake.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+
+ocsp_request_time:
+  success:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      The time it takes to make an OCSP request that succeeded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+
+  failure:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      The time it takes to make an OCSP request that failed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+
+  cancel:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      The time it takes to make an OCSP request that was cancelled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913794
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
