@@ -211,6 +211,10 @@ enum ScriptCombo : int32_t {
 
 bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
                                mozilla::Span<const char32_t> aTLD) {
+  if (StaticPrefs::network_IDN_show_punycode()) {
+    return false;
+  }
+
   restrictionProfile profile{eASCIIOnlyProfile};
   {
     AutoReadLock lock(mLock);
