@@ -13652,13 +13652,6 @@
     "alert_emails": ["tdsmith@mozilla.com", "compatibility@lists.mozilla.org"],
     "description": "Number of dedicated workers destroyed; used in conjunction with use counter histograms"
   },
-  "SERVICE_WORKER_UPDATED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "50",
-    "kind": "count",
-    "description": "Count ServiceWorkers scripts that are updated. File bugs in Core::DOM in case of a Telemetry regression."
-  },
   "SERVICE_WORKER_RUNNING": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],

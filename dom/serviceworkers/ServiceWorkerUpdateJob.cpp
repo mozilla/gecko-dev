@@ -6,7 +6,6 @@
 
 #include "ServiceWorkerUpdateJob.h"
 
-#include "mozilla/Telemetry.h"
 #include "nsIScriptError.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
@@ -405,8 +404,6 @@ void ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
     Finish(NS_OK);
     return;
   }
-
-  Telemetry::Accumulate(Telemetry::SERVICE_WORKER_UPDATED, 1);
 
   // Begin step 7 of the Update algorithm to evaluate the new script.
   nsLoadFlags flags = aLoadFlags;
