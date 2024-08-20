@@ -15,7 +15,6 @@
 #include "gfxWindowsPlatform.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/FileHandleWrapper.h"
@@ -1729,9 +1728,6 @@ bool SyncObjectD3D11Host::Init() {
       nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr,
       &sharedHandle);
   if (FAILED(hr)) {
-    NS_DispatchToMainThread(NS_NewRunnableFunction(
-        "layers::SyncObjectD3D11Renderer::Init",
-        []() -> void { Accumulate(Telemetry::D3D11_SYNC_HANDLE_FAILURE, 1); }));
     gfxWarning() << "Could not get sync texture shared handle: "
                  << gfx::hexa(hr);
     return false;

@@ -13672,18 +13672,6 @@
     "kind": "count",
     "description": "Number of push messages that were successfully decrypted and delivered to a ServiceWorker."
   },
-  "D3D11_SYNC_HANDLE_FAILURE": {
-    "record_in_processes": ["main", "content", "gpu"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": [
-      "gfx-telemetry-alerts@mozilla.com",
-      "bschouten@mozilla.com"
-    ],
-    "expires_in_version": "66",
-    "releaseChannelCollection": "opt-out",
-    "kind": "count",
-    "description": "Number of times the D3D11 compositor failed to get a texture sync handle."
-  },
   "GFX_CONTENT_FAILED_TO_ACQUIRE_DEVICE": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
