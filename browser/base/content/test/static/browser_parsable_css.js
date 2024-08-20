@@ -30,6 +30,12 @@ let ignoreList = [
     errorMessage: /Unknown pseudo-class.*-moz-/i,
     isFromDevTools: false,
   },
+  // Reserved to UA sheets unless layout.css.overflow-clip-box.enabled flipped to true.
+  {
+    sourceName: /(?:res|gre-resources)\/forms\.css$/i,
+    errorMessage: /Unknown property.*overflow-clip-box/i,
+    isFromDevTools: false,
+  },
   // content: -moz-alt-content is UA-only.
   {
     sourceName: /\b(html)\.css$/i,

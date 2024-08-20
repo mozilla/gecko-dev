@@ -17,7 +17,7 @@ ${helpers.two_properties_shorthand(
     "overflow-clip-box-block",
     "overflow-clip-box-inline",
     engines="gecko",
-    enabled_in="chrome",
+    enabled_in="ua",
     gecko_pref="layout.css.overflow-clip-box.enabled",
     spec="Internal, may be standardized in the future "
          "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)",
