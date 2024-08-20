@@ -365,10 +365,10 @@ NS_IMETHODIMP
 nsWindowWatcher::OpenWindow2(
     mozIDOMWindowProxy* aParent, nsIURI* aUri, const nsACString& aName,
     const nsACString& aFeatures, const UserActivation::Modifiers& aModifiers,
-    bool aCalledFromScript, bool aDialog, bool aNavigate,
-    nsISupports* aArguments, bool aIsPopupSpam, bool aForceNoOpener,
-    bool aForceNoReferrer, PrintKind aPrintKind,
-    nsDocShellLoadState* aLoadState, BrowsingContext** aResult) {
+    bool aCalledFromScript, bool aDialog, bool aNavigate, nsIArray* aArguments,
+    bool aIsPopupSpam, bool aForceNoOpener, bool aForceNoReferrer,
+    PrintKind aPrintKind, nsDocShellLoadState* aLoadState,
+    BrowsingContext** aResult) {
   nsCOMPtr<nsIArray> argv = ConvertArgsToArray(aArguments);
 
   uint32_t argc = 0;

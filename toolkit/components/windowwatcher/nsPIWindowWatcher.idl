@@ -106,7 +106,7 @@ interface nsPIWindowWatcher : nsISupports
                               in boolean aCalledFromScript,
                               in boolean aDialog,
                               in boolean aNavigate,
-                              in nsISupports aArgs,
+                              in nsIArray aArgs,
                               in boolean aIsPopupSpam,
                               in boolean aForceNoOpener,
                               in boolean aForceNoReferrer,

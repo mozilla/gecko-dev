@@ -627,7 +627,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       const mozilla::dom::Sequence<JS::Value>& aExtraArgument,
       mozilla::ErrorResult& aError);
   nsresult OpenDialog(const nsAString& aUrl, const nsAString& aName,
-                      const nsAString& aOptions, nsISupports* aExtraArgument,
+                      const nsAString& aOptions, nsIArray* aArguments,
                       mozilla::dom::BrowsingContext** _retval) override;
   void UpdateCommands(const nsAString& anAction) override;
 
@@ -728,12 +728,10 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
    *        security check, on the assumption that whoever *actually* loads this
    *        page will do their own security check.
    *
-   * @param argv The arguments to pass to the new window.  The first
-   *        three args, if present, will be aUrl, aName, and aOptions.  So this
-   *        param only matters if there are more than 3 arguments.
-   *
-   * @param aExtraArgument Another way to pass arguments in.  This is mutually
-   *        exclusive with the argv approach.
+   * @param aArguments The arguments to pass to the new window. The first three
+   *                   args, if present, will be aUrl, aName, and aOptions. So
+   *                   this param only matters if there are more than 3
+   *                   arguments.
    *
    * @param aLoadState to be passed on along to the windowwatcher.
    *
@@ -753,9 +751,8 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   nsresult OpenInternal(const nsAString& aUrl, const nsAString& aName,
                         const nsAString& aOptions, bool aDialog,
                         bool aCalledNoScript, bool aDoJSFixups, bool aNavigate,
-                        nsIArray* argv, nsISupports* aExtraArgument,
-                        nsDocShellLoadState* aLoadState, bool aForceNoOpener,
-                        PrintKind aPrintKind,
+                        nsIArray* aArguments, nsDocShellLoadState* aLoadState,
+                        bool aForceNoOpener, PrintKind aPrintKind,
                         mozilla::dom::BrowsingContext** aReturn);
 
   mozilla::Result<already_AddRefed<nsIURI>, nsresult>
