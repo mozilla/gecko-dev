@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>MFCDM origin check should not affect Widevine L3</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript" src="manifest.js"></script>
+</head>
+<body>
+<script class="testbody" type="text/javascript">
+
+/**
+ * This test verifies that the MFCDM origin check does not affect the Widevine L3
+ * key system. It attempts to request media key system access for Widevine with
+ * different origin filter settings to ensure compatibility.
+ */
+ add_task(async function setupTestingPrefs() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.wmf.media-engine.enabled", 2],
+      // This is used to trigger Widevine CDM installation check
+      ["media.gmp-widevinecdm-l1.enabled", true],
+      // Use the mock clearkey CDM to create cdm for all other key systems.
+      ["media.eme.wmf.use-mock-cdm-for-external-cdms", true],
+      // Our mock CDM doesn't implement 'IsTypeSupportedEx()', only 'IsTypeSupported()'
+      ["media.eme.playready.istypesupportedex", false],
+    ],
+  });
+});
+
+add_task(async function testMFCDMOriginCheckForWidevineL3() {
+  // 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
+  for (let prefValue = 0; prefValue <= 2; prefValue++) {
+    await testRequestMediaKeySystemAccess(prefValue);
+  }
+});
+
+async function testRequestMediaKeySystemAccess(prefValue) {
+  const keySystem = "com.widevine.alpha";
+  const configs = [{
+    initDataTypes: ['keyids', 'cenc'],
+    videoCapabilities: [
+      { contentType: 'video/mp4;codecs="avc1.4d401e"', robustness: 'HW_SECURE_ALL' },
+      { contentType: 'video/mp4;codecs="avc1.4d401e"', robustness: 'HW_SECURE_DECODE' },
+      { contentType: 'video/mp4;codecs="avc1.4d401e"', robustness: 'HW_SECURE_CRYPTO' },
+      { contentType: 'video/mp4;codecs="avc1.4d401e"', robustness: 'SW_SECURE_DECODE' },
+      { contentType: 'video/mp4;codecs="avc1.4d401e"', robustness: 'SW_SECURE_CRYPTO' },
+    ],
+    sessionTypes: ['temporary'],
+  }];
+  info(`requestMediaKeySystemAccess for ${keySystem} : with origin-filter-enabled=${prefValue}`);
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.eme.mfcdm.origin-filter.enabled", prefValue],
+    ],
+  });
+  let access = await navigator.requestMediaKeySystemAccess(keySystem, configs)
+      .catch(() => ok(false, `failed to create key system access`));
+  ok(access, `success to create key system access`);
+}
+
+</script>
+</body>
+</html>
