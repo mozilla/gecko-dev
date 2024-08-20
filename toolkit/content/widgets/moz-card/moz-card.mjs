@@ -66,7 +66,9 @@ export default class MozCard extends MozLitElement {
           () =>
             html`<div part="icon" id="heading-icon" role="presentation"></div>`
         )}
-        <span id="heading">${this.heading}</span>
+        <span id="heading" title=${ifDefined(this.heading)} part="heading"
+          >${this.heading}</span
+        >
       </div>
     `;
   }
@@ -86,9 +88,11 @@ export default class MozCard extends MozLitElement {
     }
 
     return html`
-      ${this.headingTemplate()}
-      <div id="content" aria-describedby="content">
-        <slot></slot>
+      <div id="moz-card-details">
+        ${this.headingTemplate()}
+        <div id="content" aria-describedby="content">
+          <slot></slot>
+        </div>
       </div>
     `;
   }

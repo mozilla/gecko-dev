@@ -26,6 +26,12 @@ moz-card {
     padding-block: var(--space-medium);
   }
 
+  &::part(heading) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   &.phone::part(icon),
   &.mobile::part(icon) {
     background-image: url("chrome://browser/skin/device-phone.svg");
