@@ -922,8 +922,7 @@ where
                 .0
                 .iter()
                 .map(T::from_computed_value)
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
+                .collect()
         )
     }
 }

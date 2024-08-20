@@ -528,7 +528,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
                     tag: FontTag(gecko_font_setting.mTag),
                     value: gecko_font_setting.mValue as ${value_type},
                 }
-            }).collect::<Vec<_>>().into_boxed_slice()
+            }).collect()
         )
     }
 </%def>

@@ -618,19 +618,12 @@ where
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.iter()
-            .map(|item| item.to_computed_value(context))
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+        self.iter().map(|item| item.to_computed_value(context)).collect()
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        computed
-            .iter()
-            .map(T::from_computed_value)
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+        computed.iter().map(T::from_computed_value).collect()
     }
 }
 

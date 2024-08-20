@@ -331,8 +331,7 @@ where
         self.into_vec()
             .into_iter()
             .map(|v| v.to_animated_value(context))
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+            .collect()
     }
 
     #[inline]
@@ -341,8 +340,7 @@ where
             .into_vec()
             .into_iter()
             .map(T::from_animated_value)
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+            .collect()
     }
 }
 
