@@ -1396,7 +1396,23 @@ Result NSSCertDBTrustDomain::IsChainValid(const DERArray& reversedDERArray,
       return Result::FATAL_ERROR_LIBRARY_FAILURE;
     }
     if (isDistrusted) {
-      return Result::ERROR_UNTRUSTED_ISSUER;
+      // Check if this root is also a third-party root. If so, distrust after
+      // doesn't apply to it.
+      bool isThirdPartyRoot = false;
+      for (const auto& thirdPartyRoot : mThirdPartyRootInputs) {
+        if (InputsAreEqual(rootInput, thirdPartyRoot)) {
+          isThirdPartyRoot = true;
+          break;
+        }
+      }
+      if (!isThirdPartyRoot) {
+        MOZ_LOG(
+            gCertVerifierLog, LogLevel::Debug,
+            ("certificate has notBefore after distrust after value for root"));
+        return Result::ERROR_UNTRUSTED_ISSUER;
+      }
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
+              ("ignoring built-in distrust after for third-party root"));
     }
   }
 
@@ -1407,8 +1423,7 @@ Result NSSCertDBTrustDomain::IsChainValid(const DERArray& reversedDERArray,
   // This algorithm only applies if we are verifying in the context of a TLS
   // handshake. To determine this, we check mHostname: If it isn't set, this is
   // not TLS, so don't run the algorithm.
-  const nsTArray<uint8_t>& rootCertDER = certArray.LastElement();
-  if (mHostname && CertDNIsInList(rootCertDER, RootSymantecDNs)) {
+  if (mHostname && CertDNIsInList(rootBytes, RootSymantecDNs)) {
     if (numCerts <= 1) {
       // This chain is supposed to be complete, so this is an error.
       return Result::ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED;
