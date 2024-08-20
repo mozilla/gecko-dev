@@ -21,8 +21,12 @@ description = "Manages sponsored and web suggestions for Firefox Suggest"
 readme = "README.md"
 license = "MPL-2.0"
 
+[lib]
+bench = false
+
 [[bin]]
 name = "debug_ingestion_sizes"
+bench = false
 required-features = ["benchmark_api"]
 
 [[bench]]

@@ -19,7 +19,7 @@ use sql_support::{
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///    a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
 ///       the migration.
-pub const VERSION: u32 = 22;
+pub const VERSION: u32 = 24;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -93,6 +93,8 @@ CREATE TABLE fakespot_custom_details(
     suggestion_id INTEGER PRIMARY KEY,
     fakespot_grade TEXT NOT NULL,
     product_id TEXT NOT NULL,
+    keywords TEXT NOT NULL,
+    product_type TEXT NOT NULL,
     rating REAL NOT NULL,
     total_reviews INTEGER NOT NULL,
     icon_id TEXT,
@@ -101,7 +103,6 @@ CREATE TABLE fakespot_custom_details(
 
 CREATE VIRTUAL TABLE IF NOT EXISTS fakespot_fts USING FTS5(
   title,
-  prefix='4 5 6 7 8 9 10 11',
   content='',
   contentless_delete=1,
   tokenize=\"porter unicode61 remove_diacritics 2 tokenchars '''-'\"
@@ -346,6 +347,50 @@ END;
                 )?;
                 Ok(())
             }
+            22 => {
+                // Drop and re-create the fakespot_fts table to remove the prefix index param
+                tx.execute_batch(
+                    "
+DROP TABLE fakespot_fts;
+CREATE VIRTUAL TABLE fakespot_fts USING FTS5(
+  title,
+  content='',
+  contentless_delete=1,
+  tokenize=\"porter unicode61 remove_diacritics 2 tokenchars '''-'\"
+);
+                    ",
+                )?;
+                Ok(())
+            }
+            23 => {
+                // Drop all suggestions, then recreate the fakespot_custom_details table to add the
+                // `keywords` and `product_type` fields.
+                clear_database(tx)?;
+                tx.execute_batch(
+                    "
+DROP TABLE fakespot_custom_details;
+CREATE TABLE fakespot_custom_details(
+    suggestion_id INTEGER PRIMARY KEY,
+    fakespot_grade TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    keywords TEXT NOT NULL,
+    product_type TEXT NOT NULL,
+    rating REAL NOT NULL,
+    total_reviews INTEGER NOT NULL,
+    icon_id TEXT,
+    FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
+);
+CREATE TRIGGER fakespot_ai AFTER INSERT ON fakespot_custom_details BEGIN
+  INSERT INTO fakespot_fts(rowid, title)
+    SELECT id, title
+    FROM suggestions
+    WHERE id = new.suggestion_id;
+END;
+                    ",
+                )?;
+                Ok(())
+            }
+
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }

@@ -106,12 +106,14 @@ impl Ord for Suggestion {
             Suggestion::Amp { score, .. }
             | Suggestion::Pocket { score, .. }
             | Suggestion::Amo { score, .. } => score,
+            Suggestion::Fakespot { score, .. } => score,
             _ => &DEFAULT_SUGGESTION_SCORE,
         };
         let b_score = match other {
             Suggestion::Amp { score, .. }
             | Suggestion::Pocket { score, .. }
             | Suggestion::Amo { score, .. } => score,
+            Suggestion::Fakespot { score, .. } => score,
             _ => &DEFAULT_SUGGESTION_SCORE,
         };
         b_score
@@ -172,6 +174,30 @@ impl Suggestion {
             | Self::Fakespot { icon, .. } => icon.as_deref(),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+/// Testing utilitise
+impl Suggestion {
+    pub fn with_fakespot_keyword_bonus(mut self) -> Self {
+        match &mut self {
+            Self::Fakespot { score, .. } => {
+                *score += 0.01;
+            }
+            _ => panic!("Not Suggestion::Fakespot"),
+        }
+        self
+    }
+
+    pub fn with_fakespot_product_type_bonus(mut self, bonus: f64) -> Self {
+        match &mut self {
+            Self::Fakespot { score, .. } => {
+                *score += 0.001 * bonus;
+            }
+            _ => panic!("Not Suggestion::Fakespot"),
+        }
+        self
     }
 }
 

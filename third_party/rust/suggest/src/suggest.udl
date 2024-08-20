@@ -116,7 +116,6 @@ dictionary SuggestionQuery {
 };
 
 dictionary SuggestIngestionConstraints {
-    u64? max_suggestions = null;
     sequence<SuggestionProvider>? providers = null;
     // Only ingest if the table `suggestions` is empty.
     //

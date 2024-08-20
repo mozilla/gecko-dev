@@ -9,6 +9,7 @@ pub mod benchmarks;
 mod config;
 mod db;
 mod error;
+mod fakespot;
 mod keyword;
 pub mod pocket;
 mod provider;

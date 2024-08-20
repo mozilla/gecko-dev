@@ -932,15 +932,7 @@ export class FfiConverterTypeSuggestGlobalConfig extends FfiConverterArrayBuffer
 }
 
 export class SuggestIngestionConstraints {
-    constructor({ maxSuggestions = null, providers = null, emptyOnly = false } = {}) {
-        try {
-            FfiConverterOptionalu64.checkType(maxSuggestions)
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("maxSuggestions");
-            }
-            throw e;
-        }
+    constructor({ providers = null, emptyOnly = false } = {}) {
         try {
             FfiConverterOptionalSequenceTypeSuggestionProvider.checkType(providers)
         } catch (e) {
@@ -957,13 +949,11 @@ export class SuggestIngestionConstraints {
             }
             throw e;
         }
-        this.maxSuggestions = maxSuggestions;
         this.providers = providers;
         this.emptyOnly = emptyOnly;
     }
     equals(other) {
         return (
-            this.maxSuggestions == other.maxSuggestions &&
             this.providers == other.providers &&
             this.emptyOnly == other.emptyOnly
         )
@@ -974,20 +964,17 @@ export class SuggestIngestionConstraints {
 export class FfiConverterTypeSuggestIngestionConstraints extends FfiConverterArrayBuffer {
     static read(dataStream) {
         return new SuggestIngestionConstraints({
-            maxSuggestions: FfiConverterOptionalu64.read(dataStream),
             providers: FfiConverterOptionalSequenceTypeSuggestionProvider.read(dataStream),
             emptyOnly: FfiConverterBool.read(dataStream),
         });
     }
     static write(dataStream, value) {
-        FfiConverterOptionalu64.write(dataStream, value.maxSuggestions);
         FfiConverterOptionalSequenceTypeSuggestionProvider.write(dataStream, value.providers);
         FfiConverterBool.write(dataStream, value.emptyOnly);
     }
 
     static computeSize(value) {
         let totalSize = 0;
-        totalSize += FfiConverterOptionalu64.computeSize(value.maxSuggestions);
         totalSize += FfiConverterOptionalSequenceTypeSuggestionProvider.computeSize(value.providers);
         totalSize += FfiConverterBool.computeSize(value.emptyOnly);
         return totalSize
@@ -997,14 +984,6 @@ export class FfiConverterTypeSuggestIngestionConstraints extends FfiConverterArr
         super.checkType(value);
         if (!(value instanceof SuggestIngestionConstraints)) {
             throw new UniFFITypeError(`Expected 'SuggestIngestionConstraints', found '${typeof value}'`);
-        }
-        try {
-            FfiConverterOptionalu64.checkType(value.maxSuggestions);
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".maxSuggestions");
-            }
-            throw e;
         }
         try {
             FfiConverterOptionalSequenceTypeSuggestionProvider.checkType(value.providers);
@@ -1898,43 +1877,6 @@ export class FfiConverterOptionali32 extends FfiConverterArrayBuffer {
             return 1;
         }
         return 1 + FfiConverterI32.computeSize(value)
-    }
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterOptionalu64 extends FfiConverterArrayBuffer {
-    static checkType(value) {
-        if (value !== undefined && value !== null) {
-            FfiConverterU64.checkType(value)
-        }
-    }
-
-    static read(dataStream) {
-        const code = dataStream.readUint8(0);
-        switch (code) {
-            case 0:
-                return null
-            case 1:
-                return FfiConverterU64.read(dataStream)
-            default:
-                throw UniFFIError(`Unexpected code: ${code}`);
-        }
-    }
-
-    static write(dataStream, value) {
-        if (value === null || value === undefined) {
-            dataStream.writeUint8(0);
-            return;
-        }
-        dataStream.writeUint8(1);
-        FfiConverterU64.write(dataStream, value)
-    }
-
-    static computeSize(value) {
-        if (value === null || value === undefined) {
-            return 1;
-        }
-        return 1 + FfiConverterU64.computeSize(value)
     }
 }
 

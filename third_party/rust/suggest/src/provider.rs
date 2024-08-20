@@ -66,52 +66,17 @@ impl SuggestionProvider {
         }
     }
 
-    pub(crate) fn records_for_provider(&self) -> Vec<SuggestRecordType> {
+    pub(crate) fn record_type(&self) -> SuggestRecordType {
         match self {
-            SuggestionProvider::Amp => {
-                vec![
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Wikipedia => {
-                vec![
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Amo => {
-                vec![SuggestRecordType::Amo, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Pocket => {
-                vec![SuggestRecordType::Pocket, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Yelp => {
-                vec![
-                    SuggestRecordType::Yelp,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Mdn => {
-                vec![SuggestRecordType::Mdn, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::Weather => {
-                vec![SuggestRecordType::Weather, SuggestRecordType::GlobalConfig]
-            }
-            SuggestionProvider::AmpMobile => {
-                vec![
-                    SuggestRecordType::AmpMobile,
-                    SuggestRecordType::AmpWikipedia,
-                    SuggestRecordType::Icon,
-                    SuggestRecordType::GlobalConfig,
-                ]
-            }
-            SuggestionProvider::Fakespot => {
-                vec![SuggestRecordType::Fakespot]
-            }
+            SuggestionProvider::Amp => SuggestRecordType::AmpWikipedia,
+            SuggestionProvider::Wikipedia => SuggestRecordType::AmpWikipedia,
+            SuggestionProvider::Amo => SuggestRecordType::Amo,
+            SuggestionProvider::Pocket => SuggestRecordType::Pocket,
+            SuggestionProvider::Yelp => SuggestRecordType::Yelp,
+            SuggestionProvider::Mdn => SuggestRecordType::Mdn,
+            SuggestionProvider::Weather => SuggestRecordType::Weather,
+            SuggestionProvider::AmpMobile => SuggestRecordType::AmpMobile,
+            SuggestionProvider::Fakespot => SuggestRecordType::Fakespot,
         }
     }
 }

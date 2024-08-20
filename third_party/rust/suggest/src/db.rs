@@ -17,6 +17,7 @@ use sql_support::{open_database::open_database_with_flags, ConnExt};
 use crate::{
     config::{SuggestGlobalConfig, SuggestProviderConfig},
     error::RusqliteResultExt,
+    fakespot,
     keyword::full_keyword,
     pocket::{split_keyword, KeywordConfidence},
     provider::SuggestionProvider,
@@ -692,7 +693,9 @@ impl<'a> SuggestDao<'a> {
                 f.rating,
                 f.total_reviews,
                 i.data,
-                i.mimetype
+                i.mimetype,
+                f.keywords,
+                f.product_type
             FROM
                 suggestions s
             JOIN
@@ -711,10 +714,17 @@ impl<'a> SuggestDao<'a> {
             "#,
             (&query.fts_query(),),
             |row| {
+                let score = fakespot::FakespotScore::new(
+                    &query.keyword,
+                    row.get(9)?,
+                    row.get(10)?,
+                    row.get(2)?,
+                )
+                .as_suggest_score();
                 Ok(Suggestion::Fakespot {
                     title: row.get(0)?,
                     url: row.get(1)?,
-                    score: row.get(2)?,
+                    score,
                     fakespot_grade: row.get(3)?,
                     product_id: row.get(4)?,
                     rating: row.get(5)?,
@@ -1106,7 +1116,6 @@ impl<'a> SuggestDao<'a> {
         Ok(())
     }
 
-    #[cfg(feature = "benchmark_api")]
     /// Clears the value for a metadata key.
     ///
     /// This is currently only used for the benchmarks.
@@ -1391,11 +1400,13 @@ impl<'conn> FakespotInsertStatement<'conn> {
                  suggestion_id,
                  fakespot_grade,
                  product_id,
+                 keywords,
+                 product_type,
                  rating,
                  total_reviews,
                  icon_id
              )
-             VALUES(?, ?, ?, ?, ?, ?)
+             VALUES(?, ?, ?, ?, ?, ?, ?, ?)
              ",
         )?))
     }
@@ -1414,6 +1425,8 @@ impl<'conn> FakespotInsertStatement<'conn> {
                 suggestion_id,
                 &fakespot.fakespot_grade,
                 &fakespot.product_id,
+                &fakespot.keywords.to_lowercase(),
+                &fakespot.product_type.to_lowercase(),
                 fakespot.rating,
                 fakespot.total_reviews,
                 icon_id,

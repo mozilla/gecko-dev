@@ -210,14 +210,14 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "8fd08c6f2f8acd38579bd3142fecda9272957b72" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "9fc8d02e6cc4751c08c75a7b3c5aee432b66116f" }
 
 # Patch `gpu-descriptor` 0.3.0 to remove unnecessary `allocator-api2` dep.:
 # Still waiting for the now-merged <https://github.com/zakarumych/gpu-descriptor/pull/40> to be released.
