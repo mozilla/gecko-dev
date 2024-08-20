@@ -13591,20 +13591,6 @@
     "bug_numbers": [1271978],
     "description": "The difference between the js slow script timeout for content set in prefs and the actual time we waited before displaying the notification (msec)."
   },
-  "SERVICE_WORKER_SPAWN_ATTEMPTS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "50",
-    "kind": "count",
-    "description": "Count attempts to spawn a ServiceWorker for a domain. File bugs in Core::DOM in case of a Telemetry regression."
-  },
-  "SERVICE_WORKER_WAS_SPAWNED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "50",
-    "kind": "count",
-    "description": "Count ServiceWorkers that really did get a thread created for them. File bugs in Core::DOM in case of a Telemetry regression."
-  },
   "SERVICE_WORKER_SPAWN_GETS_QUEUED": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

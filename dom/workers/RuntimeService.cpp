@@ -1102,7 +1102,6 @@ bool RuntimeService::RegisterWorker(WorkerPrivate& aWorkerPrivate) {
   const bool isDedicatedWorker = aWorkerPrivate.IsDedicatedWorker();
   if (isServiceWorker) {
     AssertIsOnMainThread();
-    Telemetry::Accumulate(Telemetry::SERVICE_WORKER_SPAWN_ATTEMPTS, 1);
   }
 
   nsCString sharedWorkerScriptSpec;
@@ -1219,7 +1218,6 @@ bool RuntimeService::RegisterWorker(WorkerPrivate& aWorkerPrivate) {
 
   if (isServiceWorker) {
     AssertIsOnMainThread();
-    Telemetry::Accumulate(Telemetry::SERVICE_WORKER_WAS_SPAWNED, 1);
   }
   return true;
 }
