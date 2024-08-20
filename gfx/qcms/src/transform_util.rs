@@ -20,8 +20,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use std::convert::TryInto;
-
 use crate::{
     iccread::{curveType, Profile},
     s15Fixed16Number_to_float,
@@ -123,37 +121,37 @@ pub fn lut_interp_linear_float(mut value: f32, table: &[f32]) -> f32 {
     value
 }
 fn compute_curve_gamma_table_type1(gamma: u16) -> Box<[f32; 256]> {
-    let mut gamma_table = Vec::with_capacity(256);
+    let mut gamma_table = Box::new([0.0; 256]);
     let gamma_float: f32 = u8Fixed8Number_to_float(gamma);
     for i in 0..256 {
         // 0..1^(0..255 + 255/256) will always be between 0 and 1
-        gamma_table.push((i as f64 / 255.0f64).powf(gamma_float as f64) as f32);
+        gamma_table[i] = (i as f64 / 255.0f64).powf(gamma_float as f64) as f32;
     }
-    gamma_table.into_boxed_slice().try_into().unwrap()
+    gamma_table
 }
 fn compute_curve_gamma_table_type2(table: &[u16]) -> Box<[f32; 256]> {
-    let mut gamma_table = Vec::with_capacity(256);
+    let mut gamma_table = Box::new([0.0; 256]);
     for i in 0..256 {
-        gamma_table.push(lut_interp_linear(i as f64 / 255.0f64, table));
+        gamma_table[i] = lut_interp_linear(i as f64 / 255.0f64, table);
     }
-    gamma_table.into_boxed_slice().try_into().unwrap()
+    gamma_table
 }
 fn compute_curve_gamma_table_type_parametric(params: &[f32]) -> Box<[f32; 256]> {
     let params = Param::new(params);
-    let mut gamma_table = Vec::with_capacity(256);
+    let mut gamma_table = Box::new([0.0; 256]);
     for i in 0..256 {
         let X = i as f32 / 255.;
-        gamma_table.push(clamp_float(params.eval(X)));
+        gamma_table[i] = clamp_float(params.eval(X));
     }
-    gamma_table.into_boxed_slice().try_into().unwrap()
+    gamma_table
 }
 
 fn compute_curve_gamma_table_type0() -> Box<[f32; 256]> {
-    let mut gamma_table = Vec::with_capacity(256);
+    let mut gamma_table = Box::new([0.0; 256]);
     for i in 0..256 {
-        gamma_table.push((i as f64 / 255.0f64) as f32);
+        gamma_table[i] = (i as f64 / 255.0f64) as f32;
     }
-    gamma_table.into_boxed_slice().try_into().unwrap()
+    gamma_table
 }
 pub(crate) fn build_input_gamma_table(TRC: Option<&curveType>) -> Option<Box<[f32; 256]>> {
     let TRC = match TRC {
