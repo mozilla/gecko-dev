@@ -399,29 +399,6 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
     return false;
   }
 
-  // https-first needs to account for breaking upgrade-downgrade endless
-  // loops at this point for meta and js redirects because this function
-  // is called before we
-  // check the redirect limit in HttpBaseChannel. If we encounter
-  // a same-origin server side downgrade from e.g https://example.com
-  // to http://example.com then we simply not annotating the loadinfo
-  // and returning false from within this function. Please note that
-  // the handling for https-only mode is different from https-first mode,
-  // because https-only mode results in an exception page in case
-  // we encounter and endless upgrade downgrade loop.
-  /*
-  bool isUpgradeDowngradeEndlessLoop = IsUpgradeDowngradeEndlessLoop(
-      aURI, aURI, aLoadInfo,
-      {UpgradeDowngradeEndlessLoopOptions::EnforceForHTTPSFirstMode});
-  if (isUpgradeDowngradeEndlessLoop) {
-    if (mozilla::StaticPrefs::
-            dom_security_https_first_add_exception_on_failiure()) {
-      nsHTTPSOnlyUtils::AddHTTPSFirstExceptionForSession(aURI, aLoadInfo);
-    }
-    return false;
-  }
-  */
-
   // We can upgrade the request - let's log to the console and set the status
   // so we know that we upgraded the request.
   if (aLoadInfo->GetWasSchemelessInput() &&
