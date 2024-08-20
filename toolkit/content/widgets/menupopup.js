@@ -132,9 +132,6 @@
           overflow: auto;
           margin: 0;
         }
-        :host(.in-menulist) arrowscrollbox::part(scrollbox-clip) {
-          overflow: visible;
-        }
       `;
     }
 

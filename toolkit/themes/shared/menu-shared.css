@@ -49,9 +49,14 @@ menuseparator::before {
 /* Scroll buttons */
 
 /* Hide arrow buttons when there's nothing to scroll in that direction */
-.menupopup-arrowscrollbox[scrolledtostart="true"]::part(scrollbutton-up),
-.menupopup-arrowscrollbox[scrolledtoend="true"]::part(scrollbutton-down) {
+.menupopup-arrowscrollbox[scrolledtostart]::part(scrollbutton-up),
+.menupopup-arrowscrollbox[scrolledtoend]::part(scrollbutton-down) {
   display: none;
+}
+
+.menupopup-arrowscrollbox::part(scrollbox) {
+  /* This makes the padding / margin trick below work */
+  overflow-clip-box-block: content-box;
 }
 
 /* Prevent the scrolled contents of the menupopup from jumping vertically when
@@ -59,22 +64,16 @@ menuseparator::before {
  * such a way that its edges are at the same position as the edges of
  * arrowscrollbox regardless of scroll button visibility.
  */
-.menupopup-arrowscrollbox:not([scrolledtostart="true"])::part(scrollbox) {
+.menupopup-arrowscrollbox:not([scrolledtostart])::part(scrollbox) {
   /* scrollbutton-up is visible; shift our top edge up by its height. */
   margin-top: -16px;
+  padding-top: 16px;
 }
 
-.menupopup-arrowscrollbox:not([scrolledtoend="true"])::part(scrollbox) {
+.menupopup-arrowscrollbox:not([scrolledtoend])::part(scrollbox) {
   /* scrollbutton-down is visible; shift our bottom edge down by its height. */
   margin-bottom: -16px;
-}
-
-.menupopup-arrowscrollbox::part(scrollbox-clip) {
-  /* In the space where the arrow buttons overlap the scrollbox, clip away the
-   * scrollbox so that nothing is shown behind the arrow button even if the
-   * button is transparent.
-   */
-  overflow: clip;
+  padding-bottom: 16px;
 }
 
 @media (-moz-platform: windows) or (-moz-platform: linux) {

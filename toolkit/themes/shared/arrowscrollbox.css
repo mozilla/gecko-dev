@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-
-:host([scrolledtostart=true])::part(overflow-start-indicator),
-:host([scrolledtoend=true])::part(overflow-end-indicator),
-:host(:not([overflowing=true])) > toolbarbutton {
+:host([scrolledtostart])::part(overflow-start-indicator),
+:host([scrolledtoend])::part(overflow-end-indicator),
+:host(:not([overflowing])) > toolbarbutton {
   visibility: collapse;
+}
+
+slot {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: inherit;
 }
 
 /* Scroll arrows */
@@ -21,7 +25,7 @@ toolbarbutton {
   padding: 2px;
 }
 
-toolbarbutton[disabled="true"] {
+toolbarbutton[disabled] {
   fill-opacity: var(--toolbarbutton-disabled-opacity);
 }
 
@@ -43,13 +47,12 @@ toolbarbutton > .toolbarbutton-text {
 }
 
 @media not (-moz-platform: macos) {
-  :host(:not([clicktoscroll="true"])) > toolbarbutton {
+  :host(:not([clicktoscroll])) > toolbarbutton {
     appearance: none;
   }
 }
 
-scrollbox,
-.scrollbox-clip {
+scrollbox {
   min-width: 0;
   min-height: 0;
 }
