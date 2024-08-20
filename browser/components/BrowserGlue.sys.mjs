@@ -2001,10 +2001,6 @@ BrowserGlue.prototype = {
       this._updateCBCategory
     );
     Services.prefs.addObserver(
-      "media.autoplay.default",
-      this._updateAutoplayPref
-    );
-    Services.prefs.addObserver(
       "privacy.trackingprotection",
       this._setPrefExpectations
     );
@@ -2063,17 +2059,6 @@ BrowserGlue.prototype = {
           this._resetProfileNotification("uninstall");
         }
       }
-    }
-  },
-
-  _updateAutoplayPref() {
-    const blocked = Services.prefs.getIntPref("media.autoplay.default", 1);
-    const telemetry = Services.telemetry.getHistogramById(
-      "AUTOPLAY_DEFAULT_SETTING_CHANGE"
-    );
-    const labels = { 0: "allow", 1: "blockAudible", 5: "blockAll" };
-    if (blocked in labels) {
-      telemetry.add(labels[blocked]);
     }
   },
 
