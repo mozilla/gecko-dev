@@ -5198,7 +5198,8 @@ bool js::array_construct(JSContext* cx, unsigned argc, Value* vp) {
 
 ArrayObject* js::ArrayConstructorOneArg(JSContext* cx,
                                         Handle<ArrayObject*> templateObject,
-                                        int32_t lengthInt) {
+                                        int32_t lengthInt,
+                                        gc::AllocSite* site) {
   // JIT code can call this with a template object from a different realm when
   // calling another realm's Array constructor.
   Maybe<AutoRealm> ar;
@@ -5214,7 +5215,8 @@ ArrayObject* js::ArrayConstructorOneArg(JSContext* cx,
   }
 
   uint32_t length = uint32_t(lengthInt);
-  ArrayObject* res = NewDensePartlyAllocatedArray(cx, length);
+  ArrayObject* res =
+      NewDensePartlyAllocatedArray(cx, length, GenericObject, site);
   MOZ_ASSERT_IF(res, res->realm() == templateObject->realm());
   return res;
 }
@@ -5258,7 +5260,7 @@ static MOZ_ALWAYS_INLINE ArrayObject* NewArrayWithShape(
   AutoSetNewObjectMetadata metadata(cx);
   ArrayObject* arr = ArrayObject::create(
       cx, allocKind, GetInitialHeap(newKind, &ArrayObject::class_, site), shape,
-      length, slotSpan, metadata);
+      length, slotSpan, metadata, site);
   if (!arr) {
     return nullptr;
   }
@@ -5438,9 +5440,10 @@ ArrayObject* js::NewDenseFullyAllocatedArray(
 }
 
 ArrayObject* js::NewDensePartlyAllocatedArray(
-    JSContext* cx, uint32_t length,
-    NewObjectKind newKind /* = GenericObject */) {
-  return NewArray<ArrayObject::EagerAllocationMaxLength>(cx, length, newKind);
+    JSContext* cx, uint32_t length, NewObjectKind newKind /* = GenericObject */,
+    gc::AllocSite* site /* = nullptr */) {
+  return NewArray<ArrayObject::EagerAllocationMaxLength>(cx, length, newKind,
+                                                         site);
 }
 
 ArrayObject* js::NewDensePartlyAllocatedArrayWithProto(JSContext* cx,

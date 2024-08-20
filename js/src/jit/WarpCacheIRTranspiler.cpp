@@ -4574,12 +4574,11 @@ bool WarpCacheIRTranspiler::emitObjectCreateResult(
 }
 
 bool WarpCacheIRTranspiler::emitNewArrayFromLengthResult(
-    uint32_t templateObjectOffset, Int32OperandId lengthId) {
+    uint32_t templateObjectOffset, Int32OperandId lengthId,
+    uint32_t siteOffset) {
   JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);
   MDefinition* length = getOperand(lengthId);
-
-  // TODO: support pre-tenuring.
-  gc::Heap heap = gc::Heap::Default;
+  gc::Heap heap = allocSiteInitialHeapField(siteOffset);
 
   if (length->isConstant()) {
     int32_t lenInt32 = length->toConstant()->toInt32();

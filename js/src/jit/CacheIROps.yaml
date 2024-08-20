@@ -1369,6 +1369,7 @@
   args:
     templateObject: ObjectField
     length: Int32Id
+    site: AllocSiteField
 
 - name: NewTypedArrayFromLengthResult
   shared: true

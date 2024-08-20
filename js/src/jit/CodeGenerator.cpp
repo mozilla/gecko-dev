@@ -8141,7 +8141,6 @@ void CodeGenerator::visitNewArray(LNewArray* lir) {
 
   OutOfLineNewArray* ool = new (alloc()) OutOfLineNewArray(lir);
   addOutOfLineCode(ool, lir->mir());
-
   TemplateObject templateObject(lir->mir()->templateObject());
 #ifdef DEBUG
   size_t numInlineElements = gc::GetGCKindSlots(templateObject.getAllocKind()) -
@@ -8168,9 +8167,10 @@ void CodeGenerator::visitNewArrayDynamicLength(LNewArrayDynamicLength* lir) {
   JSObject* templateObject = lir->mir()->templateObject();
   gc::Heap initialHeap = lir->mir()->initialHeap();
 
-  using Fn = ArrayObject* (*)(JSContext*, Handle<ArrayObject*>, int32_t length);
+  using Fn = ArrayObject* (*)(JSContext*, Handle<ArrayObject*>, int32_t length,
+                              gc::AllocSite*);
   OutOfLineCode* ool = oolCallVM<Fn, ArrayConstructorOneArg>(
-      lir, ArgList(ImmGCPtr(templateObject), lengthReg),
+      lir, ArgList(ImmGCPtr(templateObject), lengthReg, ImmPtr(nullptr)),
       StoreRegisterTo(objReg));
 
   bool canInline = true;
