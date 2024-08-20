@@ -723,12 +723,11 @@ nsresult OpenIdentityProviderDialog(
       aProviderConfig.mLoginTarget.Value() == IdentityLoginTargetType::Popup;
   RefPtr<BrowsingContext> newBC;
   if (popup) {
-    return outer->OpenJS(
-        NS_ConvertUTF8toUTF16(aProviderConfig.mLoginURL.Value()), u"_blank"_ns,
-        u"popup"_ns, getter_AddRefs(newBC));
+    return outer->OpenJS(aProviderConfig.mLoginURL.Value(), u"_blank"_ns,
+                         u"popup"_ns, getter_AddRefs(newBC));
   }
-  return outer->OpenJS(NS_ConvertUTF8toUTF16(aProviderConfig.mLoginURL.Value()),
-                       u"_top"_ns, u""_ns, getter_AddRefs(newBC));
+  return outer->OpenJS(aProviderConfig.mLoginURL.Value(), u"_top"_ns, u""_ns,
+                       getter_AddRefs(newBC));
 }
 
 // static
@@ -880,8 +879,7 @@ IdentityCredential::DiscoverLightweightFromExternalSourceInMainProcess(
       if (provider.mLoginURL.WasPassed()) {
         Unused << aBrowsingContext->GetCurrentWindowGlobal()
                       ->SendNavigateForIdentityCredentialDiscovery(
-                          NS_ConvertUTF8toUTF16(provider.mLoginURL.Value()),
-                          type);
+                          provider.mLoginURL.Value(), type);
       }
     }
   }

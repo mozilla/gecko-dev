@@ -254,7 +254,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   mozilla::dom::ChromeMessageBroadcaster* GetGroupMessageManager(
       const nsAString& aGroup);
 
-  nsresult OpenJS(const nsAString& aUrl, const nsAString& aName,
+  nsresult OpenJS(const nsACString& aUrl, const nsAString& aName,
                   const nsAString& aOptions,
                   mozilla::dom::BrowsingContext** _retval);
 
@@ -556,7 +556,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenOuter(
       const nsAString& aUrl, const nsAString& aName, const nsAString& aOptions,
       mozilla::ErrorResult& aError);
-  nsresult Open(const nsAString& aUrl, const nsAString& aName,
+  nsresult Open(const nsACString& aUrl, const nsAString& aName,
                 const nsAString& aOptions, nsDocShellLoadState* aLoadState,
                 bool aForceNoOpener,
                 mozilla::dom::BrowsingContext** _retval) override;
@@ -626,7 +626,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       const nsAString& aOptions,
       const mozilla::dom::Sequence<JS::Value>& aExtraArgument,
       mozilla::ErrorResult& aError);
-  nsresult OpenDialog(const nsAString& aUrl, const nsAString& aName,
+  nsresult OpenDialog(const nsACString& aUrl, const nsAString& aName,
                       const nsAString& aOptions, nsIArray* aArguments,
                       mozilla::dom::BrowsingContext** _retval) override;
   void UpdateCommands(const nsAString& anAction) override;
@@ -690,7 +690,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   // Outer windows only.
   virtual nsresult OpenNoNavigate(
-      const nsAString& aUrl, const nsAString& aName, const nsAString& aOptions,
+      const nsACString& aUrl, const nsAString& aName, const nsAString& aOptions,
       mozilla::dom::BrowsingContext** _retval) override;
 
  private:
@@ -748,7 +748,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
    *
    * Outer windows only.
    */
-  nsresult OpenInternal(const nsAString& aUrl, const nsAString& aName,
+  nsresult OpenInternal(const nsACString& aUrl, const nsAString& aName,
                         const nsAString& aOptions, bool aDialog,
                         bool aCalledNoScript, bool aDoJSFixups, bool aNavigate,
                         nsIArray* aArguments, nsDocShellLoadState* aLoadState,
@@ -762,7 +762,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
  public:
   mozilla::dom::PopupBlocker::PopupControlState RevisePopupAbuseLevel(
       mozilla::dom::PopupBlocker::PopupControlState aState);
-  void FireAbuseEvents(const nsAString& aPopupURL,
+  void FireAbuseEvents(const nsACString& aPopupURL,
                        const nsAString& aPopupWindowName,
                        const nsAString& aPopupWindowFeatures);
 

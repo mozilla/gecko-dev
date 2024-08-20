@@ -569,7 +569,7 @@ IPCResult WindowGlobalChild::RecvNotifyPermissionChange(const nsCString& aType,
 }
 
 IPCResult WindowGlobalChild::RecvNavigateForIdentityCredentialDiscovery(
-    const nsString& aURI, const IdentityLoginTargetType& aType) {
+    const nsCString& aURI, const IdentityLoginTargetType& aType) {
   AutoJSAPI jsapi;
   if (!jsapi.Init(GetWindowGlobal())) {
     return IPC_OK();

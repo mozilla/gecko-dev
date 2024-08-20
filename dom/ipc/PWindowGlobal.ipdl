@@ -94,7 +94,7 @@ child:
 
   async RestoreTabContent(nullable SessionStoreRestoreData aData) returns (bool success);
 
-  async NavigateForIdentityCredentialDiscovery(nsString aUri, IdentityLoginTargetType aType);
+  async NavigateForIdentityCredentialDiscovery(nsCString aUri, IdentityLoginTargetType aType);
 
 both:
   async RawMessage(JSActorMessageMeta aMetadata, ClonedMessageData? aData,
