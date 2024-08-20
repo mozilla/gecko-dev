@@ -61,16 +61,15 @@ void ResolveOrReject(dom::Promise& aPromise, nsPrinterListBase& aList,
 NS_IMETHODIMP nsPrinterListBase::GetPrinters(JSContext* aCx,
                                              Promise** aResult) {
   EnsureCommonPaperInfo(aCx);
-  return mozilla::AsyncPromiseAttributeGetter(*this, mPrintersPromise, aCx,
-                                              aResult, "Printers"_ns,
-                                              &nsPrinterListBase::Printers);
+  return mozilla::AsyncPromiseAttributeGetter(
+      *this, mPrintersPromise, aCx, aResult, &nsPrinterListBase::Printers);
 }
 
 NS_IMETHODIMP nsPrinterListBase::GetPrinterByName(const nsAString& aPrinterName,
                                                   JSContext* aCx,
                                                   Promise** aResult) {
   EnsureCommonPaperInfo(aCx);
-  return PrintBackgroundTaskPromise(*this, aCx, aResult, "PrinterByName"_ns,
+  return PrintBackgroundTaskPromise(*this, aCx, aResult,
                                     &nsPrinterListBase::PrinterByName,
                                     nsString{aPrinterName});
 }
@@ -78,17 +77,17 @@ NS_IMETHODIMP nsPrinterListBase::GetPrinterByName(const nsAString& aPrinterName,
 NS_IMETHODIMP nsPrinterListBase::GetPrinterBySystemName(
     const nsAString& aPrinterName, JSContext* aCx, Promise** aResult) {
   EnsureCommonPaperInfo(aCx);
-  return PrintBackgroundTaskPromise(
-      *this, aCx, aResult, "PrinterBySystemName"_ns,
-      &nsPrinterListBase::PrinterBySystemName, nsString{aPrinterName});
+  return PrintBackgroundTaskPromise(*this, aCx, aResult,
+                                    &nsPrinterListBase::PrinterBySystemName,
+                                    nsString{aPrinterName});
 }
 
 NS_IMETHODIMP nsPrinterListBase::GetNamedOrDefaultPrinter(
     const nsAString& aPrinterName, JSContext* aCx, Promise** aResult) {
   EnsureCommonPaperInfo(aCx);
-  return PrintBackgroundTaskPromise(
-      *this, aCx, aResult, "NamedOrDefaultPrinter"_ns,
-      &nsPrinterListBase::NamedOrDefaultPrinter, nsString{aPrinterName});
+  return PrintBackgroundTaskPromise(*this, aCx, aResult,
+                                    &nsPrinterListBase::NamedOrDefaultPrinter,
+                                    nsString{aPrinterName});
 }
 
 Maybe<PrinterInfo> nsPrinterListBase::NamedOrDefaultPrinter(

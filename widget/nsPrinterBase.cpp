@@ -125,14 +125,9 @@ nsresult nsPrinterBase::AsyncPromiseAttributeGetter(
     BackgroundTask<T, Args...> aBackgroundTask, Args... aArgs) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  static constexpr EnumeratedArray<AsyncAttribute, nsLiteralCString,
-                                   size_t(AsyncAttribute::Last)>
-      attributeKeys{"SupportsDuplex"_ns, "SupportsColor"_ns,
-                    "SupportsMonochrome"_ns, "SupportsCollation"_ns,
-                    "PrinterInfo"_ns};
   return mozilla::AsyncPromiseAttributeGetter(
       *this, mAsyncAttributePromises[aAttribute], aCx, aResultPromise,
-      attributeKeys[aAttribute], aBackgroundTask, std::forward<Args>(aArgs)...);
+      aBackgroundTask, std::forward<Args>(aArgs)...);
 }
 
 NS_IMETHODIMP nsPrinterBase::CopyFromWithValidation(
@@ -196,7 +191,7 @@ NS_IMETHODIMP nsPrinterBase::GetPrinterInfo(JSContext* aCx,
 
 void nsPrinterBase::QueryMarginsForPaper(Promise& aPromise,
                                          const nsString& aPaperId) {
-  return SpawnPrintBackgroundTask(*this, aPromise, "MarginsForPaper"_ns,
+  return SpawnPrintBackgroundTask(*this, aPromise,
                                   &nsPrinterBase::GetMarginsForPaper, aPaperId);
 }
 

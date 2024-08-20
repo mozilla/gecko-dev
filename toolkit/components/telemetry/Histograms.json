@@ -10032,32 +10032,6 @@
     "n_buckets": 50,
     "description": "(Bug 1207089) Time in ms between displaying a popup notification and dismissing it without an action the first time, keyed by ID"
   },
-  "PRINT_BACKGROUND_TASK_TIME_MS": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["jwatt@jwatt.org"],
-    "expires_in_version": "95",
-    "description": "Milliseconds taken on the background thread only for print background tasks. Keys describe the task, usually the information being retrieved, current possible keys are: DefaultSettings, MarginsForPaper, Printers, NamedPrinter, NamedOrDefaultPrinter, SupportsDuplex, SupportsColor, SupportsCollation, PaperList.",
-    "keyed": true,
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1660686]
-  },
-  "PRINT_BACKGROUND_TASK_ROUND_TRIP_TIME_MS": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["jwatt@jwatt.org"],
-    "expires_in_version": "95",
-    "description": "Milliseconds taken for print background tasks from spawning to background thread back to before resolving or rejecting on the main thread. See PRINT_BACKGROUND_TASK_TIME_MS for key description.",
-    "keyed": true,
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1660686]
-  },
   "PRINT_INIT_TO_PLATFORM_SENT_SETTINGS_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox"],

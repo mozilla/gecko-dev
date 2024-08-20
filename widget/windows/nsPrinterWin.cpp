@@ -204,9 +204,9 @@ NS_IMETHODIMP nsPrinterWin::CopyFromWithValidation(
 
   PrintSettingsInitializer settingsInitializer =
       aSettingsToCopyFrom->GetSettingsInitializer();
-  return PrintBackgroundTaskPromise(
-      *this, aCx, aResultPromise, "CopyFromWithValidation"_ns,
-      &nsPrinterWin::GetValidatedSettings, settingsInitializer);
+  return PrintBackgroundTaskPromise(*this, aCx, aResultPromise,
+                                    &nsPrinterWin::GetValidatedSettings,
+                                    settingsInitializer);
 }
 
 bool nsPrinterWin::SupportsDuplex() const {
