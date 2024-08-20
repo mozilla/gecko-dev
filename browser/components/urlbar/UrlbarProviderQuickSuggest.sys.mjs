@@ -387,12 +387,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.richSuggestionIconSize ||= 52;
         result.suggestedIndex = 1;
       } else if (
-        suggestion.is_sponsored &&
-        lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")
-      ) {
-        result.isBestMatch = true;
-        result.suggestedIndex = 1;
-      } else if (
         !isNaN(suggestion.position) &&
         lazy.UrlbarPrefs.get("quickSuggestAllowPositionInSuggestions")
       ) {

@@ -7,31 +7,9 @@
  * Tests browser quick suggestions.
  */
 
-const TEST_URL = "http://example.com/quicksuggest";
-
 const REMOTE_SETTINGS_RESULTS = [
-  {
-    id: 1,
-    url: `${TEST_URL}?q=frabbits`,
-    title: "frabbits",
-    keywords: ["fra", "frab"],
-    click_url: "http://click.reporting.test.com/",
-    impression_url: "http://impression.reporting.test.com/",
-    advertiser: "TestAdvertiser",
-    iab_category: "22 - Shopping",
-    icon: "1234",
-  },
-  {
-    id: 2,
-    url: `${TEST_URL}?q=nonsponsored`,
-    title: "Non-Sponsored",
-    keywords: ["nonspon"],
-    click_url: "http://click.reporting.test.com/nonsponsored",
-    impression_url: "http://impression.reporting.test.com/nonsponsored",
-    advertiser: "Wikipedia",
-    iab_category: "5 - Education",
-    icon: "1234",
-  },
+  QuickSuggestTestUtils.ampRemoteSettings({ keywords: ["fra", "frab"] }),
+  QuickSuggestTestUtils.wikipediaRemoteSettings(),
 ];
 
 const MERINO_NAVIGATIONAL_SUGGESTION = {
@@ -54,6 +32,9 @@ const MERINO_DYNAMIC_WIKIPEDIA_SUGGESTION = {
   iab_category: "5 - Education",
   block_id: 1,
 };
+
+// Trying to avoid timeouts in TV mode.
+requestLongerTimeout(5);
 
 add_setup(async function () {
   await PlacesUtils.history.clear();
@@ -84,7 +65,7 @@ add_tasks_with_rust(async function sponsored() {
     window,
     index: 1,
     isSponsored: true,
-    url: `${TEST_URL}?q=frabbits`,
+    url: "https://example.com/amp",
   });
   let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1);
   Assert.equal(
@@ -104,13 +85,13 @@ add_tasks_with_rust(async function sponsored() {
 add_tasks_with_rust(async function nonSponsored() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: "nonspon",
+    value: "wikipedia",
   });
   await QuickSuggestTestUtils.assertIsQuickSuggest({
     window,
     index: 1,
     isSponsored: false,
-    url: `${TEST_URL}?q=nonsponsored`,
+    url: "https://example.com/wikipedia",
   });
   await UrlbarTestUtils.promisePopupClose(window);
 });
@@ -130,7 +111,7 @@ add_tasks_with_rust(async function sponsoredPriority() {
     index: 1,
     isSponsored: true,
     isBestMatch: true,
-    url: `${TEST_URL}?q=frabbits`,
+    url: "https://example.com/amp",
   });
 
   let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1);
@@ -167,13 +148,13 @@ add_tasks_with_rust(
 
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: "nonspon",
+      value: "wikipedia",
     });
     await QuickSuggestTestUtils.assertIsQuickSuggest({
       window,
       index: 1,
       isSponsored: false,
-      url: `${TEST_URL}?q=nonsponsored`,
+      url: "https://example.com/wikipedia",
     });
 
     let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1);
@@ -190,6 +171,91 @@ add_tasks_with_rust(
   }
 );
 
+// AMP should be a top pick when quickSuggestAmpTopPickCharThreshold is non-zero
+// and a suggestion's full keyword is typed, even if the full keyword's length
+// is below the threshold.
+add_tasks_with_rust(async function ampTopPickCharThreshold_fullKeyword() {
+  const cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature({
+    quickSuggestAmpTopPickCharThreshold: 100,
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "frab",
+  });
+  await QuickSuggestTestUtils.assertIsQuickSuggest({
+    window,
+    index: 1,
+    isSponsored: true,
+    isBestMatch: true,
+    hasSponsoredLabel: false,
+    url: "https://example.com/amp",
+  });
+
+  let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1);
+  Assert.equal(
+    row.querySelector(".urlbarView-title > strong").textContent,
+    "frab",
+    "The full keyword should be bold"
+  );
+
+  // Group label.
+  let before = window.getComputedStyle(row, "::before");
+  Assert.equal(before.content, "attr(label)", "::before.content is enabled");
+  Assert.equal(
+    row.getAttribute("label"),
+    "Sponsored",
+    "Row has 'Sponsored' group label"
+  );
+
+  await UrlbarTestUtils.promisePopupClose(window);
+  await cleanUpNimbus();
+});
+
+// AMP should not be a top pick when quickSuggestAmpTopPickCharThreshold is
+// non-zero and a typed non-full keyword falls below the threshold.
+add_tasks_with_rust(async function ampTopPickCharThreshold_belowThreshold() {
+  const cleanUpNimbus = await UrlbarTestUtils.initNimbusFeature({
+    quickSuggestAmpTopPickCharThreshold: 100,
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    // The full keyword is "frab".
+    value: "fra",
+  });
+  await QuickSuggestTestUtils.assertIsQuickSuggest({
+    window,
+    index: 1,
+    isSponsored: true,
+    url: "https://example.com/amp",
+  });
+
+  let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1);
+  Assert.equal(
+    row.querySelector(".urlbarView-title").firstChild.textContent,
+    "fra",
+    "The part of the keyword that matches users input is not bold."
+  );
+  Assert.equal(
+    row.querySelector(".urlbarView-title > strong").textContent,
+    "b",
+    "The auto completed section of the keyword is bolded."
+  );
+
+  // Group label.
+  let before = window.getComputedStyle(row, "::before");
+  Assert.equal(before.content, "attr(label)", "::before.content is enabled");
+  Assert.equal(
+    row.getAttribute("label"),
+    "Firefox Suggest",
+    "Row has 'Firefox Suggest' group label"
+  );
+
+  await UrlbarTestUtils.promisePopupClose(window);
+  await cleanUpNimbus();
+});
+
 // Tests the "Manage" result menu for sponsored suggestion.
 add_tasks_with_rust(async function resultMenu_manage_sponsored() {
   await doManageTest({
@@ -201,7 +267,7 @@ add_tasks_with_rust(async function resultMenu_manage_sponsored() {
 // Tests the "Manage" result menu for non-sponsored suggestion.
 add_tasks_with_rust(async function resultMenu_manage_nonSponsored() {
   await doManageTest({
-    input: "nonspon",
+    input: "wikipedia",
     index: 1,
   });
 });
@@ -209,7 +275,10 @@ add_tasks_with_rust(async function resultMenu_manage_nonSponsored() {
 // Tests the "Manage" result menu for Navigational suggestion.
 add_tasks_with_rust(async function resultMenu_manage_navigational() {
   // Enable Merino.
-  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.dataCollection.enabled", true]],
+  });
+
   MerinoTestUtils.server.response.body.suggestions = [
     MERINO_NAVIGATIONAL_SUGGESTION,
   ];
@@ -219,13 +288,15 @@ add_tasks_with_rust(async function resultMenu_manage_navigational() {
     index: 1,
   });
 
-  UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
+  await SpecialPowers.popPrefEnv();
 });
 
 // Tests the "Manage" result menu for Dynamic Wikipedia suggestion.
 add_tasks_with_rust(async function resultMenu_manage_dynamicWikipedia() {
   // Enable Merino.
-  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.dataCollection.enabled", true]],
+  });
   MerinoTestUtils.server.response.body.suggestions = [
     MERINO_DYNAMIC_WIKIPEDIA_SUGGESTION,
   ];
@@ -235,5 +306,5 @@ add_tasks_with_rust(async function resultMenu_manage_dynamicWikipedia() {
     index: 1,
   });
 
-  UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
+  await SpecialPowers.popPrefEnv();
 });

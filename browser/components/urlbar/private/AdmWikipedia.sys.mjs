@@ -178,10 +178,6 @@ export class AdmWikipedia extends BaseFeature {
       originalUrl,
       url: suggestion.url,
       title: suggestion.title,
-      qsSuggestion: [
-        suggestion.full_keyword,
-        lazy.UrlbarUtils.HIGHLIGHT.SUGGESTED,
-      ],
       isSponsored: suggestion.is_sponsored,
       requestId: suggestion.request_id,
       urlTimestampIndex: suggestion.urlTimestampIndex,
@@ -197,6 +193,21 @@ export class AdmWikipedia extends BaseFeature {
       isManageable: true,
     };
 
+    let isAmpTopPick =
+      suggestion.is_sponsored &&
+      lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") &&
+      (lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold") <=
+        queryContext.trimmedLowerCaseSearchString.length ||
+        suggestion.full_keyword.trim().toLocaleLowerCase() ==
+          queryContext.trimmedLowerCaseSearchString);
+
+    payload.qsSuggestion = [
+      suggestion.full_keyword,
+      isAmpTopPick
+        ? lazy.UrlbarUtils.HIGHLIGHT.TYPED
+        : lazy.UrlbarUtils.HIGHLIGHT.SUGGESTED,
+    ];
+
     let result = new lazy.UrlbarResult(
       lazy.UrlbarUtils.RESULT_TYPE.URL,
       lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
@@ -207,14 +218,21 @@ export class AdmWikipedia extends BaseFeature {
     );
 
     if (suggestion.is_sponsored) {
-      if (!lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")) {
-        result.richSuggestionIconSize = 16;
-      }
-
-      result.payload.descriptionL10n = {
-        id: "urlbar-result-action-sponsored",
-      };
       result.isRichSuggestion = true;
+      if (isAmpTopPick) {
+        result.isBestMatch = true;
+        result.suggestedIndex = 1;
+      } else {
+        if (lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")) {
+          result.isBestMatch = true;
+          result.suggestedIndex = 1;
+        } else {
+          result.richSuggestionIconSize = 16;
+        }
+        result.payload.descriptionL10n = {
+          id: "urlbar-result-action-sponsored",
+        };
+      }
     }
 
     return result;

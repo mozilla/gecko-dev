@@ -508,6 +508,9 @@ class _QuickSuggestTestUtils {
    *   Whether the result is expected to be a best match.
    * @param {boolean} [options.isManageable]
    *   Whether the result is expected to show Manage result menu item.
+   * @param {boolean} [options.hasSponsoredLabel]
+   *   Whether the result is expected to show the "Sponsored" label below the
+   *   title.
    * @returns {result}
    *   The quick suggest result.
    */
@@ -519,6 +522,7 @@ class _QuickSuggestTestUtils {
     isSponsored = true,
     isBestMatch = false,
     isManageable = true,
+    hasSponsoredLabel = isSponsored || isBestMatch,
   } = {}) {
     this.Assert.ok(
       url || originalUrl,
@@ -578,7 +582,7 @@ class _QuickSuggestTestUtils {
     let { row } = details.element;
 
     let sponsoredElement = row._elements.get("description");
-    if (isSponsored || isBestMatch) {
+    if (hasSponsoredLabel) {
       this.Assert.ok(sponsoredElement, "Result sponsored label element exists");
       this.Assert.equal(
         sponsoredElement.textContent,
@@ -587,7 +591,7 @@ class _QuickSuggestTestUtils {
       );
     } else {
       this.Assert.ok(
-        !sponsoredElement,
+        !sponsoredElement?.textContent,
         "Result sponsored label element should not exist"
       );
     }

@@ -322,6 +322,15 @@ urlbar:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.allowPositionInSuggestions
       description: Whether quick suggest results can be shown in position specified in the suggestions.
+    quickSuggestAmpTopPickCharThreshold:
+      type: int
+      fallbackPref: browser.urlbar.quicksuggest.ampTopPickCharThreshold
+      description: >-
+        Character-count threshold (inclusive) for showing AMP suggestions as top
+        picks. If an AMP suggestion is triggered by a keyword at least this many
+        characters long, it will be shown as a top pick. When this variable is
+        set, full keywords will also show AMP suggestions as top picks even if
+        they have fewer characters than this threshold.
     quickSuggestContextualOptInEnabled:
       type: boolean
       setPref:

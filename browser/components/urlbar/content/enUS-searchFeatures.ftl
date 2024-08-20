@@ -49,6 +49,10 @@ urlbar-group-pocket =
 urlbar-group-local =
   .label = Local recommendations
 
+# Label shown above sponsored suggestions in the urlbar results.
+urlbar-group-sponsored =
+  .label = Sponsored
+
 # Block menu item shown in the result menu of top pick and quick suggest
 # results.
 urlbar-result-menu-dismiss-firefox-suggest =

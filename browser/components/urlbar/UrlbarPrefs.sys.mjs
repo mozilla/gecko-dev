@@ -213,6 +213,13 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // suggestions.
   ["quicksuggest.allowPositionInSuggestions", true],
 
+  // When non-zero, this is the character-count threshold (inclusive) for
+  // showing AMP suggestions as top picks. If an AMP suggestion is triggered by
+  // a keyword at least this many characters long, it will be shown as a top
+  // pick. Full keywords will also show AMP suggestions as top picks even if
+  // they have fewer characters than this threshold.
+  ["quicksuggest.ampTopPickCharThreshold", 0],
+
   // JSON'ed array of blocked quick suggest URL digests.
   ["quicksuggest.blockedDigests", ""],
 

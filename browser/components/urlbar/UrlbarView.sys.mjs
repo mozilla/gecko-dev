@@ -2348,6 +2348,11 @@ export class UrlbarView {
       row.result.providerName == lazy.UrlbarProviderQuickSuggest.name
     ) {
       switch (row.result.payload.telemetryType) {
+        case "adm_sponsored":
+          if (!lazy.UrlbarPrefs.get("quickSuggestSponsoredPriority")) {
+            return { id: "urlbar-group-sponsored" };
+          }
+          break;
         case "amo":
           return { id: "urlbar-group-addon" };
         case "mdn":
@@ -3015,6 +3020,10 @@ export class UrlbarView {
       { id: "urlbar-result-action-visit-from-clipboard" },
     ];
 
+    let suggestSponsoredEnabled =
+      lazy.UrlbarPrefs.get("quickSuggestEnabled") &&
+      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored");
+
     if (lazy.UrlbarPrefs.get("groupLabels.enabled")) {
       idArgs.push({ id: "urlbar-group-firefox-suggest" });
       idArgs.push({ id: "urlbar-group-best-match" });
@@ -3031,13 +3040,16 @@ export class UrlbarView {
         if (lazy.UrlbarPrefs.get("yelpFeatureGate")) {
           idArgs.push({ id: "urlbar-group-local" });
         }
+        if (
+          suggestSponsoredEnabled &&
+          lazy.UrlbarPrefs.get("quickSuggestAmpTopPickCharThreshold")
+        ) {
+          idArgs.push({ id: "urlbar-group-sponsored" });
+        }
       }
     }
 
-    if (
-      lazy.UrlbarPrefs.get("quickSuggestEnabled") &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored")
-    ) {
+    if (suggestSponsoredEnabled) {
       idArgs.push({ id: "urlbar-result-action-sponsored" });
     }
 

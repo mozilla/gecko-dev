@@ -156,9 +156,10 @@ function makeWikipediaResult({
   source,
   provider,
   keyword = "wikipedia",
+  fullKeyword = keyword,
   title = "Wikipedia Suggestion",
   url = "https://example.com/wikipedia",
-  originalUrl = "https://example.com/wikipedia",
+  originalUrl = url,
   icon = null,
   iconBlob = new Blob([new Uint8Array([])]),
   impressionUrl = "https://example.com/wikipedia-impression",
@@ -181,7 +182,7 @@ function makeWikipediaResult({
       originalUrl,
       displayUrl: url.replace(/^https:\/\//, ""),
       isSponsored: false,
-      qsSuggestion: keyword,
+      qsSuggestion: fullKeyword ?? keyword,
       sponsoredAdvertiser: "Wikipedia",
       sponsoredIabCategory: "5 - Education",
       isBlockable: true,
@@ -222,9 +223,10 @@ function makeAmpResult({
   source,
   provider,
   keyword = "amp",
+  fullKeyword = keyword,
   title = "Amp Suggestion",
   url = "https://example.com/amp",
-  originalUrl = "https://example.com/amp",
+  originalUrl = url,
   icon = null,
   iconBlob = new Blob([new Uint8Array([])]),
   impressionUrl = "https://example.com/amp-impression",
@@ -234,11 +236,14 @@ function makeAmpResult({
   iabCategory = "22 - Shopping",
   suggestedIndex = 0,
   isSuggestedIndexRelativeToGroup = true,
+  isBestMatch = false,
   requestId = undefined,
+  descriptionL10n = { id: "urlbar-result-action-sponsored" },
 } = {}) {
   let result = {
     suggestedIndex,
     isSuggestedIndexRelativeToGroup,
+    isBestMatch,
     type: UrlbarUtils.RESULT_TYPE.URL,
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     heuristic: false,
@@ -249,7 +254,7 @@ function makeAmpResult({
       requestId,
       displayUrl: url.replace(/^https:\/\//, ""),
       isSponsored: true,
-      qsSuggestion: keyword,
+      qsSuggestion: fullKeyword ?? keyword,
       sponsoredImpressionUrl: impressionUrl,
       sponsoredClickUrl: clickUrl,
       sponsoredBlockId: blockId,
@@ -261,9 +266,12 @@ function makeAmpResult({
       },
       isManageable: true,
       telemetryType: "adm_sponsored",
-      descriptionL10n: { id: "urlbar-result-action-sponsored" },
     },
   };
+
+  if (descriptionL10n) {
+    result.payload.descriptionL10n = descriptionL10n;
+  }
 
   if (UrlbarPrefs.get("quickSuggestRustEnabled")) {
     result.payload.source = source || "rust";
