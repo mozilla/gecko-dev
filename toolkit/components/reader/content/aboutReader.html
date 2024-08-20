@@ -86,10 +86,12 @@
                   <button
                     class="text-size-minus-button"
                     data-l10n-id="about-reader-toolbar-minus"
+                    data-telemetry-id="text-size-minus-button"
                   ></button>
                   <button
                     class="text-size-plus-button"
                     data-l10n-id="about-reader-toolbar-plus"
+                    data-telemetry-id="text-size-plus-button"
                   ></button>
                 </div>
               </div>
@@ -102,6 +104,7 @@
                   <select
                     name="font-type-selector"
                     id="font-type-selector"
+                    data-telemetry-id="font-type-selector"
                   ></select>
                 </div>
                 <div id="font-weight-dropdown" class="dropdown-selector">
@@ -112,6 +115,7 @@
                   <select
                     name="font-weight-selector"
                     id="font-weight-selector"
+                    data-telemetry-id="font-weight-selector"
                   ></select>
                 </div>
               </div>
@@ -236,12 +240,14 @@
                   deck="tabs-deck"
                   name="fxtheme"
                   data-l10n-id="about-reader-fxtheme-tab"
+                  data-telemetry-id="colors-menu-default-tab"
                 ></button>
                 <button
                   is="named-deck-button"
                   deck="tabs-deck"
                   name="customtheme"
                   data-l10n-id="about-reader-customtheme-tab"
+                  data-telemetry-id="colors-menu-custom-tab"
                 ></button>
               </button-group>
               <named-deck id="tabs-deck" is-tabbed>
