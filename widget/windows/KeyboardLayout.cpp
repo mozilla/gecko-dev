@@ -1598,7 +1598,9 @@ void NativeKey::InitWithKeyOrChar() {
       MOZ_LOG(gKeyLog, LogLevel::Info,
               ("%p   NativeKey::InitWithKeyOrChar(), removed char message, %s",
                this, ToString(charMsg).get()));
-      Unused << NS_WARN_IF(charMsg.hwnd != mMsg.hwnd);
+      NS_WARNING_ASSERTION(
+          charMsg.hwnd == mMsg.hwnd,
+          "The retrieved char message was targeted to differnet window");
       mFollowingCharMsgs.AppendElement(charMsg);
     }
     if (mFollowingCharMsgs.Length() == 1) {
@@ -1636,14 +1638,15 @@ void NativeKey::InitWithKeyOrChar() {
                "surrogate input, but received lone low surrogate input",
                this));
         }
-      } else {
+      } else if (MOZ_UNLIKELY(pendingHighSurrogate)) {
         MOZ_LOG(gKeyLog, LogLevel::Warning,
                 ("%p   NativeKey::InitWithKeyOrChar(), there is pending "
                  "high surrogate input, but received non-surrogate input.  "
                  "The high surrogate input is discarded",
                  this));
       }
-    } else if (pendingHighSurrogate && !mFollowingCharMsgs.IsEmpty()) {
+    } else if (MOZ_UNLIKELY(pendingHighSurrogate &&
+                            !mFollowingCharMsgs.IsEmpty())) {
       MOZ_LOG(gKeyLog, LogLevel::Warning,
               ("%p   NativeKey::InitWithKeyOrChar(), there is pending "
                "high surrogate input, but received 2 or more character input.  "
@@ -3159,8 +3162,7 @@ bool NativeKey::GetFollowingCharMessage(MSG& aCharMsg) {
             gKeyLog, LogLevel::Warning,
             ("%p   NativeKey::GetFollowingCharMessage(), WARNING, failed to "
              "remove a char message and next key message becomes differnt "
-             "key's "
-             "char message, nextKeyMsgInAllWindows=%s, nextKeyMsg=%s, "
+             "key's char message, nextKeyMsgInAllWindows=%s, nextKeyMsg=%s, "
              "kFoundCharMsg=%s",
              this, ToString(nextKeyMsgInAllWindows).get(),
              ToString(nextKeyMsg).get(), ToString(kFoundCharMsg).get()));
@@ -3305,10 +3307,11 @@ bool NativeKey::GetFollowingCharMessage(MSG& aCharMsg) {
       continue;
     }
 
-    // Typically, this case occurs with WM_DEADCHAR.  If the removed message's
-    // wParam becomes 0, that means that the key event shouldn't cause text
+    // wParam of WM_DEADCHAR may be 0, but for the other char messages, this is
+    // an odd case because it means that the key event shouldn't cause text
     // input.  So, let's ignore the strange char message.
-    if (removedMsg.message == nextKeyMsg.message && !removedMsg.wParam) {
+    if (removedMsg.message != WM_DEADCHAR &&
+        removedMsg.message == nextKeyMsg.message && !removedMsg.wParam) {
       MOZ_LOG(
           gKeyLog, LogLevel::Warning,
           ("%p   NativeKey::GetFollowingCharMessage(), WARNING, succeeded to "
@@ -4121,13 +4124,13 @@ bool KeyboardLayout::MaybeInitNativeKeyAsDeadKey(NativeKey& aNativeKey) {
 
   // When keydown message is followed by a dead char message, it should be
   // initialized as dead key.
-  bool isDeadKeyDownEvent =
+  const bool isDeadKeyDownEvent =
       aNativeKey.IsKeyDownMessage() && aNativeKey.IsFollowedByDeadCharMessage();
 
   // When keyup message is received, let's check if it's one of preceding
   // dead keys because keydown message order and keyup message order may be
   // different.
-  bool isDeadKeyUpEvent =
+  const bool isDeadKeyUpEvent =
       !aNativeKey.IsKeyDownMessage() &&
       mActiveDeadKeys.Contains(aNativeKey.GenericVirtualKeyCode());
 
