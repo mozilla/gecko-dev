@@ -6576,10 +6576,6 @@
         if (tab.hasAttribute("activemedia-blocked")) {
           tab.removeAttribute("activemedia-blocked");
           this._tabAttrModified(tab, ["activemedia-blocked"]);
-          let hist = Services.telemetry.getHistogramById(
-            "TAB_AUDIO_INDICATOR_USED"
-          );
-          hist.add(2 /* unblockByVisitingTab */);
         }
       });
 
