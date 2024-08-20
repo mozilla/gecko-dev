@@ -564,9 +564,6 @@ RefPtr<GenericErrorResultPromise> ServiceWorkerManager::StartControllingClient(
             aRegistrationInfo->StartControllingClient();
           }
 
-          Telemetry::Accumulate(Telemetry::SERVICE_WORKER_CONTROLLED_DOCUMENTS,
-                                1);
-
           // Always check to see if we failed to actually control the client. In
           // that case remove the client from our list of controlled clients.
           return promise->Then(
@@ -600,9 +597,6 @@ RefPtr<GenericErrorResultPromise> ServiceWorkerManager::StartControllingClient(
         clientHandle->OnDetach()->Then(
             GetMainThreadSerialEventTarget(), __func__,
             [self, aClientInfo] { self->StopControllingClient(aClientInfo); });
-
-        Telemetry::Accumulate(Telemetry::SERVICE_WORKER_CONTROLLED_DOCUMENTS,
-                              1);
 
         // Always check to see if we failed to actually control the client.  In
         // that case removed the client from our list of controlled clients.
