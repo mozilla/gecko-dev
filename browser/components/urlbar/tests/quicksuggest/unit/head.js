@@ -6,10 +6,12 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
+  UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
 add_setup(async function setUpQuickSuggestXpcshellTest() {

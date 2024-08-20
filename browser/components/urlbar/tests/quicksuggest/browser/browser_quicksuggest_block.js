@@ -36,6 +36,9 @@ const REMOTE_SETTINGS_RESULTS = [
   },
 ];
 
+// Trying to avoid timeouts.
+requestLongerTimeout(3);
+
 add_setup(async function () {
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
@@ -91,7 +94,9 @@ async function doOneBasicBlockTest({ result, block }) {
   let suggested_index_relative_to_group = true;
   let match_type = "firefox-suggest";
   let isSponsored = result.iab_category != "5 - Education";
-  let suggested_index = isSponsored ? 0 : -1;
+  // The suggested index is -1 even for sponsored since search suggestions are
+  // disabled.
+  let suggested_index = -1;
   let expectedBlockId =
     UrlbarPrefs.get("quicksuggest.rustEnabled") && !isSponsored
       ? null

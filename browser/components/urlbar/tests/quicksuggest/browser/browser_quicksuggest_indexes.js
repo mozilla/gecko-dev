@@ -38,7 +38,8 @@ add_setup(async function () {
   await PlacesUtils.bookmarks.eraseEverything();
   await UrlbarTestUtils.formHistory.clear();
 
-  // Add a mock engine so we don't hit the network.
+  // Set default engine so we don't hit the network. It doesn't provide search
+  // suggestions so the suggested index of sponsored suggestions should be -1.
   await SearchTestUtils.installSearchExtension({}, { setAsDefault: true });
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
@@ -55,42 +56,117 @@ add_setup(async function () {
   });
 });
 
-// Tests with history only
-add_task(async function noSuggestions() {
-  await doTestPermutations(({ withHistory, generalIndex }) => ({
-    expectedResultCount: withHistory ? MAX_RESULTS : 2,
-    expectedIndex: generalIndex == 0 || !withHistory ? 1 : MAX_RESULTS - 1,
-  }));
-});
-
-// Tests with suggestions followed by history
-add_task(async function suggestionsFirst() {
+// Tests with search suggestions first and an engine that returns suggestions
+add_task(async function searchSuggestionsFirst_withSuggestions() {
   await SpecialPowers.pushPrefEnv({
     set: [[SUGGESTIONS_FIRST_PREF, true]],
   });
   await withSuggestions(async () => {
     await doTestPermutations(({ withHistory, generalIndex }) => ({
+      // Since suggestions are shown first and the engine returns suggestions,
+      // the sponsored suggested index can be 0.
+      expectedSuggestedIndex: generalIndex,
       expectedResultCount: withHistory ? MAX_RESULTS : 4,
-      expectedIndex: generalIndex == 0 || !withHistory ? 3 : MAX_RESULTS - 1,
+      expectedViewIndex:
+        generalIndex == 0 || !withHistory ? 3 : MAX_RESULTS - 1,
     }));
   });
   await SpecialPowers.popPrefEnv();
 });
 
-// Tests with history followed by suggestions
-add_task(async function suggestionsLast() {
+// Tests with search suggestions first and an engine that does not return
+// suggestions (the default engine)
+add_task(async function searchSuggestionsFirst_withoutSuggestions() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SUGGESTIONS_FIRST_PREF, true]],
+  });
+  await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
+    // Although suggestions are shown first, the default engine does not return
+    // suggestions, so the sponsored suggested index should always be -1.
+    expectedSuggestedIndex: isSponsored ? -1 : generalIndex,
+    expectedResultCount: withHistory ? MAX_RESULTS : 2,
+    expectedViewIndex:
+      (generalIndex == 0 && !isSponsored) || !withHistory ? 1 : MAX_RESULTS - 1,
+  }));
+  await SpecialPowers.popPrefEnv();
+});
+
+// Tests with search suggestions first, an engine that returns suggestions, but
+// suggestions are disabled
+add_task(async function searchSuggestionsFirst_suggestionsDisabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SUGGESTIONS_FIRST_PREF, true]],
+  });
+  await withSuggestions(async () => {
+    await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
+      // Since suggestions are disabled, the sponsored suggested index should
+      // always be -1.
+      expectedSuggestedIndex: isSponsored ? -1 : generalIndex,
+      expectedResultCount: withHistory ? MAX_RESULTS : 2,
+      expectedViewIndex:
+        (generalIndex == 0 && !isSponsored) || !withHistory
+          ? 1
+          : MAX_RESULTS - 1,
+    }));
+  }, false);
+  await SpecialPowers.popPrefEnv();
+});
+
+// Tests with history first and an engine that returns suggestions
+add_task(async function historyFirst_withSuggestions() {
   await SpecialPowers.pushPrefEnv({
     set: [[SUGGESTIONS_FIRST_PREF, false]],
   });
   await withSuggestions(async () => {
     await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
+      // Since history is shown first, the sponsored suggested index should
+      // always be -1.
+      expectedSuggestedIndex: isSponsored ? -1 : generalIndex,
       expectedResultCount: withHistory ? MAX_RESULTS : 4,
-      expectedIndex:
+      expectedViewIndex:
         (generalIndex == 0 && !isSponsored) || !withHistory
           ? 1
           : MAX_RESULTS - 3,
     }));
   });
+  await SpecialPowers.popPrefEnv();
+});
+
+// Tests with history first and an engine that doesn't return suggestions (the
+// default engine)
+add_task(async function historyFirst_withoutSuggestions() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SUGGESTIONS_FIRST_PREF, false]],
+  });
+  await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
+    // History is shown first and there are no suggestions. Either condition by
+    // itself means the sponsored suggested index should always be -1.
+    expectedSuggestedIndex: isSponsored ? -1 : generalIndex,
+    expectedResultCount: withHistory ? MAX_RESULTS : 2,
+    expectedViewIndex:
+      (generalIndex == 0 && !isSponsored) || !withHistory ? 1 : MAX_RESULTS - 1,
+  }));
+  await SpecialPowers.popPrefEnv();
+});
+
+// Tests with history first, an engine that returns suggestions, but suggestions
+// are disabled
+add_task(async function historyFirst_suggestionsDisabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[SUGGESTIONS_FIRST_PREF, false]],
+  });
+  await withSuggestions(async () => {
+    await doTestPermutations(({ isSponsored, withHistory, generalIndex }) => ({
+      // History is shown first and suggestions are disabled. Either condition
+      // by itself means the sponsored suggested index should always be -1.
+      expectedSuggestedIndex: isSponsored ? -1 : generalIndex,
+      expectedResultCount: withHistory ? MAX_RESULTS : 2,
+      expectedViewIndex:
+        (generalIndex == 0 && !isSponsored) || !withHistory
+          ? 1
+          : MAX_RESULTS - 1,
+    }));
+  }, false);
   await SpecialPowers.popPrefEnv();
 });
 
@@ -101,11 +177,6 @@ add_task(async function otherSuggestedIndex_noSuggestions() {
     { heuristic: true },
     // TestProvider result
     { suggestedIndex: 1, resultSpan: 2 },
-    // quick suggest
-    {
-      type: UrlbarUtils.RESULT_TYPE.URL,
-      providerName: UrlbarProviderQuickSuggest.name,
-    },
     // history
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
@@ -113,6 +184,11 @@ add_task(async function otherSuggestedIndex_noSuggestions() {
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
+    // quick suggest
+    {
+      type: UrlbarUtils.RESULT_TYPE.URL,
+      providerName: UrlbarProviderQuickSuggest.name,
+    },
   ]);
 });
 
@@ -217,7 +293,7 @@ class TestProvider extends UrlbarTestUtils.TestProvider {
  * @param {Function} callback
  *   For each permutation, this will be called with the arguments of `doTest()`,
  *   and it should return an object with the appropriate values of
- *   `expectedResultCount` and `expectedIndex`.
+ *   `expectedResultCount` and `expectedViewIndex`.
  */
 async function doTestPermutations(callback) {
   for (let isSponsored of [true, false]) {
@@ -246,17 +322,20 @@ async function doTestPermutations(callback) {
  * @param {number} options.generalIndex
  *   The value to set as the relevant index pref, i.e., the index within the
  *   general group of the quick suggest result.
+ * @param {number} options.expectedSuggestedIndex
+ *   The expected suggested index of the quick suggest result.
  * @param {number} options.expectedResultCount
  *   The expected total result count for sanity checking.
- * @param {number} options.expectedIndex
- *   The expected index of the quick suggest result in the whole results list.
+ * @param {number} options.expectedViewIndex
+ *   The expected actual index in the view of the quick suggest result.
  */
 async function doTest({
   isSponsored,
   withHistory,
   generalIndex,
+  expectedSuggestedIndex,
   expectedResultCount,
-  expectedIndex,
+  expectedViewIndex,
 }) {
   info(
     "Running test with options: " +
@@ -265,7 +344,7 @@ async function doTest({
         withHistory,
         generalIndex,
         expectedResultCount,
-        expectedIndex,
+        expectedViewIndex,
       })
   );
 
@@ -295,14 +374,20 @@ async function doTest({
     expectedResultCount,
     "Expected result count"
   );
-  await QuickSuggestTestUtils.assertIsQuickSuggest({
+  let details = await QuickSuggestTestUtils.assertIsQuickSuggest({
     window,
     isSponsored,
-    index: expectedIndex,
+    index: expectedViewIndex,
     url: isSponsored
       ? REMOTE_SETTINGS_RESULTS[0].url
       : REMOTE_SETTINGS_RESULTS[1].url,
   });
+
+  Assert.equal(
+    details.result.suggestedIndex,
+    expectedSuggestedIndex,
+    "Expected suggestedIndex"
+  );
 
   await UrlbarTestUtils.promisePopupClose(window);
   await PlacesUtils.history.clear();
@@ -327,10 +412,12 @@ async function addHistory() {
  *
  * @param {Function} callback
  *   Your callback function.
+ * @param {boolean} enableSuggestions
+ *   Whether `browser.urlbar.suggest.searches` should be enabled.
  */
-async function withSuggestions(callback) {
+async function withSuggestions(callback, enableSuggestions = true) {
   await SpecialPowers.pushPrefEnv({
-    set: [[SUGGESTIONS_PREF, true]],
+    set: [[SUGGESTIONS_PREF, enableSuggestions]],
   });
   let engine = await SearchTestUtils.installOpenSearchEngine({
     url: getRootDirectory(gTestPath) + TEST_ENGINE_BASENAME,

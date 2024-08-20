@@ -42,8 +42,6 @@ const ALONGERKEYWORD_RESULT = {
 };
 
 add_setup(async function () {
-  Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
-
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
     prefs: [["suggest.quicksuggest.sponsored", true]],

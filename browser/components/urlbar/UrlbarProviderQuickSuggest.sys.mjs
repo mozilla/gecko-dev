@@ -14,8 +14,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarProviderSearchSuggestions:
+    "resource:///modules/UrlbarProviderSearchSuggestions.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
+  UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
 // `contextId` is a unique identifier used by Contextual Services
@@ -395,17 +399,27 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.suggestedIndex = suggestion.position;
       } else {
         result.isSuggestedIndexRelativeToGroup = true;
-
-        if (suggestion.is_sponsored) {
-          result.suggestedIndex = lazy.UrlbarPrefs.get(
-            "showSearchSuggestionsFirst"
-          )
-            ? lazy.UrlbarPrefs.get("quickSuggestSponsoredIndex")
-            : -1;
-        } else {
+        if (!suggestion.is_sponsored) {
           result.suggestedIndex = lazy.UrlbarPrefs.get(
             "quickSuggestNonSponsoredIndex"
           );
+        } else if (
+          lazy.UrlbarPrefs.get("showSearchSuggestionsFirst") &&
+          lazy.UrlbarProviderSearchSuggestions.isActive(queryContext) &&
+          lazy.UrlbarSearchUtils.getDefaultEngine(
+            queryContext.isPrivate
+          ).supportsResponseType(lazy.SearchUtils.URL_TYPE.SUGGEST_JSON)
+        ) {
+          // Show sponsored suggestions somewhere other than the bottom of the
+          // Suggest section only if search suggestions are shown first, the
+          // search suggestions provider is active for the current context (it
+          // will not be active if search suggestions are disabled, among other
+          // reasons), and the default engine supports suggestions.
+          result.suggestedIndex = lazy.UrlbarPrefs.get(
+            "quickSuggestSponsoredIndex"
+          );
+        } else {
+          result.suggestedIndex = -1;
         }
       }
     }
