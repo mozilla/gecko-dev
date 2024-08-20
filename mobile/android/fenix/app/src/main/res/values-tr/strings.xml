@@ -118,6 +118,10 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Bu sekmenin geçmişindeki sayfalar arasında dolaşmak için oklara dokunup basılı tutun.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Yeni: Tek dokunuşla geri ve ileri okları</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamera erişimi gerekiyor. Android ayarlarına gidin, izinlere girin ve izin verin.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

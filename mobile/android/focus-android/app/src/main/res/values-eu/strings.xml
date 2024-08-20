@@ -924,7 +924,7 @@
     <string name="open_new_tab_snackbar">Aldatu</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Pantaila osoko moduan sartzen</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Pantaila osoko moduan sartzen</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Aldatu berehala loturara fitxa berrian</string>
@@ -1114,4 +1114,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widgeta hasierako pantailan gehitu da</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Pantaila osotik irteteko, arrastatu goitik eta erabili atzerako keinua</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Pantaila osotik irteteko, arrastatu goitik eta sakatu atzera</string>
 </resources>
