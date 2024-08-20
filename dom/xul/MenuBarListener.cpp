@@ -66,8 +66,7 @@ MenuBarListener::MenuBarListener(XULMenuBarElement& aElement)
   mEventTarget->AddEventListener(u"MozDOMFullscreen:Entered"_ns, this, false);
 
   // Needs to listen to the deactivate event of the window.
-  RefPtr<EventTarget> top = nsContentUtils::GetWindowRoot(mEventTarget);
-  if (!NS_WARN_IF(!top)) {
+  if (RefPtr<EventTarget> top = nsContentUtils::GetWindowRoot(mEventTarget)) {
     top->AddSystemEventListener(u"deactivate"_ns, this, true);
   }
 }
@@ -95,8 +94,7 @@ void MenuBarListener::Detach() {
 
   mEventTarget->RemoveEventListener(u"MozDOMFullscreen:Entered"_ns, this,
                                     false);
-  RefPtr<EventTarget> top = nsContentUtils::GetWindowRoot(mEventTarget);
-  if (!NS_WARN_IF(!top)) {
+  if (RefPtr<EventTarget> top = nsContentUtils::GetWindowRoot(mEventTarget)) {
     top->RemoveSystemEventListener(u"deactivate"_ns, this, true);
   }
   mMenuBar = nullptr;
