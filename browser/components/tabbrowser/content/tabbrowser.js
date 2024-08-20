@@ -1358,11 +1358,8 @@
         newTab.attention = false;
 
         // The tab has been selected, it's not unselected anymore.
-        // (1) Call the current tab's finishUnselectedTabHoverTimer()
-        //     to save a telemetry record.
-        // (2) Call the current browser's unselectedTabHover() with false
-        //     to dispatch an event.
-        newTab.finishUnselectedTabHoverTimer();
+        // Call the current browser's unselectedTabHover() with false
+        // to dispatch an event.
         newBrowser.unselectedTabHover(false);
       }
 

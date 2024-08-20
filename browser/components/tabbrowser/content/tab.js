@@ -578,7 +578,6 @@
         this.container._handleTabSelect();
       } else if (this.linkedPanel) {
         this.linkedBrowser.unselectedTabHover(true);
-        this.startUnselectedTabHoverTimer();
       }
 
       // Prepare connection to host beforehand.
@@ -594,7 +593,6 @@
       this._hover = false;
       if (this.linkedPanel && !this.selected) {
         this.linkedBrowser.unselectedTabHover(false);
-        this.cancelUnselectedTabHoverTimer();
       }
       this.dispatchEvent(new CustomEvent("TabHoverEnd", { bubbles: true }));
     }
@@ -618,51 +616,6 @@
         tooltipEl.removeAttribute("data-l10n-id");
       }
       // TODO(Itiel): Maybe simplify this when bug 1830989 lands
-    }
-
-    startUnselectedTabHoverTimer() {
-      // Only record data when we need to.
-      if (!this.linkedBrowser.shouldHandleUnselectedTabHover) {
-        return;
-      }
-
-      if (
-        !TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)
-      ) {
-        TelemetryStopwatch.start("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
-      }
-
-      if (this._hoverTabTimer) {
-        clearTimeout(this._hoverTabTimer);
-        this._hoverTabTimer = null;
-      }
-    }
-
-    cancelUnselectedTabHoverTimer() {
-      // Since we're listening "mouseout" event, instead of "mouseleave".
-      // Every time the cursor is moving from the tab to its child node (icon),
-      // it would dispatch "mouseout"(for tab) first and then dispatch
-      // "mouseover" (for icon, eg: close button, speaker icon) soon.
-      // It causes we would cancel present TelemetryStopwatch immediately
-      // when cursor is moving on the icon, and then start a new one.
-      // In order to avoid this situation, we could delay cancellation and
-      // remove it if we get "mouseover" within very short period.
-      this._hoverTabTimer = setTimeout(() => {
-        if (
-          TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)
-        ) {
-          TelemetryStopwatch.cancel("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
-        }
-      }, 100);
-    }
-
-    finishUnselectedTabHoverTimer() {
-      // Stop timer when the tab is opened.
-      if (
-        TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)
-      ) {
-        TelemetryStopwatch.finish("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
-      }
     }
 
     resumeDelayedMedia() {
