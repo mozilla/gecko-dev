@@ -5764,19 +5764,8 @@ nsresult XREMain::XRE_mainRun() {
     // If we're on Linux, we now have information about the OS capabilities
     // available to us.
     SandboxInfo sandboxInfo = SandboxInfo::Get();
-    Telemetry::Accumulate(Telemetry::SANDBOX_HAS_SECCOMP_BPF,
-                          sandboxInfo.Test(SandboxInfo::kHasSeccompBPF));
-    Telemetry::Accumulate(Telemetry::SANDBOX_HAS_SECCOMP_TSYNC,
-                          sandboxInfo.Test(SandboxInfo::kHasSeccompTSync));
-    Telemetry::Accumulate(
-        Telemetry::SANDBOX_HAS_USER_NAMESPACES_PRIVILEGED,
-        sandboxInfo.Test(SandboxInfo::kHasPrivilegedUserNamespaces));
     Telemetry::Accumulate(Telemetry::SANDBOX_HAS_USER_NAMESPACES,
                           sandboxInfo.Test(SandboxInfo::kHasUserNamespaces));
-    Telemetry::Accumulate(Telemetry::SANDBOX_CONTENT_ENABLED,
-                          sandboxInfo.Test(SandboxInfo::kEnabledForContent));
-    Telemetry::Accumulate(Telemetry::SANDBOX_MEDIA_ENABLED,
-                          sandboxInfo.Test(SandboxInfo::kEnabledForMedia));
 
     CrashReporter::RecordAnnotationU32(
         CrashReporter::Annotation::ContentSandboxCapabilities,

@@ -14112,26 +14112,6 @@
     "keyed": true,
     "description": "Measures the number of milliseconds we spend waiting for sync IPC messages to finish sending, keyed by message name. Note: only messages that wait for more than 500 microseconds and block the main thread are included in this probe."
   },
-  "SANDBOX_HAS_SECCOMP_BPF": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gcp@mozilla.com"],
-    "bug_numbers": [1098428],
-    "expires_in_version": "55",
-    "kind": "boolean",
-    "operating_systems": ["linux"],
-    "description": "Whether the system has seccomp-bpf capability"
-  },
-  "SANDBOX_HAS_SECCOMP_TSYNC": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gcp@mozilla.com"],
-    "bug_numbers": [1098428, 1370578],
-    "expires_in_version": "61",
-    "kind": "boolean",
-    "operating_systems": ["linux"],
-    "description": "Whether the system has seccomp-bpf thread-sync capability"
-  },
   "SANDBOX_HAS_USER_NAMESPACES": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
@@ -14146,36 +14126,6 @@
     "kind": "boolean",
     "operating_systems": ["linux"],
     "description": "Whether our process succedeed in creating a user namespace"
-  },
-  "SANDBOX_HAS_USER_NAMESPACES_PRIVILEGED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gcp@mozilla.com"],
-    "bug_numbers": [1098428, 1370578],
-    "expires_in_version": "61",
-    "kind": "boolean",
-    "operating_systems": ["linux"],
-    "description": "Whether the system has the capability to create privileged user namespaces"
-  },
-  "SANDBOX_MEDIA_ENABLED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gcp@mozilla.com"],
-    "bug_numbers": [1098428],
-    "expires_in_version": "55",
-    "kind": "boolean",
-    "operating_systems": ["linux"],
-    "description": "Whether the sandbox is enabled for media/GMP plugins"
-  },
-  "SANDBOX_CONTENT_ENABLED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gcp@mozilla.com"],
-    "bug_numbers": [1098428],
-    "expires_in_version": "55",
-    "kind": "boolean",
-    "operating_systems": ["linux"],
-    "description": "Whether the sandbox is enabled for the content process"
   },
   "SANDBOX_REJECTED_SYSCALLS": {
     "record_in_processes": ["main", "content"],
