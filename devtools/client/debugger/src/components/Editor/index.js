@@ -35,6 +35,7 @@ import {
   isSourceOnSourceMapIgnoreList,
   isMapScopesEnabled,
   getSelectedTraceIndex,
+  getShouldScrollToSelectedLocation,
 } from "../../selectors/index";
 
 // Redux actions
@@ -123,6 +124,7 @@ class Editor extends PureComponent {
       highlightedLineRange: PropTypes.object,
       isSourceOnIgnoreList: PropTypes.bool,
       mapScopesEnabled: PropTypes.bool,
+      shouldScrollToSelectedLocation: PropTypes.bool,
     };
   }
 
@@ -175,7 +177,8 @@ class Editor extends PureComponent {
 
     const shouldScroll =
       nextProps.selectedLocation &&
-      this.shouldScrollToLocation(nextProps, editor);
+      nextProps.shouldScrollToSelectedLocation &&
+      this.shouldScrollToLocation(nextProps);
 
     if (shouldUpdateText) {
       await this.setText(nextProps, editor);
@@ -186,10 +189,14 @@ class Editor extends PureComponent {
     }
   }
 
-  onEditorUpdated = v => {
-    if (v.docChanged || v.geometryChanged) {
-      resizeToggleButton(v.view.dom.querySelector(".cm-gutters").clientWidth);
+  onEditorUpdated = viewUpdate => {
+    if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
+      resizeToggleButton(
+        viewUpdate.view.dom.querySelector(".cm-gutters").clientWidth
+      );
       this.props.updateViewport();
+    } else if (viewUpdate.selectionSet) {
+      this.onCursorChange();
     }
   };
 
@@ -407,11 +414,11 @@ class Editor extends PureComponent {
       return null;
     }
 
-    const selectionCursor = editor.getSelectionCursor().from;
+    const selectionCursor = editor.getSelectionCursor();
     return {
-      line: toSourceLine(selectedSource.id, selectionCursor.line),
+      line: toSourceLine(selectedSource.id, selectionCursor.from.line),
       // Add one to column for correct position in editor.
-      column: selectionCursor.ch + 1,
+      column: selectionCursor.from.ch + 1,
     };
   }
 
@@ -594,15 +601,15 @@ class Editor extends PureComponent {
    * CodeMirror event handler, called whenever the cursor moves
    * for user-driven or programatic reasons.
    */
-  onCursorChange = event => {
-    const { line, ch } = event.doc.getCursor();
+  onCursorChange = () => {
+    const { editor } = this.state;
+    const selectionCursor = editor.getSelectionCursor();
+    const { line, ch } = selectionCursor.from;
+
     this.props.selectLocation(
       createLocation({
         source: this.props.selectedSource,
-        // CodeMirror cursor location is all 0-based.
-        // Whereast in DevTools frontend and backend,
-        // only colunm is 0-based, the line is 1 based.
-        line: line + 1,
+        line: toSourceLine(this.props.selectedSource.id, line),
         column: ch,
       }),
       {
@@ -612,6 +619,9 @@ class Editor extends PureComponent {
 
         // Avoid highlighting the selected line
         highlight: false,
+
+        // Avoid scrolling to the selected line, it's already visible
+        scroll: false,
       }
     );
   };
@@ -1044,6 +1054,7 @@ const mapStateToProps = state => {
     mapScopesEnabled: selectedSource?.isOriginal
       ? isMapScopesEnabled(state)
       : null,
+    shouldScrollToSelectedLocation: getShouldScrollToSelectedLocation(state),
   };
 };
 
