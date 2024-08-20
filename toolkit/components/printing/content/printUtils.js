@@ -159,10 +159,6 @@ var PrintUtils = {
    *        The BrowsingContext of the window to print.
    * @param aExistingPreviewBrowser
    *        An existing browser created for printing from window.print().
-   * @param aPrintInitiationTime
-   *        The time the print was initiated (typically by the user) as obtained
-   *        from `Date.now()`.  That is, the initiation time as the number of
-   *        milliseconds since January 1, 1970.
    * @param aPrintSelectionOnly
    *        Whether to print only the active selection of the given browsing
    *        context.
@@ -174,7 +170,6 @@ var PrintUtils = {
   _openTabModalPrint(
     aBrowsingContext,
     aOpenWindowInfo,
-    aPrintInitiationTime,
     aPrintSelectionOnly,
     aPrintFrameOnly
   ) {
@@ -197,7 +192,7 @@ var PrintUtils = {
     });
     let dialogBox = this.getTabDialogBox(sourceBrowser);
     let { closedPromise, dialog } = dialogBox.open(
-      `chrome://global/content/print.html?printInitiationTime=${aPrintInitiationTime}`,
+      `chrome://global/content/print.html`,
       { features: "resizable=no", sizeTo: "available" },
       args
     );
@@ -241,8 +236,6 @@ var PrintUtils = {
    *        {printFrameOnly}      Whether to print the selected frame.
    */
   startPrintWindow(aBrowsingContext, aOptions) {
-    const printInitiationTime = Date.now();
-
     // At most, one of these is set.
     let { printSelectionOnly, printFrameOnly, windowDotPrintOpenWindowInfo } =
       aOptions || {};
@@ -272,7 +265,6 @@ var PrintUtils = {
       return this._openTabModalPrint(
         browsingContext,
         windowDotPrintOpenWindowInfo,
-        printInitiationTime,
         printSelectionOnly,
         printFrameOnly
       );
