@@ -1765,6 +1765,11 @@ html {
 
     .checkbox-container {
       display: flex;
+
+      > input {
+        flex-grow: 0;
+        flex-shrink: 0;
+      }
     }
 
     @media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {

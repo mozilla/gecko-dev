@@ -2383,6 +2383,10 @@ html {
 .onboardingContainer .multi-select-container .checkbox-container {
   display: flex;
 }
+.onboardingContainer .multi-select-container .checkbox-container > input {
+  flex-grow: 0;
+  flex-shrink: 0;
+}
 @media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
   .onboardingContainer .multi-select-container {
     color: #CFCFD8;
