@@ -64,6 +64,8 @@ class IonCompileTask final : public HelperThreadTask,
   ThreadType threadType() override { return THREAD_TYPE_ION; }
   void runTask();
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
+
+  const char* getName() override { return "IonCompileTask"; }
 };
 
 class IonFreeTask : public HelperThreadTask {
@@ -78,6 +80,8 @@ class IonFreeTask : public HelperThreadTask {
 
   ThreadType threadType() override { return THREAD_TYPE_ION_FREE; }
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
+
+  const char* getName() override { return "IonFreeTask"; }
 };
 
 void AttachFinishedCompilations(JSContext* cx);

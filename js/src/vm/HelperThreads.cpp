@@ -124,6 +124,11 @@ JS_PUBLIC_API MOZ_NEVER_INLINE void JS::SetHelperThreadTaskCallback(
                                               lock);
 }
 
+JS_PUBLIC_API MOZ_NEVER_INLINE const char* JS::GetHelperThreadTaskName(
+    HelperThreadTask* task) {
+  return task->getName();
+}
+
 void GlobalHelperThreadState::setDispatchTaskCallback(
     JS::HelperThreadTaskCallback callback, size_t threadCount, size_t stackSize,
     const AutoLockHelperThreadState& lock) {

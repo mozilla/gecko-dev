@@ -177,6 +177,8 @@ struct CompileTask : public HelperThreadTask {
 
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
   ThreadType threadType() override;
+
+  const char* getName() override { return "WasmCompileTask"; }
 };
 
 // A ModuleGenerator encapsulates the creation of a wasm module. During the

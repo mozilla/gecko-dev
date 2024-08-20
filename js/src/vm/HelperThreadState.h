@@ -71,6 +71,8 @@ using CompileTaskPtrFifo = Fifo<CompileTask*, 0, SystemAllocPolicy>;
 struct Tier2GeneratorTask : public HelperThreadTask {
   virtual ~Tier2GeneratorTask() = default;
   virtual void cancel() = 0;
+
+  const char* getName() override { return "Tier2GeneratorTask"; }
 };
 
 using UniqueTier2GeneratorTask = UniquePtr<Tier2GeneratorTask>;
@@ -511,6 +513,8 @@ struct DelazifyTask : public mozilla::LinkedListElement<DelazifyTask>,
   ThreadType threadType() override { return ThreadType::THREAD_TYPE_DELAZIFY; }
 
   bool done() const;
+
+  const char* getName() override { return "DelazifyTask"; }
 };
 
 // The FreeDelazifyTask exists as this is a bad practice to `js_delete(this)`,
@@ -526,6 +530,8 @@ struct FreeDelazifyTask : public HelperThreadTask {
   ThreadType threadType() override {
     return ThreadType::THREAD_TYPE_DELAZIFY_FREE;
   }
+
+  const char* getName() override { return "FreeDelazifyTask"; }
 };
 
 // It is not desirable to eagerly compress: if lazy functions that are tied to
@@ -586,6 +592,8 @@ class SourceCompressionTask : public HelperThreadTask {
 
   ThreadType threadType() override { return ThreadType::THREAD_TYPE_COMPRESS; }
 
+  const char* getName() override { return "SourceCompressionTask"; }
+
  private:
   struct PerformTaskWork;
   friend struct PerformTaskWork;
@@ -621,6 +629,8 @@ struct PromiseHelperTask : OffThreadPromiseTask, public HelperThreadTask {
 
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
   ThreadType threadType() override { return THREAD_TYPE_PROMISE_TASK; }
+
+  const char* getName() override { return "PromiseHelperTask"; }
 };
 
 } /* namespace js */

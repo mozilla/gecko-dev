@@ -1137,7 +1137,8 @@ class HelperThreadTaskHandler : public Task {
 
 #ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
   bool GetName(nsACString& aName) override {
-    aName.AssignLiteral("HelperThreadTask");
+    const char* taskName = JS::GetHelperThreadTaskName(mTask);
+    aName.AssignLiteral(taskName, strlen(taskName));
     return true;
   }
 #endif

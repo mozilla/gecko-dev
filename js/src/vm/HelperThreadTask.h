@@ -66,6 +66,8 @@ class HelperThreadTask {
   virtual js::ThreadType threadType() = 0;
   virtual ~HelperThreadTask() = default;
 
+  virtual const char* getName() = 0;
+
   template <typename T>
   bool is() {
     return js::MapTypeToThreadType<T>::threadType == threadType();
