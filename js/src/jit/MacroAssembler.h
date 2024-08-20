@@ -686,9 +686,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
 
-  CodeOffset move32WithPatch(Register dest) DEFINED_ON(x86_shared, arm, arm64);
+  CodeOffset move32WithPatch(Register dest)
+      DEFINED_ON(x86_shared, arm, arm64, loong64, mips_shared);
   void patchMove32(CodeOffset offset, int32_t n)
-      DEFINED_ON(x86_shared, arm, arm64);
+      DEFINED_ON(x86_shared, arm, arm64, loong64, mips_shared);
 
  public:
   // ===============================================================

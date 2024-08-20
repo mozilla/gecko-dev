@@ -198,7 +198,7 @@ void MacroAssembler::add64(Imm64 imm, Register64 dest) {
 
 CodeOffset MacroAssembler::sub32FromStackPtrWithPatch(Register dest) {
   CodeOffset offset = CodeOffset(currentOffset());
-  MacroAssemblerMIPSShared::ma_liPatchable(dest, Imm32(0));
+  ma_liPatchable(dest, Imm32(0));
   as_dsubu(dest, StackPointer, dest);
   return offset;
 }

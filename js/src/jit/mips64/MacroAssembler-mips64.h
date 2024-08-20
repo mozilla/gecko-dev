@@ -63,6 +63,7 @@ class MacroAssemblerMIPS64 : public MacroAssemblerMIPSShared {
   using MacroAssemblerMIPSShared::ma_cmp_set;
   using MacroAssemblerMIPSShared::ma_ld;
   using MacroAssemblerMIPSShared::ma_li;
+  using MacroAssemblerMIPSShared::ma_liPatchable;
   using MacroAssemblerMIPSShared::ma_load;
   using MacroAssemblerMIPSShared::ma_ls;
   using MacroAssemblerMIPSShared::ma_sd;

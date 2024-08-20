@@ -1791,6 +1791,16 @@ void MacroAssembler::patchCallToNop(uint8_t* call) {
 #endif
 }
 
+CodeOffset MacroAssembler::move32WithPatch(Register dest) {
+  CodeOffset offs = CodeOffset(currentOffset());
+  ma_liPatchable(dest, Imm32(0));
+  return offs;
+}
+
+void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
+  patchSub32FromStackPtr(offset, Imm32(n));
+}
+
 void MacroAssembler::pushReturnAddress() { push(ra); }
 
 void MacroAssembler::popReturnAddress() { pop(ra); }
