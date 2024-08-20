@@ -52,11 +52,15 @@ bool IsWidevineKeySystem(const nsAString& aKeySystem) {
 }
 
 #ifdef MOZ_WMF_CDM
-bool IsPlayReadyEnabled() {
+bool IsMediaFoundationCDMPlaybackEnabled() {
   // 1=enabled encrypted and clear, 2=enabled encrytped.
+  return StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
+         StaticPrefs::media_wmf_media_engine_enabled() == 2;
+}
+
+bool IsPlayReadyEnabled() {
   return StaticPrefs::media_eme_playready_enabled() &&
-         (StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
-          StaticPrefs::media_wmf_media_engine_enabled() == 2);
+         IsMediaFoundationCDMPlaybackEnabled();
 }
 
 bool IsPlayReadyKeySystemAndSupported(const nsAString& aKeySystem) {
@@ -69,10 +73,8 @@ bool IsPlayReadyKeySystemAndSupported(const nsAString& aKeySystem) {
 }
 
 bool IsWidevineHardwareDecryptionEnabled() {
-  // 1=enabled encrypted and clear, 2=enabled encrytped.
   return StaticPrefs::media_eme_widevine_experiment_enabled() &&
-         (StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
-          StaticPrefs::media_wmf_media_engine_enabled() == 2);
+         IsMediaFoundationCDMPlaybackEnabled();
 }
 
 bool IsWidevineExperimentKeySystemAndSupported(const nsAString& aKeySystem) {
@@ -87,9 +89,7 @@ bool IsWMFClearKeySystemAndSupported(const nsAString& aKeySystem) {
   if (!StaticPrefs::media_eme_wmf_clearkey_enabled()) {
     return false;
   }
-  // 1=enabled encrypted and clear, 2=enabled encrytped.
-  if (StaticPrefs::media_wmf_media_engine_enabled() != 1 &&
-      StaticPrefs::media_wmf_media_engine_enabled() != 2) {
+  if (!IsMediaFoundationCDMPlaybackEnabled()) {
     return false;
   }
   return aKeySystem.EqualsLiteral(kClearKeyKeySystemName);
