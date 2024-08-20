@@ -305,12 +305,6 @@ class nsThread : public nsIThreadInternal,
   mozilla::TimeDuration mLastEventDelay;
   mozilla::TimeStamp mLastEventStart;
 
-#ifdef EARLY_BETA_OR_EARLIER
-  nsCString mNameForWakeupTelemetry;
-  mozilla::TimeStamp mLastWakeupCheckTime;
-  uint32_t mWakeupCount = 0;
-#endif
-
   mozilla::PerformanceCounterState mPerformanceCounterState;
 
   mozilla::SimpleTaskQueue mDirectTasks;

@@ -110,10 +110,6 @@ NS_DECL_CI_INTERFACE_GETTER(nsThread)
 
 Array<char, nsThread::kRunnableNameBufSize> nsThread::sMainThreadRunnableName;
 
-#ifdef EARLY_BETA_OR_EARLIER
-const uint32_t kTelemetryWakeupCountLimit = 100;
-#endif
-
 //-----------------------------------------------------------------------------
 // Because we do not have our own nsIFactory, we have to implement nsIClassInfo
 // somewhat manually.
@@ -552,9 +548,6 @@ nsThread::nsThread(NotNull<SynchronizedEventQueue*> aQueue,
       mIsUiThread(aOptions.isUiThread),
       mIsAPoolThreadFree(nullptr),
       mCanInvokeJS(false),
-#ifdef EARLY_BETA_OR_EARLIER
-      mLastWakeupCheckTime(TimeStamp::Now()),
-#endif
       mPerformanceCounterState(mNestedEventLoopDepth, mIsMainThread,
                                aOptions.longTaskLength) {
 #if !(defined(XP_WIN) || defined(XP_MACOSX))
@@ -584,9 +577,6 @@ nsThread::nsThread()
       mUseHangMonitor(false),
       mIsUiThread(false),
       mCanInvokeJS(false),
-#ifdef EARLY_BETA_OR_EARLIER
-      mLastWakeupCheckTime(TimeStamp::Now()),
-#endif
       mPerformanceCounterState(mNestedEventLoopDepth) {
   MOZ_ASSERT(!NS_IsMainThread());
 }
@@ -793,14 +783,6 @@ nsThread::GetLastLongTaskEnd(TimeStamp* _retval) {
 NS_IMETHODIMP
 nsThread::GetLastLongNonIdleTaskEnd(TimeStamp* _retval) {
   *_retval = mPerformanceCounterState.LastLongNonIdleTaskEnd();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThread::SetNameForWakeupTelemetry(const nsACString& aName) {
-#ifdef EARLY_BETA_OR_EARLIER
-  mNameForWakeupTelemetry = aName;
-#endif
   return NS_OK;
 }
 
@@ -1107,13 +1089,6 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
 
   DrainDirectTasks();
 
-#ifdef EARLY_BETA_OR_EARLIER
-  // Need to capture mayWaitForWakeup state before OnProcessNextEvent,
-  // since on the main thread OnProcessNextEvent ends up waiting for the new
-  // events.
-  bool mayWaitForWakeup = reallyWait && !mEvents->HasPendingEvent();
-#endif
-
   nsCOMPtr<nsIThreadObserver> obs = mEvents->GetObserverOnThread();
   if (obs) {
     obs->OnProcessNextEvent(this, reallyWait);
@@ -1144,30 +1119,6 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
     *aResult = (event.get() != nullptr);
 
     if (event) {
-#ifdef EARLY_BETA_OR_EARLIER
-      if (mayWaitForWakeup && mThread) {
-        ++mWakeupCount;
-        if (mWakeupCount == kTelemetryWakeupCountLimit) {
-          TimeStamp now = TimeStamp::Now();
-          double ms = (now - mLastWakeupCheckTime).ToMilliseconds();
-          if (ms < 0) {
-            ms = 0;
-          }
-          const char* name = !mNameForWakeupTelemetry.IsEmpty()
-                                 ? mNameForWakeupTelemetry.get()
-                                 : PR_GetThreadName(mThread);
-          if (!name) {
-            name = mIsMainThread ? "MainThread" : "(nameless thread)";
-          }
-          nsDependentCString key(name);
-          Telemetry::Accumulate(Telemetry::THREAD_WAKEUP, key,
-                                static_cast<uint32_t>(ms));
-          mLastWakeupCheckTime = now;
-          mWakeupCount = 0;
-        }
-      }
-#endif
-
       LOG(("THRD(%p) running [%p]\n", this, event.get()));
 
       Maybe<LogRunnable::Run> log;

@@ -207,8 +207,6 @@ interface nsIThread : nsISerialEventTarget
    */
   [noscript] void setRunningEventDelay(in TimeDuration delay, in TimeStamp start);
 
-  [noscript] void setNameForWakeupTelemetry(in ACString name);
-
   /**
    * Set the QoS priority of threads where this may be available. Currently
    * restricted to MacOS. Must be on the thread to call this method.
