@@ -84,29 +84,6 @@ option(
     nargs=1,
 )
 
-# Version defines
-# ==============================================================
-
-
-# For extensions and langpacks, we require a max version that is compatible
-# across security releases. MOZ_APP_MAXVERSION is our method for doing that.
-# 24.0a1 and 24.0a2 aren't affected
-# 24.0 becomes 24.*
-# 24.1.1 becomes 24.*
-@depends(milestone.app_version, build_project)
-def moz_app_maxversion(app_version, build_project):
-    if "a" not in app_version:
-        version = Version(app_version)
-        if build_project == "suite":
-            return f"{version.major}.{version.minor}.*"
-        else:
-            return f"{version.major}.*"
-    else:
-        return app_version
-
-
-set_config("MOZ_APP_MAXVERSION", moz_app_maxversion)
-
 
 # Code optimization
 # ==============================================================

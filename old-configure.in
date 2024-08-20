@@ -140,9 +140,29 @@ AC_SUBST(MOZ_EME_PROCESS_BUNDLEID)
 # version_display.txt or version.txt in the application directory, or
 # browser/config/version_display.txt.
 
+# For extensions and langpacks, we require a max version that is compatible
+# across security releases. MOZ_APP_MAXVERSION is our method for doing that.
+# 24.0a1 and 24.0a2 aren't affected
+# 24.0 becomes 24.*
+# 24.1.1 becomes 24.*
+IS_ALPHA=`echo $MOZ_APP_VERSION | grep a`
+if test -z "$IS_ALPHA"; then
+  changequote(,)
+  if test "$(basename $MOZ_BUILD_APP)" = "suite"; then
+    MOZ_APP_MAXVERSION=`echo $MOZ_APP_VERSION | sed "s|\(^[0-9]*\.[0-9]*\).*|\1|"`.*
+  else
+    MOZ_APP_MAXVERSION=`echo $MOZ_APP_VERSION | sed "s|\(^[0-9]*\).*|\1|"`.*
+  fi
+  changequote([,])
+else
+  MOZ_APP_MAXVERSION=$MOZ_APP_VERSION
+fi
+
 AC_SUBST(MOZ_APP_DISPLAYNAME)
 AC_SUBST(MOZ_APP_PROFILE)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")
+
+AC_SUBST(MOZ_APP_MAXVERSION)
 
 dnl Set various defines and substitutions
 dnl ========================================================
