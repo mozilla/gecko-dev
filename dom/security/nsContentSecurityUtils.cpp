@@ -1690,8 +1690,6 @@ long nsContentSecurityUtils::ClassifyDownload(
                                     false,             //  aReportError
                                     &decission         // aDecision
   );
-  Telemetry::Accumulate(mozilla::Telemetry::MIXED_CONTENT_DOWNLOADS,
-                        decission != nsIContentPolicy::ACCEPT);
 
   if (StaticPrefs::dom_block_download_insecure() &&
       decission != nsIContentPolicy::ACCEPT) {
