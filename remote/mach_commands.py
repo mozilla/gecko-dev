@@ -606,7 +606,9 @@ def is_relevant_expectation(
     parameters = expectation["parameters"]
 
     if expected_product == "firefox":
-        is_expected_product = "chrome" not in parameters
+        is_expected_product = (
+            "chrome" not in parameters and "chrome-headless-shell" not in parameters
+        )
     else:
         is_expected_product = "firefox" not in parameters
 
