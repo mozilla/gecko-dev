@@ -13996,16 +13996,6 @@
     "bug_numbers": [1709139],
     "description": "Time spent during page load syntax parsing JS scripts on the main thread in ms."
   },
-  "DOM_SCRIPT_KIND": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["jcoppeard@mozilla.com"],
-    "expires_in_version": "63",
-    "kind": "categorical",
-    "bug_numbers": [1430145],
-    "labels": ["ClassicScript", "ModuleScript"],
-    "description": "Record the kind of every script loaded in a document."
-  },
   "DOM_SCRIPT_LOADING_SOURCE": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
@@ -14015,22 +14005,6 @@
     "bug_numbers": [1362114],
     "labels": ["Inline", "SourceFallback", "Source", "AltData"],
     "description": "Record the input from which the bytes are coming from, for each script in a document."
-  },
-  "DOM_SCRIPT_PRELOAD_RESULT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["jcoppeard@mozilla.com"],
-    "expires_in_version": "63",
-    "kind": "categorical",
-    "bug_numbers": [1430145],
-    "labels": [
-      "Used",
-      "RejectedByPolicy",
-      "RequestMismatch",
-      "LoadError",
-      "NotUsed"
-    ],
-    "description": "Whether a preloaded script was used or the reason it was not used."
   },
   "VIDEO_DROPPED_FRAMES_PROPORTION": {
     "record_in_processes": ["content"],
