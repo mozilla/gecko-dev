@@ -11,9 +11,7 @@
 
 use bindings::{wr_moz2d_render_cb, ArcVecU8, ByteSlice, MutByteSlice};
 use gecko_profiler::gecko_profiler_label;
-use gecko_profiler::auto_profiler_marker_tracing;
-#[cfg(feature = "gecko_profiler")]
-use gecko_profiler::gecko_profiler_category;
+use gecko_profiler::{auto_profiler_marker_tracing, gecko_profiler_category};
 use rayon::prelude::*;
 use rayon::ThreadPool;
 use webrender::api::units::{BlobDirtyRect, BlobToDeviceTranslation, DeviceIntRect};
