@@ -445,6 +445,8 @@ export const URILoadingHelper = {
       resolveOnNewTabCreated,
       resolveOnContentBrowserCreated,
       globalHistoryOptions,
+      hasValidUserGestureActivation,
+      textDirectiveUserActivation,
     } = params;
 
     // We want to overwrite some things for convenience when passing it to other
@@ -588,6 +590,8 @@ export const URILoadingHelper = {
           fromExternal: params.fromExternal,
           globalHistoryOptions,
           wasSchemelessInput: params.wasSchemelessInput,
+          hasValidUserGestureActivation,
+          textDirectiveUserActivation,
         });
         targetBrowser = tabUsedForLoad.linkedBrowser;
 

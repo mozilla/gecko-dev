@@ -119,6 +119,7 @@ export class ClickHandlerParent extends JSWindowActorParent {
       openerBrowser: browser,
       // The child ensures that untrusted events have a valid user activation.
       hasValidUserGestureActivation: true,
+      textDirectiveUserActivation: true,
       triggeringRemoteType: this.manager.domProcess?.remoteType,
     };
 
