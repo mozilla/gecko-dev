@@ -505,6 +505,32 @@ class SearchDialogControllerTest {
     }
 
     @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN a search suggestion is tapped THEN perform search in the existing tab`() {
+        val searchTerms = "fenix"
+
+        every { settings.enableHomepageAsNewTab } returns true
+        every { store.state.tabId } returns null
+
+        createController().handleSearchTermsTapped(searchTerms)
+
+        browserStore.waitUntilIdle()
+
+        verify {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = searchTerms,
+                newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
+                forceSearch = true,
+            )
+        }
+
+        middleware.assertLastAction(AwesomeBarAction.EngagementFinished::class) { action ->
+            assertFalse(action.abandoned)
+        }
+    }
+
+    @Test
     fun handleSearchTermsTapped() {
         val searchTerms = "fenix"
 

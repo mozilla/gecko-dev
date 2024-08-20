@@ -198,7 +198,11 @@ class SearchDialogController(
 
         activity.openToBrowserAndLoad(
             searchTermOrURL = searchTerms,
-            newTab = fragmentStore.state.tabId == null,
+            newTab = if (settings.enableHomepageAsNewTab) {
+                false
+            } else {
+                fragmentStore.state.tabId == null
+            },
             from = BrowserDirection.FromSearchDialog,
             engine = searchEngine,
             forceSearch = true,
