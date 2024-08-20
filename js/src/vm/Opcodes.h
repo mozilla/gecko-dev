@@ -3415,20 +3415,20 @@
      */ \
     IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(AddDisposable, add_disposable, NULL, 2, 1, 1, JOF_UINT8)) \
     /*
-     * Get the dispose capability of the present environment object and the
-     * length of the same. In case the dispose capability of the environment
+     * Get the dispose capability of the present environment object.
+     * In case the dispose capability of the environment
      * has already been cleared or if no disposables have been
      * pushed to the capability, it shall push undefined as the dispose
-     * capability and 0 as the length. After extracting a non-empty dispose
+     * capability. After extracting a non-empty dispose
      * capability, the dispose capability is cleared from the present
      * environment object by setting it to undefined value.
      *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
      *   Operands:
-     *   Stack: => disposeCapability, count
+     *   Stack: => disposeCapability
      */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(TakeDisposeCapability, take_dispose_capability, NULL, 1, 0, 2, JOF_BYTE)) \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(TakeDisposeCapability, take_dispose_capability, NULL, 1, 0, 1, JOF_BYTE)) \
     /*
      * Push the current VariableEnvironment (the environment on the environment
      * chain designated to receive new variables).

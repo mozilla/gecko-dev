@@ -4877,21 +4877,57 @@ bool BaselineCodeGen<Handler>::emit_LeaveWith() {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_AddDisposable() {
-  // TODO: AddDisposable to be implemented for Baseline (Bug 1899500)
-  MOZ_CRASH("AddDisposable has not been implemented for baseline");
+  frame.syncStack(0);
+
+  prepareVMCall();
+  masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
+  masm.loadValue(frame.addressOfStackValue(-1), R1);
+
+  pushUint8BytecodeOperandArg(R2.scratchReg());
+  pushArg(R1);
+  pushArg(R0.scratchReg());
+
+  using Fn =
+      bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>, UsingHint);
+  return callVM<Fn, jit::AddDisposableResource>();
 }
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_TakeDisposeCapability() {
-  // TODO: TakeDisposeCapability to be implemented for Baseline (Bug 1899500)
-  MOZ_CRASH("TakeDisposeCapability has not been implemented for baseline");
+  frame.syncStack(0);
+  prepareVMCall();
+  masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
+
+  pushArg(R0.scratchReg());
+
+  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::MutableHandle<JS::Value>);
+  if (!callVM<Fn, jit::TakeDisposeCapability>()) {
+    return false;
+  }
+  frame.push(R0);
+  return true;
 }
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_CreateSuppressedError() {
-  // TODO: CreateSuppressedError to be implemented for Baseline (Bug
-  // 1899500)
-  MOZ_CRASH("CreateSuppressedError has not been implemented for baseline");
+  frame.popRegsAndSync(2);
+  prepareVMCall();
+
+  masm.loadBaselineFramePtr(FramePointer, R2.scratchReg());
+
+  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>,
+                      JS::Handle<JS::Value>, JS::MutableHandle<JS::Value>);
+
+  pushArg(R1);  // suppressed
+  pushArg(R0);  // error
+  pushArg(R2.scratchReg());
+
+  if (!callVM<Fn, jit::CreateSuppressedError>()) {
+    return false;
+  }
+
+  frame.push(R0);
+  return true;
 }
 #endif
 

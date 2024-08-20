@@ -16,6 +16,53 @@ using namespace js::frontend;
 
 UsingEmitter::UsingEmitter(BytecodeEmitter* bce) : bce_(bce) {}
 
+bool UsingEmitter::emitTakeDisposeCapability() {
+  if (!bce_->emit1(JSOp::TakeDisposeCapability)) {
+    // [stack] RESOURCES-OR-UNDEF
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::IsNullOrUndefined)) {
+    // [stack] RESOURCES-OR-UNDEF IS-UNDEF
+    return false;
+  }
+
+  InternalIfEmitter ifUndefined(bce_);
+
+  if (!ifUndefined.emitThenElse()) {
+    // [stack] UNDEFINED
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Zero)) {
+    // [stack] UNDEFINED 0
+    return false;
+  }
+
+  if (!ifUndefined.emitElse()) {
+    // [stack] RESOURCES
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Dup)) {
+    // [stack] RESOURCES RESOURCES
+    return false;
+  }
+
+  if (!bce_->emitAtomOp(JSOp::GetProp,
+                        TaggedParserAtomIndex::WellKnown::length())) {
+    // [stack] RESOURCES COUNT
+    return false;
+  }
+
+  if (!ifUndefined.emitEnd()) {
+    // [stack] RESOURCES COUNT
+    return false;
+  }
+
+  return true;
+}
+
 bool UsingEmitter::emitThrowIfException() {
   // [stack] EXC THROWING
 
@@ -128,7 +175,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   // no code is executed in that case.
   // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
   // List.
-  if (!bce_->emit1(JSOp::TakeDisposeCapability)) {
+  if (!emitTakeDisposeCapability()) {
     // [stack] ... RESOURCES COUNT
     return false;
   }

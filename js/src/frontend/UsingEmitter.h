@@ -30,6 +30,8 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool emitThrowIfException();
 
+  [[nodiscard]] bool emitTakeDisposeCapability();
+
   [[nodiscard]] bool emitDisposeLoop(
       EmitterScope& es,
       CompletionKind initialCompletion = CompletionKind::Normal);

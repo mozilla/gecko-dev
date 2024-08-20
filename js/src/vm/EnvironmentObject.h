@@ -631,7 +631,10 @@ class ModuleEnvironmentObject : public EnvironmentObject {
   static const JSClass class_;
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  static constexpr uint32_t RESERVED_SLOTS = 3;
+  // While there are only 3 reserved slots, this needs to be set to 4, given
+  // there are some code expect the number of fixed slot to be same as the
+  // number of reserved slots for the lexical environments (bug 1913864).
+  static constexpr uint32_t RESERVED_SLOTS = 4;
 #else
   static constexpr uint32_t RESERVED_SLOTS = 2;
 #endif
@@ -762,7 +765,8 @@ class LexicalEnvironmentObject : public EnvironmentObject {
   static const JSClass class_;
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  static constexpr uint32_t RESERVED_SLOTS = 3;
+  // See comment on RESERVED_SLOTS in ModuleEnvironmentObject.
+  static constexpr uint32_t RESERVED_SLOTS = 4;
 #else
   static constexpr uint32_t RESERVED_SLOTS = 2;
 #endif

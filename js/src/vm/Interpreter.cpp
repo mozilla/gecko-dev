@@ -2307,12 +2307,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
       if (maybeDisposables.isUndefined()) {
         PUSH_UNDEFINED();
-        PUSH_INT32(0);
       } else {
         PUSH_OBJECT(maybeDisposables.toObject());
-        PUSH_INT32(maybeDisposables.toObject()
-                       .as<ArrayObject>()
-                       .getDenseInitializedLength());
         if (env->is<LexicalEnvironmentObject>()) {
           env->as<LexicalEnvironmentObject>().clearDisposables();
         } else {

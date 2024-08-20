@@ -105,6 +105,35 @@ bool BaselineFrame::pushVarEnvironment(JSContext* cx, Handle<Scope*> scope) {
   return js::PushVarEnvironmentObject(cx, scope, this);
 }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+ArrayObject* BaselineFrame::getOrCreateDisposeCapability(JSContext* cx) {
+  JSObject* env = environmentChain();
+
+  if (env->is<LexicalEnvironmentObject>()) {
+    return env->as<LexicalEnvironmentObject>().getOrCreateDisposeCapability(cx);
+  }
+  MOZ_ASSERT(env->is<ModuleEnvironmentObject>());
+  return env->as<ModuleEnvironmentObject>().getOrCreateDisposeCapability(cx);
+}
+
+bool BaselineFrame::takeDisposeCapability(
+    JSContext* cx, JS::MutableHandle<JS::Value> capability) {
+  JSObject* env = environmentChain();
+
+  if (env->is<LexicalEnvironmentObject>()) {
+    // TODO: The get & clear disposables function can be merged. (bug 1907736)
+    capability.set(env->as<LexicalEnvironmentObject>().getDisposables());
+    env->as<LexicalEnvironmentObject>().clearDisposables();
+    return true;
+  }
+
+  MOZ_ASSERT(env->is<ModuleEnvironmentObject>());
+  capability.set(env->as<ModuleEnvironmentObject>().getDisposables());
+  env->as<ModuleEnvironmentObject>().clearDisposables();
+  return true;
+}
+#endif
+
 void BaselineFrame::setInterpreterFields(JSScript* script, jsbytecode* pc) {
   uint32_t pcOffset = script->pcToOffset(pc);
   interpreterScript_ = script;

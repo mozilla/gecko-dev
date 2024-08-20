@@ -317,6 +317,13 @@ class BaselineFrame {
                                               Handle<ClassBodyScope*> scope);
   [[nodiscard]] bool pushVarEnvironment(JSContext* cx, Handle<Scope*> scope);
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  [[nodiscard]] ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
+
+  [[nodiscard]] bool takeDisposeCapability(
+      JSContext* cx, JS::MutableHandle<JS::Value> capability);
+#endif
+
   void initArgsObjUnchecked(ArgumentsObject& argsobj) {
     flags_ |= HAS_ARGS_OBJ;
     argsObj_ = &argsobj;
