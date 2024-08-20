@@ -15323,18 +15323,6 @@
     "n_buckets": 50,
     "description": "Time elapsed (in milliseconds) between the construction of a frame and the start of rendering."
   },
-  "WEB_AUDIO_BECOMES_AUDIBLE_TIME": {
-    "record_in_processes": ["content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "100",
-    "kind": "linear",
-    "high": 60,
-    "n_buckets": 10,
-    "bug_numbers": [1490074, 1570634, 1606206, 1652196, 1700828, 1714303],
-    "description": "How long the AudioContext would become audible since it was created, time unit is seconds.",
-    "releaseChannelCollection": "opt-out"
-  },
   "WEB_AUDIO_AUTOPLAY": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

@@ -294,8 +294,7 @@ AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
     : AudioNode(aContext, aNumberOfChannels, ChannelCountMode::Explicit,
                 ChannelInterpretation::Speakers),
       mFramesToProduce(aLength),
-      mIsOffline(aIsOffline),
-      mCreatedTime(TimeStamp::Now()) {
+      mIsOffline(aIsOffline) {
   if (aIsOffline) {
     // The track is created on demand to avoid creating a graph thread that
     // may not be used.
@@ -624,13 +623,6 @@ void AudioDestinationNode::NotifyDataAudibleStateChanged(bool aAudible) {
   AUDIO_CHANNEL_LOG(
       "AudioDestinationNode %p NotifyDataAudibleStateChanged, audible=%d", this,
       aAudible);
-
-  if (mDurationBeforeFirstTimeAudible.IsZero()) {
-    MOZ_ASSERT(aAudible);
-    mDurationBeforeFirstTimeAudible = TimeStamp::Now() - mCreatedTime;
-    Telemetry::Accumulate(Telemetry::WEB_AUDIO_BECOMES_AUDIBLE_TIME,
-                          mDurationBeforeFirstTimeAudible.ToSeconds());
-  }
 
   mIsDataAudible = aAudible;
   UpdateFinalAudibleStateIfNeeded(AudibleChangedReasons::eDataAudibleChanged);

@@ -121,11 +121,6 @@ class AudioDestinationNode final : public AudioNode,
   RefPtr<Promise> mOfflineRenderingPromise;
 
   bool mIsOffline;
-
-  // These varaibles are used to know how long AudioContext would become audible
-  // since it was created.
-  TimeStamp mCreatedTime;
-  TimeDuration mDurationBeforeFirstTimeAudible;
 };
 
 }  // namespace mozilla::dom
