@@ -9,7 +9,6 @@
 
 #include <d3d11.h>
 #include <array>
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 
 namespace mozilla {
@@ -50,7 +49,6 @@ static inline bool WaitForFrameGPUQuery(ID3D11Device* aDevice,
     }
     Sleep(0);
   }
-  Telemetry::AccumulateTimeDelta(Telemetry::GPU_WAIT_TIME_MS, start);
   return success;
 }
 

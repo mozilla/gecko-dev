@@ -14299,21 +14299,6 @@
     "n_buckets": 12,
     "description": "Percentages of times for phases in an expensive content paint relative to the time spent in the entire expensive paint. (\"dl\" = Display list, \"wrdl\" = WebRender display list, \"sb\" = Scene building, \"fb\" = Frame building)"
   },
-  "GPU_WAIT_TIME_MS": {
-    "record_in_processes": ["main", "gpu"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": [
-      "gfx-telemetry-alerts@mozilla.com",
-      "jmuizelaar@mozilla.com"
-    ],
-    "bug_numbers": [1524090, 1656130],
-    "expires_in_version": "86",
-    "releaseChannelCollection": "opt-out",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 50,
-    "description": "The number of milliseconds we spend waiting for the GPU"
-  },
   "TABCHILD_PAINT_TIME": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
