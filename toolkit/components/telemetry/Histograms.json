@@ -13988,43 +13988,6 @@
     "n_values": 10,
     "description": "Media decoder backend (0=WMF Software, 1=DXVA2D3D9, 2=DXVA2D3D11)"
   },
-  "IPC_MESSAGE_SIZE2": {
-    "record_in_processes": ["main", "content", "gpu"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["hchang@mozilla.com"],
-    "bug_numbers": [1353159],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 8000000,
-    "n_buckets": 50,
-    "keyed": false,
-    "description": "Measures the size of all IPC messages sent that are >= 4096 bytes."
-  },
-  "IPC_REPLY_SIZE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wmccloskey@mozilla.com"],
-    "bug_numbers": [1264820],
-    "expires_in_version": "55",
-    "kind": "exponential",
-    "high": 8000000,
-    "n_buckets": 50,
-    "keyed": true,
-    "description": "Measures the size of IPC messages by message name"
-  },
-  "IPC_SYNC_MAIN_LATENCY_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "bug_numbers": [1333489],
-    "expires_in_version": "63",
-    "kind": "exponential",
-    "low": 32,
-    "high": 750,
-    "n_buckets": 40,
-    "keyed": true,
-    "description": "Measures the number of milliseconds we spend waiting for sync IPC messages to finish sending, keyed by message name. Note: only messages that wait for more than 500 microseconds and block the main thread are included in this probe."
-  },
   "SANDBOX_HAS_USER_NAMESPACES": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
@@ -14657,19 +14620,6 @@
     "n_buckets": 100,
     "bug_numbers": [1671729],
     "description": "Time spent in milliseconds calling all request animation frame callbacks for a document before it has reached readystate complete."
-  },
-  "IPC_SYNC_RECEIVE_MS": {
-    "record_in_processes": ["main", "content", "gpu"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["nika@thelayzells.com"],
-    "bug_numbers": [1365719],
-    "expires_in_version": "70",
-    "kind": "exponential",
-    "low": 32,
-    "high": 750,
-    "n_buckets": 40,
-    "keyed": true,
-    "description": "Measures the number of milliseconds we spend processing sync IPC messages in the receiving process, keyed by message name. Note: only messages that take over 500 microseconds are included in this probe."
   },
   "WEBEXT_BACKGROUND_PAGE_LOAD_MS": {
     "record_in_processes": ["main"],
