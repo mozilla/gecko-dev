@@ -17,6 +17,14 @@ const execAsync = promisify(exec);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const puppeteerRoot = path.join(__dirname, '../');
 
+try {
+  await execAsync('git status');
+} catch (e) {
+  // If `git status` threw an error, we are not in a git repository, bail out.
+  console.log('Not inside a .git repository');
+  process.exit(0);
+}
+
 const {stdout} = await execAsync('git rev-parse --show-toplevel');
 const gitTopLevel = stdout.replaceAll('\n', '').trim();
 
