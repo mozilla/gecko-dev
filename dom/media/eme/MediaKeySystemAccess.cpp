@@ -236,7 +236,6 @@ static KeySystemConfig::EMECodecString ToEMEAPICodecString(
 // playback when specific CSS effects are applied on video, which requires
 // altering pixel's content.
 static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
-  // TODO : check media engine pref
   // 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
   enum Filer : uint32_t {
     eDisable = 0,
@@ -244,7 +243,8 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
     eBlockedListEnabled = 2,
   };
   const auto prefValue = StaticPrefs::media_eme_mfcdm_origin_filter_enabled();
-  if (prefValue == Filer::eDisable || !aOrigin) {
+  if (prefValue == Filer::eDisable || !aOrigin ||
+      !IsMediaFoundationCDMPlaybackEnabled()) {
     // No need to check the origin.
     return true;
   }
