@@ -2229,10 +2229,6 @@ double HTMLMediaElement::MutedPlayTime() const {
   return mDecoder ? mDecoder->GetMutedPlayTimeInSeconds() : -1.0;
 }
 
-double HTMLMediaElement::VideoDecodeSuspendedTime() const {
-  return mDecoder ? mDecoder->GetVideoDecodeSuspendedTimeInSeconds() : -1.0;
-}
-
 void HTMLMediaElement::SetFormatDiagnosticsReportForMimeType(
     const nsAString& aMimeType, DecoderDoctorReportType aType) {
   DecoderDoctorDiagnostics diagnostics;

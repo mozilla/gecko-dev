@@ -246,28 +246,6 @@ void TelemetryProbesReporter::OnMediaContentChanged(MediaContent aContent) {
   mMediaContent = aContent;
 }
 
-void TelemetryProbesReporter::OnDecodeSuspended() {
-  AssertOnMainThreadAndNotShutdown();
-  // Suspended time should only be counted after starting accumulating invisible
-  // time.
-  if (!mInvisibleVideoPlayTime.IsStarted()) {
-    return;
-  }
-  LOG("Start time accumulation for video decoding suspension");
-  mVideoDecodeSuspendedTime.Start();
-  mOwner->DispatchAsyncTestingEvent(u"mozvideodecodesuspendedstarted"_ns);
-}
-
-void TelemetryProbesReporter::OnDecodeResumed() {
-  AssertOnMainThreadAndNotShutdown();
-  if (!mVideoDecodeSuspendedTime.IsStarted()) {
-    return;
-  }
-  LOG("Pause time accumulation for video decoding suspension");
-  mVideoDecodeSuspendedTime.Pause();
-  mOwner->DispatchAsyncTestingEvent(u"mozvideodecodesuspendedpaused"_ns);
-}
-
 void TelemetryProbesReporter::OntFirstFrameLoaded(
     const double aLoadedFirstFrameTime, const double aLoadedMetadataTime,
     const double aTotalWaitingDataTime, const double aTotalBufferingTime,
@@ -362,7 +340,6 @@ void TelemetryProbesReporter::PauseInvisibleVideoTimeAccumulator() {
   if (!mInvisibleVideoPlayTime.IsStarted()) {
     return;
   }
-  OnDecodeResumed();
   LOG("Pause time accumulation for invisible video");
   mInvisibleVideoPlayTime.Pause();
   mOwner->DispatchAsyncTestingEvent(u"mozinvisibleplaytimepaused"_ns);
@@ -432,8 +409,6 @@ void TelemetryProbesReporter::ReportResultForVideo() {
 
   const double totalVideoPlayTimeS = mTotalVideoPlayTime.GetAndClearTotal();
   const double invisiblePlayTimeS = mInvisibleVideoPlayTime.GetAndClearTotal();
-  const double videoDecodeSuspendTimeS =
-      mVideoDecodeSuspendedTime.GetAndClearTotal();
   const double totalVideoHDRPlayTimeS =
       mTotalVideoHDRPlayTime.GetAndClearTotal();
 
@@ -505,15 +480,6 @@ void TelemetryProbesReporter::ReportResultForVideo() {
                         hiddenPercentage);
   LOG("VIDEO_HIDDEN_PLAY_TIME_PERCENTAGE = %u, keys: '%s' and 'All'",
       hiddenPercentage, key.get());
-
-  const uint32_t videoDecodeSuspendPercentage =
-      lround(videoDecodeSuspendTimeS / totalVideoPlayTimeS * 100.0);
-  Telemetry::Accumulate(Telemetry::VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE,
-                        key, videoDecodeSuspendPercentage);
-  Telemetry::Accumulate(Telemetry::VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE,
-                        "All"_ns, videoDecodeSuspendPercentage);
-  LOG("VIDEO_INFERRED_DECODE_SUSPEND_PERCENTAGE = %u, keys: '%s' and 'All'",
-      videoDecodeSuspendPercentage, key.get());
 
   ReportResultForVideoFrameStatistics(totalVideoPlayTimeS, key);
 #ifdef MOZ_WMF_CDM
@@ -654,42 +620,6 @@ void TelemetryProbesReporter::ReportResultForVideoFrameStatistics(
     return;
   }
 
-  FrameStatisticsData data = stats->GetFrameStatisticsData();
-  if (data.mInterKeyframeCount != 0) {
-    const uint32_t average_ms = uint32_t(
-        std::min<uint64_t>(lround(double(data.mInterKeyframeSum_us) /
-                                  double(data.mInterKeyframeCount) / 1000.0),
-                           UINT32_MAX));
-    Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_AVERAGE_MS, key,
-                          average_ms);
-    Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_AVERAGE_MS, "All"_ns,
-                          average_ms);
-    LOG("VIDEO_INTER_KEYFRAME_AVERAGE_MS = %u, keys: '%s' and 'All'",
-        average_ms, key.get());
-
-    const uint32_t max_ms = uint32_t(std::min<uint64_t>(
-        (data.mInterKeyFrameMax_us + 500) / 1000, UINT32_MAX));
-    Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_MAX_MS, key, max_ms);
-    Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_MAX_MS, "All"_ns,
-                          max_ms);
-    LOG("VIDEO_INTER_KEYFRAME_MAX_MS = %u, keys: '%s' and 'All'", max_ms,
-        key.get());
-  } else {
-    // Here, we have played *some* of the video, but didn't get more than 1
-    // keyframe. Report '0' if we have played for longer than the video-
-    // decode-suspend delay (showing recovery would be difficult).
-    const uint32_t suspendDelay_ms =
-        StaticPrefs::media_suspend_background_video_delay_ms();
-    if (uint32_t(aTotalPlayTimeS * 1000.0) > suspendDelay_ms) {
-      Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_MAX_MS, key, 0);
-      Telemetry::Accumulate(Telemetry::VIDEO_INTER_KEYFRAME_MAX_MS, "All"_ns,
-                            0);
-      LOG("VIDEO_INTER_KEYFRAME_MAX_MS = 0 (only 1 keyframe), keys: '%s' and "
-          "'All'",
-          key.get());
-    }
-  }
-
   const uint64_t parsedFrames = stats->GetParsedFrames();
   if (parsedFrames) {
     const uint64_t droppedFrames = stats->GetDroppedFrames();
@@ -743,10 +673,6 @@ double TelemetryProbesReporter::GetVisibleVideoPlayTimeInSeconds() const {
 
 double TelemetryProbesReporter::GetInvisibleVideoPlayTimeInSeconds() const {
   return mInvisibleVideoPlayTime.PeekTotal();
-}
-
-double TelemetryProbesReporter::GetVideoDecodeSuspendedTimeInSeconds() const {
-  return mVideoDecodeSuspendedTime.PeekTotal();
 }
 
 double TelemetryProbesReporter::GetTotalAudioPlayTimeInSeconds() const {

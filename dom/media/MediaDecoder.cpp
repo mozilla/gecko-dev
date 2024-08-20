@@ -367,12 +367,10 @@ void MediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
       break;
     case MediaPlaybackEvent::EnterVideoSuspend:
       GetOwner()->DispatchAsyncEvent(u"mozentervideosuspend"_ns);
-      mTelemetryProbesReporter->OnDecodeSuspended();
       mIsVideoDecodingSuspended = true;
       break;
     case MediaPlaybackEvent::ExitVideoSuspend:
       GetOwner()->DispatchAsyncEvent(u"mozexitvideosuspend"_ns);
-      mTelemetryProbesReporter->OnDecodeResumed();
       mIsVideoDecodingSuspended = false;
       break;
     case MediaPlaybackEvent::StartVideoSuspendTimer:
@@ -1678,10 +1676,6 @@ double MediaDecoder::GetVisibleVideoPlayTimeInSeconds() const {
 
 double MediaDecoder::GetInvisibleVideoPlayTimeInSeconds() const {
   return mTelemetryProbesReporter->GetInvisibleVideoPlayTimeInSeconds();
-}
-
-double MediaDecoder::GetVideoDecodeSuspendedTimeInSeconds() const {
-  return mTelemetryProbesReporter->GetVideoDecodeSuspendedTimeInSeconds();
 }
 
 double MediaDecoder::GetTotalAudioPlayTimeInSeconds() const {

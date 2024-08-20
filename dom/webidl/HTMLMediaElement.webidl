@@ -243,9 +243,6 @@ partial interface HTMLMediaElement {
   readonly attribute double invisiblePlayTime;
 
   [ChromeOnly]
-  readonly attribute double videoDecodeSuspendedTime;
-
-  [ChromeOnly]
   readonly attribute double totalAudioPlayTime;
 
   [ChromeOnly]
