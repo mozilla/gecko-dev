@@ -744,13 +744,13 @@ export class SelectParent extends JSWindowActorParent {
     let menulist = document.createXULElement("menulist");
     menulist.setAttribute("id", "ContentSelectDropdown");
     menulist.setAttribute("popuponly", "true");
-    menulist.setAttribute("tabspecific", "true");
     menulist.setAttribute("hidden", "true");
 
     let popup = menulist.appendChild(document.createXULElement("menupopup"));
     popup.setAttribute("id", "ContentSelectDropdownPopup");
     popup.setAttribute("activateontab", "true");
     popup.setAttribute("position", "after_start");
+    popup.setAttribute("tabspecific", "true");
     popup.setAttribute("level", "parent");
     if (AppConstants.platform == "win") {
       popup.setAttribute("consumeoutsideclicks", "false");
