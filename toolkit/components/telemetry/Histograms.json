@@ -3575,27 +3575,6 @@
     "n_buckets": 50,
     "description": "The time spent relaying response completion from the socket thread of the parent process to the content process, in milliseconds, keyed by the classOfService flags"
   },
-  "HTTP_AUTH_DIALOG_STATS_3": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "65",
-    "alert_emails": ["necko@mozilla.com", "ddamjanovic@mozilla.com"],
-    "bug_numbers": [1357835],
-    "kind": "enumerated",
-    "n_values": 64,
-    "description": "Stats about what kind of resource requested http authentication. (29=top-level doc, 30=same origin subresources, 31=same origin xhr, 32=non-web-content, (nsIContentPolicy type)=cross-origin subresources per nsIContentPolicy type)"
-  },
-  "HTTP_AUTH_TYPE_STATS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["rbarnes@mozilla.com"],
-    "bug_numbers": [1266571],
-    "expires_in_version": "52",
-    "kind": "enumerated",
-    "n_values": 8,
-    "releaseChannelCollection": "opt-out",
-    "description": "Recorded once for each HTTP 401 response. The value records the type of authentication and the TLS-enabled status. (0=basic/clear, 1=basic/tls, 2=digest/clear, 3=digest/tls, 4=ntlm/clear, 5=ntlm/tls, 6=negotiate/clear, 7=negotiate/tls)"
-  },
   "HTTP_CHILD_OMT_STATS_2": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
