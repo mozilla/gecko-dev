@@ -2913,8 +2913,7 @@
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should be able to fetch dataURL and fire dataURL requests",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["SKIP"],
-    "comment": "TODO: Needs support for data URIs in Firefox in content process https://bugzilla.mozilla.org/show_bug.cgi?id=1903060"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception-experimental.spec] cooperative request interception Page.setRequestInterception should cache script if cache enabled",
@@ -3004,8 +3003,7 @@
     "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should be able to fetch dataURL and fire dataURL requests",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["SKIP"],
-    "comment": "TODO: Needs support for data URIs in Firefox in content process https://bugzilla.mozilla.org/show_bug.cgi?id=1903060"
+    "expectations": ["PASS"]
   },
   {
     "testIdPattern": "[requestinterception.spec] request interception Page.setRequestInterception should be abortable with custom error codes",
