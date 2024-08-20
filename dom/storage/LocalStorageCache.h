@@ -182,7 +182,7 @@ class LocalStorageCache : public LocalStorageCacheBridge {
 
  private:
   // Synchronously blocks until the cache is fully loaded from the database
-  void WaitForPreload(mozilla::Telemetry::HistogramID aTelemetryID);
+  void WaitForPreload();
 
   // Helper to get one of the 3 data sets (regular, private, session)
   Data& DataSet(const LocalStorage* aStorage);
