@@ -311,6 +311,43 @@ describe('Cookie specs', () => {
         ]
       );
     });
+    it('should set cookie with all available properties', async () => {
+      const {page, server} = await getTestState();
+
+      await page.goto(server.EMPTY_PAGE);
+      await page.setCookie({
+        name: 'password',
+        value: '123456',
+        domain: 'localhost',
+        path: '/',
+        sameParty: false,
+        expires: -1,
+        httpOnly: false,
+        secure: false,
+        sourceScheme: 'Unset',
+      });
+      const cookies = await page.cookies();
+      await expectCookieEquals(
+        cookies.sort((a, b) => {
+          return a.name.localeCompare(b.name);
+        }),
+        [
+          {
+            name: 'password',
+            value: '123456',
+            domain: 'localhost',
+            path: '/',
+            sameParty: false,
+            expires: -1,
+            size: 14,
+            httpOnly: false,
+            secure: false,
+            session: true,
+            sourceScheme: 'Unset',
+          },
+        ]
+      );
+    });
     it('should set a cookie with a path', async () => {
       const {page, server} = await getTestState();
 
@@ -341,6 +378,37 @@ describe('Cookie specs', () => {
       expect(await page.evaluate('document.cookie')).toBe('');
       await page.goto(server.PREFIX + '/grid.html');
       expect(await page.evaluate('document.cookie')).toBe('gridcookie=GRID');
+    });
+    it('should set a cookie with a partitionKey', async () => {
+      const {page, server, isChrome} = await getTestState();
+
+      await page.goto(server.EMPTY_PAGE);
+      const url = new URL(page.url());
+      await page.setCookie({
+        url: url.toString(),
+        name: 'partitionCookie',
+        value: 'partition',
+        secure: true,
+        partitionKey: url.origin,
+      });
+      await expectCookieEquals(await page.cookies(), [
+        {
+          name: 'partitionCookie',
+          value: 'partition',
+          domain: url.hostname,
+          path: '/',
+          expires: -1,
+          size: 24,
+          httpOnly: false,
+          secure: true,
+          session: true,
+          sameParty: false,
+          sourceScheme: 'Secure',
+          partitionKey: isChrome
+            ? url.origin.replace(`:${url.port}`, '')
+            : url.origin,
+        },
+      ]);
     });
     it('should not set a cookie on a blank page', async () => {
       const {page} = await getTestState();
@@ -501,7 +569,7 @@ describe('Cookie specs', () => {
     });
     it('should set secure same-site cookies from a frame', async () => {
       const {httpsServer, browser, close} = await launch({
-        ignoreHTTPSErrors: true,
+        acceptInsecureCerts: true,
       });
 
       try {
@@ -712,6 +780,46 @@ describe('Cookie specs', () => {
       await page.goto(server.EMPTY_PAGE);
       // Expect the cookie for the COOKIE_DESTINATION from URL_1 is deleted.
       expect(await page.cookies(COOKIE_DESTINATION_URL)).toHaveLength(0);
+    });
+    it('should only delete cookie from the default partition if partitionkey is not specified', async () => {
+      const {page, server} = await getTestState();
+      const url = new URL(server.EMPTY_PAGE);
+      await page.goto(url.toString());
+      await page.setCookie({
+        url: url.toString(),
+        name: 'partitionCookie',
+        value: 'partition',
+        secure: true,
+        partitionKey: url.origin,
+      });
+      expect(await page.cookies()).toHaveLength(1);
+      await page.deleteCookie({
+        url: url.toString(),
+        name: 'partitionCookie',
+      });
+      expect(await page.cookies()).toHaveLength(0);
+    });
+    it('should delete cookie with partition key if partition key is specified', async () => {
+      const {page, server, isChrome} = await getTestState();
+      const url = new URL(server.EMPTY_PAGE);
+      await page.goto(url.toString());
+      const origin = isChrome
+        ? url.origin.replace(`:${url.port}`, '')
+        : url.origin;
+      await page.setCookie({
+        url: url.toString(),
+        name: 'partitionCookie',
+        value: 'partition',
+        secure: true,
+        partitionKey: origin,
+      });
+      expect(await page.cookies()).toHaveLength(1);
+      await page.deleteCookie({
+        url: url.toString(),
+        name: 'partitionCookie',
+        partitionKey: origin,
+      });
+      expect(await page.cookies()).toHaveLength(0);
     });
   });
 });

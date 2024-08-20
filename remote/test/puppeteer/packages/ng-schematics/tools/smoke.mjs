@@ -10,6 +10,17 @@ import {parseArgs} from 'node:util';
 
 import {AngularProjectMulti, AngularProjectSingle} from './projects.mjs';
 
+process.on('uncaughtException', (error, origin) => {
+  console.error('Unhandled Error at:', error);
+  console.error('Origin:', origin);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  process.exit(1);
+});
+
 const {values: args} = parseArgs({
   options: {
     runner: {
@@ -81,7 +92,11 @@ if (!args.runner) {
       smokeResults.every(project => {
         return project.status === 'fulfilled';
       }),
-      `Smoke test for ${runnerGroup[0].runner} failed!`
+      `Smoke test for ${runnerGroup[0].runner} failed! ${smokeResults.map(
+        project => {
+          return project.reason;
+        }
+      )}`
     );
   }
 } else {

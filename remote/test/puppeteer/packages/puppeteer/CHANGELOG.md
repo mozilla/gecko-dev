@@ -29,6 +29,121 @@ All notable changes to this project will be documented in this file. See [standa
     * puppeteer-core bumped from 21.0.2 to 21.0.3
     * @puppeteer/browsers bumped from 1.5.1 to 1.6.0
 
+## [23.1.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.0.2...puppeteer-v23.1.0) (2024-08-14)
+
+
+### Features
+
+* improve type inference for selectors by adopting "typed-query-selector" ([#12950](https://github.com/puppeteer/puppeteer/issues/12950)) ([77b729e](https://github.com/puppeteer/puppeteer/commit/77b729e23e7d1c595460e991d2ecf3c1f9786373))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @puppeteer/browsers bumped from 2.3.0 to 2.3.1
+    * puppeteer-core bumped from 23.0.2 to 23.1.0
+
+## [23.0.2](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.0.1...puppeteer-v23.0.2) (2024-08-08)
+
+
+### Bug Fixes
+
+* use CJS for Puppeteer CLI ([#12904](https://github.com/puppeteer/puppeteer/issues/12904)) ([e63051a](https://github.com/puppeteer/puppeteer/commit/e63051a4102254149dc1aebe143dc2be8b60e661))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.0.1 to 23.0.2
+
+## [23.0.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v23.0.0...puppeteer-v23.0.1) (2024-08-07)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 23.0.0 to 23.0.1
+
+## [23.0.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v22.15.0...puppeteer-v23.0.0) (2024-08-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* support multiple browser downloads for Puppeteer ([#12795](https://github.com/puppeteer/puppeteer/issues/12795))
+* remove support for NPM configuration ([#12792](https://github.com/puppeteer/puppeteer/issues/12792))
+* rename product to browser ([#12757](https://github.com/puppeteer/puppeteer/issues/12757))
+
+### Features
+
+* rename product to browser ([#12757](https://github.com/puppeteer/puppeteer/issues/12757)) ([ca82e8e](https://github.com/puppeteer/puppeteer/commit/ca82e8e070dd1ddb627d034888782133d8cad49c))
+* support multiple browser downloads for Puppeteer ([#12795](https://github.com/puppeteer/puppeteer/issues/12795)) ([4d4b358](https://github.com/puppeteer/puppeteer/commit/4d4b358dca34ab23df075efd08a62947e6feb98c))
+* **webdriver:** support WebDriver capabilities in puppeteer.connect ([#12877](https://github.com/puppeteer/puppeteer/issues/12877)) ([897df47](https://github.com/puppeteer/puppeteer/commit/897df478b4b64ac9b146378d32b1f1b8347c6263))
+
+
+### Code Refactoring
+
+* remove support for NPM configuration ([#12792](https://github.com/puppeteer/puppeteer/issues/12792)) ([8ab71fb](https://github.com/puppeteer/puppeteer/commit/8ab71fb4ea64e4e08e3fabf0c227fcb2a42ae2cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 22.15.0 to 23.0.0
+
+## [22.15.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v22.14.0...puppeteer-v22.15.0) (2024-07-31)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 22.14.0 to 22.15.0
+
+## [22.14.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v22.13.1...puppeteer-v22.14.0) (2024-07-25)
+
+
+### Features
+
+* allow downloading of all pinned browsers ([#12806](https://github.com/puppeteer/puppeteer/issues/12806)) ([e72e7ab](https://github.com/puppeteer/puppeteer/commit/e72e7ab515f31d805f89860bbac6aced5a63a868))
+* roll to Chrome 127.0.6533.72 ([#12821](https://github.com/puppeteer/puppeteer/issues/12821)) ([8e6fd74](https://github.com/puppeteer/puppeteer/commit/8e6fd74de15c773ffd046b313b681a4afd162d38))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 22.13.1 to 22.14.0
+    * @puppeteer/browsers bumped from 2.2.4 to 2.3.0
+
+## [22.13.1](https://github.com/puppeteer/puppeteer/compare/puppeteer-v22.13.0...puppeteer-v22.13.1) (2024-07-17)
+
+
+### Miscellaneous Chores
+
+* **puppeteer:** Synchronize puppeteer versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * puppeteer-core bumped from 22.13.0 to 22.13.1
+    * @puppeteer/browsers bumped from 2.2.3 to 2.2.4
+
 ## [22.13.0](https://github.com/puppeteer/puppeteer/compare/puppeteer-v22.12.1...puppeteer-v22.13.0) (2024-07-11)
 
 

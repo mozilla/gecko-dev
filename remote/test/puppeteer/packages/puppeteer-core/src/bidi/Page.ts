@@ -50,6 +50,7 @@ import {
 import type {Viewport} from '../common/Viewport.js';
 import {assert} from '../util/assert.js';
 import {bubble} from '../util/decorators.js';
+import {stringToTypedArray} from '../util/encoding.js';
 import {isErrorLike} from '../util/ErrorLike.js';
 
 import type {BidiBrowser} from './Browser.js';
@@ -374,7 +375,7 @@ export class BidiPage extends Page {
     return this.#viewport;
   }
 
-  override async pdf(options: PDFOptions = {}): Promise<Buffer> {
+  override async pdf(options: PDFOptions = {}): Promise<Uint8Array> {
     const {timeout: ms = this._timeoutSettings.timeout(), path = undefined} =
       options;
     const {
@@ -416,21 +417,21 @@ export class BidiPage extends Page {
       ).pipe(raceWith(timeout(ms)))
     );
 
-    const buffer = Buffer.from(data, 'base64');
+    const typedArray = stringToTypedArray(data, true);
 
-    await this._maybeWriteBufferToFile(path, buffer);
+    await this._maybeWriteTypedArrayToFile(path, typedArray);
 
-    return buffer;
+    return typedArray;
   }
 
   override async createPDFStream(
     options?: PDFOptions | undefined
   ): Promise<ReadableStream<Uint8Array>> {
-    const buffer = await this.pdf(options);
+    const typedArray = await this.pdf(options);
 
     return new ReadableStream({
       start(controller) {
-        controller.enqueue(buffer);
+        controller.enqueue(typedArray);
         controller.close();
       },
     });
@@ -827,14 +828,19 @@ export class BidiPage extends Page {
     delta: number,
     options: WaitForOptions
   ): Promise<HTTPResponse | null> {
+    const controller = new AbortController();
+
     try {
       const [response] = await Promise.all([
-        this.waitForNavigation(options),
+        this.waitForNavigation({
+          ...options,
+          signal: controller.signal,
+        }),
         this.#frame.browsingContext.traverseHistory(delta),
       ]);
       return response;
     } catch (error) {
-      // TODO: waitForNavigation should be cancelled if an error happens.
+      controller.abort();
       if (isErrorLike(error)) {
         if (error.message.includes('no such history entry')) {
           return null;
@@ -909,6 +915,22 @@ function testUrlMatchCookie(cookie: Cookie, url: URL): boolean {
 }
 
 function bidiToPuppeteerCookie(bidiCookie: Bidi.Network.Cookie): Cookie {
+  const partitionKey = bidiCookie[CDP_SPECIFIC_PREFIX + 'partitionKey'];
+
+  function getParitionKey(): {partitionKey?: string} {
+    if (typeof partitionKey === 'string') {
+      return {partitionKey};
+    }
+    if (typeof partitionKey === 'object' && partitionKey !== null) {
+      return {
+        // TODO: a breaking change in Puppeteer is required to change
+        // partitionKey type and report the composite partition key.
+        partitionKey: partitionKey.topLevelSite,
+      };
+    }
+    return {};
+  }
+
   return {
     name: bidiCookie.name,
     // Presents binary value as base64 string.
@@ -926,10 +948,10 @@ function bidiToPuppeteerCookie(bidiCookie: Bidi.Network.Cookie): Cookie {
       bidiCookie,
       'sameParty',
       'sourceScheme',
-      'partitionKey',
       'partitionKeyOpaque',
       'priority'
     ),
+    ...getParitionKey(),
   };
 }
 

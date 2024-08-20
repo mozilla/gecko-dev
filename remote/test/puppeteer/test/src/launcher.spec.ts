@@ -49,6 +49,7 @@ describe('Launcher specs', function () {
               'Navigating frame was detached',
               'Protocol error (Page.navigate): Target closed.',
               'Protocol error (browsingContext.navigate): Target closed',
+              'Frame detached',
             ].some(message => {
               return error.message.startsWith(message);
             })
@@ -252,8 +253,10 @@ describe('Launcher specs', function () {
         const userDataDir = await mkdtemp(TMP_FOLDER);
 
         const prefsJSPath = path.join(userDataDir, 'prefs.js');
+        const userJSPath = path.join(userDataDir, 'user.js');
         const prefsJSContent = 'user_pref("browser.warnOnQuit", true)';
         await writeFile(prefsJSPath, prefsJSContent);
+        await writeFile(userJSPath, prefsJSContent);
 
         const {context, close} = await launch({userDataDir});
         try {
@@ -264,6 +267,7 @@ describe('Launcher specs', function () {
           expect(fs.readdirSync(userDataDir).length).toBeGreaterThan(0);
 
           expect(await readFile(prefsJSPath, 'utf8')).toBe(prefsJSContent);
+          expect(await readFile(userJSPath, 'utf8')).toBe(prefsJSContent);
         } finally {
           await close();
         }
@@ -460,8 +464,8 @@ describe('Launcher specs', function () {
         const defaultArgs = puppeteer.defaultArgs();
         const {browser, close} = await launch(
           Object.assign({}, defaultBrowserOptions, {
-            // Ignore the second default argument.
-            ignoreDefaultArgs: [defaultArgs[1]],
+            // Ignore first and third default argument.
+            ignoreDefaultArgs: [defaultArgs[0]!, defaultArgs[2]],
           })
         );
         try {
@@ -469,8 +473,9 @@ describe('Launcher specs', function () {
           if (!spawnargs) {
             throw new Error('spawnargs not present');
           }
-          expect(spawnargs.indexOf(defaultArgs[0]!)).not.toBe(-1);
-          expect(spawnargs.indexOf(defaultArgs[1]!)).toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[0]!)).toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[1]!)).not.toBe(-1);
+          expect(spawnargs.indexOf(defaultArgs[2]!)).toBe(-1);
         } finally {
           await close();
         }
@@ -617,29 +622,6 @@ describe('Launcher specs', function () {
       });
     });
 
-    describe('Puppeteer.launch', function () {
-      it('should be able to launch Chrome', async () => {
-        const {browser, close} = await launch({product: 'chrome'});
-        try {
-          const userAgent = await browser.userAgent();
-          expect(userAgent).toContain('Chrome');
-        } finally {
-          await close();
-        }
-      });
-
-      it('should be able to launch Firefox', async function () {
-        this.timeout(FIREFOX_TIMEOUT);
-        const {browser, close} = await launch({product: 'firefox'});
-        try {
-          const userAgent = await browser.userAgent();
-          expect(userAgent).toContain('Firefox');
-        } finally {
-          await close();
-        }
-      });
-    });
-
     describe('Puppeteer.connect', function () {
       it('should be able to connect multiple times to the same browser', async () => {
         const {puppeteer, browser, close} = await launch({});
@@ -703,7 +685,7 @@ describe('Launcher specs', function () {
           await close();
         }
       });
-      it('should support ignoreHTTPSErrors option', async () => {
+      it('should support acceptInsecureCerts option', async () => {
         const {puppeteer, httpsServer, browser, close} = await launch(
           {},
           {
@@ -715,7 +697,7 @@ describe('Launcher specs', function () {
           const browserWSEndpoint = browser.wsEndpoint();
           using remoteBrowser = await puppeteer.connect({
             browserWSEndpoint,
-            ignoreHTTPSErrors: true,
+            acceptInsecureCerts: true,
             protocol: browser.protocol,
           });
           const page = await remoteBrowser.newPage();

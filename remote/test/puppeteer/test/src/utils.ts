@@ -26,11 +26,16 @@ export const extendExpectWithToBeGolden = (
   outputDir: string
 ): void => {
   expect.extend({
-    toBeGolden: (testScreenshot: string | Buffer, goldenFilePath: string) => {
+    toBeGolden: (
+      testScreenshot: string | Uint8Array,
+      goldenFilePath: string
+    ) => {
       const result = compare(
         goldenDir,
         outputDir,
-        testScreenshot,
+        typeof testScreenshot === 'string'
+          ? testScreenshot
+          : Buffer.from(testScreenshot),
         goldenFilePath
       );
 
@@ -109,9 +114,8 @@ export async function navigateFrame(
 
 export const dumpFrames = async (
   frame: Frame,
-  indentation?: string
+  indentation = ''
 ): Promise<string[]> => {
-  indentation = indentation || '';
   let description = frame.url().replace(/:\d{4,5}\//, ':<PORT>/');
   using element = await frame.frameElement();
   if (element) {

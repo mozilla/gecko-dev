@@ -18,6 +18,7 @@ import {
 } from '../api/HTTPRequest.js';
 import {PageEvent} from '../api/Page.js';
 import {UnsupportedOperation} from '../common/Errors.js';
+import {stringToBase64} from '../util/encoding.js';
 
 import type {Request} from './core/Request.js';
 import type {BidiFrame} from './Frame.js';
@@ -84,7 +85,11 @@ export class BidiHTTPRequest extends HTTPRequest {
       void httpRequest.finalizeInterceptions();
     });
     this.#request.once('success', data => {
-      this.#response = BidiHTTPResponse.from(data, this);
+      this.#response = BidiHTTPResponse.from(
+        data,
+        this,
+        this.#frame.page().browser().cdpSupported
+      );
     });
     this.#request.on('authenticate', this.#handleAuthentication);
 
@@ -107,7 +112,12 @@ export class BidiHTTPRequest extends HTTPRequest {
   }
 
   override resourceType(): ResourceType {
-    throw new UnsupportedOperation();
+    if (!this.#frame.page().browser().cdpSupported) {
+      throw new UnsupportedOperation();
+    }
+    return (
+      this.#request.resourceType || 'other'
+    ).toLowerCase() as ResourceType;
   }
 
   override method(): string {
@@ -115,11 +125,17 @@ export class BidiHTTPRequest extends HTTPRequest {
   }
 
   override postData(): string | undefined {
-    throw new UnsupportedOperation();
+    if (!this.#frame.page().browser().cdpSupported) {
+      throw new UnsupportedOperation();
+    }
+    return this.#request.postData;
   }
 
   override hasPostData(): boolean {
-    throw new UnsupportedOperation();
+    if (!this.#frame.page().browser().cdpSupported) {
+      throw new UnsupportedOperation();
+    }
+    return this.#request.hasPostData;
   }
 
   override async fetchPostData(): Promise<string | undefined> {
@@ -206,7 +222,7 @@ export class BidiHTTPRequest extends HTTPRequest {
         body: overrides.postData
           ? {
               type: 'base64',
-              value: btoa(overrides.postData),
+              value: stringToBase64(overrides.postData),
             }
           : undefined,
         headers: headers.length > 0 ? headers : undefined,
@@ -307,6 +323,10 @@ export class BidiHTTPRequest extends HTTPRequest {
       });
     }
   };
+
+  timing(): Bidi.Network.FetchTimingInfo {
+    return this.#request.timing();
+  }
 }
 
 function getBidiHeaders(rawHeaders?: Record<string, unknown>) {

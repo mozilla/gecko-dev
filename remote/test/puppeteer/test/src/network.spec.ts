@@ -403,7 +403,8 @@ describe('network', function () {
         path.join(__dirname, '../assets', 'pptr.png')
       );
       const responseBuffer = await response.buffer();
-      expect(responseBuffer.equals(imageBuffer)).toBe(true);
+
+      expect(Buffer.from(responseBuffer).equals(imageBuffer)).toBe(true);
     });
     it('should work with compression', async () => {
       const {page, server} = await getTestState();
@@ -414,7 +415,7 @@ describe('network', function () {
         path.join(__dirname, '../assets', 'pptr.png')
       );
       const responseBuffer = await response.buffer();
-      expect(responseBuffer.equals(imageBuffer)).toBe(true);
+      expect(Buffer.from(responseBuffer).equals(imageBuffer)).toBe(true);
     });
     it('should throw if the response does not have a body', async () => {
       const {page, server} = await getTestState();
@@ -483,6 +484,9 @@ describe('network', function () {
       const {page, server} = await getTestState();
       const responses: HTTPResponse[] = [];
       page.on('response', response => {
+        if (isFavicon(response)) {
+          return;
+        }
         return responses.push(response);
       });
       await page.goto(server.EMPTY_PAGE);
@@ -876,7 +880,7 @@ describe('network', function () {
 
     it('Cross-origin set-cookie', async () => {
       const {page, httpsServer, close} = await launch({
-        ignoreHTTPSErrors: true,
+        acceptInsecureCerts: true,
       });
       try {
         await page.goto(httpsServer.PREFIX + '/empty.html');
