@@ -13,13 +13,41 @@ const isFissionEnabled = SpecialPowers.useRemoteSubframes;
 const SAMPLE_SIZE = 10;
 const NS_PER_MS = 1000000;
 
+/* 8ms of rounding error allowed on Linux, required due to difference in
+ * precision from reading process time vs thread time. Triggered when some
+ * processes are still quite new, much more frequent when running with
+ * ForkServer enabled.
+ * */
+const LINUX_ROUNDING_ERROR = 8.0 * NS_PER_MS;
+
 function checkProcessCpuTime(proc) {
-  Assert.greater(proc.cpuTime, 0, "Got some cpu time");
-  Assert.greater(proc.threads.length, 0, "Got some threads");
-  Assert.ok(
-    proc.threads.some(thread => thread.cpuTime > 0),
-    "Got some cpu time in the threads"
-  );
+  let hasProcessCPUTime = proc.cpuTime > 0;
+  if (hasProcessCPUTime || AppConstants.platform !== "linux") {
+    Assert.ok(hasProcessCPUTime, "Got some cpu time");
+    Assert.greater(proc.threads.length, 0, "Got some threads");
+  } else {
+    // With ForkServer on Linux it can happen a process has just been forked
+    // and has not been doing anything yet
+    Assert.equal(proc.threads.length, 1, "Got one thread");
+    Assert.equal(proc.threads[0].name, "forkserver", "Got one forkserver");
+  }
+
+  let hasThreadCPUTime = proc.threads.some(thread => thread.cpuTime > 0);
+  if (hasThreadCPUTime || AppConstants.platform !== "linux") {
+    Assert.ok(hasThreadCPUTime, "Got some cpu time in the threads");
+  } else {
+    // On Linux the process cpu time is read with the high precision
+    // clock_gettime syscall, but the CPU time for child process
+    // threads is read by parsing /proc file that have a lower
+    // precision, so accept that there will be some rounding errors
+    // for processes with very low CPU times (ie. processes that have
+    // just been forked).
+    Assert.less(
+      proc.cpuTime / proc.threads.length,
+      LINUX_ROUNDING_ERROR,
+      `No CPU time (${proc.cpuTime}) in the threads (${proc.threads.length}) on Linux, but within rounding errors`
+    );
+  }
 
   let cpuThreads = 0;
   for (let thread of proc.threads) {
