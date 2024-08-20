@@ -1,0 +1,14 @@
+diff --git a/other-licenses/nsis/Contrib/liteFirewall/liteFirewall.cpp b/other-licenses/nsis/Contrib/liteFirewall/liteFirewall.cpp
+--- a/other-licenses/nsis/Contrib/liteFirewall/liteFirewall.cpp
++++ b/other-licenses/nsis/Contrib/liteFirewall/liteFirewall.cpp
+@@ -111,7 +111,9 @@ HRESULT AddRule(LPCTSTR ExceptionName, L
+ 		}
+ 		catch (_com_error& e)
+ 		{
+-			printf("%s", e.Error());
++			/* Start Mozilla modification */
++			printf("0x%lx", e.ErrorMessage());
++			/* End Mozilla modification */
+ 		}
+ 		goto Cleanup;
+ 	}

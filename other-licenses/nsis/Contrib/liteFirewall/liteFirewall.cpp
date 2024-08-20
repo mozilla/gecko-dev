@@ -111,7 +111,9 @@ HRESULT AddRule(LPCTSTR ExceptionName, LPCTSTR ProcessPath)
 		}
 		catch (_com_error& e)
 		{
-			printf("%s", e.Error());
+			/* Start Mozilla modification */
+			printf("0x%lx", e.Error());
+			/* End Mozilla modification */
 		}
 		goto Cleanup;
 	}

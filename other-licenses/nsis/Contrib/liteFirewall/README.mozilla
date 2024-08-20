@@ -1,0 +1,40 @@
+This directory contains the liteFirewall plugin for the Windows NSIS
+installer. This enables creation of firewall rules during the
+install process.
+
+This directory contains an modified copy of the liteFirewall source code
+version 1.0, which is based on nsisFirewall 1.2. As stated by License.txt
+this code is under the zlib license. A few modifications have been made
+to this copy of the source code. The recent modifications among those
+are contained in mozilla_customizations.diff, which should be
+found in the same directory as this file.
+
+Making Future src Customizations
+--------------------------------
+
+When we make future customizations, they should be made both to the source
+files, and to `mozilla_customizations.diff`. Ideally, this should be done in a
+consistent way so that the changes to `mozilla_customizations.diff` are at
+least somewhat readable in code review rather than just being a complete
+rewrite of the file every time. Following these steps should accomplish this.
+
+  1) Start with a clean copy of mozilla-central.
+  2) Make a Mercurial commit: `hg commit`. For convenience referring to this
+     commit later, you can bookmark it: `hg bookmark -if liteFirewall`.
+  3) Update back to central: `hg up central`.
+  4) Generate a diff and ensure there are no new changes to `mozilla_customizations.diff`:
+     `hg diff --from=central --to=liteFirewall --unified=3 | diff - other-licenses/nsis/Contrib/liteFirewall/mozilla_customizations.diff`
+     If there are any changes (say `hg diff`'s output format changed), it may be
+     good to re-generate `mozilla_customizations.diff` and commit it separately.
+  5) Make the new customizations.
+  6) Build the Visual Studio solution.
+     This may be incompatible with later versions of Visual Studio. We can
+     get around this by upgrading the solution file when prompted, however,
+     these updated project files should not be committed.
+     This may require that the Visual Studio Installer be re-run to add the
+     MFC components, if you don't already have it. This can be done by following
+     the instructions on [Microsoft Learn](https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb8041).
+     Ensure the build targets point to other-licenses/nsis/Plugins.liteFirewallW.dll
+     and that the build is done for Unicode.
+  7) Regenerate `mozilla_customizations.diff` while only capturing the file extensions needed:
+     `hg diff --from=central --to=liteFirewall --unified=3 -I "**/*.h" -I "**/*.cpp" -I "other-licenses/nsis/Contrib/liteFirewall/" >> other-licenses/nsis/Contrib/liteFirewall/mozilla_customizations.diff`
