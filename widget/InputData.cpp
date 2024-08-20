@@ -239,7 +239,8 @@ MouseInput::MouseInput()
       mInputSource(0),
       mButtons(0),
       mHandledByAPZ(false),
-      mPreventClickEvent(false) {}
+      mPreventClickEvent(false),
+      mIgnoreCapturingContent(false) {}
 
 MouseInput::MouseInput(MouseType aType, ButtonType aButtonType,
                        uint16_t aInputSource, int16_t aButtons,
@@ -252,7 +253,8 @@ MouseInput::MouseInput(MouseType aType, ButtonType aButtonType,
       mButtons(aButtons),
       mOrigin(aPoint),
       mHandledByAPZ(false),
-      mPreventClickEvent(false) {}
+      mPreventClickEvent(false),
+      mIgnoreCapturingContent(false) {}
 
 MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
     : InputData(MOUSE_INPUT, aMouseEvent.mTimeStamp, aMouseEvent.mModifiers),
@@ -262,7 +264,11 @@ MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
       mButtons(aMouseEvent.mButtons),
       mHandledByAPZ(aMouseEvent.mFlags.mHandledByAPZ),
       mPreventClickEvent(aMouseEvent.mClass == eMouseEventClass &&
-                         aMouseEvent.AsMouseEvent()->mClickEventPrevented) {
+                         aMouseEvent.AsMouseEvent()->mClickEventPrevented),
+      mIgnoreCapturingContent(
+          (aMouseEvent.mMessage == eMouseMove ||
+           aMouseEvent.mMessage == ePointerMove) &&
+          aMouseEvent.AsMouseEvent()->mIgnoreCapturingContent) {
   MOZ_ASSERT(NS_IsMainThread(),
              "Can only copy from WidgetTouchEvent on main thread");
 
@@ -430,6 +436,7 @@ WidgetMouseOrPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
   event.mFocusSequenceNumber = mFocusSequenceNumber;
   event.mExitFrom = exitFrom;
   event.mClickEventPrevented = mPreventClickEvent;
+  event.mIgnoreCapturingContent = mIgnoreCapturingContent;
 
   return event;
 }

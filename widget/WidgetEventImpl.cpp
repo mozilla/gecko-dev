@@ -662,6 +662,17 @@ bool WidgetEvent::AllowFlushingPendingNotifications() const {
   return AsQueryContentEvent()->mNeedsToFlushLayout;
 }
 
+bool WidgetEvent::ShouldIgnoreCapturingContent() const {
+  MOZ_ASSERT(IsUsingCoordinates());
+
+  if (MOZ_UNLIKELY(!IsTrusted())) {
+    return false;
+  }
+  return mClass == eMouseEventClass || mClass == ePointerEventClass
+             ? AsMouseEvent()->mIgnoreCapturingContent
+             : false;
+}
+
 /******************************************************************************
  * mozilla::WidgetEvent
  *

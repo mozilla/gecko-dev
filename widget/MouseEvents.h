@@ -366,8 +366,17 @@ class WidgetMouseEvent : public WidgetMouseEventBase,
   // Whether the event should ignore scroll frame bounds during dispatch.
   bool mIgnoreRootScrollFrame = false;
 
+  // Whether the event should be dispatched on a target limited in capturing
+  // content.
+  bool mIgnoreCapturingContent = false;
+
   // Whether the event shouldn't cause click event.
   bool mClickEventPrevented = false;
+
+  // If this is set to true while the event is being dispatched,
+  // PresShell::EventHandler::FinalizeHandlingEvent will dispatch a synthesized
+  // eMouseMove or ePointerMove.
+  bool mSynthesizeMoveAfterDispatch = false;
 
   void AssignMouseEventData(const WidgetMouseEvent& aEvent, bool aCopyTargets) {
     AssignMouseEventBaseData(aEvent, aCopyTargets);
@@ -378,6 +387,7 @@ class WidgetMouseEvent : public WidgetMouseEventBase,
     mExitFrom = aEvent.mExitFrom;
     mClickCount = aEvent.mClickCount;
     mIgnoreRootScrollFrame = aEvent.mIgnoreRootScrollFrame;
+    mIgnoreCapturingContent = aEvent.mIgnoreCapturingContent;
     mClickEventPrevented = aEvent.mClickEventPrevented;
   }
 

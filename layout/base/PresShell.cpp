@@ -7174,7 +7174,6 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
   //     content outdated?
   nsCOMPtr<nsIContent> capturingContent =
       EventHandler::GetCapturingContentFor(aGUIEvent);
-
   if (GetDocument() && aGUIEvent->mClass == eTouchEventClass) {
     PointerLockManager::Unlock();
   }
@@ -7215,7 +7214,7 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
   }
 
   // Only capture mouse events and pointer events.
-  RefPtr<Element> pointerCapturingElement =
+  const RefPtr<Element> pointerCapturingElement =
       PointerEventHandler::GetPointerCapturingElement(aGUIEvent);
 
   if (pointerCapturingElement) {
@@ -7760,11 +7759,23 @@ bool PresShell::EventHandler::MaybeDiscardEvent(WidgetGUIEvent* aGUIEvent) {
 // static
 nsIContent* PresShell::EventHandler::GetCapturingContentFor(
     WidgetGUIEvent* aGUIEvent) {
-  return (aGUIEvent->mClass == ePointerEventClass ||
-          aGUIEvent->mClass == eWheelEventClass ||
-          aGUIEvent->HasMouseEventMessage())
-             ? PresShell::GetCapturingContent()
-             : nullptr;
+  if (aGUIEvent->mClass != ePointerEventClass &&
+      aGUIEvent->mClass != eWheelEventClass &&
+      !aGUIEvent->HasMouseEventMessage()) {
+    return nullptr;
+  }
+
+  // PointerEventHandler may synthesize ePointerMove event before releasing the
+  // mouse capture (it's done by a default handler of eMouseUp) after handling
+  // ePointerUp.  Then, we need to dispatch pointer boundary events for the
+  // element under the pointer to emulate a pointer move after a pointer
+  // capture.  Therefore, we need to ignore the capturing element if the event
+  // dispatcher requests it.
+  if (aGUIEvent->ShouldIgnoreCapturingContent()) {
+    return nullptr;
+  }
+
+  return PresShell::GetCapturingContent();
 }
 
 bool PresShell::EventHandler::GetRetargetEventDocument(
@@ -7799,8 +7810,10 @@ bool PresShell::EventHandler::GetRetargetEventDocument(
     return true;
   }
 
-  nsIContent* capturingContent =
-      EventHandler::GetCapturingContentFor(aGUIEvent);
+  const nsIContent* const capturingContent =
+      aGUIEvent->ShouldIgnoreCapturingContent()
+          ? nullptr
+          : EventHandler::GetCapturingContentFor(aGUIEvent);
   if (capturingContent) {
     // if the mouse is being captured then retarget the mouse event at the
     // document that is being captured.
@@ -8691,15 +8704,15 @@ void PresShell::EventHandler::FinalizeHandlingEvent(
       if (aEvent->mMessage == eKeyDown) {
         mPresShell->mIsLastKeyDownCanceled = aEvent->mFlags.mDefaultPrevented;
       }
-      return;
+      break;
     }
     case eMouseUp:
       // reset the capturing content now that the mouse button is up
       PresShell::ReleaseCapturingContent();
-      return;
+      break;
     case eMouseMove:
       PresShell::AllowMouseCapture(false);
-      return;
+      break;
     case eDrag:
     case eDragEnd:
     case eDragEnter:
@@ -8714,7 +8727,7 @@ void PresShell::EventHandler::FinalizeHandlingEvent(
       if (dataTransfer) {
         dataTransfer->Disconnect();
       }
-      return;
+      break;
     }
     case eTouchStart:
     case eTouchMove:
@@ -8727,7 +8740,13 @@ void PresShell::EventHandler::FinalizeHandlingEvent(
       break;
     }
     default:
-      return;
+      break;
+  }
+
+  if (WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent()) {
+    if (mouseEvent->mSynthesizeMoveAfterDispatch) {
+      PointerEventHandler::SynthesizeMoveToDispatchBoundaryEvents(mouseEvent);
+    }
   }
 }
 
@@ -11986,6 +12005,10 @@ bool PresShell::EventHandler::EventTargetData::MaybeRetargetToActiveDocument(
   }
 
   if (activeESM == GetEventStateManager()) {
+    return false;
+  }
+
+  if (aGUIEvent->ShouldIgnoreCapturingContent()) {
     return false;
   }
 

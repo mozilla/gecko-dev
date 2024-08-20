@@ -1020,6 +1020,12 @@ class WidgetEvent : public WidgetEventTime {
   }
 
   bool IsUserAction() const;
+
+  /**
+   * Return true if the event should be handled without (pointer) capturing
+   * element.
+   */
+  [[nodiscard]] bool ShouldIgnoreCapturingContent() const;
 };
 
 /******************************************************************************

@@ -205,6 +205,16 @@ class PointerEventHandler final {
       bool aDontRetargetEvents, nsEventStatus* aStatus,
       nsIContent** aMouseOrTouchEventTarget = nullptr);
 
+  /**
+   * Synthesize eMouseMove or ePointerMove to dispatch mouse/pointer boundary
+   * events if they are required.  This dispatches the event on the widget.
+   * Therefore, this dispatches the event on correct document in the same
+   * process.  However, if there is a popup under the pointer or a document in a
+   * different process, this does not work as you expected.
+   */
+  MOZ_CAN_RUN_SCRIPT static void SynthesizeMoveToDispatchBoundaryEvents(
+      const WidgetMouseEvent* aEvent);
+
   static void InitPointerEventFromMouse(WidgetPointerEvent* aPointerEvent,
                                         WidgetMouseEvent* aMouseEvent,
                                         EventMessage aMessage);
