@@ -20,6 +20,11 @@ tags = "os_integration"
 ["test_BinarySearch.js"]
 
 ["test_BrowserUtils.js"]
+support-files = [
+  "my_catman_1.sys.mjs",
+  "my_catman_2.sys.mjs",
+]
+
 
 ["test_BrowserUtils_urlFormatting.js"]
 

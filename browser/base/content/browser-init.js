@@ -372,7 +372,7 @@ var gBrowserInit = {
     CanvasPermissionPromptHelper.init();
     WebAuthnPromptHelper.init();
 
-    XPCOMUtils.callModulesFromCategory(
+    BrowserUtils.callModulesFromCategory(
       "browser-window-delayed-startup",
       window
     );
