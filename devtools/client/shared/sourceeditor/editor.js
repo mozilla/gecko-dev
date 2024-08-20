@@ -3030,6 +3030,7 @@ class Editor extends EventEmitter {
         const scroller = cm.getScrollerElement();
         const centeredX = Math.max(left - scroller.offsetWidth / 2, 0);
         const centeredY = Math.max(top - scroller.offsetHeight / 2, 0);
+
         cm.scrollTo(centeredX, centeredY);
       }
     }

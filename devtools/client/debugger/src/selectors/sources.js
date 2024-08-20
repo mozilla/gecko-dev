@@ -198,10 +198,6 @@ export function getShouldHighlightSelectedLocation(state) {
   return state.sources.shouldHighlightSelectedLocation;
 }
 
-export function getShouldScrollToSelectedLocation(state) {
-  return state.sources.shouldScrollToSelectedLocation;
-}
-
 /**
  * Gets the first source actor for the source and/or thread
  * provided.

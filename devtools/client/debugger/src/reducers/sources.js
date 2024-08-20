@@ -157,7 +157,6 @@ function update(state = initialSourcesState(), action) {
         pendingSelectedLocation,
         shouldSelectOriginalLocation: action.shouldSelectOriginalLocation,
         shouldHighlightSelectedLocation: action.shouldHighlightSelectedLocation,
-        shouldScrollToSelectedLocation: action.shouldScrollToSelectedLocation,
       };
     }
 

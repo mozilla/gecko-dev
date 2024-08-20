@@ -86,7 +86,7 @@ export function fromEditorLine(sourceId, line, sourceIsWasm) {
 }
 
 export function toEditorPosition(location) {
-  // Note that Spidermonkey, Debugger frontend and CodeMirror are all consistent regarding column
+  // Note that Spidermonkey, Debugger frontend and CodeMirror are all consistant regarding column
   // and are 0-based. But only CodeMirror consider the line to be 0-based while the two others
   // consider lines to be 1-based.
   return {
@@ -100,8 +100,6 @@ export function toSourceLine(sourceId, line) {
   if (isWasm(sourceId)) {
     return lineToWasmOffset(sourceId, line);
   }
-  // CodeMirror 5 cursor location is 0 based and Codemirror 6 position is 1 based.
-  // Whereas in DevTools frontend and backend only column is 0-based, the line is 1 based.
   if (features.codemirrorNext) {
     return line;
   }
