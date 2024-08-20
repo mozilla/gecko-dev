@@ -14310,50 +14310,6 @@
     "releaseChannelCollection": "opt-out",
     "description": "HTMLInputElement.webkitdirectory attribute used"
   },
-  "TIME_TO_FIRST_CLICK_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "bug_numbers": [1307675, 1332511],
-    "expires_in_version": "58",
-    "kind": "exponential",
-    "high": 50000,
-    "n_buckets": 100,
-    "description": "Time in milliseconds from the first non-blank paint to the creation time of the next click event per top-level content browsing context."
-  },
-  "TIME_TO_FIRST_KEY_INPUT_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "bug_numbers": [1307675, 1332511],
-    "expires_in_version": "58",
-    "kind": "exponential",
-    "high": 50000,
-    "n_buckets": 100,
-    "description": "Time in milliseconds from the first non-blank paint to the creation time of the next key event per top-level content browsing context."
-  },
-  "TIME_TO_FIRST_MOUSE_MOVE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "bug_numbers": [1307675, 1332511],
-    "expires_in_version": "58",
-    "kind": "exponential",
-    "high": 50000,
-    "n_buckets": 100,
-    "description": "Time in milliseconds from the first non-blank paint to the creation time of the next mouse move event per top-level content browsing context."
-  },
-  "TIME_TO_FIRST_SCROLL_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "bug_numbers": [1307675, 1332511],
-    "expires_in_version": "58",
-    "kind": "exponential",
-    "high": 50000,
-    "n_buckets": 100,
-    "description": "Time in milliseconds from the first non-blank paint to the creation time of the next scroll event per top-level content browsing context."
-  },
   "TIME_TO_FIRST_INTERACTION_MS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
