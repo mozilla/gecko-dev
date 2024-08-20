@@ -6821,27 +6821,18 @@ nsresult nsGlobalWindowOuter::OpenInternal(
   // window opening should be blocked, to ensure that we don't FireAbuseEvents
   // for a window opening that wouldn't have succeeded in the first place.
   if (!aUrl.IsEmpty()) {
-    // Note: the Void handling here is very important, because the window
-    // watcher expects a null URL string (not an empty string) if there is no
-    // URL to load.
-    nsCString url;
-    url.SetIsVoid(true);
-    url.Append(aUrl);
-
     // It's safe to skip the security check below if we're a dialog because
     // window.openDialog is not callable from content script. See bug 56851.
     //
     // If we're not navigating, we assume that whoever *does* navigate the
     // window will do a security check of their own.
-    if (!url.IsVoid()) {
-      auto result =
-          URIfromURLAndMaybeDoSecurityCheck(url, !aDialog && aNavigate);
-      if (result.isErr()) {
-        return result.unwrapErr();
-      }
-
-      uri = result.unwrap();
+    auto result =
+        URIfromURLAndMaybeDoSecurityCheck(aUrl, !aDialog && aNavigate);
+    if (result.isErr()) {
+      return result.unwrapErr();
     }
+
+    uri = result.unwrap();
   } else if (mDoc) {
     mDoc->SetUseCounter(eUseCounter_custom_WindowOpenEmptyUrl);
   }
