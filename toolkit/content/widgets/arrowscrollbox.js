@@ -14,7 +14,6 @@
     static get inheritedAttributes() {
       return {
         "#scrollbutton-up": "disabled=scrolledtostart",
-        ".scrollbox-clip": "orient",
         scrollbox: "orient,align,pack,dir,smoothscroll",
         "#scrollbutton-down": "disabled=scrolledtoend",
       };
@@ -26,11 +25,9 @@
       <html:link rel="stylesheet" href="chrome://global/skin/arrowscrollbox.css"/>
       <toolbarbutton id="scrollbutton-up" part="scrollbutton-up" keyNav="false" data-l10n-id="overflow-scroll-button-backwards"/>
       <spacer part="overflow-start-indicator"/>
-      <box class="scrollbox-clip" part="scrollbox-clip" flex="1">
-        <scrollbox part="scrollbox" flex="1">
-          <html:slot/>
-        </scrollbox>
-      </box>
+      <scrollbox part="scrollbox" flex="1">
+        <html:slot/>
+      </scrollbox>
       <spacer part="overflow-end-indicator"/>
       <toolbarbutton id="scrollbutton-down" part="scrollbutton-down" keyNav="false" data-l10n-id="overflow-scroll-button-forwards"/>
       `;
@@ -103,25 +100,25 @@
       this.shadowRoot.addEventListener("mouseup", this.on_mouseup.bind(this));
       this.shadowRoot.addEventListener("mouseout", this.on_mouseout.bind(this));
 
-      // These events don't get retargeted outside of the shadow root, but
-      // some callers like tests wait for these events. So run handlers
-      // and then retarget events from the scrollbox to the host.
-      this.scrollbox.addEventListener(
-        "underflow",
-        event => {
-          this.on_underflow(event);
-          this.dispatchEvent(new Event("underflow"));
-        },
-        true
-      );
-      this.scrollbox.addEventListener(
-        "overflow",
-        event => {
-          this.on_overflow(event);
-          this.dispatchEvent(new Event("overflow"));
-        },
-        true
-      );
+      this._overflowObserver = new ResizeObserver(([entry]) => {
+        let overflowing = false;
+        if (this.getAttribute("orient") == "vertical") {
+          overflowing = entry.contentRect.height > this.scrollbox.clientHeight;
+        } else {
+          overflowing = entry.contentRect.width > this.scrollbox.clientWidth;
+        }
+        if (overflowing == this.hasAttribute("overflowing")) {
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          this.toggleAttribute("overflowing", overflowing);
+          this._updateScrollButtonsDisabledState();
+          this.dispatchEvent(
+            new CustomEvent(overflowing ? "overflow" : "underflow")
+          );
+        });
+      });
+      this._overflowObserver.observe(this.shadowRoot.querySelector("slot"));
       this.scrollbox.addEventListener("scroll", event => {
         this.on_scroll(event);
         this.dispatchEvent(new Event("scroll"));
@@ -624,17 +621,8 @@
             }
           }
 
-          if (scrolledToEnd) {
-            this.setAttribute("scrolledtoend", "true");
-          } else {
-            this.removeAttribute("scrolledtoend");
-          }
-
-          if (scrolledToStart) {
-            this.setAttribute("scrolledtostart", "true");
-          } else {
-            this.removeAttribute("scrolledtostart");
-          }
+          this.toggleAttribute("scrolledtoend", scrolledToEnd);
+          this.toggleAttribute("scrolledtostart", scrolledToStart);
         }, 0);
       });
     }
@@ -761,57 +749,6 @@
 
     on_touchend() {
       this._touchStart = -1;
-    }
-
-    on_underflow(event) {
-      // Ignore underflow events:
-      // - from nested scrollable elements
-      // - corresponding to an overflow event that we ignored
-      if (event.target != this.scrollbox || !this.hasAttribute("overflowing")) {
-        return;
-      }
-
-      // Ignore events that doesn't match our orientation.
-      // Scrollport event orientation:
-      //   0: vertical
-      //   1: horizontal
-      //   2: both
-      if (this.getAttribute("orient") == "vertical") {
-        if (event.detail == 1) {
-          return;
-        }
-      } else if (event.detail == 0) {
-        // horizontal scrollbox
-        return;
-      }
-
-      this.removeAttribute("overflowing");
-      this._updateScrollButtonsDisabledState();
-    }
-
-    on_overflow(event) {
-      // Ignore overflow events:
-      // - from nested scrollable elements
-      if (event.target != this.scrollbox) {
-        return;
-      }
-
-      // Ignore events that doesn't match our orientation.
-      // Scrollport event orientation:
-      //   0: vertical
-      //   1: horizontal
-      //   2: both
-      if (this.getAttribute("orient") == "vertical") {
-        if (event.detail == 1) {
-          return;
-        }
-      } else if (event.detail == 0) {
-        // horizontal scrollbox
-        return;
-      }
-
-      this.setAttribute("overflowing", "true");
-      this._updateScrollButtonsDisabledState();
     }
 
     on_scroll() {
