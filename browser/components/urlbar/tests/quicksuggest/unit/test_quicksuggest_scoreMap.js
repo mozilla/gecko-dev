@@ -145,9 +145,6 @@ const MERINO_UNKNOWN_SUGGESTION = {
 add_setup(async function init() {
   await AddonTestUtils.promiseStartupManager();
 
-  // Disable search suggestions so we don't hit the network.
-  Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
-
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
     merinoSuggestions: [],
