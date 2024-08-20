@@ -15,12 +15,10 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
@@ -32,12 +30,10 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * The UI host for the Bookmarks list screen and related subscreens.
  */
 @Composable
-internal fun BookmarksScreen(store: BookmarksStore) {
-    val items by store.observeAsState(initialValue = store.state.bookmarkItems) {
-        it.bookmarkItems
-    }
+@Suppress("Unused")
+fun BookmarksScreen() {
     BookmarksList(
-        bookmarkItems = items,
+        bookmarkItems = listOf(),
         onBookmarkItemClick = {},
         onBackClick = {},
         onNewFolderClick = {},
@@ -84,11 +80,7 @@ private fun BookmarksList(
         },
         backgroundColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(vertical = 16.dp),
-        ) {
+        LazyColumn(modifier = Modifier.padding(paddingValues).padding(vertical = 16.dp)) {
             items(bookmarkItems) { item ->
                 when (item) {
                     is BookmarkItem.Bookmark -> FaviconListItem(
@@ -170,8 +162,8 @@ private fun BookmarksListTopBar(
 @Composable
 @FlexibleWindowLightDarkPreview
 @Suppress("MagicNumber")
-private fun BookmarksScreenPreview() {
-    val bookmarkItems = List(10) {
+private fun BookmarksListPreview() {
+    val bookmarks = List(10) {
         if (it % 2 == 0) {
             BookmarkItem.Bookmark(
                 url = "https://www.whoevenmakeswebaddressesthislonglikeseriously$it.com",
@@ -183,11 +175,17 @@ private fun BookmarksScreenPreview() {
         }
     }
 
-    val store = BookmarksStore(initialState = BookmarksState(bookmarkItems = bookmarkItems))
-
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            BookmarksScreen(store)
+            BookmarksList(
+                bookmarkItems = bookmarks,
+                onBookmarkItemClick = {},
+                onBackClick = {},
+                onNewFolderClick = {},
+                onCloseClick = {},
+                onMenuClick = {},
+                onSearchClick = {},
+            )
         }
     }
 }
