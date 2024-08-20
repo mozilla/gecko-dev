@@ -335,6 +335,9 @@ var SidebarController = {
       }
     }
 
+    // sets the sidebar to the left or right, based on a pref
+    this.setPosition();
+
     this._inited = true;
 
     if (!this._localesObserverAdded) {
@@ -1160,8 +1163,6 @@ var SidebarController = {
 
       this.selectMenuItem(commandID);
       this._box.hidden = this._splitter.hidden = false;
-      // sets the sidebar to the left or right, based on a pref
-      this.setPosition();
 
       this._box.setAttribute("checked", "true");
       this._box.setAttribute("sidebarcommand", commandID);
