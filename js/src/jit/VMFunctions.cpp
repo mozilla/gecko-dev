@@ -1332,14 +1332,16 @@ bool PushVarEnv(JSContext* cx, BaselineFrame* frame, Handle<Scope*> scope) {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 bool AddDisposableResource(JSContext* cx, BaselineFrame* frame,
-                           JS::Handle<JS::Value> val, UsingHint hint) {
+                           JS::Handle<JS::Value> val,
+                           JS::Handle<JS::Value> method,
+                           JS::Handle<JS::Value> needsClosure, UsingHint hint) {
   JS::Rooted<ArrayObject*> disposeCapability(
       cx, frame->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
   }
-  return js::AddDisposableResource(cx, disposeCapability, val, hint,
-                                   JS::NothingHandleValue);
+  return js::AddDisposableResourceToCapability(cx, disposeCapability, val,
+                                               method, needsClosure, hint);
 }
 
 bool TakeDisposeCapability(JSContext* cx, BaselineFrame* frame,

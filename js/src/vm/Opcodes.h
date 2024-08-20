@@ -3401,19 +3401,19 @@
      */ \
     MACRO(LeaveWith, leave_with, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Append the object on the stack as a disposable to be disposed on
+     * Append the object and method on the stack as a disposable to be disposed on
      * to the current lexical environment object.
      *
-     * Implements: [AddDisposableResource ( disposeCapability, V, hint [ , method ] )][1], step 1, 3-4.
+     * Implements: [AddDisposableResource ( disposeCapability, V, hint [ , method ] )][1], steps 3-4.
      *
      * [1] https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
      *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
      *   Operands: UsingHint hint
-     *   Stack: v => v
+     *   Stack: v, method, needsClosure =>
      */ \
-    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(AddDisposable, add_disposable, NULL, 2, 1, 1, JOF_UINT8)) \
+    IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO(AddDisposable, add_disposable, NULL, 2, 3, 0, JOF_UINT8)) \
     /*
      * Get the dispose capability of the present environment object.
      * In case the dispose capability of the environment

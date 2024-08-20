@@ -4879,17 +4879,34 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_AddDisposable() {
   frame.syncStack(0);
 
+  AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+  MOZ_ASSERT(!regs.has(FramePointer));
   prepareVMCall();
-  masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
-  masm.loadValue(frame.addressOfStackValue(-1), R1);
 
-  pushUint8BytecodeOperandArg(R2.scratchReg());
-  pushArg(R1);
-  pushArg(R0.scratchReg());
+  Register needsClosure = regs.takeAny();
+  Register method = regs.takeAny();
+  Register value = regs.takeAny();
+  Register baselineFrame = regs.takeAny();
+  Register hint = regs.takeAny();
 
-  using Fn =
-      bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>, UsingHint);
-  return callVM<Fn, jit::AddDisposableResource>();
+  masm.loadBaselineFramePtr(FramePointer, baselineFrame);
+  masm.loadValue(frame.addressOfStackValue(-1), needsClosure);
+  masm.loadValue(frame.addressOfStackValue(-2), method);
+  masm.loadValue(frame.addressOfStackValue(-3), value);
+
+  pushUint8BytecodeOperandArg(hint);
+  pushArg(needsClosure);
+  pushArg(method);
+  pushArg(value);
+  pushArg(baselineFrame);
+
+  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>,
+                      JS::Handle<JS::Value>, JS::Handle<JS::Value>, UsingHint);
+  if (!callVM<Fn, jit::AddDisposableResource>()) {
+    return false;
+  }
+  frame.popn(3);
+  return true;
 }
 
 template <typename Handler>

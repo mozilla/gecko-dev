@@ -498,8 +498,10 @@ ArrayObject* InitRestParameter(JSContext* cx, uint32_t length, Value* rest,
                               Handle<Scope*> scope);
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-[[nodiscard]] bool AddDisposableResource(JSContext*, BaselineFrame* frame,
+[[nodiscard]] bool AddDisposableResource(JSContext* cx, BaselineFrame* frame,
                                          JS::Handle<JS::Value> val,
+                                         JS::Handle<JS::Value> method,
+                                         JS::Handle<JS::Value> needsClosure,
                                          UsingHint hint);
 
 [[nodiscard]] bool CreateSuppressedError(JSContext* cx, BaselineFrame* frame,

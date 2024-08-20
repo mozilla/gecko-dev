@@ -723,6 +723,232 @@ bool UsingEmitter::prepareForDisposableScopeBody() {
   return tryEmitter_->emitTry();
 }
 
+// Explicit Resource Management Proposal
+// GetDisposeMethod ( V, hint )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-getdisposemethod
+// Steps 1.a-1.b.i., 2-3.
+bool UsingEmitter::emitGetDisposeMethod(UsingHint hint) {
+  // [stack] VAL
+
+  // Step 1. If hint is async-dispose, then
+  if (hint == UsingHint::Async) {
+    // Step 1.a. Let method be ? GetMethod(V, @@asyncDispose).
+    if (!bce_->emit1(JSOp::Dup)) {
+      // [stack] VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Dup)) {
+      // [stack] VAL VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit2(JSOp::Symbol, uint8_t(JS::SymbolCode::asyncDispose))) {
+      // [stack] VAL VAL VAL SYMBOL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::GetElem)) {
+      // [stack] VAL VAL ASYNC-DISPOSE
+      return false;
+    }
+
+    // Step 1.b. If method is undefined, then
+    // GetMethod returns undefined if the function is null but
+    // since we do not do the conversion here we check for
+    // null or undefined here.
+    if (!bce_->emit1(JSOp::IsNullOrUndefined)) {
+      // [stack] VAL VAL ASYNC-DISPOSE IS-NULL-OR-UNDEF
+      return false;
+    }
+
+    InternalIfEmitter ifAsyncDisposeNullOrUndefined(bce_);
+
+    if (!ifAsyncDisposeNullOrUndefined.emitThenElse()) {
+      // [stack] VAL VAL ASYNC-DISPOSE
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Pop)) {
+      // [stack] VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Dup)) {
+      // [stack] VAL VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit2(JSOp::Symbol, uint8_t(JS::SymbolCode::dispose))) {
+      // [stack] VAL VAL VAL SYMBOL
+      return false;
+    }
+
+    // Step 1.b.i. Set method to ? GetMethod(V, @@dispose).
+    if (!bce_->emit1(JSOp::GetElem)) {
+      // [stack] VAL VAL DISPOSE
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::True)) {
+      // [stack] VAL VAL DISPOSE NEEDS-CLOSURE
+      return false;
+    }
+
+    if (!ifAsyncDisposeNullOrUndefined.emitElse()) {
+      // [stack] VAL VAL ASYNC-DISPOSE
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::False)) {
+      // [stack] VAL VAL ASYNC-DISPOSE NEEDS-CLOSURE
+      return false;
+    }
+
+    if (!ifAsyncDisposeNullOrUndefined.emitEnd()) {
+      // [stack] VAL VAL METHOD NEEDS-CLOSURE
+      return false;
+    }
+
+  } else {
+    MOZ_ASSERT(hint == UsingHint::Sync);
+
+    // Step 2. Else,
+    // Step 2.a. Let method be ? GetMethod(V, @@dispose).
+    if (!bce_->emit1(JSOp::Dup)) {
+      // [stack] VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Dup)) {
+      // [stack] VAL VAL VAL
+      return false;
+    }
+
+    if (!bce_->emit2(JSOp::Symbol, uint8_t(JS::SymbolCode::dispose))) {
+      // [stack] VAL VAL VAL SYMBOL
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::GetElem)) {
+      // [stack] VAL VAL DISPOSE
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::False)) {
+      // [stack] VAL VAL DISPOSE NEEDS-CLOSURE
+      return false;
+    }
+  }
+
+  if (!bce_->emitDupAt(1)) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE METHOD
+    return false;
+  }
+
+  // According to spec GetMethod throws TypeError if the method is not callable
+  // and returns undefined if the value is either undefined or null.
+  // but the caller of this function, emitCreateDisposableResource is
+  // supposed to throw TypeError as well if returned value is undefined,
+  // thus we combine the steps here.
+  if (!bce_->emitCheckIsCallable()) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE METHOD IS-CALLABLE
+    return false;
+  }
+
+  InternalIfEmitter ifMethodNotCallable(bce_);
+
+  if (!ifMethodNotCallable.emitThen(IfEmitter::ConditionKind::Negative)) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE METHOD
+    return false;
+  }
+
+  if (!bce_->emit2(JSOp::ThrowMsg, uint8_t(ThrowMsgKind::DisposeNotCallable))) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE METHOD
+    return false;
+  }
+
+  if (!ifMethodNotCallable.emitEnd()) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE METHOD
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE
+    return false;
+  }
+
+  return true;
+}
+
+// Explicit Resource Management Proposal
+// CreateDisposableResource ( V, hint [ , method ] )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-createdisposableresource
+bool UsingEmitter::emitCreateDisposableResource(UsingHint hint) {
+  // [stack] VAL
+
+  // Step 1. If method is not present, then (implicit)
+  // Step 1.a. If V is either null or undefined, then
+  if (!bce_->emit1(JSOp::IsNullOrUndefined)) {
+    // [stack] VAL IS-NULL-OR-UNDEF
+    return false;
+  }
+
+  InternalIfEmitter ifNullUndefined(bce_);
+
+  if (!ifNullUndefined.emitThenElse()) {
+    // [stack] VAL
+    return false;
+  }
+
+  // Step 1.a.i. Set V to undefined.
+  if (!bce_->emit1(JSOp::Undefined)) {
+    // [stack] VAL UNDEF
+    return false;
+  }
+
+  // Step 1.a.ii. Set method to undefined.
+  if (!bce_->emit1(JSOp::Undefined)) {
+    // [stack] VAL UNDEF UNDEF
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::False)) {
+    // [stack] VAL UNDEF UNDEF NEEDS-CLOSURE
+    return false;
+  }
+
+  // Step 1.b. Else,
+  if (!ifNullUndefined.emitElse()) {
+    // [stack] VAL
+    return false;
+  }
+
+  // Step 1.b.i. If V is not an Object, throw a TypeError exception.
+  if (!bce_->emitCheckIsObj(CheckIsObjectKind::Disposable)) {
+    // [stack] VAL
+    return false;
+  }
+
+  // Step 1.b.ii. Set method to ? GetDisposeMethod(V, hint).
+  // Step 1.b.iii. If method is undefined, throw a TypeError exception.
+  if (!emitGetDisposeMethod(hint)) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE
+    return false;
+  }
+
+  if (!ifNullUndefined.emitEnd()) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE
+    return false;
+  }
+
+  return true;
+}
+
+// Explicit Resource Management Proposal
+// 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
+// Steps 1, 3-4.
 bool UsingEmitter::prepareForAssignment(UsingHint hint) {
   MOZ_ASSERT(bce_->innermostEmitterScope()->hasDisposables());
 
@@ -730,8 +956,57 @@ bool UsingEmitter::prepareForAssignment(UsingHint hint) {
     hasAwaitUsing_ = true;
   }
 
-  //        [stack] VAL
-  return bce_->emit2(JSOp::AddDisposable, uint8_t(hint));
+  // [stack] VAL
+
+  // Step 1. If method is not present, then (implicit)
+  // Step 1.a. If V is either null or undefined and hint is sync-dispose, return
+  // unused.
+  if (hint == UsingHint::Sync) {
+    if (!bce_->emit1(JSOp::IsNullOrUndefined)) {
+      // [stack] VAL IS-NULL-OR-UNDEF
+      return false;
+    }
+
+    if (!bce_->emit1(JSOp::Not)) {
+      // [stack] VAL !IS-NULL-OR-UNDEF
+      return false;
+    }
+  } else {
+    MOZ_ASSERT(hint == UsingHint::Async);
+    if (!bce_->emit1(JSOp::True)) {
+      // [stack] VAL TRUE
+      return false;
+    }
+  }
+
+  // [stack] VAL SHOULD-CREATE-RESOURCE
+
+  InternalIfEmitter ifCreateResource(bce_);
+
+  if (!ifCreateResource.emitThen()) {
+    // [stack] VAL
+    return false;
+  }
+
+  // Step 1.c. Let resource be ? CreateDisposableResource(V, hint).
+  if (!emitCreateDisposableResource(hint)) {
+    // [stack] VAL VAL METHOD NEEDS-CLOSURE
+    return false;
+  }
+
+  // Step 3. Append resource to disposeCapability.[[DisposableResourceStack]].
+  if (!bce_->emit2(JSOp::AddDisposable, uint8_t(hint))) {
+    // [stack] VAL
+    return false;
+  }
+
+  if (!ifCreateResource.emitEnd()) {
+    // [stack] VAL
+    return false;
+  }
+
+  // Step 4. Return unused.
+  return true;
 }
 
 bool UsingEmitter::prepareForForOfLoopIteration() {

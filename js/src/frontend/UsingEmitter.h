@@ -30,6 +30,10 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool emitThrowIfException();
 
+  [[nodiscard]] bool emitGetDisposeMethod(UsingHint hint);
+
+  [[nodiscard]] bool emitCreateDisposableResource(UsingHint hint);
+
   [[nodiscard]] bool emitTakeDisposeCapability();
 
   [[nodiscard]] bool emitDisposeLoop(
