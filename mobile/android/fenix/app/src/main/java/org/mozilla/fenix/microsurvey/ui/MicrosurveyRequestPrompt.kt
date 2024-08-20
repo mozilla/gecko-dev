@@ -69,7 +69,9 @@ fun MicrosurveyRequestPrompt(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = FirefoxTheme.colors.layer1),
         ) {
             Column(
                 modifier = Modifier
