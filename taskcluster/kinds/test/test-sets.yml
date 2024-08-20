@@ -20,6 +20,7 @@ webgpu:
     - web-platform-tests-webgpu
     - web-platform-tests-webgpu-long
     - web-platform-tests-webgpu-backlog
+    - web-platform-tests-webgpu-backlog-long
 
 web-platform-tests:
     - web-platform-tests

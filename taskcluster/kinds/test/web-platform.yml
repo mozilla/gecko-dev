@@ -388,6 +388,7 @@ web-platform-tests-webgpu-backlog:
             - --test-type=testharness
             - --default-exclude
             - --tag=webgpu
+            - --exclude-tag=webgpu-long
             - --exclude-tag=canvas
             - --exclude-tag=webcodecs
             - --skip-implementation-status=implementing
@@ -398,6 +399,34 @@ web-platform-tests-webgpu-backlog:
         by-test-platform:
             .*wayland.*: t-linux-wayland-vm
             default: default
+
+web-platform-tests-webgpu-backlog-long:
+    description: "Web platform WebGPU test run (backlog, long tests)"
+    suite: web-platform-tests
+    treeherder-symbol: W(webgpu-backlog-long)
+    virtualization: virtual-with-gpu
+    tier: 3
+    chunks:
+        by-test-platform:
+            windows.*-64.*: 3
+            default: 2
+    max-run-time: 5400  # 90m
+    variants: []  # We don't need sw or nofis testing.
+    run-on-projects:
+        by-test-platform:
+            android.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1836811
+            .*-wayland/debug.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1864700
+            default: ['mozilla-central']
+    mozharness:
+        chunked: true
+        extra-options:
+            - --test-type=testharness
+            - --default-exclude
+            - --tag=webgpu-long
+            - --skip-implementation-status=implementing
+            - --skip-implementation-status=not-implementing
+            - --backlog
+            - --timeout-multiplier=10.0
 
 web-platform-tests-canvas:
     description: "Web platform Canvas test run"
