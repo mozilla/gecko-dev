@@ -134,7 +134,7 @@ size_t AndroidSharedBlitGL::sInstanceCount = 0;
 #ifdef MOZ_WIDGET_ANDROID
 
 void AndroidSurfaceTexture::GetTransformMatrix(
-    java::sdk::SurfaceTexture::Param surfaceTexture,
+    const java::sdk::SurfaceTexture::Ref& surfaceTexture,
     gfx::Matrix4x4* outMatrix) {
   JNIEnv* const env = jni::GetEnvForThread();
 

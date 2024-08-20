@@ -22,7 +22,7 @@ class AndroidSurfaceTexture {
  public:
   static void Init();
   static void GetTransformMatrix(
-      java::sdk::SurfaceTexture::Param surfaceTexture,
+      const java::sdk::SurfaceTexture::Ref& surfaceTexture,
       mozilla::gfx::Matrix4x4* outMatrix);
 };
 
