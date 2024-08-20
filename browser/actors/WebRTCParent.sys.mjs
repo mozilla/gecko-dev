@@ -1323,31 +1323,6 @@ function prompt(aActor, aBrowser, aRequest) {
     options
   );
   notification.callID = aRequest.callID;
-
-  let schemeHistogram = Services.telemetry.getKeyedHistogramById(
-    "PERMISSION_REQUEST_ORIGIN_SCHEME"
-  );
-  let userInputHistogram = Services.telemetry.getKeyedHistogramById(
-    "PERMISSION_REQUEST_HANDLING_USER_INPUT"
-  );
-
-  let docURI = aRequest.documentURI;
-  let scheme = 0;
-  if (docURI.startsWith("https")) {
-    scheme = 2;
-  } else if (docURI.startsWith("http")) {
-    scheme = 1;
-  }
-
-  for (let requestType of requestTypes) {
-    if (requestType == "AudioCapture") {
-      requestType = "Microphone";
-    }
-    requestType = requestType.toLowerCase();
-
-    schemeHistogram.add(requestType, scheme);
-    userInputHistogram.add(requestType, aRequest.isHandlingUserInput);
-  }
 }
 
 /**
