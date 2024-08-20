@@ -455,23 +455,27 @@ class PuppeteerRunner(MozbuildObject):
                 ".cache",
             )
 
-        test_command = "test:" + product
-
-        if with_cdp:
-            if headless:
-                test_command = test_command + ":headless"
+        if product == "chrome":
+            if with_cdp:
+                if headless:
+                    test_command = "test:chrome:headless"
+                else:
+                    test_command = "test:chrome:headful"
+            elif headless:
+                test_command = "test:chrome:bidi"
             else:
-                test_command = test_command + ":headful"
+                raise Exception(
+                    "Chrome doesn't support headful mode with the WebDriver BiDi protocol"
+                )
+        elif product == "firefox":
+            if with_cdp:
+                test_command = "test:firefox:cdp"
+            elif headless:
+                test_command = "test:firefox:headless"
+            else:
+                test_command = "test:firefox:headful"
         else:
-            if headless:
-                test_command = test_command + ":bidi"
-            else:
-                if product == "chrome":
-                    raise Exception(
-                        "Chrome doesn't support headful mode with the WebDriver BiDi protocol"
-                    )
-
-                test_command = test_command + ":bidi:headful"
+            test_command = "test:" + product
 
         command = ["run", test_command, "--"] + mocha_options
 
