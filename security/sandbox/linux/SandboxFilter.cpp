@@ -2055,6 +2055,11 @@ class SocketProcessSandboxPolicy final : public SandboxPolicyCommon {
       case SYS_BIND:
         return Some(Allow());
 
+      // sendmsg and recvmmsg needed for HTTP3/QUIC UDP IO. Note sendmsg is
+      // allowed in SandboxPolicyCommon.
+      case SYS_RECVMMSG:
+        return Some(Allow());
+
         // FIXME(bug 1641401) do we really need this?
       case SYS_SENDMMSG:
         return Some(Allow());

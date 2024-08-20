@@ -640,6 +640,81 @@ void RunTestsSocket(SandboxTestingChild* child) {
   int c;
   child->ErrnoTest("getcpu"_ns, true,
                    [&] { return syscall(SYS_getcpu, &c, NULL, NULL); });
+
+  child->ErrnoTest("sendmsg"_ns, true, [&] {
+    int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (fd < 0) {
+      return fd;
+    }
+
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    // Address within 100::/64, i.e. IPv6 discard prefix.
+    inet_pton(AF_INET6, "100::1", &addr.sin6_addr);
+    addr.sin6_port = htons(12345);
+
+    struct msghdr msg = {0};
+    struct iovec iov[1];
+    char buf[] = "test";
+    iov[0].iov_base = buf;
+    iov[0].iov_len = sizeof(buf);
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+    msg.msg_name = &addr;
+    msg.msg_namelen = sizeof(addr);
+
+    int rv = sendmsg(fd, &msg, 0);
+    close(fd);
+    MOZ_ASSERT(rv == sizeof(buf),
+               "Expected sendmsg to return the number of bytes sent");
+    return rv;
+  });
+
+  child->ErrnoTest("recvmmsg"_ns, true, [&] {
+    int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (fd < 0) {
+      return fd;
+    }
+
+    // Set the socket to non-blocking mode
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) {
+      close(fd);
+      return -1;
+    }
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+      close(fd);
+      return -1;
+    }
+
+    struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_addr = in6addr_any;
+    addr.sin6_port = htons(0);
+
+    if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+      close(fd);
+      return -1;
+    }
+
+    struct mmsghdr msgs[1];
+    memset(msgs, 0, sizeof(msgs));
+    struct iovec iov[1];
+    char buf[64];
+    iov[0].iov_base = buf;
+    iov[0].iov_len = sizeof(buf);
+    msgs[0].msg_hdr.msg_iov = iov;
+    msgs[0].msg_hdr.msg_iovlen = 1;
+
+    int rv = recvmmsg(fd, msgs, 1, 0, nullptr);
+    close(fd);
+    MOZ_ASSERT(rv == -1 && errno == EAGAIN,
+               "recvmmsg should return -1 with EAGAIN given that no datagrams "
+               "are available");
+    return 0;
+  });
 #  endif  // XP_LINUX
 #elif XP_MACOSX
   RunMacTestLaunchProcess(child);
