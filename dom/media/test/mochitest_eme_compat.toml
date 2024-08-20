@@ -709,10 +709,6 @@ scheme = "https"
 skip-if = ["os == 'android'"] # bug 1149374
 scheme = "https"
 
-["test_eme_requestMediaKeySystemAccess_origin_check_widevine.html"]
-run-if = ["os == 'win'"] # origin check is only supported on windows
-scheme = "https"
-
 ["test_eme_requestMediaKeySystemAccess_with_app_approval.html"]
 skip-if = ["os == 'android'"] # bug 1149374
 scheme = "https"

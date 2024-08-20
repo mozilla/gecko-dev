@@ -229,74 +229,10 @@ static KeySystemConfig::EMECodecString ToEMEAPICodecString(
   return ""_ns;
 }
 
-#ifdef MOZ_WMF_CDM
-// TODO : we implement a temporary workaround to explicitly allow/block
-// domains for MFCDM capabilities. This workaround and should be removed after
-// fixing the bug 1901334, which could result in showing black frame for MFCDM
-// playback when specific CSS effects are applied on video, which requires
-// altering pixel's content.
-static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
-  // 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
-  enum Filer : uint32_t {
-    eDisable = 0,
-    eAllowedListEnabled = 1,
-    eBlockedListEnabled = 2,
-  };
-  const auto prefValue = StaticPrefs::media_eme_mfcdm_origin_filter_enabled();
-  if (prefValue == Filer::eDisable || !aOrigin ||
-      !IsMediaFoundationCDMPlaybackEnabled()) {
-    // No need to check the origin.
-    return true;
-  }
-
-  // Check if the origin is allowed to use MFCDM.
-  if (prefValue == Filer::eAllowedListEnabled) {
-    static nsTArray<nsCString> kAllowedOrigins({
-        "https://www.netflix.com"_ns,
-    });
-    for (const auto& allowedOrigin : kAllowedOrigins) {
-      if (aOrigin->Equals(allowedOrigin)) {
-        EME_LOG(
-            "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin "
-            "(%s) is ALLOWED to use MFCDM",
-            aOrigin->get());
-        return true;
-      }
-    }
-    EME_LOG(
-        "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin (%s) is "
-        "not allowed to use MFCDM",
-        aOrigin->get());
-    return false;
-  }
-
-  // Check if the origin is blocked to use MFCDM.
-  MOZ_ASSERT(prefValue == Filer::eBlockedListEnabled);
-  static nsTArray<nsCString> kBlockedOrigins({
-      "https://on.orf.at"_ns,
-  });
-  for (const auto& blockedOrigin : kBlockedOrigins) {
-    if (aOrigin->Equals(blockedOrigin)) {
-      EME_LOG(
-          "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin (%s) "
-          "is BLOCKED to use MFCDM",
-          aOrigin->get());
-      return false;
-    }
-  }
-  EME_LOG(
-      "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin (%s) "
-      "is allowed to use MFCDM",
-      aOrigin->get());
-  return true;
-}
-#endif
-
 static RefPtr<KeySystemConfig::SupportedConfigsPromise>
 GetSupportedKeySystemConfigs(const nsAString& aKeySystem,
                              bool aIsHardwareDecryption,
-                             bool aIsPrivateBrowsing,
-                             const Maybe<nsCString>& aOrigin) {
+                             bool aIsPrivateBrowsing) {
   using DecryptionInfo = KeySystemConfig::DecryptionInfo;
   nsTArray<KeySystemConfigRequest> requests;
 
@@ -306,45 +242,43 @@ GetSupportedKeySystemConfigs(const nsAString& aKeySystem,
         aKeySystem, DecryptionInfo::Software, aIsPrivateBrowsing});
   }
 #ifdef MOZ_WMF_CDM
-  if (IsMFCDMAllowedByOrigin(aOrigin)) {
-    if (IsPlayReadyEnabled()) {
-      // PlayReady software and hardware
-      if (aKeySystem.EqualsLiteral(kPlayReadyKeySystemName) ||
-          aKeySystem.EqualsLiteral(kPlayReadyKeySystemHardware)) {
+  if (IsPlayReadyEnabled()) {
+    // PlayReady software and hardware
+    if (aKeySystem.EqualsLiteral(kPlayReadyKeySystemName) ||
+        aKeySystem.EqualsLiteral(kPlayReadyKeySystemHardware)) {
+      requests.AppendElement(
+          KeySystemConfigRequest{NS_ConvertUTF8toUTF16(kPlayReadyKeySystemName),
+                                 DecryptionInfo::Software, aIsPrivateBrowsing});
+      if (aIsHardwareDecryption) {
         requests.AppendElement(KeySystemConfigRequest{
             NS_ConvertUTF8toUTF16(kPlayReadyKeySystemName),
-            DecryptionInfo::Software, aIsPrivateBrowsing});
-        if (aIsHardwareDecryption) {
-          requests.AppendElement(KeySystemConfigRequest{
-              NS_ConvertUTF8toUTF16(kPlayReadyKeySystemName),
-              DecryptionInfo::Hardware, aIsPrivateBrowsing});
-          requests.AppendElement(KeySystemConfigRequest{
-              NS_ConvertUTF8toUTF16(kPlayReadyKeySystemHardware),
-              DecryptionInfo::Hardware, aIsPrivateBrowsing});
-        }
-      }
-      // PlayReady clearlead
-      if (aKeySystem.EqualsLiteral(kPlayReadyHardwareClearLeadKeySystemName)) {
+            DecryptionInfo::Hardware, aIsPrivateBrowsing});
         requests.AppendElement(KeySystemConfigRequest{
-            NS_ConvertUTF8toUTF16(kPlayReadyHardwareClearLeadKeySystemName),
+            NS_ConvertUTF8toUTF16(kPlayReadyKeySystemHardware),
             DecryptionInfo::Hardware, aIsPrivateBrowsing});
       }
     }
+    // PlayReady clearlead
+    if (aKeySystem.EqualsLiteral(kPlayReadyHardwareClearLeadKeySystemName)) {
+      requests.AppendElement(KeySystemConfigRequest{
+          NS_ConvertUTF8toUTF16(kPlayReadyHardwareClearLeadKeySystemName),
+          DecryptionInfo::Hardware, aIsPrivateBrowsing});
+    }
+  }
 
-    if (IsWidevineHardwareDecryptionEnabled()) {
-      // Widevine hardware
-      if (aKeySystem.EqualsLiteral(kWidevineExperimentKeySystemName) ||
-          (IsWidevineKeySystem(aKeySystem) && aIsHardwareDecryption)) {
-        requests.AppendElement(KeySystemConfigRequest{
-            NS_ConvertUTF8toUTF16(kWidevineExperimentKeySystemName),
-            DecryptionInfo::Hardware, aIsPrivateBrowsing});
-      }
-      // Widevine clearlead
-      if (aKeySystem.EqualsLiteral(kWidevineExperiment2KeySystemName)) {
-        requests.AppendElement(KeySystemConfigRequest{
-            NS_ConvertUTF8toUTF16(kWidevineExperiment2KeySystemName),
-            DecryptionInfo::Hardware, aIsPrivateBrowsing});
-      }
+  if (IsWidevineHardwareDecryptionEnabled()) {
+    // Widevine hardware
+    if (aKeySystem.EqualsLiteral(kWidevineExperimentKeySystemName) ||
+        (IsWidevineKeySystem(aKeySystem) && aIsHardwareDecryption)) {
+      requests.AppendElement(KeySystemConfigRequest{
+          NS_ConvertUTF8toUTF16(kWidevineExperimentKeySystemName),
+          DecryptionInfo::Hardware, aIsPrivateBrowsing});
+    }
+    // Widevine clearlead
+    if (aKeySystem.EqualsLiteral(kWidevineExperiment2KeySystemName)) {
+      requests.AppendElement(KeySystemConfigRequest{
+          NS_ConvertUTF8toUTF16(kWidevineExperiment2KeySystemName),
+          DecryptionInfo::Hardware, aIsPrivateBrowsing});
     }
   }
 #endif
@@ -358,7 +292,7 @@ RefPtr<GenericPromise> MediaKeySystemAccess::KeySystemSupportsInitDataType(
   RefPtr<GenericPromise::Private> promise =
       new GenericPromise::Private(__func__);
   GetSupportedKeySystemConfigs(aKeySystem, aIsHardwareDecryption,
-                               aIsPrivateBrowsing, Nothing())
+                               aIsPrivateBrowsing)
       ->Then(GetMainThreadSerialEventTarget(), __func__,
              [promise, initDataType = nsString{std::move(aInitDataType)}](
                  const KeySystemConfig::SupportedConfigsPromise::
@@ -1118,15 +1052,22 @@ MediaKeySystemAccess::GetSupportedConfig(MediaKeySystemAccessRequest* aRequest,
                                          bool aIsPrivateBrowsing,
                                          const Document* aDocument) {
   nsTArray<KeySystemConfig> implementations;
-  const bool containsHardwareDecryptionConfig =
+  const bool isHardwareDecryptionRequest =
       CheckIfHarewareDRMConfigExists(aRequest->mConfigs) ||
       DoesKeySystemSupportHardwareDecryption(aRequest->mKeySystem);
+
+#ifdef MOZ_WMF_CDM
+  if (ShouldBlockMFCDMSupportByOrigin(aRequest->mKeySystem,
+                                      isHardwareDecryptionRequest, aDocument)) {
+    return KeySystemConfig::KeySystemConfigPromise::CreateAndReject(false,
+                                                                    __func__);
+  }
+#endif
 
   RefPtr<KeySystemConfig::KeySystemConfigPromise::Private> promise =
       new KeySystemConfig::KeySystemConfigPromise::Private(__func__);
   GetSupportedKeySystemConfigs(aRequest->mKeySystem,
-                               containsHardwareDecryptionConfig,
-                               aIsPrivateBrowsing, GetOrigin(aDocument))
+                               isHardwareDecryptionRequest, aIsPrivateBrowsing)
       ->Then(GetMainThreadSerialEventTarget(), __func__,
              [promise, aRequest, document = RefPtr<const Document>{aDocument}](
                  const KeySystemConfig::SupportedConfigsPromise::
@@ -1149,6 +1090,87 @@ MediaKeySystemAccess::GetSupportedConfig(MediaKeySystemAccessRequest* aRequest,
              });
   return promise.forget();
 }
+
+#ifdef MOZ_WMF_CDM
+/*static */
+bool MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin(
+    const nsString& aKeySystem, bool aIsHardwareDecryptionRequest,
+    const Document* aDocument) {
+  // 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
+  enum Filer : uint32_t {
+    eDisable = 0,
+    eAllowedListEnabled = 1,
+    eBlockedListEnabled = 2,
+  };
+  const auto prefValue = StaticPrefs::media_eme_mfcdm_origin_filter_enabled();
+  if (prefValue == Filer::eDisable) {
+    return false;
+  }
+
+  // If the requested key system is not the one which MFCDM supports, then we
+  // don't need do anything.
+  const bool isMFCDMKeySystem =
+      IsPlayReadyKeySystemAndSupported(aKeySystem) ||
+      IsWidevineExperimentKeySystemAndSupported(aKeySystem) ||
+      (IsWidevineKeySystem(aKeySystem) && aIsHardwareDecryptionRequest) ||
+      IsWMFClearKeySystemAndSupported(aKeySystem);
+  if (!isMFCDMKeySystem) {
+    return false;
+  }
+
+  // Check if origin is allowed to use MFCDM.
+  nsCOMPtr<nsIScriptObjectPrincipal> sop =
+      do_QueryInterface(aDocument->GetInnerWindow());
+  if (!sop) {
+    return false;
+  }
+  auto* principal = sop->GetPrincipal();
+  nsAutoCString origin;
+  nsresult rv = principal->GetOrigin(origin);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  if (prefValue == Filer::eAllowedListEnabled) {
+    static nsTArray<nsCString> kAllowedOrigins({
+        "https://www.netflix.com"_ns,
+    });
+    for (const auto& allowedOrigin : kAllowedOrigins) {
+      if (origin.Equals(allowedOrigin)) {
+        EME_LOG(
+            "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin "
+            "(%s) is ALLOWED to use MFCDM",
+            origin.get());
+        return false;
+      }
+    }
+    EME_LOG(
+        "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) is "
+        "not allowed to use MFCDM",
+        origin.get());
+    return true;
+  }
+
+  MOZ_ASSERT(prefValue == Filer::eBlockedListEnabled);
+  static nsTArray<nsCString> kBlockedOrigins({
+      "https://on.orf.at"_ns,
+  });
+  for (const auto& blockedOrigin : kBlockedOrigins) {
+    if (origin.Equals(blockedOrigin)) {
+      EME_LOG(
+          "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) "
+          "is BLOCKED to use MFCDM",
+          origin.get());
+      return true;
+    }
+  }
+  EME_LOG(
+      "MediaKeySystemAccess::ShouldBlockMFCDMSupportByOrigin, origin (%s) "
+      "is allowed to use MFCDM",
+      origin.get());
+  return false;
+}
+#endif
 
 /* static */
 void MediaKeySystemAccess::NotifyObservers(nsPIDOMWindowInner* aWindow,

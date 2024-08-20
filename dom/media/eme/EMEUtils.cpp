@@ -14,7 +14,6 @@
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "nsContentUtils.h"
-#include "nsIScriptObjectPrincipal.h"
 
 #ifdef MOZ_WMF_CDM
 #  include "mozilla/PMFCDM.h"
@@ -52,15 +51,11 @@ bool IsWidevineKeySystem(const nsAString& aKeySystem) {
 }
 
 #ifdef MOZ_WMF_CDM
-bool IsMediaFoundationCDMPlaybackEnabled() {
-  // 1=enabled encrypted and clear, 2=enabled encrytped.
-  return StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
-         StaticPrefs::media_wmf_media_engine_enabled() == 2;
-}
-
 bool IsPlayReadyEnabled() {
+  // 1=enabled encrypted and clear, 2=enabled encrytped.
   return StaticPrefs::media_eme_playready_enabled() &&
-         IsMediaFoundationCDMPlaybackEnabled();
+         (StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
+          StaticPrefs::media_wmf_media_engine_enabled() == 2);
 }
 
 bool IsPlayReadyKeySystemAndSupported(const nsAString& aKeySystem) {
@@ -73,8 +68,10 @@ bool IsPlayReadyKeySystemAndSupported(const nsAString& aKeySystem) {
 }
 
 bool IsWidevineHardwareDecryptionEnabled() {
+  // 1=enabled encrypted and clear, 2=enabled encrytped.
   return StaticPrefs::media_eme_widevine_experiment_enabled() &&
-         IsMediaFoundationCDMPlaybackEnabled();
+         (StaticPrefs::media_wmf_media_engine_enabled() == 1 ||
+          StaticPrefs::media_wmf_media_engine_enabled() == 2);
 }
 
 bool IsWidevineExperimentKeySystemAndSupported(const nsAString& aKeySystem) {
@@ -89,7 +86,9 @@ bool IsWMFClearKeySystemAndSupported(const nsAString& aKeySystem) {
   if (!StaticPrefs::media_eme_wmf_clearkey_enabled()) {
     return false;
   }
-  if (!IsMediaFoundationCDMPlaybackEnabled()) {
+  // 1=enabled encrypted and clear, 2=enabled encrytped.
+  if (StaticPrefs::media_wmf_media_engine_enabled() != 1 &&
+      StaticPrefs::media_wmf_media_engine_enabled() != 2) {
     return false;
   }
   return aKeySystem.EqualsLiteral(kClearKeyKeySystemName);
@@ -257,24 +256,6 @@ void DeprecationWarningLog(const dom::Document* aDocument,
   nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "Media"_ns,
                                   aDocument, nsContentUtils::eDOM_PROPERTIES,
                                   aMsgName, params);
-}
-
-Maybe<nsCString> GetOrigin(const dom::Document* aDocument) {
-  if (!aDocument) {
-    return Nothing();
-  }
-  nsCOMPtr<nsIScriptObjectPrincipal> sop =
-      do_QueryInterface(aDocument->GetInnerWindow());
-  if (!sop) {
-    return Nothing();
-  }
-  auto* principal = sop->GetPrincipal();
-  nsAutoCString origin;
-  nsresult rv = principal->GetOrigin(origin);
-  if (NS_FAILED(rv)) {
-    return Nothing();
-  }
-  return Some(origin);
 }
 
 }  // namespace mozilla

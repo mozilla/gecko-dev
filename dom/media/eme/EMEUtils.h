@@ -109,8 +109,6 @@ bool DoesKeySystemSupportHardwareDecryption(const nsAString& aKeySystem);
 void DeprecationWarningLog(const dom::Document* aDocument,
                            const char* aMsgName);
 
-Maybe<nsCString> GetOrigin(const dom::Document* aDocument);
-
 }  // namespace mozilla
 
 #endif  // EME_LOG_H_

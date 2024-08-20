@@ -74,6 +74,17 @@ class MediaKeySystemAccess final : public nsISupports, public nsWrapperCache {
   static nsCString ToCString(const MediaKeySystemConfiguration& aConfig);
 
  private:
+#ifdef MOZ_WMF_CDM
+  // TODO : we implement a temporary workaround to explicitly allow/block
+  // domains for MFCDM capabilities. This workaround and should be removed after
+  // fixing the bug 1901334, which could result in showing black frame for MFCDM
+  // playback when specific CSS effects are applied on video, which requires
+  // altering pixel's content.
+  static bool ShouldBlockMFCDMSupportByOrigin(const nsString& aKeySystem,
+                                              bool aIsHardwareDecryptionRequest,
+                                              const Document* aDocument);
+#endif
+
   nsCOMPtr<nsPIDOMWindowInner> mParent;
   const nsString mKeySystem;
   const MediaKeySystemConfiguration mConfig;

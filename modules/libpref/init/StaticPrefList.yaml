@@ -10959,11 +10959,7 @@
 # 0 : disabled, 1 : enabled allowed list, 2 : enabled blocked list
 -   name: media.eme.mfcdm.origin-filter.enabled
     type: RelaxedAtomicUint32
-#if IS_DEV_EDITION_OR_EARLY_BETA_OR_EARLIER
-    value: 1
-#else
     value: 0
-#endif
     mirror: always
 
 #endif  # MOZ_WMF
