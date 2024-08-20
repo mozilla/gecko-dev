@@ -13,7 +13,7 @@ let testFuncs = [
 ];
 function invokeTestWith(exports, exportThing, expected) {
   let targetFunc;
-  if (exportThing instanceof WebAssembly.Function) {
+  if (exportThing instanceof Function) {
     targetFunc = exportThing;
   } else if (exportThing === null) {
     targetFunc = null;
