@@ -2395,26 +2395,6 @@ Document::~Document() {
       if (MOZ_UNLIKELY(mMathMLEnabled)) {
         ScalarAdd(Telemetry::ScalarID::MATHML_DOC_COUNT, 1);
       }
-
-      if (IsHTMLDocument()) {
-        switch (GetCompatibilityMode()) {
-          case eCompatibility_FullStandards:
-            Telemetry::AccumulateCategorical(
-                Telemetry::LABELS_QUIRKS_MODE::FullStandards);
-            break;
-          case eCompatibility_AlmostStandards:
-            Telemetry::AccumulateCategorical(
-                Telemetry::LABELS_QUIRKS_MODE::AlmostStandards);
-            break;
-          case eCompatibility_NavQuirks:
-            Telemetry::AccumulateCategorical(
-                Telemetry::LABELS_QUIRKS_MODE::NavQuirks);
-            break;
-          default:
-            MOZ_ASSERT_UNREACHABLE("Unknown quirks mode");
-            break;
-        }
-      }
     }
   }
 

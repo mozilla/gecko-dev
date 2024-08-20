@@ -15975,17 +15975,6 @@
     "keyed": true,
     "description": "Permission requests (showing a permission prompt) by whether they were requested from code handling a user input event."
   },
-  "QUIRKS_MODE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["emilio@mozilla.com"],
-    "bug_numbers": [1505117],
-    "expires_in_version": "70",
-    "kind": "categorical",
-    "releaseChannelCollection": "opt-out",
-    "labels": ["FullStandards", "AlmostStandards", "NavQuirks"],
-    "description": "HTML document compat mode (quirks mode)"
-  },
   "BFCACHE_COMBO": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
