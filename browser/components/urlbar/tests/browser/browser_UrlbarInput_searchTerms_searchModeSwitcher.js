@@ -14,7 +14,10 @@ const SEARCH_STRING = "chocolate cake";
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+    set: [
+      ["browser.urlbar.scotchBonnet.enableOverride", true],
+      ["browser.urlbar.showSearchTerms.featureGate", true],
+    ],
   });
   await SearchTestUtils.installSearchExtension(
     {
