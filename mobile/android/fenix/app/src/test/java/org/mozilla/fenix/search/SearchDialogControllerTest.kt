@@ -470,6 +470,41 @@ class SearchDialogControllerTest {
     }
 
     @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN an url suggestion is tapped THEN load url in the existing tab`() {
+        val url = "https://www.google.com/"
+        val flags = EngineSession.LoadUrlFlags.all()
+
+        assertNull(Events.enteredUrl.testGetValue())
+
+        every { settings.enableHomepageAsNewTab } returns true
+        every { store.state.tabId } returns null
+
+        createController().handleUrlTapped(url, flags)
+        createController().handleUrlTapped(url)
+
+        browserStore.waitUntilIdle()
+
+        verify {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = url,
+                newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                flags = flags,
+            )
+        }
+
+        assertNotNull(Events.enteredUrl.testGetValue())
+        val snapshot = Events.enteredUrl.testGetValue()!!
+        assertEquals(2, snapshot.size)
+        assertEquals("false", snapshot.first().extra?.getValue("autocomplete"))
+        assertEquals("false", snapshot[1].extra?.getValue("autocomplete"))
+
+        middleware.assertLastAction(AwesomeBarAction.EngagementFinished::class) { action ->
+            assertFalse(action.abandoned)
+        }
+    }
+
+    @Test
     fun handleSearchTermsTapped() {
         val searchTerms = "fenix"
 
