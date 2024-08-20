@@ -336,6 +336,7 @@ web-platform-tests-webgpu-long:
     treeherder-symbol: W(webgpu-long)
     virtualization: virtual-with-gpu
     tier: 2
+    chunks: 2
     max-run-time: 5400  # 90m
     variants: []  # We don't need sw or nofis testing.
     run-on-projects:
@@ -344,6 +345,7 @@ web-platform-tests-webgpu-long:
             .*-wayland/debug.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1864700
             default: ['trunk']
     mozharness:
+        chunked: true
         extra-options:
             - --test-type=testharness
             - --default-exclude
