@@ -7,7 +7,7 @@ diff --git a/other-licenses/nsis/Contrib/liteFirewall/liteFirewall.cpp b/other-l
  		{
 -			printf("%s", e.Error());
 +			/* Start Mozilla modification */
-+			printf("0x%lx", e.ErrorMessage());
++			printf("0x%lx", e.Error());
 +			/* End Mozilla modification */
  		}
  		goto Cleanup;
