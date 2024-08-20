@@ -200,7 +200,7 @@ add_task(async function MixedTest6A() {
   gTestBrowser.removeEventListener("load", MixedTest6A, true);
   let { gIdentityHandler } = gTestBrowser.ownerGlobal;
 
-  await BrowserTestUtils.waitForCondition(
+  await TestUtils.waitForCondition(
     () =>
       gIdentityHandler._identityBox.classList.contains("mixedActiveBlocked"),
     "Waited too long for control center to get mixed active blocked state"
