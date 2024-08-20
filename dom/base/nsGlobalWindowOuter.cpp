@@ -5128,7 +5128,6 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::Print(
       // See the handling of OPEN_PRINT_BROWSER in browser.js.
       aError = OpenInternal(u""_ns, u""_ns, u""_ns,
                             false,             // aDialog
-                            false,             // aContentModal
                             true,              // aCalledNoScript
                             false,             // aDoJSFixups
                             true,              // aNavigate
@@ -5576,7 +5575,6 @@ nsresult nsGlobalWindowOuter::Open(const nsAString& aUrl,
                                    BrowsingContext** _retval) {
   return OpenInternal(aUrl, aName, aOptions,
                       false,             // aDialog
-                      false,             // aContentModal
                       true,              // aCalledNoScript
                       false,             // aDoJSFixups
                       true,              // aNavigate
@@ -5590,7 +5588,6 @@ nsresult nsGlobalWindowOuter::OpenJS(const nsAString& aUrl,
                                      BrowsingContext** _retval) {
   return OpenInternal(aUrl, aName, aOptions,
                       false,             // aDialog
-                      false,             // aContentModal
                       false,             // aCalledNoScript
                       true,              // aDoJSFixups
                       true,              // aNavigate
@@ -5609,7 +5606,6 @@ nsresult nsGlobalWindowOuter::OpenDialog(const nsAString& aUrl,
                                          BrowsingContext** _retval) {
   return OpenInternal(aUrl, aName, aOptions,
                       true,                     // aDialog
-                      false,                    // aContentModal
                       true,                     // aCalledNoScript
                       false,                    // aDoJSFixups
                       true,                     // aNavigate
@@ -5627,7 +5623,6 @@ nsresult nsGlobalWindowOuter::OpenNoNavigate(const nsAString& aUrl,
                                              BrowsingContext** _retval) {
   return OpenInternal(aUrl, aName, aOptions,
                       false,             // aDialog
-                      false,             // aContentModal
                       true,              // aCalledNoScript
                       false,             // aDoJSFixups
                       false,             // aNavigate
@@ -5652,7 +5647,6 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::OpenDialogOuter(
   RefPtr<BrowsingContext> dialog;
   aError = OpenInternal(aUrl, aName, aOptions,
                         true,                // aDialog
-                        false,               // aContentModal
                         false,               // aCalledNoScript
                         false,               // aDoJSFixups
                         true,                // aNavigate
@@ -6748,8 +6742,8 @@ class AutoUnblockScriptClosing {
 
 nsresult nsGlobalWindowOuter::OpenInternal(
     const nsAString& aUrl, const nsAString& aName, const nsAString& aOptions,
-    bool aDialog, bool aContentModal, bool aCalledNoScript, bool aDoJSFixups,
-    bool aNavigate, nsIArray* argv, nsISupports* aExtraArgument,
+    bool aDialog, bool aCalledNoScript, bool aDoJSFixups, bool aNavigate,
+    nsIArray* argv, nsISupports* aExtraArgument,
     nsDocShellLoadState* aLoadState, bool aForceNoOpener, PrintKind aPrintKind,
     BrowsingContext** aReturn) {
 #ifdef DEBUG
@@ -6959,11 +6953,7 @@ nsresult nsGlobalWindowOuter::OpenInternal(
       // that we don't force a system caller here, because that screws it up
       // when it tries to compute the caller principal to associate with dialog
       // arguments. That whole setup just really needs to be rewritten. :-(
-      Maybe<AutoNoJSAPI> nojsapi;
-      if (!aContentModal) {
-        nojsapi.emplace();
-      }
-
+      AutoNoJSAPI nojsapi;
       rv = pwwatch->OpenWindow2(this, uri, name, options, modifiers,
                                 /* aCalledFromScript = */ false, aDialog,
                                 aNavigate, aExtraArgument, isPopupSpamWindow,

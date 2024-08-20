@@ -752,9 +752,8 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
    */
   nsresult OpenInternal(const nsAString& aUrl, const nsAString& aName,
                         const nsAString& aOptions, bool aDialog,
-                        bool aContentModal, bool aCalledNoScript,
-                        bool aDoJSFixups, bool aNavigate, nsIArray* argv,
-                        nsISupports* aExtraArgument,
+                        bool aCalledNoScript, bool aDoJSFixups, bool aNavigate,
+                        nsIArray* argv, nsISupports* aExtraArgument,
                         nsDocShellLoadState* aLoadState, bool aForceNoOpener,
                         PrintKind aPrintKind,
                         mozilla::dom::BrowsingContext** aReturn);
