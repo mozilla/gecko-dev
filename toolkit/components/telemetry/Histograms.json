@@ -15323,17 +15323,6 @@
     "n_buckets": 50,
     "description": "Time elapsed (in milliseconds) between the construction of a frame and the start of rendering."
   },
-  "WEB_AUDIO_AUTOPLAY": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "96",
-    "kind": "categorical",
-    "labels": ["NeverBlocked", "AllowedAfterBlocked", "NeverAllowed"],
-    "bug_numbers": [1512277, 1652196, 1700828],
-    "description": "The number of times an AudioContext is allowed to start after being blocked, or the number of AudioContexts attempting to start which were never blocked or never allowed.",
-    "releaseChannelCollection": "opt-out"
-  },
   "TABS_AUDIO_COMPETITION": {
     "record_in_processes": ["main"],
     "products": ["firefox"],

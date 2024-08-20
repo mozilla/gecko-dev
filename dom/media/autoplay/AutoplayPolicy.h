@@ -59,22 +59,6 @@ class AutoplayPolicy {
       const dom::AutoplayPolicyMediaType& aType, const dom::Document& aDoc);
 };
 
-/**
- * This class contains helper funtions which could be used in AutoplayPolicy
- * for determing Telemetry use-only result. They shouldn't represent the final
- * result of blocking autoplay.
- */
-class AutoplayPolicyTelemetryUtils {
- public:
-  // Returns true if a given AudioContext would be allowed to play
-  // if block autoplay was enabled. If this returns false, it means we would
-  // either block or ask for permission.
-  // Note: this is for telemetry purposes, and doesn't check the prefs
-  // which enable/disable block autoplay. Do not use for blocking logic!
-  static bool WouldBeAllowedToPlayIfAutoplayDisabled(
-      const dom::AudioContext& aContext);
-};
-
 }  // namespace mozilla::media
 
 #endif

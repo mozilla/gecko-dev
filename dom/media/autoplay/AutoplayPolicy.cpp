@@ -154,12 +154,6 @@ static bool IsMediaElementInaudible(const HTMLMediaElement& aElement) {
   return false;
 }
 
-static bool IsAudioContextAllowedToPlay(const AudioContext& aContext) {
-  // Offline context won't directly output sound to audio devices.
-  return aContext.IsOffline() ||
-         IsWindowAllowedToPlayOverall(aContext.GetOwnerWindow());
-}
-
 static bool IsEnableBlockingWebAudioByUserGesturePolicy() {
   return StaticPrefs::media_autoplay_blocking_policy() ==
          sPOLICY_STICKY_ACTIVATION;
@@ -399,12 +393,6 @@ uint32_t AutoplayPolicy::GetSiteAutoplayPermission(nsIPrincipal* aPrincipal) {
   permMgr->TestExactPermissionFromPrincipal(aPrincipal, "autoplay-media"_ns,
                                             &perm);
   return perm;
-}
-
-/* static */
-bool AutoplayPolicyTelemetryUtils::WouldBeAllowedToPlayIfAutoplayDisabled(
-    const AudioContext& aContext) {
-  return IsAudioContextAllowedToPlay(aContext);
 }
 
 /* static */
