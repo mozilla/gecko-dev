@@ -1988,6 +1988,13 @@
     "comment": "Cannot run on Mozilla CI"
   },
   {
+    "testIdPattern": "[launcher.spec] Launcher specs Puppeteer Puppeteer.launch can launch multiple instances without node warnings",
+    "platforms": ["darwin", "linux", "win32"],
+    "parameters": ["firefox"],
+    "expectations": ["PASS", "FAIL"],
+    "comment": "Frequent intermittent https://bugzilla.mozilla.org/show_bug.cgi?id=1908031"
+  },
+  {
     "testIdPattern": "[launcher.spec] Launcher specs Puppeteer Puppeteer.launch should close browser with beforeunload page",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["cdp", "firefox"],
@@ -2555,7 +2562,7 @@
   {
     "testIdPattern": "[oopif.spec] OOPIF should evaluate on a page with a PDF viewer",
     "platforms": ["darwin", "linux", "win32"],
-    "parameters": ["firefox", "webDriverBiDi"],
+    "parameters": ["firefox"],
     "expectations": ["SKIP"],
     "comment": "chrome-specific test"
   },
