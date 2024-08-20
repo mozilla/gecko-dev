@@ -1,10 +1,10 @@
 {%- let string_type = Type::String %}
 {%- let string_ffi_converter = string_type.ffi_converter() %}
 
-export class {{ error.nm() }} extends Error {}
+export class {{ error.js_name() }} extends Error {}
 {% for variant in error.variants() %}
 
-export class {{ variant.name().to_upper_camel_case() }} extends {{ error.nm() }} {
+export class {{ variant.name().to_upper_camel_case() }} extends {{ error.js_name() }} {
 {% if error.is_flat() %}
     constructor(message, ...params) {
         super(...params);
@@ -13,18 +13,18 @@ export class {{ variant.name().to_upper_camel_case() }} extends {{ error.nm() }}
 {%- else %}
     constructor(
         {% for field in variant.fields() -%}
-        {{field.nm()}},
+        {{field.js_name()}},
         {% endfor -%}
         ...params
     ) {
         {%- if !variant.fields().is_empty() %}
-        const message = `{% for field in variant.fields() %}{{ field.nm() }}: ${ {{ field.nm() }} }{% if !loop.last %}, {% endif %}{% endfor %}`;
+        const message = `{% for field in variant.fields() %}{{ field.js_name() }}: ${ {{ field.js_name() }} }{% if !loop.last %}, {% endif %}{% endfor %}`;
         super(message, ...params);
         {%- else %}
         super(...params);
         {%- endif %}
         {%- for field in variant.fields() %}
-        this.{{field.nm()}} = {{ field.nm() }};
+        this.{{field.js_name()}} = {{ field.js_name() }};
         {%- endfor %}
     }
 {%- endif %}
@@ -51,7 +51,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
                 {%- endif %}
             {%- endfor %}
             default:
-                throw new UniFFITypeError("Unknown {{ error.nm() }} variant");
+                throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
         }
     }
     static computeSize(value) {
@@ -60,25 +60,25 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         {%- for variant in error.variants() %}
         if (value instanceof {{ variant.name().to_upper_camel_case() }}) {
             {%- for field in variant.fields() %}
-            totalSize += {{ field.ffi_converter() }}.computeSize(value.{{ field.nm() }});
+            totalSize += {{ field.ffi_converter() }}.computeSize(value.{{ field.js_name() }});
             {%- endfor %}
             return totalSize;
         }
         {%- endfor %}
-        throw new UniFFITypeError("Unknown {{ error.nm() }} variant");
+        throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
     }
     static write(dataStream, value) {
         {%- for variant in error.variants() %}
         if (value instanceof {{ variant.name().to_upper_camel_case() }}) {
             dataStream.writeInt32({{ loop.index }});
             {%- for field in variant.fields() %}
-            {{ field.ffi_converter() }}.write(dataStream, value.{{ field.nm() }});
+            {{ field.ffi_converter() }}.write(dataStream, value.{{ field.js_name() }});
             {%- endfor %}
             return;
         }
         {%- endfor %}
-        throw new UniFFITypeError("Unknown {{ error.nm() }} variant");
+        throw new UniFFITypeError("Unknown {{ error.js_name() }} variant");
     }
 
-    static errorClass = {{ error.nm() }};
+    static errorClass = {{ error.js_name() }};
 }

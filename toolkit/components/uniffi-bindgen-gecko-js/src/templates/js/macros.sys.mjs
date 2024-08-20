@@ -26,10 +26,10 @@
         const functionCall = () => {
             {%- for arg in func.arguments() %}
             try {
-                {{ arg.ffi_converter() }}.checkType({{ arg.nm() }})
+                {{ arg.ffi_converter() }}.checkType({{ arg.js_name() }})
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("{{ arg.nm() }}");
+                    e.addItemDescriptionPart("{{ arg.js_name() }}");
                 }
                 throw e;
             }
@@ -45,7 +45,7 @@
                 {{ receiver_ffi_converter }}.lower(this),
                 {%- endif %}
                 {%- for arg in func.arguments() %}
-                {{ arg.lower_fn() }}({{ arg.nm() }}),
+                {{ arg.lower_fn() }}({{ arg.js_name() }}),
                 {%- endfor %}
             )
         }

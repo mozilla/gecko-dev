@@ -195,7 +195,7 @@ pub impl ComponentInterface {
             FfiType::RustArcPtr(name) => {
                 format!("ScaffoldingObjectConverter<&{}>", self._pointer_type(name),)
             }
-            _ => format!("ScaffoldingConverter<{}>", ffi_type.rust_type()),
+            _ => format!("ScaffoldingConverter<{}>", ffi_type.cpp_type()),
         }
     }
 
@@ -219,23 +219,23 @@ pub impl ComponentInterface {
 
 #[ext(name=FFIFunctionCppExt)]
 pub impl FfiFunction {
-    fn nm(&self) -> String {
+    fn js_name(&self) -> String {
         self.name().to_upper_camel_case()
     }
 
-    fn rust_name(&self) -> String {
+    fn cpp_name(&self) -> String {
         self.name().to_string()
     }
 
-    fn rust_return_type(&self) -> String {
+    fn cpp_return_type(&self) -> String {
         match self.return_type() {
-            Some(t) => t.rust_type(),
+            Some(t) => t.cpp_type(),
             None => "void".to_owned(),
         }
     }
 
-    fn rust_arg_list(&self) -> String {
-        let mut parts: Vec<String> = self.arguments().iter().map(|a| a.rust_type()).collect();
+    fn cpp_arg_list(&self) -> String {
+        let mut parts: Vec<String> = self.arguments().iter().map(|a| a.cpp_type()).collect();
         parts.push("RustCallStatus*".to_owned());
         parts.join(", ")
     }
@@ -244,7 +244,7 @@ pub impl FfiFunction {
 #[ext(name=FFITypeCppExt)]
 pub impl FfiType {
     // Type for the Rust scaffolding code
-    fn rust_type(&self) -> String {
+    fn cpp_type(&self) -> String {
         match self {
             FfiType::UInt8 => "uint8_t".to_owned(),
             FfiType::Int8 => "int8_t".to_owned(),
@@ -270,21 +270,21 @@ pub impl FfiType {
 
 #[ext(name=FFIArgumentCppExt)]
 pub impl FfiArgument {
-    fn rust_type(&self) -> String {
-        self.type_().rust_type()
+    fn cpp_type(&self) -> String {
+        self.type_().cpp_type()
     }
 }
 
 #[ext(name=ObjectCppExt)]
 pub impl Object {
-    fn nm(&self) -> String {
+    fn js_name(&self) -> String {
         self.name().to_upper_camel_case()
     }
 }
 
 #[ext(name=CallbackInterfaceCppExt)]
 pub impl CallbackInterface {
-    fn nm(&self) -> String {
+    fn js_name(&self) -> String {
         self.name().to_upper_camel_case()
     }
 

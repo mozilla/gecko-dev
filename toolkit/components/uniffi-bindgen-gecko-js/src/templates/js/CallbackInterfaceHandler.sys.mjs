@@ -4,7 +4,7 @@ const {{ cbi.handler() }} = new UniFFICallbackHandler(
     [
         {%- for method in cbi.methods() %}
         new UniFFICallbackMethodHandler(
-            "{{ method.nm() }}",
+            "{{ method.js_name() }}",
             [
                 {%- for arg in method.arguments() %}
                 {{ arg.ffi_converter() }},

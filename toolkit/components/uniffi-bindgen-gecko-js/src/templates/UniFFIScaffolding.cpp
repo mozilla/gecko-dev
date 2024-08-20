@@ -31,7 +31,7 @@ using dom::UniFFIScaffoldingCallResult;
 extern "C" {
   {%- for (ci, config) in components %}
   {%- for func in ci.iter_user_ffi_function_definitions() %}
-  {{ func.rust_return_type() }} {{ func.rust_name() }}({{ func.rust_arg_list() }});
+  {{ func.cpp_return_type() }} {{ func.cpp_name() }}({{ func.cpp_arg_list() }});
   {%- endfor %}
   {%- endfor %}
 }
@@ -42,8 +42,8 @@ extern "C" {
 {%- let pointer_type = ci.pointer_type(object) %}
 const static mozilla::uniffi::UniFFIPointerType {{ pointer_type }} {
   "{{ "{}::{}"|format(ci.namespace(), object.name()) }}"_ns,
-  {{ object.ffi_object_clone().rust_name() }},
-  {{ object.ffi_object_free().rust_name() }},
+  {{ object.ffi_object_clone().cpp_name() }},
+  {{ object.ffi_object_free().cpp_name() }},
 };
 {%- endfor %}
 {%- endfor %}

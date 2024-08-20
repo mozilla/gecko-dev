@@ -146,20 +146,20 @@ class ArrayBufferDataStream {
 
     {%- for object in ci.object_definitions() %}
 
-    // Reads a {{ object.nm() }} pointer from the data stream
+    // Reads a {{ object.js_name() }} pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
-    readPointer{{ object.nm() }}() {
+    readPointer{{ object.js_name() }}() {
         const pointerId = {{ object_ids.get(ci, object) }}; // {{ object_ids.name(ci, object) }}
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
     }
 
-    // Writes a {{ object.nm() }} pointer into the data stream
+    // Writes a {{ object.js_name() }} pointer into the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
-    writePointer{{ object.nm() }}(value) {
+    writePointer{{ object.js_name() }}(value) {
         const pointerId = {{ object_ids.get(ci, object) }}; // {{ object_ids.name(ci, object) }}
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
