@@ -94,7 +94,8 @@ Validates that count and offset must be smaller than the size of the primitive.
   )
   .params(u =>
     u
-      .combine('stage', kConstantAndOverrideStages)
+      .combine('offsetStage', [...kConstantAndOverrideStages, 'runtime'] as const)
+      .combine('countStage', [...kConstantAndOverrideStages, 'runtime'] as const)
       .beginSubcases()
       .combineWithParams([
         // offset + count < 32
@@ -120,13 +121,58 @@ Validates that count and offset must be smaller than the size of the primitive.
       ] as const)
   )
   .fn(t => {
-    validateConstOrOverrideBuiltinEval(
-      t,
-      builtin,
-      /* expectedResult */ t.params.offset + t.params.count <= 32,
-      [u32(0), u32(1), u32(t.params.offset), u32(t.params.count)],
-      t.params.stage
-    );
+    let offsetArg = '';
+    let countArg = '';
+    switch (t.params.offsetStage) {
+      case 'constant':
+        offsetArg = `${Type.u32.create(t.params.offset).wgsl()}`;
+        break;
+      case 'override':
+        offsetArg = `o_offset`;
+        break;
+      case 'runtime':
+        offsetArg = 'v_offset';
+        break;
+    }
+    switch (t.params.countStage) {
+      case 'constant':
+        countArg = `${Type.u32.create(t.params.count).wgsl()}`;
+        break;
+      case 'override':
+        countArg = `o_count`;
+        break;
+      case 'runtime':
+        countArg = 'v_count';
+        break;
+    }
+    const wgsl = `
+override o_offset : u32;
+override o_count : u32;
+fn foo() {
+  var v_offset : u32;
+  var v_count : u32;
+  var e : u32;
+  var newbits : u32;
+  let tmp = insertBits(e, newbits, ${offsetArg}, ${countArg});
+}`;
+
+    const error = t.params.offset + t.params.count > 32;
+    const shader_error =
+      error && t.params.offsetStage === 'constant' && t.params.countStage === 'constant';
+    const pipeline_error =
+      error && t.params.offsetStage !== 'runtime' && t.params.countStage !== 'runtime';
+    t.expectCompileResult(!shader_error, wgsl);
+    if (!shader_error) {
+      const constants: Record<string, number> = {};
+      constants['o_offset'] = t.params.offset;
+      constants['o_count'] = t.params.count;
+      t.expectPipelineResult({
+        expectedResult: !pipeline_error,
+        code: wgsl,
+        constants,
+        reference: ['o_offset', 'o_count'],
+      });
+    }
   });
 
 interface Argument {

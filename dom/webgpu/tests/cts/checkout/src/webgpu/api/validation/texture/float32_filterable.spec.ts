@@ -51,7 +51,7 @@ float32-filterable is enabled.
     );
     t.expectValidationError(() => {
       t.device.createBindGroup({
-        entries: [{ binding: 0, resource: t.device.createTexture(textureDesc).createView() }],
+        entries: [{ binding: 0, resource: t.createTextureTracked(textureDesc).createView() }],
         layout,
       });
     }, shouldError);

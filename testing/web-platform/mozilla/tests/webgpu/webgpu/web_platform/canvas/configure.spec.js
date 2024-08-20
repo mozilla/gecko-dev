@@ -253,7 +253,7 @@ fn((t) => {
 
   if (usage & GPUConst.TextureUsage.COPY_SRC) {
     const size = [currentTexture.width, currentTexture.height, 1];
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       format: currentTexture.format,
       usage: GPUTextureUsage.COPY_DST,
       size

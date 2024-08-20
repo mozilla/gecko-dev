@@ -11,7 +11,7 @@ g.test('coexisting')
   .desc(`Tests allocation of many coexisting GPUBindGroup objects.`)
   .fn(t => {
     const kNumGroups = 1_000_000;
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: 64,
       usage: GPUBufferUsage.STORAGE,
     });
@@ -43,7 +43,7 @@ iterations.`
   )
   .fn(t => {
     const kNumGroups = 5_000_000;
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: 64,
       usage: GPUBufferUsage.STORAGE,
     });

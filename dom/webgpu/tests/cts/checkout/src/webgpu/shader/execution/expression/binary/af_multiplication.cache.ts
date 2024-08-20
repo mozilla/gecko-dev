@@ -1,13 +1,15 @@
 import { FP, FPVector } from '../../../../util/floating_point.js';
-import { sparseScalarF64Range, sparseVectorF64Range } from '../../../../util/math.js';
+import { sparseScalarF64Range } from '../../../../util/math.js';
 import { makeCaseCache } from '../case_cache.js';
 
+import { getMultiplicationAFInterval, kSparseVectorAFValues } from './af_data.js';
+
 const multiplicationVectorScalarInterval = (v: readonly number[], s: number): FPVector => {
-  return FP.abstract.toVector(v.map(e => FP.abstract.multiplicationInterval(e, s)));
+  return FP.abstract.toVector(v.map(e => getMultiplicationAFInterval(e, s)));
 };
 
 const multiplicationScalarVectorInterval = (s: number, v: readonly number[]): FPVector => {
-  return FP.abstract.toVector(v.map(e => FP.abstract.multiplicationInterval(s, e)));
+  return FP.abstract.toVector(v.map(e => getMultiplicationAFInterval(s, e)));
 };
 
 const scalar_cases = {
@@ -16,7 +18,7 @@ const scalar_cases = {
       sparseScalarF64Range(),
       sparseScalarF64Range(),
       'finite',
-      FP.abstract.multiplicationInterval
+      getMultiplicationAFInterval
     );
   },
 };
@@ -25,7 +27,7 @@ const vector_scalar_cases = ([2, 3, 4] as const)
   .map(dim => ({
     [`vec${dim}_scalar`]: () => {
       return FP.abstract.generateVectorScalarToVectorCases(
-        sparseVectorF64Range(dim),
+        kSparseVectorAFValues[dim],
         sparseScalarF64Range(),
         'finite',
         multiplicationVectorScalarInterval
@@ -39,7 +41,7 @@ const scalar_vector_cases = ([2, 3, 4] as const)
     [`scalar_vec${dim}`]: () => {
       return FP.abstract.generateScalarVectorToVectorCases(
         sparseScalarF64Range(),
-        sparseVectorF64Range(dim),
+        kSparseVectorAFValues[dim],
         'finite',
         multiplicationScalarVectorInterval
       );

@@ -178,6 +178,11 @@ const kTests = {
     src: `_ = asinh(1, 2);`,
     pass: false,
   },
+
+  must_use: {
+    src: `asinh(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

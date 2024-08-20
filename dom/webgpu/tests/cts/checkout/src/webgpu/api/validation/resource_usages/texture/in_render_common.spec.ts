@@ -117,7 +117,7 @@ g.test('subresources,color_attachments')
   .fn(t => {
     const { layer0, level0, layer1, level1, inSamePass } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -197,7 +197,7 @@ g.test('subresources,color_attachment_and_bind_group')
       inSamePass,
     } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'r32float',
       usage:
         GPUTextureUsage.RENDER_ATTACHMENT |
@@ -233,7 +233,7 @@ g.test('subresources,color_attachment_and_bind_group')
     } else {
       renderPass.end();
 
-      const texture2 = t.device.createTexture({
+      const texture2 = t.createTextureTracked({
         format: 'r32float',
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
         size: [kTextureSize, kTextureSize, 1],
@@ -309,7 +309,7 @@ g.test('subresources,depth_stencil_attachment_and_bind_group')
       inSamePass,
     } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'depth24plus-stencil8',
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -354,7 +354,7 @@ g.test('subresources,depth_stencil_attachment_and_bind_group')
     } else {
       renderPass.end();
 
-      const texture2 = t.device.createTexture({
+      const texture2 = t.createTextureTracked({
         format: 'rgba8unorm',
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
         size: [kTextureSize, kTextureSize, 1],
@@ -435,7 +435,7 @@ g.test('subresources,multiple_bind_groups')
   .fn(t => {
     const { bg0Levels, bg0Layers, bg1Levels, bg1Layers, bgUsage0, bgUsage1, inSamePass } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -458,7 +458,7 @@ g.test('subresources,multiple_bind_groups')
     const bindGroup0 = t.createBindGroupForTest(bg0, bgUsage0, 'unfilterable-float');
     const bindGroup1 = t.createBindGroupForTest(bg1, bgUsage1, 'unfilterable-float');
 
-    const colorTexture = t.device.createTexture({
+    const colorTexture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, 1],
@@ -543,7 +543,7 @@ g.test('subresources,depth_stencil_texture_in_bind_groups')
     const { view0Levels, view0Layers, view1Levels, view1Layers, aspect0, aspect1, inSamePass } =
       t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'depth24plus-stencil8',
       usage: GPUTextureUsage.TEXTURE_BINDING,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -571,7 +571,7 @@ g.test('subresources,depth_stencil_texture_in_bind_groups')
     const bindGroup0 = t.createBindGroupForTest(bindGroupView0, 'sampled-texture', sampleType0);
     const bindGroup1 = t.createBindGroupForTest(bindGroupView1, 'sampled-texture', sampleType1);
 
-    const colorTexture = t.device.createTexture({
+    const colorTexture = t.createTextureTracked({
       format: 'rgba8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, 1],

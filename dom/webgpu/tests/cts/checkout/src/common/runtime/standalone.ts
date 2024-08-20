@@ -1,4 +1,5 @@
 // Implements the standalone test runner (see also: /standalone/index.html).
+
 /* eslint no-console: "off" */
 
 import { dataCache } from '../framework/data_cache.js';
@@ -674,6 +675,8 @@ void (async () => {
     showInfo((err as Error).toString());
     return;
   }
+
+  document.title = `${document.title} ${compatibility ? '(compat)' : ''} - ${rootQuery.toString()}`;
 
   tree.dissolveSingleChildTrees();
 

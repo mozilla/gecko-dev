@@ -2,7 +2,8 @@ module.exports = {
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Trailing spaces are not allowed, even in multiline strings, due to WPT lint rules.',
+      description:
+        'Trailing spaces are not allowed, even in multiline strings, due to WPT lint rules.',
     },
     schema: [],
   },

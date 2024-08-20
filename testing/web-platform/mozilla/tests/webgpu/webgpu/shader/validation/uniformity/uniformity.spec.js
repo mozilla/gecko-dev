@@ -268,6 +268,12 @@ const kFragmentBuiltinValues = [
 g.test('fragment_builtin_values').
 desc(`Test uniformity of fragment built-in values`).
 params((u) => u.combineWithParams(kFragmentBuiltinValues).beginSubcases()).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.builtin),
+    'compatibility mode does not support sample_index or sample_mask'
+  );
+}).
 fn((t) => {
   let cond = ``;
   switch (t.params.type) {
@@ -770,6 +776,20 @@ const kPointerCases = {
     check: `contents`,
     uniform: `never`,
     needs_deref_sugar: true
+  },
+  contents_rhs_pointer_swizzle_uniform: {
+    code: `func_vector = vec4(uniform_value);
+    let test_val = dot((&func_vector).yw, vec2());`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_rhs_pointer_swizzle_non_uniform: {
+    code: `func_vector = vec4(nonuniform_value);
+    let test_val = dot((&func_vector).yw, vec2());`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
   }
 };
 
@@ -809,6 +829,7 @@ fn needs_uniform(val : u32) -> u32{
 fn main(@builtin(local_invocation_id) lid : vec3<u32>,
         @builtin(global_invocation_id) gid : vec3<u32>) {
   var func_scalar : u32;
+  var func_vector : vec4u;
   var func_array : array<u32, 16>;
   var func_struct : Outer;
 

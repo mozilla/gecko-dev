@@ -211,7 +211,7 @@ function runTest(t: AdjacentWritesTest) {
 
   const bytesPerScalar = 2; // f16 is 2 bytes wide.
   const bufByteSize = kNumValues * bytesPerScalar;
-  const hostSrcBuf = t.device.createBuffer({
+  const hostSrcBuf = t.createBufferTracked({
     size: bufByteSize,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
     mappedAtCreation: true,
@@ -223,11 +223,11 @@ function runTest(t: AdjacentWritesTest) {
     hostSrcBuf.unmap();
   }
 
-  const srcBuf = t.device.createBuffer({
+  const srcBuf = t.createBufferTracked({
     size: bufByteSize,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
   });
-  const dstBuf = t.device.createBuffer({
+  const dstBuf = t.createBufferTracked({
     size: bufByteSize,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE,
   });

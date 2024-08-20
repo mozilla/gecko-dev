@@ -25,24 +25,20 @@ class DepthTest extends TextureTestMixin(GPUTest) {
   runDepthStateTest(testStates: TestStates[], expectedColor: Float32Array) {
     const renderTargetFormat = 'rgba8unorm';
 
-    const renderTarget = this.trackForCleanup(
-      this.device.createTexture({
-        format: renderTargetFormat,
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
-      })
-    );
+    const renderTarget = this.createTextureTracked({
+      format: renderTargetFormat,
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
 
     const depthStencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
-    const depthTexture = this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        format: depthStencilFormat,
-        sampleCount: 1,
-        mipLevelCount: 1,
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
-      })
-    );
+    const depthTexture = this.createTextureTracked({
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      format: depthStencilFormat,
+      sampleCount: 1,
+      mipLevelCount: 1,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
+    });
 
     const depthStencilAttachment: GPURenderPassDepthStencilAttachment = {
       view: depthTexture.createView(),
@@ -57,8 +53,8 @@ class DepthTest extends TextureTestMixin(GPUTest) {
       colorAttachments: [
         {
           view: renderTarget.createView(),
-          storeOp: 'store',
           loadOp: 'load',
+          storeOp: 'store',
         },
       ],
       depthStencilAttachment,
@@ -347,14 +343,14 @@ g.test('depth_compare_func')
     const { depthCompare, depthClearValue, _expected, format } = t.params;
 
     const colorAttachmentFormat = 'rgba8unorm';
-    const colorAttachment = t.device.createTexture({
+    const colorAttachment = t.createTextureTracked({
       format: colorAttachmentFormat,
       size: { width: 1, height: 1, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     const colorAttachmentView = colorAttachment.createView();
 
-    const depthTexture = t.device.createTexture({
+    const depthTexture = t.createTextureTracked({
       size: { width: 1, height: 1 },
       format,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -410,9 +406,9 @@ g.test('depth_compare_func')
       colorAttachments: [
         {
           view: colorAttachmentView,
-          storeOp: 'store',
           clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
           loadOp: 'clear',
+          storeOp: 'store',
         },
       ],
       depthStencilAttachment,
@@ -439,7 +435,7 @@ g.test('reverse_depth')
   .params(u => u.combine('reversed', [false, true]))
   .fn(t => {
     const colorAttachmentFormat = 'rgba8unorm';
-    const colorAttachment = t.device.createTexture({
+    const colorAttachment = t.createTextureTracked({
       format: colorAttachmentFormat,
       size: { width: 1, height: 1, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -447,7 +443,7 @@ g.test('reverse_depth')
     const colorAttachmentView = colorAttachment.createView();
 
     const depthBufferFormat = 'depth32float';
-    const depthTexture = t.device.createTexture({
+    const depthTexture = t.createTextureTracked({
       size: { width: 1, height: 1 },
       format: depthBufferFormat,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -512,9 +508,9 @@ g.test('reverse_depth')
       colorAttachments: [
         {
           view: colorAttachmentView,
-          storeOp: 'store',
           clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
           loadOp: 'clear',
+          storeOp: 'store',
         },
       ],
       depthStencilAttachment: {

@@ -73,14 +73,14 @@ combine('callWithZero', [true, false]);
 
 class F extends ValidationTest {
   getIndexBuffer() {
-    return this.device.createBuffer({
+    return this.createBufferTracked({
       size: 8 * Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.INDEX
     });
   }
 
   getIndirectBuffer(indirectParams) {
-    const buffer = this.device.createBuffer({
+    const buffer = this.createBufferTracked({
       mappedAtCreation: true,
       size: indirectParams.length * Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST
@@ -347,11 +347,10 @@ class F extends ValidationTest {
       explicitPipelineLayout
     );
 
-    const buffer = device.createBuffer({
+    const buffer = this.createBufferTracked({
       size: 16,
       usage: GPUBufferUsage.UNIFORM
     });
-    this.trackForCleanup(buffer);
 
     let emptyBindGroupLayouts;
     let nonEmptyBindGroupLayouts;
@@ -909,7 +908,7 @@ fn((t) => {
 
   const encoder = t.device.createCommandEncoder();
 
-  const attachmentTexture = t.device.createTexture({
+  const attachmentTexture = t.createTextureTracked({
     format: 'rgba8unorm',
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -1082,12 +1081,11 @@ fn((t) => {
       );
     },
     doCommandFn: ({ t, encoder, pipeline, emptyBindGroups, nonEmptyBindGroups }) => {
-      const attachmentTexture = t.device.createTexture({
+      const attachmentTexture = t.createTextureTracked({
         format: 'rgba8unorm',
         size: { width: 16, height: 16, depthOrArrayLayers: 1 },
         usage: GPUTextureUsage.RENDER_ATTACHMENT
       });
-      t.trackForCleanup(attachmentTexture);
 
       const renderPass = encoder.beginRenderPass({
         colorAttachments: [

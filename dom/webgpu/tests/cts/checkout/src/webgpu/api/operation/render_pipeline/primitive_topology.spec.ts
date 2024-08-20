@@ -281,7 +281,7 @@ function generateVertexBuffer(vertexLocations: Point2D[]): Float32Array {
 const kDefaultDrawCount = 6;
 class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
   makeAttachmentTexture(): GPUTexture {
-    return this.device.createTexture({
+    return this.createTextureTracked({
       format: kColorFormat,
       size: { width: kRTSize, height: kRTSize, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,

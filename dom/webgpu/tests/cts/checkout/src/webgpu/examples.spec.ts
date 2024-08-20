@@ -240,7 +240,7 @@ Tests that a BC format passes validation iff the feature is enabled.`
     const { textureCompressionBC } = t.params;
     const shouldError = !textureCompressionBC;
     t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-      t.device.createTexture({
+      t.createTextureTracked({
         format: 'bc1-rgba-unorm',
         size: [4, 4, 1],
         usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -266,7 +266,7 @@ Tests that an ETC2 format passes validation iff the feature is enabled.`
 
     const shouldError = !textureCompressionETC2;
     t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-      t.device.createTexture({
+      t.createTextureTracked({
         format: 'etc2-rgb8unorm',
         size: [4, 4, 1],
         usage: GPUTextureUsage.TEXTURE_BINDING,

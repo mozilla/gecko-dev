@@ -308,9 +308,9 @@ export class TextureZeroInitTest extends GPUTest {
             colorAttachments: [
               {
                 view: texture.createView(viewDescriptor),
-                storeOp: 'store',
                 clearValue: initializedStateAsColor(state, this.p.format),
                 loadOp: 'clear',
+                storeOp: 'store',
               },
             ],
           })
@@ -353,17 +353,18 @@ export class TextureZeroInitTest extends GPUTest {
     const firstSubresource = subresourceRange.each().next().value;
     assert(typeof firstSubresource !== 'undefined');
 
+    const textureSize = [this.textureWidth, this.textureHeight, this.textureDepth];
     const [largestWidth, largestHeight, largestDepth] = virtualMipSize(
       this.p.dimension,
-      [this.textureWidth, this.textureHeight, this.textureDepth],
+      textureSize,
       firstSubresource.level
     );
 
     const rep = kTexelRepresentationInfo[format];
     const texelData = new Uint8Array(rep.pack(rep.encode(this.stateToTexelComponents[state])));
     const { buffer, bytesPerRow, rowsPerImage } = createTextureUploadBuffer(
+      this,
       texelData,
-      this.device,
       format,
       this.p.dimension,
       [largestWidth, largestHeight, largestDepth]
@@ -372,11 +373,7 @@ export class TextureZeroInitTest extends GPUTest {
     const commandEncoder = this.device.createCommandEncoder();
 
     for (const { level, layer } of subresourceRange.each()) {
-      const [width, height, depth] = virtualMipSize(
-        this.p.dimension,
-        [this.textureWidth, this.textureHeight, this.textureDepth],
-        level
-      );
+      const [width, height, depth] = virtualMipSize(this.p.dimension, textureSize, level);
 
       commandEncoder.copyBufferToTexture(
         {
@@ -419,8 +416,8 @@ export class TextureZeroInitTest extends GPUTest {
             colorAttachments: [
               {
                 view: texture.createView(desc),
-                storeOp: 'discard',
                 loadOp: 'load',
+                storeOp: 'discard',
               },
             ],
           })

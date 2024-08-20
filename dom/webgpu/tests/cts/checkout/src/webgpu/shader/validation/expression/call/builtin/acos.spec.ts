@@ -183,6 +183,11 @@ const kTests = {
     src: `_ = acos(-1.1f);`,
     pass: false,
   },
+
+  must_use: {
+    src: `acos(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

@@ -77,11 +77,13 @@ g.test('texture,device_mismatch')
     const { method, mismatched } = t.params;
     const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-    const texture = sourceDevice.createTexture({
-      size: { width: 4, height: 4, depthOrArrayLayers: 1 },
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
-    });
+    const texture = t.trackForCleanup(
+      sourceDevice.createTexture({
+        size: { width: 4, height: 4, depthOrArrayLayers: 1 },
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+      })
+    );
 
     t.testRun(
       { texture },
@@ -125,7 +127,7 @@ The texture must have the appropriate COPY_SRC/COPY_DST usage.
     const { usage0, usage1, method, size, dimension } = t.params;
 
     const usage = usage0 | usage1;
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size,
       dimension,
       format: 'rgba8unorm',
@@ -164,7 +166,7 @@ Note: we don't test 1D, 2D array and 3D textures because multisample is not supp
   .fn(t => {
     const { sampleCount, method } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },
       sampleCount,
       format: 'rgba8unorm',
@@ -211,7 +213,7 @@ Test that the mipLevel of the copy must be in range of the texture.
   .fn(t => {
     const { mipLevelCount, mipLevel, method, size, dimension } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size,
       dimension,
       mipLevelCount,
@@ -287,7 +289,7 @@ Test the copy must be a full subresource if the texture's format is depth/stenci
       size.height = 1;
     }
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size,
       dimension,
       format,
@@ -303,11 +305,7 @@ Test the copy must be a full subresource if the texture's format is depth/stenci
       success = false;
     }
 
-    const levelSize = virtualMipSize(
-      dimension,
-      [size.width, size.height, size.depthOrArrayLayers],
-      mipLevel
-    );
+    const levelSize = virtualMipSize(dimension, size, mipLevel);
     const copySize = [
       levelSize[0] + copyWidthModifier * info.blockWidth,
       levelSize[1] + copyHeightModifier * info.blockHeight,
@@ -514,7 +512,7 @@ Test that the max corner of the copy rectangle (origin+copySize) must be inside 
       }
     }
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: textureSize,
       dimension,
       mipLevelCount: dimension === '1d' ? 1 : 3,

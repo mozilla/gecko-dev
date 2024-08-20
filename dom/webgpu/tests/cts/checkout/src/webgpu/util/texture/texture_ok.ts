@@ -175,11 +175,10 @@ function createTextureCopyForMapRead(
     aspect: source.aspect,
   });
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     size: byteLength,
   });
-  t.trackForCleanup(buffer);
 
   const cmd = t.device.createCommandEncoder();
   cmd.copyTextureToBuffer(source, { buffer, bytesPerRow, rowsPerImage }, copySize);

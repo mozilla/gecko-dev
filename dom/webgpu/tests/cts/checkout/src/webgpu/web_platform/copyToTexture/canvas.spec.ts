@@ -401,7 +401,7 @@ class F extends CopyToTextureUtils {
       dstPremultiplied: boolean;
     }
   ) {
-    const dst = this.device.createTexture({
+    const dst = this.createTextureTracked({
       size: {
         width: p.width,
         height: p.height,
@@ -787,7 +787,7 @@ g.test('color_space_conversion')
       colorSpace: srcColorSpace,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: { width, height },
       format: dstColorFormat,
       usage:

@@ -99,7 +99,7 @@ g.test('render_pass_resolve')
     const kResolveTargetSize = kSize << t.params.resolveTargetBaseMipLevel;
 
     for (let i = 0; i < t.params.numColorAttachments; i++) {
-      const colorAttachment = t.device.createTexture({
+      const colorAttachment = t.createTextureTracked({
         format: kFormat,
         size: { width: kSize, height: kSize, depthOrArrayLayers: 1 },
         sampleCount: 4,
@@ -109,7 +109,7 @@ g.test('render_pass_resolve')
       });
 
       if (t.params.slotsToResolve.includes(i)) {
-        const colorAttachment = t.device.createTexture({
+        const colorAttachment = t.createTextureTracked({
           format: kFormat,
           size: { width: kSize, height: kSize, depthOrArrayLayers: 1 },
           sampleCount: 4,
@@ -118,7 +118,7 @@ g.test('render_pass_resolve')
             GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
-        const resolveTarget = t.device.createTexture({
+        const resolveTarget = t.createTextureTracked({
           format: kFormat,
           size: {
             width: kResolveTargetSize,

@@ -40,7 +40,7 @@ g.test('timestampWrites,query_set_type')
     const isValid = queryType === 'timestamp';
 
     const timestampWrites = {
-      querySet: t.device.createQuerySet({ type: queryType, count: 2 }),
+      querySet: t.createQuerySetTracked({ type: queryType, count: 2 }),
       beginningOfPassWriteIndex: 0,
       endOfPassWriteIndex: 1,
     };
@@ -97,7 +97,7 @@ g.test('timestampWrites,query_index')
     const querySetCount = 2;
 
     const timestampWrites = {
-      querySet: t.device.createQuerySet({ type: 'timestamp', count: querySetCount }),
+      querySet: t.createQuerySetTracked({ type: 'timestamp', count: querySetCount }),
       beginningOfPassWriteIndex,
       endOfPassWriteIndex,
     };
@@ -129,10 +129,12 @@ g.test('timestamp_query_set,device_mismatch')
     const { mismatched } = t.params;
     const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-    const timestampQuerySet = sourceDevice.createQuerySet({
-      type: 'timestamp',
-      count: 1,
-    });
+    const timestampQuerySet = t.trackForCleanup(
+      sourceDevice.createQuerySet({
+        type: 'timestamp',
+        count: 1,
+      })
+    );
 
     const timestampWrites = {
       querySet: timestampQuerySet,

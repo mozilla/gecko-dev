@@ -47,6 +47,7 @@ g.test('scalar_vector')
           value => !(value.startsWith('vec3') || value.startsWith('vec4'))
         )
       )
+      .combine('compound_assignment', [false, true] as const)
       .beginSubcases()
       .combine('op', ['<<', '>>'])
   )
@@ -64,7 +65,15 @@ g.test('scalar_vector')
     const lhsElement = scalarTypeOf(lhs);
     const rhsElement = scalarTypeOf(rhs);
     const hasF16 = lhsElement === Type.f16 || rhsElement === Type.f16;
-    const code = `
+    const code = t.params.compound_assignment
+      ? `
+${hasF16 ? 'enable f16;' : ''}
+fn f() {
+  var foo = ${lhs.create(0).wgsl()};
+  foo ${t.params.op}= ${rhs.create(0).wgsl()};
+}
+`
+      : `
 ${hasF16 ? 'enable f16;' : ''}
 const lhs = ${lhs.create(0).wgsl()};
 const rhs = ${rhs.create(0).wgsl()};
@@ -195,6 +204,15 @@ const kLeftShiftCases = [
   { lhs: `1`, rhs: `-1`, pass: false },
   { lhs: `1i`, rhs: `-1`, pass: false },
   { lhs: `1u`, rhs: `-1`, pass: false },
+
+  // Signed overflow (sign change) for abstract
+  { lhs: `1`, rhs: `63`, pass: false },
+  { lhs: `2`, rhs: `62`, pass: false },
+  {
+    lhs: `${0b0100000000000000000000000000000000000000000000000000000000000000}`,
+    rhs: `1u`,
+    pass: false,
+  },
 ];
 
 g.test('shift_left_concrete')
@@ -257,4 +275,62 @@ fn main() {
 }
     `;
     t.expectCompileResult(t.params.case.pass, code);
+  });
+
+g.test('shift_left_abstract')
+  .desc('Validates that the result when the LHS is abstract is also abstract')
+  .fn(t => {
+    const wgsl = `
+    const lhs = 0xfffff0000; // too large for 32 bits
+    const res = lhs << 4u;
+    const_assert res == 0xfffff00000;`;
+    t.expectCompileResult(true, wgsl);
+  });
+
+g.test('shift_right_abstract')
+  .desc('Validates that the result when the LHS is abstract is also abstract')
+  .fn(t => {
+    const wgsl = `
+    const lhs = 0xfffff0000; // too large for 32 bits
+    const res = lhs >> 1u;
+    const_assert res == 0x7ffff8000;`;
+    t.expectCompileResult(true, wgsl);
+  });
+
+g.test('partial_eval_errors')
+  .desc('Tests partial evaluation errors for left and right shift')
+  .params(u =>
+    u
+      .combine('op', ['<<', '>>'] as const)
+      .combine('type', ['i32', 'u32'] as const)
+      .beginSubcases()
+      .combine('stage', ['shader', 'pipeline'] as const)
+      .combine('value', [31, 32, 33, 64] as const)
+  )
+  .fn(t => {
+    const u32 = Type.u32;
+    let rhs = 'o';
+    if (t.params.stage === 'shader') {
+      rhs = `${u32.create(t.params.value).wgsl()}`;
+    }
+    const wgsl = `
+override o = 0u;
+fn foo() -> ${t.params.type} {
+  var v : ${t.params.type} = 0;
+  return v ${t.params.op} ${rhs};
+}`;
+
+    const expect = t.params.value < 32;
+    if (t.params.stage === 'shader') {
+      t.expectCompileResult(expect, wgsl);
+    } else {
+      const constants: Record<string, number> = {};
+      constants['o'] = t.params.value;
+      t.expectPipelineResult({
+        expectedResult: expect,
+        code: wgsl,
+        constants,
+        reference: ['o', 'foo()'],
+      });
+    }
   });

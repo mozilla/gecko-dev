@@ -3,6 +3,15 @@
   "compilerOptions": {
     "lib": ["dom", "es2020"],
     "module": "esnext",
+    // Use types only from these packages (not everything in package.json, which is the default).
+    // Note that TypeScript's `/// <reference />` is the same as adding an entry here - it's global
+    // to the whole project.
+    "types": [
+      "@types/dom-mediacapture-transform",
+      "@webgpu/types",
+      // Required for standalone.ts
+      "@types/jquery",
+    ],
     /* Output options */
     "noEmit": true,
     /* Strict type-checking options */

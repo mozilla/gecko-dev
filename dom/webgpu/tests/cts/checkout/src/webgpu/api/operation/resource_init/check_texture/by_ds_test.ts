@@ -120,7 +120,7 @@ const checkContents: (type: 'depth' | 'stencil', ...args: Parameters<CheckConten
       viewDescriptor.baseMipLevel
     );
 
-    const renderTexture = t.device.createTexture({
+    const renderTexture = t.createTextureTracked({
       size: [width, height, 1],
       format: 'r8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
@@ -130,7 +130,7 @@ const checkContents: (type: 'depth' | 'stencil', ...args: Parameters<CheckConten
     let resolveTexture = undefined;
     let resolveTarget = undefined;
     if (params.sampleCount > 1) {
-      resolveTexture = t.device.createTexture({
+      resolveTexture = t.createTextureTracked({
         size: [width, height, 1],
         format: 'r8unorm',
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
@@ -153,10 +153,10 @@ const checkContents: (type: 'depth' | 'stencil', ...args: Parameters<CheckConten
       ],
       depthStencilAttachment: {
         view: texture.createView(viewDescriptor),
-        depthStoreOp: formatInfo.depth ? 'store' : undefined,
         depthLoadOp: formatInfo.depth ? 'load' : undefined,
-        stencilStoreOp: formatInfo.stencil ? 'store' : undefined,
+        depthStoreOp: formatInfo.depth ? 'store' : undefined,
         stencilLoadOp: formatInfo.stencil ? 'load' : undefined,
+        stencilStoreOp: formatInfo.stencil ? 'store' : undefined,
       },
     });
 

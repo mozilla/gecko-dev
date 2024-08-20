@@ -12,7 +12,7 @@ export const g = makeTestGroup(GPUTest);
 type TestFunction = (t: GPUTest, label: string) => Promise<void> | void;
 const kTestFunctions: { [name: string]: TestFunction } = {
   createBuffer: (t: GPUTest, label: string) => {
-    const buffer = t.device.createBuffer({ size: 16, usage: GPUBufferUsage.COPY_DST, label });
+    const buffer = t.createBufferTracked({ size: 16, usage: GPUBufferUsage.COPY_DST, label });
     t.expect(buffer.label === label);
     buffer.destroy();
     t.expect(buffer.label === label);
@@ -22,7 +22,7 @@ const kTestFunctions: { [name: string]: TestFunction } = {
     const gpu = getGPU(t.rec);
     const adapter = await gpu.requestAdapter();
     t.expect(!!adapter);
-    const device = await adapter!.requestDevice({ label });
+    const device = await t.requestDeviceTracked(adapter!, { label });
     t.expect(!!device);
     t.expect(device.label === label);
     device.destroy();
@@ -30,7 +30,7 @@ const kTestFunctions: { [name: string]: TestFunction } = {
   },
 
   createTexture: (t: GPUTest, label: string) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
@@ -106,6 +106,14 @@ const kTestFunctions: { [name: string]: TestFunction } = {
         module,
         entryPoint: 'foo',
       },
+      // Specify a color attachment so we have at least one render target. Otherwise, details here
+      // are not relevant to this test.
+      fragment: {
+        targets: [{ format: 'rgba8unorm' }],
+        module: t.device.createShaderModule({
+          code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`,
+        }),
+      },
     });
     t.expect(renderPipeline.label === label);
   },
@@ -143,6 +151,14 @@ const kTestFunctions: { [name: string]: TestFunction } = {
         module,
         entryPoint: 'foo',
       },
+      // Specify a color attachment so we have at least one render target. Otherwise, details here
+      // are not relevant to this test.
+      fragment: {
+        targets: [{ format: 'rgba8unorm' }],
+        module: t.device.createShaderModule({
+          code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`,
+        }),
+      },
     });
     t.expect(renderPipeline.label === label);
   },
@@ -161,7 +177,7 @@ const kTestFunctions: { [name: string]: TestFunction } = {
   },
 
   createQuerySet: (t: GPUTest, label: string) => {
-    const querySet = t.device.createQuerySet({
+    const querySet = t.createQuerySetTracked({
       label,
       type: 'occlusion',
       count: 1,
@@ -172,7 +188,7 @@ const kTestFunctions: { [name: string]: TestFunction } = {
   },
 
   beginRenderPass: (t: GPUTest, label: string) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
@@ -214,7 +230,7 @@ const kTestFunctions: { [name: string]: TestFunction } = {
   },
 
   createView: (t: GPUTest, label: string) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rgba8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,

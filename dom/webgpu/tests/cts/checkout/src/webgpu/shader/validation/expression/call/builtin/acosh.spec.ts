@@ -180,6 +180,11 @@ const kTests = {
     src: `_ = acosh(.9f);`,
     pass: false,
   },
+
+  must_use: {
+    src: `acosh(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

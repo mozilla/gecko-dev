@@ -39,12 +39,11 @@ g.test('float32')
     const { format, data, opts, _ok } = t.params;
 
     const size = [1, 1];
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
     });
-    t.trackForCleanup(texture);
     t.device.queue.writeTexture({ texture }, new Float32Array([data, data, data, data]), {}, size);
 
     const expColor = { R: 0.6, G: 0.6, B: 0.6, A: 0.6 };
@@ -76,12 +75,11 @@ g.test('norm')
     const { mode, format, _maxValue, data, _ok } = t.params;
 
     const size = [2, 1];
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
     });
-    t.trackForCleanup(texture);
     t.device.queue.writeTexture({ texture }, new Int8Array(data), {}, size);
 
     let expTexelView;
@@ -123,12 +121,11 @@ g.test('snorm_min')
     const data = [-_maxValue, -_maxValue - 1];
 
     const size = [2, 1];
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
     });
-    t.trackForCleanup(texture);
     t.device.queue.writeTexture({ texture }, new Int8Array(data), {}, size);
 
     let expTexelView;

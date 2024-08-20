@@ -39,7 +39,7 @@ g.test('dispatchWorkgroups,at_over')
         const counts = [1, 1, 1];
         counts[axis] = testValue;
 
-        const buffer = device.createBuffer({
+        const buffer = t.createBufferTracked({
           size: 16,
           usage: GPUBufferUsage.STORAGE,
         });

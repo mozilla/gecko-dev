@@ -396,12 +396,11 @@ class F extends GPUTest {
             entries: bindGroupEntries
           });
 
-          const placeholderColorTexture = this.device.createTexture({
+          const placeholderColorTexture = this.createTextureTracked({
             size: [storageTexture.width, storageTexture.height, 1],
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
             format: 'rgba8unorm'
           });
-          this.trackForCleanup(placeholderColorTexture);
 
           const renderPassEncoder = commandEncoder.beginRenderPass({
             colorAttachments: [
@@ -428,7 +427,7 @@ class F extends GPUTest {
           for (let layer = 0; layer < storageTexture.depthOrArrayLayers; ++layer) {
             vertexOutputs = vertexOutputs.concat(
               `
-            @location(${layer + 1}) @interpolate(flat)
+            @location(${layer + 1}) @interpolate(flat, either)
             vertex_out${layer}: ${this.GetOutputBufferWGSLType(format)},`
             );
           }
@@ -474,7 +473,7 @@ class F extends GPUTest {
         ${bindingResourceDeclaration}
         struct VertexOutput {
           @builtin(position) my_pos: vec4f,
-          @location(0) @interpolate(flat) tex_coord: vec2u,
+          @location(0) @interpolate(flat, either) tex_coord: vec2u,
           ${vertexOutputs}
         }
         @vertex
@@ -529,12 +528,11 @@ class F extends GPUTest {
             entries: bindGroupEntries
           });
 
-          const placeholderColorTexture = this.device.createTexture({
+          const placeholderColorTexture = this.createTextureTracked({
             size: [storageTexture.width, storageTexture.height, 1],
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
             format: 'rgba8unorm'
           });
-          this.trackForCleanup(placeholderColorTexture);
 
           const renderPassEncoder = commandEncoder.beginRenderPass({
             colorAttachments: [
@@ -590,21 +588,19 @@ fn((t) => {
 
   const kWidth = 8;
   const height = dimension === '1d' ? 1 : 8;
-  const storageTexture = t.device.createTexture({
+  const storageTexture = t.createTextureTracked({
     format,
     dimension,
     size: [kWidth, height, depthOrArrayLayers],
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
   });
-  t.trackForCleanup(storageTexture);
 
   const expectedData = t.InitTextureAndGetExpectedOutputBufferData(storageTexture, format);
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: 4 * 4 * kWidth * height * depthOrArrayLayers,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   });
-  t.trackForCleanup(outputBuffer);
 
   t.DoTransform(storageTexture, shaderStage, format, outputBuffer);
 

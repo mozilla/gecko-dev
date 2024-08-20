@@ -30,7 +30,7 @@ const kAdapterTypes = keysOf(kAdapterTypeOptions);
  * queue. Does not submit the commands in order to make sure that all resources are
  * kept alive until the device is destroyed.
  */
-async function createDeviceAndComputeCommands(adapter: GPUAdapter) {
+async function createDeviceAndComputeCommands(t: Fixture, adapter: GPUAdapter) {
   // Constants are computed such that per run, this function should allocate roughly 2G
   // worth of data. This should be sufficient as we run these creation functions many
   // times. If the data backing the created objects is not recycled we should OOM.
@@ -42,7 +42,7 @@ async function createDeviceAndComputeCommands(adapter: GPUAdapter) {
   const kBufferSize = kNumBufferElements * 4;
   const kBufferData = new Uint32Array([...iterRange(kNumBufferElements, x => x)]);
 
-  const device: GPUDevice = await adapter.requestDevice();
+  const device: GPUDevice = await t.requestDeviceTracked(adapter);
   const commands = [];
 
   for (let pipelineIndex = 0; pipelineIndex < kNumPipelines; ++pipelineIndex) {
@@ -66,10 +66,12 @@ async function createDeviceAndComputeCommands(adapter: GPUAdapter) {
       },
     });
     for (let bindgroupIndex = 0; bindgroupIndex < kNumBindgroups; ++bindgroupIndex) {
-      const buffer = device.createBuffer({
-        size: kBufferSize,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-      });
+      const buffer = t.trackForCleanup(
+        device.createBuffer({
+          size: kBufferSize,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+        })
+      );
       device.queue.writeBuffer(buffer, 0, kBufferData, 0, kBufferData.length);
       const bindgroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
@@ -97,7 +99,7 @@ async function createDeviceAndComputeCommands(adapter: GPUAdapter) {
  * queue. Does not submit the commands in order to make sure that all resources are
  * kept alive until the device is destroyed.
  */
-async function createDeviceAndRenderCommands(adapter: GPUAdapter) {
+async function createDeviceAndRenderCommands(t: Fixture, adapter: GPUAdapter) {
   // Constants are computed such that per run, this function should allocate roughly 2G
   // worth of data. This should be sufficient as we run these creation functions many
   // times. If the data backing the created objects is not recycled we should OOM.
@@ -106,7 +108,7 @@ async function createDeviceAndRenderCommands(adapter: GPUAdapter) {
   const kSize = 128;
   const kBufferData = new Uint32Array([...iterRange(kSize * kSize, x => x)]);
 
-  const device: GPUDevice = await adapter.requestDevice();
+  const device: GPUDevice = await t.requestDeviceTracked(adapter);
   const commands = [];
 
   for (let pipelineIndex = 0; pipelineIndex < kNumPipelines; ++pipelineIndex) {
@@ -154,20 +156,24 @@ async function createDeviceAndRenderCommands(adapter: GPUAdapter) {
       },
     });
     for (let bindgroupIndex = 0; bindgroupIndex < kNumBindgroups; ++bindgroupIndex) {
-      const buffer = device.createBuffer({
-        size: kSize * kSize * 4,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
+      const buffer = t.trackForCleanup(
+        device.createBuffer({
+          size: kSize * kSize * 4,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+      );
       device.queue.writeBuffer(buffer, 0, kBufferData, 0, kBufferData.length);
       const bindgroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
         entries: [{ binding: 0, resource: { buffer } }],
       });
-      const texture = device.createTexture({
-        size: [kSize, kSize],
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-        format: 'rgba8unorm',
-      });
+      const texture = t.trackForCleanup(
+        device.createTexture({
+          size: [kSize, kSize],
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+          format: 'rgba8unorm',
+        })
+      );
 
       const encoder = device.createCommandEncoder();
       const pass = encoder.beginRenderPass({
@@ -193,7 +199,7 @@ async function createDeviceAndRenderCommands(adapter: GPUAdapter) {
  * Creates a device and a large number of buffers which are immediately written to. The
  * buffers are expected to be kept alive until they or the device are destroyed.
  */
-async function createDeviceAndBuffers(adapter: GPUAdapter) {
+async function createDeviceAndBuffers(t: Fixture, adapter: GPUAdapter) {
   // Currently we just allocate 2G of memory using 512MB blocks. We may be able to
   // increase this to hit OOM instead, but on integrated GPUs on Metal, this can cause
   // kernel panics at the moment, and it can greatly increase the time needed.
@@ -201,13 +207,15 @@ async function createDeviceAndBuffers(adapter: GPUAdapter) {
   const kMemoryBlockSize = 512 * 1024 * 1024;
   const kMemoryBlockData = new Uint8Array(kMemoryBlockSize);
 
-  const device: GPUDevice = await adapter.requestDevice();
+  const device: GPUDevice = await t.requestDeviceTracked(adapter);
   const buffers = [];
   for (let memory = 0; memory < kTotalMemorySize; memory += kMemoryBlockSize) {
-    const buffer = device.createBuffer({
-      size: kMemoryBlockSize,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
+    const buffer = t.trackForCleanup(
+      device.createBuffer({
+        size: kMemoryBlockSize,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      })
+    );
 
     // Write out to the buffer to make sure that it has backing memory.
     device.queue.writeBuffer(buffer, 0, kMemoryBlockData, 0, kMemoryBlockData.length);
@@ -229,7 +237,7 @@ g.test('coexisting')
 
     const devices = [];
     for (let i = 0; i < kNumDevices; ++i) {
-      const device: GPUDevice = await adapter.requestDevice();
+      const device = await t.requestDeviceTracked(adapter);
       devices.push(device);
     }
   });
@@ -258,7 +266,7 @@ objects are recycled over a very large number of iterations.`
     const deviceList = [];
     const objectLists = [];
     for (let i = 0; i < kNumDevices; ++i) {
-      const { device, objects } = await kFunctions[i % kFunctions.length](adapter);
+      const { device, objects } = await kFunctions[i % kFunctions.length](t, adapter);
       t.expect(objects.length > 0, 'unable to allocate any objects');
       deviceList.push(device);
       objectLists.push(objects);
@@ -282,6 +290,8 @@ implicitly keep the device in scope.`
     const kNumDevices = 10_000;
     for (let i = 1; i <= kNumDevices; ++i) {
       await (async () => {
+        // No trackForCleanup because it would prevent the GPUDevice from being GCed.
+        // eslint-disable-next-line no-restricted-syntax
         t.expect((await adapter.requestDevice()) !== null, 'unexpected null device');
       })();
       if (i % 10 === 0) {

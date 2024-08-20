@@ -1773,6 +1773,18 @@ export function isCompressedTextureFormat(format) {
   return format in kCompressedTextureFormatInfo;
 }
 
+export function isDepthTextureFormat(format) {
+  return !!kTextureFormatInfo[format].depth;
+}
+
+export function isStencilTextureFormat(format) {
+  return !!kTextureFormatInfo[format].stencil;
+}
+
+export function isDepthOrStencilTextureFormat(format) {
+  return isDepthTextureFormat(format) || isStencilTextureFormat(format);
+}
+
 export const kCompatModeUnsupportedStorageTextureFormats = [
 'rg32float',
 'rg32sint',
@@ -1788,11 +1800,19 @@ isCompatibilityMode)
       return false;
     }
   }
-  return !!kTextureFormatInfo[format].color?.storage;
+  const info = kTextureFormatInfo[format];
+  return !!(info.color?.storage || info.depth?.storage || info.stencil?.storage);
 }
 
 export function isRegularTextureFormat(format) {
   return format in kRegularTextureFormatInfo;
+}
+
+/**
+ * Returns true of format is both compressed and a float format, for example 'bc6h-rgb-ufloat'.
+ */
+export function isCompressedFloatTextureFormat(format) {
+  return isCompressedTextureFormat(format) && format.includes('float');
 }
 
 export const kFeaturesForFormats = getFeaturesForFormats(kAllTextureFormats);

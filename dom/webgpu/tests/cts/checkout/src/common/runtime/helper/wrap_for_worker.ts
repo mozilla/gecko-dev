@@ -1,4 +1,4 @@
-import { Fixture } from '../../framework/fixture';
+import { Fixture } from '../../framework/fixture.js';
 import { LogMessageWithStack } from '../../internal/logging/log_message.js';
 import { comparePaths, comparePublicParamsPaths, Ordering } from '../../internal/query/compare.js';
 import { parseQuery } from '../../internal/query/parseQuery.js';
@@ -13,7 +13,7 @@ import { setupWorkerEnvironment, WorkerTestRunRequest } from './utils_worker.js'
  * `g` is the `g` exported from a `.spec.ts` file: a TestGroupBuilder<F> interface,
  * which underneath is actually a TestGroup<F> object.
  *
- * This is used in the generated `.worker.js` files that are generated to use as service workers.
+ * This is used in the generated `.as_worker.js` files that are generated to use as service workers.
  */
 export function wrapTestGroupForWorker(g: TestGroup<Fixture>) {
   self.onmessage = async (ev: MessageEvent) => {

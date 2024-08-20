@@ -303,6 +303,12 @@ const kTests = {
     pass: false,
     is_f16: false,
   },
+
+  must_use: {
+    src: `atan2(1, 2);`,
+    pass: false,
+    is_f16: false,
+  },
 };
 
 g.test('parameters')
@@ -316,6 +322,7 @@ g.test('parameters')
   .fn(t => {
     const src = kTests[t.params.test].src;
     const code = `
+${kTests[t.params.test].is_f16 ? 'enable f16;' : ''}
 alias f32_alias = f32;
 
 @group(0) @binding(0) var s: sampler;

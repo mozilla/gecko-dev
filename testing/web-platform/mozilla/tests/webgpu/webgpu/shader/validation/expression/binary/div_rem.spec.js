@@ -11,9 +11,11 @@ import {
   Type,
 
   VectorType,
+  concreteTypeOf,
+  isAbstractType,
+  isConvertible,
   kAllScalarsAndVectors,
   kConcreteNumericScalarsAndVectors,
-  kConvertableToFloatScalar,
   scalarTypeOf } from
 '../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../shader_validation_test.js';
@@ -21,6 +23,8 @@ import {
   kConstantAndOverrideStages,
   validateConstOrOverrideBinaryOpEval } from
 '../call/builtin/const_override_validation.js';
+
+import { resultType } from './result_type.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
@@ -51,8 +55,10 @@ combine(
     (value) => !(value.startsWith('vec3') || value.startsWith('vec4'))
   )
 ).
+combine('compound_assignment', [false, true]).
 beginSubcases().
-combine('op', keysOf(kOperators))
+combine('op', keysOf(kOperators)).
+combine('rhs_value', [0, 1])
 ).
 beforeAllSubcases((t) => {
   if (
@@ -68,36 +74,36 @@ fn((t) => {
   const rhs = kScalarAndVectorTypes[t.params.rhs];
   const lhsElement = scalarTypeOf(lhs);
   const rhsElement = scalarTypeOf(rhs);
+  const hasBool = lhsElement === Type.bool || rhsElement === Type.bool;
   const hasF16 = lhsElement === Type.f16 || rhsElement === Type.f16;
-  const code = `
+  const resType = resultType({ lhs, rhs, canConvertScalarToVector: true });
+  const resTypeIsTypeable = resType && !isAbstractType(scalarTypeOf(resType));
+  const code = t.params.compound_assignment ?
+  `
+${hasF16 ? 'enable f16;' : ''}
+fn f() {
+  var v = ${lhs.create(0).wgsl()};
+  v ${op.op}= ${rhs.create(t.params.rhs_value).wgsl()};
+}
+` :
+  `
 ${hasF16 ? 'enable f16;' : ''}
 const lhs = ${lhs.create(1).wgsl()};
-const rhs = ${rhs.create(1).wgsl()};
-const foo = lhs ${op.op} rhs;
+const rhs = ${rhs.create(t.params.rhs_value).wgsl()};
+const foo ${resTypeIsTypeable ? `: ${resType}` : ''} = lhs ${op.op} rhs;
 `;
 
-  let elementsCompatible = lhsElement === rhsElement;
-  const elementTypes = [lhsElement, rhsElement];
-
-  // Booleans are not allowed for arithmetic expressions.
-  if (elementTypes.includes(Type.bool)) {
-    elementsCompatible = false;
-
-    // AbstractInt is allowed with everything but booleans which are already checked above.
-  } else if (elementTypes.includes(Type.abstractInt)) {
-    elementsCompatible = true;
-
-    // AbstractFloat is allowed with AbstractInt (checked above) or float types
-  } else if (elementTypes.includes(Type.abstractFloat)) {
-    elementsCompatible = elementTypes.every((e) => kConvertableToFloatScalar.includes(e));
+  const scalarLHS = scalarTypeOf(concreteTypeOf(lhs));
+  const integral = scalarLHS === Type.u32 || scalarLHS === Type.i32;
+  let valid = !hasBool && resType !== null;
+  if (valid && t.params.compound_assignment) {
+    valid =
+    valid &&
+    isConvertible(resType, concreteTypeOf(lhs)) && (
+    !integral || t.params.rhs_value === 1);
+  } else {
+    valid = valid && t.params.rhs_value === 1;
   }
-
-  // Determine if the full type is compatible. The only invalid case is mixed vector sizes.
-  let valid = elementsCompatible;
-  if (lhs instanceof VectorType && rhs instanceof VectorType) {
-    valid = valid && lhs.width === rhs.width;
-  }
-
   t.expectCompileResult(valid, code);
 });
 
@@ -136,10 +142,14 @@ filter((p) => {
   return p.nonOneIndex === 0;
 }).
 expandWithParams((p) => {
+  // When lhs is a non-const expression, division by zero is only an error for integral types.
+  const partialDivByZeroIsError = [Type.i32, Type.u32].includes(
+    scalarTypeOf(kScalarAndVectorTypes[p.rhs])
+  );
   const cases = [
   { leftValue: 42, rightValue: 0, error: true, leftRuntime: false },
-  { leftValue: 42, rightValue: 0, error: true, leftRuntime: true },
-  { leftValue: 0, rightValue: 0, error: true, leftRuntime: true },
+  { leftValue: 42, rightValue: 0, error: partialDivByZeroIsError, leftRuntime: true },
+  { leftValue: 0, rightValue: 0, error: partialDivByZeroIsError, leftRuntime: true },
   { leftValue: 0, rightValue: 42, error: false, leftRuntime: false }];
 
   if (p.lhs === 'i32') {

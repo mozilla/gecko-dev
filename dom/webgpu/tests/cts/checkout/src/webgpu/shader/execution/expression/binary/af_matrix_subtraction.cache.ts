@@ -1,7 +1,28 @@
-import { FP } from '../../../../util/floating_point.js';
-import { sparseMatrixF64Range } from '../../../../util/math.js';
+import { ROArrayArray } from '../../../../../common/util/types.js';
+import { assert } from '../../../../../common/util/util.js';
+import { FP, FPInterval, FPMatrix } from '../../../../util/floating_point.js';
 import { selectNCases } from '../case.js';
 import { makeCaseCache } from '../case_cache.js';
+
+import { getSubtractionAFInterval, kSparseMatrixAFValues } from './af_data.js';
+
+const subtractionMatrixMatrixInterval = (
+  lhs: ROArrayArray<number>,
+  rhs: ROArrayArray<number>
+): FPMatrix => {
+  assert(lhs.length === rhs.length, 'lhs and rhs have different number of columns');
+  assert(rhs[0].length === rhs[0].length, 'lhs and rhs have different number of rows');
+  const cols = lhs.length;
+  const rows = rhs[0].length;
+
+  const result: FPInterval[][] = [...Array(cols)].map(_ => [...Array(rows)]);
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      result[i][j] = getSubtractionAFInterval(lhs[i][j], rhs[i][j]);
+    }
+  }
+  return FP.abstract.toMatrix(result);
+};
 
 // Cases: matCxR
 const mat_cases = ([2, 3, 4] as const)
@@ -12,10 +33,10 @@ const mat_cases = ([2, 3, 4] as const)
           'binary/af_matrix_subtraction',
           50,
           FP.abstract.generateMatrixPairToMatrixCases(
-            sparseMatrixF64Range(cols, rows),
-            sparseMatrixF64Range(cols, rows),
+            kSparseMatrixAFValues[cols][rows],
+            kSparseMatrixAFValues[cols][rows],
             'finite',
-            FP.abstract.subtractionMatrixMatrixInterval
+            subtractionMatrixMatrixInterval
           )
         );
       },

@@ -9,6 +9,7 @@ async function basicTest() {
   const adapter = await getGPU(null).requestAdapter();
   assert(adapter !== null, 'Failed to get adapter.');
 
+  // eslint-disable-next-line no-restricted-syntax
   const device = await adapter.requestDevice();
   assert(device !== null, 'Failed to get device.');
 
@@ -33,11 +34,13 @@ async function basicTest() {
 
   const kNumElements = 64;
   const kBufferSize = kNumElements * 4;
+  // eslint-disable-next-line no-restricted-syntax
   const buffer = device.createBuffer({
     size: kBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
   });
 
+  // eslint-disable-next-line no-restricted-syntax
   const resultBuffer = device.createBuffer({
     size: kBufferSize,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,

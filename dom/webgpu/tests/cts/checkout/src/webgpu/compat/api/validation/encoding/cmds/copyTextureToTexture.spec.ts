@@ -24,19 +24,17 @@ g.test('compressed')
 
     const { blockWidth, blockHeight } = kTextureFormatInfo[format];
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: [blockWidth, blockHeight, 1],
       format,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    t.trackForCleanup(srcTexture);
 
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: [blockWidth, blockHeight, 1],
       format,
       usage: GPUTextureUsage.COPY_DST,
     });
-    t.trackForCleanup(dstTexture);
 
     const encoder = t.device.createCommandEncoder();
     encoder.copyTextureToTexture({ texture: srcTexture }, { texture: dstTexture }, [
@@ -44,7 +42,7 @@ g.test('compressed')
       blockHeight,
       1,
     ]);
-    t.expectGPUError('validation', () => {
+    t.expectGPUErrorInCompatibilityMode('validation', () => {
       encoder.finish();
     });
   });
@@ -66,21 +64,19 @@ g.test('multisample')
 
     t.skipIfTextureFormatNotSupported(format as GPUTextureFormat);
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: [blockWidth, blockHeight, 1],
       format,
       sampleCount: 4,
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    t.trackForCleanup(srcTexture);
 
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: [blockWidth, blockHeight, 1],
       format,
       sampleCount: 4,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    t.trackForCleanup(dstTexture);
 
     const encoder = t.device.createCommandEncoder();
     encoder.copyTextureToTexture({ texture: srcTexture }, { texture: dstTexture }, [
@@ -88,7 +84,7 @@ g.test('multisample')
       blockHeight,
       1,
     ]);
-    t.expectGPUError('validation', () => {
+    t.expectGPUErrorInCompatibilityMode('validation', () => {
       encoder.finish();
     });
   });

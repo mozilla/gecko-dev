@@ -15,7 +15,7 @@ const BufferUsage = {
   INDIRECT: 0x0100,
   QUERY_RESOLVE: 0x0200,
 } as const;
-checkType<Omit<GPUBufferUsage, '__brand'>>(BufferUsage);
+checkType<typeof GPUBufferUsage>(BufferUsage);
 
 const TextureUsage = {
   COPY_SRC: 0x01,
@@ -26,7 +26,7 @@ const TextureUsage = {
   STORAGE: 0x08,
   RENDER_ATTACHMENT: 0x10,
 } as const;
-checkType<Omit<GPUTextureUsage, '__brand'>>(TextureUsage);
+checkType<typeof GPUTextureUsage>(TextureUsage);
 
 const ColorWrite = {
   RED: 0x1,
@@ -35,20 +35,20 @@ const ColorWrite = {
   ALPHA: 0x8,
   ALL: 0xf,
 } as const;
-checkType<Omit<GPUColorWrite, '__brand'>>(ColorWrite);
+checkType<typeof GPUColorWrite>(ColorWrite);
 
 const ShaderStage = {
   VERTEX: 0x1,
   FRAGMENT: 0x2,
   COMPUTE: 0x4,
 } as const;
-checkType<Omit<GPUShaderStage, '__brand'>>(ShaderStage);
+checkType<typeof GPUShaderStage>(ShaderStage);
 
 const MapMode = {
   READ: 0x1,
   WRITE: 0x2,
 } as const;
-checkType<Omit<GPUMapMode, '__brand'>>(MapMode);
+checkType<typeof GPUMapMode>(MapMode);
 
 export const GPUConst = {
   BufferUsage,
@@ -61,7 +61,7 @@ export const GPUConst = {
 export const kMaxUnsignedLongValue = 4294967295;
 export const kMaxUnsignedLongLongValue = Number.MAX_SAFE_INTEGER;
 
-export const kInterpolationSampling = ['center', 'centroid', 'sample'] as const;
+export const kInterpolationSampling = ['center', 'centroid', 'sample', 'first', 'either'] as const;
 export const kInterpolationType = ['perspective', 'linear', 'flat'] as const;
 export type InterpolationType = (typeof kInterpolationType)[number];
 export type InterpolationSampling = (typeof kInterpolationSampling)[number];

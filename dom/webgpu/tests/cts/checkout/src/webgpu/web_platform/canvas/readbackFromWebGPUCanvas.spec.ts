@@ -109,7 +109,7 @@ function initWebGPUCanvasContent<T extends CanvasType>(
   });
 
   const canvasTexture = ctx.getCurrentTexture();
-  const tempTexture = t.device.createTexture({
+  const tempTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -388,6 +388,7 @@ g.test('onscreenCanvas,uploadToWebGL')
       return;
     }
 
+    // eslint-disable-next-line no-restricted-syntax
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     switch (upload) {

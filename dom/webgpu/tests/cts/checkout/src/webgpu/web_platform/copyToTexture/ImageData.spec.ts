@@ -71,7 +71,7 @@ g.test('from_ImageData')
       subrectSize: { width, height },
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: { width, height },
       format: dstColorFormat,
       usage:
@@ -176,7 +176,7 @@ g.test('copy_subrect_from_ImageData')
       subrectSize: srcSize,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: dstSize,
       format: kColorFormat,
       usage:

@@ -1,12 +1,10 @@
-#!/usr/bin/env node
-
 import fs from 'fs/promises';
 import { WebSocketServer } from 'ws';
 
 const wss = new WebSocketServer({ port: 59497 });
 
-const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
-const filename = `wslog-${timestamp}.txt`
+const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+const filename = `wslog-${timestamp}.txt`;
 const f = await fs.open(filename, 'w');
 console.log(`Writing to ${filename}`);
 console.log('Ctrl-C to stop');

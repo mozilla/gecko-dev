@@ -81,16 +81,17 @@ g.test('sampled_texture_types')
         '1',
         '1u',
       ] as const)
+      .combine('comma', ['', ','] as const)
   )
   .fn(t => {
-    const { textureType, sampledType } = t.params;
-    const wgsl = `@group(0) @binding(0) var tex: ${textureType}<${sampledType}>;`;
+    const { textureType, sampledType, comma } = t.params;
+    const wgsl = `@group(0) @binding(0) var tex: ${textureType}<${sampledType}${comma}>;`;
     t.expectCompileResult(kValidTextureSampledTypes.includes(sampledType), wgsl);
   });
 
 g.test('external_sampled_texture_types')
   .desc(
-    `Test that texture_extenal compiles and cannot specify address space
+    `Test that texture_external compiles and cannot specify address space
 `
   )
   .fn(t => {
@@ -110,19 +111,18 @@ Besides, the shader compilation should always pass regardless of whether the for
 `
   )
   .params(u =>
-    u.combine('access', [...kAccessModes, 'storage'] as const).combine('format', kAllTextureFormats)
+    u
+      .combine('access', [...kAccessModes, 'storage'] as const)
+      .combine('format', kAllTextureFormats)
+      .combine('comma', ['', ','] as const)
   )
   .fn(t => {
-    const { format, access } = t.params;
-    const info = kTextureFormatInfo[format];
+    const { format, access, comma } = t.params;
     // bgra8unorm is considered a valid storage format at shader compilation stage
     const isFormatValid =
-      info.color?.storage ||
-      info.depth?.storage ||
-      info.stencil?.storage ||
-      format === 'bgra8unorm';
+      isTextureFormatUsableAsStorageFormat(format, t.isCompatibility) || format === 'bgra8unorm';
     const isAccessValid = kAccessModes.includes(access);
-    const wgsl = `@group(0) @binding(0) var tex: texture_storage_2d<${format}, ${access}>;`;
+    const wgsl = `@group(0) @binding(0) var tex: texture_storage_2d<${format}, ${access}${comma}>;`;
     t.expectCompileResult(isFormatValid && isAccessValid, wgsl);
   });
 

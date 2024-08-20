@@ -76,7 +76,7 @@ export interface Colors {
 export let Colors: Colors;
 
 try {
-  /* eslint-disable-next-line node/no-unpublished-require */
+  /* eslint-disable-next-line node/no-unpublished-require, n/no-restricted-require */
   Colors = require('ansi-colors') as Colors;
 } catch {
   const passthrough = ((s: string) => s) as Colors;

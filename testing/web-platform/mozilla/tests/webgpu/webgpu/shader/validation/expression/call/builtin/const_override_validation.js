@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { assert, unreachable } from '../../../../../../common/util/util.js';import { kValue } from '../../../../../util/constants.js';import {
+
   Type,
 
   elementTypeOf,
@@ -13,7 +14,10 @@ import {
   scalarF32Range,
   scalarF64Range,
   linearRange,
-  linearRangeBigInt } from
+  linearRangeBigInt,
+  quantizeToF32,
+  quantizeToF16 } from
+
 '../../../../../util/math.js';
 
 
@@ -311,4 +315,125 @@ export function unique(...arrays) {
     }
   }
   return [...set];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Provides an easy way to validate steps in an equation that will trigger a validation error with
+ * constant or override values due to overflow/underflow. Typical call pattern is:
+ *
+ * const vCheck = new ConstantOrOverrideValueChecker(t, Type.f32);
+ * const c = vCheck.checkedResult(a + b);
+ * const d = vCheck.checkedResult(c * c);
+ * const expectedResult = vCheck.allChecksPassed();
+ */
+export class ConstantOrOverrideValueChecker {
+  #allChecksPassed = true;
+  #floatLimits;
+  #quantizeFn;
+
+  constructor(
+  t,
+  type)
+  {this.t = t;
+    switch (type) {
+      case Type.f32:
+        this.#quantizeFn = quantizeToF32;
+        this.#floatLimits = kValue.f32;
+        break;
+      case Type.f16:
+        this.#quantizeFn = quantizeToF16;
+        this.#floatLimits = kValue.f16;
+        break;
+      default:
+        this.#quantizeFn = (v) => v;
+        break;
+    }
+  }
+
+  quantize(value) {
+    return this.#quantizeFn(value);
+  }
+
+  // Some overflow floating point values may fall into an abiguously rounded scenario, where they
+  // can either round up to Infinity or down to the maximum representable value. In these cases the
+  // test should be skipped, because it's valid for implementations to differ.
+  // See: https://www.w3.org/TR/WGSL/#floating-point-overflow
+  isAmbiguousOverflow(value) {
+    // Non-finite values are not ambiguous, and can still be validated.
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+
+    // Values within the min/max range for the given type are not ambiguous.
+    if (
+    !this.#floatLimits ||
+    value <= this.#floatLimits.positive.max && value >= this.#floatLimits.negative.min)
+    {
+      return false;
+    }
+
+    // If a value falls outside the min/max range, check to see if it is under
+    // 2^(EMAX(T)+1). If so, the rounding behavior is implementation specific,
+    // and should not be validated.
+    return Math.abs(value) < Math.pow(2, this.#floatLimits.emax + 1);
+  }
+
+  // Returns true if the value may be quantized to zero with the given type.
+  isNearZero(value) {
+    if (!Number.isFinite(value)) {
+      return false;
+    }
+    if (!this.#floatLimits) {
+      return value === 0;
+    }
+
+    return value < this.#floatLimits.positive.min && value > this.#floatLimits.negative.max;
+  }
+
+  checkedResult(value) {
+    if (this.isAmbiguousOverflow(value)) {
+      this.t.skip(`Checked value, ${value}, was within the ambiguous overflow rounding range.`);
+    }
+
+    const quantizedValue = this.quantize(value);
+    if (!Number.isFinite(quantizedValue)) {
+      this.#allChecksPassed = false;
+    }
+    return quantizedValue;
+  }
+
+  checkedResultBigInt(value) {
+    if (kValue.i64.isOOB(value)) {
+      this.#allChecksPassed = false;
+    }
+    return value;
+  }
+
+  skipIfCheckFails(value) {
+    if (this.isAmbiguousOverflow(value)) {
+      this.t.skip(`Checked value, ${value}, was within the ambiguous overflow rounding range.`);
+    }
+
+    const quantizedValue = this.quantize(value);
+    if (!Number.isFinite(quantizedValue)) {
+      this.t.skip(`Checked value, ${value}, was not finite after quantization.`);
+    }
+    return value;
+  }
+
+  allChecksPassed() {
+    return this.#allChecksPassed;
+  }
 }

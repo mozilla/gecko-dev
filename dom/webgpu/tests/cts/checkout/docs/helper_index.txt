@@ -46,7 +46,6 @@ Whenever a new generally-useful helper is added, it should be indexed here.
 - {@link webgpu/capability_info}: Structured information about texture formats, binding types, etc.
 - {@link webgpu/constants}:
     Constant values (needed anytime a WebGPU constant is needed outside of a test function).
-- {@link webgpu/util/buffer}: Helpers for GPUBuffers.
 - {@link webgpu/util/texture}: Helpers for GPUTextures.
 - {@link webgpu/util/unions}: Helpers for various union typedefs in the WebGPU spec.
 - {@link webgpu/util/math}: Helpers for common math operations.

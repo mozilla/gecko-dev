@@ -50,13 +50,15 @@ g.test('while_mapped')
     if (deviceDestroy) {
       const adapter = await getGPU(t.rec).requestAdapter();
       assert(adapter !== null);
-      device = await adapter.requestDevice();
+      device = await t.requestDeviceTracked(adapter);
     }
-    const buffer = device.createBuffer({
-      size: 4,
-      usage,
-      mappedAtCreation,
-    });
+    const buffer = t.trackForCleanup(
+      device.createBuffer({
+        size: 4,
+        usage,
+        mappedAtCreation,
+      })
+    );
 
     if (mapMode !== undefined) {
       if (mappedAtCreation) {

@@ -95,7 +95,7 @@ g.test('zero_size_and_usage')
     const success = zeroArgument === 'none';
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -126,7 +126,7 @@ g.test('dimension_type_and_format_compatibility')
     };
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !textureDimensionAndFormatCompatible(dimension, format));
   });
 
@@ -185,7 +185,7 @@ g.test('mipLevelCount,format')
     const success = mipLevelCount <= maxMipLevelCount(descriptor);
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -243,11 +243,11 @@ g.test('mipLevelCount,bound_check')
 
     const mipLevelCount = maxMipLevelCount(descriptor);
     descriptor.mipLevelCount = mipLevelCount;
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
 
     descriptor.mipLevelCount = mipLevelCount + 1;
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     });
   });
 
@@ -262,7 +262,7 @@ g.test('mipLevelCount,bound_check,bigger_than_integer_bit_width')
     };
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     });
   });
 
@@ -302,7 +302,7 @@ g.test('sampleCount,various_sampleCount_with_all_formats')
     const success = sampleCount === 1 || (sampleCount === 4 && info.multisample);
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -390,7 +390,7 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
         (usage & GPUConst.TextureUsage.STORAGE_BINDING) === 0);
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -409,7 +409,7 @@ g.test('sample_count,1d_2d_array_3d')
     const { dimension, size, shouldError } = t.params;
 
     t.expectValidationError(() => {
-      t.device.createTexture({
+      t.createTextureTracked({
         size,
         dimension,
         sampleCount: 4,
@@ -449,7 +449,7 @@ g.test('texture_size,default_value_and_smallest_size,uncompressed_format')
       usage: GPUTextureUsage.TEXTURE_BINDING,
     };
 
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   });
 
 g.test('texture_size,default_value_and_smallest_size,compressed_format')
@@ -491,7 +491,7 @@ g.test('texture_size,default_value_and_smallest_size,compressed_format')
     };
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !_success);
   });
 
@@ -531,7 +531,7 @@ g.test('texture_size,1d_texture')
       width <= t.device.limits.maxTextureDimension1D && height === 1 && depthOrArrayLayers === 1;
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -586,7 +586,7 @@ g.test('texture_size,2d_texture,uncompressed_format')
       size[2] <= t.device.limits.maxTextureArrayLayers;
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -775,7 +775,7 @@ g.test('texture_size,2d_texture,compressed_format')
       size[2] <= t.device.limits.maxTextureArrayLayers;
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -829,7 +829,7 @@ g.test('texture_size,3d_texture,uncompressed_format')
       size[2] <= maxTextureDimension3D;
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -1023,7 +1023,7 @@ g.test('texture_size,3d_texture,compressed_format')
       size[2] <= maxTextureDimension3D;
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -1075,7 +1075,7 @@ g.test('texture_usage')
     }
 
     t.expectValidationError(() => {
-      t.device.createTexture(descriptor);
+      t.createTextureTracked(descriptor);
     }, !success);
   });
 
@@ -1109,7 +1109,7 @@ g.test('viewFormats')
 
     // Test the viewFormat in the list.
     t.expectValidationError(() => {
-      t.device.createTexture({
+      t.createTextureTracked({
         format,
         size: [blockWidth, blockHeight],
         usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -1119,7 +1119,7 @@ g.test('viewFormats')
 
     // Test the viewFormat and the texture format in the list.
     t.expectValidationError(() => {
-      t.device.createTexture({
+      t.createTextureTracked({
         format,
         size: [blockWidth, blockHeight],
         usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -1129,7 +1129,7 @@ g.test('viewFormats')
 
     // Test the viewFormat multiple times in the list.
     t.expectValidationError(() => {
-      t.device.createTexture({
+      t.createTextureTracked({
         format,
         size: [blockWidth, blockHeight],
         usage: GPUTextureUsage.TEXTURE_BINDING,

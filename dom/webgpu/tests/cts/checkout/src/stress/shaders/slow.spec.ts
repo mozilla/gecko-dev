@@ -89,7 +89,7 @@ g.test('vertex')
         },
       ],
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [3, 3],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',
@@ -161,7 +161,7 @@ g.test('fragment')
         },
       ],
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [3, 3],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',

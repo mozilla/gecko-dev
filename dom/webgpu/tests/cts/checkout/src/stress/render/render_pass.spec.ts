@@ -40,7 +40,7 @@ a single render pass for every output fragment, with each pass executing a one-v
         entryPoint: 'fmain',
       },
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kSize, kSize],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',
@@ -92,12 +92,12 @@ pass does a single draw call, with one pass per output fragment.`
     }
     `,
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kWidth, kHeight],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',
     });
-    const depthTarget = t.device.createTexture({
+    const depthTarget = t.createTextureTracked({
       size: [kWidth, kHeight],
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       format: 'depth24plus-stencil8',
@@ -194,7 +194,7 @@ buffer.`
         entryPoint: 'fmain',
       },
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kSize, kSize],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',
@@ -212,7 +212,7 @@ buffer.`
     const pass = encoder.beginRenderPass(renderPassDescriptor);
     pass.setPipeline(pipeline);
     range(kSize * kSize, i => {
-      const buffer = t.device.createBuffer({
+      const buffer = t.createBufferTracked({
         size: 4,
         usage: GPUBufferUsage.UNIFORM,
         mappedAtCreation: true,
@@ -265,7 +265,7 @@ render pass with a single pipeline, and one draw call per fragment of the output
         entryPoint: 'fmain',
       },
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kSize, kSize],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',
@@ -326,7 +326,7 @@ call which draws multiple vertices for each fragment of a large output texture.`
         entryPoint: 'fmain',
       },
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kTextureSize, kTextureSize],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',

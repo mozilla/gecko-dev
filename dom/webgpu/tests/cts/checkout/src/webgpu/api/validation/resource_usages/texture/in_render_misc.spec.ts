@@ -15,7 +15,7 @@ class F extends ValidationTest {
   createBindGroupLayoutForTest(
     textureUsage: TextureBindingType,
     sampleType: 'unfilterable-float' | 'depth' | 'uint',
-    visibility: GPUShaderStage['FRAGMENT'] | GPUShaderStage['COMPUTE'] = GPUShaderStage['FRAGMENT']
+    visibility: number = GPUShaderStage.FRAGMENT
   ): GPUBindGroupLayout {
     const bindGroupLayoutEntry: GPUBindGroupLayoutEntry = {
       binding: 0,
@@ -60,7 +60,7 @@ class F extends ValidationTest {
     textureView: GPUTextureView,
     textureUsage: TextureBindingType,
     sampleType: 'unfilterable-float' | 'depth' | 'uint',
-    visibility: GPUShaderStage['FRAGMENT'] | GPUShaderStage['COMPUTE'] = GPUShaderStage['FRAGMENT']
+    visibility: number = GPUShaderStage.FRAGMENT
   ) {
     return this.device.createBindGroup({
       layout: this.createBindGroupLayoutForTest(textureUsage, sampleType, visibility),
@@ -91,7 +91,7 @@ g.test('subresources,set_bind_group_on_same_index_color_texture')
   .fn(t => {
     const { useDifferentTextureAsTexture2, baseLayer2, view1Binding, view2Binding } = t.params;
 
-    const texture0 = t.device.createTexture({
+    const texture0 = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -106,7 +106,7 @@ g.test('subresources,set_bind_group_on_same_index_color_texture')
     const bindGroup1 = t.createBindGroupForTest(textureView0, view2Binding, 'unfilterable-float');
 
     const texture2 = useDifferentTextureAsTexture2
-      ? t.device.createTexture({
+      ? t.createTextureTracked({
           format: 'r32float',
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
           size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -124,7 +124,7 @@ g.test('subresources,set_bind_group_on_same_index_color_texture')
       'unfilterable-float'
     );
 
-    const unusedColorTexture = t.device.createTexture({
+    const unusedColorTexture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, 1],
@@ -166,7 +166,7 @@ g.test('subresources,set_bind_group_on_same_index_depth_stencil_texture')
   )
   .fn(t => {
     const { bindAspect, depthStencilReadOnly } = t.params;
-    const depthStencilTexture = t.device.createTexture({
+    const depthStencilTexture = t.createTextureTracked({
       format: 'depth24plus-stencil8',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, 1],
@@ -184,7 +184,7 @@ g.test('subresources,set_bind_group_on_same_index_depth_stencil_texture')
       bindAspect === 'depth-only' ? 'depth' : 'uint'
     );
 
-    const colorTexture = t.device.createTexture({
+    const colorTexture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
       size: [kTextureSize, kTextureSize, 1],
@@ -241,7 +241,7 @@ g.test('subresources,set_unused_bind_group')
       t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
     }
 
-    const texture0 = t.device.createTexture({
+    const texture0 = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
       size: [kTextureSize, kTextureSize, kTextureLayers],
@@ -268,7 +268,7 @@ g.test('subresources,set_unused_bind_group')
     );
 
     const encoder = t.device.createCommandEncoder();
-    const colorTexture = t.device.createTexture({
+    const colorTexture = t.createTextureTracked({
       format: 'r32float',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [kTextureSize, kTextureSize, 1],
@@ -415,7 +415,7 @@ g.test('subresources,set_unused_bind_group')
         },
       });
 
-      const writableStorageTexture = t.device.createTexture({
+      const writableStorageTexture = t.createTextureTracked({
         format: 'r32float',
         usage: GPUTextureUsage.STORAGE_BINDING,
         size: [kTextureSize, kTextureSize, 1],
@@ -494,7 +494,7 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
   .fn(t => {
     const { usage0, usage1 } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       format: 'r32float',
       usage:
         GPUTextureUsage.COPY_SRC |
@@ -541,7 +541,7 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
         case 'readonly-storage-texture':
         case 'writeonly-storage-texture':
         case 'readwrite-storage-texture': {
-          const colorTexture = t.device.createTexture({
+          const colorTexture = t.createTextureTracked({
             format: 'r32float',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
             size: [kTextureSize, kTextureSize, 1],

@@ -1,5 +1,3 @@
-/// <reference types="@webgpu/types" />
-
 import { TestCaseRecorder } from '../framework/fixture.js';
 
 import { ErrorWithExtra, assert, objectEquals } from './util.js';
@@ -72,7 +70,8 @@ export function getGPU(recorder: TestCaseRecorder | null): GPU {
       if (recorder) {
         void promise.then(async adapter => {
           if (adapter) {
-            const info = await adapter.requestAdapterInfo();
+            // MAINTENANCE_TODO: Remove requestAdapterInfo when info is implemented.
+            const info = adapter.info || (await adapter.requestAdapterInfo());
             const infoString = `Adapter: ${info.vendor} / ${info.architecture} / ${info.device}`;
             recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo: info })));
           }

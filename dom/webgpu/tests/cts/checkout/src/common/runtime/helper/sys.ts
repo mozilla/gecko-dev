@@ -1,7 +1,8 @@
-/* eslint no-process-exit: "off" */
-/* eslint @typescript-eslint/no-namespace: "off" */
+/* eslint-disable no-process-exit, n/no-process-exit */
+/* eslint-disable @typescript-eslint/no-namespace */
 
 function node() {
+  /* eslint-disable-next-line n/no-restricted-require */
   const { existsSync } = require('fs');
 
   return {

@@ -73,14 +73,14 @@ const kCompatTestParams = kUnitCaseParamsBuilder
 
 class F extends ValidationTest {
   getIndexBuffer(): GPUBuffer {
-    return this.device.createBuffer({
+    return this.createBufferTracked({
       size: 8 * Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.INDEX,
     });
   }
 
   getIndirectBuffer(indirectParams: Array<number>): GPUBuffer {
-    const buffer = this.device.createBuffer({
+    const buffer = this.createBufferTracked({
       mappedAtCreation: true,
       size: indirectParams.length * Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST,
@@ -347,11 +347,10 @@ class F extends ValidationTest {
       explicitPipelineLayout
     );
 
-    const buffer = device.createBuffer({
+    const buffer = this.createBufferTracked({
       size: 16,
       usage: GPUBufferUsage.UNIFORM,
     });
-    this.trackForCleanup(buffer);
 
     let emptyBindGroupLayouts;
     let nonEmptyBindGroupLayouts;
@@ -909,7 +908,7 @@ g.test('empty_bind_group_layouts_requires_empty_bind_groups,render_pass')
 
     const encoder = t.device.createCommandEncoder();
 
-    const attachmentTexture = t.device.createTexture({
+    const attachmentTexture = t.createTextureTracked({
       format: 'rgba8unorm',
       size: { width: 16, height: 16, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -1082,12 +1081,11 @@ g.test('default_bind_group_layouts_never_match,render_pass')
         );
       },
       doCommandFn: ({ t, encoder, pipeline, emptyBindGroups, nonEmptyBindGroups }) => {
-        const attachmentTexture = t.device.createTexture({
+        const attachmentTexture = t.createTextureTracked({
           format: 'rgba8unorm',
           size: { width: 16, height: 16, depthOrArrayLayers: 1 },
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        t.trackForCleanup(attachmentTexture);
 
         const renderPass = encoder.beginRenderPass({
           colorAttachments: [

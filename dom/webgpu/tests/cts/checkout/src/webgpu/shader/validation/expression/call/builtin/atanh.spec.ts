@@ -190,6 +190,11 @@ const kTests = {
     src: `_ = atanh(-1.1f);`,
     pass: false,
   },
+
+  must_use: {
+    src: `atanh(0.1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

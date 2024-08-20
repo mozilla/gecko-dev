@@ -55,7 +55,7 @@ this feature is not enabled, which are skipped here.
       format: 'bgra8unorm' as const,
       usage: GPUConst.TextureUsage.STORAGE,
     };
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   });
 
 g.test('create_bind_group_layout')

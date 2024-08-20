@@ -17,12 +17,16 @@ function unregisterAllServiceWorkers() {
   });
 }
 
-// NOTE: This code runs on startup for any runtime with worker support. Here, we use that chance to
-// delete any leaked service workers, and register to clean up after ourselves at shutdown.
-unregisterAllServiceWorkers();
-window.addEventListener('beforeunload', () => {
+// Firefox has serviceWorkers disabled in private mode
+// and Servo does not support serviceWorkers yet.
+if ('serviceWorker' in navigator) {
+  // NOTE: This code runs on startup for any runtime with worker support. Here, we use that chance to
+  // delete any leaked service workers, and register to clean up after ourselves at shutdown.
   unregisterAllServiceWorkers();
-});
+  window.addEventListener('beforeunload', () => {
+    unregisterAllServiceWorkers();
+  });
+}
 
 abstract class TestBaseWorker {
   protected readonly ctsOptions: CTSOptions;
@@ -171,7 +175,7 @@ export class TestServiceWorker extends TestBaseWorker {
     const selfPathDir = selfPath.substring(0, selfPath.lastIndexOf('/'));
     // Construct the path to the worker file, then use URL to resolve the `../` components.
     const serviceWorkerURL = new URL(
-      `${selfPathDir}/../../../${suite}/webworker/${fileName}.worker.js`
+      `${selfPathDir}/../../../${suite}/webworker/${fileName}.as_worker.js`
     ).toString();
 
     // If a registration already exists for this path, it will be ignored.

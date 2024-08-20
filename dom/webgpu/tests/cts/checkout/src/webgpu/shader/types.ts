@@ -195,7 +195,7 @@ export const TexelFormats = [
   { format: 'rg32uint', _shaderType: 'u32' },
   { format: 'rg32sint', _shaderType: 'i32' },
   { format: 'rg32float', _shaderType: 'f32' },
-  { format: 'rgba32uint', _shaderType: 'i32' },
+  { format: 'rgba32uint', _shaderType: 'u32' },
   { format: 'rgba32sint', _shaderType: 'i32' },
   { format: 'rgba32float', _shaderType: 'f32' },
 ] as const;
@@ -210,7 +210,7 @@ export function* generateTypes({
   isAtomic = false,
 }: {
   addressSpace: AddressSpace;
-  /** Base scalar type (i32/u32/f32/bool). */
+  /** Base scalar type (i32/u32/f16/f32/bool). */
   baseType: ScalarType;
   /** Container type (scalar/vector/matrix/array) */
   containerType: ContainerType;
@@ -238,6 +238,11 @@ export function* generateTypes({
        * For a matrix type, this is the number of rows in the matrix.
        */
       innerLength?: number;
+      /**
+       * If defined, the list of array access suffixes to use to access all
+       * the elements of the array, each yielding an elementBaseType value.
+       */
+      accessSuffixes?: string[];
     };
   },
   void
@@ -308,6 +313,8 @@ export function* generateTypes({
     let arrayElementCount: number = kDefaultArrayLength;
     let supportsAtomics = scalarInfo.supportsAtomics;
     let layout: undefined | AlignmentAndSize = undefined;
+    let accessSuffixes: undefined | string[] = undefined;
+    let validLayoutForAddressSpace = true;
     if (scalarInfo.layout) {
       // Compute the layout of the array type.
       // Adjust the array element count or element type as needed.
@@ -318,8 +325,11 @@ export function* generateTypes({
         assert(!isAtomic, 'the uniform case is making vec4 of scalar, which cannot handle atomics');
         arrayElemType = `vec4<${baseType}>`;
         supportsAtomics = false;
+        accessSuffixes = ['.x', '.y', '.z', '.w'];
         const arrayElemLayout = vectorLayout('vec4', baseType) as AlignmentAndSize;
-        // assert(arrayElemLayout.alignment % 16 === 0); // Callers responsibility to avoid
+        // Arrays in uniform address space have to be 16 byte-aligned.
+        // An array of vec4<f16> is only 8byte aligned.
+        validLayoutForAddressSpace = arrayElemLayout.alignment % 16 === 0;
         arrayElementCount = align(arrayElementCount, 4) / 4;
         const arrayByteSize = arrayElementCount * arrayElemLayout.size;
         layout = { alignment: arrayElemLayout.alignment, size: arrayByteSize };
@@ -344,13 +354,16 @@ export function* generateTypes({
       arrayLength: arrayElementCount,
       layout,
       supportsAtomics,
+      accessSuffixes,
     };
 
-    // Sized
-    yield { type: `array<${arrayElemType},${arrayElementCount}>`, _kTypeInfo: arrayTypeInfo };
-    // Unsized
-    if (addressSpace === 'storage') {
-      yield { type: `array<${arrayElemType}>`, _kTypeInfo: arrayTypeInfo };
+    if (validLayoutForAddressSpace) {
+      // Sized
+      yield { type: `array<${arrayElemType},${arrayElementCount}>`, _kTypeInfo: arrayTypeInfo };
+      // Unsized
+      if (addressSpace === 'storage') {
+        yield { type: `array<${arrayElemType}>`, _kTypeInfo: arrayTypeInfo };
+      }
     }
   }
 

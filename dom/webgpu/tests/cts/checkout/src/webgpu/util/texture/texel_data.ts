@@ -78,12 +78,15 @@ function makePerTexelComponent<T>(components: TexelComponent[], value: T): PerTe
  * @returns {ComponentMapFn} The map function which clones the input component values, and applies
  *                           `fn` to each of component of `components`.
  */
-function applyEach(fn: (value: number) => number, components: TexelComponent[]): ComponentMapFn {
+function applyEach(
+  fn: (value: number, component: TexelComponent) => number,
+  components: TexelComponent[]
+): ComponentMapFn {
   return (values: PerTexelComponent<number>) => {
     values = Object.assign({}, values);
     for (const c of components) {
       assert(values[c] !== undefined);
-      values[c] = fn(values[c]!);
+      values[c] = fn(values[c]!, c);
     }
     return values;
   };
@@ -122,7 +125,13 @@ const decodeSRGB: ComponentMapFn = components => {
 export function makeClampToRange(format: EncodableTextureFormat): ComponentMapFn {
   const repr = kTexelRepresentationInfo[format];
   assert(repr.numericRange !== null, 'Format has unknown numericRange');
-  return applyEach(x => clamp(x, repr.numericRange!), repr.componentOrder);
+  const perComponentRanges = repr.numericRange as PerComponentNumericRange;
+  const range = repr.numericRange as NumericRange;
+
+  return applyEach((x, component) => {
+    const perComponentRange = perComponentRanges[component];
+    return clamp(x, perComponentRange ? perComponentRange : range);
+  }, repr.componentOrder);
 }
 
 // MAINTENANCE_TODO: Look into exposing this map to the test fixture so that it can be GCed at the
@@ -601,6 +610,23 @@ const kFloat11Format = { signed: 0, exponentBits: 5, mantissaBits: 6, bias: 15 }
 const kFloat10Format = { signed: 0, exponentBits: 5, mantissaBits: 5, bias: 15 } as const;
 
 export type PerComponentFiniteMax = Record<TexelComponent, number>;
+export type NumericRange = {
+  min: number;
+  max: number;
+  finiteMin: number;
+  finiteMax: number | PerComponentFiniteMax;
+};
+export type PerComponentNumericRange = Partial<
+  Record<
+    TexelComponent,
+    {
+      min: number;
+      max: number;
+      finiteMin: number;
+      finiteMax: number;
+    }
+  >
+>;
 export type TexelRepresentationInfo = {
   /** Order of components in the packed representation. */
   readonly componentOrder: TexelComponent[];
@@ -628,15 +654,11 @@ export type TexelRepresentationInfo = {
   /** Convert integer bit representations into ULPs-from-zero, e.g. unorm8 255 -> 255 ULPs */
   readonly bitsToULPFromZero: ComponentMapFn;
   /** The valid range of numeric "color" values, e.g. [0, Infinity] for ufloat. */
-  readonly numericRange: null | {
-    min: number;
-    max: number;
-    finiteMin: number;
-    finiteMax: number | PerComponentFiniteMax;
-  };
+  readonly numericRange: null | NumericRange | PerComponentNumericRange;
 
   // Add fields as needed
 };
+
 export const kTexelRepresentationInfo: {
   readonly [k in UncompressedTextureFormat]: TexelRepresentationInfo;
 } = {
@@ -726,7 +748,12 @@ export const kTexelRepresentationInfo: {
         return components;
       },
       bitsToULPFromZero: components => components,
-      numericRange: null,
+      numericRange: {
+        R: { min: 0, max: 0x3ff, finiteMin: 0, finiteMax: 0x3ff },
+        G: { min: 0, max: 0x3ff, finiteMin: 0, finiteMax: 0x3ff },
+        B: { min: 0, max: 0x3ff, finiteMin: 0, finiteMax: 0x3ff },
+        A: { min: 0, max: 0x3, finiteMin: 0, finiteMax: 0x3 },
+      },
     },
     rgb10a2unorm: {
       componentOrder: kRGBA,

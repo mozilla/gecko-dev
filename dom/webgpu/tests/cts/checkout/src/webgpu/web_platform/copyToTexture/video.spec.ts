@@ -72,7 +72,7 @@ It creates HTMLVideoElement with videos under Resource folder.
         height = source.videoHeight;
       }
 
-      const dstTexture = t.device.createTexture({
+      const dstTexture = t.createTextureTracked({
         format: kFormat,
         size: { width, height, depthOrArrayLayers: 1 },
         usage:

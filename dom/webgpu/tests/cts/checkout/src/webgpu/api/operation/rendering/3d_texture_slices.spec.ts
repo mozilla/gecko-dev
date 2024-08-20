@@ -97,7 +97,7 @@ g.test('one_color_attachment,mip_levels')
   .fn(t => {
     const { mipLevel, depthSlice } = t.params;
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: [kSize << mipLevel, kSize << mipLevel, 2 << mipLevel],
       dimension: '3d',
       format: kFormat,
@@ -107,7 +107,7 @@ g.test('one_color_attachment,mip_levels')
 
     const { bufferSize } = t.getBufferSizeAndOffset(kSize, kSize, 1);
 
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });
@@ -187,7 +187,7 @@ g.test('multiple_color_attachments,same_mip_level')
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     } as const;
 
-    const texture = t.device.createTexture(descriptor);
+    const texture = t.createTextureTracked(descriptor);
 
     const textures: GPUTexture[] = [];
     const colorAttachments: GPURenderPassColorAttachment[] = [];
@@ -195,7 +195,7 @@ g.test('multiple_color_attachments,same_mip_level')
       if (sameTexture) {
         textures.push(texture);
       } else {
-        const diffTexture = t.device.createTexture(descriptor);
+        const diffTexture = t.createTextureTracked(descriptor);
         textures.push(diffTexture);
       }
 
@@ -254,7 +254,7 @@ g.test('multiple_color_attachments,same_mip_level')
     }
 
     const { bufferSize, bufferOffset } = t.getBufferSizeAndOffset(kSize, kSize, attachmentCount);
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });
@@ -309,7 +309,7 @@ g.test('multiple_color_attachments,same_slice_with_diff_mip_levels')
       primitive: { topology: 'triangle-list' },
     });
 
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: [kBaseSize, kBaseSize, (depthSlice + 1) << attachmentCount],
       dimension: '3d',
       format: kFormat,
@@ -345,7 +345,7 @@ g.test('multiple_color_attachments,same_slice_with_diff_mip_levels')
       kBaseSize,
       attachmentCount
     );
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });

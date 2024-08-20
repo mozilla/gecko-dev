@@ -171,7 +171,7 @@ const kTypes = [
 'texture_storage_1d<r32sint, read_write>',
 'texture_storage_1d<r32float, read>',
 'texture_storage_2d<rgba16uint, write>',
-'texture_storage_2d_array<rg32float, write>',
+'texture_storage_2d_array<rgba32float, write>',
 'texture_storage_3d<bgra8unorm, write>',
 'texture_depth_2d',
 'texture_depth_2d_array',

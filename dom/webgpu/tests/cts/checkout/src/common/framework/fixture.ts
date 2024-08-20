@@ -14,6 +14,7 @@ export type TestParams = {
 
 type DestroyableObject =
   | { destroy(): void }
+  | { destroyAsync(): Promise<void> }
   | { close(): void }
   | { getExtension(extensionName: 'WEBGL_lose_context'): WEBGL_lose_context }
   | HTMLVideoElement;
@@ -125,6 +126,8 @@ export class Fixture<S extends SubcaseBatchState = SubcaseBatchState> {
         if (WEBGL_lose_context) WEBGL_lose_context.loseContext();
       } else if ('destroy' in o) {
         o.destroy();
+      } else if ('destroyAsync' in o) {
+        await o.destroyAsync();
       } else if ('close' in o) {
         o.close();
       } else {
@@ -138,11 +141,29 @@ export class Fixture<S extends SubcaseBatchState = SubcaseBatchState> {
   /**
    * Tracks an object to be cleaned up after the test finishes.
    *
-   * MAINTENANCE_TODO: Use this in more places. (Will be easier once .destroy() is allowed on
-   * invalid objects.)
+   * Usually when creating buffers/textures/query sets, you can use the helpers in GPUTest instead.
    */
-  trackForCleanup<T extends DestroyableObject>(o: T): T {
-    this.objectsToCleanUp.push(o);
+  trackForCleanup<T extends DestroyableObject | Promise<DestroyableObject>>(o: T): T {
+    if (o instanceof Promise) {
+      this.eventualAsyncExpectation(() =>
+        o.then(
+          o => this.trackForCleanup(o),
+          () => {}
+        )
+      );
+      return o;
+    }
+
+    if (o instanceof GPUDevice) {
+      this.objectsToCleanUp.push({
+        async destroyAsync() {
+          o.destroy();
+          await o.lost;
+        },
+      });
+    } else {
+      this.objectsToCleanUp.push(o);
+    }
     return o;
   }
 
@@ -159,6 +180,12 @@ export class Fixture<S extends SubcaseBatchState = SubcaseBatchState> {
       }
     }
     return o;
+  }
+
+  /** Call requestDevice() and track the device for cleanup. */
+  requestDeviceTracked(adapter: GPUAdapter, desc: GPUDeviceDescriptor | undefined = undefined) {
+    // eslint-disable-next-line no-restricted-syntax
+    return this.trackForCleanup(adapter.requestDevice(desc));
   }
 
   /** Log a debug message. */

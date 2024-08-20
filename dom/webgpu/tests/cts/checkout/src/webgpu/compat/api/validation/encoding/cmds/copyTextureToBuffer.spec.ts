@@ -22,24 +22,22 @@ g.test('compressed')
     const info = kTextureFormatInfo[format];
 
     const textureSize = [info.blockWidth, info.blockHeight, 1];
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: textureSize,
       format,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    t.trackForCleanup(texture);
 
     const bytesPerRow = align(info.color.bytes, 256);
 
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: bytesPerRow,
       usage: GPUBufferUsage.COPY_DST,
     });
-    t.trackForCleanup(buffer);
 
     const encoder = t.device.createCommandEncoder();
     encoder.copyTextureToBuffer({ texture }, { buffer, bytesPerRow }, textureSize);
-    t.expectGPUError('validation', () => {
+    t.expectGPUErrorInCompatibilityMode('validation', () => {
       encoder.finish();
     });
   });

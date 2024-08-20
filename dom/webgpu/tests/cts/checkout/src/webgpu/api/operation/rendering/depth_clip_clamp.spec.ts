@@ -92,7 +92,7 @@ have unexpected values then get drawn to the color buffer, which is later checke
 
       struct VFTest {
         @builtin(position) pos: vec4<f32>,
-        @location(0) @interpolate(flat) vertexIndex: u32,
+        @location(0) @interpolate(flat, either) vertexIndex: u32,
       };
 
       @vertex
@@ -129,7 +129,7 @@ have unexpected values then get drawn to the color buffer, which is later checke
 
       struct VFCheck {
         @builtin(position) pos: vec4<f32>,
-        @location(0) @interpolate(flat) vertexIndex: u32,
+        @location(0) @interpolate(flat, either) vertexIndex: u32,
       };
 
       @vertex
@@ -204,7 +204,7 @@ have unexpected values then get drawn to the color buffer, which is later checke
       fragment: { module, entryPoint: 'fcheck', targets: [{ format: 'r8unorm' }] },
     });
 
-    const dsTexture = t.device.createTexture({
+    const dsTexture = t.createTextureTracked({
       format,
       size: [kNumTestPoints],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
@@ -217,32 +217,32 @@ have unexpected values then get drawn to the color buffer, which is later checke
       size: [kNumTestPoints],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     };
-    const checkTexture = t.device.createTexture(checkTextureDesc);
+    const checkTexture = t.createTextureTracked(checkTextureDesc);
     const checkTextureView = checkTexture.createView();
     const checkTextureMSView = multisampled
-      ? t.device.createTexture({ ...checkTextureDesc, sampleCount: 4 }).createView()
+      ? t.createTextureTracked({ ...checkTextureDesc, sampleCount: 4 }).createView()
       : undefined;
 
     const dsActual =
       !multisampled && info.depth.bytes
-        ? t.device.createBuffer({
+        ? t.createBufferTracked({
             size: kNumTestPoints * info.depth.bytes,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
           })
         : undefined;
     const dsExpected =
       !multisampled && info.depth.bytes
-        ? t.device.createBuffer({
+        ? t.createBufferTracked({
             size: kNumTestPoints * info.depth.bytes,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
           })
         : undefined;
-    const checkBuffer = t.device.createBuffer({
+    const checkBuffer = t.createBufferTracked({
       size: kNumTestPoints,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });
 
-    const fragInputZFailedBuffer = t.device.createBuffer({
+    const fragInputZFailedBuffer = t.createBufferTracked({
       size: 4 * kNumTestPoints,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     });
@@ -395,7 +395,7 @@ to be empty.`
 
       struct VF {
         @builtin(position) pos: vec4<f32>,
-        @location(0) @interpolate(flat) vertexIndex: u32,
+        @location(0) @interpolate(flat, either) vertexIndex: u32,
       };
 
       @vertex
@@ -453,7 +453,7 @@ to be empty.`
       fragment: { module, entryPoint: 'ftest', targets: [{ format: 'r8unorm' }] },
     });
 
-    const dsTexture = t.device.createTexture({
+    const dsTexture = t.createTextureTracked({
       format,
       size: [kNumDepthValues],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
@@ -466,13 +466,13 @@ to be empty.`
       size: [kNumDepthValues],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     };
-    const testTexture = t.device.createTexture(testTextureDesc);
+    const testTexture = t.createTextureTracked(testTextureDesc);
     const testTextureView = testTexture.createView();
     const testTextureMSView = multisampled
-      ? t.device.createTexture({ ...testTextureDesc, sampleCount: 4 }).createView()
+      ? t.createTextureTracked({ ...testTextureDesc, sampleCount: 4 }).createView()
       : undefined;
 
-    const resultBuffer = t.device.createBuffer({
+    const resultBuffer = t.createBufferTracked({
       size: kNumDepthValues,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });

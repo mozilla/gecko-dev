@@ -7,6 +7,8 @@ Validation tests for the ${builtin}() builtin.
 * test textureLoad array_index parameter must be correct type
 * test textureLoad level parameter must be correct type
 * test textureLoad sample_index parameter must be correct type
+* test textureLoad returns the correct type
+* test textureLoad doesn't work with texture types it's not supposed to
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
@@ -18,10 +20,17 @@ import {
   isConvertible,
 
 
-  isUnsignedType } from
+  isUnsignedType,
+  stringToType } from
 '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
+import {
+  getNonStorageTextureTypeWGSL,
+  getSampleAndBaseTextureTypeForTextureType,
+  kNonStorageTextureTypeInfo,
+  kTestTextureTypes } from
+'./shader_builtin_utils.js';
 
 
 
@@ -36,27 +45,40 @@ const kCoords3DTypes = [Type.vec3i, Type.vec3u];
 
 const kValidTextureLoadParameterTypesForNonStorageTextures =
 {
-  texture_1d: { usesMultipleTypes: true, coordsArgTypes: kCoords1DTypes, hasLevelArg: true },
-  texture_2d: { usesMultipleTypes: true, coordsArgTypes: kCoords2DTypes, hasLevelArg: true },
+  texture_1d: {
+    coordsArgTypes: kCoords1DTypes,
+    hasLevelArg: true
+  },
+  texture_2d: {
+    coordsArgTypes: kCoords2DTypes,
+    hasLevelArg: true
+  },
   texture_2d_array: {
-    usesMultipleTypes: true,
     coordsArgTypes: kCoords2DTypes,
     hasArrayIndexArg: true,
     hasLevelArg: true
   },
-  texture_3d: { usesMultipleTypes: true, coordsArgTypes: kCoords3DTypes, hasLevelArg: true },
+  texture_3d: {
+    coordsArgTypes: kCoords3DTypes,
+    hasLevelArg: true
+  },
   texture_multisampled_2d: {
-    usesMultipleTypes: true,
     coordsArgTypes: kCoords2DTypes,
     hasSampleIndexArg: true
   },
-  texture_depth_2d: { coordsArgTypes: kCoords2DTypes, hasLevelArg: true },
+  texture_depth_2d: {
+    coordsArgTypes: kCoords2DTypes,
+    hasLevelArg: true
+  },
   texture_depth_2d_array: {
     coordsArgTypes: kCoords2DTypes,
     hasArrayIndexArg: true,
     hasLevelArg: true
   },
-  texture_depth_multisampled_2d: { coordsArgTypes: kCoords2DTypes, hasSampleIndexArg: true },
+  texture_depth_multisampled_2d: {
+    coordsArgTypes: kCoords2DTypes,
+    hasSampleIndexArg: true
+  },
   texture_external: { coordsArgTypes: kCoords2DTypes }
 };
 
@@ -74,15 +96,49 @@ const kNonStorageTextureTypes = keysOf(kValidTextureLoadParameterTypesForNonStor
 const kStorageTextureTypes = keysOf(kValidTextureLoadParameterTypesForStorageTextures);
 const kValuesTypes = objectsToRecord(kAllScalarsAndVectors);
 
-const kTexelType = {
-  f32: Type.vec4f,
-  i32: Type.vec4i,
-  u32: Type.vec4u
-};
-
-const kTexelTypes = keysOf(kTexelType);
-
 export const g = makeTestGroup(ShaderValidationTest);
+
+g.test('return_type,non_storage').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#textureload').
+desc(
+  `
+Validates the return type of ${builtin} is the expected type.
+`
+).
+params((u) =>
+u.
+combine('returnType', keysOf(kValuesTypes)).
+combine('textureType', kNonStorageTextureTypes).
+beginSubcases().
+expand('texelType', (t) =>
+kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
+)
+).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.textureType)).
+fn((t) => {
+  const { returnType, textureType, texelType } = t.params;
+  const returnVarType = kValuesTypes[returnType];
+  const { coordsArgTypes, hasArrayIndexArg, hasLevelArg, hasSampleIndexArg } =
+  kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
+
+  const varWGSL = returnVarType.toString();
+  const texelArgType = stringToType(texelType);
+  const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
+  const coordWGSL = coordsArgTypes[0].create(0).wgsl();
+  const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
+  const levelWGSL = hasLevelArg ? ', 0' : '';
+  const sampleIndexWGSL = hasSampleIndexArg ? ', 0' : '';
+
+  const code = `
+@group(0) @binding(0) var t: ${textureWGSL};
+@fragment fn fs() -> @location(0) vec4f {
+  let v: ${varWGSL} = textureLoad(t, ${coordWGSL}${arrayWGSL}${levelWGSL}${sampleIndexWGSL});
+  return vec4f(0);
+}
+`;
+  const expectSuccess = isConvertible(texelArgType, returnVarType);
+  t.expectCompileResult(expectSuccess, code);
+});
 
 g.test('coords_argument,non_storage').
 specURL('https://gpuweb.github.io/gpuweb/wgsl/#textureload').
@@ -97,28 +153,28 @@ combine('textureType', kNonStorageTextureTypes).
 combine('coordType', keysOf(kValuesTypes)).
 beginSubcases().
 expand('texelType', (t) =>
-kValidTextureLoadParameterTypesForNonStorageTextures[t.textureType].usesMultipleTypes ?
-kTexelTypes :
-['']
+kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
 ).
 combine('value', [-1, 0, 1])
 // filter out unsigned types with negative values
 .filter((t) => !isUnsignedType(kValuesTypes[t.coordType]) || t.value >= 0)
 ).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.textureType)).
 fn((t) => {
   const { textureType, coordType, texelType, value } = t.params;
   const coordArgType = kValuesTypes[coordType];
   const { coordsArgTypes, hasArrayIndexArg, hasLevelArg, hasSampleIndexArg } =
   kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
 
-  const texelTypeWGSL = texelType ? `<${texelType}>` : '';
+  const texelArgType = stringToType(texelType);
+  const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
   const coordWGSL = coordArgType.create(value).wgsl();
   const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
   const levelWGSL = hasLevelArg ? ', 0' : '';
   const sampleIndexWGSL = hasSampleIndexArg ? ', 0' : '';
 
   const code = `
-@group(0) @binding(0) var t: ${textureType}${texelTypeWGSL};
+@group(0) @binding(0) var t: ${textureWGSL};
 @fragment fn fs() -> @location(0) vec4f {
   _ = textureLoad(t, ${coordWGSL}${arrayWGSL}${levelWGSL}${sampleIndexWGSL});
   return vec4f(0);
@@ -154,6 +210,8 @@ t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures')
 ).
 fn((t) => {
   const { textureType, coordType, format, value } = t.params;
+  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+
   const coordArgType = kValuesTypes[coordType];
   const { coordsArgTypes, hasArrayIndexArg } =
   kValidTextureLoadParameterTypesForStorageTextures[textureType];
@@ -191,14 +249,13 @@ combine('textureType', kNonStorageTextureTypes)
 combine('arrayIndexType', keysOf(kValuesTypes)).
 beginSubcases().
 expand('texelType', (t) =>
-kValidTextureLoadParameterTypesForNonStorageTextures[t.textureType].usesMultipleTypes ?
-kTexelTypes :
-['']
+kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
 ).
 combine('value', [-1, 0, 1])
 // filter out unsigned types with negative values
 .filter((t) => !isUnsignedType(kValuesTypes[t.arrayIndexType]) || t.value >= 0)
 ).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.textureType)).
 fn((t) => {
   const { textureType, arrayIndexType, texelType, value } = t.params;
   const arrayIndexArgType = kValuesTypes[arrayIndexType];
@@ -206,13 +263,14 @@ fn((t) => {
   const { coordsArgTypes, hasLevelArg } =
   kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
 
-  const texelTypeWGSL = texelType ? `<${texelType}>` : '';
+  const texelArgType = stringToType(texelType);
+  const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
   const coordWGSL = coordsArgTypes[0].create(0).wgsl();
   const arrayWGSL = args.map((arg) => arg.wgsl()).join(', ');
   const levelWGSL = hasLevelArg ? ', 0' : '';
 
   const code = `
-@group(0) @binding(0) var t: ${textureType}${texelTypeWGSL};
+@group(0) @binding(0) var t: ${textureWGSL};
 @fragment fn fs() -> @location(0) vec4f {
   _ = textureLoad(t, ${coordWGSL}, ${arrayWGSL}${levelWGSL});
   return vec4f(0);
@@ -251,6 +309,8 @@ t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures')
 ).
 fn((t) => {
   const { textureType, arrayIndexType, format, value } = t.params;
+  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+
   const arrayIndexArgType = kValuesTypes[arrayIndexType];
   const args = [arrayIndexArgType.create(value)];
   const { coordsArgTypes, hasLevelArg } =
@@ -289,27 +349,27 @@ combine('textureType', kNonStorageTextureTypes)
 combine('levelType', keysOf(kValuesTypes)).
 beginSubcases().
 expand('texelType', (t) =>
-kValidTextureLoadParameterTypesForNonStorageTextures[t.textureType].usesMultipleTypes ?
-kTexelTypes :
-['']
+kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
 ).
 combine('value', [-1, 0, 1])
 // filter out unsigned types with negative values
 .filter((t) => !isUnsignedType(kValuesTypes[t.levelType]) || t.value >= 0)
 ).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.textureType)).
 fn((t) => {
   const { textureType, levelType, texelType, value } = t.params;
   const levelArgType = kValuesTypes[levelType];
   const { coordsArgTypes, hasArrayIndexArg } =
   kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
 
-  const texelTypeWGSL = texelType ? `<${texelType}>` : '';
+  const texelArgType = stringToType(texelType);
+  const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
   const coordWGSL = coordsArgTypes[0].create(0).wgsl();
   const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
   const levelWGSL = levelArgType.create(value).wgsl();
 
   const code = `
-@group(0) @binding(0) var t: ${textureType}${texelTypeWGSL};
+@group(0) @binding(0) var t: ${textureWGSL};
 @fragment fn fs() -> @location(0) vec4f {
   _ = textureLoad(t, ${coordWGSL}${arrayWGSL}, ${levelWGSL});
   return vec4f(0);
@@ -337,14 +397,13 @@ combine('textureType', kNonStorageTextureTypes)
 combine('sampleIndexType', keysOf(kValuesTypes)).
 beginSubcases().
 expand('texelType', (t) =>
-kValidTextureLoadParameterTypesForNonStorageTextures[t.textureType].usesMultipleTypes ?
-kTexelTypes :
-['']
+kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
 ).
 combine('value', [-1, 0, 1])
 // filter out unsigned types with negative values
 .filter((t) => !isUnsignedType(kValuesTypes[t.sampleIndexType]) || t.value >= 0)
 ).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.textureType)).
 fn((t) => {
   const { textureType, sampleIndexType, texelType, value } = t.params;
   const sampleIndexArgType = kValuesTypes[sampleIndexType];
@@ -352,13 +411,14 @@ fn((t) => {
   kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
   assert(!hasLevelArg);
 
-  const texelTypeWGSL = texelType ? `<${texelType}>` : '';
+  const texelArgType = stringToType(texelType);
+  const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
   const coordWGSL = coordsArgTypes[0].create(0).wgsl();
   const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
   const sampleIndexWGSL = sampleIndexArgType.create(value).wgsl();
 
   const code = `
-@group(0) @binding(0) var t: ${textureType}${texelTypeWGSL};
+@group(0) @binding(0) var t: ${textureWGSL};
 @fragment fn fs() -> @location(0) vec4f {
   _ = textureLoad(t, ${coordWGSL}${arrayWGSL}, ${sampleIndexWGSL});
   return vec4f(0);
@@ -367,4 +427,125 @@ fn((t) => {
   const expectSuccess =
   isConvertible(sampleIndexArgType, Type.i32) || isConvertible(sampleIndexArgType, Type.u32);
   t.expectCompileResult(expectSuccess, code);
+});
+
+g.test('texture_type,non_storage').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#textureload').
+desc(
+  `
+Validates that incompatible texture types don't work with ${builtin}
+`
+).
+params((u) =>
+u.
+combine('testTextureType', kTestTextureTypes).
+beginSubcases().
+combine('textureType', kNonStorageTextureTypes)
+).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.testTextureType)).
+fn((t) => {
+  const { testTextureType, textureType } = t.params;
+  const { coordsArgTypes, hasArrayIndexArg, hasLevelArg, hasSampleIndexArg } =
+  kValidTextureLoadParameterTypesForNonStorageTextures[textureType];
+
+  const coordWGSL = coordsArgTypes[0].create(0).wgsl();
+  const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
+  const levelWGSL = hasLevelArg ? ', 0' : '';
+  const sampleIndexWGSL = hasSampleIndexArg ? ', 0' : '';
+
+  const code = `
+@group(0) @binding(1) var t: ${testTextureType};
+@fragment fn fs() -> @location(0) vec4f {
+  let v = textureLoad(t, ${coordWGSL}${arrayWGSL}${levelWGSL}${sampleIndexWGSL});
+  return vec4f(0);
+}
+`;
+
+  const [baseTestTextureType] = getSampleAndBaseTextureTypeForTextureType(testTextureType);
+
+  let expectSuccess = false;
+  const types =
+  kValidTextureLoadParameterTypesForNonStorageTextures[baseTestTextureType] ||
+  kValidTextureLoadParameterTypesForStorageTextures[baseTestTextureType];
+  if (types) {
+    const numTestNumberArgs =
+    (types.hasArrayIndexArg ? 1 : 0) + (
+    types.hasLevelArg ? 1 : 0) + (
+    types.hasSampleIndexArg ? 1 : 0);
+    const numExpectNumberArgs =
+    (hasArrayIndexArg ? 1 : 0) + (hasLevelArg ? 1 : 0) + (hasSampleIndexArg ? 1 : 0);
+    const typesMatch = types ?
+    types.coordsArgTypes[0] === coordsArgTypes[0] && numTestNumberArgs === numExpectNumberArgs :
+    false;
+    expectSuccess = typesMatch;
+  }
+
+  t.expectCompileResult(expectSuccess, code);
+});
+
+g.test('texture_type,storage').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#textureload').
+desc(
+  `
+Validates that incompatible texture types don't work with ${builtin}
+`
+).
+params((u) =>
+u.
+combine('testTextureType', kTestTextureTypes).
+beginSubcases().
+combine('textureType', kStorageTextureTypes).
+combine('format', kAllTextureFormats)
+).
+beforeAllSubcases((t) => t.skipIfTextureLoadNotSupportedForTextureType(t.params.testTextureType)).
+fn((t) => {
+  const { testTextureType, textureType } = t.params;
+  const { coordsArgTypes, hasArrayIndexArg, hasLevelArg, hasSampleIndexArg } =
+  kValidTextureLoadParameterTypesForStorageTextures[textureType];
+
+  const coordWGSL = coordsArgTypes[0].create(0).wgsl();
+  const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
+  const levelWGSL = hasLevelArg ? ', 0' : '';
+  const sampleIndexWGSL = hasSampleIndexArg ? ', 0' : '';
+
+  const code = `
+@group(0) @binding(1) var t: ${testTextureType};
+@fragment fn fs() -> @location(0) vec4f {
+  let v = textureLoad(t, ${coordWGSL}${arrayWGSL}${levelWGSL}${sampleIndexWGSL});
+  return vec4f(0);
+}
+`;
+
+  const [baseTestTextureType] = getSampleAndBaseTextureTypeForTextureType(testTextureType);
+
+  let expectSuccess = false;
+  const types =
+  kValidTextureLoadParameterTypesForNonStorageTextures[baseTestTextureType] ||
+  kValidTextureLoadParameterTypesForStorageTextures[baseTestTextureType];
+  if (types) {
+    const numTestNumberArgs =
+    (types.hasArrayIndexArg ? 1 : 0) + (
+    types.hasLevelArg ? 1 : 0) + (
+    types.hasSampleIndexArg ? 1 : 0);
+    const numExpectNumberArgs =
+    (hasArrayIndexArg ? 1 : 0) + (hasLevelArg ? 1 : 0) + (hasSampleIndexArg ? 1 : 0);
+    const typesMatch = types ?
+    types.coordsArgTypes[0] === coordsArgTypes[0] && numTestNumberArgs === numExpectNumberArgs :
+    false;
+    expectSuccess = typesMatch;
+  }
+
+  t.expectCompileResult(expectSuccess, code);
+});
+
+g.test('must_use').
+desc('Tests that the result must be used').
+params((u) => u.combine('use', [true, false])).
+fn((t) => {
+  const code = `
+    @group(0) @binding(0) var t : texture_2d<f32>;
+    fn foo() {
+      ${t.params.use ? '_ =' : ''} textureLoad(t, vec2(0,0), 0);
+    }`;
+  t.expectCompileResult(t.params.use, code);
 });

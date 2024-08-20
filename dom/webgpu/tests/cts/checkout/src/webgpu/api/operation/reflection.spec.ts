@@ -44,7 +44,7 @@ g.test('buffer_reflection_attributes')
     const { descriptor } = t.params;
 
     t.expectValidationError(() => {
-      const buffer = t.device.createBuffer(descriptor);
+      const buffer = t.createBufferTracked(descriptor);
 
       t.expect(buffer.size === descriptor.size);
       t.expect(buffer.usage === descriptor.usage);
@@ -66,10 +66,8 @@ g.test('buffer_creation_from_reflection')
   .fn(t => {
     const { descriptor } = t.params;
 
-    const buffer = t.device.createBuffer(descriptor);
-    t.trackForCleanup(buffer);
-    const buffer2 = t.device.createBuffer(buffer);
-    t.trackForCleanup(buffer2);
+    const buffer = t.createBufferTracked(descriptor);
+    const buffer2 = t.createBufferTracked(buffer);
 
     const bufferAsObject = buffer as unknown as { [k: string]: unknown };
     const buffer2AsObject = buffer2 as unknown as { [k: string]: unknown };
@@ -164,7 +162,7 @@ g.test('texture_reflection_attributes')
     }
 
     t.expectValidationError(() => {
-      const texture = t.device.createTexture(descriptor);
+      const texture = t.createTextureTracked(descriptor);
 
       t.expect(texture.width === width);
       t.expect(texture.height === height);
@@ -195,12 +193,10 @@ g.test('texture_creation_from_reflection')
   .fn(t => {
     const { descriptor } = t.params;
 
-    const texture = t.device.createTexture(descriptor);
-    t.trackForCleanup(texture);
+    const texture = t.createTextureTracked(descriptor);
     const textureWithSize = texture as TextureWithSize;
     textureWithSize.size = [texture.width, texture.height, texture.depthOrArrayLayers];
-    const texture2 = t.device.createTexture(textureWithSize);
-    t.trackForCleanup(texture2);
+    const texture2 = t.createTextureTracked(textureWithSize);
 
     const textureAsObject = texture as unknown as { [k: string]: unknown };
     const texture2AsObject = texture2 as unknown as { [k: string]: unknown };
@@ -217,14 +213,14 @@ g.test('texture_creation_from_reflection')
 
     // MAINTENANCE_TODO: Check this if it is made possible by a spec change.
     //
-    //     texture3 = t.device.createTexture({
+    //     texture3 = t.createTextureTracked({
     //       ...texture,
     //       size: [texture.width, texture.height, texture.depthOrArrayLayers],
     //     });
     //
     // and this
     //
-    //     texture3 = t.device.createTexture({
+    //     texture3 = t.createTextureTracked({
     //       size: [texture.width, texture.height, texture.depthOrArrayLayers],
     //       ...texture,
     //     });
@@ -249,7 +245,7 @@ g.test('query_set_reflection_attributes')
     const { descriptor } = t.params;
 
     t.expectValidationError(() => {
-      const querySet = t.device.createQuerySet(descriptor);
+      const querySet = t.createQuerySetTracked(descriptor);
 
       t.expect(querySet.type === descriptor.type);
       t.expect(querySet.count === descriptor.count);
@@ -270,10 +266,8 @@ g.test('query_set_creation_from_reflection')
   .fn(t => {
     const { descriptor } = t.params;
 
-    const querySet = t.device.createQuerySet(descriptor);
-    t.trackForCleanup(querySet);
-    const querySet2 = t.device.createQuerySet(querySet);
-    t.trackForCleanup(querySet2);
+    const querySet = t.createQuerySetTracked(descriptor);
+    const querySet2 = t.createQuerySetTracked(querySet);
 
     const querySetAsObject = querySet as unknown as { [k: string]: unknown };
     const querySet2AsObject = querySet2 as unknown as { [k: string]: unknown };

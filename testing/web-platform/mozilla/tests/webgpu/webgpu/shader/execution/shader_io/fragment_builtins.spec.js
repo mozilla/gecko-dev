@@ -21,6 +21,7 @@ is evaluated per-fragment or per-sample. With @interpolate(, sample) or usage of
 import { ErrorWithExtra, assert, range, unreachable } from '../../../../common/util/util.js';
 
 import { GPUTest } from '../../../gpu_test.js';
+import { getProvokingVertexForFlatInterpolationEitherSampling } from '../../../inter_stage.js';
 import { getMultisampleFragmentOffsets } from '../../../multisample_info.js';
 import { dotProduct, subtractVectors } from '../../../util/math.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
@@ -138,17 +139,15 @@ textures)
   assert(isTextureSameDimensions(textures[0], textures[3]));
   const { width, height, sampleCount } = textures[0];
 
-  const copyBuffer = t.device.createBuffer({
+  const copyBuffer = t.createBufferTracked({
     size: width * height * sampleCount * 4 * 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(copyBuffer);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: copyBuffer.size,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
   });
-  t.trackForCleanup(buffer);
 
   const pipeline = getCopyMultisamplePipelineForDevice(t.device, textures);
   const encoder = t.device.createCommandEncoder();
@@ -426,11 +425,17 @@ function computeFragmentPosition({
 /**
  * Creates a function that will compute the interpolation of an inter-stage variable.
  */
-function createInterStageInterpolationFn(
+async function createInterStageInterpolationFn(
+t,
 interStagePoints,
 type,
 sampling)
 {
+  const provokingVertex =
+  type === 'flat' && sampling === 'either' ?
+  await getProvokingVertexForFlatInterpolationEitherSampling(t) :
+  'first';
+
   return function ({
     baseVertexIndex,
     fragmentBarycentricCoords,
@@ -439,7 +444,9 @@ sampling)
   }) {
     const triangleInterStagePoints = interStagePoints.slice(baseVertexIndex, baseVertexIndex + 3);
     const barycentricCoords =
-    sampling === 'center' ? fragmentBarycentricCoords : sampleBarycentricCoords;
+    sampling === 'center' || sampling === undefined ?
+    fragmentBarycentricCoords :
+    sampleBarycentricCoords;
     switch (type) {
       case 'perspective':
         return triangleInterStagePoints[0].map((_, colNum) =>
@@ -456,7 +463,7 @@ sampling)
         );
         break;
       case 'flat':
-        return triangleInterStagePoints[0];
+        return triangleInterStagePoints[provokingVertex === 'first' ? 0 : 2];
         break;
       default:
         unreachable();
@@ -469,12 +476,13 @@ sampling)
  * and then return [1, 0, 0, 0] if all interpolated values are between 0.0 and 1.0 inclusive
  * or [-1, 0, 0, 0] otherwise.
  */
-function createInterStageInterpolationBetween0And1TestFn(
+async function createInterStageInterpolationBetween0And1TestFn(
+t,
 interStagePoints,
 type,
 sampling)
 {
-  const interpolateFn = createInterStageInterpolationFn(interStagePoints, type, sampling);
+  const interpolateFn = await createInterStageInterpolationFn(t, interStagePoints, type, sampling);
   return function (fragData) {
     const interpolatedValues = interpolateFn(fragData);
     const allTrue = interpolatedValues.reduce((all, v) => all && v >= 0 && v <= 1, true);
@@ -615,19 +623,17 @@ t,
     `
   });
 
-  const textures = range(4, () => {
-    const texture = t.device.createTexture({
-      size: [width, height],
-      usage:
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_SRC,
-      format: 'rgba8unorm',
-      sampleCount
-    });
-    t.trackForCleanup(texture);
-    return texture;
-  });
+  const textures = range(4, () =>
+  t.createTextureTracked({
+    size: [width, height],
+    usage:
+    GPUTextureUsage.RENDER_ATTACHMENT |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_SRC,
+    format: 'rgba8unorm',
+    sampleCount
+  })
+  );
 
   const pipeline = t.device.createRenderPipeline({
     layout: 'auto',
@@ -650,11 +656,10 @@ t,
     }
   });
 
-  const uniformBuffer = t.device.createBuffer({
+  const uniformBuffer = t.createBufferTracked({
     size: 8,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   });
-  t.trackForCleanup(uniformBuffer);
   t.device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([width, height]));
 
   const viewport = [0, 0, width, height, ...nearFar];
@@ -758,7 +763,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -839,11 +845,15 @@ u //
 .combine('nearFar', [[0, 1], [0.25, 0.75]]).
 combine('sampleCount', [1, 4]).
 combine('interpolation', [
+{ type: 'perspective' },
 { type: 'perspective', sampling: 'center' },
 { type: 'perspective', sampling: 'sample' },
+{ type: 'linear' },
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat' },
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -892,7 +902,7 @@ fn(async (t) => {
     nearFar,
     sampleCount,
     clipSpacePoints,
-    interpolateFn: createInterStageInterpolationFn(interStagePoints, type, sampling)
+    interpolateFn: await createInterStageInterpolationFn(t, interStagePoints, type, sampling)
   });
 
   t.expectOK(
@@ -1026,7 +1036,8 @@ fn(async (t) => {
     nearFar,
     sampleCount,
     clipSpacePoints,
-    interpolateFn: createInterStageInterpolationBetween0And1TestFn(
+    interpolateFn: await createInterStageInterpolationBetween0And1TestFn(
+      t,
       interStagePoints,
       type,
       sampling
@@ -1062,7 +1073,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -1146,7 +1158,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -1318,7 +1331,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 ).
 beginSubcases().
 combineWithParams([
@@ -1351,6 +1365,7 @@ beforeAllSubcases((t) => {
     interpolation: { type, sampling }
   } = t.params;
   t.skipIfInterpolationTypeOrSamplingNotSupported({ type, sampling });
+  t.skipIf(t.isCompatibility, 'sample_mask is not supported in compatibility mode');
 }).
 fn(async (t) => {
   const {

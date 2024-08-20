@@ -128,20 +128,22 @@ g.test('texture,device_mismatch')
     const format = 'rgba8unorm';
 
     const srcTextureDevice = srcMismatched ? t.mismatchedDevice : t.device;
-    const srcTexture = srcTextureDevice.createTexture({
-      size,
-      format,
-      usage: GPUTextureUsage.COPY_SRC,
-    });
-    t.trackForCleanup(srcTexture);
+    const srcTexture = t.trackForCleanup(
+      srcTextureDevice.createTexture({
+        size,
+        format,
+        usage: GPUTextureUsage.COPY_SRC,
+      })
+    );
 
     const dstTextureDevice = dstMismatched ? t.mismatchedDevice : t.device;
-    const dstTexture = dstTextureDevice.createTexture({
-      size,
-      format,
-      usage: GPUTextureUsage.COPY_DST,
-    });
-    t.trackForCleanup(dstTexture);
+    const dstTexture = t.trackForCleanup(
+      dstTextureDevice.createTexture({
+        size,
+        format,
+        usage: GPUTextureUsage.COPY_DST,
+      })
+    );
 
     t.TestCopyTextureToTexture(
       { texture: srcTexture },
@@ -180,14 +182,14 @@ Test copyTextureToTexture must specify mipLevels that are in range.
   .fn(t => {
     const { srcLevelCount, dstLevelCount, srcCopyLevel, dstCopyLevel, dimension } = t.params;
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: { width: 32, height: 1, depthOrArrayLayers: 1 },
       dimension,
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_SRC,
       mipLevelCount: srcLevelCount,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: { width: 32, height: 1, depthOrArrayLayers: 1 },
       dimension,
       format: 'rgba8unorm',
@@ -220,12 +222,12 @@ Test that copyTextureToTexture source/destination need COPY_SRC/COPY_DST usages.
   .fn(t => {
     const { srcUsage, dstUsage } = t.params;
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: srcUsage,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: dstUsage,
@@ -264,13 +266,13 @@ Test that textures in copyTextureToTexture must have the same sample count.
   .fn(t => {
     const { srcSampleCount, dstSampleCount } = t.params;
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
       sampleCount: srcSampleCount,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -324,13 +326,13 @@ TODO: Check the source and destination constraints separately.
 
     // Currently we don't support multisampled 2D array textures and the mipmap level count of the
     // multisampled textures must be 1.
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
       sampleCount: 4,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -385,13 +387,13 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
       depthOrArrayLayers: 1,
     };
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: textureSize,
       format: srcFormat,
       usage: GPUTextureUsage.COPY_SRC,
     });
 
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: textureSize,
       format: dstFormat,
       usage: GPUTextureUsage.COPY_DST,
@@ -455,13 +457,13 @@ Note: this is only tested for 2D textures as it is the only dimension compatible
       t.params;
     const kMipLevelCount = 3;
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: { width: srcTextureSize.width, height: srcTextureSize.height, depthOrArrayLayers: 1 },
       format,
       mipLevelCount: kMipLevelCount,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: { width: dstTextureSize.width, height: dstTextureSize.height, depthOrArrayLayers: 1 },
       format,
       mipLevelCount: kMipLevelCount,
@@ -552,14 +554,14 @@ Test that copyTextureToTexture copy boxes must be in range of the subresource.
     }
     const kFormat = 'rgba8unorm';
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: textureSize,
       format: kFormat,
       dimension,
       mipLevelCount,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: textureSize,
       format: kFormat,
       dimension,
@@ -669,7 +671,7 @@ TODO: Extend to 1D and 3D textures.`
 
     const kArrayLayerCount = 7;
 
-    const testTexture = t.device.createTexture({
+    const testTexture = t.createTextureTracked({
       size: { width: 16, height: 16, depthOrArrayLayers: kArrayLayerCount },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
@@ -711,12 +713,12 @@ Test the validations on the member 'aspect' of GPUImageCopyTexture in CopyTextur
 
     const kTextureSize = { width: 16, height: 8, depthOrArrayLayers: 1 };
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: kTextureSize,
       format,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: kTextureSize,
       format,
       usage: GPUTextureUsage.COPY_DST,
@@ -797,14 +799,14 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
     };
     const kMipLevelCount = 4;
 
-    const srcTexture = t.device.createTexture({
+    const srcTexture = t.createTextureTracked({
       size: kTextureSize,
       format,
       dimension,
       mipLevelCount: kMipLevelCount,
       usage: GPUTextureUsage.COPY_SRC,
     });
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       size: kTextureSize,
       format,
       dimension,

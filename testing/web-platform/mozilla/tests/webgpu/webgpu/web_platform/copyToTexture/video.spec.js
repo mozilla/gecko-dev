@@ -72,7 +72,7 @@ fn(async (t) => {
       height = source.videoHeight;
     }
 
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       format: kFormat,
       size: { width, height, depthOrArrayLayers: 1 },
       usage:

@@ -163,7 +163,7 @@ g.test('type')
     }
 
     code += generateShader({
-      attribute: '@location(0) @interpolate(flat)',
+      attribute: '@location(0) @interpolate(flat, either)',
       type: t.params.type,
       stage: 'fragment',
       io: 'in',
@@ -343,6 +343,10 @@ const kValidationTests = {
   },
   vec: {
     src: `@location(vec2(1,1))`,
+    pass: false,
+  },
+  duplicate: {
+    src: `@location(0) @location(0)`,
     pass: false,
   },
 };

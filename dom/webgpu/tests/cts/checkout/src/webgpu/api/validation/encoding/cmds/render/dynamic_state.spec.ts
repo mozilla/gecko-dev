@@ -47,7 +47,7 @@ class F extends ValidationTest {
     v: ViewportCall,
     attachmentSize: GPUExtent3D = { width: 1, height: 1, depthOrArrayLayers: 1 }
   ) {
-    const attachment = this.device.createTexture({
+    const attachment = this.createTextureTracked({
       format: 'rgba8unorm',
       size: attachmentSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -76,7 +76,7 @@ class F extends ValidationTest {
     s: ScissorCall,
     attachmentSize: GPUExtent3D = { width: 1, height: 1, depthOrArrayLayers: 1 }
   ) {
-    const attachment = this.device.createTexture({
+    const attachment = this.createTextureTracked({
       format: 'rgba8unorm',
       size: attachmentSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -107,7 +107,7 @@ class F extends ValidationTest {
   }
 
   createDummyRenderPassEncoder(): { encoder: GPUCommandEncoder; pass: GPURenderPassEncoder } {
-    const attachment = this.device.createTexture({
+    const attachment = this.createTextureTracked({
       format: 'rgba8unorm',
       size: [1, 1, 1],
       usage: GPUTextureUsage.RENDER_ATTACHMENT,

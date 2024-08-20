@@ -47,12 +47,10 @@ g.test('createBindGroup,at_over')
         }
 
         device.pushErrorScope('out-of-memory');
-        const uniformBuffer = t.trackForCleanup(
-          device.createBuffer({
-            usage: GPUBufferUsage.UNIFORM,
-            size,
-          })
-        );
+        const uniformBuffer = t.createBufferTracked({
+          usage: GPUBufferUsage.UNIFORM,
+          size,
+        });
         const outOfMemoryError = await device.popErrorScope();
 
         if (!outOfMemoryError) {

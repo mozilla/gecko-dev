@@ -125,6 +125,10 @@ const kTests = {
     src: `_ = abs(1, 2);`,
     pass: false,
   },
+  must_use: {
+    src: `abs(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

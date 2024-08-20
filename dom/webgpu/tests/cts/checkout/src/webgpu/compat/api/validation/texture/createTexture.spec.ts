@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 export const description = `
 Tests that you can not use bgra8unorm-srgb in compat mode.
 Tests that textureBindingViewDimension must compatible with texture dimension
@@ -6,7 +5,11 @@ Tests that textureBindingViewDimension must compatible with texture dimension
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kTextureDimensions, kTextureViewDimensions } from '../../../../capability_info.js';
-import { kColorTextureFormats, kCompatModeUnsupportedStorageTextureFormats, kTextureFormatInfo } from '../../../../format_info.js';
+import {
+  kColorTextureFormats,
+  kCompatModeUnsupportedStorageTextureFormats,
+  kTextureFormatInfo,
+} from '../../../../format_info.js';
 import { getTextureDimensionFromView } from '../../../../util/texture/base.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
@@ -15,10 +18,10 @@ export const g = makeTestGroup(CompatibilityTest);
 g.test('unsupportedTextureFormats')
   .desc(`Tests that you can not create a bgra8unorm-srgb texture in compat mode.`)
   .fn(t => {
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () =>
-        t.device.createTexture({
+        t.createTextureTracked({
           size: [1, 1, 1],
           format: 'bgra8unorm-srgb',
           usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -32,10 +35,10 @@ g.test('unsupportedTextureViewFormats')
     `Tests that you can not create a bgra8unorm texture with a bgra8unorm-srgb viewFormat in compat mode.`
   )
   .fn(t => {
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () =>
-        t.device.createTexture({
+        t.createTextureTracked({
           size: [1, 1, 1],
           format: 'bgra8unorm',
           viewFormats: ['bgra8unorm-srgb'],
@@ -56,19 +59,23 @@ g.test('invalidTextureBindingViewDimension')
   )
   .fn(t => {
     const { dimension, textureBindingViewDimension } = t.params;
-    const depthOrArrayLayers = textureBindingViewDimension === '1d' || textureBindingViewDimension === '2d' ? 1 : 6;
+    const depthOrArrayLayers =
+      dimension === '1d' ||
+      textureBindingViewDimension === '1d' ||
+      textureBindingViewDimension === '2d'
+        ? 1
+        : 6;
     const shouldError = getTextureDimensionFromView(textureBindingViewDimension) !== dimension;
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () => {
-        const texture = t.device.createTexture({
+        t.createTextureTracked({
           size: [1, 1, depthOrArrayLayers],
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING,
           dimension,
           textureBindingViewDimension,
         } as GPUTextureDescriptor); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
-        t.trackForCleanup(texture);
       },
       shouldError
     );
@@ -91,16 +98,15 @@ g.test('depthOrArrayLayers_incompatible_with_textureBindingViewDimension')
     const shouldError =
       (textureBindingViewDimension === '2d' && depthOrArrayLayers !== 1) ||
       (textureBindingViewDimension === 'cube' && depthOrArrayLayers !== 6);
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () => {
-        const texture = t.device.createTexture({
+        t.createTextureTracked({
           size: [1, 1, depthOrArrayLayers],
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING,
           textureBindingViewDimension,
         } as GPUTextureDescriptor); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
-        t.trackForCleanup(texture);
       },
       shouldError
     );
@@ -138,16 +144,15 @@ g.test('format_reinterpretation')
       { format: info.baseFormat!, viewFormats: [format, info.baseFormat!] },
     ];
     for (const { format, viewFormats } of formatPairs) {
-      t.expectGPUError(
+      t.expectGPUErrorInCompatibilityMode(
         'validation',
         () => {
-          const texture = t.device.createTexture({
+          t.createTextureTracked({
             size: [info.blockWidth, info.blockHeight],
             format,
             viewFormats,
             usage: GPUTextureUsage.TEXTURE_BINDING,
           });
-          t.trackForCleanup(texture);
         },
         true
       );
@@ -159,10 +164,10 @@ g.test('unsupportedStorageTextureFormats')
   .params(u => u.combine('format', kCompatModeUnsupportedStorageTextureFormats))
   .fn(t => {
     const { format } = t.params;
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () =>
-        t.device.createTexture({
+        t.createTextureTracked({
           size: [1, 1, 1],
           format,
           usage: GPUTextureUsage.STORAGE_BINDING,

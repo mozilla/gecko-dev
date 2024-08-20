@@ -72,3 +72,78 @@ g.test('deterministic_randomU32').fn(t => {
     }
   });
 });
+
+// Returns 2**k, for integer k up to and including 32.
+function power_of_2(k: number) {
+  // The shift operator on integers returns a signed 32 bit integer.
+  // So break up this calculation to avoid wraparound.
+  if (k < 30) {
+    return 1 << k;
+  }
+  return (1 << 30) * (1 << (k - 30));
+}
+
+g.test('uniformInt_range')
+  .desc('Outputs of uniformInt(N) are between 0 and N-1')
+  .fn(t => {
+    [1, 42, 99].forEach(seed => {
+      const p = new PRNG(seed);
+      for (let k = 0; k < 32; k++) {
+        const N = power_of_2(k);
+        for (let i = 0; i < 20; i++) {
+          const sample = p.uniformInt(N);
+          t.expect(
+            0 <= sample && sample < N,
+            `Sample from [0, ${N - 1}] is out of bounds: ${sample}`
+          );
+          t.expect(sample === Math.trunc(sample), `Sample should be an integer: ${sample}`);
+        }
+      }
+    });
+  });
+
+g.test('uniformInt_distribution')
+  .desc('uniformInt outputs are not biased: histogram counts are close to the expected mean')
+  .fn(t => {
+    const p = new PRNG(42);
+    const numBins = 4;
+    const numSamples = 1000;
+    const histogram = Array(numBins).fill(0);
+    for (let i = 0; i < numSamples; i++) {
+      histogram[p.uniformInt(numBins)]++;
+    }
+    // Each bin should have roughly the expected number of hits.
+    const meanCount = numSamples / numBins;
+    const toleratedMin = meanCount * 0.9;
+    const toleratedMax = meanCount * 1.1;
+    histogram.forEach(count => {
+      t.expect(count >= toleratedMin, `count is ${count}, less than tolerated min ${toleratedMin}`);
+      t.expect(count <= toleratedMax, `count is ${count}, more than tolerated min ${toleratedMax}`);
+    });
+  });
+
+g.test('uniformInt_bias')
+  .desc('uniformInt does not demonstrate bias expected of randInt() % N')
+  .fn(t => {
+    const p = new PRNG(43);
+    // A bad random generator would be: randomU32() % N.
+    // For N = (2**32) * 2/3, we would expect the result to be less than N/2 about 2/3 of the time.
+    const badN = Math.trunc((1 << 15) * ((1 << 16) / 3));
+    const halfN = badN / 2;
+    let numSmall = 0;
+    const numSamples = 1000;
+    for (let i = 0; i < numSamples; i++) {
+      const val = p.uniformInt(badN);
+      if (val < halfN) {
+        numSmall++;
+      }
+    }
+    t.expect(
+      numSmall > 0.45 * numSamples,
+      `uniformInt is biased: too few small samples (${numSmall} / ${numSamples})`
+    );
+    t.expect(
+      numSmall < 0.55 * numSamples,
+      `uniformInt is biased: too many big samples (${numSamples - numSmall} / ${numSamples})`
+    );
+  });

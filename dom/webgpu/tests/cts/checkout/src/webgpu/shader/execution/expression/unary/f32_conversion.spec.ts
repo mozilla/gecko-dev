@@ -5,7 +5,7 @@ Execution Tests for the f32 conversion operations
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
-import { ShaderBuilder, allInputSources, run } from '../expression.js';
+import { ShaderBuilder, allInputSources, run, onlyConstInputSource } from '../expression.js';
 
 import { d } from './f32_conversion.cache.js';
 import { unary } from './unary.js';
@@ -71,6 +71,32 @@ Converted to f32
   .fn(async t => {
     const cases = await d.get('i32');
     await run(t, vectorizeToExpression(t.params.vectorize), [Type.i32], Type.f32, t.params, cases);
+  });
+
+g.test('abstract_int')
+  .specURL('https://www.w3.org/TR/WGSL/#value-constructor-builtin-function')
+  .desc(
+    `
+f32(e), where e is an AbstractInt
+
+Converted to f32, +/-Inf if out of range
+`
+  )
+  .params(u =>
+    u
+      .combine('inputSource', onlyConstInputSource)
+      .combine('vectorize', [undefined, 2, 3, 4] as const)
+  )
+  .fn(async t => {
+    const cases = await d.get('abstract_int');
+    await run(
+      t,
+      vectorizeToExpression(t.params.vectorize),
+      [Type.abstractInt],
+      Type.f32,
+      t.params,
+      cases
+    );
   });
 
 g.test('f32')
@@ -161,6 +187,55 @@ g.test('f16_mat')
       t,
       matrixExperession(cols, rows),
       [Type.mat(cols, rows, Type.f16)],
+      Type.mat(cols, rows, Type.f32),
+      t.params,
+      cases
+    );
+  });
+
+g.test('abstract_float')
+  .specURL('https://www.w3.org/TR/WGSL/#value-constructor-builtin-function')
+  .desc(
+    `
+f32(e), where e is an AbstractFloat
+
+Correctly rounded to f32
+`
+  )
+  .params(u =>
+    u
+      .combine('inputSource', onlyConstInputSource)
+      .combine('vectorize', [undefined, 2, 3, 4] as const)
+  )
+  .fn(async t => {
+    const cases = await d.get('abstract_float');
+    await run(
+      t,
+      vectorizeToExpression(t.params.vectorize),
+      [Type.abstractFloat],
+      Type.f32,
+      t.params,
+      cases
+    );
+  });
+
+g.test('abstract_float_mat')
+  .specURL('https://www.w3.org/TR/WGSL/#matrix-builtin-functions')
+  .desc(`AbstractFloat matrix to f32 matrix tests`)
+  .params(u =>
+    u
+      .combine('inputSource', onlyConstInputSource)
+      .combine('cols', [2, 3, 4] as const)
+      .combine('rows', [2, 3, 4] as const)
+  )
+  .fn(async t => {
+    const cols = t.params.cols;
+    const rows = t.params.rows;
+    const cases = await d.get(`abstract_float_mat${cols}x${rows}`);
+    await run(
+      t,
+      matrixExperession(cols, rows),
+      [Type.mat(cols, rows, Type.abstractFloat)],
       Type.mat(cols, rows, Type.f32),
       t.params,
       cases

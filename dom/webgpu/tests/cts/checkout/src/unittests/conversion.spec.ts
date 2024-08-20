@@ -7,6 +7,7 @@ import { assert, objectEquals } from '../common/util/util.js';
 import { kValue } from '../webgpu/util/constants.js';
 import {
   bool,
+  concreteTypeOf,
   f16Bits,
   f32,
   f32Bits,
@@ -33,6 +34,8 @@ import {
   vec2,
   vec3,
   vec4,
+  stringToType,
+  Type,
   VectorValue,
 } from '../webgpu/util/conversion.js';
 
@@ -637,4 +640,59 @@ g.test('unpackRGB9E5UFloat')
       `unpackRGB9E5UFloat(${bits5_9_9_9(c.encoded)} ` +
         `returned ${got.R},${got.G},${got.B}. Expected ${expect}`
     );
+  });
+
+const kConcreteTypeOfNoAllowedListCases = {
+  bool: Type.bool,
+  i32: Type.i32,
+  u32: Type.u32,
+  f32: Type.f32,
+  f16: Type.f16,
+  abstractInt: Type.i32,
+  abstractFloat: Type.f32,
+  vec2b: Type.vec2b,
+  vec2i: Type.vec2i,
+  vec3u: Type.vec3u,
+  vec4f: Type.vec4f,
+  vec2h: Type.vec2h,
+  vec3ai: Type.vec3i,
+  vec4af: Type.vec4f,
+  mat2x2f: Type.mat2x2f,
+  mat3x4h: Type.mat3x4h,
+} as const;
+
+g.test('concreteTypeOf_noAllowedLiist')
+  .params(u => u.combine('src', keysOf(kConcreteTypeOfNoAllowedListCases)))
+  .fn(test => {
+    const src = test.params.src;
+    const dest = kConcreteTypeOfNoAllowedListCases[src];
+    const got = concreteTypeOf(stringToType(src));
+    test.expect(got === dest);
+  });
+
+const kConcreteTypeOfAllowListCases = {
+  af_f32: { type: Type.abstractFloat, allowed: [Type.f32], expect: Type.f32 },
+  af_f16: { type: Type.abstractFloat, allowed: [Type.f16], expect: Type.f16 },
+  af_all: {
+    type: Type.abstractFloat,
+    allowed: [Type.f16, Type.f32, Type.i32, Type.u32],
+    expect: Type.f32,
+  },
+  ai_i32: { type: Type.abstractInt, allowed: [Type.i32], expect: Type.i32 },
+  ai_u32: { type: Type.abstractInt, allowed: [Type.u32], expect: Type.u32 },
+  ai_f32: { type: Type.abstractInt, allowed: [Type.f32], expect: Type.f32 },
+  ai_f16: { type: Type.abstractInt, allowed: [Type.f16], expect: Type.f16 },
+  ai_all: {
+    type: Type.abstractInt,
+    allowed: [Type.f16, Type.f32, Type.i32, Type.u32],
+    expect: Type.i32,
+  },
+} as const;
+
+g.test('concreteTypeOf_AllowedLiist')
+  .params(u => u.combine('k', keysOf(kConcreteTypeOfAllowListCases)))
+  .fn(test => {
+    const { type, allowed, expect } = kConcreteTypeOfAllowListCases[test.params.k];
+    const got = concreteTypeOf(type, allowed as [Type]);
+    test.expect(got === expect);
   });

@@ -3,7 +3,7 @@ This test dedicatedly tests validation of GPUFragmentState of createRenderPipeli
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { range } from '../../../../common/util/util.js';
+import { assert, range } from '../../../../common/util/util.js';
 import {
   kBlendFactors,
   kBlendOperations,
@@ -244,8 +244,7 @@ g.test('targets_format_filterable')
   .desc(
     `
   Tests that color target state format must be filterable if blend is not undefined.
-
-  TODO: info.colorRender.blend now directly says whether the format is blendable. Use that.`
+  `
   )
   .params(u =>
     u
@@ -273,7 +272,9 @@ g.test('targets_format_filterable')
       ],
     });
 
-    t.doCreateRenderPipelineTest(isAsync, !hasBlend || info.color.type === 'float', descriptor);
+    const supportsBlend = info.colorRender?.blend;
+    assert(supportsBlend !== undefined);
+    t.doCreateRenderPipelineTest(isAsync, !hasBlend || supportsBlend, descriptor);
   });
 
 g.test('targets_blend')

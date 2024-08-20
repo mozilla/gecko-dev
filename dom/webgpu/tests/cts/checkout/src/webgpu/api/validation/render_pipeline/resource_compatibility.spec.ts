@@ -48,6 +48,13 @@ g.test('resource_compatibility')
         !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
       'Storage textures require language feature'
     );
+    t.skipIf(
+      t.params.stage === 'vertex' &&
+        ((wgslResource.buffer !== undefined && wgslResource.buffer.type === 'storage') ||
+          (wgslResource.storageTexture !== undefined &&
+            wgslResource.storageTexture.access !== 'read-only')),
+      'Storage buffers and textures cannot be used in vertex shaders'
+    );
     const emptyVS = `
 @vertex
 fn main() -> @builtin(position) vec4f {

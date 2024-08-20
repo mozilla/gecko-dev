@@ -19,7 +19,7 @@ g.test('without_work')
 g.test('with_work')
   .desc(`Await onSubmittedWorkDone once after submitting some work (writeBuffer).`)
   .fn(async t => {
-    const buffer = t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST });
+    const buffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_DST });
     t.queue.writeBuffer(buffer, 0, new Uint8Array(4));
     await t.queue.onSubmittedWorkDone();
   });

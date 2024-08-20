@@ -18,7 +18,7 @@ g.test('unsupportedStorageTextureFormats')
   .fn(t => {
     const { format } = t.params;
 
-    t.expectValidationError(() => {
+    t.expectValidationErrorInCompatibilityMode(() => {
       t.device.createBindGroupLayout({
         entries: [
           {

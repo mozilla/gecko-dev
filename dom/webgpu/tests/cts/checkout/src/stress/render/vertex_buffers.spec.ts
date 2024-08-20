@@ -9,7 +9,7 @@ export const g = makeTestGroup(GPUTest);
 
 function createHugeVertexBuffer(t: GPUTest, size: number) {
   const kBufferSize = size * size * 8;
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: kBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
   });
@@ -48,7 +48,7 @@ function createHugeVertexBuffer(t: GPUTest, size: number) {
   pass.dispatchWorkgroups(size);
   pass.end();
 
-  const vertexBuffer = t.device.createBuffer({
+  const vertexBuffer = t.createBufferTracked({
     size: kBufferSize,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
@@ -101,7 +101,7 @@ g.test('many')
         entryPoint: 'fmain',
       },
     });
-    const renderTarget = t.device.createTexture({
+    const renderTarget = t.createTextureTracked({
       size: [kSize, kSize],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm',

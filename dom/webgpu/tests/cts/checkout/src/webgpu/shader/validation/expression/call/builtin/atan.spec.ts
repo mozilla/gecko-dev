@@ -170,6 +170,11 @@ const kTests = {
     src: `_ = atan(1, 2);`,
     pass: false,
   },
+
+  must_use: {
+    src: `atan(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

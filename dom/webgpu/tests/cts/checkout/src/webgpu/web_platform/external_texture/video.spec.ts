@@ -167,7 +167,7 @@ for several combinations of video format, video color spaces and dst color space
           ? await getVideoFrameFromVideoElement(t, videoElement)
           : videoElement;
 
-      const colorAttachment = t.device.createTexture({
+      const colorAttachment = t.createTextureTracked({
         format: kFormat,
         size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
         usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -292,7 +292,7 @@ Tests that we can import an VideoFrame with non-YUV pixel format into a GPUExter
       textureFormat = 'bgra8unorm';
     }
 
-    const colorAttachment = t.device.createTexture({
+    const colorAttachment = t.createTextureTracked({
       format: textureFormat,
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -433,7 +433,7 @@ parameters are present.
       for (const cropParam of cropParams) {
         const subRect = new VideoFrame(source, { visibleRect: cropParam.subRect });
 
-        const colorAttachment = t.device.createTexture({
+        const colorAttachment = t.createTextureTracked({
           format: kFormat,
           size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
           usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -515,7 +515,7 @@ compute shader, for several combinations of video format, video color spaces and
       if (t.params.checkNonStandardIsZeroCopy) {
         expectZeroCopyNonStandard(t, externalTexture);
       }
-      const outputTexture = t.device.createTexture({
+      const outputTexture = t.createTextureTracked({
         format: 'rgba8unorm',
         size: [2, 2, 1],
         usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING,

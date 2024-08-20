@@ -83,6 +83,8 @@ export class DevicePool {
         this.holders.delete(holder);
         if ('destroy' in holder.device) {
           holder.device.destroy();
+          // Wait for destruction (or actual device loss if any) to complete.
+          await holder.device.lost;
         }
 
         // Release the (hopefully only) ref to the GPUDevice.
@@ -311,6 +313,8 @@ class DeviceHolder implements DeviceProvider {
     if (!supportsFeature(adapter, descriptor)) {
       throw new FeaturesNotSupported('One or more features are not supported');
     }
+    // No trackForCleanup because we plan to reuse the device for the next test.
+    // eslint-disable-next-line no-restricted-syntax
     const device = await adapter.requestDevice(descriptor);
     assert(device !== null, 'requestDevice returned null');
 

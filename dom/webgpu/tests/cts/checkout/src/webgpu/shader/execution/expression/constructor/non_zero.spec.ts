@@ -17,7 +17,12 @@ import {
   vec3,
 } from '../../../../util/conversion.js';
 import { FP } from '../../../../util/floating_point.js';
-import { allInputSources, basicExpressionBuilder, run } from '../expression.js';
+import {
+  ShaderBuilderParams,
+  allInputSources,
+  basicExpressionBuilder,
+  run,
+} from '../expression.js';
 
 export const g = makeTestGroup(GPUTest);
 
@@ -186,7 +191,7 @@ g.test('abstract_vector_splat')
       basicExpressionBuilder(_ => `${fn}(${t.params.value * 0x100000000}${suffix}) / 0x100000000`),
       [],
       concreteVectorType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [{ input: [], expected: concreteVectorType.create(t.params.value) }]
     );
   });
@@ -264,7 +269,7 @@ g.test('abstract_vector_elements')
       ),
       [],
       concreteVectorType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [{ input: [], expected: concreteVectorType.create(elements) }]
     );
   });
@@ -386,7 +391,7 @@ g.test('abstract_vector_mix')
       basicExpressionBuilder(_ => `${fn}(${args.join(', ')}) / 0x100000000`),
       [],
       concreteVectorType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [
         {
           input: [],
@@ -509,7 +514,7 @@ g.test('abstract_matrix_elements')
       ),
       [],
       concreteMatrixType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [
         {
           input: [],
@@ -600,7 +605,7 @@ g.test('abstract_matrix_column_vectors')
       basicExpressionBuilder(_ => `${fn}(${columnVectors.join(', ')}) * (1.0 / 0x100000000)`),
       [],
       concreteMatrixType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [
         {
           input: [],
@@ -729,7 +734,7 @@ g.test('abstract_array_elements')
       basicExpressionBuilder(_ => `${fn}(${elements.map(e => e.args).join(', ')})`),
       [],
       concreteArrayType,
-      { inputSource: 'const' },
+      { inputSource: 'const', constEvaluationMode: 'direct' },
       [
         {
           input: [],
@@ -773,11 +778,11 @@ g.test('structure')
     );
     await run(
       t,
-      (parameterTypes, resultType, cases, inputSource) => {
+      (params: ShaderBuilderParams) => {
         return `
 ${t.params.member_types.includes('f16') ? 'enable f16;' : ''}
 
-${builder(parameterTypes, resultType, cases, inputSource)}
+${builder(params)}
 
 struct MyStruct {
 ${t.params.member_types.map((ty, i) => `  member_${i} : ${ty},`).join('\n')}

@@ -120,7 +120,7 @@ Tests that you can not create a render pipeline with different per target blend 
       },
     };
     const isValid = cases[caseName](targets);
-    t.expectGPUError(
+    t.expectGPUErrorInCompatibilityMode(
       'validation',
       () => t.device.createRenderPipeline(pipelineDescriptor),
       !isValid

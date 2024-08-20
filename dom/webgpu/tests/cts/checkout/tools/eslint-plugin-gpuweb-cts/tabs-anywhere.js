@@ -2,7 +2,8 @@ module.exports = {
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Indentation tabs are not allowed, even in multiline strings, due to WPT lint rules. This rule simply disallows tabs anywhere.',
+      description:
+        'Indentation tabs are not allowed, even in multiline strings, due to WPT lint rules. This rule simply disallows tabs anywhere.',
     },
     schema: [],
   },

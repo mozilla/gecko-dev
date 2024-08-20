@@ -17,7 +17,7 @@ g.test('all_usages')
   )
   .fn(t => {
     const { usage } = t.params;
-    const buf = t.device.createBuffer({
+    const buf = t.createBufferTracked({
       size: 4,
       usage,
     });
@@ -48,7 +48,7 @@ g.test('twice')
       ])
   )
   .fn(t => {
-    const buf = t.device.createBuffer(t.params);
+    const buf = t.createBufferTracked(t.params);
 
     buf.destroy();
     buf.destroy();
@@ -81,7 +81,7 @@ g.test('while_mapped')
   )
   .fn(async t => {
     const { usage, mapMode, mappedAtCreation, unmapBeforeDestroy } = t.params;
-    const buf = t.device.createBuffer({
+    const buf = t.createBufferTracked({
       size: 4,
       usage,
       mappedAtCreation,

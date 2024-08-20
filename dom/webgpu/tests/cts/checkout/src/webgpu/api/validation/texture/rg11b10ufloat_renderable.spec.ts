@@ -28,7 +28,7 @@ Note, the createTexture tests cover these validation cases where this feature is
       sampleCount,
       usage: GPUConst.TextureUsage.RENDER_ATTACHMENT,
     };
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   });
 
 g.test('begin_render_pass_single_sampled')
@@ -42,7 +42,7 @@ iff rg11b10ufloat-renderable feature is enabled. Single sampled case.
     t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
   })
   .fn(t => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rg11b10ufloat',
       sampleCount: 1,
@@ -74,13 +74,13 @@ iff rg11b10ufloat-renderable feature is enabled. MSAA and resolve case.
     t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
   })
   .fn(t => {
-    const renderTexture = t.device.createTexture({
+    const renderTexture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rg11b10ufloat',
       sampleCount: 4,
       usage: GPUConst.TextureUsage.RENDER_ATTACHMENT,
     });
-    const resolveTexture = t.device.createTexture({
+    const resolveTexture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rg11b10ufloat',
       sampleCount: 1,

@@ -182,6 +182,11 @@ const kTests = {
     src: `_ = asin(-1.1f);`,
     pass: false,
   },
+
+  must_use: {
+    src: `asin(1);`,
+    pass: false,
+  },
 };
 
 g.test('parameters')

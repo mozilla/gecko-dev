@@ -263,7 +263,7 @@ struct Uniform {
     }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [1, 1, 1],
     format: textureFormat
@@ -374,7 +374,7 @@ fn((t) => {
     }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [1, 1, 1],
     format
@@ -414,7 +414,7 @@ fn((t) => {
     blend: { color: blendComponent, alpha: blendComponent }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [kSize, kSize],
     format
@@ -472,7 +472,7 @@ fn((t) => {
     blend: { color: blendComponent, alpha: blendComponent }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [kSize, kSize],
     format
@@ -524,7 +524,7 @@ fn((t) => {
     blend: { color: blendComponent, alpha: blendComponent }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [kSize, kSize],
     format
@@ -627,7 +627,7 @@ fn((t) => {
     writeMask: mask
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [kSize, kSize],
     format
@@ -683,7 +683,7 @@ fn((t) => {
     writeMask: GPUColorWrite.RED
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [kSize, kSize],
     format
@@ -779,7 +779,7 @@ fn((t) => {
     }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     size: [1, 1, 1],
     format

@@ -98,7 +98,7 @@ g.test('from_ImageData')
       colorSpaceConversion,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: { width, height },
       format: dstFormat,
       usage:
@@ -245,7 +245,7 @@ g.test('from_canvas')
       colorSpaceConversion,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: { width, height },
       format: dstFormat,
       usage:
@@ -363,7 +363,7 @@ g.test('copy_subrect_from_ImageData')
       colorSpaceConversion,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: dstSize,
       format: kColorFormat,
       usage:
@@ -502,7 +502,7 @@ g.test('copy_subrect_from_2D_Canvas')
       colorSpaceConversion,
     });
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       size: dstSize,
       format: kColorFormat,
       usage:

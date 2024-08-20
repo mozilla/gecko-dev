@@ -1,4 +1,4 @@
-/* eslint no-console: "off" */
+/* eslint-disable no-console, n/no-restricted-import */
 
 import * as fs from 'fs';
 import * as http from 'http';

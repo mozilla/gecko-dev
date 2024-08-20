@@ -64,12 +64,12 @@ g.test('stencil_clear_value')
 
     const kSize = [1, 1, 1] as const;
     const colorFormat = 'rgba8unorm';
-    const stencilTexture = t.device.createTexture({
+    const stencilTexture = t.createTextureTracked({
       format: stencilFormat,
       size: kSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
-    const colorTexture = t.device.createTexture({
+    const colorTexture = t.createTextureTracked({
       format: colorFormat,
       size: kSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
@@ -162,11 +162,10 @@ g.test('stencil_clear_value')
     renderPassEncoder.draw(6);
     renderPassEncoder.end();
 
-    const destinationBuffer = t.device.createBuffer({
+    const destinationBuffer = t.createBufferTracked({
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
       size: 4,
     });
-    t.trackForCleanup(destinationBuffer);
     encoder.copyTextureToBuffer(
       {
         texture: stencilTexture,
