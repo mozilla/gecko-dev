@@ -25,7 +25,6 @@
 #include "mozilla/ContentIterator.h"
 #include "mozilla/css/ImageLoader.h"
 #include "mozilla/DisplayPortUtils.h"
-#include "mozilla/layout/LayoutTelemetryTools.h"
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -4368,7 +4367,6 @@ void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
     AutoProfilerStyleMarker tracingStyleFlush(std::move(mStyleCause),
                                               innerWindowID);
     PerfStats::AutoMetricRecording<PerfStats::Metric::Styling> autoRecording;
-    LAYOUT_TELEMETRY_RECORD(Restyle);
 
     mPresContext->RestyleManager()->ProcessPendingRestyles();
     mNeedStyleFlush = false;
@@ -9810,8 +9808,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
   [[maybe_unused]] nsIURI* uri = mDocument->GetDocumentURI();
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_RELEVANT_FOR_JS(
       "Reflow", LAYOUT_Reflow, uri ? uri->GetSpecOrDefault() : "N/A"_ns);
-
-  LAYOUT_TELEMETRY_RECORD(Reflow);
 
   PerfStats::AutoMetricRecording<PerfStats::Metric::Reflowing> autoRecording;
 

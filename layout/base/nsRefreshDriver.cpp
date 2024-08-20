@@ -34,7 +34,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BasePrincipal.h"
-#include "mozilla/layout/LayoutTelemetryTools.h"
 #include "mozilla/dom/MediaQueryList.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DisplayPortUtils.h"
@@ -2810,8 +2809,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   }
 
   UpdateAnimatedImages(previousRefresh, aNowTime);
-
-  layout_telemetry::PingPerTickTelemetry();
 
   bool dispatchTasksAfterTick = false;
   if (mViewManagerFlushIsPending && !mThrottled) {
