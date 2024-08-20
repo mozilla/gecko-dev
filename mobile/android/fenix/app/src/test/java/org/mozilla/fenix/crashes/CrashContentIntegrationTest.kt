@@ -12,6 +12,8 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
@@ -142,6 +144,38 @@ class CrashContentIntegrationTest {
         integration.start()
         appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { integration.updateVerticalMargins() }
+    }
+
+    @Test
+    fun `GIVEN inegration was stopped and then restarted WHEN orientation state changes THEN margins are updated`() {
+        val crashReporterLayoutParams: MarginLayoutParams = mockk(relaxed = true)
+        val crashReporterView: CrashContentView = mockk(relaxed = true) {
+            every { layoutParams } returns crashReporterLayoutParams
+        }
+        val integration = spyk(
+            CrashContentIntegration(
+                context = testContext,
+                browserStore = browserStore,
+                appStore = appStore,
+                toolbar = mockk(),
+                crashReporterView = crashReporterView,
+                components = mockk(),
+                settings = settings,
+                navController = mockk(),
+                sessionId = sessionId,
+            ),
+        )
+        val scopeTwo = TestScope()
+        integration.scope = scopeTwo
+
+        integration.start()
+        integration.stop()
+        integration.start()
+        appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
+        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
+        scopeTwo.advanceUntilIdle()
 
         verify { integration.updateVerticalMargins() }
     }

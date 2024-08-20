@@ -57,48 +57,51 @@ class CrashContentIntegration(
     private val sessionId: String?,
 ) : LifecycleAwareFeature {
 
-    private val scope: CoroutineScope = MainScope()
+    @VisibleForTesting
+    lateinit var scope: CoroutineScope
 
     override fun start() {
-        scope.launch {
-            browserStore.flow()
-                .mapNotNull { state -> state.findTabOrCustomTabOrSelectedTab(sessionId) }
-                .distinctUntilChangedBy { tab -> tab.engineState.crashed }
-                .collect { tab ->
-                    if (tab.engineState.crashed) {
-                        toolbar.expand()
+        scope = MainScope().apply {
+            launch {
+                browserStore.flow()
+                    .mapNotNull { state -> state.findTabOrCustomTabOrSelectedTab(sessionId) }
+                    .distinctUntilChangedBy { tab -> tab.engineState.crashed }
+                    .collect { tab ->
+                        if (tab.engineState.crashed) {
+                            toolbar.expand()
 
-                        crashReporterView.apply {
-                            val controller = CrashReporterController(
-                                sessionId = tab.id,
-                                currentNumberOfTabs = if (tab.content.private) {
-                                    browserStore.state.privateTabs.size
-                                } else {
-                                    browserStore.state.normalTabs.size
-                                },
-                                components = components,
-                                settings = settings,
-                                navController = navController,
-                                appStore = appStore,
-                            )
+                            crashReporterView.apply {
+                                val controller = CrashReporterController(
+                                    sessionId = tab.id,
+                                    currentNumberOfTabs = if (tab.content.private) {
+                                        browserStore.state.privateTabs.size
+                                    } else {
+                                        browserStore.state.normalTabs.size
+                                    },
+                                    components = components,
+                                    settings = settings,
+                                    navController = navController,
+                                    appStore = appStore,
+                                )
 
-                            show(controller)
+                                show(controller)
 
-                            updateVerticalMargins()
+                                updateVerticalMargins()
+                            }
+                        } else {
+                            crashReporterView.hide()
                         }
-                    } else {
-                        crashReporterView.hide()
                     }
-                }
-        }
+            }
 
-        scope.launch {
-            appStore.flow()
-                .distinctUntilChangedBy { it.orientation }
-                .map { it.orientation }
-                .collect {
-                    updateVerticalMargins()
-                }
+            launch {
+                appStore.flow()
+                    .distinctUntilChangedBy { it.orientation }
+                    .map { it.orientation }
+                    .collect {
+                        updateVerticalMargins()
+                    }
+            }
         }
     }
 
