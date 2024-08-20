@@ -2,17 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 import { RemotePageChild } from "resource://gre/actors/RemotePageChild.sys.mjs";
-
-const lazy = {};
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "@mozilla.org/network/serialization-helper;1",
-  "nsISerializationHelper"
-);
 
 export class AboutHttpsOnlyErrorChild extends RemotePageChild {
   actorCreated() {
