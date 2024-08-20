@@ -132,6 +132,39 @@ class SearchDialogControllerTest {
     }
 
     @Test
+    fun `GIVEN default search engine is selected and homepage as a new tab is enabled WHEN url is committed THEN load the url`() {
+        val url = "https://www.google.com/"
+        assertNull(Events.enteredUrl.testGetValue())
+
+        every { store.state.defaultEngine } returns searchEngine
+        every { settings.enableHomepageAsNewTab } returns true
+        every { store.state.tabId } returns null
+
+        createController().handleUrlCommitted(url)
+
+        browserStore.waitUntilIdle()
+
+        verify {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = url,
+                newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
+                forceSearch = false,
+            )
+        }
+
+        middleware.assertLastAction(AwesomeBarAction.EngagementFinished::class) { action ->
+            assertFalse(action.abandoned)
+        }
+
+        assertNotNull(Events.enteredUrl.testGetValue())
+        val snapshot = Events.enteredUrl.testGetValue()!!
+        assertEquals(1, snapshot.size)
+        assertEquals("false", snapshot.single().extra?.getValue("autocomplete"))
+    }
+
+    @Test
     fun `GIVEN a general search engine is selected WHEN url is committed THEN perform search`() {
         val url = "https://www.google.com/"
         assertNull(Events.enteredUrl.testGetValue())
@@ -185,6 +218,32 @@ class SearchDialogControllerTest {
     @Test
     fun handleSearchCommitted() {
         val searchTerm = "Firefox"
+
+        createController().handleUrlCommitted(searchTerm)
+
+        browserStore.waitUntilIdle()
+
+        verify {
+            activity.openToBrowserAndLoad(
+                searchTermOrURL = searchTerm,
+                newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
+                forceSearch = true,
+            )
+        }
+
+        middleware.assertLastAction(AwesomeBarAction.EngagementFinished::class) { action ->
+            assertFalse(action.abandoned)
+        }
+    }
+
+    @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN search term is committed THEN perform search in the existing tab`() {
+        val searchTerm = "Firefox"
+
+        every { settings.enableHomepageAsNewTab } returns true
+        every { store.state.tabId } returns null
 
         createController().handleUrlCommitted(searchTerm)
 
