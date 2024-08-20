@@ -8259,30 +8259,6 @@
     "releaseChannelCollection": "opt-out",
     "description": "Time (ms) from the Input event being created to the end of it being handled, but with overlapping events coalesced."
   },
-  "INPUT_EVENT_RESPONSE_STARTUP_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "bug_numbers": [1373814],
-    "expires_in_version": "61",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "releaseChannelCollection": "opt-out",
-    "description": "Time (ms) from the Input event being created to the end of it being handled, but with overlapping events coalesced, which happens before the process is ready for interaction."
-  },
-  "INPUT_EVENT_RESPONSE_POST_STARTUP_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "bug_numbers": [1373814],
-    "expires_in_version": "61",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "releaseChannelCollection": "opt-out",
-    "description": "Time (ms) from the Input event being created to the end of it being handled, but with overlapping events coalesced, which happens after the process is ready for interaction."
-  },
   "LOAD_INPUT_EVENT_RESPONSE_MS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -14700,39 +14676,6 @@
     "bug_numbers": [1341531],
     "description": "Time (ms) for the keyboard event to dispatch, but before handlers executing."
   },
-  "INPUT_EVENT_QUEUED_APZ_TOUCH_MOVE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1341531],
-    "description": "Time (ms) for the APZ handled touch move event to dispatch, but before handlers executing."
-  },
-  "INPUT_EVENT_QUEUED_APZ_MOUSE_MOVE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1341531],
-    "description": "Time (ms) for the APZ handled mouse move event to dispatch, but before handlers executing."
-  },
-  "INPUT_EVENT_QUEUED_APZ_WHEEL_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1341531],
-    "description": "Time (ms) for the APZ handled wheel event to dispatch, but before handlers executing."
-  },
   "IPC_SYNC_MESSAGE_MANAGER_LATENCY_MS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -15011,72 +14954,6 @@
     "n_buckets": 100,
     "bug_numbers": [1671729],
     "description": "Time spent in milliseconds calling all request animation frame callbacks for a document before it has reached readystate complete."
-  },
-  "INPUT_EVENT_HANDLED_MOUSE_UP_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the mouse up event spent in handlers."
-  },
-  "INPUT_EVENT_HANDLED_MOUSE_DOWN_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the mouse down event spent in handlers."
-  },
-  "INPUT_EVENT_HANDLED_KEYBOARD_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the keyboard event spent in handlers."
-  },
-  "INPUT_EVENT_HANDLED_APZ_TOUCH_MOVE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the APZ handled touch move event spent in handlers."
-  },
-  "INPUT_EVENT_HANDLED_APZ_MOUSE_MOVE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the APZ handled mouse move event spent in handlers."
-  },
-  "INPUT_EVENT_HANDLED_APZ_WHEEL_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["wpan@mozilla.com"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1345540],
-    "description": "Time (ms) for the APZ handled wheel event spent in handlers."
   },
   "IPC_SYNC_RECEIVE_MS": {
     "record_in_processes": ["main", "content", "gpu"],
