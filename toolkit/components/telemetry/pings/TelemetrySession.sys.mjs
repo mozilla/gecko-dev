@@ -764,11 +764,6 @@ var Impl = {
         reason,
         clearSubsession
       );
-    } catch (ex) {
-      Services.telemetry
-        .getHistogramById("TELEMETRY_ASSEMBLE_PAYLOAD_EXCEPTION")
-        .add(1);
-      throw ex;
     } finally {
       if (!Utils.isContentProcess && clearSubsession) {
         this.startNewSubsession();
