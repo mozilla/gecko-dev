@@ -13,9 +13,12 @@ const nsIFactoryQI = ChromeUtils.generateQI(["nsIFactory"]);
 
 export var ComponentUtils = {
   /**
+   * DEPRECATED!
+   *
    * Generates a singleton nsIFactory implementation that can be used as
    * an argument to nsIComponentRegistrar.registerFactory.
-   * @param aServiceConstructor
+   *
+   * @param {Function} aServiceConstructor
    *        Constructor function of the component.
    */
   generateSingletonFactory(aServiceConstructor) {

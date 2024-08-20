@@ -343,7 +343,7 @@ const rollouts = [
       "gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
       "image/test/**",
       "intl/**",
-      "js/xpconnect/**",
+      "js/xpconnect/tests/**",
       "layout/**",
       "mobile/android/**",
       "mobile/shared/**",

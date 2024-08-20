@@ -63,6 +63,7 @@ js_source_path = [
     "../browser/components/migration/content",
     "../browser/components/uitour",
     "../browser/components/urlbar",
+    "../js/xpconnect/loader",
     "../remote/marionette",
     "../testing/mochitest/BrowserTestUtils",
     "../testing/mochitest/tests/SimpleTest/SimpleTest.js",

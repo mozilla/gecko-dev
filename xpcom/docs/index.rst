@@ -3,6 +3,10 @@ XPCOM
 
 These pages contain documentation for Mozilla's Cross-Platform Component Object Model (XPCOM) module.  It abstracts core systems functionality for cross-platform use.  The component architecture follows the standard COM approach.
 
+
+Consuming XPCOM functionality
+-----------------------------
+
 .. toctree::
    :maxdepth: 1
 
@@ -10,11 +14,26 @@ These pages contain documentation for Mozilla's Cross-Platform Component Object 
    stringguide
    refptr
    thread-safety
-   huntingleaks
    collections
-   sorting.md
-   xpidl
-   writing-xpcom-interface
    hashtables
    hashtables_detailed
+   sorting.md
+   xpcomutils
+
+Tooling around XPCOM
+--------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   huntingleaks
+
+Writing new XPCOM interfaces/classes
+------------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   xpidl
+   writing-xpcom-interface
    cc-macros
