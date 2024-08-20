@@ -200,6 +200,11 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="browser_menu_stop">Seḥbes</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Isiɣzaf</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Err-it %s d ayla-k·m</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Issin ugar</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Sefrek isiɣzaf</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -256,6 +261,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Sagen timeẓri n tɣuri</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Sagen timeẓri n tɣuri</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Rnu</string>
 
@@ -283,6 +290,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Ddu ɣer usmel n tnarit</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Uɣal ɣer usmel aziraz</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ifecka</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -306,6 +315,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="browser_menu_translated_to">Suqqel ɣer %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Siggez…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Ffeɣ si %1$s</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -431,7 +444,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="juno_onboarding_sign_in_title_2">Mmesten iman-ik s ttawil n uwgelhen mi ara tɛeddiḍ seg yibenk ɣer wayeḍ</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Mi ara teqqneḍ rnu ad tremdeḍ amtawi, taɣellist tettwaseǧhed. Firefox yettwgelhin awalen-ik uffiren, ticraḍ n yisebtar, akked wayen niḍen.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Mi ara teqqneḍ rnu ad tremdeḍ amtawi, taɣellist tettwaseǧhed. Firefox yettwgelhin awalen-ik uffiren, ticraḍ n yisebtar, akked wayen niḍen.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox ittewgelhin awalen uffiren, ticraḍ n yisebtar, d wugar mi ara tremdeḍ amtawi.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Kcem</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1106,7 +1122,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Isem n tegrumma</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Senfel isem</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Senfel isem</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Kkes</string>
 
@@ -1238,6 +1254,17 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Sekcem awalen n unadi</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Inig ar deffir</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Rnu akaram amaynut</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Mdel ticraḍ n yisebtar</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Nadi ticraḍ n yisebtar</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Umuɣ n yiferdisen i %s</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2198,8 +2225,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="top_sites_rename_dialog_title">Isem</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Isem n ugezum</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL n yinegzumen</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">IH</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">IH</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Sefsex</string>
 
@@ -2209,6 +2238,17 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="top_sites_menu_sponsor_privacy">Wid yettbeddan fell-aɣ akked tudert-ik tabaḍnit</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">S lmendad</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Ẓreg</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Ẓreg anegzum</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Sekles</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Sekcem tansa URL tameɣtut</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2416,7 +2456,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Ldi amsenqad n tamawt</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Ldi amsenqad n tamawt</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2613,7 +2653,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Sader tutlayin</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Sader tutlayin</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Sader tutlayin</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Sader tutlayin tummidin i wakken ad tesεuḍ tisuqilin s zzerb, ad tsuqleḍ deg uskar war uqqin. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2673,12 +2715,12 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Sefsex asader n %1$s?</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Sefsex asader n %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Ih</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ih</string>
 
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Ala</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ala</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2759,8 +2801,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="micro_survey_privacy_notice_2">Tasertit n tbaḍnit</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Azen</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Mdel</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Aḥedqis yemmed</string>
     <!-- The survey completion confirmation text -->
@@ -2780,11 +2820,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ur t-sseqdaceɣ ara</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ɛawen-aɣ ad nesnerni asiggez deg Firefox. Aya ad yeṭṭef cwiṭ kan n wakud</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Tumreḍ s usiggez deg Firefox?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Alugu Firefox</string>
@@ -2818,4 +2860,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="exit_fullscreen_with_gesture">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen seqdec asilif n tuɣalin</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen sit ɣef uɣal</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
 </resources>
