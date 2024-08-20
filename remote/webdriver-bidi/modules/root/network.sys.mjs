@@ -1644,23 +1644,7 @@ class NetworkModule extends RootBiDiModule {
       return;
     }
 
-    const internalEventName = "network._beforeRequestSent";
     const protocolEventName = "network.beforeRequestSent";
-
-    // Always emit internal events, they are used to support the browsingContext
-    // navigate command.
-    // Bug 1861922: Replace internal events with a Network listener helper
-    // directly using the NetworkObserver.
-    const eventPayload = {
-      navigation: request.navigationId,
-      url: request.serializedURL,
-    };
-
-    this._emitEventForBrowsingContext(
-      browsingContext.id,
-      internalEventName,
-      eventPayload
-    );
 
     const isListening = this._hasListener(protocolEventName, {
       contextId: request.contextId,
@@ -1727,23 +1711,7 @@ class NetworkModule extends RootBiDiModule {
       return;
     }
 
-    const internalEventName = "network._fetchError";
     const protocolEventName = "network.fetchError";
-
-    // Always emit internal events, they are used to support the browsingContext
-    // navigate command.
-    // Bug 1861922: Replace internal events with a Network listener helper
-    // directly using the NetworkObserver.
-    const eventPayload = {
-      navigation: request.navigationId,
-      url: request.serializedURL,
-    };
-
-    this._emitEventForBrowsingContext(
-      browsingContext.id,
-      internalEventName,
-      eventPayload
-    );
 
     const isListening = this._hasListener(protocolEventName, {
       contextId: request.contextId,
@@ -1787,26 +1755,6 @@ class NetworkModule extends RootBiDiModule {
       name === "response-started"
         ? "network.responseStarted"
         : "network.responseCompleted";
-
-    const internalEventName =
-      name === "response-started"
-        ? "network._responseStarted"
-        : "network._responseCompleted";
-
-    // Always emit internal events, they are used to support the browsingContext
-    // navigate command.
-    // Bug 1861922: Replace internal events with a Network listener helper
-    // directly using the NetworkObserver.
-    const eventPayload = {
-      navigation: request.navigationId,
-      url: request.serializedURL,
-    };
-
-    this._emitEventForBrowsingContext(
-      browsingContext.id,
-      internalEventName,
-      eventPayload
-    );
 
     const isListening = this._hasListener(protocolEventName, {
       contextId: request.contextId,

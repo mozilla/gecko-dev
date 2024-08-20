@@ -1590,73 +1590,6 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    // If WaitCondition is Complete, we should try to wait for the corresponding
-    // responseCompleted event to be received.
-    let onNavigationRequestCompleted;
-
-    // However, a navigation will not necessarily have network events.
-    // For instance: same document navigation, or when using file or data
-    // protocols (for which we don't have network events yet).
-    // Therefore we will not unconditionally wait for a navigation request and
-    // this flag should only be set when a responseCompleted event should be
-    // expected.
-    let shouldWaitForNavigationRequest = false;
-
-    // Cleaning up the listeners will be done at the end of this method.
-    let unsubscribeNavigationListeners;
-
-    if (wait === WaitCondition.Complete) {
-      let resolveOnNetworkEvent;
-      onNavigationRequestCompleted = new Promise(
-        r => (resolveOnNetworkEvent = r)
-      );
-      const onBeforeRequestSent = (name, data) => {
-        if (data.navigation) {
-          shouldWaitForNavigationRequest = true;
-        }
-      };
-      const onNetworkRequestCompleted = (name, data) => {
-        if (data.navigation) {
-          resolveOnNetworkEvent();
-        }
-      };
-
-      // The network request can either end with _responseCompleted or _fetchError
-      await this.messageHandler.eventsDispatcher.on(
-        "network._beforeRequestSent",
-        contextDescriptor,
-        onBeforeRequestSent
-      );
-      await this.messageHandler.eventsDispatcher.on(
-        "network._responseCompleted",
-        contextDescriptor,
-        onNetworkRequestCompleted
-      );
-      await this.messageHandler.eventsDispatcher.on(
-        "network._fetchError",
-        contextDescriptor,
-        onNetworkRequestCompleted
-      );
-
-      unsubscribeNavigationListeners = async () => {
-        await this.messageHandler.eventsDispatcher.off(
-          "network._beforeRequestSent",
-          contextDescriptor,
-          onBeforeRequestSent
-        );
-        await this.messageHandler.eventsDispatcher.off(
-          "network._responseCompleted",
-          contextDescriptor,
-          onNetworkRequestCompleted
-        );
-        await this.messageHandler.eventsDispatcher.off(
-          "network._fetchError",
-          contextDescriptor,
-          onNetworkRequestCompleted
-        );
-      };
-    }
-
     const navigationId = lazy.registerNavigationId({
       contextDetails: { context: webProgress.browsingContext },
     });
@@ -1665,10 +1598,6 @@ class BrowsingContextModule extends RootBiDiModule {
     try {
       await startNavigationFn();
       await navigated;
-
-      if (shouldWaitForNavigationRequest) {
-        await onNavigationRequestCompleted;
-      }
 
       let url;
       if (wait === WaitCondition.None) {
@@ -1694,11 +1623,6 @@ class BrowsingContextModule extends RootBiDiModule {
           contextDescriptor,
           onDocumentInteractive
         );
-      } else if (
-        wait === WaitCondition.Complete &&
-        shouldWaitForNavigationRequest
-      ) {
-        await unsubscribeNavigationListeners();
       }
     }
   }
