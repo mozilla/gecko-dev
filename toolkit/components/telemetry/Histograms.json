@@ -14391,30 +14391,6 @@
     "n_buckets": 50,
     "description": "The number of milliseconds we spend waiting for the GPU"
   },
-  "NARRATE_CONTENT_BY_LANGUAGE_2": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["eisaacson@mozilla.com"],
-    "bug_numbers": [1308030, 1324868, 1532821],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "72",
-    "kind": "enumerated",
-    "keyed": true,
-    "n_values": 4,
-    "description": "Number of Narrate initialization attempts and successes broken up by content's language (ISO 639-1 code) (0 = initialization attempt, 1 = successfully initialized)"
-  },
-  "NARRATE_CONTENT_SPEAKTIME_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["eisaacson@mozilla.com"],
-    "bug_numbers": [1308030, 1532821],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "72",
-    "kind": "linear",
-    "high": 300000,
-    "n_buckets": 30,
-    "description": "Time in MS that content is narrated in 10 second increments up to 5 minutes"
-  },
   "TABCHILD_PAINT_TIME": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],

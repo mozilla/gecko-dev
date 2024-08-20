@@ -278,26 +278,6 @@ NarrateControls.prototype = {
       }
 
       let narrateToggle = win.document.querySelector(".narrate-toggle");
-      let histogram = Services.telemetry.getKeyedHistogramById(
-        "NARRATE_CONTENT_BY_LANGUAGE_2"
-      );
-      let initial = !this._voicesInitialized;
-      this._voicesInitialized = true;
-
-      // if language is null, re-assign it to "unknown-language"
-      if (language == null) {
-        language = "unknown-language";
-      }
-
-      if (initial) {
-        histogram.add(language, 0);
-      }
-
-      if (options.length && narrateToggle.hidden) {
-        // About to show for the first time..
-        histogram.add(language, 1);
-      }
-
       // We disable this entire feature if there are no available voices.
       narrateToggle.hidden = !options.length;
     });
@@ -340,7 +320,6 @@ NarrateControls.prototype = {
         this.narrator.stop();
       } else {
         this._updateSpeechControls(true);
-        TelemetryStopwatch.start("NARRATE_CONTENT_SPEAKTIME_MS", this);
         let options = { rate: this.rate, voice: this.voice };
         this.narrator
           .start(options)
@@ -349,7 +328,6 @@ NarrateControls.prototype = {
           })
           .then(() => {
             this._updateSpeechControls(false);
-            TelemetryStopwatch.finish("NARRATE_CONTENT_SPEAKTIME_MS", this);
           });
       }
     }
