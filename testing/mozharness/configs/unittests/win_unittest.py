@@ -314,7 +314,7 @@ config = {
             ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,
-            "enabled": True,
+            "enabled": False,
         },
         {
             "name": "ensure proper graphics driver",
