@@ -31,12 +31,6 @@ const TEST_FAILED_VIDEO = 2;
 const TEST_CRASHED = 3;
 const TEST_TIMEOUT = 4;
 
-// GRAPHICS_SANITY_TEST_REASON enumeration values.
-const REASON_FIRST_RUN = 0;
-const REASON_FIREFOX_CHANGED = 1;
-const REASON_DEVICE_CHANGED = 2;
-const REASON_DRIVER_CHANGED = 3;
-
 function testPixel(ctx, x, y, r, g, b, a, fuzz) {
   var data = ctx.getImageData(x, y, 1, 1);
 
@@ -59,13 +53,6 @@ function reportResult(val) {
 
   Services.prefs.setBoolPref(RUNNING_PREF, false);
   Services.prefs.savePrefFile(null);
-}
-
-function reportTestReason(val) {
-  let histogram = Services.telemetry.getHistogramById(
-    "GRAPHICS_SANITY_TEST_REASON"
-  );
-  histogram.add(val);
 }
 
 function annotateCrashReport() {
@@ -338,13 +325,12 @@ SanityTest.prototype = {
       return false;
     }
 
-    function checkPref(pref, value, reason) {
+    function checkPref(pref, value) {
       let prefValue;
       let prefType = Services.prefs.getPrefType(pref);
 
       switch (prefType) {
         case Ci.nsIPrefBranch.PREF_INVALID:
-          reportTestReason(REASON_FIRST_RUN);
           return false;
 
         case Ci.nsIPrefBranch.PREF_STRING:
@@ -363,23 +349,14 @@ SanityTest.prototype = {
           throw new Error("Unexpected preference type.");
       }
 
-      if (prefValue != value) {
-        reportTestReason(reason);
-        return false;
-      }
-
-      return true;
+      return prefValue == value;
     }
 
     // TODO: Handle dual GPU setups
     if (
-      checkPref(
-        DRIVER_PREF,
-        gfxinfo.adapterDriverVersion,
-        REASON_DRIVER_CHANGED
-      ) &&
-      checkPref(DEVICE_PREF, gfxinfo.adapterDeviceID, REASON_DEVICE_CHANGED) &&
-      checkPref(VERSION_PREF, buildId, REASON_FIREFOX_CHANGED)
+      checkPref(DRIVER_PREF, gfxinfo.adapterDriverVersion) &&
+      checkPref(DEVICE_PREF, gfxinfo.adapterDeviceID) &&
+      checkPref(VERSION_PREF, buildId)
     ) {
       return false;
     }
