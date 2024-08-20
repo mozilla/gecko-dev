@@ -14,6 +14,7 @@
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "nsContentUtils.h"
+#include "nsIScriptObjectPrincipal.h"
 
 #ifdef MOZ_WMF_CDM
 #  include "mozilla/PMFCDM.h"
@@ -256,6 +257,24 @@ void DeprecationWarningLog(const dom::Document* aDocument,
   nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "Media"_ns,
                                   aDocument, nsContentUtils::eDOM_PROPERTIES,
                                   aMsgName, params);
+}
+
+Maybe<nsCString> GetOrigin(const dom::Document* aDocument) {
+  if (!aDocument) {
+    return Nothing();
+  }
+  nsCOMPtr<nsIScriptObjectPrincipal> sop =
+      do_QueryInterface(aDocument->GetInnerWindow());
+  if (!sop) {
+    return Nothing();
+  }
+  auto* principal = sop->GetPrincipal();
+  nsAutoCString origin;
+  nsresult rv = principal->GetOrigin(origin);
+  if (NS_FAILED(rv)) {
+    return Nothing();
+  }
+  return Some(origin);
 }
 
 }  // namespace mozilla
