@@ -142,19 +142,6 @@ void nsDOMNavigationTiming::NotifyLoadEventStart() {
 
     glean::performance_time::load_event_start.AccumulateRawDuration(
         now - mNavigationStart);
-
-    if (mDocShellHasBeenActiveSinceNavigationStart) {
-      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(
-              mNavigationStart)) {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_NETOPT_MS,
-            mNavigationStart, now);
-      } else {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_MS, mNavigationStart,
-            now);
-      }
-    }
   }
 }
 
@@ -250,19 +237,6 @@ void nsDOMNavigationTiming::NotifyDOMContentLoadedStart(nsIURI* aURI) {
 
     glean::performance_time::dom_content_loaded_start.AccumulateRawDuration(
         now - mNavigationStart);
-
-    if (mDocShellHasBeenActiveSinceNavigationStart) {
-      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(
-              mNavigationStart)) {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_NETOPT_MS,
-            mNavigationStart, now);
-      } else {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_MS,
-            mNavigationStart, now);
-      }
-    }
   }
 }
 
@@ -415,16 +389,6 @@ void nsDOMNavigationTiming::NotifyNonBlankPaintForRootContentDocument() {
   }
 
   if (mDocShellHasBeenActiveSinceNavigationStart) {
-    if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(mNavigationStart)) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::TIME_TO_NON_BLANK_PAINT_NETOPT_MS, mNavigationStart,
-          mNonBlankPaint);
-    } else {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::TIME_TO_NON_BLANK_PAINT_NO_NETOPT_MS, mNavigationStart,
-          mNonBlankPaint);
-    }
-
     glean::performance_page::non_blank_paint.AccumulateRawDuration(
         mNonBlankPaint - mNavigationStart);
   }
