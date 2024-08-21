@@ -65,14 +65,7 @@ module.exports = {
     "property-no-unknown": [
       true,
       {
-        ignoreProperties: [
-          // overflow-clip-box is Gecko-specific and not exposed to web
-          // content. Might be replaced with overflow-clip-margin, see:
-          // https://github.com/w3c/csswg-drafts/issues/10745
-          "overflow-clip-box",
-          "overflow-clip-box-block",
-          "overflow-clip-box-inline",
-        ],
+        ignoreProperties: ["overflow-clip-box"],
       },
     ],
 

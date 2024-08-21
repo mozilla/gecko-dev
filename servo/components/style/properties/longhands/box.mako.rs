@@ -151,7 +151,7 @@ ${helpers.single_keyword(
         "OverflowClipBox",
         "computed::OverflowClipBox::PaddingBox",
         engines="gecko",
-        enabled_in="chrome",
+        enabled_in="ua",
         gecko_pref="layout.css.overflow-clip-box.enabled",
         animation_type="discrete",
         spec="Internal, may be standardized in the future: \

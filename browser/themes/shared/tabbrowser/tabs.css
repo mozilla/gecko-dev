@@ -736,7 +736,9 @@ tab-group {
     transition: opacity 150ms ease;
   }
 
-  &::part(scrollbox) {
+  &::part(scrollbox-clip) {
+    /* Needed to prevent tabstrip from growing as wide as the sum of the tabs'
+       page-title widths when emulating XUL with modern flexbox. */
     contain: inline-size;
   }
 
@@ -761,14 +763,14 @@ tab-group {
     background-color: SelectedItem;
   }
 
-  &:not([scrolledtostart])::part(scrollbutton-up):hover,
-  &:not([scrolledtoend])::part(scrollbutton-down):hover {
+  &:not([scrolledtostart=true])::part(scrollbutton-up):hover,
+  &:not([scrolledtoend=true])::part(scrollbutton-down):hover {
     background-color: var(--toolbarbutton-hover-background);
     color: inherit;
   }
 
-  &:not([scrolledtostart])::part(scrollbutton-up):hover:active,
-  &:not([scrolledtoend])::part(scrollbutton-down):hover:active {
+  &:not([scrolledtostart=true])::part(scrollbutton-up):hover:active,
+  &:not([scrolledtoend=true])::part(scrollbutton-down):hover:active {
     background-color: var(--toolbarbutton-active-background);
     color: inherit;
   }
@@ -789,12 +791,12 @@ tab-group {
     overflow-y: auto;
   }
 
-  &[overflowing]:not([scrolledtoend]) {
+  &[overflowing="true"]:not([scrolledtoend="true"]) {
     mask-image: linear-gradient(to bottom, black 98%, transparent 100%);
   }
 }
 
-#tabbrowser-tabs[orient="vertical"]:has(> #tabbrowser-arrowscrollbox[overflowing]) {
+#tabbrowser-tabs[orient="vertical"]:has(> #tabbrowser-arrowscrollbox[overflowing="true"]) {
   border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
 }
 

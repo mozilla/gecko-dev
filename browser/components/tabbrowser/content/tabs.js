@@ -1243,14 +1243,16 @@
     _initializeArrowScrollbox() {
       let arrowScrollbox = this.arrowScrollbox;
       let previewElement = document.getElementById("tab-preview-panel");
-      arrowScrollbox.addEventListener(
+      arrowScrollbox.shadowRoot.addEventListener(
         "underflow",
         event => {
           // Ignore underflow events:
           // - from nested scrollable elements
+          // - for vertical orientation
           // - corresponding to an overflow event that we ignored
           if (
-            event.target != arrowScrollbox ||
+            event.originalTarget != arrowScrollbox.scrollbox ||
+            event.detail == 0 ||
             !this.hasAttribute("overflow")
           ) {
             return;
@@ -1273,12 +1275,13 @@
         true
       );
 
-      arrowScrollbox.addEventListener("overflow", event => {
+      arrowScrollbox.shadowRoot.addEventListener("overflow", event => {
         // Ignore overflow events:
         // - from nested scrollable elements
         // - for vertical orientation
         if (
-          event.target != arrowScrollbox ||
+          event.originalTarget != arrowScrollbox.scrollbox ||
+          event.detail == 0 ||
           event.originalTarget.getAttribute("orient") == "vertical"
         ) {
           return;

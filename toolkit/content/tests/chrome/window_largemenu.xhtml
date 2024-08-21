@@ -43,18 +43,14 @@ function getScreenXY(element)
   return [screenX, screenY];
 }
 
-function nextFrame() {
-  return new Promise(r => {
-    requestAnimationFrame(() => {
-      setTimeout(r, 0);
+function hidePopup() {
+  window.requestAnimationFrame(
+    function() {
+      setTimeout(
+        function() {
+          document.getElementById("popup").hidePopup();
+        }, 0);
     });
-  });
-}
-
-async function hidePopup(popup = document.getElementById("popup")) {
-  info(`Hiding ${popup.id}`);
-  await nextFrame();
-  popup.hidePopup();
 }
 
 function runTests()
@@ -63,8 +59,10 @@ function runTests()
   nextTest();
 }
 
-async function nextTest()
+function nextTest()
 {
+  gOverflowed = false; gUnderflowed = false;
+
   var y = screen.height;
   if (gTestIndex == 1) // open with bottom overlap test:
     y -= 100;
@@ -87,19 +85,15 @@ async function nextTest()
       popup.removeChild(popup.lastChild);
   }
 
-  await nextFrame();
-
-  gOverflowed = false; gUnderflowed = false;
-  popup.openPopupAtScreen(100, y, false);
+  window.requestAnimationFrame(function() {
+    setTimeout(
+      function() {
+        popup.openPopupAtScreen(100, y, false);
+      }, 0);
+  });
 }
 
-async function popupShown() {
-  // This is needed for overflow events to run.
-  await nextFrame();
-  startTest();
-}
-
-function startTest()
+function popupShown()
 {
   if (gTests[gTestIndex] == "menu movement")
     return testPopupMovement();
@@ -154,8 +148,7 @@ function startTest()
     expectedScrollPos = 40;
   }
   else if (gTestIndex == 3) {
-    // 40 + scroll arrow top margin.
-    expectedScrollPos = 56;
+    expectedScrollPos = 40;
     if (scrollbox.scrollTop != expectedScrollPos) {
       // TODO(bug 1815608): This never worked on Wayland, but regressed with flexbox emulation.
       todo_is(scrollbox.scrollTop, expectedScrollPos, "menu scroll position after reopening large menu should not reset");
@@ -214,10 +207,8 @@ function popupHidden()
   if (gTestIndex == gTests.length) {
     window.arguments[0].SimpleTest.finish();
     window.close();
-    return;
   }
-  info("test: " + gTests[gTestIndex]);
-  if (gTests[gTestIndex] == "context menu enough space below") {
+  else if (gTests[gTestIndex] == "context menu enough space below") {
     gContextMenuTests = true;
     moveWindowTo(window.screenX, screen.availTop + 10,
       () => synthesizeMouse(document.getElementById("label"), 4, 4, { type: "contextmenu", button: 2 }));
@@ -403,7 +394,7 @@ function testPopupMovement()
   is(popup.getAttribute("left"), null, gTests[gTestIndex] + " left is not set after moving to -1");
   is(popup.getAttribute("top"), null, gTests[gTestIndex] + " top is not set after moving to -1");
 
-  hidePopup(popup);
+  popup.hidePopup();
 }
 
 function platformIsMac()
