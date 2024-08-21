@@ -1818,12 +1818,9 @@ void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
 
 void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register value = ToRegister(lir->value());
-  Register64 temp1 = ToRegister64(lir->temp1());
+  Register64 value = ToRegister64(lir->value());
 
   Scalar::Type writeType = lir->mir()->writeType();
-
-  masm.loadBigInt64(value, temp1);
 
   // NOTE: the generated code must match the assembly code in gen_store in
   // GenerateAtomicOperations.py
@@ -1832,11 +1829,11 @@ void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {
   masm.memoryBarrierBefore(sync);
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), writeType);
-    masm.store64(temp1, dest);
+    masm.store64(value, dest);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(writeType));
-    masm.store64(temp1, dest);
+    masm.store64(value, dest);
   }
   masm.memoryBarrierAfter(sync);
 }

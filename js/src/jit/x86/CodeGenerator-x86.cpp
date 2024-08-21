@@ -129,27 +129,22 @@ void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
 
 void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register value = ToRegister(lir->value());
-  Register64 temp1 = ToRegister64(lir->temp1());
-  Register64 temp2 = Register64(value, ToRegister(lir->tempLow()));
+  Register64 value = ToRegister64(lir->value());
+  Register64 temp = ToRegister64(lir->temp());
 
-  MOZ_ASSERT(temp1 == Register64(ecx, ebx));
-  MOZ_ASSERT(temp2 == Register64(edx, eax));
+  MOZ_ASSERT(value == Register64(ecx, ebx));
+  MOZ_ASSERT(temp == Register64(edx, eax));
 
   Scalar::Type writeType = lir->mir()->writeType();
 
-  masm.loadBigInt64(value, temp1);
-
-  masm.push(value);
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), writeType);
-    masm.atomicStore64(Synchronization::Store(), dest, temp1, temp2);
+    masm.atomicStore64(Synchronization::Store(), dest, value, temp);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(writeType));
-    masm.atomicStore64(Synchronization::Store(), dest, temp1, temp2);
+    masm.atomicStore64(Synchronization::Store(), dest, value, temp);
   }
-  masm.pop(value);
 }
 
 void CodeGenerator::visitCompareExchangeTypedArrayElement64(

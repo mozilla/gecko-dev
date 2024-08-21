@@ -965,11 +965,11 @@ void LIRGeneratorARM::lowerAtomicStore64(MStoreUnboxedScalar* ins) {
   LUse elements = useRegister(ins->elements());
   LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->writeType());
-  LAllocation value = useRegister(ins->value());
-  LInt64Definition temp1 = tempInt64Fixed(Register64(IntArgReg1, IntArgReg0));
-  LInt64Definition temp2 = tempInt64Fixed(Register64(IntArgReg3, IntArgReg2));
+  LInt64Allocation value =
+      useInt64Fixed(ins->value(), Register64(IntArgReg1, IntArgReg0));
+  LInt64Definition temp = tempInt64Fixed(Register64(IntArgReg3, IntArgReg2));
 
-  add(new (alloc()) LAtomicStore64(elements, index, value, temp1, temp2), ins);
+  add(new (alloc()) LAtomicStore64(elements, index, value, temp), ins);
 }
 
 void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {

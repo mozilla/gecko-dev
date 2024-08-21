@@ -2187,10 +2187,13 @@
   num_temps: 1
   mir_op: true
 
-- name: StoreUnboxedBigInt
+- name: StoreUnboxedInt64
   gen_boilerplate: false
 
 - name: StoreDataViewElement
+  gen_boilerplate: false
+
+- name: StoreDataViewElement64
   gen_boilerplate: false
 
 - name: StoreTypedArrayElementHole
@@ -2202,7 +2205,7 @@
   num_temps: 1
   mir_op: true
 
-- name: StoreTypedArrayElementHoleBigInt
+- name: StoreTypedArrayElementHoleInt64
   gen_boilerplate: false
 
 - name: AtomicIsLockFree

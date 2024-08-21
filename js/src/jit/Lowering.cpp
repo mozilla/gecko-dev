@@ -4780,7 +4780,7 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float64,
                   ins->value()->type() == MIRType::Double);
   } else if (ins->isBigIntWrite()) {
-    MOZ_ASSERT(ins->value()->type() == MIRType::BigInt);
+    MOZ_ASSERT(ins->value()->type() == MIRType::Int64);
   } else {
     MOZ_ASSERT(ins->value()->type() == MIRType::Int32);
   }
@@ -4795,13 +4795,17 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
   LUse elements = useRegister(ins->elements());
   LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->writeType());
-  LAllocation value;
+
+  if (ins->isBigIntWrite()) {
+    LInt64Allocation value = useInt64Register(ins->value());
+    add(new (alloc()) LStoreUnboxedInt64(elements, index, value), ins);
+    return;
+  }
 
   // For byte arrays, the value has to be in a byte register on x86.
+  LAllocation value;
   if (ins->isByteWrite()) {
     value = useByteOpRegisterOrNonDoubleConstant(ins->value());
-  } else if (ins->isBigIntWrite()) {
-    value = useRegister(ins->value());
   } else {
     value = useRegisterOrNonDoubleConstant(ins->value());
   }
@@ -4817,24 +4821,21 @@ void LIRGenerator::visitStoreUnboxedScalar(MStoreUnboxedScalar* ins) {
     LMemoryBarrier* fence = new (alloc()) LMemoryBarrier(sync.barrierBefore);
     add(fence, ins);
   }
-  if (!ins->isBigIntWrite()) {
-    // We need a temp register for Float16Array.
-    LDefinition tempDef = LDefinition::BogusTemp();
-    if (ins->writeType() == Scalar::Float16) {
-      tempDef = temp();
-    }
 
-    auto* lir =
-        new (alloc()) LStoreUnboxedScalar(elements, index, value, tempDef);
-    add(lir, ins);
-
-    if (MacroAssembler::StoreRequiresCall(ins->writeType())) {
-      assignSafepoint(lir, ins);
-    }
-  } else {
-    add(new (alloc()) LStoreUnboxedBigInt(elements, index, value, tempInt64()),
-        ins);
+  // We need a temp register for Float16Array.
+  LDefinition tempDef = LDefinition::BogusTemp();
+  if (ins->writeType() == Scalar::Float16) {
+    tempDef = temp();
   }
+
+  auto* lir =
+      new (alloc()) LStoreUnboxedScalar(elements, index, value, tempDef);
+  add(lir, ins);
+
+  if (MacroAssembler::StoreRequiresCall(ins->writeType())) {
+    assignSafepoint(lir, ins);
+  }
+
   if (!sync.isNone()) {
     LMemoryBarrier* fence = new (alloc()) LMemoryBarrier(sync.barrierAfter);
     add(fence, ins);
@@ -4854,24 +4855,37 @@ void LIRGenerator::visitStoreDataViewElement(MStoreDataViewElement* ins) {
     MOZ_ASSERT_IF(ins->writeType() == Scalar::Float64,
                   ins->value()->type() == MIRType::Double);
   } else if (ins->isBigIntWrite()) {
-    MOZ_ASSERT(ins->value()->type() == MIRType::BigInt);
+    MOZ_ASSERT(ins->value()->type() == MIRType::Int64);
   } else {
     MOZ_ASSERT(ins->value()->type() == MIRType::Int32);
   }
 
   LUse elements = useRegister(ins->elements());
   LUse index = useRegister(ins->index());
-  LAllocation value;
-  if (ins->isBigIntWrite()) {
-    value = useRegister(ins->value());
-  } else {
-    value = useRegisterOrNonDoubleConstant(ins->value());
-  }
   LAllocation littleEndian = useRegisterOrConstant(ins->littleEndian());
+
+  if (ins->isBigIntWrite()) {
+    LInt64Allocation value = useInt64Register(ins->value());
+#ifdef JS_CODEGEN_X86
+    LInt64Definition temp = LInt64Definition::BogusTemp();
+    if (littleEndian.isConstant()) {
+      temp = tempInt64();
+    }
+#else
+    LInt64Definition temp = tempInt64();
+#endif
+
+    auto* lir = new (alloc())
+        LStoreDataViewElement64(elements, index, value, littleEndian, temp);
+    add(lir, ins);
+    return;
+  }
+
+  LAllocation value = useRegisterOrNonDoubleConstant(ins->value());
 
   LDefinition tempDef = LDefinition::BogusTemp();
   LInt64Definition temp64Def = LInt64Definition::BogusTemp();
-  if (Scalar::byteSize(ins->writeType()) < 8) {
+  if (ins->writeType() != Scalar::Float64) {
     tempDef = temp();
   } else {
     temp64Def = tempInt64();
@@ -4900,7 +4914,7 @@ void LIRGenerator::visitStoreTypedArrayElementHole(
     MOZ_ASSERT_IF(ins->arrayType() == Scalar::Float64,
                   ins->value()->type() == MIRType::Double);
   } else if (ins->isBigIntWrite()) {
-    MOZ_ASSERT(ins->value()->type() == MIRType::BigInt);
+    MOZ_ASSERT(ins->value()->type() == MIRType::Int64);
   } else {
     MOZ_ASSERT(ins->value()->type() == MIRType::Int32);
   }
@@ -4909,33 +4923,36 @@ void LIRGenerator::visitStoreTypedArrayElementHole(
   LAllocation length = useAny(ins->length());
   LAllocation index = useRegister(ins->index());
 
+  if (ins->isBigIntWrite()) {
+    LInt64Allocation value = useInt64Register(ins->value());
+    LDefinition spectreTemp =
+        BoundsCheckNeedsSpectreTemp() ? temp() : LDefinition::BogusTemp();
+
+    auto* lir = new (alloc()) LStoreTypedArrayElementHoleInt64(
+        elements, length, index, value, spectreTemp);
+    add(lir, ins);
+    return;
+  }
+
   // For byte arrays, the value has to be in a byte register on x86.
   LAllocation value;
   if (ins->isByteWrite()) {
     value = useByteOpRegisterOrNonDoubleConstant(ins->value());
-  } else if (ins->isBigIntWrite()) {
-    value = useRegister(ins->value());
   } else {
     value = useRegisterOrNonDoubleConstant(ins->value());
   }
 
-  if (!ins->isBigIntWrite()) {
-    LDefinition tempDef = LDefinition::BogusTemp();
-    if (BoundsCheckNeedsSpectreTemp() || ins->arrayType() == Scalar::Float16) {
-      tempDef = temp();
-    }
+  LDefinition tempDef = LDefinition::BogusTemp();
+  if (BoundsCheckNeedsSpectreTemp() || ins->arrayType() == Scalar::Float16) {
+    tempDef = temp();
+  }
 
-    auto* lir = new (alloc())
-        LStoreTypedArrayElementHole(elements, length, index, value, tempDef);
-    add(lir, ins);
+  auto* lir = new (alloc())
+      LStoreTypedArrayElementHole(elements, length, index, value, tempDef);
+  add(lir, ins);
 
-    if (MacroAssembler::StoreRequiresCall(ins->arrayType())) {
-      assignSafepoint(lir, ins);
-    }
-  } else {
-    auto* lir = new (alloc()) LStoreTypedArrayElementHoleBigInt(
-        elements, length, index, value, tempInt64());
-    add(lir, ins);
+  if (MacroAssembler::StoreRequiresCall(ins->arrayType())) {
+    assignSafepoint(lir, ins);
   }
 }
 

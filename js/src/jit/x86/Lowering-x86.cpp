@@ -324,11 +324,10 @@ void LIRGeneratorX86::lowerAtomicStore64(MStoreUnboxedScalar* ins) {
   LUse elements = useRegister(ins->elements());
   LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->writeType());
-  LAllocation value = useFixed(ins->value(), edx);
-  LInt64Definition temp1 = tempInt64Fixed(Register64(ecx, ebx));
-  LDefinition temp2 = tempFixed(eax);
+  LInt64Allocation value = useInt64Fixed(ins->value(), Register64(ecx, ebx));
+  LInt64Definition temp = tempInt64Fixed(Register64(edx, eax));
 
-  add(new (alloc()) LAtomicStore64(elements, index, value, temp1, temp2), ins);
+  add(new (alloc()) LAtomicStore64(elements, index, value, temp), ins);
 }
 
 void LIRGenerator::visitWasmUnsignedToDouble(MWasmUnsignedToDouble* ins) {

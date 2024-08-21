@@ -102,9 +102,9 @@ void LIRGeneratorMIPS64::lowerAtomicStore64(MStoreUnboxedScalar* ins) {
   LUse elements = useRegister(ins->elements());
   LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->writeType());
-  LAllocation value = useRegister(ins->value());
+  LInt64Allocation value = useInt64Register(ins->value());
 
-  add(new (alloc()) LAtomicStore64(elements, index, value, tempInt64()), ins);
+  add(new (alloc()) LAtomicStore64(elements, index, value), ins);
 }
 
 void LIRGenerator::visitBox(MBox* box) {

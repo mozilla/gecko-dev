@@ -838,15 +838,7 @@ bool StoreUnboxedScalarPolicy::adjustValueInput(TempAllocator& alloc,
                                                 MDefinition* value,
                                                 int valueOperand) {
   if (Scalar::isBigIntType(writeType)) {
-    if (value->type() == MIRType::BigInt) {
-      return true;
-    }
-
-    auto* replace = MToBigInt::New(alloc, value);
-    ins->block()->insertBefore(ins, replace);
-    ins->replaceOperand(valueOperand, replace);
-
-    return replace->typePolicy()->adjustInputs(alloc, replace);
+    return ConvertOperand<MToInt64>(alloc, ins, valueOperand, MIRType::Int64);
   }
 
   MDefinition* curValue = value;
