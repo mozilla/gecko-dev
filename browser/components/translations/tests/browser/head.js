@@ -13,8 +13,9 @@ Services.scriptloader.loadSubScript(
  *
  * @param {string} url
  */
-async function addTab(url) {
+async function addTab(url, message) {
   logAction(url);
+  info(message);
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     url,
@@ -24,6 +25,37 @@ async function addTab(url) {
     tab,
     removeTab() {
       BrowserTestUtils.removeTab(tab);
+    },
+    /**
+     * Runs a callback in the content page. The function's contents are serialized as
+     * a string, and run in the page. The `translations-test.mjs` module is made
+     * available to the page.
+     *
+     * @param {(TranslationsTest: import("./translations-test.mjs")) => any} callback
+     * @returns {Promise<void>}
+     */
+    runInPage(callback, data = {}) {
+      // ContentTask.spawn runs the `Function.prototype.toString` on this function in
+      // order to send it into the content process. The following function is doing its
+      // own string manipulation in order to load in the TranslationsTest module.
+      const fn = new Function(/* js */ `
+        const TranslationsTest = ChromeUtils.importESModule(
+          "chrome://mochitests/content/browser/toolkit/components/translations/tests/browser/translations-test.mjs"
+        );
+
+        // Pass in the values that get injected by the task runner.
+        TranslationsTest.setup({Assert, ContentTaskUtils, content});
+
+        const data = ${JSON.stringify(data)};
+
+        return (${callback.toString()})(TranslationsTest, data);
+      `);
+
+      return ContentTask.spawn(
+        tab.linkedBrowser,
+        {}, // Data to inject.
+        fn
+      );
     },
   };
 }

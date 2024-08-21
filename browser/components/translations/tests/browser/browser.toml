@@ -85,6 +85,8 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1863227
 
 ["browser_translations_full_page_panel_switch_languages.js"]
 
+["browser_translations_full_page_panel_switch_tabs_before_engine_ready.js"]
+
 ["browser_translations_full_page_panel_unsupported_lang.js"]
 
 ["browser_translations_full_page_panel_weblanguage_differs_from_app.js"]
