@@ -2164,6 +2164,9 @@
 - name: LoadDataViewElement
   gen_boilerplate: false
 
+- name: LoadDataViewElement64
+  gen_boilerplate: false
+
 - name: LoadTypedArrayElementHole
   result_type: BoxedValue
   operands:

@@ -2408,6 +2408,25 @@ class LLoadDataViewElement : public LInstructionHelper<1, 3, 2 + INT64_PIECES> {
   const LInt64Definition temp64() { return getInt64Temp(2); }
 };
 
+class LLoadDataViewElement64 : public LInstructionHelper<INT64_PIECES, 3, 0> {
+ public:
+  LIR_HEADER(LoadDataViewElement64)
+
+  LLoadDataViewElement64(const LAllocation& elements, const LAllocation& index,
+                         const LAllocation& littleEndian)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, elements);
+    setOperand(1, index);
+    setOperand(2, littleEndian);
+  }
+  const MLoadDataViewElement* mir() const {
+    return mir_->toLoadDataViewElement();
+  }
+  const LAllocation* elements() { return getOperand(0); }
+  const LAllocation* index() { return getOperand(1); }
+  const LAllocation* littleEndian() { return getOperand(2); }
+};
+
 class LLoadTypedArrayElementHoleBigInt
     : public LInstructionHelper<BOX_PIECES, 3, 1 + INT64_PIECES> {
  public:

@@ -4643,33 +4643,29 @@ void LIRGenerator::visitLoadDataViewElement(MLoadDataViewElement* ins) {
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
-  MOZ_ASSERT(IsNumericType(ins->type()));
+  MOZ_ASSERT(IsNumberType(ins->type()));
 
   const LUse elements = useRegister(ins->elements());
   const LUse index = useRegister(ins->index());
   const LAllocation littleEndian = useRegisterOrConstant(ins->littleEndian());
 
+  if (Scalar::isBigIntType(ins->storageType())) {
+    auto* lir =
+        new (alloc()) LLoadDataViewElement64(elements, index, littleEndian);
+    defineInt64(lir, ins);
+    return;
+  }
+
   // We need a temp register for:
   // - Uint32Array with known double result,
   // - Float16Array,
-  // - Float32Array,
-  // - and BigInt64Array and BigUint64Array.
+  // - Float32Array.
   LDefinition temp1 = LDefinition::BogusTemp();
   if ((ins->storageType() == Scalar::Uint32 &&
        IsFloatingPointType(ins->type())) ||
       ins->storageType() == Scalar::Float16 ||
       ins->storageType() == Scalar::Float32) {
     temp1 = temp();
-  }
-  if (Scalar::isBigIntType(ins->storageType())) {
-#ifdef JS_CODEGEN_X86
-    // There are not enough registers on x86.
-    if (littleEndian.isConstant()) {
-      temp1 = temp();
-    }
-#else
-    temp1 = temp();
-#endif
   }
 
   // Additional temp when Float16 to Float64 conversion requires a call.
@@ -4678,11 +4674,9 @@ void LIRGenerator::visitLoadDataViewElement(MLoadDataViewElement* ins) {
     temp2 = temp();
   }
 
-  // We also need a separate 64-bit temp register for:
-  // - Float64Array
-  // - and BigInt64Array and BigUint64Array.
+  // We also need a separate 64-bit temp register for Float64Array.
   LInt64Definition temp64 = LInt64Definition::BogusTemp();
-  if (Scalar::byteSize(ins->storageType()) == 8) {
+  if (ins->storageType() == Scalar::Float64) {
     temp64 = tempInt64();
   }
 
@@ -4692,8 +4686,7 @@ void LIRGenerator::visitLoadDataViewElement(MLoadDataViewElement* ins) {
     assignSnapshot(lir, ins->bailoutKind());
   }
   define(lir, ins);
-  if (Scalar::isBigIntType(ins->storageType()) ||
-      MacroAssembler::LoadRequiresCall(ins->storageType())) {
+  if (MacroAssembler::LoadRequiresCall(ins->storageType())) {
     assignSafepoint(lir, ins);
   }
 }
