@@ -204,6 +204,3 @@ lazyGlobal("setInterval", () => {
     global: "contextual",
   }).setInterval;
 });
-lazyGlobal("WebSocket", () => {
-  return Services.appShell.hiddenDOMWindow.WebSocket;
-});
