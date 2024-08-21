@@ -203,10 +203,10 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
 
   // Check we have critical Wayland interfaces.
   // Missing ones indicates a compositor bug and we can't continue.
-  MOZ_DIAGNOSTIC_ASSERT(GetShm(), "We're missing shm interface!");
-  MOZ_DIAGNOSTIC_ASSERT(GetCompositor(), "We're missing compositor interface!");
-  MOZ_DIAGNOSTIC_ASSERT(GetSubcompositor(),
-                        "We're missing subcompositor interface!");
+  MOZ_RELEASE_ASSERT(GetShm(), "We're missing shm interface!");
+  MOZ_RELEASE_ASSERT(GetCompositor(), "We're missing compositor interface!");
+  MOZ_RELEASE_ASSERT(GetSubcompositor(),
+                     "We're missing subcompositor interface!");
 }
 
 }  // namespace mozilla::widget
