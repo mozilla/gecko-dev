@@ -23,6 +23,7 @@
 #include "mozilla/ipc/IPCTypes.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/gfx/MatrixFwd.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/Types.h"
@@ -123,6 +124,7 @@ Mat3 SubRectMat3(float x, float y, float w, float h);
 Mat3 SubRectMat3(const gfx::IntRect& subrect, const gfx::IntSize& size);
 Mat3 SubRectMat3(const gfx::IntRect& bigSubrect, const gfx::IntSize& smallSize,
                  const gfx::IntSize& divisors);
+Mat3 MatrixToMat3(const gfx::Matrix& aMatrix);
 
 class DrawBlitProg final {
   const GLBlitHelper& mParent;

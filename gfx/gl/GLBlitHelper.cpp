@@ -313,6 +313,20 @@ Mat3 SubRectMat3(const gfx::IntRect& bigSubrect, const gfx::IntSize& smallSize,
                      w / smallSize.width, h / smallSize.height);
 }
 
+Mat3 MatrixToMat3(const gfx::Matrix& aMatrix) {
+  auto ret = Mat3();
+  ret.at(0, 0) = aMatrix._11;
+  ret.at(1, 0) = aMatrix._21;
+  ret.at(2, 0) = aMatrix._31;
+  ret.at(0, 1) = aMatrix._12;
+  ret.at(1, 1) = aMatrix._22;
+  ret.at(2, 1) = aMatrix._32;
+  ret.at(0, 2) = 0.0f;
+  ret.at(1, 2) = 0.0f;
+  ret.at(2, 2) = 1.0f;
+  return ret;
+}
+
 // --
 
 ScopedSaveMultiTex::ScopedSaveMultiTex(GLContext* const gl,
@@ -1011,9 +1025,15 @@ bool GLBlitHelper::Blit(const java::GeckoSurfaceTexture::Ref& surfaceTexture,
   const ScopedBindTexture savedTex(mGL, surfaceTexture->GetTexName(),
                                    LOCAL_GL_TEXTURE_EXTERNAL);
   surfaceTexture->UpdateTexImage();
-  const auto transform3 = Mat3::I();
-  // const auto srcOrigin = OriginPos::TopLeft;
-  const auto srcOrigin = OriginPos::BottomLeft;
+
+  gfx::Matrix4x4 transform;
+  const auto surf = java::sdk::SurfaceTexture::LocalRef::From(surfaceTexture);
+  gl::AndroidSurfaceTexture::GetTransformMatrix(surf, &transform);
+  // SurfaceTexture transforms should always be 2D
+  MOZ_DIAGNOSTIC_ASSERT(transform.Is2D());
+  const auto transform3 = MatrixToMat3(transform.As2D());
+
+  const auto srcOrigin = OriginPos::TopLeft;
   const bool yFlip = (srcOrigin != destOrigin);
   const auto& prog = GetDrawBlitProg(
       {kFragHeader_TexExt, {kFragSample_OnePlane, kFragConvert_None}});
