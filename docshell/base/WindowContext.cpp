@@ -10,7 +10,6 @@
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/SyncedContextInlines.h"
 #include "mozilla/dom/BrowsingContext.h"
-#include "mozilla/dom/CloseWatcherManager.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/UserActivationIPCUtils.h"
 #include "mozilla/PermissionDelegateIPCUtils.h"
@@ -488,9 +487,6 @@ void WindowContext::NotifyUserGestureActivation(
   UserActivation::StateAndModifiers stateAndModifiers;
   stateAndModifiers.SetState(UserActivation::State::FullActivated);
   stateAndModifiers.SetModifiers(aModifiers);
-  if (auto* innerWindow = GetInnerWindow()) {
-    innerWindow->EnsureCloseWatcherManager()->NotifyUserInteraction();
-  }
   Unused << SetUserActivationStateAndModifiers(stateAndModifiers.GetRawData());
 }
 
@@ -551,24 +547,6 @@ bool WindowContext::ConsumeTransientUserGestureActivation() {
     }
   });
 
-  return true;
-}
-
-// https://html.spec.whatwg.org/multipage/interaction.html#history-action-activation
-bool WindowContext::HasValidHistoryActivation() const {
-  MOZ_ASSERT(IsInProcess());
-  return mHistoryActivation != mUserGestureStart;
-}
-
-// https://html.spec.whatwg.org/multipage/interaction.html#consume-history-action-user-activation
-bool WindowContext::ConsumeHistoryActivation() {
-  MOZ_ASSERT(IsInProcess());
-
-  if (!HasValidHistoryActivation()) {
-    return false;
-  }
-
-  mHistoryActivation = mUserGestureStart;
   return true;
 }
 

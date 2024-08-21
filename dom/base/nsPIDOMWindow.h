@@ -51,7 +51,6 @@ class BrowsingContextGroup;
 class ClientInfo;
 class ClientState;
 class ContentFrameMessageManager;
-class CloseWatcherManager;
 class DocGroup;
 class Document;
 class Element;
@@ -659,8 +658,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   };
   bool HasActiveWebTransports() { return mWebTransportCount > 0; }
 
-  mozilla::dom::CloseWatcherManager* EnsureCloseWatcherManager();
-
  protected:
   void CreatePerformanceObjectIfNeeded();
 
@@ -784,9 +781,6 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
    * workers.
    */
   uint32_t mWebTransportCount = 0;
-
-  // The CloseWatcherManager for this window.
-  RefPtr<mozilla::dom::CloseWatcherManager> mCloseWatcherManager;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowInner, NS_PIDOMWINDOWINNER_IID)

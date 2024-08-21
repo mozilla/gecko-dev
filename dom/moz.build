@@ -36,7 +36,6 @@ DIRS += [
     "webgpu",
     "chrome-webidl",
     "clients",
-    "closewatcher",
     "commandhandler",
     "credentialmanagement",
     "crypto",
