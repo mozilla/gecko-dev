@@ -2181,6 +2181,8 @@ void nsMenuPopupFrame::MoveTo(const CSSPoint& aPos, bool aUpdateAttrs,
   nsIWidget* widget = GetWidget();
   nsPoint appUnitsPos = CSSPixel::ToAppUnits(aPos);
 
+  const bool rtl = IsDirectionRTL();
+
   // reposition the popup at the specified coordinates. Don't clear the anchor
   // and position, because the popup can be reset to its anchor position by
   // using (-1, -1) as coordinates.
@@ -2189,7 +2191,7 @@ void nsMenuPopupFrame::MoveTo(const CSSPoint& aPos, bool aUpdateAttrs,
   // SetPopupPosition is called.
   {
     nsMargin margin = GetMargin();
-    if (mIsContextMenu && IsDirectionRTL()) {
+    if (rtl && mIsContextMenu) {
       appUnitsPos.x += margin.right + mRect.Width();
     } else {
       appUnitsPos.x -= margin.left;
@@ -2210,8 +2212,8 @@ void nsMenuPopupFrame::MoveTo(const CSSPoint& aPos, bool aUpdateAttrs,
     mScreenRect.height = 0;
     // But we still need to make sure that our top left position ends up in
     // appUnitsPos.
-    mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
-    mPopupAnchor = POPUPALIGNMENT_BOTTOMLEFT;
+    mPopupAlignment = rtl ? POPUPALIGNMENT_TOPRIGHT : POPUPALIGNMENT_TOPLEFT;
+    mPopupAnchor = rtl ? POPUPALIGNMENT_BOTTOMRIGHT : POPUPALIGNMENT_BOTTOMLEFT;
   } else {
     mAnchorType = MenuPopupAnchorType::Point;
   }
