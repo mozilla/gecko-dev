@@ -84,6 +84,24 @@ main {
   }
 }
 
+.layout-variant-a,
+.layout-variant-b {
+  .ds-outer-wrapper-breakpoint-override main {
+    @media (min-width: $break-point-ultra-wide) {
+      width: 1256px;
+
+      .body-wrapper {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .ds-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  }
+}
+
 .base-content-fallback {
   // Make the error message be centered against the viewport
   height: 100vh;

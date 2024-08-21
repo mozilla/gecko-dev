@@ -50,6 +50,8 @@ const FEED_URL =
 const PREF_CONFIG = "discoverystream.config";
 const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_IMPRESSION_ID = "browser.newtabpage.activity-stream.impressionId";
+const PREF_LAYOUT_EXPERIMENT_A = "newtabLayouts.variant-a";
+const PREF_LAYOUT_EXPERIMENT_B = "newtabLayouts.variant-b";
 const PREF_MERINO_FEED_EXPERIMENT =
   "browser.newtabpage.activity-stream.discoverystream.merino-feed-experiment";
 const PREF_ENABLED = "discoverystream.enabled";
@@ -629,8 +631,16 @@ export class DiscoveryStreamFeed {
       this.isBff && pocketConfig.onboardingExperience;
     const { spocTopsitesPlacementEnabled } = pocketConfig;
 
+    const layoutExperiment =
+      this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_A] ||
+      this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_B];
+
     let items = isBasicLayout ? 3 : 21;
-    if (pocketConfig.fourCardLayout || pocketConfig.hybridLayout) {
+    if (
+      pocketConfig.fourCardLayout ||
+      pocketConfig.hybridLayout ||
+      layoutExperiment
+    ) {
       items = isBasicLayout ? 4 : 24;
     }
 
@@ -1920,6 +1930,8 @@ export class DiscoveryStreamFeed {
       case PREF_SPOCS_ENDPOINT_QUERY:
       case PREF_SPOCS_CLEAR_ENDPOINT:
       case PREF_ENDPOINTS:
+      case PREF_LAYOUT_EXPERIMENT_A:
+      case PREF_LAYOUT_EXPERIMENT_B:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
         break;

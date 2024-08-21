@@ -506,6 +506,22 @@ main section {
   }
 }
 
+@media (min-width: 1698px) {
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main {
+    width: 1256px;
+  }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .base-content-fallback {
   height: 100vh;
 }

@@ -88,6 +88,7 @@ $wrapper-max-width-medium: $grid-unit * 4 + $base-gutter * 3 + $section-horizont
 $wrapper-max-width-large: $grid-unit * 6 + $base-gutter * 5 + $section-horizontal-padding * 2; // 6 top sites
 $wrapper-max-width-widest: $grid-unit * 8 + $base-gutter * 7 + $section-horizontal-padding * 2; // 8 top sites
 $wrapper-max-width-weather: $grid-unit * 12 + $base-gutter * 7 + $section-horizontal-padding * 2; // Weather visible
+$wrapper-max-width-ultra-wide: $grid-unit * 14 + $base-gutter * 7 + $section-horizontal-padding * 2; // 8 top sites 4 stories
 // For the breakpoints, we need to add space for the scrollbar to avoid weird
 // layout issues when the scrollbar is visible. 16px is wide enough to cover all
 // OSes and keeps it simpler than a per-OS value.
@@ -99,7 +100,8 @@ $scrollbar-width: 16px;
 $break-point-medium: $wrapper-max-width-medium + $base-gutter * 2 + $scrollbar-width; // 610px
 $break-point-large: $wrapper-max-width-large + $base-gutter * 2 + $scrollbar-width; // 866px
 $break-point-widest: $wrapper-max-width-widest + $base-gutter * 2 + $scrollbar-width; // 1122px
-$break-point-weather: $wrapper-max-width-weather + $base-gutter * 2 + $scrollbar-width; // 1122px
+$break-point-weather: $wrapper-max-width-weather + $base-gutter * 2 + $scrollbar-width; // 1506px
+$break-point-ultra-wide: $wrapper-max-width-ultra-wide + $base-gutter * 2 + $scrollbar-width; // 1698px
 
 $section-title-font-size: 17px;
 
