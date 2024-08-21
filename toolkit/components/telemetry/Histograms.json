@@ -13077,18 +13077,6 @@
     "bug_numbers": [1662212, 1685399],
     "releaseChannelCollection": "opt-out"
   },
-  "VIDEO_SUSPEND_RECOVERY_TIME_MS": {
-    "record_in_processes": ["content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "100",
-    "description": "Time taken for a video to resume after decoding was suspended, in milliseconds. Keyed by audio presence, hw acceleration, and by height ranges (boundaries: 240. 480, 720, 1080, 2160), e.g.: 'V,0-240', 'AV(hw),2160+'; and 'All' will accumulate all percentages.",
-    "keyed": true,
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 100,
-    "bug_numbers": [1294349, 1570634, 1606206, 1689267]
-  },
   "MEDIA_CODEC_USED": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
