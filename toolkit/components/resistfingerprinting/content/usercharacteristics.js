@@ -938,12 +938,11 @@ async function populateAudioFingerprint() {
     for (let i = 0; i < signal.length; ++i) {
       hash += Math.abs(signal[i]);
     }
-    // return as string for Glean.
-    // We probably don't want use sha-1/256 etc. as fingerprintjs
-    // states a difference of 0.0000022 implies a different device
-    // so we are actually interested in the number. We multiply by
-    // 10e7 and submit as int.
-    return hash * 10e7;
+    // 10e13 is the maximum safe number we can use.
+    // 10e14 is over Number.MAX_SAFE_INTEGER, techinically it isn't but
+    // 35.x * 10e14 is over Number.MAX_SAFE_INTEGER. We are losing one digit
+    // of precision but it should hopefully be enough.
+    return hash * 10e13;
   }
 
   finishRendering();
