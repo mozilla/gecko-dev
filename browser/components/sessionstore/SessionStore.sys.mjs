@@ -1039,10 +1039,6 @@ var SessionStoreInternal = {
     this._initPrefs();
     this._initialized = true;
 
-    Services.telemetry
-      .getHistogramById("FX_SESSION_RESTORE_PRIVACY_LEVEL")
-      .add(Services.prefs.getIntPref("browser.sessionstore.privacy_level"));
-
     this.promiseAllWindowsRestored.finally(() => () => {
       this._log.debug("promiseAllWindowsRestored finalized");
     });
