@@ -4,7 +4,7 @@
 "use strict";
 
 // The test needs to open new PBM windows  which is slow on debug builds.
-requestLongerTimeout(2);
+requestLongerTimeout(3);
 
 /**
  * Helper function for testing that BTP gets enabled/disabled for a specific
