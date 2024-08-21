@@ -114,6 +114,9 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">På et nettsted skjules denne linjen når du ruller nedover for å gi ekstra visningsplass.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Trykk og hold pilene for å hoppe mellom sidene i denne fanens historikk.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillinger, trykk på tillatelser, og trykk på tillat.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -196,6 +199,8 @@
     <string name="browser_menu_stop">Stopp</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Utvidelser</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Les mer</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Behandle utvidelser</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -253,6 +258,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Tilpass lesevisning</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Tilpass lesevisning</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Legg til</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -279,11 +286,19 @@
     <string name="browser_menu_new_in_firefox">Nytt i %1$s</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Bytt til datamaskinversjon</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Bytt til mobilutgaven</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Verktøy</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Lesevisning, oversett, skriv ut, del, åpne app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Lesevisning, skriv ut, del, åpne app</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Lagre</string>
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Legg til bokmerke, snarvei, hjem, samling, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Bokmerk denne siden</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -301,6 +316,10 @@
     <string name="browser_menu_translated_to">Oversatt til %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Skriv ut…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Avslutt %1$s</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -426,6 +445,9 @@
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Når du er innlogget og synkronisert, er du tryggere. Firefox krypterer passordene, bokmerkene og mer.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3">Firefox krypterer passordene, bokmerkene og mer når du er synkronisert.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Logg inn</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1220,6 +1242,17 @@
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Skriv inn søketekst</string>
 
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Naviger tilbake</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Legg til en ny mappe</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Lukk bokmerker</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Søk i bokmerker</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Elementmeny for %s</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Gå til Innstillinger</string>
@@ -1676,6 +1709,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Kryptoutvinnere</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Fingerprinters</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Kjente nettleseravtrykksporere</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detaljer</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1704,6 +1739,8 @@
 
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Stopper innsamling av unikt identifiserbare data om enheten din som kan brukes til å spore deg rundt på nettet.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Stopper innsamling av unikt identifiserbare data om enheten din som kan brukes til å spore deg rundt på nettet.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Sporingsinnhold</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1729,6 +1766,10 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Fjerner infokapsler satt av omdirigeringer til kjente sporingsnettsteder.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Mistenkt nettleseravtrykksporere</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Kjente nettleseravtrykksporere</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Noen sporere som er merket nedenfor, er delvis blitt avblokkert på denne siden fordi du samhandlet med dem *.</string>
@@ -2167,6 +2208,8 @@
     <string name="top_sites_rename_dialog_title">Navn</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Navn på snarvei</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL for snarvei</string>
     <!-- Button caption to confirm the renaming of the top site. -->
     <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
@@ -2737,8 +2780,6 @@
     <string name="micro_survey_privacy_notice_2">Personvernbestemmelser</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Send</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Lukk</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Undersøkelsen er fullført</string>
     <!-- The survey completion confirmation text -->

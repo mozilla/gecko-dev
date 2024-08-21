@@ -118,6 +118,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Барои гузариш аз саҳифа ба саҳифа дар таърихи ин варақа, ақрабақҳоро зер карда, доред.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Нав: ақрабақҳои ба пеш ва ба қафо бо як расиш</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Аз паймоиши тезкоре, ки ҳамеша дар зери ангуштони шумо мебошад, баҳра баред.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Дастрасии камера лозим аст. Ба «Танзимоти Android» гузаред, ба «Иҷозатҳо» зарба занед, пас ба «Иҷозат додан» зарба занед.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -203,6 +209,9 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Соҳиби «%s» шавед</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Васеъшавиҳо аз иваз кардани намуди зоҳирӣ ва кори самараноки «%s» то дастгирӣ кардани махфият ва бехатарии шумо дар Интернет таҷрибаи тамошокунии шуморо ба сатҳи баланд мебардоранд.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Маълумоти бештар</string>
     <!-- Browser menu button that opens the extensions manager -->
