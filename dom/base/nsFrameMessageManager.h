@@ -61,10 +61,6 @@ namespace ipc {
 class MessageManagerCallback;
 class WritableSharedMap;
 
-// Note: we round the time we spend to the nearest millisecond. So a min value
-// of 1 ms actually captures from 500us and above.
-static const uint32_t kMinTelemetrySyncMessageManagerLatencyMs = 1;
-
 enum class MessageManagerFlags {
   MM_NONE = 0,
   MM_CHROME = 1,

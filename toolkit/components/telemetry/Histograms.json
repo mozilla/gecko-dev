@@ -9851,16 +9851,6 @@
     "kind": "boolean",
     "description": "True when an IPC transaction is canceled"
   },
-  "IPC_SAME_PROCESS_MESSAGE_COPY_OOM_KB": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "50",
-    "kind": "exponential",
-    "low": 100,
-    "high": 10000000,
-    "n_buckets": 10,
-    "description": "Whenever the same-process MessageManager cannot be sent through sendAsyncMessage as it would cause an OOM, the size of the message content, in kb."
-  },
   "SEARCH_COUNTS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -14305,19 +14295,6 @@
     "n_buckets": 100,
     "bug_numbers": [1341531],
     "description": "Time (ms) for the keyboard event to dispatch, but before handlers executing."
-  },
-  "IPC_SYNC_MESSAGE_MANAGER_LATENCY_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["nika@thelayzells.com"],
-    "bug_numbers": [1348113],
-    "expires_in_version": "70",
-    "kind": "exponential",
-    "low": 32,
-    "high": 750,
-    "n_buckets": 40,
-    "keyed": true,
-    "description": "Measures the number of milliseconds we spend waiting for sync message manager IPC messages to finish sending, keyed by message name. Note: only messages that wait for more than 500 microseconds are included in this probe."
   },
   "TIME_TO_DOM_LOADING_MS": {
     "record_in_processes": ["content"],
