@@ -14258,18 +14258,6 @@
     "n_buckets": 12,
     "description": "Percentages of times for phases in an expensive content paint relative to the time spent in the entire expensive paint. (\"dl\" = Display list, \"wrdl\" = WebRender display list, \"sb\" = Scene building, \"fb\" = Frame building)"
   },
-  "TABCHILD_PAINT_TIME": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "mconley@mozilla.com"],
-    "bug_numbers": [1313686],
-    "expires_in_version": "65",
-    "kind": "exponential",
-    "high": 1000,
-    "n_buckets": 50,
-    "description": "Time spent painting the contents of a remote browser (ms).",
-    "releaseChannelCollection": "opt-out"
-  },
   "TIME_TO_NON_BLANK_PAINT_MS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
