@@ -21,9 +21,8 @@ class FakeBookmarksStorage() : BookmarksStorage {
         throw NotImplementedError()
     }
 
-    override suspend fun getBookmark(guid: String): BookmarkNode? {
-        throw NotImplementedError()
-    }
+    override suspend fun getBookmark(guid: String): BookmarkNode? =
+        Result.runCatching { bookmarkMap[guid] }.getOrNull()
 
     override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
         return bookmarkMap.values.filter { it.url == url }
@@ -68,28 +67,20 @@ class FakeBookmarksStorage() : BookmarksStorage {
         return id
     }
 
-    internal fun addRootItem(
-        url: String,
-        title: String,
-        position: UInt?,
-    ): String {
+    override suspend fun addFolder(parentGuid: String, title: String, position: UInt?): String {
         val id = UUID.randomUUID().toString()
         bookmarkMap[id] =
             BookmarkNode(
-                type = BookmarkNodeType.ITEM,
+                type = BookmarkNodeType.FOLDER,
                 guid = id,
-                parentGuid = null,
+                parentGuid = parentGuid.takeIf { it.isNotEmpty() },
                 position = position,
                 title = title,
-                url = url,
+                url = null,
                 dateAdded = 0,
                 children = null,
             )
         return id
-    }
-
-    override suspend fun addFolder(parentGuid: String, title: String, position: UInt?): String {
-        throw NotImplementedError()
     }
 
     override suspend fun addSeparator(parentGuid: String, position: UInt?): String {

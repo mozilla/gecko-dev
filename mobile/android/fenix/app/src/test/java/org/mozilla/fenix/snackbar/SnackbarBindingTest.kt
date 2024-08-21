@@ -123,21 +123,23 @@ class SnackbarBindingTest {
 
     @Test
     fun `GIVEN bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+        val parentTitle = "title"
         val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
-            BookmarkAction.BookmarkAdded(guidToEdit = "1"),
+            BookmarkAction.BookmarkAdded(guidToEdit = "1", parentTitle = parentTitle),
         )
         waitForStoreToSettle()
 
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
 
+        val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, parentTitle)
         verify(snackbarDelegate).show(
-            text = eq(R.string.bookmark_saved_snackbar),
+            text = eq(outputMessage),
             duration = eq(FenixSnackbar.LENGTH_LONG),
             isError = eq(false),
-            action = eq(R.string.edit_bookmark_snackbar_action),
+            action = eq("EDIT"),
             listener = any(),
         )
     }
@@ -148,7 +150,7 @@ class SnackbarBindingTest {
         binding.start()
 
         appStore.dispatch(
-            BookmarkAction.BookmarkAdded(guidToEdit = null),
+            BookmarkAction.BookmarkAdded(guidToEdit = null, parentTitle = null),
         )
         waitForStoreToSettle()
 

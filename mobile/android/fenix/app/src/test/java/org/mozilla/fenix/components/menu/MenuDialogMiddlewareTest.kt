@@ -23,6 +23,7 @@ import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -31,6 +32,7 @@ import mozilla.components.support.test.whenever
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -39,12 +41,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.FindInPageAction
 import org.mozilla.fenix.components.appstate.AppAction.ReaderViewAction
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase.AddBookmarksUseCase
 import org.mozilla.fenix.components.menu.fake.FakeBookmarksStorage
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
@@ -201,7 +205,8 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
-        val appStore = spy(AppStore())
+        val captureMiddleware = CaptureActionsMiddleware<AppState, AppAction>()
+        val appStore = AppStore(middlewares = listOf(captureMiddleware))
         val store = createStore(
             appStore = appStore,
             menuState = MenuState(
@@ -214,26 +219,31 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase).invoke(url = url, title = title)
-        verify(appStore).dispatch(
-            BookmarkAction.BookmarkAdded(
-                guidToEdit = any(),
-            ),
-        )
+        captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
+            assertNotNull(action.guidToEdit)
+        }
         assertTrue(dismissWasCalled)
     }
 
     @Test
-    fun `GIVEN the last added bookmark belongs to a folder WHEN bookmark is added THEN bookmark is added to folder`() = runTestOnMain {
+    fun `GIVEN the last added bookmark belongs to a folder WHEN bookmark is added THEN bookmark is added to folder and parent title is dispatched`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
-        val parentGuid = "guid1"
+        val parentTitle = "title"
 
-        // Add a pre-existing item
+        // Add parent
+        val parentGuid = bookmarksStorage.addItem(
+            parentGuid = "root",
+            url = "url",
+            title = parentTitle,
+            position = 0U,
+        )
+        // Add pre-existing child
         bookmarksStorage.addItem(
             parentGuid = parentGuid,
             url = "url",
-            title = "title",
-            position = null,
+            title = parentTitle,
+            position = 1U,
         )
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -241,7 +251,8 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
-        val appStore = AppStore()
+        val captureMiddleware = CaptureActionsMiddleware<AppState, AppAction>()
+        val appStore = AppStore(middlewares = listOf(captureMiddleware))
         val store = createStore(
             appStore = appStore,
             menuState = MenuState(
@@ -254,6 +265,11 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = parentGuid)
+        assertEquals(parentTitle, captureMiddleware.findLastAction(BookmarkAction.BookmarkAdded::class).parentTitle)
+        captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
+            assertNotNull(action.guidToEdit)
+            assertEquals(parentTitle, action.parentTitle)
+        }
     }
 
     @Test
@@ -263,10 +279,9 @@ class MenuDialogMiddlewareTest {
 
         // Add a pre-existing item. This accounts for the null case, but that shouldn't actually be
         // possible because the mobile root is a subfolder of the synced root
-        bookmarksStorage.addRootItem(
-            url = "url",
+        bookmarksStorage.addFolder(
+            parentGuid = "",
             title = "title",
-            position = null,
         )
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
@@ -308,7 +323,8 @@ class MenuDialogMiddlewareTest {
                 title = title,
             ),
         )
-        val appStore = spy(AppStore())
+        val captureMiddleware = CaptureActionsMiddleware<AppState, AppAction>()
+        val appStore = AppStore(middlewares = listOf(captureMiddleware))
         val store = createStore(
             appStore = appStore,
             menuState = MenuState(
@@ -330,11 +346,7 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase, never()).invoke(url = url, title = title)
-        verify(appStore, never()).dispatch(
-            BookmarkAction.BookmarkAdded(
-                guidToEdit = any(),
-            ),
-        )
+        captureMiddleware.assertNotDispatched(BookmarkAction.BookmarkAdded::class)
         assertFalse(dismissWasCalled)
     }
 

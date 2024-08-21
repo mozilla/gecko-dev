@@ -66,30 +66,7 @@ class SnackbarBinding(
             .collect { state ->
                 when (state) {
                     is SnackbarState.BookmarkAdded -> {
-                        if (state.guidToEdit != null) {
-                            snackbarDelegate.show(
-                                text = R.string.bookmark_saved_snackbar,
-                                duration = FenixSnackbar.LENGTH_LONG,
-                                action = R.string.edit_bookmark_snackbar_action,
-                            ) { view ->
-                                navController.navigateWithBreadcrumb(
-                                    directions = BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
-                                        guidToEdit = state.guidToEdit,
-                                        requiresSnackbarPaddingForToolbar = true,
-                                    ),
-                                    navigateFrom = "BrowserFragment",
-                                    navigateTo = "ActionGlobalBookmarkEditFragment",
-                                    crashReporter = view.context.components.analytics.crashReporter,
-                                )
-                            }
-                        } else {
-                            snackbarDelegate.show(
-                                text = R.string.bookmark_invalid_url_error,
-                                duration = FenixSnackbar.LENGTH_LONG,
-                            )
-                        }
-
-                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                        showBookmarkAddedSnackbarFor(state)
                     }
 
                     is SnackbarState.BookmarkDeleted -> {
@@ -227,5 +204,37 @@ class SnackbarBinding(
                     SnackbarState.None -> Unit
                 }
             }
+    }
+
+    private fun showBookmarkAddedSnackbarFor(state: SnackbarState.BookmarkAdded) {
+        if (state.guidToEdit != null) {
+            val parentTitle = if (state.parentTitle == null || state.parentTitle == "mobile") {
+                context.getString(R.string.library_bookmarks)
+            } else {
+                state.parentTitle
+            }
+            snackbarDelegate.show(
+                text = context.getString(R.string.bookmark_saved_in_folder_snackbar, parentTitle),
+                duration = FenixSnackbar.LENGTH_LONG,
+                action = context.getString(R.string.edit_bookmark_snackbar_action),
+            ) { view ->
+                navController.navigateWithBreadcrumb(
+                    directions = BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
+                        guidToEdit = state.guidToEdit,
+                        requiresSnackbarPaddingForToolbar = true,
+                    ),
+                    navigateFrom = "BrowserFragment",
+                    navigateTo = "ActionGlobalBookmarkEditFragment",
+                    crashReporter = view.context.components.analytics.crashReporter,
+                )
+            }
+        } else {
+            snackbarDelegate.show(
+                text = R.string.bookmark_invalid_url_error,
+                duration = FenixSnackbar.LENGTH_LONG,
+            )
+        }
+
+        appStore.dispatch(SnackbarAction.SnackbarShown)
     }
 }

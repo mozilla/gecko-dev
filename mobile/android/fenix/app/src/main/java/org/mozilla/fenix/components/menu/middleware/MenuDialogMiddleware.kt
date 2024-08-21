@@ -203,6 +203,8 @@ class MenuDialogMiddleware(
             .firstOrNull()
             ?.parentGuid
 
+        val parentTitle = parentGuid?.let { bookmarksStorage.getBookmark(parentGuid)?.title }
+
         val guidToEdit = addBookmarkUseCase(
             url = url,
             title = selectedTab.content.title,
@@ -212,6 +214,7 @@ class MenuDialogMiddleware(
         appStore.dispatch(
             BookmarkAction.BookmarkAdded(
                 guidToEdit = guidToEdit,
+                parentTitle = parentTitle,
             ),
         )
 
