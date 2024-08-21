@@ -213,6 +213,9 @@ RefPtr<DecoderAgent::ConfigurePromise> DecoderAgent::Configure(
 RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
   MOZ_ASSERT(mOwnerThread->IsOnCurrentThread());
 
+  LOG("DecoderAgent #%d (%p), shutdown in %s state", mId, this,
+      EnumValueToString(mState));
+
   auto r =
       MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled by decoder shutdown");
 
