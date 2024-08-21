@@ -12,7 +12,6 @@ import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.webextension.InstallationMethod
-import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.app.links.AppLinkRedirect
@@ -63,7 +62,7 @@ class MenuDialogMiddlewareTest {
     val coroutinesTestRule = MainCoroutineRule()
     private val scope = coroutinesTestRule.scope
 
-    private val bookmarksStorage: BookmarksStorage = FakeBookmarksStorage()
+    private val bookmarksStorage = FakeBookmarksStorage()
     private val addBookmarkUseCase: AddBookmarksUseCase =
         spy(AddBookmarksUseCase(storage = bookmarksStorage))
 
@@ -221,6 +220,73 @@ class MenuDialogMiddlewareTest {
             ),
         )
         assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN the last added bookmark belongs to a folder WHEN bookmark is added THEN bookmark is added to folder`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+        val parentGuid = "guid1"
+
+        // Add a pre-existing item
+        bookmarksStorage.addItem(
+            parentGuid = parentGuid,
+            url = "url",
+            title = "title",
+            position = null,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val appStore = AppStore()
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+            onDismiss = { },
+        )
+
+        store.dispatch(MenuAction.AddBookmark)
+        store.waitUntilIdle()
+
+        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = parentGuid)
+    }
+
+    @Test
+    fun `GIVEN the last added bookmark does not belongs to a folder WHEN bookmark is added THEN bookmark is added to root`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val title = "Mozilla"
+
+        // Add a pre-existing item. This accounts for the null case, but that shouldn't actually be
+        // possible because the mobile root is a subfolder of the synced root
+        bookmarksStorage.addRootItem(
+            url = "url",
+            title = "title",
+            position = null,
+        )
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                url = url,
+                title = title,
+            ),
+        )
+        val appStore = AppStore()
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+            onDismiss = { },
+        )
+
+        store.dispatch(MenuAction.AddBookmark)
+        store.waitUntilIdle()
+
+        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = null)
     }
 
     @Test

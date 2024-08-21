@@ -198,9 +198,15 @@ class MenuDialogMiddleware(
         val selectedTab = browserMenuState.selectedTab
         val url = selectedTab.getUrl() ?: return@launch
 
+        val parentGuid = bookmarksStorage
+            .getRecentBookmarks(1)
+            .firstOrNull()
+            ?.parentGuid
+
         val guidToEdit = addBookmarkUseCase(
             url = url,
             title = selectedTab.content.title,
+            parentGuid = parentGuid,
         )
 
         appStore.dispatch(

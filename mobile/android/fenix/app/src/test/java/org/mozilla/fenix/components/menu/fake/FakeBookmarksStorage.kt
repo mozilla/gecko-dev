@@ -34,7 +34,9 @@ class FakeBookmarksStorage() : BookmarksStorage {
         maxAge: Long?,
         currentTime: Long,
     ): List<BookmarkNode> {
-        throw NotImplementedError()
+        return bookmarkMap.values.toList()
+            .sortedByDescending { it.position }
+            .take(limit)
     }
 
     override suspend fun searchBookmarks(query: String, limit: Int): List<BookmarkNode> {
@@ -57,6 +59,26 @@ class FakeBookmarksStorage() : BookmarksStorage {
                 type = BookmarkNodeType.ITEM,
                 guid = id,
                 parentGuid = parentGuid,
+                position = position,
+                title = title,
+                url = url,
+                dateAdded = 0,
+                children = null,
+            )
+        return id
+    }
+
+    internal fun addRootItem(
+        url: String,
+        title: String,
+        position: UInt?,
+    ): String {
+        val id = UUID.randomUUID().toString()
+        bookmarkMap[id] =
+            BookmarkNode(
+                type = BookmarkNodeType.ITEM,
+                guid = id,
+                parentGuid = null,
                 position = position,
                 title = title,
                 url = url,
