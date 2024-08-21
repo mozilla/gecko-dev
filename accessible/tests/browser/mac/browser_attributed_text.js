@@ -163,3 +163,30 @@ addAccessibleTask(
     is(text, `hello  world${kEmbedChar}`, "Unattributed string is correct");
   }
 );
+
+// Test text fragment.
+addAccessibleTask(
+  `This is a test.`,
+  async (browser, accDoc) => {
+    const macDoc = accDoc.nativeInterface.QueryInterface(
+      Ci.nsIAccessibleMacInterface
+    );
+    const range = macDoc.getParameterizedAttributeValue(
+      "AXTextMarkerRangeForUnorderedTextMarkers",
+      [
+        macDoc.getAttributeValue("AXStartTextMarker"),
+        macDoc.getAttributeValue("AXEndTextMarker"),
+      ]
+    );
+    const attributedText = macDoc.getParameterizedAttributeValue(
+      "AXAttributedStringForRange",
+      NSRange(...range)
+    );
+    is(attributedText.length, 3);
+    ok(!attributedText[0].AXHighlight);
+    ok(attributedText[1].AXHighlight);
+    is(attributedText[1].string, "test");
+    ok(!attributedText[2].AXHighlight);
+  },
+  { urlSuffix: "#:~:text=test" }
+);

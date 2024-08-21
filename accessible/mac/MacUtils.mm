@@ -135,6 +135,12 @@ NSDictionary* StringAttributesFromAccAttributes(AccAttributes* aAttributes,
                        forKey:NSAccessibilityMarkedMisspelledTextAttribute];
         }
       }
+    } else if (iter.Name() == nsGkAtoms::mark) {
+      if (auto value = iter.Value<bool>()) {
+        if (*value) {
+          [attrDict setObject:@YES forKey:@"AXHighlight"];
+        }
+      }
     } else {
       nsAutoString valueStr;
       iter.ValueAsString(valueStr);
