@@ -2775,11 +2775,15 @@
 
 # Create a new BigInt* from an unboxed int64.
 - name: Int64ToBigInt
+  gen_boilerplate: false
+
+# Create a new BigInt* from an unboxed uint64.
+- name: Uint64ToBigInt
   result_type: WordSized
   operands:
     input: Int64
   num_temps: 1
-  mir_op: true
+  mir_op: Int64ToBigInt
 
 # Generational write barrier used when writing an object to another object.
 - name: PostWriteBarrierO

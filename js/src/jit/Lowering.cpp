@@ -3374,10 +3374,18 @@ void LIRGenerator::visitInt32ToBigInt(MInt32ToBigInt* ins) {
 
 void LIRGenerator::visitInt64ToBigInt(MInt64ToBigInt* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::Int64);
-  auto* lir =
-      new (alloc()) LInt64ToBigInt(useInt64Register(ins->input()), temp());
-  define(lir, ins);
-  assignSafepoint(lir, ins);
+
+  if (ins->elementType() == Scalar::BigInt64) {
+    auto* lir = new (alloc())
+        LInt64ToBigInt(useInt64Register(ins->input()), tempInt64());
+    define(lir, ins);
+    assignSafepoint(lir, ins);
+  } else {
+    auto* lir =
+        new (alloc()) LUint64ToBigInt(useInt64Register(ins->input()), temp());
+    define(lir, ins);
+    assignSafepoint(lir, ins);
+  }
 }
 
 void LIRGenerator::visitWasmTruncateToInt32(MWasmTruncateToInt32* ins) {

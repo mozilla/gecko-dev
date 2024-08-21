@@ -348,7 +348,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                                        Register64 input, Register output);
 
   void emitCreateBigInt(LInstruction* lir, Scalar::Type type, Register64 input,
-                        Register output, Register maybeTemp);
+                        Register output, Register maybeTemp,
+                        Register64 maybeTemp64 = Register64::Invalid());
 
   template <size_t NumDefs>
   void emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir);

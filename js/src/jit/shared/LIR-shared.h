@@ -3887,6 +3887,21 @@ class LRandom : public LInstructionHelper<1, 0, 1 + 2 * INT64_PIECES> {
   MRandom* mir() const { return mir_->toRandom(); }
 };
 
+class LInt64ToBigInt
+    : public LInstructionHelper<1, INT64_PIECES, INT64_PIECES> {
+ public:
+  LIR_HEADER(Int64ToBigInt)
+
+  LInt64ToBigInt(const LInt64Allocation& input, const LInt64Definition& temp)
+      : LInstructionHelper(classOpcode) {
+    setInt64Operand(0, input);
+    setInt64Temp(0, temp);
+  }
+
+  LInt64Allocation input() { return getInt64Operand(0); }
+  LInt64Definition temp() { return getInt64Temp(0); }
+};
+
 class LBigIntAsIntN64 : public LInstructionHelper<1, 1, 1 + INT64_PIECES> {
  public:
   LIR_HEADER(BigIntAsIntN64)

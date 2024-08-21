@@ -195,7 +195,9 @@ struct Register64 {
   constexpr bool operator==(Register64 other) const { return reg == other.reg; }
   constexpr bool operator!=(Register64 other) const { return reg != other.reg; }
   Register scratchReg() { return reg; }
-  static Register64 Invalid() { return Register64(Register::Invalid()); }
+  static constexpr Register64 Invalid() {
+    return Register64(Register::Invalid());
+  }
 #else
   constexpr Register64(Register h, Register l) : high(h), low(l) {}
   constexpr bool operator==(Register64 other) const {
@@ -206,7 +208,7 @@ struct Register64 {
   }
   Register scratchReg() { return high; }
   Register secondScratchReg() { return low; }
-  static Register64 Invalid() {
+  static constexpr Register64 Invalid() {
     return Register64(Register::Invalid(), Register::Invalid());
   }
 #endif

@@ -5236,7 +5236,8 @@ OutOfLineCode* CodeGenerator::createBigIntOutOfLine(LInstruction* lir,
 
 void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
                                      Register64 input, Register output,
-                                     Register maybeTemp) {
+                                     Register maybeTemp,
+                                     Register64 maybeTemp64) {
   OutOfLineCode* ool = createBigIntOutOfLine(lir, type, input, output);
 
   if (maybeTemp != InvalidReg) {
@@ -5259,7 +5260,7 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
     masm.jump(ool->entry());
     masm.bind(&ok);
   }
-  masm.initializeBigInt64(type, output, input);
+  masm.initializeBigInt64(type, output, input, maybeTemp64);
   masm.bind(ool->rejoin());
 }
 
@@ -5280,10 +5281,19 @@ void CodeGenerator::visitInt32ToBigInt(LInt32ToBigInt* lir) {
 
 void CodeGenerator::visitInt64ToBigInt(LInt64ToBigInt* lir) {
   Register64 input = ToRegister64(lir->input());
+  Register64 temp = ToRegister64(lir->temp());
+  Register output = ToRegister(lir->output());
+
+  emitCreateBigInt(lir, Scalar::BigInt64, input, output, temp.scratchReg(),
+                   temp);
+}
+
+void CodeGenerator::visitUint64ToBigInt(LUint64ToBigInt* lir) {
+  Register64 input = ToRegister64(lir->input());
   Register temp = ToRegister(lir->temp0());
   Register output = ToRegister(lir->output());
 
-  emitCreateBigInt(lir, lir->mir()->elementType(), input, output, temp);
+  emitCreateBigInt(lir, Scalar::BigUint64, input, output, temp);
 }
 
 void CodeGenerator::visitGuardValue(LGuardValue* lir) {

@@ -580,6 +580,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void Pop(Register reg) PER_SHARED_ARCH;
   void Pop(FloatRegister t) PER_SHARED_ARCH;
   void Pop(const ValueOperand& val) PER_SHARED_ARCH;
+  void Pop(const Register64 reg);
   void PopFlags() DEFINED_ON(x86_shared);
   void PopStackPtr()
       DEFINED_ON(arm, mips_shared, x86_shared, loong64, riscv64, wasm32);
@@ -5055,9 +5056,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void bigIntDigitToSignedPtr(Register bigInt, Register digit, Label* fail);
 
   /**
-   * Initialize a BigInt from |val|. Clobbers |val|!
+   * Initialize a BigInt from |val|. Clobbers |val| when |temp| is invalid and
+   * |type == Scalar::BigInt64|!
    */
-  void initializeBigInt64(Scalar::Type type, Register bigInt, Register64 val);
+  void initializeBigInt64(Scalar::Type type, Register bigInt, Register64 val,
+                          Register64 temp = Register64::Invalid());
 
   /**
    * Initialize a BigInt from the signed, pointer-sized register |val|.
