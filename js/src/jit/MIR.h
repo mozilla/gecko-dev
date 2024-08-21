@@ -3844,9 +3844,12 @@ class MTruncateBigIntToInt64 : public MUnaryInstruction,
 
 // Takes an Int64 and returns a fresh BigInt pointer.
 class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
-  explicit MInt64ToBigInt(MDefinition* def)
-      : MUnaryInstruction(classOpcode, def) {
+  Scalar::Type elementType_;
+
+  MInt64ToBigInt(MDefinition* def, Scalar::Type elementType)
+      : MUnaryInstruction(classOpcode, def), elementType_(elementType) {
     MOZ_ASSERT(def->type() == MIRType::Int64);
+    MOZ_ASSERT(Scalar::isBigIntType(elementType));
     setResultType(MIRType::BigInt);
     setMovable();
   }
@@ -3856,10 +3859,13 @@ class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
   TRIVIAL_NEW_WRAPPERS
 
   bool congruentTo(const MDefinition* ins) const override {
-    return congruentIfOperandsEqual(ins);
+    return congruentIfOperandsEqual(ins) &&
+           ins->toInt64ToBigInt()->elementType() == elementType();
   }
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  Scalar::Type elementType() const { return elementType_; }
 
   ALLOW_CLONE(MInt64ToBigInt)
 };

@@ -5283,7 +5283,7 @@ void CodeGenerator::visitInt64ToBigInt(LInt64ToBigInt* lir) {
   Register temp = ToRegister(lir->temp0());
   Register output = ToRegister(lir->output());
 
-  emitCreateBigInt(lir, Scalar::BigInt64, input, output, temp);
+  emitCreateBigInt(lir, lir->mir()->elementType(), input, output, temp);
 }
 
 void CodeGenerator::visitGuardValue(LGuardValue* lir) {
