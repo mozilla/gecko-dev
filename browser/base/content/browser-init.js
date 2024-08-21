@@ -1020,8 +1020,6 @@ var gBrowserInit = {
 
     TabletModeUpdater.uninit();
 
-    gTabletModePageCounter.finish();
-
     CaptivePortalWatcher.uninit();
 
     SidebarController.uninit();

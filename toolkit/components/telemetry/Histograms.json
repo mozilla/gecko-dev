@@ -8472,16 +8472,6 @@
     "n_values": 50,
     "description": "Session restore: Number of tabs restored eagerly in the session that has just been restored."
   },
-  "FX_TABLETMODE_PAGE_LOAD": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "47",
-    "kind": "exponential",
-    "high": 100000,
-    "n_buckets": 30,
-    "keyed": true,
-    "description": "Number of toplevel location changes in tablet and desktop mode (only used on win10 where tablet mode is available)"
-  },
   "FX_URLBAR_MERINO_LATENCY_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox"],

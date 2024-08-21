@@ -68,7 +68,6 @@
   "setToolbarVisibility",
   "updateToggleControlLabel",
   "TabletModeUpdater",
-  "gTabletModePageCounter",
   "displaySecurityInfo",
   "gUIDensity",
   "nodeToTooltipMap",
