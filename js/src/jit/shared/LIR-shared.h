@@ -2367,23 +2367,18 @@ class LArrayPopShift : public LInstructionHelper<BOX_PIECES, 1, 2> {
   const LDefinition* temp1() { return getTemp(1); }
 };
 
-class LLoadUnboxedBigInt : public LInstructionHelper<1, 2, 1 + INT64_PIECES> {
+class LLoadUnboxedInt64 : public LInstructionHelper<INT64_PIECES, 2, 0> {
  public:
-  LIR_HEADER(LoadUnboxedBigInt)
+  LIR_HEADER(LoadUnboxedInt64)
 
-  LLoadUnboxedBigInt(const LAllocation& elements, const LAllocation& index,
-                     const LDefinition& temp, const LInt64Definition& temp64)
+  LLoadUnboxedInt64(const LAllocation& elements, const LAllocation& index)
       : LInstructionHelper(classOpcode) {
     setOperand(0, elements);
     setOperand(1, index);
-    setTemp(0, temp);
-    setInt64Temp(1, temp64);
   }
   const MLoadUnboxedScalar* mir() const { return mir_->toLoadUnboxedScalar(); }
   const LAllocation* elements() { return getOperand(0); }
   const LAllocation* index() { return getOperand(1); }
-  const LDefinition* temp() { return getTemp(0); }
-  const LInt64Definition temp64() { return getInt64Temp(1); }
 };
 
 class LLoadDataViewElement : public LInstructionHelper<1, 3, 2 + INT64_PIECES> {
@@ -2724,23 +2719,30 @@ class LAtomicTypedArrayElementBinopForEffect
   }
 };
 
-class LAtomicLoad64 : public LInstructionHelper<1, 2, 1 + INT64_PIECES> {
+class LAtomicLoad64 : public LInstructionHelper<INT64_PIECES, 2, INT64_PIECES> {
  public:
   LIR_HEADER(AtomicLoad64)
 
-  LAtomicLoad64(const LAllocation& elements, const LAllocation& index,
-                const LDefinition& temp, const LInt64Definition& temp64)
+  LAtomicLoad64(const LAllocation& elements, const LAllocation& index)
       : LInstructionHelper(classOpcode) {
     setOperand(0, elements);
     setOperand(1, index);
-    setTemp(0, temp);
-    setInt64Temp(1, temp64);
+    setInt64Temp(0, LInt64Definition::BogusTemp());
   }
+
+  // x86
+  LAtomicLoad64(const LAllocation& elements, const LAllocation& index,
+                const LInt64Definition& temp)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, elements);
+    setOperand(1, index);
+    setInt64Temp(0, temp);
+  }
+
   const MLoadUnboxedScalar* mir() const { return mir_->toLoadUnboxedScalar(); }
   const LAllocation* elements() { return getOperand(0); }
   const LAllocation* index() { return getOperand(1); }
-  const LDefinition* temp() { return getTemp(0); }
-  LInt64Definition temp64() { return getInt64Temp(1); }
+  LInt64Definition temp64() { return getInt64Temp(0); }
 };
 
 class LAtomicStore64 : public LInstructionHelper<0, 3, 2 * INT64_PIECES + 1> {

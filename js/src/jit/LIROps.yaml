@@ -2158,7 +2158,7 @@
   num_temps: 2
   mir_op: true
 
-- name: LoadUnboxedBigInt
+- name: LoadUnboxedInt64
   gen_boilerplate: false
 
 - name: LoadDataViewElement

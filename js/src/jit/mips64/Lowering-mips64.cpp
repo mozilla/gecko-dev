@@ -94,9 +94,8 @@ void LIRGeneratorMIPS64::lowerAtomicLoad64(MLoadUnboxedScalar* ins) {
   const LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->storageType());
 
-  auto* lir = new (alloc()) LAtomicLoad64(elements, index, temp(), tempInt64());
-  define(lir, ins);
-  assignSafepoint(lir, ins);
+  auto* lir = new (alloc()) LAtomicLoad64(elements, index);
+  defineInt64(lir, ins);
 }
 
 void LIRGeneratorMIPS64::lowerAtomicStore64(MStoreUnboxedScalar* ins) {

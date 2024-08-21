@@ -2431,9 +2431,7 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
 
 void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register temp = ToRegister(lir->temp());
-  Register64 temp64 = ToRegister64(lir->temp64());
-  Register out = ToRegister(lir->output());
+  Register64 out = ToOutRegister64(lir);
   const MLoadUnboxedScalar* mir = lir->mir();
 
   Scalar::Type storageType = mir->storageType();
@@ -2443,14 +2441,13 @@ void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
   if (lir->index()->isConstant()) {
     Address source =
         ToAddress(elements, lir->index(), storageType, mir->offsetAdjustment());
-    masm.load64(source, temp64);
+    masm.load64(source, out);
   } else {
     BaseIndex source(elements, ToRegister(lir->index()),
                      ScaleFromScalarType(storageType), mir->offsetAdjustment());
-    masm.load64(source, temp64);
+    masm.load64(source, out);
   }
   masm.memoryBarrierAfter(sync);
-  emitCreateBigInt(lir, storageType, temp64, out, temp);
 }
 
 void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {

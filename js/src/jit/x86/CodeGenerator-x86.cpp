@@ -106,13 +106,9 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
 
 void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register temp = ToRegister(lir->temp());
-  Register64 temp64 = ToRegister64(lir->temp64());
-  Register out = ToRegister(lir->output());
 
-  MOZ_ASSERT(out == ecx);
-  MOZ_ASSERT(temp == ebx);
-  MOZ_ASSERT(temp64 == Register64(edx, eax));
+  MOZ_ASSERT(ToOutRegister64(lir) == Register64(edx, eax));
+  MOZ_ASSERT(ToRegister64(lir->temp64()) == Register64(ecx, ebx));
 
   const MLoadUnboxedScalar* mir = lir->mir();
 
@@ -129,8 +125,6 @@ void CodeGenerator::visitAtomicLoad64(LAtomicLoad64* lir) {
     masm.atomicLoad64(Synchronization::Load(), source, Register64(ecx, ebx),
                       Register64(edx, eax));
   }
-
-  emitCreateBigInt(lir, storageType, temp64, out, temp);
 }
 
 void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {

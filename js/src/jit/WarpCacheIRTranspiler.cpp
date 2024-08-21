@@ -351,13 +351,16 @@ bool WarpCacheIRTranspiler::transpile(
     }
   } while (reader.more());
 
-  // Effectful instructions should have a resume point. MIonToWasmCall is an
-  // exception: we can attach the resume point to the MInt64ToBigInt instruction
-  // instead. Other exceptions are MResizableTypedArrayLength and
-  // MResizableDataViewByteLength, and MGrowableSharedArrayBufferByteLength,
-  // which add the resume point to MPostIntPtrConversion.
+  // Effectful instructions should have a resume point. We allow a limited
+  // number of exceptions:
+  // - MIonToWasmCall: Resumes after MInt64ToBigInt
+  // - MLoadUnboxedScalar: Resumes after MInt64ToBigInt
+  // - MResizableTypedArrayLength: Resumes after MPostIntPtrConversion
+  // - MResizableDataViewByteLength: Resumes after MPostIntPtrConversion
+  // - MGrowableSharedArrayBufferByteLength: Resumes after MPostIntPtrConversion
   MOZ_ASSERT_IF(effectful_,
                 effectful_->resumePoint() || effectful_->isIonToWasmCall() ||
+                    effectful_->isLoadUnboxedScalar() ||
                     effectful_->isResizableTypedArrayLength() ||
                     effectful_->isResizableDataViewByteLength() ||
                     effectful_->isGrowableSharedArrayBufferByteLength());
@@ -2233,7 +2236,8 @@ bool WarpCacheIRTranspiler::emitLoadTypedArrayElementExistsResult(
 }
 
 static MIRType MIRTypeForArrayBufferViewRead(Scalar::Type arrayType,
-                                             bool forceDoubleForUint32) {
+                                             bool forceDoubleForUint32,
+                                             bool allowInt64 = false) {
   switch (arrayType) {
     case Scalar::Int8:
     case Scalar::Uint8:
@@ -2251,6 +2255,9 @@ static MIRType MIRTypeForArrayBufferViewRead(Scalar::Type arrayType,
       return MIRType::Double;
     case Scalar::BigInt64:
     case Scalar::BigUint64:
+      if (allowInt64) {
+        return MIRType::Int64;
+      }
       return MIRType::BigInt;
     default:
       break;
@@ -2285,10 +2292,16 @@ bool WarpCacheIRTranspiler::emitLoadTypedArrayElementResult(
 
   auto* load = MLoadUnboxedScalar::New(alloc(), elements, index, elementType);
   load->setResultType(
-      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32));
+      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32, true));
   add(load);
 
-  pushResult(load);
+  MInstruction* result = load;
+  if (Scalar::isBigIntType(elementType)) {
+    result = MInt64ToBigInt::New(alloc(), load, elementType);
+    add(result);
+  }
+
+  pushResult(result);
   return true;
 }
 
@@ -4810,15 +4823,25 @@ bool WarpCacheIRTranspiler::emitAtomicsLoadResult(
 
   bool forceDoubleForUint32 = true;
   MIRType knownType =
-      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32);
+      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32, true);
 
   auto* load = MLoadUnboxedScalar::New(alloc(), elements, index, elementType,
                                        MemoryBarrierRequirement::Required);
   load->setResultType(knownType);
   addEffectful(load);
 
-  pushResult(load);
-  return resumeAfter(load);
+  MInstruction* result = load;
+  if (Scalar::isBigIntType(elementType)) {
+    result = MInt64ToBigInt::New(alloc(), load, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
+    add(result);
+  }
+
+  pushResult(result);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsStoreResult(

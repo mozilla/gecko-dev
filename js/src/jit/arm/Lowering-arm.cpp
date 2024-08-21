@@ -954,11 +954,10 @@ void LIRGeneratorARM::lowerAtomicLoad64(MLoadUnboxedScalar* ins) {
   const LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->storageType());
 
-  auto* lir = new (alloc())
-      LAtomicLoad64(elements, index, temp(),
-                    tempInt64Fixed(Register64(IntArgReg1, IntArgReg0)));
-  define(lir, ins);
-  assignSafepoint(lir, ins);
+  auto* lir = new (alloc()) LAtomicLoad64(elements, index);
+  defineInt64Fixed(lir, ins,
+                   LInt64Allocation(LAllocation(AnyRegister(IntArgReg1)),
+                                    LAllocation(AnyRegister(IntArgReg0))));
 }
 
 void LIRGeneratorARM::lowerAtomicStore64(MStoreUnboxedScalar* ins) {
