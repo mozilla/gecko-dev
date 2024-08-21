@@ -247,16 +247,24 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
       undefined // resetScrollPosition
     );
 
-    const doc = Services.appShell.hiddenDOMWindow.document;
-    const canvas = doc.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
+    const canvas = new OffscreenCanvas(image.width, image.height);
 
-    const ctx = canvas.getContext("2d", { alpha: false });
-    ctx.drawImage(image, 0, 0);
-    image.close();
+    const ctx = canvas.getContext("bitmaprenderer", { alpha: false });
+    ctx.transferFromImageBitmap(image);
 
-    return canvas.toDataURL(`image/${format}`, quality / 100);
+    const blob = await canvas.convertToBlob({
+      type: `image/${format}`,
+      quality: quality / 100,
+    });
+
+    const dataURL = await new Promise((resolve, reject) => {
+      let reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+    return dataURL;
   }
 
   async receiveMessage(msg) {
