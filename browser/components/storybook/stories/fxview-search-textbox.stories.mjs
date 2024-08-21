@@ -17,7 +17,7 @@ export default {
   },
 };
 
-const Template = ({ placeholder, size }) => html`
+const Template = ({ autofocus, placeholder, size }) => html`
   <style>
     fxview-search-textbox {
       --fxview-border: var(--in-content-border-color);
@@ -31,6 +31,7 @@ const Template = ({ placeholder, size }) => html`
   <fxview-search-textbox
     placeholder=${ifDefined(placeholder)}
     size=${ifDefined(size)}
+    autofocus=${ifDefined(autofocus)}
     @fxview-search-textbox-query=${action("fxview-search-textbox-query")}
   ></fxview-search-textbox>
 `;
@@ -50,4 +51,10 @@ export const SearchBoxWithCustomSize = Template.bind({});
 SearchBoxWithCustomSize.args = {
   ...Default.args,
   size: 32,
+};
+
+export const SearchBoxWithAutoFocus = Template.bind({});
+SearchBoxWithAutoFocus.args = {
+  ...Default.args,
+  autofocus: true,
 };

@@ -28,6 +28,7 @@ export default class FxviewSearchTextbox extends MozLitElement {
     placeholder: { type: String },
     size: { type: Number },
     pageName: { type: String },
+    autofocus: { type: Boolean },
   };
 
   static queries = {
@@ -37,6 +38,12 @@ export default class FxviewSearchTextbox extends MozLitElement {
 
   #query = "";
   #searchTimer;
+
+  firstUpdated() {
+    if (this.autofocus) {
+      this.focus();
+    }
+  }
 
   disconnectedCallback() {
     super.disconnectedCallback();

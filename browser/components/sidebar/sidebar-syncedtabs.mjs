@@ -181,6 +181,7 @@ class SyncedTabsInSidebar extends SidebarPage {
         >
         </sidebar-panel-header>
         <fxview-search-textbox
+          autofocus
           data-l10n-id="firefoxview-search-text-box-syncedtabs"
           data-l10n-attrs="placeholder"
           @fxview-search-textbox-query=${this.onSearchQuery}

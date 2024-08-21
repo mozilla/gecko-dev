@@ -177,6 +177,7 @@ export class SidebarHistory extends SidebarPage {
         <div class="history-sort-option">
           <div class="history-sort-option">
             <fxview-search-textbox
+              autofocus
               data-l10n-id="firefoxview-search-text-box-history"
               data-l10n-attrs="placeholder"
               @fxview-search-textbox-query=${this.onSearchQuery}

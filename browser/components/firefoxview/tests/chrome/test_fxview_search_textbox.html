@@ -11,13 +11,15 @@
 </head>
 <body>
 <p id="display"></p>
-<div id="content">
+<div id="search-test">
   <fxview-search-textbox></fxview-search-textbox>
 </div>
+<div id="focus-test"></div>
+
 <pre id="test"></pre>
 <script>
   add_task(async function test_search_and_clear() {
-    const component = document.querySelector("fxview-search-textbox");
+    const component = document.querySelector("#search-test fxview-search-textbox");
 
     info("Enter a search query.");
     let eventDeferred = Promise.withResolvers();
@@ -34,6 +36,18 @@
     synthesizeMouseAtCenter(component.clearButton, {});
     query = (await eventDeferred.promise).detail.query;
     is(query, "", "Event was fired with a blank query.");
+  });
+
+  add_task(async function test_search_autofocus() {
+    const container = document.querySelector("#focus-test");
+    const component = document.createElement('fxview-search-textbox');
+    component.setAttribute('autofocus', 'autofocus');
+    container.appendChild(component);
+
+    await component.updateCompleted;
+
+    isnot(component.input, null, 'component input should not be null');
+    is(component.shadowRoot.activeElement, component.input, 'Search input has focus');
   });
 </script>
 </body>
