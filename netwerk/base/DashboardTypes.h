@@ -37,10 +37,10 @@ struct DNSCacheEntries {
   nsTArray<nsCString> hostaddr;
   uint16_t family;
   int64_t expiration;
-  nsCString netInterface;
   bool TRR;
   nsCString originAttributesSuffix;
   nsCString flags;
+  uint16_t resolveType;
 };
 
 struct HttpConnInfo {
@@ -99,7 +99,6 @@ struct ParamTraits<mozilla::net::DNSCacheEntries> {
     WriteParam(aWriter, aParam.hostaddr);
     WriteParam(aWriter, aParam.family);
     WriteParam(aWriter, aParam.expiration);
-    WriteParam(aWriter, aParam.netInterface);
     WriteParam(aWriter, aParam.TRR);
   }
 
@@ -108,7 +107,6 @@ struct ParamTraits<mozilla::net::DNSCacheEntries> {
            ReadParam(aReader, &aResult->hostaddr) &&
            ReadParam(aReader, &aResult->family) &&
            ReadParam(aReader, &aResult->expiration) &&
-           ReadParam(aReader, &aResult->netInterface) &&
            ReadParam(aReader, &aResult->TRR);
   }
 };
