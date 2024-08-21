@@ -16,6 +16,7 @@
 #include <ctime>
 #include "nsHostResolver.h"
 #include "nsError.h"
+#include "nsIOService.h"
 #include "nsISupports.h"
 #include "nsISupportsUtils.h"
 #include "nsIThreadManager.h"
@@ -959,6 +960,10 @@ bool nsHostResolver::TRRServiceEnabledForRecord(nsHostRecord* aRec) {
     return true;
   }
 
+  if (gIOService->InSleepMode()) {
+    aRec->RecordReason(TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE);
+    return false;
+  }
   if (NS_IsOffline()) {
     // If we are in the NOT_CONFIRMED state _because_ we lack connectivity,
     // then we should report that the browser is offline instead.

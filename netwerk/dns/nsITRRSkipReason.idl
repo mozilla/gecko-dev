@@ -60,8 +60,9 @@ interface nsITRRSkipReason: nsISupports
     TRR_HEURISTIC_TRIPPED_VPN = 45,                // The heuristic was tripped due to a vpn being detected
     TRR_HEURISTIC_TRIPPED_PROXY = 46,              // The heuristic was tripped due to a proxy being detected
     TRR_HEURISTIC_TRIPPED_NRPT = 47,               // The heuristic was tripped due to a NRPT being detected
-    TRR_BAD_URL = 48, // We attempted to use a bad URL (doesn't parse or is not https).
-    eLAST_VALUE = TRR_BAD_URL, // This entry should always hold the last and largest value in the enum
+    TRR_BAD_URL = 48,           // We attempted to use a bad URL (doesn't parse or is not https).
+    TRR_SYSTEM_SLEEP_MODE = 49, // The system is in sleep mode.
+    eLAST_VALUE = TRR_SYSTEM_SLEEP_MODE, // This entry should always hold the last and largest value in the enum
   };
 };
 

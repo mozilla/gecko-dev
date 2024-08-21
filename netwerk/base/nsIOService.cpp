@@ -1775,6 +1775,9 @@ nsIOService::Observe(nsISupports* subject, const char* topic,
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1152048#c19
     nsCOMPtr<nsIRunnable> wakeupNotifier = new nsWakeupNotifier(this);
     NS_DispatchToMainThread(wakeupNotifier);
+    mInSleepMode = false;
+  } else if (!strcmp(topic, NS_WIDGET_SLEEP_OBSERVER_TOPIC)) {
+    mInSleepMode = true;
   }
 
   return NS_OK;

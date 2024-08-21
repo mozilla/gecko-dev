@@ -551,6 +551,8 @@ function initPage() {
         descriptionTag = "neterror-dns-not-found-trr-server-problem";
       } else if (skipReason == "TRR_BAD_URL") {
         descriptionTag = "neterror-dns-not-found-bad-trr-url";
+      } else if (skipReason == "TRR_SYSTEM_SLEEP_MODE") {
+        descriptionTag = "neterror-dns-not-found-system-sleep";
       }
 
       let trrMode = RPMGetIntPref("network.trr.mode").toString();

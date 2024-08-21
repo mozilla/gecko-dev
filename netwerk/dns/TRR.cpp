@@ -16,6 +16,7 @@
 #include "nsIIOService.h"
 #include "nsIInputStream.h"
 #include "nsIObliviousHttp.h"
+#include "nsIOService.h"
 #include "nsISupports.h"
 #include "nsISupportsUtils.h"
 #include "nsITimedChannel.h"
@@ -628,7 +629,9 @@ TRR::OnStartRequest(nsIRequest* aRequest) {
   aRequest->GetStatus(&status);
 
   if (NS_FAILED(status)) {
-    if (NS_IsOffline()) {
+    if (gIOService->InSleepMode()) {
+      RecordReason(TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE);
+    } else if (NS_IsOffline()) {
       RecordReason(TRRSkippedReason::TRR_BROWSER_IS_OFFLINE);
     }
 

@@ -79,6 +79,7 @@ class nsIOService final : public nsIIOService,
                                   nsAsyncRedirectVerifyHelper* helper);
 
   bool IsOffline() { return mOffline; }
+  bool InSleepMode() { return mInSleepMode; }
   PRIntervalTime LastOfflineStateChange() { return mLastOfflineStateChange; }
   PRIntervalTime LastConnectivityChange() { return mLastConnectivityChange; }
   PRIntervalTime LastNetworkLinkChange() { return mLastNetworkLinkChange; }
@@ -216,6 +217,7 @@ class nsIOService final : public nsIIOService,
 
   mozilla::Atomic<bool, mozilla::Relaxed> mShutdown{false};
   mozilla::Atomic<bool, mozilla::Relaxed> mHttpHandlerAlreadyShutingDown{false};
+  mozilla::Atomic<bool, mozilla::Relaxed> mInSleepMode{false};
 
   nsCOMPtr<nsPISocketTransportService> mSocketTransportService;
   nsCOMPtr<nsICaptivePortalService> mCaptivePortalService;

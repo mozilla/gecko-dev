@@ -1657,6 +1657,7 @@ nsresult GetTRRSkipReasonName(TRRSkippedReason aReason, nsACString& aName) {
   static_assert(TRRSkippedReason::TRR_HEURISTIC_TRIPPED_PROXY == 46);
   static_assert(TRRSkippedReason::TRR_HEURISTIC_TRIPPED_NRPT == 47);
   static_assert(TRRSkippedReason::TRR_BAD_URL == 48);
+  static_assert(TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE == 49);
 
   switch (aReason) {
     case TRRSkippedReason::TRR_UNSET:
@@ -1805,6 +1806,9 @@ nsresult GetTRRSkipReasonName(TRRSkippedReason aReason, nsACString& aName) {
       break;
     case TRRSkippedReason::TRR_BAD_URL:
       aName = "TRR_BAD_URL"_ns;
+      break;
+    case TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE:
+      aName = "TRR_SYSTEM_SLEEP_MODE"_ns;
       break;
     default:
       MOZ_ASSERT(false, "Unknown value");
