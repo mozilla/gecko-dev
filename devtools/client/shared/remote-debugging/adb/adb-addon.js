@@ -9,6 +9,9 @@ const { AddonManager } = ChromeUtils.importESModule(
   // AddonManager is a singleton, never create two instances of it.
   { global: "shared" }
 );
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 
 const PREF_ADB_EXTENSION_URL = "devtools.remote.adb.extensionURL";
@@ -79,18 +82,24 @@ class ADBAddon extends EventEmitter {
    * Returns the platform specific download link for the ADB extension.
    */
   _getXpiLink() {
-    const platform = Services.appShell.hiddenDOMWindow.navigator.platform;
     let OS = "";
-    if (platform.includes("Win")) {
-      OS = "win32";
-    } else if (platform.includes("Mac")) {
-      OS = "mac64";
-    } else if (platform.includes("Linux")) {
-      if (platform.includes("x86_64")) {
-        OS = "linux64";
-      } else {
-        OS = "linux";
+
+    switch (AppConstants.platform) {
+      case "linux": {
+        const cpuArch = Services.sysinfo.get("arch");
+        if (cpuArch === "x86-64") {
+          OS = "linux64";
+        } else {
+          OS = "linux";
+        }
+        break;
       }
+      case "macosx":
+        OS = "mac64";
+        break;
+      case "win":
+        OS = "win32";
+        break;
     }
 
     const xpiLink = Services.prefs.getCharPref(PREF_ADB_EXTENSION_URL);
