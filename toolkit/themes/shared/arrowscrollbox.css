@@ -8,6 +8,11 @@
   visibility: collapse;
 }
 
+scrollbox {
+  min-width: 0;
+  min-height: 0;
+}
+
 slot {
   display: flex;
   flex: 1 0 0;
@@ -23,14 +28,24 @@ toolbarbutton {
   fill: currentColor;
   fill-opacity: 1;
   padding: 2px;
-}
 
-toolbarbutton[disabled] {
-  fill-opacity: var(--toolbarbutton-disabled-opacity);
-}
+  &[disabled] {
+    fill-opacity: var(--toolbarbutton-disabled-opacity);
+  }
 
-:host([orient="horizontal"]) > toolbarbutton {
-  list-style-image: url("chrome://global/skin/icons/arrow-left.svg");
+  :host([orient="horizontal"]) > & {
+    list-style-image: url("chrome://global/skin/icons/arrow-left.svg");
+  }
+
+  @media not (-moz-platform: macos) {
+    :host(:not([clicktoscroll])) > & {
+      appearance: none;
+    }
+  }
+
+  > .toolbarbutton-text {
+    display: none;
+  }
 }
 
 #scrollbutton-up > .toolbarbutton-icon {
@@ -40,19 +55,4 @@ toolbarbutton[disabled] {
 :host([orient="horizontal"]) > #scrollbutton-down:-moz-locale-dir(ltr) > .toolbarbutton-icon,
 :host([orient="horizontal"]) > #scrollbutton-up:-moz-locale-dir(rtl) > .toolbarbutton-icon {
   transform: scaleX(-1);
-}
-
-toolbarbutton > .toolbarbutton-text {
-  display: none;
-}
-
-@media not (-moz-platform: macos) {
-  :host(:not([clicktoscroll])) > toolbarbutton {
-    appearance: none;
-  }
-}
-
-scrollbox {
-  min-width: 0;
-  min-height: 0;
 }
