@@ -1960,33 +1960,59 @@ class QueuedTranslator {
   /**
    * Note when a new port is being requested so we don't re-request it.
    */
-  showPage() {
+  async showPage() {
     this.#isPageShown = true;
     if (this.#port) {
       throw new Error(
         "Attempting to show the page when there is already port available"
       );
     }
-    if (this.#queue.size) {
+
+    let portRequestPromise;
+    if (this.#portRequest) {
+      // It is possible that the page is being re-shown while a port request is still pending.
+      // If that is the case, then we should continue to wait for the pending port.
+      portRequestPromise = this.#portRequest.promise;
+    } else if (this.#queue.size) {
       // There are queued translations, request a new port. After the port is retrieved
       // the pending queue will be processed.
-      this.#requestNewPort();
+      portRequestPromise = this.#requestNewPort();
+    }
+
+    try {
+      await portRequestPromise;
+    } catch {
+      // Failed to retrieve the port after re-showing a page, which will be reported as an error in the panel UI.
+      // At this point it is up to the user to determine the next step from the UI.
     }
   }
 
   /**
    * Hide the page, and move any outstanding translation requests to a queue.
    */
-  hidePage() {
+  async hidePage() {
     this.#isPageShown = false;
-    this.discardPort();
+
+    if (this.#portRequest) {
+      // It is possible that the page is being hidden while a port request is still pending.
+      // If that is the case, then we should wait for the port to resolve so that any pending
+      // translations can be properly moved to the queue, ready to resume when the page is re-shown.
+      try {
+        await this.#portRequest.promise;
+      } catch {
+        // Failed to retrieve the port after hiding the page. At this point it is up to the user to
+        // determine the next step from the UI if they return to the page that was hidden.
+      }
+    }
 
     if (this.#requests.size) {
       lazy.console.log(
         "Pausing translations with pending translation requests."
       );
+      this.#moveRequestsToQueue();
     }
-    this.#moveRequestsToQueue();
+
+    this.discardPort();
   }
 
   /**
@@ -2016,7 +2042,9 @@ class QueuedTranslator {
     this.#portRequest.promise
       .then(
         () => {
-          this.#portRequest = null;
+          if (portRequest === this.#portRequest) {
+            this.#portRequest = null;
+          }
 
           // Resume the queued translations.
           if (this.#queue.size) {
@@ -2036,7 +2064,9 @@ class QueuedTranslator {
         }
       )
       .finally(() => {
-        this.#portRequest = null;
+        if (portRequest === this.#portRequest) {
+          this.#portRequest = null;
+        }
       });
 
     return portRequest.promise;
@@ -2119,6 +2149,7 @@ class QueuedTranslator {
       this.#port.postMessage({ type: "TranslationsPort:DiscardTranslations" });
       this.#port.close();
       this.#port = null;
+      this.#portRequest = null;
     }
     this.#moveRequestsToQueue();
     this.engineStatus = "uninitialized";
