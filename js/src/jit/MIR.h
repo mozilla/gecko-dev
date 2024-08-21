@@ -8762,8 +8762,8 @@ class MAtomicIsLockFree : public MUnaryInstruction,
 
 class MCompareExchangeTypedArrayElement
     : public MQuaternaryInstruction,
-      public MixPolicy<TruncateToInt32OrToBigIntPolicy<2>,
-                       TruncateToInt32OrToBigIntPolicy<3>>::Data {
+      public MixPolicy<TruncateToInt32OrToInt64Policy<2>,
+                       TruncateToInt32OrToInt64Policy<3>>::Data {
   Scalar::Type arrayType_;
 
   explicit MCompareExchangeTypedArrayElement(MDefinition* elements,

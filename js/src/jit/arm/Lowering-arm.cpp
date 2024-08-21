@@ -915,21 +915,21 @@ void LIRGenerator::visitCompareExchangeTypedArrayElement(
   const LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->arrayType());
 
-  const LAllocation newval = useRegister(ins->newval());
-  const LAllocation oldval = useRegister(ins->oldval());
-
   if (Scalar::isBigIntType(ins->arrayType())) {
     // The three register pairs must be distinct.
-    LInt64Definition temp1 = tempInt64Fixed(CmpXchgOld64);
-    LInt64Definition temp2 = tempInt64Fixed(CmpXchgNew64);
-    LInt64Definition temp3 = tempInt64Fixed(CmpXchgOut64);
+    LInt64Allocation oldval = useInt64Fixed(ins->oldval(), CmpXchgOld64);
+    LInt64Allocation newval = useInt64Fixed(ins->newval(), CmpXchgNew64);
 
-    auto* lir = new (alloc()) LCompareExchangeTypedArrayElement64(
-        elements, index, oldval, newval, temp1, temp2, temp3);
-    define(lir, ins);
-    assignSafepoint(lir, ins);
+    auto* lir = new (alloc())
+        LCompareExchangeTypedArrayElement64(elements, index, oldval, newval);
+    defineInt64Fixed(lir, ins,
+                     LInt64Allocation(LAllocation(AnyRegister(CmpXchgOutHi)),
+                                      LAllocation(AnyRegister(CmpXchgOutLo))));
     return;
   }
+
+  const LAllocation oldval = useRegister(ins->oldval());
+  const LAllocation newval = useRegister(ins->newval());
 
   // If the target is a floating register then we need a temp at the
   // CodeGenerator level for creating the result.

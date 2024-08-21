@@ -233,17 +233,19 @@ void LIRGenerator::visitCompareExchangeTypedArrayElement(
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
   if (Scalar::isBigIntType(ins->arrayType())) {
-    LUse elements = useFixed(ins->elements(), esi);
+    LUse elements = useRegister(ins->elements());
     LAllocation index =
         useRegisterOrIndexConstant(ins->index(), ins->arrayType());
-    LUse oldval = useFixed(ins->oldval(), eax);
-    LUse newval = useFixed(ins->newval(), edx);
-    LDefinition temp = tempFixed(ebx);
+    LInt64Allocation oldval =
+        useInt64FixedAtStart(ins->oldval(), Register64(edx, eax));
+    LInt64Allocation newval =
+        useInt64Fixed(ins->newval(), Register64(ecx, ebx));
 
-    auto* lir = new (alloc()) LCompareExchangeTypedArrayElement64(
-        elements, index, oldval, newval, temp);
-    defineFixed(lir, ins, LAllocation(AnyRegister(ecx)));
-    assignSafepoint(lir, ins);
+    auto* lir = new (alloc())
+        LCompareExchangeTypedArrayElement64(elements, index, oldval, newval);
+    defineInt64Fixed(lir, ins,
+                     LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                      LAllocation(AnyRegister(eax))));
     return;
   }
 
