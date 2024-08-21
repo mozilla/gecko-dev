@@ -106,7 +106,5 @@ user_pref("toolkit.telemetry.initDelay", 99999999);
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 // Use a light color-scheme unless explicitly overriden.
 user_pref("layout.css.prefers-color-scheme.content-override", 1);
-// Force OffscreenCanvas support
-user_pref("gfx.offscreencanvas.enabled", true);
 // Turn off update
 user_pref("app.update.disabledForTesting", true);

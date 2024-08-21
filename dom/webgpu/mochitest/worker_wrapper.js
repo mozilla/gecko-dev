@@ -2,10 +2,6 @@ ok(
   SpecialPowers.getBoolPref("dom.webgpu.enabled"),
   "WebGPU pref should be enabled."
 );
-ok(
-  SpecialPowers.getBoolPref("gfx.offscreencanvas.enabled"),
-  "OffscreenCanvas pref should be enabled."
-);
 SimpleTest.waitForExplicitFinish();
 
 const workerWrapperFunc = async function (worker_path, data, transfer) {

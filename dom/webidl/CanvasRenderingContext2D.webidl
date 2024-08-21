@@ -346,8 +346,7 @@ interface mixin CanvasPathMethods {
   undefined ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, optional boolean anticlockwise = false);
 };
 
-[Exposed=(Window,Worker),
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread"]
+[Exposed=(Window,Worker)]
 interface CanvasGradient {
   // opaque object
   [Throws]
@@ -355,8 +354,7 @@ interface CanvasGradient {
   undefined addColorStop(float offset, UTF8String color);
 };
 
-[Exposed=(Window,Worker),
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread"]
+[Exposed=(Window,Worker)]
 interface CanvasPattern {
   // opaque object
   // [Throws, LenientFloat] - could not do this overload because of bug 1020975

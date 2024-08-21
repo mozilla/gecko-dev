@@ -7,7 +7,7 @@
  * https://html.spec.whatwg.org/#the-offscreen-2d-rendering-context
  */
 
-[Exposed=(Window,Worker), Pref="gfx.offscreencanvas.enabled"]
+[Exposed=(Window,Worker)]
 interface OffscreenCanvasRenderingContext2D {
   [Throws]
   undefined commit();

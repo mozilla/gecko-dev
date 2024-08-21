@@ -10,21 +10,15 @@
 typedef long long GLint64;
 typedef unsigned long long GLuint64;
 
-[Pref="webgl.enable-webgl2",
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread",
- Exposed=(Window,Worker)]
+[Pref="webgl.enable-webgl2", Exposed=(Window,Worker)]
 interface WebGLSampler {
 };
 
-[Pref="webgl.enable-webgl2",
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread",
- Exposed=(Window,Worker)]
+[Pref="webgl.enable-webgl2", Exposed=(Window,Worker)]
 interface WebGLSync {
 };
 
-[Pref="webgl.enable-webgl2",
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread",
- Exposed=(Window,Worker)]
+[Pref="webgl.enable-webgl2", Exposed=(Window,Worker)]
 interface WebGLTransformFeedback {
 };
 
@@ -32,9 +26,7 @@ typedef ([AllowShared] Uint32Array or sequence<GLuint>) Uint32List;
 
 // WebGL2 spec has this as an empty interface that pulls in everything
 // via WebGL2RenderingContextBase.
-[Pref="webgl.enable-webgl2",
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread",
- Exposed=(Window,Worker)]
+[Pref="webgl.enable-webgl2", Exposed=(Window,Worker)]
 interface WebGL2RenderingContext
 {
 };

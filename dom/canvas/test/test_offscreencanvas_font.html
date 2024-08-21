@@ -50,9 +50,7 @@ function runTest() {
   SimpleTest.finish();
 }
 
-SpecialPowers.pushPrefEnv({'set': [
-  ['gfx.offscreencanvas.enabled', true],
-]}, runTest);
+runTest();
 
 </script>
 </body>

@@ -123,10 +123,6 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
   static already_AddRefed<OffscreenCanvas> CreateFromCloneData(
       nsIGlobalObject* aGlobal, OffscreenCanvasCloneData* aData);
 
-  // Return true on main-thread, and return gfx.offscreencanvas.enabled
-  // on worker thread.
-  static bool PrefEnabledOnWorkerThread(JSContext* aCx, JSObject* aObj);
-
   UniquePtr<OffscreenCanvasCloneData> ToCloneData(JSContext* aCx);
 
   void UpdateDisplayData(const OffscreenCanvasDisplayData& aData);

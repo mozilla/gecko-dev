@@ -606,12 +606,6 @@ already_AddRefed<OffscreenCanvas> OffscreenCanvas::CreateFromCloneData(
   return wc.forget();
 }
 
-/* static */
-bool OffscreenCanvas::PrefEnabledOnWorkerThread(JSContext* aCx,
-                                                JSObject* aObj) {
-  return NS_IsMainThread() || StaticPrefs::gfx_offscreencanvas_enabled();
-}
-
 NS_IMPL_CYCLE_COLLECTION_INHERITED(OffscreenCanvas, DOMEventTargetHelper,
                                    mCurrentContext)
 

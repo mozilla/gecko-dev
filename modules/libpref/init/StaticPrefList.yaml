@@ -6468,12 +6468,6 @@
   mirror: once
   do_not_use_directly: true
 
-# Enable OffscreenCanvas everywhere.
-- name: gfx.offscreencanvas.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: gfx.offscreencanvas.shared-provider
   type: RelaxedAtomicBool
   value: true

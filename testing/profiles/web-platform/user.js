@@ -68,8 +68,6 @@ user_pref("nglayout.initialpaint.unsuppress_with_no_background", true);
 user_pref("media.block-autoplay-until-in-foreground", false);
 // Force a light color scheme unless explicitly overridden by pref.
 user_pref("layout.css.prefers-color-scheme.content-override", 1);
-// Force OffscreenCanvas support
-user_pref("gfx.offscreencanvas.enabled", true);
 // A lot of tests use the Reporting API for observing things
 user_pref("dom.reporting.enabled", true);
 // Enable WebDriver BiDi experimental commands and events during tests.

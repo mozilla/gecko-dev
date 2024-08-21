@@ -169,9 +169,8 @@ function runTestOnWorker() {
   });
 }
 
-SpecialPowers.pushPrefEnv({'set': [
-  ['gfx.offscreencanvas.enabled', true],
-]}, runTest.bind(this, 64, 64, runTest.bind(this, 128, 128, scaleTest)));
+
+runTest(64, 64, runTest.bind(this, 128, 128, scaleTest));
 
 </script>
 </body>

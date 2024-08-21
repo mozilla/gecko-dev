@@ -7,8 +7,7 @@
  * https://www.khronos.org/registry/webgl/specs/latest/1.0/#fire-a-webgl-context-event
  */
 
-[Exposed=(Window,Worker),
- Func="mozilla::dom::OffscreenCanvas::PrefEnabledOnWorkerThread"]
+[Exposed=(Window,Worker)]
 interface WebGLContextEvent : Event {
   constructor(DOMString type, optional WebGLContextEventInit eventInit = {});
 
