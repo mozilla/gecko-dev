@@ -23,6 +23,7 @@
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "jit/VMFunctions.h"
+#include "js/ScalarType.h"
 #include "util/DifferentialTesting.h"
 #include "vm/BigIntType.h"
 #include "vm/EqualityOperations.h"
@@ -2023,6 +2024,34 @@ bool RInt32ToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
   double d = iter.readNumber();
 
   BigInt* result = NumberToBigInt(cx, d);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MInt64ToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_Int64ToBigInt));
+  writer.writeByte(elementType() == JS::Scalar::BigUint64);
+  return true;
+}
+
+RInt64ToBigInt::RInt64ToBigInt(CompactBufferReader& reader) {
+  isUnsigned_ = bool(reader.readByte());
+}
+
+bool RInt64ToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
+  int64_t n = iter.readInt64();
+
+  BigInt* result;
+  if (isUnsigned_) {
+    result = BigInt::createFromUint64(cx, uint64_t(n));
+  } else {
+    result = BigInt::createFromInt64(cx, n);
+  }
   if (!result) {
     return false;
   }

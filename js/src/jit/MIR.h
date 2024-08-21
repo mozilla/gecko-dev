@@ -3868,6 +3868,10 @@ class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
 
   Scalar::Type elementType() const { return elementType_; }
 
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
   ALLOW_CLONE(MInt64ToBigInt)
 };
 

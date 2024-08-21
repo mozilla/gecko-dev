@@ -133,6 +133,7 @@ namespace jit {
   _(ArrayState)                   \
   _(AtomicIsLockFree)             \
   _(Int32ToBigInt)                \
+  _(Int64ToBigInt)                \
   _(BigIntAsIntN)                 \
   _(BigIntAsUintN)                \
   _(CreateArgumentsObject)        \
@@ -903,6 +904,16 @@ class RAtomicIsLockFree final : public RInstruction {
 class RInt32ToBigInt final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Int32ToBigInt, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RInt64ToBigInt final : public RInstruction {
+  bool isUnsigned_;
+
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(Int64ToBigInt, 1)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;
