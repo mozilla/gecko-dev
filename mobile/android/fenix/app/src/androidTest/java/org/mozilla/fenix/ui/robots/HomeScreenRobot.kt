@@ -67,6 +67,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -365,13 +366,13 @@ class HomeScreenRobot {
         Log.i(TAG, "verifyExistingTopSitesTabs: Trying to scroll into view the top sites list")
         homeScreenList().scrollIntoView(itemWithResId("$packageName:id/top_sites_list"))
         Log.i(TAG, "verifyExistingTopSitesTabs: Scrolled into view the top sites list")
-        Log.i(TAG, "verifyExistingTopSitesTabs: Waiting for $waitingTime ms for top site: $title to exist")
+        Log.i(TAG, "verifyExistingTopSitesTabs: Waiting for $waitingTimeLong ms for top site: $title to exist")
         mDevice.findObject(
             UiSelector()
                 .resourceId("$packageName:id/top_site_title")
                 .textContains(title),
-        ).waitForExists(waitingTime)
-        Log.i(TAG, "verifyExistingTopSitesTabs: Waited for $waitingTime ms for top site: $title to exist")
+        ).waitForExists(waitingTimeLong)
+        Log.i(TAG, "verifyExistingTopSitesTabs: Waited for $waitingTimeLong ms for top site: $title to exist")
         Log.i(TAG, "verifyExistingTopSitesTabs: Trying to verify top site: $title is visible")
         onView(allOf(withId(R.id.top_sites_list)))
             .check(matches(hasDescendant(withText(title))))

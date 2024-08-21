@@ -25,6 +25,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.home.topsites.TopSitesTestTag
@@ -45,8 +46,11 @@ class ComposeTopSitesRobot(private val composeTestRule: HomeActivityComposeTestR
     fun verifyExistingTopSiteItem(vararg titles: String) {
         titles.forEach { title ->
             Log.i(TAG, "verifyExistingTopSiteItem: Waiting for $waitingTime ms until the top site with title: $title exists")
-            composeTestRule.waitUntilAtLeastOneExists(hasText(title), timeoutMillis = waitingTime)
-            Log.i(TAG, "verifyExistingTopSiteItem: Waited for $waitingTime ms until the top site with title: $title exists")
+            composeTestRule.waitUntilAtLeastOneExists(
+                hasTestTag(TopSitesTestTag.topSiteItemRoot).and(hasAnyChild(hasText(title))),
+                timeoutMillis = waitingTimeLong,
+            )
+            Log.i(TAG, "verifyExistingTopSiteItem: Waited for $waitingTimeLong ms until the top site with title: $title exists")
             Log.i(TAG, "verifyExistingTopSiteItem: Trying to verify that the top site with title: $title exists")
             composeTestRule.topSiteItem(title).assertExists()
             Log.i(TAG, "verifyExistingTopSiteItem: Verified that the top site with title: $title exists")
