@@ -181,12 +181,16 @@ class SVGElement : public SVGElementBase  // nsIContent
   void SetLength(nsAtom* aName, const SVGAnimatedLength& aLength);
 
   enum class ValToUse { Base, Anim };
-  static bool UpdateDeclarationBlockFromLength(
-      StyleLockedDeclarationBlock& aBlock, nsCSSPropertyID aPropId,
-      const SVGAnimatedLength& aLength, ValToUse aValToUse);
-  static bool UpdateDeclarationBlockFromPath(
-      StyleLockedDeclarationBlock& aBlock, const SVGAnimatedPathSegList& aPath,
-      ValToUse aValToUse);
+  static bool UpdateDeclarationBlockFromLength(StyleLockedDeclarationBlock&,
+                                               nsCSSPropertyID,
+                                               const SVGAnimatedLength&,
+                                               ValToUse);
+  static bool UpdateDeclarationBlockFromPath(StyleLockedDeclarationBlock&,
+                                             const SVGAnimatedPathSegList&,
+                                             ValToUse);
+  static bool UpdateDeclarationBlockFromTransform(
+      StyleLockedDeclarationBlock&, const SVGAnimatedTransformList*,
+      const gfx::Matrix* aAnimateMotionTransform, ValToUse);
 
   nsAttrValue WillChangeLength(uint8_t aAttrEnum,
                                const mozAutoDocUpdate& aProofOfUpdate);

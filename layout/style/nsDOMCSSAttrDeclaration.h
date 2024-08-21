@@ -21,6 +21,7 @@ namespace mozilla {
 class SMILValue;
 class SVGAnimatedLength;
 class SVGAnimatedPathSegList;
+class SVGAnimatedTransformList;
 
 namespace dom {
 class DomGroup;
@@ -55,6 +56,9 @@ class nsDOMCSSAttributeDeclaration final : public nsDOMCSSDeclaration {
                         const SVGAnimatedLength& aLength);
   nsresult SetSMILValue(const nsCSSPropertyID,
                         const mozilla::SVGAnimatedPathSegList& aPath);
+  nsresult SetSMILValue(const nsCSSPropertyID,
+                        const mozilla::SVGAnimatedTransformList*,
+                        const mozilla::gfx::Matrix* aAnimateMotion = nullptr);
   void ClearSMILValue(const nsCSSPropertyID aPropID) {
     // Put empty string in override style for our property
     SetPropertyValue(aPropID, ""_ns, nullptr, mozilla::IgnoreErrors());

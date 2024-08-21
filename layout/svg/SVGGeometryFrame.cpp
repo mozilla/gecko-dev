@@ -104,12 +104,15 @@ void SVGGeometryFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
         // For clipPath we use clip-rule as the path's fill-rule.
         element->ClearAnyCachedPath();
       }
-    } else {
-      if (StyleSVG()->mFillRule != oldStyleSVG->mFillRule) {
-        // Moz2D Path objects are fill-rule specific.
-        element->ClearAnyCachedPath();
-      }
+    } else if (StyleSVG()->mFillRule != oldStyleSVG->mFillRule) {
+      // Moz2D Path objects are fill-rule specific.
+      element->ClearAnyCachedPath();
     }
+  }
+
+  if (StyleDisplay()->CalcTransformPropertyDifference(
+          *aOldComputedStyle->StyleDisplay())) {
+    SVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
   }
 
   if (element->IsGeometryChangedViaCSS(*Style(), *aOldComputedStyle)) {

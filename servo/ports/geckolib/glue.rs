@@ -5691,6 +5691,24 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetTransform(
+    declarations: &LockedDeclarationBlock,
+    property: nsCSSPropertyID,
+    ops: &nsTArray<computed::TransformOperation>,
+) {
+    use style::values::generics::transform::GenericTransform;
+    use style::properties::PropertyDeclaration;
+    let long = get_longhand_from_id!(property);
+    let v = GenericTransform(ops.iter().map(ToComputedValue::from_computed_value).collect());
+    let prop = match_wrap_declared! { long,
+        Transform => v,
+    };
+    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+        decls.push(prop, Importance::Normal);
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPathValue(
     declarations: &LockedDeclarationBlock,
     property: nsCSSPropertyID,

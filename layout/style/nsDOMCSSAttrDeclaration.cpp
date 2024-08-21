@@ -182,12 +182,26 @@ nsresult nsDOMCSSAttributeDeclaration::SetSMILValue(
 }
 
 nsresult nsDOMCSSAttributeDeclaration::SetSMILValue(
-    const nsCSSPropertyID /*aPropID*/, const SVGAnimatedPathSegList& aPath) {
+    const nsCSSPropertyID aPropID, const SVGAnimatedPathSegList& aPath) {
+  MOZ_ASSERT(aPropID == eCSSProperty_d);
   return SetSMILValueHelper([&aPath](DeclarationBlock& aDecl) {
     MOZ_ASSERT(aDecl.IsMutable());
     return SVGElement::UpdateDeclarationBlockFromPath(
         *aDecl.Raw(), aPath, SVGElement::ValToUse::Anim);
   });
+}
+
+nsresult nsDOMCSSAttributeDeclaration::SetSMILValue(
+    const nsCSSPropertyID aPropID, const SVGAnimatedTransformList* aTransform,
+    const gfx::Matrix* aAnimateMotionTransform) {
+  MOZ_ASSERT(aPropID == eCSSProperty_transform);
+  return SetSMILValueHelper(
+      [aTransform, aAnimateMotionTransform](DeclarationBlock& aDecl) {
+        MOZ_ASSERT(aDecl.IsMutable());
+        return SVGElement::UpdateDeclarationBlockFromTransform(
+            *aDecl.Raw(), aTransform, aAnimateMotionTransform,
+            SVGElement::ValToUse::Anim);
+      });
 }
 
 // Scripted modifications to style.opacity or style.transform (or other

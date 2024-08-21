@@ -45,6 +45,7 @@ class SVGTransformableElement : public SVGElement {
       SVGTransformTypes aWhich = eAllTransforms) const override;
   const gfx::Matrix* GetAnimateMotionTransform() const override;
   void SetAnimateMotionTransform(const gfx::Matrix* aMatrix) override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
   SVGAnimatedTransformList* GetAnimatedTransformList(
       uint32_t aFlags = 0) override;
@@ -55,17 +56,6 @@ class SVGTransformableElement : public SVGElement {
   bool IsTransformable() override { return true; }
 
  protected:
-  /**
-   * Helper for overrides of PrependLocalTransformsTo.  If both arguments are
-   * provided they are multiplied in the order in which the arguments appear,
-   * and the result is returned.  If neither argument is provided, the identity
-   * matrix is returned.  If only one argument is provided its transform is
-   * returned.
-   */
-  static gfxMatrix GetUserToParentTransform(
-      const gfx::Matrix* aAnimateMotionTransform,
-      const SVGAnimatedTransformList* aTransforms);
-
   UniquePtr<SVGAnimatedTransformList> mTransforms;
 
   // XXX maybe move this to property table, to save space on un-animated elems?

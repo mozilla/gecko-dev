@@ -26,6 +26,12 @@ SVGTransformableElement::Transform() {
 //----------------------------------------------------------------------
 // nsIContent methods
 
+bool SVGTransformableElement::IsAttributeMapped(
+    const nsAtom* aAttribute) const {
+  return aAttribute == nsGkAtoms::transform ||
+         SVGElement::IsAttributeMapped(aAttribute);
+}
+
 nsChangeHint SVGTransformableElement::GetAttributeChangeHint(
     const nsAtom* aAttribute, int32_t aModType) const {
   nsChangeHint retval =
@@ -75,14 +81,9 @@ bool SVGTransformableElement::IsEventAttributeNameInternal(nsAtom* aName) {
 
 gfxMatrix SVGTransformableElement::PrependLocalTransformsTo(
     const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
-  if (aWhich == eChildToUserSpace) {
-    // We don't have any eUserSpaceToParent transforms. (Sub-classes that do
-    // must override this function and handle that themselves.)
-    return aMatrix;
-  }
-  return GetUserToParentTransform(mAnimateMotionTransform.get(),
-                                  mTransforms.get()) *
-         aMatrix;
+  // We don't have any eUserSpaceToParent transforms. (Sub-classes that do
+  // must override this function and handle that themselves.)
+  return aMatrix;
 }
 
 const gfx::Matrix* SVGTransformableElement::GetAnimateMotionTransform() const {
@@ -128,23 +129,6 @@ SVGAnimatedTransformList* SVGTransformableElement::GetAnimatedTransformList(
     mTransforms = MakeUnique<SVGAnimatedTransformList>();
   }
   return mTransforms.get();
-}
-
-/* static */
-gfxMatrix SVGTransformableElement::GetUserToParentTransform(
-    const gfx::Matrix* aAnimateMotionTransform,
-    const SVGAnimatedTransformList* aTransforms) {
-  gfxMatrix result;
-
-  if (aAnimateMotionTransform) {
-    result.PreMultiply(ThebesMatrix(*aAnimateMotionTransform));
-  }
-
-  if (aTransforms) {
-    result.PreMultiply(aTransforms->GetAnimValue().GetConsolidationMatrix());
-  }
-
-  return result;
 }
 
 }  // namespace mozilla::dom

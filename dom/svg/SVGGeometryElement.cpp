@@ -19,7 +19,7 @@
 #include "mozilla/dom/SVGLengthBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/StaticPrefs_layout.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/SVGContentUtils.h"
 
 using namespace mozilla::gfx;
@@ -242,6 +242,21 @@ already_AddRefed<DOMSVGPoint> SVGGeometryElement::GetPointAtLength(
       clamped(distance, 0.f, path->ComputeLength()))));
 }
 
+gfx::Matrix SVGGeometryElement::LocalTransform() const {
+  gfx::Matrix result;
+  nsIFrame* f = GetPrimaryFrame();
+  if (!f || !f->IsTransformed()) {
+    return result;
+  }
+  Matrix4x4Flagged matrix = nsDisplayTransform::GetResultingTransformMatrix(
+      f, nsPoint(), f->PresContext()->AppUnitsPerDevPixel(),
+      nsDisplayTransform::INCLUDE_PERSPECTIVE);
+  if (!matrix.IsIdentity()) {
+    std::ignore = matrix.CanDraw2D(&result);
+  }
+  return result;
+}
+
 float SVGGeometryElement::GetPathLengthScale(PathLengthScaleForType aFor) {
   MOZ_ASSERT(aFor == eForTextPath || aFor == eForStroking, "Unknown enum");
   if (mPathLength.IsExplicitlySet()) {
@@ -257,10 +272,9 @@ float SVGGeometryElement::GetPathLengthScale(PathLengthScaleForType aFor) {
         // For textPath, a transform on the referenced path affects the
         // textPath layout, so when calculating the actual path length
         // we need to take that into account.
-        gfxMatrix matrix = PrependLocalTransformsTo(gfxMatrix());
+        auto matrix = LocalTransform();
         if (!matrix.IsIdentity()) {
-          RefPtr<PathBuilder> builder =
-              path->TransformedCopyToBuilder(ToMatrix(matrix));
+          RefPtr<PathBuilder> builder = path->TransformedCopyToBuilder(matrix);
           path = builder->Finish();
         }
       }

@@ -160,9 +160,6 @@ class SVGViewportElement : public SVGGraphicsElement {
   virtual const SVGAnimatedViewBox& GetViewBoxInternal() const {
     return mViewBox;
   }
-  virtual SVGAnimatedTransformList* GetTransformInternal() const {
-    return mTransforms.get();
-  }
   SVGAnimatedViewBox mViewBox;
   SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 

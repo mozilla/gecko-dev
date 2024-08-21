@@ -44,7 +44,7 @@ SVGOuterSVGFrame::SVGOuterSVGFrame(ComputedStyle* aStyle,
   // Outer-<svg> has CSS layout, so remove this bit:
   RemoveStateBits(NS_FRAME_SVG_LAYOUT);
   AddStateBits(NS_FRAME_REFLOW_ROOT | NS_FRAME_FONT_INFLATION_CONTAINER |
-               NS_FRAME_FONT_INFLATION_FLOW_ROOT | NS_FRAME_MAY_BE_TRANSFORMED);
+               NS_FRAME_FONT_INFLATION_FLOW_ROOT);
 }
 
 // The CSS Containment spec says that size-contained replaced elements must be
@@ -531,21 +531,7 @@ bool SVGOuterSVGFrame::IsSVGTransformed(Matrix* aOwnTransform,
   // Our anonymous child's HasChildrenOnlyTransform() implementation makes sure
   // our children-only transforms are applied to our children.  We only care
   // about transforms that transform our own frame here.
-
-  bool foundTransform = false;
-
-  SVGSVGElement* content = static_cast<SVGSVGElement*>(GetContent());
-  SVGAnimatedTransformList* transformList = content->GetAnimatedTransformList();
-  if ((transformList && transformList->HasTransform()) ||
-      content->GetAnimateMotionTransform()) {
-    if (aOwnTransform) {
-      *aOwnTransform = gfx::ToMatrix(
-          content->PrependLocalTransformsTo(gfxMatrix(), eUserSpaceToParent));
-    }
-    foundTransform = true;
-  }
-
-  return foundTransform;
+  return false;
 }
 
 //----------------------------------------------------------------------
@@ -667,8 +653,7 @@ SVGBBox SVGOuterSVGFrame::GetBBoxContribution(
 
 gfxMatrix SVGOuterSVGFrame::GetCanvasTM() {
   if (!mCanvasTM) {
-    SVGSVGElement* content = static_cast<SVGSVGElement*>(GetContent());
-
+    auto* content = static_cast<SVGSVGElement*>(GetContent());
     float devPxPerCSSPx = 1.0f / nsPresContext::AppUnitsToFloatCSSPixels(
                                      PresContext()->AppUnitsPerDevPixel());
 

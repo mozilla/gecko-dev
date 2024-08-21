@@ -441,10 +441,19 @@ bool SVGSVGElement::WillBeOutermostSVG(nsINode& aParent) const {
   return true;
 }
 
+void SVGSVGElement::DidChangeSVGView() {
+  InvalidateTransformNotifyFrame();
+  // We map the SVGView transform as the transform css property, so need to
+  // schedule attribute mapping.
+  if (!IsPendingMappedAttributeEvaluation() &&
+      mAttrs.MarkAsPendingPresAttributeEvaluation()) {
+    OwnerDoc()->ScheduleForPresAttrEvaluation(this);
+  }
+}
+
 void SVGSVGElement::InvalidateTransformNotifyFrame() {
-  ISVGSVGFrame* svgframe = do_QueryFrame(GetPrimaryFrame());
   // might fail this check if we've failed conditional processing
-  if (svgframe) {
+  if (ISVGSVGFrame* svgframe = do_QueryFrame(GetPrimaryFrame())) {
     svgframe->NotifyViewportOrTransformChanged(
         ISVGDisplayableFrame::TRANSFORM_CHANGED);
   }
@@ -582,11 +591,6 @@ const SVGAnimatedViewBox& SVGSVGElement::GetViewBoxInternal() const {
   }
 
   return mViewBox;
-}
-
-SVGAnimatedTransformList* SVGSVGElement::GetTransformInternal() const {
-  return (mSVGView && mSVGView->mTransforms) ? mSVGView->mTransforms.get()
-                                             : mTransforms.get();
 }
 
 }  // namespace mozilla::dom

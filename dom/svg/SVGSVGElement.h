@@ -183,6 +183,7 @@ class SVGSVGElement final : public SVGSVGElementBase {
 
   // invalidate viewbox -> viewport xform & inform frames
   void InvalidateTransformNotifyFrame();
+  void DidChangeSVGView();
 
   // Methods for <image> elements to override my "PreserveAspectRatio" value.
   // These are private so that only our friends
@@ -197,7 +198,6 @@ class SVGSVGElement final : public SVGSVGElementBase {
   bool ClearPreserveAspectRatioProperty();
 
   const SVGAnimatedViewBox& GetViewBoxInternal() const override;
-  SVGAnimatedTransformList* GetTransformInternal() const override;
 
   EnumAttributesInfo GetEnumInfo() override;
 

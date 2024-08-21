@@ -241,14 +241,8 @@ float SVGViewportElement::GetLength(uint8_t aCtxType) const {
 gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
     const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
   // 'transform' attribute (or an override from a fragment identifier):
-  gfxMatrix userToParent;
-
-  if (aWhich == eUserSpaceToParent || aWhich == eAllTransforms) {
-    userToParent = GetUserToParentTransform(mAnimateMotionTransform.get(),
-                                            GetTransformInternal());
-    if (aWhich == eUserSpaceToParent) {
-      return userToParent * aMatrix;
-    }
+  if (aWhich == eUserSpaceToParent) {
+    return aMatrix;
   }
 
   gfxMatrix childToUser;
@@ -271,12 +265,8 @@ gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
     childToUser = ThebesMatrix(GetViewBoxTransform());
   }
 
-  if (aWhich == eAllTransforms) {
-    return childToUser * userToParent * aMatrix;
-  }
-
-  MOZ_ASSERT(aWhich == eChildToUserSpace, "Unknown TransformTypes");
-
+  MOZ_ASSERT(aWhich == eAllTransforms || aWhich == eChildToUserSpace,
+             "Unknown TransformTypes");
   // The following may look broken because pre-multiplying our eChildToUserSpace
   // transform with another matrix without including our eUserSpaceToParent
   // transform between the two wouldn't make sense.  We don't expect that to

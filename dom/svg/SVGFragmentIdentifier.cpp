@@ -43,11 +43,9 @@ class MOZ_RAII AutoSVGViewHandler {
     if (mValid) {
       mRoot->mSVGView = std::move(mSVGView);
     }
-    mRoot->InvalidateTransformNotifyFrame();
-    if (nsIFrame* f = mRoot->GetPrimaryFrame()) {
-      if (SVGOuterSVGFrame* osf = do_QueryFrame(f)) {
-        osf->MaybeSendIntrinsicSizeAndRatioToEmbedder();
-      }
+    mRoot->DidChangeSVGView();
+    if (SVGOuterSVGFrame* osf = do_QueryFrame(mRoot->GetPrimaryFrame())) {
+      osf->MaybeSendIntrinsicSizeAndRatioToEmbedder();
     }
   }
 

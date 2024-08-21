@@ -357,22 +357,9 @@ bool SVGUtils::IsSVGTransformed(const nsIFrame* aFrame,
                                      NS_FRAME_MAY_BE_TRANSFORMED),
              "Expecting an SVG frame that can be transformed");
   bool foundTransform = false;
-
   // Check if our parent has children-only transforms:
   if (SVGContainerFrame* parent = do_QueryFrame(aFrame->GetParent())) {
     foundTransform = parent->HasChildrenOnlyTransform(aFromParentTransform);
-  }
-
-  if (auto* content = SVGElement::FromNode(aFrame->GetContent())) {
-    auto* transformList = content->GetAnimatedTransformList();
-    if ((transformList && transformList->HasTransform()) ||
-        content->GetAnimateMotionTransform()) {
-      if (aOwnTransform) {
-        *aOwnTransform = gfx::ToMatrix(
-            content->PrependLocalTransformsTo(gfxMatrix(), eUserSpaceToParent));
-      }
-      foundTransform = true;
-    }
   }
   return foundTransform;
 }
@@ -1532,15 +1519,14 @@ gfxMatrix SVGUtils::GetTransformMatrixInUserSpace(const nsIFrame* aFrame) {
 
   Matrix svgTransform;
   Matrix4x4 trans;
-  (void)aFrame->IsSVGTransformed(&svgTransform);
-
   if (properties.HasTransform()) {
     trans = nsStyleTransformMatrix::ReadTransforms(
         properties.mTranslate, properties.mRotate, properties.mScale,
         properties.mMotion.ptrOr(nullptr), properties.mTransform, refBox,
         AppUnitsPerCSSPixel());
-  } else {
-    trans = Matrix4x4::From2D(svgTransform);
+  }
+  if (aFrame->IsSVGTransformed(&svgTransform)) {
+    trans *= Matrix4x4::From2D(svgTransform);
   }
 
   trans.ChangeBasis(svgTransformOrigin);
