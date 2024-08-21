@@ -675,6 +675,9 @@ class PushEventOp final : public ExtendableEventOp {
       const auto& bytes = args.data().get_ArrayOfuint8_t();
       JSObject* data = Uint8Array::Create(aCx, bytes, result);
 
+      // The ScopeExit above will deal with the exceptions (through
+      // StealNSResult).
+      result.WouldReportJSException();
       if (result.Failed()) {
         return false;
       }

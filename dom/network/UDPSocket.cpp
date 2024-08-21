@@ -578,6 +578,7 @@ nsresult UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
   ErrorResult error;
   JS::Rooted<JSObject*> arrayBuf(cx, ArrayBuffer::Create(cx, aData, error));
 
+  error.WouldReportJSException();
   if (NS_WARN_IF(error.Failed())) {
     return error.StealNSResult();
   }

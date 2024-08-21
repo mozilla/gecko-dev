@@ -228,6 +228,7 @@ nsUDPMessage::GetRawData(JSContext* cx, JS::MutableHandle<JS::Value> aRawData) {
   if (!mJsobj) {
     ErrorResult error;
     mJsobj = dom::Uint8Array::Create(cx, nullptr, mData, error);
+    error.WouldReportJSException();
     if (error.Failed()) {
       return error.StealNSResult();
     }
