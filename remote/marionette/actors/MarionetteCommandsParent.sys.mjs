@@ -329,6 +329,7 @@ export function getMarionetteCommandsActorProxy(browsingContextFn) {
    */
   const NO_RETRY_METHODS = [
     "clickElement",
+    "executeScript",
     "performActions",
     "releaseActions",
     "sendKeysToElement",
@@ -366,20 +367,7 @@ export function getMarionetteCommandsActorProxy(browsingContextFn) {
                 throw e;
               }
 
-              if (methodName === "executeScript") {
-                // For script execution we should always fail the command with
-                // an error until a decision is made on bug 1673478.
-                const browsingContextId = browsingContextFn()?.id;
-                lazy.logger.trace(
-                  `[${browsingContextId}] Browsing context destroyed or inactive`
-                );
-                throw new lazy.error.JavaScriptError(
-                  `Script evaluation aborted: ${e.message}`
-                );
-              }
-
               if (NO_RETRY_METHODS.includes(methodName)) {
-                // Otherwise return "null" as fallback value.
                 const browsingContextId = browsingContextFn()?.id;
                 lazy.logger.trace(
                   `[${browsingContextId}] Querying "${methodName}" failed with` +

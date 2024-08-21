@@ -446,13 +446,13 @@ web-platform-tests-canvas:
     chunks:
         by-test-platform:
             windows.*: 2
-            .*tsan.*: 3
+            .*tsan.*: 2
             linux.*/debug: 2
-            linux.*asan.*: 3
+            linux.*asan.*: 2
             default: 1
     max-run-time:
         by-test-platform:
-            .*(-tsan|-asan).*: 2700
+            .*tsan.*: 3600
             default: 1800
     variants:
         - no-fission
