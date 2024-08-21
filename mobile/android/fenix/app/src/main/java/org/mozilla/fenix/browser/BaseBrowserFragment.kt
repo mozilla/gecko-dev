@@ -1541,8 +1541,6 @@ abstract class BaseBrowserFragment :
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
-                        } else {
-                            Divider()
                         }
 
                         NavigationButtonsCFR(context = context, activity = activity)

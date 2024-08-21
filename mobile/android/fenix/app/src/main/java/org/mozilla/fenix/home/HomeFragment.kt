@@ -668,8 +668,6 @@ class HomeFragment : Fragment() {
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> binding.toolbarLayout })
-                        } else {
-                            Divider()
                         }
 
                         val showCFR =
