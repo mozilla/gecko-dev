@@ -2221,7 +2221,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
     }
 
     return mg.finishModule(*bytes, moduleMeta_,
-                           /*maybeTier2Listener=*/nullptr);
+                           /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
 

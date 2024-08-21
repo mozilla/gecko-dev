@@ -1096,7 +1096,7 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
     return mg.finishModule(*shareableBytes, moduleMeta,
-                           /*maybeTier2Listener=*/nullptr);
+                           /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
 
@@ -1542,7 +1542,7 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
     return mg.finishModule(*shareableBytes, moduleMeta,
-                           /*maybeTier2Listener=*/nullptr);
+                           /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
 

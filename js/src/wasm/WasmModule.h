@@ -38,9 +38,9 @@ namespace wasm {
 struct CompileArgs;
 
 // In the context of wasm, the OptimizedEncodingListener specifically is
-// listening for the completion of tier-2.
+// listening for the completion of complete tier-2.
 
-using Tier2Listener = RefPtr<JS::OptimizedEncodingListener>;
+using CompleteTier2Listener = RefPtr<JS::OptimizedEncodingListener>;
 
 // A struct containing the typed, imported values that are harvested from the
 // import object and passed to Module::instantiate(). This struct must be
@@ -86,11 +86,11 @@ class Module : public JS::WasmModule {
   // This contains all compilation artifacts for the module.
   const SharedCode code_;
 
-  // This field is set during tier-2 compilation and cleared on success or
-  // failure. These happen on different threads and are serialized by the
-  // control flow of helper tasks.
+  // This field is set during complete tier-2 compilation and cleared on
+  // success or failure. These happen on different threads and are serialized
+  // by the control flow of helper tasks.
 
-  mutable Tier2Listener tier2Listener_;
+  mutable CompleteTier2Listener completeTier2Listener_;
 
   // This flag is used for logging (and testing) purposes to indicate
   // whether the module was deserialized (from a cache).

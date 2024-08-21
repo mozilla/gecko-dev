@@ -3921,7 +3921,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
     return nullptr;
   }
   SharedModule module = mg.finishModule(*shareableBytes, moduleMeta,
-                                        /*maybeTier2Listener=*/nullptr);
+                                        /*maybeCompleteTier2Listener=*/nullptr);
   if (!module) {
     return nullptr;
   }
@@ -4744,7 +4744,8 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
     MOZ_CRASH("unreachable");
   }
 
-  void streamEnd(JS::OptimizedEncodingListener* tier2Listener) override {
+  void streamEnd(
+      JS::OptimizedEncodingListener* completeTier2Listener) override {
     switch (streamState_.lock().get()) {
       case Env: {
         SharedBytes bytecode = js_new<ShareableBytes>(std::move(envBytes_));
@@ -4765,7 +4766,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
           MOZ_ASSERT(!streamEnd->reached);
           streamEnd->reached = true;
           streamEnd->tailBytes = &tailBytes_;
-          streamEnd->tier2Listener = tier2Listener;
+          streamEnd->completeTier2Listener = completeTier2Listener;
           streamEnd.notify_one();
         }
         setClosedAndDestroyAfterHelperThreadStarted();

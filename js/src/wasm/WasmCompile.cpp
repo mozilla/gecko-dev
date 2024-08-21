@@ -1146,7 +1146,8 @@ SharedModule wasm::CompileStreaming(
     return nullptr;
   }
 
-  return mg.finishModule(*bytecode, moduleMeta, streamEnd.tier2Listener);
+  return mg.finishModule(*bytecode, moduleMeta,
+                         streamEnd.completeTier2Listener);
 }
 
 class DumpIonModuleGenerator {

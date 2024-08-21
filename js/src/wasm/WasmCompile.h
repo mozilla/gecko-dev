@@ -86,7 +86,7 @@ using ExclusiveBytesPtr = ExclusiveWaitableData<const uint8_t*>;
 struct StreamEndData {
   bool reached;
   const Bytes* tailBytes;
-  Tier2Listener tier2Listener;
+  CompleteTier2Listener completeTier2Listener;
 
   StreamEndData() : reached(false) {}
 };
