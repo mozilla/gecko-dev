@@ -94,8 +94,11 @@ interface TranslationsRuntime {
     ): Unit = onError(UnsupportedOperationException(unsupportedError))
 
     /**
-     * Retrieves the user preferred languages using the app language(s), web requested language(s),
-     * and OS language(s).
+     * Retrieves the user preferred languages using:
+     *
+     *   1. Web requested languages
+     *   2. App languages
+     *   3. OS language
      *
      * An example use case is presenting translate "to language" options for the user. Note, the
      * user's predicted first choice is also available via the state of the translation.

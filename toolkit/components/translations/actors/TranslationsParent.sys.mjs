@@ -389,8 +389,9 @@ export class TranslationsParent extends JSWindowActorParent {
 
   /**
    * An ordered list of preferred languages based on:
-   *   1. App languages
-   *   2. Web requested languages
+   *
+   *   1. Web requested languages
+   *   2. App languages
    *   3. OS language
    *
    * @type {null | string[]}
@@ -688,18 +689,6 @@ export class TranslationsParent extends JSWindowActorParent {
     TranslationsParent.getPreferredLanguages();
   }
 
-  static async observe(_subject, topic, _data) {
-    switch (topic) {
-      case "nsPref:changed":
-      case "intl:app-locales-changed": {
-        TranslationsParent.#resetPreferredLanguages();
-        break;
-      }
-      default:
-        throw new Error("Unknown observer event", topic);
-    }
-  }
-
   /**
    * Provide a way for tests to override the system locales.
    *
@@ -762,15 +751,20 @@ export class TranslationsParent extends JSWindowActorParent {
   /**
    * An ordered list of preferred languages based on:
    *
-   *   1. App languages
-   *   2. Web requested languages
+   *   1. Web requested languages
+   *   2. App languages
    *   3. OS language
+   *
+   * @param {object} options
+   * @param {string[]} [options.excludeLangTags] - BCP-47 language tags to intentionally exclude.
    *
    * @returns {string[]}
    */
-  static getPreferredLanguages() {
+  static getPreferredLanguages({ excludeLangTags } = {}) {
     if (TranslationsParent.#preferredLanguages) {
-      return TranslationsParent.#preferredLanguages;
+      return TranslationsParent.#preferredLanguages.filter(
+        langTag => !excludeLangTags?.includes(langTag)
+      );
     }
 
     if (!TranslationsParent.#observingLanguages) {
@@ -814,7 +808,9 @@ export class TranslationsParent extends JSWindowActorParent {
     // Convert the Set to an array to indicate that it is an ordered listing of languages.
     TranslationsParent.#preferredLanguages = [...langTags];
 
-    return TranslationsParent.#preferredLanguages;
+    return TranslationsParent.#preferredLanguages.filter(
+      langTag => !excludeLangTags?.includes(langTag)
+    );
   }
 
   /**
@@ -2605,13 +2601,21 @@ export class TranslationsParent extends JSWindowActorParent {
   /**
    * Retrieves the top preferred user language for which translation
    * is supported when translating to that language.
+   *
+   * @param {object} options
+   * @param {string[]} [options.excludeLangTags] - BCP-47 language tags to intentionally exclude.
    */
-  static async getTopPreferredSupportedToLang() {
-    for (const langTag of TranslationsParent.getPreferredLanguages()) {
+  static async getTopPreferredSupportedToLang({ excludeLangTags } = {}) {
+    const preferredLanguages = TranslationsParent.getPreferredLanguages({
+      excludeLangTags,
+    });
+
+    for (const langTag of preferredLanguages) {
       if (await TranslationsParent.isSupportedAsToLang(langTag)) {
         return langTag;
       }
     }
+
     return PIVOT_LANGUAGE;
   }
 
@@ -2693,8 +2697,6 @@ export class TranslationsParent extends JSWindowActorParent {
       langTags.isDocLangTagSupported = determineIsDocLangTagSupported();
     }
 
-    const preferredLanguages = TranslationsParent.getPreferredLanguages();
-
     if (!langTags.docLangTag) {
       const message = "No valid language detected.";
       ChromeUtils.addProfilerMarker(
@@ -2704,15 +2706,14 @@ export class TranslationsParent extends JSWindowActorParent {
       );
       lazy.console.log(message, href);
 
-      const languagePairs = await TranslationsParent.getLanguagePairs();
+      const langTag = await TranslationsParent.getTopPreferredSupportedToLang();
       if (this.#isDestroyed) {
         return null;
       }
 
-      // Attempt to find a good language to select for the user.
-      langTags.userLangTag =
-        preferredLanguages.find(langTag => langTag === languagePairs.toLang) ??
-        null;
+      if (langTag) {
+        langTags.userLangTag = langTag;
+      }
 
       return langTags;
     }
@@ -2732,44 +2733,15 @@ export class TranslationsParent extends JSWindowActorParent {
       return langTags;
     }
 
-    // Attempt to find a matching language pair for a preferred language.
-    for (const preferredLangTag of preferredLanguages) {
-      if (!langTags.isDocLangTagSupported) {
-        if (languagePairs.some(({ toLang }) => toLang === preferredLangTag)) {
-          // Only match the "to" language, since the "from" is not supported.
-          langTags.userLangTag = preferredLangTag;
-        }
-        break;
-      }
+    const langTag = await TranslationsParent.getTopPreferredSupportedToLang({
+      excludeLangTags: [langTags.docLangTag],
+    });
+    if (this.#isDestroyed) {
+      return null;
+    }
 
-      // Is there a direct language pair match?
-      if (
-        languagePairs.some(
-          ({ fromLang, toLang }) =>
-            fromLang === langTags.docLangTag && toLang === preferredLangTag
-        )
-      ) {
-        // A match was found in one of the preferred languages.
-        langTags.userLangTag = preferredLangTag;
-        break;
-      }
-
-      // Is there a pivot language match?
-      if (
-        // Match doc -> pivot
-        languagePairs.some(
-          ({ fromLang, toLang }) =>
-            fromLang === langTags.docLangTag && toLang === PIVOT_LANGUAGE
-        ) &&
-        // Match pivot -> preferred language
-        languagePairs.some(
-          ({ fromLang, toLang }) =>
-            fromLang === PIVOT_LANGUAGE && toLang === preferredLangTag
-        )
-      ) {
-        langTags.userLangTag = preferredLangTag;
-        break;
-      }
+    if (langTag) {
+      langTags.userLangTag = langTag;
     }
 
     if (!langTags.userLangTag) {

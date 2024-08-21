@@ -576,18 +576,20 @@ var FullPageTranslationsPanel = new (class {
     error.hidden = true;
     langSelection.hidden = false;
 
-    /** @type {null | LangTags} */
-    const langTags = await this.#fetchDetectedLanguages();
-    if (langTags?.isDocLangTagSupported || force) {
+    const { userLangTag, docLangTag, isDocLangTagSupported } =
+      await this.#fetchDetectedLanguages().then(langTags => langTags ?? {});
+
+    if (isDocLangTagSupported || force) {
       // Show the default view with the language selection
       const { cancelButton } = this.elements;
 
-      if (langTags?.isDocLangTagSupported) {
-        fromMenuList.value = langTags?.docLangTag ?? "";
+      if (isDocLangTagSupported) {
+        fromMenuList.value = docLangTag ?? "";
       } else {
         fromMenuList.value = "";
       }
-      toMenuList.value = langTags?.userLangTag ?? "";
+
+      toMenuList.value = userLangTag ?? "";
 
       this.onChangeLanguages();
 
@@ -622,12 +624,12 @@ var FullPageTranslationsPanel = new (class {
         "full-page-translations-panel-view-unsupported-language"
       );
       let language;
-      if (langTags?.docLangTag) {
+      if (docLangTag) {
         const displayNames = new Intl.DisplayNames(undefined, {
           type: "language",
           fallback: "none",
         });
-        language = displayNames.of(langTags.docLangTag);
+        language = displayNames.of(docLangTag);
       }
       if (language) {
         document.l10n.setAttributes(

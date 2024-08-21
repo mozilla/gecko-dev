@@ -710,7 +710,7 @@ export class TranslationsDocument {
 
       // SHADOW_HOST and READY_TO_TRANSLATE both map to FILTER_ACCEPT
       case NodeStatus.SHADOW_HOST:
-      case NodeStatus.READY_TO_TRANSLATE:
+      case NodeStatus.READY_TO_TRANSLATE: {
         const shadowRoot = node.openOrClosedShadowRoot;
         if (shadowRoot) {
           this.processSubdivide(shadowRoot);
@@ -721,6 +721,7 @@ export class TranslationsDocument {
           this.queueNodeForTranslation(node);
         }
         break;
+      }
 
       case NodeStatus.SUBDIVIDE_FURTHER:
         // This node may be translatable, but it needs to be subdivided into smaller
