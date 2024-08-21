@@ -501,6 +501,54 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       alloc = RValueAllocation::ConstantPool(index);
       break;
     }
+    case MIRType::Int64: {
+      LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
+      if (payload->isConstant()) {
+        int64_t constant = mir->toConstant()->toInt64();
+
+        uint32_t lowIndex;
+        masm.propagateOOM(
+            graph.addConstantToPool(Int32Value(constant), &lowIndex));
+
+        uint32_t highIndex;
+        masm.propagateOOM(
+            graph.addConstantToPool(Int32Value(constant >> 32), &highIndex));
+
+        alloc = RValueAllocation::Int64Constant(lowIndex, highIndex);
+        break;
+      }
+      MOZ_ASSERT(payload->isMemory() || payload->isRegister());
+
+#ifdef JS_NUNBOX32
+      LAllocation* type = snapshot->typeOfSlot(*allocIndex);
+      MOZ_ASSERT(type->isMemory() || type->isRegister());
+
+      if (payload->isRegister()) {
+        if (type->isRegister()) {
+          alloc =
+              RValueAllocation::Int64(ToRegister(type), ToRegister(payload));
+        } else {
+          alloc =
+              RValueAllocation::Int64(ToStackIndex(type), ToRegister(payload));
+        }
+      } else {
+        if (type->isRegister()) {
+          alloc =
+              RValueAllocation::Int64(ToRegister(type), ToStackIndex(payload));
+        } else {
+          alloc = RValueAllocation::Int64(ToStackIndex(type),
+                                          ToStackIndex(payload));
+        }
+      }
+#elif JS_PUNBOX64
+      if (payload->isRegister()) {
+        alloc = RValueAllocation::Int64(ToRegister(payload));
+      } else {
+        alloc = RValueAllocation::Int64(ToStackIndex(payload));
+      }
+#endif
+      break;
+    }
     default: {
       MOZ_ASSERT(mir->type() == MIRType::Value);
       LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);

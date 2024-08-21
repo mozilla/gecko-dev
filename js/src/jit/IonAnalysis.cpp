@@ -3589,6 +3589,7 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::MagicIsConstructing:
     case MIRType::Value:
     case MIRType::Simd128:
+    case MIRType::Int64:
       return true;
 
     case MIRType::MagicHole:
@@ -3596,7 +3597,6 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::Slots:
     case MIRType::Elements:
     case MIRType::Pointer:
-    case MIRType::Int64:
     case MIRType::WasmAnyRef:
     case MIRType::WasmArrayData:
     case MIRType::StackResults:

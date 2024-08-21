@@ -1756,6 +1756,22 @@ bool SnapshotIterator::allocationReadable(const RValueAllocation& alloc,
       return rm == ReadMethod::AlwaysDefault ||
              hasInstructionResult(alloc.index());
 
+#if defined(JS_NUNBOX32)
+    case RValueAllocation::INT64_REG_REG:
+      return hasRegister(alloc.reg()) && hasRegister(alloc.reg2());
+    case RValueAllocation::INT64_REG_STACK:
+      return hasRegister(alloc.reg()) && hasStack(alloc.stackOffset2());
+    case RValueAllocation::INT64_STACK_REG:
+      return hasStack(alloc.stackOffset()) && hasRegister(alloc.reg2());
+    case RValueAllocation::INT64_STACK_STACK:
+      return hasStack(alloc.stackOffset()) && hasStack(alloc.stackOffset2());
+#elif defined(JS_PUNBOX64)
+    case RValueAllocation::INT64_REG:
+      return hasRegister(alloc.reg());
+    case RValueAllocation::INT64_STACK:
+      return hasStack(alloc.stackOffset());
+#endif
+
     default:
       return true;
   }
@@ -1848,6 +1864,18 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
       MOZ_ASSERT(rm == ReadMethod::AlwaysDefault);
       return ionScript_->getConstant(alloc.index2());
 
+    case RValueAllocation::INT64_CST:
+#if defined(JS_NUNBOX32)
+    case RValueAllocation::INT64_REG_REG:
+    case RValueAllocation::INT64_REG_STACK:
+    case RValueAllocation::INT64_STACK_REG:
+    case RValueAllocation::INT64_STACK_STACK:
+#elif defined(JS_PUNBOX64)
+    case RValueAllocation::INT64_REG:
+    case RValueAllocation::INT64_STACK:
+#endif
+      MOZ_CRASH("Can't read Int64 as Value");
+
     default:
       MOZ_CRASH("huh?");
   }
@@ -1886,6 +1914,55 @@ bool SnapshotIterator::tryRead(Value* result) {
   return false;
 }
 
+int64_t SnapshotIterator::readInt64() {
+  RValueAllocation alloc = readAllocation();
+  MOZ_ASSERT(allocationReadable(alloc));
+
+  auto fromParts = [](uint32_t hi, uint32_t lo) {
+    return static_cast<int64_t>((static_cast<uint64_t>(hi) << 32) | lo);
+  };
+
+  switch (alloc.mode()) {
+    case RValueAllocation::INT64_CST: {
+      uint32_t lo = ionScript_->getConstant(alloc.index()).toInt32();
+      uint32_t hi = ionScript_->getConstant(alloc.index2()).toInt32();
+      return fromParts(hi, lo);
+    }
+#if defined(JS_NUNBOX32)
+    case RValueAllocation::INT64_REG_REG: {
+      uintptr_t lo = fromRegister(alloc.reg());
+      uintptr_t hi = fromRegister(alloc.reg2());
+      return fromParts(hi, lo);
+    }
+    case RValueAllocation::INT64_REG_STACK: {
+      uintptr_t lo = fromRegister(alloc.reg());
+      uintptr_t hi = fromStack(alloc.stackOffset2());
+      return fromParts(hi, lo);
+    }
+    case RValueAllocation::INT64_STACK_REG: {
+      uintptr_t lo = fromStack(alloc.stackOffset());
+      uintptr_t hi = fromRegister(alloc.reg2());
+      return fromParts(hi, lo);
+    }
+    case RValueAllocation::INT64_STACK_STACK: {
+      uintptr_t lo = fromStack(alloc.stackOffset());
+      uintptr_t hi = fromStack(alloc.stackOffset2());
+      return fromParts(hi, lo);
+    }
+#elif defined(JS_PUNBOX64)
+    case RValueAllocation::INT64_REG: {
+      return static_cast<int64_t>(fromRegister(alloc.reg()));
+    }
+    case RValueAllocation::INT64_STACK: {
+      return static_cast<int64_t>(fromStack(alloc.stackOffset()));
+    }
+#endif
+    default:
+      break;
+  }
+  MOZ_CRASH("invalid int64 allocation");
+}
+
 void SnapshotIterator::writeAllocationValuePayload(
     const RValueAllocation& alloc, const Value& v) {
   MOZ_ASSERT(v.isGCThing());
@@ -1900,6 +1977,16 @@ void SnapshotIterator::writeAllocationValuePayload(
     case RValueAllocation::DOUBLE_REG:
     case RValueAllocation::ANY_FLOAT_REG:
     case RValueAllocation::ANY_FLOAT_STACK:
+    case RValueAllocation::INT64_CST:
+#if defined(JS_NUNBOX32)
+    case RValueAllocation::INT64_REG_REG:
+    case RValueAllocation::INT64_REG_STACK:
+    case RValueAllocation::INT64_STACK_REG:
+    case RValueAllocation::INT64_STACK_STACK:
+#elif defined(JS_PUNBOX64)
+    case RValueAllocation::INT64_REG:
+    case RValueAllocation::INT64_STACK:
+#endif
       MOZ_CRASH("Not a GC thing: Unexpected write");
       break;
 

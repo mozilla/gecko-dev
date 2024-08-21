@@ -557,6 +557,8 @@ class SnapshotIterator {
 
   bool tryRead(Value* result);
 
+  int64_t readInt64();
+
   void traceAllocation(JSTracer* trc);
 
   template <class Op>
