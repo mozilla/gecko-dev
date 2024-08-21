@@ -3992,8 +3992,12 @@ MDefinition* MTruncateBigIntToInt64::foldsTo(TempAllocator& alloc) {
 
   // If the operand converts an I32 to BigInt, extend the I32 to I64.
   if (input->isInt32ToBigInt()) {
-    return MExtendInt32ToInt64::New(alloc, input->getOperand(0),
-                                    /* isUnsigned = */ false);
+    auto* int32 = input->toInt32ToBigInt()->input();
+    if (int32->isConstant()) {
+      int32_t c = int32->toConstant()->toInt32();
+      return MConstant::NewInt64(alloc, int64_t(c));
+    }
+    return MExtendInt32ToInt64::New(alloc, int32, /* isUnsigned = */ false);
   }
 
   // Fold this operation if the input operand is constant.
@@ -4020,8 +4024,12 @@ MDefinition* MToInt64::foldsTo(TempAllocator& alloc) {
   // Unwrap Int32ToBigInt:
   // MToInt64(MInt32ToBigInt(int32)) = MExtendInt32ToInt64(int32).
   if (input->isInt32ToBigInt()) {
-    return MExtendInt32ToInt64::New(alloc, input->getOperand(0),
-                                    /* isUnsigned = */ false);
+    auto* int32 = input->toInt32ToBigInt()->input();
+    if (int32->isConstant()) {
+      int32_t c = int32->toConstant()->toInt32();
+      return MConstant::NewInt64(alloc, int64_t(c));
+    }
+    return MExtendInt32ToInt64::New(alloc, int32, /* isUnsigned = */ false);
   }
 
   // When the input is an Int64 already, just return it.
