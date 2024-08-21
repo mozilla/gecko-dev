@@ -54,20 +54,20 @@ namespace js {
  * adding new thread types.
  */
 enum ThreadType {
-  THREAD_TYPE_NONE = 0,              // 0
-  THREAD_TYPE_MAIN,                  // 1
-  THREAD_TYPE_WASM_COMPILE_TIER1,    // 2
-  THREAD_TYPE_WASM_COMPILE_TIER2,    // 3
-  THREAD_TYPE_ION,                   // 4
-  THREAD_TYPE_COMPRESS,              // 5
-  THREAD_TYPE_GCPARALLEL,            // 6
-  THREAD_TYPE_PROMISE_TASK,          // 7
-  THREAD_TYPE_ION_FREE,              // 8
-  THREAD_TYPE_WASM_GENERATOR_TIER2,  // 9
-  THREAD_TYPE_WORKER,                // 10
-  THREAD_TYPE_DELAZIFY,              // 11
-  THREAD_TYPE_DELAZIFY_FREE,         // 12
-  THREAD_TYPE_MAX                    // Used to check shell function arguments
+  THREAD_TYPE_NONE = 0,                       // 0
+  THREAD_TYPE_MAIN,                           // 1
+  THREAD_TYPE_WASM_COMPILE_TIER1,             // 2
+  THREAD_TYPE_WASM_COMPILE_TIER2,             // 3
+  THREAD_TYPE_ION,                            // 4
+  THREAD_TYPE_COMPRESS,                       // 5
+  THREAD_TYPE_GCPARALLEL,                     // 6
+  THREAD_TYPE_PROMISE_TASK,                   // 7
+  THREAD_TYPE_ION_FREE,                       // 8
+  THREAD_TYPE_WASM_GENERATOR_COMPLETE_TIER2,  // 9
+  THREAD_TYPE_WORKER,                         // 10
+  THREAD_TYPE_DELAZIFY,                       // 11
+  THREAD_TYPE_DELAZIFY_FREE,                  // 12
+  THREAD_TYPE_MAX  // Used to check shell function arguments
 };
 
 namespace oom {
@@ -86,7 +86,8 @@ namespace oom {
 // Define the range of threads tested by simulated OOM testing and the
 // like. Testing worker threads is not supported.
 const ThreadType FirstThreadTypeToTest = THREAD_TYPE_MAIN;
-const ThreadType LastThreadTypeToTest = THREAD_TYPE_WASM_GENERATOR_TIER2;
+const ThreadType LastThreadTypeToTest =
+    THREAD_TYPE_WASM_GENERATOR_COMPLETE_TIER2;
 
 extern bool InitThreadType(void);
 extern void SetThreadType(ThreadType);

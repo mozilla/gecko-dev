@@ -59,8 +59,8 @@ using IonFreeCompileTasks = Vector<IonCompileTask*, 8, SystemAllocPolicy>;
 namespace wasm {
 struct CompileTask;
 struct CompileTaskState;
-struct Tier2GeneratorTask;
-using UniqueTier2GeneratorTask = UniquePtr<Tier2GeneratorTask>;
+struct CompleteTier2GeneratorTask;
+using UniqueCompleteTier2GeneratorTask = UniquePtr<CompleteTier2GeneratorTask>;
 }  // namespace wasm
 
 /*
@@ -133,11 +133,14 @@ size_t RemovePendingWasmCompileTasks(const wasm::CompileTaskState& taskState,
                                      wasm::CompileState state,
                                      const AutoLockHelperThreadState& lock);
 
-// Enqueues a wasm compilation task.
-void StartOffThreadWasmTier2Generator(wasm::UniqueTier2GeneratorTask task);
+// Enqueues a wasm Complete Tier-2 compilation task.  This (logically, at
+// least) manages a set of sub-tasks that perform compilation of groups of
+// functions.
+void StartOffThreadWasmCompleteTier2Generator(
+    wasm::UniqueCompleteTier2GeneratorTask task);
 
-// Cancel all background Wasm Tier-2 compilations.
-void CancelOffThreadWasmTier2Generator();
+// Cancel all background Wasm Complete Tier-2 compilations.
+void CancelOffThreadWasmCompleteTier2Generator();
 
 /*
  * If helper threads are available, call execute() then dispatchResolve() on the

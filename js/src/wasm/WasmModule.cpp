@@ -84,16 +84,17 @@ static void ReportTier2ResultsOffThread(bool success,
   }
 }
 
-class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
+class Module::CompleteTier2GeneratorTaskImpl
+    : public CompleteTier2GeneratorTask {
   SharedBytes bytecode_;
   SharedModule module_;
   mozilla::Atomic<bool> cancelled_;
 
  public:
-  Tier2GeneratorTaskImpl(const ShareableBytes& bytecode, Module& module)
+  CompleteTier2GeneratorTaskImpl(const ShareableBytes& bytecode, Module& module)
       : bytecode_(&bytecode), module_(&module), cancelled_(false) {}
 
-  ~Tier2GeneratorTaskImpl() override {
+  ~CompleteTier2GeneratorTaskImpl() override {
     module_->tier2Listener_ = nullptr;
     module_->testingTier2Active_ = false;
   }
@@ -104,11 +105,11 @@ class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
     {
       AutoUnlockHelperThreadState unlock(locked);
 
-      // Compile tier-2 and report any warning/errors as long as it's not a
-      // cancellation. Encountering a warning/error during compilation and
-      // being cancelled may race with each other, but the only observable race
-      // should be being cancelled after a warning/error is set, and that's
-      // okay.
+      // Compile complete tier-2 and report any warning/errors as long as it's
+      // not a cancellation. Encountering a warning/error during compilation
+      // and being cancelled may race with each other, but the only observable
+      // race should be being cancelled after a warning/error is set, and
+      // that's okay.
       UniqueChars error;
       UniqueCharsVector warnings;
       bool success = CompileCompleteTier2(bytecode_->bytes, *module_, &error,
@@ -123,17 +124,17 @@ class Module::Tier2GeneratorTaskImpl : public Tier2GeneratorTask {
     }
 
     // During shutdown the main thread will wait for any ongoing (cancelled)
-    // tier-2 generation to shut down normally.  To do so, it waits on the
-    // HelperThreadState's condition variable for the count of finished
+    // complete tier-2 generation to shut down normally.  To do so, it waits on
+    // the HelperThreadState's condition variable for the count of finished
     // generators to rise.
-    HelperThreadState().incWasmTier2GeneratorsFinished(locked);
+    HelperThreadState().incWasmCompleteTier2GeneratorsFinished(locked);
 
     // The task is finished, release it.
     js_delete(this);
   }
 
   ThreadType threadType() override {
-    return ThreadType::THREAD_TYPE_WASM_GENERATOR_TIER2;
+    return ThreadType::THREAD_TYPE_WASM_GENERATOR_COMPLETE_TIER2;
   }
 };
 
@@ -147,17 +148,17 @@ void Module::startTier2(const ShareableBytes& bytecode,
                         JS::OptimizedEncodingListener* listener) {
   MOZ_ASSERT(!testingTier2Active_);
 
-  auto task = MakeUnique<Tier2GeneratorTaskImpl>(bytecode, *this);
+  auto task = MakeUnique<CompleteTier2GeneratorTaskImpl>(bytecode, *this);
   if (!task) {
     return;
   }
 
-  // These will be cleared asynchronously by ~Tier2GeneratorTaskImpl() if not
-  // sooner by finishTier2().
+  // These will be cleared asynchronously by ~CompleteTier2GeneratorTaskImpl()
+  // if not sooner by finishTier2().
   tier2Listener_ = listener;
   testingTier2Active_ = true;
 
-  StartOffThreadWasmTier2Generator(std::move(task));
+  StartOffThreadWasmCompleteTier2Generator(std::move(task));
 }
 
 bool Module::finishTier2(UniqueCodeBlock tier2CodeBlock,

@@ -37,7 +37,7 @@ using namespace js;
 
 using mozilla::TimeDuration;
 
-static void CancelOffThreadWasmTier2GeneratorLocked(
+static void CancelOffThreadWasmCompleteTier2GeneratorLocked(
     AutoLockHelperThreadState& lock);
 
 namespace js {
@@ -735,7 +735,7 @@ GlobalHelperThreadState::GlobalHelperThreadState()
       totalCountRunningTasks(0),
       registerThread(nullptr),
       unregisterThread(nullptr),
-      wasmTier2GeneratorsFinished_(0) {
+      wasmCompleteTier2GeneratorsFinished_(0) {
   MOZ_ASSERT(!gHelperThreadState);
 
   cpuCount = ClampDefaultCPUCount(GetCPUCount());
@@ -835,7 +835,7 @@ void GlobalHelperThreadState::waitForAllTasks() {
 
 void GlobalHelperThreadState::waitForAllTasksLocked(
     AutoLockHelperThreadState& lock) {
-  CancelOffThreadWasmTier2GeneratorLocked(lock);
+  CancelOffThreadWasmCompleteTier2GeneratorLocked(lock);
 
   while (canStartTasks(lock) || hasActiveThreads(lock)) {
     wait(lock);
@@ -849,7 +849,7 @@ void GlobalHelperThreadState::waitForAllTasksLocked(
   MOZ_ASSERT(compressionWorklist(lock).empty());
   MOZ_ASSERT(ionFreeList(lock).empty());
   MOZ_ASSERT(wasmWorklist(lock, wasm::CompileState::EagerTier2).empty());
-  MOZ_ASSERT(wasmTier2GeneratorWorklist(lock).empty());
+  MOZ_ASSERT(wasmCompleteTier2GeneratorWorklist(lock).empty());
   MOZ_ASSERT(!tasksPending_);
   MOZ_ASSERT(!hasActiveThreads(lock));
 }
@@ -922,7 +922,7 @@ void GlobalHelperThreadState::addSizeOfIncludingThis(
       ionFreeList_.sizeOfExcludingThis(mallocSizeOf) +
       wasmWorklist_tier1_.sizeOfExcludingThis(mallocSizeOf) +
       wasmWorklist_tier2_.sizeOfExcludingThis(mallocSizeOf) +
-      wasmTier2GeneratorWorklist_.sizeOfExcludingThis(mallocSizeOf) +
+      wasmCompleteTier2GeneratorWorklist_.sizeOfExcludingThis(mallocSizeOf) +
       promiseHelperTasks_.sizeOfExcludingThis(mallocSizeOf) +
       compressionPendingList_.sizeOfExcludingThis(mallocSizeOf) +
       compressionWorklist_.sizeOfExcludingThis(mallocSizeOf) +
@@ -1450,7 +1450,7 @@ const GlobalHelperThreadState::Selector GlobalHelperThreadState::selectors[] = {
     &GlobalHelperThreadState::maybeGetLowPrioIonCompileTask,
     &GlobalHelperThreadState::maybeGetIonFreeTask,
     &GlobalHelperThreadState::maybeGetWasmTier2CompileTask,
-    &GlobalHelperThreadState::maybeGetWasmTier2GeneratorTask};
+    &GlobalHelperThreadState::maybeGetWasmCompleteTier2GeneratorTask};
 
 bool GlobalHelperThreadState::canStartTasks(
     const AutoLockHelperThreadState& lock) {
@@ -1459,7 +1459,7 @@ bool GlobalHelperThreadState::canStartTasks(
          canStartPromiseHelperTask(lock) || canStartFreeDelazifyTask(lock) ||
          canStartDelazifyTask(lock) || canStartCompressionTask(lock) ||
          canStartIonFreeTask(lock) || canStartWasmTier2CompileTask(lock) ||
-         canStartWasmTier2GeneratorTask(lock);
+         canStartWasmCompleteTier2GeneratorTask(lock);
 }
 
 void JS::RunHelperThreadTask(HelperThreadTask* task) {
@@ -1589,31 +1589,33 @@ bool GlobalHelperThreadState::canStartWasmTier2CompileTask(
   return canStartWasmCompile(lock, wasm::CompileState::EagerTier2);
 }
 
-//== WasmTier2GeneratorTask ===============================================
+//== WasmCompleteTier2GeneratorTask =======================================
 
-bool GlobalHelperThreadState::canStartWasmTier2GeneratorTask(
+bool GlobalHelperThreadState::canStartWasmCompleteTier2GeneratorTask(
     const AutoLockHelperThreadState& lock) {
-  return !wasmTier2GeneratorWorklist(lock).empty() &&
-         checkTaskThreadLimit(THREAD_TYPE_WASM_GENERATOR_TIER2,
-                              maxWasmTier2GeneratorThreads(),
+  return !wasmCompleteTier2GeneratorWorklist(lock).empty() &&
+         checkTaskThreadLimit(THREAD_TYPE_WASM_GENERATOR_COMPLETE_TIER2,
+                              maxWasmCompleteTier2GeneratorThreads(),
                               /*isMaster=*/true, lock);
 }
 
-HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2GeneratorTask(
+HelperThreadTask*
+GlobalHelperThreadState::maybeGetWasmCompleteTier2GeneratorTask(
     const AutoLockHelperThreadState& lock) {
-  if (!canStartWasmTier2GeneratorTask(lock)) {
+  if (!canStartWasmCompleteTier2GeneratorTask(lock)) {
     return nullptr;
   }
 
-  return wasmTier2GeneratorWorklist(lock).popCopy();
+  return wasmCompleteTier2GeneratorWorklist(lock).popCopy();
 }
 
-bool GlobalHelperThreadState::submitTask(wasm::UniqueTier2GeneratorTask task) {
+bool GlobalHelperThreadState::submitTask(
+    wasm::UniqueCompleteTier2GeneratorTask task) {
   AutoLockHelperThreadState lock;
 
   MOZ_ASSERT(isInitialized(lock));
 
-  if (!wasmTier2GeneratorWorklist(lock).append(task.get())) {
+  if (!wasmCompleteTier2GeneratorWorklist(lock).append(task.get())) {
     return false;
   }
   (void)task.release();
@@ -1622,42 +1624,43 @@ bool GlobalHelperThreadState::submitTask(wasm::UniqueTier2GeneratorTask task) {
   return true;
 }
 
-void js::StartOffThreadWasmTier2Generator(wasm::UniqueTier2GeneratorTask task) {
+void js::StartOffThreadWasmCompleteTier2Generator(
+    wasm::UniqueCompleteTier2GeneratorTask task) {
   (void)HelperThreadState().submitTask(std::move(task));
 }
 
-void GlobalHelperThreadState::cancelOffThreadWasmTier2Generator(
+void GlobalHelperThreadState::cancelOffThreadWasmCompleteTier2Generator(
     AutoLockHelperThreadState& lock) {
   // Remove pending tasks from the tier2 generator worklist and cancel and
   // delete them.
   {
-    wasm::Tier2GeneratorTaskPtrVector& worklist =
-        wasmTier2GeneratorWorklist(lock);
+    wasm::CompleteTier2GeneratorTaskPtrVector& worklist =
+        wasmCompleteTier2GeneratorWorklist(lock);
     for (size_t i = 0; i < worklist.length(); i++) {
-      wasm::Tier2GeneratorTask* task = worklist[i];
+      wasm::CompleteTier2GeneratorTask* task = worklist[i];
       remove(worklist, &i);
       js_delete(task);
     }
   }
 
-  // There is at most one running Tier2Generator task and we assume that
+  // There is at most one running CompleteTier2Generator task and we assume that
   // below.
-  static_assert(GlobalHelperThreadState::MaxTier2GeneratorTasks == 1,
+  static_assert(GlobalHelperThreadState::MaxCompleteTier2GeneratorTasks == 1,
                 "code must be generalized");
 
   // If there is a running Tier2 generator task, shut it down in a predictable
   // way.  The task will be deleted by the normal deletion logic.
   for (auto* helper : helperTasks(lock)) {
-    if (helper->is<wasm::Tier2GeneratorTask>()) {
+    if (helper->is<wasm::CompleteTier2GeneratorTask>()) {
       // Set a flag that causes compilation to shortcut itself.
-      helper->as<wasm::Tier2GeneratorTask>()->cancel();
+      helper->as<wasm::CompleteTier2GeneratorTask>()->cancel();
 
       // Wait for the generator task to finish.  This avoids a shutdown race
       // where the shutdown code is trying to shut down helper threads and the
       // ongoing tier2 compilation is trying to finish, which requires it to
       // have access to helper threads.
-      uint32_t oldFinishedCount = wasmTier2GeneratorsFinished(lock);
-      while (wasmTier2GeneratorsFinished(lock) == oldFinishedCount) {
+      uint32_t oldFinishedCount = wasmCompleteTier2GeneratorsFinished(lock);
+      while (wasmCompleteTier2GeneratorsFinished(lock) == oldFinishedCount) {
         wait(lock);
       }
 
@@ -1667,18 +1670,18 @@ void GlobalHelperThreadState::cancelOffThreadWasmTier2Generator(
   }
 }
 
-static void CancelOffThreadWasmTier2GeneratorLocked(
+static void CancelOffThreadWasmCompleteTier2GeneratorLocked(
     AutoLockHelperThreadState& lock) {
   if (!HelperThreadState().isInitialized(lock)) {
     return;
   }
 
-  HelperThreadState().cancelOffThreadWasmTier2Generator(lock);
+  HelperThreadState().cancelOffThreadWasmCompleteTier2Generator(lock);
 }
 
-void js::CancelOffThreadWasmTier2Generator() {
+void js::CancelOffThreadWasmCompleteTier2Generator() {
   AutoLockHelperThreadState lock;
-  CancelOffThreadWasmTier2GeneratorLocked(lock);
+  CancelOffThreadWasmCompleteTier2GeneratorLocked(lock);
 }
 
 //== wasm thread counts ===================================================
@@ -1695,8 +1698,8 @@ size_t GlobalHelperThreadState::maxWasmCompilationThreads() const {
   return std::min(cpuCount, threadCount);
 }
 
-size_t GlobalHelperThreadState::maxWasmTier2GeneratorThreads() const {
-  return MaxTier2GeneratorTasks;
+size_t GlobalHelperThreadState::maxWasmCompleteTier2GeneratorThreads() const {
+  return MaxCompleteTier2GeneratorTasks;
 }
 
 //== wasm task management =================================================
@@ -1712,35 +1715,37 @@ bool GlobalHelperThreadState::canStartWasmCompile(
 
   MOZ_RELEASE_ASSERT(cpuCount > 1);
 
-  // If Tier2 is very backlogged we must give priority to it, since the Tier2
-  // queue holds onto Tier1 tasks.  Indeed if Tier2 is backlogged we will
-  // devote more resources to Tier2 and not start any Tier1 work at all.
+  // If CompleteTier2 is very backlogged we must give priority to it, since the
+  // CompleteTier2 queue holds onto Tier1 tasks.  Indeed if CompleteTier2 is
+  // backlogged we will devote more resources to CompleteTier2 and not start
+  // any Tier1 work at all.
 
-  bool tier2oversubscribed = wasmTier2GeneratorWorklist(lock).length() > 20;
+  bool completeTier2oversubscribed =
+      wasmCompleteTier2GeneratorWorklist(lock).length() > 20;
 
   // For Tier1 and Once compilation, honor the maximum allowed threads to
   // compile wasm jobs at once, to avoid oversaturating the machine.
   //
-  // For Tier2 compilation we need to allow other things to happen too, so we
-  // do not allow all logical cores to be used for background work; instead we
-  // wish to use a fraction of the physical cores.  We can't directly compute
-  // the physical cores from the logical cores, but 1/3 of the logical cores
-  // is a safe estimate for the number of physical cores available for
-  // background work.
+  // For CompleteTier2 compilation we need to allow other things to happen too,
+  // so we do not allow all logical cores to be used for background work;
+  // instead we wish to use a fraction of the physical cores.  We can't
+  // directly compute the physical cores from the logical cores, but 1/3 of the
+  // logical cores is a safe estimate for the number of physical cores
+  // available for background work.
 
   size_t physCoresAvailable = size_t(ceil(cpuCount / 3.0));
 
   size_t threads;
   ThreadType threadType;
   if (state == wasm::CompileState::EagerTier2) {
-    if (tier2oversubscribed) {
+    if (completeTier2oversubscribed) {
       threads = maxWasmCompilationThreads();
     } else {
       threads = physCoresAvailable;
     }
     threadType = THREAD_TYPE_WASM_COMPILE_TIER2;
   } else {
-    if (tier2oversubscribed) {
+    if (completeTier2oversubscribed) {
       threads = 0;
     } else {
       threads = maxWasmCompilationThreads();

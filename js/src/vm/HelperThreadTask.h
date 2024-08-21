@@ -25,7 +25,7 @@ class IonCompileTask;
 class IonFreeTask;
 }  // namespace jit
 namespace wasm {
-struct Tier2GeneratorTask;
+struct CompleteTier2GeneratorTask;
 }  // namespace wasm
 
 template <typename T>
@@ -37,8 +37,9 @@ struct MapTypeToThreadType<jit::IonCompileTask> {
 };
 
 template <>
-struct MapTypeToThreadType<wasm::Tier2GeneratorTask> {
-  static const ThreadType threadType = THREAD_TYPE_WASM_GENERATOR_TIER2;
+struct MapTypeToThreadType<wasm::CompleteTier2GeneratorTask> {
+  static const ThreadType threadType =
+      THREAD_TYPE_WASM_GENERATOR_COMPLETE_TIER2;
 };
 
 template <>

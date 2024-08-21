@@ -126,7 +126,7 @@ class Module : public JS::WasmModule {
   bool instantiateGlobals(JSContext* cx, const ValVector& globalImportValues,
                           WasmGlobalObjectVector& globalObjs) const;
 
-  class Tier2GeneratorTaskImpl;
+  class CompleteTier2GeneratorTaskImpl;
 
  public:
   Module(const ModuleMetadata& moduleMeta, const Code& code,
