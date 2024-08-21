@@ -37,7 +37,6 @@ import org.mozilla.focus.nimbus.FocusNimbus
 import org.mozilla.focus.session.VisibilityLifeCycleCallback
 import org.mozilla.focus.telemetry.FactsProcessor
 import org.mozilla.focus.telemetry.ProfilerMarkerFactProcessor
-import org.mozilla.focus.utils.AdjustHelper
 import org.mozilla.focus.utils.AppConstants
 import kotlin.coroutines.CoroutineContext
 
@@ -77,8 +76,6 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
             ProfilerMarkerFactProcessor.create { components.engine.profiler }.register()
 
             enableStrictMode()
-
-            AdjustHelper.setupAdjustIfNeeded(this@FocusApplication)
 
             visibilityLifeCycleCallback = VisibilityLifeCycleCallback(this@FocusApplication)
             registerActivityLifecycleCallbacks(visibilityLifeCycleCallback)
