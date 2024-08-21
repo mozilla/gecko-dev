@@ -55,7 +55,7 @@ class TimeoutManager final {
                   bool aProcessIdle);
 
   void ClearAllTimeouts();
-  int32_t GetTimeoutId(mozilla::dom::Timeout::Reason aReason);
+  uint32_t GetTimeoutId(mozilla::dom::Timeout::Reason aReason);
 
   TimeDuration CalculateDelay(Timeout* aTimeout) const;
 
@@ -189,7 +189,7 @@ class TimeoutManager final {
       return false;
     }
 
-    Timeout* GetTimeout(int32_t aTimeoutId, Timeout::Reason aReason) {
+    Timeout* GetTimeout(uint32_t aTimeoutId, Timeout::Reason aReason) {
       Timeout::TimeoutIdAndReason key = {aTimeoutId, aReason};
       return mTimeouts->Get(key);
     }
@@ -222,7 +222,7 @@ class TimeoutManager final {
   RefPtr<TimeoutExecutor> mIdleExecutor;
   // The list of timeouts coming from non-tracking scripts.
   Timeouts mTimeouts;
-  int32_t mTimeoutIdCounter;
+  uint32_t mTimeoutIdCounter;
   uint32_t mNextFiringId;
 #ifdef DEBUG
   int64_t mFiringIndex;
@@ -236,7 +236,7 @@ class TimeoutManager final {
   Timeouts mIdleTimeouts;
 
   // The current idle request callback timeout handle
-  int32_t mIdleCallbackTimeoutCounter;
+  uint32_t mIdleCallbackTimeoutCounter;
 
   nsCOMPtr<nsITimer> mThrottleTimeoutsTimer;
   mozilla::TimeStamp mLastBudgetUpdate;
