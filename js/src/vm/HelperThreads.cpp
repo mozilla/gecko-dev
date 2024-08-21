@@ -37,6 +37,9 @@ using namespace js;
 
 using mozilla::TimeDuration;
 
+static void CancelOffThreadWasmTier2GeneratorLocked(
+    AutoLockHelperThreadState& lock);
+
 namespace js {
 
 Mutex gHelperThreadLock(mutexid::GlobalHelperThreadState);
@@ -104,10 +107,6 @@ size_t js::GetHelperThreadCount() { return HelperThreadState().threadCount; }
 
 size_t js::GetHelperThreadCPUCount() { return HelperThreadState().cpuCount; }
 
-size_t js::GetMaxWasmCompilationThreads() {
-  return HelperThreadState().maxWasmCompilationThreads();
-}
-
 void JS::SetProfilingThreadCallbacks(
     JS::RegisterThreadCallback registerThread,
     JS::UnregisterThreadCallback unregisterThread) {
@@ -140,105 +139,6 @@ void GlobalHelperThreadState::setDispatchTaskCallback(
   dispatchTaskCallback = callback;
   this->threadCount = threadCount;
   this->stackQuota = JS::ThreadStackQuotaForSize(stackSize);
-}
-
-bool js::StartOffThreadWasmCompile(wasm::CompileTask* task,
-                                   wasm::CompileState state) {
-  return HelperThreadState().submitTask(task, state);
-}
-
-bool GlobalHelperThreadState::submitTask(wasm::CompileTask* task,
-                                         wasm::CompileState state) {
-  AutoLockHelperThreadState lock;
-  if (!wasmWorklist(lock, state).pushBack(task)) {
-    return false;
-  }
-
-  dispatch(lock);
-  return true;
-}
-
-size_t js::RemovePendingWasmCompileTasks(
-    const wasm::CompileTaskState& taskState, wasm::CompileState state,
-    const AutoLockHelperThreadState& lock) {
-  wasm::CompileTaskPtrFifo& worklist =
-      HelperThreadState().wasmWorklist(lock, state);
-  return worklist.eraseIf([&taskState](wasm::CompileTask* task) {
-    return &task->state == &taskState;
-  });
-}
-
-void js::StartOffThreadWasmTier2Generator(wasm::UniqueTier2GeneratorTask task) {
-  (void)HelperThreadState().submitTask(std::move(task));
-}
-
-bool GlobalHelperThreadState::submitTask(wasm::UniqueTier2GeneratorTask task) {
-  AutoLockHelperThreadState lock;
-
-  MOZ_ASSERT(isInitialized(lock));
-
-  if (!wasmTier2GeneratorWorklist(lock).append(task.get())) {
-    return false;
-  }
-  (void)task.release();
-
-  dispatch(lock);
-  return true;
-}
-
-static void CancelOffThreadWasmTier2GeneratorLocked(
-    AutoLockHelperThreadState& lock) {
-  if (!HelperThreadState().isInitialized(lock)) {
-    return;
-  }
-
-  HelperThreadState().cancelOffThreadWasmTier2Generator(lock);
-}
-
-void GlobalHelperThreadState::cancelOffThreadWasmTier2Generator(
-    AutoLockHelperThreadState& lock) {
-  // Remove pending tasks from the tier2 generator worklist and cancel and
-  // delete them.
-  {
-    wasm::Tier2GeneratorTaskPtrVector& worklist =
-        wasmTier2GeneratorWorklist(lock);
-    for (size_t i = 0; i < worklist.length(); i++) {
-      wasm::Tier2GeneratorTask* task = worklist[i];
-      remove(worklist, &i);
-      js_delete(task);
-    }
-  }
-
-  // There is at most one running Tier2Generator task and we assume that
-  // below.
-  static_assert(GlobalHelperThreadState::MaxTier2GeneratorTasks == 1,
-                "code must be generalized");
-
-  // If there is a running Tier2 generator task, shut it down in a predictable
-  // way.  The task will be deleted by the normal deletion logic.
-  for (auto* helper : helperTasks(lock)) {
-    if (helper->is<wasm::Tier2GeneratorTask>()) {
-      // Set a flag that causes compilation to shortcut itself.
-      helper->as<wasm::Tier2GeneratorTask>()->cancel();
-
-      // Wait for the generator task to finish.  This avoids a shutdown race
-      // where the shutdown code is trying to shut down helper threads and the
-      // ongoing tier2 compilation is trying to finish, which requires it to
-      // have access to helper threads.
-      uint32_t oldFinishedCount = wasmTier2GeneratorsFinished(lock);
-      while (wasmTier2GeneratorsFinished(lock) == oldFinishedCount) {
-        wait(lock);
-      }
-
-      // At most one of these tasks.
-      break;
-    }
-  }
-}
-
-void js::CancelOffThreadWasmTier2Generator() {
-  AutoLockHelperThreadState lock;
-  CancelOffThreadWasmTier2GeneratorLocked(lock);
 }
 
 bool js::StartOffThreadIonCompile(jit::IonCompileTask* task,
@@ -1071,18 +971,6 @@ size_t GlobalHelperThreadState::maxIonFreeThreads() const {
   return 1;
 }
 
-size_t GlobalHelperThreadState::maxWasmCompilationThreads() const {
-  if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_WASM_COMPILE_TIER1) ||
-      IsHelperThreadSimulatingOOM(js::THREAD_TYPE_WASM_COMPILE_TIER2)) {
-    return 1;
-  }
-  return std::min(cpuCount, threadCount);
-}
-
-size_t GlobalHelperThreadState::maxWasmTier2GeneratorThreads() const {
-  return MaxTier2GeneratorTasks;
-}
-
 size_t GlobalHelperThreadState::maxPromiseHelperThreads() const {
   if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_PROMISE_TASK)) {
     return 1;
@@ -1112,102 +1000,6 @@ size_t GlobalHelperThreadState::maxGCParallelThreads() const {
     return 1;
   }
   return threadCount;
-}
-
-HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier1CompileTask(
-    const AutoLockHelperThreadState& lock) {
-  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier1);
-}
-
-HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2CompileTask(
-    const AutoLockHelperThreadState& lock) {
-  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier2);
-}
-
-HelperThreadTask* GlobalHelperThreadState::maybeGetWasmCompile(
-    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
-  if (!canStartWasmCompile(lock, state)) {
-    return nullptr;
-  }
-
-  return wasmWorklist(lock, state).popCopyFront();
-}
-
-bool GlobalHelperThreadState::canStartWasmTier1CompileTask(
-    const AutoLockHelperThreadState& lock) {
-  return canStartWasmCompile(lock, wasm::CompileState::EagerTier1);
-}
-
-bool GlobalHelperThreadState::canStartWasmTier2CompileTask(
-    const AutoLockHelperThreadState& lock) {
-  return canStartWasmCompile(lock, wasm::CompileState::EagerTier2);
-}
-
-bool GlobalHelperThreadState::canStartWasmCompile(
-    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
-  if (wasmWorklist(lock, state).empty()) {
-    return false;
-  }
-
-  // Parallel compilation and background compilation should be disabled on
-  // unicore systems.
-
-  MOZ_RELEASE_ASSERT(cpuCount > 1);
-
-  // If Tier2 is very backlogged we must give priority to it, since the Tier2
-  // queue holds onto Tier1 tasks.  Indeed if Tier2 is backlogged we will
-  // devote more resources to Tier2 and not start any Tier1 work at all.
-
-  bool tier2oversubscribed = wasmTier2GeneratorWorklist(lock).length() > 20;
-
-  // For Tier1 and Once compilation, honor the maximum allowed threads to
-  // compile wasm jobs at once, to avoid oversaturating the machine.
-  //
-  // For Tier2 compilation we need to allow other things to happen too, so we
-  // do not allow all logical cores to be used for background work; instead we
-  // wish to use a fraction of the physical cores.  We can't directly compute
-  // the physical cores from the logical cores, but 1/3 of the logical cores
-  // is a safe estimate for the number of physical cores available for
-  // background work.
-
-  size_t physCoresAvailable = size_t(ceil(cpuCount / 3.0));
-
-  size_t threads;
-  ThreadType threadType;
-  if (state == wasm::CompileState::EagerTier2) {
-    if (tier2oversubscribed) {
-      threads = maxWasmCompilationThreads();
-    } else {
-      threads = physCoresAvailable;
-    }
-    threadType = THREAD_TYPE_WASM_COMPILE_TIER2;
-  } else {
-    if (tier2oversubscribed) {
-      threads = 0;
-    } else {
-      threads = maxWasmCompilationThreads();
-    }
-    threadType = THREAD_TYPE_WASM_COMPILE_TIER1;
-  }
-
-  return threads != 0 && checkTaskThreadLimit(threadType, threads, lock);
-}
-
-HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2GeneratorTask(
-    const AutoLockHelperThreadState& lock) {
-  if (!canStartWasmTier2GeneratorTask(lock)) {
-    return nullptr;
-  }
-
-  return wasmTier2GeneratorWorklist(lock).popCopy();
-}
-
-bool GlobalHelperThreadState::canStartWasmTier2GeneratorTask(
-    const AutoLockHelperThreadState& lock) {
-  return !wasmTier2GeneratorWorklist(lock).empty() &&
-         checkTaskThreadLimit(THREAD_TYPE_WASM_GENERATOR_TIER2,
-                              maxWasmTier2GeneratorThreads(),
-                              /*isMaster=*/true, lock);
 }
 
 HelperThreadTask* GlobalHelperThreadState::maybeGetPromiseHelperTask(
@@ -1765,4 +1557,231 @@ void AutoHelperTaskQueue::dispatchQueuedTasks() {
     HelperThreadState().dispatchTaskCallback(tasksToDispatch[i]);
   }
   tasksToDispatch.clear();
+}
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// Wasm task definitions                                                 //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
+
+//== WasmTier1CompileTask =================================================
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier1CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier1);
+}
+
+bool GlobalHelperThreadState::canStartWasmTier1CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  return canStartWasmCompile(lock, wasm::CompileState::EagerTier1);
+}
+
+//== WasmTier2CompileTask =================================================
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  return maybeGetWasmCompile(lock, wasm::CompileState::EagerTier2);
+}
+
+bool GlobalHelperThreadState::canStartWasmTier2CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  return canStartWasmCompile(lock, wasm::CompileState::EagerTier2);
+}
+
+//== WasmTier2GeneratorTask ===============================================
+
+bool GlobalHelperThreadState::canStartWasmTier2GeneratorTask(
+    const AutoLockHelperThreadState& lock) {
+  return !wasmTier2GeneratorWorklist(lock).empty() &&
+         checkTaskThreadLimit(THREAD_TYPE_WASM_GENERATOR_TIER2,
+                              maxWasmTier2GeneratorThreads(),
+                              /*isMaster=*/true, lock);
+}
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetWasmTier2GeneratorTask(
+    const AutoLockHelperThreadState& lock) {
+  if (!canStartWasmTier2GeneratorTask(lock)) {
+    return nullptr;
+  }
+
+  return wasmTier2GeneratorWorklist(lock).popCopy();
+}
+
+bool GlobalHelperThreadState::submitTask(wasm::UniqueTier2GeneratorTask task) {
+  AutoLockHelperThreadState lock;
+
+  MOZ_ASSERT(isInitialized(lock));
+
+  if (!wasmTier2GeneratorWorklist(lock).append(task.get())) {
+    return false;
+  }
+  (void)task.release();
+
+  dispatch(lock);
+  return true;
+}
+
+void js::StartOffThreadWasmTier2Generator(wasm::UniqueTier2GeneratorTask task) {
+  (void)HelperThreadState().submitTask(std::move(task));
+}
+
+void GlobalHelperThreadState::cancelOffThreadWasmTier2Generator(
+    AutoLockHelperThreadState& lock) {
+  // Remove pending tasks from the tier2 generator worklist and cancel and
+  // delete them.
+  {
+    wasm::Tier2GeneratorTaskPtrVector& worklist =
+        wasmTier2GeneratorWorklist(lock);
+    for (size_t i = 0; i < worklist.length(); i++) {
+      wasm::Tier2GeneratorTask* task = worklist[i];
+      remove(worklist, &i);
+      js_delete(task);
+    }
+  }
+
+  // There is at most one running Tier2Generator task and we assume that
+  // below.
+  static_assert(GlobalHelperThreadState::MaxTier2GeneratorTasks == 1,
+                "code must be generalized");
+
+  // If there is a running Tier2 generator task, shut it down in a predictable
+  // way.  The task will be deleted by the normal deletion logic.
+  for (auto* helper : helperTasks(lock)) {
+    if (helper->is<wasm::Tier2GeneratorTask>()) {
+      // Set a flag that causes compilation to shortcut itself.
+      helper->as<wasm::Tier2GeneratorTask>()->cancel();
+
+      // Wait for the generator task to finish.  This avoids a shutdown race
+      // where the shutdown code is trying to shut down helper threads and the
+      // ongoing tier2 compilation is trying to finish, which requires it to
+      // have access to helper threads.
+      uint32_t oldFinishedCount = wasmTier2GeneratorsFinished(lock);
+      while (wasmTier2GeneratorsFinished(lock) == oldFinishedCount) {
+        wait(lock);
+      }
+
+      // At most one of these tasks.
+      break;
+    }
+  }
+}
+
+static void CancelOffThreadWasmTier2GeneratorLocked(
+    AutoLockHelperThreadState& lock) {
+  if (!HelperThreadState().isInitialized(lock)) {
+    return;
+  }
+
+  HelperThreadState().cancelOffThreadWasmTier2Generator(lock);
+}
+
+void js::CancelOffThreadWasmTier2Generator() {
+  AutoLockHelperThreadState lock;
+  CancelOffThreadWasmTier2GeneratorLocked(lock);
+}
+
+//== wasm thread counts ===================================================
+
+size_t js::GetMaxWasmCompilationThreads() {
+  return HelperThreadState().maxWasmCompilationThreads();
+}
+
+size_t GlobalHelperThreadState::maxWasmCompilationThreads() const {
+  if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_WASM_COMPILE_TIER1) ||
+      IsHelperThreadSimulatingOOM(js::THREAD_TYPE_WASM_COMPILE_TIER2)) {
+    return 1;
+  }
+  return std::min(cpuCount, threadCount);
+}
+
+size_t GlobalHelperThreadState::maxWasmTier2GeneratorThreads() const {
+  return MaxTier2GeneratorTasks;
+}
+
+//== wasm task management =================================================
+
+bool GlobalHelperThreadState::canStartWasmCompile(
+    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
+  if (wasmWorklist(lock, state).empty()) {
+    return false;
+  }
+
+  // Parallel compilation and background compilation should be disabled on
+  // unicore systems.
+
+  MOZ_RELEASE_ASSERT(cpuCount > 1);
+
+  // If Tier2 is very backlogged we must give priority to it, since the Tier2
+  // queue holds onto Tier1 tasks.  Indeed if Tier2 is backlogged we will
+  // devote more resources to Tier2 and not start any Tier1 work at all.
+
+  bool tier2oversubscribed = wasmTier2GeneratorWorklist(lock).length() > 20;
+
+  // For Tier1 and Once compilation, honor the maximum allowed threads to
+  // compile wasm jobs at once, to avoid oversaturating the machine.
+  //
+  // For Tier2 compilation we need to allow other things to happen too, so we
+  // do not allow all logical cores to be used for background work; instead we
+  // wish to use a fraction of the physical cores.  We can't directly compute
+  // the physical cores from the logical cores, but 1/3 of the logical cores
+  // is a safe estimate for the number of physical cores available for
+  // background work.
+
+  size_t physCoresAvailable = size_t(ceil(cpuCount / 3.0));
+
+  size_t threads;
+  ThreadType threadType;
+  if (state == wasm::CompileState::EagerTier2) {
+    if (tier2oversubscribed) {
+      threads = maxWasmCompilationThreads();
+    } else {
+      threads = physCoresAvailable;
+    }
+    threadType = THREAD_TYPE_WASM_COMPILE_TIER2;
+  } else {
+    if (tier2oversubscribed) {
+      threads = 0;
+    } else {
+      threads = maxWasmCompilationThreads();
+    }
+    threadType = THREAD_TYPE_WASM_COMPILE_TIER1;
+  }
+
+  return threads != 0 && checkTaskThreadLimit(threadType, threads, lock);
+}
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetWasmCompile(
+    const AutoLockHelperThreadState& lock, wasm::CompileState state) {
+  if (!canStartWasmCompile(lock, state)) {
+    return nullptr;
+  }
+
+  return wasmWorklist(lock, state).popCopyFront();
+}
+
+size_t js::RemovePendingWasmCompileTasks(
+    const wasm::CompileTaskState& taskState, wasm::CompileState state,
+    const AutoLockHelperThreadState& lock) {
+  wasm::CompileTaskPtrFifo& worklist =
+      HelperThreadState().wasmWorklist(lock, state);
+  return worklist.eraseIf([&taskState](wasm::CompileTask* task) {
+    return &task->state == &taskState;
+  });
+}
+
+bool GlobalHelperThreadState::submitTask(wasm::CompileTask* task,
+                                         wasm::CompileState state) {
+  AutoLockHelperThreadState lock;
+  if (!wasmWorklist(lock, state).pushBack(task)) {
+    return false;
+  }
+
+  dispatch(lock);
+  return true;
+}
+
+bool js::StartOffThreadWasmCompile(wasm::CompileTask* task,
+                                   wasm::CompileState state) {
+  return HelperThreadState().submitTask(task, state);
 }
