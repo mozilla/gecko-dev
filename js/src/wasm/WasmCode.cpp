@@ -33,6 +33,7 @@
 #include "jit/MacroAssembler.h"
 #include "jit/PerfSpewer.h"
 #include "util/Poison.h"
+#include "vm/HelperThreadState.h"  // PartialTier2CompileTask
 #ifdef MOZ_VTUNE
 #  include "vtune/VTuneWrapper.h"
 #endif
@@ -45,6 +46,7 @@
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
+using mozilla::Atomic;
 using mozilla::BinarySearch;
 using mozilla::BinarySearchIf;
 using mozilla::DebugOnly;
@@ -804,7 +806,52 @@ bool Code::createTier2LazyEntryStubs(const WriteGuard& guard,
   return true;
 }
 
+class Module::PartialTier2CompileTaskImpl : public PartialTier2CompileTask {
+  const SharedCode code_;
+  uint32_t funcIndex_;
+  Atomic<bool> cancelled_;
+
+ public:
+  PartialTier2CompileTaskImpl(const Code& code, uint32_t funcIndex)
+      : code_(&code), funcIndex_(funcIndex), cancelled_(false) {}
+
+  void cancel() override { cancelled_ = true; }
+
+  void runHelperThreadTask(AutoLockHelperThreadState& locked) override {
+    if (!cancelled_) {
+      AutoUnlockHelperThreadState unlock(locked);
+
+      // TODO: maybe have CompilePartialTier2 check `cancelled_` from time to
+      // time and return early if it is set?  See bug 1911060.
+      bool success = CompilePartialTier2(*code_, funcIndex_);
+
+      // FIXME: In the case `!success && !cancelled_`, compilation has failed
+      // and this function will be stuck in state TierUpState::Requested
+      // forever.  See bug 1911060.
+
+      // CompilePartialTier2 can only indicate failure via the returned bool,
+      // which indicates OOM, since it release-asserts for any other kind of
+      // failure.  Hence we have to provide dummy `error` and `warnings` to
+      // ReportTier2ResultsOffThread.
+      UniqueChars error;
+      UniqueCharsVector warnings;
+      ReportTier2ResultsOffThread(success, mozilla::Some(funcIndex_),
+                                  code_->codeMeta().scriptedCaller(), error,
+                                  warnings);
+    }
+
+    // The task is finished, release it.
+    js_delete(this);
+  }
+
+  ThreadType threadType() override {
+    return ThreadType::THREAD_TYPE_WASM_COMPILE_PARTIAL_TIER2;
+  }
+};
+
 bool Code::requestTierUp(uint32_t funcIndex) const {
+  // Note: this runs on the requesting (wasm-running) thread, not on a
+  // compilation-helper thread.
   MOZ_ASSERT(mode_ == CompileMode::LazyTiering);
   FuncState& state = funcStates_[funcIndex - codeMeta_->numFuncImports];
   if (!state.tierUpState.compareExchange(TierUpState::NotRequested,
@@ -812,7 +859,16 @@ bool Code::requestTierUp(uint32_t funcIndex) const {
     return true;
   }
 
-  return CompilePartialTier2(*this, funcIndex);
+  auto task =
+      js::MakeUnique<Module::PartialTier2CompileTaskImpl>(*this, funcIndex);
+  if (!task) {
+    // Effect is (I think), if we OOM here, the request is ignored.
+    // See bug 1911060.
+    return false;
+  }
+
+  StartOffThreadWasmPartialTier2Compile(std::move(task));
+  return true;
 }
 
 bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,

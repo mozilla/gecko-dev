@@ -620,12 +620,16 @@ bool ModuleGenerator::initTasks() {
 
   MOZ_ASSERT(GetHelperThreadCount() > 1);
 
-  uint32_t numTasks;
-  if (CanUseExtraThreads() && GetHelperThreadCPUCount() > 1) {
+  MOZ_ASSERT(!parallel_);
+  uint32_t numTasks = 1;
+  if (  // "obvious" prerequisites for doing off-thread compilation
+      CanUseExtraThreads() && GetHelperThreadCPUCount() > 1 &&
+      // For lazy tier 2 compilations, the current thread -- running a
+      // WasmPartialTier2CompileTask -- is already dedicated to compiling the
+      // to-be-tiered-up function.  So don't create a new task for it.
+      compileState_ != CompileState::LazyTier2) {
     parallel_ = true;
     numTasks = 2 * GetMaxWasmCompilationThreads();
-  } else {
-    numTasks = 1;
   }
 
   if (!tasks_.initCapacity(numTasks)) {

@@ -57,10 +57,14 @@ static UniqueChars Tier2ResultsContext(const ScriptedCaller& scriptedCaller) {
              : UniqueChars();
 }
 
-static void ReportTier2ResultsOffThread(bool success,
-                                        const ScriptedCaller& scriptedCaller,
-                                        const UniqueChars& error,
-                                        const UniqueCharsVector& warnings) {
+void js::wasm::ReportTier2ResultsOffThread(bool success,
+                                           Maybe<uint32_t> maybeFuncIndex,
+                                           const ScriptedCaller& scriptedCaller,
+                                           const UniqueChars& error,
+                                           const UniqueCharsVector& warnings) {
+  // See comments in Module::PartialTier2CompileTaskImpl::runHelperThreadTask.
+  MOZ_ASSERT_IF(maybeFuncIndex.isSome(), !error && warnings.length() == 0);
+
   // Get context to describe this tier-2 task.
   UniqueChars context = Tier2ResultsContext(scriptedCaller);
   const char* contextString = context ? context.get() : "unknown";
@@ -68,15 +72,22 @@ static void ReportTier2ResultsOffThread(bool success,
   // Display the main error, if any.
   if (!success) {
     const char* errorString = error ? error.get() : "out of memory";
-    LogOffThread("'%s': wasm tier-2 failed with '%s'.\n", contextString,
-                 errorString);
+    if (maybeFuncIndex.isSome()) {
+      LogOffThread(
+          "'%s': wasm partial tier-2 (func index %u) failed with '%s'.\n",
+          contextString, maybeFuncIndex.value(), errorString);
+    } else {
+      LogOffThread("'%s': wasm complete tier-2 failed with '%s'.\n",
+                   contextString, errorString);
+    }
   }
 
   // Display warnings as a follow-up, avoiding spamming the console.
   size_t numWarnings = std::min<size_t>(warnings.length(), 3);
 
   for (size_t i = 0; i < numWarnings; i++) {
-    LogOffThread("'%s': wasm tier-2 warning: '%s'.\n'.", contextString,
+    // Per the assertion above, we won't get warnings for partial tier-2.
+    LogOffThread("'%s': wasm complete tier-2 warning: '%s'.\n'.", contextString,
                  warnings[i].get());
   }
   if (warnings.length() > numWarnings) {
@@ -118,8 +129,9 @@ class Module::CompleteTier2GeneratorTaskImpl
         // We could try to dispatch a runnable to the thread that started this
         // compilation, so as to report the warning/error using a JSContext*.
         // For now we just report to stderr.
-        ReportTier2ResultsOffThread(
-            success, module_->codeMeta().scriptedCaller(), error, warnings);
+        ReportTier2ResultsOffThread(success, mozilla::Nothing(),
+                                    module_->codeMeta().scriptedCaller(), error,
+                                    warnings);
       }
     }
 

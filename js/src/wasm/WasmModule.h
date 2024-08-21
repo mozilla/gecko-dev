@@ -28,6 +28,8 @@
 #include "wasm/WasmSerialize.h"
 #include "wasm/WasmTable.h"
 
+using mozilla::Maybe;
+
 namespace JS {
 class OptimizedEncodingListener;
 }
@@ -41,6 +43,15 @@ struct CompileArgs;
 // listening for the completion of complete tier-2.
 
 using CompleteTier2Listener = RefPtr<JS::OptimizedEncodingListener>;
+
+// Report tier-2 compilation results off-thread.  If `maybeFuncIndex` is
+// `Some`, this report is for a partial tier-2 compilation of the specified
+// function.  Otherwise it's for a complete tier-2 compilation.
+
+void ReportTier2ResultsOffThread(bool success, Maybe<uint32_t> maybeFuncIndex,
+                                 const ScriptedCaller& scriptedCaller,
+                                 const UniqueChars& error,
+                                 const UniqueCharsVector& warnings);
 
 // A struct containing the typed, imported values that are harvested from the
 // import object and passed to Module::instantiate(). This struct must be
@@ -129,6 +140,8 @@ class Module : public JS::WasmModule {
   class CompleteTier2GeneratorTaskImpl;
 
  public:
+  class PartialTier2CompileTaskImpl;
+
   Module(const ModuleMetadata& moduleMeta, const Code& code,
          bool loggingDeserialized = false)
       : moduleMeta_(&moduleMeta),

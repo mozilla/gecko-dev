@@ -39,6 +39,8 @@ using mozilla::TimeDuration;
 
 static void CancelOffThreadWasmCompleteTier2GeneratorLocked(
     AutoLockHelperThreadState& lock);
+static void CancelOffThreadWasmPartialTier2CompileLocked(
+    AutoLockHelperThreadState& lock);
 
 namespace js {
 
@@ -836,6 +838,7 @@ void GlobalHelperThreadState::waitForAllTasks() {
 void GlobalHelperThreadState::waitForAllTasksLocked(
     AutoLockHelperThreadState& lock) {
   CancelOffThreadWasmCompleteTier2GeneratorLocked(lock);
+  CancelOffThreadWasmPartialTier2CompileLocked(lock);
 
   while (canStartTasks(lock) || hasActiveThreads(lock)) {
     wait(lock);
@@ -850,6 +853,7 @@ void GlobalHelperThreadState::waitForAllTasksLocked(
   MOZ_ASSERT(ionFreeList(lock).empty());
   MOZ_ASSERT(wasmWorklist(lock, wasm::CompileState::EagerTier2).empty());
   MOZ_ASSERT(wasmCompleteTier2GeneratorWorklist(lock).empty());
+  MOZ_ASSERT(wasmPartialTier2CompileWorklist(lock).empty());
   MOZ_ASSERT(!tasksPending_);
   MOZ_ASSERT(!hasActiveThreads(lock));
 }
@@ -923,6 +927,7 @@ void GlobalHelperThreadState::addSizeOfIncludingThis(
       wasmWorklist_tier1_.sizeOfExcludingThis(mallocSizeOf) +
       wasmWorklist_tier2_.sizeOfExcludingThis(mallocSizeOf) +
       wasmCompleteTier2GeneratorWorklist_.sizeOfExcludingThis(mallocSizeOf) +
+      wasmPartialTier2CompileWorklist_.sizeOfExcludingThis(mallocSizeOf) +
       promiseHelperTasks_.sizeOfExcludingThis(mallocSizeOf) +
       compressionPendingList_.sizeOfExcludingThis(mallocSizeOf) +
       compressionWorklist_.sizeOfExcludingThis(mallocSizeOf) +
@@ -1449,6 +1454,7 @@ const GlobalHelperThreadState::Selector GlobalHelperThreadState::selectors[] = {
     &GlobalHelperThreadState::maybeGetCompressionTask,
     &GlobalHelperThreadState::maybeGetLowPrioIonCompileTask,
     &GlobalHelperThreadState::maybeGetIonFreeTask,
+    &GlobalHelperThreadState::maybeGetWasmPartialTier2CompileTask,
     &GlobalHelperThreadState::maybeGetWasmTier2CompileTask,
     &GlobalHelperThreadState::maybeGetWasmCompleteTier2GeneratorTask};
 
@@ -1459,7 +1465,8 @@ bool GlobalHelperThreadState::canStartTasks(
          canStartPromiseHelperTask(lock) || canStartFreeDelazifyTask(lock) ||
          canStartDelazifyTask(lock) || canStartCompressionTask(lock) ||
          canStartIonFreeTask(lock) || canStartWasmTier2CompileTask(lock) ||
-         canStartWasmCompleteTier2GeneratorTask(lock);
+         canStartWasmCompleteTier2GeneratorTask(lock) ||
+         canStartWasmPartialTier2CompileTask(lock);
 }
 
 void JS::RunHelperThreadTask(HelperThreadTask* task) {
@@ -1684,6 +1691,98 @@ void js::CancelOffThreadWasmCompleteTier2Generator() {
   CancelOffThreadWasmCompleteTier2GeneratorLocked(lock);
 }
 
+//== WasmPartialTier2CompileTask ==========================================
+
+bool GlobalHelperThreadState::canStartWasmPartialTier2CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  size_t maxThreads = maxWasmPartialTier2CompileThreads();
+  // Avoid assertion failure in checkTaskThreadLimit().
+  if (maxThreads > threadCount) {
+    maxThreads = threadCount;
+  }
+  return !wasmPartialTier2CompileWorklist(lock).empty() &&
+         checkTaskThreadLimit(THREAD_TYPE_WASM_COMPILE_PARTIAL_TIER2,
+                              maxThreads, /*isMaster=*/false, lock);
+}
+
+HelperThreadTask* GlobalHelperThreadState::maybeGetWasmPartialTier2CompileTask(
+    const AutoLockHelperThreadState& lock) {
+  if (!canStartWasmPartialTier2CompileTask(lock)) {
+    return nullptr;
+  }
+
+  return wasmPartialTier2CompileWorklist(lock).popCopy();
+}
+
+bool GlobalHelperThreadState::submitTask(
+    wasm::UniquePartialTier2CompileTask task) {
+  AutoLockHelperThreadState lock;
+
+  MOZ_ASSERT(isInitialized(lock));
+
+  wasm::PartialTier2CompileTaskPtrVector& workList =
+      wasmPartialTier2CompileWorklist(lock);
+  if (!workList.append(task.get())) {
+    return false;
+  }
+  (void)task.release();
+
+  dispatch(lock);
+  return true;
+}
+
+void js::StartOffThreadWasmPartialTier2Compile(
+    wasm::UniquePartialTier2CompileTask task) {
+  (void)HelperThreadState().submitTask(std::move(task));
+}
+
+void GlobalHelperThreadState::cancelOffThreadWasmPartialTier2Compile(
+    AutoLockHelperThreadState& lock) {
+  // Remove pending tasks from the partial tier2 compilation worklist and
+  // cancel and delete them.
+  wasm::PartialTier2CompileTaskPtrVector& worklist =
+      wasmPartialTier2CompileWorklist(lock);
+  for (size_t i = 0; i < worklist.length(); i++) {
+    wasm::PartialTier2CompileTask* task = worklist[i];
+    remove(worklist, &i);
+    js_delete(task);
+  }
+
+  // And remove running partial tier2 compilation tasks.  They will be deleted
+  // by the normal deletion logic (in
+  // PartialTier2CompileTaskImpl::runHelperThreadTask).
+  bool anyCancelled;
+  do {
+    anyCancelled = false;
+    for (auto* helper : helperTasks(lock)) {
+      if (!helper->is<wasm::PartialTier2CompileTask>()) {
+        continue;
+      }
+      wasm::PartialTier2CompileTask* pt2CompileTask =
+          helper->as<wasm::PartialTier2CompileTask>();
+      pt2CompileTask->cancel();
+      anyCancelled = true;
+    }
+    if (anyCancelled) {
+      wait(lock);
+    }
+  } while (anyCancelled);
+}
+
+static void CancelOffThreadWasmPartialTier2CompileLocked(
+    AutoLockHelperThreadState& lock) {
+  if (!HelperThreadState().isInitialized(lock)) {
+    return;
+  }
+
+  HelperThreadState().cancelOffThreadWasmPartialTier2Compile(lock);
+}
+
+void js::CancelOffThreadWasmPartialTier2Compile() {
+  AutoLockHelperThreadState lock;
+  CancelOffThreadWasmPartialTier2CompileLocked(lock);
+}
+
 //== wasm thread counts ===================================================
 
 size_t js::GetMaxWasmCompilationThreads() {
@@ -1700,6 +1799,10 @@ size_t GlobalHelperThreadState::maxWasmCompilationThreads() const {
 
 size_t GlobalHelperThreadState::maxWasmCompleteTier2GeneratorThreads() const {
   return MaxCompleteTier2GeneratorTasks;
+}
+
+size_t GlobalHelperThreadState::maxWasmPartialTier2CompileThreads() const {
+  return MaxPartialTier2CompileTasks;
 }
 
 //== wasm task management =================================================

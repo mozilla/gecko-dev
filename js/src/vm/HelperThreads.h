@@ -61,6 +61,8 @@ struct CompileTask;
 struct CompileTaskState;
 struct CompleteTier2GeneratorTask;
 using UniqueCompleteTier2GeneratorTask = UniquePtr<CompleteTier2GeneratorTask>;
+struct PartialTier2CompileTask;
+using UniquePartialTier2CompileTask = UniquePtr<PartialTier2CompileTask>;
 }  // namespace wasm
 
 /*
@@ -139,8 +141,17 @@ size_t RemovePendingWasmCompileTasks(const wasm::CompileTaskState& taskState,
 void StartOffThreadWasmCompleteTier2Generator(
     wasm::UniqueCompleteTier2GeneratorTask task);
 
-// Cancel all background Wasm Complete Tier-2 compilations.
+// Enqueues a wasm Partial Tier-2 compilation task.  This compiles one
+// function, doing so itself, without any sub-tasks.
+void StartOffThreadWasmPartialTier2Compile(
+    wasm::UniquePartialTier2CompileTask task);
+
+// Cancel all background Wasm Complete Tier-2 compilations, both the generator
+// task and the individual compilation tasks.
 void CancelOffThreadWasmCompleteTier2Generator();
+
+// Cancel a single background Wasm Partial Tier-2 compilation.
+void CancelOffThreadWasmPartialTier2Compile();
 
 /*
  * If helper threads are available, call execute() then dispatchResolve() on the

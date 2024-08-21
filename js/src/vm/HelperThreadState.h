@@ -71,13 +71,22 @@ using CompileTaskPtrFifo = Fifo<CompileTask*, 0, SystemAllocPolicy>;
 struct CompleteTier2GeneratorTask : public HelperThreadTask {
   virtual ~CompleteTier2GeneratorTask() = default;
   virtual void cancel() = 0;
-
   const char* getName() override { return "CompleteTier2GeneratorTask"; }
 };
 
 using UniqueCompleteTier2GeneratorTask = UniquePtr<CompleteTier2GeneratorTask>;
 using CompleteTier2GeneratorTaskPtrVector =
     Vector<CompleteTier2GeneratorTask*, 0, SystemAllocPolicy>;
+
+struct PartialTier2CompileTask : public HelperThreadTask {
+  virtual ~PartialTier2CompileTask() = default;
+  virtual void cancel() = 0;
+  const char* getName() override { return "PartialTier2CompileTask"; }
+};
+
+using UniquePartialTier2CompileTask = UniquePtr<PartialTier2CompileTask>;
+using PartialTier2CompileTaskPtrVector =
+    Vector<PartialTier2CompileTask*, 0, SystemAllocPolicy>;
 
 }  // namespace wasm
 
@@ -88,6 +97,11 @@ class GlobalHelperThreadState {
   // and we do not want to allow more than one such ModuleGenerator to run at a
   // time.
   static const size_t MaxCompleteTier2GeneratorTasks = 1;
+
+  // The number of partial tier 2 compilation tasks that can run
+  // simultaneously.  This constant specifies unfortunately both the default
+  // and the maximum.
+  static const size_t MaxPartialTier2CompileTasks = 1;
 
   // Number of CPUs to treat this machine as having when creating threads.
   // May be accessed without locking.
@@ -138,6 +152,7 @@ class GlobalHelperThreadState {
   wasm::CompileTaskPtrFifo wasmWorklist_tier1_;
   wasm::CompileTaskPtrFifo wasmWorklist_tier2_;
   wasm::CompleteTier2GeneratorTaskPtrVector wasmCompleteTier2GeneratorWorklist_;
+  wasm::PartialTier2CompileTaskPtrVector wasmPartialTier2CompileWorklist_;
 
   // Count of finished CompleteTier2Generator tasks.
   uint32_t wasmCompleteTier2GeneratorsFinished_;
@@ -206,6 +221,7 @@ class GlobalHelperThreadState {
   size_t maxIonFreeThreads() const;
   size_t maxWasmCompilationThreads() const;
   size_t maxWasmCompleteTier2GeneratorThreads() const;
+  size_t maxWasmPartialTier2CompileThreads() const;
   size_t maxPromiseHelperThreads() const;
   size_t maxDelazifyThreads() const;
   size_t maxCompressionThreads() const;
@@ -293,6 +309,11 @@ class GlobalHelperThreadState {
     return wasmCompleteTier2GeneratorWorklist_;
   }
 
+  wasm::PartialTier2CompileTaskPtrVector& wasmPartialTier2CompileWorklist(
+      const AutoLockHelperThreadState&) {
+    return wasmPartialTier2CompileWorklist_;
+  }
+
   void incWasmCompleteTier2GeneratorsFinished(
       const AutoLockHelperThreadState&) {
     wasmCompleteTier2GeneratorsFinished_++;
@@ -346,6 +367,8 @@ class GlobalHelperThreadState {
   bool canStartWasmTier2CompileTask(const AutoLockHelperThreadState& lock);
   bool canStartWasmCompleteTier2GeneratorTask(
       const AutoLockHelperThreadState& lock);
+  bool canStartWasmPartialTier2CompileTask(
+      const AutoLockHelperThreadState& lock);
   bool canStartPromiseHelperTask(const AutoLockHelperThreadState& lock);
   bool canStartIonCompileTask(const AutoLockHelperThreadState& lock);
   bool canStartIonFreeTask(const AutoLockHelperThreadState& lock);
@@ -362,6 +385,8 @@ class GlobalHelperThreadState {
   HelperThreadTask* maybeGetWasmTier2CompileTask(
       const AutoLockHelperThreadState& lock);
   HelperThreadTask* maybeGetWasmCompleteTier2GeneratorTask(
+      const AutoLockHelperThreadState& lock);
+  HelperThreadTask* maybeGetWasmPartialTier2CompileTask(
       const AutoLockHelperThreadState& lock);
   HelperThreadTask* maybeGetPromiseHelperTask(
       const AutoLockHelperThreadState& lock);
@@ -415,6 +440,7 @@ class GlobalHelperThreadState {
   void cancelOffThreadIonCompile(const CompilationSelector& selector);
   void cancelOffThreadWasmCompleteTier2Generator(
       AutoLockHelperThreadState& lock);
+  void cancelOffThreadWasmPartialTier2Compile(AutoLockHelperThreadState& lock);
 
   bool hasAnyDelazifyTask(JSRuntime* rt, AutoLockHelperThreadState& lock);
   void cancelPendingDelazifyTask(JSRuntime* rt,
@@ -429,6 +455,7 @@ class GlobalHelperThreadState {
   void triggerFreeUnusedMemory();
 
   bool submitTask(wasm::UniqueCompleteTier2GeneratorTask task);
+  bool submitTask(wasm::UniquePartialTier2CompileTask task);
   bool submitTask(wasm::CompileTask* task, wasm::CompileState state);
   bool submitTask(UniquePtr<jit::IonFreeTask>&& task,
                   const AutoLockHelperThreadState& lock);
