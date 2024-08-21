@@ -14,12 +14,14 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature.PromptsStyling
+import mozilla.components.support.ktx.util.PromptAbuserDetector
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
@@ -33,6 +35,16 @@ class SitePermissionsDialogFragmentTest {
 
     private val permissionRequestId = "permissionID"
     private val titleIcon = coreR.drawable.notification_icon_background
+
+    @Before
+    fun setUp() {
+        PromptAbuserDetector.validationsEnabled = false
+    }
+
+    @After
+    fun tearDown() {
+        PromptAbuserDetector.validationsEnabled = true
+    }
 
     @Test
     fun `build dialog`() {
@@ -234,7 +246,6 @@ class SitePermissionsDialogFragmentTest {
     }
 
     @Test
-    @Ignore("https://bugzilla.mozilla.org/show_bug.cgi?id=1903828")
     fun `clicking on positive button notifies the feature (temporary)`() {
         val mockFeature: SitePermissionsFeature = mock()
         val fragment = spy(
@@ -249,7 +260,6 @@ class SitePermissionsDialogFragmentTest {
             ),
         )
         doNothing().`when`(fragment).dismiss()
-
         fragment.feature = mockFeature
 
         doReturn(testContext).`when`(fragment).requireContext()
@@ -263,7 +273,6 @@ class SitePermissionsDialogFragmentTest {
     }
 
     @Test
-    @Ignore("https://bugzilla.mozilla.org/show_bug.cgi?id=1903828")
     fun `dismissing the dialog notifies the feature`() {
         val mockFeature: SitePermissionsFeature = mock()
         val fragment = spy(
@@ -290,6 +299,7 @@ class SitePermissionsDialogFragmentTest {
         verify(mockFeature).onDismiss(permissionRequestId, "sessionId")
     }
 
+    @Test
     fun `dialog with passed in text for the negative button should use it`() {
         val expectedText = "This is just a test"
         val fragment = spy(
@@ -312,6 +322,7 @@ class SitePermissionsDialogFragmentTest {
         assertEquals(expectedText, negativeButton.text)
     }
 
+    @Test
     fun `dialog with a text for the negative button not passed has a default available`() {
         val expectedText = testContext.getString(R.string.mozac_feature_sitepermissions_not_allow)
         val fragment = spy(
@@ -363,7 +374,6 @@ class SitePermissionsDialogFragmentTest {
     }
 
     @Test
-    @Ignore("https://bugzilla.mozilla.org/show_bug.cgi?id=1903828")
     fun `clicking on positive button notifies the feature (permanent)`() {
         val mockFeature: SitePermissionsFeature = mock()
         val fragment = spy(
@@ -393,7 +403,6 @@ class SitePermissionsDialogFragmentTest {
     }
 
     @Test
-    @Ignore("https://bugzilla.mozilla.org/show_bug.cgi?id=1903828")
     fun `clicking on negative button notifies the feature (permanent)`() {
         val mockFeature: SitePermissionsFeature = mock()
         val fragment = spy(

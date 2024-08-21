@@ -53,7 +53,7 @@ class PromptAbuserDetector(private val maxSuccessiveDialogSecondsLimit: Int = MA
      * Indicates whether dialogs are being abused or not.
      */
     fun areDialogsBeingAbused(): Boolean {
-        return areDialogsAbusedByTime() || areDialogsAbusedByCount()
+        return validationsEnabled && (areDialogsAbusedByTime() || areDialogsAbusedByCount())
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -66,12 +66,12 @@ class PromptAbuserDetector(private val maxSuccessiveDialogSecondsLimit: Int = MA
         } else {
             val now = now()
             val diffInSeconds = (now.time - lastDialogShownAt.time) / SECOND_MS
-            diffInSeconds < maxSuccessiveDialogSecondsLimit
+            validationsEnabled && (diffInSeconds < maxSuccessiveDialogSecondsLimit)
         }
     }
 
     private fun areDialogsAbusedByCount(): Boolean {
-        return jsAlertCount > MAX_SUCCESSIVE_DIALOG_COUNT
+        return validationsEnabled && (jsAlertCount > MAX_SUCCESSIVE_DIALOG_COUNT)
     }
 
     companion object {
@@ -83,5 +83,11 @@ class PromptAbuserDetector(private val maxSuccessiveDialogSecondsLimit: Int = MA
 
         // Number of milliseconds in 1 second.
         internal const val SECOND_MS: Int = 1000
+
+        /**
+         * Only use for testing purpose.
+         */
+        @VisibleForTesting
+        var validationsEnabled = true
     }
 }

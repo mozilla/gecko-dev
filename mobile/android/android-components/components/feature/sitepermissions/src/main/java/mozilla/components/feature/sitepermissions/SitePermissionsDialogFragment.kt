@@ -23,6 +23,7 @@ import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.content.ContextCompat
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.util.PromptAbuserDetector
 
 internal const val KEY_SESSION_ID = "KEY_SESSION_ID"
@@ -42,6 +43,8 @@ private const val DEFAULT_VALUE = Int.MAX_VALUE
 private const val KEY_PERMISSION_ID = "KEY_PERMISSION_ID"
 
 internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
+
+    private val logger = Logger("SitePermissionsDialogFragment")
 
     @VisibleForTesting
     internal var promptAbuserDetector =
@@ -168,6 +171,7 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
         positiveButton.setOnClickListener {
             if (promptAbuserDetector.areDialogsBeingAbused()) {
                 promptAbuserDetector.updateJSDialogAbusedState()
+                logger.info("Button click happened before the security delay, click not handled")
             } else {
                 feature?.onPositiveButtonPress(
                     permissionRequestId,
@@ -270,6 +274,7 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
             return fragment
         }
 
+        // See https://searchfox.org/mozilla-central/rev/76cb3efe3b19e649bf675bb6ec5d4af8109b9771/toolkit/modules/PopupNotifications.sys.mjs#18
         private const val TIME_SHOWN_OFFSET_SECONDS = 1
     }
 }

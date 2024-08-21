@@ -11,8 +11,8 @@ import android.media.AudioManager
 import android.os.Build
 import androidx.core.net.toUri
 import androidx.test.rule.GrantPermissionRule
+import mozilla.components.support.ktx.util.PromptAbuserDetector
 import org.junit.Assume.assumeTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -34,7 +34,6 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
  *  Tests for verifying site permissions prompts & functionality
  *
  */
-@Ignore("https://bugzilla.mozilla.org/show_bug.cgi?id=1903828")
 class SitePermissionsTest : TestSetup() {
     /* Test page created and handled by the Mozilla mobile test-eng team */
     private val testPage = "https://mozilla-mobile.github.io/testapp/permissions"
@@ -63,6 +62,16 @@ class SitePermissionsTest : TestSetup() {
 
     @get: Rule
     val retryTestRule = RetryTestRule(3)
+
+    override fun setUp() {
+        super.setUp()
+        PromptAbuserDetector.validationsEnabled = false
+    }
+
+    override fun tearDown() {
+        super.tearDown()
+        PromptAbuserDetector.validationsEnabled = true
+    }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334295
     @SmokeTest
