@@ -63,7 +63,7 @@
   background-image: url(chrome://browser/skin/downloads/downloads.svg);
 }
 
-.translations-settings-remove-icon[type~="icon"]::part(button) {
+.translations-settings-delete-icon[type~="icon"]::part(button) {
   background-image: url(chrome://global/skin/icons/delete.svg);
 }
 

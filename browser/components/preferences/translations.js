@@ -43,7 +43,7 @@ let gTranslationsPane = {
   /**
    * A mapping from the language tag to the current download phase for that language
    * and it's download size.
-   * @type {Map<string, {downloadPhase: "downloaded" | "removed" | "loading", size: number}>}
+   * @type {Map<string, {downloadPhase: "downloaded" | "uninstalled" | "loading", size: number}>}
    */
   downloadPhases: new Map(),
 
@@ -161,7 +161,9 @@ let gTranslationsPane = {
       allDownloadSize += downloadSize;
       const hasAllFilesForLanguage =
         await TranslationsParent.hasAllFilesForLanguage(language.langTag);
-      const downloadPhase = hasAllFilesForLanguage ? "downloaded" : "removed";
+      const downloadPhase = hasAllFilesForLanguage
+        ? "downloaded"
+        : "uninstalled";
       this.downloadPhases.set(language.langTag, {
         downloadPhase,
         size: downloadSize,
@@ -171,7 +173,7 @@ let gTranslationsPane = {
     const allDownloadPhase =
       downloadCount === this.supportedLanguageTagsNames.length
         ? "downloaded"
-        : "removed";
+        : "uninstalled";
     this.downloadPhases.set("all", {
       downloadPhase: allDownloadPhase,
       size: allDownloadSize,
@@ -179,11 +181,11 @@ let gTranslationsPane = {
   },
 
   /**
-   * Show a list of languages for the user to be able to download
-   * and remove language models for local translation.
+   * Show a list of languages for the user to be able to install
+   * and uninstall language models for local translation.
    */
   buildDownloadLanguageList() {
-    const downloadList = document.querySelector(
+    const installList = document.querySelector(
       "#translations-settings-download-section .translations-settings-language-list"
     );
 
@@ -205,7 +207,7 @@ let gTranslationsPane = {
     // The option to download "All languages" is added in xhtml.
     // Here the option to download individual languages is dynamically added
     // based on the supported language list
-    const allLangElement = downloadList.children[0];
+    const allLangElement = installList.children[0];
     let allLangButton = allLangElement.querySelector("moz-button");
 
     allLangButton.addEventListener("click", this);
@@ -228,19 +230,17 @@ let gTranslationsPane = {
       const mozButton = isDownloaded
         ? this.createIconButton(
             [
-              "translations-settings-remove-icon",
+              "translations-settings-delete-icon",
               "translations-settings-manage-downloaded-language-button",
             ],
-            "translations-settings-remove-button",
-            language.displayName
+            languageLabel.id
           )
         : this.createIconButton(
             [
               "translations-settings-download-icon",
               "translations-settings-manage-downloaded-language-button",
             ],
-            "translations-settings-download-button",
-            language.displayName
+            languageLabel.id
           );
 
       const languageElement = this.createLangElement([
@@ -248,7 +248,7 @@ let gTranslationsPane = {
         languageLabel,
         languageSize,
       ]);
-      downloadList.appendChild(languageElement);
+      installList.appendChild(languageElement);
     }
 
     // Updating "All Language" download button according to the state
@@ -256,8 +256,7 @@ let gTranslationsPane = {
       this.changeButtonState(
         allLangButton,
         "translations-settings-download-icon",
-        "translations-settings-remove-icon",
-        "translations-settings-remove-all-button"
+        "translations-settings-delete-icon"
       );
     }
 
@@ -276,28 +275,28 @@ let gTranslationsPane = {
         if (
           eventNodeParent.id === "translations-settings-always-translate-popup"
         ) {
-          this.handleAddAlwaysTranslateLanguage(event);
+          this.addAlwaysLanguage(event);
         } else if (
           eventNodeParent.id === "translations-settings-never-translate-popup"
         ) {
-          this.handleAddNeverTranslateLanguage(event);
+          this.addNeverLanguage(event);
         }
         break;
       case "click":
         if (eventNodeClassList.contains("translations-settings-site-button")) {
-          this.handleRemoveNeverTranslateSite(event);
+          this.deleteNeverTranslateSite(event);
         } else if (
           eventNodeClassList.contains(
             "translations-settings-language-never-button"
           )
         ) {
-          this.handleRemoveNeverTranslateLanguage(event);
+          this.deleteNeverTranslateLanguage(event);
         } else if (
           eventNodeClassList.contains(
             "translations-settings-language-always-button"
           )
         ) {
-          this.handleRemoveAlwaysTranslateLanguage(event);
+          this.deleteAlwaysTranslateLanguage(event);
         } else if (
           eventNodeClassList.contains(
             "translations-settings-manage-downloaded-language-button"
@@ -310,20 +309,20 @@ let gTranslationsPane = {
               eventNodeParent.querySelector("label").id ===
               "translations-settings-download-all-languages"
             ) {
-              this.handleDownloadAllLanguages(event);
+              this.handleInstallAll(event);
             } else {
-              this.handleDownloadLanguage(event);
+              this.installLanguage(event);
             }
           } else if (
-            eventNodeClassList.contains("translations-settings-remove-icon")
+            eventNodeClassList.contains("translations-settings-delete-icon")
           ) {
             if (
               eventNodeParent.querySelector("label").id ===
               "translations-settings-download-all-languages"
             ) {
-              this.handleRemoveAllLanguages(event);
+              this.handleUninstallAll(event);
             } else {
-              this.handleRemoveLanguage(event);
+              this.unInstallLanguage(event);
             }
           }
         }
@@ -336,7 +335,7 @@ let gTranslationsPane = {
    * Always translate settings preferences list.
    * @param {Event} event
    */
-  async handleAddAlwaysTranslateLanguage(event) {
+  async addAlwaysLanguage(event) {
     // After a language is selected the menulist button display will be set to the
     // selected langauge. After processing the button event the
     // data-l10n-id of the menulist button is restored to "Add Language"
@@ -356,7 +355,7 @@ let gTranslationsPane = {
    * Never translate settings preferences list.
    * @param {Event} event
    */
-  async handleAddNeverTranslateLanguage(event) {
+  async addNeverLanguage(event) {
     // After a language is selected the menulist button display will be set to the
     // selected langauge. After processing the button event the
     // data-l10n-id of the menulist button is restored to "Add Language"
@@ -474,11 +473,10 @@ let gTranslationsPane = {
 
     const mozButton = this.createIconButton(
       [
-        "translations-settings-remove-icon",
+        "translations-settings-delete-icon",
         "translations-settings-site-button",
       ],
-      "translations-settings-remove-site-button",
-      site
+      languageLabel.id
     );
 
     const languageElement = this.createLangElement([mozButton, languageLabel]);
@@ -597,22 +595,20 @@ let gTranslationsPane = {
 
   /**
    * Creates a moz-button element as icon
-   * @param {string} classNames classes added to the moz-button element
-   * @param {string} buttonFluentID Fluent ID for the aria-label
-   * @param {string} accessibleName  "name" variable value of the aria-label
+   * @param {string} className
+   * @param {string} ariaLabelId
    * @returns {Element} HTML element of type Moz-Button
    */
-  createIconButton(classNames, buttonFluentID, accessibleName) {
+  createIconButton(classNames, ariaLabelId) {
     const mozButton = document.createElement("moz-button");
 
     for (const className of classNames) {
       mozButton.classList.add(className);
     }
     mozButton.setAttribute("type", "ghost icon");
+    // TODO (1888684): Update the aria-label using Fluent strings
     // Note: aria-labelledby cannot be used as the id is not available for the shadow DOM element
-    document.l10n.setAttributes(mozButton, buttonFluentID, {
-      name: accessibleName,
-    });
+    mozButton.setAttribute("aria-label", ariaLabelId);
     mozButton.addEventListener("click", this);
     return mozButton;
   },
@@ -638,21 +634,18 @@ let gTranslationsPane = {
       languageList = this.addLanguageList(translateSection, languageList);
     }
 
-    const languageDisplayName =
-      TranslationsParent.getLanguageDisplayName(langTag);
     const languageLabel = this.createLangLabel(
-      languageDisplayName,
+      TranslationsParent.getLanguageDisplayName(langTag),
       langTag,
       "translations-settings-language-" + translatePrefix + "-" + langTag
     );
 
     const mozButton = this.createIconButton(
       [
-        "translations-settings-remove-icon",
+        "translations-settings-delete-icon",
         "translations-settings-language-" + translatePrefix + "-button",
       ],
-      "translations-settings-remove-translate-button",
-      languageDisplayName
+      languageLabel.id
     );
 
     const languageElement = this.createLangElement([mozButton, languageLabel]);
@@ -705,7 +698,7 @@ let gTranslationsPane = {
   },
 
   /**
-   * Removes a language currently in the always/never translate language list
+   * Deletes a language currently in the always/never translate language list
    * from the DOM. Invoked in response to changes in the relevant preferences.
    * @param {string} lang
    * @param {string} sectionId
@@ -729,11 +722,11 @@ let gTranslationsPane = {
   },
 
   /**
-   * Event Handler to remove a language selected by the user from the list of
+   * Event Handler to delete a language selected by the user from the list of
    * Always translate settings list in Preferences.
    * @param {Event} event
    */
-  handleRemoveAlwaysTranslateLanguage(event) {
+  deleteAlwaysTranslateLanguage(event) {
     TranslationsParent.removeLangTagFromPref(
       event.target.parentNode.querySelector("label").getAttribute("value"),
       ALWAYS_TRANSLATE_LANGS_PREF
@@ -741,11 +734,11 @@ let gTranslationsPane = {
   },
 
   /**
-   * Event Handler to remove a language selected by the user from the list of
+   * Event Handler to delete a language selected by the user from the list of
    * Never translate settings list in Preferences.
    * @param {Event} event
    */
-  handleRemoveNeverTranslateLanguage(event) {
+  deleteNeverTranslateLanguage(event) {
     TranslationsParent.removeLangTagFromPref(
       event.target.parentNode.querySelector("label").getAttribute("value"),
       NEVER_TRANSLATE_LANGS_PREF
@@ -753,18 +746,18 @@ let gTranslationsPane = {
   },
 
   /**
-   * Removes the site chosen by the user in the HTML
+   * Deletes the site chosen by the user in the HTML
    * from the Never Translate Site Permission
    * @param {Event} event
    */
-  handleRemoveNeverTranslateSite(event) {
+  deleteNeverTranslateSite(event) {
     TranslationsParent.setNeverTranslateSiteByOrigin(
       false,
       event.target.parentNode.querySelector("label").getAttribute("value")
     );
   },
   /**
-   * Record the download phase downloaded/loading/removed for
+   * Record the download phase downloaded/loading/uninstalled for
    * given language in the local data.
    * @param {string} langTag
    * @param {string} downloadPhase
@@ -779,27 +772,26 @@ let gTranslationsPane = {
    */
   reloadDownloadPhases() {
     // buildDownloadLanguageList will reset the download phases
-    const downloadList = document.querySelector(
+    const installList = document.querySelector(
       "#translations-settings-download-section .translations-settings-language-list"
     );
 
-    while (downloadList.firstElementChild) {
-      downloadList.firstElementChild.remove();
+    while (installList.firstElementChild) {
+      installList.firstElementChild.remove();
     }
     this.buildDownloadLanguageList();
   },
 
   /**
-   * Event Handler to download a language model selected by the user through HTML
+   * Event Handler to install a language model selected by the user through HTML
    * @param {Event} event
    */
-  async handleDownloadLanguage(event) {
+  async installLanguage(event) {
     let eventButton = event.target;
     this.changeButtonState(
       eventButton,
       "translations-settings-download-icon",
-      "translations-settings-loading-icon",
-      "translations-settings-loading-button"
+      "translations-settings-loading-icon"
     );
 
     const langTag = eventButton.parentNode
@@ -817,10 +809,9 @@ let gTranslationsPane = {
       this.changeButtonState(
         eventButton,
         "translations-settings-loading-icon",
-        "translations-settings-download-icon",
-        "translations-settings-download-button"
+        "translations-settings-download-icon"
       );
-      this.updateDownloadPhase(langTag, "removed");
+      this.updateDownloadPhase(langTag, "uninstalled");
       console.error(error);
       return;
     }
@@ -828,17 +819,16 @@ let gTranslationsPane = {
     this.changeButtonState(
       eventButton,
       "translations-settings-loading-icon",
-      "translations-settings-remove-icon",
-      "translations-settings-remove-button"
+      "translations-settings-delete-icon"
     );
     this.updateDownloadPhase(langTag, "downloaded");
 
-    // If all languages are downloaded, change "All Languages" to downloaded
-    const haveRemovedItem = [...this.downloadPhases].some(
+    // If all languages are installed, change "All Languages" to downloaded
+    const haveUninstalledItem = [...this.downloadPhases].some(
       ([k, v]) => v.downloadPhase != "downloaded" && k != "all"
     );
     if (
-      !haveRemovedItem &&
+      !haveUninstalledItem &&
       this.downloadPhases.get("all").downloadPhase !== "downloaded"
     ) {
       this.changeButtonState(
@@ -846,24 +836,22 @@ let gTranslationsPane = {
           "moz-button"
         ),
         "translations-settings-download-icon",
-        "translations-settings-remove-icon",
-        "translations-settings-remove-all-button"
+        "translations-settings-delete-icon"
       );
       this.updateDownloadPhase("all", "downloaded");
     }
   },
 
   /**
-   * Event Handler to remove a language model selected by the user through HTML
+   * Event Handler to install a language model selected by the user through HTML
    * @param {Event} event
    */
-  async handleRemoveLanguage(event) {
+  async unInstallLanguage(event) {
     let eventButton = event.target;
     this.changeButtonState(
       eventButton,
-      "translations-settings-remove-icon",
-      "translations-settings-loading-icon",
-      "translations-settings-loading-button"
+      "translations-settings-delete-icon",
+      "translations-settings-loading-icon"
     );
 
     const langTag = eventButton.parentNode
@@ -872,7 +860,7 @@ let gTranslationsPane = {
     this.updateDownloadPhase(langTag, "loading");
 
     // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a remove error
+    // The correct state for the download button in case of a uninstall error
     // needs to be determined and implemented.
     try {
       await TranslationsParent.deleteLanguageFiles(langTag);
@@ -881,10 +869,9 @@ let gTranslationsPane = {
       this.changeButtonState(
         eventButton,
         "translations-settings-loading-icon",
-        "translations-settings-remove-icon",
-        "translations-settings-remove-button"
+        "translations-settings-delete-icon"
       );
-      this.updateDownloadPhase(langTag, "removed");
+      this.updateDownloadPhase(langTag, "uninstalled");
       console.error(error);
       return;
     }
@@ -892,38 +879,35 @@ let gTranslationsPane = {
     this.changeButtonState(
       eventButton,
       "translations-settings-loading-icon",
-      "translations-settings-download-icon",
-      "translations-settings-download-button"
+      "translations-settings-download-icon"
     );
-    this.updateDownloadPhase(langTag, "removed");
+    this.updateDownloadPhase(langTag, "uninstalled");
 
-    // If >=1 languages are removed change "All Languages" state to removed
+    // If >=1 languages are uninstalled change "All Languages" state to uninstalled
     if (this.downloadPhases.get("all").downloadPhase === "downloaded") {
       this.changeButtonState(
         event.target.parentNode.parentNode.children[0].querySelector(
           "moz-button"
         ),
-        "translations-settings-remove-icon",
-        "translations-settings-download-icon",
-        "translations-settings-download-all-button"
+        "translations-settings-delete-icon",
+        "translations-settings-download-icon"
       );
-      this.updateDownloadPhase("all", "removed");
+      this.updateDownloadPhase("all", "uninstalled");
     }
   },
 
   /**
-   * Event Handler to download all language models
+   * Event Handler to install all language models
    * @param {Event} event
    */
-  async handleDownloadAllLanguages(event) {
+  async handleInstallAll(event) {
     // Disable all buttons and show loading icon
     this.disableDownloadButtons();
     let eventButton = event.target;
     this.changeButtonState(
       eventButton,
       "translations-settings-download-icon",
-      "translations-settings-loading-icon",
-      "translations-settings-loading-all-button"
+      "translations-settings-loading-icon"
     );
     this.updateDownloadPhase("all", "loading");
 
@@ -937,8 +921,7 @@ let gTranslationsPane = {
       this.changeButtonState(
         eventButton,
         "translations-settings-loading-icon",
-        "translations-settings-remove-icon",
-        "translations-settings-remove-all-button"
+        "translations-settings-delete-icon"
       );
       this.updateAllLanguageDownloadButtons("downloaded");
     } catch (error) {
@@ -948,33 +931,31 @@ let gTranslationsPane = {
   },
 
   /**
-   * Event Handler to remove all language models
+   * Event Handler to uninstall all language models
    * @param {Event} event
    */
-  async handleRemoveAllLanguages(event) {
+  async handleUninstallAll(event) {
     let eventButton = event.target;
     this.disableDownloadButtons();
     this.changeButtonState(
       eventButton,
-      "translations-settings-remove-icon",
-      "translations-settings-loading-icon",
-      "translations-settings-loading-all-button"
+      "translations-settings-delete-icon",
+      "translations-settings-loading-icon"
     );
     this.updateDownloadPhase("all", "loading");
 
     // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a remove error
+    // The correct state for the download button in case of a uninstall error
     // needs to be determined and implemented.
     try {
       await TranslationsParent.deleteAllLanguageFiles();
       this.changeButtonState(
         eventButton,
         "translations-settings-loading-icon",
-        "translations-settings-download-icon",
-        "translations-settings-download-all-button"
+        "translations-settings-download-icon"
       );
-      this.updateDownloadPhase("all", "removed");
-      this.updateAllLanguageDownloadButtons("removed");
+      this.updateDownloadPhase("all", "uninstalled");
+      this.updateAllLanguageDownloadButtons("uninstalled");
     } catch (error) {
       await this.reloadDownloadPhases();
       console.error(error);
@@ -982,17 +963,17 @@ let gTranslationsPane = {
   },
 
   /**
-   * Disables the buttons to download/remove inidividual languages
-   * when "all languages" are downloaded/removed.
-   * This is done to ensure that no individual languages are downloaded/removed
-   * when the download/remove operations for "all languages" is progress.
+   * Disables the buttons to install/uninstall inidividual languages
+   * when "all languages" are installed/uninstalled.
+   * This is done to ensure that no individual languages are installed/uninstalled
+   * when the install/uninstall operations for "all languages" is progress.
    */
   disableDownloadButtons() {
-    const downloadList = document.querySelector(
+    const installList = document.querySelector(
       "#translations-settings-download-section .translations-settings-language-list"
     );
     // Disable all elements except the first one which is "All langauges"
-    for (const langElem of downloadList.querySelectorAll(
+    for (const langElem of installList.querySelectorAll(
       ".translations-settings-language:not(:first-child)"
     )) {
       const langButton = langElem.querySelector("moz-button");
@@ -1001,20 +982,20 @@ let gTranslationsPane = {
   },
 
   /**
-   * Changes the state of all individual language buttons as downloaded/removed
+   * Changes the state of all individual language buttons as downloaded/uninstalled
    * based on the download state of "All Language" status
    * changes the icon of individual language buttons:
-   * from "download" icon to "remove" icon if "All Language" is downloaded.
-   * from "remove" icon to "download" icon if "All Language" is removed.
-   * @param {string} allLanguageDownloadStatus "All Language" status: downloaded/removed
+   * from "download" icon to "delete" icon if "All Language" is downloaded.
+   * from "delete" icon to "download" icon if "All Language" is uninstalled.
+   * @param {string} allLanguageDownloadStatus "All Language" status: downloaded/uninstalled
    */
   updateAllLanguageDownloadButtons(allLanguageDownloadStatus) {
-    const downloadList = document.querySelector(
+    const installList = document.querySelector(
       "#translations-settings-download-section .translations-settings-language-list"
     );
 
     // Change the state of all individual language buttons except the first one which is "All langauges"
-    for (const langElem of downloadList.querySelectorAll(
+    for (const langElem of installList.querySelectorAll(
       ".translations-settings-language:not(:first-child)"
     )) {
       let langButton = langElem.querySelector("moz-button");
@@ -1029,44 +1010,41 @@ let gTranslationsPane = {
         downloadPhase !== "downloaded" &&
         allLanguageDownloadStatus === "downloaded"
       ) {
-        // In case of "All languages" downloaded
         this.changeButtonState(
           langButton,
           downloadPhase === "loading"
             ? "translations-settings-loading-icon"
             : "translations-settings-download-icon",
-          "translations-settings-remove-icon",
-          "translations-settings-remove-button"
+          "translations-settings-delete-icon"
         );
         this.updateDownloadPhase(langLabel.getAttribute("value"), "downloaded");
       } else if (
         downloadPhase === "downloaded" &&
-        allLanguageDownloadStatus === "removed"
+        allLanguageDownloadStatus === "uninstalled"
       ) {
-        // In case of "All languages" removed
         this.changeButtonState(
           langButton,
-          "translations-settings-remove-icon",
-          "translations-settings-download-icon",
-          "translations-settings-download-button"
+          "translations-settings-delete-icon",
+          "translations-settings-download-icon"
         );
-        this.updateDownloadPhase(langLabel.getAttribute("value"), "removed");
+        this.updateDownloadPhase(
+          langLabel.getAttribute("value"),
+          "uninstalled"
+        );
       }
     }
   },
 
   /**
    * Changes the State of the Button with icons
-   * change the CSS class to change the icons to download/loading/removed
+   * change the CSS class to change the icons to download/loading/uninstalled
    * also change the button event according to the state
    * @param {Element} langButton HTML button element
    * @param {string} prevCssClass CSS class that represents the icon based on button's previous state
    * @param {string} curCssClass CSS class that represents the icon based on button's current state
-   * @param {string} buttonFluentID Fluent ID for the aria-label
    */
-  changeButtonState(langButton, prevCssClass, curCssClass, buttonFluentID) {
+  changeButtonState(langButton, prevCssClass, curCssClass) {
     langButton.classList.remove(prevCssClass);
     langButton.classList.add(curCssClass);
-    langButton.setAttribute("data-l10n-id", buttonFluentID);
   },
 };

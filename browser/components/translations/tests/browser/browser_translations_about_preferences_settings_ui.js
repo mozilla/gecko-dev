@@ -371,7 +371,7 @@ add_task(async function test_translations_settings_download_languages() {
   if (
     !langFr.parentNode
       .querySelector("moz-button")
-      .classList.contains("translations-settings-remove-icon")
+      .classList.contains("translations-settings-delete-icon")
   ) {
     await BrowserTestUtils.waitForMutationCondition(
       langFr.parentNode.querySelector("moz-button"),
@@ -379,14 +379,14 @@ add_task(async function test_translations_settings_download_languages() {
       () =>
         langFr.parentNode
           .querySelector("moz-button")
-          .classList.contains("translations-settings-remove-icon")
+          .classList.contains("translations-settings-delete-icon")
     );
   }
 
   ok(
     langFr.parentNode
       .querySelector("moz-button")
-      .classList.contains("translations-settings-remove-icon"),
+      .classList.contains("translations-settings-delete-icon"),
     "Delete icon is visible"
   );
 
@@ -441,7 +441,7 @@ add_task(async function test_translations_settings_download_languages() {
   if (
     !langAll
       .querySelector("moz-button")
-      .classList.contains("translations-settings-remove-icon")
+      .classList.contains("translations-settings-delete-icon")
   ) {
     await BrowserTestUtils.waitForMutationCondition(
       langAll.querySelector("moz-button"),
@@ -449,14 +449,14 @@ add_task(async function test_translations_settings_download_languages() {
       () =>
         langAll
           .querySelector("moz-button")
-          .classList.contains("translations-settings-remove-icon")
+          .classList.contains("translations-settings-delete-icon")
     );
   }
 
   ok(
     langAll
       .querySelector("moz-button")
-      .classList.contains("translations-settings-remove-icon"),
+      .classList.contains("translations-settings-delete-icon"),
     "Delete icon is visible"
   );
 
