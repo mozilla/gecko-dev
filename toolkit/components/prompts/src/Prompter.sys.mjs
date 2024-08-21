@@ -1474,7 +1474,7 @@ class ModalPrompter {
     }
 
     if (flags & Ci.nsIPrompt.SHOW_SPINNER) {
-      args.headerIconURL = "chrome://global/skin/icons/loading.svg";
+      args.headerIconCSSValue = "url('chrome://global/skin/icons/loading.svg')";
     }
 
     if (this.async) {

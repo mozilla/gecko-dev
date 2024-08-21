@@ -51,10 +51,7 @@ function commonDialogOnLoad() {
         title = { l10nId: "common-dialog-title-null" };
       } else if (promptPrincipal.isSystemPrincipal) {
         title = { l10nId: "common-dialog-title-system" };
-        root.style.setProperty(
-          "--icon-url",
-          "url('chrome://branding/content/icon32.png')"
-        );
+        root.style.setProperty("--icon-url", CommonDialog.DEFAULT_APP_ICON_CSS);
       } else if (promptPrincipal.addonPolicy) {
         title.raw = promptPrincipal.addonPolicy.name;
       } else if (promptPrincipal.isContentPrincipal) {
@@ -75,8 +72,8 @@ function commonDialogOnLoad() {
       title = { raw: args.authOrigin };
     }
   }
-  if (args.headerIconURL) {
-    root.style.setProperty("--icon-url", `url('${args.headerIconURL}')`);
+  if (args.headerIconCSSValue) {
+    root.style.setProperty("--icon-url", args.headerIconCSSValue);
   }
   // Fade and crop potentially long raw titles, e.g., origins and hostnames.
   title.shouldUseMaskFade =

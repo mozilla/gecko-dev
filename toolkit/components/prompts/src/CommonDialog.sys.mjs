@@ -9,25 +9,29 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-export function CommonDialog(args, ui) {
-  this.args = args;
-  this.ui = ui;
-  this.initialFocusPromise = new Promise(resolve => {
-    this.initialFocusResolver = resolve;
-  });
-}
+export class CommonDialog {
+  constructor(args, ui) {
+    this.args = args;
+    this.ui = ui;
+    this.initialFocusPromise = new Promise(resolve => {
+      this.initialFocusResolver = resolve;
+    });
+  }
 
-CommonDialog.prototype = {
-  args: null,
-  ui: null,
+  static DEFAULT_APP_ICON_CSS = `image-set(url("chrome://branding/content/icon16.png") 1x,
+    url("chrome://branding/content/icon32.png") 2x,
+    url("chrome://branding/content/icon64.png") 4x)`;
 
-  hasInputField: true,
-  numButtons: undefined,
-  iconClass: undefined,
-  soundID: undefined,
-  focusTimer: null,
-  initialFocusPromise: null,
-  initialFocusResolver: null,
+  args = null;
+  ui = null;
+
+  hasInputField = true;
+  numButtons = undefined;
+  iconClass = undefined;
+  soundID = undefined;
+  focusTimer = null;
+  initialFocusPromise = null;
+  initialFocusResolver = null;
 
   /**
    * @param [commonDialogEl] - Dialog element from commonDialog.xhtml.
@@ -218,7 +222,7 @@ CommonDialog.prototype = {
       await this.initialFocusPromise;
     }
     Services.obs.notifyObservers(this.ui.prompt, "common-dialog-loaded");
-  },
+  }
 
   setLabelForNode(aNode, aLabel) {
     // This is for labels which may contain embedded access keys.
@@ -248,7 +252,7 @@ CommonDialog.prototype = {
     if (accessKey) {
       aNode.accessKey = accessKey;
     }
-  },
+  }
 
   initTextbox(aName, aValue) {
     this.ui[aName + "Container"].hidden = false;
@@ -256,14 +260,14 @@ CommonDialog.prototype = {
       "value",
       aValue !== null ? aValue : ""
     );
-  },
+  }
 
   setButtonsEnabledState(enabled) {
     this.ui.button0.disabled = !enabled;
     // button1 (cancel) remains enabled.
     this.ui.button2.disabled = !enabled;
     this.ui.button3.disabled = !enabled;
-  },
+  }
 
   setDefaultFocus(isInitialLoad) {
     let b = this.args.defaultButtonNum || 0;
@@ -296,11 +300,11 @@ CommonDialog.prototype = {
     if (isInitialLoad) {
       this.initialFocusResolver();
     }
-  },
+  }
 
   onCheckbox() {
     this.args.checked = this.ui.checkbox.checked;
-  },
+  }
 
   onButton0() {
     this.args.promptActive = false;
@@ -323,25 +327,25 @@ CommonDialog.prototype = {
         this.args.pass = password;
         break;
     }
-  },
+  }
 
   onButton1() {
     this.args.promptActive = false;
     this.args.buttonNumClicked = 1;
-  },
+  }
 
   onButton2() {
     this.args.promptActive = false;
     this.args.buttonNumClicked = 2;
-  },
+  }
 
   onButton3() {
     this.args.promptActive = false;
     this.args.buttonNumClicked = 3;
-  },
+  }
 
   abortPrompt() {
     this.args.promptActive = false;
     this.args.promptAborted = true;
-  },
-};
+  }
+}

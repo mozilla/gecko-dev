@@ -90,9 +90,9 @@ async function checkDialog(
     let iconCS = doc.ownerGlobal.getComputedStyle(
       doc.querySelector(".titleIcon")
     );
-    is(
+    Assert.stringContains(
       iconCS.backgroundImage,
-      `url("${expectedIcon}")`,
+      expectedIcon,
       "Icon is as expected."
     );
 

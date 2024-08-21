@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   CloseRemoteTab: "resource://gre/modules/FxAccountsCommands.sys.mjs",
+  CommonDialog: "resource://gre/modules/CommonDialog.sys.mjs",
   ContentRelevancyManager:
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   ContextualIdentityService:
@@ -5880,7 +5881,9 @@ export var DefaultBrowserCheck = {
       null,
       askLabel,
       false, // checkbox state
-      { headerIconURL: "chrome://branding/content/icon32.png" }
+      {
+        headerIconCSSValue: lazy.CommonDialog.DEFAULT_APP_ICON_CSS,
+      }
     );
     let buttonNumClicked = rv.get("buttonNumClicked");
     let checkboxState = rv.get("checked");
