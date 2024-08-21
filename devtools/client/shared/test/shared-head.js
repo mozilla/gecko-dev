@@ -1036,9 +1036,7 @@ function getActiveInspector() {
  *        Optional window where to fire the key event
  */
 function synthesizeKeyShortcut(key, target) {
-  // parseElectronKey requires any window, just to access `KeyboardEvent`
-  const window = Services.appShell.hiddenDOMWindow;
-  const shortcut = KeyShortcuts.parseElectronKey(window, key);
+  const shortcut = KeyShortcuts.parseElectronKey(key);
   const keyEvent = {
     altKey: shortcut.alt,
     ctrlKey: shortcut.ctrl,

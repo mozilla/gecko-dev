@@ -401,7 +401,7 @@ async function testTarget() {
 function testInvalidShortcutString(shortcuts) {
   info("Test wrong shortcut string");
 
-  const shortcut = KeyShortcuts.parseElectronKey(window, "Cmmd+F");
+  const shortcut = KeyShortcuts.parseElectronKey("Cmmd+F");
   ok(
     !shortcut,
     "Passing a invalid shortcut string should return a null object"
@@ -416,7 +416,7 @@ function testInvalidShortcutString(shortcuts) {
 function testNullShortcut(shortcuts) {
   info("Test null shortcut");
 
-  const shortcut = KeyShortcuts.parseElectronKey(window, null);
+  const shortcut = KeyShortcuts.parseElectronKey(null);
   ok(!shortcut, "Passing a null object should return a null object");
 
   const stringified = KeyShortcuts.stringify(shortcut);

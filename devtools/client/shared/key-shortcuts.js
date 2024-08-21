@@ -86,13 +86,11 @@ function KeyShortcuts({ window, target }) {
  * allow efficient match on DOM key event. The normalized object matches DOM
  * API.
  *
- * @param DOMWindow window
- *        Any DOM Window object, just to fetch its `KeyboardEvent` object
  * @param String str
  *        The shortcut string to parse, following this document:
  *        https://github.com/electron/electron/blob/master/docs/api/accelerator.md
  */
-KeyShortcuts.parseElectronKey = function (window, str) {
+KeyShortcuts.parseElectronKey = function (str) {
   // If a localized string is found but has no value in the properties file,
   // getStr will return `null`. See Bug 1569572.
   if (typeof str !== "string") {
@@ -290,7 +288,7 @@ KeyShortcuts.prototype = {
       );
     }
     if (!this.keys.has(key)) {
-      const shortcut = KeyShortcuts.parseElectronKey(this.window, key);
+      const shortcut = KeyShortcuts.parseElectronKey(key);
       // The key string is wrong and we were unable to compute the key shortcut
       if (!shortcut) {
         return;
