@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import platform
 import socket
 import sys
 
@@ -82,7 +83,7 @@ config = {
             ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,
-            "enabled": True,
+            "enabled": True if (platform.uname().version == "10.0.22621") else False,
             "fatal_exit_code": 4,
         },
     ],
