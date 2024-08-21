@@ -81,37 +81,6 @@ static bool CheckMsg(const NS_tchar* path, const char* expected) {
   return isMatch;
 }
 
-static bool BuildLogFilePath(NS_tchar* aLogFilePath, size_t aBufferSize,
-                             NS_tchar** aArgv) {
-#ifdef XP_MACOSX
-  // Our tests on macOS require absolute paths to log files, as relative paths
-  // will be interpreted as relative to the root of the file system, i.e. '/',
-  // which is a read-only location where our tests can't write to.
-  //
-  // This finds the absolute path to `callback_app.app`, which will usually be:
-  //    <abs-path>/dir.app/Contents/MacOS/
-  //
-  NS_tchar* callbackAppBundle = NS_tstrstr(aArgv[0], "callback_app.app");
-  if (!callbackAppBundle) {
-    return false;
-  }
-
-  // This appends the log file name to the same absolute path as
-  // `callback_app.app`, which is what our tests expect.
-  if (!NS_tvsnprintf(aLogFilePath, aBufferSize / sizeof(aLogFilePath[0]),
-                     NS_T("%.*s%s"), callbackAppBundle - aArgv[0], aArgv[0],
-                     aArgv[2])) {
-    return false;
-  }
-#else
-  if (!NS_tvsnprintf(aLogFilePath, aBufferSize / sizeof(aLogFilePath[0]),
-                     NS_T("%s"), aArgv[2])) {
-    return false;
-  }
-#endif
-  return true;
-}
-
 int NS_main(int argc, NS_tchar** argv) {
   if (argc == 2) {
     if (!NS_tstrcmp(argv[1], NS_T("post-update-async")) ||
@@ -360,7 +329,9 @@ int NS_main(int argc, NS_tchar** argv) {
     ::umask(umask);
 
     NS_tchar logFilePath[MAXPATHLEN];
-    if (!BuildLogFilePath(logFilePath, sizeof(logFilePath), argv)) {
+    if (!NS_tvsnprintf(logFilePath,
+                       sizeof(logFilePath) / sizeof(logFilePath[0]), NS_T("%s"),
+                       argv[2])) {
       return 1;
     }
 
@@ -503,7 +474,9 @@ int NS_main(int argc, NS_tchar** argv) {
   {
     // Command line argument test helper section
     NS_tchar logFilePath[MAXPATHLEN];
-    if (!BuildLogFilePath(logFilePath, sizeof(logFilePath), argv)) {
+    if (!NS_tvsnprintf(logFilePath,
+                       sizeof(logFilePath) / sizeof(logFilePath[0]), NS_T("%s"),
+                       argv[2])) {
       return 1;
     }
 

@@ -315,13 +315,10 @@ function moveRealUpdater() {
   return (async function () {
     try {
       // Move away the real updater
-      let updaterBackup = getGREBinDir();
-      let updater = getGREBinDir();
+      let greBinDir = getGREBinDir();
+      let updater = greBinDir.clone();
       updater.append(FILE_UPDATER_BIN);
-      if (AppConstants.platform == "macosx") {
-        updaterBackup = updaterBackup.parent.parent.parent;
-      }
-      updater.moveTo(updaterBackup, FILE_UPDATER_BIN_BAK);
+      updater.moveTo(greBinDir, FILE_UPDATER_BIN_BAK);
 
       let greDir = getGREDir();
       let updateSettingsIni = greDir.clone();
@@ -409,9 +406,6 @@ function restoreUpdaterBackup() {
   let greBinDir = getGREBinDir();
   let updater = greBinDir.clone();
   let updaterBackup = greBinDir.clone();
-  if (AppConstants.platform == "macosx") {
-    updaterBackup = updaterBackup.parent.parent.parent;
-  }
   updater.append(FILE_UPDATER_BIN);
   updaterBackup.append(FILE_UPDATER_BIN_BAK);
   if (updaterBackup.exists()) {
