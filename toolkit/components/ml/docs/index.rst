@@ -46,7 +46,7 @@ In the example below, a text summarization task is performed using the `summariz
   'Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second ' +
   'tallest free-standing structure in France after the Millau Viaduct.';
 
-  const request = { args:  [text], options: { max_length: 100 } };
+  const request = { args:  [text], options: { max_new_tokens: 100 } };
   const res = await engine.run(request);
   console.log(res[0]["summary_text"]);
 
@@ -143,7 +143,7 @@ Let's say you want to pick the `Xenova/distilbart-cnn-6-6` model. All you have t
   'Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second ' +
   'tallest free-standing structure in France after the Millau Viaduct.';
 
-  const request = { args:  [text], options: { max_length: 100 } };
+  const request = { args:  [text], options: { max_new_tokens: 100 } };
   const res = await engine.run(request);
   console.log(res[0]["summary_text"]);
 
