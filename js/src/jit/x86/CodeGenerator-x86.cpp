@@ -244,64 +244,22 @@ void CodeGenerator::visitCompareExchangeTypedArrayElement64(
 void CodeGenerator::visitAtomicExchangeTypedArrayElement64(
     LAtomicExchangeTypedArrayElement64* lir) {
   Register elements = ToRegister(lir->elements());
-  Register value = ToRegister(lir->value());
-  Register64 temp1 = ToRegister64(lir->temp1());
-  Register out = ToRegister(lir->output());
-  Register64 temp2 = Register64(value, out);
+  Register64 value = ToRegister64(lir->value());
+  Register64 out = ToOutRegister64(lir);
 
-  MOZ_ASSERT(value == edx);
-  MOZ_ASSERT(temp1 == Register64(ecx, ebx));
-  MOZ_ASSERT(temp2 == Register64(edx, eax));
-  MOZ_ASSERT(out == eax);
+  MOZ_ASSERT(value == Register64(ecx, ebx));
+  MOZ_ASSERT(out == Register64(edx, eax));
 
   Scalar::Type arrayType = lir->mir()->arrayType();
 
-  DebugOnly<uint32_t> framePushed = masm.framePushed();
-
-  // Save edx before it's clobbered below.
-  masm.push(edx);
-
-  auto restoreSavedRegisters = [&]() { masm.pop(edx); };
-
-  masm.loadBigInt64(value, temp1);
-
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), arrayType);
-    masm.atomicExchange64(Synchronization::Full(), dest, temp1, temp2);
+    masm.atomicExchange64(Synchronization::Full(), dest, value, out);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(arrayType));
-    masm.atomicExchange64(Synchronization::Full(), dest, temp1, temp2);
+    masm.atomicExchange64(Synchronization::Full(), dest, value, out);
   }
-
-  // Move the result from `edx:eax` to `ecx:ebx`.
-  masm.move64(temp2, temp1);
-
-  // OutOfLineCallVM tracks the currently pushed stack entries as reported by
-  // |masm.framePushed()|. We mustn't have any additional entries on the stack
-  // which weren't previously recorded by the safepoint, otherwise the GC
-  // complains when tracing the Ion frames, because the stack frames don't
-  // have their expected layout.
-  MOZ_ASSERT(framePushed == masm.framePushed());
-
-  OutOfLineCode* ool = createBigIntOutOfLine(lir, arrayType, temp1, out);
-
-  // Use `edx`, which is already on the stack, as a temp register.
-  Register temp = edx;
-
-  Label fail;
-  masm.newGCBigInt(out, temp, initialBigIntHeap(), &fail);
-  masm.initializeBigInt64(arrayType, out, temp1);
-  restoreSavedRegisters();
-  masm.jump(ool->rejoin());
-
-  // Couldn't create the BigInt. Restore `edx` and call into the VM.
-  masm.bind(&fail);
-  restoreSavedRegisters();
-  masm.jump(ool->entry());
-
-  // At this point `edx` must have been restored to its original value.
-  masm.bind(ool->rejoin());
 }
 
 void CodeGenerator::visitAtomicTypedArrayElementBinop64(

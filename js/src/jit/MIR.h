@@ -8794,7 +8794,7 @@ class MCompareExchangeTypedArrayElement
 
 class MAtomicExchangeTypedArrayElement
     : public MTernaryInstruction,
-      public TruncateToInt32OrToBigIntPolicy<2>::Data {
+      public TruncateToInt32OrToInt64Policy<2>::Data {
   Scalar::Type arrayType_;
 
   MAtomicExchangeTypedArrayElement(MDefinition* elements, MDefinition* index,

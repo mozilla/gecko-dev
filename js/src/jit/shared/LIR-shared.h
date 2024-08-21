@@ -2890,42 +2890,22 @@ class LCompareExchangeTypedArrayElement64
 };
 
 class LAtomicExchangeTypedArrayElement64
-    : public LInstructionHelper<1, 3, INT64_PIECES + 1> {
+    : public LInstructionHelper<INT64_PIECES, 2 + INT64_PIECES, 0> {
  public:
   LIR_HEADER(AtomicExchangeTypedArrayElement64)
 
-  // ARM, ARM64, x64
   LAtomicExchangeTypedArrayElement64(const LAllocation& elements,
                                      const LAllocation& index,
-                                     const LAllocation& value,
-                                     const LInt64Definition& temp1,
-                                     const LDefinition& temp2)
+                                     const LInt64Allocation& value)
       : LInstructionHelper(classOpcode) {
     setOperand(0, elements);
     setOperand(1, index);
-    setOperand(2, value);
-    setInt64Temp(0, temp1);
-    setTemp(INT64_PIECES, temp2);
-  }
-
-  // x86
-  LAtomicExchangeTypedArrayElement64(const LAllocation& elements,
-                                     const LAllocation& index,
-                                     const LAllocation& value,
-                                     const LInt64Definition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, elements);
-    setOperand(1, index);
-    setOperand(2, value);
-    setInt64Temp(0, temp);
-    setTemp(INT64_PIECES, LDefinition::BogusTemp());
+    setInt64Operand(2, value);
   }
 
   const LAllocation* elements() { return getOperand(0); }
   const LAllocation* index() { return getOperand(1); }
-  const LAllocation* value() { return getOperand(2); }
-  LInt64Definition temp1() { return getInt64Temp(0); }
-  const LDefinition* temp2() { return getTemp(INT64_PIECES); }
+  LInt64Allocation value() { return getInt64Operand(2); }
 
   const MAtomicExchangeTypedArrayElement* mir() const {
     return mir_->toAtomicExchangeTypedArrayElement();

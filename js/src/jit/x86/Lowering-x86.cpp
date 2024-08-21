@@ -259,13 +259,13 @@ void LIRGenerator::visitAtomicExchangeTypedArrayElement(
     LUse elements = useRegister(ins->elements());
     LAllocation index =
         useRegisterOrIndexConstant(ins->index(), ins->arrayType());
-    LAllocation value = useFixed(ins->value(), edx);
-    LInt64Definition temp = tempInt64Fixed(Register64(ecx, ebx));
+    LInt64Allocation value = useInt64Fixed(ins->value(), Register64(ecx, ebx));
 
     auto* lir = new (alloc())
-        LAtomicExchangeTypedArrayElement64(elements, index, value, temp);
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
-    assignSafepoint(lir, ins);
+        LAtomicExchangeTypedArrayElement64(elements, index, value);
+    defineInt64Fixed(lir, ins,
+                     LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                      LAllocation(AnyRegister(eax))));
     return;
   }
 

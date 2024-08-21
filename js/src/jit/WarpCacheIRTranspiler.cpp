@@ -357,6 +357,7 @@ bool WarpCacheIRTranspiler::transpile(
   // - MLoadUnboxedScalar: Resumes after MInt64ToBigInt
   // - MLoadDataViewElement: Resumes after MInt64ToBigInt
   // - MAtomicTypedArrayElementBinop: Resumes after MInt64ToBigInt
+  // - MAtomicExchangeTypedArrayElement: Resumes after MInt64ToBigInt
   // - MResizableTypedArrayLength: Resumes after MPostIntPtrConversion
   // - MResizableDataViewByteLength: Resumes after MPostIntPtrConversion
   // - MGrowableSharedArrayBufferByteLength: Resumes after MPostIntPtrConversion
@@ -365,6 +366,7 @@ bool WarpCacheIRTranspiler::transpile(
                     effectful_->isLoadUnboxedScalar() ||
                     effectful_->isLoadDataViewElement() ||
                     effectful_->isAtomicTypedArrayElementBinop() ||
+                    effectful_->isAtomicExchangeTypedArrayElement() ||
                     effectful_->isResizableTypedArrayLength() ||
                     effectful_->isResizableDataViewByteLength() ||
                     effectful_->isGrowableSharedArrayBufferByteLength());
@@ -4738,15 +4740,25 @@ bool WarpCacheIRTranspiler::emitAtomicsExchangeResult(
 
   bool forceDoubleForUint32 = true;
   MIRType knownType =
-      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32);
+      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32, true);
 
   auto* exchange = MAtomicExchangeTypedArrayElement::New(
       alloc(), elements, index, value, elementType);
   exchange->setResultType(knownType);
   addEffectful(exchange);
 
-  pushResult(exchange);
-  return resumeAfter(exchange);
+  MInstruction* result = exchange;
+  if (Scalar::isBigIntType(elementType)) {
+    result = MInt64ToBigInt::New(alloc(), exchange, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
+    add(result);
+  }
+
+  pushResult(result);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
