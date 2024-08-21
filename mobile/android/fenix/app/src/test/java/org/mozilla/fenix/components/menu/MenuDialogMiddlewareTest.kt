@@ -861,6 +861,26 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `WHEN CFR is dismissed THEN dismiss CFR action is dispatched`() = runTestOnMain {
+        var dismissWasCalled = false
+
+        val appStore = spy(AppStore())
+        val store = createStore(
+            appStore = appStore,
+            menuState = MenuState(
+                browserMenuState = null,
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.DismissCFR)
+        store.waitUntilIdle()
+
+        assertFalse(settings.shouldShowMenuCFR)
+        assertFalse(dismissWasCalled)
+    }
+
+    @Test
     fun `WHEN custom menu item action is dispatched THEN pending intent is sent with url`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val mockIntent: PendingIntent = mock()

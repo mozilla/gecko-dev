@@ -9793,6 +9793,34 @@ home_menu:
         - Settings
         - MainMenu
 
+menu:
+  show_cfr:
+    type: event
+    description: |
+      Menu CFR was shown to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1885640
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D216600
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dismiss_cfr:
+    type: event
+    description: |
+      A user has dismissed the Menu CFR.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1885640
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D216600
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 home_screen:
   home_screen_displayed:
     type: event

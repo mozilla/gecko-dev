@@ -39,6 +39,8 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.ToggleReaderView,
         is MenuAction.CustomizeReaderView,
         is MenuAction.Navigate,
+        is MenuAction.ShowCFR,
+        is MenuAction.DismissCFR,
         -> state
 
         is MenuAction.RequestDesktopSite -> state.copy(isDesktopMode = true)

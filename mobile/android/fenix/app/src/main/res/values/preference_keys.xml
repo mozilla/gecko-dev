@@ -150,6 +150,9 @@
     <string name="pref_key_toolbar_show_navigation_toolbar" translatable="false">pref_key_toolbar_use_redesign_incomplete</string>
     <string name="pref_key_toolbar_navigation_cfr" translatable="false">pref_key_toolbar_navigation_cfr</string>
 
+    <!-- Menu -->
+    <string name="pref_key_menu_cfr" translatable="false">pref_key_menu_cfr</string>
+
     <!-- Tablet Navigation Bar -->
     <string name="pref_key_tablet_toolbar_navigation_cfr" translatable="false">pref_key_tablet_toolbar_navigation_cfr</string>
 

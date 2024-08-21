@@ -35,7 +35,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.translate.TranslationSupport
 import mozilla.components.concept.engine.translate.findLanguage
 import mozilla.components.lib.state.ext.observeAsState
-import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import org.mozilla.fenix.BrowserDirection
@@ -48,6 +47,7 @@ import org.mozilla.fenix.components.menu.compose.EXTENSIONS_MENU_ROUTE
 import org.mozilla.fenix.components.menu.compose.ExtensionsSubmenu
 import org.mozilla.fenix.components.menu.compose.MAIN_MENU_ROUTE
 import org.mozilla.fenix.components.menu.compose.MainMenu
+import org.mozilla.fenix.components.menu.compose.MainMenuWithCFR
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
 import org.mozilla.fenix.components.menu.compose.SAVE_MENU_ROUTE
 import org.mozilla.fenix.components.menu.compose.SaveSubmenu
@@ -216,11 +216,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ),
                         )
                     }
-
-                    val account by syncStore.observeAsState(initialValue = null) { state -> state.account }
-                    val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
-                        state.accountState
-                    }
                     val recommendedAddons by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.recommendedAddons
                     }
@@ -229,9 +224,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     }
                     val isPinned by store.observeAsState(initialValue = false) { state ->
                         state.browserMenuState != null && state.browserMenuState.isPinned
-                    }
-                    val isDesktopMode by store.observeAsState(initialValue = false) { state ->
-                        state.isDesktopMode
                     }
 
                     val isReaderViewActive by store.observeAsState(initialValue = false) { state ->
@@ -249,76 +241,27 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         },
                     ) {
                         composable(route = MAIN_MENU_ROUTE) {
-                            MainMenu(
-                                accessPoint = args.accesspoint,
-                                account = account,
-                                accountState = accountState,
-                                isPrivate = browsingModeManager.mode.isPrivate,
-                                isDesktopMode = isDesktopMode,
-                                isTranslationSupported = isTranslationSupported,
-                                showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
-                                isExtensionsProcessDisabled = isExtensionsProcessDisabled,
-                                onMozillaAccountButtonClick = {
-                                    store.dispatch(
-                                        MenuAction.Navigate.MozillaAccount(
-                                            accountState = accountState,
-                                            accesspoint = args.accesspoint,
-                                        ),
-                                    )
-                                },
-                                onHelpButtonClick = {
-                                    store.dispatch(MenuAction.Navigate.Help)
-                                },
-                                onSettingsButtonClick = {
-                                    store.dispatch(MenuAction.Navigate.Settings)
-                                },
-                                onNewTabMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.NewTab)
-                                },
-                                onNewPrivateTabMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.NewPrivateTab)
-                                },
-                                onSwitchToDesktopSiteMenuClick = {
-                                    if (isDesktopMode) {
-                                        store.dispatch(MenuAction.RequestMobileSite)
-                                    } else {
-                                        store.dispatch(MenuAction.RequestDesktopSite)
-                                    }
-                                },
-                                onFindInPageMenuClick = {
-                                    store.dispatch(MenuAction.FindInPage)
-                                },
-                                onToolsMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Tools)
-                                },
-                                onSaveMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Save)
-                                },
-                                onExtensionsMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Extensions)
-                                },
-                                onBookmarksMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Bookmarks)
-                                },
-                                onHistoryMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.History)
-                                },
-                                onDownloadsMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Downloads)
-                                },
-                                onPasswordsMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.Passwords)
-                                },
-                                onCustomizeHomepageMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.CustomizeHomepage)
-                                },
-                                onNewInFirefoxMenuClick = {
-                                    store.dispatch(MenuAction.Navigate.ReleaseNotes)
-                                },
-                                onQuitMenuClick = {
-                                    store.dispatch(MenuAction.DeleteBrowsingDataAndQuit)
-                                },
-                            )
+                            if (settings.shouldShowMenuCFR) {
+                                MainMenuWithCFR(
+                                    accessPoint = args.accesspoint,
+                                    store = store,
+                                    syncStore = syncStore,
+                                    showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
+                                    isPrivate = browsingModeManager.mode.isPrivate,
+                                    isTranslationSupported = isTranslationSupported,
+                                    isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                                )
+                            } else {
+                                MainMenu(
+                                    accessPoint = args.accesspoint,
+                                    store = store,
+                                    syncStore = syncStore,
+                                    showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
+                                    isPrivate = browsingModeManager.mode.isPrivate,
+                                    isTranslationSupported = isTranslationSupported,
+                                    isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                                )
+                            }
                         }
 
                         composable(route = TOOLS_MENU_ROUTE) {

@@ -83,6 +83,16 @@ sealed class MenuAction : Action {
     data object FindInPage : MenuAction()
 
     /**
+     * [MenuAction] dispatched to show the menu CFR.
+     */
+    data object ShowCFR : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when the menu CFR is dismissed.
+     */
+    data object DismissCFR : MenuAction()
+
+    /**
      * [MenuAction] dispatched when the extension state is updated.
      *
      * @property recommendedAddons The recommended [Addon]s to suggest.
