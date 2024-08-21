@@ -1,0 +1,10 @@
+[DEFAULT]
+support-files = [
+  "head.js",
+]
+
+prefs = [
+  "browser.profiles.enabled=true",
+]
+
+["browser_update_profile_on_window_switch.js"]

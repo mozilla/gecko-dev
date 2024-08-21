@@ -3,34 +3,22 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-const { SelectableProfileService } = ChromeUtils.importESModule(
-  "resource:///modules/profiles/SelectableProfileService.sys.mjs"
-);
-const { makeFakeAppDir } = ChromeUtils.importESModule(
-  "resource://testing-common/AppData.sys.mjs"
-);
-
-add_setup(async () => {
-  do_get_profile();
-  await makeFakeAppDir();
-});
-
 add_task(
   {
     skip_if: () => !AppConstants.MOZ_SELECTABLE_PROFILES,
   },
   async function test_SelectableProfileLifecycle() {
-    let sps = new SelectableProfileService();
-    await sps.init();
+    const { SelectableProfileService } = ChromeUtils.importESModule(
+      "resource:///modules/profiles/SelectableProfileService.sys.mjs"
+    );
 
-    let profiles = await sps.getProfiles();
+    await SelectableProfileService.init();
+
+    let profiles = await SelectableProfileService.getProfiles();
 
     Assert.ok(!profiles.length, "No selectable profiles exist yet");
 
-    let createdProfile = await sps.createProfile({
+    let createdProfile = await SelectableProfileService.createProfile({
       name: "testProfile",
       avatar: "avatar",
       themeL10nId: "theme-id",
@@ -38,18 +26,22 @@ add_task(
       themeBg: "blueBG",
     });
 
+    const leafName = (await createdProfile.rootDir).leafName;
+
     const profilePath = PathUtils.join(
       Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
-      createdProfile.path
+      leafName
     );
+
     let profileDirExists = await IOUtils.exists(profilePath);
     const profileLocalPath = PathUtils.join(
       Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
-      createdProfile.path
+      leafName
     );
     let profileLocalDirExists = await IOUtils.exists(profileLocalPath);
+
     Assert.ok(
-      profileDirExists && profileLocalDirExists,
+      profileDirExists,
       `Profile dir was successfully created at ${profilePath}`
     );
     Assert.ok(
@@ -57,13 +49,15 @@ add_task(
       `Profile local dir was successfully created at ${profileLocalPath}`
     );
 
-    profiles = await sps.getProfiles();
+    profiles = await SelectableProfileService.getProfiles();
 
     Assert.equal(profiles.length, 1, "One selectable profile exists");
 
     let selectableProfile = profiles[0];
 
-    let profile = await sps.getProfile(selectableProfile.id);
+    let profile = await SelectableProfileService.getProfile(
+      selectableProfile.id
+    );
 
     for (let attr of ["id", "name", "path"]) {
       Assert.equal(
@@ -81,9 +75,9 @@ add_task(
 
     selectableProfile.name = "updatedTestProfile";
 
-    await sps.updateProfile(selectableProfile);
+    await SelectableProfileService.updateProfile(selectableProfile);
 
-    profile = await sps.getProfile(selectableProfile.id);
+    profile = await SelectableProfileService.getProfile(selectableProfile.id);
 
     Assert.equal(
       profile.name,
@@ -91,18 +85,18 @@ add_task(
       "We got the correct profile name: updatedTestProfile"
     );
 
-    await sps.deleteProfile(selectableProfile, true);
+    await SelectableProfileService.deleteProfile(selectableProfile, true);
 
     profileDirExists = await IOUtils.exists(
       PathUtils.join(
         Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
-        createdProfile.path
+        leafName
       )
     );
     profileLocalDirExists = await IOUtils.exists(
       PathUtils.join(
         Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
-        createdProfile.path
+        leafName
       )
     );
     Assert.ok(!profileDirExists, "Profile dir was successfully removed");
@@ -111,10 +105,10 @@ add_task(
       "Profile local dir was successfully removed"
     );
 
-    profiles = await sps.getProfiles();
+    profiles = await SelectableProfileService.getProfiles();
 
     Assert.ok(!profiles.length, "No selectable profiles exist yet");
 
-    await sps.deleteProfileGroup();
+    await SelectableProfileService.deleteProfileGroup();
   }
 );

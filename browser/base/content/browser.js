@@ -103,6 +103,17 @@ ChromeUtils.defineESModuleGetters(this, {
   ZoomUI: "resource:///modules/ZoomUI.sys.mjs",
 });
 
+// Bug 1894239: We will move this up to ChromeUtils.defineESModuleGetters once
+// the MOZ_SELECTABLE_PROFILES flag is removed
+ChromeUtils.defineLazyGetter(this, "SelectableProfileService", () => {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    return null;
+  }
+  return ChromeUtils.importESModule(
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs"
+  ).SelectableProfileService;
+});
+
 ChromeUtils.defineLazyGetter(this, "fxAccounts", () => {
   return ChromeUtils.importESModule(
     "resource://gre/modules/FxAccounts.sys.mjs"

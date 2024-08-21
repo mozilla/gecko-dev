@@ -69,12 +69,25 @@ export class SelectableProfile {
   }
 
   /**
-   * Get the path to the profile on disk.
+   * Get the path to the profile as a string.
    *
    * @returns {string} Path of profile
    */
   get path() {
-    return this.#path;
+    return PathUtils.joinRelative(
+      Services.dirsvc.get("UAppData", Ci.nsIFile).path,
+      this.#path
+    );
+  }
+
+  /**
+   * Get the profile directory as an  nsIFile.
+   *
+   * @returns {Promise<nsIFile>} A promsie that resolves to an nsIFIle for
+   * the profile directory
+   */
+  get rootDir() {
+    return IOUtils.getDirectory(this.path);
   }
 
   /**
