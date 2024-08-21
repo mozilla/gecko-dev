@@ -264,12 +264,12 @@ if __name__ == "__main__":
         atexit.unregister(early_exit_handler)
         sys.exit(0)
 
-    # make sure the mercurial repo is clean before beginning
+    # make sure the relevant bits of the mercurial repo is clean before beginning
     error_help = (
-        "There are modified or untracked files in the mercurial repo.\n"
-        f"Please start with a clean repo before running {script_name}"
+        f"There are modified or untracked files under {args.target_path}.\n"
+        f"Please cleanup the repo under {args.target_path} before running {script_name}"
     )
-    stdout_lines = run_hg("hg status")
+    stdout_lines = run_hg(f"hg status {args.target_path}")
     if len(stdout_lines) != 0:
         sys.exit(1)
     error_help = None
