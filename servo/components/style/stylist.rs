@@ -3023,11 +3023,12 @@ impl CascadeData {
                 },
                 StylistImplicitScopeRoot::Cached(index) => {
                     use crate::dom::TShadowRoot;
-                    let shadow_root = if let Some(root) = element.shadow_root() {
-                        root
-                    } else {
-                        element.containing_shadow().expect("Not shadow host and not under shadow tree?")
-                    };
+                    let host = context
+                        .current_host
+                        .expect("Cached implicit scope for light DOM implicit scope");
+                    let shadow_root = E::unopaque(host)
+                        .shadow_root()
+                        .expect("Shadow host without root?");
                     match shadow_root.implicit_scope_for_sheet(*index) {
                         None => return ScopeRootCandidates::empty(is_trivial),
                         Some(root) => {

@@ -25,7 +25,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use dom::ElementState;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
-use selectors::Element as SelectorsElement;
+use selectors::{Element as SelectorsElement, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use std::fmt;
 use std::fmt::Debug;
@@ -395,6 +395,9 @@ pub trait TElement:
     /// TODO(emilio): We should eventually replace this with the `impl Trait`
     /// syntax.
     type TraversalChildrenIterator: Iterator<Item = Self::ConcreteNode>;
+
+    /// Convert an opaque element back into the element.
+    fn unopaque(opaque: OpaqueElement) -> Self;
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;

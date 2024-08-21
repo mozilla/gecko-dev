@@ -18,7 +18,7 @@ pub struct OpaqueElement(NonNull<()>);
 
 unsafe impl Send for OpaqueElement {}
 // This should be safe given that we do not provide a way to recover
-// the original reference.
+// the original (mutable) reference.
 unsafe impl Sync for OpaqueElement {}
 
 impl OpaqueElement {
@@ -29,6 +29,11 @@ impl OpaqueElement {
                 ptr as *const T as *const () as *mut (),
             ))
         }
+    }
+
+    /// Returns a const ptr to the contained reference.
+    pub unsafe fn as_const_ptr<T>(&self) -> *const T {
+        self.0.as_ptr() as *const T
     }
 }
 
