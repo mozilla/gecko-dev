@@ -74,6 +74,38 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.translations.enable"
 );
 
+/**
+ * Retrieves the most recent target languages that have been requested for translation by the user.
+ * Inserting into this pref should be managed by the static TranslationsParent class.
+ *
+ * @see {TranslationsParent.storeMostRecentTargetLanguage}
+ *
+ * There is a linear chain of synchronously dependent observers related to this pref.
+ *
+ * When this pref's value is updated, it sends "translations:most-recent-target-language-changed"
+ * which is observed by the static global TranslationsParent object to know when to clear its cache.
+ *
+ * Once the cache has been cleared, the static global TranslationsParent object then sends
+ * "translations:maybe-update-user-lang-tag" which is observed by every instantiated TranslationsParent
+ * actor object to consider updating their cached userLangTag.
+ *
+ * @see {TranslationsParent} for further descriptions and diagrams.
+ */
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "mostRecentTargetLanguages",
+  "browser.translations.mostRecentTargetLanguages",
+  /* aDefaultValue */ "",
+  /* aOnUpdate */ () => {
+    Services.obs.notifyObservers(
+      null,
+      "translations:most-recent-target-language-changed"
+    );
+  },
+  /* aTransform */ rawLangTags =>
+    rawLangTags ? new Set(rawLangTags.split(",")) : new Set()
+);
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chaosErrorsPref",
@@ -335,6 +367,18 @@ export class TranslationsParent extends JSWindowActorParent {
     );
     windowState.previousDetectedLanguages = null;
 
+    // Attach a closure to this so that we can remove the observer when didDestroy() is called.
+    this.maybeUpdateUserLangTag = () => {
+      const langTag = TranslationsParent.getPreferredLanguages({
+        excludeLangTags: [this.languageState.detectedLanguages?.docLangTag],
+      })[0];
+      this.languageState.maybeUpdateUserLangTag(langTag);
+    };
+    Services.obs.addObserver(
+      this.maybeUpdateUserLangTag,
+      "translations:maybe-update-user-lang-tag"
+    );
+
     if (windowState.translateOnPageReload) {
       // The actor was recreated after a page reload, start the translation.
       const { fromLanguage, toLanguage } = windowState.translateOnPageReload;
@@ -390,9 +434,10 @@ export class TranslationsParent extends JSWindowActorParent {
   /**
    * An ordered list of preferred languages based on:
    *
-   *   1. Web requested languages
-   *   2. App languages
-   *   3. OS language
+   *   1. Most recent target languages
+   *   2. Web requested languages
+   *   3. App languages
+   *   4. OS language
    *
    * @type {null | string[]}
    */
@@ -751,9 +796,10 @@ export class TranslationsParent extends JSWindowActorParent {
   /**
    * An ordered list of preferred languages based on:
    *
-   *   1. Web requested languages
-   *   2. App languages
-   *   3. OS language
+   *   1. Most recent target languages
+   *   2. Web requested languages
+   *   3. App languages
+   *   4. OS language
    *
    * @param {object} options
    * @param {string[]} [options.excludeLangTags] - BCP-47 language tags to intentionally exclude.
@@ -772,6 +818,13 @@ export class TranslationsParent extends JSWindowActorParent {
         TranslationsParent.#resetPreferredLanguages,
         "intl:app-locales-changed"
       );
+      Services.obs.addObserver(() => {
+        TranslationsParent.#resetPreferredLanguages();
+        Services.obs.notifyObservers(
+          null,
+          "translations:maybe-update-user-lang-tag"
+        );
+      }, "translations:most-recent-target-language-changed");
       Services.prefs.addObserver(
         "intl.accept_languages",
         TranslationsParent.#resetPreferredLanguages
@@ -788,6 +841,9 @@ export class TranslationsParent extends JSWindowActorParent {
 
     // Combine the locales together.
     const preferredLocales = new Set([
+      // Store the mostRecentTargetLanguage values in reverse order
+      // so that the most recently used language is the first insertion.
+      ...[...lazy.mostRecentTargetLanguages].reverse(),
       ...TranslationsParent.getWebContentLanguages(),
       ...Services.locale.appLocalesAsBCP47,
       ...systemLocales,
@@ -2470,6 +2526,8 @@ export class TranslationsParent extends JSWindowActorParent {
         requestTarget: "full_page",
       });
 
+      TranslationsParent.storeMostRecentTargetLanguage(toLanguage);
+
       this.sendAsyncMessage(
         "Translations:TranslatePage",
         {
@@ -2836,6 +2894,55 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Stores the given langTag as the most recent target language in the
+   * browser.translations.mostRecentTargetLanguage pref.
+   *
+   * @param {string} langTag - A BCP-47 language tag.
+   */
+  static storeMostRecentTargetLanguage(langTag) {
+    // The pref's language tags are managed by this function as a unique-item
+    // sliding window with a max size.
+    //
+    // Examples with MAX_SIZE = 3:
+    //
+    //  Add a new item to an empty window:
+    //  [ ] + a => [a]
+    //
+    //  Add a new item to a non-full window:
+    //  [a] + b => [a, b]
+    //
+    //  [a, b] + c => [a, b, c]
+    //
+    //  Add a new item to a full window:
+    //  [a, b, c] + z => [b, c, z]
+    //
+    //  Add an item that is already within a window:
+    //  [b, c, z] + z => [b, c, z]
+    //
+    //  [b, c, z] + c => [b, z, c]
+    //
+    //  [b, z, c] + b => [z, c, b]
+    const MAX_SIZE = 3;
+    const mostRecentTargetLanguages = lazy.mostRecentTargetLanguages;
+
+    if (mostRecentTargetLanguages.has(langTag)) {
+      // The language tag is already present, so delete it to ensure that its order is updated when it gets re-added.
+      mostRecentTargetLanguages.delete(langTag);
+    } else if (mostRecentTargetLanguages.size === MAX_SIZE) {
+      // We only store MAX_SIZE lang tags, so remove the oldest language tag to make room for the new language tag.
+      const oldestLangTag = mostRecentTargetLanguages.keys().next().value;
+      mostRecentTargetLanguages.delete(oldestLangTag);
+    }
+
+    mostRecentTargetLanguages.add(langTag);
+
+    Services.prefs.setCharPref(
+      "browser.translations.mostRecentTargetLanguages",
+      [...mostRecentTargetLanguages].join(",")
+    );
+  }
+
+  /**
    * Toggles the always-translate language preference by adding the language
    * to the pref list if it is not present, or removing it if it is present.
    *
@@ -3042,6 +3149,11 @@ export class TranslationsParent extends JSWindowActorParent {
       );
     }
 
+    Services.obs.removeObserver(
+      this.maybeUpdateUserLangTag,
+      "translations:maybe-update-user-lang-tag"
+    );
+
     this.#ensureTranslationsDiscarded();
 
     this.#isDestroyed = true;
@@ -3202,6 +3314,33 @@ class TranslationsLanguageState {
   locationChanged() {
     this.#error = null;
     this.dispatch({ reason: "locationChanged" });
+  }
+
+  /**
+   * Makes a determination about whether to update the cached userLangTag with the given langTag.
+   */
+  maybeUpdateUserLangTag(langTag) {
+    const currentUserLangTag = this.#detectedLanguages?.userLangTag;
+
+    if (!currentUserLangTag) {
+      // The userLangTag is not present in the detectedLanguages cache.
+      // This is intentional and we should not update it in this case,
+      // otherwise we may end up showing the Translations URL-bar button
+      // on a page where it is currently hidden.
+      return;
+    }
+
+    this.#detectedLanguages.userLangTag = langTag;
+    // There is no need to call this.dispatch() in this function.
+    //
+    // Updating the userLangTag will affect which language is offered the next time
+    // a panel is opened, or which language is auto-translated into when a page loads,
+    // but this information should not eagerly affect the visual states of Translations
+    // content across the browser. Relevant consumers will fetch the updated langTag from
+    // the cache when they need it.
+    //
+    // In theory, calling this.dispatch() should be fine to do since the LanguageState event
+    // guards itself against irrelevant changes, but that would ultimately cause unneeded noise.
   }
 
   /**

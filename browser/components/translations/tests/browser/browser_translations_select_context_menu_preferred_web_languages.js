@@ -31,7 +31,8 @@ add_task(
     await SelectTranslationsTestUtils.testContextMenuItemWithLocales({
       runInPage,
       webLanguages: ["es", "fr", "fi", "zh", "sl"],
-      expectedTargetLanguage: "es",
+      // The page language tag is "es", so expect the next language in the list.
+      expectedTargetLanguage: "fr",
     });
 
     await SelectTranslationsTestUtils.testContextMenuItemWithLocales({

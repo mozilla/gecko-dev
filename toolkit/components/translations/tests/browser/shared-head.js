@@ -104,6 +104,7 @@ async function openAboutTranslations({
       // Enabled by default.
       ["browser.translations.enable", !disabled],
       ["browser.translations.logLevel", "All"],
+      ["browser.translations.mostRecentTargetLanguages", ""],
       ...(prefs ?? []),
     ],
   });
@@ -660,6 +661,7 @@ async function loadTestPage({
         ["browser.translations.automaticallyPopup", true],
         ["browser.translations.alwaysTranslateLanguages", ""],
         ["browser.translations.neverTranslateLanguages", ""],
+        ["browser.translations.mostRecentTargetLanguages", ""],
         // Bug 1893100 - This is needed to ensure that switching focus
         // with tab works in tests independent of macOS settings that
         // would otherwise disable keyboard navigation at the OS level.

@@ -3749,6 +3749,10 @@ pref("browser.translations.select.enable", false);
 // the application logic logs, and not all of the translated messages, which can be
 // slow and overwhelming.
 pref("browser.translations.logLevel", "Error");
+// The BCP-47 language tags of the most recently translated-into target language.
+// This preference is considered when offering a specific language to translate into,
+// but is not considered as a "known" language when deciding whether to offer Translations at all.
+pref("browser.translations.mostRecentTargetLanguages", "");
 // A comma-separated list of BCP-47 language tags that affect the behavior of translations.
 // Languages listed in the alwaysTranslateLanguages list will trigger auto-translate on page load.
 pref("browser.translations.alwaysTranslateLanguages", "");

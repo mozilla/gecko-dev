@@ -134,7 +134,7 @@ add_task(
       selectFrenchSentence: true,
       openAtFrenchSentence: true,
       expectedFromLanguage: "fr",
-      expectedToLanguage: "en",
+      expectedToLanguage: "ja",
       onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
     ok(
@@ -145,13 +145,16 @@ add_task(
       toMenuList.querySelector('[value="ja"]'),
       "The SelectTranslationsPanel still has a selection for Japanese in the to-menu-list."
     );
-    await SelectTranslationsTestUtils.changeSelectedFromLanguage(["ja"], {
+    await SelectTranslationsTestUtils.changeSelectedToLanguage(["es"], {
       openDropdownMenu: true,
+      pivotTranslation: true,
       downloadHandler: resolveDownloads,
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
-    await SelectTranslationsTestUtils.changeSelectedToLanguage(["ja"], {
+    await SelectTranslationsTestUtils.changeSelectedFromLanguage(["ja"], {
       openDropdownMenu: true,
+      pivotTranslation: true,
+      downloadHandler: resolveDownloads,
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 

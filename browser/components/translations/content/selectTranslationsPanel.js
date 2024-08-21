@@ -422,10 +422,14 @@ var SelectTranslationsPanel = new (class {
       return { toLang: "en" };
     }
 
-    const [fromLanguage, toLanguage] = await Promise.all([
-      SelectTranslationsPanel.getTopSupportedDetectedLanguage(textToTranslate),
-      TranslationsParent.getTopPreferredSupportedToLang(),
-    ]);
+    const fromLanguage =
+      await SelectTranslationsPanel.getTopSupportedDetectedLanguage(
+        textToTranslate
+      );
+    const toLanguage = await TranslationsParent.getTopPreferredSupportedToLang({
+      // Avoid offering a same-language to same-language translation if we can.
+      excludeLangTags: [fromLanguage],
+    });
 
     return { fromLanguage, toLanguage };
   }
@@ -2229,6 +2233,8 @@ var SelectTranslationsPanel = new (class {
     const { docLangTag, topPreferredLanguage } = this.#getLanguageInfo();
     const sourceText = this.getSourceText();
     const translationId = ++this.#translationId;
+
+    TranslationsParent.storeMostRecentTargetLanguage(toLanguage);
 
     this.#createTranslator(fromLanguage, toLanguage)
       .then(translator => {

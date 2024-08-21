@@ -241,7 +241,7 @@ add_task(
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
-      expectedToLanguage: "en",
+      expectedToLanguage: "fr",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
 

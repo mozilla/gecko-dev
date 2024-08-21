@@ -589,7 +589,29 @@ var FullPageTranslationsPanel = new (class {
         fromMenuList.value = "";
       }
 
-      toMenuList.value = userLangTag ?? "";
+      if (userLangTag && userLangTag !== docLangTag) {
+        // The userLangTag is specified and does not match the doc lang tag, so we should use it.
+        toMenuList.value = userLangTag;
+      } else {
+        // No userLangTag is specified in the cache, so we will attempt to find a suitable one.
+        toMenuList.value =
+          await TranslationsParent.getTopPreferredSupportedToLang({
+            excludeLangTags: [
+              // Avoid offering to translate into the original source language.
+              docLangTag,
+              // Avoid same-language to same-language translations if possible.
+              fromMenuList.value,
+            ],
+          });
+      }
+
+      if (fromMenuList.value === toMenuList.value) {
+        // The best possible user-preferred language tag that we were able to find for the
+        // toMenuList is the same as the fromMenuList, but same-language to same-language
+        // translations are not allowed in Full Page Translations, so we will just show the
+        // "Choose a language" option in this case.
+        toMenuList.value = "";
+      }
 
       this.onChangeLanguages();
 
@@ -809,7 +831,14 @@ var FullPageTranslationsPanel = new (class {
     }
     intro.hidden = true;
     fromMenuList.value = fromLanguage;
-    toMenuList.value = toLanguage;
+    toMenuList.value = await TranslationsParent.getTopPreferredSupportedToLang({
+      excludeLangTags: [
+        // Avoid offering to translate into the original source language.
+        fromLanguage,
+        // Avoid offering to translate into current active target language.
+        toLanguage,
+      ],
+    });
     this.onChangeLanguages();
   }
 

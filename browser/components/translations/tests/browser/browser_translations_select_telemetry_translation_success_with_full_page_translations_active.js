@@ -114,7 +114,7 @@ add_task(
           document_language: "es",
           from_language: "es",
           to_language: "fr",
-          top_preferred_language: "en",
+          top_preferred_language: "fr",
           request_target: "full_page",
           auto_translate: false,
         },
@@ -144,7 +144,7 @@ add_task(
           document_language: "fr",
           from_language: "fr",
           to_language: "en",
-          top_preferred_language: "en",
+          top_preferred_language: "fr",
           text_source: "selection",
         },
       }
@@ -164,7 +164,46 @@ add_task(
           document_language: "fr",
           from_language: "fr",
           to_language: "en",
-          top_preferred_language: "en",
+          top_preferred_language: "fr",
+          request_target: "select",
+          auto_translate: false,
+          source_text_code_units:
+            AppConstants.platform === "win"
+              ? 1718 // With carriage returns
+              : 1709, // No carriage returns
+          source_text_word_count: 281,
+        },
+      }
+    );
+
+    await SelectTranslationsTestUtils.changeSelectedToLanguage(["uk"], {
+      openDropdownMenu: false,
+      pivotTranslation: true,
+      downloadHandler: resolveDownloads,
+      onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
+    });
+    await TestTranslationsTelemetry.assertEvent(
+      Glean.translationsSelectTranslationsPanel.changeToLanguage,
+      {
+        expectedEventCount: 2,
+      }
+    );
+    await TestTranslationsTelemetry.assertLabeledCounter(
+      Glean.translations.requestCount,
+      [
+        ["full_page", 1],
+        ["select", 4],
+      ]
+    );
+    await TestTranslationsTelemetry.assertEvent(
+      Glean.translations.translationRequest,
+      {
+        expectedEventCount: 5,
+        assertForMostRecentEvent: {
+          document_language: "fr",
+          from_language: "fr",
+          to_language: "uk",
+          top_preferred_language: "fr",
           request_target: "select",
           auto_translate: false,
           source_text_code_units:
@@ -185,7 +224,7 @@ add_task(
     );
 
     await FullPageTranslationsTestUtils.openPanel({
-      expectedToLanguage: "fr",
+      expectedToLanguage: "uk",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
     });
     await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
