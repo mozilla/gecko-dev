@@ -513,6 +513,40 @@ features:
         type: Boolean
         default: true
 
+  set-as-default-prompt:
+    description: >
+      Displays native default browser prompt to existing users.
+    variables:
+      enabled:
+        description: >
+          When the feature is enabled then the Set as default prompt can be triggered for
+          existing users.
+        type: Boolean
+        default: false
+      app-cold-starts-between-prompts:
+        description: >
+          Minimum number of app cold starts before the next prompt should be displayed to
+          the user.
+        type: Int
+        default: 4
+      days-between-prompts:
+        description: >
+          Minimum number of days between displays of Set as default prompt.
+        type: Int
+        default: 14
+      max-number-of-times-to-display:
+        description: >
+          Maximum number of time the prompt should be displayed.
+        type: Int
+        default: 3
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: false
+
 types:
   objects: {}
 
