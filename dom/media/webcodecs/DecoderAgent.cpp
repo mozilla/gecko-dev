@@ -248,8 +248,25 @@ RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
     return mShutdownWhileCreationPromise.Ensure(__func__);
   }
 
-  // If decoder creation has been completed, we must have the decoder now.
-  MOZ_ASSERT(mDecoder);
+  // If decoder creation has been completed but failed, no decoder would be set.
+  if (!mDecoder) {
+    LOG("DecoderAgent #%d (%p) shutdown without an active decoder", mId, this);
+    MOZ_ASSERT(mState == State::Error);
+    MOZ_ASSERT(!mInitRequest.Exists());
+    MOZ_ASSERT(mConfigurePromise.IsEmpty());
+    MOZ_ASSERT(!mDecodeRequest.Exists());
+    MOZ_ASSERT(mDecodePromise.IsEmpty());
+    MOZ_ASSERT(!mDrainRequest.Exists());
+    MOZ_ASSERT(!mFlushRequest.Exists());
+    MOZ_ASSERT(!mDryRequest.Exists());
+    MOZ_ASSERT(mDryPromise.IsEmpty());
+    MOZ_ASSERT(mDrainAndFlushPromise.IsEmpty());
+    // ~DecoderAgent() ensures the state must be Unconfigured.
+    SetState(State::Unconfigured);
+    return ShutdownPromise::CreateAndResolve(true, __func__);
+  }
+
+  // If decoder creation has succeeded, we must have the decoder now.
 
   // Cancel pending initialization for configuration in flight if any.
   mInitRequest.DisconnectIfExists();
