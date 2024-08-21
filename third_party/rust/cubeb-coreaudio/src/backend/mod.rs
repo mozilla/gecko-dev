@@ -3786,7 +3786,16 @@ impl<'ctx> CoreStreamData<'ctx> {
             let r = audio_unit_get_property(
                 self.output_unit,
                 kAudioUnitProperty_StreamFormat,
-                kAudioUnitScope_Input,
+                if using_voice_processing_unit {
+                    // With a VPIO unit the output scope includes all channels in the hw.
+                    // The VPIO unit however is only MONO which the input scope reflects.
+                    kAudioUnitScope_Input
+                } else {
+                    // With a HAL unit the output scope for the output bus returns the number of
+                    // output channels of the hw, as we want. The input scope seems limited to
+                    // two channels.
+                    kAudioUnitScope_Output
+                },
                 AU_OUT_BUS,
                 &mut output_hw_desc,
                 &mut size,
@@ -3813,13 +3822,44 @@ impl<'ctx> CoreStreamData<'ctx> {
                 return Err(Error::error());
             }
 
+            // Simple case of stereo output, map to the stereo pair (that might not be the first
+            // two channels). Fall back to regular mixing if this fails.
+            let mut maybe_need_mixer = true;
+            if self.output_stream_params.channels() == 2
+                && self.output_stream_params.layout() == ChannelLayout::STEREO
+            {
+                let layout = AudioChannelLayout {
+                    mChannelLayoutTag: kAudioChannelLayoutTag_Stereo,
+                    ..Default::default()
+                };
+                let r = audio_unit_set_property(
+                    self.output_unit,
+                    kAudioUnitProperty_AudioChannelLayout,
+                    kAudioUnitScope_Input,
+                    AU_OUT_BUS,
+                    &layout,
+                    mem::size_of::<AudioChannelLayout>(),
+                );
+                if r != NO_ERR {
+                    cubeb_log!(
+                        "AudioUnitSetProperty/output/kAudioUnitProperty_AudioChannelLayout rv={}",
+                        r
+                    );
+                }
+                maybe_need_mixer = r != NO_ERR;
+            }
+
             // Notice: when we are using aggregate device, the output_hw_desc.mChannelsPerFrame is
             // the total of all the output channel count of the devices added in the aggregate device.
             // Due to our aggregate device settings, the data recorded by the input device's output
             // channels will be appended at the end of the raw data given by the output callback.
             let params = unsafe {
                 let mut p = *self.output_stream_params.as_ptr();
-                p.channels = output_hw_desc.mChannelsPerFrame;
+                p.channels = if maybe_need_mixer {
+                    output_hw_desc.mChannelsPerFrame
+                } else {
+                    self.output_stream_params.channels()
+                };
                 if using_voice_processing_unit {
                     // VPIO will always use the sample rate of the input hw for both input and output,
                     // as reported to us. (We can override it but we cannot improve quality this way).
@@ -3870,33 +3910,6 @@ impl<'ctx> CoreStreamData<'ctx> {
                 self.stm_ptr,
                 device_layout
             );
-
-            // Simple case of stereo output, map to the stereo pair (that might not be the first
-            // two channels). Fall back to regular mixing if this fails.
-            let mut maybe_need_mixer = true;
-            if self.output_stream_params.channels() == 2
-                && self.output_stream_params.layout() == ChannelLayout::STEREO
-            {
-                let layout = AudioChannelLayout {
-                    mChannelLayoutTag: kAudioChannelLayoutTag_Stereo,
-                    ..Default::default()
-                };
-                let r = audio_unit_set_property(
-                    self.output_unit,
-                    kAudioUnitProperty_AudioChannelLayout,
-                    kAudioUnitScope_Input,
-                    AU_OUT_BUS,
-                    &layout,
-                    mem::size_of::<AudioChannelLayout>(),
-                );
-                if r != NO_ERR {
-                    cubeb_log!(
-                        "AudioUnitSetProperty/output/kAudioUnitProperty_AudioChannelLayout rv={}",
-                        r
-                    );
-                }
-                maybe_need_mixer = r != NO_ERR;
-            }
 
             if maybe_need_mixer {
                 // The mixer will be set up when
