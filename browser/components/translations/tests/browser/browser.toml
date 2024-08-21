@@ -113,6 +113,20 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1863227
 
 ["browser_translations_full_page_telemetry_unsupported_lang.js"]
 
+["browser_translations_recent_language_memory_auto_translate.js"]
+
+["browser_translations_recent_language_memory_full_page_and_select.js"]
+
+["browser_translations_recent_language_memory_full_page_and_select_multi_window.js"]
+
+["browser_translations_recent_language_memory_full_page_multi_window.js"]
+
+["browser_translations_recent_language_memory_full_page_multi_window_multi_tab.js"]
+
+["browser_translations_recent_language_memory_full_page_navigate.js"]
+
+["browser_translations_recent_language_memory_full_page_retranslate.js"]
+
 ["browser_translations_select_context_menu_engine_unsupported.js"]
 
 ["browser_translations_select_context_menu_feature_disabled.js"]
