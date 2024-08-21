@@ -76,12 +76,7 @@ this.addonsSearchDetection = class extends ExtensionAPI {
                     patterns[pattern] = [];
                   }
 
-                  // We exclude built-in search engines because we don't need
-                  // to report them.
-                  if (
-                    !patterns[pattern].includes(_extensionID) &&
-                    !_extensionID.endsWith("@search.mozilla.org")
-                  ) {
+                  if (!patterns[pattern].includes(_extensionID)) {
                     patterns[pattern].push(_extensionID);
                   }
                 });

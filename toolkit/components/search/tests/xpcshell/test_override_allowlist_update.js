@@ -19,7 +19,7 @@ const EXTENSION_ID = "test@thirdparty.example.com";
 const allowlist = [
   {
     thirdPartyId: EXTENSION_ID,
-    overridesId: "simple@search.mozilla.org",
+    overridesAppIdv2: "simple",
     urls: [
       {
         search_url: INITIAL_SEARCH_ENGINE_URL,

@@ -220,7 +220,7 @@ add_task(async function test_default_engine_changed_and_metadata_unchanged() {
   await Services.search.wrappedJSObject._fetchEngineSelectorEngines();
   userSettings.metaData = {
     ...Services.search.wrappedJSObject._settings.getSettingsMetaData(),
-    appDefaultEngineId: "engine_to_remove@search.mozilla.orgdefault",
+    appDefaultEngineId: "engine_to_remove",
   };
 
   // Update config by removing the app default engine

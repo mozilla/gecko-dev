@@ -71,7 +71,7 @@ add_task(async function test_add_on_engine_id() {
   Assert.ok(addOnEngine.id, "The Addon Search Engine should have an id.");
   Assert.equal(
     addOnEngine.id,
-    "engine@search.mozilla.orgdefault",
+    "engine",
     "The Addon Search Engine id should be the webextension id + the locale."
   );
 });

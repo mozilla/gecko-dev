@@ -124,10 +124,7 @@ add_task(async function test_migration_after_renames() {
   await Services.search.init();
 
   for (let [identifier, name] of ENGINE_NAME_TO_NEW_NAME_MAP.entries()) {
-    let id = identifier.split("-");
-    let engine = await Services.search.getEngineById(
-      `${id[0]}@search.mozilla.org${id[1]}`
-    );
+    let engine = await Services.search.getEngineById(identifier);
     Assert.ok(engine, `Should have loaded an engine for ${identifier}`);
 
     Assert.deepEqual(

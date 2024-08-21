@@ -32,13 +32,13 @@ const enginesSettings = {
   },
   engines: [
     {
-      id: "engine1@search.mozilla.orgdefault",
+      id: "engine1",
       _metaData: { alias: null },
       _isAppProvided: true,
       _name: "engine1",
     },
     {
-      id: "engine2@search.mozilla.orgdefault",
+      id: "engine2",
       _metaData: { alias: null },
       _isAppProvided: true,
       _name: "engine2",

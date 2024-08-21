@@ -260,7 +260,7 @@ nsresult nsCookieBannerTelemetryService::MaybeReportGoogleGDPRChoiceTelemetry(
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Bail out early if the default search engine is not Google.
-  if (!id.EqualsLiteral("google@search.mozilla.orgdefault")) {
+  if (!id.EqualsLiteral("google")) {
     return NS_OK;
   }
 

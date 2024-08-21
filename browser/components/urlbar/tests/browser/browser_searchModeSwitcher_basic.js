@@ -234,6 +234,7 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
   await UrlbarTestUtils.assertSearchMode(window, null);
 }
 
+// TODO: Don't let tests depend on the actual search config.
 let amazonSearchMode = {
   engineName: "Amazon.com",
   entry: "other",
