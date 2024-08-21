@@ -931,17 +931,16 @@ class MOZ_TEMPORARY_CLASS IgnoreErrors {
  ** Macros for checking results
  ******************************************************************************/
 
-#define ENSURE_SUCCESS(res, ret)                \
-  do {                                          \
-    if (res.Failed()) {                         \
-      nsCString msg;                            \
-      msg.AppendPrintf(                         \
-          "ENSURE_SUCCESS(%s, %s) failed with " \
-          "result 0x%X",                        \
-          #res, #ret, res.ErrorCodeAsInt());    \
-      NS_WARNING(msg.get());                    \
-      return ret;                               \
-    }                                           \
+#define RETURN_NSRESULT_ON_FAILURE(res)                                        \
+  do {                                                                         \
+    (res).WouldReportJSException();                                            \
+    if ((res).Failed()) {                                                      \
+      NS_WARNING(nsPrintfCString(                                              \
+                     "RETURN_NSRESULT_ON_FAILURE(%s) failed with result 0x%X", \
+                     #res, (res).ErrorCodeAsInt())                             \
+                     .get());                                                  \
+      return (res).StealNSResult();                                            \
+    }                                                                          \
   } while (0)
 
 }  // namespace mozilla

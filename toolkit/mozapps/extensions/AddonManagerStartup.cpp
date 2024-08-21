@@ -561,7 +561,7 @@ nsresult AddonManagerStartup::EncodeBlob(JS::Handle<JS::Value> value,
   MOZ_TRY_VAR(lz4, EncodeLZ4(scData, STRUCTURED_CLONE_MAGIC));
 
   JS::Rooted<JSObject*> obj(cx, dom::ArrayBuffer::Create(cx, lz4, rv));
-  ENSURE_SUCCESS(rv, rv.StealNSResult());
+  RETURN_NSRESULT_ON_FAILURE(rv);
 
   result.set(JS::ObjectValue(*obj));
   return NS_OK;
