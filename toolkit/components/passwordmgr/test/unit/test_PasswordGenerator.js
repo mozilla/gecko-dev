@@ -1,7 +1,7 @@
 "use strict";
 
 const { PasswordGenerator } = ChromeUtils.importESModule(
-  "resource://gre/modules/PasswordGenerator.sys.mjs"
+  "resource://gre/modules/shared/PasswordGenerator.sys.mjs"
 );
 
 add_task(async function test_shuffleString() {

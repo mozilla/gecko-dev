@@ -31,7 +31,6 @@ EXTRA_JS_MODULES += [
     "crypto-SDR.sys.mjs",
     "InsecurePasswordUtils.sys.mjs",
     "LoginAutoComplete.sys.mjs",
-    "LoginFormFactory.sys.mjs",
     "LoginHelper.sys.mjs",
     "LoginInfo.sys.mjs",
     "LoginManager.shared.mjs",
@@ -43,11 +42,15 @@ EXTRA_JS_MODULES += [
     "LoginManagerTelemetry.sys.mjs",
     "LoginRecipes.sys.mjs",
     "LoginRelatedRealms.sys.mjs",
-    "NewPasswordModel.sys.mjs",
-    "PasswordGenerator.sys.mjs",
     "PasswordRulesManager.sys.mjs",
-    "PasswordRulesParser.sys.mjs",
     "storage-json.sys.mjs",
+]
+
+EXTRA_JS_MODULES.shared += [
+    "shared/LoginFormFactory.sys.mjs",
+    "shared/NewPasswordModel.sys.mjs",
+    "shared/PasswordGenerator.sys.mjs",
+    "shared/PasswordRulesParser.sys.mjs",
 ]
 
 if CONFIG["OS_TARGET"] != "Android":

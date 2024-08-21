@@ -6,8 +6,9 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
-  PasswordGenerator: "resource://gre/modules/PasswordGenerator.sys.mjs",
-  PasswordRulesParser: "resource://gre/modules/PasswordRulesParser.sys.mjs",
+  PasswordGenerator: "resource://gre/modules/shared/PasswordGenerator.sys.mjs",
+  PasswordRulesParser:
+    "resource://gre/modules/shared/PasswordRulesParser.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
 });
 

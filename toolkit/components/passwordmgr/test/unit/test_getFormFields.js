@@ -5,7 +5,7 @@
 "use strict";
 
 const { LoginFormFactory } = ChromeUtils.importESModule(
-  "resource://gre/modules/LoginFormFactory.sys.mjs"
+  "resource://gre/modules/shared/LoginFormFactory.sys.mjs"
 );
 
 const { LoginManagerChild } = ChromeUtils.importESModule(

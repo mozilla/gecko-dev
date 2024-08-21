@@ -50,7 +50,7 @@ add_task(async function test() {
       [{ login, usernameRequested }],
       async ({ login: addedLogin, usernameRequested: aUsernameRequested }) => {
         const { LoginFormFactory } = ChromeUtils.importESModule(
-          "resource://gre/modules/LoginFormFactory.sys.mjs"
+          "resource://gre/modules/shared/LoginFormFactory.sys.mjs"
         );
         const { LoginManagerChild } = ChromeUtils.importESModule(
           "resource://gre/modules/LoginManagerChild.sys.mjs"

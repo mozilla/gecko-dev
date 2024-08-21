@@ -4,13 +4,13 @@
 
 "use strict";
 const { PasswordGenerator } = ChromeUtils.importESModule(
-  "resource://gre/modules/PasswordGenerator.sys.mjs"
+  "resource://gre/modules/shared/PasswordGenerator.sys.mjs"
 );
 const { PasswordRulesManagerParent } = ChromeUtils.importESModule(
   "resource://gre/modules/PasswordRulesManager.sys.mjs"
 );
 const { PasswordRulesParser } = ChromeUtils.importESModule(
-  "resource://gre/modules/PasswordRulesParser.sys.mjs"
+  "resource://gre/modules/shared/PasswordRulesParser.sys.mjs"
 );
 const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"

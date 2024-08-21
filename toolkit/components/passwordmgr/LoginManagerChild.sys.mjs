@@ -52,11 +52,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FORM_SUBMISSION_REASON: "resource://gre/actors/FormHandlerChild.sys.mjs",
   InsecurePasswordUtils: "resource://gre/modules/InsecurePasswordUtils.sys.mjs",
   LoginAutoCompleteResult: "resource://gre/modules/LoginAutoComplete.sys.mjs",
-  LoginFormFactory: "resource://gre/modules/LoginFormFactory.sys.mjs",
+  LoginFormFactory: "resource://gre/modules/shared/LoginFormFactory.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   LoginRecipesContent: "resource://gre/modules/LoginRecipes.sys.mjs",
   LoginManagerTelemetry: "resource://gre/modules/LoginManagerTelemetry.sys.mjs",
-  NewPasswordModel: "resource://gre/modules/NewPasswordModel.sys.mjs",
+  NewPasswordModel: "resource://gre/modules/shared/NewPasswordModel.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(

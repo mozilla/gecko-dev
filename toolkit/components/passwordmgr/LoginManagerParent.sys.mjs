@@ -34,7 +34,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   WebAuthnFeature: "resource://gre/modules/WebAuthnFeature.sys.mjs",
-  PasswordGenerator: "resource://gre/modules/PasswordGenerator.sys.mjs",
+  PasswordGenerator: "resource://gre/modules/shared/PasswordGenerator.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
