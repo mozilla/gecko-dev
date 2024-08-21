@@ -170,11 +170,27 @@ class WakeLockTopic {
   // Why is screensaver inhibited
   nsCString mTopic;
 
-  // Our desired state
-  bool mShouldInhibit = false;
+  enum WakeLockState {
+    Inhibited,
+    WaitingToInhibit,
+    Uninhibited,
+    WaitingToUninhibit
+  } mState = Uninhibited;
 
-  // Our actual sate
-  bool mInhibited = false;
+#if MOZ_LOGGING
+  const char* GetInhibitStateName() {
+    switch (mState) {
+      case Inhibited:
+        return "inhibited";
+      case WaitingToInhibit:
+        return "waiting to inhibit";
+      case Uninhibited:
+        return "uninhibited";
+      case WaitingToUninhibit:
+        return "waiting to uninhibit";
+    }
+  }
+#endif
 
 #ifdef MOZ_ENABLE_DBUS
   // We're waiting for DBus reply (inhibit/uninhibit calls).
@@ -200,17 +216,18 @@ int WakeLockTopic::sWakeLockType = Initial;
 void WakeLockTopic::DBusInhibitSucceeded(uint32_t aInhibitRequestID) {
   mWaitingForDBusInhibit = false;
   mInhibitRequestID = Some(aInhibitRequestID);
-  mInhibited = true;
 
   WAKE_LOCK_LOG(
       "WakeLockTopic::DBusInhibitSucceeded(), mInhibitRequestID %u "
-      "mShouldInhibit %d",
-      *mInhibitRequestID, mShouldInhibit);
+      "state %s",
+      *mInhibitRequestID, GetInhibitStateName());
 
   // Uninhibit was requested before inhibit request was finished.
   // So ask for it now.
-  if (!mShouldInhibit) {
+  if (mState == WaitingToUninhibit) {
     UninhibitScreensaver();
+  } else {
+    mState = Inhibited;
   }
 }
 
@@ -227,17 +244,18 @@ void WakeLockTopic::DBusInhibitFailed(bool aFatal) {
 }
 
 void WakeLockTopic::DBusUninhibitSucceeded() {
-  WAKE_LOCK_LOG("WakeLockTopic::DBusUninhibitSucceeded() mShouldInhibit %d",
-                mShouldInhibit);
+  WAKE_LOCK_LOG("WakeLockTopic::DBusUninhibitSucceeded() state %s",
+                GetInhibitStateName());
 
   mWaitingForDBusUninhibit = false;
-  mInhibited = false;
   ClearDBusInhibitToken();
 
   // Inhibit was requested before uninhibit request was finished.
   // So ask for it now.
-  if (mShouldInhibit) {
+  if (mState == WaitingToInhibit) {
     InhibitScreensaver();
+  } else {
+    mState = Uninhibited;
   }
 }
 
@@ -655,7 +673,7 @@ bool WakeLockTopic::InhibitXScreenSaver(bool inhibit) {
   _XSSSuspend(display, inhibit);
 
   WAKE_LOCK_LOG("InhibitXScreenSaver %d succeeded", inhibit);
-  mInhibited = inhibit;
+  mState = inhibit ? Inhibited : Uninhibited;
   return true;
 }
 #endif
@@ -687,7 +705,7 @@ bool WakeLockTopic::InhibitWaylandIdle() {
   if (waylandSurface) {
     mWaylandInhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(
         waylandDisplay->GetIdleInhibitManager(), waylandSurface);
-    mInhibited = true;
+    mState = Inhibited;
   }
 
   WAKE_LOCK_LOG("InhibitWaylandIdle() %s",
@@ -699,7 +717,7 @@ bool WakeLockTopic::UninhibitWaylandIdle() {
   WAKE_LOCK_LOG("UninhibitWaylandIdle() mWaylandInhibitor %p",
                 mWaylandInhibitor);
 
-  mInhibited = false;
+  mState = Uninhibited;
   if (!mWaylandInhibitor) {
     return false;
   }
@@ -777,13 +795,13 @@ bool WakeLockTopic::SendUninhibit() {
 }
 
 nsresult WakeLockTopic::InhibitScreensaver() {
-  WAKE_LOCK_LOG("WakeLockTopic::InhibitScreensaver() Inhibited %d", mInhibited);
+  WAKE_LOCK_LOG("WakeLockTopic::InhibitScreensaver() state %s",
+                GetInhibitStateName());
 
-  if (mInhibited) {
-    // Screensaver is inhibited. Nothing to do here.
+  if (mState == Inhibited || mState == WaitingToInhibit) {
     return NS_OK;
   }
-  mShouldInhibit = true;
+  mState = WaitingToInhibit;
 
   // Iterate through wake lock types in case of failure.
   while (!SendInhibit()) {
@@ -799,31 +817,23 @@ nsresult WakeLockTopic::InhibitScreensaver() {
   return (sWakeLockType != Unsupported) ? NS_OK : NS_ERROR_FAILURE;
 }
 
-void WakeLockTopic::Shutdown() {
-  WAKE_LOCK_LOG("WakeLockTopic::Shutdown() Inhibited %d ShouldInhibit %d",
-                mInhibited, mShouldInhibit);
-  mShouldInhibit = false;
-#ifdef MOZ_ENABLE_DBUS
-  if (mWaitingForDBusUninhibit) {
-    return;
-  }
-#endif
-  UninhibitScreensaver();
-}
-
 nsresult WakeLockTopic::UninhibitScreensaver() {
-  WAKE_LOCK_LOG("WakeLockTopic::UninhibitScreensaver() Inhibited %d",
-                mInhibited);
+  WAKE_LOCK_LOG("WakeLockTopic::UnInhibitScreensaver() state %s",
+                GetInhibitStateName());
 
-  if (!mInhibited) {
-    // Screensaver isn't inhibited. Nothing to do here.
+  if (mState == Uninhibited || mState == WaitingToUninhibit) {
     return NS_OK;
   }
-  mShouldInhibit = false;
+  mState = WaitingToUninhibit;
 
   // Don't switch wake lock type in case of failure.
   // We need to use the same lock/unlock type.
   return SendUninhibit() ? NS_OK : NS_ERROR_FAILURE;
+}
+
+void WakeLockTopic::Shutdown() {
+  WAKE_LOCK_LOG("WakeLockTopic::Shutdown() state %s", GetInhibitStateName());
+  UninhibitScreensaver();
 }
 
 bool WakeLockTopic::IsWakeLockTypeAvailable(int aWakeLockType) {
@@ -897,7 +907,7 @@ bool WakeLockTopic::SwitchToNextWakeLockType() {
     // We're switching out of DBus wakelock - clear our recent DBus states.
     mWaitingForDBusInhibit = false;
     mWaitingForDBusUninhibit = false;
-    mInhibited = false;
+    mState = Uninhibited;
     ClearDBusInhibitToken();
   }
 #endif
