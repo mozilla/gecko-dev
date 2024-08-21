@@ -11305,6 +11305,11 @@
   value: false
   mirror: always
 
+- name: media.test.null.decoder.creation-failure
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # MediaCapture prefs follow
 
 # Enables navigator.mediaDevices and getUserMedia() support. See also

@@ -12,6 +12,7 @@
 #include "VideoUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Logging.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "nsThreadUtils.h"
 
@@ -103,6 +104,10 @@ RefPtr<DecoderAgent::ConfigurePromise> DecoderAgent::Configure(
       mInfo->GetType(), mImageContainer, knowsCompositor};
   if (aLowLatency) {
     params.mOptions += CreateDecoderParams::Option::LowLatency;
+  }
+  // This should only be used for testing.
+  if (StaticPrefs::media_test_null_decoder_creation_failure()) {
+    params.mUseNullDecoder = CreateDecoderParams::UseNullDecoder(true);
   }
 
   // Always even use the pts that were set on the input samples when returning

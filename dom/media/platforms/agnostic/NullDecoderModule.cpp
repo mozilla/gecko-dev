@@ -6,6 +6,7 @@
 
 #include "DummyMediaDataDecoder.h"
 #include "ImageContainer.h"
+#include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
@@ -29,6 +30,9 @@ class NullDecoderModule : public PlatformDecoderModule {
   // Decode thread.
   already_AddRefed<MediaDataDecoder> CreateVideoDecoder(
       const CreateDecoderParams& aParams) override {
+    if (StaticPrefs::media_test_null_decoder_creation_failure()) {
+      return nullptr;
+    }
     UniquePtr<DummyDataCreator> creator = MakeUnique<NullVideoDataCreator>();
     RefPtr<MediaDataDecoder> decoder = new DummyMediaDataDecoder(
         std::move(creator), "null media data decoder"_ns, aParams);

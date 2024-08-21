@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const decoder = new VideoDecoder({
+    'output': (e) => {},
+    'error': (e) => {},
+  });
+  // media.test.null.decoder.creation-failure must set to true for this test!
+  decoder.configure({
+    codec: 'vp8',
+    codedWidth: 320,
+    codedHeight: 240,
+    visibleRect: {x: 0, y: 0, width: 320, height: 240},
+    displayWidth: 320,
+    displayHeight: 240,
+  });
+})
+</script>
