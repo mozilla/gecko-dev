@@ -189,6 +189,7 @@ class WakeLockTopic {
       case WaitingToUninhibit:
         return "waiting to uninhibit";
     }
+    return "invalid";
   }
 #endif
 
