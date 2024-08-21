@@ -1183,6 +1183,23 @@ def milestone(build_env, build_project, version_path, as_milestone, _):
     )
 
 
+# For extensions and langpacks, we require a max version that is compatible
+# across security releases. MOZ_APP_MAXVERSION is our method for doing that.
+# 24.0a1 and 24.0a2 aren't affected
+# 24.0 becomes 24.*
+# 24.1.1 becomes 24.*
+@depends(milestone.app_version, build_project)
+def moz_app_maxversion(app_version, build_project):
+    if "a" not in app_version:
+        version = Version(app_version)
+        if build_project == "suite":
+            return f"{version.major}.{version.minor}.*"
+        else:
+            return f"{version.major}.*"
+    else:
+        return app_version
+
+
 set_config("GRE_MILESTONE", milestone.version)
 set_config("NIGHTLY_BUILD", milestone.is_nightly)
 set_define("NIGHTLY_BUILD", milestone.is_nightly)
@@ -1200,6 +1217,7 @@ set_config("MOZILLA_SYMBOLVERSION", milestone.symbolversion)
 
 set_config("MOZ_APP_VERSION", milestone.app_version)
 set_config("MOZ_APP_VERSION_DISPLAY", milestone.app_version_display)
+set_config("MOZ_APP_MAXVERSION", moz_app_maxversion)
 add_old_configure_assignment("MOZ_APP_VERSION", milestone.app_version)
 
 add_old_configure_assignment("NIGHTLY_BUILD", milestone.is_nightly)
