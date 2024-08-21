@@ -117,8 +117,6 @@
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">SuƔer awal uffir iǧehden</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Sumer awal uffir iǧehden</string>
 
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Seqdec awal n uɛeddi iǧehden</string>
@@ -128,7 +126,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Seqdec awal n uɛeddi iǧehden?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Mmesten imiḍanen-ik s useqdec n wawal n uεeddi iǧehden, yettusefrek s wudem kan akka. Kcem s zzerb ɣer wawalen-ik n uεeddi s usekles-nsen deg umiḍan-ik.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Mmesten imiḍanen-ik s useqdec n wawal n uεeddi iǧehden, yettusefrek s wudem kan akka. Kcem s zzerb ɣer wawalen-ik n uεeddi s usekles-nsen deg umiḍan-ik.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Mmesten imiḍanen-ik s useqdec n wawal uffir iǧehden aṭas, yettusirwen kan akka. Ad yettwasekles deg umiḍan-ik i d-iteddun.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Seqdec awal n uɛeddi</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
