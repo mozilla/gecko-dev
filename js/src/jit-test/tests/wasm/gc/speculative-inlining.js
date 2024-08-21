@@ -1,6 +1,9 @@
 // |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_experimental_compile_pipeline;
 
-const tierUpThreshold = 1;
+// Needs to be at least 2220 in order for test functions to tier up.
+// See Instance::computeInitialHotnessCounter.
+const tierUpThreshold = 2250;
+
 let {importFunc} = wasmEvalText(`
   (module (func (export "importFunc") (result i32) i32.const 2))
 `).exports;
@@ -56,6 +59,10 @@ for ([funcToInline, funcToInlineExpected] of testFuncs) {
   for (let i = 0; i <= tierUpThreshold; i++) {
     invokeTestWith(exports, funcToInline, funcToInlineExpected);
   }
+  // Give the off-thread Ion compilation a chance to catch up.  This is really
+  // a kludge in that we currently have no reliable way in JS to wait for all
+  // requested tier-ups to complete.
+  sleep(0.05);
   assertEq(wasmFunctionTier(test), "optimized");
 
   // Now that we've inlined something, try calling it with every test function

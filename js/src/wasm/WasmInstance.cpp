@@ -2307,13 +2307,12 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
     setRequestTierUpStub(nullptr);
   }
 
-  // Initialize the hotness counters, if relevant
+  // Initialize the hotness counters, if relevant.
   if (code().mode() == CompileMode::LazyTiering) {
-    // Set every function so that the first time it executes, it will trip the
-    // hotness counter to negative and force a tier-up.
     for (uint32_t funcIndex = codeMeta().numFuncImports;
          funcIndex < codeMeta().numFuncs(); funcIndex++) {
-      funcDefInstanceData(funcIndex)->hotnessCounter = 0;
+      funcDefInstanceData(funcIndex)->hotnessCounter =
+          computeInitialHotnessCounter(funcIndex);
     }
   }
 
@@ -2695,6 +2694,23 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
     stackLimit_ = cx->stackLimitForJitCode(JS::StackForUntrustedScript);
   }
   onSuspendableStack_ = false;
+}
+
+int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
+  MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
+  // Use `150 * (bodyLength ^ 1.5)` as a proxy for Ion compilation cost, and at
+  // least 10.  This is a temporary heuristic which may be improved in future.
+  float thresholdF =
+      float(codeMeta()
+                .funcDefRanges[funcIndex - codeMeta().numFuncImports]
+                .bodyLength);
+  thresholdF = thresholdF * sqrtf(thresholdF);
+  thresholdF *= 150.0;
+  thresholdF = std::max<float>(thresholdF, 10.0);   // at least 10
+  thresholdF = std::min<float>(thresholdF, 2.0e9);  // at most 2 billion
+  int32_t thresholdI = int32_t(thresholdF);
+  MOZ_RELEASE_ASSERT(thresholdI >= 0);
+  return thresholdI;
 }
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {

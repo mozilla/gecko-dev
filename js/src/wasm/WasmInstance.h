@@ -386,6 +386,7 @@ class alignas(16) Instance {
   void setTemporaryStackLimit(JS::NativeStackLimit limit);
   void resetTemporaryStackLimit(JSContext* cx);
 
+  int32_t computeInitialHotnessCounter(uint32_t funcIndex);
   void resetHotnessCounter(uint32_t funcIndex);
   void submitCallRefHints(uint32_t funcIndex);
 
