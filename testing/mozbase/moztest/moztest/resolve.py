@@ -893,6 +893,11 @@ class TestResolver(MozbuildObject):
         ):
             depth = depth + 1
 
+        # wpt canvas tests are mostly nested under subfolders of /html/canvas,
+        # increase the depth to ensure chunks can be balanced correctly.
+        if test["name"].startswith("/html/canvas"):
+            depth = depth + 1
+
         if test["name"].startswith("/_mozilla/webgpu"):
             depth = 9001
 
