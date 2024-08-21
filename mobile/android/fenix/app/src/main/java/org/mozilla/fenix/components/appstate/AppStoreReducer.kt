@@ -258,7 +258,7 @@ internal object AppStoreReducer {
             state.copy(
                 snackbarState = SnackbarState.BookmarkAdded(
                     guidToEdit = action.guidToEdit,
-                    parentTitle = action.parentTitle,
+                    parentNode = action.parentNode,
                 ),
             )
         }

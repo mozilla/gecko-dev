@@ -11,9 +11,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.storage.BookmarkNode
+import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.sync.TabData
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.accounts.push.SendTabUseCases.SendToAllUseCase
@@ -122,19 +125,21 @@ class SnackbarBindingTest {
     }
 
     @Test
-    fun `GIVEN bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
-        val parentTitle = "title"
+    fun `GIVEN bookmark's parent is a root node WHEN the bookmark added state is observed THEN display friendly title`() = runTestOnMain {
         val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
-            BookmarkAction.BookmarkAdded(guidToEdit = "1", parentTitle = parentTitle),
+            BookmarkAction.BookmarkAdded(
+                guidToEdit = "1",
+                parentNode = buildParentBookmarkNode(guid = BookmarkRoot.Mobile.id, title = "mobile"),
+            ),
         )
         waitForStoreToSettle()
 
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
 
-        val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, parentTitle)
+        val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, "Bookmarks")
         verify(snackbarDelegate).show(
             text = eq(outputMessage),
             duration = eq(FenixSnackbar.LENGTH_LONG),
@@ -145,12 +150,62 @@ class SnackbarBindingTest {
     }
 
     @Test
-    fun `GIVEN no bookmark is added WHEN the bookmark added state action is dispatched THEN display the appropriate snackbar`() = runTestOnMain {
+    fun `GIVEN bookmark's parent is not a root node but has a root node title WHEN the bookmark added state is observed THEN display custom title`() = runTestOnMain {
         val binding = buildSnackbarBinding()
         binding.start()
 
         appStore.dispatch(
-            BookmarkAction.BookmarkAdded(guidToEdit = null, parentTitle = null),
+            BookmarkAction.BookmarkAdded(
+                guidToEdit = "1",
+                parentNode = buildParentBookmarkNode(title = "mobile", guid = "not a root"),
+            ),
+        )
+
+        // Wait for BookmarkAction.BookmarkAdded(guidToEdit = "1"),
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+
+        val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, "mobile")
+        verify(snackbarDelegate).show(
+            text = eq(outputMessage),
+            duration = eq(FenixSnackbar.LENGTH_LONG),
+            isError = eq(false),
+            action = eq(testContext.getString(R.string.edit_bookmark_snackbar_action)),
+            listener = any(),
+        )
+    }
+
+    @Test
+    fun `GIVEN no bookmark is added WHEN the bookmark added state is observed THEN display the error snackbar`() = runTestOnMain {
+        val binding = buildSnackbarBinding()
+        binding.start()
+
+        appStore.dispatch(
+            BookmarkAction.BookmarkAdded(guidToEdit = null, buildParentBookmarkNode()),
+        )
+
+        // Wait for BookmarkAction.BookmarkAdded(guidToEdit = null),
+        appStore.waitUntilIdle()
+        // Wait for SnackbarAction.SnackbarShown
+        appStore.waitUntilIdle()
+
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+        verify(snackbarDelegate).show(
+            text = R.string.bookmark_invalid_url_error,
+            duration = FenixSnackbar.LENGTH_LONG,
+        )
+    }
+
+    @Test
+    fun `GIVEN there is no parent folder for an added bookmark WHEN the bookmark added state is observed THEN display the error snackbar`() = runTestOnMain {
+        val binding = buildSnackbarBinding()
+        binding.start()
+
+        appStore.dispatch(
+            BookmarkAction.BookmarkAdded(guidToEdit = "guid", parentNode = null),
         )
         waitForStoreToSettle()
 
@@ -423,4 +478,18 @@ class SnackbarBindingTest {
         // Wait for SnackbarAction.SnackbarShown to be dispatched
         appStore.waitUntilIdle()
     }
+
+    private fun buildParentBookmarkNode(
+        guid: String = "guid",
+        title: String = "title",
+    ) = BookmarkNode(
+        type = BookmarkNodeType.FOLDER,
+        guid = guid,
+        parentGuid = "parentGuid",
+        position = 0U,
+        title = title,
+        url = null,
+        dateAdded = 0L,
+        children = listOf(),
+    )
 }

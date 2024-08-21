@@ -11,7 +11,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import org.mozilla.fenix.library.LibrarySiteItemView
@@ -157,5 +156,3 @@ data class BookmarkPayload(
         iconChanged = true,
     )
 }
-
-fun BookmarkNode.inRoots() = enumValues<BookmarkRoot>().any { it.id == guid }

@@ -6,6 +6,8 @@ package org.mozilla.fenix.components.appstate
 
 import io.mockk.mockk
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.concept.storage.BookmarkNode
+import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert.assertEquals
@@ -164,18 +166,30 @@ class AppStoreReducerTest {
     fun `WHEN bookmark added action is dispatched THEN snackbar state is updated`() {
         val appStore = AppStore()
         val guidToEdit = "guidToEdit"
-        val parentTitle = "parentTitle"
+        val parentNode = BookmarkNode(
+            type = BookmarkNodeType.FOLDER,
+            guid = "456",
+            parentGuid = "123",
+            position = 0u,
+            title = "Mozilla",
+            url = null,
+            dateAdded = 0,
+            children = listOf(),
+        )
 
         appStore.dispatch(
             AppAction.BookmarkAction.BookmarkAdded(
                 guidToEdit = guidToEdit,
-                parentTitle = parentTitle,
+                parentNode = parentNode,
             ),
         )
             .joinBlocking()
 
         assertEquals(
-            SnackbarState.BookmarkAdded(guidToEdit = guidToEdit, parentTitle = parentTitle),
+            SnackbarState.BookmarkAdded(
+                guidToEdit = guidToEdit,
+                parentNode = parentNode,
+            ),
             appStore.state.snackbarState,
         )
     }

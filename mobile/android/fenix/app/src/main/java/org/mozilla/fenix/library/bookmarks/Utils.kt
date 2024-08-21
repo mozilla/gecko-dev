@@ -5,6 +5,7 @@
 package org.mozilla.fenix.library.bookmarks
 
 import android.content.Context
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import org.mozilla.fenix.R
@@ -26,6 +27,15 @@ fun rootTitles(context: Context, withMobileRoot: Boolean): Map<String, String> =
     )
 }
 
+/**
+ * Checks to see if a [BookmarkNode] is a [BookmarkRoot] and if so, returns the user-friendly
+ * translated version of its title.
+ *
+ * @param context The [Context] used in resolving strings.
+ * @param node The [BookmarkNode] to resolve a title for.
+ * @param withMobileRoot Whether to include [BookmarkRoot.Mobile] in the Roots to check. Defaults to true.
+ * @param rootTitles A map of [BookmarkRoot] titles to their user-friendly strings. Default is defaults.
+ */
 fun friendlyRootTitle(
     context: Context,
     node: BookmarkNode,
@@ -49,3 +59,8 @@ fun BookmarkNode.flatNodeList(excludeSubtreeRoot: String?, depth: Int = 0): List
         ?.flatMap { it.flatNodeList(excludeSubtreeRoot = excludeSubtreeRoot, depth = depth + 1) }
         .orEmpty()
 }
+
+/**
+ * Whether the [BookmarkNode] is any of the [BookmarkRoot]s.
+ */
+fun BookmarkNode.inRoots() = enumValues<BookmarkRoot>().any { it.id == guid }

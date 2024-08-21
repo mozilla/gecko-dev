@@ -10,6 +10,7 @@ import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
@@ -202,8 +203,9 @@ class MenuDialogMiddleware(
             .getRecentBookmarks(1)
             .firstOrNull()
             ?.parentGuid
+            ?: BookmarkRoot.Mobile.id
 
-        val parentTitle = parentGuid?.let { bookmarksStorage.getBookmark(parentGuid)?.title }
+        val parentNode = bookmarksStorage.getBookmark(parentGuid)
 
         val guidToEdit = addBookmarkUseCase(
             url = url,
@@ -214,7 +216,7 @@ class MenuDialogMiddleware(
         appStore.dispatch(
             BookmarkAction.BookmarkAdded(
                 guidToEdit = guidToEdit,
-                parentTitle = parentTitle,
+                parentNode = parentNode,
             ),
         )
 

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.appstate.snackbar
 
+import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.TabData
 
 /**
@@ -39,11 +40,11 @@ sealed class SnackbarState {
      * Display a snackbar of the newly added bookmark.
      *
      * @property guidToEdit The guid of the newly added bookmark or null.
-     * @property parentTitle The title of the folder the bookmark was added to, if any.
+     * @property parentNode The [BookmarkNode] representing the folder the bookmark was added to, if any.
      */
     data class BookmarkAdded(
         val guidToEdit: String?,
-        val parentTitle: String?,
+        val parentNode: BookmarkNode?,
     ) : SnackbarState()
 
     /**

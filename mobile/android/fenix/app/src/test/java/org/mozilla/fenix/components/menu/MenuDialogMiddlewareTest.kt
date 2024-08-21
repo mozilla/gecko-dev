@@ -218,7 +218,7 @@ class MenuDialogMiddlewareTest {
         store.dispatch(MenuAction.AddBookmark)
         store.waitUntilIdle()
 
-        verify(addBookmarkUseCase).invoke(url = url, title = title)
+        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = BookmarkRoot.Mobile.id)
         captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
             assertNotNull(action.guidToEdit)
         }
@@ -265,15 +265,14 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = parentGuid)
-        assertEquals(parentTitle, captureMiddleware.findLastAction(BookmarkAction.BookmarkAdded::class).parentTitle)
         captureMiddleware.assertLastAction(BookmarkAction.BookmarkAdded::class) { action: BookmarkAction.BookmarkAdded ->
             assertNotNull(action.guidToEdit)
-            assertEquals(parentTitle, action.parentTitle)
+            assertEquals(parentTitle, action.parentNode?.title)
         }
     }
 
     @Test
-    fun `GIVEN the last added bookmark does not belongs to a folder WHEN bookmark is added THEN bookmark is added to root`() = runTestOnMain {
+    fun `GIVEN the last added bookmark does not belongs to a folder WHEN bookmark is added THEN bookmark is added to mobile root`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
 
@@ -301,7 +300,7 @@ class MenuDialogMiddlewareTest {
         store.dispatch(MenuAction.AddBookmark)
         store.waitUntilIdle()
 
-        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = null)
+        verify(addBookmarkUseCase).invoke(url = url, title = title, parentGuid = BookmarkRoot.Mobile.id)
     }
 
     @Test
