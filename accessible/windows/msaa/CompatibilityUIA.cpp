@@ -7,7 +7,6 @@
 #include "Compatibility.h"
 
 #include "mozilla/a11y/Platform.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
@@ -409,7 +408,6 @@ void Compatibility::GetUiaClientPids(nsTArray<DWORD>& aPids) {
     // UIAutomationCore isn't loaded, so there is no UIA client.
     return;
   }
-  Telemetry::AutoTimer<Telemetry::A11Y_UIA_DETECTION_TIMING_MS> timer;
   if (IsWin11OrLater()) {
     GetUiaClientPidsWin11::Run(aPids);
   } else {

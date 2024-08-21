@@ -36,18 +36,6 @@
     "description": "Flag indicating the IAccessibleTable accessibility interface has been used.",
     "alert_emails": ["accessibility@mozilla.com"]
   },
-  "A11Y_UIA_DETECTION_TIMING_MS": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "60",
-    "kind": "exponential",
-    "high": 60000,
-    "n_buckets": 20,
-    "keyed": false,
-    "description": "The amount of time the parent process blocked while detecting a UIA client.",
-    "bug_numbers": [1423989],
-    "alert_emails": ["dbolter@mozilla.com"]
-  },
   "A11Y_TREE_UPDATE_TIMING_MS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
