@@ -149,7 +149,9 @@ add_task(async function test_translations_telemetry_unsupported_lang() {
     },
   });
 
-  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("fr");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
+    langTag: "fr",
+  });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({
     downloadHandler: resolveDownloads,

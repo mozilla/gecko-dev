@@ -131,7 +131,9 @@ add_task(
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
 
-    FullPageTranslationsTestUtils.changeSelectedToLanguage("fr");
+    await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+      langTag: "fr",
+    });
     await FullPageTranslationsTestUtils.clickTranslateButton();
 
     await FullPageTranslationsTestUtils.assertTranslationsButton(
@@ -199,7 +201,9 @@ add_task(
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
 
-    FullPageTranslationsTestUtils.changeSelectedToLanguage("fr");
+    await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+      langTag: "fr",
+    });
     await FullPageTranslationsTestUtils.clickTranslateButton({
       pivotTranslation: true,
       downloadHandler: resolveDownloads,
@@ -233,7 +237,9 @@ add_task(
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
 
-    FullPageTranslationsTestUtils.changeSelectedToLanguage("uk");
+    await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+      langTag: "uk",
+    });
     await FullPageTranslationsTestUtils.clickTranslateButton();
 
     await FullPageTranslationsTestUtils.assertTranslationsButton(

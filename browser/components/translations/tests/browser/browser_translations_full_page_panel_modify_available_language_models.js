@@ -120,7 +120,9 @@ add_task(
       "The FullPageTranslationsPanel still has an item for Japanese in the to-menu-list."
     );
 
-    await FullPageTranslationsTestUtils.changeSelectedToLanguage("ja");
+    await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+      langTag: "ja",
+    });
     await FullPageTranslationsTestUtils.clickTranslateButton();
 
     await FullPageTranslationsTestUtils.assertPageIsTranslated(

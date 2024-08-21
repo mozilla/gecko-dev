@@ -23,7 +23,9 @@ add_task(async function test_translations_telemetry_retranslate() {
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
 
-  await FullPageTranslationsTestUtils.changeSelectedFromLanguage("fr");
+  await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
+    langTag: "fr",
+  });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({
     downloadHandler: resolveDownloads,
@@ -94,7 +96,9 @@ add_task(async function test_translations_telemetry_retranslate() {
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
   });
 
-  await FullPageTranslationsTestUtils.changeSelectedToLanguage("uk");
+  await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+    langTag: "uk",
+  });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({
     pivotTranslation: true,
