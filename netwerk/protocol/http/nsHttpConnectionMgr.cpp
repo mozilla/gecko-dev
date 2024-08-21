@@ -3573,10 +3573,7 @@ void nsHttpConnectionMgr::DoSpeculativeConnectionInternal(
     return;
   }
 
-  ProxyDNSStrategy strategy = GetProxyDNSStrategyHelper(
-      aEnt->mConnInfo->ProxyType(), aEnt->mConnInfo->ProxyFlag());
-  if (aFetchHTTPSRR && strategy == ProxyDNSStrategy::ORIGIN &&
-      NS_SUCCEEDED(aTrans->FetchHTTPSRR())) {
+  if (aFetchHTTPSRR && NS_SUCCEEDED(aTrans->FetchHTTPSRR())) {
     // nsHttpConnectionMgr::DoSpeculativeConnection will be called again when
     // HTTPS RR is available.
     return;
