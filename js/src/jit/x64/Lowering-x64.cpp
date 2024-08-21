@@ -188,17 +188,14 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
     LUse elements = useRegister(ins->elements());
     LAllocation index =
         useRegisterOrIndexConstant(ins->index(), ins->arrayType());
-    LAllocation value = useRegister(ins->value());
 
     // Case 1: the result of the operation is not used.
-    //
-    // We can omit allocating the result BigInt.
 
     if (ins->isForEffect()) {
-      LInt64Definition temp = tempInt64();
+      LInt64Allocation value = useInt64Register(ins->value());
 
-      auto* lir = new (alloc()) LAtomicTypedArrayElementBinopForEffect64(
-          elements, index, value, temp);
+      auto* lir = new (alloc())
+          LAtomicTypedArrayElementBinopForEffect64(elements, index, value);
       add(lir, ins);
       return;
     }
@@ -207,23 +204,29 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
     //
     // For ADD and SUB we'll use XADD.
     //
-    // For AND/OR/XOR we need to use a CMPXCHG loop with rax as a temp register.
+    // For AND/OR/XOR we need to use a CMPXCHG loop with rax as the output.
 
     bool bitOp = !(ins->operation() == AtomicOp::Add ||
                    ins->operation() == AtomicOp::Sub);
 
-    LInt64Definition temp1 = tempInt64();
-    LInt64Definition temp2;
+    LInt64Allocation value;
+    LInt64Definition temp;
     if (bitOp) {
-      temp2 = tempInt64Fixed(Register64(rax));
+      value = useInt64Register(ins->value());
+      temp = tempInt64();
     } else {
-      temp2 = tempInt64();
+      value = useInt64RegisterAtStart(ins->value());
+      temp = LInt64Definition::BogusTemp();
     }
 
     auto* lir = new (alloc())
-        LAtomicTypedArrayElementBinop64(elements, index, value, temp1, temp2);
-    define(lir, ins);
-    assignSafepoint(lir, ins);
+        LAtomicTypedArrayElementBinop64(elements, index, value, temp);
+    if (bitOp) {
+      defineInt64Fixed(lir, ins,
+                       LInt64Allocation(LAllocation(AnyRegister(rax))));
+    } else {
+      defineInt64ReuseInput(lir, ins, 2);
+    }
     return;
   }
 

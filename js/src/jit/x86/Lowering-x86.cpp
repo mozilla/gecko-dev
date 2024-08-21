@@ -281,28 +281,25 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
     LUse elements = useRegister(ins->elements());
     LAllocation index =
         useRegisterOrIndexConstant(ins->index(), ins->arrayType());
-    LAllocation value = useFixed(ins->value(), edx);
-    LInt64Definition temp = tempInt64Fixed(Register64(ecx, ebx));
+    LInt64Allocation value = useInt64Fixed(ins->value(), Register64(ecx, ebx));
 
     // Case 1: the result of the operation is not used.
-    //
-    // We can omit allocating the result BigInt.
-
     if (ins->isForEffect()) {
-      LDefinition tempLow = tempFixed(eax);
+      LInt64Definition temp = tempInt64Fixed(Register64(edx, eax));
 
       auto* lir = new (alloc()) LAtomicTypedArrayElementBinopForEffect64(
-          elements, index, value, temp, tempLow);
+          elements, index, value, temp);
       add(lir, ins);
       return;
     }
 
     // Case 2: the result of the operation is used.
 
-    auto* lir = new (alloc())
-        LAtomicTypedArrayElementBinop64(elements, index, value, temp);
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
-    assignSafepoint(lir, ins);
+    auto* lir =
+        new (alloc()) LAtomicTypedArrayElementBinop64(elements, index, value);
+    defineInt64Fixed(lir, ins,
+                     LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                      LAllocation(AnyRegister(eax))));
     return;
   }
 

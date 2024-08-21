@@ -747,19 +747,15 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
   const LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->arrayType());
 
-  LAllocation value = useRegister(ins->value());
-
   if (Scalar::isBigIntType(ins->arrayType())) {
-    LInt64Definition temp1 = tempInt64();
-    LInt64Definition temp2 = tempInt64();
+    LInt64Allocation value = useInt64Register(ins->value());
+    LInt64Definition temp = tempInt64();
 
     // Case 1: the result of the operation is not used.
-    //
-    // We can omit allocating the result BigInt.
 
     if (ins->isForEffect()) {
       auto* lir = new (alloc()) LAtomicTypedArrayElementBinopForEffect64(
-          elements, index, value, temp1, temp2);
+          elements, index, value, temp);
       add(lir, ins);
       return;
     }
@@ -767,11 +763,12 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
     // Case 2: the result of the operation is used.
 
     auto* lir = new (alloc())
-        LAtomicTypedArrayElementBinop64(elements, index, value, temp1, temp2);
-    define(lir, ins);
-    assignSafepoint(lir, ins);
+        LAtomicTypedArrayElementBinop64(elements, index, value, temp);
+    defineInt64(lir, ins);
     return;
   }
+
+  LAllocation value = useRegister(ins->value());
 
   if (ins->isForEffect()) {
     auto* lir = new (alloc())

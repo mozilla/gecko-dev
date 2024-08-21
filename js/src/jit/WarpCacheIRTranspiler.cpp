@@ -356,6 +356,7 @@ bool WarpCacheIRTranspiler::transpile(
   // - MIonToWasmCall: Resumes after MInt64ToBigInt
   // - MLoadUnboxedScalar: Resumes after MInt64ToBigInt
   // - MLoadDataViewElement: Resumes after MInt64ToBigInt
+  // - MAtomicTypedArrayElementBinop: Resumes after MInt64ToBigInt
   // - MResizableTypedArrayLength: Resumes after MPostIntPtrConversion
   // - MResizableDataViewByteLength: Resumes after MPostIntPtrConversion
   // - MGrowableSharedArrayBufferByteLength: Resumes after MPostIntPtrConversion
@@ -363,6 +364,7 @@ bool WarpCacheIRTranspiler::transpile(
                 effectful_->resumePoint() || effectful_->isIonToWasmCall() ||
                     effectful_->isLoadUnboxedScalar() ||
                     effectful_->isLoadDataViewElement() ||
+                    effectful_->isAtomicTypedArrayElementBinop() ||
                     effectful_->isResizableTypedArrayLength() ||
                     effectful_->isResizableDataViewByteLength() ||
                     effectful_->isGrowableSharedArrayBufferByteLength());
@@ -4764,7 +4766,7 @@ bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
 
   bool forceDoubleForUint32 = true;
   MIRType knownType =
-      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32);
+      MIRTypeForArrayBufferViewRead(elementType, forceDoubleForUint32, true);
 
   auto* binop = MAtomicTypedArrayElementBinop::New(
       alloc(), op, elements, index, elementType, value, forEffect);
@@ -4773,12 +4775,23 @@ bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
   }
   addEffectful(binop);
 
-  if (!forEffect) {
-    pushResult(binop);
-  } else {
+  if (forEffect) {
     pushResult(constant(UndefinedValue()));
+    return resumeAfter(binop);
   }
-  return resumeAfter(binop);
+
+  MInstruction* result = binop;
+  if (Scalar::isBigIntType(elementType)) {
+    result = MInt64ToBigInt::New(alloc(), binop, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
+    add(result);
+  }
+
+  pushResult(result);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsAddResult(

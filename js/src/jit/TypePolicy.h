@@ -288,6 +288,21 @@ class TruncateToInt32OrToBigIntPolicy final : public TypePolicy {
   }
 };
 
+// Expect either an Int32 or Int64 for operand Op. Else a TruncateToInt32 or
+// ToInt64 instruction is inserted.
+template <unsigned Op>
+class TruncateToInt32OrToInt64Policy final : public TypePolicy {
+ public:
+  constexpr TruncateToInt32OrToInt64Policy() = default;
+  EMPTY_DATA_;
+  [[nodiscard]] static bool staticAdjustInputs(TempAllocator& alloc,
+                                               MInstruction* def);
+  [[nodiscard]] bool adjustInputs(TempAllocator& alloc,
+                                  MInstruction* def) const override {
+    return staticAdjustInputs(alloc, def);
+  }
+};
+
 // Expect a double for operand Op. If the input is a Value, it is unboxed.
 template <unsigned Op>
 class DoublePolicy final : public TypePolicy {

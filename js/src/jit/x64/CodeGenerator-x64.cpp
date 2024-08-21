@@ -350,42 +350,32 @@ void CodeGenerator::visitAtomicTypedArrayElementBinop64(
   MOZ_ASSERT(!lir->mir()->isForEffect());
 
   Register elements = ToRegister(lir->elements());
-  Register value = ToRegister(lir->value());
-  Register64 temp1 = ToRegister64(lir->temp1());
-  Register64 temp2 = ToRegister64(lir->temp2());
-  Register out = ToRegister(lir->output());
+  Register64 value = ToRegister64(lir->value());
+  Register64 temp = ToTempRegister64OrInvalid(lir->temp());
+  Register64 out = ToOutRegister64(lir);
 
   Scalar::Type arrayType = lir->mir()->arrayType();
   AtomicOp atomicOp = lir->mir()->operation();
 
-  masm.loadBigInt64(value, temp1);
-
-  Register64 fetchTemp = Register64(out);
-  Register64 fetchOut = temp2;
-  Register createTemp = temp1.reg;
-
-  // Add and Sub don't need |fetchTemp| and can save a `mov` when the value and
+  // Add and Sub don't need |temp| and can save a `mov` when the value and
   // output register are equal to each other.
   if (atomicOp == AtomicOp::Add || atomicOp == AtomicOp::Sub) {
-    fetchTemp = Register64::Invalid();
-    fetchOut = temp1;
-    createTemp = temp2.reg;
+    MOZ_ASSERT(temp == Register64::Invalid());
+    MOZ_ASSERT(value == out);
   } else {
-    MOZ_ASSERT(temp2.reg == rax);
+    MOZ_ASSERT(out.reg == rax);
   }
 
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), arrayType);
-    masm.atomicFetchOp64(Synchronization::Full(), atomicOp, temp1, dest,
-                         fetchTemp, fetchOut);
+    masm.atomicFetchOp64(Synchronization::Full(), atomicOp, value, dest, temp,
+                         out);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(arrayType));
-    masm.atomicFetchOp64(Synchronization::Full(), atomicOp, temp1, dest,
-                         fetchTemp, fetchOut);
+    masm.atomicFetchOp64(Synchronization::Full(), atomicOp, value, dest, temp,
+                         out);
   }
-
-  emitCreateBigInt(lir, arrayType, fetchOut, out, createTemp);
 }
 
 void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
@@ -393,21 +383,18 @@ void CodeGenerator::visitAtomicTypedArrayElementBinopForEffect64(
   MOZ_ASSERT(lir->mir()->isForEffect());
 
   Register elements = ToRegister(lir->elements());
-  Register value = ToRegister(lir->value());
-  Register64 temp1 = ToRegister64(lir->temp1());
+  Register64 value = ToRegister64(lir->value());
 
   Scalar::Type arrayType = lir->mir()->arrayType();
   AtomicOp atomicOp = lir->mir()->operation();
 
-  masm.loadBigInt64(value, temp1);
-
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), arrayType);
-    masm.atomicEffectOp64(Synchronization::Full(), atomicOp, temp1, dest);
+    masm.atomicEffectOp64(Synchronization::Full(), atomicOp, value, dest);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(arrayType));
-    masm.atomicEffectOp64(Synchronization::Full(), atomicOp, temp1, dest);
+    masm.atomicEffectOp64(Synchronization::Full(), atomicOp, value, dest);
   }
 }
 

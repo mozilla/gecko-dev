@@ -8823,7 +8823,7 @@ class MAtomicExchangeTypedArrayElement
 
 class MAtomicTypedArrayElementBinop
     : public MTernaryInstruction,
-      public TruncateToInt32OrToBigIntPolicy<2>::Data {
+      public TruncateToInt32OrToInt64Policy<2>::Data {
  private:
   AtomicOp op_;
   Scalar::Type arrayType_;
