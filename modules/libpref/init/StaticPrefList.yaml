@@ -2325,6 +2325,12 @@
   value: false
   mirror: always
 
+# https://whatpr.org/html/10168/interaction.html#closewatcher
+- name: dom.closewatcher.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Disable custom highlight API; implementation pending.
 - name: dom.customHighlightAPI.enabled
   type: RelaxedAtomicBool
