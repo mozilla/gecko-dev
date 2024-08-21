@@ -15760,7 +15760,7 @@
 # Whether SVGGraphicsElement.nearestViewportElement and SVGGraphicsElement.farthestViewportElement are enabled.
 - name: svg.nearestAndFarthestViewportElement.enabled
   type: bool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # Whether SVGAElement.text is enabled.
