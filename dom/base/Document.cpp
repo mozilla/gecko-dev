@@ -17292,10 +17292,6 @@ void Document::NotifyUserGestureActivation(
 
     wc->NotifyUserGestureActivation(aModifiers);
   });
-
-  // If there has been a user activation, mark the current session history
-  // entry as having been interacted with.
-  SetSHEntryHasUserInteraction(true);
 }
 
 bool Document::HasBeenUserGestureActivated() {

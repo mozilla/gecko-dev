@@ -260,8 +260,6 @@ support-files = [
   "file_csp_uir_dummy.html",
 ]
 
-["browser_current_entry_always_in_history_menu.js"]
-
 ["browser_dataURI_unique_opaque_origin.js"]
 https_first_disabled = true
 
@@ -306,9 +304,6 @@ https_first_disabled = true
 support-files = ["overlink_test.html"]
 
 ["browser_platform_emulation.js"]
-
-["browser_replace_state_during_navigation.js"]
-support-files = ["file_replace_state_during_navigation.html"]
 
 ["browser_search_notification.js"]
 
