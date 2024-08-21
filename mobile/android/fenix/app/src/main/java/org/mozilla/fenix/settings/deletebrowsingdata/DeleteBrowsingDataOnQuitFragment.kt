@@ -19,7 +19,7 @@ class DeleteBrowsingDataOnQuitFragment : PreferenceFragmentCompat() {
 
     private val checkboxes by lazy {
         val context = requireContext()
-        DeleteBrowsingDataOnQuitType.values()
+        DeleteBrowsingDataOnQuitType.entries
             .asSequence()
             .mapNotNull { type ->
                 findPreference<CheckBoxPreference>(type.getPreferenceKey(context))?.let { pref ->

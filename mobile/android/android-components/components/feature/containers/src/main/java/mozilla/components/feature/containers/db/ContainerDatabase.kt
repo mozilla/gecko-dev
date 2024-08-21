@@ -48,7 +48,7 @@ internal class Converter {
 
     @TypeConverter
     fun toColor(color: String): Color? {
-        return Color.values().find { it.color == color }
+        return Color.entries.find { it.color == color }
     }
 
     @TypeConverter
@@ -58,6 +58,6 @@ internal class Converter {
 
     @TypeConverter
     fun toIcon(icon: String): Icon? {
-        return Icon.values().find { it.icon == icon }
+        return Icon.entries.find { it.icon == icon }
     }
 }

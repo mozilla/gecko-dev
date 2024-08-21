@@ -59,7 +59,7 @@ private fun Boolean.toAnalysisStatus(): AnalysisStatus =
     }
 
 private fun Highlight.toHighlights(): Map<HighlightType, List<String>>? =
-    HighlightType.values()
+    HighlightType.entries
         .associateWith { highlightsForType(it) }
         .filterValues { it != null }
         .mapValues { it.value!! }

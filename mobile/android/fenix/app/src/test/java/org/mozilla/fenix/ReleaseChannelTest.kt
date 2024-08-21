@@ -17,7 +17,7 @@ class ReleaseChannelTest {
             Debug,
         )
 
-        val nonDebugChannels = ReleaseChannel.values().toSet() - debugChannels
+        val nonDebugChannels = ReleaseChannel.entries.toSet() - debugChannels
 
         nonDebugChannels.forEach {
             val className = it.javaClass.simpleName

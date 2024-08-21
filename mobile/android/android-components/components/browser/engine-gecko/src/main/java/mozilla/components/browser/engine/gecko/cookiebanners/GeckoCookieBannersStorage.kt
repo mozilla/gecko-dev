@@ -124,5 +124,5 @@ class GeckoCookieBannersStorage(
 
 @VisibleForTesting
 internal fun Int.toCookieBannerHandlingMode(): CookieBannerHandlingMode {
-    return CookieBannerHandlingMode.values().first { it.mode == this }
+    return CookieBannerHandlingMode.entries.first { it.mode == this }
 }

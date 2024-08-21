@@ -32,7 +32,7 @@ class ConstraintLayoutPerfDetectorTest {
     fun `WHEN checking file types THEN it only applies layout`() {
         val excludedType = ResourceFolderType.LAYOUT
 
-        val allTypeButLayout = ResourceFolderType.values().filter { it != excludedType }
+        val allTypeButLayout = ResourceFolderType.entries.filter { it != excludedType }
         allTypeButLayout.forEach { assertFalse(detector.appliesTo(it)) }
 
         assertTrue(detector.appliesTo(excludedType))

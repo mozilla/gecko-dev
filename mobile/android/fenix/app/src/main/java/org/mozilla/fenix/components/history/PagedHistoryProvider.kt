@@ -104,7 +104,7 @@ class DefaultPagedHistoryProvider(
      * All types of visits that aren't redirects. This is used for fetching only redirecting visits
      * from the store so that we can filter them out.
      */
-    private val notRedirectTypes = VisitType.values().filterNot {
+    private val notRedirectTypes = VisitType.entries.filterNot {
         it == VisitType.REDIRECT_PERMANENT || it == VisitType.REDIRECT_TEMPORARY
     }
 

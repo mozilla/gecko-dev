@@ -31,7 +31,7 @@ object MozillaProductDetector {
     fun getInstalledMozillaProducts(context: Context): List<String> {
         val mozillaProducts = mutableListOf<String>()
 
-        for (product in MozillaProducts.values()) {
+        for (product in MozillaProducts.entries) {
             if (packageIsInstalled(context, product.productName)) { mozillaProducts.add(product.productName) }
         }
 
@@ -65,6 +65,6 @@ object MozillaProductDetector {
     // Note: we intentionally do not use a-c `firefoxBrandedBrowser` as this only gives us the first from that list
     private fun isMozillaProduct(packageName: String?): Boolean {
         packageName ?: return false
-        return MozillaProducts.values().any { product -> product.productName == packageName }
+        return MozillaProducts.entries.any { product -> product.productName == packageName }
     }
 }

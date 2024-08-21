@@ -88,7 +88,7 @@ internal object ShareTargetParser {
      */
     private fun parseEncType(encType: String?): ShareTarget.EncodingType? {
         val typeString = encType?.lowercase(Locale.ROOT) ?: return ShareTarget.EncodingType.URL_ENCODED
-        return ShareTarget.EncodingType.values().find { it.type == typeString }
+        return ShareTarget.EncodingType.entries.find { it.type == typeString }
     }
 
     /**

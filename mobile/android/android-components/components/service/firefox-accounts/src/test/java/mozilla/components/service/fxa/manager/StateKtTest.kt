@@ -109,7 +109,7 @@ class StateKtTest {
     @Test
     fun `state transition matrix`() {
         // We want to test every combination of state/event. Do that by iterating over entire sets.
-        ProgressState.values().forEach { state ->
+        ProgressState.entries.forEach { state ->
             Event.Progress::class.sealedSubclasses.map { instantiateEvent(it.simpleName!!) }.forEach {
                 val ss = State.Active(state)
                 assertNextStateForStateEventPair(

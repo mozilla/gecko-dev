@@ -109,7 +109,7 @@ enum class FenixFxAEntryPoint(override val entryName: String) : FxAEntryPoint, P
     companion object CREATOR : Parcelable.Creator<FenixFxAEntryPoint> {
         override fun createFromParcel(parcel: Parcel): FenixFxAEntryPoint {
             val parcelEntryName = parcel.readString() ?: Unknown
-            return FenixFxAEntryPoint.values().first { it.entryName == parcelEntryName }
+            return entries.first { it.entryName == parcelEntryName }
         }
 
         override fun newArray(size: Int): Array<FenixFxAEntryPoint?> {

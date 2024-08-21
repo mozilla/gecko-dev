@@ -55,9 +55,10 @@ internal abstract class SitePermissionsDatabase : RoomDatabase() {
 
 @Suppress("unused")
 internal class StatusConverter {
-    private val autoplayStatusArray = SitePermissions.AutoplayStatus.values()
+    private val autoplayStatusArray =
+        SitePermissions.AutoplayStatus.entries.toTypedArray()
 
-    private val statusArray = SitePermissions.Status.values()
+    private val statusArray = SitePermissions.Status.entries.toTypedArray()
 
     @TypeConverter
     fun toInt(status: SitePermissions.Status): Int {

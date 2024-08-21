@@ -77,7 +77,7 @@ internal object Migrations {
 
 @Suppress("unused")
 internal class StatusConverter {
-    private val statusArray = DownloadState.Status.values()
+    private val statusArray = DownloadState.Status.entries.toTypedArray()
 
     @TypeConverter
     fun toInt(status: DownloadState.Status): Int {

@@ -186,7 +186,7 @@ class BaseBrowserFragmentTest {
             directoryPath = "/",
         )
 
-        val status = DownloadState.Status.values()
+        val status = DownloadState.Status.entries
             .filter { it == DownloadState.Status.COMPLETED && it == DownloadState.Status.FAILED }
 
         status.forEach {
@@ -208,7 +208,7 @@ class BaseBrowserFragmentTest {
             directoryPath = "/",
         )
 
-        val status = DownloadState.Status.values()
+        val status = DownloadState.Status.entries
             .filter { it != DownloadState.Status.COMPLETED && it != DownloadState.Status.FAILED }
 
         status.forEach {
@@ -230,7 +230,7 @@ class BaseBrowserFragmentTest {
             directoryPath = "/",
         )
 
-        val status = DownloadState.Status.values()
+        val status = DownloadState.Status.entries
             .filter { it != DownloadState.Status.COMPLETED && it != DownloadState.Status.FAILED }
 
         status.forEach {

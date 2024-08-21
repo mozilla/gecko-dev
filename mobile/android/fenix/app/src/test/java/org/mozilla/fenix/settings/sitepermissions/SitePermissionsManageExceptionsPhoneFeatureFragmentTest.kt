@@ -70,7 +70,7 @@ class SitePermissionsManageExceptionsPhoneFeatureFragmentTest {
 
     @Test
     fun `GIVEN a none AUTOPLAY permission WHEN onCreateView is called THEN initNormalFeature is called`() {
-        val features = PhoneFeature.values().filter { it != PhoneFeature.AUTOPLAY }
+        val features = PhoneFeature.entries.filter { it != PhoneFeature.AUTOPLAY }
 
         features.forEach {
             every { fragment.getFeature() } returns it

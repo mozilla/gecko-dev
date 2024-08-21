@@ -196,7 +196,7 @@ private fun ReviewGradePreview() {
                 .background(FirefoxTheme.colors.layer1)
                 .padding(16.dp),
         ) {
-            Grade.values().forEach {
+            Grade.entries.forEach {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(32.dp),
                 ) {

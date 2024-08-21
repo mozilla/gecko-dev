@@ -279,7 +279,7 @@ class Browsers private constructor(
         browsers: MutableMap<String, ActivityInfo>,
         uri: Uri,
     ) {
-        for (browser in KnownBrowser.values()) {
+        for (browser in KnownBrowser.entries) {
             if (browsers.containsKey(browser.packageName)) {
                 continue
             }
@@ -345,7 +345,7 @@ class Browsers private constructor(
          * Returns `true` is the provided [packageName] matches a known browser.
          */
         fun isBrowser(packageName: String): Boolean {
-            return KnownBrowser.values().asSequence().firstOrNull { browser ->
+            return KnownBrowser.entries.firstOrNull { browser ->
                 browser.packageName == packageName
             } != null
         }

@@ -27,7 +27,7 @@ internal fun parseListStatementsJson(json: JSONObject): ListStatementsResponse {
         .asSequence { i -> getJSONObject(i) }
         .mapNotNull { statementJson ->
             val relationString = statementJson.getString("relation")
-            val relation = Relation.values().find { relationString == it.kindAndDetail }
+            val relation = Relation.entries.find { relationString == it.kindAndDetail }
 
             val targetJson = statementJson.getJSONObject("target")
             val webJson = targetJson.optJSONObject("web")

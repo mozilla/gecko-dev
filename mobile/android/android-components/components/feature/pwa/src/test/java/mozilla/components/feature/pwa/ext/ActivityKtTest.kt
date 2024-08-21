@@ -36,7 +36,7 @@ class ActivityKtTest {
 
     @Test
     fun `applyOrientation calls setRequestedOrientation for every value`() {
-        WebAppManifest.Orientation.values().forEach { orientation ->
+        WebAppManifest.Orientation.entries.forEach { orientation ->
             val activity: Activity = mock()
             activity.applyOrientation(baseManifest.copy(orientation = orientation))
             verify(activity).requestedOrientation = anyInt()

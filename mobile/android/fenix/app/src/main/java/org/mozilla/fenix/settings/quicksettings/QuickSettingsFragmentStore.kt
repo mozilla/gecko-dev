@@ -120,7 +120,7 @@ class QuickSettingsFragmentStore(
             settings: Settings,
         ): WebsitePermissionsState {
             val state = EnumMap<PhoneFeature, WebsitePermission>(PhoneFeature::class.java)
-            for (feature in PhoneFeature.values()) {
+            for (feature in PhoneFeature.entries) {
                 state[feature] = feature.toWebsitePermission(
                     context,
                     permissions,

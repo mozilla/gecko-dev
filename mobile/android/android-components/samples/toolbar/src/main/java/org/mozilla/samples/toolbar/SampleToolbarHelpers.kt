@@ -41,10 +41,10 @@ class ConfigurationAdapter(
         return ConfigurationViewHolder(view as TextView)
     }
 
-    override fun getItemCount() = ToolbarConfiguration.values().size
+    override fun getItemCount() = ToolbarConfiguration.entries.size
 
     override fun onBindViewHolder(holder: ConfigurationViewHolder, position: Int) {
-        val item = ToolbarConfiguration.values()[position]
+        val item = ToolbarConfiguration.entries[position]
         holder.labelView.text = item.label
 
         holder.labelView.setOnClickListener {
@@ -66,7 +66,7 @@ class ConfigurationViewHolder(val labelView: TextView) : RecyclerView.ViewHolder
 fun getToolbarConfiguration(intent: Intent): ToolbarConfiguration {
     val label = intent.extras?.getString(Extra.TOOLBAR_LABEL) ?: ToolbarConfiguration.DEFAULT.label
 
-    ToolbarConfiguration.values().forEach {
+    ToolbarConfiguration.entries.forEach {
         if (label == it.label) {
             return it
         }

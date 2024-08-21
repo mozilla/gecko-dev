@@ -56,7 +56,7 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
             loginsStorage: LoginsStorage,
             inactiveTabsEnabled: Boolean,
         ): List<DebugDrawerDestination> =
-            DebugDrawerRoute.values().map { debugDrawerRoute ->
+            entries.map { debugDrawerRoute ->
                 val onClick: () -> Unit
                 val content: @Composable () -> Unit
                 when (debugDrawerRoute) {

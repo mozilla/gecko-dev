@@ -117,7 +117,7 @@ class StatementApi(private val httpClient: Client) : StatementListFetcher {
             return sequenceOf(IncludeStatement(include))
         }
 
-        val relationTypes = Relation.values()
+        val relationTypes = Relation.entries.toTypedArray()
         val relations = json.getJSONArray("relation")
             .asSequence { i -> getString(i) }
             .mapNotNull { relation -> relationTypes.find { relation == it.kindAndDetail } }

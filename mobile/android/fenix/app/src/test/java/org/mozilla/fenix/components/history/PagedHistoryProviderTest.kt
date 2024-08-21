@@ -383,7 +383,7 @@ class PagedHistoryProviderTest {
                 any(),
                 any(),
                 eq(
-                    VisitType.values().filterNot {
+                    VisitType.entries.filterNot {
                         it == VisitType.REDIRECT_PERMANENT || it == VisitType.REDIRECT_TEMPORARY
                     },
                 ),

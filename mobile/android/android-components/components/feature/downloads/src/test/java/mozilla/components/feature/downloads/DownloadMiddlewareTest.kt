@@ -316,7 +316,7 @@ class DownloadMiddlewareTest {
 
         reset(downloadMiddleware)
 
-        val allowedStatus = DownloadState.Status.values().filter { it !in ignoredStatus }
+        val allowedStatus = DownloadState.Status.entries.filter { it !in ignoredStatus }
 
         allowedStatus.forEachIndexed { index, status ->
             val download = DownloadState("https://mozilla.org/download", status = status)

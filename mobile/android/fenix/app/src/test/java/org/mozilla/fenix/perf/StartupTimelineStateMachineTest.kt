@@ -30,8 +30,8 @@ class StartupTimelineStateMachineTest {
 
     @Test
     fun `GIVEN state cold + known destination WHEN any activity is passed in THEN we remain in the same state`() {
-        val knownDestinations = StartupDestination.values().filter { it != UNKNOWN }
-        val allActivities = StartupActivity.values()
+        val knownDestinations = StartupDestination.entries.filter { it != UNKNOWN }
+        val allActivities = StartupActivity.entries.toTypedArray()
 
         knownDestinations.forEach { destination ->
             val initial = Cold(destination)
