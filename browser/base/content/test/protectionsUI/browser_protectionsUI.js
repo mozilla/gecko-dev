@@ -242,23 +242,7 @@ add_task(async function testShowFullReportButton() {
   BrowserTestUtils.removeTab(tab);
 });
 
-/**
- * A test for ensuring the mini panel is working correctly
- */
-add_task(async function testMiniPanel() {
-  // Open a tab.
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "https://example.com"
-  );
-
-  // Open the mini panel.
-  await openProtectionsPanel(true);
-  let popuphiddenPromise = BrowserTestUtils.waitForEvent(
-    gProtectionsHandler._protectionsPopup,
-    "popuphidden"
-  );
-
+function checkMiniPanel() {
   // Check that only the header is displayed.
   let mainView = document.getElementById("protections-popup-mainView");
   for (let item of mainView.childNodes) {
@@ -274,11 +258,83 @@ add_task(async function testMiniPanel() {
       );
     }
   }
+}
+
+/**
+ * A test for ensuring the mini panel closes automatically
+ */
+add_task(async function testMiniPanel() {
+  // Open a tab.
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com"
+  );
+
+  // Open the mini panel.
+  await openProtectionsPanel(true);
+  let popuphiddenPromise = BrowserTestUtils.waitForEvent(
+    gProtectionsHandler._protectionsPopup,
+    "popuphidden"
+  );
+
+  checkMiniPanel();
 
   // Wait until the auto hide is happening.
   await popuphiddenPromise;
 
   ok(true, "The mini panel hides automatically.");
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+/**
+ * A test for ensuring that clicking the mini panel opens the big panel
+ */
+add_task(async function testMiniPanelClick() {
+  // Open a tab.
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com"
+  );
+
+  // Open the mini panel.
+  await openProtectionsPanel(true);
+  let popuphiddenPromise = BrowserTestUtils.waitForEvent(
+    gProtectionsHandler._protectionsPopup,
+    "popuphidden"
+  );
+
+  checkMiniPanel();
+
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    window,
+    "popupshown",
+    true,
+    e => e.target.id == "protections-popup"
+  );
+
+  // Simulate clicking on the mini panel text
+  let headerEl = document.getElementById(
+    "protections-popup-mainView-panel-header-section"
+  );
+  await EventUtils.synthesizeMouseAtCenter(headerEl, {});
+
+  info("Waiting for mini panel to close");
+  await popuphiddenPromise;
+
+  info("Waiting for big popup to be shown");
+  await popupShownPromise;
+
+  let header = document.getElementById(
+    "protections-popup-mainView-panel-header-section"
+  );
+  ok(BrowserTestUtils.isVisible(header), "Header is visible");
+
+  let body = document.getElementById("protections-popup-main-body");
+  ok(BrowserTestUtils.isVisible(body), "Main body is visible");
+
+  let footer = document.getElementById("protections-popup-footer");
+  ok(BrowserTestUtils.isVisible(footer), "Footer is visible");
 
   BrowserTestUtils.removeTab(tab);
 });
