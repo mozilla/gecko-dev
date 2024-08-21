@@ -55,9 +55,6 @@ class DecoderTraits {
   // Returns true if aType is MIME type of hls.
   static bool IsHttpLiveStreamingType(const MediaContainerType& aType);
 
-  // Returns true if aType is matroska type.
-  static bool IsMatroskaType(const MediaContainerType& aType);
-
   // Returns an array of all TrackInfo objects described by this type.
   static nsTArray<UniquePtr<TrackInfo>> GetTracksInfo(
       const MediaContainerType& aType);
