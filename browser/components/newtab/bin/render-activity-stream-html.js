@@ -66,6 +66,7 @@ function templateHTML(options) {
       content="default-src 'none'; object-src 'none'; script-src resource: chrome:; connect-src https:; img-src https: data: blob: chrome:; style-src 'unsafe-inline';"
     />
     <meta name="color-scheme" content="light dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title data-l10n-id="newtab-page-title"></title>
     <link
       rel="icon"
