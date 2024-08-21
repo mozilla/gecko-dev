@@ -5,7 +5,6 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
-  EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
 /**
@@ -22,33 +21,34 @@ export class AboutTranslationsParent extends JSWindowActorParent {
   async receiveMessage({ name, data }) {
     switch (name) {
       case "AboutTranslations:GetTranslationsPort": {
-        const { fromLanguage, toLanguage } = data;
-        const translationsEngineParent =
-          await lazy.EngineProcess.getTranslationsEngineParent();
         if (this.#isDestroyed) {
           return undefined;
         }
-        const { port1, port2 } = new MessageChannel();
-        translationsEngineParent.startTranslation(
-          fromLanguage,
-          toLanguage,
-          port1,
-          this.browsingContext.top.embedderElement.innerWindowID
-        );
 
-        // At the time of writing, you can't return a port via the `sendQuery` API,
-        // so results can't just be returned. The `sendAsyncMessage` method must be
-        // invoked. Additionally, in the AboutTranslationsChild, the port must
-        // be transfered to the content page with `postMessage`.
-        this.sendAsyncMessage(
-          "AboutTranslations:SendTranslationsPort",
-          {
+        const { fromLanguage, toLanguage } = data;
+        try {
+          const port = await lazy.TranslationsParent.requestTranslationsPort(
             fromLanguage,
-            toLanguage,
-            port: port2,
-          },
-          [port2] // Mark the port as transerable.
-        );
+            toLanguage
+          );
+
+          // At the time of writing, you can't return a port via the `sendQuery` API,
+          // so results can't just be returned. The `sendAsyncMessage` method must be
+          // invoked. Additionally, in the AboutTranslationsChild, the port must
+          // be transferred to the content page with `postMessage`.
+          this.sendAsyncMessage(
+            "AboutTranslations:SendTranslationsPort",
+            {
+              fromLanguage,
+              toLanguage,
+              port,
+            },
+            [port] // Mark the port as transferable.
+          );
+        } catch (error) {
+          console.error(error);
+        }
+
         return undefined;
       }
       case "AboutTranslations:GetSupportedLanguages": {

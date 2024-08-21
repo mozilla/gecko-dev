@@ -2184,8 +2184,7 @@ var SelectTranslationsPanel = new (class {
   async #requestTranslationsPort(fromLanguage, toLanguage) {
     const port = await TranslationsParent.requestTranslationsPort(
       fromLanguage,
-      toLanguage,
-      /* innerWindowId */ null
+      toLanguage
     );
     return port;
   }

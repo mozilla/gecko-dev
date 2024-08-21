@@ -818,24 +818,24 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    * @param {string} fromLanguage - The BCP-47 from-language tag.
    * @param {string} toLanguage - The BCP-47 to-language tag.
-   * @param {number} [innerWindowId] - The id of the current window.
+   * @param {TranslationsParent} [translationsParent] - A TranslationsParent actor instance.
    *   NOTE: This value should be provided only if your port is associated with Full Page Translations.
-   *   This will associate this translations port with the TranslationsParent actor instance for the provided id,
-   *   which will mean that changes in the translation state will affect the state of the Translations URL-bar button etc.
+   *   This will associate this translations port with the TranslationsParent actor instance, which will mean that changes
+   *   in the translation state will affect the state of the Full-Page Translations UI, e.g. the URL-bar Translations button.
    *
    * @returns {Promise<MessagePort | undefined>} The port for communication with the translation engine, or undefined on failure.
    */
   static async requestTranslationsPort(
     fromLanguage,
     toLanguage,
-    innerWindowId
+    translationsParent
   ) {
     let translationsEngineParent;
     try {
       translationsEngineParent =
         await lazy.EngineProcess.getTranslationsEngineParent();
     } catch (error) {
-      console.error("Failed to get the translation engine process", error);
+      lazy.console.error("Failed to get the translation engine process", error);
       return undefined;
     }
 
@@ -846,7 +846,7 @@ export class TranslationsParent extends JSWindowActorParent {
       fromLanguage,
       toLanguage,
       port1,
-      innerWindowId
+      translationsParent
     );
 
     return port2;
@@ -895,14 +895,6 @@ export class TranslationsParent extends JSWindowActorParent {
           return undefined;
         }
 
-        let actor;
-        try {
-          actor = await lazy.EngineProcess.getTranslationsEngineParent();
-        } catch (error) {
-          console.error("Failed to get the translation engine process", error);
-          return undefined;
-        }
-
         if (this.#isDestroyed) {
           // This actor was already destroyed.
           return undefined;
@@ -914,21 +906,24 @@ export class TranslationsParent extends JSWindowActorParent {
           );
         }
 
-        // The MessageChannel will be used for communicating directly between the content
-        // process and the engine's process.
-        const { port1, port2 } = new MessageChannel();
-        actor.startTranslation(
-          requestedTranslationPair.fromLanguage,
-          requestedTranslationPair.toLanguage,
-          port1,
-          this.innerWindowId,
+        const { fromLanguage, toLanguage } = requestedTranslationPair;
+        const port = await TranslationsParent.requestTranslationsPort(
+          fromLanguage,
+          toLanguage,
           this
         );
 
+        if (!port) {
+          lazy.console.error(
+            `Failed to create a translations port for language pair: (${fromLanguage} -> ${toLanguage})`
+          );
+          return undefined;
+        }
+
         this.sendAsyncMessage(
           "Translations:AcquirePort",
-          { port: port2 },
-          [port2] // Mark the port as transferable.
+          { port },
+          [port] // Mark the port as transferable.
         );
 
         return undefined;
@@ -2434,14 +2429,6 @@ export class TranslationsParent extends JSWindowActorParent {
     } else {
       const { docLangTag } = this.languageState.detectedLanguages;
 
-      let actor;
-      try {
-        actor = await lazy.EngineProcess.getTranslationsEngineParent();
-      } catch (error) {
-        console.error("Failed to get the translation engine process", error);
-        return;
-      }
-
       if (!this.innerWindowId) {
         throw new Error(
           "The innerWindowId for the TranslationsParent was not available."
@@ -2450,14 +2437,18 @@ export class TranslationsParent extends JSWindowActorParent {
 
       // The MessageChannel will be used for communicating directly between the content
       // process and the engine's process.
-      const { port1, port2 } = new MessageChannel();
-      actor.startTranslation(
+      const port = await TranslationsParent.requestTranslationsPort(
         fromLanguage,
         toLanguage,
-        port1,
-        this.innerWindowId,
         this
       );
+
+      if (!port) {
+        lazy.console.error(
+          `Failed to create a translations port for language pair: (${fromLanguage} -> ${toLanguage})`
+        );
+        return;
+      }
 
       this.languageState.requestedTranslationPair = {
         fromLanguage,
@@ -2484,11 +2475,11 @@ export class TranslationsParent extends JSWindowActorParent {
         {
           fromLanguage,
           toLanguage,
-          port: port2,
+          port,
         },
         // https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects
         // Mark the MessageChannel port as transferable.
-        [port2]
+        [port]
       );
     }
   }

@@ -76,21 +76,12 @@ export class TranslationsEngineParent extends JSWindowActorParent {
    * @param {string} fromLanguage
    * @param {string} toLanguage
    * @param {MessagePort} port
-   * @param {number} innerWindowId
    * @param {TranslationsParent} [translationsParent]
    */
-  startTranslation(
-    fromLanguage,
-    toLanguage,
-    port,
-    innerWindowId,
-    translationsParent
-  ) {
+  startTranslation(fromLanguage, toLanguage, port, translationsParent) {
+    const innerWindowId = translationsParent?.innerWindowId;
     if (translationsParent) {
-      this.#translationsParents.set(
-        translationsParent.innerWindowId,
-        translationsParent
-      );
+      this.#translationsParents.set(innerWindowId, translationsParent);
     }
     if (this.#isDestroyed) {
       throw new Error("The translation engine process was already destroyed.");
