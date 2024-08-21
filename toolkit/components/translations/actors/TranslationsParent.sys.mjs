@@ -439,9 +439,29 @@ export class TranslationsParent extends JSWindowActorParent {
    *   3. App languages
    *   4. OS language
    *
+   * This is the composition of #mostRecentTargetLanguages and #userSettingsLanguages
+   *
    * @type {null | string[]}
    */
   static #preferredLanguages = null;
+
+  /**
+   * An ordered list of the most recently translated-into target languages.
+   *
+   * @type {null | string[]}
+   */
+  static #mostRecentTargetLanguages = null;
+
+  /**
+   * An ordered list of languages specified in the user's settings based on:
+   *
+   *   1. Web requested languages
+   *   2. App languages
+   *   3. OS languages
+   *
+   * @type {null | string[]}
+   */
+  static #userSettingsLanguages = null;
 
   /**
    * The value of navigator.languages.
@@ -728,10 +748,33 @@ export class TranslationsParent extends JSWindowActorParent {
     return true;
   }
 
-  static #resetPreferredLanguages() {
-    TranslationsParent.#webContentLanguages = null;
+  /**
+   * Invalidates the #mostRecentTargetLanguages portion of #preferredLanguages.
+   *
+   * This means that the next time getPreferredLanguages() is called, it will
+   * need to re-fetch the mostRecentTargetLanguages, but it may still use a
+   * cached version of userSettingsLanguages.
+   *
+   * @see {getPreferredLanguages}
+   */
+  static #invalidateMostRecentTargetLanguages() {
+    TranslationsParent.#mostRecentTargetLanguages = null;
     TranslationsParent.#preferredLanguages = null;
-    TranslationsParent.getPreferredLanguages();
+  }
+
+  /**
+   * Invalidates the #userSettingsLanguages portion of #preferredLanguages.
+   *
+   * This means that the next time getPreferredLanguages() is called, it will
+   * need to re-fetch the userSettingsLanguages, but it may still use a
+   * cached version of mostRecentTargetLanguages.
+   *
+   * @see {getPreferredLanguages}
+   */
+  static #invalidateUserSettingsLanguages() {
+    TranslationsParent.#webContentLanguages = null;
+    TranslationsParent.#userSettingsLanguages = null;
+    TranslationsParent.#preferredLanguages = null;
   }
 
   /**
@@ -794,6 +837,80 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
+   * Retrieves the most recently translated-into target languages.
+   *
+   * This will return a cached value unless #invalidateMostRecentTargetLanguages
+   * has been called.
+   *
+   * @see {#invalidateMostRecentTargetLanguages}
+   *
+   * @returns {string[]} - An ordered list of the most recent target languages.
+   */
+  static #getMostRecentTargetLanguages() {
+    if (TranslationsParent.#mostRecentTargetLanguages) {
+      return TranslationsParent.#mostRecentTargetLanguages;
+    }
+
+    // Store the mostRecentTargetLanguage values in reverse order
+    // so that the most recently used language is first in the array.
+    TranslationsParent.#mostRecentTargetLanguages = [
+      ...lazy.mostRecentTargetLanguages,
+    ].reverse();
+
+    return TranslationsParent.#mostRecentTargetLanguages;
+  }
+
+  /**
+   * Retrieves the user's preferred languages from the settings based on:
+   *
+   *   1. Web requested languages
+   *   2. App languages
+   *   3. OS language
+   *
+   * This will return a cached value unless #invalidateUserSettingsLanguages
+   * has been called.
+   *
+   * @see {#invalidateUserSettingsLanguages}
+   *
+   * @returns {string[]} - An ordered list of the user's settings languages.
+   */
+  static #getUserSettingsLanguages() {
+    if (TranslationsParent.#userSettingsLanguages) {
+      return TranslationsParent.#userSettingsLanguages;
+    }
+
+    // The system language could also be a good option for a language to offer the user.
+    const osPrefs = Cc["@mozilla.org/intl/ospreferences;1"].getService(
+      Ci.mozIOSPreferences
+    );
+    const systemLocales =
+      TranslationsParent.mockedSystemLocales ?? osPrefs.systemLocales;
+
+    // Combine the locales together.
+    const userSettingsLocales = new Set([
+      ...TranslationsParent.getWebContentLanguages(),
+      ...Services.locale.appLocalesAsBCP47,
+      ...systemLocales,
+    ]);
+
+    // Attempt to convert the locales to lang tags. Do not completely trust the
+    // values coming from preferences and the OS to have been validated as correct
+    // BCP 47 locale identifiers.
+    const userSettingsLangTags = new Set();
+    for (const locale of userSettingsLocales) {
+      try {
+        userSettingsLangTags.add(new Intl.Locale(locale).language);
+      } catch (_) {
+        // The locale was invalid, discard it.
+      }
+    }
+
+    // Convert the Set to an array to indicate that it is an ordered listing of languages.
+    TranslationsParent.#userSettingsLanguages = [...userSettingsLangTags];
+    return TranslationsParent.#userSettingsLanguages;
+  }
+
+  /**
    * An ordered list of preferred languages based on:
    *
    *   1. Most recent target languages
@@ -815,11 +932,11 @@ export class TranslationsParent extends JSWindowActorParent {
 
     if (!TranslationsParent.#observingLanguages) {
       Services.obs.addObserver(
-        TranslationsParent.#resetPreferredLanguages,
+        TranslationsParent.#invalidateUserSettingsLanguages,
         "intl:app-locales-changed"
       );
       Services.obs.addObserver(() => {
-        TranslationsParent.#resetPreferredLanguages();
+        TranslationsParent.#invalidateMostRecentTargetLanguages();
         Services.obs.notifyObservers(
           null,
           "translations:maybe-update-user-lang-tag"
@@ -827,42 +944,19 @@ export class TranslationsParent extends JSWindowActorParent {
       }, "translations:most-recent-target-language-changed");
       Services.prefs.addObserver(
         "intl.accept_languages",
-        TranslationsParent.#resetPreferredLanguages
+        TranslationsParent.#invalidateUserSettingsLanguages
       );
+
       TranslationsParent.#observingLanguages = true;
     }
 
-    // The system language could also be a good option for a language to offer the user.
-    const osPrefs = Cc["@mozilla.org/intl/ospreferences;1"].getService(
-      Ci.mozIOSPreferences
-    );
-    const systemLocales =
-      TranslationsParent.mockedSystemLocales ?? osPrefs.systemLocales;
-
-    // Combine the locales together.
-    const preferredLocales = new Set([
-      // Store the mostRecentTargetLanguage values in reverse order
-      // so that the most recently used language is the first insertion.
-      ...[...lazy.mostRecentTargetLanguages].reverse(),
-      ...TranslationsParent.getWebContentLanguages(),
-      ...Services.locale.appLocalesAsBCP47,
-      ...systemLocales,
+    const preferredLanguages = new Set([
+      ...TranslationsParent.#getMostRecentTargetLanguages(),
+      ...TranslationsParent.#getUserSettingsLanguages(),
     ]);
 
-    // Attempt to convert the locales to lang tags. Do not completely trust the
-    // values coming from preferences and the OS to have been validated as correct
-    // BCP 47 locale identifiers.
-    const langTags = new Set();
-    for (const locale of preferredLocales) {
-      try {
-        langTags.add(new Intl.Locale(locale).language);
-      } catch (_) {
-        // The locale was invalid, discard it.
-      }
-    }
-
     // Convert the Set to an array to indicate that it is an ordered listing of languages.
-    TranslationsParent.#preferredLanguages = [...langTags];
+    TranslationsParent.#preferredLanguages = [...preferredLanguages];
 
     return TranslationsParent.#preferredLanguages.filter(
       langTag => !excludeLangTags?.includes(langTag)
@@ -2419,6 +2513,8 @@ export class TranslationsParent extends JSWindowActorParent {
 
     // Derived data.
     TranslationsParent.#clearCachedLanguagePairs();
+    TranslationsParent.#mostRecentTargetLanguages = null;
+    TranslationsParent.#userSettingsLanguages = null;
     TranslationsParent.#preferredLanguages = null;
     TranslationsParent.#isTranslationsEngineSupported = null;
   }
