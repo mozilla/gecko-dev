@@ -112,7 +112,8 @@ class WakeLockTopic {
       SwitchToNextWakeLockType();
     }
 #ifdef MOZ_ENABLE_DBUS
-    mCancellable = dont_AddRef(g_cancellable_new());
+    mInhibitCancellable = dont_AddRef(g_cancellable_new());
+    mUnInhibitCancellable = dont_AddRef(g_cancellable_new());
 #endif
   }
 
@@ -184,7 +185,8 @@ class WakeLockTopic {
   // and it's needed for screen saver enablement.
   Maybe<uint32_t> mInhibitRequestID;
 
-  RefPtr<GCancellable> mCancellable;
+  RefPtr<GCancellable> mInhibitCancellable;
+  RefPtr<GCancellable> mUnInhibitCancellable;
   // Used to uninhibit org.freedesktop.portal.Inhibit request
   nsCString mRequestObjectPath;
 #endif
@@ -264,7 +266,7 @@ void WakeLockTopic::DBusInhibitScreensaver(const char* aName, const char* aPath,
   }
   if (mWaitingForDBusUninhibit) {
     WAKE_LOCK_LOG("  cancel un-inihibit request");
-    g_cancellable_cancel(mCancellable);
+    g_cancellable_cancel(mUnInhibitCancellable);
     mWaitingForDBusUninhibit = false;
   }
   mWaitingForDBusInhibit = true;
@@ -273,7 +275,7 @@ void WakeLockTopic::DBusInhibitScreensaver(const char* aName, const char* aPath,
       G_BUS_TYPE_SESSION,
       GDBusProxyFlags(G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES),
-      /* aInterfaceInfo = */ nullptr, aName, aPath, aCall, mCancellable)
+      /* aInterfaceInfo = */ nullptr, aName, aPath, aCall, mInhibitCancellable)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [self = RefPtr{this}, this, args = RefPtr{aArgs},
@@ -281,7 +283,8 @@ void WakeLockTopic::DBusInhibitScreensaver(const char* aName, const char* aPath,
             WAKE_LOCK_LOG(
                 "WakeLockTopic::DBusInhibitScreensaver() proxy created");
             DBusProxyCall(aProxy.get(), aMethod, args.get(),
-                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, mCancellable)
+                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT,
+                          mInhibitCancellable)
                 ->Then(
                     GetCurrentSerialEventTarget(), __func__,
                     [s = RefPtr{this}, this](RefPtr<GVariant>&& aResult) {
@@ -348,7 +351,7 @@ void WakeLockTopic::DBusUninhibitScreensaver(const char* aName,
 
   if (mWaitingForDBusInhibit) {
     WAKE_LOCK_LOG("  cancel inihibit request");
-    g_cancellable_cancel(mCancellable);
+    g_cancellable_cancel(mInhibitCancellable);
     mWaitingForDBusInhibit = false;
   }
 
@@ -366,7 +369,8 @@ void WakeLockTopic::DBusUninhibitScreensaver(const char* aName,
       G_BUS_TYPE_SESSION,
       GDBusProxyFlags(G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES),
-      /* aInterfaceInfo = */ nullptr, aName, aPath, aCall, mCancellable)
+      /* aInterfaceInfo = */ nullptr, aName, aPath, aCall,
+      mUnInhibitCancellable)
       ->Then(
           target, __func__,
           [self = RefPtr{this}, this, args = std::move(variant), target,
@@ -374,7 +378,8 @@ void WakeLockTopic::DBusUninhibitScreensaver(const char* aName,
             WAKE_LOCK_LOG(
                 "WakeLockTopic::DBusUninhibitScreensaver() proxy created");
             DBusProxyCall(aProxy.get(), aMethod, args.get(),
-                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, mCancellable)
+                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT,
+                          mUnInhibitCancellable)
                 ->Then(
                     target, __func__,
                     [s = RefPtr{this}, this](RefPtr<GVariant>&& aResult) {
@@ -409,7 +414,7 @@ void WakeLockTopic::InhibitFreeDesktopPortal() {
   }
   if (mWaitingForDBusUninhibit) {
     WAKE_LOCK_LOG("  cancel un-inihibit request");
-    g_cancellable_cancel(mCancellable);
+    g_cancellable_cancel(mUnInhibitCancellable);
     mWaitingForDBusUninhibit = false;
   }
   mWaitingForDBusInhibit = true;
@@ -420,7 +425,7 @@ void WakeLockTopic::InhibitFreeDesktopPortal() {
                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES),
       nullptr, FREEDESKTOP_PORTAL_DESKTOP_TARGET,
       FREEDESKTOP_PORTAL_DESKTOP_OBJECT, FREEDESKTOP_PORTAL_DESKTOP_INTERFACE,
-      mCancellable)
+      mInhibitCancellable)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [self = RefPtr{this}, this](RefPtr<GDBusProxy>&& aProxy) {
@@ -435,7 +440,7 @@ void WakeLockTopic::InhibitFreeDesktopPortal() {
                 aProxy.get(), "Inhibit",
                 g_variant_new("(sua{sv})", g_get_prgname(),
                               FREEDESKTOP_PORTAL_DESKTOP_INHIBIT_IDLE_FLAG, &b),
-                G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, mCancellable)
+                G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, mInhibitCancellable)
                 ->Then(
                     GetCurrentSerialEventTarget(), __func__,
                     [s = RefPtr{this}, this](RefPtr<GVariant>&& aResult) {
@@ -515,7 +520,7 @@ void WakeLockTopic::UninhibitFreeDesktopPortal() {
 
   if (mWaitingForDBusInhibit) {
     WAKE_LOCK_LOG("  cancel inihibit request");
-    g_cancellable_cancel(mCancellable);
+    g_cancellable_cancel(mInhibitCancellable);
     mWaitingForDBusInhibit = false;
   }
   if (mRequestObjectPath.IsEmpty()) {
@@ -530,12 +535,13 @@ void WakeLockTopic::UninhibitFreeDesktopPortal() {
       GDBusProxyFlags(G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES),
       nullptr, FREEDESKTOP_PORTAL_DESKTOP_TARGET, mRequestObjectPath.get(),
-      "org.freedesktop.portal.Request", mCancellable)
+      "org.freedesktop.portal.Request", mUnInhibitCancellable)
       ->Then(
           target, __func__,
           [self = RefPtr{this}, target, this](RefPtr<GDBusProxy>&& aProxy) {
             DBusProxyCall(aProxy.get(), "Close", nullptr,
-                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, mCancellable)
+                          G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT,
+                          mUnInhibitCancellable)
                 ->Then(
                     target, __func__,
                     [s = RefPtr{this}, this](RefPtr<GVariant>&& aResult) {
@@ -794,16 +800,15 @@ nsresult WakeLockTopic::InhibitScreensaver() {
 }
 
 void WakeLockTopic::Shutdown() {
-  WAKE_LOCK_LOG("WakeLockTopic::Shutdown() state %d", mInhibited);
+  WAKE_LOCK_LOG("WakeLockTopic::Shutdown() Inhibited %d ShouldInhibit %d",
+                mInhibited, mShouldInhibit);
+  mShouldInhibit = false;
 #ifdef MOZ_ENABLE_DBUS
   if (mWaitingForDBusUninhibit) {
     return;
   }
-  g_cancellable_cancel(mCancellable);
 #endif
-  if (mInhibited) {
-    UninhibitScreensaver();
-  }
+  UninhibitScreensaver();
 }
 
 nsresult WakeLockTopic::UninhibitScreensaver() {
