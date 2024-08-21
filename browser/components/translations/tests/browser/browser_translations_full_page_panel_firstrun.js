@@ -14,6 +14,8 @@ add_task(async function test_translations_panel_firstrun() {
   });
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewFirstShow,
   });
 
@@ -24,6 +26,8 @@ add_task(async function test_translations_panel_firstrun() {
   });
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
 

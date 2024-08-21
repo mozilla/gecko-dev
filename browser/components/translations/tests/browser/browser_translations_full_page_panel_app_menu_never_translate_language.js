@@ -23,6 +23,8 @@ add_task(async function test_uncheck_never_translate_language_shows_button() {
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     openFromAppMenu: true,
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });

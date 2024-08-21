@@ -23,6 +23,8 @@ add_task(async function test_toggle_never_translate_site_menuitem() {
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -83,6 +85,8 @@ add_task(
     await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
     await FullPageTranslationsTestUtils.openPanel({
+      expectedFromLanguage: "es",
+      expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
 
@@ -97,6 +101,7 @@ add_task(
     );
 
     await FullPageTranslationsTestUtils.openPanel({
+      expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -162,6 +167,8 @@ add_task(
     );
 
     await FullPageTranslationsTestUtils.openPanel({
+      expectedFromLanguage: "es",
+      expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -193,6 +200,7 @@ add_task(
     );
 
     await FullPageTranslationsTestUtils.openPanel({
+      expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();

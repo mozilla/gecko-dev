@@ -20,15 +20,14 @@ add_task(async function test_translations_panel_switch_language() {
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
 
   const { translateButton } = FullPageTranslationsPanel.elements;
 
   ok(!translateButton.disabled, "The translate button starts as enabled");
-
-  FullPageTranslationsTestUtils.assertSelectedFromLanguage({ langTag: "es" });
-  FullPageTranslationsTestUtils.assertSelectedToLanguage({ langTag: "en" });
 
   await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
     langTag: "en",

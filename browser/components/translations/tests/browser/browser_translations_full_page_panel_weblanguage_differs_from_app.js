@@ -24,11 +24,10 @@ add_task(async function test_weblanguage_differs_app_locale() {
   );
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "en",
+    expectedToLanguage: "fr",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
-
-  FullPageTranslationsTestUtils.assertSelectedFromLanguage({ langTag: "en" });
-  FullPageTranslationsTestUtils.assertSelectedToLanguage({ langTag: "fr" });
 
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 

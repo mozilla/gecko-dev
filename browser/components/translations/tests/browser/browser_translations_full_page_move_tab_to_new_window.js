@@ -24,6 +24,8 @@ add_task(async function test_browser_translations_full_page_multiple_windows() {
 
   info("Opening FullPageTranslationsPanel in window1");
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
 
@@ -45,6 +47,8 @@ add_task(async function test_browser_translations_full_page_multiple_windows() {
 
   info("Opening FullPageTranslationsPanel in window2");
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     win: window2,
   });
 

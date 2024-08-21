@@ -405,14 +405,14 @@ class SharedTranslationsTestUtils {
       menuList.label,
       `The label for the menulist ${menuList.id} should not be empty.`
     );
-    if (langTag) {
+    if (langTag !== undefined) {
       is(
         menuList.value,
         langTag,
         `Expected ${menuList.id} selection to match '${langTag}'`
       );
     }
-    if (l10nId) {
+    if (l10nId !== undefined) {
       is(
         menuList.getAttribute("data-l10n-id"),
         l10nId,
@@ -1276,6 +1276,8 @@ class FullPageTranslationsTestUtils {
    *  - Open the panel from the app menu. If false, uses the translations button.
    * @param {boolean} config.openWithKeyboard
    *  - Open the panel by synthesizing the keyboard. If false, synthesizes the mouse.
+   * @param {string} [config.expectedFromLanguage] - The expected from-language tag.
+   * @param {string} [config.expectedToLanguage] - The expected to-language tag.
    * @param {ChromeWindow} [config.win]
    *  - An optional window for multi-window tests.
    */
@@ -1283,6 +1285,8 @@ class FullPageTranslationsTestUtils {
     onOpenPanel = null,
     openFromAppMenu = false,
     openWithKeyboard = false,
+    expectedFromLanguage = undefined,
+    expectedToLanguage = undefined,
     win = window,
   }) {
     logAction();
@@ -1298,6 +1302,18 @@ class FullPageTranslationsTestUtils {
         win,
         onOpenPanel,
         openWithKeyboard,
+      });
+    }
+    if (expectedFromLanguage !== undefined) {
+      FullPageTranslationsTestUtils.assertSelectedFromLanguage({
+        win,
+        langTag: expectedFromLanguage,
+      });
+    }
+    if (expectedToLanguage !== undefined) {
+      FullPageTranslationsTestUtils.assertSelectedToLanguage({
+        win,
+        langTag: expectedToLanguage,
       });
     }
   }

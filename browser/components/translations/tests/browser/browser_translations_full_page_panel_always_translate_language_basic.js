@@ -22,6 +22,8 @@ add_task(async function test_toggle_always_translate_language_menuitem() {
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedFromLanguage: "es",
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -56,6 +58,7 @@ add_task(async function test_toggle_always_translate_language_menuitem() {
   );
 
   await FullPageTranslationsTestUtils.openPanel({
+    expectedToLanguage: "en",
     onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
