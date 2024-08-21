@@ -447,15 +447,28 @@ TimeoutManager::~TimeoutManager() {
           ("TimeoutManager %p destroyed\n", this));
 }
 
-uint32_t TimeoutManager::GetTimeoutId(Timeout::Reason aReason) {
+int32_t TimeoutManager::GetTimeoutId(Timeout::Reason aReason) {
+  int32_t returnValue;
   switch (aReason) {
     case Timeout::Reason::eIdleCallbackTimeout:
-      return ++mIdleCallbackTimeoutCounter;
+      returnValue = mIdleCallbackTimeoutCounter;
+      if (mIdleCallbackTimeoutCounter == std::numeric_limits<int32_t>::max()) {
+        mIdleCallbackTimeoutCounter = 1;
+      } else {
+        ++mIdleCallbackTimeoutCounter;
+      }
+      return returnValue;
     case Timeout::Reason::eTimeoutOrInterval:
-      return ++mTimeoutIdCounter;
+      returnValue = mTimeoutIdCounter;
+      if (mTimeoutIdCounter == std::numeric_limits<int32_t>::max()) {
+        mTimeoutIdCounter = 1;
+      } else {
+        ++mTimeoutIdCounter;
+      }
+      return returnValue;
     case Timeout::Reason::eDelayedWebTaskTimeout:
     default:
-      return std::numeric_limits<uint32_t>::max();  // no cancellation support
+      return -1;  // no cancellation support
   }
 }
 
@@ -577,12 +590,11 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
                  aReason == Timeout::Reason::eIdleCallbackTimeout,
              "This timeout reason doesn't support cancellation.");
 
-  uint32_t timerId = (uint32_t)aTimerId;
   Timeouts& timeouts = aIsIdle ? mIdleTimeouts : mTimeouts;
   RefPtr<TimeoutExecutor>& executor = aIsIdle ? mIdleExecutor : mExecutor;
   bool deferredDeletion = false;
 
-  Timeout* timeout = timeouts.GetTimeout(timerId, aReason);
+  Timeout* timeout = timeouts.GetTimeout(aTimerId, aReason);
   if (!timeout) {
     return false;
   }
