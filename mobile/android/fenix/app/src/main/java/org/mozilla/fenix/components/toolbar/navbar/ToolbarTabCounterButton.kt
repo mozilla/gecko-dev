@@ -57,12 +57,12 @@ fun ToolbarTabCounterButton(
                         onClick() // This ensures clicks in the 34dp touch target are caught.
                     }
 
-                    menu?.value?.let { menu ->
-                        setOnLongClickListener {
+                    setOnLongClickListener {
+                        menu?.value?.let { menu ->
                             onLongPress()
                             menu.menuController.show(anchor = it)
                             true
-                        }
+                        } ?: false
                     }
 
                     contentDescription = context.getString(R.string.mozac_feature_tabs_toolbar_tabs_button)
