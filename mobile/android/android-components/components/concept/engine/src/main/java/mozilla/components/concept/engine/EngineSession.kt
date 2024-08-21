@@ -166,6 +166,11 @@ abstract class EngineSession(
         fun onShowDynamicToolbar() = Unit
 
         /**
+         * Means to hide the dynamic toolbar.
+         */
+        fun onHideDynamicToolbar() = Unit
+
+        /**
          * Notify that the given media session has become active.
          *
          * @param mediaSessionController The associated [MediaSession.Controller].
