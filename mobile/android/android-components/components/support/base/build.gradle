@@ -51,7 +51,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
-            buildConfigField("String", "VCS_HASH", "\"" + gradle.ext.vcsHashFileContent ?: getVcsHash() + "\"")
+            buildConfigField("String", "VCS_HASH", "\"" + getVcsHash() + "\"")
         }
     }
 
