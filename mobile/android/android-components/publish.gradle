@@ -33,7 +33,6 @@ static def getVcsHash() {
 }
 
 
-
 ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
     apply plugin: 'maven-publish'
 
@@ -82,7 +81,7 @@ ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
                             connection = libVcsUrl
                             developerConnection = libVcsUrl
                             url = libUrl
-                            tag = getVcsHash()
+                            tag = gradle.ext.vcsHashFileContent ?: getVcsHash()
                         }
                     }
                 }

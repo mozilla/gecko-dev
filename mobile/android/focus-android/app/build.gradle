@@ -78,7 +78,12 @@ android {
             minifyEnabled !project.hasProperty("disableOptimization")
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release']
-            buildConfigField "String", "VCS_HASH", "\"${Config.getVcsHash()}\""
+
+            if (gradle.ext.vcsHashFileContent) {
+                buildConfigField "String", "VCS_HASH", "hg-\"${gradle.ext.vcsHashFileContent}\""
+            } else {
+                buildConfigField "String", "VCS_HASH", "\"${Config.getVcsHash()}\""
+            }
 
             if (gradle.hasProperty("localProperties.autosignReleaseWithDebugKey")) {
                 println ("All builds will be automatically signed with the debug key")
