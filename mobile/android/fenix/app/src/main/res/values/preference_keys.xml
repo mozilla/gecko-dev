@@ -411,4 +411,7 @@
 
     <!--ApplicationExitInfo-->
     <string name="pref_key_application_exit_info_last_handled_time" translatable="false">pref_key_application_exit_info_last_handled_time</string>
+
+    <!-- Set as default browser prompt for existing users -->
+    <string name="pref_key_set_as_default_browser_prompt_enabled" translatable="false">pref_key_set_as_default_browser_prompt_enabled</string>
 </resources>

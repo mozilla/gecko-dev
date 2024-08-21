@@ -2165,4 +2165,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         appContext.getPreferenceKey(R.string.pref_key_should_show_microsurvey_prompt),
         default = false,
     )
+
+    /**
+     * Indicates if the Set as default browser prompt for existing users feature is enabled.
+     */
+    var setAsDefaultBrowserPromptForExistingUsersEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_set_as_default_browser_prompt_enabled),
+        default = false,
+    )
 }

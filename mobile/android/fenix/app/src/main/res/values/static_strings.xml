@@ -92,6 +92,8 @@
     <string name="preferences_debug_settings_debug_drawer" translatable="false">Enable Debug Drawer</string>
     <!-- Label for enabling the microsurvey feature -->
     <string name="preferences_debug_settings_microsurvey_feature" translatable="false">Enable Microsurvey Feature</string>
+    <!-- Label for enabling the Set as default prompt for existing users feature -->
+    <string name="preferences_debug_settings_set_as_default_browser_prompt_for_existing_users_feature" translatable="false">Enable Native Default Browser Prompt For Existing Users</string>
 
     <!-- A secret menu option in the tabs tray for making a tab inactive for testing. -->
     <string name="inactive_tabs_menu_item">Make inactive</string>
