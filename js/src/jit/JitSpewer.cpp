@@ -575,6 +575,26 @@ void jit::JitSpew(JitSpewChannel channel, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   JitSpewVA(channel, fmt, ap);
+
+  // Suppress hazard analysis on logPrintVA function pointer.
+  JS::AutoSuppressGCAnalysis suppress;
+
+  switch (channel) {
+#  define SpewChannel(x)                                                   \
+    case JitSpew_##x:                                                      \
+      if (x##Module.shouldLog(mozilla::LogLevel::Debug)) {                 \
+        x##Module.interface.logPrintVA(x##Module.logger,                   \
+                                       mozilla::LogLevel::Debug, fmt, ap); \
+      }                                                                    \
+      break;
+
+    JITSPEW_CHANNEL_LIST(SpewChannel)
+
+#  undef SpewChannel
+    case JitSpew_Terminator:
+      MOZ_CRASH("Unexpected JitSpew");
+  }
+
   va_end(ap);
 }
 
