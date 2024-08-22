@@ -300,7 +300,7 @@ document.addEventListener(
           CreateContainerTabMenu(event);
           break;
         case "toolbar-context-menu":
-          onViewToolbarsPopupShowing(
+          ToolbarContextMenu.onViewToolbarsPopupShowing(
             event,
             document.getElementById("viewToolbarsMenuSeparator")
           );

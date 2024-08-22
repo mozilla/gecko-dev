@@ -140,7 +140,7 @@ document.addEventListener(
           updateEditUIVisibility();
           break;
         case "view-menu-popup":
-          onViewToolbarsPopupShowing(event);
+          ToolbarContextMenu.onViewToolbarsPopupShowing(event);
           break;
         case "pageStyleMenuPopup":
           gPageStyleMenu.fillPopup(event.target);
