@@ -10,7 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import mozilla.components.browser.state.state.Container
+import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.browser.state.state.ContainerState.Color
 import mozilla.components.browser.state.state.ContainerState.Icon
 import mozilla.components.feature.containers.db.ContainerDatabase
@@ -99,7 +99,7 @@ class ContainerStorageTest {
         }
     }
 
-    private suspend fun getAllContainers(): List<Container> {
+    private suspend fun getAllContainers(): List<ContainerState> {
         return storage.containerDao.getContainersList().map { containerEntity ->
             containerEntity.toContainer()
         }

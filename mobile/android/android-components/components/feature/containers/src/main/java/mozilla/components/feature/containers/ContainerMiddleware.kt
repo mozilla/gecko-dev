@@ -8,13 +8,11 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContainerAction
 import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.Container
 import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -84,12 +82,12 @@ class ContainerMiddleware(
      */
     interface Storage {
         /**
-         * Returns a [Flow] list of all the [Container] instances.
+         * Returns a [Flow] list of all the [ContainerState] instances.
          */
-        fun getContainers(): Flow<List<Container>>
+        fun getContainers(): Flow<List<ContainerState>>
 
         /**
-         * Adds a new [Container].
+         * Adds a new [ContainerState].
          */
         suspend fun addContainer(
             contextId: String = UUID.randomUUID().toString(),
@@ -99,8 +97,8 @@ class ContainerMiddleware(
         )
 
         /**
-         * Removes the given [Container].
+         * Removes the given [ContainerState].
          */
-        suspend fun removeContainer(container: Container)
+        suspend fun removeContainer(container: ContainerState)
     }
 }

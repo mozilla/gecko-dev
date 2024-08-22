@@ -9,7 +9,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.paging.DataSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import mozilla.components.browser.state.state.Container
+import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.browser.state.state.ContainerState.Color
 import mozilla.components.browser.state.state.ContainerState.Icon
 import mozilla.components.feature.containers.db.ContainerDatabase
@@ -27,7 +27,7 @@ internal class ContainerStorage(context: Context) : ContainerMiddleware.Storage 
     val containerDao by lazy { database.value.containerDao() }
 
     /**
-     * Adds a new [Container].
+     * Adds a new [ContainerState].
      */
     override suspend fun addContainer(
         contextId: String,
@@ -46,27 +46,27 @@ internal class ContainerStorage(context: Context) : ContainerMiddleware.Storage 
     }
 
     /**
-     * Returns a [Flow] list of all the [Container] instances.
+     * Returns a [Flow] list of all the [ContainerState] instances.
      */
-    override fun getContainers(): Flow<List<Container>> {
+    override fun getContainers(): Flow<List<ContainerState>> {
         return containerDao.getContainers().map { list ->
             list.map { entity -> entity.toContainer() }
         }
     }
 
     /**
-     * Returns all saved [Container] instances as a [DataSource.Factory].
+     * Returns all saved [ContainerState] instances as a [DataSource.Factory].
      */
-    fun getContainersPaged(): DataSource.Factory<Int, Container> = containerDao
+    fun getContainersPaged(): DataSource.Factory<Int, ContainerState> = containerDao
         .getContainersPaged()
         .map { entity ->
             entity.toContainer()
         }
 
     /**
-     * Removes the given [Container].
+     * Removes the given [ContainerState].
      */
-    override suspend fun removeContainer(container: Container) {
+    override suspend fun removeContainer(container: ContainerState) {
         containerDao.deleteContainer(container.toContainerEntity())
     }
 }

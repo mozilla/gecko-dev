@@ -7,9 +7,9 @@ package mozilla.components.feature.containers.db
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import mozilla.components.browser.state.state.Container
-import mozilla.components.browser.state.state.Container.Color
-import mozilla.components.browser.state.state.Container.Icon
+import mozilla.components.browser.state.state.ContainerState
+import mozilla.components.browser.state.state.ContainerState.Color
+import mozilla.components.browser.state.state.ContainerState.Icon
 
 /**
  * Internal entity representing a container (contextual identity).
@@ -29,8 +29,8 @@ internal data class ContainerEntity(
     @ColumnInfo(name = "icon")
     var icon: Icon,
 ) {
-    internal fun toContainer(): Container {
-        return Container(
+    internal fun toContainer(): ContainerState {
+        return ContainerState(
             contextId,
             name,
             color,
@@ -39,7 +39,7 @@ internal data class ContainerEntity(
     }
 }
 
-internal fun Container.toContainerEntity(): ContainerEntity {
+internal fun ContainerState.toContainerEntity(): ContainerEntity {
     return ContainerEntity(
         contextId,
         name,

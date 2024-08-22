@@ -52,5 +52,3 @@ data class ContainerState(
         FENCE("fence"),
     }
 }
-
-typealias Container = ContainerState
