@@ -2179,6 +2179,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var setAsDefaultBrowserPromptForExistingUsersEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_set_as_default_browser_prompt_enabled),
-        default = false,
+        default = FxNimbus.features.setAsDefaultPrompt.value().enabled,
     )
 }
