@@ -36,6 +36,15 @@ support-files = ["file_test_clipboard_getDataSnapshot.js"]
 skip-if = ["display == 'wayland'"] # Bug 1879835
 support-files = "file_test_clipboard_getDataSnapshotSync.js"
 
+["test_contextmenu_chorded_buttons.html"]
+run-if = [
+  "os == 'win'", # only Windows updates the mouse button state when enqueuing native mouse down event.
+]
+skip-if = [
+  "headless", # headless widget doesn't dispatch contextmenu event by mouse event.
+  "xorigin", # high-frequently intermittent fail
+]
+
 ["test_contextmenu_by_mouse_on_unix.html"]
 run-if = [
   "os == 'linux'",

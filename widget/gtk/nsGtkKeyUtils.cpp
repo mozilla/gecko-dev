@@ -1097,6 +1097,7 @@ void KeymapWrapper::InitInputEvent(WidgetInputEvent& aInputEvent,
 
   switch (aInputEvent.mClass) {
     case eMouseEventClass:
+    case ePointerEventClass:
     case eMouseScrollEventClass:
     case eWheelEventClass:
     case eDragEventClass:

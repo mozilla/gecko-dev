@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test PointerEvent.buttons of `contextmenu`</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  let contextMenuEvent;
+  // Using native mouse button state may be unstable. Try some times until getting expected result.
+  for (let i = 0; i < 10; i++) {
+    const promiseContextMenu = new Promise(resolve => {
+      addEventListener("contextmenu", resolve, { once: true, capture: true });
+    });
+    info("synthesizing mousemove to the clicking position...");
+    await promiseNativeMouseEvent({
+      type: "mousemove",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+    });
+    info("synthesizing primary button down...");
+    await promiseNativeMouseEvent({
+      type: "mousedown",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+      button: 0,
+    });
+    info("synthesizing middle button down...");
+    await promiseNativeMouseEvent({
+      type: "mousedown",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+      button: 1,
+    });
+    info("synthesizing right click...");
+    await promiseNativeMouseEvent({
+      type: "click",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+      button: 2,
+    });
+    info("synthesizing primary button up...");
+    await promiseNativeMouseEvent({
+      type: "mouseup",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+      button: 0,
+    });
+    info("synthesizing middle button up...");
+    await promiseNativeMouseEvent({
+      type: "mouseup",
+      target: document.body,
+      offsetX: 10,
+      offsetY: 10,
+      button: 1,
+    });
+
+    info("waiting for contextmenu event...");
+    contextMenuEvent = await promiseContextMenu;
+
+    const promiseContextMenuClosed = new Promise(resolve => {
+      addEventListener("keyup", resolve, {once: true});
+      synthesizeKey("KEY_Escape");
+    });
+    info("waiting for closing contextmenu...");
+    await promiseContextMenuClosed;
+
+    // It depends on the platform whether the context menu opens before/after
+    // mouseup of the secondary mouse button.  Therefore, we should ignore
+    // 2 of `.buttons` of `contextmenu`.
+    if ((contextMenuEvent?.buttons & ~2) == (1 | 4)) {
+      break;
+    }
+    info(`Retrying due to: ${
+      !contextMenuEvent ? "no `contextmenu` event" : `unexpected buttons, ${contextMenuEvent.buttons}`
+    }`);
+  }
+
+  // See above comment for the reason why we ignore 2 of `.buttons` of `contextmenu`.
+  is(
+    contextMenuEvent?.buttons & ~2,
+    (1 | 4),
+    "buttons of contextmenu event should indicate that the primary button and the middle button is pressed"
+  );
+
+  SimpleTest.finish();
+});
+</script>
+</head>
+</html>
