@@ -245,23 +245,10 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
                     timeout = 360
                 time.sleep(timeout)
 
-            driver.set_context("chrome")
-            driver.execute_script(
-                """
-                let cancelQuit = Components.classes["@mozilla.org/supports-PRBool;1"]
-                    .createInstance(Components.interfaces.nsISupportsPRBool);
-                Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
-                return cancelQuit.data;
-            """
-            )
-            driver.execute_script(
-                """
-                Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit)
-            """
-            )
+            driver.quit(in_app=True)
 
-            # There is a delay between execute_script() returning and the profile data
-            # actually getting written out, so poll the device until we get a profile.
+            # Bug 1914354: Remove polling of the profile data which is no longer
+            # needed when using the quit() command from Marionette.
             for i in range(50):
                 if not adbdevice.process_exist(app):
                     break
