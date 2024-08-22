@@ -16,6 +16,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Likely.h"
+#include "mozilla/LoggingCore.h"
 
 #define MOZ_LOGGING_ENABLED 1
 
@@ -29,36 +30,6 @@
 namespace mozilla {
 
 class TimeStamp;
-
-// While not a 100% mapping to PR_LOG's numeric values, mozilla::LogLevel does
-// maintain a direct mapping for the Disabled, Debug and Verbose levels.
-//
-// Mappings of LogLevel to PR_LOG's numeric values:
-//
-//   +---------+------------------+-----------------+
-//   | Numeric | NSPR Logging     | Mozilla Logging |
-//   +---------+------------------+-----------------+
-//   |       0 | PR_LOG_NONE      | Disabled        |
-//   |       1 | PR_LOG_ALWAYS    | Error           |
-//   |       2 | PR_LOG_ERROR     | Warning         |
-//   |       3 | PR_LOG_WARNING   | Info            |
-//   |       4 | PR_LOG_DEBUG     | Debug           |
-//   |       5 | PR_LOG_DEBUG + 1 | Verbose         |
-//   +---------+------------------+-----------------+
-//
-enum class LogLevel {
-  Disabled = 0,
-  Error,
-  Warning,
-  Info,
-  Debug,
-  Verbose,
-};
-
-/**
- * Safely converts an integer into a valid LogLevel.
- */
-LogLevel ToLogLevel(int32_t aLevel);
 
 class LogModule {
  public:
@@ -157,7 +128,7 @@ class LogModule {
 
   char* mName;
 
-  Atomic<LogLevel, Relaxed> mLevel;
+  AtomicLogLevel mLevel;
 };
 
 /**
