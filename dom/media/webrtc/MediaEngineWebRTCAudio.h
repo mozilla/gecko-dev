@@ -135,6 +135,11 @@ class AudioInputProcessing : public AudioDataListener {
 
   void Disconnect(MediaTrackGraph* aGraph) override;
 
+  // Handle the result of an async operation to set processing params on a cubeb
+  // stream. If the operation succeeded, disable the applied processing params
+  // from the software processing config. If the operation failed, request
+  // platform processing to be disabled so as to not prevent a cubeb stream from
+  // being created.
   void NotifySetRequestedInputProcessingParamsResult(
       MediaTrackGraph* aGraph, cubeb_input_processing_params aRequestedParams,
       const Result<cubeb_input_processing_params, int>& aResult) override;
