@@ -259,6 +259,8 @@ def accept_raptor_android_build(platform):
         return True
     if "s21" in platform and "aarch64" in platform:
         return True
+    if "s24" in platform and "aarch64" in platform:
+        return True
     # Bug 1910111 temporarily disable a55
     # if "a55" in platform and "aarch64" in platform:
     #     return True

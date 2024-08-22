@@ -253,6 +253,7 @@ browsertime-youtube-playback-mobile:
                             # - [youtube-playback-widevine-h264-sfr, ytp-widevine-h264-sfr]
                             # - [youtube-playback-widevine-hfr, ytp-widevine-hfr]
                         android-hw-a55.*: []
+                        default: []
                 default:
                     by-test-platform:
                         android-hw-a51.*:
@@ -262,6 +263,7 @@ browsertime-youtube-playback-mobile:
                             # - [youtube-playback-widevine-h264-sfr, ytp-widevine-h264-sfr]
                             # - [youtube-playback-widevine-hfr, ytp-widevine-hfr]
                         android-hw-a55.*: []
+                        default: []
         test-url-param:
             by-subtest:
                 youtube-playback-h264-sfr:  # remove high resolution tests
