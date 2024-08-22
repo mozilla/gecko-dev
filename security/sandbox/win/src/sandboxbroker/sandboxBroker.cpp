@@ -284,6 +284,38 @@ static void AddLLVMProfilePathDirectoryToPolicy(
 
 #undef WSTRING
 
+static void EnsureAppLockerAccess(sandbox::TargetPolicy* aPolicy) {
+  if (aPolicy->GetLockdownTokenLevel() < sandbox::USER_LIMITED) {
+    // The following rules are to allow DLLs to be loaded when the token level
+    // blocks access to AppLocker. If the sandbox does not allow access to the
+    // DLL or the AppLocker rules specifically block it, then it will not load.
+    auto result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                                   sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                                   L"\\Device\\SrpDevice");
+    if (sandbox::SBOX_ALL_OK != result) {
+      NS_ERROR("Failed to add rule for SrpDevice.");
+      LOG_E("Failed (ResultCode %d) to add read access to SrpDevice", result);
+    }
+    result = aPolicy->AddRule(
+        sandbox::TargetPolicy::SUBSYS_REGISTRY,
+        sandbox::TargetPolicy::REG_ALLOW_READONLY,
+        L"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Srp\\GP\\");
+    if (sandbox::SBOX_ALL_OK != result) {
+      NS_ERROR("Failed to add rule for Srp\\GP.");
+      LOG_E("Failed (ResultCode %d) to add read access to Srp\\GP", result);
+    }
+    // On certain Windows versions there is a double slash before GP.
+    result = aPolicy->AddRule(
+        sandbox::TargetPolicy::SUBSYS_REGISTRY,
+        sandbox::TargetPolicy::REG_ALLOW_READONLY,
+        L"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Srp\\\\GP\\");
+    if (sandbox::SBOX_ALL_OK != result) {
+      NS_ERROR("Failed to add rule for Srp\\\\GP.");
+      LOG_E("Failed (ResultCode %d) to add read access to Srp\\\\GP", result);
+    }
+  }
+}
+
 Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
     const wchar_t* aPath, const wchar_t* aArguments,
     base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
@@ -312,6 +344,8 @@ Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
         mPolicy->SetProcessMitigations(mitigations) == sandbox::SBOX_ALL_OK,
         "Setting the reduced set of flags should always succeed");
   }
+
+  EnsureAppLockerAccess(mPolicy);
 
   // If logging enabled, set up the policy.
   if (aEnableLogging) {
@@ -1818,31 +1852,6 @@ bool SandboxBroker::SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
                             L"HKEY_LOCAL_"
                             L"MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVer"
                             L"sion\\SideBySide\\PreferExternalManifest");
-  SANDBOX_ENSURE_SUCCESS(
-      result,
-      "With these static arguments AddRule should never fail, what happened?");
-
-  // The following rules were added to allow a GMP to be loaded when any
-  // AppLocker DLL rules are specified. If the rules specifically block the DLL
-  // then it will not load.
-  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                            sandbox::TargetPolicy::FILES_ALLOW_READONLY,
-                            L"\\Device\\SrpDevice");
-  SANDBOX_ENSURE_SUCCESS(
-      result,
-      "With these static arguments AddRule should never fail, what happened?");
-  result = mPolicy->AddRule(
-      sandbox::TargetPolicy::SUBSYS_REGISTRY,
-      sandbox::TargetPolicy::REG_ALLOW_READONLY,
-      L"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Srp\\GP\\");
-  SANDBOX_ENSURE_SUCCESS(
-      result,
-      "With these static arguments AddRule should never fail, what happened?");
-  // On certain Windows versions there is a double slash before GP in the path.
-  result = mPolicy->AddRule(
-      sandbox::TargetPolicy::SUBSYS_REGISTRY,
-      sandbox::TargetPolicy::REG_ALLOW_READONLY,
-      L"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Srp\\\\GP\\");
   SANDBOX_ENSURE_SUCCESS(
       result,
       "With these static arguments AddRule should never fail, what happened?");
