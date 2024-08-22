@@ -370,6 +370,15 @@ RefPtr<GenericPromise> IdentityCredential::AllowedToCollectCredential(
       }
     }
   }
+  if (aCredential.effectiveType().isSome() && aOptions.mProviders.WasPassed()) {
+    for (const auto& provider : aOptions.mProviders.Value()) {
+      if (provider.mEffectiveType.WasPassed() &&
+          provider.mEffectiveType.Value() ==
+              aCredential.effectiveType().value()) {
+        return GenericPromise::CreateAndResolve(true, __func__);
+      }
+    }
+  }
   if (aCredential.effectiveQueryURL().isSome()) {
     // Make the url to test, returning the default resolved to false promise if
     // it fails
@@ -515,6 +524,19 @@ IdentityCredential::CollectFromCredentialStoreInMainProcess(
   rv = icStorageService->GetIdentityCredentials(idpPrincipals, fromStore);
   if (NS_FAILED(rv)) {
     return GetIPCIdentityCredentialsPromise::CreateAndReject(rv, __func__);
+  }
+
+  for (const auto& idpConfig : aOptions.mProviders.Value()) {
+    if (idpConfig.mEffectiveType.WasPassed() &&
+        idpConfig.mEffectiveType.Value() != "") {
+      nsTArray<mozilla::dom::IPCIdentityCredential> typeMatches;
+      rv = icStorageService->GetIdentityCredentialsOfType(
+          idpConfig.mEffectiveType.Value(), typeMatches);
+      if (NS_FAILED(rv)) {
+        return GetIPCIdentityCredentialsPromise::CreateAndReject(rv, __func__);
+      }
+      fromStore.AppendElements(std::move(typeMatches));
+    }
   }
 
   RefPtr<GetIPCIdentityCredentialsPromise::Private> resultPromise =

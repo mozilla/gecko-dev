@@ -989,6 +989,92 @@ NS_IMETHODIMP IdentityCredentialStorageService::Delete(
   return NS_OK;
 }
 
+// Helper function to get credentials from the database and put them into an
+// array of IPCIdentityCredentials. aStmt must be a SELECT query that give
+// fields SELECT credentialId, name, iconDataURL, userDataExpireTime,
+// originAllowList, dynamicAllowEndpoint, effectiveType, token, and [idpOrigin
+// if aIDPPrincipal is null]
+nsresult GetCredentialsHelper(
+    const nsCOMPtr<mozIStorageStatement>& aStmt,
+    const RefPtr<nsIPrincipal>& aIDPPrincipal,
+    nsTArray<mozilla::dom::IPCIdentityCredential>& aResult) {
+  bool hasResult;
+  nsresult rv;
+  // For each result, we append it to the array to return
+  while (NS_SUCCEEDED(aStmt->ExecuteStep(&hasResult)) && hasResult) {
+    nsAutoString id, name, iconDataURL, originAllowList, dynamicAllowEndpoint,
+        effectiveType, token, matchedOrigin;
+    int64_t userDataExpireTime;
+    rv = aStmt->GetString(0, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(1, name);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(2, iconDataURL);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetInt64(3, &userDataExpireTime);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(4, originAllowList);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(5, dynamicAllowEndpoint);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(6, effectiveType);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = aStmt->GetString(7, token);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!aIDPPrincipal) {
+      rv = aStmt->GetString(8, matchedOrigin);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    Maybe<nsCString> resultName, resultIconDataURL, resultDynamicAllowEndpoint,
+        resultEffectiveType;
+    Maybe<nsString> resultToken;
+    nsTArray<nsCString> allowListArray;
+    Maybe<int64_t> resultUserDataExpireTime;
+    RefPtr<nsIPrincipal> idpPrincipal;
+
+    if (!name.IsVoid() && name.Length()) {
+      resultName = Some(NS_ConvertUTF16toUTF8(name));
+    }
+    if (!iconDataURL.IsVoid() && iconDataURL.Length()) {
+      resultIconDataURL = Some(NS_ConvertUTF16toUTF8(iconDataURL));
+    }
+    if (!effectiveType.IsVoid() && effectiveType.Length()) {
+      resultEffectiveType = Some(NS_ConvertUTF16toUTF8(effectiveType));
+    }
+    if (!token.IsVoid() && token.Length()) {
+      resultToken = Some(token);
+    }
+    for (const auto& origin : originAllowList.Split('|')) {
+      allowListArray.AppendElement(NS_ConvertUTF16toUTF8(origin));
+    }
+    if (!dynamicAllowEndpoint.IsVoid() && dynamicAllowEndpoint.Length()) {
+      resultDynamicAllowEndpoint =
+          Some(NS_ConvertUTF16toUTF8(dynamicAllowEndpoint));
+    }
+    if (!aStmt->IsNull(3) && userDataExpireTime > 0) {
+      resultUserDataExpireTime = Some(userDataExpireTime);
+    }
+    if (aIDPPrincipal) {
+      idpPrincipal = aIDPPrincipal;
+    } else {
+      nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+      NS_ENSURE_TRUE(ssm, NS_ERROR_NOT_AVAILABLE);
+      rv = ssm->CreateContentPrincipalFromOrigin(
+          NS_ConvertUTF16toUTF8(matchedOrigin), getter_AddRefs(idpPrincipal));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    dom::IPCIdentityCredential result(
+        id, resultToken, resultName, resultIconDataURL, allowListArray,
+        resultDynamicAllowEndpoint, resultEffectiveType,
+        resultUserDataExpireTime, idpPrincipal);
+    aResult.AppendElement(result);
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP IdentityCredentialStorageService::
     IdentityCredentialStorageService::GetIdentityCredentials(
         nsTArray<RefPtr<nsIPrincipal>> const& aIDPPrincipals,
@@ -1015,63 +1101,32 @@ NS_IMETHODIMP IdentityCredentialStorageService::
     rv = stmt->BindUTF8StringByIndex(0, idpOrigin);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    bool hasResult;
-    // For each result, we append it to the array to return
-    while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
-      nsAutoString id, name, iconDataURL, originAllowList, dynamicAllowEndpoint,
-          effectiveType, token;
-      int64_t userDataExpireTime;
-      rv = stmt->GetString(0, id);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(1, name);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(2, iconDataURL);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetInt64(3, &userDataExpireTime);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(4, originAllowList);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(5, dynamicAllowEndpoint);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(6, effectiveType);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetString(7, token);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      Maybe<nsCString> resultName, resultIconDataURL,
-          resultDynamicAllowEndpoint, resultEffectiveType;
-      Maybe<nsString> resultToken;
-      nsTArray<nsCString> allowListArray;
-      Maybe<int64_t> resultUserDataExpireTime;
-      if (!name.IsVoid() && name.Length()) {
-        resultName = Some(NS_ConvertUTF16toUTF8(name));
-      }
-      if (!iconDataURL.IsVoid() && iconDataURL.Length()) {
-        resultIconDataURL = Some(NS_ConvertUTF16toUTF8(iconDataURL));
-      }
-      if (!effectiveType.IsVoid() && effectiveType.Length()) {
-        resultEffectiveType = Some(NS_ConvertUTF16toUTF8(effectiveType));
-      }
-      if (!token.IsVoid() && token.Length()) {
-        resultToken = Some(token);
-      }
-      for (const auto& origin : originAllowList.Split('|')) {
-        allowListArray.AppendElement(NS_ConvertUTF16toUTF8(origin));
-      }
-      if (!dynamicAllowEndpoint.IsVoid() && dynamicAllowEndpoint.Length()) {
-        resultDynamicAllowEndpoint =
-            Some(NS_ConvertUTF16toUTF8(dynamicAllowEndpoint));
-      }
-      if (!stmt->IsNull(3) && userDataExpireTime > 0) {
-        resultUserDataExpireTime = Some(userDataExpireTime);
-      }
-      dom::IPCIdentityCredential result(
-          id, resultToken, resultName, resultIconDataURL, allowListArray,
-          resultDynamicAllowEndpoint, resultEffectiveType,
-          resultUserDataExpireTime, idpPrincipal);
-      aResult.AppendElement(result);
-    }
+    rv = GetCredentialsHelper(stmt, idpPrincipal, aResult);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP IdentityCredentialStorageService::
+    IdentityCredentialStorageService::GetIdentityCredentialsOfType(
+        const nsACString& aType,
+        nsTArray<mozilla::dom::IPCIdentityCredential>& aResult) {
+  AssertIsOnMainThread();
+
+  nsresult rv = WaitForInitialization();
+  NS_ENSURE_SUCCESS(rv, rv);
+  auto constexpr selectQuery =
+      "SELECT credentialId, name, iconDataURL, userDataExpireTime, originAllowList, dynamicAllowEndpoint, effectiveType, token, idpOrigin FROM lightweight_identity WHERE effectiveType=?1"_ns;
+  nsCOMPtr<mozIStorageStatement> stmt;
+  rv = mMemoryDatabaseConnection->CreateStatement(selectQuery,
+                                                  getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->BindUTF8StringByIndex(0, aType);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = GetCredentialsHelper(stmt, nullptr, aResult);
+  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
 
