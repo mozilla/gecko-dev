@@ -57,7 +57,8 @@ VisitedURLSet* ModuleLoadRequest::NewVisitedSetForTopLevelImport(nsIURI* aURI) {
 }
 
 ModuleLoadRequest::ModuleLoadRequest(
-    nsIURI* aURI, mozilla::dom::ReferrerPolicy aReferrerPolicy,
+    nsIURI* aURI, JS::ModuleType aModuleType,
+    mozilla::dom::ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions,
     const mozilla::dom::SRIMetadata& aIntegrity, nsIURI* aReferrer,
     LoadContextBase* aContext, bool aIsTopLevel, bool aIsDynamicImport,
@@ -66,6 +67,7 @@ ModuleLoadRequest::ModuleLoadRequest(
     : ScriptLoadRequest(ScriptKind::eModule, aURI, aReferrerPolicy,
                         aFetchOptions, aIntegrity, aReferrer, aContext),
       mIsTopLevel(aIsTopLevel),
+      mModuleType(aModuleType),
       mIsDynamicImport(aIsDynamicImport),
       mLoader(aLoader),
       mRootModule(aRootModule),
@@ -128,8 +130,7 @@ void ModuleLoadRequest::ModuleLoaded() {
 
   MOZ_ASSERT(IsFetching() || IsPendingFetchingError());
 
-  mModuleScript =
-      mLoader->GetFetchedModule(ModuleMapKey(mURI, ModuleType::JavaScript));
+  mModuleScript = mLoader->GetFetchedModule(ModuleMapKey(mURI, mModuleType));
   if (IsErrored()) {
     ModuleErrored();
     return;

@@ -63,9 +63,10 @@ already_AddRefed<ModuleLoadRequest> SyncModuleLoader::CreateStaticImport(
     nsIURI* aURI, ModuleLoadRequest* aParent) {
   RefPtr<SyncLoadContext> context = new SyncLoadContext();
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, aParent->ReferrerPolicy(), aParent->mFetchOptions,
-      dom::SRIMetadata(), aParent->mURI, context, false, /* is top level */
-      false,                                             /* is dynamic import */
+      aURI, JS::ModuleType::JavaScript, aParent->ReferrerPolicy(),
+      aParent->mFetchOptions, dom::SRIMetadata(), aParent->mURI, context,
+      false, /* is top level */
+      false, /* is dynamic import */
       this, aParent->mVisitedSet, aParent->GetRootModule());
   request->NoCacheEntryFound();
   return request.forget();
@@ -76,7 +77,7 @@ already_AddRefed<ModuleLoadRequest> SyncModuleLoader::CreateDynamicImport(
     JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) {
   RefPtr<SyncLoadContext> context = new SyncLoadContext();
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, aMaybeActiveScript->ReferrerPolicy(),
+      aURI, JS::ModuleType::JavaScript, aMaybeActiveScript->ReferrerPolicy(),
       aMaybeActiveScript->GetFetchOptions(), dom::SRIMetadata(),
       aMaybeActiveScript->BaseURL(), context,
       /* aIsTopLevel = */ true, /* aIsDynamicImport =  */ true, this,

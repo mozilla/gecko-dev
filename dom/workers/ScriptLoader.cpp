@@ -721,9 +721,9 @@ already_AddRefed<ScriptLoadRequest> WorkerScriptLoader::CreateScriptLoadRequest(
 
     // Part of Step 2. This sets the Top-level flag to true
     request = new ModuleLoadRequest(
-        uri, referrerPolicy, fetchOptions, SRIMetadata(), referrer, loadContext,
-        true,  /* is top level */
-        false, /* is dynamic import */
+        uri, JS::ModuleType::JavaScript, referrerPolicy, fetchOptions,
+        SRIMetadata(), referrer, loadContext, true, /* is top level */
+        false,                                      /* is dynamic import */
         moduleLoader, ModuleLoadRequest::NewVisitedSetForTopLevelImport(uri),
         nullptr);
   }

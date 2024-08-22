@@ -455,7 +455,7 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
   // "fetching" map.
   MOZ_ASSERT_IF(
       aRestart == RestartRequest::Yes,
-      IsModuleFetching(ModuleMapKey(aRequest->mURI, ModuleType::JavaScript)));
+      IsModuleFetching(ModuleMapKey(aRequest->mURI, aRequest->mModuleType)));
 
   // Check with the derived class whether we should load this module.
   nsresult rv = NS_OK;
@@ -469,7 +469,7 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
 
   if (aRestart == RestartRequest::No &&
       ModuleMapContainsURL(
-          ModuleMapKey(request->mURI, ModuleType::JavaScript))) {
+          ModuleMapKey(request->mURI, aRequest->mModuleType))) {
     LOG(("ScriptLoadRequest (%p): Waiting for module fetch", aRequest));
     WaitForModuleFetch(request);
     return NS_OK;
@@ -516,7 +516,7 @@ nsresult ModuleLoaderBase::GetFetchedModuleURLs(nsTArray<nsCString>& aURLs) {
 void ModuleLoaderBase::SetModuleFetchStarted(ModuleLoadRequest* aRequest) {
   // Update the module map to indicate that a module is currently being fetched.
 
-  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+  ModuleMapKey moduleMapKey(aRequest->mURI, aRequest->mModuleType);
 
   MOZ_ASSERT(aRequest->IsFetching() || aRequest->IsPendingFetchingError());
   MOZ_ASSERT(!ModuleMapContainsURL(moduleMapKey));
@@ -540,7 +540,8 @@ void ModuleLoaderBase::SetModuleFetchFinishedAndResumeWaitingRequests(
        "%u)",
        aRequest, aRequest->mModuleScript.get(), unsigned(aResult)));
 
-  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+  ModuleMapKey moduleMapKey(aRequest->mURI, aRequest->mModuleType);
+
   auto entry = mFetchingModules.Lookup(moduleMapKey);
   if (!entry) {
     LOG(
@@ -593,7 +594,7 @@ void ModuleLoaderBase::ResumeWaitingRequest(ModuleLoadRequest* aRequest,
 }
 
 void ModuleLoaderBase::WaitForModuleFetch(ModuleLoadRequest* aRequest) {
-  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+  ModuleMapKey moduleMapKey(aRequest->mURI, aRequest->mModuleType);
   MOZ_ASSERT(ModuleMapContainsURL(moduleMapKey));
 
   if (auto entry = mFetchingModules.Lookup(moduleMapKey)) {
@@ -873,7 +874,7 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
 
   auto visitedSet = aRequest->mVisitedSet;
   MOZ_ASSERT(visitedSet->Contains(
-      ModuleMapKey(aRequest->mURI, ModuleType::JavaScript)));
+      ModuleMapKey(aRequest->mURI, aRequest->mModuleType)));
 
   aRequest->mState = ModuleLoadRequest::State::LoadingImports;
 
@@ -1513,7 +1514,7 @@ void ModuleLoaderBase::MoveModulesTo(ModuleLoaderBase* aDest) {
 bool ModuleLoaderBase::IsFetchingAndHasWaitingRequest(
     ModuleLoadRequest* aRequest) {
   auto entry = mFetchingModules.Lookup(
-      ModuleMapKey(aRequest->mURI, ModuleType::JavaScript));
+      ModuleMapKey(aRequest->mURI, aRequest->mModuleType));
   if (!entry) {
     return false;
   }
