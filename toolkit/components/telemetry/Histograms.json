@@ -14504,9 +14504,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 60000,
@@ -14520,9 +14520,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1297167, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14535,9 +14535,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14551,9 +14551,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1297167, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "categorical",
     "labels": ["popupShown", "clearAfterHover", "clearAfterMousedown"],
     "releaseChannelCollection": "opt-out",
@@ -14565,9 +14565,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "categorical",
     "labels": ["popupShown", "clearAfterHover", "clearAfterMousedown"],
     "releaseChannelCollection": "opt-out",
@@ -14660,8 +14660,8 @@
     "record_in_processes": ["main"],
     "products": ["firefox"],
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
-    "bug_numbers": [1787940, 1817103, 1861303],
-    "expires_in_version": "132",
+    "bug_numbers": [1787940, 1817103, 1861303, 1912170],
+    "expires_in_version": "140",
     "kind": "exponential",
     "keyed": true,
     "releaseChannelCollection": "opt-out",
@@ -14673,8 +14673,8 @@
     "record_in_processes": ["main"],
     "products": ["firefox"],
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
-    "bug_numbers": [1787940, 1817103, 1861303],
-    "expires_in_version": "132",
+    "bug_numbers": [1787940, 1817103, 1861303, 1912170],
+    "expires_in_version": "140",
     "kind": "categorical",
     "labels": [
       "suspend",
@@ -14694,8 +14694,8 @@
     "record_in_processes": ["main"],
     "products": ["firefox"],
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
-    "bug_numbers": [1787940, 1817103, 1861303],
-    "expires_in_version": "132",
+    "bug_numbers": [1787940, 1817103, 1861303, 1912170],
+    "expires_in_version": "140",
     "kind": "categorical",
     "labels": [
       "suspend",
@@ -14730,9 +14730,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14758,9 +14758,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14774,9 +14774,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1297167, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14789,9 +14789,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14805,9 +14805,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1465120, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14820,9 +14820,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14836,9 +14836,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1465120, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14851,9 +14851,9 @@
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
     "bug_numbers": [
       1483002, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "exponential",
     "releaseChannelCollection": "opt-out",
     "high": 50000,
@@ -14866,10 +14866,10 @@
     "products": ["firefox", "fennec"],
     "bug_numbers": [
       1465129, 1513556, 1578225, 1623315, 1666980, 1706839, 1745271, 1777402,
-      1811155, 1861303
+      1811155, 1861303, 1912170
     ],
     "alert_emails": ["addons-dev-internal@mozilla.com", "lgreco@mozilla.com"],
-    "expires_in_version": "132",
+    "expires_in_version": "140",
     "kind": "categorical",
     "labels": ["success", "failure"],
     "releaseChannelCollection": "opt-out",
