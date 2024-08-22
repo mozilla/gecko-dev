@@ -1131,7 +1131,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   display: none;
   background-color: var(--toolbar-field-background-color);
   border-radius: var(--toolbarbutton-border-radius);
-  margin-inline-end: var(--urlbar-icon-padding);
+  margin-inline: 0 var(--urlbar-icon-padding);
   padding-block: 0;
 
   &:focus-visible {
