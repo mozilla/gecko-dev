@@ -60,6 +60,7 @@
 
 #include "js/Debug.h"
 #include "js/RealmOptions.h"
+#include "js/experimental/LoggingInterface.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
 #include "js/GCAPI.h"
 #include "js/HeapAPI.h"
@@ -667,6 +668,27 @@ static bool InitializeShadowRealm(JSContext* aCx,
   return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 
+static JS::OpaqueLogger GetLoggerByName(const char* name) {
+  LogModule* tmp = LogModule::Get(name);
+  return static_cast<JS::OpaqueLogger>(tmp);
+}
+
+MOZ_FORMAT_PRINTF(3, 0)
+static void LogPrintVA(JS::OpaqueLogger aLogger, mozilla::LogLevel level,
+                       const char* aFmt, va_list ap) {
+  LogModule* logmod = static_cast<LogModule*>(aLogger);
+
+  logmod->Printv(level, aFmt, ap);
+}
+
+static AtomicLogLevel& GetLevelRef(JS::OpaqueLogger aLogger) {
+  LogModule* logmod = static_cast<LogModule*>(aLogger);
+  return logmod->LevelRef();
+}
+
+static JS::LoggingInterface loggingInterface = {GetLoggerByName, LogPrintVA,
+                                                GetLevelRef};
+
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
     : mContext(nullptr),
       mGCThingCycleCollectorGlobal(sGCThingCycleCollectorGlobal),
@@ -707,6 +729,9 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   JS::SetWarningReporter(aCx, MozCrashWarningReporter);
   JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealm);
   JS::SetShadowRealmGlobalCreationCallback(aCx, dom::NewShadowRealmGlobal);
+  if (!JS::SetLoggingInterface(loggingInterface)) {
+    MOZ_CRASH("Failed to install logging interface");
+  }
 
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
       CrashReporter::AnnotateOOMAllocationSize);

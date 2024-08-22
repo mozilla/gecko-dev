@@ -117,6 +117,8 @@ class LogModule {
    */
   const char* Name() const { return mName; }
 
+  AtomicLogLevel& LevelRef() { return mLevel; }
+
  private:
   friend class LogModuleManager;
 
