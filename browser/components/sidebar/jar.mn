@@ -9,6 +9,7 @@ browser.jar:
     content/browser/sidebar/sidebar-customize.mjs
     content/browser/sidebar/sidebar-main.css
     content/browser/sidebar/sidebar-main.mjs
+    content/browser/sidebar/sidebar-history.css
     content/browser/sidebar/sidebar-history.html
     content/browser/sidebar/sidebar-history.mjs
     content/browser/sidebar/sidebar-page.mjs

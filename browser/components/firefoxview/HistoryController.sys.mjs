@@ -93,8 +93,8 @@ export class HistoryController {
     this.updateCache();
   }
 
-  onChangeSortOption(e) {
-    this.sortOption = e.target.value;
+  onChangeSortOption(e, value = e.target.value) {
+    this.sortOption = value;
     this.updateCache();
   }
 

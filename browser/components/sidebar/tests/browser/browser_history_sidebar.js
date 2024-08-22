@@ -121,6 +121,44 @@ add_task(async function test_history_search() {
   );
 });
 
+add_task(async function test_history_sort() {
+  const { component, contentWindow } = await showHistorySidebar();
+  const { menuButton } = component;
+  const menu = component._menu;
+  const sortByDateButton = component._menuSortByDate;
+  const sortBySiteButton = component._menuSortBySite;
+
+  info("Sort history by site.");
+  let promiseMenuShown = BrowserTestUtils.waitForEvent(menu, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(menuButton, {}, contentWindow);
+  await promiseMenuShown;
+  menu.activateItem(sortBySiteButton);
+  await TestUtils.waitForCondition(
+    () => component.lists.length === URLs.length,
+    "There is a card for each site."
+  );
+  Assert.equal(
+    sortBySiteButton.getAttribute("checked"),
+    "true",
+    "Sort by site is checked."
+  );
+
+  info("Sort history by date.");
+  promiseMenuShown = BrowserTestUtils.waitForEvent(menu, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(menuButton, {}, contentWindow);
+  await promiseMenuShown;
+  menu.activateItem(sortByDateButton);
+  await TestUtils.waitForCondition(
+    () => component.lists.length === dates.length,
+    "There is a card for each date."
+  );
+  Assert.equal(
+    sortByDateButton.getAttribute("checked"),
+    "true",
+    "Sort by date is checked."
+  );
+});
+
 add_task(async function test_history_keyboard_navigation() {
   const {
     component: { cards, lists },
@@ -187,6 +225,69 @@ add_task(async function test_history_hover_buttons() {
     contentWindow
   );
   await promiseRemoved;
+  await TestUtils.waitForCondition(
+    () => lists[0].rowEls.length === URLs.length - 1,
+    "The removed entry should no longer be visible."
+  );
+});
+
+add_task(async function test_history_context_menu() {
+  const {
+    component: { cards, lists },
+  } = await showHistorySidebar();
+  const contextMenu = win.SidebarController.currentContextMenu;
+
+  // TODO: (Bug 1908742) Cards should be expanded already, this shouldn't be necessary.
+  await TestUtils.waitForTick();
+  for (const card of cards) {
+    card.toggleDetails(true);
+    await card.updateComplete;
+  }
+  let rows = lists[0].rowEls;
+
+  function getItem(item) {
+    return win.document.getElementById("sidebar-history-context-" + item);
+  }
+
+  info("Delete from history.");
+  const promiseRemoved = PlacesTestUtils.waitForNotification("page-removed");
+  await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
+    contextMenu.activateItem(getItem("delete-page"))
+  );
+  await promiseRemoved;
+  await TestUtils.waitForCondition(
+    () => lists[0].rowEls.length === URLs.length - 2,
+    "The removed entry should no longer be visible."
+  );
+
+  rows = lists[0].rowEls;
+  const { url } = rows[0];
+
+  info("Open link in a new window.");
+  let promiseWin = BrowserTestUtils.waitForNewWindow({ url });
+  await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
+    contextMenu.activateItem(getItem("open-in-window"))
+  );
+  await BrowserTestUtils.closeWindow(await promiseWin);
+
+  info("Open link in a new private window.");
+  promiseWin = BrowserTestUtils.waitForNewWindow({ url });
+  await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
+    contextMenu.activateItem(getItem("open-in-private-window"))
+  );
+  const privateWin = await promiseWin;
+  ok(
+    PrivateBrowsingUtils.isWindowPrivate(privateWin),
+    "The new window is in private browsing mode."
+  );
+  await BrowserTestUtils.closeWindow(privateWin);
+
+  info("Copy link.");
+  await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
+    contextMenu.activateItem(getItem("copy-link"))
+  );
+  const copiedUrl = SpecialPowers.getClipboardData("text/plain");
+  is(copiedUrl, url, "The copied URL is correct.");
 });
 
 add_task(async function test_history_empty_state() {

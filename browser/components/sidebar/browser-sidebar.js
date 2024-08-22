@@ -89,6 +89,9 @@ var SidebarController = {
           menuL10nId: "menu-view-history-button",
           revampL10nId: "sidebar-menu-history-label",
           iconUrl: "chrome://browser/content/firefoxview/view-history.svg",
+          contextMenuId: this.sidebarRevampEnabled
+            ? "sidebar-history-context-menu"
+            : undefined,
         }),
       ],
       [
@@ -103,6 +106,9 @@ var SidebarController = {
           menuL10nId: "menu-view-synced-tabs-sidebar",
           revampL10nId: "sidebar-menu-synced-tabs-label",
           iconUrl: "chrome://browser/content/firefoxview/view-syncedtabs.svg",
+          contextMenuId: this.sidebarRevampEnabled
+            ? "sidebar-synced-tabs-context-menu"
+            : undefined,
         }),
       ],
       [
@@ -733,6 +739,17 @@ var SidebarController = {
     return this.isOpen ? this._box.getAttribute("sidebarcommand") : "";
   },
 
+  /**
+   * The context menu of the current sidebar.
+   */
+  get currentContextMenu() {
+    const sidebar = this.sidebars.get(this.currentID);
+    if (!sidebar) {
+      return null;
+    }
+    return document.getElementById(sidebar.contextMenuId);
+  },
+
   get title() {
     return this._title.value;
   },
@@ -1167,7 +1184,8 @@ var SidebarController = {
       this._box.setAttribute("checked", "true");
       this._box.setAttribute("sidebarcommand", commandID);
 
-      let { icon, url, title, sourceL10nEl } = this.sidebars.get(commandID);
+      let { icon, url, title, sourceL10nEl, contextMenuId } =
+        this.sidebars.get(commandID);
       if (icon) {
         this._switcherTarget.style.setProperty(
           "--webextension-menuitem-image",
@@ -1177,6 +1195,12 @@ var SidebarController = {
         this._switcherTarget.style.removeProperty(
           "--webextension-menuitem-image"
         );
+      }
+
+      if (contextMenuId) {
+        this._box.setAttribute("context", contextMenuId);
+      } else {
+        this._box.removeAttribute("context");
       }
 
       // use to live update <tree> elements if the locale changes
@@ -1256,6 +1280,7 @@ var SidebarController = {
     this.browser.docShell?.createAboutBlankDocumentViewer(null, null);
 
     this._box.removeAttribute("checked");
+    this._box.removeAttribute("context");
     this._box.hidden = this._splitter.hidden = true;
 
     let selBrowser = gBrowser.selectedBrowser;

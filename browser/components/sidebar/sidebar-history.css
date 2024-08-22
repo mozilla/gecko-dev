@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+.options-container {
+  display: flex;
+  width: 100%;
+}
+
+fxview-search-textbox {
+  flex: 1;
+}
+
+.menu-button::part(button) {
+  background-image: url("chrome://global/skin/icons/more.svg");
+}

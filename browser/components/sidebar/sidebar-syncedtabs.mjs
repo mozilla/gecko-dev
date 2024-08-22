@@ -22,6 +22,10 @@ import { SidebarPage } from "./sidebar-page.mjs";
 class SyncedTabsInSidebar extends SidebarPage {
   controller = new lazy.SyncedTabsController(this);
 
+  static queries = {
+    cards: { all: "moz-card" },
+  };
+
   constructor() {
     super();
     this.onSearchQuery = this.onSearchQuery.bind(this);
@@ -31,11 +35,34 @@ class SyncedTabsInSidebar extends SidebarPage {
     super.connectedCallback();
     this.controller.addSyncObservers();
     this.controller.updateStates();
+    this.addContextMenuListeners();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.controller.removeSyncObservers();
+    this.removeContextMenuListeners();
+  }
+
+  handleContextMenuEvent(e) {
+    this.triggerNode = this.findTriggerNode(e, "fxview-tab-row");
+    if (!this.triggerNode) {
+      e.preventDefault();
+    }
+  }
+
+  handleCommandEvent(e) {
+    switch (e.target.id) {
+      case "sidebar-synced-tabs-context-bookmark-tab":
+        this.topWindow.PlacesCommandHook.bookmarkLink(
+          this.triggerNode.url,
+          this.triggerNode.title
+        );
+        break;
+      default:
+        super.handleCommandEvent(e);
+        break;
+    }
   }
 
   /**
