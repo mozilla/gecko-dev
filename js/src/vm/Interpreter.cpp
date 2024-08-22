@@ -2321,16 +2321,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       UsingHint hint = UsingHint(GET_UINT8(REGS.pc));
       JS::Rooted<ArrayObject*> disposableCapability(cx);
 
-      if (env->is<LexicalEnvironmentObject>()) {
-        disposableCapability =
-            env->as<LexicalEnvironmentObject>().getOrCreateDisposeCapability(
-                cx);
-      } else if (env->is<ModuleEnvironmentObject>()) {
-        disposableCapability =
-            env->as<ModuleEnvironmentObject>().getOrCreateDisposeCapability(cx);
-      } else {
-        MOZ_CRASH("Unexpected environment object for JSOp::AddDispose");
-      }
+      disposableCapability =
+          env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(
+              cx);
 
       if (!disposableCapability) {
         goto error;
@@ -2347,9 +2340,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());
       JS::Value maybeDisposables =
-          env->is<LexicalEnvironmentObject>()
-              ? env->as<LexicalEnvironmentObject>().getDisposables()
-              : env->as<ModuleEnvironmentObject>().getDisposables();
+          env->as<DisposableEnvironmentObject>().getDisposables();
 
       MOZ_ASSERT(maybeDisposables.isObject() || maybeDisposables.isUndefined());
 
@@ -2357,11 +2348,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
         PUSH_UNDEFINED();
       } else {
         PUSH_OBJECT(maybeDisposables.toObject());
-        if (env->is<LexicalEnvironmentObject>()) {
-          env->as<LexicalEnvironmentObject>().clearDisposables();
-        } else {
-          env->as<ModuleEnvironmentObject>().clearDisposables();
-        }
+        env->as<DisposableEnvironmentObject>().clearDisposables();
       }
     }
     END_CASE(TakeDisposeCapability)

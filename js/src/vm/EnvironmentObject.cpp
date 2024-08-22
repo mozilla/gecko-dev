@@ -429,10 +429,6 @@ ModuleEnvironmentObject* ModuleEnvironmentObject::create(
 }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-// TODO: at the time of unflagging ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-// consider having a common base class for LexicalEnvironmentObject and
-// ModuleEnvironmentObject containing all the common code and also
-// align method names with that of DisposableStack (Bug 1907736).
 static ArrayObject* initialiseAndSetDisposeCapabilityHelper(
     JSContext* cx, JS::Handle<EnvironmentObject*> env, uint32_t slot) {
   JS::Value slotData = env->getReservedSlot(slot);
@@ -449,33 +445,19 @@ static ArrayObject* initialiseAndSetDisposeCapabilityHelper(
   return disposablesList;
 }
 
-ArrayObject* ModuleEnvironmentObject::getOrCreateDisposeCapability(
+ArrayObject* DisposableEnvironmentObject::getOrCreateDisposeCapability(
     JSContext* cx) {
-  Rooted<ModuleEnvironmentObject*> env(cx, this);
+  Rooted<DisposableEnvironmentObject*> env(cx, this);
   return initialiseAndSetDisposeCapabilityHelper(
       cx, env, DISPOSABLE_RESOURCE_STACK_SLOT);
 }
 
-JS::Value ModuleEnvironmentObject::getDisposables() {
+// TODO: The get & clear disposables function can be merged. (bug 1907736)
+JS::Value DisposableEnvironmentObject::getDisposables() {
   return getReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT);
 }
 
-void ModuleEnvironmentObject::clearDisposables() {
-  setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT, UndefinedValue());
-}
-
-ArrayObject* LexicalEnvironmentObject::getOrCreateDisposeCapability(
-    JSContext* cx) {
-  Rooted<LexicalEnvironmentObject*> env(cx, this);
-  return initialiseAndSetDisposeCapabilityHelper(
-      cx, env, DISPOSABLE_RESOURCE_STACK_SLOT);
-}
-
-JS::Value LexicalEnvironmentObject::getDisposables() {
-  return getReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT);
-}
-
-void LexicalEnvironmentObject::clearDisposables() {
+void DisposableEnvironmentObject::clearDisposables() {
   setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT, UndefinedValue());
 }
 #endif
