@@ -7,8 +7,18 @@
 #define MacLaunchHelper_h_
 
 #include <stdint.h>
-
 #include <unistd.h>
+
+#ifdef __OBJC__
+#  include <Foundation/Foundation.h>
+
+namespace mozilla::MacLaunchHelper {
+
+void LaunchMacAppWithBundle(NSString* aBundlePath,
+                            NSArray* aArguments = nullptr);
+
+}  // namespace mozilla::MacLaunchHelper
+#endif  // __OBJC__
 
 extern "C" {
 /**
@@ -17,6 +27,7 @@ extern "C" {
  * pid of the terminated process to confirm that it executed successfully.
  */
 void LaunchChildMac(int aArgc, char** aArgv, pid_t* aPid = 0);
+void LaunchMacApp(int aArgc, char** aArgv);
 bool LaunchElevatedUpdate(int aArgc, char** aArgv, pid_t* aPid = 0);
 bool InstallPrivilegedHelper();
 void AbortElevatedUpdate();
