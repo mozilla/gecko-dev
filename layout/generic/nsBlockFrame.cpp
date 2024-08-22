@@ -3437,6 +3437,7 @@ bool nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
       if (!nextInFlow->mLines.empty()) {
         RemoveFirstLine(nextInFlow->mLines, nextInFlow->mFrames, &pulledLine,
                         &pulledFrames);
+        ClearLineCursors();
       } else {
         // Grab an overflow line if there are any
         FrameLines* overflowLines = nextInFlow->GetOverflowLines();
@@ -3657,6 +3658,7 @@ void nsBlockFrame::DeleteLine(BlockReflowState& aState,
     nsLineBox* line = aLine;
     aLine = mLines.erase(aLine);
     FreeLineBox(line);
+    ClearLineCursors();
     // Mark the previous margin of the next line dirty since we need to
     // recompute its top position.
     if (aLine != aLineEnd) {
@@ -4874,6 +4876,7 @@ void nsBlockFrame::DoReflowInlineFrames(
   for (i = 0;
        LineReflowStatus::OK == lineReflowStatus && i < aLine->GetChildCount();
        i++, frame = frame->GetNextSibling()) {
+    SetLineCursorForDisplay(aLine);
     ReflowInlineFrame(aState, aLineLayout, aLine, frame, &lineReflowStatus);
     if (LineReflowStatus::OK != lineReflowStatus) {
       // It is possible that one or more of next lines are empty
@@ -4887,6 +4890,7 @@ void nsBlockFrame::DoReflowInlineFrames(
         aLine = mLines.erase(aLine);
         NS_ASSERTION(nullptr == toremove->mFirstChild, "bad empty line");
         FreeLineBox(toremove);
+        ClearLineCursors();
       }
       --aLine;
 
@@ -4907,6 +4911,7 @@ void nsBlockFrame::DoReflowInlineFrames(
 
       while (LineReflowStatus::OK == lineReflowStatus) {
         int32_t oldCount = aLine->GetChildCount();
+        SetLineCursorForDisplay(aLine);
         ReflowInlineFrame(aState, aLineLayout, aLine, frame, &lineReflowStatus);
         if (aLine->GetChildCount() != oldCount) {
           // We just created a continuation for aFrame AND its going
@@ -4920,6 +4925,7 @@ void nsBlockFrame::DoReflowInlineFrames(
       }
     }
   }
+  ClearLineCursors();
 
   aState.mFlags.mIsLineLayoutEmpty = aLineLayout.LineIsEmpty();
 
@@ -5664,10 +5670,15 @@ void nsBlockFrame::PushLines(BlockReflowState& aState,
       // Mark all the overflow lines dirty so that they get reflowed when
       // they are pulled up by our next-in-flow.
 
+      nsLineBox* cursor = GetLineCursorForDisplay();
+
       // XXXldb Can this get called O(N) times making the whole thing O(N^2)?
       for (LineIterator line = overflowLines->mLines.begin(),
                         line_end = overflowLines->mLines.end();
            line != line_end; ++line) {
+        if (line == cursor) {
+          ClearLineCursors();
+        }
         line->MarkDirty();
         line->MarkPreviousMarginDirty();
         line->SetMovedFragments();
@@ -6882,8 +6893,8 @@ bool nsBlockInFlowLineIterator::FindValidLine() {
 // on looking for continuations.
 void nsBlockFrame::DoRemoveFrame(DestroyContext& aContext,
                                  nsIFrame* aDeletedFrame, uint32_t aFlags) {
-  // Clear our line cursor, since our lines may change.
-  ClearLineCursors();
+  // We use the line cursor to attempt to optimize removal, but must ensure
+  // it is cleared if lines change such that it may become invalid.
 
   if (aDeletedFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW |
                                      NS_FRAME_IS_OVERFLOW_CONTAINER)) {
@@ -6899,22 +6910,49 @@ void nsBlockFrame::DoRemoveFrame(DestroyContext& aContext,
     return;
   }
 
-  // Find the line that contains deletedFrame
+  // Find the line that contains deletedFrame. Start from the line cursor
+  // (if available) and search to the end of the normal line list, then
+  // from the start to the line cursor, and last the overflow lines.
   nsLineList::iterator line_start = mLines.begin(), line_end = mLines.end();
   nsLineList::iterator line = line_start;
+
+  bool found = false;
+  if (nsLineBox* cursor = GetLineCursorForDisplay()) {
+    for (line.SetPosition(cursor); line != line_end; ++line) {
+      if (line->Contains(aDeletedFrame)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // Setup for a shorter TryAllLines normal line search to avoid searching
+      // the [cursor .. line_end] range again.
+      line = line_start;
+      line_end.SetPosition(cursor);
+    }
+  }
+
   FrameLines* overflowLines = nullptr;
   bool searchingOverflowList = false;
-  // Make sure we look in the overflow lines even if the normal line
-  // list is empty
-  TryAllLines(&line, &line_start, &line_end, &searchingOverflowList,
-              &overflowLines);
-  while (line != line_end) {
-    if (line->Contains(aDeletedFrame)) {
-      break;
-    }
-    ++line;
+  if (!found) {
+    // Make sure we look in the overflow lines even if the normal line
+    // list is empty.
     TryAllLines(&line, &line_start, &line_end, &searchingOverflowList,
                 &overflowLines);
+    while (line != line_end) {
+      if (line->Contains(aDeletedFrame)) {
+        break;
+      }
+      ++line;
+      TryAllLines(&line, &line_start, &line_end, &searchingOverflowList,
+                  &overflowLines);
+    }
+    if (!searchingOverflowList && (GetStateBits() & NS_BLOCK_HAS_LINE_CURSOR)) {
+      // Restore line_end since we shortened the search to the cursor.
+      line_end = mLines.end();
+      // Clear our line cursors, since our normal line list may change.
+      ClearLineCursors();
+    }
   }
 
   if (line == line_end) {
@@ -7022,6 +7060,7 @@ void nsBlockFrame::DoRemoveFrame(DestroyContext& aContext,
       nsLineBox* cur = line;
       if (!searchingOverflowList) {
         line = mLines.erase(line);
+        ClearLineCursors();
         // Invalidate the space taken up by the line.
         // XXX We need to do this if we're removing a frame as a result of
         // a call to RemoveFrame(), but we may not need to do this in all
@@ -7214,6 +7253,7 @@ void nsBlockFrame::RemoveFrameFromLine(nsIFrame* aChild,
       aLine->MarkPreviousMarginDirty();
     }
     FreeLineBox(lineBox);
+    ClearLineCursors();
   }
 }
 
