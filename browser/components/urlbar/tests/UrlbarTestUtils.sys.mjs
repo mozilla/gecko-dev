@@ -828,19 +828,20 @@ export var UrlbarTestUtils = {
       "gURLBar.searchMode should exist as expected"
     );
 
+    let results = window.gURLBar.querySelector(".urlbarView-results");
     if (
       window.gURLBar.searchMode?.source &&
       window.gURLBar.searchMode.source !== UrlbarUtils.RESULT_SOURCE.SEARCH
     ) {
       this.Assert.equal(
-        window.gURLBar.getAttribute("searchmodesource"),
+        results.getAttribute("searchmodesource"),
         UrlbarUtils.getResultSourceName(window.gURLBar.searchMode.source),
-        "gURLBar has proper searchmodesource attribute"
+        "Urlbar results have proper searchmodesource attribute"
       );
     } else {
       this.Assert.ok(
-        !window.gURLBar.hasAttribute("searchmodesource"),
-        "gURLBar does not have searchmodesource attribute"
+        !results.hasAttribute("searchmodesource"),
+        "Urlbar results does not have searchmodesource attribute"
       );
     }
 

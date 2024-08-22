@@ -31,6 +31,8 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 var localProviderModules = {
   UrlbarProviderAboutPages:
     "resource:///modules/UrlbarProviderAboutPages.sys.mjs",
+  UrlbarProviderActionsSearchMode:
+    "resource:///modules/UrlbarProviderActionsSearchMode.sys.mjs",
   UrlbarProviderAliasEngines:
     "resource:///modules/UrlbarProviderAliasEngines.sys.mjs",
   UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",

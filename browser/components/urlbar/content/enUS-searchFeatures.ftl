@@ -415,6 +415,8 @@ urlbar-searchmode-tabs =
     .label = Tabs
 urlbar-searchmode-history =
     .label = History
+urlbar-searchmode-actions =
+    .label = Actions
 
 urlbar-searchmode-popup-description = This time search with:
 urlbar-searchmode-popup-search-settings = Search Settings

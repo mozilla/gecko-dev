@@ -27,6 +27,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarQueryContext: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
+  UrlbarProviderActionsSearchMode:
+    "resource:///modules/UrlbarProviderActionsSearchMode.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -62,6 +64,8 @@ const SEARCH_BUTTON_CLASS = "urlbar-search-button";
 
 // The scalar category of TopSites click for Contextual Services
 const SCALAR_CATEGORY_TOPSITES = "contextual.services.topsites.click";
+
+const UNLIMITED_MAX_RESULTS = 99;
 
 let getBoundsWithoutFlushing = element =>
   element.ownerGlobal.windowUtils.getBoundsWithoutFlushing(element);
@@ -921,7 +925,11 @@ export class UrlbarInput {
     if (!result) {
       return;
     }
-    if (element?.dataset.action && element?.dataset.action != "tabswitch") {
+    if (
+      element?.dataset.action &&
+      element?.dataset.action != "tabswitch" &&
+      result.providerName != lazy.UrlbarProviderActionsSearchMode.name
+    ) {
       this.controller.engagementEvent.record(event, {
         result,
         element,
@@ -3489,7 +3497,9 @@ export class UrlbarInput {
     this._searchModeLabel.textContent = "";
     this._searchModeIndicatorTitle.removeAttribute("data-l10n-id");
     this._searchModeLabel.removeAttribute("data-l10n-id");
-    this.removeAttribute("searchmodesource");
+
+    let results = this.querySelector(".urlbarView-results");
+    results.removeAttribute("searchmodesource");
 
     if (!engineName && !source) {
       try {
@@ -3522,7 +3532,7 @@ export class UrlbarInput {
         this.inputField,
         `urlbar-placeholder-search-mode-other-${sourceName}`
       );
-      this.setAttribute("searchmodesource", sourceName);
+      results.setAttribute("searchmodesource", sourceName);
     }
 
     this.toggleAttribute("searchmode", true);
@@ -4142,10 +4152,16 @@ export class UrlbarInput {
     searchString = null,
     event = null,
   } = {}) {
+    // When we are in actions search mode we can show more results so
+    // increase the limit.
+    let maxResults =
+      this.searchMode?.source != lazy.UrlbarUtils.RESULT_SOURCE.ACTIONS
+        ? lazy.UrlbarPrefs.get("maxRichResults")
+        : UNLIMITED_MAX_RESULTS;
     let options = {
       allowAutofill,
       isPrivate: this.isPrivate,
-      maxResults: lazy.UrlbarPrefs.get("maxRichResults"),
+      maxResults,
       searchString,
       userContextId: parseInt(
         this.window.gBrowser.selectedBrowser.getAttribute("usercontextid") || 0

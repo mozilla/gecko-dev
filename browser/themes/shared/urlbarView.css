@@ -908,6 +908,16 @@
   background-color: var(--urlbarView-result-button-selected-background-color);
 }
 
+/* Actions */
+
+.urlbarView-results[searchmodesource=actions] {
+  white-space: wrap;
+
+  > .urlbarView-row {
+    display: inline-flex;
+  }
+}
+
 /* Search one-offs */
 
 #urlbar .search-one-offs:not([hidden]) {

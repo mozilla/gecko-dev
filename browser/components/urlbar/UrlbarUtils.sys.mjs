@@ -118,6 +118,7 @@ export var UrlbarUtils = {
     OTHER_LOCAL: 5,
     OTHER_NETWORK: 6,
     ADDON: 7,
+    ACTIONS: 8,
   },
 
   // This defines icon locations that are commonly used in the UI.
@@ -233,6 +234,14 @@ export var UrlbarUtils = {
         pref: "shortcuts.history",
         telemetryLabel: "history",
         uiLabel: "urlbar-searchmode-history",
+      },
+      {
+        source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
+        restrict: lazy.UrlbarTokenizer.RESTRICT.ACTION,
+        icon: "chrome://browser/skin/quickactions.svg",
+        pref: "shortcuts.actions",
+        telemetryLabel: "actions",
+        uiLabel: "urlbar-searchmode-actions",
       },
     ];
   },

@@ -1163,9 +1163,13 @@ class EngineView {
 
   // nsITreeView
   get rowCount() {
-    return (
-      this._engineStore.engines.length + UrlbarUtils.LOCAL_SEARCH_MODES.length
-    );
+    let localModes = UrlbarUtils.LOCAL_SEARCH_MODES;
+    if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      localModes = localModes.filter(
+        mode => mode.source != UrlbarUtils.RESULT_SOURCE.ACTIONS
+      );
+    }
+    return this._engineStore.engines.length + localModes.length;
   }
 
   getImageSrc(index, column) {

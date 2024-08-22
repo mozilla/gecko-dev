@@ -38,9 +38,8 @@ class ProviderQuickActions extends ActionsProvider {
   }
 
   async queryAction(queryContext) {
-    await lazy.QuickActionsLoaderDefault.ensureLoaded();
     let input = queryContext.trimmedLowerCaseSearchString;
-    let results = [...(this.#prefixes.get(input) ?? [])];
+    let results = await this.getActions(input);
 
     if (lazy.UrlbarPrefs.get(MATCH_IN_PHRASE_PREF)) {
       for (let [keyword, key] of this.#keywords) {
@@ -70,6 +69,15 @@ class ProviderQuickActions extends ActionsProvider {
         inputLength: queryContext.trimmedSearchString.length,
       },
     });
+  }
+
+  async getActions(prefix) {
+    await lazy.QuickActionsLoaderDefault.ensureLoaded();
+    return [...(this.#prefixes.get(prefix) ?? [])];
+  }
+
+  getAction(key) {
+    return this.#actions.get(key);
   }
 
   pickAction(_queryContext, _controller, element) {

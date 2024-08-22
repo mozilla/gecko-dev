@@ -16,6 +16,11 @@ ChromeUtils.defineLazyGetter(this, "oneOffSearchButtons", () => {
   return UrlbarTestUtils.getOneOffSearchButtons(window);
 });
 
+// The oneoffs are disabled within scotchBonnet so for most of the
+// time we want to filter out the actions search mode.
+let filterActionsMode = action =>
+  action.source != UrlbarUtils.RESULT_SOURCE.ACTIONS;
+
 add_setup(async function () {
   gMaxResults = Services.prefs.getIntPref("browser.urlbar.maxRichResults");
 
@@ -30,6 +35,7 @@ add_setup(async function () {
     set: [
       ["browser.search.separatePrivateDefault.ui.enabled", false],
       ["browser.urlbar.suggest.quickactions", false],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
     ],
   });
 
@@ -816,8 +822,8 @@ add_task(async function individualLocalShortcutsHidden() {
     Assert.ok(buttons.length, "Sanity check: Local shortcuts exist");
 
     let otherModes = UrlbarUtils.LOCAL_SEARCH_MODES.filter(
-      m => m.source != source
-    );
+      filterActionsMode
+    ).filter(m => m.source != source);
     Assert.equal(
       buttons.length,
       otherModes.length,
@@ -905,7 +911,7 @@ add_task(async function localShortcutsShownWhenEnginesHidden() {
 
   Assert.equal(
     oneOffSearchButtons.localButtons.length,
-    UrlbarUtils.LOCAL_SEARCH_MODES.length,
+    UrlbarUtils.LOCAL_SEARCH_MODES.filter(filterActionsMode).length,
     "All local shortcuts are visible"
   );
 

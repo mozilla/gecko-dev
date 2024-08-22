@@ -135,3 +135,34 @@ add_task(async function test_sitesearch() {
     "Selecting the contextual search result opens the search URL"
   );
 });
+
+add_task(async function enter_action_search_mode() {
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "> ",
+  });
+  await UrlbarTestUtils.assertSearchMode(window, {
+    source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
+    entry: "typed",
+  });
+  let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  Assert.equal(
+    result.providerName,
+    "UrlbarProviderActionsSearchMode",
+    "Actions are shown"
+  );
+
+  let pageLoaded = BrowserTestUtils.browserLoaded(window);
+  EventUtils.synthesizeKey("pref", {}, window);
+  EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.synthesizeKey("KEY_Enter");
+  await pageLoaded;
+
+  Assert.equal(
+    window.gBrowser.selectedBrowser.currentURI.spec,
+    "about:preferences",
+    "Opened settings page"
+  );
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});

@@ -315,7 +315,7 @@ async function forEachLocalShortcutRow(callback) {
     // These tests assume LOCAL_SEARCH_MODES are enabled, this can be removed
     // when we enable QuickActions. We cant just enable the pref in browser.ini
     // as this test calls clearUserPref.
-    if (shortcut.pref == "shortcuts.quickactions") {
+    if (shortcut.pref == "shortcuts.actions") {
       continue;
     }
     await callback(row, shortcut);
