@@ -28,7 +28,10 @@ def webidl_example(command_context, interface):
 
     manager = create_build_system_manager()
     for i in interface:
-        manager.generate_example_files(i)
+        written = manager.generate_example_files(i)
+        for path_set in written:
+            for path in path_set:
+                print(path)
 
 
 @Command(
