@@ -850,12 +850,24 @@ BasePrincipal::HasFirstpartyStorageAccess(mozIDOMWindow* aCheckWindow,
   *aRejectedReason = 0;
   *aOutAllowed = false;
 
+  if (IsSystemPrincipal()) {
+    // System principal is always considered to have first-party storage access.
+    *aOutAllowed = true;
+    return NS_OK;
+  }
+
   nsPIDOMWindowInner* win = nsPIDOMWindowInner::From(aCheckWindow);
   nsCOMPtr<nsIURI> uri;
   nsresult rv = GetURI(getter_AddRefs(uri));
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  // The uri could be null if the principal is an expanded principal.
+  if (!uri) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   *aOutAllowed = ShouldAllowAccessFor(win, uri, aRejectedReason);
   return NS_OK;
 }
