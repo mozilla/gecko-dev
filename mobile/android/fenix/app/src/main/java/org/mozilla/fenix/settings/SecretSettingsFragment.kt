@@ -150,9 +150,8 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        // This is only available in Nightly or Debug builds for verification.
         requirePreference<SwitchPreference>(R.string.pref_key_microsurvey_feature_enabled).apply {
-            isVisible = Config.channel.isNightlyOrDebug
+            isVisible = true
             isChecked = context.settings().microsurveyFeatureEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
