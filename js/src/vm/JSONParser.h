@@ -9,6 +9,7 @@
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 #include "mozilla/Attributes.h"  // MOZ_STACK_CLASS
+#include "mozilla/Maybe.h"       // mozilla::{Maybe,Some}
 #include "mozilla/Range.h"       // mozilla::Range
 #include "mozilla/RangedPtr.h"   // mozilla::RangedPtr
 
@@ -206,6 +207,10 @@ class MOZ_STACK_CLASS JSONFullParseHandlerAnyChar {
   /* Data members */
 
   JSContext* cx;
+
+  bool reportLineNumbersFromParsedData = false;
+
+  mozilla::Maybe<JS::ConstUTF8CharsZ> filename;
 
   JS::Value v;
 
@@ -598,6 +603,18 @@ class MOZ_STACK_CLASS JSONParser
    */
   bool parse(JS::MutableHandle<JS::Value> vp);
 
+  void reportLineNumbersFromParsedData(bool b) {
+    this->handler.reportLineNumbersFromParsedData = b;
+  }
+
+  /**
+   * Set a filename to be used in error messages.
+   * This is optional and only used for error reporting.
+   */
+  void setFilename(JS::ConstUTF8CharsZ filename) {
+    this->handler.filename = mozilla::Some(filename);
+  }
+
   void trace(JSTracer* trc);
 };
 
@@ -650,6 +667,12 @@ class MutableWrappedPtrOperations<JSONParser<CharT>, Wrapper>
  public:
   bool parse(JS::MutableHandle<JS::Value> vp) {
     return static_cast<Wrapper*>(this)->get().parse(vp);
+  }
+  void setFilename(JS::ConstUTF8CharsZ filename) {
+    static_cast<Wrapper*>(this)->get().setFilename(filename);
+  }
+  void reportLineNumbersFromParsedData(bool b) {
+    static_cast<Wrapper*>(this)->get().reportLineNumbersFromParsedData(b);
   }
 };
 

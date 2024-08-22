@@ -595,6 +595,17 @@ void JSONTokenizer<CharT, ParserT>::error(const char* msg) {
   parser->error(msg);
 }
 
+static void ReportJSONSyntaxError(FrontendContext* fc, ErrorMetadata&& metadata,
+                                  unsigned errorNumber, ...) {
+  va_list args;
+  va_start(args, errorNumber);
+
+  js::ReportCompileErrorLatin1VA(fc, std::move(metadata), nullptr, errorNumber,
+                                 &args);
+
+  va_end(args);
+}
+
 // JSONFullParseHandlerAnyChar uses an AutoSelectGCHeap to switch to allocating
 // in the tenured heap if we trigger more than one nursery collection.
 //
@@ -839,8 +850,22 @@ void JSONFullParseHandler<CharT>::reportError(const char* msg, uint32_t line,
   char lineString[MaxWidth];
   SprintfLiteral(lineString, "%" PRIu32, line);
 
-  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_JSON_BAD_PARSE,
-                            msg, lineString, columnString);
+  if (reportLineNumbersFromParsedData) {
+    AutoReportFrontendContext fc(cx);
+
+    ErrorMetadata metadata;
+    metadata.isMuted = false;
+    metadata.filename = filename.valueOr(JS::ConstUTF8CharsZ(""));
+    metadata.lineNumber = line;
+    metadata.columnNumber = JS::ColumnNumberOneOrigin(column);
+
+    ReportJSONSyntaxError(&fc, std::move(metadata), JSMSG_JSON_BAD_PARSE, msg,
+                          lineString, columnString);
+  } else {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_JSON_BAD_PARSE, msg, lineString,
+                              columnString);
+  }
 }
 
 template <typename CharT, typename HandlerT>
@@ -1256,17 +1281,6 @@ inline bool JSONSyntaxParseHandler<CharT>::finishArray(
     Vector<StackEntry, 10>& stack, DummyValue* vp, ElementVector* elements) {
   stack.popBack();
   return true;
-}
-
-static void ReportJSONSyntaxError(FrontendContext* fc, ErrorMetadata&& metadata,
-                                  unsigned errorNumber, ...) {
-  va_list args;
-  va_start(args, errorNumber);
-
-  js::ReportCompileErrorLatin1VA(fc, std::move(metadata), nullptr, errorNumber,
-                                 &args);
-
-  va_end(args);
 }
 
 template <typename CharT>
