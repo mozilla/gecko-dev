@@ -2896,8 +2896,9 @@ nsresult ProcessXCTO(HttpBaseChannel* aChannel, nsIURI* aURI,
 
   if (aLoadInfo->GetExternalContentPolicyType() ==
       ExtContentPolicy::TYPE_SCRIPT) {
-    if (nsContentUtils::IsJavascriptMIMEType(
-            NS_ConvertUTF8toUTF16(contentType))) {
+    auto utf16ContentType = NS_ConvertUTF8toUTF16(contentType);
+    if (nsContentUtils::IsJavascriptMIMEType(utf16ContentType) ||
+        nsContentUtils::IsJsonMimeType(utf16ContentType)) {
       return NS_OK;
     }
     ReportMimeTypeMismatch(aChannel, "MimeTypeMismatch2", aURI, contentType,
@@ -2942,6 +2943,12 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
     // script load has type script
     AccumulateCategorical(
         Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::javaScript);
+    return NS_OK;
+  }
+
+  if (nsContentUtils::IsJsonMimeType(typeString)) {
+    AccumulateCategorical(
+        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_json);
     return NS_OK;
   }
 
@@ -3139,7 +3146,8 @@ void WarnWrongMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
   nsAutoCString contentType;
   aResponseHead->ContentType(contentType);
   NS_ConvertUTF8toUTF16 typeString(contentType);
-  if (!nsContentUtils::IsJavascriptMIMEType(typeString)) {
+  if (!nsContentUtils::IsJavascriptMIMEType(typeString) &&
+      !nsContentUtils::IsJsonMimeType(typeString)) {
     ReportMimeTypeMismatch(aChannel, "WarnScriptWithWrongMimeType", aURI,
                            contentType, Report::Warning);
   }
