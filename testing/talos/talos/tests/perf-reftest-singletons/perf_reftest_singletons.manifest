@@ -43,4 +43,5 @@
 % http://localhost/tests/perf-reftest-singletons/remove-children-positional-1.html
 % http://localhost/tests/perf-reftest-singletons/remove-children-positional-2.html
 % http://localhost/tests/perf-reftest-singletons/remove-child-with-lengthy-text.html
+% http://localhost/tests/perf-reftest-singletons/resize-lengthy-textarea.html
 # When modifying this list, please also update build/pgo/index.html (If relevant to profile-guided optimzation).

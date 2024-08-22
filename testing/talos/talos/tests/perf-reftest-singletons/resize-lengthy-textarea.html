@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="util.js"></script>
+
+<textarea cols="20" rows="10" id="test"></textarea>
+
+<script>
+onload = function() {
+  const kLineCount = 10000;
+  let line = "The quick brown fox jumps over the lazy dog.\n";
+  test.textContent = line.repeat(kLineCount);
+
+  flush_layout();
+  perf_start();
+  test.cols = "25";
+  flush_layout();
+  test.cols = "30";
+  flush_layout();
+  perf_finish();
+};
+</script>
