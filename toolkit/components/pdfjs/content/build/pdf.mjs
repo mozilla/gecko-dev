@@ -446,9 +446,6 @@ function shadow(obj, prop, value, nonSerializable = false) {
 }
 const BaseException = function BaseExceptionClosure() {
   function BaseException(message, name) {
-    if (this.constructor === BaseException) {
-      unreachable("Cannot initialize BaseException.");
-    }
     this.message = message;
     this.name = name;
   }
@@ -817,11 +814,6 @@ const FontRenderOps = {
 ;// CONCATENATED MODULE: ./src/display/base_factory.js
 
 class BaseFilterFactory {
-  constructor() {
-    if (this.constructor === BaseFilterFactory) {
-      unreachable("Cannot initialize BaseFilterFactory.");
-    }
-  }
   addFilter(maps) {
     return "none";
   }
@@ -844,9 +836,6 @@ class BaseCanvasFactory {
   constructor({
     enableHWA = false
   } = {}) {
-    if (this.constructor === BaseCanvasFactory) {
-      unreachable("Cannot initialize BaseCanvasFactory.");
-    }
     this.#enableHWA = enableHWA;
   }
   create(width, height) {
@@ -889,9 +878,6 @@ class BaseCMapReaderFactory {
     baseUrl = null,
     isCompressed = true
   }) {
-    if (this.constructor === BaseCMapReaderFactory) {
-      unreachable("Cannot initialize BaseCMapReaderFactory.");
-    }
     this.baseUrl = baseUrl;
     this.isCompressed = isCompressed;
   }
@@ -918,9 +904,6 @@ class BaseStandardFontDataFactory {
   constructor({
     baseUrl = null
   }) {
-    if (this.constructor === BaseStandardFontDataFactory) {
-      unreachable("Cannot initialize BaseStandardFontDataFactory.");
-    }
     this.baseUrl = baseUrl;
   }
   async fetch({
@@ -942,11 +925,6 @@ class BaseStandardFontDataFactory {
   }
 }
 class BaseSVGFactory {
-  constructor() {
-    if (this.constructor === BaseSVGFactory) {
-      unreachable("Cannot initialize BaseSVGFactory.");
-    }
-  }
   create(width, height, skipDimensions = false) {
     if (width <= 0 || height <= 0) {
       throw new Error("Invalid SVG dimensions");
@@ -2300,19 +2278,22 @@ class AnnotationEditorUIManager {
     this.#viewer = viewer;
     this.#altTextManager = altTextManager;
     this._eventBus = eventBus;
-    this._eventBus._on("editingaction", this.onEditingAction.bind(this), {
+    eventBus._on("editingaction", this.onEditingAction.bind(this), {
       signal
     });
-    this._eventBus._on("pagechanging", this.onPageChanging.bind(this), {
+    eventBus._on("pagechanging", this.onPageChanging.bind(this), {
       signal
     });
-    this._eventBus._on("scalechanging", this.onScaleChanging.bind(this), {
+    eventBus._on("scalechanging", this.onScaleChanging.bind(this), {
       signal
     });
-    this._eventBus._on("rotationchanging", this.onRotationChanging.bind(this), {
+    eventBus._on("rotationchanging", this.onRotationChanging.bind(this), {
       signal
     });
-    this._eventBus._on("setpreference", this.onSetPreference.bind(this), {
+    eventBus._on("setpreference", this.onSetPreference.bind(this), {
+      signal
+    });
+    eventBus._on("switchannotationeditorparams", evt => this.updateParams(evt.type, evt.value), {
       signal
     });
     this.#addSelectionListener();
@@ -3576,7 +3557,9 @@ class AltText {
       if (this.#useNewAltTextFlow) {
         this.#editor._reportTelemetry({
           action: "pdfjs.image.alt_text.image_status_label_clicked",
-          data: { label: this.#label },
+          data: {
+            label: this.#label
+          }
         });
       }
     };
@@ -3710,7 +3693,9 @@ class AltText {
       const type = label === "review" ? "to-review" : label;
       this.#editor._reportTelemetry({
         action: "pdfjs.image.alt_text.image_status_label_displayed",
-        data: { label },
+        data: {
+          label
+        }
       });
       button.classList.toggle("done", !!this.#altText);
       AltText._l10nPromise.get(`pdfjs-editor-new-alt-text-${type}-button-label`).then(msg => {
@@ -3842,9 +3827,6 @@ class AnnotationEditor {
     }], [["Escape", "mac+Escape"], AnnotationEditor.prototype._stopResizingWithKeyboard]]));
   }
   constructor(parameters) {
-    if (this.constructor === AnnotationEditor) {
-      unreachable("Cannot initialize AnnotationEditor.");
-    }
     this.parent = parameters.parent;
     this.id = parameters.id;
     this.width = this.height = null;
@@ -5536,11 +5518,6 @@ function applyBoundingBox(ctx, bbox) {
   ctx.clip(region);
 }
 class BaseShadingPattern {
-  constructor() {
-    if (this.constructor === BaseShadingPattern) {
-      unreachable("Cannot initialize BaseShadingPattern.");
-    }
-  }
   getPattern() {
     unreachable("Abstract method `getPattern` called.");
   }
@@ -9714,7 +9691,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.5.252",
+    apiVersion: "4.6.30",
     data,
     password,
     disableAutoFetch,
@@ -11383,8 +11360,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.5.252";
-const build = "e44e4db52";
+const version = "4.6.30";
+const build = "e0fc1a341";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -17158,7 +17135,7 @@ class StampEditor extends AnnotationEditor {
   get telemetryFinalData() {
     return {
       type: "stamp",
-      hasAltText: !!this.altTextData?.altText,
+      hasAltText: !!this.altTextData?.altText
     };
   }
   static computeTelemetryFinalData(data) {
@@ -18481,8 +18458,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.5.252";
-const pdfjsBuild = "e44e4db52";
+const pdfjsVersion = "4.6.30";
+const pdfjsBuild = "e0fc1a341";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

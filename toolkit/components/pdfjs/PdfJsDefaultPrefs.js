@@ -32,7 +32,6 @@ pref("pdfjs.enableAltText", false);
 pref("pdfjs.enableAltTextModelDownload", true);
 pref("pdfjs.enableGuessAltText", true);
 pref("pdfjs.enableHWA", false);
-pref("pdfjs.enableHighlightEditor", false);
 pref("pdfjs.enableHighlightFloatingButton", false);
 pref("pdfjs.enableNewAltTextWhenAddingImage", true);
 pref("pdfjs.enablePermissions", false);
