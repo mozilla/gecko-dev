@@ -166,6 +166,7 @@ static bool isCyrillicLatinConfusable(char32_t aChar) {
     case 0x043A:  // к CYRILLIC SMALL LETTER KA
     case 0x0458:  // ј CYRILLIC SMALL LETTER JE
     case 0x04CF:  // ӏ CYRILLIC SMALL LETTER PALOCHKA
+    case 0x043C:  // м CYRILLIC SMALL LETTER EM
     case 0x043E:  // о CYRILLIC SMALL LETTER O
     case 0x0440:  // р CYRILLIC SMALL LETTER ER
     case 0x0517:  // ԗ CYRILLIC SMALL LETTER RHA {voiceless r}
