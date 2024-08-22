@@ -1430,7 +1430,8 @@ nsresult mozJSModuleLoader::IsModuleLoaded(const nsACString& aLocation,
     nsresult rv = mjsInfo.EnsureURI();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (mModuleLoader->IsModuleFetched(mjsInfo.URI())) {
+    if (mModuleLoader->IsModuleFetched(
+            JS::loader::ModuleMapKey(mjsInfo.URI(), ModuleType::JavaScript))) {
       *retval = true;
       return NS_OK;
     }
@@ -1475,7 +1476,8 @@ nsresult mozJSModuleLoader::IsESModuleLoaded(const nsACString& aLocation,
   nsresult rv = info.EnsureURI();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (mModuleLoader->IsModuleFetched(info.URI())) {
+  if (mModuleLoader->IsModuleFetched(
+          JS::loader::ModuleMapKey(info.URI(), ModuleType::JavaScript))) {
     *retval = true;
     return NS_OK;
   }

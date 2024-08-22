@@ -128,7 +128,8 @@ void ModuleLoadRequest::ModuleLoaded() {
 
   MOZ_ASSERT(IsFetching() || IsPendingFetchingError());
 
-  mModuleScript = mLoader->GetFetchedModule(mURI);
+  mModuleScript =
+      mLoader->GetFetchedModule(ModuleMapKey(mURI, ModuleType::JavaScript));
   if (IsErrored()) {
     ModuleErrored();
     return;
