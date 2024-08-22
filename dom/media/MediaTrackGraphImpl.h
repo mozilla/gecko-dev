@@ -512,8 +512,7 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   /* Called on the main thread after an AudioCallbackDriver has attempted an
    * operation to set aRequestedParams on the cubeb stream. */
   void NotifySetRequestedInputProcessingParamsResult(
-      AudioCallbackDriver* aDriver,
-      cubeb_input_processing_params aRequestedParams,
+      AudioCallbackDriver* aDriver, int aGeneration,
       Result<cubeb_input_processing_params, int>&& aResult) override;
   /* Called every time there are changes to input/output audio devices like
    * plug/unplug etc. This can be called on any thread, and posts a message to
@@ -591,13 +590,6 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   uint32_t AudioInputChannelCount(CubebUtils::AudioDeviceID aID);
 
   AudioInputType AudioInputDevicePreference(CubebUtils::AudioDeviceID aID);
-
-  /**
-   * The input processing params requested for any processing tracks tied to the
-   * input device with id aID.
-   */
-  cubeb_input_processing_params RequestedAudioInputProcessingParams(
-      CubebUtils::AudioDeviceID aID);
 
   double MediaTimeToSeconds(GraphTime aTime) const {
     NS_ASSERTION(aTime > -TRACK_TIME_MAX && aTime <= TRACK_TIME_MAX,

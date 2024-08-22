@@ -316,8 +316,8 @@ bool DeviceInputTrack::HasVoiceInput() const {
   return false;
 }
 
-cubeb_input_processing_params DeviceInputTrack::RequestedProcessingParams()
-    const {
+AudioInputProcessingParamsRequest
+DeviceInputTrack::UpdateRequestedProcessingParams() {
   AssertOnGraphThreadOrNotRunning();
   Maybe<cubeb_input_processing_params> params;
   for (const auto& listener : mListeners) {
@@ -327,7 +327,26 @@ cubeb_input_processing_params DeviceInputTrack::RequestedProcessingParams()
       params = Some(listener->RequestedInputProcessingParams(mGraph));
     }
   }
-  return params.valueOr(CUBEB_INPUT_PROCESSING_PARAM_NONE);
+
+  if (auto p = params.valueOr(CUBEB_INPUT_PROCESSING_PARAM_NONE);
+      p != mProcessingParamsRequest.mParams) {
+    mProcessingParamsRequest.mParams = p;
+    mProcessingParamsRequest.mGeneration += 1;
+
+    TRACK_GRAPH_LOG(
+        "%sNativeInputTrack notifying of setting requested processing params "
+        "%s (Gen %d)",
+        (AsNonNativeInputTrack() ? "Non" : ""),
+        CubebUtils::ProcessingParamsToString(mProcessingParamsRequest.mParams)
+            .get(),
+        mProcessingParamsRequest.mGeneration);
+
+    NotifySetRequestedProcessingParams(Graph(),
+                                       mProcessingParamsRequest.mGeneration,
+                                       mProcessingParamsRequest.mParams);
+  }
+
+  return mProcessingParamsRequest;
 }
 
 void DeviceInputTrack::DeviceChanged(MediaTrackGraph* aGraph) const {
@@ -340,13 +359,23 @@ void DeviceInputTrack::DeviceChanged(MediaTrackGraph* aGraph) const {
   }
 }
 
+void DeviceInputTrack::NotifySetRequestedProcessingParams(
+    MediaTrackGraph* aGraph, int aGeneration,
+    cubeb_input_processing_params aRequestedParams) {
+  AssertOnGraphThread();
+  for (const auto& listener : mListeners) {
+    listener->NotifySetRequestedInputProcessingParams(mGraph, aGeneration,
+                                                      aRequestedParams);
+  }
+}
+
 void DeviceInputTrack::NotifySetRequestedProcessingParamsResult(
-    MediaTrackGraph* aGraph, cubeb_input_processing_params aRequestedParams,
+    MediaTrackGraph* aGraph, int aGeneration,
     const Result<cubeb_input_processing_params, int>& aResult) {
   AssertOnGraphThread();
   for (const auto& listener : mListeners) {
-    listener->NotifySetRequestedInputProcessingParamsResult(
-        mGraph, aRequestedParams, aResult);
+    listener->NotifySetRequestedInputProcessingParamsResult(mGraph, aGeneration,
+                                                            aResult);
   }
 }
 
@@ -598,16 +627,17 @@ AudioInputSource::Id NonNativeInputTrack::GenerateSourceId() {
 void NonNativeInputTrack::ReevaluateProcessingParams() {
   AssertOnGraphThread();
   MOZ_ASSERT(mAudioSource);
-  auto params = RequestedProcessingParams();
-  if (mRequestedProcessingParams == params) {
+  auto request = UpdateRequestedProcessingParams();
+  if (mRequestedProcessingParamsGeneration == request.mGeneration) {
     return;
   }
-  mRequestedProcessingParams = params;
+  auto generation = mRequestedProcessingParamsGeneration = request.mGeneration;
+  auto params = request.mParams;
   using Promise = AudioInputSource::SetRequestedProcessingParamsPromise;
   mAudioSource->SetRequestedProcessingParams(params)->Then(
       GetMainThreadSerialEventTarget(), __func__,
       [this, self = RefPtr(this),
-       params](Promise::ResolveOrRejectValue&& aValue) {
+       generation](Promise::ResolveOrRejectValue&& aValue) {
         if (IsDestroyed()) {
           return;
         }
@@ -617,10 +647,11 @@ void NonNativeInputTrack::ReevaluateProcessingParams() {
           }
           return Err(aValue.RejectValue());
         })();
-        QueueControlMessageWithNoShutdown(
-            [this, self = RefPtr(this), params, result = std::move(result)] {
-              NotifySetRequestedProcessingParamsResult(Graph(), params, result);
-            });
+        QueueControlMessageWithNoShutdown([this, self = RefPtr(this),
+                                           generation,
+                                           result = std::move(result)] {
+          NotifySetRequestedProcessingParamsResult(Graph(), generation, result);
+        });
       });
 }
 

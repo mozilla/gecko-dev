@@ -180,10 +180,10 @@ struct GraphInterface : public nsISupports {
                                TrackRate aRate, uint32_t aChannels,
                                uint32_t aAlreadyBuffered) = 0;
   /* Called on the main thread after an AudioCallbackDriver has attempted an
-   * operation to set aRequestedParams on the cubeb stream. */
+   * operation to set the processing params matching aGeneration on the cubeb
+   * stream. */
   virtual void NotifySetRequestedInputProcessingParamsResult(
-      AudioCallbackDriver* aDriver,
-      cubeb_input_processing_params aRequestedParams,
+      AudioCallbackDriver* aDriver, int aGeneration,
       Result<cubeb_input_processing_params, int>&& aResult) = 0;
   /* Called every time there are changes to input/output audio devices like
    * plug/unplug etc. This can be called on any thread, and posts a message to
@@ -523,6 +523,11 @@ class OfflineClockDriver : public ThreadedDriver {
 
 enum class AudioInputType { Unknown, Voice };
 
+struct AudioInputProcessingParamsRequest {
+  int mGeneration{};
+  cubeb_input_processing_params mParams{};
+};
+
 /**
  * This is a graph driver that is based on callback functions called by the
  * audio api. This ensures minimal audio latency, because it means there is no
@@ -558,7 +563,7 @@ class AudioCallbackDriver : public GraphDriver, public MixerCallbackReceiver {
       uint32_t aSampleRate, uint32_t aOutputChannelCount,
       uint32_t aInputChannelCount, CubebUtils::AudioDeviceID aOutputDeviceID,
       CubebUtils::AudioDeviceID aInputDeviceID, AudioInputType aAudioInputType,
-      cubeb_input_processing_params aRequestedInputProcessingParams);
+      Maybe<AudioInputProcessingParamsRequest> aRequestedInputProcessingParams);
 
   void Start() override;
   MOZ_CAN_RUN_SCRIPT void Shutdown() override;
@@ -610,13 +615,14 @@ class AudioCallbackDriver : public GraphDriver, public MixerCallbackReceiver {
     return AudioInputType::Unknown;
   }
 
-  /* Get the input processing params requested from this driver, so that an
-   * external caller can decide whether it is necessary to call the setter,
-   * since it may allocate or dispatch. */
-  cubeb_input_processing_params RequestedInputProcessingParams() const;
+  /* Get the latest input processing params request from this driver, so
+   * that an external caller can decide whether it is necessary to call the
+   * setter, since it may allocate or dispatch. */
+  const AudioInputProcessingParamsRequest& RequestedInputProcessingParams()
+      const;
 
   /* Set the input processing params requested from this driver. */
-  void SetRequestedInputProcessingParams(cubeb_input_processing_params aParams);
+  void RequestInputProcessingParams(AudioInputProcessingParamsRequest);
 
   std::thread::id ThreadId() const { return mAudioThreadIdInCb.load(); }
 
@@ -665,7 +671,7 @@ class AudioCallbackDriver : public GraphDriver, public MixerCallbackReceiver {
   void Stop();
   /* After the requested input processing params has changed, this applies them
    * on the cubeb stream. */
-  void SetInputProcessingParams(cubeb_input_processing_params aParams);
+  void SetInputProcessingParams(AudioInputProcessingParamsRequest aRequest);
   /* Calls FallbackToSystemClockDriver() if in FallbackDriverState::None.
    * Returns Ok(true) if the fallback driver was started, or the old
    * FallbackDriverState in an Err otherwise. */
@@ -739,9 +745,9 @@ class AudioCallbackDriver : public GraphDriver, public MixerCallbackReceiver {
    * supported processing params. Cubeb operation thread only. */
   cubeb_input_processing_params mConfiguredInputProcessingParams =
       CUBEB_INPUT_PROCESSING_PARAM_NONE;
-  /* The input processing params requested from this audio driver. Once started,
-   * audio callback thread only. */
-  cubeb_input_processing_params mRequestedInputProcessingParams;
+  /* The input processing params and generation requested from this audio
+   * driver. Once started, audio callback thread only. */
+  AudioInputProcessingParamsRequest mInputProcessingRequest;
   /* Contains the id of the audio thread, from profiler_current_thread_id. */
   std::atomic<ProfilerThreadId> mAudioThreadId;
   /* This allows implementing AutoInCallback. This is equal to the current

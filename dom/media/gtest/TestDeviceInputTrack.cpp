@@ -136,8 +136,13 @@ TEST_F(TestDeviceInputTrack, DeviceInputConsumerTrack) {
     };
     void DeviceChanged(MediaTrackGraph* aGraph) override { /* Ignored */ }
     void Disconnect(MediaTrackGraph* aGraph) override { /* Ignored */ };
+    void NotifySetRequestedInputProcessingParams(
+        MediaTrackGraph* aGraph, int aGeneration,
+        cubeb_input_processing_params aRequestedParams) override {
+      /* Ignored */
+    }
     void NotifySetRequestedInputProcessingParamsResult(
-        MediaTrackGraph* aGraph, cubeb_input_processing_params aRequestedParams,
+        MediaTrackGraph* aGraph, int aGeneration,
         const Result<cubeb_input_processing_params, int>& aResult) override {
       /* Ignored */
     }

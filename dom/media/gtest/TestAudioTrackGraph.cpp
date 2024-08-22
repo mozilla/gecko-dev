@@ -158,8 +158,10 @@ class MockAudioDataListener : public AudioDataListener {
   MOCK_METHOD(bool, IsVoiceInput, (MediaTrackGraph*), (const));
   MOCK_METHOD(void, DeviceChanged, (MediaTrackGraph*));
   MOCK_METHOD(void, Disconnect, (MediaTrackGraph*));
+  MOCK_METHOD(void, NotifySetRequestedInputProcessingParams,
+              (MediaTrackGraph*, int, cubeb_input_processing_params));
   MOCK_METHOD(void, NotifySetRequestedInputProcessingParamsResult,
-              (MediaTrackGraph*, cubeb_input_processing_params,
+              (MediaTrackGraph*, int,
                (const Result<cubeb_input_processing_params, int>&)));
 };
 }  // namespace
@@ -2872,43 +2874,48 @@ TEST(TestAudioTrackGraph, PlatformProcessing)
     InSequence s;
     // On first driver start.
     EXPECT_CALL(*listener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION,
-                    Eq(std::ref(echoResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 1, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION));
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
+                               graph, 1, Eq(std::ref(echoResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After requesting something else.
     EXPECT_CALL(*listener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION,
-                    Eq(std::ref(noiseResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 2, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION));
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
+                               graph, 2, Eq(std::ref(noiseResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After error request.
     EXPECT_CALL(*listener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION,
-                    Eq(std::ref(errorResult))))
-        .WillOnce([&] { ++numProcessingParamsResults; });
-    // After requesting None.
+                NotifySetRequestedInputProcessingParams(
+                    graph, 3, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION));
     EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
-                               graph, CUBEB_INPUT_PROCESSING_PARAM_NONE,
-                               Eq(std::ref(noneResult))))
+                               graph, 3, Eq(std::ref(errorResult))))
+        .WillOnce([&] { ++numProcessingParamsResults; });
+    // After requesting None, because of the previous error.
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParams(
+                               graph, 4, CUBEB_INPUT_PROCESSING_PARAM_NONE));
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
+                               graph, 4, Eq(std::ref(noneResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After driver switch.
     EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
-                               graph, CUBEB_INPUT_PROCESSING_PARAM_NONE,
-                               Eq(std::ref(noneResult))))
+                               graph, 4, Eq(std::ref(noneResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After requesting something not supported.
     EXPECT_CALL(*listener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION,
-                    Eq(std::ref(noneResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 5, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION));
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
+                               graph, 5, Eq(std::ref(noneResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After requesting something with backend not supporting processing params.
     EXPECT_CALL(*listener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION,
-                    Eq(std::ref(notSupportedResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 6, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION));
+    EXPECT_CALL(*listener, NotifySetRequestedInputProcessingParamsResult(
+                               graph, 6, Eq(std::ref(notSupportedResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
   }
 
@@ -3093,39 +3100,44 @@ TEST(TestAudioTrackGraph, PlatformProcessingNonNativeToNativeSwitch)
     InSequence s;
     // On first driver start.
     EXPECT_CALL(*firstListener, NotifySetRequestedInputProcessingParamsResult(
-                                    graph, CUBEB_INPUT_PROCESSING_PARAM_NONE,
-                                    Eq(std::ref(noneResult))))
+                                    graph, 0, Eq(std::ref(noneResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After param update.
     EXPECT_CALL(*firstListener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION,
-                    Eq(std::ref(noiseResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 1, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION));
+    EXPECT_CALL(*firstListener, NotifySetRequestedInputProcessingParamsResult(
+                                    graph, 1, Eq(std::ref(noiseResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After second param update.
+    EXPECT_CALL(*firstListener,
+                NotifySetRequestedInputProcessingParams(
+                    graph, 2, CUBEB_INPUT_PROCESSING_PARAM_NONE));
     EXPECT_CALL(*firstListener, NotifySetRequestedInputProcessingParamsResult(
-                                    graph, CUBEB_INPUT_PROCESSING_PARAM_NONE,
-                                    Eq(std::ref(noneResult))))
+                                    graph, 2, Eq(std::ref(noneResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // On non-native device's start.
     EXPECT_CALL(*secondListener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION,
-                    Eq(std::ref(echoResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 1, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION));
+    EXPECT_CALL(*secondListener, NotifySetRequestedInputProcessingParamsResult(
+                                     graph, 1, Eq(std::ref(echoResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After switch to native device for second device.
     EXPECT_CALL(*firstListener, Disconnect);
     EXPECT_CALL(*secondListener, Disconnect);
     EXPECT_CALL(*secondListener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION,
-                    Eq(std::ref(echoResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 1, CUBEB_INPUT_PROCESSING_PARAM_ECHO_CANCELLATION));
+    EXPECT_CALL(*secondListener, NotifySetRequestedInputProcessingParamsResult(
+                                     graph, 1, Eq(std::ref(echoResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     // After param update.
     EXPECT_CALL(*secondListener,
-                NotifySetRequestedInputProcessingParamsResult(
-                    graph, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION,
-                    Eq(std::ref(noiseResult))))
+                NotifySetRequestedInputProcessingParams(
+                    graph, 2, CUBEB_INPUT_PROCESSING_PARAM_NOISE_SUPPRESSION));
+    EXPECT_CALL(*secondListener, NotifySetRequestedInputProcessingParamsResult(
+                                     graph, 2, Eq(std::ref(noiseResult))))
         .WillOnce([&] { ++numProcessingParamsResults; });
     EXPECT_CALL(*secondListener, Disconnect);
   }

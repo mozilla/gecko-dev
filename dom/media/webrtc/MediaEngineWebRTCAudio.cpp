@@ -421,15 +421,42 @@ AudioInputProcessing::AudioInputProcessing(uint32_t aMaxChannelCount)
 }
 
 void AudioInputProcessing::Disconnect(MediaTrackGraph* aGraph) {
-  // This method is just for asserts.
   aGraph->AssertOnGraphThread();
+  mPlatformProcessingSetGeneration = 0;
+  mPlatformProcessingSetParams = CUBEB_INPUT_PROCESSING_PARAM_NONE;
+  ApplySettingsInternal(aGraph, mSettings);
+}
+
+void AudioInputProcessing::NotifySetRequestedInputProcessingParams(
+    MediaTrackGraph* aGraph, int aGeneration,
+    cubeb_input_processing_params aRequestedParams) {
+  aGraph->AssertOnGraphThread();
+  MOZ_ASSERT(aGeneration >= mPlatformProcessingSetGeneration);
+  if (aGeneration <= mPlatformProcessingSetGeneration) {
+    return;
+  }
+  mPlatformProcessingSetGeneration = aGeneration;
+  cubeb_input_processing_params intersection =
+      mPlatformProcessingSetParams & aRequestedParams;
+  LOG("AudioInputProcessing %p platform processing params being applied are "
+      "now %s (Gen %d). Assuming %s while waiting for the result.",
+      this, CubebUtils::ProcessingParamsToString(aRequestedParams).get(),
+      aGeneration, CubebUtils::ProcessingParamsToString(intersection).get());
+  if (mPlatformProcessingSetParams == intersection) {
+    LOG("AudioInputProcessing %p intersection %s of platform processing params "
+        "already applied. Doing nothing.",
+        this, CubebUtils::ProcessingParamsToString(intersection).get());
+    return;
+  }
+  mPlatformProcessingSetParams = intersection;
+  ApplySettingsInternal(aGraph, mSettings);
 }
 
 void AudioInputProcessing::NotifySetRequestedInputProcessingParamsResult(
-    MediaTrackGraph* aGraph, cubeb_input_processing_params aRequestedParams,
+    MediaTrackGraph* aGraph, int aGeneration,
     const Result<cubeb_input_processing_params, int>& aResult) {
   aGraph->AssertOnGraphThread();
-  if (aRequestedParams != RequestedInputProcessingParams(aGraph)) {
+  if (aGeneration != mPlatformProcessingSetGeneration) {
     // This is a result from an old request, wait for a more recent one.
     return;
   }
