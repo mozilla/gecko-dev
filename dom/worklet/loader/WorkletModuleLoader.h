@@ -64,11 +64,12 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
   ~WorkletModuleLoader() = default;
 
   already_AddRefed<JS::loader::ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::loader::ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::ModuleType aModuleType,
+      JS::loader::ModuleLoadRequest* aParent) override;
 
   already_AddRefed<JS::loader::ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
-      JS::Handle<JSString*> aSpecifier,
+      JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
+      LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
 
   bool CanStartLoad(JS::loader::ModuleLoadRequest* aRequest,

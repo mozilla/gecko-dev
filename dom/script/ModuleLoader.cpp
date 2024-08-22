@@ -297,7 +297,7 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
 }
 
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
-    nsIURI* aURI, ModuleLoadRequest* aParent) {
+    nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent) {
   RefPtr<ScriptLoadContext> newContext = new ScriptLoadContext();
   newContext->mIsInline = false;
   // Propagated Parent values. TODO: allow child modules to use root module's
@@ -305,10 +305,9 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
   newContext->mScriptMode = aParent->GetScriptLoadContext()->mScriptMode;
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, JS::ModuleType::JavaScript, aParent->ReferrerPolicy(),
-      aParent->mFetchOptions, SRIMetadata(), aParent->mURI, newContext,
-      false, /* is top level */
-      false, /* is dynamic import */
+      aURI, aModuleType, aParent->ReferrerPolicy(), aParent->mFetchOptions,
+      SRIMetadata(), aParent->mURI, newContext, false, /* is top level */
+      false,                                           /* is dynamic import */
       aParent->mLoader, aParent->mVisitedSet, aParent->GetRootModule());
 
   request->NoCacheEntryFound();
@@ -316,8 +315,9 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
 }
 
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
-    JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
-    JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) {
+    JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
+    LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
+    JS::Handle<JSObject*> aPromise) {
   MOZ_ASSERT(aSpecifier);
   MOZ_ASSERT(aPromise);
 
@@ -365,12 +365,11 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
   context->mScriptMode = ScriptLoadContext::ScriptMode::eAsync;
 
   RefPtr<VisitedURLSet> visitedSet =
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
-          aURI, JS::ModuleType::JavaScript);
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI, aModuleType);
 
   RefPtr<ModuleLoadRequest> request =
-      new ModuleLoadRequest(aURI, JS::ModuleType::JavaScript, referrerPolicy,
-                            options, SRIMetadata(), baseURL, context, true,
+      new ModuleLoadRequest(aURI, aModuleType, referrerPolicy, options,
+                            SRIMetadata(), baseURL, context, true,
                             /* is top level */ true, /* is dynamic import */
                             this, visitedSet, nullptr);
 

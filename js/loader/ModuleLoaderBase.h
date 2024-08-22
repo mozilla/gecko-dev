@@ -296,12 +296,13 @@ class ModuleLoaderBase : public nsISupports {
  private:
   // Create a module load request for a static module import.
   virtual already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, ModuleLoadRequest* aParent) = 0;
+      nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent) = 0;
 
   // Called by HostImportModuleDynamically hook.
   virtual already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
-      JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) = 0;
+      JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
+      LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
+      JS::Handle<JSObject*> aPromise) = 0;
 
   virtual bool IsDynamicImportSupported() { return true; }
 
