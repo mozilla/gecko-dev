@@ -287,9 +287,11 @@ void ModuleScript::UnlinkModuleRecord() {
   // only writing undefined into the module private, so it won't create any
   // black-gray edges.
   if (mModuleRecord) {
-    JSObject* module = mModuleRecord.unbarrieredGet();
-    MOZ_ASSERT(JS::GetModulePrivate(module).toPrivate() == this);
-    JS::ClearModulePrivate(module);
+    if (JS::IsCyclicModule(mModuleRecord)) {
+      JSObject* module = mModuleRecord.unbarrieredGet();
+      MOZ_ASSERT(JS::GetModulePrivate(module).toPrivate() == this);
+      JS::ClearModulePrivate(module);
+    }
     mModuleRecord = nullptr;
   }
 }
@@ -306,12 +308,14 @@ void ModuleScript::SetModuleRecord(JS::Handle<JSObject*> aModuleRecord) {
 
   mModuleRecord = aModuleRecord;
 
-  // Make module's host defined field point to this object. The JS engine will
-  // increment our reference count by calling HostAddRefTopLevelScript(). This
-  // is decremented when the field is cleared in UnlinkModuleRecord() above or
-  // when the module record dies.
-  MOZ_ASSERT(JS::GetModulePrivate(mModuleRecord).isUndefined());
-  JS::SetModulePrivate(mModuleRecord, JS::PrivateValue(this));
+  if (JS::IsCyclicModule(mModuleRecord)) {
+    // Make module's host defined field point to this object. The JS engine will
+    // increment our reference count by calling HostAddRefTopLevelScript(). This
+    // is decremented when the field is cleared in UnlinkModuleRecord() above or
+    // when the module record dies.
+    MOZ_ASSERT(JS::GetModulePrivate(mModuleRecord).isUndefined());
+    JS::SetModulePrivate(mModuleRecord, JS::PrivateValue(this));
+  }
 
   mozilla::HoldJSObjects(this);
 }
