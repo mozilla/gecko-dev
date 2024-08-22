@@ -78,3 +78,20 @@ gradle.ext.mozconfig = json
 // based on the changed environment variables.
 def orig = slurper.parse(new File(json.topobjdir, '.mozconfig.json'))
 gradle.ext.mozconfig.orig_mozconfig = orig.mozconfig
+
+// Returns the hg hash of the currently checked out revision.
+// Hash is stored in MOZ_SOURCE_STAMP variable of $topobjdir/source-repo.h.
+// $topobjdir/source-repo.h is created in mercurial repos and taskcluster.
+// Also avoids running git/hg subprocesses when possible.
+// Relevant bug: 1890508
+def getVcsHash() {
+    def sourceRepoFile = file("${gradle.mozconfig.topobjdir}/source-repo.h")
+    if (sourceRepoFile.canRead()) {
+        def pattern = ~/define MOZ_SOURCE_STAMP\s(.{1,12})/
+        def matcher = sourceRepoFile.getText('utf-8') =~ pattern
+        return matcher.find() ? matcher.group(1).trim() : null
+    }
+    return null
+}
+
+gradle.ext.vcsHashFileContent = getVcsHash()
