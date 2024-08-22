@@ -538,3 +538,56 @@
   }
 }
 
+// Bug 1914193 - Only show the temperature on the smallest breakpoint and
+// return to default view on medium breakpoints
+.has-weather.has-search.layout-variant-a,
+.has-weather.has-search.layout-variant-b,
+.layout-variant-a,
+.layout-variant-b  {
+  .weatherIconCol,
+  .weatherCityRow,
+  .weatherButtonContextMenuWrapper {
+    display: none;
+
+    @media(min-width: $break-point-medium) {
+      display: flex;
+    }
+  }
+
+  .weatherCard {
+    min-height: 55px;
+  }
+
+  .weatherInfoLink {
+    min-width: auto;
+    max-width: none;
+
+    @media(min-width: $break-point-large) {
+      min-width: 130px;
+      max-width: 190px;
+    }
+  }
+
+  .weatherForecastRow {
+    margin-block: var(--space-small);
+
+    @media(min-width: $break-point-medium) {
+      margin-block: unset;
+    }
+  }
+
+  .weatherSponsorText {
+    position: relative;
+
+    span {
+      position: absolute;
+      white-space: nowrap;
+      inset-block-start: var(--space-small);
+
+      @media(min-width: $break-point-medium) {
+        inset-block-start: unset;
+        position: relative;
+      }
+    }
+  }
+}

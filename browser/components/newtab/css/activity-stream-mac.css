@@ -2634,6 +2634,96 @@ main section {
   outline: 2px solid var(--focus-outline-color);
 }
 
+.has-weather.has-search.layout-variant-a .weatherIconCol,
+.has-weather.has-search.layout-variant-a .weatherCityRow,
+.has-weather.has-search.layout-variant-a .weatherButtonContextMenuWrapper,
+.has-weather.has-search.layout-variant-b .weatherIconCol,
+.has-weather.has-search.layout-variant-b .weatherCityRow,
+.has-weather.has-search.layout-variant-b .weatherButtonContextMenuWrapper,
+.layout-variant-a .weatherIconCol,
+.layout-variant-a .weatherCityRow,
+.layout-variant-a .weatherButtonContextMenuWrapper,
+.layout-variant-b .weatherIconCol,
+.layout-variant-b .weatherCityRow,
+.layout-variant-b .weatherButtonContextMenuWrapper {
+  display: none;
+}
+@media (min-width: 610px) {
+  .has-weather.has-search.layout-variant-a .weatherIconCol,
+.has-weather.has-search.layout-variant-a .weatherCityRow,
+.has-weather.has-search.layout-variant-a .weatherButtonContextMenuWrapper,
+.has-weather.has-search.layout-variant-b .weatherIconCol,
+.has-weather.has-search.layout-variant-b .weatherCityRow,
+.has-weather.has-search.layout-variant-b .weatherButtonContextMenuWrapper,
+.layout-variant-a .weatherIconCol,
+.layout-variant-a .weatherCityRow,
+.layout-variant-a .weatherButtonContextMenuWrapper,
+.layout-variant-b .weatherIconCol,
+.layout-variant-b .weatherCityRow,
+.layout-variant-b .weatherButtonContextMenuWrapper {
+    display: flex;
+  }
+}
+.has-weather.has-search.layout-variant-a .weatherCard,
+.has-weather.has-search.layout-variant-b .weatherCard,
+.layout-variant-a .weatherCard,
+.layout-variant-b .weatherCard {
+  min-height: 55px;
+}
+.has-weather.has-search.layout-variant-a .weatherInfoLink,
+.has-weather.has-search.layout-variant-b .weatherInfoLink,
+.layout-variant-a .weatherInfoLink,
+.layout-variant-b .weatherInfoLink {
+  min-width: auto;
+  max-width: none;
+}
+@media (min-width: 866px) {
+  .has-weather.has-search.layout-variant-a .weatherInfoLink,
+.has-weather.has-search.layout-variant-b .weatherInfoLink,
+.layout-variant-a .weatherInfoLink,
+.layout-variant-b .weatherInfoLink {
+    min-width: 130px;
+    max-width: 190px;
+  }
+}
+.has-weather.has-search.layout-variant-a .weatherForecastRow,
+.has-weather.has-search.layout-variant-b .weatherForecastRow,
+.layout-variant-a .weatherForecastRow,
+.layout-variant-b .weatherForecastRow {
+  margin-block: var(--space-small);
+}
+@media (min-width: 610px) {
+  .has-weather.has-search.layout-variant-a .weatherForecastRow,
+.has-weather.has-search.layout-variant-b .weatherForecastRow,
+.layout-variant-a .weatherForecastRow,
+.layout-variant-b .weatherForecastRow {
+    margin-block: unset;
+  }
+}
+.has-weather.has-search.layout-variant-a .weatherSponsorText,
+.has-weather.has-search.layout-variant-b .weatherSponsorText,
+.layout-variant-a .weatherSponsorText,
+.layout-variant-b .weatherSponsorText {
+  position: relative;
+}
+.has-weather.has-search.layout-variant-a .weatherSponsorText span,
+.has-weather.has-search.layout-variant-b .weatherSponsorText span,
+.layout-variant-a .weatherSponsorText span,
+.layout-variant-b .weatherSponsorText span {
+  position: absolute;
+  white-space: nowrap;
+  inset-block-start: var(--space-small);
+}
+@media (min-width: 610px) {
+  .has-weather.has-search.layout-variant-a .weatherSponsorText span,
+.has-weather.has-search.layout-variant-b .weatherSponsorText span,
+.layout-variant-a .weatherSponsorText span,
+.layout-variant-b .weatherSponsorText span {
+    inset-block-start: unset;
+    position: relative;
+  }
+}
+
 /* stylelint-disable max-nesting-depth */
 .card-outer {
   background: var(--newtab-background-color-secondary);
