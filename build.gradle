@@ -34,7 +34,7 @@ buildscript {
         // Used in mobile/android/fenix/app/build.gradle
         classpath ComponentsDependencies.androidx_safeargs
         classpath FenixDependencies.osslicenses_plugin
-        classpath FenixDependencies.tools_benchmarkgradle
+        classpath ComponentsDependencies.tools_benchmarkgradle
         classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
     }

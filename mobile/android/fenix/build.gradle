@@ -22,8 +22,8 @@ buildscript {
 
     dependencies {
         classpath ComponentsDependencies.tools_androidgradle
+        classpath ComponentsDependencies.tools_benchmarkgradle
         classpath ComponentsDependencies.tools_kotlingradle
-        classpath FenixDependencies.tools_benchmarkgradle
         classpath ComponentsDependencies.androidx_safeargs
         classpath FenixDependencies.osslicenses_plugin
         classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"

@@ -58,6 +58,7 @@ object Versions {
         const val annotation = "1.8.2"
         const val appcompat = "1.7.0"
         const val autofill = "1.1.0"
+        const val benchmark = "1.2.4"
         const val browser = "1.8.0"
         const val biometric = "1.1.0"
         const val cardview = "1.0.0"
@@ -126,6 +127,8 @@ object ComponentsDependencies {
     const val androidx_autofill = "androidx.autofill:autofill:${Versions.AndroidX.autofill}"
     const val androidx_arch_core_common = "androidx.arch.core:core-common:${Versions.AndroidX.arch}"
     const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch}"
+    const val androidx_benchmark_junit4 = "androidx.benchmark:benchmark-junit4:${Versions.AndroidX.benchmark}"
+    const val androidx_benchmark_macro_junit4 = "androidx.benchmark:benchmark-macro-junit4:${Versions.AndroidX.benchmark}"
     const val androidx_biometric = "androidx.biometric:biometric:${Versions.AndroidX.biometric}"
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
@@ -198,6 +201,7 @@ object ComponentsDependencies {
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
 
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
+    const val tools_benchmarkgradle = "androidx.benchmark:benchmark-gradle-plugin:${Versions.AndroidX.benchmark}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
 
     const val tools_lint = "com.android.tools.lint:lint:${Versions.lint}"
