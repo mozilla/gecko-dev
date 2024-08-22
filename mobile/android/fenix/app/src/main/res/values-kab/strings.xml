@@ -294,10 +294,16 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="browser_menu_switch_to_mobile_site">Uɣal ɣer usmel aziraz</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ifecka</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Askar n tɣuri, suqel, siggez, bḍu, ldi deg usnas</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Askar n tɣuri, siggez, bḍu, ldi deg usnas</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Sekles</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Rnu ticraḍ n yisebtar, inegzumen, asebtar agejdan, tafrant, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Creḍ asebter-a</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->

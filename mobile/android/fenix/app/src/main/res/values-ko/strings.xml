@@ -950,9 +950,9 @@
     <string name="preference_gestures_swipe_toolbar_show_tabs">도구 모음을 위로 밀어서 탭 열기</string>
 
     <!-- Preference for using the dynamic toolbars -->
-    <string name="preference_gestures_dynamic_toolbar_2">주소 표시줄 및 도구 모음을 숨기려면 스크롤</string>
+    <string name="preference_gestures_dynamic_toolbar_2">스크롤 중 주소 표시줄 및 도구 모음 숨기기</string>
     <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">탭을 전환하려면 주소 표시줄을 옆으로 스와이프</string>
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">주소 표시줄을 옆으로 밀어서 탭 전환</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
