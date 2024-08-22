@@ -214,6 +214,11 @@ extern JS_PUBLIC_API void ClearModulePrivate(JSObject* module);
  */
 extern JS_PUBLIC_API Value GetModulePrivate(JSObject* module);
 
+/**
+ * Checks if the given module is a cyclic module.
+ */
+extern JS_PUBLIC_API bool IsCyclicModule(JSObject* module);
+
 /*
  * Perform the ModuleLink operation on the given source text module record.
  *

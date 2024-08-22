@@ -214,6 +214,10 @@ JS_PUBLIC_API JS::Value JS::GetModulePrivate(JSObject* module) {
   return module->as<ModuleObject>().scriptSourceObject()->getPrivate();
 }
 
+JS_PUBLIC_API bool JS::IsCyclicModule(JSObject* module) {
+  return module->as<ModuleObject>().hasCyclicModuleFields();
+}
+
 JS_PUBLIC_API bool JS::ModuleLink(JSContext* cx, Handle<JSObject*> moduleArg) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
