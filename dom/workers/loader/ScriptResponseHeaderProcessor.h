@@ -13,7 +13,6 @@
 #include "nsIHttpChannelInternal.h"
 #include "nsIStreamLoader.h"
 #include "nsStreamUtils.h"
-#include "js/Modules.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_dom.h"
 
@@ -36,20 +35,18 @@ class ScriptResponseHeaderProcessor final : public nsIRequestObserver {
   NS_DECL_ISUPPORTS
 
   ScriptResponseHeaderProcessor(RefPtr<ThreadSafeWorkerRef>& aWorkerRef,
-                                bool aIsMainScript, bool aIsModuleScript,
-                                JS::ModuleType aModuleType)
+                                bool aIsMainScript, bool aIsImportScript)
       : mWorkerRef(aWorkerRef),
         mIsMainScript(aIsMainScript),
-        mIsModuleScript(aIsModuleScript),
-        mModuleType(aModuleType) {
+        mIsImportScript(aIsImportScript) {
     AssertIsOnMainThread();
   }
 
   NS_IMETHOD OnStartRequest(nsIRequest* aRequest) override {
     nsresult rv = NS_OK;
-    if (mIsModuleScript &&
+    if (mIsImportScript &&
         StaticPrefs::dom_workers_importScripts_enforceStrictMimeType()) {
-      rv = EnsureExpectedModuleType(aRequest);
+      rv = EnsureJavaScriptMimeType(aRequest);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         aRequest->Cancel(rv);
         return NS_OK;
@@ -81,7 +78,7 @@ class ScriptResponseHeaderProcessor final : public nsIRequestObserver {
  private:
   ~ScriptResponseHeaderProcessor() = default;
 
-  nsresult EnsureExpectedModuleType(nsIRequest* aRequest);
+  nsresult EnsureJavaScriptMimeType(nsIRequest* aRequest);
 
   nsresult ProcessCrossOriginEmbedderPolicyHeader(nsIRequest* aRequest);
 
@@ -89,8 +86,7 @@ class ScriptResponseHeaderProcessor final : public nsIRequestObserver {
   // ensure ScriptResponseHeaderProcessor works with an valid WorkerPrivate.
   RefPtr<ThreadSafeWorkerRef> mWorkerRef;
   const bool mIsMainScript;
-  const bool mIsModuleScript;
-  const JS::ModuleType mModuleType;
+  const bool mIsImportScript;
 };
 
 }  // namespace workerinternals::loader

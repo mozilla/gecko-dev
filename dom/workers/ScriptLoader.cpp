@@ -719,16 +719,13 @@ already_AddRefed<ScriptLoadRequest> WorkerScriptLoader::CreateScriptLoadRequest(
     nsCOMPtr<nsIURI> referrer =
         mWorkerRef->Private()->GetReferrerInfo()->GetOriginalReferrer();
 
-    RefPtr<JS::loader::VisitedURLSet> visitedSet =
-        ModuleLoadRequest::NewVisitedSetForTopLevelImport(
-            uri, JS::ModuleType::JavaScript);
-
     // Part of Step 2. This sets the Top-level flag to true
     request = new ModuleLoadRequest(
-        uri, JS::ModuleType::JavaScript, referrerPolicy, fetchOptions,
-        SRIMetadata(), referrer, loadContext, true, /* is top level */
-        false,                                      /* is dynamic import */
-        moduleLoader, visitedSet, nullptr);
+        uri, referrerPolicy, fetchOptions, SRIMetadata(), referrer, loadContext,
+        true,  /* is top level */
+        false, /* is dynamic import */
+        moduleLoader, ModuleLoadRequest::NewVisitedSetForTopLevelImport(uri),
+        nullptr);
   }
 
   // Set the mURL, it will be used for error handling and debugging.
@@ -1060,13 +1057,10 @@ nsresult WorkerScriptLoader::LoadScript(
   // For each debugger script, a non-debugger script load of the same script
   // should have occured prior that processed the headers.
   if (!IsDebuggerScript()) {
-    JS::ModuleType moduleType = request->IsModuleRequest()
-                                    ? request->AsModuleRequest()->mModuleType
-                                    : JS::ModuleType::JavaScript;
-
     headerProcessor = MakeRefPtr<ScriptResponseHeaderProcessor>(
         mWorkerRef, loadContext->IsTopLevel() && !IsDynamicImport(request),
-        request->IsModuleRequest(), moduleType);
+        GetContentPolicyType(request) ==
+            nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS);
   }
 
   nsCOMPtr<nsIStreamLoader> loader;

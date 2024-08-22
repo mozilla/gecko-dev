@@ -22,9 +22,9 @@ class LoadedScript;
 class ModuleScript;
 class ModuleLoaderBase;
 
-// A reference counted set of module keys (URL and module type) we have visited
-// in the process of loading a module graph.
-class VisitedURLSet : public nsTHashtable<ModuleMapKey> {
+// A reference counted set of URLs we have visited in the process of loading a
+// module graph.
+class VisitedURLSet : public nsTHashtable<nsURIHashKey> {
   NS_INLINE_DECL_REFCOUNTING(VisitedURLSet)
 
  private:
@@ -50,16 +50,14 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
                                                          ScriptLoadRequest)
   using SRIMetadata = mozilla::dom::SRIMetadata;
 
-  ModuleLoadRequest(nsIURI* aURI, JS::ModuleType aModuleType,
-                    mozilla::dom::ReferrerPolicy aReferrerPolicy,
+  ModuleLoadRequest(nsIURI* aURI, mozilla::dom::ReferrerPolicy aReferrerPolicy,
                     ScriptFetchOptions* aFetchOptions,
                     const SRIMetadata& aIntegrity, nsIURI* aReferrer,
                     LoadContextBase* aContext, bool aIsTopLevel,
                     bool aIsDynamicImport, ModuleLoaderBase* aLoader,
                     VisitedURLSet* aVisitedSet, ModuleLoadRequest* aRootModule);
 
-  static VisitedURLSet* NewVisitedSetForTopLevelImport(
-      nsIURI* aURI, JS::ModuleType aModuleType);
+  static VisitedURLSet* NewVisitedSetForTopLevelImport(nsIURI* aURI);
 
   bool IsTopLevel() const override { return mIsTopLevel; }
 
@@ -129,9 +127,6 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
  public:
   // Is this a request for a top level module script or an import?
   const bool mIsTopLevel;
-
-  // Type of module (JavaScript, JSON)
-  const JS::ModuleType mModuleType;
 
   // Is this the top level request for a dynamic module import?
   const bool mIsDynamicImport;

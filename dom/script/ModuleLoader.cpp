@@ -10,7 +10,6 @@
 #include "jsapi.h"
 #include "js/CompileOptions.h"  // JS::CompileOptions, JS::InstantiateOptions
 #include "js/ContextOptions.h"  // JS::ContextOptionsRef
-#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/MemoryFunctions.h"
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
@@ -198,28 +197,6 @@ nsresult ModuleLoader::CompileFetchedModule(
     ScriptLoader::CalculateBytecodeCacheFlag(aRequest);
   }
 
-  if (!nsJSUtils::IsScriptable(aGlobal)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  switch (aRequest->mModuleType) {
-    case JS::ModuleType::Unknown:
-      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
-                                JSMSG_BAD_MODULE_TYPE);
-      return NS_ERROR_FAILURE;
-    case JS::ModuleType::JavaScript:
-      return CompileJavaScriptModule(aCx, aOptions, aRequest, aModuleOut);
-    case JS::ModuleType::JSON: {
-      return CompileJsonModule(aCx, aOptions, aRequest, aModuleOut);
-    }
-  }
-
-  MOZ_CRASH("Unhandled module type");
-}
-
-nsresult ModuleLoader::CompileJavaScriptModule(
-    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
-    JS::MutableHandle<JSObject*> aModuleOut) {
   if (aRequest->GetScriptLoadContext()->mWasCompiledOMT) {
     JS::InstantiationStorage storage;
     RefPtr<JS::Stencil> stencil =
@@ -246,6 +223,10 @@ nsresult ModuleLoader::CompileJavaScriptModule(
     }
 
     return NS_OK;
+  }
+
+  if (!nsJSUtils::IsScriptable(aGlobal)) {
+    return NS_ERROR_FAILURE;
   }
 
   RefPtr<JS::Stencil> stencil;
@@ -296,51 +277,24 @@ nsresult ModuleLoader::CompileJavaScriptModule(
   return NS_OK;
 }
 
-nsresult ModuleLoader::CompileJsonModule(
-    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
-    JS::MutableHandle<JSObject*> aModuleOut) {
-  MOZ_ASSERT(!aRequest->GetScriptLoadContext()->mWasCompiledOMT);
-
-  MOZ_ASSERT(aRequest->IsTextSource());
-  ModuleLoader::MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
-                                          aRequest->mLoadContext.get());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  auto compile = [&](auto& source) {
-    return JS::CompileJsonModule(aCx, aOptions, source);
-  };
-
-  auto* jsonModule = maybeSource.mapNonEmpty(compile);
-  if (!jsonModule) {
-    return NS_ERROR_FAILURE;
-  }
-
-  aModuleOut.set(jsonModule);
-  return NS_OK;
-}
-
 /* static */
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
     nsIURI* aURI, ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions, const SRIMetadata& aIntegrity,
     nsIURI* aReferrer, ScriptLoader* aLoader, ScriptLoadContext* aContext) {
-  RefPtr<VisitedURLSet> visitedSet =
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
-          aURI, JS::ModuleType::JavaScript);
-
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, JS::ModuleType::JavaScript, aReferrerPolicy, aFetchOptions,
-      aIntegrity, aReferrer, aContext, true,
+      aURI, aReferrerPolicy, aFetchOptions, aIntegrity, aReferrer, aContext,
+      true,
       /* is top level */ false, /* is dynamic import */
-      aLoader->GetModuleLoader(), visitedSet, nullptr);
+      aLoader->GetModuleLoader(),
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI), nullptr);
 
   request->NoCacheEntryFound();
   return request.forget();
 }
 
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
-    nsIURI* aURI, JS::ModuleType aModuleType, ModuleLoadRequest* aParent) {
+    nsIURI* aURI, ModuleLoadRequest* aParent) {
   RefPtr<ScriptLoadContext> newContext = new ScriptLoadContext();
   newContext->mIsInline = false;
   // Propagated Parent values. TODO: allow child modules to use root module's
@@ -348,9 +302,9 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
   newContext->mScriptMode = aParent->GetScriptLoadContext()->mScriptMode;
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, aModuleType, aParent->ReferrerPolicy(), aParent->mFetchOptions,
-      SRIMetadata(), aParent->mURI, newContext, false, /* is top level */
-      false,                                           /* is dynamic import */
+      aURI, aParent->ReferrerPolicy(), aParent->mFetchOptions, SRIMetadata(),
+      aParent->mURI, newContext, false, /* is top level */
+      false,                            /* is dynamic import */
       aParent->mLoader, aParent->mVisitedSet, aParent->GetRootModule());
 
   request->NoCacheEntryFound();
@@ -358,9 +312,8 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
 }
 
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
-    JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
-    LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
-    JS::Handle<JSObject*> aPromise) {
+    JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+    JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) {
   MOZ_ASSERT(aSpecifier);
   MOZ_ASSERT(aPromise);
 
@@ -407,14 +360,10 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
   context->mIsInline = false;
   context->mScriptMode = ScriptLoadContext::ScriptMode::eAsync;
 
-  RefPtr<VisitedURLSet> visitedSet =
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI, aModuleType);
-
-  RefPtr<ModuleLoadRequest> request =
-      new ModuleLoadRequest(aURI, aModuleType, referrerPolicy, options,
-                            SRIMetadata(), baseURL, context, true,
-                            /* is top level */ true, /* is dynamic import */
-                            this, visitedSet, nullptr);
+  RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
+      aURI, referrerPolicy, options, SRIMetadata(), baseURL, context, true,
+      /* is top level */ true, /* is dynamic import */
+      this, ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI), nullptr);
 
   request->SetDynamicImport(aMaybeActiveScript, aSpecifier, aPromise);
   request->NoCacheEntryFound();

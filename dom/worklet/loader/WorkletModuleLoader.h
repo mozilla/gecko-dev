@@ -64,12 +64,11 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
   ~WorkletModuleLoader() = default;
 
   already_AddRefed<JS::loader::ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::ModuleType aModuleType,
-      JS::loader::ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::loader::ModuleLoadRequest* aParent) override;
 
   already_AddRefed<JS::loader::ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
-      LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
+      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
 
   bool CanStartLoad(JS::loader::ModuleLoadRequest* aRequest,
@@ -81,14 +80,6 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
       JSContext* aCx, JS::Handle<JSObject*> aGlobal,
       JS::CompileOptions& aOptions, JS::loader::ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
-
-  nsresult CompileJavaScriptModule(JSContext* aCx, JS::CompileOptions& aOptions,
-                                   ModuleLoadRequest* aRequest,
-                                   JS::MutableHandle<JSObject*> aModuleScript);
-
-  nsresult CompileJsonModule(JSContext* aCx, JS::CompileOptions& aOptions,
-                             ModuleLoadRequest* aRequest,
-                             JS::MutableHandle<JSObject*> aModuleScript);
 
   void OnModuleLoadComplete(JS::loader::ModuleLoadRequest* aRequest) override;
 

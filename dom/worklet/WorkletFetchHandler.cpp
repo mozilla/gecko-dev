@@ -112,16 +112,13 @@ NS_IMETHODIMP StartModuleLoadRunnable::RunOnWorkletThread() {
 
   RefPtr<WorkletLoadContext> loadContext = new WorkletLoadContext(mHandlerRef);
 
-  RefPtr<JS::loader::VisitedURLSet> visitedSet =
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
-          mURI, JS::ModuleType::JavaScript);
-
   // Part of Step 2. This sets the Top-level flag to true
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      mURI, JS::ModuleType::JavaScript, ReferrerPolicy::_empty, fetchOptions,
-      SRIMetadata(), mReferrer, loadContext, true, /* is top level */
-      false,                                       /* is dynamic import */
-      moduleLoader, visitedSet, nullptr);
+      mURI, ReferrerPolicy::_empty, fetchOptions, SRIMetadata(), mReferrer,
+      loadContext, true, /* is top level */
+      false,             /* is dynamic import */
+      moduleLoader, ModuleLoadRequest::NewVisitedSetForTopLevelImport(mURI),
+      nullptr);
 
   request->mURL = request->mURI->GetSpecOrDefault();
   request->NoCacheEntryFound();

@@ -56,12 +56,11 @@ class WorkerModuleLoader : public JS::loader::ModuleLoaderBase {
   nsIURI* GetBaseURI() const override;
 
   already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, JS::ModuleType aModuleType,
-      ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, ModuleLoadRequest* aParent) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
-      LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
+      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
 
   bool IsDynamicImportSupported() override;
@@ -76,14 +75,6 @@ class WorkerModuleLoader : public JS::loader::ModuleLoaderBase {
       JSContext* aCx, JS::Handle<JSObject*> aGlobal,
       JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
-
-  nsresult CompileJavaScriptModule(JSContext* aCx, JS::CompileOptions& aOptions,
-                                   ModuleLoadRequest* aRequest,
-                                   JS::MutableHandle<JSObject*> aModuleScript);
-
-  nsresult CompileJsonModule(JSContext* aCx, JS::CompileOptions& aOptions,
-                             ModuleLoadRequest* aRequest,
-                             JS::MutableHandle<JSObject*> aModuleScript);
 
   void OnModuleLoadComplete(ModuleLoadRequest* aRequest) override;
 
