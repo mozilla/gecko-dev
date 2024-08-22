@@ -351,8 +351,6 @@ class TranslationsUI {
   languageFrom = document.getElementById("language-from");
   /** @type {HTMLSelectElement} */
   languageTo = document.getElementById("language-to");
-  /** @type {HTMLButtonElement} */
-  languageSwap = document.getElementById("language-swap");
   /** @type {HTMLTextAreaElement} */
   translationFrom = document.getElementById("translation-from");
   /** @type {HTMLDivElement} */
@@ -398,7 +396,6 @@ class TranslationsUI {
     }
     this.setupDropdowns();
     this.setupTextarea();
-    this.setupLanguageSwapButton();
   }
 
   /**
@@ -443,73 +440,18 @@ class TranslationsUI {
 
     this.state.setFromLanguage(this.languageFrom.value);
     this.state.setToLanguage(this.languageTo.value);
+    this.updateOnLanguageChange();
 
-    await this.updateOnLanguageChange();
-
-    this.languageFrom.addEventListener("input", async () => {
+    this.languageFrom.addEventListener("input", () => {
       this.state.setFromLanguage(this.languageFrom.value);
-      await this.updateOnLanguageChange();
+      this.updateOnLanguageChange();
     });
 
-    this.languageTo.addEventListener("input", async () => {
+    this.languageTo.addEventListener("input", () => {
       this.state.setToLanguage(this.languageTo.value);
-      await this.updateOnLanguageChange();
+      this.updateOnLanguageChange();
       this.translationTo.setAttribute("lang", this.languageTo.value);
     });
-  }
-
-  /**
-   * Sets up the language swap button, so that when it's clicked, it:
-   * - swaps the selected source adn target lanauges
-   * - replaces the text to translate with the previous translation result
-   */
-  setupLanguageSwapButton() {
-    this.languageSwap.addEventListener("click", async () => {
-      const translationToValue = this.translationTo.innerText;
-
-      const newFromLanguage = this.sanitizeTargetLangTagAsSourceLangTag(
-        this.state.toLanguage
-      );
-      const newToLanguage = this.sanitizeSourceLangTagAsTargetLangTag(
-        this.state.fromLanguage
-      );
-      this.state.setFromLanguage(newFromLanguage);
-      this.state.setToLanguage(newToLanguage);
-
-      this.languageFrom.value = newFromLanguage;
-      this.languageTo.value = newToLanguage;
-      await this.updateOnLanguageChange();
-      this.translationTo.setAttribute("lang", this.languageTo.value);
-
-      this.translationFrom.value = translationToValue;
-      this.state.setMessageToTranslate(translationToValue);
-    });
-  }
-
-  /**
-   * Get the target language dropdown option equivalent to the given source language dropdown option.
-   * `detect` will be converted to `` as `detect` is not a valid option in the target language dropdown
-   *
-   * @param {string} sourceLangTag
-   */
-  sanitizeSourceLangTagAsTargetLangTag(sourceLangTag) {
-    if (sourceLangTag === "detect") {
-      return "";
-    }
-    return sourceLangTag;
-  }
-
-  /**
-   * Get the source language dropdown option equivalent to the given target language dropdown option.
-   * `` will be converted to `detect` as `` is not a valid option in the source language dropdown
-   *
-   * @param {string} targetLangTag
-   */
-  sanitizeTargetLangTagAsSourceLangTag(targetLangTag) {
-    if (targetLangTag === "") {
-      return "detect";
-    }
-    return targetLangTag;
   }
 
   /**
@@ -574,10 +516,9 @@ class TranslationsUI {
   /**
    * React to language changes.
    */
-  async updateOnLanguageChange() {
+  updateOnLanguageChange() {
     this.#updateDropdownLanguages();
     this.#updateMessageDirections();
-    await this.#updateLanguageSwapButton();
   }
 
   /**
@@ -651,49 +592,10 @@ class TranslationsUI {
     }
   }
 
-  /**
-   * Disable the language swap button if fromLanguage is equivalent to toLanguage, or if the languages are not a valid option in the opposite direction
-   */
-  async #updateLanguageSwapButton() {
-    const sourceLanguage = this.state.fromLanguage;
-    const targetLanguage = this.state.toLanguage;
-
-    if (
-      sourceLanguage ===
-      this.sanitizeTargetLangTagAsSourceLangTag(targetLanguage)
-    ) {
-      this.languageSwap.disabled = true;
-      return;
-    }
-
-    if (this.translationFrom.value && !this.translationTo.innerText) {
-      this.languageSwap.disabled = true;
-      return;
-    }
-
-    const supportedLanguages = await this.state.supportedLanguages;
-
-    const isSourceLanguageValidAsTargetLanguage =
-      sourceLanguage === "detect" ||
-      supportedLanguages.languagePairs.some(
-        ({ toLang }) => toLang === sourceLanguage
-      );
-    const isTargetLanguageValidAsSourceLanguage =
-      targetLanguage === "" ||
-      supportedLanguages.languagePairs.some(
-        ({ fromLang }) => fromLang === targetLanguage
-      );
-
-    this.languageSwap.disabled =
-      !isSourceLanguageValidAsTargetLanguage ||
-      !isTargetLanguageValidAsSourceLanguage;
-  }
-
   setupTextarea() {
     this.state.setMessageToTranslate(this.translationFrom.value);
-    this.translationFrom.addEventListener("input", async () => {
-      await this.state.setMessageToTranslate(this.translationFrom.value);
-      this.#updateLanguageSwapButton();
+    this.translationFrom.addEventListener("input", () => {
+      this.state.setMessageToTranslate(this.translationFrom.value);
     });
   }
 
@@ -701,7 +603,6 @@ class TranslationsUI {
     this.translationFrom.disabled = true;
     this.languageFrom.disabled = true;
     this.languageTo.disabled = true;
-    this.languageSwap.disabled = true;
   }
 
   /**
@@ -717,7 +618,6 @@ class TranslationsUI {
       this.translationTo.style.visibility = "hidden";
       this.translationToBlank.style.visibility = "visible";
     }
-    this.#updateLanguageSwapButton();
   }
 }
 
