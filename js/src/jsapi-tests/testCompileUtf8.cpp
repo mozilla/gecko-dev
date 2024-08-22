@@ -21,6 +21,10 @@ using mozilla::ArrayEqual;
 using mozilla::IsAsciiHexDigit;
 using mozilla::Utf8Unit;
 
+static bool contains(const char* str, const char* substr) {
+  return std::strstr(str, substr) != nullptr;
+}
+
 BEGIN_TEST(testUtf8BadBytes) {
   static const char badLeadingUnit[] = "var x = \x80";
   CHECK(testBadUtf8(
@@ -136,10 +140,6 @@ static bool startsWithByte(const char* str) {
 
 static bool startsWith(const char* str, const char* prefix) {
   return std::strncmp(prefix, str, strlen(prefix)) == 0;
-}
-
-static bool contains(const char* str, const char* substr) {
-  return std::strstr(str, substr) != nullptr;
 }
 
 static bool equals(const char* str, const char* expected) {
@@ -298,3 +298,79 @@ bool testContext(const char (&chars)[N],
   return true;
 }
 END_TEST(testMultiUnitUtf8InWindow)
+
+BEGIN_TEST(testCompileJsonModule) {
+  static const char chars[] = "{ \"a\": 1, \"b\": 2, \"c\": \"foo\" }";
+  JS::Rooted<JSObject*> module(cx);
+  {
+    JS::CompileOptions options(cx);
+
+    JS::SourceText<mozilla::Utf8Unit> srcBuf;
+    CHECK(srcBuf.init(cx, chars, js_strlen(chars),
+                      JS::SourceOwnership::Borrowed));
+
+    module = JS::CompileJsonModule(cx, options, srcBuf);
+    CHECK(module);
+  }
+
+  return true;
+}
+END_TEST(testCompileJsonModule)
+
+BEGIN_TEST(testCompileJsonModuleInvalidJson) {
+  static const char chars[] = "{ \"a\": 1, \"b\": 2, \"c\":";
+  JS::Rooted<JSObject*> module(cx);
+  {
+    JS::CompileOptions options(cx);
+
+    JS::SourceText<mozilla::Utf8Unit> srcBuf;
+    CHECK(srcBuf.init(cx, chars, js_strlen(chars),
+                      JS::SourceOwnership::Borrowed));
+
+    module = JS::CompileJsonModule(cx, options, srcBuf);
+    CHECK(!module);
+  }
+
+  JS::ExceptionStack exnStack(cx);
+  CHECK(JS::StealPendingExceptionStack(cx, &exnStack));
+
+  JS::ErrorReportBuilder report(cx);
+  CHECK(report.init(cx, exnStack, JS::ErrorReportBuilder::WithSideEffects));
+
+  const auto* errorReport = report.report();
+  CHECK(errorReport->errorNumber == JSMSG_JSON_BAD_PARSE);
+  CHECK(contains(errorReport->message().c_str(),
+                 "JSON.parse: unexpected end of data"));
+
+  return true;
+}
+END_TEST(testCompileJsonModuleInvalidJson)
+
+BEGIN_TEST(testCompileJsonModuleBadUtf8) {
+  static const char chars[] = "{ \"a\": 1, \"b\": 2, \"c\": \"\xDF\x20\" }";
+  JS::Rooted<JSObject*> module(cx);
+  {
+    JS::CompileOptions options(cx);
+
+    JS::SourceText<mozilla::Utf8Unit> srcBuf;
+    CHECK(srcBuf.init(cx, chars, js_strlen(chars),
+                      JS::SourceOwnership::Borrowed));
+
+    module = JS::CompileJsonModule(cx, options, srcBuf);
+    CHECK(!module);
+  }
+
+  JS::ExceptionStack exnStack(cx);
+  CHECK(JS::StealPendingExceptionStack(cx, &exnStack));
+
+  JS::ErrorReportBuilder report(cx);
+  CHECK(report.init(cx, exnStack, JS::ErrorReportBuilder::WithSideEffects));
+
+  const auto* errorReport = report.report();
+  CHECK(errorReport->errorNumber == JSMSG_MALFORMED_UTF8_CHAR);
+  CHECK(contains(errorReport->message().c_str(),
+                 "malformed UTF-8 character sequence at offset"));
+
+  return true;
+}
+END_TEST(testCompileJsonModuleBadUtf8)

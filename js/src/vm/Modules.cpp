@@ -133,6 +133,27 @@ JS_PUBLIC_API JSObject* JS::CompileModule(JSContext* cx,
 
 JS_PUBLIC_API JSObject* JS::CompileJsonModule(
     JSContext* cx, const ReadOnlyCompileOptions& options,
+    SourceText<mozilla::Utf8Unit>& srcBuf) {
+  size_t length = srcBuf.length();
+  auto chars =
+      UniqueTwoByteChars(UTF8CharsToNewTwoByteCharsZ(
+                             cx, JS::UTF8Chars(srcBuf.get(), srcBuf.length()),
+                             &length, js::MallocArena)
+                             .get());
+  if (!chars) {
+    return nullptr;
+  }
+
+  JS::SourceText<char16_t> source;
+  if (!source.init(cx, std::move(chars), length)) {
+    return nullptr;
+  }
+
+  return CompileJsonModule(cx, options, source);
+}
+
+JS_PUBLIC_API JSObject* JS::CompileJsonModule(
+    JSContext* cx, const ReadOnlyCompileOptions& options,
     SourceText<char16_t>& srcBuf) {
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
   AssertHeapIsIdle();
