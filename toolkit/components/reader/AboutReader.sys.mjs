@@ -685,7 +685,7 @@ AboutReader.prototype = {
           }
         }
         break;
-      case "scroll":
+      case "scroll": {
         let lastHeight = this._lastHeight;
         let { windowUtils } = this._win;
         this._lastHeight = windowUtils.getBoundsWithoutFlushing(
@@ -693,17 +693,20 @@ AboutReader.prototype = {
         ).height;
         // Only close dropdowns if the scroll events are not a result of line
         // height / font-size changes that caused a page height change.
-        if (lastHeight == this._lastHeight) {
+        // Prevent dropdowns from closing when scrolling within the popup.
+        let mouseInDropdown = !!this._doc.querySelector(".dropdown.open:hover");
+        if (lastHeight == this._lastHeight && !mouseInDropdown) {
           this._closeDropdowns(true);
         }
 
         break;
+      }
       case "resize":
         this._updateImageMargins();
         this._scheduleToolbarOverlapHandler();
         break;
 
-      case "wheel":
+      case "wheel": {
         let doZoom =
           (aEvent.ctrlKey && zoomOnCtrl) || (aEvent.metaKey && zoomOnMeta);
         if (!doZoom) {
@@ -732,6 +735,7 @@ AboutReader.prototype = {
           this._changeFontSize(-1);
         }
         break;
+      }
 
       case "pagehide":
         this._closeDropdowns();
@@ -748,7 +752,7 @@ AboutReader.prototype = {
 
         break;
 
-      case "change":
+      case "change": {
         let colorScheme;
         if (this.forcedColorsMediaList.matches) {
           colorScheme = "hcm";
@@ -763,6 +767,7 @@ AboutReader.prototype = {
         this._setColorScheme(colorScheme);
 
         break;
+      }
     }
   },
 
