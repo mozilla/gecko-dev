@@ -302,7 +302,14 @@ JS_PUBLIC_API JS::ModuleType JS::GetRequestedModuleType(
 JS_PUBLIC_API JSScript* JS::GetModuleScript(JS::HandleObject moduleRecord) {
   AssertHeapIsIdle();
 
-  return moduleRecord->as<ModuleObject>().script();
+  auto& module = moduleRecord->as<ModuleObject>();
+
+  // A synthetic module does not have a script associated with it.
+  if (module.hasSyntheticModuleFields()) {
+    return nullptr;
+  }
+
+  return module.script();
 }
 
 JS_PUBLIC_API JSObject* JS::GetModuleObject(HandleScript moduleScript) {
