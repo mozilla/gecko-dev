@@ -180,8 +180,8 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
 
                     when (initialScrollDirection) {
                         InitialScrollDirection.NOT_YET -> {
-                            // If the event wasn't used in GeckoView, allow touch event interceptiona.
-                            if (gestureCanReachParent && inputResultDetail.isTouchUnhandled()) {
+                            // If the event wasn't used in GeckoView, allow touch event interception.
+                            if (gestureCanReachParent && !inputResultDetail.isTouchHandledByWebsite()) {
                                 parent?.requestDisallowInterceptTouchEvent(false)
                             }
                         }

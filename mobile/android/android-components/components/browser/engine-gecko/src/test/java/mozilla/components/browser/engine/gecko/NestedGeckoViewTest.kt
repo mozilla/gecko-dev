@@ -23,6 +23,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.mockMotionEvent
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -527,6 +528,53 @@ class NestedGeckoViewTest {
         // Complete the gesture by finishing with an up action.
         viewParent.dispatchTouchEvent(mockMotionEvent(ACTION_UP))
         assertEquals(1, viewParentInterceptCounter)
+    }
+
+    @Suppress("UNUSED_CHANGED_VALUE")
+    @Test
+    fun `verify parent does intercept touch if the result for ACTION_DOWN is INPUT_RESULT_HANDLED`() {
+        var viewParentInterceptCounter = 0
+        val result: GeckoResult<InputResultDetail> = GeckoResult()
+        var disallowInterceptTouchEventValue = false
+        val nestedWebView = object : NestedGeckoView(context) {
+            init {
+                // We need to make the view a non-zero size so that the touch events hit it.
+                left = 0
+                top = 0
+                right = 5
+                bottom = 5
+            }
+
+            override fun superOnTouchEventForDetailResult(event: MotionEvent): GeckoResult<InputResultDetail> = result
+        }
+
+        val viewParent = object : FrameLayout(context) {
+            override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+                viewParentInterceptCounter++
+                return super.onInterceptTouchEvent(ev)
+            }
+
+            override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+                disallowInterceptTouchEventValue = disallowIntercept
+                super.requestDisallowInterceptTouchEvent(disallowIntercept)
+            }
+        }.apply {
+            addView(nestedWebView)
+        }
+
+        // Down action enables requestDisallowInterceptTouchEvent.
+        viewParent.dispatchTouchEvent(mockMotionEvent(ACTION_DOWN, y = 0f))
+
+        // `onInterceptTouchEvent` will be triggered the first time because it's the first pass.
+        assertEquals(1, viewParentInterceptCounter)
+        assertTrue(disallowInterceptTouchEventValue)
+
+        // Now `INPUT_RESULT_HANDLED_CONTENT` got received.
+        result.complete(generateOverscrollInputResultMock(INPUT_RESULT_HANDLED))
+        shadowOf(getMainLooper()).idle()
+
+        assertEquals(1, viewParentInterceptCounter)
+        assertFalse(disallowInterceptTouchEventValue)
     }
 
     private fun generateOverscrollInputResultMock(inputResult: Int) = mock<InputResultDetail>().apply {
