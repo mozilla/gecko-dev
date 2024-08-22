@@ -217,7 +217,7 @@ export class SearchSettings {
     ) {
       let changedEngines = new Map();
       for (let engine of this.#settings.engines) {
-        if (engine._isAppProvided) {
+        if (engine._isAppProvided && engine.id) {
           let oldId = engine.id;
           engine.id = engine.id
             .replace("@search.mozilla.orgdefault", "")

@@ -27,6 +27,12 @@ const SEARCH_SETTINGS = {
       _isAppProvided: true,
       _metaData: { order: 1 },
     },
+    // It is possible for inactive engines to not have an id even if the
+    // settings version is over 6, see bug 1914380.
+    {
+      _name: "engine3",
+      _isAppProvided: true,
+    },
   ],
 };
 
