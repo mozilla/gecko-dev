@@ -52,7 +52,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 /* static */
 VisitedURLSet* ModuleLoadRequest::NewVisitedSetForTopLevelImport(nsIURI* aURI) {
   auto set = new VisitedURLSet();
-  set->PutEntry(aURI);
+  set->PutEntry(ModuleMapKey(aURI, ModuleType::JavaScript));
   return set;
 }
 

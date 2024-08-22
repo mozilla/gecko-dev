@@ -22,9 +22,9 @@ class LoadedScript;
 class ModuleScript;
 class ModuleLoaderBase;
 
-// A reference counted set of URLs we have visited in the process of loading a
-// module graph.
-class VisitedURLSet : public nsTHashtable<nsURIHashKey> {
+// A reference counted set of module keys (URL and module type) we have visited
+// in the process of loading a module graph.
+class VisitedURLSet : public nsTHashtable<ModuleMapKey> {
   NS_INLINE_DECL_REFCOUNTING(VisitedURLSet)
 
  private:

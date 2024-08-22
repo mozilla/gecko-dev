@@ -488,11 +488,11 @@ bool ModuleLoaderBase::ModuleMapContainsURL(nsIURI* aURL) const {
 }
 
 bool ModuleLoaderBase::IsModuleFetching(nsIURI* aURL) const {
-  return mFetchingModules.Contains(aURL);
+  return mFetchingModules.Contains(ModuleMapKey(aURL, ModuleType::JavaScript));
 }
 
 bool ModuleLoaderBase::IsModuleFetched(nsIURI* aURL) const {
-  return mFetchedModules.Contains(aURL);
+  return mFetchedModules.Contains(ModuleMapKey(aURL, ModuleType::JavaScript));
 }
 
 nsresult ModuleLoaderBase::GetFetchedModuleURLs(nsTArray<nsCString>& aURLs) {
@@ -512,12 +512,14 @@ nsresult ModuleLoaderBase::GetFetchedModuleURLs(nsTArray<nsCString>& aURLs) {
 void ModuleLoaderBase::SetModuleFetchStarted(ModuleLoadRequest* aRequest) {
   // Update the module map to indicate that a module is currently being fetched.
 
+  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+
   MOZ_ASSERT(aRequest->IsFetching() || aRequest->IsPendingFetchingError());
   MOZ_ASSERT(!ModuleMapContainsURL(aRequest->mURI));
 
   RefPtr<LoadingRequest> loadingRequest = new LoadingRequest();
   loadingRequest->mRequest = aRequest;
-  mFetchingModules.InsertOrUpdate(aRequest->mURI, loadingRequest);
+  mFetchingModules.InsertOrUpdate(moduleMapKey, loadingRequest);
 }
 
 void ModuleLoaderBase::SetModuleFetchFinishedAndResumeWaitingRequests(
@@ -534,7 +536,8 @@ void ModuleLoaderBase::SetModuleFetchFinishedAndResumeWaitingRequests(
        "%u)",
        aRequest, aRequest->mModuleScript.get(), unsigned(aResult)));
 
-  auto entry = mFetchingModules.Lookup(aRequest->mURI);
+  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+  auto entry = mFetchingModules.Lookup(moduleMapKey);
   if (!entry) {
     LOG(
         ("ScriptLoadRequest (%p): Key not found in mFetchingModules, "
@@ -557,12 +560,12 @@ void ModuleLoaderBase::SetModuleFetchFinishedAndResumeWaitingRequests(
     return;
   }
 
-  MOZ_ALWAYS_TRUE(mFetchingModules.Remove(aRequest->mURI));
+  MOZ_ALWAYS_TRUE(mFetchingModules.Remove(moduleMapKey));
 
   RefPtr<ModuleScript> moduleScript(aRequest->mModuleScript);
   MOZ_ASSERT(NS_FAILED(aResult) == !moduleScript);
 
-  mFetchedModules.InsertOrUpdate(aRequest->mURI, RefPtr{moduleScript});
+  mFetchedModules.InsertOrUpdate(moduleMapKey, RefPtr{moduleScript});
 
   LOG(("ScriptLoadRequest (%p): Resuming waiting requests", aRequest));
   MOZ_ASSERT(loadingRequest->mRequest == aRequest);
@@ -588,15 +591,16 @@ void ModuleLoaderBase::ResumeWaitingRequest(ModuleLoadRequest* aRequest,
 void ModuleLoaderBase::WaitForModuleFetch(ModuleLoadRequest* aRequest) {
   nsIURI* uri = aRequest->mURI;
   MOZ_ASSERT(ModuleMapContainsURL(uri));
+  ModuleMapKey moduleMapKey(uri, ModuleType::JavaScript);
 
-  if (auto entry = mFetchingModules.Lookup(uri)) {
+  if (auto entry = mFetchingModules.Lookup(moduleMapKey)) {
     RefPtr<LoadingRequest> loadingRequest = entry.Data();
     loadingRequest->mWaiting.AppendElement(aRequest);
     return;
   }
 
   RefPtr<ModuleScript> ms;
-  MOZ_ALWAYS_TRUE(mFetchedModules.Get(uri, getter_AddRefs(ms)));
+  MOZ_ALWAYS_TRUE(mFetchedModules.Get(moduleMapKey, getter_AddRefs(ms)));
 
   ResumeWaitingRequest(aRequest, bool(ms));
 }
@@ -608,8 +612,9 @@ ModuleScript* ModuleLoaderBase::GetFetchedModule(nsIURI* aURL) const {
     LOG(("GetFetchedModule %s", url.get()));
   }
 
+  ModuleMapKey moduleMapKey(aURL, ModuleType::JavaScript);
   bool found;
-  ModuleScript* ms = mFetchedModules.GetWeak(aURL, &found);
+  ModuleScript* ms = mFetchedModules.GetWeak(moduleMapKey, &found);
   MOZ_ASSERT(found);
   return ms;
 }
@@ -863,7 +868,8 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
   MOZ_ASSERT(aRequest->IsFetching() || aRequest->IsCompiling());
 
   auto visitedSet = aRequest->mVisitedSet;
-  MOZ_ASSERT(visitedSet->Contains(aRequest->mURI));
+  MOZ_ASSERT(visitedSet->Contains(
+      ModuleMapKey(aRequest->mURI, ModuleType::JavaScript)));
 
   aRequest->mState = ModuleLoadRequest::State::LoadingImports;
 
@@ -880,10 +886,12 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
   int32_t i = 0;
   while (i < urls.Count()) {
     nsIURI* url = urls[i];
-    if (visitedSet->Contains(url)) {
+    ModuleMapKey moduleMapKey(url, ModuleType::JavaScript);
+
+    if (visitedSet->Contains(moduleMapKey)) {
       urls.RemoveObjectAt(i);
     } else {
-      visitedSet->PutEntry(url);
+      visitedSet->PutEntry(moduleMapKey);
       i++;
     }
   }
@@ -1475,7 +1483,7 @@ void ModuleLoaderBase::CopyModulesTo(ModuleLoaderBase* aDest) {
     if (!moduleScript) {
       continue;
     }
-    aDest->mFetchedModules.InsertOrUpdate(entry.GetKey(), moduleScript);
+    aDest->mFetchedModules.InsertOrUpdate(entry, moduleScript);
   }
 }
 
@@ -1490,12 +1498,12 @@ void ModuleLoaderBase::MoveModulesTo(ModuleLoaderBase* aDest) {
     }
 
 #ifdef DEBUG
-    if (auto existingEntry = aDest->mFetchedModules.Lookup(entry.GetKey())) {
+    if (auto existingEntry = aDest->mFetchedModules.Lookup(entry)) {
       MOZ_ASSERT(moduleScript == existingEntry.Data());
     }
 #endif
 
-    aDest->mFetchedModules.InsertOrUpdate(entry.GetKey(), moduleScript);
+    aDest->mFetchedModules.InsertOrUpdate(entry, moduleScript);
   }
 
   mFetchedModules.Clear();
@@ -1503,7 +1511,8 @@ void ModuleLoaderBase::MoveModulesTo(ModuleLoaderBase* aDest) {
 
 bool ModuleLoaderBase::IsFetchingAndHasWaitingRequest(
     ModuleLoadRequest* aRequest) {
-  auto entry = mFetchingModules.Lookup(aRequest->mURI);
+  auto entry = mFetchingModules.Lookup(
+      ModuleMapKey(aRequest->mURI, ModuleType::JavaScript));
   if (!entry) {
     return false;
   }
