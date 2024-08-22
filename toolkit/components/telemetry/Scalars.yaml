@@ -1986,6 +1986,7 @@ extensions.startupCache:
   load_time:
     bug_numbers:
       - 1767336
+      - 1912170
     description: >
       Time to load and deserialize the extensions startupCache data.
       This scalar is mirroring the never expiring Glean metric named
@@ -1994,7 +1995,7 @@ extensions.startupCache:
       Unlike the related glean metric, this scalar has an expiring date,
       set as a deadline to consider removing the mirrored scalar in
       favor to just use the Glean metric).
-    expires: "132"
+    expires: "140"
     kind: uint
     notification_emails:
       - addons-dev-internal@mozilla.com
