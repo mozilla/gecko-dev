@@ -35,7 +35,6 @@
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/Interpreter.h"
 #include "vm/JSFunction.h"
-#include "vm/Logging.h"
 #include "vm/Time.h"
 #ifdef MOZ_VTUNE
 #  include "vtune/VTuneWrapper.h"
@@ -109,9 +108,6 @@ BaselineInterpreterGenerator::BaselineInterpreterGenerator(JSContext* cx,
     : BaselineCodeGen(cx, alloc /* no handlerArgs */) {}
 
 bool BaselineCompilerHandler::init(JSContext* cx) {
-  JS_LOG(baselineCompileHandler, mozilla::LogLevel::Debug,
-         "Baseline Compile Init");
-
   if (!analysis_.init(alloc_)) {
     return false;
   }
