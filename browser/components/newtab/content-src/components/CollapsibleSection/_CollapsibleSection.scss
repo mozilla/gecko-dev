@@ -115,6 +115,18 @@
     }
   }
 
+  // Bug 1914195 - Only show the topic selection button/modal on medium and wider breakpoints
+  .layout-variant-a &,
+  .layout-variant-b & {
+    .button-topic-selection {
+      display: none;
+
+      @media(min-width: $break-point-medium) {
+        display: block;
+      }
+    }
+  }
+
   .button-topic-selection {
     // Note: the 'primary' theme uses a solid color and does not need this override
     moz-button[type='default'] {
