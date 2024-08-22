@@ -95,6 +95,12 @@ export class CredentialChooserService {
       return Cr.NS_ERROR_INVALID_ARG;
     }
 
+    // If we are not an active BC, return no choice and bail out.
+    if (!browsingContext?.currentWindowContext?.isActiveInTab) {
+      callback.notify(null);
+      return Cr.NS_OK;
+    }
+
     if (lazy.TESTING_MODE) {
       let match = credentials.find(cred => cred.id == "wpt-pick-me");
       if (match) {

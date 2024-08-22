@@ -76,13 +76,7 @@ void IdentityCredentialRequestManager::NotifyOfStoredCredential(
   auto listLookup = mPendingRequests.Lookup(aIDPPrincipal);
   if (listLookup) {
     for (auto& entry : listLookup.Data()) {
-      // Make sure we are only sending updates to fully active documents
-      if (!entry.mBrowsingContext ||
-          !entry.mBrowsingContext->GetCurrentWindowContext() ||
-          entry.mBrowsingContext->GetCurrentWindowContext()->IsDiscarded() ||
-          !entry.mBrowsingContext->GetCurrentWindowContext()->IsCurrent() ||
-          !entry.mBrowsingContext->AncestorsAreCurrent() ||
-          entry.mBrowsingContext->IsInBFCache()) {
+      if (!entry.mBrowsingContext) {
         continue;
       }
       // We must (asynchronously) test if this credential should be sent down

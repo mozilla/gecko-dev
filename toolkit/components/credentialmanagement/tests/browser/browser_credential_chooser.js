@@ -16,6 +16,7 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 const TEST_URL = "https://www.example.com/";
+const TEST_URL_2 = "https://example.com/";
 const TEST_CREDENTIAL_URL = "https://www.example.net/";
 const TEST_IMAGE_DATA =
   "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgICAgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiB2aWV3Qm94PSIwIDAgMzIgMzIiPgogIDxjaXJjbGUgZmlsbD0iY29udGV4dC1maWxsIiBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiLz4KPC9zdmc+";
@@ -577,6 +578,35 @@ add_task(async function test_uihint_expired_credential_dialog() {
 
   let choice = await credentialChoice;
   is(choice, "foo", "must have the correct credential chosen");
+
+  // Clear the tab
+  await BrowserTestUtils.removeTab(tab);
+});
+
+// Inactive documents should not have a popup.
+add_task(async function test_inavtive_document_doesnt_show_dialog() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
+  let oldBC = tab.linkedBrowser.browsingContext;
+
+  BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, TEST_URL_2);
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, TEST_URL_2);
+
+  // Construct our credential to choose from
+  let credential = { id: "foo", type: "identity", origin: TEST_CREDENTIAL_URL };
+
+  // Show the single account
+  let credentialChoice = new Promise(resolve => {
+    CredentialChooserService.showCredentialChooser(oldBC, [credential], {
+      notify: resolve,
+    });
+  });
+
+  let choice = await credentialChoice;
+  is(
+    choice,
+    null,
+    "An inactive should give a null choice without showing a popup"
+  );
 
   // Clear the tab
   await BrowserTestUtils.removeTab(tab);

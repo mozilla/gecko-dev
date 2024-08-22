@@ -220,7 +220,7 @@ void IdentityCredential::GetCredential(nsPIDOMWindowInner* aParent,
               return;
             }
             if (maybeResult.isNothing()) {
-              aPromise->MaybeResolve(JS::NullValue());
+              aPromise->MaybeResolve(JS::NullHandleValue);
               return;
             }
             aPromise->MaybeResolve(
