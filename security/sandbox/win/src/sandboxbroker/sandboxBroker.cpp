@@ -1104,6 +1104,36 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
             result);
     }
 
+#if !defined(_WIN64)
+    BOOL isWow64Process;
+    if (::IsWow64Process(::GetCurrentProcess(), &isWow64Process) &&
+        isWow64Process) {
+      // Read access for other Media Foundation Classes for WOW64.
+      result = mPolicy->AddRule(
+          sandbox::TargetPolicy::SUBSYS_REGISTRY,
+          sandbox::TargetPolicy::REG_ALLOW_READONLY,
+          L"HKEY_LOCAL_MACHINE\\"
+          L"Software\\Classes\\WOW6432Node\\MediaFoundation\\*");
+      if (sandbox::SBOX_ALL_OK != result) {
+        NS_ERROR("Failed to add rule for MFStartup CLSID.");
+        LOG_E("Failed (ResultCode %d) to add rule for MFStartup CLSID.",
+              result);
+      }
+
+      // Read access for MF H264 Encoder and subkeys/values for WOW64.
+      result = mPolicy->AddRule(
+          sandbox::TargetPolicy::SUBSYS_REGISTRY,
+          sandbox::TargetPolicy::REG_ALLOW_READONLY,
+          L"HKEY_LOCAL_MACHINE\\Software\\Classes\\WOW6432Node\\CLSID"
+          L"\\{6CA50344-051A-4DED-9779-A43305165E35}*");
+      if (sandbox::SBOX_ALL_OK != result) {
+        NS_ERROR("Failed to add rule for MF H264 Encoder CLSID.");
+        LOG_E("Failed (ResultCode %d) to add rule for MF H264 Encoder CLSID.",
+              result);
+      }
+    }
+#endif
+
     // We still currently create IPC named pipes in the content process.
     result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_NAMED_PIPES,
                               sandbox::TargetPolicy::NAMEDPIPES_ALLOW_ANY,
