@@ -2148,8 +2148,9 @@ BigInt* BigInt::pow(JSContext* cx, HandleBigInt x, HandleBigInt y) {
     return nullptr;
   }
 
-  static_assert(MaxBitLength <= std::numeric_limits<int>::max(),
-                "unexpectedly large MaxBitLength");
+  static_assert(
+      MaxBitLength <= static_cast<unsigned>(std::numeric_limits<int>::max()),
+      "unexpectedly large MaxBitLength");
   int n = static_cast<int>(exponent);
   bool isOddPower = n & 1;
 
