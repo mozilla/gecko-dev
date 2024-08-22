@@ -87,6 +87,7 @@ DIRS += [
     "xslt",
     "xul",
     "manifest",
+    "view-transitions",
     "vr",
     "console",
     "performance",

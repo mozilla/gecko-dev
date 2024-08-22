@@ -17806,6 +17806,12 @@ void Document::ClearStaleServoData() {
   }
 }
 
+ViewTransition* Document::StartViewTransition(
+    const Optional<OwningNonNull<ViewTransitionUpdateCallback>>&) {
+  // TODO(emilio): Not yet implemented
+  return nullptr;
+}
+
 Selection* Document::GetSelection(ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> window = GetInnerWindow();
   if (!window) {

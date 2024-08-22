@@ -761,3 +761,12 @@ partial interface Document {
     [Pref="dom.text_fragments.enabled", SameObject]
     readonly attribute FragmentDirective fragmentDirective;
 };
+
+// https://drafts.csswg.org/css-view-transitions-1/#additions-to-document-api
+partial interface Document {
+  [Pref="dom.viewTransitions.enabled"]
+  ViewTransition startViewTransition(optional ViewTransitionUpdateCallback updateCallback);
+};
+
+// https://github.com/w3c/csswg-drafts/pull/10767 for the name divergence in the spec
+callback ViewTransitionUpdateCallback = Promise<any> ();
