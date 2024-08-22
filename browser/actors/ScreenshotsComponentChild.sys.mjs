@@ -18,6 +18,7 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
   #scrollTask;
   #overlay;
   #preventableEventsAdded = false;
+  #listening = false;
 
   static OVERLAY_EVENTS = [
     "click",
@@ -172,7 +173,6 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
       closeOverlay: false,
       reason,
     });
-    this.endScreenshotsOverlay();
   }
 
   /**
@@ -182,7 +182,6 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
   requestCopyScreenshot(region) {
     region.devicePixelRatio = this.contentWindow.devicePixelRatio;
     this.sendAsyncMessage("Screenshots:CopyScreenshot", { region });
-    this.endScreenshotsOverlay({ doNotResetMethods: true });
   }
 
   /**
@@ -195,7 +194,6 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
       title: this.getDocumentTitle(),
       region,
     });
-    this.endScreenshotsOverlay({ doNotResetMethods: true });
   }
 
   getDocumentTitle() {
@@ -258,6 +256,7 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
     this.contentWindow.addEventListener("resize", this);
     this.contentWindow.addEventListener("scroll", this);
     this.addOverlayEventListeners();
+    this.#listening = true;
   }
 
   addOverlayEventListeners() {
@@ -291,20 +290,26 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
       return false;
     }
     await this.documentIsReady();
-    let overlay =
-      this.overlay ||
-      (this.#overlay = new lazy.ScreenshotsOverlay(this.document));
+    if (!this.overlay) {
+      this.#overlay = new lazy.ScreenshotsOverlay(this.document);
+    }
     this.addEventListeners();
 
-    overlay.initialize();
+    this.overlay.initialize();
     return true;
   }
 
   removeEventListeners() {
+    if (!this.#listening) {
+      return;
+    }
+
     this.contentWindow.removeEventListener("beforeunload", this);
     this.contentWindow.removeEventListener("resize", this);
     this.contentWindow.removeEventListener("scroll", this);
     this.removeOverlayEventListeners();
+
+    this.#listening = false;
   }
 
   removeOverlayEventListeners() {
@@ -336,8 +341,7 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
   }
 
   didDestroy() {
-    this.#resizeTask?.disarm();
-    this.#scrollTask?.disarm();
+    this.endScreenshotsOverlay();
   }
 
   /**
