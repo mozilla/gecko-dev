@@ -4188,8 +4188,8 @@ static bool CheckForColorGlyphs(const RefPtr<SourceSurface>& aSurface) {
 static DeviceColor QuantizePreblendColor(const DeviceColor& aColor,
                                          bool aUseSubpixelAA) {
   int32_t r = int32_t(aColor.r * 255.0f + 0.5f);
-  int32_t g = int32_t(aColor.r * 255.0f + 0.5f);
-  int32_t b = int32_t(aColor.r * 255.0f + 0.5f);
+  int32_t g = int32_t(aColor.g * 255.0f + 0.5f);
+  int32_t b = int32_t(aColor.b * 255.0f + 0.5f);
   // Ensure that even if two values would normally quantize to the same bucket,
   // that the reference value within the bucket still allows for accurate
   // determination of whether light-on-dark or dark-on-light rasterization will
