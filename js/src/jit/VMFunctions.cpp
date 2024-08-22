@@ -1344,11 +1344,6 @@ bool AddDisposableResource(JSContext* cx, BaselineFrame* frame,
                                                method, needsClosure, hint);
 }
 
-bool TakeDisposeCapability(JSContext* cx, BaselineFrame* frame,
-                           JS::MutableHandle<JS::Value> capability) {
-  return frame->takeDisposeCapability(cx, capability);
-}
-
 bool CreateSuppressedError(JSContext* cx, BaselineFrame* frame,
                            JS::Handle<JS::Value> error,
                            JS::Handle<JS::Value> suppressed,

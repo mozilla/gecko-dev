@@ -111,16 +111,6 @@ ArrayObject* BaselineFrame::getOrCreateDisposeCapability(JSContext* cx) {
   return env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(
       cx);
 }
-
-bool BaselineFrame::takeDisposeCapability(
-    JSContext* cx, JS::MutableHandle<JS::Value> capability) {
-  JSObject* env = environmentChain();
-
-  MOZ_ASSERT(env->is<DisposableEnvironmentObject>());
-  capability.set(env->as<DisposableEnvironmentObject>().getDisposables());
-  env->as<DisposableEnvironmentObject>().clearDisposables();
-  return true;
-}
 #endif
 
 void BaselineFrame::setInterpreterFields(JSScript* script, jsbytecode* pc) {

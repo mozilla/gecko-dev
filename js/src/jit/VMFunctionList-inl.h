@@ -333,8 +333,6 @@ namespace jit {
   _(StringsEqual, js::jit::StringsEqual<js::jit::EqualityKind::Equal>)         \
   _(StringsNotEqual, js::jit::StringsEqual<js::jit::EqualityKind::NotEqual>)   \
   _(SubstringKernel, js::SubstringKernel)                                      \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                             \
-      _(TakeDisposeCapability, js::jit::TakeDisposeCapability))                \
   _(ThrowBadDerivedReturnOrUninitializedThis,                                  \
     js::jit::ThrowBadDerivedReturnOrUninitializedThis)                         \
   _(ThrowCheckIsObject, js::ThrowCheckIsObject)                                \

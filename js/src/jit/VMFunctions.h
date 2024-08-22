@@ -508,10 +508,6 @@ ArrayObject* InitRestParameter(JSContext* cx, uint32_t length, Value* rest,
                                          JS::Handle<JS::Value> error,
                                          JS::Handle<JS::Value> suppressed,
                                          JS::MutableHandle<JS::Value> rval);
-
-[[nodiscard]] bool TakeDisposeCapability(
-    JSContext* cx, BaselineFrame* frame,
-    JS::MutableHandle<JS::Value> capability);
 #endif
 
 [[nodiscard]] bool InitBaselineFrameForOsr(BaselineFrame* frame,

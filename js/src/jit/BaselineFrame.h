@@ -319,9 +319,6 @@ class BaselineFrame {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   [[nodiscard]] ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
-
-  [[nodiscard]] bool takeDisposeCapability(
-      JSContext* cx, JS::MutableHandle<JS::Value> capability);
 #endif
 
   void initArgsObjUnchecked(ArgumentsObject& argsobj) {

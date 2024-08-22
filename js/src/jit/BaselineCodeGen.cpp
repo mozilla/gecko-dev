@@ -4912,16 +4912,14 @@ bool BaselineCodeGen<Handler>::emit_AddDisposable() {
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_TakeDisposeCapability() {
   frame.syncStack(0);
-  prepareVMCall();
-  masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
 
-  pushArg(R0.scratchReg());
+  masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
+  Address capAddr(R0.scratchReg(),
+                  DisposableEnvironmentObject::offsetOfDisposeCapability());
+  masm.loadValue(capAddr, R1);
+  masm.storeValue(UndefinedValue(), capAddr);
 
-  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::MutableHandle<JS::Value>);
-  if (!callVM<Fn, jit::TakeDisposeCapability>()) {
-    return false;
-  }
-  frame.push(R0);
+  frame.push(R1);
   return true;
 }
 
