@@ -51,6 +51,8 @@ skip-if = [
 
 ["test_MatchPattern.js"]
 
+["test_OriginControls.js"]
+
 ["test_StorageSyncService.js"]
 skip-if = ["os == 'android' && processor == 'x86_64'"]
 
