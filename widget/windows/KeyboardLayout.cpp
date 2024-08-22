@@ -889,6 +889,7 @@ void ModifierKeyState::InitInputEvent(WidgetInputEvent& aInputEvent) const {
 
   switch (aInputEvent.mClass) {
     case eMouseEventClass:
+    case ePointerEventClass:
     case eMouseScrollEventClass:
     case eWheelEventClass:
     case eDragEventClass:
@@ -902,6 +903,7 @@ void ModifierKeyState::InitInputEvent(WidgetInputEvent& aInputEvent) const {
 
 void ModifierKeyState::InitMouseEvent(WidgetInputEvent& aMouseEvent) const {
   NS_ASSERTION(aMouseEvent.mClass == eMouseEventClass ||
+                   aMouseEvent.mClass == ePointerEventClass ||
                    aMouseEvent.mClass == eWheelEventClass ||
                    aMouseEvent.mClass == eDragEventClass ||
                    aMouseEvent.mClass == eSimpleGestureEventClass,
