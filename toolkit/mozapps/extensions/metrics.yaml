@@ -244,9 +244,11 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1607744#c11
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         metadata:
@@ -255,7 +257,7 @@ blocklist:
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never
     mlbf_source:
         type: string
         description: >
@@ -286,9 +288,11 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         metadata:
@@ -297,7 +301,7 @@ blocklist:
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never
         telemetry_mirror: BLOCKLIST_MLBF_SOURCE
         no_lint:
           - GIFFT_NON_PING_LIFETIME
@@ -320,9 +324,11 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c3
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         metadata:
@@ -331,7 +337,7 @@ blocklist:
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never
     mlbf_stash_time_oldest:
         type: datetime
         description: >
@@ -347,15 +353,17 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never
     mlbf_stash_time_newest:
         type: datetime
         description: >
@@ -371,9 +379,11 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         metadata:
@@ -382,7 +392,7 @@ blocklist:
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never
     addon_block_change:
         type: event
         description: >
@@ -472,9 +482,11 @@ blocklist:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
         data_reviews:
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
             - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
         data_sensitivity:
             - technical
         metadata:
@@ -483,4 +495,4 @@ blocklist:
         notification_emails:
             - addons-dev-internal@mozilla.com
             - rwu@mozilla.com
-        expires: 132
+        expires: never

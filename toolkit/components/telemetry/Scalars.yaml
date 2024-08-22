@@ -6978,33 +6978,6 @@ networking:
       - main
 
 blocklist:
-  lastModified_rs_addons:
-    bug_numbers:
-      - 1572711
-      - 1607744
-      - 1649960
-      - 1689274
-      - 1730037
-      - 1763529
-      - 1811159
-      - 1861296
-    description: >
-      Keep track of the last time the "addons" remotesetting blocklist has been successfully
-      updated (as a datetime string in UTC format), set to "Missing Date" when the timestamp
-      couldn't be retrieved.
-    expires: "132"
-    kind: string
-    release_channel_collection: opt-out
-    notification_emails:
-      - addons-dev-internal@mozilla.com
-      - rwu@mozilla.com
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'thunderbird'
-    record_in_processes:
-      - main
-
   lastModified_rs_addons_mlbf:
     bug_numbers:
       - 1633466
@@ -7014,11 +6987,12 @@ blocklist:
       - 1763529
       - 1811159
       - 1861296
+      - 1912167
     description: >
       Keep track of the last time the "addons-bloomfilters" remotesetting blocklist has been successfully
       updated (as a datetime string in UTC format), set to "Missing Date" when the timestamp
       couldn't be retrieved.
-    expires: "132"
+    expires: never
     kind: string
     release_channel_collection: opt-out
     notification_emails:
@@ -7036,6 +7010,7 @@ blocklist:
       - 1763529
       - 1811159
       - 1861296
+      - 1912167
     description: >
       The source of the RemoteSettings attachment that holds the bloom filter.
       Possible values are "dump_match", "cache_match", "remote_match", "dump_fallback", "cache_fallback", "unknown".
@@ -7048,7 +7023,7 @@ blocklist:
       (e.g. because the latest version cannot be downloaded).
       "unknown" means that the bloomfilter cannot be loaded at all. This can happen if the blocklist is disabled
       via preferences or enterprise policies.
-    expires: "132"
+    expires: never
     kind: string
     release_channel_collection: opt-out
     notification_emails:
@@ -7068,12 +7043,13 @@ blocklist:
       - 1763529
       - 1811159
       - 1861296
+      - 1912167
     description: >
       Keep track of the generation time of the addon blocklist's bloom filter. This marks the
       point in time until which signed add-ons are recognized by the selected bloom filter from the
       addons-bloomfilters collection.
       The value is a datetime string in UTC format, or  "Missing Date" when unavailable.
-    expires: "132"
+    expires: never
     kind: string
     release_channel_collection: opt-out
     notification_emails:
@@ -7093,10 +7069,11 @@ blocklist:
       - 1763529
       - 1811159
       - 1861296
+      - 1912167
     description: >
       Keep track of the timestamp of the oldest stash of the addons blocklist.
       The value is a datetime string in UTC format, or "Missing Date" when unavailable.
-    expires: "132"
+    expires: never
     kind: string
     release_channel_collection: opt-out
     notification_emails:
@@ -7116,10 +7093,11 @@ blocklist:
       - 1763529
       - 1811159
       - 1861296
+      - 1912167
     description: >
       Keep track of the timestamp of the most recent stash of the addons blocklist.
       The value is a datetime string in UTC format, or "Missing Date" when unavailable.
-    expires: "132"
+    expires: never
     kind: string
     release_channel_collection: opt-out
     notification_emails:
