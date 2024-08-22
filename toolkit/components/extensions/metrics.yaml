@@ -300,8 +300,11 @@ extensions.data:
       - https://bugzilla.mozilla.org/1781974
       - https://bugzilla.mozilla.org/1817100
       - https://bugzilla.mozilla.org/1861295
+      - https://bugzilla.mozilla.org/1912166
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1470213#c15
+    data_sensitivity:
+      - technical
     notification_emails:
       - addons-dev-internal@mozilla.com
     extra_keys:
@@ -327,7 +330,7 @@ extensions.data:
       has_olddata:
         description: Extension had some data stored in JSONFile ("y" / "n").
         type: string
-    expires: 132
+    expires: 140
 
   storage_local_error:
     type: event
@@ -343,8 +346,11 @@ extensions.data:
       - https://bugzilla.mozilla.org/1763523
       - https://bugzilla.mozilla.org/1811148
       - https://bugzilla.mozilla.org/1861297
+      - https://bugzilla.mozilla.org/1912166
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1606903#c3
+    data_sensitivity:
+      - technical
     notification_emails:
       - addons-dev-internal@mozilla.com
     extra_keys:
@@ -358,7 +364,7 @@ extensions.data:
         description: |
           A DOMException error name if any ("OtherError" for unknown errors).
         type: string
-    expires: 132
+    expires: 140
 
 extensions.counters:
 
