@@ -121,9 +121,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Novo: setas para a frente e para trás com um toque</string>
+    <string name="tablet_nav_bar_cfr_title">Novo: setas de avanço e retrocesso com apenas um toque</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Desfrute de uma navegação mais rápida que está sempre ao seu alcance.</string>
+    <string name="tablet_nav_bar_cfr_message">Desfrute de uma navegação mais rápida que está sempre na ponta dos seus dedos.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">É necessário acesso à câmara. Aceda às definições do Android, toque em permissões e toque em permitir.</string>
@@ -211,7 +211,7 @@
     <string name="browser_menu_extensions_banner_onboarding_header">Torne o %s seu</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
-    <string name="browser_menu_extensions_banner_onboarding_body">As extensões melhoram o nível da sua navegação, desde alterar a aparência e o desempenho do %s até aumentar a privacidade e segurança.</string>
+    <string name="browser_menu_extensions_banner_onboarding_body">As extensões elevam a sua experiência de navegação, desde a mudança da aparência e desempenho do %s até ao reforço da privacidade e da segurança.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Saber mais</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -304,10 +304,16 @@
     <string name="browser_menu_switch_to_mobile_site">Mudar para o site móvel</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ferramentas</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir Aplicação</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Vista de Leitura, Imprimir, Partilhar, Abrir Aplicação</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Guardar</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Adicionar marcador, Atalho, Início, Coleção, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Adicionar página aos marcadores</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -1251,6 +1257,17 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Introduza os termos de pesquisa</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Navegar para trás</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Adicionar uma nova pasta</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Fechar marcadores</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Pesquisar marcadores</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Item de Menu para %s</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
