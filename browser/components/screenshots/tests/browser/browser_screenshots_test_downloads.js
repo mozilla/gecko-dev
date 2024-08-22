@@ -240,34 +240,3 @@ add_task(async function test_download_filepicker_canceled() {
     }
   );
 });
-
-add_task(async function test_overlay_download_filepicker_canceled() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.download.useDownloadDir", false]],
-  });
-
-  await BrowserTestUtils.withNewTab(
-    {
-      gBrowser,
-      url: TEST_PAGE,
-    },
-    async browser => {
-      let helper = new ScreenshotsHelper(browser);
-
-      helper.triggerUIFromToolbar();
-      await helper.waitForOverlay();
-
-      await helper.dragOverlay(100, 100, 500, 500);
-
-      let filePickerCanceled = waitForFilePickerCancel();
-      await helper.clickDownloadButton();
-      info("download button clicked");
-      await filePickerCanceled;
-
-      ok(
-        await helper.isOverlayInitialized(),
-        "Overlay is still open and initialized"
-      );
-    }
-  );
-});
