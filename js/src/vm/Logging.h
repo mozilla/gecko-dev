@@ -80,7 +80,7 @@ class LogModule {
   mutable mozilla::AtomicLogLevel* levelPtr{};
 };
 
-#define FOR_EACH_JS_LOG_MODULE(_) _(Test)
+#define FOR_EACH_JS_LOG_MODULE(_) _(baselineCompileHandler)
 
 // Declare Log modules
 #define DECLARE_MODULE(X) inline constexpr LogModule X##Module(#X);
