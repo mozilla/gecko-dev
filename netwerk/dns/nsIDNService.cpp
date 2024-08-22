@@ -151,6 +151,59 @@ static bool isDigitLookalike(char32_t aChar) {
   }
 }
 
+static bool isCyrillicLatinConfusable(char32_t aChar) {
+  switch (aChar) {
+    case 0x0430:  // а CYRILLIC SMALL LETTER A
+    case 0x044B:  // ы CYRILLIC SMALL LETTER YERU
+    case 0x0441:  // с CYRILLIC SMALL LETTER ES
+    case 0x0501:  // ԁ CYRILLIC SMALL LETTER KOMI DE
+    case 0x0435:  // е CYRILLIC SMALL LETTER IE
+    case 0x050D:  // ԍ CYRILLIC SMALL LETTER KOMI SJE
+    case 0x04BB:  // һ CYRILLIC SMALL LETTER SHHA
+    case 0x0456:  // і CYRILLIC SMALL LETTER BYELORUSSIAN-UKRAINIAN I {Old
+                  // Cyrillic i}
+    case 0x044E:  // ю CYRILLIC SMALL LETTER YU
+    case 0x043A:  // к CYRILLIC SMALL LETTER KA
+    case 0x0458:  // ј CYRILLIC SMALL LETTER JE
+    case 0x04CF:  // ӏ CYRILLIC SMALL LETTER PALOCHKA
+    case 0x043E:  // о CYRILLIC SMALL LETTER O
+    case 0x0440:  // р CYRILLIC SMALL LETTER ER
+    case 0x0517:  // ԗ CYRILLIC SMALL LETTER RHA {voiceless r}
+    case 0x051B:  // ԛ CYRILLIC SMALL LETTER QA
+    case 0x0455:  // ѕ CYRILLIC SMALL LETTER DZE
+    case 0x051D:  // ԝ CYRILLIC SMALL LETTER WE
+    case 0x0445:  // х CYRILLIC SMALL LETTER HA
+    case 0x0443:  // у CYRILLIC SMALL LETTER U
+    case 0x044A:  // ъ CYRILLIC SMALL LETTER HARD SIGN
+    case 0x044C:  // ь CYRILLIC SMALL LETTER SOFT SIGN
+    case 0x04BD:  // ҽ CYRILLIC SMALL LETTER ABKHASIAN CHE
+    case 0x043F:  // п CYRILLIC SMALL LETTER PE
+    case 0x0433:  // г CYRILLIC SMALL LETTER GHE
+    case 0x0475:  // ѵ CYRILLIC SMALL LETTER IZHITSA
+    case 0x0461:  // ѡ CYRILLIC SMALL LETTER OMEGA
+      return true;
+    default:
+      return false;
+  }
+}
+
+static bool isCyrillicDomain(mozilla::Span<const char32_t>& aTLD) {
+  mozilla::Span<const char32_t>::const_iterator current = aTLD.cbegin();
+  mozilla::Span<const char32_t>::const_iterator end = aTLD.cend();
+
+  while (current != end) {
+    char32_t ch = *current++;
+    if (UnicodeProperties::GetScriptCode(ch) == Script::CYRILLIC) {
+      return true;
+    }
+  }
+
+  return TLDEqualsLiteral(aTLD, "bg") || TLDEqualsLiteral(aTLD, "by") ||
+         TLDEqualsLiteral(aTLD, "kz") || TLDEqualsLiteral(aTLD, "pyc") ||
+         TLDEqualsLiteral(aTLD, "ru") || TLDEqualsLiteral(aTLD, "su") ||
+         TLDEqualsLiteral(aTLD, "ua") || TLDEqualsLiteral(aTLD, "uz");
+}
+
 //-----------------------------------------------------------------------------
 // nsIDNService
 //-----------------------------------------------------------------------------
@@ -217,13 +270,11 @@ enum ScriptCombo : int32_t {
   FAIL = 13,
 };
 
-// Ignore - set if the label contains any character that is neither a digit nor
-// a digit lookalike (simply ignore the rest of the label).
-// Safe - set if the label contains no digit lookalike characters.
-// Block - set if the label contains a digit lookalike character, and this
-// remains unchanged if the label consists solely of non-digit and non-digit
-// lookalike characters.
-enum class DigitLookalikeStatus { Ignore, Safe, Block };
+// Ignore - set if the label contains a character that makes it
+// obvious it's not a lookalike.
+// Safe - set if the label contains no lookalike characters.
+// Block - set if the label contains lookalike characters.
+enum class LookalikeStatus { Ignore, Safe, Block };
 
 }  // namespace mozilla::net
 
@@ -244,7 +295,8 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
   char32_t previousChar = 0;
   char32_t baseChar = 0;  // last non-diacritic seen (base char for marks)
   char32_t savedNumberingSystem = 0;
-  DigitLookalikeStatus digitLookalikeStatus = DigitLookalikeStatus::Safe;
+  LookalikeStatus digitLookalikeStatus = LookalikeStatus::Safe;
+  LookalikeStatus cyrillicStatus = LookalikeStatus::Safe;
 // Simplified/Traditional Chinese check temporarily disabled -- bug 857481
 #if 0
   HanVariantType savedHanVariant = HVT_NotHan;
@@ -342,11 +394,9 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     // Ignore digit lookalikes if there is a non-digit and non-digit lookalike
     // character. If aLabel only consists of digits and digit lookalikes or
     // digit lookalikes, return false.
-    if (digitLookalikeStatus != DigitLookalikeStatus::Ignore &&
-        !ISNUMERIC(ch)) {
-      digitLookalikeStatus = isDigitLookalike(ch)
-                                 ? DigitLookalikeStatus::Block
-                                 : DigitLookalikeStatus::Ignore;
+    if (digitLookalikeStatus != LookalikeStatus::Ignore && !ISNUMERIC(ch)) {
+      digitLookalikeStatus = isDigitLookalike(ch) ? LookalikeStatus::Block
+                                                  : LookalikeStatus::Ignore;
     }
 
     // Disallow Icelandic confusables for domains outside Icelandic and Faroese
@@ -364,6 +414,13 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
     // Block single/double-quote-like characters.
     if (ch == 0x2BB || ch == 0x2BC) {
       return false;
+    }
+
+    // Check if all the cyrillic letters in the label are confusables
+    if (cyrillicStatus != LookalikeStatus::Ignore &&
+        script == Script::CYRILLIC && !isCyrillicDomain(aTLD)) {
+      cyrillicStatus = isCyrillicLatinConfusable(ch) ? LookalikeStatus::Block
+                                                     : LookalikeStatus::Ignore;
     }
 
     // Block these CJK ideographs if they are adjacent to non-CJK characters.
@@ -463,7 +520,9 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
 
     previousChar = ch;
   }
-  return digitLookalikeStatus != DigitLookalikeStatus::Block;
+  return digitLookalikeStatus != LookalikeStatus::Block &&
+         (!StaticPrefs::network_idn_punycode_cyrillic_confusables() ||
+          cyrillicStatus != LookalikeStatus::Block);
 }
 
 // Scripts that we care about in illegalScriptCombo

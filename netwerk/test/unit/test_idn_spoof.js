@@ -16,6 +16,13 @@ const kSafe = 1;
 const kUnsafe = 2;
 const kInvalid = 3;
 
+function cyrillicConfusableExpectation() {
+  if (Services.prefs.getBoolPref("network.idn.punycode_cyrillic_confusables")) {
+    return undefined;
+  }
+  return "DISABLED";
+}
+
 // prettier-ignore
 let testCases = [
   // No IDN
@@ -60,9 +67,9 @@ let testCases = [
   // Eutopia + 123 (Greek)
   ["xn---123-pldm0haj2bk.gr",     "\u03bf\u03c5\u03c4\u03bf\u03c0\u03af\u03b1-123.gr", kSafe],
   // Cyrillic (Russian)
-  ["xn--n1aeec9b.r", "\u0442\u043e\u0440\u0442\u044b.r", kSafe],
+  ["xn--n1aeec9b.ru", "\u0442\u043e\u0440\u0442\u044b.ru", kSafe],
   // Cyrillic + 123 (Russian)
-  ["xn---123-45dmmc5f.r", "\u0442\u043e\u0440\u0442\u044b-123.r", kSafe],
+  ["xn---123-45dmmc5f.ru", "\u0442\u043e\u0440\u0442\u044b-123.ru", kSafe],
   // 'president' in Russian. Is a wholescript confusable, but allowed.
   ["xn--d1abbgf6aiiy.xn--p1ai",     "\u043f\u0440\u0435\u0437\u0438\u0434\u0435\u043d\u0442.\u0440\u0444", kSafe],
   // Arabic
@@ -124,11 +131,11 @@ let testCases = [
   // google.gr with Greek omicron and epsilon
   ["xn--ggl-6xc1ca.gr", "g\u03bf\u03bfgl\u03b5.gr", kUnsafe],
   // google.ru with Cyrillic o
-  ["xn--ggl-tdd6ba.r", "g\u043e\u043egl\u0435.r", kUnsafe],
+  ["xn--ggl-tdd6ba.ru", "g\u043e\u043egl\u0435.ru", kUnsafe],
   // h<e with acute>llo<China in Han>.cn
   ["xn--hllo-bpa7979ih5m.cn", "h\u00e9llo\u4e2d\u56fd.cn", kUnsafe, "DISABLED"],
   // <Greek rho><Cyrillic a><Cyrillic u>.ru
-  ["xn--2xa6t2b.r", "\u03c1\u0430\u0443.r", kUnsafe],
+  ["xn--2xa6t2b.ru", "\u03c1\u0430\u0443.ru", kUnsafe],
   // Georgian + Latin
   ["xn--abcef-vuu.test", "abc\u10ebef.test", kUnsafe],
   // Hangul + Latin
@@ -269,14 +276,14 @@ let testCases = [
 
   // Cyrillic labels made of Latin-look-alike Cyrillic letters.
   // 1) ѕсоре.com with ѕсоре in Cyrillic.
-  ["xn--e1argc3h.com", "\u0455\u0441\u043e\u0440\u0435.com", kUnsafe, "DISABLED"],
+  ["xn--e1argc3h.com", "\u0455\u0441\u043e\u0440\u0435.com", kUnsafe, cyrillicConfusableExpectation()],
   // 2) ѕсоре123.com with ѕсоре in Cyrillic.
-  ["xn--123-qdd8bmf3n.com", "\u0455\u0441\u043e\u0440\u0435123.com", kUnsafe, "DISABLED"],
+  ["xn--123-qdd8bmf3n.com", "\u0455\u0441\u043e\u0440\u0435123.com", kUnsafe, cyrillicConfusableExpectation()],
   // 3) ѕсоре-рау.com with ѕсоре and рау in Cyrillic.
-  ["xn----8sbn9akccw8m.com",     "\u0455\u0441\u043e\u0440\u0435-\u0440\u0430\u0443.com", kUnsafe, "DISABLED"],
+  ["xn----8sbn9akccw8m.com",     "\u0455\u0441\u043e\u0440\u0435-\u0440\u0430\u0443.com", kUnsafe, cyrillicConfusableExpectation()],
   // 4) ѕсоре1рау.com with scope and pay in Cyrillic and a non-letter between
   // them.
-  ["xn--1-8sbn9akccw8m.com",     "\u0455\u0441\u043e\u0440\u0435\u0031\u0440\u0430\u0443.com", kUnsafe, "DISABLED"],
+  ["xn--1-8sbn9akccw8m.com",     "\u0455\u0441\u043e\u0440\u0435\u0031\u0440\u0430\u0443.com", kUnsafe, cyrillicConfusableExpectation()],
 
   // The same as above three, but in IDN TLD (рф).
   // 1) ѕсоре.рф with ѕсоре in Cyrillic.
@@ -291,34 +298,34 @@ let testCases = [
 
   // Same as above three, but in .ru TLD.
   // 1) ѕсоре.ru  with ѕсоре in Cyrillic.
-  ["xn--e1argc3h.r", "\u0455\u0441\u043e\u0440\u0435.r", kSafe],
+  ["xn--e1argc3h.ru", "\u0455\u0441\u043e\u0440\u0435.ru", kSafe],
   // 2) ѕсоре123.ru with ѕсоре in Cyrillic.
-  ["xn--123-qdd8bmf3n.r", "\u0455\u0441\u043e\u0440\u0435123.r", kSafe],
+  ["xn--123-qdd8bmf3n.ru", "\u0455\u0441\u043e\u0440\u0435123.ru", kSafe],
   // 3) ѕсоре-рау.ru with ѕсоре and рау in Cyrillic.
-  ["xn----8sbn9akccw8m.r",     "\u0455\u0441\u043e\u0440\u0435-\u0440\u0430\u0443.r", kSafe],
+  ["xn----8sbn9akccw8m.ru",     "\u0455\u0441\u043e\u0440\u0435-\u0440\u0430\u0443.ru", kSafe],
   // 4) ѕсоре1рау.com with scope and pay in Cyrillic and a non-letter between
   // them.
-  ["xn--1-8sbn9akccw8m.r",     "\u0455\u0441\u043e\u0440\u0435\u0031\u0440\u0430\u0443.r", kSafe],
+  ["xn--1-8sbn9akccw8m.ru",     "\u0455\u0441\u043e\u0440\u0435\u0031\u0440\u0430\u0443.ru", kSafe],
 
   // ѕсоре-рау.한국 with ѕсоре and рау in Cyrillic. The label will remain
   // punycode while the TLD will be decoded.
-  ["xn----8sbn9akccw8m.xn--3e0b707e", "xn----8sbn9akccw8m.\ud55c\uad6d", kSafe, "DISABLED"],
+  ["xn----8sbn9akccw8m.xn--3e0b707e", "xn----8sbn9akccw8m.\ud55c\uad6d", kSafe, cyrillicConfusableExpectation()],
 
   // музей (museum in Russian) has characters without a Latin-look-alike.
   ["xn--e1adhj9a.com", "\u043c\u0443\u0437\u0435\u0439.com", kSafe],
 
   // ѕсоԗе.com is Cyrillic with Latin lookalikes.
-  ["xn--e1ari3f61c.com", "\u0455\u0441\u043e\u0517\u0435.com", kUnsafe, "DISABLED"],
+  ["xn--e1ari3f61c.com", "\u0455\u0441\u043e\u0517\u0435.com", kUnsafe, cyrillicConfusableExpectation()],
 
   // ыоԍ.com is Cyrillic with Latin lookalikes.
   ["xn--n1az74c.com", "\u044b\u043e\u050d.com", kUnsafe],
 
   // сю.com is Cyrillic with Latin lookalikes.
-  ["xn--q1a0a.com", "\u0441\u044e.com", kUnsafe, "DISABLED"],
+  ["xn--q1a0a.com", "\u0441\u044e.com", kUnsafe, cyrillicConfusableExpectation()],
 
   // Regression test for lowercase letters in whole script confusable
   // lookalike character lists.
-  ["xn--80a8a6a.com", "\u0430\u044c\u0441.com", kUnsafe, "DISABLED"],
+  ["xn--80a8a6a.com", "\u0430\u044c\u0441.com", kUnsafe, cyrillicConfusableExpectation()],
 
   // googlе.한국 where е is Cyrillic. This tests the generic case when one
   // label is not allowed but  other labels in the domain name are still
@@ -362,7 +369,7 @@ let testCases = [
 
   // 'islkpx123.com' is in the test domain list.
   // 'іѕӏкрх123' can look like 'islkpx123' in some fonts.
-  ["xn--123-bed4a4a6hh40i.com",     "\u0456\u0455\u04cf\u043a\u0440\u0445123.com", kUnsafe, "DISABLED"],
+  ["xn--123-bed4a4a6hh40i.com",     "\u0456\u0455\u04cf\u043a\u0440\u0445123.com", kUnsafe, cyrillicConfusableExpectation()],
 
   // 'o2.com', '28.com', '39.com', '43.com', '89.com', 'oo.com' and 'qq.com'
   // are all explicitly added to the test domain list to aid testing of
@@ -1030,7 +1037,7 @@ add_task(async function test_chrome_spoofs() {
     // If test[3] is set to a platform, the test is expected to pass only on that platform
     let expectedFail =
       test.length == 4 &&
-      (test[3] == "DISABLED" || test[3] != AppConstants.platform);
+      (test[3] == "DISABLED" || (test[3] && test[3] != AppConstants.platform));
     if (test[2] == kSafe) {
       checkEquals(
         result,

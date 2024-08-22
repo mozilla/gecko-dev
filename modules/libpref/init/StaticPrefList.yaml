@@ -13511,6 +13511,14 @@
   value: true
   mirror: always
 
+# When true, if all the cyrillic characters in a label
+# are latin confusables and on a non-cyrillic domain
+# the label will be displayed as punycode.
+- name: network.idn.punycode_cyrillic_confusables
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Force remapping of remote port numbers to allow reaching local testing
 # servers or port forwarders listening on non-standard ports.  Note that
 # this is not changing the origin URL in the addressbar, only internally
