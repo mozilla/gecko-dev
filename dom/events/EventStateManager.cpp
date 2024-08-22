@@ -2426,18 +2426,22 @@ void EventStateManager::StopTrackingDragGesture(bool aClearInChildProcesses) {
   // parent starts the actual drag, the content process will think a drag is
   // still happening. Inform any child processes with active drags that the drag
   // should be stopped.
-  if (aClearInChildProcesses) {
-    nsCOMPtr<nsIDragService> dragService =
-        do_GetService("@mozilla.org/widget/dragservice;1");
-    if (dragService) {
-      RefPtr<nsIDragSession> dragSession =
-          dragService->GetCurrentSession(mPresContext->GetRootWidget());
-      if (!dragSession) {
-        // Only notify if there isn't a drag session active.
-        dragService->RemoveAllBrowsers();
-      }
-    }
+  if (!aClearInChildProcesses || !XRE_IsParentProcess()) {
+    return;
   }
+
+  // Only notify if there is NOT a drag session active in the parent.
+  RefPtr<nsIDragSession> dragSession =
+      nsContentUtils::GetDragSession(mPresContext);
+  if (dragSession) {
+    return;
+  }
+  nsCOMPtr<nsIDragService> dragService =
+      do_GetService("@mozilla.org/widget/dragservice;1");
+  if (!dragService) {
+    return;
+  }
+  dragService->RemoveAllBrowsers();
 }
 
 void EventStateManager::FillInEventFromGestureDown(WidgetMouseEvent* aEvent) {

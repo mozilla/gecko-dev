@@ -6376,7 +6376,12 @@ already_AddRefed<nsIDragSession> nsContentUtils::GetDragSession(
 /* static */
 already_AddRefed<nsIDragSession> nsContentUtils::GetDragSession(
     nsPresContext* aPC) {
-  return GetDragSession(aPC->GetRootWidget());
+  NS_ENSURE_TRUE(aPC, nullptr);
+  auto* widget = aPC->GetRootWidget();
+  if (!widget) {
+    return nullptr;
+  }
+  return GetDragSession(widget);
 }
 
 /* static */
