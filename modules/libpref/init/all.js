@@ -331,8 +331,7 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   pref("media.peerconnection.dtls.version.min", 771);
   pref("media.peerconnection.dtls.version.max", 772);
 
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-  // Nightly only due to bug 1908539
+#if defined(XP_MACOSX)
   pref("media.getusermedia.audio.processing.platform.enabled", true);
 #else
   pref("media.getusermedia.audio.processing.platform.enabled", false);
