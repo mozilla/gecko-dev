@@ -68,8 +68,6 @@ void ProxyCreated(RemoteAccessible* aProxy) {
     type = [MOXWebAreaAccessible class];
   } else if (aProxy->IsOuterDoc()) {
     type = [MOXOuterDoc class];
-  } else if (aProxy->IsTextField()) {
-    type = [mozTextAccessible class];
   } else {
     type = GetTypeFromRole(aProxy->Role());
   }
