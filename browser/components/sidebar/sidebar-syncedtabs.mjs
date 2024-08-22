@@ -172,7 +172,6 @@ class SyncedTabsInSidebar extends SidebarPage {
     const messageCard = this.controller.getMessageCard();
     return html`
       ${this.stylesheet()}
-      <link rel="stylesheet" href="chrome://browser/content/sidebar/sidebar-syncedtabs.css"></link>
       <div class="sidebar-panel">
         <sidebar-panel-header
           data-l10n-id="sidebar-menu-syncedtabs-header"
