@@ -39,15 +39,25 @@
   });
 
   add_task(async function test_search_autofocus() {
-    const container = document.querySelector("#focus-test");
-    const component = document.createElement('fxview-search-textbox');
-    component.setAttribute('autofocus', 'autofocus');
-    container.appendChild(component);
+    const container = document.querySelector('#focus-test');
+    const componentWithAutofocus = document.createElement('fxview-search-textbox');
+    componentWithAutofocus.toggleAttribute('autofocus', true);
+    container.appendChild(componentWithAutofocus);
+    await componentWithAutofocus.updateCompleted;
 
+    isnot(componentWithAutofocus.input, null, 'component input should not be null');
+    is(componentWithAutofocus.shadowRoot.activeElement, componentWithAutofocus.input, 'Search input has focus');
+
+    container.removeChild(componentWithAutofocus);
+
+    const component = document.createElement('fxview-search-textbox');
+    container.appendChild(component);
     await component.updateCompleted;
 
     isnot(component.input, null, 'component input should not be null');
-    is(component.shadowRoot.activeElement, component.input, 'Search input has focus');
+    isnot(component.shadowRoot.activeElement, component.input, 'Search input does not have focus');
+
+    container.removeChild(component);
   });
 </script>
 </body>
