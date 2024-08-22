@@ -1321,6 +1321,13 @@ richlistitem .text-link:hover {
   }
 }
 
+.qr-code-box-image-wrapper {
+  position: relative;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+}
+
 .qr-code-box-image {
   border-radius: 4px;
   padding: 2px;
@@ -1328,6 +1335,11 @@ richlistitem .text-link:hover {
   flex: 0 0 auto;
   -moz-context-properties: fill;
   fill: currentColor;
+}
+
+.qr-code-box-logo {
+  height: 18px;
+  position: absolute;
 }
 
 .qr-code-title-label {
