@@ -58,7 +58,8 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
                     bool aIsDynamicImport, ModuleLoaderBase* aLoader,
                     VisitedURLSet* aVisitedSet, ModuleLoadRequest* aRootModule);
 
-  static VisitedURLSet* NewVisitedSetForTopLevelImport(nsIURI* aURI);
+  static VisitedURLSet* NewVisitedSetForTopLevelImport(
+      nsIURI* aURI, JS::ModuleType aModuleType);
 
   bool IsTopLevel() const override { return mIsTopLevel; }
 

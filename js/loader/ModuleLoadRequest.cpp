@@ -50,9 +50,10 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(ModuleLoadRequest,
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 /* static */
-VisitedURLSet* ModuleLoadRequest::NewVisitedSetForTopLevelImport(nsIURI* aURI) {
+VisitedURLSet* ModuleLoadRequest::NewVisitedSetForTopLevelImport(
+    nsIURI* aURI, JS::ModuleType aModuleType) {
   auto set = new VisitedURLSet();
-  set->PutEntry(ModuleMapKey(aURI, ModuleType::JavaScript));
+  set->PutEntry(ModuleMapKey(aURI, aModuleType));
   return set;
 }
 
