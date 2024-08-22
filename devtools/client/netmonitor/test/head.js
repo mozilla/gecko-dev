@@ -334,14 +334,6 @@ function initNetMonitor(
   }
 
   return (async function () {
-    await SpecialPowers.pushPrefEnv({
-      set: [
-        // Capture all stacks so that the timing of devtools opening
-        // doesn't affect the stack trace results.
-        ["javascript.options.asyncstack_capture_debuggee_only", false],
-      ],
-    });
-
     let tab = null;
     let privateWindow = null;
 

@@ -16,7 +16,6 @@ support-files = [
   "!/accessible/tests/mochitest/moz.png",
 ]
 prefs = [
-  "javascript.options.asyncstack_capture_debuggee_only=false",
   "dom.element.popover.enabled=true",
   "accessibility.ARIAElementReflection.enabled=true"
 ]

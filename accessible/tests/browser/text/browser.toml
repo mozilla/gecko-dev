@@ -7,7 +7,6 @@ support-files = [
 ]
 prefs = [
   "dom.text_fragments.enabled=true",
-  "javascript.options.asyncstack_capture_debuggee_only=false",
 ]
 
 ["browser_editabletext.js"]
