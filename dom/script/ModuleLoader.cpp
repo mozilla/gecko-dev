@@ -10,6 +10,7 @@
 #include "jsapi.h"
 #include "js/CompileOptions.h"  // JS::CompileOptions, JS::InstantiateOptions
 #include "js/ContextOptions.h"  // JS::ContextOptionsRef
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/MemoryFunctions.h"
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
@@ -197,6 +198,28 @@ nsresult ModuleLoader::CompileFetchedModule(
     ScriptLoader::CalculateBytecodeCacheFlag(aRequest);
   }
 
+  if (!nsJSUtils::IsScriptable(aGlobal)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  switch (aRequest->mModuleType) {
+    case JS::ModuleType::Unknown:
+      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+                                JSMSG_BAD_MODULE_TYPE);
+      return NS_ERROR_FAILURE;
+    case JS::ModuleType::JavaScript:
+      return CompileJavaScriptModule(aCx, aOptions, aRequest, aModuleOut);
+    case JS::ModuleType::JSON: {
+      return CompileJsonModule(aCx, aOptions, aRequest, aModuleOut);
+    }
+  }
+
+  MOZ_CRASH("Unhandled module type");
+}
+
+nsresult ModuleLoader::CompileJavaScriptModule(
+    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+    JS::MutableHandle<JSObject*> aModuleOut) {
   if (aRequest->GetScriptLoadContext()->mWasCompiledOMT) {
     JS::InstantiationStorage storage;
     RefPtr<JS::Stencil> stencil =
@@ -223,10 +246,6 @@ nsresult ModuleLoader::CompileFetchedModule(
     }
 
     return NS_OK;
-  }
-
-  if (!nsJSUtils::IsScriptable(aGlobal)) {
-    return NS_ERROR_FAILURE;
   }
 
   RefPtr<JS::Stencil> stencil;
@@ -274,6 +293,30 @@ nsresult ModuleLoader::CompileFetchedModule(
     MOZ_ASSERT(!alreadyStarted);
   }
 
+  return NS_OK;
+}
+
+nsresult ModuleLoader::CompileJsonModule(
+    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+    JS::MutableHandle<JSObject*> aModuleOut) {
+  MOZ_ASSERT(!aRequest->GetScriptLoadContext()->mWasCompiledOMT);
+
+  MOZ_ASSERT(aRequest->IsTextSource());
+  ModuleLoader::MaybeSourceText maybeSource;
+  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
+                                          aRequest->mLoadContext.get());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  auto compile = [&](auto& source) {
+    return JS::CompileJsonModule(aCx, aOptions, source);
+  };
+
+  auto* jsonModule = maybeSource.mapNonEmpty(compile);
+  if (!jsonModule) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aModuleOut.set(jsonModule);
   return NS_OK;
 }
 

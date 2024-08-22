@@ -84,6 +84,14 @@ class ModuleLoader final : public JS::loader::ModuleLoaderBase {
   void ExecuteInlineModule(ModuleLoadRequest* aRequest);
 
  private:
+  nsresult CompileJavaScriptModule(JSContext* aCx, JS::CompileOptions& aOptions,
+                                   ModuleLoadRequest* aRequest,
+                                   JS::MutableHandle<JSObject*> aModuleOut);
+  nsresult CompileJsonModule(JSContext* aCx, JS::CompileOptions& aOptions,
+                             ModuleLoadRequest* aRequest,
+                             JS::MutableHandle<JSObject*> aModuleOut);
+
+ private:
   const Kind mKind;
 };
 
