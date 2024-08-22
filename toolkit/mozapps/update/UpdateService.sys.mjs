@@ -2522,6 +2522,7 @@ class Update {
     update.setAttribute("channel", this.channel);
     update.setAttribute("detailsURL", this.detailsURL);
     update.setAttribute("displayVersion", this.displayVersion);
+    update.setAttribute("platformVersion", this.platformVersion);
     update.setAttribute("installDate", this.installDate);
     update.setAttribute("isCompleteUpdate", this.isCompleteUpdate);
     update.setAttribute("name", this.name);
