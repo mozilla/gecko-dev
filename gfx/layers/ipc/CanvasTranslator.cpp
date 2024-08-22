@@ -296,7 +296,7 @@ bool CanvasTranslator::AddBuffer(ipc::SharedMemory::Handle&& aBufferHandle,
   CheckAndSignalWriter();
 
   // Default sized buffers will have been queued for recycling.
-  if (mCurrentShmem.Size() == mDefaultBufferSize) {
+  if (mCurrentShmem.IsValid() && mCurrentShmem.Size() == mDefaultBufferSize) {
     mCanvasShmems.emplace(std::move(mCurrentShmem));
   }
 
