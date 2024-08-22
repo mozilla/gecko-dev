@@ -207,19 +207,20 @@ if __name__ == "__main__":
             get_crashreports(profilePath, name="Profiling run")
             sys.exit(ret)
 
-        should_err = False
-        print("Verify log for LLVM Profile Error")
-        for n in range(1, 2):
-            log = os.path.join(env["UPLOAD_PATH"], f"profile-run-{n}.log")
-            with open(log) as f:
-                for line in f.readlines():
-                    if "LLVM Profile Error" in line:
-                        print("Error [{}]: '{}'".format(log, line.strip()))
-                        should_err = True
+        if "UPLOAD_PATH" in env:
+            should_err = False
+            print("Verify log for LLVM Profile Error")
+            for n in range(1, 2):
+                log = os.path.join(env["UPLOAD_PATH"], f"profile-run-{n}.log")
+                with open(log) as f:
+                    for line in f.readlines():
+                        if "LLVM Profile Error" in line:
+                            print("Error [{}]: '{}'".format(log, line.strip()))
+                            should_err = True
 
-        if should_err:
-            print("Found some LLVM Profile Error in logs, see above.")
-            sys.exit(1)
+            if should_err:
+                print("Found some LLVM Profile Error in logs, see above.")
+                sys.exit(1)
 
         # Try to move the crash reports to the artifacts even if Firefox appears
         # to exit successfully, in case there's a crash that doesn't set the
