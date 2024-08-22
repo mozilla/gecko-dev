@@ -2452,7 +2452,7 @@
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
     "alert_emails": ["seceng-telemetry@mozilla.com"],
-    "expires_in_version": "132",
+    "expires_in_version": "138",
     "keyed": true,
     "keys": ["known_text", "unknown"],
     "kind": "enumerated",
