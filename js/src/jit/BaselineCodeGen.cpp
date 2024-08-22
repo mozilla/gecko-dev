@@ -4890,9 +4890,9 @@ bool BaselineCodeGen<Handler>::emit_AddDisposable() {
   Register hint = regs.takeAny();
 
   masm.loadBaselineFramePtr(FramePointer, baselineFrame);
-  masm.loadValue(frame.addressOfStackValue(-1), needsClosure);
-  masm.loadValue(frame.addressOfStackValue(-2), method);
-  masm.loadValue(frame.addressOfStackValue(-3), value);
+  masm.loadValue(frame.addressOfStackValue(-1), ValueOperand(needsClosure));
+  masm.loadValue(frame.addressOfStackValue(-2), ValueOperand(method));
+  masm.loadValue(frame.addressOfStackValue(-3), ValueOperand(value));
 
   pushUint8BytecodeOperandArg(hint);
   pushArg(needsClosure);
