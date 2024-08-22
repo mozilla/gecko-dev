@@ -191,6 +191,7 @@ exports.ANIMATION_TYPE_FOR_LONGHANDS = [
       "-moz-user-modify",
       "user-select",
       "vector-effect",
+      "view-transition-name",
       "visibility",
       "white-space-collapse",
       "will-change",

@@ -1740,6 +1740,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
   uint32_t mViewTimelineInsetCount;
 
   mozilla::StyleFieldSizing mFieldSizing;
+
+  mozilla::StyleViewTransitionName mViewTransitionName;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUI {

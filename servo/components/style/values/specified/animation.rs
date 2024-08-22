@@ -664,3 +664,67 @@ impl Parse for ViewTimelineInset {
         Ok(Self { start, end })
     }
 }
+
+/// The view-transition-name: `none | <custom-ident>`.
+///
+/// https://drafts.csswg.org/css-view-transitions-1/#view-transition-name-prop
+///
+/// We use a single atom for this. Empty atom represents `none`.
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    PartialEq,
+    MallocSizeOf,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct ViewTransitionName(Atom);
+
+impl ViewTransitionName {
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        Self(atom!(""))
+    }
+
+    /// Returns whether this is the special `none` value.
+    pub fn is_none(&self) -> bool {
+        self.0 == atom!("")
+    }
+}
+
+impl Parse for ViewTransitionName {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        if ident.eq_ignore_ascii_case("none") {
+            return Ok(Self::none());
+        }
+
+        // We check none already, so don't need to exclude none here.
+        // Note: The values none and auto are excluded from <custom-ident> here.
+        Ok(Self(CustomIdent::from_ident(location, ident, &["auto"])?.0))
+    }
+}
+
+impl ToCss for ViewTransitionName {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use crate::values::serialize_atom_identifier;
+
+        if self.is_none() {
+            return dest.write_str("none");
+        }
+
+        serialize_atom_identifier(&self.0, dest)
+    }
+}

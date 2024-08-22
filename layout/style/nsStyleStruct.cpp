@@ -3161,7 +3161,8 @@ nsStyleUIReset::nsStyleUIReset(const nsStyleUIReset& aSource)
       mViewTimelineNameCount(aSource.mViewTimelineNameCount),
       mViewTimelineAxisCount(aSource.mViewTimelineAxisCount),
       mViewTimelineInsetCount(aSource.mViewTimelineInsetCount),
-      mFieldSizing(aSource.mFieldSizing) {
+      mFieldSizing(aSource.mFieldSizing),
+      mViewTransitionName(aSource.mViewTransitionName) {
   MOZ_COUNT_CTOR(nsStyleUIReset);
 }
 
@@ -3196,6 +3197,10 @@ nsChangeHint nsStyleUIReset::CalcDifference(
 
   if (mWindowDragging != aNewData.mWindowDragging) {
     hint |= nsChangeHint_SchedulePaint;
+  }
+
+  if (mViewTransitionName != aNewData.mViewTransitionName) {
+    hint |= nsChangeHint_NeutralChange;
   }
 
   if (!hint &&

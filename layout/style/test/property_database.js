@@ -14306,6 +14306,32 @@ if (IsCSSPropertyPrefEnabled("layout.css.field-sizing.enabled")) {
   });
 }
 
+if (IsCSSPropertyPrefEnabled("dom.viewTransitions.enabled")) {
+  Object.assign(gCSSProperties, {
+    "view-transition-name": {
+      domProp: "viewTransitionName",
+      inherited: false,
+      type: CSS_TYPE_LONGHAND,
+      initial_values: ["none"],
+      other_values: [
+        "all",
+        "ball",
+        "mall",
+        "color",
+        "foobar",
+        "\\32bounce",
+        "-bounce",
+        "-\\32bounce",
+        "\\32 0bounce",
+        "-\\32 0bounce",
+        "\\2bounce",
+        "-\\2bounce",
+      ],
+      invalid_values: ["auto", "abc --bounce", "10px", "rgb(1, 2, 3)"],
+    },
+  });
+}
+
 // Copy aliased properties' fields from their alias targets. Keep this logic
 // at the bottom of this file to ensure all the aliased properties are
 // processed.

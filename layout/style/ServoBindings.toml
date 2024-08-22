@@ -425,6 +425,7 @@ cbindgen-types = [
     { gecko = "StyleTimelineName", servo = "crate::values::computed::TimelineName" },
     { gecko = "StyleScrollAxis", servo = "crate::values::computed::ScrollAxis" },
     { gecko = "StyleViewTimelineInset", servo = "crate::values::computed::ViewTimelineInset" },
+    { gecko = "StyleViewTransitionName", servo = "crate::values::computed::ViewTransitionName" },
     { gecko = "StyleResize", servo = "crate::values::computed::Resize" },
     { gecko = "StyleOverflowClipBox", servo = "crate::values::computed::OverflowClipBox" },
     { gecko = "StyleFloat", servo = "crate::values::computed::Float" },

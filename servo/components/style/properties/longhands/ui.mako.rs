@@ -438,3 +438,14 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-ui/#field-sizing",
     affects="layout",
 )}
+
+${helpers.predefined_type(
+    "view-transition-name",
+    "ViewTransitionName",
+    "computed::ViewTransitionName::none()",
+    engines="gecko",
+    animation_type="discrete",
+    gecko_pref="dom.viewTransitions.enabled",
+    spec="https://drafts.csswg.org/css-view-transitions-1/#view-transition-name-prop",
+    affects="",
+)}
