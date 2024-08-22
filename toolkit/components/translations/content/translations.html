@@ -22,22 +22,21 @@
     <main class="about-translations-contents">
 
       <header class="about-translations-header">
-        <div class="about-translations-header-start">
-          <select
-            class="about-translations-select"
-            id="language-from"
-            disabled>
-            <option data-l10n-id="about-translations-detect" value="detect"></option>
-          </select>
-        </div>
-        <div class="about-translations-header-end">
-          <select
-            class="about-translations-select"
-            id="language-to"
-            disabled>
-            <option data-l10n-id="about-translations-select" value=""></option>
-          </select>
-        </div>
+        <select
+          class="about-translations-select"
+          id="language-from"
+          disabled>
+          <option data-l10n-id="about-translations-detect" value="detect"></option>
+        </select>
+        <button id="language-swap" data-l10n-id="about-translations-swap-languages" disabled>
+          <div class="language-swap-icon"></div>
+        </button>
+        <select
+          class="about-translations-select"
+          id="language-to"
+          disabled>
+          <option data-l10n-id="about-translations-select" value=""></option>
+        </select>
       </header>
 
       <main class="about-translations-input">
