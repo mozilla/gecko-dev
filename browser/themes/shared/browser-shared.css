@@ -489,8 +489,7 @@ toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
 
   .newTabBrowserPanel,
   #sidebar-main,
-  #sidebar-box,
-  .sidebar-animation-screenshot {
+  #sidebar-box {
     /* Make room for the bookmarks toolbar so that it won't visibly overlap the
        new tab page and sidebar contents. We do not put this padding on #browser
        as that would resize the content area for all tabs including background
