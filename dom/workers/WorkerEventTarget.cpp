@@ -67,6 +67,21 @@ class WrappedControlRunnable final : public WorkerControlRunnable {
     // Cancel() being called.
     return cr->Cancel();
   }
+
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+  NS_IMETHOD GetName(nsACString& aName) override {
+    aName.AssignLiteral("WrappedControlRunnable(");
+    if (nsCOMPtr<nsINamed> named = do_QueryInterface(mInner)) {
+      nsAutoCString containedName;
+      named->GetName(containedName);
+      aName.Append(containedName);
+    } else {
+      aName.AppendLiteral("?");
+    }
+    aName.AppendLiteral(")");
+    return NS_OK;
+  }
+#endif
 };
 
 }  // anonymous namespace

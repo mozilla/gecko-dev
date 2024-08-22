@@ -237,6 +237,21 @@ class ExternalRunnableWrapper final : public WorkerThreadRunnable {
     mWrappedRunnable = nullptr;
     return NS_OK;
   }
+
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+  NS_IMETHOD GetName(nsACString& aName) override {
+    aName.AssignLiteral("ExternalRunnableWrapper(");
+    if (nsCOMPtr<nsINamed> named = do_QueryInterface(mWrappedRunnable)) {
+      nsAutoCString containedName;
+      named->GetName(containedName);
+      aName.Append(containedName);
+    } else {
+      aName.AppendLiteral("?");
+    }
+    aName.AppendLiteral(")");
+    return NS_OK;
+  }
+#endif
 };
 
 struct WindowAction {
