@@ -416,7 +416,7 @@ void ShadowRoot::RuleChanged(StyleSheet& aSheet, css::Rule*,
   ApplicableRulesChanged();
 }
 
-void ShadowRoot::ImportRuleLoaded(CSSImportRule&, StyleSheet& aSheet) {
+void ShadowRoot::ImportRuleLoaded(StyleSheet& aSheet) {
   if (mStyleRuleMap) {
     mStyleRuleMap->SheetAdded(aSheet);
   }
