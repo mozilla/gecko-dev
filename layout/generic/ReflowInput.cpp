@@ -208,7 +208,6 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
   }
 
   {
-    using mozilla::LayoutFrameType;
     switch (mFrame->Type()) {
       case LayoutFrameType::PageContent:
         // PageContent requires paginated reflow.
@@ -374,7 +373,7 @@ void ReflowInput::Init(nsPresContext* aPresContext,
   InitCBReflowInput();
 
   LayoutFrameType type = mFrame->Type();
-  if (type == mozilla::LayoutFrameType::Placeholder) {
+  if (type == LayoutFrameType::Placeholder) {
     // Placeholders have a no-op Reflow method that doesn't need the rest of
     // this initialization, so we bail out early.
     mComputedSize.SizeTo(mWritingMode, 0, 0);
@@ -1030,9 +1029,9 @@ void ReflowInput::ComputeAbsPosBlockAutoMargin(nscoord aAvailMarginSpace,
 }
 
 void ReflowInput::ApplyRelativePositioning(
-    nsIFrame* aFrame, mozilla::WritingMode aWritingMode,
-    const mozilla::LogicalMargin& aComputedOffsets,
-    mozilla::LogicalPoint* aPosition, const nsSize& aContainerSize) {
+    nsIFrame* aFrame, WritingMode aWritingMode,
+    const LogicalMargin& aComputedOffsets, LogicalPoint* aPosition,
+    const nsSize& aContainerSize) {
   // Subtract the size of the frame from the container size that we
   // use for converting between the logical and physical origins of
   // the frame. This accounts for the fact that logical origins in RTL
@@ -1043,8 +1042,7 @@ void ReflowInput::ApplyRelativePositioning(
       aPosition->GetPhysicalPoint(aWritingMode, aContainerSize - frameSize);
   ApplyRelativePositioning(
       aFrame, aComputedOffsets.GetPhysicalMargin(aWritingMode), &pos);
-  *aPosition =
-      mozilla::LogicalPoint(aWritingMode, pos, aContainerSize - frameSize);
+  *aPosition = LogicalPoint(aWritingMode, pos, aContainerSize - frameSize);
 }
 
 nsIFrame* ReflowInput::GetHypotheticalBoxContainer(nsIFrame* aFrame,
@@ -1107,10 +1105,8 @@ void ReflowInput::CalculateBorderPaddingMargin(
     LogicalAxis aAxis, nscoord aContainingBlockSize, nscoord* aInsideBoxSizing,
     nscoord* aOutsideBoxSizing) const {
   WritingMode wm = GetWritingMode();
-  mozilla::Side startSide =
-      wm.PhysicalSide(MakeLogicalSide(aAxis, LogicalEdge::Start));
-  mozilla::Side endSide =
-      wm.PhysicalSide(MakeLogicalSide(aAxis, LogicalEdge::End));
+  Side startSide = wm.PhysicalSide(MakeLogicalSide(aAxis, LogicalEdge::Start));
+  Side endSide = wm.PhysicalSide(MakeLogicalSide(aAxis, LogicalEdge::End));
 
   nsMargin styleBorder = mStyleBorder->GetComputedBorder();
   nscoord borderStartEnd =
@@ -2858,7 +2854,7 @@ nscoord ReflowInput::CalcLineHeightForCanvas(const StyleLineHeight& aLh,
                                              nsAtom* aLanguage,
                                              bool aExplicitLanguage,
                                              nsPresContext* aPresContext,
-                                             mozilla::WritingMode aWM) {
+                                             WritingMode aWM) {
   return ComputeLineHeight(aLh, aRelativeToFont, aLanguage, aExplicitLanguage,
                            aPresContext, aWM.IsVertical() && !aWM.IsSideways(),
                            NS_UNCONSTRAINEDSIZE, 1.0f);
