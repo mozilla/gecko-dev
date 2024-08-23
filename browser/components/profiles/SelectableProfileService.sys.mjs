@@ -403,6 +403,8 @@ class SelectableProfileServiceClass {
    *
    * @param {object} profile An object that contains a path, name, themeL10nId,
    *                 themeFg, and themeBg for creating a new profile.
+   * @returns {SelectableProfile}
+   *   The newly created profile object.
    */
   async createProfile(profile) {
     let profilePath = await this.createProfileDirs(profile.name);
@@ -506,6 +508,9 @@ class SelectableProfileServiceClass {
 
   /**
    * Get the complete list of profiles in the group.
+   *
+   * @returns {SelectableProfile[]}
+   *   An array of profiles in the group.
    */
   async getProfiles() {
     return (
@@ -519,6 +524,8 @@ class SelectableProfileServiceClass {
    * Get a specific profile by its internal ID.
    *
    * @param {number} aProfileID The internal id of the profile
+   * @returns {SelectableProfile}
+   *   The specific profile.
    */
   async getProfile(aProfileID) {
     let row = (
@@ -534,6 +541,8 @@ class SelectableProfileServiceClass {
    * Get a specific profile by its name.
    *
    * @param {string} aProfileNanme The name of the profile
+   * @returns {SelectableProfile}
+   *   The specific profile.
    */
   async getProfileByName(aProfileNanme) {
     let row = (
@@ -552,6 +561,7 @@ class SelectableProfileServiceClass {
    * Get a specific profile by its absolute path.
    *
    * @param {nsIFile} aProfilePath The path of the profile
+   * @returns {SelectableProfile|null}
    */
   async getProfileByPath(aProfilePath) {
     let relativePath = this.getRelativeProfilePath(aProfilePath);
@@ -580,6 +590,8 @@ class SelectableProfileServiceClass {
 
   /**
    * Get all shared prefs as a list.
+   *
+   * @returns {{name: string, value: *, type: string}}
    */
   async getAllPrefs() {
     return (

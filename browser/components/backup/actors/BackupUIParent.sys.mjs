@@ -78,6 +78,12 @@ export class BackupUIParent extends JSWindowActorParent {
    *
    * @param {ReceiveMessageArgument} message
    *   The message received from the BackupUIChild.
+   * @returns {
+   *   null |
+   *   {success: boolean, errorCode: number} |
+   *   {path: string, fileName: string, iconURL: string?}
+   * }
+   *   Returns either a success object, a file details object, or null.
    */
   async receiveMessage(message) {
     if (message.name == "RequestState") {
