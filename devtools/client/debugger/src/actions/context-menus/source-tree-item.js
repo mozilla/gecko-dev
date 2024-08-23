@@ -5,7 +5,6 @@
 import { showMenu } from "../../context-menu/menu";
 
 import {
-  isSourceOverridden,
   isSourceMapIgnoreListEnabled,
   isSourceOnSourceMapIgnoreList,
   getProjectDirectoryRoot,
@@ -13,7 +12,11 @@ import {
   getBlackBoxRanges,
 } from "../../selectors/index";
 
-import { setOverrideSource, removeOverrideSource } from "../sources/index";
+import {
+  setNetworkOverride,
+  removeNetworkOverride,
+} from "devtools/client/framework/actions/index";
+
 import { loadSourceText } from "../sources/loadSourceText";
 import { toggleBlackBox, blackBoxSources } from "../sources/blackbox";
 import {
@@ -38,9 +41,10 @@ export function showSourceTreeItemContextMenu(
   item,
   depth,
   setExpanded,
-  itemName
+  itemName,
+  isOverridden
 ) {
-  return async ({ dispatch, getState }) => {
+  return async ({ dispatch, getState, panel }) => {
     const copySourceUri2Label = L10N.getStr("copySourceUri2");
     const copySourceUri2Key = L10N.getStr("copySourceUri2.accesskey");
     const setDirectoryRootLabel = L10N.getStr("setDirectoryRoot.label");
@@ -50,7 +54,6 @@ export function showSourceTreeItemContextMenu(
     const menuOptions = [];
 
     const state = getState();
-    const isOverridden = isSourceOverridden(state, item.source);
     const isSourceOnIgnoreList =
       isSourceMapIgnoreListEnabled(state) &&
       isSourceOnSourceMapIgnoreList(state, item.source);
@@ -87,8 +90,9 @@ export function showSourceTreeItemContextMenu(
         id: "node-menu-overrides",
         label: L10N.getStr(`overridesContextItem.${overrideStr}`),
         accesskey: L10N.getStr(`overridesContextItem.${overrideStr}.accesskey`),
-        disabled: !!source.isHTML,
-        click: () => handleLocalOverride(dispatch, source, isOverridden),
+        disabled: false,
+        click: () =>
+          handleLocalOverride(dispatch, panel.toolbox, source, isOverridden),
       };
 
       menuOptions.push(
@@ -140,14 +144,26 @@ async function saveLocalFile(dispatch, source) {
   return saveAsLocalFile(data.value, source.displayURL.filename);
 }
 
-async function handleLocalOverride(dispatch, source, isOverridden) {
+async function handleLocalOverride(dispatch, toolbox, source, isOverridden) {
+  if (!source || !source.url) {
+    return;
+  }
+
+  const toolboxStore = toolbox.store;
   if (!isOverridden) {
-    const localPath = await saveLocalFile(dispatch, source);
-    if (localPath) {
-      dispatch(setOverrideSource(source, localPath));
+    const data = await dispatch(loadSourceText(source));
+    if (data?.value && data.value.type == "text") {
+      toolboxStore.dispatch(
+        setNetworkOverride(
+          toolbox.commands,
+          source.url,
+          data.value.value,
+          window
+        )
+      );
     }
   } else {
-    dispatch(removeOverrideSource(source));
+    toolboxStore.dispatch(removeNetworkOverride(toolbox.commands, source.url));
   }
 }
 

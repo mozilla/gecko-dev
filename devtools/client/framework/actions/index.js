@@ -5,4 +5,5 @@
 
 module.exports = {
   ...require("resource://devtools/client/framework/actions/dom-mutation-breakpoints.js"),
+  ...require("resource://devtools/client/framework/actions/network-overrides.js"),
 };

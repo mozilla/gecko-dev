@@ -5,6 +5,7 @@
 DevToolsModules(
     "dom-mutation-breakpoints.js",
     "index.js",
+    "network-overrides.js",
 )
 
 with Files("**"):

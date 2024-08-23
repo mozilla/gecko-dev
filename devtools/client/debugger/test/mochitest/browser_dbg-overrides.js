@@ -110,7 +110,7 @@ add_task(async function () {
   await onReloaded;
 
   info("Remove override and test");
-  const removed = waitForDispatch(dbg.store, "REMOVE_OVERRIDE");
+  const removed = waitForDispatch(dbg.toolbox.store, "REMOVE_NETWORK_OVERRIDE");
   await triggerSourceTreeContextMenu(
     dbg,
     findSourceNodeWithText(dbg, "test.js"),

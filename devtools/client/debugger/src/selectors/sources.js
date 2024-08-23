@@ -360,11 +360,11 @@ export const getSelectedBreakableLines = createSelector(
   breakableLines => new Set(breakableLines || [])
 );
 
-export function isSourceOverridden(state, source) {
+export function isSourceOverridden(toolboxState, source) {
   if (!source || !source.url) {
     return false;
   }
-  return state.sources.mutableOverrideSources.has(source.url);
+  return !!toolboxState.networkOverrides.mutableOverrides[source.url];
 }
 
 /**

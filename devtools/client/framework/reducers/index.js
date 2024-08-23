@@ -7,4 +7,7 @@ module.exports = {
   domMutationBreakpoints:
     require("resource://devtools/client/framework/reducers/dom-mutation-breakpoints.js")
       .reducer,
+  networkOverrides:
+    require("resource://devtools/client/framework/reducers/network-overrides.js")
+      .reducer,
 };

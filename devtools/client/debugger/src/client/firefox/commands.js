@@ -445,25 +445,6 @@ function fetchAncestorFramePositions(index) {
   currentThreadFront().fetchAncestorFramePositions(index);
 }
 
-async function setOverride(url, path) {
-  const hasWatcherSupport = commands.targetCommand.hasTargetWatcherSupport();
-  if (hasWatcherSupport) {
-    const networkFront =
-      await commands.targetCommand.watcherFront.getNetworkParentActor();
-    return networkFront.override(url, path);
-  }
-  return null;
-}
-
-async function removeOverride(url) {
-  const hasWatcherSupport = commands.targetCommand.hasTargetWatcherSupport();
-  if (hasWatcherSupport) {
-    const networkFront =
-      await commands.targetCommand.watcherFront.getNetworkParentActor();
-    networkFront.removeOverride(url);
-  }
-}
-
 const clientCommands = {
   autocomplete,
   blackBox,
@@ -503,8 +484,6 @@ const clientCommands = {
   getFrontByID,
   fetchAncestorFramePositions,
   toggleJavaScriptEnabled,
-  setOverride,
-  removeOverride,
 };
 
 export { setupCommands, clientCommands };

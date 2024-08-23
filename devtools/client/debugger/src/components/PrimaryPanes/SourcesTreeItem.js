@@ -12,8 +12,8 @@ import AccessibleImage from "../shared/AccessibleImage";
 
 import {
   getGeneratedSourceByURL,
-  isSourceOverridden,
   getHideIgnoredSources,
+  isSourceOverridden,
 } from "../../selectors/index";
 import actions from "../../actions/index";
 
@@ -22,7 +22,7 @@ import { createLocation } from "../../utils/location";
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
-class SourceTreeItem extends Component {
+class SourceTreeItemContents extends Component {
   static get propTypes() {
     return {
       autoExpand: PropTypes.bool.isRequired,
@@ -35,7 +35,6 @@ class SourceTreeItem extends Component {
       selectSourceItem: PropTypes.func.isRequired,
       setExpanded: PropTypes.func.isRequired,
       getParent: PropTypes.func.isRequired,
-      isOverridden: PropTypes.bool,
       hideIgnoredSources: PropTypes.bool,
       arrow: PropTypes.object,
     };
@@ -65,7 +64,8 @@ class SourceTreeItem extends Component {
       this.props.item,
       this.props.depth,
       this.props.setExpanded,
-      this.renderItemName()
+      this.renderItemName(),
+      this.props.isSourceOverridden
     );
   };
 
@@ -117,7 +117,7 @@ class SourceTreeItem extends Component {
           if (icon === "extension") {
             return sourceTypes[source.displayURL.fileExtension] || "javascript";
           }
-          return icon + (this.props.isOverridden ? " override" : "");
+          return icon + (this.props.isSourceOverridden ? " override" : "");
         },
       });
     }
@@ -213,13 +213,61 @@ function getHasMatchingGeneratedSource(state, source) {
   return !!getGeneratedSourceByURL(state, source.url);
 }
 
+const toolboxMapStateToProps = (state, props) => {
+  const { item } = props;
+  return {
+    isSourceOverridden: isSourceOverridden(state, item.source),
+  };
+};
+
+const SourceTreeItemInner = connect(toolboxMapStateToProps, {}, undefined, {
+  storeKey: "toolbox-store",
+})(SourceTreeItemContents);
+
+class SourcesTreeItem extends Component {
+  static get propTypes() {
+    return {
+      autoExpand: PropTypes.bool.isRequired,
+      depth: PropTypes.bool.isRequired,
+      expanded: PropTypes.bool.isRequired,
+      focusItem: PropTypes.func.isRequired,
+      focused: PropTypes.bool.isRequired,
+      hasMatchingGeneratedSource: PropTypes.bool.isRequired,
+      item: PropTypes.object.isRequired,
+      selectSourceItem: PropTypes.func.isRequired,
+      setExpanded: PropTypes.func.isRequired,
+      showSourceTreeItemContextMenu: PropTypes.func.isRequired,
+      getParent: PropTypes.func.isRequired,
+      hideIgnoredSources: PropTypes.bool,
+      arrow: PropTypes.object,
+    };
+  }
+
+  render() {
+    return React.createElement(SourceTreeItemInner, {
+      autoExpand: this.props.autoExpand,
+      depth: this.props.depth,
+      expanded: this.props.expanded,
+      focusItem: this.props.focusItem,
+      focused: this.props.focused,
+      hasMatchingGeneratedSource: this.props.hasMatchingGeneratedSource,
+      item: this.props.item,
+      selectSourceItem: this.props.selectSourceItem,
+      setExpanded: this.props.setExpanded,
+      showSourceTreeItemContextMenu: this.props.showSourceTreeItemContextMenu,
+      getParent: this.props.getParent,
+      hideIgnoredSources: this.props.hideIgnoredSources,
+      arrow: this.props.arrow,
+    });
+  }
+}
+
 const mapStateToProps = (state, props) => {
   const { item } = props;
   if (item.type == "source") {
     const { source } = item;
     return {
       hasMatchingGeneratedSource: getHasMatchingGeneratedSource(state, source),
-      isOverridden: isSourceOverridden(state, source),
       hideIgnoredSources: getHideIgnoredSources(state),
     };
   }
@@ -228,4 +276,4 @@ const mapStateToProps = (state, props) => {
 
 export default connect(mapStateToProps, {
   showSourceTreeItemContextMenu: actions.showSourceTreeItemContextMenu,
-})(SourceTreeItem);
+})(SourcesTreeItem);
