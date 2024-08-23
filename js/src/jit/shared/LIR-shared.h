@@ -2887,7 +2887,7 @@ class LAtomicTypedArrayElementBinop64
     setInt64Temp(0, LInt64Definition::BogusTemp());
   }
 
-  // ARM, ARM64, x64
+  // ARM, ARM64, x64, LoongArch64, MIPS
   LAtomicTypedArrayElementBinop64(const LAllocation& elements,
                                   const LAllocation& index,
                                   const LInt64Allocation& value,
@@ -2926,7 +2926,7 @@ class LAtomicTypedArrayElementBinopForEffect64
     setInt64Temp(0, LInt64Definition::BogusTemp());
   }
 
-  // ARM32, ARM64, x86
+  // ARM32, ARM64, x86, LoongArch64, MIPS
   LAtomicTypedArrayElementBinopForEffect64(const LAllocation& elements,
                                            const LAllocation& index,
                                            const LInt64Allocation& value,

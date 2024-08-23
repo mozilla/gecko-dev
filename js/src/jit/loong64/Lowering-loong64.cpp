@@ -702,9 +702,9 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
   const LUse elements = useRegister(ins->elements());
   const LAllocation index =
       useRegisterOrIndexConstant(ins->index(), ins->arrayType());
-  const LAllocation value = useRegister(ins->value());
 
   if (Scalar::isBigIntType(ins->arrayType())) {
+    LInt64Allocation value = useInt64Register(ins->value());
     LInt64Definition temp = tempInt64();
 
     // Case 1: the result of the operation is not used.
@@ -724,6 +724,7 @@ void LIRGenerator::visitAtomicTypedArrayElementBinop(
     return;
   }
 
+  LAllocation value = useRegister(ins->value());
   LDefinition valueTemp = LDefinition::BogusTemp();
   LDefinition offsetTemp = LDefinition::BogusTemp();
   LDefinition maskTemp = LDefinition::BogusTemp();
