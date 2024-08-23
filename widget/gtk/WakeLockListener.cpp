@@ -111,10 +111,6 @@ class WakeLockTopic {
     if (sWakeLockType == Initial) {
       SwitchToNextWakeLockType();
     }
-#ifdef MOZ_ENABLE_DBUS
-    mInhibitCancellable = dont_AddRef(g_cancellable_new());
-    mUnInhibitCancellable = dont_AddRef(g_cancellable_new());
-#endif
   }
 
   nsresult InhibitScreensaver();
@@ -286,9 +282,14 @@ void WakeLockTopic::DBusInhibitScreensaver(const char* aName, const char* aPath,
   if (mWaitingForDBusUninhibit) {
     WAKE_LOCK_LOG("  cancel un-inihibit request");
     g_cancellable_cancel(mUnInhibitCancellable);
+    mUnInhibitCancellable = nullptr;
     mWaitingForDBusUninhibit = false;
   }
   mWaitingForDBusInhibit = true;
+
+  if (!mInhibitCancellable) {
+    mInhibitCancellable = dont_AddRef(g_cancellable_new());
+  }
 
   widget::CreateDBusProxyForBus(
       G_BUS_TYPE_SESSION,
@@ -371,6 +372,7 @@ void WakeLockTopic::DBusUninhibitScreensaver(const char* aName,
   if (mWaitingForDBusInhibit) {
     WAKE_LOCK_LOG("  cancel inihibit request");
     g_cancellable_cancel(mInhibitCancellable);
+    mInhibitCancellable = nullptr;
     mWaitingForDBusInhibit = false;
   }
 
@@ -380,6 +382,10 @@ void WakeLockTopic::DBusUninhibitScreensaver(const char* aName,
     return;
   }
   mWaitingForDBusUninhibit = true;
+
+  if (!mUnInhibitCancellable) {
+    mUnInhibitCancellable = dont_AddRef(g_cancellable_new());
+  }
 
   RefPtr<GVariant> variant =
       dont_AddRef(g_variant_ref_sink(g_variant_new("(u)", *mInhibitRequestID)));
@@ -434,9 +440,14 @@ void WakeLockTopic::InhibitFreeDesktopPortal() {
   if (mWaitingForDBusUninhibit) {
     WAKE_LOCK_LOG("  cancel un-inihibit request");
     g_cancellable_cancel(mUnInhibitCancellable);
+    mUnInhibitCancellable = nullptr;
     mWaitingForDBusUninhibit = false;
   }
   mWaitingForDBusInhibit = true;
+
+  if (!mInhibitCancellable) {
+    mInhibitCancellable = dont_AddRef(g_cancellable_new());
+  }
 
   CreateDBusProxyForBus(
       G_BUS_TYPE_SESSION,
@@ -540,6 +551,7 @@ void WakeLockTopic::UninhibitFreeDesktopPortal() {
   if (mWaitingForDBusInhibit) {
     WAKE_LOCK_LOG("  cancel inihibit request");
     g_cancellable_cancel(mInhibitCancellable);
+    mInhibitCancellable = nullptr;
     mWaitingForDBusInhibit = false;
   }
   if (mRequestObjectPath.IsEmpty()) {
@@ -547,6 +559,10 @@ void WakeLockTopic::UninhibitFreeDesktopPortal() {
     return;
   }
   mWaitingForDBusUninhibit = true;
+
+  if (!mUnInhibitCancellable) {
+    mUnInhibitCancellable = dont_AddRef(g_cancellable_new());
+  }
 
   nsCOMPtr<nsISerialEventTarget> target = GetCurrentSerialEventTarget();
   CreateDBusProxyForBus(
