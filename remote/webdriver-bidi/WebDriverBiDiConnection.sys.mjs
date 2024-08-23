@@ -267,7 +267,7 @@ export class WebDriverBiDiConnection extends WebSocketConnection {
  * @param {string} method
  *     Name of the method to split, e.g. "session.subscribe".
  *
- * @returns {Object<string, string>}
+ * @returns {Record<string, string>}
  *     Object with the module ("session") and command ("subscribe")
  *     as properties.
  */

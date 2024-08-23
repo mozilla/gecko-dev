@@ -713,6 +713,12 @@ export class MigrationWizard extends HTMLElement {
    */
 
   /**
+   * @typedef {
+   *   keyof typeof MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES
+   * } DISPLAYED_RESOURCE_TYPES_KEYS
+   */
+
+  /**
    * Called when showing the progress / success page of the wizard.
    *
    * @param {object} state
@@ -720,7 +726,7 @@ export class MigrationWizard extends HTMLElement {
    *   used:
    * @param {string} state.key
    *   The key of the migrator being used.
-   * @param {Object<string, ProgressState>} state.progress
+   * @param {Record<DISPLAYED_RESOURCE_TYPES_KEYS, ProgressState>} state.progress
    *   An object whose keys match one of DISPLAYED_RESOURCE_TYPES.
    *
    *   Any resource type not included in state.progress will be hidden.
@@ -887,6 +893,12 @@ export class MigrationWizard extends HTMLElement {
   }
 
   /**
+   * @typedef {
+   *   keyof typeof MigrationWizardConstants.DISPLAYED_FILE_RESOURCE_TYPES
+   * } DISPLAYED_FILE_RESOURCE_TYPES_KEYS
+   */
+
+  /**
    * Called when showing the progress / success page of the wizard for
    * files.
    *
@@ -895,7 +907,7 @@ export class MigrationWizard extends HTMLElement {
    *   used:
    * @param {string} state.title
    *   The string to display in the header.
-   * @param {Object<string, ProgressState>} state.progress
+   * @param {Record<DISPLAYED_FILE_RESOURCE_TYPES_KEYS, ProgressState>} state.progress
    *   An object whose keys match one of DISPLAYED_FILE_RESOURCE_TYPES.
    *
    *   Any resource type not included in state.progress will be hidden.

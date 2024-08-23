@@ -171,7 +171,7 @@ export class Runtime extends ContentProcessDomain {
    *     Whether the result is expected to be a JSON object
    *     which should be sent by value.
    *
-   * @returns {Object<RemoteObject, ExceptionDetails>}
+   * @returns {RemoteObject & { exeptionDetails?: ExceptionDetails }}
    */
   callFunctionOn(options = {}) {
     if (typeof options.functionDeclaration != "string") {
@@ -251,7 +251,7 @@ export class Runtime extends ContentProcessDomain {
    * @param {boolean=} options.userGesture [unsupported]
    *     Whether execution should be treated as initiated by user in the UI.
    *
-   * @returns {Object<RemoteObject, exceptionDetails>}
+   * @returns {RemoteObject & { exeptionDetails?: ExceptionDetails }}
    *     The evaluation result, and optionally exception details.
    */
   evaluate(options = {}) {

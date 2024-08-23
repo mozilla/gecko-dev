@@ -12,8 +12,6 @@ export const MigrationWizardConstants = Object.freeze({
    * A mapping of a page identification string to the IDs used by the
    * various wizard pages. These are used by MigrationWizard.setState
    * to set the current page.
-   *
-   * @type {Object<string, string>}
    */
   PAGES: Object.freeze({
     LOADING: "loading",
@@ -28,8 +26,6 @@ export const MigrationWizardConstants = Object.freeze({
   /**
    * A mapping of a progress value string. These are used by
    * MigrationWizard.#onShowingProgress to update the UI accordingly.
-   *
-   * @type {Object<string, number>}
    */
   PROGRESS_VALUE: Object.freeze({
     LOADING: 1,
@@ -43,8 +39,6 @@ export const MigrationWizardConstants = Object.freeze({
    * the associated resource group in the wizard via a data-resource-type
    * attribute. The keys are used to set which items should be shown and
    * in what state in #onShowingProgress.
-   *
-   * @type {Object<string, string>}
    */
   DISPLAYED_RESOURCE_TYPES: Object.freeze({
     // The DISPLAYED_RESOURCE_TYPES should have their keys match those
@@ -84,8 +78,6 @@ export const MigrationWizardConstants = Object.freeze({
    * the associated resource group in the wizard via a data-resource-type
    * attribute. The keys are for resource types that are only ever shown
    * for profile resets.
-   *
-   * @type {Object<string, string>}
    */
   PROFILE_RESET_ONLY_RESOURCE_TYPES: Object.freeze({
     COOKIES: "COOKIES",
@@ -112,8 +104,6 @@ export const MigrationWizardConstants = Object.freeze({
    * "3" if all extensions were matched after import. "2" if only some
    * extensions were matched. "1" if none were matched, and "0" if extensions
    * weren't selected for import.
-   *
-   * @type {Object<string, string>}
    */
   EXTENSIONS_IMPORT_RESULT: Object.freeze({
     NOT_IMPORTED: "0",

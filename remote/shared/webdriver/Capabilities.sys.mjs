@@ -253,7 +253,7 @@ export class Proxy {
   }
 
   /**
-   * @param {Object<string, ?>} json
+   * @param {Record<string, ?>} json
    *     JSON Object to unmarshal.
    *
    * @throws {InvalidArgumentError}
@@ -398,7 +398,7 @@ export class Proxy {
   }
 
   /**
-   * @returns {Object<string, (number | string)>}
+   * @returns {Record<string, (number | string)>}
    *     JSON serialisation of proxy object.
    */
   toJSON() {
@@ -510,7 +510,7 @@ export class Capabilities extends Map {
   /**
    * JSON serialization of capabilities object.
    *
-   * @returns {Object<string, ?>}
+   * @returns {Record<string, ?>}
    */
   toJSON() {
     let marshalled = marshal(this);
@@ -529,7 +529,7 @@ export class Capabilities extends Map {
   /**
    * Unmarshal a JSON object representation of WebDriver capabilities.
    *
-   * @param {Object<string, *>=} json
+   * @param {Record<string, *>=} json
    *     WebDriver capabilities.
    * @param {boolean=} isBidi
    *     Flag indicating that it is a WebDriver BiDi session. Defaults to false.

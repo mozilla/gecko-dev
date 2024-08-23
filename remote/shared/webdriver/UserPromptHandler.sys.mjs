@@ -111,7 +111,7 @@ export class PromptHandlerConfiguration {
   /**
    * JSON serialization of the prompt handler configuration object.
    *
-   * @returns {Object<string, ?>} json
+   * @returns {Record<string, ?>} json
    *
    * @see https://w3c.github.io/webdriver/#dfn-serialize-a-prompt-handler-configuration
    */
@@ -149,7 +149,7 @@ export class UserPromptHandler {
   /**
    * Unmarshal a JSON object representation of the unhandledPromptBehavior capability.
    *
-   * @param {Object<string, ?>} json
+   * @param {Record<string, ?>} json
    *     JSON Object to unmarshal.
    *
    * @throws {InvalidArgumentError}
@@ -274,7 +274,7 @@ export class UserPromptHandler {
   /**
    * JSON serialization of the user prompt handler object.
    *
-   * @returns {Object<string, ?>} json
+   * @returns {Record<string, ?>} json
    *
    * @see https://w3c.github.io/webdriver/#dfn-serialize-the-user-prompt-handler
    */

@@ -101,7 +101,7 @@ export class WebDriverBiDi {
   /**
    * Create a new WebDriver session.
    *
-   * @param {Object<string, *>=} capabilities
+   * @param {Record<string, *>=} capabilities
    *     JSON Object containing any of the recognised capabilities as listed
    *     on the `WebDriverSession` class.
    * @param {Set} flags
@@ -110,7 +110,7 @@ export class WebDriverBiDi {
    *     Optional connection that is not yet associated with a WebDriver
    *     session, and has to be associated with the new WebDriver session.
    *
-   * @returns {Object<string, Capabilities>}
+   * @returns {Record<string, Capabilities>}
    *     Object containing the current session ID, and all its capabilities.
    *
    * @throws {SessionNotCreatedError}
