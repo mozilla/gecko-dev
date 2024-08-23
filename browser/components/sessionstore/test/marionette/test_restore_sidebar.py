@@ -182,7 +182,6 @@ class TestSessionRestore(SessionStoreTestCase):
                 """
                 const window = BrowserWindowTracker.getTopWindow();
                 window.SidebarController.toolbarButton.click();
-                window.SidebarController.sidebarMain.expanded = true;
                 return window.SidebarController.sidebarMain.expanded;
                 """
             ),
