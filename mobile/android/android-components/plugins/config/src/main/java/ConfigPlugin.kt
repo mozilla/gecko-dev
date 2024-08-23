@@ -19,6 +19,9 @@ class ConfigPlugin : Plugin<Settings> {
 object Config {
 
     @JvmStatic
+    val vcsHash by lazy { readVcsHash() }
+
+    @JvmStatic
     private fun generateDebugVersionName(): String {
         val today = Date()
         // Append the year (2 digits) and week in year (2 digits). This will make it easier to distinguish versions and
@@ -172,8 +175,7 @@ object Config {
      * Returns the git or hg hash of the currently checked out revision. If there are uncommitted changes,
      * a "+" will be appended to the hash, e.g. "c8ba05ad0+".
      */
-    @JvmStatic
-    fun getVcsHash(): String {
+    private fun readVcsHash(): String {
         val gitRevision: String
         try {
             val revisionCmd = arrayOf("git", "rev-parse", "--short", "HEAD")
@@ -189,7 +191,6 @@ object Config {
         val status = execReadStandardOutOrThrow(statusCmd)
         val hasUnstagedChanges = status.isNotBlank()
         val statusSuffix = if (hasUnstagedChanges) "+" else ""
-
         return "git-$gitRevision$statusSuffix"
     }
 
