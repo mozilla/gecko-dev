@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct nr_frame_header_ {
   UINT2 frame_length;
-  char  data[0];
+  char  data[];
 } nr_frame_header;
 
 typedef struct nr_socket_buffered_stun_ {
