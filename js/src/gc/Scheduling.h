@@ -600,10 +600,12 @@ class GCSchedulingState {
 
   bool inHighFrequencyGCMode() const { return inHighFrequencyGCMode_; }
 
-  void updateHighFrequencyMode(const mozilla::TimeStamp& lastGCTime,
-                               const mozilla::TimeStamp& currentTime,
-                               const GCSchedulingTunables& tunables);
-  void updateHighFrequencyModeForReason(JS::GCReason reason);
+  void updateHighFrequencyModeOnGCStart(JS::GCOptions options,
+                                        const mozilla::TimeStamp& lastGCTime,
+                                        const mozilla::TimeStamp& currentTime,
+                                        const GCSchedulingTunables& tunables);
+  void updateHighFrequencyModeOnSliceStart(JS::GCOptions options,
+                                           JS::GCReason reason);
 };
 
 struct TriggerResult {

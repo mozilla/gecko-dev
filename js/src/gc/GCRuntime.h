@@ -692,7 +692,7 @@ class GCRuntime {
                                    const HeapThreshold& heapThreshold);
 
   void updateSchedulingStateOnGCStart();
-  void updateSchedulingStateAfterCollection(mozilla::TimeStamp currentTime);
+  void updateSchedulingStateOnGCEnd(mozilla::TimeStamp currentTime);
   void updateAllGCStartThresholds();
 
   // For ArenaLists::allocateFromArena()
@@ -720,8 +720,12 @@ class GCRuntime {
 
   void requestMajorGC(JS::GCReason reason);
   JS::SliceBudget defaultBudget(JS::GCReason reason, int64_t millis);
-  bool maybeIncreaseSliceBudget(JS::SliceBudget& budget);
-  bool maybeIncreaseSliceBudgetForLongCollections(JS::SliceBudget& budget);
+  bool maybeIncreaseSliceBudget(JS::SliceBudget& budget,
+                                mozilla::TimeStamp sliceStartTime,
+                                mozilla::TimeStamp gcStartTime);
+  bool maybeIncreaseSliceBudgetForLongCollections(
+      JS::SliceBudget& budget, mozilla::TimeStamp sliceStartTime,
+      mozilla::TimeStamp gcStartTime);
   bool maybeIncreaseSliceBudgetForUrgentCollections(JS::SliceBudget& budget);
   IncrementalResult budgetIncrementalGC(bool nonincrementalByAPI,
                                         JS::GCReason reason,

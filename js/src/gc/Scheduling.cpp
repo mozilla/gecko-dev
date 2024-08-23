@@ -295,23 +295,27 @@ void GCSchedulingTunables::checkInvariants() {
   MOZ_ASSERT(smallHeapIncrementalLimit_ >= largeHeapIncrementalLimit_);
 }
 
-void GCSchedulingState::updateHighFrequencyMode(
-    const mozilla::TimeStamp& lastGCTime, const mozilla::TimeStamp& currentTime,
+void GCSchedulingState::updateHighFrequencyModeOnGCStart(
+    JS::GCOptions options, const mozilla::TimeStamp& lastGCTime,
+    const mozilla::TimeStamp& currentTime,
     const GCSchedulingTunables& tunables) {
-  if (js::SupportDifferentialTesting()) {
-    return;
-  }
+  MOZ_ASSERT(!lastGCTime.IsNull());
 
+  // Set high frequency mode based on the time between collections.
   inHighFrequencyGCMode_ =
-      !lastGCTime.IsNull() &&
+      js::SupportDifferentialTesting() && options == JS::GCOptions::Normal &&
       lastGCTime + tunables.highFrequencyThreshold() > currentTime;
 }
 
-void GCSchedulingState::updateHighFrequencyModeForReason(JS::GCReason reason) {
-  // These reason indicate that the embedding isn't triggering GC slices often
-  // enough and allocation rate is high.
-  if (reason == JS::GCReason::ALLOC_TRIGGER ||
-      reason == JS::GCReason::TOO_MUCH_MALLOC) {
+void GCSchedulingState::updateHighFrequencyModeOnSliceStart(
+    JS::GCOptions options, JS::GCReason reason) {
+  MOZ_ASSERT_IF(options != JS::GCOptions::Normal, !inHighFrequencyGCMode_);
+
+  // Additionally set high frequency mode for reasons that indicate that slices
+  // aren't being triggered often enough and the allocation rate is high.
+  if (options == JS::GCOptions::Normal &&
+      (reason == JS::GCReason::ALLOC_TRIGGER ||
+       reason == JS::GCReason::TOO_MUCH_MALLOC)) {
     inHighFrequencyGCMode_ = true;
   }
 }
