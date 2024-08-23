@@ -269,10 +269,13 @@ inline nsresult Http2Session::SessionError(enum errorType reason) {
 void Http2Session::LogIO(Http2Session* self, Http2StreamBase* stream,
                          const char* label, const char* data,
                          uint32_t datalen) {
-  if (!LOG5_ENABLED()) return;
+  if (!MOZ_LOG_TEST(gHttpIOLog, LogLevel::Verbose)) {
+    return;
+  }
 
-  LOG5(("Http2Session::LogIO %p stream=%p id=0x%X [%s]", self, stream,
-        stream ? stream->StreamID() : 0, label));
+  MOZ_LOG(gHttpIOLog, LogLevel::Verbose,
+          ("Http2Session::LogIO %p stream=%p id=0x%X [%s]", self, stream,
+           stream ? stream->StreamID() : 0, label));
 
   // Max line is (16 * 3) + 10(prefix) + newline + null
   char linebuf[128];
@@ -285,7 +288,7 @@ void Http2Session::LogIO(Http2Session* self, Http2StreamBase* stream,
     if (!(index % 16)) {
       if (index) {
         *line = 0;
-        LOG5(("%s", linebuf));
+        MOZ_LOG(gHttpIOLog, LogLevel::Verbose, ("%s", linebuf));
       }
       line = linebuf;
       snprintf(line, 128, "%08X: ", index);
@@ -297,7 +300,7 @@ void Http2Session::LogIO(Http2Session* self, Http2StreamBase* stream,
   }
   if (index) {
     *line = 0;
-    LOG5(("%s", linebuf));
+    MOZ_LOG(gHttpIOLog, LogLevel::Verbose, ("%s", linebuf));
   }
 }
 

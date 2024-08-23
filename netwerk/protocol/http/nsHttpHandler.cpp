@@ -138,6 +138,7 @@ using mozilla::dom::Promise;
 namespace mozilla::net {
 
 LazyLogModule gHttpLog("nsHttp");
+LazyLogModule gHttpIOLog("HttpIO");
 
 #ifdef ANDROID
 static nsCString GetDeviceModelId() {

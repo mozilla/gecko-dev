@@ -40,6 +40,7 @@ void LogCallingScriptLocation(void* instance);
 void LogCallingScriptLocation(void* instance,
                               const Maybe<nsCString>& aLogLocation);
 extern LazyLogModule gHttpLog;
+extern LazyLogModule gHttpIOLog;
 }  // namespace net
 }  // namespace mozilla
 
