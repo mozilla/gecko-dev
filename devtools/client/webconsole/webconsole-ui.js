@@ -512,11 +512,7 @@ class WebConsoleUI {
       if (
         (this.isBrowserToolboxConsole || this.isBrowserConsole) &&
         resource.isAlreadyExistingResource &&
-        (resource.pageError?.private ||
-          // @backward-compat { version 129 } Once Fx129 is release, CONSOLE_MESSAGE resource
-          // are no longer encapsulated into a sub "message" attribute.
-          // (we can keep `resource?.private` and drop `resource.message?.private`)
-          (resource.message || resource)?.private)
+        (resource.pageError?.private || resource.private)
       ) {
         continue;
       }

@@ -165,11 +165,11 @@ describe("Filtering", () => {
 
     it("matches locations", () => {
       // Add a message with a different filename.
-      const locationMsg = Object.assign(
+      let locationMsg = Object.assign(
         {},
         stubPackets.get("console.log('foobar', 'test')")
       );
-      locationMsg.message = Object.assign({}, locationMsg.message, {
+      locationMsg = Object.assign({}, locationMsg, {
         filename: "search-location-test.js",
       });
       store.dispatch(messagesAdd([locationMsg]));
@@ -191,8 +191,8 @@ describe("Filtering", () => {
     });
 
     it("matches stacktrace location", () => {
-      const traceMessage = stubPackets.get("console.trace()");
-      traceMessage.message = Object.assign({}, traceMessage.message, {
+      let traceMessage = stubPackets.get("console.trace()");
+      traceMessage = Object.assign({}, traceMessage, {
         filename: "search-location-test.js",
         lineNumber: 85,
         columnNumber: 13,

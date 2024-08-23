@@ -121,11 +121,8 @@ function prepareMessage(resource, idGenerator, persistLogs) {
 function transformResource(resource, persistLogs) {
   switch (resource.resourceType || resource.type) {
     case ResourceCommand.TYPES.CONSOLE_MESSAGE: {
-      // @backward-compat { version 129 } Once Fx129 is release, CONSOLE_MESSAGE resource
-      // are no longer encapsulated into a sub "message" attribute.
-      // Once this happens, 'targetFront' could then be derived from `consoleMessageResource` from transformConsoleAPICallResource.
       return transformConsoleAPICallResource(
-        resource.message || resource,
+        resource,
         persistLogs,
         resource.targetFront
       );

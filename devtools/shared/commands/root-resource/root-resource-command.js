@@ -90,10 +90,6 @@ class RootResourceCommand {
 
     if (!this._listenerRegistered) {
       this._listenerRegistered = true;
-      // @backward-compat { version 129 } Once Fx129 is release, resource-*-form event won't be used anymore,
-      //                                  only the resources-*-array will be still used.
-      this.rootFront.on("resource-available-form", this._onResourceAvailable);
-      this.rootFront.on("resource-destroyed-form", this._onResourceDestroyed);
       this.rootFront.on(
         "resources-available-array",
         this._onResourceAvailableArray
