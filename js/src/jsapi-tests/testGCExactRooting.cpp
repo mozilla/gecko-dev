@@ -915,3 +915,120 @@ BEGIN_TEST_WITH_ATTRIBUTES(testResultPackedVariant, JS_EXPECT_HAZARDS) {
 END_TEST(testResultPackedVariant)
 
 #endif  // HAVE_64BIT_BUILD
+
+BEGIN_TEST(testRootedTuple) {
+  // Tuple with a single GC thing field.
+  {
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> x(roots);
+    CHECK(!x);
+    CHECK(x == nullptr);
+    x = JS_NewPlainObject(cx);
+    CHECK(x);
+    CHECK(IsInsideNursery(x));
+    JS_GC(cx);
+    CHECK(x);
+    CHECK(!IsInsideNursery(x));
+  }
+
+  // Tuple with multiple fields of different types.
+  {
+    RootedTuple<JSObject*, JSString*> roots(cx);
+    RootedField<JSObject*> x(roots);
+    RootedField<JSString*> y(roots);
+    CHECK(!x);
+    CHECK(!y);
+    x = JS_NewPlainObject(cx);
+    y = JS_NewStringCopyZ(cx, "foobar");
+    CHECK(x);
+    CHECK(y);
+    CHECK(IsInsideNursery(x));
+    CHECK(IsInsideNursery(y));
+    JS_GC(cx);
+    CHECK(x);
+    CHECK(y);
+    CHECK(!IsInsideNursery(x));
+    CHECK(!IsInsideNursery(y));
+  }
+
+  // Tuple with multiple fields of the same type.
+  {
+    RootedTuple<JSObject*, JSObject*> roots(cx);
+    RootedField<JSObject*, 0> x(roots);
+    RootedField<JSObject*, 1> y(roots);
+    CHECK(!x);
+    CHECK(!y);
+    x = JS_NewPlainObject(cx);
+    y = JS_NewPlainObject(cx);
+    CHECK(x);
+    CHECK(y);
+    CHECK(x != y);
+    CHECK(IsInsideNursery(x));
+    CHECK(IsInsideNursery(y));
+    JS_GC(cx);
+    CHECK(x);
+    CHECK(y);
+    CHECK(x != y);
+    CHECK(!IsInsideNursery(x));
+    CHECK(!IsInsideNursery(y));
+  }
+
+  // Test initialization by RootedTuple.
+  {
+    Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+    CHECK(obj);
+    RootedTuple<JSObject*> roots(cx, obj);
+    RootedField<JSObject*> x(roots);
+    CHECK(x == obj);
+  }
+
+  // Test initialization by RootedField.
+  {
+    Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+    CHECK(obj);
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> x(roots, obj);
+    CHECK(x == obj);
+  }
+
+  // Test RootedField converts to Handle.
+  {
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> array(roots, JS::NewArrayObject(cx, 1));
+    CHECK(array);
+    uint32_t length = 0;
+    CHECK(JS::GetArrayLength(cx, array, &length));
+    CHECK(length == 1);
+  }
+
+  // Test &RootedField converts to MutableHandle.
+  {
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> obj(roots);
+    CHECK(!obj);
+    CHECK(JS_GetClassObject(cx, JSProto_Object, &obj));
+    CHECK(obj);
+  }
+
+  // Test RootedField converts to Handle.
+  {
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> array(roots, JS::NewArrayObject(cx, 1));
+    CHECK(array);
+    uint32_t length = 0;
+    CHECK(JS::GetArrayLength(cx, array, &length));
+    CHECK(length == 1);
+  }
+
+  // Test &RootedField converts to MutableHandle.
+  {
+    RootedTuple<JSObject*> roots(cx);
+    RootedField<JSObject*> obj(roots);
+    CHECK(!obj);
+    CHECK(JS_GetClassObject(cx, JSProto_Object, &obj));
+    CHECK(obj);
+  }
+
+  return true;
+}
+END_TEST(testRootedTuple)

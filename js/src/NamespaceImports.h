@@ -96,12 +96,14 @@ using JS::NativeImpl;
 
 using JS::Rooted;
 using JS::RootedBigInt;
+using JS::RootedField;
 using JS::RootedFunction;
 using JS::RootedId;
 using JS::RootedObject;
 using JS::RootedScript;
 using JS::RootedString;
 using JS::RootedSymbol;
+using JS::RootedTuple;
 using JS::RootedValue;
 
 using JS::PersistentRooted;

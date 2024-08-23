@@ -13,6 +13,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -172,18 +173,18 @@ struct Cell;
 // Assignment operators on a base class are hidden by the implicitly defined
 // operator= on the derived class. Thus, define the operator= directly on the
 // class as we would need to manually pass it through anyway.
-#define DECLARE_POINTER_ASSIGN_OPS(Wrapper, T)     \
-  Wrapper<T>& operator=(const T& p) {              \
-    set(p);                                        \
-    return *this;                                  \
-  }                                                \
-  Wrapper<T>& operator=(T&& p) {                   \
-    set(std::move(p));                             \
-    return *this;                                  \
-  }                                                \
-  Wrapper<T>& operator=(const Wrapper<T>& other) { \
-    set(other.get());                              \
-    return *this;                                  \
+#define DECLARE_POINTER_ASSIGN_OPS(Wrapper, T) \
+  Wrapper& operator=(const T& p) {             \
+    set(p);                                    \
+    return *this;                              \
+  }                                            \
+  Wrapper& operator=(T&& p) {                  \
+    set(std::move(p));                         \
+    return *this;                              \
+  }                                            \
+  Wrapper& operator=(const Wrapper& other) {   \
+    set(other.get());                          \
+    return *this;                              \
   }
 
 #define DELETE_ASSIGNMENT_OPS(Wrapper, T) \
@@ -331,7 +332,7 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   ~Heap() { writeBarriers(ptr, SafelyInitialized<T>::create()); }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
-  DECLARE_POINTER_ASSIGN_OPS(Heap, T);
+  DECLARE_POINTER_ASSIGN_OPS(Heap<T>, T);
 
   void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(ptr); }
 
@@ -577,6 +578,8 @@ template <typename T>
 class MutableHandle;
 template <typename T>
 class Rooted;
+template <typename T, size_t N = SIZE_MAX>
+class RootedField;
 template <typename T>
 class PersistentRooted;
 
@@ -656,6 +659,11 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleOperations<T, Handle<T>> {
       MutableHandle<S>& root,
       std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
 
+  template <size_t N, typename S>
+  inline MOZ_IMPLICIT Handle(
+      const RootedField<S, N>& rootedField,
+      std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
+
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
 
@@ -694,6 +702,8 @@ class MOZ_STACK_CLASS MutableHandle
   using ElementType = T;
 
   inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
+  template <size_t N>
+  inline MOZ_IMPLICIT MutableHandle(RootedField<T, N>* root);
   inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
 
  private:
@@ -1228,7 +1238,7 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
-  DECLARE_POINTER_ASSIGN_OPS(Rooted, T);
+  DECLARE_POINTER_ASSIGN_OPS(Rooted<T>, T);
 
   T& get() { return ptr; }
   const T& get() const { return ptr; }
@@ -1249,6 +1259,87 @@ struct DefineComparisonOps<Rooted<T>> : std::true_type {
   static const T& get(const Rooted<T>& v) { return v.get(); }
 };
 
+}  // namespace detail
+
+template <typename... Fs>
+using RootedTuple = Rooted<std::tuple<Fs...>>;
+
+// Reference to a field in a RootedTuple. This is a drop-in replacement for an
+// individual Rooted.
+//
+// This is very similar to a MutableHandle but with two differences: it has an
+// assignment operator so doesn't require set() to be called and its address
+// converts to a MutableHandle in the same way as a Rooted.
+//
+// The field is specified by the type parameter, optionally disambiguated by
+// supplying the field index too.
+//
+// Used like this:
+//
+//   RootedTuple<JSObject*, JSString*> roots(cx);
+//   RootedField<JSObject*> obj(roots);
+//   RootedField<JSString*> str(roots);
+//
+// or:
+//
+//   RootedTuple<JString*, JSObject*, JSObject*> roots(cx);
+//   RootedField<JString*, 0> str(roots);
+//   RootedField<JSObject*, 1> obj1(roots);
+//   RootedField<JSObject*, 2> obj2(roots);
+template <typename T, size_t N /* = SIZE_MAX */>
+class MOZ_RAII RootedField : public js::RootedOperations<T, RootedField<T, N>> {
+  T* ptr;
+  friend class Handle<T>;
+  friend class MutableHandle<T>;
+
+ public:
+  using ElementType = T;
+
+  template <typename... Fs>
+  explicit RootedField(RootedTuple<Fs...>& rootedTuple) {
+    using Tuple = std::tuple<Fs...>;
+    if constexpr (N == SIZE_MAX) {
+      ptr = &std::get<T>(rootedTuple.get());
+    } else {
+      static_assert(N < std::tuple_size_v<Tuple>);
+      static_assert(std::is_same_v<T, std::tuple_element_t<N, Tuple>>);
+      ptr = &std::get<N>(rootedTuple.get());
+    }
+  }
+  template <typename... Fs, typename S>
+  explicit RootedField(RootedTuple<Fs...>& rootedTuple, S&& value)
+      : RootedField(rootedTuple) {
+    MOZ_ASSERT(*ptr == SafelyInitialized<T>::create());
+    *ptr = std::forward<S>(value);
+  }
+
+  T& get() { return *ptr; }
+  const T& get() const { return *ptr; }
+  void set(const T& value) {
+    *ptr = value;
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
+  }
+  void set(T&& value) {
+    *ptr = std::move(value);
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
+  }
+
+  using WrapperT = RootedField<T, N>;
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(WrapperT, T);
+  // DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
+  // DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(*ptr);
+
+ private:
+  RootedField() = delete;
+  RootedField(const RootedField& other) = delete;
+};
+
+namespace detail {
+template <size_t N, typename T>
+struct DefineComparisonOps<JS::RootedField<T, N>> : std::true_type {
+  static const T& get(const JS::RootedField<T, N>& v) { return v.get(); }
+};
 }  // namespace detail
 
 } /* namespace JS */
@@ -1351,10 +1442,24 @@ inline Handle<T>::Handle(
 }
 
 template <typename T>
+template <size_t N, typename S>
+inline Handle<T>::Handle(
+    const RootedField<S, N>& rootedField,
+    std::enable_if_t<std::is_convertible_v<S, T>, int> dummy) {
+  ptr = reinterpret_cast<const T*>(rootedField.ptr);
+}
+
+template <typename T>
 inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
   static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
                 "MutableHandle must be binary compatible with T*.");
   ptr = root->address();
+}
+
+template <typename T>
+template <size_t N>
+inline MutableHandle<T>::MutableHandle(RootedField<T, N>* rootedField) {
+  ptr = rootedField->ptr;
 }
 
 template <typename T>
@@ -1488,7 +1593,7 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
   }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
-  DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
+  DECLARE_POINTER_ASSIGN_OPS(PersistentRooted<T>, T);
 
   T& get() { return ptr; }
   const T& get() const { return ptr; }
