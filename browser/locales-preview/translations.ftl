@@ -31,3 +31,29 @@ translations-settings-language-download-error =
 translations-settings-language-remove-error =
     .heading = Remove Error
     .message = Failed to remove language. Try again.
+# Variables:
+#   $name (string) - The display name of the language that is to be downloaded
+translations-settings-download-button =
+  .aria-label = Download { $name }
+# Variables:
+#   $name (string) - The display name of the language that is to be removed
+translations-settings-remove-button =
+  .aria-label = Remove { $name }
+# Variables:
+#   $name (string) - The display name of the language that is loading
+translations-settings-loading-button =
+  .aria-label = Loading { $name }
+translations-settings-download-all-button =
+  .aria-label = Download all languages
+translations-settings-remove-all-button =
+  .aria-label = Remove all languages
+translations-settings-loading-all-button =
+  .aria-label = Loading all languages
+# Variables:
+#   $name (string) - The display name of the language that is Always/Never translated
+translations-settings-remove-language-button-2 =
+  .aria-label = Remove { $name }
+# Variables:
+#   $name (string) - The site address that is Never to be translated
+translations-settings-remove-site-button-2 =
+  .aria-label = Remove { $name }
