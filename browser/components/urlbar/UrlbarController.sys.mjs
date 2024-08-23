@@ -111,6 +111,8 @@ export class UrlbarController {
    * Takes a query context and starts the query based on the user input.
    *
    * @param {UrlbarQueryContext} queryContext The query details.
+   * @returns {UrlbarQueryContext}
+   *   The updated query context.
    */
   async startQuery(queryContext) {
     // Cancel any running query.

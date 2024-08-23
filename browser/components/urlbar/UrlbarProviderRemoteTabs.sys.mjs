@@ -201,6 +201,8 @@ class ProviderRemoteTabs extends UrlbarProvider {
 
   /**
    * Build the in-memory structure we use.
+   *
+   * @returns {{tab: object, client: object}[]}
    */
   async buildItems() {
     // This is sorted by most recent client, most recent tab.
@@ -223,6 +225,8 @@ class ProviderRemoteTabs extends UrlbarProvider {
 
   /**
    * Ensure the cache is good.
+   *
+   * @returns {{tab: object, client: object}[]}
    */
   async ensureCache() {
     if (!_cache) {
