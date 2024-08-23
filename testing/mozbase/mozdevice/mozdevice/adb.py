@@ -954,6 +954,9 @@ class ADBDevice(ADBCommand):
         remove_builtins = set()
         for builtin in self.BUILTINS:
             try:
+                # It is important not to retry ls (with attempts=) here
+                # since many of these calls are expected to fail:
+                # additional retries can introduce a significant delay.
                 self.ls("/system/*bin/%s" % builtin, timeout=timeout)
                 self._logger.debug("Removing %s from BUILTINS" % builtin)
                 remove_builtins.add(builtin)
@@ -2606,7 +2609,7 @@ class ADBDevice(ADBCommand):
         command.append(mask)
 
         if recursive and not self._chmod_R:
-            paths = self.ls(path, recursive=True, timeout=timeout)
+            paths = self.ls(path, recursive=True, timeout=timeout, attempts=3)
             base = " ".join(command)
             commands = [" ".join([base, entry]) for entry in paths]
             self.batch_execute(commands, timeout=timeout, enable_run_as=enable_run_as)
@@ -2667,7 +2670,7 @@ class ADBDevice(ADBCommand):
             # recursive desired, but chown -R is not supported natively.
             # like with chmod, get the list of subpaths, put them into a script
             # then run it with adb with one call.
-            paths = self.ls(path, recursive=True, timeout=timeout)
+            paths = self.ls(path, recursive=True, timeout=timeout, attempts=3)
             base = " ".join(command)
             commands = [" ".join([base, entry]) for entry in paths]
 
@@ -2810,7 +2813,7 @@ class ADBDevice(ADBCommand):
         self._logger.debug("list_files: %s" % data)
         return data
 
-    def ls(self, path, recursive=False, timeout=None):
+    def ls(self, path, recursive=False, timeout=None, attempts=1):
         """Return a list of matching files/directories on the device.
 
         The ls method emulates the behavior of the ls shell command.
@@ -2844,6 +2847,7 @@ class ADBDevice(ADBCommand):
             This timeout is per adb call. The total time spent
             may exceed this value. If it is not specified, the value
             set in the ADBDevice constructor is used.
+        :param int attempts: The maximum number of shell retries.
         :return: list of files/directories contained in the directory.
         :raises: :exc:`ADBTimeoutError`
         """
@@ -2870,7 +2874,7 @@ class ADBDevice(ADBCommand):
             f"{self._ls} {recursive_flag} {path}",
             timeout=timeout,
             enable_run_as=enable_run_as,
-            attempts=3,
+            attempts=attempts,
         ).splitlines()
         for line in lines:
             stripped_line = line.strip()
