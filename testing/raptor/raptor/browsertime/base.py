@@ -256,6 +256,10 @@ class Browsertime(Perftest):
         if self.benchmark:
             self.benchmark.stop_http_server()
 
+        if test.get("support_class", None):
+            LOG.info("Test support class is cleaning up...")
+            test.get("support_class").clean_up()
+
     def check_for_crashes(self):
         super(Browsertime, self).check_for_crashes()
 

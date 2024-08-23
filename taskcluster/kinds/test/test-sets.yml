@@ -113,6 +113,7 @@ browsertime:
     - browsertime-pageload-benchmark
     - browsertime-indexeddb
     - browsertime-video-playback-latency
+    - browsertime-network-bench
 
 browsertime-clang:
     - browsertime-tp6

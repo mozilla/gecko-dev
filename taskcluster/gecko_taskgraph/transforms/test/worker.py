@@ -204,7 +204,7 @@ def set_worker_type(config, tasks):
             elif task.get("suite", "") in ["talos", "raptor"] and not task[
                 "build-platform"
             ].startswith("linux64-ccov"):
-                if "browsertime-upload" in task.get("test-name"):
+                if "browsertime-network-bench" in task.get("test-name"):
                     task["worker-type"] = "t-linux-netperf-1804"
                 else:
                     task["worker-type"] = "t-linux-talos-1804"

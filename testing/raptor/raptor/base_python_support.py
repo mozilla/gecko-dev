@@ -180,3 +180,7 @@ class BasePythonSupport:
         test is successfull, True should be returned (which is the default).
         """
         return True
+
+    def clean_up(self):
+        """Perform cleanup operations to release resources."""
+        pass

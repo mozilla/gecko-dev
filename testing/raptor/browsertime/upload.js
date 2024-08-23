@@ -24,6 +24,10 @@ async function waitForUpload(timeout, commands, context) {
       `return document.getElementById('upload_status').innerHTML;`
     );
 
+    if (status.startsWith("success")) {
+      status = "success";
+    }
+
     context.log.info("context.log test: " + status);
     console.log("test: " + status);
   }
@@ -38,7 +42,7 @@ async function waitForUpload(timeout, commands, context) {
 }
 
 module.exports = logTest("upload test", async function (context, commands) {
-  let uploadSiteUrl = "https://uploadtest-381620.uc.r.appspot.com";
+  let uploadSiteUrl = `${context.options.browsertime.upload_url}`;
   let iterations = `${context.options.browsertime.upload_iterations}`;
 
   await commands.measure.start(uploadSiteUrl);

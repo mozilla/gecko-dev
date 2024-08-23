@@ -876,6 +876,20 @@ browsertime-upload:
         fetch:
             - upload-speed-test-file
 
+browsertime-network-bench:
+    raptor:
+        apps: [firefox]
+        subtests:
+            - h3-upload
+    description: Raptor (browsertime) networking download/upload performance test
+    max-run-time: 2700
+    run-on-projects: []
+    tier: 3
+    treeherder-symbol: Btime(network-bench)
+    fetches:
+        fetch:
+            - upload-speed-test-file
+
 browsertime-pageload-benchmark:
     raptor:
         apps: [firefox]

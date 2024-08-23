@@ -79,6 +79,9 @@
 ["include:tests/custom/browsertime-upload.toml"]
 # Custom upload speed test
 
+["include:tests/custom/browsertime-network-bench.toml"]
+# Custom download/upload performance test
+
 ["include:tests/custom/browsertime-video-playback-latency.toml"]
 # Video playback latency tests
 
