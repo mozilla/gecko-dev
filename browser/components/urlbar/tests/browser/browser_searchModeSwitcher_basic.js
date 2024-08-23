@@ -325,3 +325,77 @@ add_task(async function test_search_icon_change() {
   );
   await BrowserTestUtils.closeWindow(newWin);
 });
+
+add_task(async function test_search_icon_change_without_keyword_enabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["keyword.enabled", false]],
+  });
+
+  let newWin = await BrowserTestUtils.openNewBrowserWindow();
+  let searchModeSwitcherButton = newWin.document.getElementById(
+    "searchmode-switcher-icon"
+  );
+
+  let regex = /url\("([^"]+)"\)/;
+  let searchModeSwitcherIconUrl =
+    searchModeSwitcherButton.style.listStyleImage.match(regex);
+
+  const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
+
+  Assert.equal(
+    searchModeSwitcherIconUrl[1],
+    searchGlassIconUrl,
+    "The search mode switcher should have the search glass icon url since \
+     keyword.enabled is false and we are not in search mode."
+  );
+
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
+  let engineName = "Bing";
+  info("Open the urlbar and searchmode switcher popup");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: newWin,
+    value: "",
+  });
+  await UrlbarTestUtils.openSearchModeSwitcher(newWin);
+  info("Press on the bing menu button and enter search mode");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(newWin);
+  popup.querySelector(`toolbarbutton[label=${engineName}]`).click();
+  await popupHidden;
+
+  const bingSearchEngineIconUrl = await Services.search
+    .getEngineByName(engineName)
+    .getIconURL();
+
+  searchModeSwitcherIconUrl =
+    searchModeSwitcherButton.style.listStyleImage.match(regex);
+
+  Assert.equal(
+    searchModeSwitcherIconUrl[1],
+    bingSearchEngineIconUrl,
+    "The search mode switcher should have the bing icon url since we are in \
+     search mode"
+  );
+  await UrlbarTestUtils.assertSearchMode(newWin, {
+    engineName: "Bing",
+    entry: "other",
+    source: 3,
+  });
+
+  info("Press the close button and exit search mode");
+  newWin.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(newWin, null);
+
+  searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
+    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
+    "Waiting for the search mode switcher icon to update after exiting search mode."
+  );
+
+  Assert.equal(
+    searchModeSwitcherIconUrl[1],
+    searchGlassIconUrl,
+    "The search mode switcher should have the search glass icon url since \
+     keyword.enabled is false"
+  );
+
+  await BrowserTestUtils.closeWindow(newWin);
+});

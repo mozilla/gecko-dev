@@ -32,6 +32,7 @@ export class SearchModeSwitcher {
       "nsISupportsWeakReference",
     ]);
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
+    lazy.UrlbarPrefs.addObserver(this);
 
     this.#popup = input.document.getElementById("searchmode-switcher-popup");
 
@@ -181,6 +182,20 @@ export class SearchModeSwitcher {
     }
   }
 
+  /**
+   * Called when a urlbar pref changes.
+   *
+   * @param {string} pref
+   *   The name of the pref relative to `browser.urlbar`.
+   */
+  onPrefChanged(pref) {
+    switch (pref) {
+      case "keyword.enabled":
+        this.#updateSearchIcon();
+        break;
+    }
+  }
+
   async #updateSearchIcon() {
     try {
       await lazy.UrlbarSearchUtils.init();
@@ -190,6 +205,13 @@ export class SearchModeSwitcher {
     let { label, icon } = await this.#getDisplayedEngineDetails(
       this.#input.searchMode
     );
+
+    const keywordEnabled = lazy.UrlbarPrefs.get("keyword.enabled");
+    const inSearchMode = this.#input.searchMode;
+    if (!keywordEnabled && !inSearchMode) {
+      icon = lazy.UrlbarUtils.ICON.SEARCH_GLASS;
+    }
+
     let iconUrl = icon ? `url(${icon})` : "";
     this.#input.document.getElementById(
       "searchmode-switcher-icon"
@@ -199,9 +221,11 @@ export class SearchModeSwitcher {
       "urlbar-searchmode-button",
       { engine: label }
     );
+
     let labelEl = this.#input.document.getElementById(
       "searchmode-switcher-title"
     );
+
     if (!this.#input.searchMode) {
       labelEl.replaceChildren();
     } else if (this.#input.searchMode) {
