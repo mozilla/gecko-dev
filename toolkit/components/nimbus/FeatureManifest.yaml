@@ -734,7 +734,7 @@ newtab:
 
 newtabSpocsCache:
   description: The about:newtab sponsored content cache.
-  owner: sdowne@getpocket.com
+  owner: sdowne@mozilla.com
   hasExposure: false
   variables:
     spocsCacheTimeout:
@@ -755,7 +755,7 @@ newtabSpocsCache:
 newtabLayoutExperiment:
   description: >-
     Change the default layout of new tab by adjusting sizes and spacing of elements.
-  owner: achurchwell@mozilla.com
+  owner: achurchwell@mozilla.com, sdowne@mozilla.com
   hasExposure: false
   variables:
     variantA:
@@ -765,6 +765,13 @@ newtabLayoutExperiment:
         pref: browser.newtabpage.activity-stream.newtabLayouts.variant-a
       description: >-
         Variant A in layouts experiment.
+    variantB:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabLayouts.variant-b
+      description: >-
+        Variant B in layouts experiment.
 
 newtabTopicSelection:
   description: the about:newtab topic selection experience.
@@ -807,7 +814,7 @@ newtabTopicSelection:
 
 pocketNewtab:
   description: The Pocket section in newtab
-  owner: sdowne@getpocket.com
+  owner: sdowne@mozilla.com
   hasExposure: false
   isEarlyStartup: true
   variables:
@@ -1169,7 +1176,7 @@ pocketNewtab:
 
 saveToPocket:
   description: The save to Pocket feature
-  owner: sdowne@getpocket.com
+  owner: sdowne@mozilla.com
   hasExposure: false
   variables:
     emailButton:
