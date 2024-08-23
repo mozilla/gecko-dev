@@ -8241,7 +8241,7 @@
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_tail_calls
     type: bool
