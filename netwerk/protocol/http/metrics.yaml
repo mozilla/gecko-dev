@@ -305,3 +305,55 @@ network:
       - necko@mozilla.com
       - vgosu@mozilla.com
     expires: never
+
+  system_channel_success_or_failure: &system_channel_success_or_failure
+    type: labeled_counter
+    description: >
+      Counts the number of succeeded and failed channels with a system principal to a mozilla domain. Label contains ok or failure reason.
+    bugs:
+      - https://bugzilla.mozilla.org/1914129
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1914129
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    labels:
+      - ok
+      - offline
+      - connectivity
+      - dns
+      - connect_fail
+      - tls_fail
+      - http_status
+      - cancel
+      - timeout
+      - reset
+      - refused
+      - partial
+      - other
+
+  system_channel_update_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to aus5.mozilla.org
+
+  system_channel_addon_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to .addons.mozilla.org
+
+  system_channel_remote_settings_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to firefox.settings.services.mozilla.com
+
+  system_channel_telemetry_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to incoming.telemetry.mozilla.org
+
+  system_channel_other_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to other mozilla.org domains

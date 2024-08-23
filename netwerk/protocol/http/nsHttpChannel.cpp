@@ -8279,6 +8279,10 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
   // completed.
   if (mCanceled || NS_FAILED(mStatus)) status = mStatus;
 
+  if (mLoadInfo->TriggeringPrincipal()->IsSystemPrincipal()) {
+    ReportSystemChannelTelemetry(status);
+  }
+
   if (LoadCachedContentIsPartial()) {
     if (NS_SUCCEEDED(status)) {
       // mTransactionPump should be suspended
@@ -10355,6 +10359,97 @@ void nsHttpChannel::ReportNetVSCacheTelemetry() {
     Telemetry::Accumulate(Telemetry::HTTP_NET_VS_CACHE_ONSTOP_LARGE_V2,
                           onStopDiff);
   }
+}
+
+void nsHttpChannel::ReportSystemChannelTelemetry(nsresult status) {
+  // Use status and httpStatus to determine
+  // if it was successful, and if we had connectivity / offline in this time
+  nsAutoCString domain;
+  mOriginalURI->GetHost(domain);
+
+  if (!LoadUsedNetwork()) {
+    // We're not really interested in any cached requests.
+    return;
+  }
+
+  if (!StringEndsWith(domain, ".mozilla.org"_ns) &&
+      !StringEndsWith(domain, ".mozilla.com"_ns)) {
+    return;
+  }
+
+  auto hasConnectivity = []() -> bool {
+    if (RefPtr<NetworkConnectivityService> ncs =
+            NetworkConnectivityService::GetSingleton()) {
+      nsINetworkConnectivityService::ConnectivityState state;
+      if (NS_SUCCEEDED(ncs->GetIPv4(&state)) &&
+          state == nsINetworkConnectivityService::NOT_AVAILABLE &&
+          NS_SUCCEEDED(ncs->GetIPv6(&state)) &&
+          state == nsINetworkConnectivityService::NOT_AVAILABLE) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  nsAutoCString label("ok"_ns);
+  if (NS_FAILED(status)) {
+    if (mCanceled) {
+      // The request was cancelled.
+      label = "cancel"_ns;
+    } else if (NS_IsOffline()) {
+      // The error occured while all interfaces are offline
+      label = "offline"_ns;
+    } else if (!hasConnectivity()) {
+      // The error occured while the browser didn't have connectivity
+      label = "connectivity"_ns;
+    } else if (status == NS_ERROR_UNKNOWN_HOST) {
+      // The failure was a DNS error
+      label = "dns"_ns;
+    } else if (NS_ERROR_GET_MODULE(status) == NS_ERROR_MODULE_SECURITY) {
+      // The error was due to TLS
+      label = "tls_fail"_ns;
+    } else if (status == NS_ERROR_NET_RESET) {
+      label = "reset"_ns;
+    } else if (status == NS_ERROR_NET_TIMEOUT) {
+      label = "timeout"_ns;
+    } else if (status == NS_ERROR_CONNECTION_REFUSED) {
+      label = "refused"_ns;
+    } else if (status == NS_ERROR_NET_PARTIAL_TRANSFER) {
+      label = "partial"_ns;
+    } else {
+      // Unspecified error. If this bucket is too big we might add other labels.
+      label = "other"_ns;
+    }
+  } else if (mResponseHead && mResponseHead->Status() / 100 != 2) {
+    // There was no channel error, but the server responded with a non-2XX
+    // status code.
+    label = "http_status";
+  }
+
+  if (StringEndsWith(domain, ".addons.mozilla.org"_ns)) {
+    mozilla::glean::network::system_channel_addon_status.Get(label).Add(1);
+    return;
+  }
+
+  if (domain == "aus5.mozilla.org"_ns) {
+    mozilla::glean::network::system_channel_update_status.Get(label).Add(1);
+    return;
+  }
+
+  if (domain == "firefox.settings.services.mozilla.com"_ns) {
+    mozilla::glean::network::system_channel_remote_settings_status.Get(label)
+        .Add(1);
+    return;
+  }
+
+  if (domain == "incoming.telemetry.mozilla.com"_ns) {
+    mozilla::glean::network::system_channel_telemetry_status.Get(label).Add(1);
+    return;
+  }
+
+  // Not one of the probes we recorded earlier.
+  mozilla::glean::network::system_channel_other_status.Get(label).Add(1);
 }
 
 NS_IMETHODIMP

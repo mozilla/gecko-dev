@@ -489,6 +489,8 @@ class nsHttpChannel final : public HttpBaseChannel,
   void ReportNetVSCacheTelemetry();
   int64_t ComputeTelemetryBucketNumber(int64_t difftime_ms);
 
+  // Report telemetry for system principal request success rate
+  void ReportSystemChannelTelemetry(nsresult status);
   // Report telemetry and stats to about:networking
   void ReportRcwnStats(bool isFromNet);
 
