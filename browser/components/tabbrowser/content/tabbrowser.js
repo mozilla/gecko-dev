@@ -2924,12 +2924,15 @@
       return t;
     },
 
-    addTabGroup(color, label = "") {
+    addTabGroup(color, label = "", tabs = []) {
       let group = document.createXULElement("tab-group", { is: "tab-group" });
       group.id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       group.color = color;
       group.label = label;
       this.tabContainer.appendChild(group);
+      if (tabs.length) {
+        group.addTabs(tabs);
+      }
       return group;
     },
 
