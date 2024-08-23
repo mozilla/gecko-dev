@@ -706,6 +706,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   bool mUseAttachedEvents;
   bool mIMEHasFocus;
   bool mIMEHasQuit;
+  // if the window is fully occluded (rendering may be paused in response)
   bool mIsFullyOccluded;
   bool mNeedFastSnaphot;
   // This flag is only used when APZ is off. It indicates that the current pan

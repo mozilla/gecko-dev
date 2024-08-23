@@ -1014,6 +1014,10 @@ interface nsIDOMWindowUtils : nsISupports {
    */
   readonly attribute boolean isMozAfterPaintPending;
 
+  readonly attribute boolean isWindowFullyOccluded;
+
+  readonly attribute boolean isCompositorPaused;
+
   /**
    * Returns true if the InputTaskManager is suspended.
    */

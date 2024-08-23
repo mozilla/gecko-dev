@@ -1709,6 +1709,27 @@ nsDOMWindowUtils::GetIsMozAfterPaintPending(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::GetIsWindowFullyOccluded(bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = false;
+  if (nsIWidget* widget = GetWidget()) {
+    *aResult = widget->IsFullyOccluded();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetIsCompositorPaused(bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = false;
+  CompositorBridgeChild* cbc = GetCompositorBridge();
+  if (cbc) {
+    *aResult = cbc->IsPaused();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::GetIsInputTaskManagerSuspended(bool* aResult) {
   *aResult = InputTaskManager::Get()->IsSuspended();
   return NS_OK;
