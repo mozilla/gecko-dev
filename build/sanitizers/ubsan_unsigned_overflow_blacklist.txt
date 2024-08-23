@@ -185,10 +185,6 @@ fun:*Frame*FindNext*
 # these methods return signed but the subtraction is first performed unsigned
 fun:*nsStandardURL*ReplaceSegment*
 
-# Code in netwerk/protocol/http/nsHttpChannel.cpp
-# same as previous with the previous entry.
-fun:*nsHttpChannel*ReportNetVSCacheTelemetry*
-
 # Code in layout/tables/nsCellMap.cpp
 # again subtraction then cast to signed.
 fun:*nsTableCellMap*GetColInfoAt*
