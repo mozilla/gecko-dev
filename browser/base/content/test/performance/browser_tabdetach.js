@@ -25,6 +25,7 @@ const EXPECTED_REFLOWS = [
 
   {
     stack: [
+      "get scrollPosition@chrome://global/content/elements/arrowscrollbox.js",
       "startTabDrag@chrome://browser/content/tabbrowser/tabs.js",
       "on_dragstart@chrome://browser/content/tabbrowser/tabs.js",
       "handleEvent@chrome://browser/content/tabbrowser/tabs.js",
