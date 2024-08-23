@@ -119,7 +119,7 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Newydd: un tap yn ôl ac ymlaen saethau</string>
+    <string name="tablet_nav_bar_cfr_title">Newydd: saethau un tap nôl ac ymlaen</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_message">Mwynhewch lywio cyflymach sydd bob amser ar flaenau eich bysedd.</string>
 
@@ -206,10 +206,10 @@
     <string name="browser_menu_extensions">Estyniadau</string>
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
-    <string name="browser_menu_extensions_banner_onboarding_header">Gwnewch %s eich hun</string>
+    <string name="browser_menu_extensions_banner_onboarding_header">Gwnewch %s eich un chi</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
-    <string name="browser_menu_extensions_banner_onboarding_body">Mae estyniadau\'n lefelu eich pori, o newid sut mae %s yn edrych ac yn perfformio i hybu preifatrwydd a diogelwch.</string>
+    <string name="browser_menu_extensions_banner_onboarding_body">Mae estyniadau\'n grymuso eich pori, o newid sut mae %s yn edrych ac yn perfformio i hybu preifatrwydd a diogelwch.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Dysgu rhagor</string>
     <!-- Browser menu button that opens the extensions manager -->
