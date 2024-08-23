@@ -2408,6 +2408,11 @@ class FunctionCompiler {
       return false;
     }
 
+    // We can't inline an imported function.
+    if (codeMeta().funcIsImport(funcIndex)) {
+      return false;
+    }
+
     // Limit the inlining depth.
     if (inliningDepth() > JS::Prefs::wasm_experimental_inline_depth_limit()) {
       return false;
