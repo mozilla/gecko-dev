@@ -1594,8 +1594,6 @@ bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
       return false;
     }
 
-    CookieCommons::RecordUnicodeTelemetry(cookieData);
-
     if (!CookieCommons::CheckName(cookieData)) {
       return false;
     }

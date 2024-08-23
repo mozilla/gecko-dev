@@ -912,8 +912,6 @@ bool CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
     return newCookie;
   }
 
-  CookieCommons::RecordUnicodeTelemetry(mCookieData);
-
   // We count SetCookie operations in the parent process only for HTTP set
   // cookies to prevent double counting.
   if (XRE_IsParentProcess() || !aFromHttp) {

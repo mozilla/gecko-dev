@@ -17,7 +17,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/net/CookieJarSettings.h"
-#include "mozilla/Telemetry.h"
 #include "mozIThirdPartyUtil.h"
 #include "nsContentUtils.h"
 #include "nsICookiePermission.h"
@@ -774,25 +773,6 @@ bool CookieCommons::IsSchemeSupported(nsIURI* aURI) {
 bool CookieCommons::IsSchemeSupported(const nsACString& aScheme) {
   return aScheme.Equals("https") || aScheme.Equals("http") ||
          aScheme.Equals("file");
-}
-
-static bool ContainsUnicodeChars(const nsCString& str) {
-  const auto* start = str.BeginReading();
-  const auto* end = str.EndReading();
-
-  return std::find_if(start, end, [](unsigned char c) { return c >= 0x80; }) !=
-         end;
-}
-
-// static
-void CookieCommons::RecordUnicodeTelemetry(const CookieStruct& cookieData) {
-  auto label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::none;
-  if (ContainsUnicodeChars(cookieData.name())) {
-    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeName;
-  } else if (ContainsUnicodeChars(cookieData.value())) {
-    label = Telemetry::LABELS_NETWORK_COOKIE_UNICODE_BYTE::unicodeValue;
-  }
-  Telemetry::AccumulateCategorical(label);
 }
 
 // static
