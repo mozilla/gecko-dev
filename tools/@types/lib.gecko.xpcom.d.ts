@@ -1297,7 +1297,6 @@ interface nsIPrincipal extends nsISupports {
   isURIInList(list: string): boolean;
   isContentAccessibleAboutURI(): boolean;
   isSameOrigin(otherURI: nsIURI): boolean;
-  allowsRelaxStrictFileOriginPolicy(aURI: nsIURI): boolean;
   hasFirstpartyStorageAccess(aWindow: mozIDOMWindow, rejectedReason: OutParam<u32>): boolean;
   readonly localStorageQuotaKey: string;
   readonly isOriginPotentiallyTrustworthy: boolean;

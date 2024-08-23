@@ -2450,8 +2450,7 @@ bool NS_SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI,
     return false;
   }
 
-  // For file scheme, reject unless the files are identical. See
-  // NS_RelaxStrictFileOriginPolicy for enforcing file same-origin checking
+  // For file scheme, reject unless the files are identical.
   if (targetScheme.EqualsLiteral("file")) {
     // in traditional unsafe behavior all files are the same origin
     if (!aStrictFileOriginPolicy) return true;
@@ -2518,50 +2517,6 @@ bool NS_URIIsLocalFile(nsIURI* aURI) {
          NS_SUCCEEDED(util->ProtocolHasFlags(
              aURI, nsIProtocolHandler::URI_IS_LOCAL_FILE, &isFile)) &&
          isFile;
-}
-
-bool NS_RelaxStrictFileOriginPolicy(nsIURI* aTargetURI, nsIURI* aSourceURI,
-                                    bool aAllowDirectoryTarget /* = false */) {
-  if (!NS_URIIsLocalFile(aTargetURI)) {
-    // This is probably not what the caller intended
-    MOZ_ASSERT_UNREACHABLE(
-        "NS_RelaxStrictFileOriginPolicy called with non-file URI");
-    return false;
-  }
-
-  if (!NS_URIIsLocalFile(aSourceURI)) {
-    // If the source is not also a file: uri then forget it
-    // (don't want resource: principals in a file: doc)
-    //
-    // note: we're not de-nesting jar: uris here, we want to
-    // keep archive content bottled up in its own little island
-    return false;
-  }
-
-  //
-  // pull out the internal files
-  //
-  nsCOMPtr<nsIFileURL> targetFileURL(do_QueryInterface(aTargetURI));
-  nsCOMPtr<nsIFileURL> sourceFileURL(do_QueryInterface(aSourceURI));
-  nsCOMPtr<nsIFile> targetFile;
-  nsCOMPtr<nsIFile> sourceFile;
-  bool targetIsDir;
-
-  // Make sure targetFile is not a directory (bug 209234)
-  // and that it exists w/out unescaping (bug 395343)
-  if (!sourceFileURL || !targetFileURL ||
-      NS_FAILED(targetFileURL->GetFile(getter_AddRefs(targetFile))) ||
-      NS_FAILED(sourceFileURL->GetFile(getter_AddRefs(sourceFile))) ||
-      !targetFile || !sourceFile || NS_FAILED(targetFile->Normalize()) ||
-#ifndef MOZ_WIDGET_ANDROID
-      NS_FAILED(sourceFile->Normalize()) ||
-#endif
-      (!aAllowDirectoryTarget &&
-       (NS_FAILED(targetFile->IsDirectory(&targetIsDir)) || targetIsDir))) {
-    return false;
-  }
-
-  return false;
 }
 
 bool NS_IsInternalSameURIRedirect(nsIChannel* aOldChannel,

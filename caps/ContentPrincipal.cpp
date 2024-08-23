@@ -305,14 +305,6 @@ bool ContentPrincipal::MayLoadInternal(nsIURI* aURI) {
     return true;
   }
 
-  // If strict file origin policy is in effect, local files will always fail
-  // SecurityCompareURIs unless they are identical. Explicitly check file origin
-  // policy, in that case.
-  if (nsScriptSecurityManager::GetStrictFileOriginPolicy() &&
-      NS_URIIsLocalFile(aURI) && NS_RelaxStrictFileOriginPolicy(aURI, mURI)) {
-    return true;
-  }
-
   return false;
 }
 

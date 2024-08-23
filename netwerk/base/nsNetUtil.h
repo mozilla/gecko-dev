@@ -878,15 +878,6 @@ bool NS_SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI,
 
 bool NS_URIIsLocalFile(nsIURI* aURI);
 
-// When strict file origin policy is enabled, SecurityCompareURIs will fail for
-// file URIs that do not point to the same local file. This call provides an
-// alternate file-specific origin check that allows target files that are
-// contained in the same directory as the source.
-//
-// https://developer.mozilla.org/en-US/docs/Same-origin_policy_for_file:_URIs
-bool NS_RelaxStrictFileOriginPolicy(nsIURI* aTargetURI, nsIURI* aSourceURI,
-                                    bool aAllowDirectoryTarget = false);
-
 bool NS_IsInternalSameURIRedirect(nsIChannel* aOldChannel,
                                   nsIChannel* aNewChannel, uint32_t aFlags);
 

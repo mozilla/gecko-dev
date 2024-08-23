@@ -182,8 +182,6 @@ class BasePrincipal : public nsJSPrincipals {
                                         bool* aOutAllowed) override;
   NS_IMETHOD GetAsciiHost(nsACString& aAsciiHost) override;
   NS_IMETHOD GetLocalStorageQuotaKey(nsACString& aRes) override;
-  NS_IMETHOD AllowsRelaxStrictFileOriginPolicy(nsIURI* aURI,
-                                               bool* aRes) override;
   NS_IMETHOD CreateReferrerInfo(mozilla::dom::ReferrerPolicy aReferrerPolicy,
                                 nsIReferrerInfo** _retval) override;
   NS_IMETHOD GetIsScriptAllowedByPolicy(

@@ -419,14 +419,6 @@ interface nsIPrincipal : nsISupports
     [infallible]
     boolean isSameOrigin(in nsIURI otherURI);
 
-    /*
-     * Checks if the Principal is allowed to load the Provided file:// URI
-     * using NS_RelaxStrictFileOriginPolicy
-     *
-     * May be called from any thread.
-     */
-    boolean allowsRelaxStrictFileOriginPolicy(in nsIURI aURI);
-
 
     /*
      * Generates a Cache-Key for the Cors-Preflight Cache
