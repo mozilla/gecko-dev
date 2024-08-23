@@ -164,6 +164,8 @@ void nsCocoaWindow::DestroyNativeWindow() {
   // window will definitely no longer be shown.
   Show(false);
 
+  [mWindow removeTrackingArea];
+
   [mWindow releaseJSObjects];
   // We want to unhook the delegate here because we don't want events
   // sent to it after this object has been destroyed.
@@ -523,6 +525,8 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect,
   // Make the window use CoreAnimation from the start, so that we don't
   // switch from a non-CA window to a CA-window in the middle.
   mWindow.contentView.wantsLayer = YES;
+
+  [mWindow createTrackingArea];
 
   // Make sure the window starts out not draggable by the background.
   // We will turn it on as necessary.
@@ -2765,9 +2769,6 @@ void nsCocoaWindow::CocoaWindowDidResize() {
 }
 
 - (void)windowDidResize:(NSNotification*)aNotification {
-  BaseWindow* window = [aNotification object];
-  [window updateTrackingArea];
-
   if (!mGeckoWindow) return;
 
   mGeckoWindow->CocoaWindowDidResize();
@@ -3094,7 +3095,6 @@ static NSMutableSet* gSwizzledFrameViewClasses = nil;
 @end
 
 @interface BaseWindow (Private)
-- (void)removeTrackingArea;
 - (void)cursorUpdated:(NSEvent*)aEvent;
 - (void)reflowTitlebarElements;
 @end
@@ -3169,7 +3169,6 @@ static NSMutableSet* gSwizzledFrameViewClasses = nil;
   mDrawTitle = NO;
   mTouchBar = nil;
   mIsAnimationSuppressed = NO;
-  [self updateTrackingArea];
 
   return self;
 }
@@ -3265,7 +3264,6 @@ static NSImage* GetMenuMaskImage() {
 
 - (void)dealloc {
   [mTouchBar release];
-  [self removeTrackingArea];
   ChildViewMouseTracker::OnDestroyWindow(self);
   [super dealloc];
 }
@@ -3385,13 +3383,11 @@ static const NSString* kStateWantsTitleDrawn = @"wantsTitleDrawn";
   mViewWithTrackingArea = nil;
 }
 
-- (void)updateTrackingArea {
-  [self removeTrackingArea];
-
+- (void)createTrackingArea {
   mViewWithTrackingArea = [self.trackingAreaView retain];
-  const NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited |
-                                        NSTrackingMouseMoved |
-                                        NSTrackingActiveAlways;
+  const NSTrackingAreaOptions options =
+      NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved |
+      NSTrackingActiveAlways | NSTrackingInVisibleRect;
   mTrackingArea =
       [[NSTrackingArea alloc] initWithRect:[mViewWithTrackingArea bounds]
                                    options:options
