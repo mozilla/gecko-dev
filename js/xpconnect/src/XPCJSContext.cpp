@@ -43,6 +43,7 @@
 #include "jsapi.h"
 #include "js/ArrayBuffer.h"
 #include "js/ContextOptions.h"
+#include "js/experimental/LoggingInterface.h"
 #include "js/HelperThreadAPI.h"
 #include "js/Initialization.h"
 #include "js/MemoryMetrics.h"
@@ -1161,11 +1162,36 @@ static bool CreateSelfHostedSharedMemory(JSContext* aCx,
   return true;
 }
 
+static JS::OpaqueLogger GetLoggerByName(const char* name) {
+  LogModule* tmp = LogModule::Get(name);
+  return static_cast<JS::OpaqueLogger>(tmp);
+}
+
+MOZ_FORMAT_PRINTF(3, 0)
+static void LogPrintVA(JS::OpaqueLogger aLogger, mozilla::LogLevel level,
+                       const char* aFmt, va_list ap) {
+  LogModule* logmod = static_cast<LogModule*>(aLogger);
+
+  logmod->Printv(level, aFmt, ap);
+}
+
+static AtomicLogLevel& GetLevelRef(JS::OpaqueLogger aLogger) {
+  LogModule* logmod = static_cast<LogModule*>(aLogger);
+  return logmod->LevelRef();
+}
+
+static JS::LoggingInterface loggingInterface = {GetLoggerByName, LogPrintVA,
+                                                GetLevelRef};
+
 nsresult XPCJSContext::Initialize() {
   if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
     size_t threadCount = TaskController::GetPoolThreadCount();
     size_t stackSize = TaskController::GetThreadStackSize();
     SetHelperThreadTaskCallback(&DispatchOffThreadTask, threadCount, stackSize);
+  }
+
+  if (!JS::SetLoggingInterface(loggingInterface)) {
+    MOZ_CRASH("Failed to install logging interface");
   }
 
   nsresult rv =
