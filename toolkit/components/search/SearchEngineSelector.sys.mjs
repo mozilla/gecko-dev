@@ -54,6 +54,9 @@ export class SearchEngineSelector {
 
   /**
    * Handles getting the configuration from remote settings.
+   *
+   * @returns {object}
+   *   The configuration data.
    */
   async getEngineConfiguration() {
     if (this._getConfigurationPromise) {
@@ -90,6 +93,9 @@ export class SearchEngineSelector {
 
   /**
    * Used by tests to get the configuration overrides.
+   *
+   * @returns {object}
+   *   The engine overrides data.
    */
   async getEngineConfigurationOverrides() {
     await this.getEngineConfiguration();
