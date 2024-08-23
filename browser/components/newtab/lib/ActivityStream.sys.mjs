@@ -364,6 +364,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.spoc-positions",
+    {
+      title: "CSV string of spoc position indexes on newtab Pocket grid",
+      value: "1,5,7,11,18,20",
+    },
+  ],
+  [
     "newtabWallpapers.highlightEnabled",
     {
       title: "Boolean flag to show the highlight about the Wallpaper feature",

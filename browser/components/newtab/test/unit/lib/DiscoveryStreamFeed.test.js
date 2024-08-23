@@ -441,8 +441,8 @@ describe("DiscoveryStreamFeed", () => {
       feed.store = createStore(combineReducers(reducers), {
         Prefs: {
           values: {
+            "discoverystream.spoc-positions": "1, 2",
             pocketConfig: {
-              spocPositions: "1, 2",
               widgetPositions: "3, 4",
             },
           },
