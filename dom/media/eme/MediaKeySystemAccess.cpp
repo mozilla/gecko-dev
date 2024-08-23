@@ -255,7 +255,7 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
         "https://www.netflix.com"_ns,
     });
     for (const auto& allowedOrigin : kAllowedOrigins) {
-      if (aOrigin->Equals(allowedOrigin)) {
+      if (FindInReadable(allowedOrigin, *aOrigin)) {
         EME_LOG(
             "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin "
             "(%s) is ALLOWED to use MFCDM",
@@ -276,7 +276,7 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
       "https://on.orf.at"_ns,
   });
   for (const auto& blockedOrigin : kBlockedOrigins) {
-    if (aOrigin->Equals(blockedOrigin)) {
+    if (FindInReadable(blockedOrigin, *aOrigin)) {
       EME_LOG(
           "MediaKeySystemAccess::IsMFCDMAllowedByOrigin, origin (%s) "
           "is BLOCKED to use MFCDM",
