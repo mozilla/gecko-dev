@@ -271,7 +271,7 @@
         return;
       }
 
-      if (event.button != 0 || event.originalTarget.localName != "scrollbox") {
+      if (event.button != 0 || event.target != this.arrowScrollbox) {
         return;
       }
 
