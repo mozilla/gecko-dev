@@ -12,7 +12,7 @@
     "eslint-plugin-html": "8.0.0",
     "eslint-plugin-import": "2.29.1",
     "eslint-plugin-jest": "28.5.0",
-    "eslint-plugin-jsdoc": "43.2.0",
+    "eslint-plugin-jsdoc": "50.2.2",
     "eslint-plugin-json": "3.1.0",
     "eslint-plugin-jsx-a11y": "6.8.0",
     "eslint-plugin-mozilla": "file:tools/lint/eslint/eslint-plugin-mozilla",
