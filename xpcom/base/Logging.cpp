@@ -6,8 +6,6 @@
 
 #include "mozilla/Logging.h"
 
-#include <algorithm>
-
 #include "base/process_util.h"
 #include "GeckoProfiler.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -72,12 +70,6 @@ void log_print(const LogModule* aModule, LogLevel aLevel, TimeStamp* aStart,
 }
 
 }  // namespace detail
-
-LogLevel ToLogLevel(int32_t aLevel) {
-  aLevel = std::min(aLevel, static_cast<int32_t>(LogLevel::Verbose));
-  aLevel = std::max(aLevel, static_cast<int32_t>(LogLevel::Disabled));
-  return static_cast<LogLevel>(aLevel);
-}
 
 static const char* ToLogStr(LogLevel aLevel) {
   switch (aLevel) {
