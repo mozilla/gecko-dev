@@ -353,7 +353,7 @@ void ViewportFrame::Reflow(nsPresContext* aPresContext,
         kidReflowInput.SetBResize(true);
       }
       if (aReflowInput.IsBResizeForPercentagesForWM(kidWM)) {
-        kidReflowInput.mFlags.mIsBResizeForPercentages = true;
+        kidReflowInput.SetBResizeForPercentages(true);
       }
       ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowInput, 0, 0,
                   ReflowChildFlags::Default, aStatus);

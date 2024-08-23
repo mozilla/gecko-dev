@@ -5381,7 +5381,7 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
   // the things that are affected by ComputeSizeFlag::IsGridMeasuringReflow.
   childRI.SetBResize(true);
   // Not 100% sure this is needed, but be conservative for now:
-  childRI.mFlags.mIsBResizeForPercentages = true;
+  childRI.SetBResizeForPercentages(true);
 
   ReflowOutput childSize(childRI);
   nsReflowStatus childStatus;
@@ -7547,7 +7547,7 @@ void nsGridContainerFrame::ReflowInFlowChild(
   // the child was a measuring reflow, and only if the child does some of the
   // things that are affected by ComputeSizeFlag::IsGridMeasuringReflow.
   childRI.SetBResize(true);
-  childRI.mFlags.mIsBResizeForPercentages = true;
+  childRI.SetBResizeForPercentages(true);
 
   // If the child is stretching in its block axis, and we might be fragmenting
   // it in that axis, then setup a frame property to tell

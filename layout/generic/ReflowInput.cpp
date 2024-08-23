@@ -530,9 +530,9 @@ static bool IsQuirkContainingBlockHeight(const ReflowInput* rs,
 
 void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
                                   LayoutFrameType aFrameType) {
-  SetBResize(false);
   SetIResize(false);
-  mFlags.mIsBResizeForPercentages = false;
+  SetBResize(false);
+  SetBResizeForPercentages(false);
 
   const WritingMode wm = mWritingMode;  // just a shorthand
   // We should report that we have a resize in the inline dimension if
@@ -658,7 +658,7 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     // actually resize but children with percentages resize (since those
     // percentages become auto if their containing block is auto).
     SetBResize(true);
-    mFlags.mIsBResizeForPercentages = true;
+    SetBResizeForPercentages(true);
     // We don't clear the HasBSizeChange state here, since sometimes we
     // construct a ReflowInput (e.g. in nsBlockFrame::ReflowBlockFrame to
     // compute margin collapsing) without reflowing the frame. Instead, we
@@ -671,7 +671,7 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     // We have a percentage (or calc-with-percentage) block-size, and the
     // value it's relative to has changed.
     SetBResize(true);
-    mFlags.mIsBResizeForPercentages = true;
+    SetBResizeForPercentages(true);
   } else if (aFrameType == LayoutFrameType::TableCell &&
              (mFlags.mSpecialBSizeReflow ||
               mFrame->FirstInFlow()->HasAnyStateBits(
@@ -681,15 +681,14 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     // mCBReflowInput->IsBResize() is set correctly below when
     // reflowing descendant.
     SetBResize(true);
-    mFlags.mIsBResizeForPercentages = true;
+    SetBResizeForPercentages(true);
   } else if (mCBReflowInput && mFrame->IsBlockWrapper()) {
     // XXX Is this problematic for relatively positioned inlines acting
     // as containing block for absolutely positioned elements?
     // Possibly; in that case we should at least be checking
     // IsSubtreeDirty(), I'd think.
     SetBResize(mCBReflowInput->IsBResizeForWM(wm));
-    mFlags.mIsBResizeForPercentages =
-        mCBReflowInput->IsBResizeForPercentagesForWM(wm);
+    SetBResizeForPercentages(mCBReflowInput->IsBResizeForPercentagesForWM(wm));
   } else if (ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
     // We have an 'auto' block-size.
     if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&

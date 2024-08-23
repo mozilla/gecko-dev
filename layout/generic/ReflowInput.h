@@ -599,6 +599,9 @@ struct ReflowInput : public SizeComputationInput {
   }
   void SetIResize(bool aValue) { mFlags.mIsIResize = aValue; }
   void SetBResize(bool aValue) { mFlags.mIsBResize = aValue; }
+  void SetBResizeForPercentages(bool aValue) {
+    mFlags.mIsBResizeForPercentages = aValue;
+  }
 
   // Values for |aFlags| passed to constructor
   enum class InitFlag : uint8_t {

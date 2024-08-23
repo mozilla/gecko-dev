@@ -898,7 +898,7 @@ void ScrollContainerFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
     kidReflowInput.SetBResize(true);
   }
   if (aState.mReflowInput.IsBResizeForPercentagesForWM(kidWM)) {
-    kidReflowInput.mFlags.mIsBResizeForPercentages = true;
+    kidReflowInput.SetBResizeForPercentages(true);
   }
 
   // Temporarily set mHasHorizontalScrollbar/mHasVerticalScrollbar to
