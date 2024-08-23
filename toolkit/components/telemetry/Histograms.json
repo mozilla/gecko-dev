@@ -3383,24 +3383,6 @@
     "n_buckets": 50,
     "description": "The time spent relaying response completion from the socket thread of the parent process to the content process, in milliseconds, keyed by the classOfService flags"
   },
-  "HTTP_CHILD_OMT_STATS_2": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [1357682],
-    "expires_in_version": "61",
-    "kind": "categorical",
-    "keyed": true,
-    "description": "Stats about success rate of HTTP OMT request in content process, keyed by content policy.",
-    "labels": [
-      "success",
-      "successMainThread",
-      "failListener",
-      "failListenerChain",
-      "notRequested",
-      "successOnlyDecomp"
-    ]
-  },
   "TLS_EARLY_DATA_NEGOTIATED": {
     "record_in_processes": ["main", "socket"],
     "products": ["firefox", "fennec"],
