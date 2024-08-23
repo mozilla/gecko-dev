@@ -299,11 +299,6 @@ class InterceptedHttpChannel final
     return NS_OK;
   }
 
-  NS_IMETHOD SetResponseStatus(uint32_t aStatus,
-                               const nsACString& aStatusText) override {
-    return NS_OK;
-  }
-
   NS_IMETHOD SetLaunchServiceWorkerStart(TimeStamp aTimeStamp) override;
   NS_IMETHOD GetLaunchServiceWorkerStart(TimeStamp* aRetVal) override;
 

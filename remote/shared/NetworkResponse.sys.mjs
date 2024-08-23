@@ -104,20 +104,6 @@ export class NetworkResponse {
     return this.#totalTransmittedSize;
   }
 
-  /**
-   * Clear a response header from the responses's headers list.
-   *
-   * @param {string} name
-   *     The header's name.
-   */
-  clearResponseHeader(name) {
-    this.#channel.setResponseHeader(
-      name, // aName
-      "", // aValue="" as an empty value
-      false // aMerge=false to force clearing the header
-    );
-  }
-
   getComputedMimeType() {
     // TODO: DevTools NetworkObserver is computing a similar value in
     // addResponseContent, but uses an inconsistent implementation in
@@ -151,7 +137,7 @@ export class NetworkResponse {
     if (this.#isDataURL) {
       headers.push(["Content-Type", this.#channel.contentType]);
     } else {
-      this.#channel.visitResponseHeaders({
+      this.#channel.visitOriginalResponseHeaders({
         visitHeader(name, value) {
           headers.push([name, value]);
         },
@@ -159,23 +145,6 @@ export class NetworkResponse {
     }
 
     return headers;
-  }
-
-  /**
-   * Set a response header
-   *
-   * @param {string} name
-   *     The header's name.
-   * @param {string} value
-   *     The header's value.
-   * @param {object} options
-   * @param {boolean} options.merge
-   *     True if the value should be merged with the existing value, false if it
-   *     should override it. Defaults to false.
-   */
-  setResponseHeader(name, value, options) {
-    const { merge = false } = options;
-    this.#channel.setResponseHeader(name, value, merge);
   }
 
   /**

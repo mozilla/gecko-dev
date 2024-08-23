@@ -103,11 +103,6 @@ class TRRServiceChannel : public HttpBaseChannel,
     return NS_OK;
   }
 
-  NS_IMETHOD SetResponseStatus(uint32_t aStatus,
-                               const nsACString& aStatusText) override {
-    return NS_OK;
-  }
-
   [[nodiscard]] nsresult OnPush(uint32_t aPushedStreamId,
                                 const nsACString& aUrl,
                                 const nsACString& aRequestString,

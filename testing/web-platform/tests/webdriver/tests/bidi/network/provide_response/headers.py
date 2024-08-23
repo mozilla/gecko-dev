@@ -118,8 +118,6 @@ async def test_set_cookie_header_before_request_sent(
     }
     recursive_compare(expected_cookie, cookie)
 
-    await bidi_session.storage.delete_cookies()
-
 
 # Check that cookies from Set-Cookie headers of the headers parameter
 # and from the cookies parameter are both present in the response.
@@ -189,5 +187,3 @@ async def test_set_cookie_header_and_cookies_before_request_sent(
         "value": {"type": "string", "value": "biz"},
     }
     recursive_compare(expected_cookie_from_cookies_param, cookie_from_cookies_param)
-
-    await bidi_session.storage.delete_cookies()

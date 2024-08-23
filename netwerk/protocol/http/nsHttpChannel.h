@@ -210,8 +210,6 @@ class nsHttpChannel final : public HttpBaseChannel,
       WebTransportSessionEventListener* aListener) override;
   NS_IMETHOD SetResponseOverride(
       nsIReplacedHttpResponse* aReplacedHttpResponse) override;
-  NS_IMETHOD SetResponseStatus(uint32_t aStatus,
-                               const nsACString& aStatusText) override;
 
   void SetWarningReporter(HttpChannelSecurityWarningReporter* aReporter);
   HttpChannelSecurityWarningReporter* GetWarningReporter();
