@@ -563,6 +563,10 @@ main section {
     display: flex;
     flex-direction: column;
   }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer {
+    min-width: 216px;
+  }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
     grid-template-columns: repeat(4, 1fr);

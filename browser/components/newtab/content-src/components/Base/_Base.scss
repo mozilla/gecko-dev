@@ -130,6 +130,10 @@ main {
         flex-direction: column;
       }
 
+      .ds-highlights .card-outer {
+        min-width: 216px;
+      }
+
       .ds-card-grid {
         grid-template-columns: repeat(4, 1fr);
       }
