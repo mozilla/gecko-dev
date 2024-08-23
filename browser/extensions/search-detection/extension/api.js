@@ -16,6 +16,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonSearchEngine: "resource://gre/modules/AddonSearchEngine.sys.mjs",
+  AppProvidedSearchEngine:
+    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
 });
 
 // eslint-disable-next-line mozilla/reject-importGlobalProperties
@@ -46,41 +48,43 @@ this.addonsSearchDetection = class extends ExtensionAPI {
 
           try {
             await Services.search.promiseInitialized;
-            const visibleEngines = await Services.search.getEngines();
+            const engines = await Services.search.getEngines();
 
-            visibleEngines.forEach(engine => {
-              if (!(engine instanceof lazy.AddonSearchEngine)) {
-                return;
-              }
-              const { _extensionID, _urls } = engine.wrappedJSObject;
-
-              if (!_extensionID) {
-                // OpenSearch engines don't have an extension ID.
-                return;
+            for (let engine of engines) {
+              if (
+                !(engine instanceof lazy.AddonSearchEngine) &&
+                !(engine instanceof lazy.AppProvidedSearchEngine)
+              ) {
+                continue;
               }
 
-              _urls
-                // We only want to collect "search URLs" (and not "suggestion"
-                // ones for instance). See `URL_TYPE` in `SearchUtils.sys.mjs`.
-                .filter(({ type }) => type === "text/html")
-                .forEach(({ template }) => {
-                  // If this is changed, double check the code in the background
-                  // script because `webRequestCancelledHandler` splits patterns
-                  // on `*` to retrieve URL prefixes.
-                  const pattern = template.split("?")[0] + "*";
+              // The search term isn't used, but avoids a warning of an empty
+              // term.
+              let submission = engine.getSubmission("searchTerm");
+              if (submission) {
+                // If this is changed, double check the code in the background
+                // script because `getAddonIdsForUrl` truncates the last
+                // character.
+                const pattern =
+                  submission.uri.prePath + submission.uri.filePath + "*";
 
-                  // Multiple search engines could register URL templates that
-                  // would become the same URL pattern as defined above so we
-                  // store a list of extension IDs per URL pattern.
-                  if (!patterns[pattern]) {
-                    patterns[pattern] = [];
-                  }
+                // Multiple search engines could register URL templates that
+                // would become the same URL pattern as defined above so we
+                // store a list of extension IDs per URL pattern.
+                if (!patterns[pattern]) {
+                  patterns[pattern] = [];
+                }
 
-                  if (!patterns[pattern].includes(_extensionID)) {
-                    patterns[pattern].push(_extensionID);
-                  }
-                });
-            });
+                // We don't store ids for application provided search engines
+                // because we don't need to report them. However, we do ensure
+                // the pattern is recorded (above), so that we check for
+                // redirects against those.
+                const _extensionID = engine.wrappedJSObject._extensionID;
+                if (_extensionID && !patterns[pattern].includes(_extensionID)) {
+                  patterns[pattern].push(_extensionID);
+                }
+              }
+            }
           } catch (err) {
             console.error(err);
           }
