@@ -6493,8 +6493,8 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                              aWM, aCBSize, boxSizingAdjust,
                              maxBSizeCoord.AsLengthPercentage(), aspectRatio);
 
-    result.ISize(aWM) = NS_CSS_MINMAX(result.ISize(aWM), transferredMinISize,
-                                      transferredMaxISize);
+    result.ISize(aWM) =
+        CSSMinMax(result.ISize(aWM), transferredMinISize, transferredMaxISize);
   }
 
   // Flex items ignore their min & max sizing properties in their

@@ -639,10 +639,9 @@ nsresult nsSplitterFrameInner::MouseDown(Event* aMouseEvent) {
 
     maxSize.width = std::max(maxSize.width, minSize.width);
     maxSize.height = std::max(maxSize.height, minSize.height);
-    prefSize.width =
-        NS_CSS_MINMAX(prefSize.width, minSize.width, maxSize.width);
+    prefSize.width = CSSMinMax(prefSize.width, minSize.width, maxSize.width);
     prefSize.height =
-        NS_CSS_MINMAX(prefSize.height, minSize.height, maxSize.height);
+        CSSMinMax(prefSize.height, minSize.height, maxSize.height);
 
     nsMargin m;
     childBox->StyleMargin()->GetMargin(m);

@@ -70,7 +70,6 @@ struct StyleSizeOverrides {
   // than their min-content inline size.
   bool mApplyOverridesVerbatim = false;
 };
-}  // namespace mozilla
 
 /**
  * @return aValue clamped to [aMinValue, aMaxValue].
@@ -82,19 +81,21 @@ struct StyleSizeOverrides {
  *       block-size, it is simpler to use ReflowInput::ApplyMinMaxBSize().
  *       Similarly, there is ReflowInput::ApplyMinMaxISize() for clamping an
  *       inline-size.
- * @see http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
- * @see http://www.w3.org/TR/CSS21/visudet.html#min-max-heights
+ * @see https://www.w3.org/TR/CSS22/visudet.html#min-max-widths
+ * @see https://www.w3.org/TR/CSS22/visudet.html#min-max-heights
  */
 template <class NumericType>
-NumericType NS_CSS_MINMAX(NumericType aValue, NumericType aMinValue,
-                          NumericType aMaxValue) {
+NumericType CSSMinMax(NumericType aValue, NumericType aMinValue,
+                      NumericType aMaxValue) {
   NumericType result = aValue;
-  if (aMaxValue < result) result = aMaxValue;
-  if (aMinValue > result) result = aMinValue;
+  if (aMaxValue < result) {
+    result = aMaxValue;
+  }
+  if (aMinValue > result) {
+    result = aMinValue;
+  }
   return result;
 }
-
-namespace mozilla {
 
 // A base class of ReflowInput that computes only the padding,
 // border, and margin, since those values are needed more often.
