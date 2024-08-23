@@ -595,7 +595,7 @@ export const PREFS_CONFIG = new Map([
     {
       title: "Topics available",
       value:
-        "business, arts, food, health, finance, government, sports, tech, travel, education, society",
+        "business, arts, food, health, finance, government, sports, tech, travel, education-science, society",
     },
   ],
   [
