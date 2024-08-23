@@ -271,7 +271,13 @@
         return;
       }
 
-      if (event.button != 0 || event.target != this.arrowScrollbox) {
+      // Make sure it is the primary button, we are hitting our arrowscrollbox,
+      // and we're not hitting the scroll buttons.
+      if (
+        event.button != 0 ||
+        event.target != this.arrowScrollbox ||
+        event.composedTarget.localName == "toolbarbutton"
+      ) {
         return;
       }
 
