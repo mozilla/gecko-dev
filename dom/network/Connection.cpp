@@ -8,7 +8,6 @@
 #include "ConnectionMainThread.h"
 #include "ConnectionWorker.h"
 #include "Constants.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/WorkerPrivate.h"
 
 /**
@@ -30,9 +29,7 @@ Connection::Connection(nsPIDOMWindowInner* aWindow,
       mType(static_cast<ConnectionType>(kDefaultType)),
       mIsWifi(kDefaultIsWifi),
       mDHCPGateway(kDefaultDHCPGateway),
-      mBeenShutDown(false) {
-  Telemetry::Accumulate(Telemetry::NETWORK_CONNECTION_COUNT, 1);
-}
+      mBeenShutDown(false) {}
 
 Connection::~Connection() {
   NS_ASSERT_OWNINGTHREAD(Connection);
