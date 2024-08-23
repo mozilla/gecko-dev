@@ -2180,4 +2180,55 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_set_as_default_browser_prompt_enabled),
         default = FxNimbus.features.setAsDefaultPrompt.value().enabled,
     )
+
+    /**
+     * Last time the Set as default Browser prompt has been displayed to the user.
+     */
+    var lastSetAsDefaultPromptShownTimeInMillis by longPreference(
+        appContext.getPreferenceKey(R.string.pref_key_last_set_as_default_prompt_shown_time),
+        default = 0L,
+    )
+
+    /**
+     * Number of times the Set as default Browser prompt has been displayed to the user.
+     */
+    var numberOfSetAsDefaultPromptShownTimes by intPreference(
+        appContext.getPreferenceKey(R.string.pref_key_number_of_set_as_default_prompt_shown_times),
+        default = 0,
+    )
+
+    /**
+     * Number of app cold starts between Set as default Browser prompts.
+     */
+    var coldStartsBetweenSetAsDefaultPrompts by intPreference(
+        appContext.getPreferenceKey(R.string.pref_key_app_cold_start_count),
+        default = 0,
+    )
+
+    /**
+     * Number of days between Set as default Browser prompts.
+     */
+    private val daysBetweenDefaultBrowserPrompts = FxNimbus.features.setAsDefaultPrompt.value().daysBetweenPrompts
+
+    /**
+     * Maximum number of times the Set as default Browser prompt can be displayed to the user.
+     */
+    private val maxNumberOfDefaultBrowserPrompts =
+        FxNimbus.features.setAsDefaultPrompt.value().maxNumberOfTimesToDisplay
+
+    /**
+     * Number of app cold starts before displaying the Set as default Browser prompt.
+     */
+    private val appColdStartsToShowDefaultPrompt =
+        FxNimbus.features.setAsDefaultPrompt.value().appColdStartsBetweenPrompts
+
+    /**
+     * Indicates if the Set as default Browser prompt should be displayed to the user.
+     */
+    val shouldShowSetAsDefaultPrompt: Boolean
+        get() = setAsDefaultBrowserPromptForExistingUsersEnabled &&
+            (System.currentTimeMillis() - lastSetAsDefaultPromptShownTimeInMillis) >
+            daysBetweenDefaultBrowserPrompts * ONE_DAY_MS &&
+            numberOfSetAsDefaultPromptShownTimes < maxNumberOfDefaultBrowserPrompts &&
+            coldStartsBetweenSetAsDefaultPrompts >= appColdStartsToShowDefaultPrompt
 }

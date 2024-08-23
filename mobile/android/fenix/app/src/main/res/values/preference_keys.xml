@@ -417,4 +417,8 @@
 
     <!-- Set as default browser prompt for existing users -->
     <string name="pref_key_set_as_default_browser_prompt_enabled" translatable="false">pref_key_set_as_default_browser_prompt_enabled</string>
+    <string name="pref_key_last_set_as_default_prompt_shown_time" translatable="false">pref_key_last_set_as_default_prompt_shown_time</string>
+    <string name="pref_key_number_of_set_as_default_prompt_shown_times" translatable="false">pref_key_number_of_set_as_default_prompt_shown_times</string>
+    <string name="pref_key_app_cold_start_count" translatable="false">pref_key_app_cold_start_count</string>
+
 </resources>

@@ -34,6 +34,7 @@ import org.mozilla.fenix.ext.isDefaultBrowserPromptSupported
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.view.Caption
 import org.mozilla.fenix.onboarding.view.OnboardingPageUiData
@@ -257,6 +258,8 @@ class OnboardingFragment : Fragment() {
 
     private fun promptToSetAsDefaultBrowser() {
         activity?.openSetDefaultBrowserOption(useCustomTab = true)
+        requireContext().settings().coldStartsBetweenSetAsDefaultPrompts = 0
+        requireContext().settings().lastSetAsDefaultPromptShownTimeInMillis = System.currentTimeMillis()
         telemetryRecorder.onSetToDefaultClick(
             sequenceId = pagesToDisplay.telemetrySequenceId(),
             sequencePosition = pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.DEFAULT_BROWSER),
