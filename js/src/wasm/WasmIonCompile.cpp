@@ -5187,11 +5187,6 @@ class FunctionCompiler {
       return CallRefHint::unknown();
     }
 
-    // We don't track anything when inside dead code
-    if (inDeadCode()) {
-      return CallRefHint::unknown();
-    }
-
     CallRefMetricsRange rangeInModule =
         codeMeta_.getFuncDefCallRefs(funcIndex());
     uint32_t localIndex = numCallRefs_++;
@@ -7933,7 +7928,6 @@ static bool EmitSpeculativeInlineCallRef(
 
 static bool EmitCallRef(FunctionCompiler& f) {
   uint32_t bytecodeOffset = f.readBytecodeOffset();
-  CallRefHint hint = f.readCallRefHint();
   const FuncType* funcType;
   MDefinition* callee;
   DefVector args;
@@ -7941,6 +7935,10 @@ static bool EmitCallRef(FunctionCompiler& f) {
   if (!f.iter().readCallRef(&funcType, &callee, &args)) {
     return false;
   }
+
+  // We must unconditionally read a call_ref hint so that we stay in sync with
+  // how baseline generates them.
+  CallRefHint hint = f.readCallRefHint();
 
   if (f.inDeadCode()) {
     return true;

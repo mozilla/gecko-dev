@@ -297,21 +297,26 @@ class CallRefMetricsPatch {
  private:
   // The offset of where to patch in the offset of the CallRefMetrics.
   uint32_t offsetOfOffsetPatch_;
+  static constexpr uint32_t NO_OFFSET = UINT32_MAX;
 
   WASM_CHECK_CACHEABLE_POD(offsetOfOffsetPatch_);
 
  public:
-  explicit CallRefMetricsPatch(uint32_t offsetOfIndexPatch)
-      : offsetOfOffsetPatch_(offsetOfIndexPatch) {}
+  explicit CallRefMetricsPatch() : offsetOfOffsetPatch_(NO_OFFSET) {}
 
+  bool hasOffsetOfOffsetPatch() const {
+    return offsetOfOffsetPatch_ != NO_OFFSET;
+  }
   uint32_t offsetOfOffsetPatch() const { return offsetOfOffsetPatch_; }
-  void offsetOffsetBy(uint32_t indexOffset) {
-    offsetOfOffsetPatch_ += indexOffset;
+  void setOffset(uint32_t indexOffset) {
+    MOZ_ASSERT(!hasOffsetOfOffsetPatch());
+    MOZ_ASSERT(indexOffset != NO_OFFSET);
+    offsetOfOffsetPatch_ = indexOffset;
   }
 };
 
-WASM_DECLARE_CACHEABLE_POD(CallRefMetricsPatch);
-WASM_DECLARE_POD_VECTOR(CallRefMetricsPatch, CallRefMetricsPatchVector)
+using CallRefMetricsPatchVector =
+    Vector<CallRefMetricsPatch, 0, SystemAllocPolicy>;
 
 // On trap, the bytecode offset to be reported in callstacks is saved.
 

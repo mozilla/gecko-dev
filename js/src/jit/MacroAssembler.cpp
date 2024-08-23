@@ -6419,7 +6419,8 @@ void MacroAssembler::wasmReturnCallRef(
 }
 #endif
 
-void MacroAssembler::updateCallRefMetrics(const Register funcRef,
+void MacroAssembler::updateCallRefMetrics(size_t callRefIndex,
+                                          const Register funcRef,
                                           const Register scratch1,
                                           const Register scratch2) {
   MOZ_ASSERT(funcRef != scratch1);
@@ -6433,7 +6434,8 @@ void MacroAssembler::updateCallRefMetrics(const Register funcRef,
   // Emit a patchable mov32 which will load the offset of the
   // `CallRefMetrics` stored inside the `Instance::callRefMetrics_` array
   CodeOffset offsetOfCallRefOffset = move32WithPatch(scratch2);
-  append(wasm::CallRefMetricsPatch(offsetOfCallRefOffset.offset()));
+  callRefMetricsPatches()[callRefIndex].setOffset(
+      offsetOfCallRefOffset.offset());
 
   // Get a pointer to the `CallRefMetrics` for this call_ref
   loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCallRefMetrics()),

@@ -494,6 +494,10 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   }
 
   for (const CallRefMetricsPatch& patch : code.callRefMetricsPatches) {
+    if (!patch.hasOffsetOfOffsetPatch()) {
+      continue;
+    }
+
     CodeOffset offset = CodeOffset(patch.offsetOfOffsetPatch());
     offset.offsetBy(offsetInModule);
 

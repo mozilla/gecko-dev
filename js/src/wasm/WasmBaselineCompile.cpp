@@ -1810,6 +1810,7 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
 
 #ifdef ENABLE_WASM_GC
 void BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
+                           mozilla::Maybe<size_t> callRefIndex,
                            CodeOffset* fastCallOffset,
                            CodeOffset* slowCallOffset) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
@@ -1817,8 +1818,11 @@ void BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
   if (compilerEnv_.mode() == CompileMode::LazyTiering) {
-    masm.updateCallRefMetrics(WasmCallRefReg, WasmCallRefCallScratchReg0,
+    masm.updateCallRefMetrics(*callRefIndex, WasmCallRefReg,
+                              WasmCallRefCallScratchReg0,
                               WasmCallRefCallScratchReg1);
+  } else {
+    MOZ_ASSERT(callRefIndex.isNothing());
   }
   masm.wasmCallRef(desc, callee, fastCallOffset, slowCallOffset);
 }
@@ -5394,6 +5398,17 @@ bool BaseCompiler::emitCallRef() {
     return false;
   }
 
+  // Add a metrics entry to track this call_ref site. Do this even if we're in
+  // 'dead code' to have easy consistency with ion, which consumes these.
+  Maybe<size_t> callRefIndex;
+  if (compilerEnv_.mode() == CompileMode::LazyTiering) {
+    masm.append(wasm::CallRefMetricsPatch());
+    if (masm.oom()) {
+      return false;
+    }
+    callRefIndex = Some(masm.callRefMetricsPatches().length() - 1);
+  }
+
   if (deadCode_) {
     return true;
   }
@@ -5424,7 +5439,7 @@ bool BaseCompiler::emitCallRef() {
   const Stk& callee = peek(results.count());
   CodeOffset fastCallOffset;
   CodeOffset slowCallOffset;
-  callRef(callee, baselineCall, &fastCallOffset, &slowCallOffset);
+  callRef(callee, baselineCall, callRefIndex, &fastCallOffset, &slowCallOffset);
   if (!createStackMap("emitCallRef", fastCallOffset)) {
     return false;
   }
