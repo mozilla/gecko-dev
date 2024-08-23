@@ -365,6 +365,8 @@ class _SearchTestUtils {
    *
    * @param {Array} engineConfigurations
    *   An array of engine configurations.
+   * @returns {AppProvidedSearchEngine[]}
+   *   An array of app provided search engine objects.
    */
   async searchConfigToEngines(engineConfigurations) {
     return engineConfigurations.map(
