@@ -10,7 +10,7 @@ use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
-use crate::stylesheets::CssRules;
+use crate::stylesheets::{CssRules, style_or_page_rule_to_css};
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{
@@ -73,32 +73,8 @@ impl ToCssWithGuard for StyleRule {
     /// https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         use cssparser::ToCss;
-        // Step 1
         self.selectors.to_css(dest)?;
-        dest.write_str(" {")?;
-
-        // Step 2
-        let declaration_block = self.block.read_with(guard);
-        let has_declarations = !declaration_block.declarations().is_empty();
-
-        // Step 3
-        if let Some(ref rules) = self.rules {
-            let rules = rules.read_with(guard);
-            // Step 6 (here because it's more convenient)
-            if !rules.is_empty() {
-                if has_declarations {
-                    dest.write_str("\n  ")?;
-                    declaration_block.to_css(dest)?;
-                }
-                return rules.to_css_block_without_opening(guard, dest);
-            }
-        }
-
-        // Steps 4 & 5
-        if has_declarations {
-            dest.write_char(' ')?;
-            declaration_block.to_css(dest)?;
-        }
-        dest.write_str(" }")
+        dest.write_char(' ')?;
+        style_or_page_rule_to_css(self.rules.as_ref(), &self.block, guard, dest)
     }
 }

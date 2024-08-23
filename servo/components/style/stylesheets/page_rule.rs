@@ -8,10 +8,11 @@
 
 use crate::parser::{Parse, ParserContext};
 use crate::properties::PropertyDeclarationBlock;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{
+    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+};
 use crate::str::CssStringWriter;
-use crate::stylesheets::CssRules;
+use crate::stylesheets::{CssRules, style_or_page_rule_to_css};
 use crate::values::{AtomIdent, CustomIdent};
 use cssparser::{Parser, SourceLocation, Token};
 #[cfg(feature = "gecko")]
@@ -339,8 +340,7 @@ impl PageRule {
 }
 
 impl ToCssWithGuard for PageRule {
-    /// Serialization of PageRule is not specced, adapted from steps for
-    /// StyleRule.
+    /// Serialization of PageRule is not specced, adapted from steps for StyleRule.
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         // https://drafts.csswg.org/cssom/#serialize-a-css-rule
         dest.write_str("@page ")?;
@@ -348,27 +348,7 @@ impl ToCssWithGuard for PageRule {
             self.selectors.to_css(&mut CssWriter::new(dest))?;
             dest.write_char(' ')?;
         }
-        dest.write_char('{')?;
-
-        // TODO: share more/most of this with style rules
-        // https://bugzilla.mozilla.org/1867164
-        let declaration_block = self.block.read_with(guard);
-        let has_declarations = !declaration_block.declarations().is_empty();
-
-        let rules = self.rules.read_with(guard);
-        if !rules.is_empty() {
-            if has_declarations {
-                dest.write_str("\n  ")?;
-                declaration_block.to_css(dest)?;
-            }
-            return rules.to_css_block_without_opening(guard, dest);
-        }
-
-        if has_declarations {
-            dest.write_char(' ')?;
-            declaration_block.to_css(dest)?;
-        }
-        dest.write_str(" }")
+        style_or_page_rule_to_css(Some(&self.rules), &self.block, guard, dest)
     }
 }
 
