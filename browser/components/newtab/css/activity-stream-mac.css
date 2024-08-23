@@ -2163,7 +2163,10 @@ main section {
   gap: unset;
   grid-auto-rows: unset;
   grid-template-columns: unset;
-  height: 100%;
+  /* XXXdholbert The 32px subtraction here is to account for our 16px of
+   * margin on top and bottom. Ideally this should change to use
+   * 'height: stretch' when bug 1789477 lands. */
+  height: calc(100% - 32px);
   inset-inline-start: 25px;
   position: absolute;
   top: 0;
