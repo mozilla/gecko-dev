@@ -17,61 +17,12 @@
 #include "mozilla/IOInterposer.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ThreadEventQueue.h"
-#include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryHistogramEnums.h"
 
 #ifdef XP_WIN
 #  include <windows.h>
 #endif
 
 namespace mozilla::net {
-
-namespace {  // anon
-
-class CacheIOTelemetry {
- public:
-  using size_type = CacheIOThread::EventQueue::size_type;
-  static size_type mMinLengthToReport[CacheIOThread::LAST_LEVEL];
-  static void Report(uint32_t aLevel, size_type aLength);
-};
-
-static CacheIOTelemetry::size_type const kGranularity = 30;
-
-CacheIOTelemetry::size_type
-    CacheIOTelemetry::mMinLengthToReport[CacheIOThread::LAST_LEVEL] = {
-        kGranularity, kGranularity, kGranularity, kGranularity,
-        kGranularity, kGranularity, kGranularity, kGranularity};
-
-// static
-void CacheIOTelemetry::Report(uint32_t aLevel,
-                              CacheIOTelemetry::size_type aLength) {
-  if (mMinLengthToReport[aLevel] > aLength) {
-    return;
-  }
-
-  static Telemetry::HistogramID telemetryID[] = {
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_OPEN_PRIORITY,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_READ_PRIORITY,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_MANAGEMENT,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_OPEN,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_READ,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_WRITE_PRIORITY,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_WRITE,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_INDEX,
-      Telemetry::HTTP_CACHE_IO_QUEUE_2_EVICT};
-
-  // Each bucket is a multiply of kGranularity (30, 60, 90..., 300+)
-  aLength = (aLength / kGranularity);
-  // Next time report only when over the current length + kGranularity
-  mMinLengthToReport[aLevel] = (aLength + 1) * kGranularity;
-
-  // 10 is number of buckets we have in each probe
-  aLength = std::min<size_type>(aLength, 10);
-
-  Telemetry::Accumulate(telemetryID[aLevel], aLength - 1);  // counted from 0
-}
-
-}  // namespace
 
 namespace detail {
 
@@ -460,7 +411,6 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
   mCurrentlyExecutingLevel = aLevel;
 
   bool returnEvents = false;
-  bool reportTelemetry = true;
 
   EventQueue::size_type index;
   {
@@ -472,11 +422,6 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
         // to execute it!  Don't forget to return what we haven't exec.
         returnEvents = true;
         break;
-      }
-
-      if (reportTelemetry) {
-        reportTelemetry = false;
-        CacheIOTelemetry::Report(aLevel, length);
       }
 
       // Drop any previous flagging, only an event on the current level may set
