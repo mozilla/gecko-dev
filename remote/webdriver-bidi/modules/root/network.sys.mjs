@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/NetworkDecodedBodySizeMap.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
+  Log: "chrome://remote/content/shared/Log.sys.mjs",
   matchURLPattern:
     "chrome://remote/content/shared/webdriver/URLPattern.sys.mjs",
   NetworkListener:
@@ -29,6 +30,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   updateCacheBehavior:
     "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
 });
+
+ChromeUtils.defineLazyGetter(lazy, "logger", () =>
+  lazy.Log.get(lazy.Log.TYPES.WEBDRIVER_BIDI)
+);
 
 /**
  * @typedef {object} AuthChallenge
@@ -295,6 +300,15 @@ const SameSite = {
  * @typedef {BaseParameters & ResponseCompletedParametersProperties} ResponseCompletedParameters
  */
 /* eslint-enable jsdoc/valid-types */
+
+// @see https://searchfox.org/mozilla-central/rev/527d691a542ccc0f333e36689bd665cb000360b2/netwerk/protocol/http/HttpBaseChannel.cpp#2083-2088
+const IMMUTABLE_RESPONSE_HEADERS = [
+  "content-encoding",
+  "content-length",
+  "content-type",
+  "trailer",
+  "transfer-encoding",
+];
 
 class NetworkModule extends RootBiDiModule {
   #beforeStopRequestListener;
@@ -657,31 +671,27 @@ class NetworkModule extends RootBiDiModule {
       for (const cookie of cookies) {
         this.#assertSetCookieHeader(cookie);
       }
-
-      throw new lazy.error.UnsupportedOperationError(
-        `"cookies" not supported yet in network.continueResponse`
-      );
     }
 
     if (credentials !== null) {
       this.#assertAuthCredentials(credentials);
     }
 
+    let deserializedHeaders = [];
     if (headers !== null) {
-      lazy.assert.array(
-        headers,
-        `Expected "headers" to be an array got ${headers}`
-      );
-
-      for (const header of headers) {
-        this.#assertHeader(
-          header,
-          `Expected values in "headers" to be network.Header, got ${header}`
-        );
-      }
-
-      throw new lazy.error.UnsupportedOperationError(
-        `"headers" not supported yet in network.continueResponse`
+      // For existing responses, are unable to update some response headers,
+      // so we skip them for the time being and log a warning.
+      // Bug 1914351 should remove this limitation.
+      deserializedHeaders = this.#deserializeHeaders(headers).filter(
+        ([name]) => {
+          if (IMMUTABLE_RESPONSE_HEADERS.includes(name.toLowerCase())) {
+            lazy.logger.warn(
+              `network.continueResponse cannot currently modify the header "${name}", skipping (see Bug 1914351).`
+            );
+            return false;
+          }
+          return true;
+        }
       );
     }
 
@@ -713,8 +723,33 @@ class NetworkModule extends RootBiDiModule {
       );
     }
 
-    const { authCallbacks, phase, request, resolveBlockedEvent } =
+    const { authCallbacks, phase, request, resolveBlockedEvent, response } =
       this.#blockedRequests.get(requestId);
+
+    if (headers !== null) {
+      // Delete all existing response headers.
+      response
+        .getHeadersList()
+        .filter(
+          ([name]) =>
+            // All headers in IMMUTABLE_RESPONSE_HEADERS cannot be changed and
+            // will lead to a NS_ERROR_ILLEGAL_VALUE error.
+            // Bug 1914351 should remove this limitation.
+            !IMMUTABLE_RESPONSE_HEADERS.includes(name.toLowerCase())
+        )
+        .forEach(([name]) => response.clearResponseHeader(name));
+
+      for (const [name, value] of deserializedHeaders) {
+        response.setResponseHeader(name, value, { merge: true });
+      }
+    }
+
+    if (cookies !== null) {
+      for (const cookie of cookies) {
+        const headerValue = this.#serializeSetCookieHeader(cookie);
+        response.setResponseHeader("Set-Cookie", headerValue, { merge: true });
+      }
+    }
 
     if (
       phase !== InterceptPhase.ResponseStarted &&
@@ -989,7 +1024,7 @@ class NetworkModule extends RootBiDiModule {
           replacedHttpResponse.setResponseHeader(
             "Set-Cookie",
             headerValue,
-            false
+            true
           );
         }
       }
