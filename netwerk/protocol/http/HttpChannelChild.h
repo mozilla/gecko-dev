@@ -110,6 +110,11 @@ class HttpChannelChild final : public PHttpChannelChild,
       nsIReplacedHttpResponse* aReplacedHttpResponse) override {
     return NS_OK;
   }
+
+  NS_IMETHOD SetResponseStatus(uint32_t aStatus,
+                               const nsACString& aStatusText) override {
+    return NS_OK;
+  }
   // nsISupportsPriority
   NS_IMETHOD SetPriority(int32_t value) override;
   // nsIClassOfService

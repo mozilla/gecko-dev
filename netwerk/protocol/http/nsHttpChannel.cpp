@@ -11116,6 +11116,23 @@ NS_IMETHODIMP nsHttpChannel::SetResponseOverride(
   return NS_OK;
 }
 
+NS_IMETHODIMP nsHttpChannel::SetResponseStatus(uint32_t aStatus,
+                                               const nsACString& aStatusText) {
+  if (!mResponseHead) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsAutoCString statusText(aStatusText);
+  nsAutoCString protocolVersion(
+      nsHttp::GetProtocolVersion(mResponseHead->Version()));
+  ToUpperCase(protocolVersion);
+
+  nsPrintfCString line("%s %u %s", protocolVersion.get(), aStatus,
+                       statusText.get());
+
+  return mResponseHead->ParseStatusLine(line);
+}
+
 NS_IMETHODIMP nsHttpChannel::SetWebTransportSessionEventListener(
     WebTransportSessionEventListener* aListener) {
   mWebTransportSessionEventListener = aListener;

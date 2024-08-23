@@ -530,5 +530,12 @@ interface nsIHttpChannelInternal : nsISupports
     [must_use] void setResponseOverride(
         in nsIReplacedHttpResponse aReplacedHttpResponse);
 
+    /**
+     * Updates the status and statusText for the response. Must be called after
+     * we start receiving the response, eg. http-on-examine-response.
+     */
+    [must_use] void setResponseStatus(
+        in unsigned long aStatus, in ACString aStatusText);
+
     readonly attribute nsresult lastTransportStatus;
 };
