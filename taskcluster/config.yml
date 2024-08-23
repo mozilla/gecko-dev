@@ -866,6 +866,11 @@ workers:
             implementation: generic-worker
             os: linux
             worker-type: 'gecko-{alias}'
+        t-linux-netperf-1804:
+            provisioner: releng-hardware
+            implementation: generic-worker
+            os: linux
+            worker-type: 'gecko-{alias}'
         t-linux-talos-1804:
             provisioner: releng-hardware
             implementation: generic-worker
