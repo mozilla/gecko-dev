@@ -9,58 +9,27 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
 .search-wrapper {
   padding: 34px 0 38px;
 
-  .only-search & {
-    padding: 0 0 38px;
+  // Bug 1914055 - Layout experiment: search spacing
+  .layout-variant-a &,
+  .layout-variant-b & {
+    padding-top: 0;
+    padding-bottom: 32px;
   }
 
-  .logo-and-wordmark {
-    $logo-size: 82px;
-    $wordmark-size: 134px;
+  // Edge case for users who have pocket stories turned off
+  .layout-variant-a.no-recommended-stories &,
+  .layout-variant-b.no-recommended-stories & {
+    padding-bottom: 40px;
+  }
 
-    align-items: center;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 48px;
+  // Edge case for users who have only search enabled
+  .layout-variant-a .only-search &,
+  .layout-variant-b .only-search & {
+    padding-bottom: 40px;
+  }
 
-    .logo {
-      display: inline-block;
-      height: $logo-size;
-      width: $logo-size;
-      background: image-set(url('chrome://branding/content/about-logo.png'), url('chrome://branding/content/about-logo@2x.png') 2x) no-repeat center;
-      background-size: $logo-size;
-    }
-
-    .wordmark {
-      background: url('chrome://branding/content/firefox-wordmark.svg') no-repeat center center;
-      background-size: $wordmark-size;
-      -moz-context-properties: fill;
-      display: inline-block;
-      fill: var(--newtab-wordmark-color);
-      height: $logo-size;
-      margin-inline-start: 16px;
-      width: $wordmark-size;
-
-      // Contrast fix for users who have wallpapers set
-      @include wallpaper-contrast-fix;
-    }
-
-    @media (max-width: $break-point-medium - 1) {
-      $logo-size-small: 64px;
-      $wordmark-small-size: 100px;
-
-      .logo {
-        background-size: $logo-size-small;
-        height: $logo-size-small;
-        width: $logo-size-small;
-      }
-
-      .wordmark {
-        background-size: $wordmark-small-size;
-        height: $logo-size-small;
-        width: $wordmark-small-size;
-        margin-inline-start: 12px;
-      }
-    }
+  .only-search & {
+    padding: 0 0 38px;
   }
 
   .search-inner-wrapper {

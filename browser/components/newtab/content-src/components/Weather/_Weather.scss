@@ -17,6 +17,13 @@
     margin-block-start: 0;
     margin-inline-start: 0;
     z-index: 1;
+
+    // Bug 1914055 - Layout experiment: logo/search spacing
+    .layout-variant-a &,
+    .layout-variant-b & {
+      inset-inline-start: 24px;
+      inset-block-start: 24px;
+    }
   }
 
   // Edge case: users with weather enabled/search disabled
@@ -51,6 +58,16 @@
   }
 }
 
+// Bug 1914055 - Layout experiment: logo/search spacing
+.layout-variant-a.has-weather.no-search,
+.layout-variant-b.has-weather.no-search {
+  .outer-wrapper {
+    @media (min-width: $break-point-medium) {
+      padding-top: 24px;
+    }
+  }
+}
+
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {
   .outer-wrapper:not(.only-search) {
@@ -72,6 +89,16 @@
 
     @media (min-width: $break-point-large) {
       display: flex;
+    }
+  }
+}
+
+// Bug 1914055 - Layout experiment: logo/search spacing
+.layout-variant-a.has-weather.has-search,
+.layout-variant-b.has-weather.has-search {
+  .outer-wrapper:not(.only-search) {
+    @media (min-width: $break-point-medium) {
+      padding-top: 24px;
     }
   }
 }

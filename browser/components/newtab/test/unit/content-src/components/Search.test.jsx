@@ -2,6 +2,7 @@ import { GlobalOverrider } from "test/unit/utils";
 import { mount, shallow } from "enzyme";
 import React from "react";
 import { _Search as Search } from "content-src/components/Search/Search";
+import { Logo } from "content-src/components/Logo/Logo";
 
 const DEFAULT_PROPS = {
   dispatch() {},
@@ -81,15 +82,15 @@ describe("<Search>", () => {
   });
   it("should show our logo when the prop exists.", () => {
     const showLogoProps = Object.assign({}, DEFAULT_PROPS, { showLogo: true });
-
     const wrapper = shallow(<Search {...showLogoProps} />);
-    assert.lengthOf(wrapper.find(".logo-and-wordmark"), 1);
+    const logo_component = wrapper.find(Logo);
+    assert.ok(logo_component.exists());
   });
   it("should not show our logo when the prop does not exist.", () => {
     const hideLogoProps = Object.assign({}, DEFAULT_PROPS, { showLogo: false });
-
     const wrapper = shallow(<Search {...hideLogoProps} />);
-    assert.lengthOf(wrapper.find(".logo-and-wordmark"), 0);
+    const logo_component = wrapper.find(Logo);
+    assert.ok(!logo_component.exists());
   });
 
   describe("Search Hand-off", () => {

@@ -12,6 +12,7 @@ import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMen
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
+import { Logo } from "content-src/components/Logo/Logo";
 import { Weather } from "content-src/components/Weather/Weather";
 import { Notifications } from "content-src/components/Notifications/Notifications";
 import { TopicSelection } from "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection";
@@ -496,6 +497,7 @@ export class BaseContent extends React.PureComponent {
       prefs.showSearch ? "has-search" : "no-search",
       layoutsVariantAEnabled ? "layout-variant-a" : "", // Layout experiment variant A
       layoutsVariantBEnabled ? "layout-variant-b" : "", // Layout experiment variant B
+      pocketEnabled ? "has-recommended-stories" : "no-recommended-stories",
     ]
       .filter(v => v)
       .join(" ");
@@ -573,6 +575,10 @@ export class BaseContent extends React.PureComponent {
                 </ErrorBoundary>
               </div>
             )}
+            {/* Bug 1914055: Show logo regardless if search is enabled */}
+            {!prefs.showSearch &&
+              layoutsVariantAEnabled &&
+              !noSectionsEnabled && <Logo />}
             <div className={`body-wrapper${initialized ? " on" : ""}`}>
               {isDiscoveryStream ? (
                 <ErrorBoundary className="borderless-error">

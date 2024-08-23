@@ -663,6 +663,55 @@ main section {
   text-decoration: underline;
 }
 
+.logo-and-wordmark {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+.layout-variant-a .logo-and-wordmark, .layout-variant-b .logo-and-wordmark {
+  margin-bottom: 32px;
+}
+.layout-variant-a.no-recommended-stories .logo-and-wordmark, .layout-variant-b.no-recommended-stories .logo-and-wordmark {
+  margin-bottom: 40px;
+}
+.logo-and-wordmark .logo {
+  display: inline-block;
+  height: 64px;
+  width: 64px;
+  background: image-set(url("chrome://branding/content/about-logo.png"), url("chrome://branding/content/about-logo@2x.png") 2x) no-repeat center;
+  background-size: 64px;
+}
+.logo-and-wordmark .wordmark {
+  background: url("chrome://branding/content/firefox-wordmark.svg") no-repeat center center;
+  background-size: 105px;
+  -moz-context-properties: fill;
+  display: inline-block;
+  fill: var(--newtab-wordmark-color);
+  height: 64px;
+  margin-inline-start: 16px;
+  width: 105px;
+}
+.lightWallpaper .logo-and-wordmark .wordmark {
+  color-scheme: light;
+}
+.darkWallpaper .logo-and-wordmark .wordmark {
+  color-scheme: dark;
+}
+@media (max-width: 609px) {
+  .logo-and-wordmark .logo {
+    background-size: 64px;
+    height: 64px;
+    width: 64px;
+  }
+  .logo-and-wordmark .wordmark {
+    background-size: 100px;
+    height: 64px;
+    width: 100px;
+    margin-inline-start: 12px;
+  }
+}
+
 /* stylelint-disable max-nesting-depth */
 .top-sites-list {
   list-style: none;
@@ -1359,50 +1408,18 @@ main section {
 .search-wrapper {
   padding: 34px 0 38px;
 }
+.layout-variant-a .search-wrapper, .layout-variant-b .search-wrapper {
+  padding-top: 0;
+  padding-bottom: 32px;
+}
+.layout-variant-a.no-recommended-stories .search-wrapper, .layout-variant-b.no-recommended-stories .search-wrapper {
+  padding-bottom: 40px;
+}
+.layout-variant-a .only-search .search-wrapper, .layout-variant-b .only-search .search-wrapper {
+  padding-bottom: 40px;
+}
 .only-search .search-wrapper {
   padding: 0 0 38px;
-}
-.search-wrapper .logo-and-wordmark {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 48px;
-}
-.search-wrapper .logo-and-wordmark .logo {
-  display: inline-block;
-  height: 82px;
-  width: 82px;
-  background: image-set(url("chrome://branding/content/about-logo.png"), url("chrome://branding/content/about-logo@2x.png") 2x) no-repeat center;
-  background-size: 82px;
-}
-.search-wrapper .logo-and-wordmark .wordmark {
-  background: url("chrome://branding/content/firefox-wordmark.svg") no-repeat center center;
-  background-size: 134px;
-  -moz-context-properties: fill;
-  display: inline-block;
-  fill: var(--newtab-wordmark-color);
-  height: 82px;
-  margin-inline-start: 16px;
-  width: 134px;
-}
-.lightWallpaper .search-wrapper .logo-and-wordmark .wordmark {
-  color-scheme: light;
-}
-.darkWallpaper .search-wrapper .logo-and-wordmark .wordmark {
-  color-scheme: dark;
-}
-@media (max-width: 609px) {
-  .search-wrapper .logo-and-wordmark .logo {
-    background-size: 64px;
-    height: 64px;
-    width: 64px;
-  }
-  .search-wrapper .logo-and-wordmark .wordmark {
-    background-size: 100px;
-    height: 64px;
-    width: 100px;
-    margin-inline-start: 12px;
-  }
 }
 .search-wrapper .search-inner-wrapper {
   cursor: default;
@@ -2245,6 +2262,10 @@ main section {
     margin-inline-start: 0;
     z-index: 1;
   }
+  .layout-variant-a .weather, .layout-variant-b .weather {
+    inset-inline-start: 24px;
+    inset-block-start: 24px;
+  }
 }
 .no-search .weather {
   position: relative;
@@ -2276,6 +2297,13 @@ main section {
   }
 }
 
+@media (min-width: 610px) {
+  .layout-variant-a.has-weather.no-search .outer-wrapper,
+.layout-variant-b.has-weather.no-search .outer-wrapper {
+    padding-top: 24px;
+  }
+}
+
 .has-weather.has-search .outer-wrapper:not(.only-search) {
   padding-top: 0;
 }
@@ -2295,6 +2323,13 @@ main section {
 @media (min-width: 866px) {
   .has-weather.has-search .weatherIconCol, .has-weather.has-search .weatherDetailedSummaryRow {
     display: flex;
+  }
+}
+
+@media (min-width: 610px) {
+  .layout-variant-a.has-weather.has-search .outer-wrapper:not(.only-search),
+.layout-variant-b.has-weather.has-search .outer-wrapper:not(.only-search) {
+    padding-top: 24px;
   }
 }
 
