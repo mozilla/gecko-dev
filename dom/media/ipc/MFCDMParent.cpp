@@ -605,23 +605,23 @@ static bool FactorySupports(ComPtr<IMFContentDecryptionModuleFactory>& aFactory,
     contentType.AppendLiteral(u",");
     contentType.AppendASCII(aAudioCodec);
   }
-  // These features are required to call IsTypeSupported(). We only care about
-  // codec and encryption scheme so hardcode the rest.
-  contentType.AppendLiteral(
-      u"\";features=\"decode-bpp=8,"
-      "decode-res-x=1920,decode-res-y=1080,"
-      "decode-bitrate=10000000,decode-fps=30,");
-  if (!aAdditionalFeatures.IsEmpty()) {
-    contentType.Append(aAdditionalFeatures);
-  }
-  // `encryption-robustness` is for Widevine only.
+  contentType.AppendLiteral(u"\";features=\"");
   if (IsWidevineExperimentKeySystemAndSupported(aKeySystem) ||
       IsWidevineKeySystem(aKeySystem)) {
+    // This decoder subsystem settings are only required by Wivevine.
+    contentType.AppendLiteral(
+        u"decode-bpp=8,"
+        "decode-res-x=1920,decode-res-y=1080,"
+        "decode-bitrate=10000000,decode-fps=30,");
+    // `encryption-robustness` is for Widevine only.
     if (aIsHWSecure) {
-      contentType.AppendLiteral(u"encryption-robustness=HW_SECURE_ALL");
+      contentType.AppendLiteral(u"encryption-robustness=HW_SECURE_ALL,");
     } else {
-      contentType.AppendLiteral(u"encryption-robustness=SW_SECURE_DECODE");
+      contentType.AppendLiteral(u"encryption-robustness=SW_SECURE_DECODE,");
     }
+  }
+  if (!aAdditionalFeatures.IsEmpty()) {
+    contentType.Append(aAdditionalFeatures);
   }
   contentType.AppendLiteral(u"\"");
   // End of the query string
