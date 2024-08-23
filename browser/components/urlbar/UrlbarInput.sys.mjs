@@ -896,7 +896,6 @@ export class UrlbarInput {
    *   mode when handing `searchString` from the fake input to the Urlbar.
    * @param {string} newtabSessionId
    *   Optional. The id of the newtab session that handed off this search.
-   *
    */
   handoff(searchString, searchEngine, newtabSessionId) {
     this._isHandoffSession = true;

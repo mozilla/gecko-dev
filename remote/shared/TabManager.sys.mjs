@@ -425,7 +425,6 @@ class TabManagerClass {
    * @param {boolean=} options.skipPermitUnload
    *     Flag to indicate if a potential beforeunload prompt should be skipped
    *     when closing the tab. Defaults to false.
-
    */
   async removeTab(tab, options = {}) {
     const { skipPermitUnload = false } = options;

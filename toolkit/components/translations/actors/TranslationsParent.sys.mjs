@@ -1638,7 +1638,6 @@ export class TranslationsParent extends JSWindowActorParent {
    * @param {number} majorVersion
    * @param {string} nextVersion
    * @param {string} [existingVersion]
-   *
    */
   static isBetterRecordVersion(majorVersion, nextVersion, existingVersion) {
     return (

@@ -81,7 +81,6 @@ export class NavigationListenerChild extends JSWindowActorChild {
    *       - browsingContextId: browsing context id
    *       - isTopBrowsingContext: flag that indicates if the browsing context is
    *         top level
-   *
    */
   #getBrowsingContextDetails(browsingContext) {
     return {

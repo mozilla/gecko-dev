@@ -420,7 +420,6 @@ export class SearchSettings {
    *
    * @returns {*}
    *   A copy of the settings metadata object.
-   *
    */
   getSettingsMetaData() {
     return { ...this.#settings.metaData };
@@ -438,7 +437,6 @@ export class SearchSettings {
    *   The value of the attribute.
    *   We return undefined if the value of the attribute is not known or does
    *   not match the verification hash.
-   *
    */
   getVerifiedMetaDataAttribute(name, isAppProvided) {
     let attribute = this.getMetaDataAttribute(name);

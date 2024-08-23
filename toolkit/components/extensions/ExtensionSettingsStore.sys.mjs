@@ -36,7 +36,6 @@
  *     }
  *   }
  * }
- *
  */
 
 import { ExtensionParent } from "resource://gre/modules/ExtensionParent.sys.mjs";

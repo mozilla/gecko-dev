@@ -16,10 +16,10 @@ module.exports = {
     "jsdoc/check-tag-names": "error",
     "jsdoc/check-types": "error",
     "jsdoc/empty-tags": "error",
-    "jsdoc/newline-after-description": "error",
     "jsdoc/no-multi-asterisks": "error",
     "jsdoc/require-param-type": "error",
     "jsdoc/require-returns-type": "error",
+    "jsdoc/tag-lines": ["error", "any", { startLines: 1 }],
     "jsdoc/valid-types": "error",
   },
   settings: {

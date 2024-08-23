@@ -124,7 +124,6 @@ if (typeof Mozilla == "undefined") {
    * .. code-block:: javascript
    *
    *    [...UITour.targets.keys()].join("\n* - ")
-   *
    */
 
   /**
@@ -399,7 +398,6 @@ if (typeof Mozilla == "undefined") {
    *   DEPRECATED, use 'fxa'
    * - :js:func:`fxa <Mozilla.UITour.Configuration.FxA>`
    * - :js:func:`fxaConnections <Mozilla.UITour.Configuration.FxAConnections>`
-   *
    */
 
   /**

@@ -484,7 +484,6 @@ export class Runtime extends ContentProcessDomain {
    *     "default" or "isolated"
    *
    * @returns {number} ID of created context
-   *
    */
   _onContextCreated(name, options = {}) {
     const {
