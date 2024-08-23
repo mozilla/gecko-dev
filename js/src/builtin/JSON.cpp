@@ -25,6 +25,7 @@
 #include "js/friend/StackLimits.h"    // js::AutoCheckRecursionLimit
 #include "js/Object.h"                // JS::GetBuiltinClass
 #include "js/Prefs.h"                 // JS::Prefs
+#include "js/ProfilingCategory.h"
 #include "js/PropertySpec.h"
 #include "js/StableStringChars.h"
 #include "js/TypeDecls.h"
@@ -1962,6 +1963,8 @@ template <typename CharT>
 bool js::ParseJSONWithReviver(JSContext* cx,
                               const mozilla::Range<const CharT> chars,
                               HandleValue reviver, MutableHandleValue vp) {
+  js::AutoGeckoProfilerEntry pseudoFrame(cx, "parse JSON",
+                                         JS::ProfilingCategoryPair::JS_Parsing);
   /* https://262.ecma-international.org/14.0/#sec-json.parse steps 2-10. */
   Rooted<ParseRecordObject> pro(cx);
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE
