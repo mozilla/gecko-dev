@@ -38,7 +38,6 @@ def make_signing_description(config, jobs):
 def define_upstream_artifacts(config, jobs):
     for job in jobs:
         dep_job = get_primary_dependency(config, job)
-        upstream_artifact_task = job.pop("upstream-artifact-task", dep_job)
 
         job.setdefault("attributes", {}).update(
             copy_attributes_from_dependent_job(dep_job)
@@ -51,20 +50,18 @@ def define_upstream_artifacts(config, jobs):
             config,
             job,
             keep_locale_template=True,
-            dep_kind=upstream_artifact_task.kind,
+            dep_kind=dep_job.kind,
         )
 
         upstream_artifacts = []
         for spec in locale_specifications:
             upstream_task_type = "l10n"
-            if upstream_artifact_task.kind.endswith(
-                ("-mac-notarization", "-mac-signing")
-            ):
+            if dep_job.kind.endswith(("-mac-notarization", "-mac-signing")):
                 # Upstream is mac signing or notarization
                 upstream_task_type = "scriptworker"
             upstream_artifacts.append(
                 {
-                    "taskId": {"task-reference": f"<{upstream_artifact_task.kind}>"},
+                    "taskId": {"task-reference": f"<{dep_job.kind}>"},
                     "taskType": upstream_task_type,
                     # Set paths based on artifacts in the specs (above) one per
                     # locale present in the chunk this is signing stuff for.
@@ -73,9 +70,7 @@ def define_upstream_artifacts(config, jobs):
                     "paths": sorted(
                         {
                             path_template.format(locale=locale)
-                            for locale in upstream_artifact_task.attributes.get(
-                                "chunk_locales", []
-                            )
+                            for locale in dep_job.attributes.get("chunk_locales", [])
                             for path_template in spec["artifacts"]
                         }
                     ),

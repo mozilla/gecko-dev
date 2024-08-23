@@ -37,9 +37,7 @@ def build_treeherder_definition(config, tasks):
             primary_dep = task.pop("primary-dependency")
 
         elif not primary_dep:
-            deps = list(get_dependencies(config, task)) or list(
-                task["dependent-tasks"].values()
-            )
+            deps = list(get_dependencies(config, task))
             primary_dep = deps[0]
 
         task.setdefault("treeherder", {}).update(

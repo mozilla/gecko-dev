@@ -7,7 +7,6 @@ loader: taskgraph.loader.transform:loader
 transforms:
     - taskgraph.transforms.from_deps
     - gecko_taskgraph.transforms.name_sanity
-    - gecko_taskgraph.transforms.upstream_artifact_task
     - gecko_taskgraph.transforms.shippable_l10n_signing
     - gecko_taskgraph.transforms.signing
     - gecko_taskgraph.transforms.task
