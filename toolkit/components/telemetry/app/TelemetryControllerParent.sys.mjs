@@ -157,6 +157,8 @@ export var TelemetryController = Object.freeze({
    * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    * @returns {Promise} Test-only - a promise that resolves with the ping id once the ping is stored or sent.
    */
   submitExternalPing(aType, aPayload, aOptions = {}) {
@@ -192,6 +194,8 @@ export var TelemetryController = Object.freeze({
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    *
    * @returns {Promise} A promise that resolves with the ping id when the ping is saved to
    *                    disk.
@@ -374,6 +378,8 @@ var Impl = {
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    * @param {Boolean} [aOptions.useEncryption=false] if true, encrypt data client-side before sending.
    * @param {Object}  [aOptions.publicKey=null] the public key to use if encryption is enabled (JSON Web Key).
    * @param {String}  [aOptions.encryptionKeyId=null] the public key ID to use if encryption is enabled.
@@ -406,9 +412,14 @@ var Impl = {
       payload,
     };
 
-    if (aOptions.addClientId || aOptions.overrideClientId) {
-      pingData.clientId = aOptions.overrideClientId || this._clientID;
-      pingData.profileGroupId = this._profileGroupID;
+    if (
+      aOptions.addClientId ||
+      aOptions.overrideClientId ||
+      aOptions.overrideProfileGroupId
+    ) {
+      pingData.clientId = aOptions.overrideClientId ?? this._clientID;
+      pingData.profileGroupId =
+        aOptions.overrideProfileGroupId ?? this._profileGroupID;
     }
 
     if (aOptions.addEnvironment) {
@@ -460,16 +471,23 @@ var Impl = {
    *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
    */
   async _submitPingLogic(aType, aPayload, aOptions) {
     // Make sure to have a clientId if we need one. This cover the case of submitting
     // a ping early during startup, before Telemetry is initialized, if no client id was
     // cached.
-    if (
-      aOptions.addClientId &&
-      (!this._profileGroupID || (!this._clientID && !aOptions.overrideClientId))
-    ) {
+    let needsIdentifiers =
+      aOptions.addClientId ||
+      aOptions.overrideClientId ||
+      aOptions.overrideProfileGroupId;
+    let hasClientId = aOptions.overrideClientId ?? this._clientID;
+    let hasProfileGroupId =
+      aOptions.overrideProfileGroupId ?? this._profileGroupID;
+
+    if (needsIdentifiers && !(hasClientId && hasProfileGroupId)) {
       this._log.trace(
         "_submitPingLogic - Waiting on client id or profile group id"
       );
@@ -582,6 +600,8 @@ var Impl = {
    *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
    */
   submitExternalPing: function send(aType, aPayload, aOptions) {
@@ -646,6 +666,8 @@ var Impl = {
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
+   * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
+   *                 profile group id to the provided value. Implies aOptions.addClientId=true.
    *
    * @returns {Promise} A promise that resolves with the ping id when the ping is saved to
    *                    disk.
@@ -834,18 +856,28 @@ var Impl = {
             TelemetryUtils.Preferences.FhrUploadEnabled,
             false
           );
-          if (uploadEnabled && this._clientID == Utils.knownClientID) {
+          if (
+            uploadEnabled &&
+            (this._clientID == Utils.knownClientID ||
+              this._profileGroupID == Utils.knownProfileGroupID)
+          ) {
             this._log.trace(
-              "Upload enabled, but got canary client ID. Resetting."
+              "Upload enabled, but got canary identifiers. Resetting."
             );
-            await lazy.ClientID.removeClientID();
+            await lazy.ClientID.resetIdentifiers();
             this._clientID = await lazy.ClientID.getClientID();
-          } else if (!uploadEnabled && this._clientID != Utils.knownClientID) {
+            this._profileGroupID = await lazy.ClientID.getProfileGroupID();
+          } else if (
+            !uploadEnabled &&
+            (this._clientID != Utils.knownClientID ||
+              this._profileGroupID != Utils.knownProfileGroupID)
+          ) {
             this._log.trace(
               "Upload disabled, but got a valid client ID. Setting canary client ID."
             );
-            await lazy.ClientID.setCanaryClientID();
+            await lazy.ClientID.setCanaryIdentifiers();
             this._clientID = await lazy.ClientID.getClientID();
+            this._profileGroupID = await lazy.ClientID.getProfileGroupID();
           }
 
           await lazy.TelemetrySend.setup(this._testMode);
@@ -1073,17 +1105,18 @@ var Impl = {
     );
     if (uploadEnabled) {
       this._log.trace(
-        "_onUploadPrefChange - upload was enabled again. Resetting client ID"
+        "_onUploadPrefChange - upload was enabled again. Resetting identifiers"
       );
 
-      // Delete cached client ID immediately, so other usage is forced to refetch it.
+      // Delete cached identifiers immediately, so other usage is forced to refetch it.
       this._clientID = null;
+      this._profileGroupID = null;
 
       // Generate a new client ID and make sure this module uses the new version
       let p = (async () => {
-        await lazy.ClientID.removeClientID();
-        let id = await lazy.ClientID.getClientID();
-        this._clientID = id;
+        await lazy.ClientID.resetIdentifiers();
+        this._clientID = await lazy.ClientID.getClientID();
+        this._profileGroupID = await lazy.ClientID.getProfileGroupID();
         Services.telemetry.scalarSet("telemetry.data_upload_optin", true);
 
         await this.saveUninstallPing().catch(e =>
@@ -1125,17 +1158,22 @@ var Impl = {
           /* clear */ true
         );
 
-        // 6. Set ClientID to a known value
+        // 6. Set identifiers to a known values
         let oldClientId = await lazy.ClientID.getClientID();
-        await lazy.ClientID.setCanaryClientID();
+        let oldProfileGroupId = await lazy.ClientID.getProfileGroupID();
+        await lazy.ClientID.setCanaryIdentifiers();
         this._clientID = await lazy.ClientID.getClientID();
+        this._profileGroupID = await lazy.ClientID.getProfileGroupID();
 
         // 7. Send the deletion-request ping.
         this._log.trace("_onUploadPrefChange - Sending deletion-request ping.");
         this.submitExternalPing(
           PING_TYPE_DELETION_REQUEST,
           { scalars },
-          { overrideClientId: oldClientId }
+          {
+            overrideClientId: oldClientId,
+            overrideProfileGroupId: oldProfileGroupId,
+          }
         );
         this._deletionRequestPingSubmittedPromise = null;
       }

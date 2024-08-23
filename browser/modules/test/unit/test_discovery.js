@@ -131,7 +131,7 @@ add_task(async function test_discovery() {
     equal(cookie.host, uri.host, "cookie exists for host");
     return true;
   });
-  await ClientID.removeClientID();
+  await ClientID.resetIdentifiers();
   await ClientID.getClientID();
   await changed;
 

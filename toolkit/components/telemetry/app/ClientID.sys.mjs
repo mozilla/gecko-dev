@@ -9,6 +9,9 @@ const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "ClientID::";
 // Must match ID in TelemetryUtils
 const CANARY_CLIENT_ID = "c0ffeec0-ffee-c0ff-eec0-ffeec0ffeec0";
+const CANARY_PROFILE_GROUP_ID = "decafdec-afde-cafd-ecaf-decafdecafde";
+
+const DRS_STATE_VERSION = 2;
 
 const lazy = {};
 
@@ -109,29 +112,26 @@ export var ClientID = Object.freeze({
   },
 
   /**
-   * Sets the client ID to the canary (known) client ID,
+   * Sets the client ID and profile group ID to the canary (known) identifiers,
    * writing it to disk and updating the cached version.
    *
-   * Use `removeClientID` followed by `getClientID` to clear the
-   * existing ID and generate a new, random one if required.
+   * Use `resetIdentifiers` to clear the existing identifiers and generate new,
+   * random ones if required.
    *
    * @return {Promise<void>}
    */
-  setCanaryClientID() {
-    return ClientIDImpl.setCanaryClientID();
+  setCanaryIdentifiers() {
+    return ClientIDImpl.setCanaryIdentifiers();
   },
 
   /**
-   * Clears the client ID asynchronously, removing it
-   * from disk. Use `getClientID()` to generate
-   * a fresh ID after calling this method.
-   *
-   * Should only be used if a reset is explicitly requested by the user.
+   * Assigns new random values to client ID and profile group ID. Should only be
+   * used if a reset is explicitly requested by the user.
    *
    * @return {Promise<void>}
    */
-  removeClientID() {
-    return ClientIDImpl.removeClientID();
+  resetIdentifiers() {
+    return ClientIDImpl.resetIdentifiers();
   },
 
   /**
@@ -150,7 +150,7 @@ var ClientIDImpl = {
   _profileGroupID: null,
   _loadClientIdTask: null,
   _saveDataReportingStateTask: null,
-  _removeClientIdTask: null,
+  _resetIdentifiersTask: null,
   _logger: null,
 
   _loadDataReportingState() {
@@ -171,7 +171,7 @@ var ClientIDImpl = {
   async _doLoadDataReportingState() {
     this._log.trace(`_doLoadDataReportingState`);
     // If there's a removal in progress, let's wait for it
-    await this._removeClientIdTask;
+    await this._resetIdentifiersTask;
 
     // Try to load the client id from the DRS state file.
     let hasCurrentClientID = false;
@@ -179,10 +179,26 @@ var ClientIDImpl = {
     try {
       let state = await IOUtils.readJSON(lazy.gStateFilePath);
       if (state) {
+        if (!("version" in state)) {
+          // Old version, clear out any previously generated profile group ID.
+          delete state.profileGroupID;
+        }
+
         hasCurrentClientID = this.updateClientID(state.clientID);
         hasCurrentProfileGroupID = this.updateProfileGroupID(
           state.profileGroupID
         );
+
+        if (!hasCurrentProfileGroupID && hasCurrentClientID) {
+          // A pre-existing profile should be assigned the existing client ID.
+          hasCurrentProfileGroupID = this.updateProfileGroupID(this._clientID);
+
+          if (hasCurrentProfileGroupID) {
+            this._saveDataReportingStateTask = this._saveDataReportingState();
+            await this._saveDataReportingStateTask;
+          }
+        }
+
         if (hasCurrentClientID && hasCurrentProfileGroupID) {
           this._log.trace(
             `_doLoadDataReportingState: Client and Group IDs loaded from state.`
@@ -250,6 +266,7 @@ var ClientIDImpl = {
     try {
       this._log.trace(`_saveDataReportingState`);
       let obj = {
+        version: DRS_STATE_VERSION,
         clientID: this._clientID,
         profileGroupID: this._profileGroupID,
       };
@@ -438,47 +455,44 @@ var ClientIDImpl = {
     this._profileGroupID = null;
   },
 
-  async setCanaryClientID() {
-    this._log.trace("setCanaryClientID");
+  async setCanaryIdentifiers() {
+    this._log.trace("setCanaryIdentifiers");
     this.updateClientID(CANARY_CLIENT_ID);
+    this.updateProfileGroupID(CANARY_PROFILE_GROUP_ID);
 
     this._saveDataReportingStateTask = this._saveDataReportingState();
     await this._saveDataReportingStateTask;
     return this._clientID;
   },
 
-  async _doRemoveClientID() {
-    this._log.trace("_doRemoveClientID");
+  async _doResetIdentifiers() {
+    this._log.trace("_doResetIdentifiers");
 
     // Reset the cached client ID.
-    this._clientID = null;
+    this.updateClientID(lazy.CommonUtils.generateUUID());
     this._clientIDHash = null;
 
-    // Clear the client id from the preference cache.
-    Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+    // Reset the cached profile group ID.
+    this.updateProfileGroupID(lazy.CommonUtils.generateUUID());
 
     // If there is a save in progress, wait for it to complete.
     await this._saveDataReportingStateTask;
 
-    // Remove the client-id-containing state file from disk
-    await IOUtils.remove(lazy.gStateFilePath);
+    // Save the new identifiers to disk.
+    this._saveDataReportingStateTask = this._saveDataReportingState();
+    await this._saveDataReportingStateTask;
   },
 
-  async removeClientID() {
-    this._log.trace("removeClientID");
-
-    if (AppConstants.platform != "android") {
-      // We can't clear the client_id in Glean, but we can make it the canary.
-      Glean.legacyTelemetry.clientId.set(CANARY_CLIENT_ID);
-    }
+  async resetIdentifiers() {
+    this._log.trace("resetIdentifiers");
 
     // Wait for the removal.
     // Asynchronous calls to getClientID will also be blocked on this.
-    this._removeClientIdTask = this._doRemoveClientID();
-    let clear = () => (this._removeClientIdTask = null);
-    this._removeClientIdTask.then(clear, clear);
+    this._resetIdentifiersTask = this._doResetIdentifiers();
+    let clear = () => (this._resetIdentifiersTask = null);
+    this._resetIdentifiersTask.then(clear, clear);
 
-    await this._removeClientIdTask;
+    await this._resetIdentifiersTask;
   },
 
   /**
