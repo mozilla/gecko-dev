@@ -91,6 +91,7 @@
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
+#include "vm/Logging.h"
 #include "vm/PlainObject.h"    // js::PlainObject
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/Runtime.h"
@@ -4920,6 +4921,10 @@ JS_PUBLIC_API void JS::SetShadowRealmInitializeGlobalCallback(
 JS_PUBLIC_API void JS::SetShadowRealmGlobalCreationCallback(
     JSContext* cx, JS::GlobalCreationCallback callback) {
   cx->runtime()->shadowRealmGlobalCreationCallback = callback;
+}
+
+JS_PUBLIC_API bool JS::SetLoggingInterface(LoggingInterface& iface) {
+  return js::LogModule::initializeAll(iface);
 }
 
 JS::FirstSubsumedFrame::FirstSubsumedFrame(
