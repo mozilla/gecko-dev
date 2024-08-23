@@ -12,6 +12,7 @@
 
 #include "mozilla/Assertions.h"
 
+#include "jit/JitSpewer.h"
 #include "js/experimental/LoggingInterface.h"
 
 struct JSContext;
@@ -80,7 +81,9 @@ class LogModule {
   mutable mozilla::AtomicLogLevel* levelPtr{};
 };
 
-#define FOR_EACH_JS_LOG_MODULE(_) _(baselineCompileHandler)
+#define FOR_EACH_JS_LOG_MODULE(_) \
+  _(baselineCompileHandler)       \
+  JITSPEW_CHANNEL_LIST(_)
 
 // Declare Log modules
 #define DECLARE_MODULE(X) inline constexpr LogModule X##Module(#X);
