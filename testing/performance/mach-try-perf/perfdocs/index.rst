@@ -78,7 +78,6 @@ The tool is built to be conservative about the number of tests to run, so if you
       --extra-args [ [ ...]]
                             Set the extra args (e.x, --extra-args verbose post-startup-
                             delay=1)
-      --perfcompare-beta    Use PerfCompare Beta instead of CompareView.
       --non-pgo             Use opt/non-pgo builds instead of shippable/pgo builds. Setting
                             this flag will result in faster try runs.
       --tests [TESTS [TESTS ...]], -t [TESTS [TESTS ...]]

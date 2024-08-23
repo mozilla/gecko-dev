@@ -888,8 +888,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -899,8 +901,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -910,8 +914,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=cached_base_revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=cached_base_revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -921,8 +927,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -932,8 +940,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -943,8 +953,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -963,20 +975,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
-            ),
-        ),
-        (
-            {"perfcompare_beta": True},
-            [10, 2, 2, 10, 2, 1],
-            2,
-            (
-                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://beta--mozilla-perfcompare.netlify.app/compare-results?"
-                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n"
             ),
         ),
         (
@@ -985,8 +988,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             2,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -996,8 +1001,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             1,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),
@@ -1007,8 +1014,10 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             0,
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework): "
-                "https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
+                "here once the tests are complete (ensure you select the right framework):\n"
+                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " The old comparison tool is still available at this URL:\n"
+                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
                 "Revision=revision&newProject=try&newRevision=revision\n"
             ),
         ),

@@ -47,7 +47,9 @@ PERFHERDER_BASE_URL = (
     "https://treeherder.mozilla.org/perfherder/"
     "compare?originalProject=try&originalRevision=%s&newProject=try&newRevision=%s"
 )
-PERFCOMPARE_BASE_URL = "https://beta--mozilla-perfcompare.netlify.app/compare-results?baseRev=%s&newRev=%s&baseRepo=try&newRepo=try"
+PERFCOMPARE_BASE_URL = (
+    "https://perf.compare/compare-results?baseRev=%s&newRev=%s&baseRepo=try&newRepo=try"
+)
 TREEHERDER_TRY_BASE_URL = "https://treeherder.mozilla.org/jobs?repo=try&revision=%s"
 TREEHERDER_ALERT_TASKS_URL = (
     "https://treeherder.mozilla.org/api/performance/alertsummary-tasks/?id=%s"
@@ -326,14 +328,6 @@ class PerfParser(CompareParser):
                 "help": "Set the extra args "
                 "(e.x, --extra-args verbose post-startup-delay=1)",
                 "metavar": "",
-            },
-        ],
-        [
-            ["--perfcompare-beta"],
-            {
-                "action": "store_true",
-                "default": False,
-                "help": "Use PerfCompare Beta instead of CompareView.",
             },
         ],
         [
@@ -1541,13 +1535,6 @@ class PerfParser(CompareParser):
                 base_cmd[idx] += ":wrap"
 
 
-def get_compare_url(revisions, perfcompare_beta=False):
-    """Setup the comparison link."""
-    if perfcompare_beta:
-        return PERFCOMPARE_BASE_URL % revisions
-    return PERFHERDER_BASE_URL % revisions
-
-
 def run(**kwargs):
     if (
         kwargs.get("browsertime_upload_apk") is not None
@@ -1582,15 +1569,15 @@ def run(**kwargs):
 
     # Provide link to perfherder for comparisons now
     if not kwargs.get("single_run", False):
-        perfcompare_url = get_compare_url(
-            revisions, perfcompare_beta=kwargs.get("perfcompare_beta", False)
-        )
+        perfcompare_url = PERFCOMPARE_BASE_URL % revisions
+        compareview_url = PERFHERDER_BASE_URL % revisions
         original_try_url = TREEHERDER_TRY_BASE_URL % revisions[0]
         local_change_try_url = TREEHERDER_TRY_BASE_URL % revisions[1]
         print(
             "\n!!!NOTE!!!\n You'll be able to find a performance comparison here "
             "once the tests are complete (ensure you select the right "
-            "framework): %s\n" % perfcompare_url
+            f"framework):\n {perfcompare_url}\n\n"
+            f" The old comparison tool is still available at this URL:\n {compareview_url}\n"
         )
         print("\n*******************************************************")
         print("*          2 commits/try-runs are created...          *")
