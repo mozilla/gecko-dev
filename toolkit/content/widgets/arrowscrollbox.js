@@ -100,15 +100,10 @@
       this.shadowRoot.addEventListener("mouseup", this.on_mouseup.bind(this));
       this.shadowRoot.addEventListener("mouseout", this.on_mouseout.bind(this));
 
-      this._overflowObserver = new ResizeObserver(([entry]) => {
-        let overflowing = false;
-        if (this.getAttribute("orient") == "vertical") {
-          overflowing =
-            entry.contentRect.height > this.scrollbox.clientHeightDouble;
-        } else {
-          overflowing =
-            entry.contentRect.width > this.scrollbox.clientWidthDouble;
-        }
+      let overflowObserver = new ResizeObserver(([entry]) => {
+        let overflowing =
+          entry.contentRect[this.#verticalMode ? "height" : "width"] >
+          this.scrollClientSize;
         if (overflowing == this.hasAttribute("overflowing")) {
           return;
         }
@@ -120,7 +115,8 @@
           );
         });
       });
-      this._overflowObserver.observe(this.shadowRoot.querySelector("slot"));
+      overflowObserver.observe(this.shadowRoot.querySelector("slot"));
+
       this.scrollbox.addEventListener("scroll", event => {
         this.on_scroll(event);
         this.dispatchEvent(new Event("scroll"));
@@ -162,6 +158,10 @@
       return document.importNode(this.constructor._fragment, true);
     }
 
+    get #verticalMode() {
+      return this.getAttribute("orient") == "vertical";
+    }
+
     get _clickToScroll() {
       return this.hasAttribute("clicktoscroll");
     }
@@ -201,15 +201,15 @@
     }
 
     get scrollClientSize() {
-      return this.getAttribute("orient") == "vertical"
-        ? this.scrollbox.clientHeight
-        : this.scrollbox.clientWidth;
+      return this.scrollbox[
+        this.#verticalMode ? "clientHeightDouble" : "clientWidthDouble"
+      ];
     }
 
     get scrollSize() {
-      return this.getAttribute("orient") == "vertical"
-        ? this.scrollbox.scrollHeight
-        : this.scrollbox.scrollWidth;
+      return this.scrollbox[
+        this.#verticalMode ? "scrollHeight" : "scrollWidth"
+      ];
     }
 
     get lineScrollAmount() {
@@ -222,19 +222,17 @@
     }
 
     get scrollPosition() {
-      return this.getAttribute("orient") == "vertical"
-        ? this.scrollbox.scrollTop
-        : this.scrollbox.scrollLeft;
+      return this.scrollbox[this.#verticalMode ? "scrollTop" : "scrollLeft"];
     }
 
     get startEndProps() {
-      return this.getAttribute("orient") == "vertical"
+      return this.#verticalMode
         ? MozArrowScrollbox.#startEndVertical
         : MozArrowScrollbox.#startEndHorizontal;
     }
 
     get isRTLScrollbox() {
-      if (this.getAttribute("orient") == "vertical") {
+      if (this.#verticalMode) {
         return false;
       }
       if (!("_isRTLScrollbox" in this)) {
@@ -560,8 +558,8 @@
 
     _updateScrollButtonsDisabledState() {
       if (!this.hasAttribute("overflowing")) {
-        this.setAttribute("scrolledtoend", "true");
-        this.setAttribute("scrolledtostart", "true");
+        this.toggleAttribute("scrolledtoend", true);
+        this.toggleAttribute("scrolledtostart", true);
         return;
       }
 
@@ -648,7 +646,7 @@
       let doScroll = false;
       let instant;
       let scrollAmount = 0;
-      if (this.getAttribute("orient") == "vertical") {
+      if (this.#verticalMode) {
         doScroll = true;
         scrollAmount = event.deltaY;
         if (deltaMode == event.DOM_DELTA_PIXEL) {
@@ -728,19 +726,15 @@
         this._touchStart = -1;
       } else {
         this._touchStart =
-          this.getAttribute("orient") == "vertical"
-            ? event.touches[0].screenY
-            : event.touches[0].screenX;
+          event.touches[0][this.#verticalMode ? "screenY" : "screenX"];
       }
     }
 
     on_touchmove(event) {
       if (event.touches.length == 1 && this._touchStart >= 0) {
-        var touchPoint =
-          this.getAttribute("orient") == "vertical"
-            ? event.touches[0].screenY
-            : event.touches[0].screenX;
-        var delta = this._touchStart - touchPoint;
+        let touchPoint =
+          event.touches[0][this.#verticalMode ? "screenY" : "screenX"];
+        let delta = this._touchStart - touchPoint;
         if (Math.abs(delta) > 0) {
           this.scrollByPixels(delta, true);
           this._touchStart = touchPoint;
