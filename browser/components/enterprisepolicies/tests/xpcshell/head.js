@@ -79,7 +79,7 @@ async function setupPolicyEngineWithJsonWithSearch(json, customSchema) {
     "write-settings-to-disk-complete"
   );
   await Services.search.init();
-  return settingsWritten;
+  await settingsWritten;
 }
 
 function checkLockedPref(prefName, prefValue) {
