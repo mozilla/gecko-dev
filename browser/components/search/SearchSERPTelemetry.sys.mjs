@@ -2657,7 +2657,6 @@ class DomainToCategoriesMap {
    *
    * @param {object} data
    *  Object containing records that are current, deleted, created, or updated.
-   *
    */
   async #sync(data) {
     lazy.logConsole.debug("Syncing domain-to-categories with Remote Settings.");

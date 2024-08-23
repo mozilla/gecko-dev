@@ -81,7 +81,6 @@ export class CredentialChooserService {
    * We also support UI-less testing via choices provided by picking any credential with ID 'wpt-pick-me'
    * if the preference 'dom.security.credentialmanagement.chooser.testing.enabled' is true.
    *
-   *
    * @param {BrowsingContext} browsingContext The browsing context of the window calling the Credential Management API.
    * @param {Array<CredentialArgument>} credentials The credentials the user should choose from.
    * @param {nsICredentialChosenCallback} callback A callback to return the user's credential choice to.
