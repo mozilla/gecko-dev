@@ -447,7 +447,7 @@ export class TCPConnection {
    * Send the given payload over the debugger transport socket to the
    * connected client.
    *
-   * @param {Record<string, ?>} payload
+   * @param {Object<string, ?>} payload
    *     The payload to ship.
    */
   sendRaw(payload) {

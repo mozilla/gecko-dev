@@ -133,8 +133,6 @@ export var UrlbarTestUtils = {
    *        your test waits for the query to finish. However, this behavior
    *        isn't always desired, for example if your test intentionally blurs
    *        the input before the query finishes. In that case, pass false.
-   * @returns {Promise}
-   *   The promise for the last query context.
    */
   async promiseAutocompleteResultPopup({
     window,
@@ -340,8 +338,6 @@ export var UrlbarTestUtils = {
    *   array. If it's in a submenu, set this to an array where each element i is
    *   a selector that can be used to get the i'th menu item that opens a
    *   submenu.
-   * @returns {DOMElement}
-   *   Returns the menu item element.
    */
   async openResultMenuAndGetItem({
     window,

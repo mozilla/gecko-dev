@@ -946,9 +946,6 @@ class MigrationUtils {
    *                             `AMBrowserExtensionsImport` as the "browser
    *                             identifier" used to match add-ons
    * @param {string[]} extensionIDs a list of extension IDs from another browser
-   * @returns {(lazy.MigrationWizardConstants.PROGRESS_VALUE|string[])[]}
-   *   An array whose first element is a `MigrationWizardConstants.PROGRESS_VALUE`
-   *   and second element is an array of imported add-on ids.
    */
   async installExtensionsWrapper(migratorKey, extensionIDs) {
     const totalExtensions = extensionIDs.length;

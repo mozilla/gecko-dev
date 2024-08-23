@@ -253,6 +253,7 @@ export class ShoppingSidebarChild extends RemotePageChild {
    *        fetching the URI from the parent, and assume `this.#productURI`
    *        is current. Defaults to false.
    * @param {bool} options.isPolledRequest = false
+   *
    */
   async updateContent({
     haveUpdatedURI = false,

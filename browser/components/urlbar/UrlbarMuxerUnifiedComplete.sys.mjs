@@ -1382,6 +1382,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    * `result.exposureResultHidden` a boolean which indicates whether the
    * result should be hidden from the view.
    *
+   *
    * @param {UrlbarResult} result
    *   The result.
    * @returns {boolean}

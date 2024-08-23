@@ -208,7 +208,7 @@ class WebDriverError extends RemoteError {
   }
 
   /**
-   * @returns {Record<string, string>}
+   * @returns {Object<string, string>}
    *     JSON serialisation of error prototype.
    */
   toJSON() {
@@ -230,7 +230,7 @@ class WebDriverError extends RemoteError {
    * Unmarshals a JSON error representation to the appropriate Marionette
    * error type.
    *
-   * @param {Record<string, string>} json
+   * @param {Object<string, string>} json
    *     Error object.
    *
    * @returns {Error}

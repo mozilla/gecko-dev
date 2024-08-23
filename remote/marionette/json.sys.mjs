@@ -98,11 +98,7 @@ function cloneObject(value, seen, cloneAlgorithm) {
  * @param {NodeCache} nodeCache
  *     Node cache that holds already seen WebElement and ShadowRoot references.
  *
- * @returns {{
- *   seenNodeIds: Map<BrowsingContext, string[]>,
- *   serializedValue: any,
- *   hasSerializedWindows: boolean
- * }}
+ * @returns {Object<Map<BrowsingContext, Array<string>, object>>}
  *     Object that contains a list of browsing contexts each with a list of
  *     shared ids for collected elements and shadow root nodes, and second the
  *     same object as provided by `value` with the WebDriver classic supported

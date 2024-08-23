@@ -325,8 +325,6 @@ async function getFileDataBuffer(filename) {
  *   The ID to use for the record. If not provided, a new UUID will be generated.
  * @param {number} [item.lastModified]
  *   The last modified time for the record. Defaults to the current time.
- * @returns {object}
- *   An object containing the record and attachment.
  */
 async function mockRecordWithAttachment({
   filename,

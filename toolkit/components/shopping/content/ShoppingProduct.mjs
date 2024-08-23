@@ -479,6 +479,7 @@ export class ShoppingProduct extends EventEmitter {
   /**
    * Get a cached, or fetch a copy of, an OHTTP config from a given URL.
    *
+   *
    * @param {string} gatewayConfigURL
    *   The URL for the config that needs to be fetched.
    *   The URL should be complete (i.e. include the full path to the config).

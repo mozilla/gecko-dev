@@ -648,6 +648,7 @@ export var PlacesUIUtils = {
    * @param {DOMWindow} aWindow
    *        a window on which a potential error alert is shown on.
    * @returns {boolean} true if it's safe to open the node in the browser, false otherwise.
+   *
    */
   checkURLSecurity: function PUIU_checkURLSecurity(aURINode, aWindow) {
     if (lazy.PlacesUtils.nodeIsBookmark(aURINode)) {

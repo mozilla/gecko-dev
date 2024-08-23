@@ -319,8 +319,6 @@ async function withNewWindow(urls, callback) {
  *
  * @param {string} expectedRestoredURL
  *   The URL you expect will be restored in the selected browser.
- * @returns {object}
- *   The reopened window.
  */
 async function restoreWindow(expectedRestoredURL) {
   let winPromise = BrowserTestUtils.waitForNewWindow();

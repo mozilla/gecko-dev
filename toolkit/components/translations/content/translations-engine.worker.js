@@ -658,7 +658,7 @@ class WorkQueue {
   /**
    * Run the task and return the result.
    *
-   * @template {any} T
+   * @template {T}
    * @param {() => T} task
    * @returns {Promise<T>}
    */

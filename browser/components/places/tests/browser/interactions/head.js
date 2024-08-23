@@ -173,8 +173,6 @@ async function assertDatabaseValues(expected, { dontFlush = false } = {}) {
  *
  * @param {string} url The url to query.
  * @param {string} property The property to extract.
- * @returns {*}
- *   Returns the selected database value.
  */
 async function getDatabaseValue(url, property) {
   await Interactions.store.flush();

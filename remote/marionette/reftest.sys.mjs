@@ -79,7 +79,7 @@ reftest.Runner = class {
    * This will open a non-browser window in which the tests will
    * be loaded, and set up various caches for the reftest run.
    *
-   * @param {Record<string, number>} urlCount
+   * @param {Object<number>} urlCount
    *     Object holding a map of URL: number of times the URL
    *     will be opened during the reftest run, where that's
    *     greater than 1.

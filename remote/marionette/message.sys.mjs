@@ -128,7 +128,7 @@ Message.Origin = {
  *     Message ID unique identifying this message.
  * @param {string} name
  *     Command name.
- * @param {Record<string, ?>} params
+ * @param {Object<string, ?>} params
  *     Command parameters.
  */
 export class Command extends Message {

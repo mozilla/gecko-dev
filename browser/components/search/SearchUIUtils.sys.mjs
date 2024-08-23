@@ -44,9 +44,7 @@ export var SearchUIUtils = {
    *   icon. This value may be overridden by an icon specified in the
    *   engine description file.
    * @param {object} browsingContext
-   *   The browsing context any error prompt should be opened for.
-   * @returns {boolean}
-   *   Returns true if the engine was added.
+   *  The browsing context any error prompt should be opened for.
    */
   async addOpenSearchEngine(locationURL, image, browsingContext) {
     try {

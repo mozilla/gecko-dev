@@ -92,6 +92,7 @@ async function loadURL(browser, url) {
  * Create a fetch request to `url` from the content page loaded in the provided
  * `browser`.
  *
+ *
  * @param {Browser} browser
  *     The browser element where the fetch should be performed.
  * @param {string} url

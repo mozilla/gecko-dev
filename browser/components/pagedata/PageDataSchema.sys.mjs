@@ -44,8 +44,6 @@ let SCHEMAS = new Map();
  *
  * @param {string} schemaName
  *   The name of the schema to load.
- * @returns {object}
- *   The loaded schema.
  */
 async function loadSchema(schemaName) {
   if (SCHEMAS.has(schemaName)) {
@@ -133,7 +131,7 @@ export const PageDataSchema = {
       throw new Error(`Unknown data type ${type}`);
     }
 
-    await validateData(name, data);
+    return validateData(name, data);
   },
 
   /**

@@ -104,6 +104,7 @@ function getVisibleMenuItems(popup) {
  *     be run after the window is expanded and the toolbar has underflowed, but
  *     before the extensions are removed. This function is not passed any
  *     arguments. The return value of the function is ignored.
+ *
  */
 async function withWindowOverflowed(
   win,

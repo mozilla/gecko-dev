@@ -333,6 +333,7 @@ export var XPCOMUtils = {
    *
    * @param {any} aValue
    *        The value of the non-writable property.
+   *
    */
   defineConstant(aObj, aName, aValue) {
     Object.defineProperty(aObj, aName, {

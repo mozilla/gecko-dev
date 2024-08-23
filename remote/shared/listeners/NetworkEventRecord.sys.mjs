@@ -149,6 +149,7 @@ export class NetworkEventRecord {
    *
    * Required API for a NetworkObserver event owner.
    *
+   *
    * @param {object} options
    * @param {nsIChannel} options.channel
    *     The channel.

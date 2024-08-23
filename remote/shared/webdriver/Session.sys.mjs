@@ -191,7 +191,7 @@ export class WebDriverSession {
    *     {"capabilities": {"acceptInsecureCerts": true}}
    * </code></pre>
    *
-   * @param {Record<string, *>=} capabilities
+   * @param {Object<string, *>=} capabilities
    *     JSON Object containing any of the recognized capabilities listed
    *     above.
    * @param {SessionConfigurationFlags} flags

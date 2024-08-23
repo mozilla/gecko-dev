@@ -19,7 +19,7 @@ ChromeUtils.defineESModuleGetters(this, {
  * @param {any}      message
  * @param {object?}  [options]
  * @param {Function} [callback]
- * @returns {{extensionId: string|null, message: any, callback: Function|null}}
+ * @returns {{extensionId: string?, message: any, callback: Function?}}
  */
 /* eslint-enable jsdoc/check-param-names */
 function parseBonkersArgs(...args) {

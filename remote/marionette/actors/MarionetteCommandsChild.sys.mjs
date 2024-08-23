@@ -234,6 +234,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    * @param {string} options.selector
    * @param {object} options.opts
    * @param {Element} options.opts.startNode
+   *
    */
   async findElement(options = {}) {
     const { strategy, selector, opts } = options;
@@ -253,6 +254,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
    * @param {string} options.selector
    * @param {object} options.opts
    * @param {Element} options.opts.startNode
+   *
    */
   async findElements(options = {}) {
     const { strategy, selector, opts } = options;

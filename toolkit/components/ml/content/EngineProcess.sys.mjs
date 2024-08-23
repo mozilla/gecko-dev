@@ -476,6 +476,7 @@ export class EngineProcess {
  * @param {object} options - Configuration options for the ML engine.
  * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate notifications.
  * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
+ *
  */
 export async function createEngine(options, notificationsCallback = null) {
   const pipelineOptions = new PipelineOptions(options);

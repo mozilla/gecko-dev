@@ -296,8 +296,6 @@ export class AdmWikipedia extends BaseFeature {
    *
    * @param {string} path
    *   The icon's remote settings path.
-   * @returns {string}
-   *   The absolute file path to the downloaded attachment.
    */
   async #fetchIcon(path) {
     if (!path) {

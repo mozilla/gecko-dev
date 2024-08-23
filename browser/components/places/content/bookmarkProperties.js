@@ -460,9 +460,8 @@ var BookmarkPropertiesPanel = {
    * [New Item Mode] Get the insertion point details for the new item, given
    * dialog state and opening arguments.
    *
-   * @returns {Array}
-   *   The container-identifier and insertion-index are returned separately in
-   *   the form of [containerIdentifier, insertionIndex]
+   * The container-identifier and insertion-index are returned separately in
+   * the form of [containerIdentifier, insertionIndex]
    */
   async _getInsertionPointDetails() {
     return [

@@ -276,7 +276,7 @@ export class CDPConnection extends WebSocketConnection {
  * @param {string} method
  *     Name of the method to split, e.g. "Browser.getVersion".
  *
- * @returns {Record<string, string>}
+ * @returns {Object<string, string>}
  *     Object with the domain ("Browser") and command ("getVersion")
  *     as properties.
  */
