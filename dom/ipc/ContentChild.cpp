@@ -1732,13 +1732,6 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
 #  elif defined(XP_WIN)
-  // Mozilla libraries that are required for WMF software encoding. We preload
-  // them here - where failure is non-fatal - to let third-party software
-  // discover them early after an update. We thereby mitigate fatal failures
-  // elsewhere (bug 1905690).
-  ::LoadLibraryW(L"mozavcodec.dll");
-  ::LoadLibraryW(L"mozavutil.dll");
-
   if (GetEffectiveContentSandboxLevel() > 7) {
     // Libraries required by Network Security Services (NSS).
     ::LoadLibraryW(L"freebl3.dll");
