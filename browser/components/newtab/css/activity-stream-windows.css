@@ -506,10 +506,53 @@ main section {
   }
 }
 
+.layout-variant-a .ds-outer-wrapper-breakpoint-override main,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main {
+  width: 346px;
+}
+.layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card {
+  width: 296px;
+}
+.layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+  grid-gap: var(--space-large);
+}
+@media (min-width: 610px) {
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main {
+    width: 346px;
+  }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+@media (min-width: 866px) {
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main {
+    width: 659px;
+  }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1122px) {
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main {
+    width: 989px;
+  }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: var(--space-xlarge);
+  }
+}
 @media (min-width: 1698px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-    width: 1256px;
+    width: 1311px;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {

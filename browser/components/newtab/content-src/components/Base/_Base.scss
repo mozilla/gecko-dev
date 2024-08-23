@@ -87,8 +87,43 @@ main {
 .layout-variant-a,
 .layout-variant-b {
   .ds-outer-wrapper-breakpoint-override main {
+    width: 346px;
+
+    .ds-card {
+      width: 296px;
+    }
+
+    .ds-card-grid {
+      grid-gap: var(--space-large);
+    }
+
+    @media (min-width: $break-point-medium) {
+      width: 346px;
+
+      .ds-card-grid {
+        grid-template-columns: repeat(1, 1fr);
+      }
+    }
+
+    @media (min-width: $break-point-large) {
+      width: 659px;
+
+      .ds-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: $break-point-widest) {
+      width: 989px;
+
+      .ds-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-gap: var(--space-xlarge);
+      }
+    }
+
     @media (min-width: $break-point-ultra-wide) {
-      width: 1256px;
+      width: 1311px;
 
       .body-wrapper {
         display: flex;
