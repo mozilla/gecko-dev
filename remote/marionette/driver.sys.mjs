@@ -396,7 +396,7 @@ GeckoDriver.prototype.registerBrowser = function (browserElement) {
  * Create a new WebDriver session.
  *
  * @param {object} cmd
- * @param {Object<string, *>=} cmd.parameters
+ * @param {Record<string, *>=} cmd.parameters
  *     JSON Object containing any of the recognised capabilities as listed
  *     on the `WebDriverSession` class.
  *
@@ -1099,7 +1099,7 @@ GeckoDriver.prototype.getWindowHandles = function () {
  * window outerWidth and outerHeight values, which include scroll bars,
  * title bars, etc.
  *
- * @returns {Object<string, number>}
+ * @returns {Record<string, number>}
  *     Object with |x| and |y| coordinates, and |width| and |height|
  *     of browser window.
  *
@@ -1135,7 +1135,7 @@ GeckoDriver.prototype.getWindowRect = async function () {
  * @param {number} cmd.parameters.height
  *     Height to resize the window to.
  *
- * @returns {Object<string, number>}
+ * @returns {Record<string, number>}
  *     Object with `x` and `y` coordinates and `width` and `height`
  *     dimensions.
  *
@@ -1442,7 +1442,7 @@ GeckoDriver.prototype.getTimeouts = function () {
  * Set timeout for page loading, searching, and scripts.
  *
  * @param {object} cmd
- * @param {Object<string, number>} cmd.parameters
+ * @param {Record<string, number>} cmd.parameters
  *     Dictionary of timeout types and their new value, where all timeout
  *     types are optional.
  *
@@ -2324,7 +2324,7 @@ GeckoDriver.prototype.deleteCookie = async function (cmd) {
  *     new top-level browsing context should be a private window.
  *     Defaults to false.
  *
- * @returns {Object<string, string>}
+ * @returns {Record<string, string>}
  *     Handle and type of the new browsing context.
  *
  * @throws {NoSuchWindowError}
@@ -2652,7 +2652,7 @@ GeckoDriver.prototype.setScreenOrientation = async function (cmd) {
  *
  * Not supported on Fennec.
  *
- * @returns {Object<string, number>}
+ * @returns {Record<string, number>}
  *     Window rect and window state.
  *
  * @throws {NoSuchWindowError}
@@ -2704,7 +2704,7 @@ GeckoDriver.prototype.minimizeWindow = async function () {
  *
  * Not supported on Fennec.
  *
- * @returns {Object<string, number>}
+ * @returns {Record<string, number>}
  *     Window rect.
  *
  * @throws {NoSuchWindowError}
@@ -3016,7 +3016,7 @@ GeckoDriver.prototype.acceptConnections = async function (cmd) {
  *     Optional flag to indicate that the application has to
  *     be restarted in safe mode.
  *
- * @returns {Object<string,boolean>}
+ * @returns {Record<string,boolean>}
  *     Dictionary containing information that explains the shutdown reason.
  *     The value for `cause` contains the shutdown kind like "shutdown" or
  *     "restart", while `forced` will indicate if it was a normal or forced

@@ -494,7 +494,7 @@ if (typeof Mozilla == "undefined") {
    *    no other properties will exist.
    * @property {number} [numOtherDevices] - Number of devices connected to this
    *    account, not counting this device.
-   * @property {Object<string, number>} [numDevicesByType] - A count of devices
+   * @property {Record<string, number>} [numDevicesByType] - A count of devices
    *    connected to the account by device 'type'. Valid values for type are
    *    defined by the FxA server but roughly correspond to form-factor with
    *    values like 'desktop', 'mobile', 'vr', etc.
@@ -514,7 +514,7 @@ if (typeof Mozilla == "undefined") {
    * `on our telemetry documentation site <https://docs.telemetry.mozilla.org/datasets/fxa_metrics/attribution.html#service-attribution>`_.
    * The value is a :js:func:`Mozilla.UITour.Configuration.AccountService`
    *
-   * @typedef {Object<string, Mozilla.UITour.Configuration.AccountService>} Mozilla.UITour.Configuration.AccountServices
+   * @typedef {Record<string, Mozilla.UITour.Configuration.AccountService>} Mozilla.UITour.Configuration.AccountServices
    * @since 71
    */
 

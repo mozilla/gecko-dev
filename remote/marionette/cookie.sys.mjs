@@ -26,7 +26,7 @@ export const cookie = {
 /**
  * @name Cookie
  *
- * @returns {Object<string, (number|boolean|string)>}
+ * @returns {Record<string, (number|boolean|string)>}
  */
 
 /**
@@ -36,7 +36,7 @@ export const cookie = {
  * will produce the errors expected by WebDriver if the input is
  * not valid.
  *
- * @param {Object<string, (number | boolean | string)>} json
+ * @param {Record<string, (number | boolean | string)>} json
  *     Cookie to be deserialised. ``name`` and ``value`` are required
  *     fields which must be strings.  The ``path`` and ``domain`` fields
  *     are optional, but must be a string if provided.  The ``secure``,

@@ -96,7 +96,7 @@ export class WebReference {
    * Unmarshals a JSON Object to one of {@link ShadowRoot}, {@link WebElement},
    * {@link WebFrame}, or {@link WebWindow}.
    *
-   * @param {Object<string, string>} json
+   * @param {Record<string, string>} json
    *     Web reference, which is supposed to be a JSON Object
    *     where the key is one of the {@link WebReference} concrete
    *     classes' UUID identifiers.
@@ -141,7 +141,7 @@ export class WebReference {
   /**
    * Checks if <var>obj<var> is a {@link WebReference} reference.
    *
-   * @param {Object<string, string>} obj
+   * @param {Record<string, string>} obj
    *     Object that represents a {@link WebReference}.
    *
    * @returns {boolean}

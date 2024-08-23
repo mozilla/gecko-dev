@@ -69,7 +69,7 @@ dom.Strategy = {
  * See the {@link dom.Strategy} enum for a full list of supported
  * search strategies that can be passed to <var>strategy</var>.
  *
- * @param {Object<string, WindowProxy>} container
+ * @param {Record<string, WindowProxy>} container
  *     Window object.
  * @param {string} strategy
  *     Search strategy whereby to locate the element(s).
@@ -754,7 +754,7 @@ dom.isEditable = function (el) {
  *     Vertical offset relative to target's top-left corner.  Defaults to
  *     the centre of the target's bounding box.
  *
- * @returns {Object<string, number>}
+ * @returns {Record<string, number>}
  *     X- and Y coordinates.
  *
  * @throws TypeError

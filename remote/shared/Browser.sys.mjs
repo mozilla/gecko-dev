@@ -30,7 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * @param {boolean=} isWindowless
  *     Optional flag to indicate that the browser was started in windowless mode.
  *
- * @returns {Object<string,boolean>}
+ * @returns {Record<string, boolean>}
  *     Dictionary containing information that explains the shutdown reason.
  *     The value for `cause` contains the shutdown kind like "shutdown" or
  *     "restart", while `forced` will indicate if it was a normal or forced
