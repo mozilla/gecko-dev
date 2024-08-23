@@ -665,7 +665,7 @@ var View = {
     let killButton = cpuCell.nextSibling;
     killButton.className = "action-icon";
 
-    if (data.type.startsWith("web")) {
+    if (data.type != "browser") {
       // This type of process can be killed.
       if (this._killedRecently.some(kill => kill.pid && kill.pid == data.pid)) {
         // We're racing between the "kill" action and the visual refresh.
@@ -680,10 +680,10 @@ var View = {
       } else {
         // Otherwise, let's display the kill button.
         killButton.classList.add("close-icon");
-        document.l10n.setAttributes(
-          killButton,
-          "about-processes-shutdown-process"
-        );
+        let killButtonLabelId = data.type.startsWith("web")
+          ? "about-processes-shutdown-process"
+          : "about-processes-kill-process";
+        document.l10n.setAttributes(killButton, killButtonLabelId);
       }
     }
 
@@ -1464,6 +1464,10 @@ var Control = {
 
       // Discard tab contents and show that the process and all its contents are getting killed.
       row.classList.add("killing");
+
+      // Avoid continuing to show the tooltip when the button isn't visible.
+      target.removeAttribute("data-l10n-id");
+      target.removeAttribute("title");
       for (
         let childRow = row.nextSibling;
         childRow && !childRow.classList.contains("process");
@@ -1495,6 +1499,8 @@ var Control = {
       });
       View._killedRecently.push({ outerWindowId: row.win.outerWindowId });
       row.classList.add("killing");
+      target.removeAttribute("data-l10n-id");
+      target.removeAttribute("title");
 
       // If this was the only root window of the process, show that the process is also getting killed.
       if (row.previousSibling.classList.contains("process")) {
@@ -1513,6 +1519,9 @@ var Control = {
           // that the process is dying, this error will last only one refresh.
           View._killedRecently.push({ pid: parentRow.process.pid });
           parentRow.classList.add("killing");
+          let actionIcon = parentRow.querySelector(".action-item");
+          actionIcon.removeAttribute("data-l10n-id");
+          actionIcon.removeAttribute("title");
         }
       }
     }

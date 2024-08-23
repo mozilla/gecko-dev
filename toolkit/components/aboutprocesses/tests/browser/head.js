@@ -962,6 +962,27 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       found.classList.contains("killing"),
       "We should have marked the row as dying"
     );
+
+    info("Closing the audio utility process through about:processes");
+    let utilityRow;
+    for (let row of doc.getElementsByClassName("process")) {
+      if (row.process.type == "utility") {
+        utilityRow = row;
+        break;
+      }
+    }
+    Assert.ok(utilityRow, "Should have found audio utility row.");
+    closeIcons = utilityRow.getElementsByClassName("close-icon");
+    Assert.equal(
+      closeIcons.length,
+      1,
+      "The utility process should have exactly one close icon"
+    );
+    closeIcons[0].click();
+    Assert.ok(
+      utilityRow.classList.contains("killing"),
+      "We should have marked the utility process as dying"
+    );
   }
 
   // Give Firefox a little time to close the tabs and update about:processes.
