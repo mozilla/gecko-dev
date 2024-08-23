@@ -361,6 +361,14 @@ using namespace mozilla::a11y;
               : RotorLiveRegionRule(searchText);
       [matches addObjectsFromArray:[self getMatchesForRule:rule]];
     }
+
+    if ([key isEqualToString:@"AXKeyboardFocusableSearchKey"]) {
+      RotorFocusableRule rule =
+          mImmediateDescendantsOnly
+              ? RotorFocusableRule(geckoRootAcc, searchText)
+              : RotorFocusableRule(searchText);
+      [matches addObjectsFromArray:[self getMatchesForRule:rule]];
+    }
   }
 
   return matches;

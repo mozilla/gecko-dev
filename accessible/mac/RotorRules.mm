@@ -388,3 +388,29 @@ uint16_t RotorLiveRegionRule::Match(Accessible* aAcc) {
   }
   return result;
 }
+
+// Rotor Focusable Rule
+
+RotorFocusableRule::RotorFocusableRule(Accessible* aDirectDescendantsFrom,
+                                       const nsString& aSearchText)
+    : RotorRule(aDirectDescendantsFrom, aSearchText) {};
+
+RotorFocusableRule::RotorFocusableRule(const nsString& aSearchText)
+    : RotorRule(aSearchText) {};
+
+uint16_t RotorFocusableRule::Match(Accessible* aAcc) {
+  uint16_t result = RotorRule::Match(aAcc);
+  // if a match was found in the base-class's Match function,
+  // it is valid to consider that match again here. if it is
+  // not of the desired role, we flip the match bit to "unmatch"
+  // otherwise, the match persists.
+  if ((result & nsIAccessibleTraversalRule::FILTER_MATCH)) {
+    if ((aAcc->State() & states::FOCUSABLE) == 0 || aAcc->ActionCount() == 0) {
+      // If the accessible was not focusable, or it is focusable but does not
+      // have an action (eg. an overflow: auto container), don't match.
+      result &= ~nsIAccessibleTraversalRule::FILTER_MATCH;
+    }
+  }
+
+  return result;
+}

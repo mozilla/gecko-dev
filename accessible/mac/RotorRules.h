@@ -142,3 +142,12 @@ class RotorLiveRegionRule : public RotorRule {
 
   uint16_t Match(Accessible* aAcc) override;
 };
+
+class RotorFocusableRule : public RotorRule {
+ public:
+  explicit RotorFocusableRule(const nsString& aSearchText);
+  explicit RotorFocusableRule(Accessible* aDirectDescendantsFrom,
+                              const nsString& aSearchText);
+
+  virtual uint16_t Match(Accessible* aAcc) override;
+};
