@@ -81,7 +81,7 @@ export class BackupUIParent extends JSWindowActorParent {
    * @returns {
    *   null |
    *   {success: boolean, errorCode: number} |
-   *   {path: string, fileName: string, iconURL: string?}
+   *   {path: string, fileName: string, iconURL: string|null}
    * }
    *   Returns either a success object, a file details object, or null.
    */
