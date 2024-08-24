@@ -17,7 +17,7 @@ const EMOJI_LABELS = {
   sports: "⚽️",
   tech: "💻",
   travel: "✈️",
-  education: "🧪",
+  "education-science": "🧪",
   society: "💡",
 };
 
