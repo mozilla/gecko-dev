@@ -1638,12 +1638,12 @@ this.tabs = class extends ExtensionAPIPersistent {
 
         goForward(tabId) {
           let nativeTab = getTabOrActive(tabId);
-          nativeTab.linkedBrowser.goForward();
+          nativeTab.linkedBrowser.goForward(false);
         },
 
         goBack(tabId) {
           let nativeTab = getTabOrActive(tabId);
-          nativeTab.linkedBrowser.goBack();
+          nativeTab.linkedBrowser.goBack(false);
         },
       },
     };

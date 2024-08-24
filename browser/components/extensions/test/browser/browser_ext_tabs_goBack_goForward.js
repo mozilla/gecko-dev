@@ -3,10 +3,6 @@
 "use strict";
 
 add_task(async function test_tabs_goBack_goForward() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.navigation.requireUserInteraction", false]],
-  });
-
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: ["tabs"],

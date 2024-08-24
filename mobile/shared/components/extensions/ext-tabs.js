@@ -580,12 +580,12 @@ this.tabs = class extends ExtensionAPIPersistent {
 
         goForward(tabId) {
           const { browser } = getTabOrActive(tabId);
-          browser.goForward();
+          browser.goForward(false);
         },
 
         goBack(tabId) {
           const { browser } = getTabOrActive(tabId);
-          browser.goBack();
+          browser.goBack(false);
         },
       },
     };
