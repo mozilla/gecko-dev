@@ -5,7 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 with Files("**"):
-    BUG_COMPONENT = ("Toolkit", "Storage")
+    BUG_COMPONENT = ("Core", "SQLite and Embedded Database Bindings")
 
 DIRS += ["build"]
 
@@ -110,3 +110,5 @@ if CONFIG["MOZ_FOLD_LIBS"]:
     DEFINES["MOZ_FOLD_LIBS"] = True
 
 CXXFLAGS += CONFIG["SQLITE_CFLAGS"]
+
+SPHINX_TREES["/storage"] = "docs"

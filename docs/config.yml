@@ -41,6 +41,7 @@ categories:
         - writing-rust-code
         - tools/profiler
         - performance
+        - storage
         - xpcom
         - nspr
         - security/nss

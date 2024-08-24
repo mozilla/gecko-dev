@@ -5,7 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 with Files("**"):
-    BUG_COMPONENT = ("Toolkit", "Storage")
+    BUG_COMPONENT = ("Core", "SQLite and Embedded Database Bindings")
 
 EXTRA_JS_MODULES += [
     "kvstore.sys.mjs",

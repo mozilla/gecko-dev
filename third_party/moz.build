@@ -59,7 +59,7 @@ with Files('sipcc/**'):
     BUG_COMPONENT = ('Core', 'WebRTC: Signaling')
 
 with Files('sqlite3/**'):
-    BUG_COMPONENT = ('Toolkit', 'Storage')
+    BUG_COMPONENT = ("Core", "SQLite and Embedded Database Bindings")
 
 with Files('rlbox/**'):
     BUG_COMPONENT = ('Core', 'Security: RLBox')

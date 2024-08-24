@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-08-12T21:53:27.210457+00:00'
+updated_at: '2024-08-24T08:35:37.109364+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2665,16 +2665,18 @@ modules:
       - *jrmuizel
     machine_name: core_static_analysis_rewriting_for_c
 
-  - name: 'Core: storage'
-    description: Storage APIs, SQLite backend
+  - name: 'Core: SQLite and Embedded Database Bindings'
+    description: Embedded database engines and their code bindings.
     includes:
-      - third_party/sqlite3/**/*
       - storage/**/*
+      - third_party/sqlite3/**/*
+      - toolkit/components/kvstore/**/*
+      - toolkit/modules/Sqlite.sys.mjs
     meta:
       group: dev-platform
-      url: http://developer.mozilla.org/en/docs/Storage
+      url: https://firefox-source-docs.mozilla.org/storage/index.html
       components:
-        - Toolkit::Storage, Core::SQL
+        - Core::SQLite and Embedded Database Bindings
       owners_emeritus:
         - Shawn Wilsher
     owners:
@@ -4369,5 +4371,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 43d0d8bd41eefae9df701d29898d2c267c690744
-  export: 6233f0c96ac834ced16da56c30a6d5530dc294b3
+  config: 2b820918028a169e0dd7eb608374b600b82c59e7
+  export: 13932a489e0e5bef0e8ff7e3513c17450c44152a
