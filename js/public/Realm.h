@@ -106,6 +106,8 @@ extern JS_PUBLIC_API JS::Handle<JSObject*> GetRealmObjectPrototypeHandle(
     JSContext* cx);
 
 extern JS_PUBLIC_API JSObject* GetRealmFunctionPrototype(JSContext* cx);
+extern JS_PUBLIC_API JS::Handle<JSObject*> GetRealmFunctionPrototypeHandle(
+    JSContext* cx);
 
 extern JS_PUBLIC_API JSObject* GetRealmArrayPrototype(JSContext* cx);
 

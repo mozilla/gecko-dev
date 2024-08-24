@@ -687,6 +687,12 @@ JS_PUBLIC_API JSObject* JS::GetRealmFunctionPrototype(JSContext* cx) {
   return &cx->global()->getFunctionPrototype();
 }
 
+JS_PUBLIC_API JS::Handle<JSObject*> JS::GetRealmFunctionPrototypeHandle(
+    JSContext* cx) {
+  CHECK_THREAD(cx);
+  return cx->global()->getFunctionPrototypeHandle();
+}
+
 JS_PUBLIC_API JSObject* JS::GetRealmArrayPrototype(JSContext* cx) {
   CHECK_THREAD(cx);
   return GlobalObject::getOrCreateArrayPrototype(cx, cx->global());

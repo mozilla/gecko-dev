@@ -730,7 +730,7 @@ DocGroup* CustomElementRegistry::GetDocGroup() const {
 int32_t CustomElementRegistry::InferNamespace(
     JSContext* aCx, JS::Handle<JSObject*> constructor) {
   JS::Rooted<JSObject*> XULConstructor(
-      aCx, XULElement_Binding::GetConstructorObject(aCx));
+      aCx, XULElement_Binding::GetConstructorObjectHandle(aCx));
 
   JS::Rooted<JSObject*> proto(aCx, constructor);
   while (proto) {

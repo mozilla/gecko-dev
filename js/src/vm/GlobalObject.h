@@ -511,6 +511,10 @@ class GlobalObject : public NativeObject {
     MOZ_ASSERT(functionObjectClassesInitialized());
     return getPrototype(JSProto_Function);
   }
+  Handle<JSObject*> getFunctionPrototypeHandle() {
+    MOZ_ASSERT(functionObjectClassesInitialized());
+    return getPrototypeHandle(JSProto_Function);
+  }
   JSFunction& getEvalFunction() {
     MOZ_ASSERT(data().eval);
     return *data().eval;

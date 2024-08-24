@@ -705,7 +705,7 @@ struct JSNativeHolder {
 struct DOMInterfaceInfo {
   JSNativeHolder nativeHolder;
 
-  ProtoGetter mGetParentProto;
+  ProtoHandleGetter mGetParentProto;
 
   const prototypes::ID mPrototypeID;  // uint16_t
   const uint32_t mDepth;

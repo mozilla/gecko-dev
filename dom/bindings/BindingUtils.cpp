@@ -89,26 +89,26 @@
 namespace mozilla {
 namespace dom {
 
-// Forward declare GetConstructorObject methods.
-#define HTML_TAG(_tag, _classname, _interfacename)  \
-  namespace HTML##_interfacename##Element_Binding { \
-    JSObject* GetConstructorObject(JSContext*);     \
+// Forward declare GetConstructorObjectHandle methods.
+#define HTML_TAG(_tag, _classname, _interfacename)                \
+  namespace HTML##_interfacename##Element_Binding {               \
+    JS::Handle<JSObject*> GetConstructorObjectHandle(JSContext*); \
   }
 #define HTML_OTHER(_tag)
 #include "nsHTMLTagList.h"
 #undef HTML_TAG
 #undef HTML_OTHER
 
-using constructorGetterCallback = JSObject* (*)(JSContext*);
+using constructorGetterCallback = JS::Handle<JSObject*> (*)(JSContext*);
 
-// Mapping of html tag and GetConstructorObject methods.
+// Mapping of html tag and GetConstructorObjectHandle methods.
 #define HTML_TAG(_tag, _classname, _interfacename) \
-  HTML##_interfacename##Element_Binding::GetConstructorObject,
+  HTML##_interfacename##Element_Binding::GetConstructorObjectHandle,
 #define HTML_OTHER(_tag) nullptr,
 // We use eHTMLTag_foo (where foo is the tag) which is defined in nsHTMLTags.h
 // to index into this array.
 static const constructorGetterCallback sConstructorGetterCallback[] = {
-    HTMLUnknownElement_Binding::GetConstructorObject,
+    HTMLUnknownElement_Binding::GetConstructorObjectHandle,
 #include "nsHTMLTagList.h"
 #undef HTML_TAG
 #undef HTML_OTHER
@@ -3826,24 +3826,24 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
   if (ns == kNameSpaceID_XUL) {
     if (definition->mLocalName == nsGkAtoms::description ||
         definition->mLocalName == nsGkAtoms::label) {
-      cb = XULTextElement_Binding::GetConstructorObject;
+      cb = XULTextElement_Binding::GetConstructorObjectHandle;
     } else if (definition->mLocalName == nsGkAtoms::resizer) {
-      cb = XULResizerElement_Binding::GetConstructorObject;
+      cb = XULResizerElement_Binding::GetConstructorObjectHandle;
     } else if (definition->mLocalName == nsGkAtoms::menupopup ||
                definition->mLocalName == nsGkAtoms::panel ||
                definition->mLocalName == nsGkAtoms::tooltip) {
-      cb = XULPopupElement_Binding::GetConstructorObject;
+      cb = XULPopupElement_Binding::GetConstructorObjectHandle;
     } else if (definition->mLocalName == nsGkAtoms::iframe ||
                definition->mLocalName == nsGkAtoms::browser ||
                definition->mLocalName == nsGkAtoms::editor) {
-      cb = XULFrameElement_Binding::GetConstructorObject;
+      cb = XULFrameElement_Binding::GetConstructorObjectHandle;
     } else if (definition->mLocalName == nsGkAtoms::menu ||
                definition->mLocalName == nsGkAtoms::menulist) {
-      cb = XULMenuElement_Binding::GetConstructorObject;
+      cb = XULMenuElement_Binding::GetConstructorObjectHandle;
     } else if (definition->mLocalName == nsGkAtoms::tree) {
-      cb = XULTreeElement_Binding::GetConstructorObject;
+      cb = XULTreeElement_Binding::GetConstructorObjectHandle;
     } else {
-      cb = XULElement_Binding::GetConstructorObject;
+      cb = XULElement_Binding::GetConstructorObjectHandle;
     }
   }
 
@@ -3853,7 +3853,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
     // If the definition is for an autonomous custom element, the active
     // function should be HTMLElement or extend from XULElement.
     if (!cb) {
-      cb = HTMLElement_Binding::GetConstructorObject;
+      cb = HTMLElement_Binding::GetConstructorObjectHandle;
     }
 
     // We want to get the constructor from our global's realm, not the
