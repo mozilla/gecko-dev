@@ -2,7 +2,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* This is the linux variant */
 html {
   box-sizing: border-box;
 }
@@ -293,8 +292,11 @@ input {
   background-image: url("chrome://global/skin/icons/thumbs-down-20.svg");
 }
 
-html {
+:root {
   height: 100%;
+}
+:root[lwt-newtab-brighttext] {
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body,

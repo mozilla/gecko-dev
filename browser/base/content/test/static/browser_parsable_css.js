@@ -54,6 +54,13 @@ let ignoreList = [
   },
 ];
 
+if (AppConstants.platform != "macosx") {
+  ignoreList.push({
+    errorMessage: /Unknown property.*-moz-osx-font-smoothing/i,
+    isFromDevTools: false,
+  });
+}
+
 if (!Services.prefs.getBoolPref("layout.css.zoom.enabled")) {
   ignoreList.push({
     sourceName: /\bscrollbars\.css$/i,
