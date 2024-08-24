@@ -42,7 +42,7 @@ body {
 document.addEventListener("MozReftestInvalidate", () => {
   target.style.animation = "anim 100s 1s step-start";
   target.addEventListener("animationstart", () => {
-    // animtionstart event is fired just before requestAnimationFrame callbacks,
+    // animationstart event is fired just before requestAnimationFrame callbacks,
     // so we need to wait two rAF to make sure the initial animation value is
     // composited on the compositor.
     requestAnimationFrame(() => {
