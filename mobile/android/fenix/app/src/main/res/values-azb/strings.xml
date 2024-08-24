@@ -2444,6 +2444,89 @@
     <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
     <string name="review_quality_check_highlights_title">سوْن باخیشلاردان شاخص‌لر</string>
 
+    <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
+    <string name="review_quality_check_explanation_title">باخیش نئجه‌لیغینی نجور تعیین ائدیریک؟</string>
+    <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_explanation_body_reliability">بیز محصول باخیشلارینین اعتبارینی یوخلاماق اوچون موزیلا طرفیندن %s آل تکنولوژی‌سینی استفاده ائدیریک. بو، محصولون نئجه‌لیغی دئییل، یالنیز باخیش نئجه‌لیغینی دیرلندیزمه‌زه اَلیزدن توتور، محصول کیفیتی دئییل. </string>
+
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[هر محصول باخیشینا A حرفیندن F حرفینه قدر بیر <b>حرف درجه‌سی</b> وئریریک.]]></string>
+
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">اعتبارلیْ باخیش‌لار، اعتقادیمیز وار، باخیش‌لار، چوْخ احتمال‌لا دوز، طرفسیز باخیش‌لاریْ وئرن واقعی مشتری‌لردن‌دیر.</string>
+
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">اعتبارلی و اعتبارسیز باخیش‌لارین قاریشیق اوْلدوغونا اینانیریق.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">اعتبارسیز باخیش‌لار، اعتقادیمیز وار، باخیش‌لار جعلی‌دیر و یا غرضی اوْلان طرفیندن‌دیر.</string>
+    <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>دوزلتیلمیش درجه‌لندیرمه</b> یالنیز اعتبارلیْ اوْلدوغونا ایناندیغیمیز باخیش‌لارا دایانیر.]]></string>
+
+    <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
+    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b> شاخص‌لر</b> اعتبارلیْ اوْلدوغونا سوْن 80 گون ایچینده %s رای‌لردن‌دیر.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">%s حاقیندا داها چوْخ بیلگی آل.</string>
+
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">%s باخیش نئجه‌لیغینی نجور تعیین ائدیر</string>
+    <!-- Text for title of settings section. -->
+    <string name="review_quality_check_settings_title">تنظیم‌‎لر</string>
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">باخیش یوخلایان‌دا تبلیغاتیْ گؤرست</string>
+    <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">مرتبط محصول‌لار اوچون هردن بیر تبلیغات گؤره‌جکسیز. بیز یالنیز اعتبارلیْ باخیشلاریْ اوْلان محصول‌لاریْ تبلیغ ائدیریک. %s</string>
+    <!-- Clickable text that links to review quality check recommended products support article. -->
+    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">آرتیق بیلین</string>
+
+    <!-- Text for turning sidebar off button from review quality check settings section. -->
+    <string name="review_quality_check_settings_turn_off">باخیش یوخلایانیْ باغلایین</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">نظریزی چکه بیلر</string>
+    <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">%s  تبلیغاتی</string>
+    <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
+    <string name="review_quality_check_powered_by_2">باخیش یوْخلایان %s -دان گوج آلمیش</string>
+    <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s موْزیلا طرفیندن</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">کنترل ائدیله‌جک یئنی بیلگی‌لر</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">ایندی کنترل ائله</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">هله یئترلی باخیش یوْخ</string>
+
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">بو محصولون چوْخ باخیشیْ اوْلان زمان، اوْنون نئجه‌لیغینی یوْخلایا بیله‌جک.</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">محصول یوْخدور</string>
+
+    <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_body">بو محصولون یئنی‌دن انباردا اوْلدوغونو گؤرسز، بو باره‌ده بیلگی وئرین و بیز باخیش‌لاریْ یوْخلاماغا چالیشاجاییق.</string>
+    <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
+    <string name="review_quality_check_product_availability_warning_action_2">محصولون انباردا اوْلدوغونو بیلدیر</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">باخیش نئجه‌لیگی یوْخلانیر (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">بو، یاخین 60 ثانیه چکه بیلر.</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">بیلدیردیغیز اوچون ساغولون!</string>
+
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">24 ساعت ایچینده بو محصولون باخیش‌لاریْ باره‌ده بیلگی آلمالییق. لطفا یئنی‌دن یوْخلایین.</string>
+    <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_title">بو باخیش‌لاریْ یوْخلایا بیلمیریک</string>
+
+    <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
+    <string name="review_quality_check_contextual_onboarding_secondary_button_text">ایندی یوْخ</string>
+    <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
+    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">باخیش یوخلایانیْ آچ</string>
+    <!-- Flag showing that the review quality check feature is work in progress. -->
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">بتا</string>
+    <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_open_handle_content_description">باخیش یوخلایانیْ آچ</string>
+    <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
+    <string name="review_quality_check_close_handle_content_description">باخیش یوخلایانیْ باغلا</string>
+
     <!-- Translations feature-->
 
 
