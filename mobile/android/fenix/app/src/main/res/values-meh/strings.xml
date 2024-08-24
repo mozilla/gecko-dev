@@ -271,6 +271,8 @@
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Chuva´a</string>
 
+    <!-- Browser menu label that bookmarks the currently visited page -->
+    <string name="browser_menu_bookmark_this_page">Tee página ya´a nuu a ta´an ini noo´o</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
     <string name="browser_menu_edit_bookmark">Tee a ta´an ini noo\'o</string>
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -279,6 +281,8 @@
     <string name="browser_menu_turn_on_reader_view">Tee vista ka\'vi</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Xita vista ka\'vi</string>
+    <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+    <string name="browser_menu_translate_page">Traducir página…</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Nátava…</string>
 
@@ -1108,6 +1112,8 @@
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Tee tu\'un nánukunu</string>
 
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Niko yata</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Tee carpeta jíía</string>
     <!-- Content description for the bookmark navigation bar close button -->
@@ -2329,6 +2335,9 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_3" tools:ignore="UnusedResources">Neutral</string>
 
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description">Logo de Firefox</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Síne encuesta</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
@@ -2341,6 +2350,12 @@
     <string name="debug_drawer_logins_title">Nuu kajie´e sesión</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Xina nuu kaji\'e sesión jíí sivɨ ñɨvɨ %s</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Herramientas CFR</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Restablecer CFR</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
