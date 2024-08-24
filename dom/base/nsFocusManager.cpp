@@ -26,6 +26,7 @@
 #include "nsIBaseWindow.h"
 #include "nsIAppWindow.h"
 #include "nsTextControlFrame.h"
+#include "nsThreadUtils.h"
 #include "nsViewManager.h"
 #include "nsFrameSelection.h"
 #include "mozilla/dom/Selection.h"
@@ -945,13 +946,20 @@ nsresult nsFocusManager::ContentRemoved(Document* aDocument,
 
   // Notify the editor in case we removed its ancestor limiter.
   if (previousFocusedElement->IsEditable()) {
-    if (nsCOMPtr<nsIDocShell> docShell = aDocument->GetDocShell()) {
-      if (RefPtr<HTMLEditor> htmlEditor = docShell->GetHTMLEditor()) {
-        RefPtr<Selection> selection = htmlEditor->GetSelection();
+    if (nsIDocShell* const docShell = aDocument->GetDocShell()) {
+      if (HTMLEditor* const htmlEditor = docShell->GetHTMLEditor()) {
+        Selection* const selection = htmlEditor->GetSelection();
         if (selection && selection->GetFrameSelection() &&
             previousFocusedElement ==
                 selection->GetFrameSelection()->GetAncestorLimiter()) {
-          htmlEditor->FinalizeSelection();
+          // The editing host may be being removed right now.  So, it's already
+          // removed from the child chain of the parent node, but it still know
+          // the parent node.  This could cause unexpected result at scheduling
+          // paint of the caret.  Therefore, we should call FinalizeSelection
+          // after unblocking to run the script.
+          nsContentUtils::AddScriptRunner(
+              NewRunnableMethod("HTMLEditor::FinalizeSelection", htmlEditor,
+                                &HTMLEditor::FinalizeSelection));
         }
       }
     }

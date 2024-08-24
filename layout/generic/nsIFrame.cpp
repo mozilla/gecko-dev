@@ -5416,6 +5416,7 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
     content = content->GetParent();
   }
 
+  MOZ_ASSERT(!content->IsBeingRemoved());
   nsIContent* parent = content->GetParent();
   if (aFrame->IsBlockOutside() || !parent) {
     return FrameContentRange(content, 0, content->GetChildCount());
@@ -5424,9 +5425,10 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
   // TODO(emilio): Revise this in presence of Shadow DOM / display: contents,
   // it's likely that we don't want to just walk the light tree, and we need to
   // change the representation of FrameContentRange.
-  const int32_t index = parent->ComputeIndexOf_Deprecated(content);
-  MOZ_ASSERT(index >= 0);
-  return FrameContentRange(parent, index, index + 1);
+  Maybe<uint32_t> index = parent->ComputeIndexOf(content);
+  MOZ_ASSERT(index.isSome());
+  return FrameContentRange(parent, static_cast<int32_t>(*index),
+                           static_cast<int32_t>(*index + 1));
 }
 
 // The FrameTarget represents the closest frame to a point that can be selected
