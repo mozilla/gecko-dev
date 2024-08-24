@@ -62,6 +62,10 @@ async function testBackForwardMenu(useContextMenu) {
           content.history.back();
           await popStatePromise;
         } else {
+          // With the back-button intervention enabled, we need to make sure to
+          // trigger a user activation on each history entry, or they won't
+          // show in the menu.
+          content.document.notifyUserGestureActivation();
           content.history.pushState({}, "" + iterChild, iterChild + ".html");
         }
       }
