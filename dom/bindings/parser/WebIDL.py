@@ -1860,13 +1860,16 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
     def hasInterfaceObject(self):
         if self.isCallback():
             return self.hasConstants()
-        return not hasattr(self, "_noInterfaceObject")
+        return not hasattr(self, "_noInterfaceObject") and not self.getUserData(
+            "hasOrdinaryObjectPrototype", False
+        )
 
     def hasInterfacePrototypeObject(self):
         return (
             not self.isCallback()
             and not self.isNamespace()
             and self.getUserData("hasConcreteDescendant", False)
+            and not self.getUserData("hasOrdinaryObjectPrototype", False)
         )
 
     def addIncludedMixin(self, includedMixin):

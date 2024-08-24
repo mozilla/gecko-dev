@@ -319,6 +319,10 @@ class Configuration(DescriptorProvider):
             d.interface.getClassName()
             for d in self.getDescriptors(hasInterfaceOrInterfacePrototypeObject=True)
         )
+        names.update(
+            d.interface.getClassName()
+            for d in self.getDescriptors(hasOrdinaryObjectPrototype=True)
+        )
 
         # Now also add the names from windowGlobalNames, we need them for the
         # perfect hash that we build for these.
@@ -524,6 +528,11 @@ class Configuration(DescriptorProvider):
 
                 def getter(x):
                     return x.hasInterfaceOrInterfacePrototypeObject()
+
+            elif key == "hasOrdinaryObjectPrototype":
+
+                def getter(x):
+                    return x.hasOrdinaryObjectPrototype()
 
             elif key == "isCallback":
 
@@ -826,6 +835,9 @@ class Descriptor(DescriptorProvider):
                         )
                     addOperation("LegacyCaller", m)
 
+            if desc.get("hasOrdinaryObjectPrototype", False):
+                iface.setUserData("hasOrdinaryObjectPrototype", True)
+
             while iface:
                 for m in iface.members:
                     if not m.isMethod():
@@ -956,8 +968,6 @@ class Descriptor(DescriptorProvider):
                 config.maxProtoChainLength, len(self.prototypeChain)
             )
 
-        self.hasOrdinaryObjectPrototype = desc.get("hasOrdinaryObjectPrototype", False)
-
     def binaryNameFor(self, name, isStatic):
         return self._binaryNames.get((name, isStatic), name)
 
@@ -976,6 +986,9 @@ class Descriptor(DescriptorProvider):
             self.interface.hasInterfaceObject()
             or self.interface.hasInterfacePrototypeObject()
         )
+
+    def hasOrdinaryObjectPrototype(self):
+        return self.interface.getUserData("hasOrdinaryObjectPrototype", False)
 
     @property
     def hasNamedPropertiesObject(self):

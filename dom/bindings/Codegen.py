@@ -6,6 +6,7 @@
 
 import functools
 import math
+from operator import attrgetter
 import os
 import re
 import string
@@ -584,7 +585,7 @@ def DOMClass(descriptor):
     else:
         wrapperCacheGetter = "nullptr"
 
-    if descriptor.hasOrdinaryObjectPrototype:
+    if descriptor.hasOrdinaryObjectPrototype():
         getProto = "JS::GetRealmObjectPrototypeHandle"
     else:
         getProto = "GetProtoObjectHandle"
@@ -3854,11 +3855,9 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         else:
             unforgeableHolderSetup = None
 
-        # FIXME Unclear whether this is needed for hasOrdinaryObjectPrototype
         if (
             self.descriptor.interface.isOnGlobalProtoChain()
             and needInterfacePrototypeObject
-            and not self.descriptor.hasOrdinaryObjectPrototype
         ):
             makeProtoPrototypeImmutable = CGGeneric(
                 fill(
@@ -4801,7 +4800,10 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     """
 
     def __init__(self, descriptor, properties):
-        assert descriptor.interface.hasInterfacePrototypeObject()
+        assert (
+            descriptor.interface.hasInterfacePrototypeObject()
+            or descriptor.hasOrdinaryObjectPrototype()
+        )
         args = [
             Argument("JSContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
@@ -4839,7 +4841,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         else:
             unforgeable = ""
 
-        if self.descriptor.hasOrdinaryObjectPrototype:
+        if self.descriptor.hasOrdinaryObjectPrototype():
             getProto = "JS::GetRealmObjectPrototypeHandle"
         else:
             getProto = "GetProtoObjectHandle"
@@ -16780,6 +16782,7 @@ class CGDescriptor(CGThing):
         assert (
             not descriptor.concrete
             or descriptor.interface.hasInterfacePrototypeObject()
+            or descriptor.hasOrdinaryObjectPrototype()
         )
 
         self._deps = descriptor.interface.getDeps()
@@ -17084,7 +17087,6 @@ class CGDescriptor(CGThing):
             isIteratorInterface
             or (
                 descriptor.interface.hasInterfacePrototypeObject()
-                and not descriptor.hasOrdinaryObjectPrototype
                 and not descriptor.interface.hasChildInterfaces()
                 and not descriptor.hasNamedPropertiesObject
             )
@@ -17174,39 +17176,37 @@ class CGDescriptor(CGThing):
                 )
             )
 
-        # CGCreateInterfaceObjectsMethod needs to come after our
-        # CGDOMJSClass and unscopables, if any.
-        cgThings.append(
-            CGCreateInterfaceObjectsMethod(
-                descriptor,
-                properties,
-                haveUnscopables,
-                haveLegacyWindowAliases,
-                static=isIteratorInterface,
-            )
-        )
-
-        # CGGetProtoObjectHandleMethod and CGGetConstructorObjectHandleMethod
-        # need to come after CGCreateInterfaceObjectsMethod.
-        if (
-            descriptor.interface.hasInterfacePrototypeObject()
-            and not descriptor.hasOrdinaryObjectPrototype
-        ):
+        if not descriptor.hasOrdinaryObjectPrototype():
+            # CGCreateInterfaceObjectsMethod needs to come after our
+            # CGDOMJSClass and unscopables, if any.
             cgThings.append(
-                CGGetProtoObjectHandleMethod(
-                    descriptor, static=protoObjectHandleGetterIsStatic
-                )
-            )
-            if descriptor.interface.hasChildInterfaces():
-                assert not isIteratorInterface
-                cgThings.append(CGGetProtoObjectMethod(descriptor))
-        if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGGetConstructorObjectHandleMethod(descriptor))
-            cgThings.append(
-                CGCreateAndDefineOnGlobalMethod(
+                CGCreateInterfaceObjectsMethod(
                     descriptor,
+                    properties,
+                    haveUnscopables,
+                    haveLegacyWindowAliases,
+                    static=isIteratorInterface,
                 )
             )
+
+            # CGGetProtoObjectMethod and CGGetConstructorObjectMethod need
+            # to come after CGCreateInterfaceObjectsMethod.
+            if descriptor.interface.hasInterfacePrototypeObject():
+                cgThings.append(
+                    CGGetProtoObjectHandleMethod(
+                        descriptor, static=protoObjectHandleGetterIsStatic
+                    )
+                )
+                if descriptor.interface.hasChildInterfaces():
+                    assert not isIteratorInterface
+                    cgThings.append(CGGetProtoObjectMethod(descriptor))
+            if descriptor.interface.hasInterfaceObject():
+                cgThings.append(CGGetConstructorObjectHandleMethod(descriptor))
+                cgThings.append(
+                    CGCreateAndDefineOnGlobalMethod(
+                        descriptor,
+                    )
+                )
 
         # See whether we need to generate cross-origin property arrays.
         if needCrossOriginPropertyArrays:
@@ -18868,6 +18868,11 @@ class CGBindingRoot(CGThing):
 
         descriptors = config.getDescriptors(
             webIDLFile=webIDLFile, hasInterfaceOrInterfacePrototypeObject=True
+        )
+        descriptors.extend(
+            config.getDescriptors(
+                webIDLFile=webIDLFile, hasOrdinaryObjectPrototype=True
+            )
         )
 
         unionTypes = UnionsForFile(config, webIDLFile)
@@ -23602,6 +23607,10 @@ class GlobalGenRoots:
         descriptorsWithPrototype = config.getDescriptors(
             hasInterfacePrototypeObject=True
         )
+        descriptorsWithPrototype.extend(
+            config.getDescriptors(hasOrdinaryObjectPrototype=True)
+        )
+        descriptorsWithPrototype.sort(key=attrgetter("name"))
         protos = [d.name for d in descriptorsWithPrototype]
         idEnum = CGNamespacedEnum("id", "ID", ["_ID_Start"] + protos, [0, "_ID_Start"])
         idEnum = CGList([idEnum])
