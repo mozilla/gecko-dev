@@ -906,6 +906,14 @@ void HttpChannelChild::ProcessOnStopRequest(
           TimeDuration delay = now - start;
           glean::networking::http_content_ondatafinished_delay
               .AccumulateRawDuration(delay);
+          // We can be on main thread or background thread at this point
+          // http_content_ondatafinished_delay_2 is used to track
+          // delay observed between dispatch the OnDataFinished on the socket
+          // thread and running OnDataFinished on the background thread
+          if (!NS_IsMainThread()) {
+            glean::networking::http_content_ondatafinished_delay_2
+                .AccumulateRawDuration(delay);
+          }
           timing->mOnDataFinishedTime = now;
           self->SendOnDataFinished(status);
         }));

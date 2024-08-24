@@ -510,7 +510,8 @@ networking:
     type: timing_distribution
     time_unit: millisecond
     description: >
-      The time between dispatching OnDataFinished from the socket thread and processing it.
+      The time between dispatching OnDataFinished from the socket thread and processing
+      it on main/background thread.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
@@ -522,6 +523,26 @@ networking:
     notification_emails:
       - necko@mozilla.com
       - rjesup@mozilla.com
+    expires: 136
+
+  http_content_ondatafinished_delay_2:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      The time between dispatching OnDataFinished from the socket thread and processing it
+      on the background thread.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913140
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1857615#c
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902188
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - jesup@mozilla.com
     expires: 136
 
   http_content_ondatafinished_to_onstop_delay:
