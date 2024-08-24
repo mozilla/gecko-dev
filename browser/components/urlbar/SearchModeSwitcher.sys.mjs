@@ -129,6 +129,9 @@ export class SearchModeSwitcher {
       return; // Left click, space or enter only
     }
 
+    event.preventDefault();
+    event.stopPropagation();
+
     this.#input.window.openPreferences("paneSearch");
     this.#popup.hidePopup();
   }
