@@ -2524,7 +2524,9 @@ function FillHistoryMenu(event) {
         entry.hasUserInteraction === false &&
         // Always allow going to the first and last navigation points.
         j != end - 1 &&
-        j != start
+        j != start &&
+        // Always display the current entry
+        j != index
       ) {
         continue;
       }
