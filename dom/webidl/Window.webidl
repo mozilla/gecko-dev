@@ -235,7 +235,7 @@ interface nsIPrintSettings;
 
   // the user agent
   readonly attribute Navigator navigator;
-  [Replaceable, Pref="dom.window.clientinformation.enabled", BinaryName="Navigator"]
+  [Pref="dom.window.clientinformation.enabled", BinaryName="Navigator"]
   readonly attribute Navigator clientInformation;
 
   [Replaceable] readonly attribute External external;
