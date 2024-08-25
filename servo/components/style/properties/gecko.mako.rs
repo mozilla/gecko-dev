@@ -598,7 +598,7 @@ fn static_assert() {
                                      for x in CORNERS]) %>
 
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands} border-image-repeat">
+                  skip_longhands="${skip_border_longhands}">
     % for side in SIDES:
     pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
         self.mBorderStyle[${side.index}] = v;
@@ -658,28 +658,6 @@ fn static_assert() {
     % for corner in CORNERS:
     ${impl_simple("border_%s_radius" % corner, "mBorderRadius.%s" % corner)}
     % endfor
-
-    pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
-        % for i, side in enumerate(["H", "V"]):
-            self.mBorderImageRepeat${side} = v.${i};
-        % endfor
-    }
-
-    pub fn copy_border_image_repeat_from(&mut self, other: &Self) {
-        self.mBorderImageRepeatH = other.mBorderImageRepeatH;
-        self.mBorderImageRepeatV = other.mBorderImageRepeatV;
-    }
-
-    pub fn reset_border_image_repeat(&mut self, other: &Self) {
-        self.copy_border_image_repeat_from(other)
-    }
-
-    pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
-        % for side in ["H", "V"]:
-        let servo_${side.lower()} = self.mBorderImageRepeat${side};
-        % endfor
-        longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
-    }
 </%self:impl_trait>
 
 <% skip_scroll_margin_longhands = " ".join(["scroll-margin-%s" % x.ident for x in SIDES]) %>

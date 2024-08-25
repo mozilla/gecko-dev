@@ -327,6 +327,7 @@ pub enum BorderImageRepeatKeyword {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl ToCss for BorderImageRepeat {

@@ -459,6 +459,7 @@ cbindgen-types = [
     { gecko = "StyleGenericPositionOrAuto", servo = "crate::values::generics::position::PositionOrAuto" },
     { gecko = "StyleBackgroundSize", servo = "crate::values::computed::BackgroundSize" },
     { gecko = "StyleGenericBackgroundSize", servo = "crate::values::generics::background::BackgroundSize" },
+    { gecko = "StyleBorderImageRepeat", servo = "crate::values::specified::border::BorderImageRepeat" },
     { gecko = "StyleBorderImageRepeatKeyword", servo = "crate::values::specified::border::BorderImageRepeatKeyword" },
     { gecko = "StyleBorderImageSlice", servo = "crate::values::computed::BorderImageSlice" },
     { gecko = "StyleBorderSpacing", servo = "crate::values::computed::BorderSpacing" },

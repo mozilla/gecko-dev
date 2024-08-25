@@ -3884,7 +3884,7 @@ nsCSSBorderImageRenderer::nsCSSBorderImageRenderer(
                  "rounding error in width reduction???");
   }
 
-  mRepeatModeHorizontal = aStyleBorder.mBorderImageRepeatH;
-  mRepeatModeVertical = aStyleBorder.mBorderImageRepeatV;
+  mRepeatModeHorizontal = aStyleBorder.mBorderImageRepeat._0;
+  mRepeatModeVertical = aStyleBorder.mBorderImageRepeat._1;
   mFill = aStyleBorder.mBorderImageSlice.fill;
 }
