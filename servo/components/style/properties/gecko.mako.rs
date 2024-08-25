@@ -659,20 +659,9 @@ fn static_assert() {
     ${impl_simple("border_%s_radius" % corner, "mBorderRadius.%s" % corner)}
     % endfor
 
-    <%
-    border_image_repeat_keywords = ["Stretch", "Repeat", "Round", "Space"]
-    %>
-
     pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
-        use crate::values::specified::border::BorderImageRepeatKeyword;
-        use crate::gecko_bindings::structs::StyleBorderImageRepeat;
-
         % for i, side in enumerate(["H", "V"]):
-            self.mBorderImageRepeat${side} = match v.${i} {
-                % for keyword in border_image_repeat_keywords:
-                BorderImageRepeatKeyword::${keyword} => StyleBorderImageRepeat::${keyword},
-                % endfor
-            };
+            self.mBorderImageRepeat${side} = v.${i};
         % endfor
     }
 
@@ -686,15 +675,8 @@ fn static_assert() {
     }
 
     pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
-        use crate::values::specified::border::BorderImageRepeatKeyword;
-        use crate::gecko_bindings::structs::StyleBorderImageRepeat;
-
         % for side in ["H", "V"]:
-        let servo_${side.lower()} = match self.mBorderImageRepeat${side} {
-            % for keyword in border_image_repeat_keywords:
-            StyleBorderImageRepeat::${keyword} => BorderImageRepeatKeyword::${keyword},
-            % endfor
-        };
+        let servo_${side.lower()} = self.mBorderImageRepeat${side};
         % endfor
         longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
     }

@@ -3480,7 +3480,7 @@ ImgDrawResult nsCSSBorderImageRenderer::DrawBorderImage(
 
   for (int i = LEFT; i <= RIGHT; i++) {
     for (int j = TOP; j <= BOTTOM; j++) {
-      StyleBorderImageRepeat fillStyleH, fillStyleV;
+      StyleBorderImageRepeatKeyword fillStyleH, fillStyleV;
       nsSize unitSize;
 
       if (i == MIDDLE && j == MIDDLE) {
@@ -3534,7 +3534,7 @@ ImgDrawResult nsCSSBorderImageRenderer::DrawBorderImage(
         unitSize.width = sliceWidth[i] * factor;
         unitSize.height = borderHeight[j];
         fillStyleH = mRepeatModeHorizontal;
-        fillStyleV = StyleBorderImageRepeat::Stretch;
+        fillStyleV = StyleBorderImageRepeatKeyword::Stretch;
 
       } else if (j == MIDDLE) {  // left, right
         gfxFloat factor;
@@ -3546,15 +3546,15 @@ ImgDrawResult nsCSSBorderImageRenderer::DrawBorderImage(
 
         unitSize.width = borderWidth[i];
         unitSize.height = sliceHeight[j] * factor;
-        fillStyleH = StyleBorderImageRepeat::Stretch;
+        fillStyleH = StyleBorderImageRepeatKeyword::Stretch;
         fillStyleV = mRepeatModeVertical;
 
       } else {
         // Corners are always stretched to fit the corner.
         unitSize.width = borderWidth[i];
         unitSize.height = borderHeight[j];
-        fillStyleH = StyleBorderImageRepeat::Stretch;
-        fillStyleV = StyleBorderImageRepeat::Stretch;
+        fillStyleH = StyleBorderImageRepeatKeyword::Stretch;
+        fillStyleV = StyleBorderImageRepeatKeyword::Stretch;
       }
 
       nsRect destArea(borderX[i], borderY[j], borderWidth[i], borderHeight[j]);

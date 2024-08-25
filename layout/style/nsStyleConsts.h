@@ -206,9 +206,6 @@ enum class StyleMaskMode : uint8_t { Alpha = 0, Luminance, MatchSource };
 // See nsStyleTable
 enum class StyleBorderCollapse : uint8_t { Collapse, Separate };
 
-// border-image-repeat
-enum class StyleBorderImageRepeat : uint8_t { Stretch, Repeat, Round, Space };
-
 // See nsStyleVisibility
 enum class StyleDirection : uint8_t { Ltr, Rtl };
 

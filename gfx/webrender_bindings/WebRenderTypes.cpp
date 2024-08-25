@@ -46,15 +46,15 @@ BorderStyle ToBorderStyle(StyleBorderStyle aStyle) {
   return wr::BorderStyle::None;
 }
 
-wr::RepeatMode ToRepeatMode(StyleBorderImageRepeat aRepeat) {
+wr::RepeatMode ToRepeatMode(StyleBorderImageRepeatKeyword aRepeat) {
   switch (aRepeat) {
-    case StyleBorderImageRepeat::Stretch:
+    case StyleBorderImageRepeatKeyword::Stretch:
       return wr::RepeatMode::Stretch;
-    case StyleBorderImageRepeat::Repeat:
+    case StyleBorderImageRepeatKeyword::Repeat:
       return wr::RepeatMode::Repeat;
-    case StyleBorderImageRepeat::Round:
+    case StyleBorderImageRepeatKeyword::Round:
       return wr::RepeatMode::Round;
-    case StyleBorderImageRepeat::Space:
+    case StyleBorderImageRepeatKeyword::Space:
       return wr::RepeatMode::Space;
     default:
       MOZ_ASSERT(false);

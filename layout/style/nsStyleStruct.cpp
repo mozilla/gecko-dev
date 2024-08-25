@@ -397,8 +397,8 @@ nsStyleBorder::nsStyleBorder()
       mBorderImageSlice(
           {StyleRectWithAllSides(StyleNumberOrPercentage::Percentage({1.})),
            false}),
-      mBorderImageRepeatH(StyleBorderImageRepeat::Stretch),
-      mBorderImageRepeatV(StyleBorderImageRepeat::Stretch),
+      mBorderImageRepeatH(StyleBorderImageRepeatKeyword::Stretch),
+      mBorderImageRepeatV(StyleBorderImageRepeatKeyword::Stretch),
       mFloatEdge(StyleFloatEdge::ContentBox),
       mBoxDecorationBreak(StyleBoxDecorationBreak::Slice),
       mBorderTopColor(StyleColor::CurrentColor()),

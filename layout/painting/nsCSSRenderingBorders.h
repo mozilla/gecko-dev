@@ -32,7 +32,7 @@ class nsDisplayButtonForeground;
 class nsDisplayOutline;
 
 enum class StyleBorderStyle : uint8_t;
-enum class StyleBorderImageRepeat : uint8_t;
+enum class StyleBorderImageRepeatKeyword : uint8_t;
 
 namespace gfx {
 class GradientStops;
@@ -297,8 +297,8 @@ class nsCSSBorderImageRenderer final {
   nsMargin mImageOutset;
   nsRect mArea;
   nsRect mClip;
-  mozilla::StyleBorderImageRepeat mRepeatModeHorizontal;
-  mozilla::StyleBorderImageRepeat mRepeatModeVertical;
+  mozilla::StyleBorderImageRepeatKeyword mRepeatModeHorizontal;
+  mozilla::StyleBorderImageRepeatKeyword mRepeatModeVertical;
   bool mFill;
 
   friend class mozilla::nsDisplayBorder;

@@ -27,7 +27,7 @@
 namespace mozilla {
 
 enum class StyleBorderStyle : uint8_t;
-enum class StyleBorderImageRepeat : uint8_t;
+enum class StyleBorderImageRepeatKeyword : uint8_t;
 enum class StyleImageRendering : uint8_t;
 
 namespace ipc {
@@ -566,7 +566,7 @@ static inline wr::LayoutSideOffsets ToLayoutSideOffsets(float top, float right,
   return offset;
 }
 
-wr::RepeatMode ToRepeatMode(StyleBorderImageRepeat);
+wr::RepeatMode ToRepeatMode(StyleBorderImageRepeatKeyword);
 
 template <class S, class T>
 static inline wr::WrTransformProperty ToWrTransformProperty(
