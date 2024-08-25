@@ -108,6 +108,10 @@
     <string name="erase_action_cfr_message">ہِک تازہ نجی سیشن شروع کرݨ کِیتے اِتّھاں دباؤ۔ آپݨی ہسٹری، کوکیز — ہر شے کُوں حذف کرو۔</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کیمرے تائیں رسائی دی لوڑ ہے۔ انڈرائیڈ دیاں ترتیباں تے ون٘ڄو، اجازتاں تے ٹیپ کرو تے اجازت ݙیوو تے انگل پھیرو۔</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -187,6 +191,9 @@
     <string name="browser_menu_stop">روکو</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">ایکسٹینشنز</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">%s کوں اپݨا بݨاؤ</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">ٻیا سِکھو</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -297,6 +304,10 @@
     <string name="browser_menu_translate_page">ورقے دا ترجمہ کرو۔۔۔</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">چھاپو۔۔۔</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">%1$s کوں چھوڑو</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -1212,6 +1223,8 @@
     <!-- Content description for the bookmark navigation bar back button -->
     <string name="bookmark_navigate_back_button_content_description">واپس ون٘ڄو</string>
 
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">نواں فولڈر شامل کرو</string>
     <!-- Content description for the bookmark navigation bar close button -->
     <string name="bookmark_close_button_content_description">نشانیاں بند کرو</string>
     <!-- Content description for bookmark search floating action button -->
@@ -2529,6 +2542,9 @@
     <!-- Content description (not visible, for screen readers etc.) for closing the translations bottom sheet. -->
     <string name="translation_option_bottom_sheet_close_content_description">ترجمہ شیٹ بند کرو</string>
 
+    <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
+    <string name="translation_option_bottom_sheet_error_warning_text">کجھ ترتیباں عارضی طور تے دستیاب کائنی۔</string>
+
     <!-- Translation settings dialog -->
     <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
     <string name="translation_settings_toolbar_title">ترجمے</string>
@@ -2552,6 +2568,9 @@
 
     <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
     <string name="automatic_translation_header_preference">&quot;ہمیشاں ترجمہ کرو&quot; اَتے &quot;کݙان٘ہیں ترجمہ نہ کرو&quot; ترجیحاں دا نظم کرݨ کِیتے ہِک ٻولی چُݨو۔</string>
+
+    <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
+    <string name="automatic_translation_error_warning_text">زباناں لوڈ کائنی کر سڳا، سوہݨا، ولدا بعد وچ چیک کرو۔</string>
 
     <!-- Automatic translation options preference screen -->
     <!-- Preference option for offering to translate. Radio button title text.-->
@@ -2577,6 +2596,8 @@
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_item_list_content_description_preference">%1$s ہٹاؤ</string>
+    <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+    <string name="never_translate_site_error_warning_text">سائٹاں لوڈ کائنی کر سڳا، سوہݨا، ولدا بعد وچ چیک کرو۔</string>
     <!-- The Delete site dialogue title will appear when the user clicks on a list item.
              The first parameter is web site url (for example:"wikipedia.com") -->
     <string name="never_translate_site_dialog_title_preference">%1$s مٹاؤں؟</string>
@@ -2614,8 +2635,21 @@
     <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">تھیندیاں پیاں</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">تھیندیاں پیاں</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">%1$s (%2$s) ڈاؤن لوڈ کرݨ روکو</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">ڈاؤن لوڈ</string>
+
+    <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
+    <string name="download_languages_fetch_error_warning_text">زباناں لوڈ کائنی کر سڳا، سوہݨا، ولدا بعد وچ چیک کرو۔</string>
+    <!-- The title of the warning card informs the user that an error has occurred at downloading a language.
+      The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_error_warning_text"><![CDATA[<b> %1$s </b> ڈاؤن لوڈ کائنی کر سڳا۔ سوہݨا، ولدا کوشش کرو۔]]></string>
+    <!-- The title of the warning card informs the user that an error has occurred at deleting a language.
+          The first parameter is the language name, for example, "Spanish". -->
+    <string name="download_languages_delete_error_warning_text"><![CDATA[<b> %1$s </b> کائنی مٹا سڳا۔ سوہݨا، ولدا کوشش کرو۔]]></string>
 
     <!-- Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -2634,6 +2668,9 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">منسوخ</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">%1$s ڈاؤن لوڈ منسوخ کروں؟</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
     <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">جیا</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
@@ -2680,6 +2717,10 @@
     <string name="debug_drawer_tab_tools_tab_creation_tool_title">ٹیب بݨاوݨ دا اوزار</string>
     <!-- The label of the text field in the tab creation tool. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">بݨاوݨ کِیتے ٹیب دی مقدار</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is empty -->
+    <string name="debug_drawer_tab_tools_tab_quantity_empty_error">عبارت خانہ خالی ہے</string>
+    <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">سوہݨا، صرف مثبت سالم عدد درج کرو</string>
     <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">فعال ٹیباں وچ شامل کرو</string>
     <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
@@ -2694,6 +2735,8 @@
     <!-- Survey view -->
     <!-- The survey header -->
     <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">ایہ سروے مکمل کرو</string>
+    <!-- The survey header -->
+    <string name="micro_survey_survey_header_2">سوہݨا، سروے مکمل کرو</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">رازداری نوٹس</string>
     <!-- The privacy notice link -->
@@ -2722,6 +2765,8 @@
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Firefox لوگو</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">سروے فیچر آئیکان</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">سروے کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
