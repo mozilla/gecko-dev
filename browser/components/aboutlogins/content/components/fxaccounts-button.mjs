@@ -18,16 +18,22 @@ export default class FxAccountsButton extends HTMLElement {
     this._loggedOutView = shadowRoot.querySelector(".logged-out-view");
     this._loggedInView = shadowRoot.querySelector(".logged-in-view");
     this._emailText = shadowRoot.querySelector(".fxaccount-email");
-    this._manageAccountLink = shadowRoot.querySelector(
-      ".fxaccount-manage-link"
-    );
 
+    this._avatarButton.addEventListener("click", this);
     this._enableButton.addEventListener("click", this);
 
     this.render();
   }
 
   handleEvent(event) {
+    if (event.currentTarget == this._avatarButton) {
+      document.dispatchEvent(
+        new CustomEvent("AboutLoginsSyncOptions", {
+          bubbles: true,
+        })
+      );
+      return;
+    }
     if (event.target == this._enableButton) {
       document.dispatchEvent(
         new CustomEvent("AboutLoginsSyncEnable", {
@@ -41,7 +47,6 @@ export default class FxAccountsButton extends HTMLElement {
     this._loggedOutView.hidden = !!this._loggedIn;
     this._loggedInView.hidden = !this._loggedIn;
     this._emailText.textContent = this._email;
-    this._manageAccountLink.setAttribute("href", this._accountURL);
     if (this._avatarURL) {
       this._avatarButton.style.setProperty(
         "--avatar-url",
@@ -71,7 +76,6 @@ export default class FxAccountsButton extends HTMLElement {
     this._loggedIn = state.loggedIn;
     this._email = state.email;
     this._avatarURL = state.avatarURL;
-    this._accountURL = state.accountURL;
 
     this.render();
   }

@@ -96,6 +96,10 @@ export class AboutLoginsChild extends JSWindowActorChild {
         this.#aboutLoginsSyncEnable();
         break;
       }
+      case "AboutLoginsSyncOptions": {
+        this.#aboutLoginsSyncOptions();
+        break;
+      }
       case "AboutLoginsUpdateLogin": {
         this.#aboutLoginsUpdateLogin(event.detail);
         break;
@@ -241,6 +245,10 @@ export class AboutLoginsChild extends JSWindowActorChild {
 
   #aboutLoginsSyncEnable() {
     this.sendAsyncMessage("AboutLogins:SyncEnable");
+  }
+
+  #aboutLoginsSyncOptions() {
+    this.sendAsyncMessage("AboutLogins:SyncOptions");
   }
 
   #aboutLoginsUpdateLogin(login) {
