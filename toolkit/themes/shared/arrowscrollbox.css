@@ -28,6 +28,9 @@ toolbarbutton {
   fill: currentColor;
   fill-opacity: 1;
   padding: 2px;
+  /* Make sure we draw on top of our scrollbox, since otherwise the up button
+   * won't be hittable */
+  position: relative;
 
   &[disabled] {
     fill-opacity: var(--toolbarbutton-disabled-opacity);
