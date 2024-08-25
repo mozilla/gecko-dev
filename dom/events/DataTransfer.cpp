@@ -1476,23 +1476,29 @@ void DataTransfer::FillInExternalCustomTypes(uint32_t aIndex,
   FillInExternalCustomTypes(variant, aIndex, aPrincipal);
 }
 
-/* static */ void DataTransfer::ParseExternalCustomTypesString(
-    mozilla::Span<const char> aString,
-    std::function<void(ParseExternalCustomTypesStringData&&)>&& aCallback) {
-  CheckedInt<int32_t> checkedLen(aString.Length());
+void DataTransfer::FillInExternalCustomTypes(nsIVariant* aData, uint32_t aIndex,
+                                             nsIPrincipal* aPrincipal) {
+  char* chrs;
+  uint32_t len = 0;
+  nsresult rv = aData->GetAsStringWithSize(&len, &chrs);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  CheckedInt<int32_t> checkedLen(len);
   if (!checkedLen.isValid()) {
     return;
   }
 
   nsCOMPtr<nsIInputStream> stringStream;
-  NS_NewByteInputStream(getter_AddRefs(stringStream), aString,
-                        NS_ASSIGNMENT_DEPEND);
+  NS_NewByteInputStream(getter_AddRefs(stringStream),
+                        Span(chrs, checkedLen.value()), NS_ASSIGNMENT_ADOPT);
 
   nsCOMPtr<nsIObjectInputStream> stream = NS_NewObjectInputStream(stringStream);
 
   uint32_t type;
   do {
-    nsresult rv = stream->Read32(&type);
+    rv = stream->Read32(&type);
     NS_ENSURE_SUCCESS_VOID(rv);
     if (type == eCustomClipboardTypeId_String) {
       uint32_t formatLength;
@@ -1515,32 +1521,13 @@ void DataTransfer::FillInExternalCustomTypes(uint32_t aIndex,
       data.Adopt(reinterpret_cast<char16_t*>(dataBytes),
                  dataLength / sizeof(char16_t));
 
-      aCallback(ParseExternalCustomTypesStringData(std::move(format),
-                                                   std::move(data)));
+      RefPtr<nsVariantCC> variant = new nsVariantCC();
+      rv = variant->SetAsAString(data);
+      NS_ENSURE_SUCCESS_VOID(rv);
+
+      SetDataWithPrincipal(format, variant, aIndex, aPrincipal);
     }
   } while (type != eCustomClipboardTypeId_None);
-}
-
-void DataTransfer::FillInExternalCustomTypes(nsIVariant* aData, uint32_t aIndex,
-                                             nsIPrincipal* aPrincipal) {
-  char* chrs;
-  uint32_t len = 0;
-  nsresult rv = aData->GetAsStringWithSize(&len, &chrs);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  ParseExternalCustomTypesString(
-      mozilla::Span(chrs, len),
-      [&](ParseExternalCustomTypesStringData&& aData) {
-        auto [format, data] = std::move(aData);
-        RefPtr<nsVariantCC> variant = new nsVariantCC();
-        if (NS_FAILED(variant->SetAsAString(data))) {
-          return;
-        }
-
-        SetDataWithPrincipal(format, variant, aIndex, aPrincipal);
-      });
 }
 
 void DataTransfer::SetMode(DataTransfer::Mode aMode) {
