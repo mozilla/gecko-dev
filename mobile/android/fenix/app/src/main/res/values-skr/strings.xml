@@ -187,6 +187,8 @@
     <string name="browser_menu_stop">روکو</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">ایکسٹینشنز</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">ٻیا سِکھو</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">ایکسٹینشنز دا بندوبست کرو</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -243,6 +245,8 @@
     <string name="browser_menu_open_app_link">ایپ وچ کھولو</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">من پسند قاری نظارہ بݨاو</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">من پسند قاری منظر بݨاو</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">شامل کرو</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -271,6 +275,8 @@
 
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">ڈیسک ٹاپ سائٹ تے سوئچ کرو</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">موبائل سائٹ تے سوئچ کرو</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">اوزار</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -1205,6 +1211,11 @@
 
     <!-- Content description for the bookmark navigation bar back button -->
     <string name="bookmark_navigate_back_button_content_description">واپس ون٘ڄو</string>
+
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">نشانیاں بند کرو</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">نشانیاں ڳولو</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2161,6 +2172,8 @@
     <string name="top_sites_rename_dialog_title">ناں</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">شارٹ کٹ ناں</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">شارٹ کٹ یوآرایل</string>
     <!-- Button caption to confirm the renaming of the top site. -->
     <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ٹھیک ہے</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
@@ -2173,6 +2186,10 @@
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">سپانسر تھئے</string>
 
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">تبدیلی کرو</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">شارٹ کٹ وِچ تبدیلی کرو</string>
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">محفوظ</string>
     <!-- Error message when the user entered an invalid URL -->
@@ -2683,8 +2700,6 @@
     <string name="micro_survey_privacy_notice_2">رازداری نوٹس</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">جمع کرواؤ</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">بند کرو</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">سروے مکمل</string>
     <!-- The survey completion confirmation text -->

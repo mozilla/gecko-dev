@@ -17,7 +17,9 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">پاس‌ورڈ</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save">ایہہ نہ رکھو</string>
+    <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">ایہہ نہ رکھو</string>
+    <!-- Negative confirmation that we should not save the new or updated login -->
+    <string name="mozac_feature_prompt_dont_save_2">ہݨے نہیں</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">کدے نہ رکھو</string>
     <!-- Negative confirmation that we should not save a credit card for this site -->
@@ -26,19 +28,31 @@
     <string name="mozac_feature_prompt_save_confirmation">سانجھا کرو</string>
 
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update">ایہنوں نہ نواں کرو</string>
+    <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">ایہنوں نہ نواں کرو</string>
+    <!-- Negative confirmation that we should not save the updated login -->
+    <string name="mozac_feature_prompt_dont_update_2">ہݨے نہیں</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">نواں کرو</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password">پاس‌ورڈ نہیں پایا</string>
+    <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">پاس‌ورڈ نہیں پایا</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause">پاس‌ورڈ رکھ نہیں سکدا</string>
+    <string name="mozac_feature_prompt_error_empty_password_2">پاس‌ورڈ پایو</string>
+    <!-- Error text displayed underneath the login field when it is in an error case -->
+    <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">پاس‌ورڈ رکھ نہیں سکدا</string>
+    <!-- Error text displayed underneath the password field when it is in an error case -->
+    <string name="mozac_feature_prompt_error_unknown_cause_2">پاس‌ورڈ سنبھالیا نہیں جا سکدا اے</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline">پاس‌ورڈ رکھیو؟</string>
+    <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">پاس‌ورڈ رکھیو؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
+    <string name="mozac_feature_prompt_login_save_headline_2">پاس‌ورڈ سنبھالݨا اے؟</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline">ایہنوں نواں کریو؟</string>
+    <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">ایہنوں نواں کریو؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
+    <string name="mozac_feature_prompt_login_update_headline_2">پاس‌ورڈ اپڈیٹ کرنا اے؟</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">پاس‌ورڈ نال ورتنوالے دا ناں وی رکھیو؟</string>
+    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">پاس‌ورڈ نال ورتنوالے دا ناں وی رکھیو؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+    <string name="mozac_feature_prompt_login_add_username_headline_2">ورتݨ ناں نوں اپڈیٹ کرنا اے؟</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">لکھت دی تھاں لئی تفصیل</string>
@@ -86,20 +100,48 @@
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">ویلے نوں بدلو</string>
     <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins">پاس‌ورڈاں دا انتظام</string>
+    <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">پاس‌ورڈاں دا انتظام</string>
+    <!-- Option in expanded select password prompt that links to password settings -->
+    <string name="mozac_feature_prompts_manage_logins_2">پاس‌ورڈاں دا انتظام کرو</string>
     <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description">تجویز دے ویروے ویکھو</string>
+    <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">تجویز دے ویروے ویکھو</string>
+    <!-- Content description for expanding the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_expand_logins_content_description_2">سنبھالے پوئے پاس‌ورڈاں نوں پھیلاؤ</string>
     <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description">تجویز لُکاؤ</string>
+    <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">تجویز لُکاؤ</string>
+    <!-- Content description for collapsing the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">سنبھالے ہوئے پاس‌ورڈاں نوں سموٹو</string>
     <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins">تجویز دے ویروے</string>
+    <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">تجویز دے ویروے</string>
+
+    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+    <string name="mozac_feature_prompts_saved_logins_2">سنبھالے ہوئے پاس‌ورڈ</string>
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">مضبوط پاس‌ورڈ لئی تجویز کرو</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password">مضبوط پاس‌ورڈ لئی تجویز کرو</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_2">مضبوط پاس‌ورڈ ورتیو</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">مضبوط پاس‌ورڈ نوں ورتوں: %1$s</string>
+
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">مضبوط پاس‌ورڈ ورتݨا اے؟</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">آپݨے کھاتیاں نوں مضبوط، رلویں ملویں تیار کیتے پاس‌ورڈ نوں ورت کے سرکھیت کرو۔ آپݨے پاس‌ورڈاں نوں آپݨے کھاتے وچ سنبھال کے فورن لوو۔</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">مضبوط، بے ترتیبے تیار کیتے پاس‌ورڈ نال آپݨے کھاتیاں نوں سرکھیاں دیو۔ ایس نوں مستقبل چ تہاڈے کھاتے وچ سنبھالیا جاوےگا۔</string>
+
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">پاس‌ورڈ نوں ورتو</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ہݨے نہیں</string>
+
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">پاس‌ورڈ سنبھالیا</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">پاس‌ورڈ اپڈیٹ کیتا گیا</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ورتݨ ناں نوں اپڈیٹ کیتا</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">فیر بھیجیو؟</string>
@@ -111,14 +153,22 @@
 
     <!-- Credit Card Autofill -->
     <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card">کریڈٹ کارڈ چݨو</string>
+    <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">کریڈٹ کارڈ چݨو</string>
+    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
+    <string name="mozac_feature_prompts_select_credit_card_2">سنبھالے کارڈ نوں ورتو</string>
     <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description">تجویز دے کارڈ ویکھو</string>
+    <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">تجویز دے کارڈ ویکھو</string>
+    <!-- Content description for expanding the saved card options in the select card prompt. -->
+    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">سنبھالے ہوئے کارڈاں نوں پھیلاؤ</string>
     <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description">تجویز دے کارڈ لکاؤ</string>
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">تجویز دے کارڈ لکاؤ</string>
 
+    <!-- Content description for collapsing the saved card options in the select prompt. -->
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">سنبھالے ہاوئے کارڈاں نوں سمیٹو</string>
     <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards">کریڈٹ کارڈاں دا انتظام کرو</string>
+    <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">کریڈٹ کارڈاں دا انتظام کرو</string>
+    <!-- Option in the expanded select card prompt that links to cards settings. -->
+    <string name="mozac_feature_prompts_manage_credit_cards_2">کارڈاں دا انتظام کرو</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">سرکھیت نال کارڈ دا نمبر رکھو؟</string>
 
@@ -126,15 +176,22 @@
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">تسیں کارڈ دی میاد پگݨ دی تاریخ نوں بدلݨا چاہیدے او؟</string>
 
     <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body">کارڈ نمبر نوں اوہلا پا لا جاۓگا۔ سرکھیا کوڈ رکھ نہیں جاۓگا۔</string>
+    <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">کارڈ نمبر نوں اوہلا پا لا جاۓگا۔ سرکھیا کوڈ رکھ نہیں جاۓگا۔</string>
+
+    <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
+    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s تہاڈے کارڈ نوں انکرپٹ کردا اے۔ تہاڈے سرکھیا کوڈ نوں سنبھالیا نہیں جاوےگا۔</string>
 
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">پتہ چݨو</string>
     <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description">ہور پتے ویکھو</string>
+    <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">ہور پتے ویکھو</string>
+    <!-- Content description for expanding the saved addresses options in the select address prompt. -->
+    <string name="mozac_feature_prompts_expand_address_content_description_2">سنبھالے ہوئے سرناویاں نوں پھیلاؤ</string>
     <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description">تجویز دے پتے لکاؤ</string>
+    <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">تجویز دے پتے لکاؤ</string>
+    <!-- Content description for collapsing the saved address options in the select address prompt. -->
+    <string name="mozac_feature_prompts_collapse_address_content_description_2">سنبھالے ہوئے سرناویاں نوں سمیٹو</string>
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">پتیاں دا انتظام</string>
 
