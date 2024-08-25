@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import ALL_SIDES, maybe_moz_logical_alias %>
 
-% for side in ALL_SIDES:
+% for index, side in enumerate(ALL_SIDES):
     <%
         spec = "https://drafts.csswg.org/css-box/#propdef-padding-%s" % side[0]
         if side[1]:
@@ -20,13 +20,14 @@
         logical=side[1],
         logical_group="padding",
         spec=spec,
+        gecko_ffi_name="mPadding.{}".format(index),
         allow_quirks="No" if side[1] else "Yes",
         servo_restyle_damage="reflow rebuild_and_reflow_inline",
         affects="layout",
     )}
 % endfor
 
-% for side in ALL_SIDES:
+% for index, side in enumerate(ALL_SIDES):
     ${helpers.predefined_type(
         "scroll-padding-%s" % side[0],
         "NonNegativeLengthPercentageOrAuto",
@@ -34,6 +35,7 @@
         engines="gecko",
         logical=side[1],
         logical_group="scroll-padding",
+        gecko_ffi_name="mScrollPadding.{}".format(index),
         spec="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-%s" % side[0],
         affects="",
     )}

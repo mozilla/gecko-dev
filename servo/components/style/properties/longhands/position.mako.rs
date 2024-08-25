@@ -6,7 +6,7 @@
 <% from data import ALL_SIZES, PHYSICAL_SIDES, LOGICAL_SIDES, DEFAULT_RULES_AND_POSITION_TRY %>
 
 // "top" / "left" / "bottom" / "right"
-% for side in PHYSICAL_SIDES:
+% for index, side in enumerate(PHYSICAL_SIDES):
     ${helpers.predefined_type(
         side,
         "LengthPercentageOrAuto",
@@ -15,6 +15,7 @@
         spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
         allow_quirks="Yes",
         rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY,
+        gecko_ffi_name="mOffset.{}".format(index),
         servo_restyle_damage="reflow_out_of_flow",
         logical_group="inset",
         affects="layout",

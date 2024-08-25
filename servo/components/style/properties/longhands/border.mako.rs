@@ -74,6 +74,7 @@
         engines="gecko servo",
         extra_prefixes=prefixes,
         spec=maybe_logical_spec(corner, "radius"),
+        gecko_ffi_name="mBorderRadius.{}".format(corner_name.replace('-', '_')),
         boxed=True,
         logical_group="border-radius",
         logical=is_logical,

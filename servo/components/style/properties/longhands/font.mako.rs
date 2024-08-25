@@ -12,6 +12,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontFamily::serif()",
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-family",
+    gecko_ffi_name="mFont.family",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",
 )}
@@ -23,6 +24,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontStyle::normal()",
     initial_specified_value="specified::FontStyle::normal()",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+    gecko_ffi_name="mFont.style",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",
 )}
@@ -53,6 +55,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     initial_value="computed::FontWeight::normal()",
     initial_specified_value="specified::FontWeight::normal()",
+    gecko_ffi_name="mFont.weight",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",
@@ -77,6 +80,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontSizeAdjust::None",
     initial_specified_value="specified::FontSizeAdjust::None",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust",
+    gecko_ffi_name="mFont.sizeAdjust",
     affects="layout",
 )}
 
@@ -134,6 +138,7 @@ ${helpers.predefined_type(
     engines="gecko servo",
     initial_value="computed::FontStretch::hundred()",
     initial_specified_value="specified::FontStretch::normal()",
+    gecko_ffi_name="mFont.stretch",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",
@@ -158,6 +163,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::FontVariantAlternates::default()",
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates",
+    gecko_ffi_name="mFont.variantAlternates",
     affects="layout",
 )}
 
@@ -168,6 +174,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontVariantEastAsian::empty()",
     initial_specified_value="specified::FontVariantEastAsian::empty()",
     animation_type="discrete",
+    gecko_ffi_name="mFont.variantEastAsian",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian",
     affects="layout",
 )}
@@ -192,6 +199,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontVariantLigatures::empty()",
     initial_specified_value="specified::FontVariantLigatures::empty()",
     animation_type="discrete",
+    gecko_ffi_name="mFont.variantLigatures",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures",
     affects="layout",
 )}
@@ -203,6 +211,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontVariantNumeric::empty()",
     initial_specified_value="specified::FontVariantNumeric::empty()",
     animation_type="discrete",
+    gecko_ffi_name="mFont.variantNumeric",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric",
     affects="layout",
 )}
@@ -249,6 +258,7 @@ ${helpers.predefined_type(
     initial_value="computed::FontLanguageOverride::normal()",
     initial_specified_value="specified::FontLanguageOverride::normal()",
     animation_type="discrete",
+    gecko_ffi_name="mFont.languageOverride",
     extra_prefixes="moz:layout.css.prefixes.font-features",
     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override",
     affects="layout",
@@ -486,6 +496,7 @@ ${helpers.predefined_type(
     "computed::Percentage::hundred()",
     engines="gecko",
     animation_type="none",
+    gecko_ffi_name="mMinFontSizeRatio",
     enabled_in="ua",
     spec="Nonstandard (Internal-only)",
     affects="layout",
