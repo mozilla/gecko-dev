@@ -317,13 +317,11 @@ std::unique_ptr<VideoEncoder> VideoQualityTest::CreateVideoEncoder(
     const SdpVideoFormat& format,
     VideoAnalyzer* analyzer) {
   std::unique_ptr<VideoEncoder> encoder;
-  if (format.name == "VP8") {
-    encoder = std::make_unique<SimulcastEncoderAdapter>(
-        env, encoder_factory_.get(), nullptr, format);
-  } else if (format.name == "FakeCodec") {
+  if (format.name == "FakeCodec") {
     encoder = FakeVideoEncoderFactory().Create(env, format);
   } else {
-    encoder = encoder_factory_->Create(env, format);
+    encoder = std::make_unique<SimulcastEncoderAdapter>(
+        env, encoder_factory_.get(), nullptr, format);
   }
 
   std::vector<FileWrapper> encoded_frame_dump_files;
