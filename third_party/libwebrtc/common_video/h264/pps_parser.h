@@ -37,6 +37,13 @@ class PpsParser {
     uint32_t sps_id = 0;
   };
 
+  struct SliceHeader {
+    SliceHeader() = default;
+
+    uint32_t first_mb_in_slice = 0;
+    uint32_t pic_parameter_set_id = 0;
+  };
+
   // Unpack RBSP and parse PPS state from the supplied buffer.
   static absl::optional<PpsState> ParsePps(const uint8_t* data, size_t length);
 
@@ -45,7 +52,7 @@ class PpsParser {
                           uint32_t* pps_id,
                           uint32_t* sps_id);
 
-  static absl::optional<uint32_t> ParsePpsIdFromSlice(const uint8_t* data,
+  static absl::optional<SliceHeader> ParseSliceHeader(const uint8_t* data,
                                                       size_t length);
 
  protected:

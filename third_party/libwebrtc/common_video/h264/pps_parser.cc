@@ -53,21 +53,26 @@ bool PpsParser::ParsePpsIds(const uint8_t* data,
   return reader.Ok();
 }
 
-absl::optional<uint32_t> PpsParser::ParsePpsIdFromSlice(const uint8_t* data,
-                                                        size_t length) {
+absl::optional<PpsParser::SliceHeader> PpsParser::ParseSliceHeader(
+    const uint8_t* data,
+    size_t length) {
   std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
   BitstreamReader slice_reader(unpacked_buffer);
+  PpsParser::SliceHeader slice_header;
 
   // first_mb_in_slice: ue(v)
-  slice_reader.ReadExponentialGolomb();
+  slice_header.first_mb_in_slice = slice_reader.ReadExponentialGolomb();
   // slice_type: ue(v)
   slice_reader.ReadExponentialGolomb();
   // pic_parameter_set_id: ue(v)
-  uint32_t slice_pps_id = slice_reader.ReadExponentialGolomb();
+  slice_header.pic_parameter_set_id = slice_reader.ReadExponentialGolomb();
+
+  // The rest of the slice header requires information from the SPS to parse.
+
   if (!slice_reader.Ok()) {
     return absl::nullopt;
   }
-  return slice_pps_id;
+  return slice_header;
 }
 
 absl::optional<PpsParser::PpsState> PpsParser::ParseInternal(
