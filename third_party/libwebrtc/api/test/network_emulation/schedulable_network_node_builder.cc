@@ -10,6 +10,7 @@
 #include "api/test/network_emulation/schedulable_network_node_builder.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
@@ -32,9 +33,13 @@ void SchedulableNetworkNodeBuilder::set_start_condition(
   start_condition_ = std::move(start_condition);
 }
 
-webrtc::EmulatedNetworkNode* SchedulableNetworkNodeBuilder::Build() {
+webrtc::EmulatedNetworkNode* SchedulableNetworkNodeBuilder::Build(
+    std::optional<uint64_t> random_seed) {
+  uint64_t seed = random_seed.has_value()
+                      ? *random_seed
+                      : static_cast<uint64_t>(rtc::TimeNanos());
   return net_.CreateEmulatedNode(std::make_unique<SchedulableNetworkBehavior>(
-      std::move(schedule_), *net_.time_controller()->GetClock(),
+      std::move(schedule_), seed, *net_.time_controller()->GetClock(),
       std::move(start_condition_)));
 }
 }  // namespace webrtc

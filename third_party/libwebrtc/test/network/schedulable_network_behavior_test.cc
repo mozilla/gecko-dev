@@ -31,6 +31,8 @@ using ::testing::Return;
 using ::testing::Sequence;
 using ::testing::SizeIs;
 
+constexpr uint64_t kRandomSeed = 1;
+
 class SchedulableNetworkBehaviorTestFixture {
  public:
   SchedulableNetworkBehaviorTestFixture()
@@ -61,7 +63,8 @@ TEST(SchedulableNetworkBehaviorTest, NoSchedule) {
   SchedulableNetworkBehaviorTestFixture fixture;
 
   network_behaviour::NetworkConfigSchedule schedule;
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock());
+  SchedulableNetworkBehavior network_behaviour(schedule, kRandomSeed,
+                                               fixture.clock());
   webrtc::Timestamp send_time = fixture.TimeNow();
   EXPECT_TRUE(network_behaviour.EnqueuePacket({/*size=*/1000 / 8,
                                                /*send_time_us=*/send_time.us(),
@@ -81,7 +84,8 @@ TEST(SchedulableNetworkBehaviorTest, ScheduleWithoutUpdates) {
   initial_config->set_link_capacity_kbps(10);
   initial_config->set_queue_delay_ms(70);
 
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock());
+  SchedulableNetworkBehavior network_behaviour(schedule, kRandomSeed,
+                                               fixture.clock());
   webrtc::Timestamp send_time = fixture.TimeNow();
   EXPECT_TRUE(network_behaviour.EnqueuePacket({/*size=*/1000 / 8,
                                                /*send_time_us=*/send_time.us(),
@@ -119,7 +123,8 @@ TEST(SchedulableNetworkBehaviorTest,
   // 55ms.
   updated_capacity->set_link_capacity_kbps(100);
 
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock());
+  SchedulableNetworkBehavior network_behaviour(schedule, kRandomSeed,
+                                               fixture.clock());
   MockFunction<void()> delivery_time_changed_callback;
   network_behaviour.RegisterDeliveryTimeChangedCallback(
       delivery_time_changed_callback.AsStdFunction());
@@ -170,8 +175,8 @@ TEST(SchedulableNetworkBehaviorTest, ScheduleStartedWhenStartConditionTrue) {
   EXPECT_CALL(start_condition, Call(second_packet_send_time))
       .InSequence(s)
       .WillOnce(Return(true));
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock(),
-                                               start_condition.AsStdFunction());
+  SchedulableNetworkBehavior network_behaviour(
+      schedule, kRandomSeed, fixture.clock(), start_condition.AsStdFunction());
 
   EXPECT_TRUE(network_behaviour.EnqueuePacket(
       {/*size=*/1000 / 8,
@@ -207,7 +212,8 @@ TEST(SchedulableNetworkBehaviorTest, ScheduleWithRepeat) {
   // config should again take 100ms to send.
   schedule.set_repeat_schedule_after_last_ms(200);
 
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock());
+  SchedulableNetworkBehavior network_behaviour(schedule, kRandomSeed,
+                                               fixture.clock());
 
   webrtc::Timestamp first_packet_send_time = fixture.TimeNow();
   EXPECT_TRUE(network_behaviour.EnqueuePacket(
@@ -247,7 +253,8 @@ TEST(SchedulableNetworkBehaviorTest, ScheduleWithoutRepeat) {
   // A packet of size 1000 bits should take 10ms to send.
   updated_capacity->set_link_capacity_kbps(100);
 
-  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock());
+  SchedulableNetworkBehavior network_behaviour(schedule, kRandomSeed,
+                                               fixture.clock());
 
   webrtc::Timestamp first_packet_send_time = fixture.TimeNow();
   EXPECT_TRUE(network_behaviour.EnqueuePacket(
