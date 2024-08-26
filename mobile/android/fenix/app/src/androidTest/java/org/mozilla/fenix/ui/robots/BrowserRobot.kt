@@ -198,6 +198,16 @@ class BrowserRobot {
         }
     }
 
+    fun verifyPocketPageContent() {
+        sessionLoadedIdlingResource = SessionLoadedIdlingResource()
+        registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
+            assertUIObjectExists(
+                itemWithResId("pocket-logo-nav"),
+                waitingTime = waitingTimeLong,
+            )
+        }
+    }
+
     /* Verifies the information displayed on the about:cache page */
     fun verifyNetworkCacheIsEmpty(storage: String) {
         val memorySection = mDevice.findObject(UiSelector().description(storage))

@@ -248,7 +248,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         homeScreen {
             verifyExistingTopSitesTabs(pocketTopArticles)
         }.openTopSiteTabWithTitle(pocketTopArticles) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPocketPageContent()
         }.goToHomescreen {
         }.openThreeDotMenu {
             clickQuit()

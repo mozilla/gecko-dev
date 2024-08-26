@@ -15,7 +15,6 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getStorageTestAsset
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.restartApp
@@ -233,7 +232,7 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         homeScreen {
             verifyExistingTopSitesTabs(pocketTopArticles)
         }.openTopSiteTabWithTitle(pocketTopArticles) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPocketPageContent()
         }.openTabDrawer(composeTestRule) {
         }.openNewTab {
         }.submitQuery("about:cache") {
