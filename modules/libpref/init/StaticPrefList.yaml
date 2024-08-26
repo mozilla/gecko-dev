@@ -15780,12 +15780,6 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
-# Whether we use Moz2D Path::GetStrokedBounds to get the stroke bounds.
-- name: svg.Moz2D.strokeBounds.enabled
-  type: bool
-  value: @IS_NIGHTLY_BUILD@
-  mirror: always
-
 # Whether SVGGraphicsElement.nearestViewportElement and SVGGraphicsElement.farthestViewportElement are enabled.
 - name: svg.nearestAndFarthestViewportElement.enabled
   type: bool
