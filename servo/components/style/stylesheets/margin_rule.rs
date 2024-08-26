@@ -7,7 +7,7 @@
 //! [margin]: https://drafts.csswg.org/css-page-3/#margin-boxes
 
 use crate::properties::PropertyDeclarationBlock;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use cssparser::SourceLocation;
@@ -183,7 +183,6 @@ impl DeepCloneWithLock for MarginRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        _params: &DeepCloneParams,
     ) -> Self {
         MarginRule {
             rule_type: self.rule_type,

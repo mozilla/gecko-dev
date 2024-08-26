@@ -408,8 +408,7 @@ StyleSheetInfo::StyleSheetInfo(StyleSheetInfo& aCopy, StyleSheet* aPrimarySheet)
       // We don't rebuild the child because we're making a copy without
       // children.
       mSourceMapURL(aCopy.mSourceMapURL),
-      mContents(Servo_StyleSheet_Clone(aCopy.mContents.get(), aPrimarySheet)
-                    .Consume()),
+      mContents(Servo_StyleSheet_Clone(aCopy.mContents.get()).Consume()),
       mURLData(aCopy.mURLData)
 #ifdef DEBUG
       ,
@@ -1139,21 +1138,38 @@ void StyleSheet::FixUpAfterInnerClone() {
 
   RefPtr<StyleLockedCssRules> rules =
       Servo_StyleSheet_GetRules(Inner().mContents.get()).Consume();
-  uint32_t index = 0;
-  while (true) {
-    uint32_t line, column;  // Actually unused.
-    RefPtr<StyleLockedImportRule> import =
-        Servo_CssRules_GetImportRuleAt(rules, index, &line, &column).Consume();
-    if (!import) {
-      // Note that only @charset rules come before @import rules, and @charset
-      // rules are parsed but skipped, so we can stop iterating as soon as we
-      // find something that isn't an @import rule.
+  size_t len = Servo_CssRules_GetRuleCount(rules.get());
+  bool reachedBody = false;
+  for (size_t i = 0; i < len; ++i) {
+    switch (Servo_CssRules_GetRuleTypeAt(rules, i)) {
+      case StyleCssRuleType::Import: {
+        MOZ_ASSERT(!reachedBody);
+        uint32_t line, column;  // Actually unused.
+        RefPtr<StyleLockedImportRule> import =
+            Servo_CssRules_GetImportRuleAt(rules, i, &line, &column).Consume();
+        MOZ_ASSERT(import);
+        auto* sheet =
+            const_cast<StyleSheet*>(Servo_ImportRule_GetSheet(import));
+        MOZ_ASSERT(sheet);
+        AppendStyleSheetSilently(*sheet);
+        break;
+      }
+      case StyleCssRuleType::LayerStatement:
+        break;
+      default:
+        // Note that only @charset and @layer statements can come before
+        // @import. @charset rules are parsed but skipped, so we can stop
+        // iterating as soon as we find the stylesheet body.
+        reachedBody = true;
+        break;
+    }
+#ifndef DEBUG
+    // Keep iterating in debug builds so that we can assert that we really have
+    // no more @import rules.
+    if (reachedBody) {
       break;
     }
-    auto* sheet = const_cast<StyleSheet*>(Servo_ImportRule_GetSheet(import));
-    MOZ_ASSERT(sheet);
-    AppendStyleSheetSilently(*sheet);
-    index++;
+#endif
   }
 }
 

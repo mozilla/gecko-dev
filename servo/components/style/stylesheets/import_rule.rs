@@ -9,7 +9,7 @@
 use crate::media_queries::MediaList;
 use crate::parser::{Parse, ParserContext};
 use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+    DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::{
@@ -89,14 +89,13 @@ impl DeepCloneWithLock for ImportSheet {
         &self,
         _lock: &SharedRwLock,
         _guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         use crate::gecko::data::GeckoStyleSheet;
         use crate::gecko_bindings::bindings;
         match *self {
             ImportSheet::Sheet(ref s) => {
                 let clone = unsafe {
-                    bindings::Gecko_StyleSheet_Clone(s.raw() as *const _, params.reference_sheet)
+                    bindings::Gecko_StyleSheet_Clone(s.raw() as *const _)
                 };
                 ImportSheet::Sheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
             },
@@ -130,10 +129,8 @@ impl DeepCloneWithLock for ImportSheet {
         &self,
         _lock: &SharedRwLock,
         _guard: &SharedRwLockReadGuard,
-        _params: &DeepCloneParams,
     ) -> Self {
         use servo_arc::Arc;
-
         ImportSheet(Arc::new((&*self.0).clone()))
     }
 }
@@ -261,11 +258,10 @@ impl DeepCloneWithLock for ImportRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         ImportRule {
             url: self.url.clone(),
-            stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard, params),
+            stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard),
             supports: self.supports.clone(),
             layer: self.layer.clone(),
             source_location: self.source_location.clone(),

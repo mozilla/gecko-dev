@@ -9,7 +9,7 @@
 use crate::parser::{Parse, ParserContext};
 use crate::properties::PropertyDeclarationBlock;
 use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+    DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRules, style_or_page_rule_to_css};
@@ -357,13 +357,12 @@ impl DeepCloneWithLock for PageRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(&guard);
         PageRule {
             selectors: self.selectors.clone(),
             block: Arc::new(lock.wrap(self.block.read_with(&guard).clone())),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
             source_location: self.source_location.clone(),
         }
     }

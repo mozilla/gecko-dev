@@ -4,7 +4,7 @@
 
 //! A list of CSS rules.
 
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::loader::StylesheetLoader;
@@ -34,12 +34,11 @@ impl DeepCloneWithLock for CssRules {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         CssRules(
             self.0
                 .iter()
-                .map(|x| x.deep_clone_with_lock(lock, guard, params))
+                .map(|x| x.deep_clone_with_lock(lock, guard))
                 .collect(),
         )
     }

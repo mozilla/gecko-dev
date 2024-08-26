@@ -476,9 +476,7 @@ GeckoFontMetrics Gecko_GetFontMetrics(const nsPresContext*, bool is_vertical,
                                       bool use_user_font_set,
                                       bool retrieve_math_scales);
 
-mozilla::StyleSheet* Gecko_StyleSheet_Clone(
-    const mozilla::StyleSheet* aSheet,
-    const mozilla::StyleSheet* aNewParentSheet);
+mozilla::StyleSheet* Gecko_StyleSheet_Clone(const mozilla::StyleSheet* aSheet);
 
 void Gecko_StyleSheet_AddRef(const mozilla::StyleSheet* aSheet);
 void Gecko_StyleSheet_Release(const mozilla::StyleSheet* aSheet);

@@ -11,7 +11,7 @@ use crate::dom::TElement;
 use crate::parser::ParserContext;
 use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+    DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
@@ -45,12 +45,11 @@ impl DeepCloneWithLock for ScopeRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(guard);
         Self {
             bounds: self.bounds.clone(),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
             source_location: self.source_location.clone(),
         }
     }

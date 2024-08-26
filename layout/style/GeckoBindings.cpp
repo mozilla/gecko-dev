@@ -415,21 +415,13 @@ const StyleLockedDeclarationBlock* Gecko_GetUnvisitedLinkAttrDeclarationBlock(
   return attrStyles->GetServoUnvisitedLinkDecl();
 }
 
-StyleSheet* Gecko_StyleSheet_Clone(const StyleSheet* aSheet,
-                                   const StyleSheet* aNewParentSheet) {
+StyleSheet* Gecko_StyleSheet_Clone(const StyleSheet* aSheet) {
   MOZ_ASSERT(aSheet);
   MOZ_ASSERT(aSheet->GetParentSheet(), "Should only be used for @import");
-  MOZ_ASSERT(aNewParentSheet, "Wat");
-
-  RefPtr<StyleSheet> newSheet =
-      aSheet->Clone(const_cast<StyleSheet*>(aNewParentSheet), nullptr);
-
-  // NOTE(emilio): This code runs in the StylesheetInner constructor, which
-  // means that the inner pointer of `aNewParentSheet` still points to the old
-  // one.
-  //
-  // So we _don't_ update neither the parent pointer of the stylesheet, nor the
-  // child list (yet). This is fixed up in that same constructor.
+  // NOTE(emilio): We don't pass either the parent pointer of the stylesheet,
+  // nor fix up the child list (yet). This is fixed up in the StylesheetInner
+  // constructor.
+  RefPtr<StyleSheet> newSheet = aSheet->Clone(nullptr, nullptr);
   return static_cast<StyleSheet*>(newSheet.forget().take());
 }
 

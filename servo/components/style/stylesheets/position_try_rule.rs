@@ -10,7 +10,7 @@ use std::fmt::Write;
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+    DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::values::DashedIdent;
@@ -43,7 +43,6 @@ impl DeepCloneWithLock for PositionTryRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        _: &DeepCloneParams,
     ) -> Self {
         PositionTryRule {
             name: self.name.clone(),

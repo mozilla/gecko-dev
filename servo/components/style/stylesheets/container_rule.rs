@@ -15,7 +15,7 @@ use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatur
 use crate::queries::values::Orientation;
 use crate::queries::{FeatureType, QueryCondition};
 use crate::shared_lock::{
-    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+    DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
@@ -68,12 +68,11 @@ impl DeepCloneWithLock for ContainerRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(guard);
         Self {
             condition: self.condition.clone(),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
             source_location: self.source_location.clone(),
         }
     }

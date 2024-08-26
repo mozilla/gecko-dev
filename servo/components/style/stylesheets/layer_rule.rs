@@ -7,7 +7,7 @@
 //! [layer]: https://drafts.csswg.org/css-cascade-5/#layering
 
 use crate::parser::{Parse, ParserContext};
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::values::AtomIdent;
 
@@ -180,7 +180,6 @@ impl DeepCloneWithLock for LayerBlockRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         Self {
             name: self.name.clone(),
@@ -188,7 +187,7 @@ impl DeepCloneWithLock for LayerBlockRule {
                 lock.wrap(
                     self.rules
                         .read_with(guard)
-                        .deep_clone_with_lock(lock, guard, params),
+                        .deep_clone_with_lock(lock, guard),
                 ),
             ),
             source_location: self.source_location.clone(),

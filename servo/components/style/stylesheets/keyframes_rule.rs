@@ -14,7 +14,7 @@ use crate::properties::{
     parse_property_declaration_list, LonghandId, PropertyDeclaration, PropertyDeclarationBlock,
     PropertyDeclarationId, PropertyDeclarationIdSet,
 };
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
+use crate::shared_lock::{DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
 use crate::shared_lock::{Locked, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::rule_parser::VendorPrefix;
@@ -84,7 +84,6 @@ impl DeepCloneWithLock for KeyframesRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         KeyframesRule {
             name: self.name.clone(),
@@ -93,7 +92,7 @@ impl DeepCloneWithLock for KeyframesRule {
                 .iter()
                 .map(|x| {
                     Arc::new(
-                        lock.wrap(x.read_with(guard).deep_clone_with_lock(lock, guard, params)),
+                        lock.wrap(x.read_with(guard).deep_clone_with_lock(lock, guard)),
                     )
                 })
                 .collect(),
@@ -241,7 +240,6 @@ impl DeepCloneWithLock for Keyframe {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        _params: &DeepCloneParams,
     ) -> Keyframe {
         Keyframe {
             selector: self.selector.clone(),

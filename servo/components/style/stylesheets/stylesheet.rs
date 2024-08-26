@@ -6,7 +6,7 @@ use crate::context::QuirksMode;
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use crate::media_queries::{Device, MediaList};
 use crate::parser::ParserContext;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use crate::stylesheets::loader::StylesheetLoader;
 use crate::stylesheets::rule_parser::{State, TopLevelRuleParser};
@@ -164,13 +164,12 @@ impl DeepCloneWithLock for StylesheetContents {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         // Make a deep clone of the rules, using the new lock.
         let rules = self
             .rules
             .read_with(guard)
-            .deep_clone_with_lock(lock, guard, params);
+            .deep_clone_with_lock(lock, guard);
 
         Self {
             rules: Arc::new(lock.wrap(rules)),
@@ -570,11 +569,7 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = Arc::new(self.contents.deep_clone_with_lock(
-            &lock,
-            &guard,
-            &DeepCloneParams,
-        ));
+        let contents = Arc::new(self.contents.deep_clone_with_lock(&lock, &guard));
 
         Stylesheet {
             contents,

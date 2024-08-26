@@ -8,7 +8,7 @@ use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use crate::parser::ParserContext;
 use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
 use crate::selector_parser::{SelectorImpl, SelectorParser};
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRuleType, CssRules};
@@ -61,12 +61,11 @@ impl DeepCloneWithLock for SupportsRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(guard);
         SupportsRule {
             condition: self.condition.clone(),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
             enabled: self.enabled,
             source_location: self.source_location.clone(),
         }

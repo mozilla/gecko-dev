@@ -2089,16 +2089,11 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: &StylesheetContents) -> Stron
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_Clone(
-    contents: &StylesheetContents,
-    reference_sheet: *const DomStyleSheet,
-) -> Strong<StylesheetContents> {
-    use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
+pub extern "C" fn Servo_StyleSheet_Clone(contents: &StylesheetContents) -> Strong<StylesheetContents> {
+    use style::shared_lock::DeepCloneWithLock;
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let params = DeepCloneParams { reference_sheet };
-
-    Arc::new(contents.deep_clone_with_lock(&global_style_data.shared_lock, &guard, &params)).into()
+    Arc::new(contents.deep_clone_with_lock(&global_style_data.shared_lock, &guard)).into()
 }
 
 #[no_mangle]
@@ -2210,6 +2205,16 @@ where
         let mut guard = lock.write();
         func(raw.write_with(&mut guard))
     })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_GetRuleCount(rules: &LockedCssRules) -> usize {
+    read_locked_arc(rules, |rules| rules.0.len())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_GetRuleTypeAt(rules: &LockedCssRules, index: usize) -> CssRuleType {
+    read_locked_arc(rules, |rules| rules.0[index].rule_type())
 }
 
 #[no_mangle]
