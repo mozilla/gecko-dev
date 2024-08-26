@@ -1,586 +1,110 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Mon, 26 Aug 2024 16:43:28 -0600
-Subject: (tmp-cherry-pick) Revert "Clean up SRTP helper functions"
- (e71fa4e8b9)
+Date: Mon, 26 Aug 2024 16:49:41 -0600
+Subject: (tmp-cherry-pick) [M128] Revert "Update support for missing HIGH
+ profiles and 1080p" (bef5d63112)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-This reverts commit c47f649e67cdcd27842aa370c693154b67e66116.
+M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
 
-Reason for revert: Breaks downstream build
+This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
+
+Reason for revert: chromium:354143228
 
 Original change's description:
-> Clean up SRTP helper functions
+> Update support for missing HIGH profiles and 1080p
 >
-> BUG=None
+> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
 >
-> Change-Id: If1df1828a09aef2e335c028cf4425c9507906aac
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/354649
-> Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Cr-Commit-Position: refs/heads/main@{#42525}
+> Bug: webrtc:347724928
+> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
+> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42528}
 
-Bug: None
-Change-Id: Iff893decb2be00545b623b72383240926cb0d553
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355481
-Auto-Submit: Björn Terelius <terelius@webrtc.org>
+(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
+
+Bug: chromium:354143228, webrtc:347724928
+Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42675}
+No-Try: True
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Owners-Override: Björn Terelius <terelius@webrtc.org>
-Commit-Queue: Björn Terelius <terelius@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42529}
+Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6613@{#1}
+Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- pc/media_session_unittest.cc       |   4 ++
- pc/srtp_session_unittest.cc        |  33 +++++----
- pc/srtp_transport_unittest.cc      | 104 +++++++++++++++--------------
- pc/test/srtp_test_util.h           |  40 +++++------
- rtc_base/openssl_stream_adapter.cc |  10 +--
- rtc_base/ssl_stream_adapter.cc     |  34 ++++++++--
- rtc_base/ssl_stream_adapter.h      |  16 +++++
- 7 files changed, 142 insertions(+), 99 deletions(-)
+ modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
+ .../test/videocodec_test_fixture_impl.cc      |  2 +-
+ 2 files changed, 11 insertions(+), 17 deletions(-)
 
-diff --git a/pc/media_session_unittest.cc b/pc/media_session_unittest.cc
-index 9ad823b86e..75b6d7166a 100644
---- a/pc/media_session_unittest.cc
-+++ b/pc/media_session_unittest.cc
-@@ -52,6 +52,10 @@
- namespace cricket {
- namespace {
- 
-+using ::rtc::kCsAeadAes128Gcm;
-+using ::rtc::kCsAeadAes256Gcm;
-+using ::rtc::kCsAesCm128HmacSha1_32;
-+using ::rtc::kCsAesCm128HmacSha1_80;
- using ::rtc::UniqueRandomIdGenerator;
- using ::testing::Bool;
- using ::testing::Combine;
-diff --git a/pc/srtp_session_unittest.cc b/pc/srtp_session_unittest.cc
-index 613a872619..7adfee86fd 100644
---- a/pc/srtp_session_unittest.cc
-+++ b/pc/srtp_session_unittest.cc
-@@ -44,30 +44,29 @@ class SrtpSessionTest : public ::testing::Test {
-     memcpy(rtp_packet_, kPcmuFrame, rtp_len_);
-     memcpy(rtcp_packet_, kRtcpReport, rtcp_len_);
-   }
--  void TestProtectRtp(int crypto_suite) {
-+  void TestProtectRtp(const std::string& cs) {
-     int out_len = 0;
-     EXPECT_TRUE(
-         s1_.ProtectRtp(rtp_packet_, rtp_len_, sizeof(rtp_packet_), &out_len));
--    EXPECT_EQ(out_len, rtp_len_ + rtp_auth_tag_len(crypto_suite));
-+    EXPECT_EQ(out_len, rtp_len_ + rtp_auth_tag_len(cs));
-     EXPECT_NE(0, memcmp(rtp_packet_, kPcmuFrame, rtp_len_));
-     rtp_len_ = out_len;
-   }
--  void TestProtectRtcp(int crypto_suite) {
-+  void TestProtectRtcp(const std::string& cs) {
-     int out_len = 0;
-     EXPECT_TRUE(s1_.ProtectRtcp(rtcp_packet_, rtcp_len_, sizeof(rtcp_packet_),
-                                 &out_len));
--    EXPECT_EQ(out_len,
--              rtcp_len_ + 4 + rtcp_auth_tag_len(crypto_suite));  // NOLINT
-+    EXPECT_EQ(out_len, rtcp_len_ + 4 + rtcp_auth_tag_len(cs));  // NOLINT
-     EXPECT_NE(0, memcmp(rtcp_packet_, kRtcpReport, rtcp_len_));
-     rtcp_len_ = out_len;
-   }
--  void TestUnprotectRtp(int crypto_suite) {
-+  void TestUnprotectRtp(const std::string& cs) {
-     int out_len = 0, expected_len = sizeof(kPcmuFrame);
-     EXPECT_TRUE(s2_.UnprotectRtp(rtp_packet_, rtp_len_, &out_len));
-     EXPECT_EQ(expected_len, out_len);
-     EXPECT_EQ(0, memcmp(rtp_packet_, kPcmuFrame, out_len));
-   }
--  void TestUnprotectRtcp(int crypto_suite) {
-+  void TestUnprotectRtcp(const std::string& cs) {
-     int out_len = 0, expected_len = sizeof(kRtcpReport);
-     EXPECT_TRUE(s2_.UnprotectRtcp(rtcp_packet_, rtcp_len_, &out_len));
-     EXPECT_EQ(expected_len, out_len);
-@@ -116,10 +115,10 @@ TEST_F(SrtpSessionTest, TestProtect_AES_CM_128_HMAC_SHA1_80) {
-                           kEncryptedHeaderExtensionIds));
-   EXPECT_TRUE(s2_.SetRecv(kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen,
-                           kEncryptedHeaderExtensionIds));
--  TestProtectRtp(kSrtpAes128CmSha1_80);
--  TestProtectRtcp(kSrtpAes128CmSha1_80);
--  TestUnprotectRtp(kSrtpAes128CmSha1_80);
--  TestUnprotectRtcp(kSrtpAes128CmSha1_80);
-+  TestProtectRtp(kCsAesCm128HmacSha1_80);
-+  TestProtectRtcp(kCsAesCm128HmacSha1_80);
-+  TestUnprotectRtp(kCsAesCm128HmacSha1_80);
-+  TestUnprotectRtcp(kCsAesCm128HmacSha1_80);
+diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
+index b2deda5ea8..60142c88c1 100644
+--- a/modules/video_coding/codecs/h264/h264.cc
++++ b/modules/video_coding/codecs/h264/h264.cc
+@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
+   //
+   // We support both packetization modes 0 (mandatory) and 1 (optional,
+   // preferred).
+-  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "1", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "0", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "1", add_scalability_modes),
++                           H264Level::kLevel3_1, "1", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "0", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
++                           H264Level::kLevel3_1, "0", add_scalability_modes),
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
+                            add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
+                            add_scalability_modes)};
  }
  
- // Test that we can encrypt and decrypt RTP/RTCP using AES_CM_128_HMAC_SHA1_32.
-@@ -128,10 +127,10 @@ TEST_F(SrtpSessionTest, TestProtect_AES_CM_128_HMAC_SHA1_32) {
-                           kEncryptedHeaderExtensionIds));
-   EXPECT_TRUE(s2_.SetRecv(kSrtpAes128CmSha1_32, kTestKey1, kTestKeyLen,
-                           kEncryptedHeaderExtensionIds));
--  TestProtectRtp(kSrtpAes128CmSha1_32);
--  TestProtectRtcp(kSrtpAes128CmSha1_32);
--  TestUnprotectRtp(kSrtpAes128CmSha1_32);
--  TestUnprotectRtcp(kSrtpAes128CmSha1_32);
-+  TestProtectRtp(kCsAesCm128HmacSha1_32);
-+  TestProtectRtcp(kCsAesCm128HmacSha1_32);
-+  TestUnprotectRtp(kCsAesCm128HmacSha1_32);
-+  TestUnprotectRtcp(kCsAesCm128HmacSha1_32);
+@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
+ 
+   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
+ 
++  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
++  // support decoding.
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
+ 
+   return supportedCodecs;
  }
+diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+index 82bc6e37f9..9c708263a7 100644
+--- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
++++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+@@ -173,7 +173,7 @@ SdpVideoFormat CreateSdpVideoFormat(
+     CodecParameterMap codec_params = {
+         {cricket::kH264FmtpProfileLevelId,
+          *H264ProfileLevelIdToString(H264ProfileLevelId(
+-             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
++             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
+         {cricket::kH264FmtpPacketizationMode, packetization_mode},
+         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
  
- TEST_F(SrtpSessionTest, TestGetSendStreamPacketIndex) {
-@@ -153,8 +152,8 @@ TEST_F(SrtpSessionTest, TestTamperReject) {
-                           kEncryptedHeaderExtensionIds));
-   EXPECT_TRUE(s2_.SetRecv(kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen,
-                           kEncryptedHeaderExtensionIds));
--  TestProtectRtp(kSrtpAes128CmSha1_80);
--  TestProtectRtcp(kSrtpAes128CmSha1_80);
-+  TestProtectRtp(kCsAesCm128HmacSha1_80);
-+  TestProtectRtcp(kCsAesCm128HmacSha1_80);
-   rtp_packet_[0] = 0x12;
-   rtcp_packet_[1] = 0x34;
-   EXPECT_FALSE(s2_.UnprotectRtp(rtp_packet_, rtp_len_, &out_len));
-diff --git a/pc/srtp_transport_unittest.cc b/pc/srtp_transport_unittest.cc
-index a1f153a343..de4ff03179 100644
---- a/pc/srtp_transport_unittest.cc
-+++ b/pc/srtp_transport_unittest.cc
-@@ -98,10 +98,10 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-   // unprotect would fail. Check accessing the information about the
-   // tag instead, similar to what the actual code would do that relies
-   // on external auth.
--  void TestRtpAuthParams(SrtpTransport* transport, int crypto_suite) {
-+  void TestRtpAuthParams(SrtpTransport* transport, const std::string& cs) {
-     int overhead;
-     EXPECT_TRUE(transport->GetSrtpOverhead(&overhead));
--    switch (crypto_suite) {
-+    switch (rtc::SrtpCryptoSuiteFromName(cs)) {
-       case rtc::kSrtpAes128CmSha1_32:
-         EXPECT_EQ(32 / 8, overhead);  // 32-bit tag.
-         break;
-@@ -122,9 +122,9 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-     EXPECT_EQ(overhead, tag_len);
-   }
- 
--  void TestSendRecvRtpPacket(int crypto_suite) {
-+  void TestSendRecvRtpPacket(const std::string& cipher_suite_name) {
-     size_t rtp_len = sizeof(kPcmuFrame);
--    size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(crypto_suite);
-+    size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(cipher_suite_name);
-     rtc::Buffer rtp_packet_buffer(packet_size);
-     char* rtp_packet_data = rtp_packet_buffer.data<char>();
-     memcpy(rtp_packet_data, kPcmuFrame, rtp_len);
-@@ -146,7 +146,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-     ASSERT_TRUE(srtp_transport1_->SendRtpPacket(&rtp_packet1to2, options,
-                                                 cricket::PF_SRTP_BYPASS));
-     if (srtp_transport1_->IsExternalAuthActive()) {
--      TestRtpAuthParams(srtp_transport1_.get(), crypto_suite);
-+      TestRtpAuthParams(srtp_transport1_.get(), cipher_suite_name);
-     } else {
-       ASSERT_TRUE(rtp_sink2_.last_recv_rtp_packet().data());
-       EXPECT_EQ(0, memcmp(rtp_sink2_.last_recv_rtp_packet().data(),
-@@ -163,7 +163,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-     ASSERT_TRUE(srtp_transport2_->SendRtpPacket(&rtp_packet2to1, options,
-                                                 cricket::PF_SRTP_BYPASS));
-     if (srtp_transport2_->IsExternalAuthActive()) {
--      TestRtpAuthParams(srtp_transport2_.get(), crypto_suite);
-+      TestRtpAuthParams(srtp_transport2_.get(), cipher_suite_name);
-     } else {
-       ASSERT_TRUE(rtp_sink1_.last_recv_rtp_packet().data());
-       EXPECT_EQ(0, memcmp(rtp_sink1_.last_recv_rtp_packet().data(),
-@@ -175,9 +175,10 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-     }
-   }
- 
--  void TestSendRecvRtcpPacket(int crypto_suite) {
-+  void TestSendRecvRtcpPacket(const std::string& cipher_suite_name) {
-     size_t rtcp_len = sizeof(::kRtcpReport);
--    size_t packet_size = rtcp_len + 4 + rtc::rtcp_auth_tag_len(crypto_suite);
-+    size_t packet_size =
-+        rtcp_len + 4 + rtc::rtcp_auth_tag_len(cipher_suite_name);
-     rtc::Buffer rtcp_packet_buffer(packet_size);
-     char* rtcp_packet_data = rtcp_packet_buffer.data<char>();
-     memcpy(rtcp_packet_data, ::kRtcpReport, rtcp_len);
-@@ -215,47 +216,45 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-   }
- 
-   void TestSendRecvPacket(bool enable_external_auth,
--                          int crypto_suite,
-+                          int cs,
-                           const uint8_t* key1,
-                           int key1_len,
-                           const uint8_t* key2,
--                          int key2_len) {
-+                          int key2_len,
-+                          const std::string& cipher_suite_name) {
-     EXPECT_EQ(key1_len, key2_len);
-+    EXPECT_EQ(cipher_suite_name, rtc::SrtpCryptoSuiteToName(cs));
-     if (enable_external_auth) {
-       srtp_transport1_->EnableExternalAuth();
-       srtp_transport2_->EnableExternalAuth();
-     }
-     std::vector<int> extension_ids;
--    EXPECT_TRUE(srtp_transport1_->SetRtpParams(crypto_suite, key1, key1_len,
--                                               extension_ids, crypto_suite,
--                                               key2, key2_len, extension_ids));
--    EXPECT_TRUE(srtp_transport2_->SetRtpParams(crypto_suite, key2, key2_len,
--                                               extension_ids, crypto_suite,
--                                               key1, key1_len, extension_ids));
--    EXPECT_TRUE(srtp_transport1_->SetRtcpParams(crypto_suite, key1, key1_len,
--                                                extension_ids, crypto_suite,
--                                                key2, key2_len, extension_ids));
--    EXPECT_TRUE(srtp_transport2_->SetRtcpParams(crypto_suite, key2, key2_len,
--                                                extension_ids, crypto_suite,
--                                                key1, key1_len, extension_ids));
-+    EXPECT_TRUE(srtp_transport1_->SetRtpParams(
-+        cs, key1, key1_len, extension_ids, cs, key2, key2_len, extension_ids));
-+    EXPECT_TRUE(srtp_transport2_->SetRtpParams(
-+        cs, key2, key2_len, extension_ids, cs, key1, key1_len, extension_ids));
-+    EXPECT_TRUE(srtp_transport1_->SetRtcpParams(
-+        cs, key1, key1_len, extension_ids, cs, key2, key2_len, extension_ids));
-+    EXPECT_TRUE(srtp_transport2_->SetRtcpParams(
-+        cs, key2, key2_len, extension_ids, cs, key1, key1_len, extension_ids));
-     EXPECT_TRUE(srtp_transport1_->IsSrtpActive());
-     EXPECT_TRUE(srtp_transport2_->IsSrtpActive());
--    if (rtc::IsGcmCryptoSuite(crypto_suite)) {
-+    if (rtc::IsGcmCryptoSuite(cs)) {
-       EXPECT_FALSE(srtp_transport1_->IsExternalAuthActive());
-       EXPECT_FALSE(srtp_transport2_->IsExternalAuthActive());
-     } else if (enable_external_auth) {
-       EXPECT_TRUE(srtp_transport1_->IsExternalAuthActive());
-       EXPECT_TRUE(srtp_transport2_->IsExternalAuthActive());
-     }
--    TestSendRecvRtpPacket(crypto_suite);
--    TestSendRecvRtcpPacket(crypto_suite);
-+    TestSendRecvRtpPacket(cipher_suite_name);
-+    TestSendRecvRtcpPacket(cipher_suite_name);
-   }
- 
-   void TestSendRecvPacketWithEncryptedHeaderExtension(
--      int crypto_suite,
-+      const std::string& cs,
-       const std::vector<int>& encrypted_header_ids) {
-     size_t rtp_len = sizeof(kPcmuFrameWithExtensions);
--    size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(crypto_suite);
-+    size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(cs);
-     rtc::Buffer rtp_packet_buffer(packet_size);
-     char* rtp_packet_data = rtp_packet_buffer.data<char>();
-     memcpy(rtp_packet_data, kPcmuFrameWithExtensions, rtp_len);
-@@ -308,28 +307,29 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
-         original_rtp_data, rtp_len, encrypted_header_ids, false);
-   }
- 
--  void TestSendRecvEncryptedHeaderExtension(int crypto_suite,
-+  void TestSendRecvEncryptedHeaderExtension(int cs,
-                                             const uint8_t* key1,
-                                             int key1_len,
-                                             const uint8_t* key2,
--                                            int key2_len) {
-+                                            int key2_len,
-+                                            const std::string& cs_name) {
-     std::vector<int> encrypted_headers;
-     encrypted_headers.push_back(kHeaderExtensionIDs[0]);
-     // Don't encrypt header ids 2 and 3.
-     encrypted_headers.push_back(kHeaderExtensionIDs[1]);
-     EXPECT_EQ(key1_len, key2_len);
--    EXPECT_TRUE(srtp_transport1_->SetRtpParams(
--        crypto_suite, key1, key1_len, encrypted_headers, crypto_suite, key2,
--        key2_len, encrypted_headers));
--    EXPECT_TRUE(srtp_transport2_->SetRtpParams(
--        crypto_suite, key2, key2_len, encrypted_headers, crypto_suite, key1,
--        key1_len, encrypted_headers));
-+    EXPECT_EQ(cs_name, rtc::SrtpCryptoSuiteToName(cs));
-+    EXPECT_TRUE(srtp_transport1_->SetRtpParams(cs, key1, key1_len,
-+                                               encrypted_headers, cs, key2,
-+                                               key2_len, encrypted_headers));
-+    EXPECT_TRUE(srtp_transport2_->SetRtpParams(cs, key2, key2_len,
-+                                               encrypted_headers, cs, key1,
-+                                               key1_len, encrypted_headers));
-     EXPECT_TRUE(srtp_transport1_->IsSrtpActive());
-     EXPECT_TRUE(srtp_transport2_->IsSrtpActive());
-     EXPECT_FALSE(srtp_transport1_->IsExternalAuthActive());
-     EXPECT_FALSE(srtp_transport2_->IsExternalAuthActive());
--    TestSendRecvPacketWithEncryptedHeaderExtension(crypto_suite,
--                                                   encrypted_headers);
-+    TestSendRecvPacketWithEncryptedHeaderExtension(cs_name, encrypted_headers);
-   }
- 
-   std::unique_ptr<SrtpTransport> srtp_transport1_;
-@@ -353,26 +353,30 @@ TEST_P(SrtpTransportTestWithExternalAuth,
-        SendAndRecvPacket_AES_CM_128_HMAC_SHA1_80) {
-   bool enable_external_auth = GetParam();
-   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAes128CmSha1_80, kTestKey1,
--                     kTestKeyLen, kTestKey2, kTestKeyLen);
-+                     kTestKeyLen, kTestKey2, kTestKeyLen,
-+                     rtc::kCsAesCm128HmacSha1_80);
- }
- 
- TEST_F(SrtpTransportTest,
-        SendAndRecvPacketWithHeaderExtension_AES_CM_128_HMAC_SHA1_80) {
-   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAes128CmSha1_80, kTestKey1,
--                                       kTestKeyLen, kTestKey2, kTestKeyLen);
-+                                       kTestKeyLen, kTestKey2, kTestKeyLen,
-+                                       rtc::kCsAesCm128HmacSha1_80);
- }
- 
- TEST_P(SrtpTransportTestWithExternalAuth,
-        SendAndRecvPacket_AES_CM_128_HMAC_SHA1_32) {
-   bool enable_external_auth = GetParam();
-   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAes128CmSha1_32, kTestKey1,
--                     kTestKeyLen, kTestKey2, kTestKeyLen);
-+                     kTestKeyLen, kTestKey2, kTestKeyLen,
-+                     rtc::kCsAesCm128HmacSha1_32);
- }
- 
- TEST_F(SrtpTransportTest,
-        SendAndRecvPacketWithHeaderExtension_AES_CM_128_HMAC_SHA1_32) {
-   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAes128CmSha1_32, kTestKey1,
--                                       kTestKeyLen, kTestKey2, kTestKeyLen);
-+                                       kTestKeyLen, kTestKey2, kTestKeyLen,
-+                                       rtc::kCsAesCm128HmacSha1_32);
- }
- 
- TEST_P(SrtpTransportTestWithExternalAuth,
-@@ -380,14 +384,14 @@ TEST_P(SrtpTransportTestWithExternalAuth,
-   bool enable_external_auth = GetParam();
-   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAeadAes128Gcm,
-                      kTestKeyGcm128_1, kTestKeyGcm128Len, kTestKeyGcm128_2,
--                     kTestKeyGcm128Len);
-+                     kTestKeyGcm128Len, rtc::kCsAeadAes128Gcm);
- }
- 
- TEST_F(SrtpTransportTest,
-        SendAndRecvPacketWithHeaderExtension_kSrtpAeadAes128Gcm) {
--  TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAeadAes128Gcm,
--                                       kTestKeyGcm128_1, kTestKeyGcm128Len,
--                                       kTestKeyGcm128_2, kTestKeyGcm128Len);
-+  TestSendRecvEncryptedHeaderExtension(
-+      rtc::kSrtpAeadAes128Gcm, kTestKeyGcm128_1, kTestKeyGcm128Len,
-+      kTestKeyGcm128_2, kTestKeyGcm128Len, rtc::kCsAeadAes128Gcm);
- }
- 
- TEST_P(SrtpTransportTestWithExternalAuth,
-@@ -395,14 +399,14 @@ TEST_P(SrtpTransportTestWithExternalAuth,
-   bool enable_external_auth = GetParam();
-   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAeadAes256Gcm,
-                      kTestKeyGcm256_1, kTestKeyGcm256Len, kTestKeyGcm256_2,
--                     kTestKeyGcm256Len);
-+                     kTestKeyGcm256Len, rtc::kCsAeadAes256Gcm);
- }
- 
- TEST_F(SrtpTransportTest,
-        SendAndRecvPacketWithHeaderExtension_kSrtpAeadAes256Gcm) {
--  TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAeadAes256Gcm,
--                                       kTestKeyGcm256_1, kTestKeyGcm256Len,
--                                       kTestKeyGcm256_2, kTestKeyGcm256Len);
-+  TestSendRecvEncryptedHeaderExtension(
-+      rtc::kSrtpAeadAes256Gcm, kTestKeyGcm256_1, kTestKeyGcm256Len,
-+      kTestKeyGcm256_2, kTestKeyGcm256Len, rtc::kCsAeadAes256Gcm);
- }
- 
- // Run all tests both with and without external auth enabled.
-@@ -449,7 +453,7 @@ TEST_F(SrtpTransportTest, RemoveSrtpReceiveStream) {
- 
-   // Create a packet and try to send it three times.
-   size_t rtp_len = sizeof(kPcmuFrame);
--  size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(rtc::kSrtpAeadAes128Gcm);
-+  size_t packet_size = rtp_len + rtc::rtp_auth_tag_len(rtc::kCsAeadAes128Gcm);
-   rtc::Buffer rtp_packet_buffer(packet_size);
-   char* rtp_packet_data = rtp_packet_buffer.data<char>();
-   memcpy(rtp_packet_data, kPcmuFrame, rtp_len);
-diff --git a/pc/test/srtp_test_util.h b/pc/test/srtp_test_util.h
-index 6f74bf482b..ae02310eba 100644
---- a/pc/test/srtp_test_util.h
-+++ b/pc/test/srtp_test_util.h
-@@ -11,38 +11,32 @@
- #ifndef PC_TEST_SRTP_TEST_UTIL_H_
- #define PC_TEST_SRTP_TEST_UTIL_H_
- 
--#include "rtc_base/ssl_stream_adapter.h"
-+#include <string>
- 
- namespace rtc {
- 
-+extern const char kCsAesCm128HmacSha1_32[];
-+extern const char kCsAeadAes128Gcm[];
-+extern const char kCsAeadAes256Gcm[];
-+
- static const uint8_t kTestKey1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234";
- static const uint8_t kTestKey2[] = "4321ZYXWVUTSRQPONMLKJIHGFEDCBA";
- static const int kTestKeyLen = 30;
- 
--static int rtp_auth_tag_len(int crypto_suite) {
--  switch (crypto_suite) {
--    case kSrtpAes128CmSha1_32:
--      return 4;
--    case kSrtpAes128CmSha1_80:
--      return 10;
--    case kSrtpAeadAes128Gcm:
--    case kSrtpAeadAes256Gcm:
--      return 16;
--    default:
--      RTC_CHECK_NOTREACHED();
-+static int rtp_auth_tag_len(const std::string& cs) {
-+  if (cs == kCsAesCm128HmacSha1_32) {
-+    return 4;
-+  } else if (cs == kCsAeadAes128Gcm || cs == kCsAeadAes256Gcm) {
-+    return 16;
-+  } else {
-+    return 10;
-   }
- }
--
--static int rtcp_auth_tag_len(int crypto_suite) {
--  switch (crypto_suite) {
--    case kSrtpAes128CmSha1_32:
--    case kSrtpAes128CmSha1_80:
--      return 10;
--    case kSrtpAeadAes128Gcm:
--    case kSrtpAeadAes256Gcm:
--      return 16;
--    default:
--      RTC_CHECK_NOTREACHED();
-+static int rtcp_auth_tag_len(const std::string& cs) {
-+  if (cs == kCsAeadAes128Gcm || cs == kCsAeadAes256Gcm) {
-+    return 16;
-+  } else {
-+    return 10;
-   }
- }
- 
-diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index 9b7858c238..28da5d4530 100644
---- a/rtc_base/openssl_stream_adapter.cc
-+++ b/rtc_base/openssl_stream_adapter.cc
-@@ -17,12 +17,17 @@
- #include <openssl/tls1.h>
- #include <openssl/x509v3.h>
- 
-+#include "absl/strings/string_view.h"
-+#ifndef OPENSSL_IS_BORINGSSL
-+#include <openssl/dtls1.h>
-+#include <openssl/ssl.h>
-+#endif
-+
- #include <atomic>
- #include <memory>
- #include <utility>
- #include <vector>
- 
--#include "absl/strings/string_view.h"
- #include "api/array_view.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
-@@ -31,9 +36,6 @@
- #include "rtc_base/openssl_adapter.h"
- #include "rtc_base/openssl_digest.h"
- #ifdef OPENSSL_IS_BORINGSSL
--#include <openssl/dtls1.h>
--#include <openssl/ssl.h>
--
- #include "rtc_base/boringssl_identity.h"
- #else
- #include "rtc_base/openssl_identity.h"
-diff --git a/rtc_base/ssl_stream_adapter.cc b/rtc_base/ssl_stream_adapter.cc
-index 5fbe1c5376..931d0bf0b6 100644
---- a/rtc_base/ssl_stream_adapter.cc
-+++ b/rtc_base/ssl_stream_adapter.cc
-@@ -14,24 +14,44 @@
- #include "absl/strings/string_view.h"
- #include "rtc_base/openssl_stream_adapter.h"
- 
-+///////////////////////////////////////////////////////////////////////////////
- 
- namespace rtc {
- 
-+// TODO(guoweis): Move this to SDP layer and use int form internally.
-+// webrtc:5043.
-+const char kCsAesCm128HmacSha1_80[] = "AES_CM_128_HMAC_SHA1_80";
-+const char kCsAesCm128HmacSha1_32[] = "AES_CM_128_HMAC_SHA1_32";
-+const char kCsAeadAes128Gcm[] = "AEAD_AES_128_GCM";
-+const char kCsAeadAes256Gcm[] = "AEAD_AES_256_GCM";
-+
- std::string SrtpCryptoSuiteToName(int crypto_suite) {
-   switch (crypto_suite) {
--    case kSrtpAes128CmSha1_80:
--      return "AES_CM_128_HMAC_SHA1_80";
-     case kSrtpAes128CmSha1_32:
--      return "AES_CM_128_HMAC_SHA1_32";
-+      return kCsAesCm128HmacSha1_32;
-+    case kSrtpAes128CmSha1_80:
-+      return kCsAesCm128HmacSha1_80;
-     case kSrtpAeadAes128Gcm:
--      return "AEAD_AES_128_GCM";
-+      return kCsAeadAes128Gcm;
-     case kSrtpAeadAes256Gcm:
--      return "AEAD_AES_256_GCM";
-+      return kCsAeadAes256Gcm;
-     default:
-       return std::string();
-   }
- }
- 
-+int SrtpCryptoSuiteFromName(absl::string_view crypto_suite) {
-+  if (crypto_suite == kCsAesCm128HmacSha1_32)
-+    return kSrtpAes128CmSha1_32;
-+  if (crypto_suite == kCsAesCm128HmacSha1_80)
-+    return kSrtpAes128CmSha1_80;
-+  if (crypto_suite == kCsAeadAes128Gcm)
-+    return kSrtpAeadAes128Gcm;
-+  if (crypto_suite == kCsAeadAes256Gcm)
-+    return kSrtpAeadAes256Gcm;
-+  return kSrtpInvalidCryptoSuite;
-+}
-+
- bool GetSrtpKeyAndSaltLengths(int crypto_suite,
-                               int* key_length,
-                               int* salt_length) {
-@@ -66,6 +86,10 @@ bool IsGcmCryptoSuite(int crypto_suite) {
-           crypto_suite == kSrtpAeadAes128Gcm);
- }
- 
-+bool IsGcmCryptoSuiteName(absl::string_view crypto_suite) {
-+  return (crypto_suite == kCsAeadAes256Gcm || crypto_suite == kCsAeadAes128Gcm);
-+}
-+
- std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
-     std::unique_ptr<StreamInterface> stream,
-     absl::AnyInvocable<void(SSLHandshakeError)> handshake_error) {
-diff --git a/rtc_base/ssl_stream_adapter.h b/rtc_base/ssl_stream_adapter.h
-index 6b590f8f71..bd69be77d1 100644
---- a/rtc_base/ssl_stream_adapter.h
-+++ b/rtc_base/ssl_stream_adapter.h
-@@ -43,11 +43,24 @@ constexpr int kSrtpCryptoSuiteMaxValue = 0xFFFF;
- constexpr int kSslSignatureAlgorithmUnknown = 0;
- constexpr int kSslSignatureAlgorithmMaxValue = 0xFFFF;
- 
-+// Names of SRTP profiles listed above.
-+// 128-bit AES with 80-bit SHA-1 HMAC.
-+extern const char kCsAesCm128HmacSha1_80[];
-+// 128-bit AES with 32-bit SHA-1 HMAC.
-+extern const char kCsAesCm128HmacSha1_32[];
-+// 128-bit AES GCM with 16 byte AEAD auth tag.
-+extern const char kCsAeadAes128Gcm[];
-+// 256-bit AES GCM with 16 byte AEAD auth tag.
-+extern const char kCsAeadAes256Gcm[];
-+
- // Given the DTLS-SRTP protection profile ID, as defined in
- // https://tools.ietf.org/html/rfc4568#section-6.2 , return the SRTP profile
- // name, as defined in https://tools.ietf.org/html/rfc5764#section-4.1.2.
- std::string SrtpCryptoSuiteToName(int crypto_suite);
- 
-+// The reverse of above conversion.
-+int SrtpCryptoSuiteFromName(absl::string_view crypto_suite);
-+
- // Get key length and salt length for given crypto suite. Returns true for
- // valid suites, otherwise false.
- bool GetSrtpKeyAndSaltLengths(int crypto_suite,
-@@ -57,6 +70,9 @@ bool GetSrtpKeyAndSaltLengths(int crypto_suite,
- // Returns true if the given crypto suite id uses a GCM cipher.
- bool IsGcmCryptoSuite(int crypto_suite);
- 
-+// Returns true if the given crypto suite name uses a GCM cipher.
-+bool IsGcmCryptoSuiteName(absl::string_view crypto_suite);
-+
- // SSLStreamAdapter : A StreamInterfaceAdapter that does SSL/TLS.
- // After SSL has been started, the stream will only open on successful
- // SSL verification of certificates, and the communication is

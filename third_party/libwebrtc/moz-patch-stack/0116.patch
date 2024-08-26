@@ -1,83 +1,26 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Fri, 23 Aug 2024 11:07:00 +0000
-Subject: Bug 1914196 - Cherry-pick upstream libwebrtc commit 2086ff5d33
- r=webrtc-reviewers,mjf
+From: Byron Campen <docfaraday@gmail.com>
+Date: Fri, 26 Jul 2024 09:26:00 -0500
+Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
+ belongs. r?mjf
 
-Upstream commit: https://webrtc.googlesource.com/src/+/2086ff5d33facefe4624d65ad0d1e96c7b872f57
-       Mac SCK capturer: Set per-frame capture_time_ms and DPI values.
-
-       This sets the correct frame DPI according to the pixels/DIPs ratio.
-       It also sets the capture_time_ms for consistency with ScreenCapturerMac.
-
-       Bug: chromium:327458809
-       Change-Id: Ibb0074756e262dd1ce6f2897f60f0d939ddb7fd3
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355442
-       Commit-Queue: Lambros Lambrou <lambroslambrou@chromium.org>
-       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
-       Auto-Submit: Lambros Lambrou <lambroslambrou@chromium.org>
-       Cr-Commit-Position: refs/heads/main@{#42534}
-
-Differential Revision: https://phabricator.services.mozilla.com/D219810
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a00f727660846b25f7510b7b62027b99c4e40ae6
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ api/test/network_emulation/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 2135faee3a..64a63304b5 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -19,6 +19,7 @@
- #include "rtc_base/logging.h"
- #include "rtc_base/synchronization/mutex.h"
- #include "rtc_base/thread_annotations.h"
-+#include "rtc_base/time_utils.h"
- #include "sdk/objc/helpers/scoped_cftyperef.h"
+diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
+index 4a126a0a94..ac07325bbf 100644
+--- a/api/test/network_emulation/BUILD.gn
++++ b/api/test/network_emulation/BUILD.gn
+@@ -6,10 +6,10 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
  
- using webrtc::DesktopFrameIOSurface;
-@@ -108,6 +109,8 @@ class API_AVAILABLE(macos(13.0)) ScreenCapturerSck final : public DesktopCapture
-   Mutex latest_frame_lock_;
-   std::unique_ptr<SharedDesktopFrame> latest_frame_ RTC_GUARDED_BY(latest_frame_lock_);
+-import("//third_party/protobuf/proto_library.gni")
+ import("../../../webrtc.gni")
  
-+  int32_t latest_frame_dpi_ RTC_GUARDED_BY(latest_frame_lock_) = kStandardDPI;
-+
-   // Tracks whether the latest frame contains new data since it was returned to the caller. This is
-   // used to set the DesktopFrame's `updated_region` property. The flag is cleared after the frame
-   // is sent to OnCaptureResult(), and is set when SCK reports a new frame with non-empty "dirty"
-@@ -138,6 +141,8 @@ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
- }
- 
- void ScreenCapturerSck::CaptureFrame() {
-+  int64_t capture_start_time_millis = rtc::TimeMillis();
-+
-   if (permanent_error_) {
-     callback_->OnCaptureResult(Result::ERROR_PERMANENT, nullptr);
-     return;
-@@ -155,6 +160,7 @@ void ScreenCapturerSck::CaptureFrame() {
-     MutexLock lock(&latest_frame_lock_);
-     if (latest_frame_) {
-       frame = latest_frame_->Share();
-+      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
-       if (frame_is_dirty_) {
-         frame->mutable_updated_region()->AddRect(DesktopRect::MakeSize(frame->size()));
-         frame_is_dirty_ = false;
-@@ -163,6 +169,7 @@ void ScreenCapturerSck::CaptureFrame() {
-   }
- 
-   if (frame) {
-+    frame->set_capture_time_ms(rtc::TimeSince(capture_start_time_millis));
-     callback_->OnCaptureResult(Result::SUCCESS, std::move(frame));
-   } else {
-     callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
-@@ -234,6 +241,11 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
-     config.captureResolution = SCCaptureResolutionNominal;
-   }
- 
-+  {
-+    MutexLock lock(&latest_frame_lock_);
-+    latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
-+  }
-+
-   MutexLock lock(&lock_);
- 
-   if (stream_) {
+ if (rtc_enable_protobuf) {
++  import("//third_party/protobuf/proto_library.gni")
+   proto_library("network_config_schedule_proto") {
+     visibility = [ "*" ]
+     sources = [ "network_config_schedule.proto" ]
