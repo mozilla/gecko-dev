@@ -63,9 +63,7 @@ class AndroidPhotoPicker(
         ): ActivityResultLauncher<PickVisualMediaRequest> {
             return getFragment.invoke()
                 .registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uriList ->
-                    uriList?.let {
-                        getPromptsFeature.invoke()?.onAndroidPhotoPickerResult(uriList.toTypedArray())
-                    }
+                    getPromptsFeature.invoke()?.onAndroidPhotoPickerResult(uriList.toTypedArray())
                 }
         }
     }
