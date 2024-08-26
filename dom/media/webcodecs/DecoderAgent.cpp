@@ -221,6 +221,9 @@ RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
   LOG("DecoderAgent #%d (%p), shutdown in %s state", mId, this,
       EnumValueToString(mState));
 
+  MOZ_ASSERT(mShutdownWhileCreationPromise.IsEmpty(),
+             "Shutdown while shutting down is prohibited");
+
   auto r =
       MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled by decoder shutdown");
 
@@ -231,7 +234,6 @@ RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
     MOZ_ASSERT(!mConfigurePromise.IsEmpty());
     MOZ_ASSERT(!mDecoder);
     MOZ_ASSERT(mState == State::Configuring);
-    MOZ_ASSERT(mShutdownWhileCreationPromise.IsEmpty());
 
     LOGW(
         "DecoderAgent #%d (%p) shutdown while the decoder-creation for "
