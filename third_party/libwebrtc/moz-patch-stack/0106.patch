@@ -1,52 +1,44 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Thu, 2 May 2024 00:47:00 -0700
-Subject: Bug 1892299 - fix-afaae4e38a - fix adapted_track_source build
- exclusion;r?mjf
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Mon, 6 May 2024 07:28:00 +0000
+Subject: Bug 1892329 - Invert _captureThread check in
+ VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecfe7527e75629dbc65fc9cbc1
+Differential Revision: https://phabricator.services.mozilla.com/D208186
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
 ---
- media/BUILD.gn | 17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
+ 1 file changed, 12 insertions(+), 9 deletions(-)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 868f662df9..6d1c90fc70 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -56,6 +56,11 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.h",
-+    ]
-+  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -128,12 +133,6 @@ rtc_library("rtc_media_base") {
-     "../video/config:encoder_config",
-     "//third_party/abseil-cpp/absl/types:optional",
-   ]
--    if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
--  }
+diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
+index 74af348a6c..29ca864e19 100644
+--- a/modules/video_capture/linux/video_capture_v4l2.cc
++++ b/modules/video_capture/linux/video_capture_v4l2.cc
+@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   }
+ 
+   // start capture thread;
+-  if (_captureThread.empty()) {
+-    quit_ = false;
+-    _captureThread = rtc::PlatformThread::SpawnJoinable(
+-        [self = scoped_refptr(this)] {
+-          while (self->CaptureProcess()) {
+-          }
+-        },
+-        "CaptureThread",
+-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
++  if (!_captureThread.empty()) {
++    return 0;
+   }
++
++  quit_ = false;
++
++  _captureThread = rtc::PlatformThread::SpawnJoinable(
++      [self = scoped_refptr(this)] {
++        while (self->CaptureProcess()) {
++        }
++      },
++      "CaptureThread",
++      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
+   return 0;
  }
  
- rtc_library("adapted_video_track_source") {
-@@ -141,6 +140,12 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.cc",
-+      "base/adapted_video_track_source.h",
-+    ]
-+  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
