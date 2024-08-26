@@ -132,6 +132,7 @@ class CrashReporterActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         sendCrashReportIfNeeded {
             finish()

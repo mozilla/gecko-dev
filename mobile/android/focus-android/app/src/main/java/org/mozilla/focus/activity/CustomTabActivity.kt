@@ -72,6 +72,7 @@ class CustomTabActivity : LocaleAwareAppCompatActivity() {
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         if (browserFragment.sessionFeature.onBackPressed()) {
             return

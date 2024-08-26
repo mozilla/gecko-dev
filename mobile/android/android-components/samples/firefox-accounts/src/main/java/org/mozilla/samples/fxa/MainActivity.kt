@@ -212,6 +212,7 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         if (!qrFeature.onBackPressed()) {
             onBackPressedDispatcher.onBackPressed()

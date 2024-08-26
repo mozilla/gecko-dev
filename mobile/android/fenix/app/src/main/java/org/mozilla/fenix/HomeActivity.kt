@@ -764,6 +764,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         }.toTypedArray()
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     final override fun onBackPressed() {
         supportFragmentManager.primaryNavigationFragment?.childFragmentManager?.fragments?.forEach {
             if (it is UserInteractionHandler && it.onBackPressed()) {
