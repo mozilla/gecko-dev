@@ -3321,19 +3321,6 @@ contentRelevancy:
       type: boolean
       fallbackPref: toolkit.contentRelevancy.ingestEnabled
 
-tabPreview:
-  description: Prefs to control Tab Previews
-  owner: dwalker@mozilla.com
-  hasExposure: false
-  variables:
-    tabPreviewsEnabled:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.tabs.hoverPreview.enabled
-      description: >-
-        When true, users will see the new card preview when hovering a tab, instead of the standard tooltip
-
 backupService:
   description: Prefs to control the profile backup service
   owner: mconley@mozilla.com
