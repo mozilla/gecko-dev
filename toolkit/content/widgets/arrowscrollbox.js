@@ -100,9 +100,10 @@
       this.shadowRoot.addEventListener("mouseup", this.on_mouseup.bind(this));
       this.shadowRoot.addEventListener("mouseout", this.on_mouseout.bind(this));
 
-      let overflowObserver = new ResizeObserver(([entry]) => {
+      let slot = this.shadowRoot.querySelector("slot");
+      let overflowObserver = new ResizeObserver(_ => {
         let contentSize =
-          entry.contentRect[this.#verticalMode ? "height" : "width"];
+          slot.getBoundingClientRect()[this.#verticalMode ? "height" : "width"];
         // NOTE(emilio): This should be contentSize > scrollClientSize, but due
         // to how Gecko internally rounds in those cases, we allow for some
         // minor differences (the internal Gecko layout size is 1/60th of a
@@ -119,7 +120,8 @@
           );
         });
       });
-      overflowObserver.observe(this.shadowRoot.querySelector("slot"));
+      overflowObserver.observe(slot);
+      overflowObserver.observe(this.scrollbox);
 
       this.scrollbox.addEventListener("scroll", event => {
         this.on_scroll(event);
