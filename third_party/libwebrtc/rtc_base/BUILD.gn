@@ -830,6 +830,7 @@ rtc_library("rtc_stats_counters") {
     "numerics/sample_stats.h",
   ]
   deps = [
+    ":checks",
     "../api/numerics",
     "../api/units:data_rate",
     "../api/units:time_delta",
@@ -2120,11 +2121,13 @@ if (rtc_include_tests) {
         "numerics/sequence_number_util_unittest.cc",
       ]
       deps = [
+        ":mod_ops",
         ":rtc_numerics",
         ":timeutils",
         "../test:test_main",
         "../test:test_support",
         "//third_party/abseil-cpp/absl/algorithm:container",
+        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
