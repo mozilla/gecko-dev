@@ -597,7 +597,6 @@ void nsCocoaWindow::Destroy() {
   if (mParent) {
     mParent->RemoveChild(this);
   }
-  nsBaseWidget::OnDestroy();
 
   if (mInFullScreenMode && !mInNativeFullScreenMode) {
     // Keep these calls balanced for emulated fullscreen.
@@ -610,8 +609,14 @@ void nsCocoaWindow::Destroy() {
   // to be garbage-collected.
   if (mWindow && mWindowMadeHere) {
     CancelAllTransitions();
-    DestroyNativeWindow();
+
+    // TODO: Restore this (possibly with a delay) after confirming the effect
+    // of its removal.
+    // DestroyNativeWindow();
   }
+
+  // Call OnDestroy last, since it may delete the widget itself.
+  nsBaseWidget::OnDestroy();
 }
 
 void* nsCocoaWindow::GetNativeData(uint32_t aDataType) {
