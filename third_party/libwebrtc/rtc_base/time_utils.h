@@ -133,7 +133,7 @@ int64_t TimeUTCMicros();
 
 // Return the number of milliseconds since January 1, 1970, UTC.
 // See above.
-int64_t TimeUTCMillis();
+RTC_EXPORT int64_t TimeUTCMillis();
 
 }  // namespace rtc
 
