@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -31,6 +32,7 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore()
 
         store.waitUntilIdle()
+        advanceUntilIdle()
 
         assertEquals(10, store.state.bookmarkItems.size)
     }
@@ -44,6 +46,7 @@ class BookmarksMiddlewareTest {
         )
 
         store.waitUntilIdle()
+        advanceUntilIdle()
 
         assertEquals(0, store.state.bookmarkItems.size)
     }
