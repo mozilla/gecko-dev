@@ -46,13 +46,14 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">چݨی</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title">حالیہ سمبھالے پتے</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2">سارے رکھ لاۓ اتے پتے ویکھو</string>
+    <!-- Home - Bookmarks -->
+    <!-- Title for the home screen section with bookmarks. -->
+    <string name="home_bookmarks_title">اتے پتے</string>
+
+    <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
+    <string name="home_bookmarks_show_all_content_description">سبھناں اتیاں پتیاں نوں ویکھو</string>
     <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove">ہٹاؤ</string>
+    <string name="home_bookmarks_menu_item_remove">ہٹاؤ</string>
 
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s ایپ موزلے ولوں تیار کیتی اے۔</string>
@@ -108,6 +109,23 @@
     <string name="erase_action_cfr_message">تازہ نجی سیشن شروع کرن لئی اتھے چھوہو۔ آپݨے تاریخ، کوکیاں — ہر چیز ہٹا دیو۔</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">نویں نیویگیشن نال ودھ تیزی نال براؤز کرو</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">وادھو براؤز کرن لئی تھاں بݨاوݨ واسطے سکرول کرن دے دوران ایہہ پٹی پاسے کر دتی جاندی اے۔</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">ویب‌سائیٹ تے وادھو براؤز کرن لئی تھاں بݨاوݨ واسطے سکرول کرن دے دوران ایس پٹی نوں پاسے کر دتا جاندا اے۔</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">ایس ٹیب دے واسطے وچلے صفحیاں چ جاݨ لئی تیر دے نشاناں نوں چھوہ کے رکھو۔</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">نواں: اک چھوہ نال اگے تے پچھے لے جاݨ والے تیر</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">فوری نیویگیشن جو ہمیشہ تہاڈی پہنچ وچ ہندی اے دا انند ماݨو۔</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">کیمرے لئی پہنچ چاہیدی اے۔ فون دیاں سیٹنگاں تے جاؤ، اجازتاں نوں چھوہو تے اجازت دیݨ دی چوݨ نوں چھوہو۔</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -144,8 +162,8 @@
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">نجی ٹیب کھولھو</string>
 
-    <!-- Shortcut action to open Passwords screens -->
-    <string name="home_screen_shortcut_open_password_screen">پاس‌ورڈ شارٹ کٹ</string>
+    <!-- Shortcut action to open Passwords screen -->
+    <string name="home_screen_shortcut_passwords">پاس‌ورڈ</string>
 
     <!-- Recent Tabs -->
     <!-- Header text for jumping back into the recent tab in the home screen -->
@@ -184,12 +202,22 @@
     <string name="browser_menu_refresh">تازہ کرو</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">روکو</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">وادھے والے</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_extensions">پھیلاؤ</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">%s نوں آپݨا بݨاؤ</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">پھیلاؤ تہاڈے براؤز کرن دے پدھر نوں اُچا کردیاں ہن، فیر بھاویں ایہہ %s دی وکھ تے کارگذاری نوں بدلݨا ہووے جاں پردےداری تے سرکھیا ودھاوݨا۔</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">ہور جاݨو</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_manage_extensions">پھیلاواں دا انتظام کرو</string>
+    <!-- Browser menu button that opens AMO in a tab -->
+    <string name="browser_menu_discover_more_extensions">ہور پھیلاؤ لبھو</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">کھاتے دی جاݨکاری</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">کوئی وادھے والے نہیں اے</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">مدد</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -204,18 +232,25 @@
     <string name="browser_menu_open_in_regular_tab">سادے ٹیب چ کھولھو</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">مکھ سکرین تے جوڑو</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">اینسٹال کرو</string>
+    <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+    <string name="browser_menu_add_to_homescreen_2">ہوم سکرین تے جوڑو
+</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">مڑ جوڑ کرو</string>
     <!-- Browser menu button that opens the find in page menu -->
     <string name="browser_menu_find_in_page">صفحے چ لبھو</string>
+    <!-- Browser menu button that opens the find in page menu -->
+    <string name="browser_menu_find_in_page_2">صفحے چ لبھو…</string>
     <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
     <string name="browser_menu_translations">صفحے دا اُلتھا کرو</string>
+    <!-- Browser menu button that saves the current tab to a collection -->
+    <string name="browser_menu_save_to_collection">بھنڈار چ سنبھالو…</string>
     <!-- Browser menu button that saves the current tab to a collection -->
     <string name="browser_menu_save_to_collection_2">بھنڈار چ سنبھالو</string>
     <!-- Browser menu button that open a share menu to share the current site -->
     <string name="browser_menu_share">سانجھا کرو</string>
+    <!-- Browser menu button that open a share menu to share the current site -->
+    <string name="browser_menu_share_2">سانجھا کرو…</string>
     <!-- Browser menu button shown in custom tabs that opens the current tab in Fenix
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="browser_menu_open_in_fenix">%1$s نال کھولھو</string>
@@ -233,6 +268,8 @@
     <string name="browser_menu_open_app_link">ایپ وچ کھولھو</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">پڑھن جھلک دیاں ترجیحاں</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">پڑھن جھلک نوں پسند قاری منظر بݨاؤ</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">پتہ پایو</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -242,6 +279,33 @@
     <!-- Button shown on the home page that opens the Customize home settings -->
     <string name="browser_menu_customize_home_1">مکھ صفحے دیاں ترجیحاں</string>
 
+    <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
+    <string name="browser_menu_sign_in">لوگ این کرو</string>
+    <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+    <string name="browser_menu_sign_in_caption">پاس‌ورڈ، ٹیباں تے ہوراں نوں ہم وقت کرو</string>
+    <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
+    <string name="browser_menu_sign_back_in_to_sync">ہم وقت کرن لئی واپس سائین ان کرو</string>
+    <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
+    <string name="browser_menu_syncing_paused_caption">ہم وقت نوں روکیا گیا اے</string>
+    <!-- Browser menu label that creates a private tab -->
+    <string name="browser_menu_new_private_tab">نجی ٹیب کھولھو</string>
+    <!-- Browser menu label that navigates to the Password screen -->
+    <string name="browser_menu_passwords">پاس‌ورڈ</string>
+
+    <!-- Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
+         The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="browser_menu_new_in_firefox">%1$s وچ نواں</string>
+    <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+    <string name="browser_menu_switch_to_desktop_site">ڈیسک‌ٹاپ سائیٹ لئی بدلو</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">موبائیل سائیٹ لئی سوئچ کرو</string>
+    <!-- Browser menu label that navigates to the page tools sub-menu -->
+    <string name="browser_menu_tools">سند</string>
+    <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
+         bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
+    <string name="browser_menu_save">سنبھالو
+</string>
+
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->
     <string name="browser_toolbar_home">مکھ سکرین</string>
@@ -249,6 +313,9 @@
     <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
          history and go back to the home screen. -->
     <string name="browser_toolbar_erase">براؤز کرن دی تاریخ مٹاؤ</string>
+
+    <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
+    <string name="browser_toolbar_translate">صفحے دا اُلتھا کرو</string>
 
     <!-- Locale Settings Fragment -->
     <!-- Content description for tick mark on selected language -->
@@ -324,7 +391,6 @@
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text">فائرفاکس پردے داری سوچنا</string>
-    <!-- Text for the button to set firefox as default browser on the device -->
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">اسیں تہانوں سرکھیت رکھݨا چاہندے آں</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -343,7 +409,7 @@
     <string name="juno_onboarding_sign_in_title_2">جدوں تسیں ڈوائیساں وچالے تبادلا کرو تاں انکرپٹ رہو</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">جدوں تسیں سائین ان تے سِنک کردے ہو تاں تسیں ودھ سرکھیت ہندے او۔ فائرفاکس تہاڈے پاس‌ورداں، بُک‌مارکاں تے ہورناں نوں انکرپٹ کردا اے۔</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">جدوں تسیں سائین ان تے سِنک کردے ہو تاں تسیں ودھ سرکھیت ہندے او۔ فائرفاکس تہاڈے پاس‌ورداں، بُک‌مارکاں تے ہورناں نوں انکرپٹ کردا اے۔</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">سائین ان کرو</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -502,7 +568,7 @@
     <!-- Preference category for account information -->
     <string name="preferences_category_account">کھاتہ</string>
     <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">سند پٹی</string>
+    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">سند پٹی</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">روپ ریکھا</string>
     <!-- Preference for customizing the home screen -->
@@ -515,9 +581,13 @@
     <string name="preferences_sign_in_description_2">جدوں لوگ‌این کیتا ٹیباں، اتے پتے، پاس‌ورڈ تے ہور ملا جا سکدے ہن۔</string>
     <!-- Preference for language -->
     <string name="preferences_language">بولی</string>
+    <!-- Preference for translations -->
+    <string name="preferences_translations">ترجمے</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">ڈیٹا چوݨاں</string>
 
+    <!-- Preference for data collection -->
+    <string name="preferences_data_collection">ڈیٹا بھنڈار</string>
     <!-- Preference title for switch preference to suggest bookmarks when searching -->
     <string name="preferences_search_bookmarks">اتے پتے دی کھوج</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -525,9 +595,8 @@
     <!-- Preference for open links in third party apps never open in apps option -->
     <string name="preferences_open_links_in_apps_never">کدے نہیں</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">وادھے والے</string>
-
+    <!-- Preference for extensions -->
+    <string name="preferences_extensions">پھیلاؤ</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">اطلاع نامے</string>
 
@@ -536,11 +605,28 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">اجازت نہیں دتے</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">لوڑیندا</string>
+    <!-- The title of the optional permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">چوݨواں</string>
+
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ٹھیک اے</string>
     <!-- Button caption to abort the add-on collection configuration -->
     <string name="customize_addon_collection_cancel">رد کرو</string>
 
+    <!-- Hint displayed on input field for custom collection name -->
+    <string name="customize_addon_collection_hint">بھنڈار دا ناں</string>
+
+    <!-- Customize Home -->
+    <!-- Header text for jumping back into the recent tab in customize the home screen -->
+    <string name="customize_toggle_jump_back_in">واپس جاؤ</string>
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">اتے پتے</string>
+    <!-- Title for the customize home screen section with recently visited. Recently visited is
+    a section where users see a list of tabs that they have visited in the past few days -->
+    <string name="customize_toggle_recently_visited">حال دے کھولھیاں گئیاں</string>
     <!-- Title for the opening wallpaper settings screen -->
     <string name="customize_wallpapers">والپیپر</string>
 
@@ -556,10 +642,8 @@
     <string name="preferences_sync_history">تریخ</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">اتے پتے</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">لاگ ان</string>
     <!-- Preference for syncing passwords -->
-    <string name="preferences_sync_logins_2" tools:ignore="UnusedResources">پاس‌ورڈ</string>
+    <string name="preferences_sync_logins_2">پاس‌ورڈ</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">ساریاں کھولھو</string>
     <!-- Preference for signing out -->
@@ -591,6 +675,8 @@
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">ڈاؤن‌لوڈ</string>
+    <!-- Option in library to open Bookmarks page -->
+    <string name="library_bookmarks">اتے پتے</string>
     <!-- Option in Library to open History page -->
     <string name="library_history">تریخ</string>
     <!-- Option in Library to open a new tab -->
@@ -646,12 +732,22 @@
     <!-- Dialog button text for canceling removing a study. -->
     <string name="studies_restart_dialog_cancel">رد کرو</string>
 
+    <!-- Sessions -->
+    <!-- Title for the list of tabs -->
+    <string name="tab_header_label">کھولھیاں ٹیباں
+</string>
+    <!-- Title for the list of tabs in the current private session -->
+    <string name="tabs_header_private_tabs_title">نجی ٹیباں</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">نویں ٹیب کھولھو</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_private_tab">نجی ٹیب کھولھو</string>
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
     <string name="tab_drawer_fab_content">نجی</string>
+    <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
+    <string name="tab_drawer_fab_sync">ہم وقت کرو</string>
+    <!-- Text shown in the menu for sharing all tabs -->
+    <string name="tab_tray_menu_item_share">سریاں ٹیباں سانجھیاں کرو</string>
     <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
     <string name="tab_tray_multiselect_menu_item_bookmark">اتا پتہ</string>
     <!-- Text shown in the multiselect menu for closing selected tabs. -->
@@ -664,7 +760,7 @@
     <string name="close_tab_title">%s ٹیب بند کرو</string>
 
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">ناں بدلو</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">ناں بدلو</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ہٹاؤ</string>
 
@@ -838,11 +934,11 @@
     <string name="preference_enhanced_tracking_protection_custom">چݨیا</string>
 
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">پیڑاں راکھے</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">پیڑاں راکھے</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">ویروے</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">پیڑاں راکھے</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">پیڑاں راکھے</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">ہور جاݨو</string>
 
@@ -856,8 +952,6 @@
     <!-- Add button text for the Add to Homescreen dialog -->
     <string name="add_to_homescreen_add">پتہ پایو</string>
 
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">کھاتے چ کھوجو</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">سائٹ</string>
 
@@ -918,13 +1012,10 @@
     <!-- Negative action of a dialog asking to delete login -->
     <string name="dialog_delete_negative">رد کرو</string>
 
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">سودھو</string>
-
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">ناں</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ٹھیک اے</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ٹھیک اے</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">رد کرو</string>
 

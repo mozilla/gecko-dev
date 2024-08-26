@@ -197,6 +197,9 @@
     <string name="browser_menu_stop">Зупинити</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Розширення</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Зробіть %s своїм</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Керувати розширеннями</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -285,6 +288,8 @@
     <string name="browser_menu_new_in_firefox">Що нового у %1$s</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Перейти на повний сайт</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Перейти на мобільний сайт</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Інструменти</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -1235,10 +1240,15 @@
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Введіть пошукові терміни</string>
 
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Перейти назад</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Додати нову теку</string>
     <!-- Content description for the bookmark navigation bar close button -->
     <string name="bookmark_close_button_content_description">Закрити закладки</string>
+
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Шукати закладки</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2187,6 +2197,8 @@
     <string name="top_sites_rename_dialog_title">Назва</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Назва ярлика</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">URL-адреса ярлика</string>
     <!-- Button caption to confirm the renaming of the top site. -->
     <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
@@ -2201,6 +2213,8 @@
 
     <!-- Text for the menu item to edit a top site. -->
     <string name="top_sites_edit_top_site">Редагувати</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Редагувати ярлик</string>
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">Зберегти</string>
     <!-- Error message when the user entered an invalid URL -->
@@ -2752,10 +2766,14 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Дуже незадоволені</string>
 
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Наскільки ви задоволені своєю домашньою сторінкою Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Допоможіть покращити друк у Firefox. Це займе лише секунду</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Наскільки ви задоволені друком у Firefox?</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Наскільки ви задоволені своєю домашньою сторінкою Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description">Логотип Firefox</string>
