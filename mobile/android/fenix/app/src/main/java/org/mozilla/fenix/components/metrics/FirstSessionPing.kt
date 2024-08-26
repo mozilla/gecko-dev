@@ -16,13 +16,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
-import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.FirstSession
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.ext.application
-import org.mozilla.fenix.ext.settings
 
 class FirstSessionPing(private val context: Context) {
 
@@ -63,28 +60,18 @@ class FirstSessionPing(private val context: Context) {
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun triggerPing() {
-        if (checkMetricsNotEmpty()) {
-            context.settings().also {
-                FirstSession.campaign.set(it.adjustCampaignId)
-                FirstSession.adgroup.set(it.adjustAdGroup)
-                FirstSession.creative.set(it.adjustCreative)
-                FirstSession.network.set(it.adjustNetwork)
-                FirstSession.distributionId.set(
-                    when (Config.channel.isMozillaOnline) {
-                        true -> "MozillaOnline"
-                        false -> "Mozilla"
-                    },
-                )
-                FirstSession.timestamp.set()
-                FirstSession.installSource.set(installSourcePackage())
-            }
+        FirstSession.distributionId.set(
+            when (Config.channel.isMozillaOnline) {
+                true -> "MozillaOnline"
+                false -> "Mozilla"
+            },
+        )
+        FirstSession.timestamp.set()
+        FirstSession.installSource.set(installSourcePackage())
 
-            CoroutineScope(Dispatchers.IO).launch {
-                Pings.firstSession.submit()
-                markAsTriggered()
-            }
-        } else {
-            Events.firstSessionPingCancelled.record(NoExtras())
+        CoroutineScope(Dispatchers.IO).launch {
+            Pings.firstSession.submit()
+            markAsTriggered()
         }
     }
 
@@ -119,19 +106,6 @@ class FirstSessionPing(private val context: Context) {
         Logger.debug("$packageName is not installed")
         null
     }.orEmpty()
-
-    /**
-     * Check that at least one of the metrics values is set before sending the ping.
-     * Note: it is normal for many of these values to not be set as campaigns do not always
-     * utilize every attribute!
-     * */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun checkMetricsNotEmpty(): Boolean = listOf(
-        context.settings().adjustCampaignId,
-        context.settings().adjustAdGroup,
-        context.settings().adjustCreative,
-        context.settings().adjustNetwork,
-    ).any { it.isNotEmpty() }
 
     /**
      * Trigger sending the `installation` ping if it wasn't sent already.
