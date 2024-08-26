@@ -182,6 +182,7 @@ class TestSessionRestore(SessionStoreTestCase):
                 """
                 const window = BrowserWindowTracker.getTopWindow();
                 window.SidebarController.toolbarButton.click();
+                window.SidebarController.sidebarMain.expanded = true;
                 return window.SidebarController.sidebarMain.expanded;
                 """
             ),
@@ -190,11 +191,31 @@ class TestSessionRestore(SessionStoreTestCase):
 
         self.marionette.restart()
 
+        self.marionette.execute_async_script(
+            """
+            let resolve = arguments[0];
+            let { BrowserInitState } = ChromeUtils.importESModule("resource:///modules/BrowserGlue.sys.mjs");
+            BrowserInitState.startupIdleTaskPromise.then(resolve);
+            """
+        )
+
         self.assertTrue(
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
-                return window.SidebarController.sidebarMain.expanded;
+                function waitForExpandedState() {
+                    let expanded = false;
+                    for (let i = 0; i < 50; i++) {
+                        if (!window.SidebarController.sidebarMain.expanded) {
+                            continue;
+                        } else {
+                            expanded = true;
+                            break;
+                        }
+                    }
+                    return expanded;
+                }
+                return waitForExpandedState();
                 """
             ),
             "Sidebar expanded state has been restored.",

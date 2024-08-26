@@ -28,6 +28,13 @@
   align-items: center;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  moz-button::part(label) {
+    opacity: 0;
+    transition: opacity 300ms ease-in-out;
+  }
+}
+
 .expanded-button {
   width: 100%;
 
@@ -36,6 +43,10 @@
     font-weight: var(--font-weight);
     justify-content: flex-start;
     padding-inline-start: 8px;
+  }
+
+  &::part(label) {
+    opacity: 1;
   }
 }
 

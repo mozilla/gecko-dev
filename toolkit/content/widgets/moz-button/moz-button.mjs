@@ -121,7 +121,11 @@ export default class MozButton extends MozLitElement {
         ${this.iconSrc
           ? html`<img src=${this.iconSrc} role="presentation" />`
           : ""}
-        <label is="moz-label" shownaccesskey=${ifDefined(this.accessKey)}>
+        <label
+          is="moz-label"
+          part="label"
+          shownaccesskey=${ifDefined(this.accessKey)}
+        >
           ${this.labelTemplate()}
         </label>
       </button>
