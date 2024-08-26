@@ -10,13 +10,8 @@
   min-width: 50px;
   padding: var(--space-small);
   padding-inline-end: 0;
-  border-inline-end: 1px solid var(--chrome-content-separator-color);
   background-color: var(--toolbar-bgcolor);
   color: var(--toolbar-color);
-  :host([positionend]) & {
-    border-inline-start: 1px solid var(--chrome-content-separator-color);
-    border-inline-end: none;
-  }
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.verticalTabs") {
