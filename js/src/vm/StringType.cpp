@@ -99,14 +99,6 @@ size_t JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
     }
   }
 
-  // JSExtensibleString: count the full capacity, not just the used space.
-  if (isExtensible()) {
-    JSExtensibleString& extensible = asExtensible();
-    return extensible.hasLatin1Chars()
-               ? mallocSizeOf(extensible.rawLatin1Chars())
-               : mallocSizeOf(extensible.rawTwoByteChars());
-  }
-
   // JSInlineString, JSFatInlineString, js::ThinInlineAtom, js::FatInlineAtom:
   // the chars are inline.
   if (isInline()) {
