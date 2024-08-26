@@ -435,8 +435,7 @@
           ],
           "dimensions": {
             "cpu": "arm64",
-            "id": "mac-438-e504",
-            "os": "iOS-17.4.1",
+            "os": "iOS-17.5.1",
             "pool": "WebRTC"
           },
           "hard_timeout": 10800,
