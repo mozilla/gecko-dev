@@ -88,7 +88,7 @@ def main(args=sys.argv[1:]):
             args.app,
             args.binary,
             run_local=args.run_local,
-            noinstall=args.noinstall,
+            no_install=args.no_install,
             installerpath=args.installerpath,
             obj_path=args.obj_path,
             gecko_profile=args.gecko_profile,

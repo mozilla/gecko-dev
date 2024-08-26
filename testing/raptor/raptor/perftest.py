@@ -73,7 +73,7 @@ class Perftest(object):
         app,
         binary,
         run_local=False,
-        noinstall=False,
+        no_install=False,
         obj_path=None,
         profile_class=None,
         installerpath=None,

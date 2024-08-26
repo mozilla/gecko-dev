@@ -464,15 +464,6 @@ class Raptor(
                 },
             ],
             [
-                ["--noinstall"],
-                {
-                    "dest": "noinstall",
-                    "action": "store_true",
-                    "default": False,
-                    "help": "Do not offer to install Android APK.",
-                },
-            ],
-            [
                 ["--disable-e10s"],
                 {
                     "dest": "e10s",
@@ -1316,7 +1307,7 @@ class Raptor(
             )
 
     def install(self):
-        if not self.config.get("noinstall", False):
+        if not self.config.get("no_install", False):
             if self.app in self.firefox_android_browsers:
                 self.device.uninstall_app(self.binary_path)
 

@@ -453,7 +453,7 @@ def setup_browsertime(config, tasks):
 
         # Disable the Raptor install step
         if "--app=chrome-m" in extra_options or "--app=cstm-car-m" in extra_options:
-            extra_options.append("--noinstall")
+            extra_options.append("--no-install")
 
         task.setdefault("fetches", {}).setdefault("fetch", []).extend(
             evaluate_keyed_by(fs, "fetches.fetch", task)

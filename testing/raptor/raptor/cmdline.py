@@ -348,8 +348,8 @@ def create_parser(mach_interface=False):
             help="This contains the path to mozbuild.",
         )
     add_arg(
-        "--noinstall",
-        dest="noinstall",
+        "--no-install",
+        dest="no_install",
         default=False,
         action="store_true",
         help="Flag which indicates if Raptor should not offer to install Android APK.",

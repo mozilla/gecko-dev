@@ -308,16 +308,16 @@ def verify_android_device(
         install = InstallIntent.NO
         _log_info(
             "Found MOZ_DISABLE_ADB_INSTALL in environment and/or the"
-            " --noinstall flag, skipping android app installation"
+            " --no-install flag, skipping android app installation"
         )
     else:
         _log_info(
             "*********************************************************************\n"
             "Neither the MOZ_DISABLE_ADB_INSTALL environment variable nor the\n"
-            "--noinstall flag was found. The code will now uninstall the current\n"
+            "--no-install flag was found. The code will now uninstall the current\n"
             "app then re-install the android app from a different source. If you\n"
             "don't want this set your local env so that\n"
-            "MOZ_DISABLE_ADB_INSTALL=True or pass the --noinstall flag\n"
+            "MOZ_DISABLE_ADB_INSTALL=True or pass the --no-install flag\n"
             "*********************************************************************"
         )
     device_verified = False

@@ -389,7 +389,7 @@ def run_raptor(command_context, **kwargs):
         )
 
         install = (
-            InstallIntent.NO if kwargs.pop("noinstall", False) else InstallIntent.YES
+            InstallIntent.NO if kwargs.pop("no_install", False) else InstallIntent.YES
         )
         verbose = False
         if (
