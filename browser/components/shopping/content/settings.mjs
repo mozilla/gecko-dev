@@ -28,7 +28,6 @@ class ShoppingSettings extends MozLitElement {
       autoOpenToggleEl: "#shopping-settings-auto-open-toggle",
       autoOpenToggleDescriptionEl: "#shopping-auto-open-description",
       dividerEl: ".divider",
-      sidebarEnabledStateEl: "#shopping-settings-sidebar-enabled-state",
       optOutButtonEl: "#shopping-settings-opt-out-button",
       shoppingCardEl: "shopping-card",
       adsLearnMoreLinkEl: "#shopping-ads-learn-more-link",
@@ -159,7 +158,7 @@ class ShoppingSettings extends MozLitElement {
       <shopping-card
         data-l10n-id="shopping-settings-label"
         data-l10n-attrs="label"
-        type=${!this.autoOpenEnabled ? "accordion" : ""}
+        type="accordion"
       >
         <div
           id="shopping-settings-wrapper"
@@ -169,20 +168,14 @@ class ShoppingSettings extends MozLitElement {
           slot="content"
         >
           <section id="shopping-settings-toggles-section">
-            ${adsToggleMarkup} ${autoOpenToggleMarkup}
+            ${autoOpenToggleMarkup} ${adsToggleMarkup}
           </section>
           ${this.autoOpenEnabled
             ? html`<span class="divider" role="separator"></span>`
             : null}
           <section id="shopping-settings-opt-out-section">
-            ${this.autoOpenEnabled
-              ? html`<span
-                  id="shopping-settings-sidebar-enabled-state"
-                  data-l10n-id="shopping-settings-sidebar-enabled-state"
-                ></span>`
-              : null}
             <button
-              class="shopping-button"
+              class="small-button shopping-button"
               id="shopping-settings-opt-out-button"
               data-l10n-id="shopping-settings-opt-out-button"
               @click=${this.onDisableShopping}
@@ -192,7 +185,6 @@ class ShoppingSettings extends MozLitElement {
       </shopping-card>
       <p
         id="powered-by-fakespot"
-        class="deemphasized"
         data-l10n-id="powered-by-fakespot"
         @click=${this.fakespotLinkClicked}
       >

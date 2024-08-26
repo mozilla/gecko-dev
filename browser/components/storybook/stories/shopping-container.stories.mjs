@@ -88,6 +88,7 @@ const Template = ({
   adsEnabledByUser,
   recommendationData,
   analysisProgress,
+  autoOpenEnabled,
 }) => html`
   <style>
     main {
@@ -114,6 +115,7 @@ const Template = ({
       ?adsEnabledByUser=${adsEnabledByUser}
       .recommendationData=${recommendationData}
       analysisProgress=${analysisProgress}
+      autoOpenEnabled=${autoOpenEnabled}
     >
     </shopping-container>
   </main>

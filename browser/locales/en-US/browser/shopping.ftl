@@ -123,8 +123,6 @@ shopping-settings-auto-open-description-three-sites = When you view products on 
 #   $currentSite (String) - The current shopping page name
 shopping-settings-auto-open-description-single-site = When you view products on { $currentSite }
 
-shopping-settings-sidebar-enabled-state = Review Checker is <strong>On</strong>
-
 ## Strings for the adjusted rating component
 
 # "Adjusted rating" means a star rating that has been adjusted to include only
@@ -187,7 +185,7 @@ shopping-unanalyzed-product-analyze-button = Check review quality
 
 more-to-consider-ad-label =
   .label = More to consider
-ad-by-fakespot = Ad by { -fakespot-brand-name }
+shopping-sponsored-label = Sponsored
 
 ## Shopping survey strings.
 
