@@ -1,28 +1,59 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Sat, 15 Jun 2024 11:27:00 +0000
-Subject: Bug 1902618 - WebRTC backport: PipeWire video capture: mmap()
- PipeWire buffers with MAP_SHARED r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 21 Jun 2024 16:28:00 -0500
+Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
+ third_party library.
 
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: 025d69b4d0df05f54d7bfcb3a4a2b35b48b83d82
-
-Differential Revision: https://phabricator.services.mozilla.com/D213752
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/09f0b8ff3d06a68baefa88ed598d2125dfe9d417
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
 ---
- modules/video_capture/linux/video_capture_pipewire.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ BUILD.gn                                |  2 ++
+ modules/video_coding/generic_decoder.cc | 10 +++++-----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index d7cd50df66..9ff4fdb9b1 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -418,7 +418,7 @@ void VideoCaptureModulePipeWire::ProcessBuffers() {
-       ScopedBuf frame;
-       frame.initialize(
-           static_cast<uint8_t*>(
--              mmap(nullptr, spaBuffer->datas[0].maxsize, PROT_READ, MAP_PRIVATE,
-+              mmap(nullptr, spaBuffer->datas[0].maxsize, PROT_READ, MAP_SHARED,
-                    spaBuffer->datas[0].fd, spaBuffer->datas[0].mapoffset)),
-           spaBuffer->datas[0].maxsize, spaBuffer->datas[0].fd,
-           spaBuffer->datas[0].type == SPA_DATA_DmaBuf);
+diff --git a/BUILD.gn b/BUILD.gn
+index 3c8a589c04..9e3ab0758b 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -279,6 +279,7 @@ config("rtc_prod_config") {
+ }
+ 
+ group("tracing") {
++if (!build_with_mozilla) {
+   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
+   if (rtc_use_perfetto) {
+     if (build_with_chromium) {
+@@ -295,6 +296,7 @@ group("tracing") {
+         [ "//third_party/perfetto/include/perfetto/tracing" ]
+   }
+ }
++}
+ 
+ if (rtc_use_perfetto) {
+   rtc_library("webrtc_libperfetto") {
+diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
+index 0bfc628d2c..0a9920a176 100644
+--- a/modules/video_coding/generic_decoder.cc
++++ b/modules/video_coding/generic_decoder.cc
+@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
+                                       absl::optional<int32_t> decode_time_ms,
+                                       absl::optional<uint8_t> qp) {
+   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
+-  TRACE_EVENT(
+-      "webrtc", "VCMDecodedFrameCallback::Decoded",
+-      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
++  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
++                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
++                       decodedImage.rtp_timestamp());
+   // TODO(holmer): We should improve this so that we can handle multiple
+   // callbacks from one call to Decode().
+   absl::optional<FrameInfo> frame_info;
+@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
+ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
+                                   Timestamp now,
+                                   int64_t render_time_ms) {
+-  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
+-              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
++  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
++               frame.RtpTimestamp());
+   FrameInfo frame_info;
+   frame_info.rtp_timestamp = frame.RtpTimestamp();
+   frame_info.decode_start = now;
