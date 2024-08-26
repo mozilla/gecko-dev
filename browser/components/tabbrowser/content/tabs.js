@@ -364,7 +364,7 @@
           // Check whether the click
           // was dispatched on the open space of it.
           let visibleTabs = this._getVisibleTabs();
-          let lastTab = visibleTabs[visibleTabs.length - 1];
+          let lastTab = visibleTabs.at(-1);
           let winUtils = window.windowUtils;
           let endOfTab =
             winUtils.getBoundsWithoutFlushing(lastTab)[
@@ -1441,7 +1441,7 @@
         return;
       }
 
-      var isEndTab = aTab._tPos > tabs[tabs.length - 1]._tPos;
+      var isEndTab = aTab._tPos > tabs.at(-1)._tPos;
 
       if (!this._tabDefaultMaxWidth) {
         this._tabDefaultMaxWidth = parseFloat(
@@ -1693,8 +1693,8 @@
 
       // Move the dragged tab based on the mouse position.
       let firstTab = tabs[0];
-      let lastTab = tabs[tabs.length - 1];
-      let firstMovingTabScreen = movingTabs[movingTabs.length - 1][screenAxis];
+      let lastTab = tabs.at(-1);
+      let firstMovingTabScreen = movingTabs.at(-1)[screenAxis];
       let lastMovingTabScreen = movingTabs[0][screenAxis];
       let translate = screen - draggedTab._dragData[screenAxis];
       if (!pinned) {
