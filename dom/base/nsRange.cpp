@@ -3023,19 +3023,6 @@ already_AddRefed<DOMRect> nsRange::GetBoundingClientRect(bool aClampToEdge,
 
 already_AddRefed<DOMRectList> nsRange::GetClientRects(bool aClampToEdge,
                                                       bool aFlushLayout) {
-  return GetClientRectsInner(AllowRangeCrossShadowBoundary::No, aClampToEdge,
-                             aFlushLayout);
-}
-
-already_AddRefed<DOMRectList> nsRange::GetAllowCrossShadowBoundaryClientRects(
-    bool aClampToEdge, bool aFlushLayout) {
-  return GetClientRectsInner(AllowRangeCrossShadowBoundary::Yes, aClampToEdge,
-                             aFlushLayout);
-}
-
-already_AddRefed<DOMRectList> nsRange::GetClientRectsInner(
-    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundaryRange,
-    bool aClampToEdge, bool aFlushLayout) {
   if (!mIsPositioned) {
     return nullptr;
   }
@@ -3044,20 +3031,11 @@ already_AddRefed<DOMRectList> nsRange::GetClientRectsInner(
 
   nsLayoutUtils::RectListBuilder builder(rectList);
 
-  const auto& startRef =
-      aAllowCrossShadowBoundaryRange == AllowRangeCrossShadowBoundary::Yes
-          ? MayCrossShadowBoundaryStartRef()
-          : mStart;
-  const auto& endRef =
-      aAllowCrossShadowBoundaryRange == AllowRangeCrossShadowBoundary::Yes
-          ? MayCrossShadowBoundaryEndRef()
-          : mEnd;
-
   CollectClientRectsAndText(
-      &builder, nullptr, this, startRef.Container(),
-      *startRef.Offset(RangeBoundary::OffsetFilter::kValidOffsets),
-      endRef.Container(),
-      *endRef.Offset(RangeBoundary::OffsetFilter::kValidOffsets), aClampToEdge,
+      &builder, nullptr, this, mStart.Container(),
+      *mStart.Offset(RangeBoundary::OffsetFilter::kValidOffsets),
+      mEnd.Container(),
+      *mEnd.Offset(RangeBoundary::OffsetFilter::kValidOffsets), aClampToEdge,
       aFlushLayout);
   return rectList.forget();
 }

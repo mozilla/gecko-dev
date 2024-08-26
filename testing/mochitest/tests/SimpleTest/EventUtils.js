@@ -3387,8 +3387,6 @@ function _nodeIsFlattenedTreeDescendantOf(
 
 function _computeSrcElementFromSrcSelection(aSrcSelection) {
   let srcElement = aSrcSelection.focusNode;
-  srcElement =
-    SpecialPowers.wrap(aSrcSelection).mayCrossShadowBoundaryFocusNode;
   while (_EU_maybeWrap(srcElement).isNativeAnonymous) {
     srcElement = _getFlattenedTreeParentNode(srcElement);
   }
@@ -3490,9 +3488,7 @@ async function synthesizePlainDragAndDrop(aParams) {
     }
     // Use last selection client rect because nsIDragSession.sourceNode is
     // initialized from focus node which is usually in last rect.
-    let selectionRectList = SpecialPowers.wrap(
-      srcSelection.getRangeAt(0)
-    ).getAllowCrossShadowBoundaryClientRects();
+    let selectionRectList = srcSelection.getRangeAt(0).getClientRects();
     let lastSelectionRect = selectionRectList[selectionRectList.length - 1];
     if (logFunc) {
       logFunc(

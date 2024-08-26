@@ -1588,8 +1588,9 @@ class nsHTMLCopyEncoder : public nsDocumentEncoder {
                             nsINode* aCommon);
   static nsCOMPtr<nsINode> GetChildAt(nsINode* aParent, int32_t aOffset);
   static bool IsMozBR(Element* aNode);
-  nsresult GetNodeLocation(nsINode* inChild, nsCOMPtr<nsINode>* outParent,
-                           int32_t* outOffset);
+  static nsresult GetNodeLocation(nsINode* inChild,
+                                  nsCOMPtr<nsINode>* outParent,
+                                  int32_t* outOffset);
   bool IsRoot(nsINode* aNode);
   static bool IsFirstNode(nsINode* aNode);
   static bool IsLastNode(nsINode* aNode);
@@ -2043,15 +2044,7 @@ nsresult nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsINode* aNode,
         node = parent;
         rv = GetNodeLocation(node, address_of(parent), &offset);
         NS_ENSURE_SUCCESS(rv, rv);
-
-        // When node is the shadow root and parent is the shadow host,
-        // the offset would also be -1, and we'd like to keep going.
-        const bool isGeneratedContent =
-            offset == -1 &&
-            ShadowDOMSelectionHelpers::GetShadowRoot(
-                parent,
-                mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary) != node;
-        if (isGeneratedContent)  // we hit generated content; STOP
+        if (offset == -1)  // we hit generated content; STOP
         {
           // back up a bit
           parent = node;
@@ -2103,9 +2096,7 @@ nsresult nsHTMLCopyEncoder::GetNodeLocation(nsINode* inChild,
       return NS_ERROR_NULL_POINTER;
     }
 
-    nsINode* parent = mFlags & nsIDocumentEncoder::AllowCrossShadowBoundary
-                          ? child->GetParentOrShadowHostNode()
-                          : child->GetParent();
+    nsIContent* parent = child->GetParent();
     if (!parent) {
       return NS_ERROR_NULL_POINTER;
     }

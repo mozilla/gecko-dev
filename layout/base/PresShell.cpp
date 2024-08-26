@@ -231,6 +231,7 @@ PresShell::CapturingContentInfo PresShell::sCapturingContentInfo;
 
 // RangePaintInfo is used to paint ranges to offscreen buffers
 struct RangePaintInfo {
+  RefPtr<nsRange> mRange;
   nsDisplayListBuilder mBuilder;
   nsDisplayList mList;
 
@@ -242,8 +243,9 @@ struct RangePaintInfo {
   // to paint them at this resolution.
   float mResolution = 1.0;
 
-  explicit RangePaintInfo(nsIFrame* aFrame)
-      : mBuilder(aFrame, nsDisplayListBuilderMode::Painting, false),
+  RangePaintInfo(nsRange* aRange, nsIFrame* aFrame)
+      : mRange(aRange),
+        mBuilder(aFrame, nsDisplayListBuilderMode::Painting, false),
         mList(&mBuilder) {
     MOZ_COUNT_CTOR(RangePaintInfo);
     mBuilder.BeginFrame();
@@ -4775,27 +4777,24 @@ nsRect PresShell::ClipListToRange(nsDisplayListBuilder* aBuilder,
     nsIFrame* frame = i->Frame();
     nsIContent* content = frame->GetContent();
     if (content) {
-      bool atStart =
-          content == aRange->GetMayCrossShadowBoundaryStartContainer();
-      bool atEnd = content == aRange->GetMayCrossShadowBoundaryEndContainer();
+      bool atStart = (content == aRange->GetStartContainer());
+      bool atEnd = (content == aRange->GetEndContainer());
       if ((atStart || atEnd) && frame->IsTextFrame()) {
         auto [frameStartOffset, frameEndOffset] = frame->GetOffsets();
 
-        int32_t highlightStart =
-            atStart ? std::max(static_cast<int32_t>(
-                                   aRange->MayCrossShadowBoundaryStartOffset()),
+        int32_t hilightStart =
+            atStart ? std::max(static_cast<int32_t>(aRange->StartOffset()),
                                frameStartOffset)
                     : frameStartOffset;
-        int32_t highlightEnd =
-            atEnd ? std::min(static_cast<int32_t>(
-                                 aRange->MayCrossShadowBoundaryEndOffset()),
+        int32_t hilightEnd =
+            atEnd ? std::min(static_cast<int32_t>(aRange->EndOffset()),
                              frameEndOffset)
                   : frameEndOffset;
-        if (highlightStart < highlightEnd) {
+        if (hilightStart < hilightEnd) {
           // determine the location of the start and end edges of the range.
           nsPoint startPoint, endPoint;
-          frame->GetPointFromOffset(highlightStart, &startPoint);
-          frame->GetPointFromOffset(highlightEnd, &endPoint);
+          frame->GetPointFromOffset(hilightStart, &startPoint);
+          frame->GetPointFromOffset(hilightEnd, &endPoint);
 
           // The clip rectangle is determined by taking the the start and
           // end points of the range, offset from the reference frame.
@@ -4829,9 +4828,8 @@ nsRect PresShell::ClipListToRange(nsDisplayListBuilder* aBuilder,
       // Don't try to descend into subdocuments.
       // If this ever changes we'd need to add handling for subdocuments with
       // different zoom levels.
-      else if (content->GetComposedDoc() ==
-               aRange->GetMayCrossShadowBoundaryStartContainer()
-                   ->GetComposedDoc()) {
+      else if (content->GetUncomposedDoc() ==
+               aRange->GetStartContainer()->GetUncomposedDoc()) {
         // if the node is within the range, append it to the temporary list
         bool before, after;
         nsresult rv =
@@ -4876,18 +4874,14 @@ UniquePtr<RangePaintInfo> PresShell::CreateRangePaintInfo(
   // If the start or end of the range is the document, just use the root
   // frame, otherwise get the common ancestor of the two endpoints of the
   // range.
-  nsINode* startContainer = aRange->GetMayCrossShadowBoundaryStartContainer();
-  nsINode* endContainer = aRange->GetMayCrossShadowBoundaryEndContainer();
+  nsINode* startContainer = aRange->GetStartContainer();
+  nsINode* endContainer = aRange->GetEndContainer();
   Document* doc = startContainer->GetComposedDoc();
   if (startContainer == doc || endContainer == doc) {
     ancestorFrame = rootFrame;
   } else {
-    nsINode* ancestor =
-        StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
-            ? nsContentUtils::GetClosestCommonShadowIncludingInclusiveAncestor(
-                  startContainer, endContainer)
-            : nsContentUtils::GetClosestCommonInclusiveAncestor(startContainer,
-                                                                endContainer);
+    nsINode* ancestor = nsContentUtils::GetClosestCommonInclusiveAncestor(
+        startContainer, endContainer);
     NS_ASSERTION(!ancestor || ancestor->IsContent(),
                  "common ancestor is not content");
 
@@ -4912,7 +4906,7 @@ UniquePtr<RangePaintInfo> PresShell::CreateRangePaintInfo(
   }
 
   // get a display list containing the range
-  auto info = MakeUnique<RangePaintInfo>(ancestorFrame);
+  auto info = MakeUnique<RangePaintInfo>(aRange, ancestorFrame);
   info->mBuilder.SetIncludeAllOutOfFlows();
   if (aForPrimarySelection) {
     info->mBuilder.SetSelectedFramesOnly();
@@ -4920,9 +4914,7 @@ UniquePtr<RangePaintInfo> PresShell::CreateRangePaintInfo(
   info->mBuilder.EnterPresShell(ancestorFrame);
 
   ContentSubtreeIterator subtreeIter;
-  nsresult rv = StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
-                    ? subtreeIter.InitWithAllowCrossShadowBoundary(aRange)
-                    : subtreeIter.Init(aRange);
+  nsresult rv = subtreeIter.Init(aRange);
   if (NS_FAILED(rv)) {
     return nullptr;
   }
@@ -4945,13 +4937,7 @@ UniquePtr<RangePaintInfo> PresShell::CreateRangePaintInfo(
   }
   for (; !subtreeIter.IsDone(); subtreeIter.Next()) {
     nsCOMPtr<nsINode> node = subtreeIter.GetCurrentNode();
-    if (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-      for (nsINode* node : ShadowIncludingTreeIterator(*node)) {
-        BuildDisplayListForNode(node);
-      }
-    } else {
-      BuildDisplayListForNode(node);
-    }
+    BuildDisplayListForNode(node);
   }
   if (endContainer != startContainer &&
       endContainer->NodeType() == nsINode::TEXT_NODE) {
