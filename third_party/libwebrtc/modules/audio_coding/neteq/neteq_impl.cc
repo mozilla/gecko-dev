@@ -1976,9 +1976,17 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     extracted_samples = packet->timestamp - first_timestamp + packet_duration;
 
     RTC_DCHECK(controller_);
-    stats_->JitterBufferDelay(packet_duration, waiting_time_ms,
-                              controller_->TargetLevelMs(),
-                              controller_->UnlimitedTargetLevelMs());
+    TimeDelta processing_time = TimeDelta::Zero();
+
+    if (packet->packet_info.has_value() &&
+        !packet->packet_info->receive_time().IsMinusInfinity()) {
+      processing_time =
+          clock_->CurrentTime() - packet->packet_info->receive_time();
+    }
+
+    stats_->JitterBufferDelay(
+        packet_duration, waiting_time_ms, controller_->TargetLevelMs(),
+        controller_->UnlimitedTargetLevelMs(), processing_time.us());
 
     // Check what packet is available next.
     next_packet = packet_buffer_->PeekNextPacket();

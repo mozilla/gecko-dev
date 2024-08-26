@@ -472,6 +472,8 @@ struct MediaReceiverInfo {
   absl::optional<uint64_t> fec_packets_discarded;
   // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-fecbytesreceived
   absl::optional<uint64_t> fec_bytes_received;
+  // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
+  double total_processing_delay_seconds = 0.0;
 
   // Remote outbound stats derived by the received RTCP sender reports.
   // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*

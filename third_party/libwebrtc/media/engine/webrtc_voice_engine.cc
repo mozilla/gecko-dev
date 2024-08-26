@@ -2652,7 +2652,7 @@ bool WebRtcVoiceReceiveChannel::GetStats(VoiceMediaReceiveInfo* info,
     rinfo.round_trip_time = stats.round_trip_time;
     rinfo.round_trip_time_measurements = stats.round_trip_time_measurements;
     rinfo.total_round_trip_time = stats.total_round_trip_time;
-
+    rinfo.total_processing_delay_seconds = stats.total_processing_delay_seconds;
     if (recv_nack_enabled_) {
       rinfo.nacks_sent = stats.nacks_sent;
     }
