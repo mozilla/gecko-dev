@@ -32,6 +32,30 @@ add_task(async function test_tabGroupCreateWithTabs() {
   group.remove();
 });
 
+add_task(async function test_getTabGroups() {
+  let group1 = gBrowser.addTabGroup("blue", "test1");
+  Assert.equal(
+    gBrowser.tabGroups.length,
+    1,
+    "there is one group in the tabstrip"
+  );
+
+  let group2 = gBrowser.addTabGroup("red", "test2");
+  Assert.equal(
+    gBrowser.tabGroups.length,
+    2,
+    "there are two groups in the tabstrip"
+  );
+
+  group1.remove();
+  group2.remove();
+  Assert.equal(
+    gBrowser.tabGroups.length,
+    0,
+    "there are no groups in the tabstrip"
+  );
+});
+
 add_task(async function test_tabGroupCollapseAndExpand() {
   let group = gBrowser.addTabGroup("blue", "test");
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");

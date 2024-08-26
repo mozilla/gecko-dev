@@ -1181,6 +1181,11 @@
       return allChildren;
     }
 
+    get allGroups() {
+      let children = Array.from(this.arrowScrollbox.children);
+      return children.filter(node => node.tagName == "tab-group");
+    }
+
     get previewPanel() {
       return this._previewPanel;
     }

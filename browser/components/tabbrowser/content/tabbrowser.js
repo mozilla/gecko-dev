@@ -336,6 +336,10 @@
       return this.tabContainer.allTabs;
     },
 
+    get tabGroups() {
+      return this.tabContainer.allGroups;
+    },
+
     get tabbox() {
       delete this.tabbox;
       return (this.tabbox = document.getElementById("tabbrowser-tabbox"));
