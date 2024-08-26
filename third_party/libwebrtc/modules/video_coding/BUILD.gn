@@ -6,6 +6,7 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
+import("//build/config/linux/pkg_config.gni")
 import("//third_party/libaom/options.gni")
 import("../../webrtc.gni")
 
@@ -366,6 +367,12 @@ rtc_source_set("codec_globals_headers") {
   deps = [ "../../rtc_base:checks" ]
 }
 
+if (rtc_use_h264 && rtc_system_openh264) {
+  pkg_config("openh264") {
+    packages = [ "openh264" ]
+  }
+}
+
 rtc_library("video_coding_utility") {
   visibility = [ "*" ]
   sources = [
@@ -488,10 +495,12 @@ rtc_library("webrtc_h264") {
   ]
 
   if (rtc_use_h264) {
-    deps += [
-      "//third_party/ffmpeg",
-      "//third_party/openh264:encoder",
-    ]
+    deps += [ "//third_party/ffmpeg" ]
+    if (rtc_system_openh264) {
+      configs += [ ":openh264" ]
+    } else {
+      deps += [ "//third_party/openh264:encoder" ]
+    }
     if (!build_with_mozilla) {
       deps += [ "../../media:rtc_media_base" ]
     }

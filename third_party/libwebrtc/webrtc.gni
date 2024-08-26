@@ -197,6 +197,9 @@ declare_args() {
   rtc_use_h264 =
       proprietary_codecs && !is_android && !is_ios && !(is_win && !is_clang)
 
+  # Use system OpenH264
+  rtc_system_openh264 = false
+
   # Enable to use H265
   if (build_with_chromium) {
     rtc_use_h265 = enable_hevc_parser_and_hw_decoder
