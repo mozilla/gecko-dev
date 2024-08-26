@@ -12924,7 +12924,7 @@
 # Whether we can send OnDataFinished to cssLoader in content process.
 - name: network.send_OnDataFinished.cssLoader
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Whether we can send send OnDataFinished only after dispatching
