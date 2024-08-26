@@ -96,10 +96,10 @@ class H26xPacketBuffer {
 
   // Map from pps_pic_parameter_set_id to the PPS payload associated with this
   // ID.
-  std::map<uint32_t, PpsInfo> pps_data_;
+  std::map<int, PpsInfo> pps_data_;
   // Map from sps_video_parameter_set_id to the SPS payload associated with this
   // ID.
-  std::map<uint32_t, SpsInfo> sps_data_;
+  std::map<int, SpsInfo> sps_data_;
 };
 
 }  // namespace webrtc

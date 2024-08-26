@@ -291,15 +291,15 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
         if (is_h264_descriptor) {
           const auto* h264_header = absl::get_if<RTPVideoHeaderH264>(
               &buffer_[start_index]->video_header.video_type_header);
-          if (!h264_header || h264_header->nalus_length >= kMaxNalusPerPacket)
+          if (!h264_header)
             return found_frames;
 
-          for (size_t j = 0; j < h264_header->nalus_length; ++j) {
-            if (h264_header->nalus[j].type == H264::NaluType::kSps) {
+          for (const NaluInfo& nalu : h264_header->nalus) {
+            if (nalu.type == H264::NaluType::kSps) {
               has_h264_sps = true;
-            } else if (h264_header->nalus[j].type == H264::NaluType::kPps) {
+            } else if (nalu.type == H264::NaluType::kPps) {
               has_h264_pps = true;
-            } else if (h264_header->nalus[j].type == H264::NaluType::kIdr) {
+            } else if (nalu.type == H264::NaluType::kIdr) {
               has_h264_idr = true;
             }
           }

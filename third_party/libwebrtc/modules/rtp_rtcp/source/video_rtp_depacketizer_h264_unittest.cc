@@ -125,15 +125,7 @@ TEST(VideoRtpDepacketizerH264Test, StapAKey) {
   EXPECT_EQ(h264.packetization_type, kH264StapA);
   // NALU type for aggregated packets is the type of the first packet only.
   EXPECT_EQ(h264.nalu_type, kSps);
-  ASSERT_EQ(h264.nalus_length, 3u);
-  for (size_t i = 0; i < h264.nalus_length; ++i) {
-    EXPECT_EQ(h264.nalus[i].type, kExpectedNalus[i].type)
-        << "Failed parsing nalu " << i;
-    EXPECT_EQ(h264.nalus[i].sps_id, kExpectedNalus[i].sps_id)
-        << "Failed parsing nalu " << i;
-    EXPECT_EQ(h264.nalus[i].pps_id, kExpectedNalus[i].pps_id)
-        << "Failed parsing nalu " << i;
-  }
+  EXPECT_THAT(h264.nalus, ElementsAreArray(kExpectedNalus));
 }
 
 TEST(VideoRtpDepacketizerH264Test, StapANaluSpsWithResolution) {
@@ -327,7 +319,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
         absl::get<RTPVideoHeaderH264>(parsed1->video_header.video_type_header);
     EXPECT_EQ(h264.packetization_type, kH264FuA);
     EXPECT_EQ(h264.nalu_type, kIdr);
-    ASSERT_EQ(h264.nalus_length, 1u);
+    ASSERT_THAT(h264.nalus, SizeIs(1));
     EXPECT_EQ(h264.nalus[0].type, static_cast<H264::NaluType>(kIdr));
     EXPECT_EQ(h264.nalus[0].sps_id, -1);
     EXPECT_EQ(h264.nalus[0].pps_id, 0);
@@ -347,7 +339,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
     EXPECT_EQ(h264.packetization_type, kH264FuA);
     EXPECT_EQ(h264.nalu_type, kIdr);
     // NALU info is only expected for the first FU-A packet.
-    EXPECT_EQ(h264.nalus_length, 0u);
+    EXPECT_THAT(h264.nalus, IsEmpty());
   }
 
   auto parsed3 = depacketizer.Parse(rtc::CopyOnWriteBuffer(packet3));
@@ -362,7 +354,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
     EXPECT_EQ(h264.packetization_type, kH264FuA);
     EXPECT_EQ(h264.nalu_type, kIdr);
     // NALU info is only expected for the first FU-A packet.
-    ASSERT_EQ(h264.nalus_length, 0u);
+    EXPECT_THAT(h264.nalus, IsEmpty());
   }
 }
 
@@ -409,7 +401,7 @@ TEST(VideoRtpDepacketizerH264Test, SeiPacket) {
   EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
   EXPECT_EQ(h264.packetization_type, kH264SingleNalu);
   EXPECT_EQ(h264.nalu_type, kSei);
-  ASSERT_EQ(h264.nalus_length, 1u);
+  ASSERT_THAT(h264.nalus, SizeIs(1));
   EXPECT_EQ(h264.nalus[0].type, static_cast<H264::NaluType>(kSei));
   EXPECT_EQ(h264.nalus[0].sps_id, -1);
   EXPECT_EQ(h264.nalus[0].pps_id, -1);

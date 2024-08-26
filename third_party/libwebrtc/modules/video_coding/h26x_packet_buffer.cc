@@ -42,24 +42,15 @@ int64_t EuclideanMod(int64_t n, int64_t div) {
   return (n %= div) < 0 ? n + div : n;
 }
 
-rtc::ArrayView<const NaluInfo> GetNaluInfos(
-    const RTPVideoHeaderH264& h264_header) {
-  if (h264_header.nalus_length > kMaxNalusPerPacket) {
-    return {};
-  }
-
-  return rtc::MakeArrayView(h264_header.nalus, h264_header.nalus_length);
-}
-
 bool IsFirstPacketOfFragment(const RTPVideoHeaderH264& h264_header) {
-  return h264_header.nalus_length > 0;
+  return !h264_header.nalus.empty();
 }
 
 bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
   const auto& h264_header =
       absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
   const bool contains_idr_nalu =
-      absl::c_any_of(GetNaluInfos(h264_header), [](const auto& nalu_info) {
+      absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
         return nalu_info.type == H264::NaluType::kIdr;
       });
   switch (h264_header.packetization_type) {
@@ -76,7 +67,7 @@ bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
 bool HasSps(const H26xPacketBuffer::Packet& packet) {
   auto& h264_header =
       absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
-  return absl::c_any_of(GetNaluInfos(h264_header), [](const auto& nalu_info) {
+  return absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
     return nalu_info.type == H264::NaluType::kSps;
   });
 }
@@ -219,7 +210,7 @@ bool H26xPacketBuffer::MaybeAssembleFrame(int64_t start_seq_num_unwrapped,
     if (packet->codec() == kVideoCodecH264) {
       const auto& h264_header =
           absl::get<RTPVideoHeaderH264>(packet->video_header.video_type_header);
-      for (const auto& nalu : GetNaluInfos(h264_header)) {
+      for (const auto& nalu : h264_header.nalus) {
         has_idr |= nalu.type == H264::NaluType::kIdr;
         has_sps |= nalu.type == H264::NaluType::kSps;
         has_pps |= nalu.type == H264::NaluType::kPps;
@@ -383,8 +374,7 @@ bool H26xPacketBuffer::FixH264Packet(Packet& packet) {
     auto sps = sps_data_.end();
     auto pps = pps_data_.end();
 
-    for (size_t i = 0; i < h264_header.nalus_length; ++i) {
-      const NaluInfo& nalu = h264_header.nalus[i];
+    for (const NaluInfo& nalu : h264_header.nalus) {
       switch (nalu.type) {
         case H264::NaluType::kSps: {
           SpsInfo& sps_info = sps_data_[nalu.sps_id];
@@ -456,22 +446,11 @@ bool H26xPacketBuffer::FixH264Packet(Packet& packet) {
       result.AppendData(pps->second.payload.get(), pps->second.size);
 
       // Update codec header to reflect the newly added SPS and PPS.
-      NaluInfo sps_info;
-      sps_info.type = H264::NaluType::kSps;
-      sps_info.sps_id = sps->first;
-      sps_info.pps_id = -1;
-      NaluInfo pps_info;
-      pps_info.type = H264::NaluType::kPps;
-      pps_info.sps_id = sps->first;
-      pps_info.pps_id = pps->first;
-      if (h264_header.nalus_length + 2 <= kMaxNalusPerPacket) {
-        h264_header.nalus[h264_header.nalus_length++] = sps_info;
-        h264_header.nalus[h264_header.nalus_length++] = pps_info;
-      } else {
-        RTC_LOG(LS_WARNING)
-            << "Not enough space in H.264 codec header to insert "
-               "SPS/PPS provided out-of-band.";
-      }
+      h264_header.nalus.push_back(
+          {.type = H264::NaluType::kSps, .sps_id = sps->first, .pps_id = -1});
+      h264_header.nalus.push_back({.type = H264::NaluType::kPps,
+                                   .sps_id = sps->first,
+                                   .pps_id = pps->first});
     }
   }
 

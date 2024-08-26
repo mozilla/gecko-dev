@@ -220,13 +220,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
         return absl::nullopt;
     }
 
-    if (h264_header.nalus_length == kMaxNalusPerPacket) {
-      RTC_LOG(LS_WARNING)
-          << "Received packet containing more than " << kMaxNalusPerPacket
-          << " NAL units. Will not keep track sps and pps ids for all of them.";
-    } else {
-      h264_header.nalus[h264_header.nalus_length++] = nalu;
-    }
+    h264_header.nalus.push_back(nalu);
   }
 
   return parsed_payload;
@@ -284,8 +278,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
   h264_header.packetization_type = kH264FuA;
   h264_header.nalu_type = original_nal_type;
   if (first_fragment) {
-    h264_header.nalus[h264_header.nalus_length] = nalu;
-    h264_header.nalus_length = 1;
+    h264_header.nalus = {nalu};
   }
   return parsed_payload;
 }

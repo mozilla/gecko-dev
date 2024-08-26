@@ -416,13 +416,11 @@ class PacketBufferH264Test : public PacketBufferTest {
     packet->timestamp = timestamp;
     if (keyframe == kKeyFrame) {
       if (sps_pps_idr_is_keyframe_) {
-        h264_header.nalus[0].type = H264::NaluType::kSps;
-        h264_header.nalus[1].type = H264::NaluType::kPps;
-        h264_header.nalus[2].type = H264::NaluType::kIdr;
-        h264_header.nalus_length = 3;
+        h264_header.nalus = {{H264::NaluType::kSps},
+                             {H264::NaluType::kPps},
+                             {H264::NaluType::kIdr}};
       } else {
-        h264_header.nalus[0].type = H264::NaluType::kIdr;
-        h264_header.nalus_length = 1;
+        h264_header.nalus = {{H264::NaluType::kIdr}};
       }
     }
     packet->video_header.width = width;
@@ -458,8 +456,7 @@ class PacketBufferH264Test : public PacketBufferTest {
     RTC_CHECK(first == kFirst);
 
     // Insert a AUD NALU / packet without width/height.
-    h264_header.nalus[0].type = H264::NaluType::kAud;
-    h264_header.nalus_length = 1;
+    h264_header.nalus = {{H264::NaluType::kAud}};
     packet->video_header.is_first_packet_in_frame = true;
     packet->video_header.is_last_packet_in_frame = false;
     IgnoreResult(packet_buffer_.InsertPacket(std::move(packet)));
@@ -524,8 +521,7 @@ TEST_P(PacketBufferH264ParameterizedTest, GetBitstreamBufferPadding) {
   auto packet = std::make_unique<PacketBuffer::Packet>();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus_length = 1;
-  h264_header.nalus[0].type = H264::NaluType::kIdr;
+  h264_header.nalus = {{H264::NaluType::kIdr}};
   h264_header.packetization_type = kH264SingleNalu;
   packet->seq_num = seq_num;
   packet->video_header.codec = kVideoCodecH264;
@@ -641,7 +637,7 @@ TEST_F(PacketBufferTest, IncomingCodecChange) {
   packet->video_header.codec = kVideoCodecH264;
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus_length = 1;
+  h264_header.nalus.resize(1);
   packet->timestamp = 3;
   packet->seq_num = 3;
   packet->video_header.frame_type = VideoFrameType::kVideoFrameKey;
@@ -658,21 +654,6 @@ TEST_F(PacketBufferTest, IncomingCodecChange) {
   packet->video_header.frame_type = VideoFrameType::kVideoFrameDelta;
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               SizeIs(2));
-}
-
-TEST_F(PacketBufferTest, TooManyNalusInPacket) {
-  auto packet = std::make_unique<PacketBuffer::Packet>();
-  packet->video_header.codec = kVideoCodecH264;
-  packet->timestamp = 1;
-  packet->seq_num = 1;
-  packet->video_header.frame_type = VideoFrameType::kVideoFrameKey;
-  packet->video_header.is_first_packet_in_frame = true;
-  packet->video_header.is_last_packet_in_frame = true;
-  auto& h264_header =
-      packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus_length = kMaxNalusPerPacket;
-  EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
-              IsEmpty());
 }
 
 TEST_P(PacketBufferH264ParameterizedTest, OneFrameFillBuffer) {
@@ -771,8 +752,7 @@ TEST_F(PacketBufferH264IdrIsKeyframeTest, IdrIsKeyframe) {
   auto packet = CreatePacket();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus[0].type = H264::NaluType::kIdr;
-  h264_header.nalus_length = 1;
+  h264_header.nalus = {{H264::NaluType::kIdr}};
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               ElementsAre(KeyFrame()));
 }
@@ -781,10 +761,8 @@ TEST_F(PacketBufferH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
   auto packet = CreatePacket();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus[0].type = H264::NaluType::kSps;
-  h264_header.nalus[1].type = H264::NaluType::kPps;
-  h264_header.nalus[2].type = H264::NaluType::kIdr;
-  h264_header.nalus_length = 3;
+  h264_header.nalus = {
+      {H264::NaluType::kSps}, {H264::NaluType::kPps}, {H264::NaluType::kIdr}};
 
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               ElementsAre(KeyFrame()));
@@ -801,8 +779,7 @@ TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
   auto packet = CreatePacket();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus[0].type = H264::NaluType::kIdr;
-  h264_header.nalus_length = 1;
+  h264_header.nalus = {{H264::NaluType::kIdr}};
 
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               ElementsAre(DeltaFrame()));
@@ -812,9 +789,7 @@ TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
   auto packet = CreatePacket();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus[0].type = H264::NaluType::kSps;
-  h264_header.nalus[1].type = H264::NaluType::kPps;
-  h264_header.nalus_length = 2;
+  h264_header.nalus = {{H264::NaluType::kSps}, {H264::NaluType::kPps}};
 
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               ElementsAre(DeltaFrame()));
@@ -824,10 +799,8 @@ TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
   auto packet = CreatePacket();
   auto& h264_header =
       packet->video_header.video_type_header.emplace<RTPVideoHeaderH264>();
-  h264_header.nalus[0].type = H264::NaluType::kSps;
-  h264_header.nalus[1].type = H264::NaluType::kPps;
-  h264_header.nalus[2].type = H264::NaluType::kIdr;
-  h264_header.nalus_length = 3;
+  h264_header.nalus = {
+      {H264::NaluType::kSps}, {H264::NaluType::kPps}, {H264::NaluType::kIdr}};
 
   EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).packets,
               ElementsAre(KeyFrame()));
