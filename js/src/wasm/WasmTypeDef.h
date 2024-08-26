@@ -828,7 +828,7 @@ class TypeDef {
     const SuperTypeVector* subSTV = subTypeDef->superTypeVector();
     const SuperTypeVector* superSTV = superTypeDef->superTypeVector();
 
-    // During construction of a recursion group, the super type vector may not
+    // During construction of a recursion group, the super type vectors may not
     // have been computed yet, in which case we need to fall back to a linear
     // search.
     if (!subSTV || !superSTV) {
@@ -841,8 +841,12 @@ class TypeDef {
       return false;
     }
 
-    // The supertype vector does exist.  So check it points back here.
+    // The supertype vectors do exist. Check that they point to the right
+    // places.
+    MOZ_ASSERT(subSTV);
+    MOZ_ASSERT(superSTV);
     MOZ_ASSERT(subSTV->typeDef() == subTypeDef);
+    MOZ_ASSERT(superSTV->typeDef() == superTypeDef);
 
     // We need to check if `superTypeDef` is one of `subTypeDef`s super types
     // by checking in `subTypeDef`s super type vector. We can use the static
@@ -852,9 +856,6 @@ class TypeDef {
     if (subTypingDepth >= subSTV->length()) {
       return false;
     }
-
-    MOZ_ASSERT(superSTV);
-    MOZ_ASSERT(superSTV->typeDef() == superTypeDef);
 
     return subSTV->type(subTypingDepth) == superSTV;
   }
