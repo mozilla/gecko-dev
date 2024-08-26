@@ -53,7 +53,7 @@ open class BrowserActivity : LocaleAwareAppCompatActivity(), ComponentCallbacks2
         components.notificationsDelegate.bindToActivity(this)
     }
 
-    @Suppress("OVERRIDE_DEPRECATION")
+    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         supportFragmentManager.fragments.forEach {
             if (it is UserInteractionHandler && it.onBackPressed()) {

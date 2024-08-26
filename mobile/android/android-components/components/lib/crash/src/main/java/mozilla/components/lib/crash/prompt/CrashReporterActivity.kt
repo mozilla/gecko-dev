@@ -132,7 +132,7 @@ class CrashReporterActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("OVERRIDE_DEPRECATION")
+    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         sendCrashReportIfNeeded {
             finish()

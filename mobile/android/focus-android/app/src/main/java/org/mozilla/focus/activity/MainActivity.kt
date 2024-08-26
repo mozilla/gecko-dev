@@ -333,7 +333,7 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
         }
     }
 
-    @Suppress("OVERRIDE_DEPRECATION")
+    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         val fragmentManager = supportFragmentManager
 
