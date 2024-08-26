@@ -37,8 +37,10 @@ namespace webrtc {
 namespace {
 
 using ::testing::IsNull;
+using ::testing::NiceMock;
 using ::testing::Pointer;
 using ::testing::Property;
+using ::testing::Return;
 
 struct BogusParams {
   static SdpAudioFormat AudioFormat() { return {"bogus", 8000, 1}; }
@@ -86,6 +88,125 @@ struct AudioEncoderFakeApi {
     return std::move(enc);
   }
 };
+
+// Trait to pass as template parameter to `CreateAudioEncoderFactory` with
+// all the functions except the functions to create the audio encoder.
+struct BaseAudioEncoderApi {
+  // Create Encoders with different sample rates depending if it is created
+  // through V1 or V2 method so that a test may detect which method was used.
+  static constexpr int kV1SameRate = 10'000;
+  static constexpr int kV2SameRate = 20'000;
+
+  struct Config {};
+
+  static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
+  static AudioCodecInfo CodecInfo() { return {16'000, 2, 23456}; }
+
+  static absl::optional<Config> SdpToConfig(
+      const SdpAudioFormat& audio_format) {
+    return Config();
+  }
+
+  static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs) {
+    specs->push_back({AudioFormat(), CodecInfo()});
+  }
+
+  static AudioCodecInfo QueryAudioEncoder(const Config&) { return CodecInfo(); }
+};
+
+struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
+  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
+      const Config&,
+      int payload_type,
+      absl::optional<AudioCodecPairId> codec_pair_id) {
+    auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
+    ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
+    return encoder;
+  }
+};
+
+struct AudioEncoderApiWithV2Make : BaseAudioEncoderApi {
+  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
+      const Environment& env,
+      const Config& config,
+      const AudioEncoderFactory::Options& options) {
+    auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
+    ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
+    return encoder;
+  }
+};
+
+struct AudioEncoderApiWithBothV1AndV2Make : BaseAudioEncoderApi {
+  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
+      const Config&,
+      int payload_type,
+      absl::optional<AudioCodecPairId> codec_pair_id) {
+    auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
+    ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
+    return encoder;
+  }
+
+  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
+      const Environment& env,
+      const Config& config,
+      const AudioEncoderFactory::Options& options) {
+    auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
+    ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV2SameRate));
+    return encoder;
+  }
+};
+
+TEST(AudioEncoderFactoryTemplateTest,
+     UsesV1MakeAudioEncoderWhenV2IsNotAvailable) {
+  const Environment env = CreateEnvironment();
+  auto factory = CreateAudioEncoderFactory<AudioEncoderApiWithV1Make>();
+
+  EXPECT_THAT(
+      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
+      Pointer(Property(&AudioEncoder::SampleRateHz,
+                       BaseAudioEncoderApi::kV1SameRate)));
+
+  EXPECT_THAT(factory->Create(env, BaseAudioEncoderApi::AudioFormat(), {}),
+              Pointer(Property(&AudioEncoder::SampleRateHz,
+                               BaseAudioEncoderApi::kV1SameRate)));
+}
+
+TEST(AudioEncoderFactoryTemplateTest,
+     PreferV2MakeAudioEncoderWhenBothAreAvailable) {
+  const Environment env = CreateEnvironment();
+  auto factory =
+      CreateAudioEncoderFactory<AudioEncoderApiWithBothV1AndV2Make>();
+
+  EXPECT_THAT(factory->Create(env, BaseAudioEncoderApi::AudioFormat(), {}),
+              Pointer(Property(&AudioEncoder::SampleRateHz,
+                               BaseAudioEncoderApi::kV2SameRate)));
+
+  // For backward compatibility legacy AudioEncoderFactory::MakeAudioEncoder
+  // still can be used, and uses older signature of the Trait::MakeAudioEncoder.
+  EXPECT_THAT(
+      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
+      Pointer(Property(&AudioEncoder::SampleRateHz,
+                       BaseAudioEncoderApi::kV1SameRate)));
+}
+
+TEST(AudioEncoderFactoryTemplateTest, CanUseTraitWithOnlyV2MakeAudioEncoder) {
+  const Environment env = CreateEnvironment();
+  auto factory = CreateAudioEncoderFactory<AudioEncoderApiWithV2Make>();
+  EXPECT_THAT(factory->Create(env, BaseAudioEncoderApi::AudioFormat(), {}),
+              Pointer(Property(&AudioEncoder::SampleRateHz,
+                               BaseAudioEncoderApi::kV2SameRate)));
+}
+
+#if GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
+TEST(AudioEncoderFactoryTemplateTest, CrashesWhenV2OnlyTraitUsedWithOlderApi) {
+  auto factory = CreateAudioEncoderFactory<AudioEncoderApiWithV2Make>();
+  // V2 signature requires Environment that
+  // AudioEncoderFactory::MakeAudioEncoder doesn't provide.
+  EXPECT_DEATH(
+      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
+      "");
+}
+#endif
 
 TEST(AudioEncoderFactoryTemplateTest, NoEncoderTypes) {
   test::ScopedKeyValueConfig field_trials;

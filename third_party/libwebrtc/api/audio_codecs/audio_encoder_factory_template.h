@@ -55,6 +55,65 @@ struct Helper<> {
   }
 };
 
+// Use ranked overloads (abseil.io/tips/229) for dispatching.
+struct Rank0 {};
+struct Rank1 : Rank0 {};
+
+template <typename Trait,
+          typename = std::enable_if_t<std::is_convertible_v<
+              decltype(Trait::MakeAudioEncoder(
+                  std::declval<Environment>(),
+                  std::declval<typename Trait::Config>(),
+                  std::declval<AudioEncoderFactory::Options>())),
+              std::unique_ptr<AudioEncoder>>>>
+absl::Nullable<std::unique_ptr<AudioEncoder>> CreateEncoder(
+    Rank1,
+    const Environment& env,
+    const typename Trait::Config& config,
+    const AudioEncoderFactory::Options& options) {
+  return Trait::MakeAudioEncoder(env, config, options);
+}
+
+template <typename Trait,
+          typename = std::enable_if_t<std::is_convertible_v<
+              decltype(Trait::MakeAudioEncoder(
+                  std::declval<typename Trait::Config>(),
+                  int{},
+                  std::declval<absl::optional<AudioCodecPairId>>())),
+              std::unique_ptr<AudioEncoder>>>>
+absl::Nullable<std::unique_ptr<AudioEncoder>> CreateEncoder(
+    Rank0,
+    const Environment& env,
+    const typename Trait::Config& config,
+    const AudioEncoderFactory::Options& options) {
+  return Trait::MakeAudioEncoder(config, options.payload_type,
+                                 options.codec_pair_id);
+}
+
+template <typename Trait,
+          typename = std::enable_if_t<std::is_convertible_v<
+              decltype(Trait::MakeAudioEncoder(
+                  std::declval<typename Trait::Config>(),
+                  int{},
+                  std::declval<absl::optional<AudioCodecPairId>>())),
+              std::unique_ptr<AudioEncoder>>>>
+absl::Nullable<std::unique_ptr<AudioEncoder>> LegacyCreateEncoder(
+    Rank1,
+    const typename Trait::Config& config,
+    int payload_type,
+    absl::optional<AudioCodecPairId> codec_pair_ids) {
+  return Trait::MakeAudioEncoder(config, payload_type, codec_pair_ids);
+}
+
+template <typename Trait>
+absl::Nullable<std::unique_ptr<AudioEncoder>> LegacyCreateEncoder(
+    Rank0,
+    const typename Trait::Config& config,
+    int payload_type,
+    absl::optional<AudioCodecPairId> codec_pair_ids) {
+  RTC_CHECK_NOTREACHED();
+}
+
 // Inductive case: Called with n + 1 template parameters; calls subroutines
 // with n template parameters.
 template <typename T, typename... Ts>
@@ -80,7 +139,8 @@ struct Helper<T, Ts...> {
       absl::optional<AudioCodecPairId> codec_pair_id) {
     auto opt_config = T::SdpToConfig(format);
     if (opt_config) {
-      return T::MakeAudioEncoder(*opt_config, payload_type, codec_pair_id);
+      return LegacyCreateEncoder<T>(Rank1{}, *opt_config, payload_type,
+                                    codec_pair_id);
     } else {
       return Helper<Ts...>::MakeAudioEncoder(payload_type, format,
                                              codec_pair_id);
@@ -92,10 +152,7 @@ struct Helper<T, Ts...> {
       const SdpAudioFormat& format,
       const AudioEncoderFactory::Options& options) {
     if (auto opt_config = T::SdpToConfig(format); opt_config.has_value()) {
-      // TODO: bugs.webrtc.org/343086059 - propagate `env` to the individual
-      // encoder factory functions.
-      return T::MakeAudioEncoder(*opt_config, options.payload_type,
-                                 options.codec_pair_id);
+      return CreateEncoder<T>(Rank1{}, env, *opt_config, options);
     }
     return Helper<Ts...>::CreateAudioEncoder(env, format, options);
   }
@@ -151,8 +208,13 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 //   AudioCodecInfo QueryAudioEncoder(const ConfigType& config);
 //
 //   // Creates an AudioEncoder for the specified format. Used to implement
-//   // AudioEncoderFactory::MakeAudioEncoder().
-//   std::unique_ptr<AudioDecoder> MakeAudioEncoder(
+//   // AudioEncoderFactory::Create.
+//   std::unique_ptr<AudioEncoder> MakeAudioEncoder(
+//       const Environment& env,
+//       const ConfigType& config,
+//       const AudioEncoderFactory::Options& options);
+//   or
+//   std::unique_ptr<AudioEncoder> MakeAudioEncoder(
 //       const ConfigType& config,
 //       int payload_type,
 //       absl::optional<AudioCodecPairId> codec_pair_id);
@@ -160,6 +222,12 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 // ConfigType should be a type that encapsulates all the settings needed to
 // create an AudioEncoder. T::Config (where T is the encoder struct) should
 // either be the config type, or an alias for it.
+// When both MakeAudioEncoder signatures are present, 1st one is preferred.
+//
+// Note: AudioEncoderFactory::MakeAudioEncoder factory can't use 1st signature,
+// and thus uses 2nd signature when available, crashes otherwise.
+// TODO: bugs.webrtc.org/343086059 - Remove the note above when MakeAudioEncoder
+// is removed.
 //
 // Whenever it tries to do something, the new factory will try each of the
 // encoders in the order they were specified in the template argument list,
