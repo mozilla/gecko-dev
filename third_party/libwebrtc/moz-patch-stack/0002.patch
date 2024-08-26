@@ -363,10 +363,10 @@ index 8813e0f4c2..b5e08cea2c 100644
  RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
      default;
 diff --git a/api/rtp_headers.h b/api/rtp_headers.h
-index 7ededb94fc..bf1660d934 100644
+index 129ab5f499..5a867bbd77 100644
 --- a/api/rtp_headers.h
 +++ b/api/rtp_headers.h
-@@ -112,6 +112,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
+@@ -113,6 +113,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
    return !(lhs == rhs);
  }
  
@@ -386,7 +386,7 @@ index 7ededb94fc..bf1660d934 100644
  struct RTPHeaderExtension {
    RTPHeaderExtension();
    RTPHeaderExtension(const RTPHeaderExtension& other);
-@@ -170,12 +183,12 @@ struct RTPHeaderExtension {
+@@ -171,12 +184,12 @@ struct RTPHeaderExtension {
  
    absl::optional<ColorSpace> color_space;
  
@@ -402,10 +402,10 @@ index 7ededb94fc..bf1660d934 100644
    RTPHeader();
    RTPHeader(const RTPHeader& other);
 diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
-index 3ff4b58a2e..ad0f3c9396 100644
+index 283d238e77..da06138ce8 100644
 --- a/api/rtp_parameters.cc
 +++ b/api/rtp_parameters.cc
-@@ -160,7 +160,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
+@@ -164,7 +164,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
           uri == webrtc::RtpExtension::kTransportSequenceNumberV2Uri ||
           uri == webrtc::RtpExtension::kMidUri ||
           uri == webrtc::RtpExtension::kRidUri ||

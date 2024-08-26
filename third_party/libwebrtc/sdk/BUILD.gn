@@ -1079,6 +1079,7 @@ if (is_ios || is_mac) {
         "../api/rtc_event_log:rtc_event_log_factory",
         "../api/task_queue:default_task_queue_factory",
         "../api/transport:field_trial_based_config",
+        "../api/transport:network_control",
         "../api/transport/rtp:rtp_source",
         "../api/video:video_frame",
         "../api/video:video_rtp_headers",
@@ -1107,7 +1108,10 @@ if (is_ios || is_mac) {
       ]
 
       if (is_ios) {
-        deps += [ ":native_api_audio_device_module" ]
+        deps += [
+          ":native_api_audio_device_module",
+          "../api/transport:network_control",
+        ]
       }
     }
 

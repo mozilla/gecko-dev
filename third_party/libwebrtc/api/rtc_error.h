@@ -14,6 +14,8 @@
 #ifdef WEBRTC_UNIT_TEST
 #include <ostream>
 #endif  // WEBRTC_UNIT_TEST
+#include <stdint.h>
+
 #include <string>
 #include <utility>  // For std::move.
 

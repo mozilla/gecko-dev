@@ -505,6 +505,7 @@ rtc_library("webrtc_multiopus") {
 
   deps = [
     ":audio_coding_opus_common",
+    "../../api:array_view",
     "../../api/audio_codecs:audio_codecs_api",
     "../../api/audio_codecs/opus:audio_decoder_opus_config",
     "../../api/audio_codecs/opus:audio_encoder_opus_config",
@@ -513,6 +514,7 @@ rtc_library("webrtc_multiopus") {
     "../../rtc_base:checks",
     "../../rtc_base:logging",
     "../../rtc_base:macromagic",
+    "../../rtc_base:safe_conversions",
     "../../rtc_base:safe_minmax",
     "../../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/memory",

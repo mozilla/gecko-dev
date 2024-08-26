@@ -12,25 +12,23 @@
 #define API_NETEQ_NETEQ_H_
 
 #include <stddef.h>  // Provide access to size_t.
+#include <stdint.h>
 
 #include <map>
 #include <string>
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "api/array_view.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
-#include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/rtp_headers.h"
-#include "api/scoped_refptr.h"
 #include "api/units/timestamp.h"
 
 namespace webrtc {
 
 // Forward declarations.
 class AudioFrame;
-class AudioDecoderFactory;
-class Clock;
 
 struct NetEqNetworkStatistics {
   uint16_t current_buffer_size_ms;    // Current jitter buffer size in ms.

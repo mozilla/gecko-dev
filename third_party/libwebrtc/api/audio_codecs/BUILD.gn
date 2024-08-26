@@ -46,6 +46,7 @@ rtc_library("audio_codecs_api") {
     "../units:data_rate",
     "../units:time_delta",
     "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
     "//third_party/abseil-cpp/absl/types:optional",
@@ -103,13 +104,18 @@ rtc_library("builtin_audio_encoder_factory") {
   ]
   defines = []
   if (rtc_include_ilbc) {
-    deps += [ "ilbc:audio_encoder_ilbc" ]
+    deps += [
+      "..:field_trials_view",
+      "ilbc:audio_encoder_ilbc",
+      "//third_party/abseil-cpp/absl/types:optional",
+    ]
     defines += [ "WEBRTC_USE_BUILTIN_ILBC=1" ]
   } else {
     defines += [ "WEBRTC_USE_BUILTIN_ILBC=0" ]
   }
   if (rtc_include_opus) {
     deps += [
+      "..:field_trials_view",
       "opus:audio_encoder_multiopus",
       "opus:audio_encoder_opus",
     ]

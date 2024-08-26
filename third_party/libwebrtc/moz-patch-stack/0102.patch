@@ -23,10 +23,10 @@ index 6003780e37..3c8a589c04 100644
          "api/video:video_rtp_headers",
          "test:rtp_test_utils",
 diff --git a/api/environment/environment_factory.cc b/api/environment/environment_factory.cc
-index c0b681aa08..6f0ec40dbe 100644
+index 293ef6cf8a..b9cb6b4f53 100644
 --- a/api/environment/environment_factory.cc
 +++ b/api/environment/environment_factory.cc
-@@ -97,12 +97,22 @@ Environment EnvironmentFactory::CreateWithDefaults() && {
+@@ -102,12 +102,22 @@ Environment EnvironmentFactory::CreateWithDefaults() && {
    if (field_trials_ == nullptr) {
      Set(std::make_unique<FieldTrialBasedConfig>());
    }

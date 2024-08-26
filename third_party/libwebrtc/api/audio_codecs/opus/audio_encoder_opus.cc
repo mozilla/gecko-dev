@@ -10,7 +10,17 @@
 
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 
+#include <memory>
+#include <vector>
+
+#include "absl/types/optional.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_encoder.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/audio_codecs/opus/audio_encoder_opus_config.h"
+#include "api/field_trials_view.h"
 #include "modules/audio_coding/codecs/opus/audio_encoder_opus.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
