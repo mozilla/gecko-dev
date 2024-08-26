@@ -2391,6 +2391,13 @@
   value: false
   mirror: always
 
+# Whether the algorithm we use for DOMRect::SetLayoutRect is the legacy one,
+# which is different from what the rest of Gecko uses.
+- name: dom.rect.legacy-rounding
+  type: bool
+  value: false
+  mirror: always
+
 - name: dom.require_user_interaction_for_beforeunload
   type: bool
   value: true
