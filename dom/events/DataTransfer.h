@@ -9,6 +9,7 @@
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
+#include "nsStringStream.h"
 #include "nsTArray.h"
 #include "nsIClipboard.h"
 #include "nsIDragService.h"
@@ -432,6 +433,15 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
 
   // The drag session on the widget of the owner, if any.
   nsIDragSession* GetOwnerDragSession();
+
+  // format is first element, data is second
+  using ParseExternalCustomTypesStringData = std::pair<nsString&&, nsString&&>;
+
+  // Parses out the contents of aString and calls aCallback for every data
+  // of type eCustomClipboardTypeId_String.
+  static void ParseExternalCustomTypesString(
+      mozilla::Span<const char> aString,
+      std::function<void(ParseExternalCustomTypesStringData&&)>&& aCallback);
 
  protected:
   // Retrieve a list of clipboard formats supported
