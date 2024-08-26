@@ -13,6 +13,7 @@ support-files = [
   "!/accessible/tests/mochitest/letters.gif",
   "!/accessible/tests/mochitest/moz.png",
 ]
+prefs = ["dom.text_fragments.enabled=true"]
 
 ["browser_app.js"]
 https_first_disabled = true
