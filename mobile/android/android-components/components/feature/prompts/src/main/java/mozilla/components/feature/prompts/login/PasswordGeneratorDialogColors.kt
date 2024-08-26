@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
  * @param title The text color for the title of the dialog.
  * @param description The text color for the description.
  * @param background The background color of the dialog.
+ * @param cancelText The color of the cancel button text.
  * @param confirmButton The color of the confirmation dialog.
  * @param passwordBox The color of the box that contains the generated password.
  * @param boxBorder The border color of the box that contains the generated password.
@@ -24,6 +25,7 @@ data class PasswordGeneratorDialogColors(
     val title: Color,
     val description: Color,
     val background: Color,
+    val cancelText: Color,
     val confirmButton: Color,
     val passwordBox: Color,
     val boxBorder: Color,
@@ -41,6 +43,7 @@ data class PasswordGeneratorDialogColors(
                 alpha = ContentAlpha.medium,
             ),
             background: Color = MaterialTheme.colors.primary,
+            cancelText: Color = MaterialTheme.colors.primary,
             confirmButton: Color = MaterialTheme.colors.primary,
             passwordBox: Color = MaterialTheme.colors.primary,
             boxBorder: Color = MaterialTheme.colors.primary,
@@ -48,6 +51,7 @@ data class PasswordGeneratorDialogColors(
             title = title,
             description = description,
             background = background,
+            cancelText = cancelText,
             confirmButton = confirmButton,
             passwordBox = passwordBox,
             boxBorder = boxBorder,

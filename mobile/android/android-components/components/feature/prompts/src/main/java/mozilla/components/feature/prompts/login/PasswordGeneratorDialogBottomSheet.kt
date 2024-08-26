@@ -173,7 +173,7 @@ private fun StrongPasswordBottomSheetButtons(
                 style = TextStyle(
                     fontSize = 16.sp,
                     lineHeight = 24.sp,
-                    color = colors.confirmButton,
+                    color = colors.cancelText,
                     letterSpacing = 0.15.sp,
                     fontWeight = FontWeight.Bold,
                 ),

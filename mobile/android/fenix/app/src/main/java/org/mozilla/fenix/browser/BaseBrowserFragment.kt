@@ -824,6 +824,7 @@ abstract class BaseBrowserFragment :
                 title = ThemeManager.resolveAttributeColor(attribute = R.attr.textPrimary),
                 description = ThemeManager.resolveAttributeColor(attribute = R.attr.textSecondary),
                 background = ThemeManager.resolveAttributeColor(attribute = R.attr.layer1),
+                cancelText = ThemeManager.resolveAttributeColor(attribute = R.attr.textAccent),
                 confirmButton = ThemeManager.resolveAttributeColor(attribute = R.attr.actionPrimary),
                 passwordBox = ThemeManager.resolveAttributeColor(attribute = R.attr.layer2),
                 boxBorder = ThemeManager.resolveAttributeColor(attribute = R.attr.textDisabled),
