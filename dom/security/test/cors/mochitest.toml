@@ -7,6 +7,7 @@ support-files = [
 ]
 
 ["test_CrossSiteXHR.html"]
+scheme = "https"
 skip-if = [
   "http3",
   "http2",
