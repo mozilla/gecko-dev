@@ -35,12 +35,12 @@ struct DnsAndConnectSockets {
 struct DNSCacheEntries {
   nsCString hostname;
   nsTArray<nsCString> hostaddr;
-  uint16_t family{0};
-  int64_t expiration{0};
-  bool TRR{false};
+  uint16_t family;
+  int64_t expiration;
+  nsCString netInterface;
+  bool TRR;
   nsCString originAttributesSuffix;
   nsCString flags;
-  uint16_t resolveType{0};
 };
 
 struct HttpConnInfo {
@@ -99,10 +99,8 @@ struct ParamTraits<mozilla::net::DNSCacheEntries> {
     WriteParam(aWriter, aParam.hostaddr);
     WriteParam(aWriter, aParam.family);
     WriteParam(aWriter, aParam.expiration);
+    WriteParam(aWriter, aParam.netInterface);
     WriteParam(aWriter, aParam.TRR);
-    WriteParam(aWriter, aParam.originAttributesSuffix);
-    WriteParam(aWriter, aParam.flags);
-    WriteParam(aWriter, aParam.resolveType);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -110,10 +108,8 @@ struct ParamTraits<mozilla::net::DNSCacheEntries> {
            ReadParam(aReader, &aResult->hostaddr) &&
            ReadParam(aReader, &aResult->family) &&
            ReadParam(aReader, &aResult->expiration) &&
-           ReadParam(aReader, &aResult->TRR) &&
-           ReadParam(aReader, &aResult->originAttributesSuffix) &&
-           ReadParam(aReader, &aResult->flags) &&
-           ReadParam(aReader, &aResult->resolveType);
+           ReadParam(aReader, &aResult->netInterface) &&
+           ReadParam(aReader, &aResult->TRR);
   }
 };
 

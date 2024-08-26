@@ -912,13 +912,10 @@ nsresult Dashboard::GetDNSCacheEntries(DnsData* dnsData) {
       CopyASCIItoUTF16(dnsData->mData[i].hostaddr[j], *addr);
     }
 
-    entry.mType = dnsData->mData[i].resolveType;
-    if (entry.mType == nsIDNSService::RESOLVE_TYPE_DEFAULT) {
-      if (dnsData->mData[i].family == PR_AF_INET6) {
-        entry.mFamily.AssignLiteral(u"ipv6");
-      } else {
-        entry.mFamily.AssignLiteral(u"ipv4");
-      }
+    if (dnsData->mData[i].family == PR_AF_INET6) {
+      entry.mFamily.AssignLiteral(u"ipv6");
+    } else {
+      entry.mFamily.AssignLiteral(u"ipv4");
     }
 
     entry.mOriginAttributesSuffix =

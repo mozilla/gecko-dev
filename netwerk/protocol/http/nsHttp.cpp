@@ -35,8 +35,6 @@
 namespace mozilla {
 namespace net {
 
-extern const char kProxyType_SOCKS[];
-
 const uint32_t kHttp3VersionCount = 5;
 const nsCString kHttp3Versions[] = {"h3-29"_ns, "h3-30"_ns, "h3-31"_ns,
                                     "h3-32"_ns, "h3"_ns};
@@ -1178,20 +1176,6 @@ nsLiteralCString HttpVersionToTelemetryLabel(HttpVersion version) {
       break;
   }
   return "unknown"_ns;
-}
-
-ProxyDNSStrategy GetProxyDNSStrategyHelper(const char* aType, uint32_t aFlag) {
-  if (!aType) {
-    return ProxyDNSStrategy::ORIGIN;
-  }
-
-  if (!(aFlag & nsIProxyInfo::TRANSPARENT_PROXY_RESOLVES_HOST)) {
-    if (aType == kProxyType_SOCKS) {
-      return ProxyDNSStrategy::ORIGIN;
-    }
-  }
-
-  return ProxyDNSStrategy::PROXY;
 }
 
 }  // namespace net
