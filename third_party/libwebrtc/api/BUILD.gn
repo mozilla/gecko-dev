@@ -798,6 +798,7 @@ rtc_library("rtc_event_log_output_file") {
     "../rtc_base:logging",
     "../rtc_base/system:file_wrapper",
     "rtc_event_log",
+    "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
 
