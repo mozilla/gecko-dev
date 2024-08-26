@@ -326,26 +326,24 @@ Win11PinToTaskBarResult PinCurrentAppToTaskbarWin11(
               return CompletedOperations(Win11PinToTaskBarResultStatus::Failed);
             }
 
-            unsigned char successfullyPinned = 0;
-            hr = asyncInfo->GetResults(&successfullyPinned);
-            if (FAILED(hr) || !successfullyPinned) {
-              if (FAILED(hr)) {
-                TASKBAR_PINNING_LOG(
-                    LogLevel::Debug,
-                    "Taskbar: request pin current app operation failed to pin "
-                    "due to error. HRESULT = 0x%lx",
-                    hr);
-              } else {
-                TASKBAR_PINNING_LOG(
-                    LogLevel::Debug,
-                    "Taskbar: request pin current app operation failed to pin");
-              }
+            unsigned char userAffirmedPin = 0;
+            hr = asyncInfo->GetResults(&userAffirmedPin);
+            if (FAILED(hr)) {
+              TASKBAR_PINNING_LOG(
+                  LogLevel::Debug,
+                  "Taskbar: request pin current app operation failed to pin "
+                  "due to error. HRESULT = 0x%lx",
+                  hr);
               return CompletedOperations(Win11PinToTaskBarResultStatus::Failed);
             }
 
+            // Bug 1890634: Record pinning success rate telemetry
             TASKBAR_PINNING_LOG(
                 LogLevel::Debug,
-                "Taskbar: request pin current app operation succeeded");
+                userAffirmedPin
+                    ? "Taskbar: request pin current app operation succeeded"
+                    : "Taskbar: user rejected Windows pin prompt");
+
             return CompletedOperations(Win11PinToTaskBarResultStatus::Success);
           });
 
