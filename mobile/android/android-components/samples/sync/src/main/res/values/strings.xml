@@ -2,8 +2,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<resources>
-    <string name="app_name">Firefox Sync Demo</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name" tools:ignore="BrandUsage">Firefox Sync Demo</string>
     <string name="sign_in">FxA sign in</string>
     <string name="signed_in_waiting_for_profile">Signed in (type=%1$s); waiting for profile</string>
     <string name="signed_in_with_profile">Authenticated (type=%1$s) as %2$s</string>
