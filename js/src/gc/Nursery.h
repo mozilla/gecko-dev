@@ -516,6 +516,8 @@ class Nursery {
   void clearMapAndSetNurseryRanges();
   void sweepMapAndSetObjects();
 
+  void sweepStringsWithBuffer();
+
   // Allocate a buffer for a given zone, using the nursery if possible.
   void* allocateBuffer(JS::Zone* zone, size_t nbytes);
 
