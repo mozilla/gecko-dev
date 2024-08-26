@@ -116,11 +116,6 @@ function displayDns(data) {
   new_cont.setAttribute("id", "dns_content");
 
   for (let i = 0; i < data.entries.length; i++) {
-    // TODO: Will be supported in bug 1889387.
-    if (data.entries[i].type != Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT) {
-      continue;
-    }
-
     let row = document.createElement("tr");
     row.appendChild(col(data.entries[i].hostname));
     row.appendChild(col(data.entries[i].family));

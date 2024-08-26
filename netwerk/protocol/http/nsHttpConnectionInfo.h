@@ -127,13 +127,6 @@ class nsHttpConnectionInfo final : public ARefBase {
   const char* ProxyPassword() const {
     return mProxyInfo ? mProxyInfo->Password().get() : nullptr;
   }
-  uint32_t ProxyFlag() const {
-    uint32_t flags = 0;
-    if (mProxyInfo) {
-      mProxyInfo->GetFlags(&flags);
-    }
-    return flags;
-  }
 
   const nsCString& ProxyAuthorizationHeader() const {
     return mProxyInfo ? mProxyInfo->ProxyAuthorizationHeader() : EmptyCString();
