@@ -15,6 +15,7 @@ import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.ext.isIntentInternal
+import java.lang.ref.WeakReference
 
 /**
  * An integration class that connects the [FxaWebChannelFeature] with custom web command handling
@@ -25,7 +26,7 @@ import org.mozilla.fenix.ext.isIntentInternal
  * @param store see [FxaWebChannelFeature.store].
  * @param accountManager see [FxaWebChannelFeature.accountManager].
  * @param serverConfig see [FxaWebChannelFeature.serverConfig].
- * @property activityReceiver a callback to provide the [Activity] to dismiss.
+ * @property activityRef a reference to provide the [Activity] to dismiss.
  */
 @Suppress("OutdatedDocumentation") // false-positive
 class FxaWebChannelIntegration(
@@ -34,7 +35,7 @@ class FxaWebChannelIntegration(
     store: BrowserStore,
     accountManager: FxaAccountManager,
     serverConfig: ServerConfig,
-    private val activityReceiver: () -> Activity?,
+    private val activityRef: WeakReference<Activity?>,
 ) : LifecycleAwareFeature {
     private val feature by lazy {
         FxaWebChannelFeature(
@@ -63,7 +64,7 @@ class FxaWebChannelIntegration(
 
         // We could get this command while the activity is no longer available, so we only take it
         // when we are about to use it.
-        val activity = activityReceiver.invoke() ?: return
+        val activity = activityRef.get() ?: return
 
         val isInternalIntent = activity.isIntentInternal()
         val isExternalTabActivity = activity is ExternalAppBrowserActivity

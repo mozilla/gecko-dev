@@ -1204,7 +1204,7 @@ abstract class BaseBrowserFragment :
                 store = requireComponents.core.store,
                 accountManager = requireComponents.backgroundServices.accountManager,
                 serverConfig = requireComponents.backgroundServices.serverConfig,
-                activityReceiver = { getActivity() },
+                activityRef = WeakReference(getActivity()),
             ),
             owner = this,
             view = view,
