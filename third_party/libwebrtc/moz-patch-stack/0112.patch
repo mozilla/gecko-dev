@@ -1,114 +1,59 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Fri, 28 Jun 2024 18:13:00 +0000
-Subject: Bug 1905335 - WebRTC backport: PipeWire capture: hide cursor when it
- goes off screen or is not visible r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 21 Jun 2024 16:28:00 -0500
+Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
+ third_party library.
 
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: e6ad337d633c145c48a5a4ae54968c14c16081c7
-
-Differential Revision: https://phabricator.services.mozilla.com/D215197
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5410b3c80af81f1e505a649e213efb5a9bfeb990
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
 ---
- .../wayland/mouse_cursor_monitor_pipewire.cc  | 14 +++--
- .../linux/wayland/shared_screencast_stream.cc | 52 +++++++++++--------
- 2 files changed, 38 insertions(+), 28 deletions(-)
+ BUILD.gn                                |  2 ++
+ modules/video_coding/generic_decoder.cc | 10 +++++-----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc b/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-index 3d33b0fbb8..00b07f341b 100644
---- a/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-+++ b/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-@@ -40,6 +40,14 @@ void MouseCursorMonitorPipeWire::Capture() {
-   RTC_DCHECK_RUN_ON(&sequence_checker_);
-   RTC_DCHECK(callback_);
- 
-+  absl::optional<DesktopVector> mouse_cursor_position =
-+      options_.screencast_stream()->CaptureCursorPosition();
-+  // Invalid cursor or position
-+  if (!mouse_cursor_position) {
-+    callback_->OnMouseCursor(nullptr);
-+    return;
-+  }
-+
-   std::unique_ptr<MouseCursor> mouse_cursor =
-       options_.screencast_stream()->CaptureCursor();
- 
-@@ -48,11 +56,7 @@ void MouseCursorMonitorPipeWire::Capture() {
-   }
- 
-   if (mode_ == SHAPE_AND_POSITION) {
--    absl::optional<DesktopVector> mouse_cursor_position =
--        options_.screencast_stream()->CaptureCursorPosition();
--    if (mouse_cursor_position) {
--      callback_->OnMouseCursorPosition(mouse_cursor_position.value());
--    }
-+    callback_->OnMouseCursorPosition(mouse_cursor_position.value());
-   }
+diff --git a/BUILD.gn b/BUILD.gn
+index 3c8a589c04..9e3ab0758b 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -279,6 +279,7 @@ config("rtc_prod_config") {
  }
  
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index ab9054f1a1..b8cac318ff 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-@@ -690,32 +690,38 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
-     const struct spa_meta_cursor* cursor =
-         static_cast<struct spa_meta_cursor*>(spa_buffer_find_meta_data(
-             spa_buffer, SPA_META_Cursor, sizeof(*cursor)));
--    if (cursor && spa_meta_cursor_is_valid(cursor)) {
--      struct spa_meta_bitmap* bitmap = nullptr;
--
--      if (cursor->bitmap_offset)
--        bitmap =
--            SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
--
--      if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
--        const uint8_t* bitmap_data =
--            SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
--        BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
--            DesktopSize(bitmap->size.width, bitmap->size.height));
--        mouse_frame->CopyPixelsFrom(
--            bitmap_data, bitmap->stride,
--            DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
--        mouse_cursor_ = std::make_unique<MouseCursor>(
--            mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
- 
--        if (observer_) {
--          observer_->OnCursorShapeChanged();
-+    if (cursor) {
-+      if (spa_meta_cursor_is_valid(cursor)) {
-+        struct spa_meta_bitmap* bitmap = nullptr;
-+
-+        if (cursor->bitmap_offset)
-+          bitmap =
-+              SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
-+
-+        if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
-+          const uint8_t* bitmap_data =
-+              SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
-+          BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
-+              DesktopSize(bitmap->size.width, bitmap->size.height));
-+          mouse_frame->CopyPixelsFrom(
-+              bitmap_data, bitmap->stride,
-+              DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
-+          mouse_cursor_ = std::make_unique<MouseCursor>(
-+              mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
-+
-+          if (observer_) {
-+            observer_->OnCursorShapeChanged();
-+          }
-         }
--      }
--      mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
-+        mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
- 
--      if (observer_) {
--        observer_->OnCursorPositionChanged();
-+        if (observer_) {
-+          observer_->OnCursorPositionChanged();
-+        }
-+      } else {
-+        // Indicate an invalid cursor
-+        mouse_cursor_position_.set(-1, -1);
-       }
-     }
+ group("tracing") {
++if (!build_with_mozilla) {
+   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
+   if (rtc_use_perfetto) {
+     if (build_with_chromium) {
+@@ -295,6 +296,7 @@ group("tracing") {
+         [ "//third_party/perfetto/include/perfetto/tracing" ]
    }
+ }
++}
+ 
+ if (rtc_use_perfetto) {
+   rtc_library("webrtc_libperfetto") {
+diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
+index 0bfc628d2c..0a9920a176 100644
+--- a/modules/video_coding/generic_decoder.cc
++++ b/modules/video_coding/generic_decoder.cc
+@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
+                                       absl::optional<int32_t> decode_time_ms,
+                                       absl::optional<uint8_t> qp) {
+   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
+-  TRACE_EVENT(
+-      "webrtc", "VCMDecodedFrameCallback::Decoded",
+-      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
++  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
++                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
++                       decodedImage.rtp_timestamp());
+   // TODO(holmer): We should improve this so that we can handle multiple
+   // callbacks from one call to Decode().
+   absl::optional<FrameInfo> frame_info;
+@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
+ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
+                                   Timestamp now,
+                                   int64_t render_time_ms) {
+-  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
+-              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
++  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
++               frame.RtpTimestamp());
+   FrameInfo frame_info;
+   frame_info.rtp_timestamp = frame.RtpTimestamp();
+   frame_info.decode_start = now;
