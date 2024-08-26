@@ -1040,7 +1040,6 @@ export class AsyncTabSwitcher {
     }
 
     let tabState = this.getTabState(tab);
-    this.noteTabRequested(tab, tabState);
 
     this.logState("requestTab " + this.tinfo(tab));
     this.startTabSwitch();
@@ -1400,34 +1399,6 @@ export class AsyncTabSwitcher {
         innerWindowId,
       });
       this.switchPaintId = -1;
-    }
-  }
-
-  noteTabRequested(tab, tabState) {
-    if (lazy.gTabWarmingEnabled) {
-      let warmingState = "disqualified";
-
-      if (this.canWarmTab(tab)) {
-        if (tabState == this.STATE_LOADING) {
-          warmingState = "stillLoading";
-        } else if (tabState == this.STATE_LOADED) {
-          warmingState = "loaded";
-        } else if (
-          tabState == this.STATE_UNLOADING ||
-          tabState == this.STATE_UNLOADED
-        ) {
-          // At this point, if the tab's browser was being inserted
-          // lazily, we never had a chance to warm it up, and unfortunately
-          // there's no great way to detect that case. Those cases will
-          // end up in the "notWarmed" bucket, along with legitimate cases
-          // where tabs could have been warmed but weren't.
-          warmingState = "notWarmed";
-        }
-      }
-
-      Services.telemetry
-        .getHistogramById("FX_TAB_SWITCH_REQUEST_TAB_WARMING_STATE")
-        .add(warmingState);
     }
   }
 
