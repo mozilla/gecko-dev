@@ -33,17 +33,36 @@ add_task(async function test_urlClassification() {
   await SpecialPowers.pushPrefEnv({
     set: [["dom.security.https_first", false]],
   });
+
+  // All URLs below should be distinct from the ones in |expected| below,
+  // especially the final png URL. If the PNG URL is identical, the image may
+  // be read from the image cache, instead of through a new request.
+  const PATH_REDIRECT_TO = "/tests/toolkit/components/extensions/test/mochitest/redirect_to.sjs";
+  // Cross-origin redirect target. The path of this URL is also in file_third_party.html:
+  const REDIRECT_TARGET = "http://another-tracking.example.net/tests/toolkit/components/extensions/test/mochitest/file_image_bad.png";
+  const REDIRECT_TEST = {
+    TOP_URL: `http://mochi.test:8888/tests/toolkit/components/extensions/test/mochitest/file_third_party.html?domain=mochi.test:8888${PATH_REDIRECT_TO}?http://another-tracking.example.net`,
+    // file_third_party.html embeds http://mochi.test:8888<PATH_REDIRECT_TO>?<REDIRECT_TARGET>, which redirects to REDIRECT_TARGET.
+    EMBEDDED_PRE_REDIRECT_URL: `http://mochi.test:8888${PATH_REDIRECT_TO}?${REDIRECT_TARGET}`,
+    REDIRECT_TARGET,
+  };
+
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
+      description: JSON.stringify({ REDIRECT_TEST }),
       permissions: ["webRequest", "webRequestBlocking", "proxy", "<all_urls>"],
     },
     background() {
+      const { REDIRECT_TEST } = JSON.parse(browser.runtime.getManifest().description);
       let expected = {
         "http://tracking.example.org/": {first: "tracking", thirdParty: false, },
         "http://mochi.test:8888/tests/toolkit/components/extensions/test/mochitest/file_third_party.html?domain=tracking.example.org": { thirdParty: false, },
         "http://tracking.example.org/tests/toolkit/components/extensions/test/mochitest/file_image_bad.png": {third: "tracking", thirdParty: true, },
         "http://mochi.test:8888/tests/toolkit/components/extensions/test/mochitest/file_third_party.html?domain=example.net": { thirdParty: false, },
         "http://example.net/tests/toolkit/components/extensions/test/mochitest/file_image_bad.png": { thirdParty: true, },
+        [REDIRECT_TEST.TOP_URL]: { thirdParty: false, },
+        [REDIRECT_TEST.EMBEDDED_PRE_REDIRECT_URL]: { thirdParty: false, },
+        [REDIRECT_TEST.REDIRECT_TARGET]: {third: "tracking", thirdParty: true, },
       };
       function testRequest(details) {
         let expect = expected[details.url];
@@ -65,20 +84,26 @@ add_task(async function test_urlClassification() {
         return false;
       }
 
+      const urls = [
+        "http://mochi.test/tests/*",
+        "http://tracking.example.org/*",
+        "http://another-tracking.example.net/*",
+        "http://example.net/*",
+      ];
       browser.proxy.onRequest.addListener(details => {
         browser.test.log(`proxy.onRequest ${JSON.stringify(details)}`);
         testRequest(details);
-      }, {urls: ["http://mochi.test/tests/*", "http://tracking.example.org/*", "http://example.net/*"]});
+      }, {urls});
       browser.webRequest.onBeforeRequest.addListener(async (details) => {
         browser.test.log(`webRequest.onBeforeRequest ${JSON.stringify(details)}`);
         testRequest(details);
-      }, {urls: ["http://mochi.test/tests/*", "http://tracking.example.org/*", "http://example.net/*"]}, ["blocking"]);
+      }, {urls}, ["blocking"]);
       browser.webRequest.onCompleted.addListener(async (details) => {
         browser.test.log(`webRequest.onCompleted ${JSON.stringify(details)}`);
         if (testRequest(details)) {
           browser.test.sendMessage("classification", details.url);
         }
-      }, {urls: ["http://mochi.test/tests/*", "http://tracking.example.org/*", "http://example.net/*"]});
+      }, {urls});
     },
   });
   await extension.startup();
@@ -104,6 +129,16 @@ add_task(async function test_urlClassification() {
   is(await extension.awaitMessage("classification"), url);
   is(await extension.awaitMessage("classification"),
      "http://example.net/tests/toolkit/components/extensions/test/mochitest/file_image_bad.png",
+     "request completed");
+  win.close();
+
+  // Test third party tracking classification for redirected requests.
+  win = window.open(REDIRECT_TEST.TOP_URL);
+  is(await extension.awaitMessage("classification"), REDIRECT_TEST.TOP_URL);
+  // Note: REDIRECT_TEST.EMBEDDED_PRE_REDIRECT_URL is not observed because
+  // onCompleted is not seen for that URL due to a redirect to REDIRECT_TARGET.
+  is(await extension.awaitMessage("classification"),
+     REDIRECT_TEST.REDIRECT_TARGET,
      "request completed");
   win.close();
 

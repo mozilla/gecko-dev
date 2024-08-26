@@ -201,6 +201,7 @@ void ChannelWrapper::SetChannel(nsIChannel* aChannel) {
   ChannelWrapper_Binding::ClearCachedFinalURLValue(this);
   mFinalURLInfo.reset();
   ChannelWrapper_Binding::ClearCachedProxyInfoValue(this);
+  ChannelWrapper_Binding::ClearCachedThirdPartyValue(this);
   ChannelWrapper_Binding::ClearCachedCanModifyValue(this);
 }
 

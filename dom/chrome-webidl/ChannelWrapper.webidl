@@ -439,7 +439,7 @@ interface ChannelWrapper : EventTarget {
    * Indicates if this response and its content window hierarchy is third
    * party.
    */
-  [Cached, Constant]
+  [Cached, Pure]
   readonly attribute boolean thirdParty;
 
   /**

@@ -67,6 +67,7 @@ support-files = [
   "mochitest_console.js",
   "oauth.html",
   "redirect_auto.sjs",
+  "redirect_to.sjs",
   "redirection.sjs",
   "return_headers.sjs",
   "serviceWorker.js",
