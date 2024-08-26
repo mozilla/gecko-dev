@@ -54,6 +54,8 @@ internal fun ToolsSubmenu(
             )
 
             if (isReaderViewActive) {
+                Divider(color = FirefoxTheme.colors.borderSecondary)
+
                 MenuItem(
                     label = stringResource(id = R.string.browser_menu_customize_reader_view_2),
                     beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_customize_24),
