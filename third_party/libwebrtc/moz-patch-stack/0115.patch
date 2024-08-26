@@ -1,26 +1,85 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Fri, 26 Jul 2024 09:26:00 -0500
-Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
- belongs. r?mjf
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Fri, 23 Aug 2024 11:07:00 +0000
+Subject: Bug 1914196 - Cherry-pick upstream libwebrtc commit 3069c60ada
+ r=webrtc-reviewers,mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
+Upstream commit: https://webrtc.googlesource.com/src/+/3069c60adafff3a40ec679c29f9e685f9ac59a45
+       Add desktop-capture option for ScreenCaptureKit on macOS.
+
+       This option will allow clients to control which ScreenCapturer is used,
+       for versions of macOS that support ScreenCaptureKit. The default is to
+       use the previous code, to avoid breaking current users of the module.
+
+       Bug: chromium:327458809
+       Change-Id: Ib0f9390c85d726016a39eea4fda9b8bd14a094c3
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355020
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Lambros Lambrou <lambroslambrou@chromium.org>
+       Cr-Commit-Position: refs/heads/main@{#42518}
+
+Differential Revision: https://phabricator.services.mozilla.com/D219809
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/41ab7aaba858dfe10d4be5a2300ec4a45238cc0a
 ---
- api/test/network_emulation/BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/desktop_capture_options.h |  8 ++++++++
+ modules/desktop_capture/screen_capturer_darwin.mm | 15 ++++++++++++---
+ 2 files changed, 20 insertions(+), 3 deletions(-)
 
-diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
-index 4a126a0a94..ac07325bbf 100644
---- a/api/test/network_emulation/BUILD.gn
-+++ b/api/test/network_emulation/BUILD.gn
-@@ -6,10 +6,10 @@
- # in the file PATENTS.  All contributing project authors may
- # be found in the AUTHORS file in the root of the source tree.
+diff --git a/modules/desktop_capture/desktop_capture_options.h b/modules/desktop_capture/desktop_capture_options.h
+index ee823d296f..c44ec6a9e8 100644
+--- a/modules/desktop_capture/desktop_capture_options.h
++++ b/modules/desktop_capture/desktop_capture_options.h
+@@ -72,6 +72,13 @@ class RTC_EXPORT DesktopCaptureOptions {
  
--import("//third_party/protobuf/proto_library.gni")
- import("../../../webrtc.gni")
+   bool allow_iosurface() const { return allow_iosurface_; }
+   void set_allow_iosurface(bool allow) { allow_iosurface_ = allow; }
++
++  // If this flag is set, and the system supports it, ScreenCaptureKit will be
++  // used for desktop capture.
++  // TODO: crbug.com/327458809 - Force the use of SCK and ignore this flag in
++  // new versions of macOS that remove support for the CGDisplay-based APIs.
++  bool allow_sck_capturer() const { return allow_sck_capturer_; }
++  void set_allow_sck_capturer(bool allow) { allow_sck_capturer_ = allow; }
+ #endif
  
- if (rtc_enable_protobuf) {
-+  import("//third_party/protobuf/proto_library.gni")
-   proto_library("network_config_schedule_proto") {
-     visibility = [ "*" ]
-     sources = [ "network_config_schedule.proto" ]
+   const rtc::scoped_refptr<FullScreenWindowDetector>&
+@@ -235,6 +242,7 @@ class RTC_EXPORT DesktopCaptureOptions {
+ #if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
+   rtc::scoped_refptr<DesktopConfigurationMonitor> configuration_monitor_;
+   bool allow_iosurface_ = false;
++  bool allow_sck_capturer_ = false;
+ #endif
+ 
+   rtc::scoped_refptr<FullScreenWindowDetector> full_screen_window_detector_;
+diff --git a/modules/desktop_capture/screen_capturer_darwin.mm b/modules/desktop_capture/screen_capturer_darwin.mm
+index d5a7bb0522..81e90f25d3 100644
+--- a/modules/desktop_capture/screen_capturer_darwin.mm
++++ b/modules/desktop_capture/screen_capturer_darwin.mm
+@@ -11,6 +11,7 @@
+ #include <memory>
+ 
+ #include "modules/desktop_capture/mac/screen_capturer_mac.h"
++#include "modules/desktop_capture/mac/screen_capturer_sck.h"
+ 
+ namespace webrtc {
+ 
+@@ -21,9 +22,17 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateRawScreenCapturer(
+     return nullptr;
+   }
+ 
+-  std::unique_ptr<ScreenCapturerMac> capturer(new ScreenCapturerMac(
+-      options.configuration_monitor(), options.detect_updated_region(), options.allow_iosurface()));
+-  if (!capturer.get()->Init()) {
++  if (options.allow_sck_capturer()) {
++    // This will return nullptr on systems that don't support ScreenCaptureKit.
++    std::unique_ptr<DesktopCapturer> sck_capturer = CreateScreenCapturerSck(options);
++    if (sck_capturer) {
++      return sck_capturer;
++    }
++  }
++
++  auto capturer = std::make_unique<ScreenCapturerMac>(
++      options.configuration_monitor(), options.detect_updated_region(), options.allow_iosurface());
++  if (!capturer->Init()) {
+     return nullptr;
+   }
+ 
