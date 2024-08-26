@@ -43,6 +43,7 @@ support-files = [
   "doc_imported_named_layer.css",
   "doc_imported_no_layer.css",
   "doc_inactive_css_xul.xhtml",
+  "doc_layer_edit.css",
   "head.js",
   "sjs_imported_stylesheet_edit.sjs",
   "square_svg.sjs",
