@@ -2812,7 +2812,7 @@
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Datenschutzhinweis</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice_2">Datenschutzerklärung</string>
+    <string name="micro_survey_privacy_notice_2">Datenschutzhinweis</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Absenden</string>
     <!-- The survey completion header -->

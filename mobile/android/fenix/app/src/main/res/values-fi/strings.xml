@@ -1276,6 +1276,9 @@
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Etsi kirjanmerkeistä</string>
 
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Valikkokohde %s</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Siirry asetuksiin</string>
@@ -2233,6 +2236,8 @@
     <string name="top_sites_rename_dialog_title">Nimi</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Pikavalinnan nimi</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">Oikotien URL-osoite</string>
     <!-- Button caption to confirm the renaming of the top site. -->
     <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
@@ -2247,8 +2252,15 @@
 
     <!-- Text for the menu item to edit a top site. -->
     <string name="top_sites_edit_top_site">Muokkaa</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Muokkaa oikotietä</string>
     <!-- Button caption to confirm the edit of the top site. -->
     <string name="top_sites_edit_dialog_save">Tallenna</string>
+
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Anna kelvollinen URL-osoite</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL-osoite</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Zaproponuj silne hasło</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Zaproponuj silne hasło</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Użyj silnego hasła</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Użyj silnego hasła: %1$s</string>
@@ -129,7 +127,10 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Chroń swoje konta za pomocą silnego, losowo wygenerowanego hasła. Miej szybki dostęp do haseł, zachowując je na swoim koncie.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Chroń swoje konta za pomocą silnego, losowo wygenerowanego hasła. Miej szybki dostęp do haseł, zachowując je na swoim koncie.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Chroń swoje konta za pomocą silnego, losowo wygenerowanego hasła. Zostanie ono zachowane na Twoim koncie, aby zawsze mieć do niego dostęp.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Użyj hasła</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->

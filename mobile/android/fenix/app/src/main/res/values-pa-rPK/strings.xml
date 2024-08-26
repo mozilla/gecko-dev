@@ -301,10 +301,19 @@
     <string name="browser_menu_switch_to_mobile_site">موبائیل سائیٹ لئی سوئچ کرو</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">سند</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">ریڈر جھلک، اُلتھا، چھاپݨا، شعر کرنا، ایپ کھولھݨا</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">ریڈر جھلک، چھاپݨا، شعر کرنا، ایپ کھولھݨا</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">سنبھالو
 </string>
+
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">بک‌مارک، شارٹ‌کٹ، مکھ صفحہ، بھنڈار، PDF جوڑو</string>
+    <!-- Browser menu label that bookmarks the currently visited page -->
+    <string name="browser_menu_bookmark_this_page">ایس صفحے نوں بک‌مارک کرو</string>
 
     <!-- Browser Toolbar -->
     <!-- Content description for the Home screen button on the browser toolbar -->

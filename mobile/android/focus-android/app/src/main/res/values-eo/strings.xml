@@ -926,7 +926,7 @@
     <string name="open_new_tab_snackbar">Ŝanĝi</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Plenekrana reĝimo aktiva</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Plenekrana reĝimo aktiva</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Iri tuj al la ligilo en nova langeto</string>
@@ -1115,4 +1115,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Komponanto aldonita al hejmekrano</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Por eliri el la plenekrana reĝimo, trenu el supre kaj uzu la geston por ili malantaŭen</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Por eliri el la plenekrana reiĝmon, trenu el supre kaj premu la butonon &quot;reen&quot;</string>
 </resources>
