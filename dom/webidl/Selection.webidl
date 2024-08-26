@@ -23,6 +23,10 @@ interface Selection {
   readonly attribute boolean       isCollapsed;
   [ChromeOnly]
   readonly attribute boolean       areNormalAndCrossShadowBoundaryRangesCollapsed;
+
+  [ChromeOnly]
+  readonly attribute Node?         mayCrossShadowBoundaryFocusNode;
+
   /**
    * Returns the number of ranges in the selection.
    */
