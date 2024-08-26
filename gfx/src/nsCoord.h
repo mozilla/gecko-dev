@@ -94,7 +94,7 @@ inline nscoord NSCoordDivRem(nscoord aSpace, size_t aN, nscoord* aQuotient) {
 }
 
 inline nscoord NSCoordMulDiv(nscoord aMult1, nscoord aMult2, nscoord aDiv) {
-  return (int64_t(aMult1) * int64_t(aMult2) / int64_t(aDiv));
+  return int64_t(aMult1) * int64_t(aMult2) / int64_t(aDiv);
 }
 
 inline nscoord NSToCoordRound(float aValue) {
@@ -329,12 +329,12 @@ inline nscoord NSIntPixelsToAppUnits(int32_t aPixels,
 
 inline float NSAppUnitsToFloatPixels(nscoord aAppUnits,
                                      float aAppUnitsPerPixel) {
-  return (float(aAppUnits) / aAppUnitsPerPixel);
+  return float(aAppUnits) / aAppUnitsPerPixel;
 }
 
 inline double NSAppUnitsToDoublePixels(nscoord aAppUnits,
                                        double aAppUnitsPerPixel) {
-  return (double(aAppUnits) / aAppUnitsPerPixel);
+  return double(aAppUnits) / aAppUnitsPerPixel;
 }
 
 inline int32_t NSAppUnitsToIntPixels(nscoord aAppUnits,
@@ -362,7 +362,7 @@ inline float NSUnitsToTwips(float aValue, float aPointsPerUnit) {
 }
 
 inline float NSTwipsToUnits(float aTwips, float aUnitsPerPoint) {
-  return (aTwips * (aUnitsPerPoint / TWIPS_PER_POINT_FLOAT));
+  return aTwips * (aUnitsPerPoint / TWIPS_PER_POINT_FLOAT);
 }
 
 /// Unit conversion macros
