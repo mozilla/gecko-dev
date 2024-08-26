@@ -20,6 +20,7 @@ rtc_library("voip_core") {
     "../../api/audio:audio_device",
     "../../api/audio:audio_processing",
     "../../api/audio_codecs:audio_codecs_api",
+    "../../api/environment",
     "../../api/task_queue",
     "../../api/voip:voip_api",
     "../../modules/audio_mixer:audio_mixer_impl",
