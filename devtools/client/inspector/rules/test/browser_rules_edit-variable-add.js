@@ -30,11 +30,5 @@ add_task(async function () {
 
   info("Add the --color CSS variable");
   await addProperty(view, 0, "--color", "lime");
-  checkCSSVariableOutput(
-    view,
-    "div",
-    "color",
-    "ruleview-variable",
-    "--color = lime"
-  );
+  checkCSSVariableOutput(view, "div", "color", "ruleview-variable", "lime");
 });

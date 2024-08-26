@@ -31,7 +31,7 @@ async function testNumber(inspector, view) {
 
   is(
     upperCaseVarEl.dataset.variable,
-    "--10 = 10px",
+    "10px",
     "variable that starts with a number is valid"
   );
 }
@@ -52,7 +52,7 @@ async function testDash(inspector, view) {
 
   is(
     upperCaseVarEl.dataset.variable,
-    "---blue = blue",
+    "blue",
     "variable that starts with a dash is valid"
   );
 }

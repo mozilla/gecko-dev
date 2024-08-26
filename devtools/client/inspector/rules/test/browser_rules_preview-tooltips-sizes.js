@@ -13,14 +13,15 @@ const BASE_64_URL =
   "EAAQTiAvEiIgACCMQF4kVEAAQQSAt8xsyeAW6R8eIAAAAASUVORK5CYII=";
 
 add_task(async function () {
+  await pushPref("devtools.inspector.chrome.three-pane-enabled", false);
   await addTab(
     "data:text/html;charset=utf-8," +
       encodeURIComponent(`
       <style>
         html {
-          /* Using a long variable name to ensure preview tooltip for variable will be */
+          /* Using a long value to ensure preview tooltip for variable will be */
           /* wider than the preview tooltip for the test 32x32 image. */
-          --test-var-wider-than-image: red;
+          --test-var-wider-than-image: color(from lightgoldenrodyellow xyz calc(x + 0.75) y calc(z - 0.35));
         }
 
         #target {
@@ -46,6 +47,7 @@ add_task(async function () {
   const colorPropertySpan = colorPropertyElement.valueSpan;
   const colorVariableElement =
     colorPropertySpan.querySelector(".ruleview-variable");
+  ok(!!colorVariableElement, "Found the variable element");
 
   // Retrieve the element for the background url on which the image preview will appear.
   const backgroundPropertySpan = getRuleViewProperty(

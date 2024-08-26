@@ -21,13 +21,7 @@ add_task(async function () {
   await selectNode("div", inspector);
 
   info("Check the initial state of the --color variable");
-  checkCSSVariableOutput(
-    view,
-    "div",
-    "color",
-    "ruleview-variable",
-    "--color = lime"
-  );
+  checkCSSVariableOutput(view, "div", "color", "ruleview-variable", "lime");
 
   info("Edit the CSS variable");
   const prop = getTextProperty(view, 1, { "--color": "lime" });
@@ -37,11 +31,5 @@ add_task(async function () {
   const onRuleViewChanged = view.once("ruleview-changed");
   EventUtils.synthesizeKey("VK_RETURN", {}, view.styleWindow);
   await onRuleViewChanged;
-  checkCSSVariableOutput(
-    view,
-    "div",
-    "color",
-    "ruleview-variable",
-    "--color = blue"
-  );
+  checkCSSVariableOutput(view, "div", "color", "ruleview-variable", "blue");
 });

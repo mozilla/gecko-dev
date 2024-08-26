@@ -25,7 +25,7 @@ add_task(async function () {
   is(unsetColor.textContent, " red", "red is unmatched in color");
 
   await assertVariableTooltipForProperty(view, "div", "color", {
-    header: "--color = chartreuse",
+    header: "chartreuse",
     // Computed value isn't displayed when it's the same as we put in the header
     computed: null,
   });
@@ -38,23 +38,23 @@ add_task(async function () {
 
   await assertVariableTooltipForProperty(view, "div", "background-color", {
     index: 1,
-    header: "--bg = seagreen",
+    header: "seagreen",
     // Computed value isn't displayed when it's the same as we put in the header
     computed: null,
   });
 
   await assertVariableTooltipForProperty(view, "div", "outline-color", {
-    header: "--nested = var(--color)",
+    header: "var(--color)",
     computed: "chartreuse",
   });
 
   await assertVariableTooltipForProperty(view, "div", "border-color", {
-    header: "--nested-with-function = var(--theme-color)",
+    header: "var(--theme-color)",
     computed: "light-dark(chartreuse, seagreen)",
   });
 
   await assertVariableTooltipForProperty(view, "div", "background", {
-    header: "--nested-with-empty = var(--empty)",
+    header: "var(--empty)",
     computed: "",
   });
 });
