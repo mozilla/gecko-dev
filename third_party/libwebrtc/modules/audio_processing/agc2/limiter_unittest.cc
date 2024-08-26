@@ -10,6 +10,7 @@
 
 #include "modules/audio_processing/agc2/limiter.h"
 
+#include "api/audio/audio_frame.h"
 #include "common_audio/include/audio_util.h"
 #include "modules/audio_processing/agc2/agc2_common.h"
 #include "modules/audio_processing/agc2/agc2_testing_common.h"
@@ -20,33 +21,33 @@
 namespace webrtc {
 
 TEST(Limiter, LimiterShouldConstructAndRun) {
-  const int sample_rate_hz = 48000;
+  const size_t samples_per_channel = SampleRateToDefaultChannelSize(48000);
   ApmDataDumper apm_data_dumper(0);
 
-  Limiter limiter(sample_rate_hz, &apm_data_dumper, "");
+  Limiter limiter(&apm_data_dumper, samples_per_channel, "");
 
-  VectorFloatFrame vectors_with_float_frame(1, sample_rate_hz / 100,
+  VectorFloatFrame vectors_with_float_frame(1, samples_per_channel,
                                             kMaxAbsFloatS16Value);
   limiter.Process(vectors_with_float_frame.float_frame_view());
 }
 
 TEST(Limiter, OutputVolumeAboveThreshold) {
-  const int sample_rate_hz = 48000;
+  const size_t samples_per_channel = SampleRateToDefaultChannelSize(48000);
   const float input_level =
       (kMaxAbsFloatS16Value + DbfsToFloatS16(test::kLimiterMaxInputLevelDbFs)) /
       2.f;
   ApmDataDumper apm_data_dumper(0);
 
-  Limiter limiter(sample_rate_hz, &apm_data_dumper, "");
+  Limiter limiter(&apm_data_dumper, samples_per_channel, "");
 
   // Give the level estimator time to adapt.
   for (int i = 0; i < 5; ++i) {
-    VectorFloatFrame vectors_with_float_frame(1, sample_rate_hz / 100,
+    VectorFloatFrame vectors_with_float_frame(1, samples_per_channel,
                                               input_level);
     limiter.Process(vectors_with_float_frame.float_frame_view());
   }
 
-  VectorFloatFrame vectors_with_float_frame(1, sample_rate_hz / 100,
+  VectorFloatFrame vectors_with_float_frame(1, samples_per_channel,
                                             input_level);
   limiter.Process(vectors_with_float_frame.float_frame_view());
   rtc::ArrayView<const float> channel =

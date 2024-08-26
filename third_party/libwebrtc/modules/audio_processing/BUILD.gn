@@ -108,6 +108,7 @@ rtc_library("gain_controller2") {
     ":apm_logging",
     ":audio_buffer",
     ":audio_frame_view",
+    "../../api/audio:audio_frame_api",
     "../../api/audio:audio_processing",
     "../../common_audio",
     "../../rtc_base:checks",

@@ -13,6 +13,7 @@
 #include <memory>
 #include <utility>
 
+#include "api/audio/audio_frame.h"
 #include "common_audio/include/audio_util.h"
 #include "modules/audio_processing/agc2/agc2_common.h"
 #include "modules/audio_processing/agc2/cpu_features.h"
@@ -94,7 +95,9 @@ GainController2::GainController2(
       fixed_gain_applier_(
           /*hard_clip_samples=*/false,
           /*initial_gain_factor=*/DbToRatio(config.fixed_digital.gain_db)),
-      limiter_(sample_rate_hz, &data_dumper_, /*histogram_name_prefix=*/"Agc2"),
+      limiter_(&data_dumper_,
+               SampleRateToDefaultChannelSize(sample_rate_hz),
+               /*histogram_name_prefix=*/"Agc2"),
       calls_since_last_limiter_log_(0) {
   RTC_DCHECK(Validate(config));
   data_dumper_.InitiateNewSetOfRecordings();

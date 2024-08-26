@@ -106,10 +106,7 @@ void MixToFloatFrame(rtc::ArrayView<const AudioFrame* const> mix_list,
 }
 
 void RunLimiter(AudioFrameView<float> mixing_buffer_view, Limiter* limiter) {
-  const size_t sample_rate = mixing_buffer_view.samples_per_channel() * 1000 /
-                             AudioMixerImpl::kFrameDurationInMs;
-  // TODO(alessiob): Avoid calling SetSampleRate every time.
-  limiter->SetSampleRate(sample_rate);
+  limiter->SetSamplesPerChannel(mixing_buffer_view.samples_per_channel());
   limiter->Process(mixing_buffer_view);
 }
 
@@ -134,7 +131,7 @@ constexpr size_t FrameCombiner::kMaximumChannelSize;
 
 FrameCombiner::FrameCombiner(bool use_limiter)
     : data_dumper_(new ApmDataDumper(0)),
-      limiter_(static_cast<size_t>(48000), data_dumper_.get(), "AudioMixer"),
+      limiter_(data_dumper_.get(), kMaximumChannelSize, "AudioMixer"),
       use_limiter_(use_limiter) {
   static_assert(kMaximumChannelSize * kMaximumNumberOfChannels <=
                     AudioFrame::kMaxDataSizeSamples,

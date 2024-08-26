@@ -86,23 +86,24 @@ void ScaleSamples(MonoView<const float> per_sample_scaling_factors,
     }
   }
 }
-
-void CheckLimiterSampleRate(int sample_rate_hz) {
-  // Check that per_sample_scaling_factors_ is large enough.
-  RTC_DCHECK_LE(sample_rate_hz,
-                kMaximalNumberOfSamplesPerChannel * 1000 / kFrameDurationMs);
-}
-
 }  // namespace
 
-Limiter::Limiter(int sample_rate_hz,
-                 ApmDataDumper* apm_data_dumper,
+Limiter::Limiter(ApmDataDumper* apm_data_dumper,
+                 size_t samples_per_channel,
                  absl::string_view histogram_name)
     : interp_gain_curve_(apm_data_dumper, histogram_name),
-      level_estimator_(sample_rate_hz, apm_data_dumper),
+      level_estimator_(samples_per_channel, apm_data_dumper),
       apm_data_dumper_(apm_data_dumper) {
-  CheckLimiterSampleRate(sample_rate_hz);
+  RTC_DCHECK_LE(samples_per_channel, kMaximalNumberOfSamplesPerChannel);
 }
+
+// Deprecated ctor.
+Limiter::Limiter(int sample_rate_hz,
+                 ApmDataDumper* apm_data_dumper,
+                 absl::string_view histogram_name_prefix)
+    : Limiter(apm_data_dumper,
+              SampleRateToDefaultChannelSize(sample_rate_hz),
+              histogram_name_prefix) {}
 
 Limiter::~Limiter() = default;
 
@@ -140,9 +141,9 @@ InterpolatedGainCurve::Stats Limiter::GetGainCurveStats() const {
   return interp_gain_curve_.get_stats();
 }
 
-void Limiter::SetSampleRate(int sample_rate_hz) {
-  CheckLimiterSampleRate(sample_rate_hz);
-  level_estimator_.SetSampleRate(sample_rate_hz);
+void Limiter::SetSamplesPerChannel(size_t samples_per_channel) {
+  RTC_DCHECK_LE(samples_per_channel, kMaximalNumberOfSamplesPerChannel);
+  level_estimator_.SetSamplesPerChannel(samples_per_channel);
 }
 
 void Limiter::Reset() {
