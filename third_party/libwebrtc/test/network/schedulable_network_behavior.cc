@@ -11,8 +11,8 @@
 
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "api/sequence_checker.h"
-#include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_config_schedule.pb.h"
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
@@ -72,9 +72,11 @@ BuiltInNetworkBehaviorConfig GetInitialConfig(
 
 SchedulableNetworkBehavior::SchedulableNetworkBehavior(
     network_behaviour::NetworkConfigSchedule schedule,
-    webrtc::Clock& clock)
+    webrtc::Clock& clock,
+    absl::AnyInvocable<bool(webrtc::Timestamp)> start_callback)
     : SimulatedNetwork(GetInitialConfig(schedule)),
       schedule_(std::move(schedule)),
+      start_condition_(std::move(start_callback)),
       clock_(clock),
       config_(GetInitialConfig(schedule_)) {
   if (schedule_.item().size() > 1) {
@@ -86,7 +88,8 @@ SchedulableNetworkBehavior::SchedulableNetworkBehavior(
 bool SchedulableNetworkBehavior::EnqueuePacket(
     webrtc::PacketInFlightInfo packet_info) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  if (first_send_time_.IsMinusInfinity()) {
+  if (first_send_time_.IsInfinite() &&
+      start_condition_(webrtc::Timestamp::Micros(packet_info.send_time_us))) {
     first_send_time_ = webrtc::Timestamp::Micros(packet_info.send_time_us);
     if (schedule_.item().size() > 1) {
       RTC_CHECK_LT(next_schedule_index_, schedule_.item().size());

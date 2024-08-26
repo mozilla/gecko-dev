@@ -10,8 +10,10 @@
 #ifndef API_TEST_NETWORK_EMULATION_SCHEDULABLE_NETWORK_NODE_BUILDER_H_
 #define API_TEST_NETWORK_EMULATION_SCHEDULABLE_NETWORK_NODE_BUILDER_H_
 
+#include "absl/functional/any_invocable.h"
 #include "api/test/network_emulation/network_config_schedule.pb.h"
 #include "api/test/network_emulation_manager.h"
+#include "api/units/timestamp.h"
 
 namespace webrtc {
 
@@ -20,12 +22,20 @@ class SchedulableNetworkNodeBuilder {
   SchedulableNetworkNodeBuilder(
       webrtc::NetworkEmulationManager& net,
       network_behaviour::NetworkConfigSchedule schedule);
+  // set_start_condition allows a test to control when the schedule start.
+  // `start_condition` is invoked every time a packet is enqueued on the network
+  // until the first time `start_condition` returns true. Until then, the first
+  // NetworkConfigScheduleItem is used. There is no guarantee on which
+  // thread/task queue that will be used.
+  void set_start_condition(
+      absl::AnyInvocable<bool(webrtc::Timestamp)> start_condition);
 
   webrtc::EmulatedNetworkNode* Build();
 
  private:
   webrtc::NetworkEmulationManager& net_;
   network_behaviour::NetworkConfigSchedule schedule_;
+  absl::AnyInvocable<bool(webrtc::Timestamp)> start_condition_;
 };
 
 }  // namespace webrtc

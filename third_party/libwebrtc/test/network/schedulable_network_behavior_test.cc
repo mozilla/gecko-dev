@@ -27,6 +27,8 @@ namespace {
 
 using ::testing::Mock;
 using ::testing::MockFunction;
+using ::testing::Return;
+using ::testing::Sequence;
 using ::testing::SizeIs;
 
 class SchedulableNetworkBehaviorTestFixture {
@@ -145,6 +147,50 @@ TEST(SchedulableNetworkBehaviorTest,
             (first_packet_send_time + TimeDelta::Millis(55) +
              /*queue_delay=*/TimeDelta::Millis(10))
                 .us());
+}
+
+TEST(SchedulableNetworkBehaviorTest, ScheduleStartedWhenStartConditionTrue) {
+  SchedulableNetworkBehaviorTestFixture fixture;
+  network_behaviour::NetworkConfigSchedule schedule;
+  auto initial_config = schedule.add_item();
+  initial_config->set_link_capacity_kbps(0);
+  auto item = schedule.add_item();
+  item->set_time_since_first_sent_packet_ms(1);
+  item->set_link_capacity_kbps(1000000);
+
+  MockFunction<bool(Timestamp)> start_condition;
+  webrtc::Timestamp first_packet_send_time = fixture.TimeNow();
+  webrtc::Timestamp second_packet_send_time =
+      fixture.TimeNow() + TimeDelta::Millis(100);
+  Sequence s;
+  EXPECT_CALL(start_condition, Call(first_packet_send_time))
+      .InSequence(s)
+      .WillOnce(Return(false));
+  // Expect schedule to start when the second packet is sent.
+  EXPECT_CALL(start_condition, Call(second_packet_send_time))
+      .InSequence(s)
+      .WillOnce(Return(true));
+  SchedulableNetworkBehavior network_behaviour(schedule, fixture.clock(),
+                                               start_condition.AsStdFunction());
+
+  EXPECT_TRUE(network_behaviour.EnqueuePacket(
+      {/*size=*/1000 / 8,
+       /*send_time_us=*/first_packet_send_time.us(),
+       /*packet_id=*/1}));
+  EXPECT_FALSE(network_behaviour.NextDeliveryTimeUs().has_value());
+  // Move passed the normal schedule change time. Still dont expect a delivery
+  // time.
+  fixture.AdvanceTime(TimeDelta::Millis(100));
+  EXPECT_FALSE(network_behaviour.NextDeliveryTimeUs().has_value());
+
+  EXPECT_TRUE(network_behaviour.EnqueuePacket(
+      {/*size=*/1000 / 8,
+       /*send_time_us=*/second_packet_send_time.us(),
+       /*packet_id=*/2}));
+
+  EXPECT_FALSE(network_behaviour.NextDeliveryTimeUs().has_value());
+  fixture.AdvanceTime(TimeDelta::Millis(1));
+  EXPECT_TRUE(network_behaviour.NextDeliveryTimeUs().has_value());
 }
 
 TEST(SchedulableNetworkBehaviorTest, ScheduleWithRepeat) {
