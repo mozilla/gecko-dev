@@ -1,85 +1,83 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
 Date: Fri, 23 Aug 2024 11:07:00 +0000
-Subject: Bug 1914196 - Cherry-pick upstream libwebrtc commit 3069c60ada
+Subject: Bug 1914196 - Cherry-pick upstream libwebrtc commit 2086ff5d33
  r=webrtc-reviewers,mjf
 
-Upstream commit: https://webrtc.googlesource.com/src/+/3069c60adafff3a40ec679c29f9e685f9ac59a45
-       Add desktop-capture option for ScreenCaptureKit on macOS.
+Upstream commit: https://webrtc.googlesource.com/src/+/2086ff5d33facefe4624d65ad0d1e96c7b872f57
+       Mac SCK capturer: Set per-frame capture_time_ms and DPI values.
 
-       This option will allow clients to control which ScreenCapturer is used,
-       for versions of macOS that support ScreenCaptureKit. The default is to
-       use the previous code, to avoid breaking current users of the module.
+       This sets the correct frame DPI according to the pixels/DIPs ratio.
+       It also sets the capture_time_ms for consistency with ScreenCapturerMac.
 
        Bug: chromium:327458809
-       Change-Id: Ib0f9390c85d726016a39eea4fda9b8bd14a094c3
-       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355020
-       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Change-Id: Ibb0074756e262dd1ce6f2897f60f0d939ddb7fd3
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355442
        Commit-Queue: Lambros Lambrou <lambroslambrou@chromium.org>
-       Cr-Commit-Position: refs/heads/main@{#42518}
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Auto-Submit: Lambros Lambrou <lambroslambrou@chromium.org>
+       Cr-Commit-Position: refs/heads/main@{#42534}
 
-Differential Revision: https://phabricator.services.mozilla.com/D219809
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/41ab7aaba858dfe10d4be5a2300ec4a45238cc0a
+Differential Revision: https://phabricator.services.mozilla.com/D219810
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a00f727660846b25f7510b7b62027b99c4e40ae6
 ---
- modules/desktop_capture/desktop_capture_options.h |  8 ++++++++
- modules/desktop_capture/screen_capturer_darwin.mm | 15 ++++++++++++---
- 2 files changed, 20 insertions(+), 3 deletions(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/modules/desktop_capture/desktop_capture_options.h b/modules/desktop_capture/desktop_capture_options.h
-index ee823d296f..c44ec6a9e8 100644
---- a/modules/desktop_capture/desktop_capture_options.h
-+++ b/modules/desktop_capture/desktop_capture_options.h
-@@ -72,6 +72,13 @@ class RTC_EXPORT DesktopCaptureOptions {
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 2135faee3a..64a63304b5 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -19,6 +19,7 @@
+ #include "rtc_base/logging.h"
+ #include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/thread_annotations.h"
++#include "rtc_base/time_utils.h"
+ #include "sdk/objc/helpers/scoped_cftyperef.h"
  
-   bool allow_iosurface() const { return allow_iosurface_; }
-   void set_allow_iosurface(bool allow) { allow_iosurface_ = allow; }
+ using webrtc::DesktopFrameIOSurface;
+@@ -108,6 +109,8 @@ class API_AVAILABLE(macos(13.0)) ScreenCapturerSck final : public DesktopCapture
+   Mutex latest_frame_lock_;
+   std::unique_ptr<SharedDesktopFrame> latest_frame_ RTC_GUARDED_BY(latest_frame_lock_);
+ 
++  int32_t latest_frame_dpi_ RTC_GUARDED_BY(latest_frame_lock_) = kStandardDPI;
 +
-+  // If this flag is set, and the system supports it, ScreenCaptureKit will be
-+  // used for desktop capture.
-+  // TODO: crbug.com/327458809 - Force the use of SCK and ignore this flag in
-+  // new versions of macOS that remove support for the CGDisplay-based APIs.
-+  bool allow_sck_capturer() const { return allow_sck_capturer_; }
-+  void set_allow_sck_capturer(bool allow) { allow_sck_capturer_ = allow; }
- #endif
+   // Tracks whether the latest frame contains new data since it was returned to the caller. This is
+   // used to set the DesktopFrame's `updated_region` property. The flag is cleared after the frame
+   // is sent to OnCaptureResult(), and is set when SCK reports a new frame with non-empty "dirty"
+@@ -138,6 +141,8 @@ void ScreenCapturerSck::SetMaxFrameRate(uint32_t max_frame_rate) {
+ }
  
-   const rtc::scoped_refptr<FullScreenWindowDetector>&
-@@ -235,6 +242,7 @@ class RTC_EXPORT DesktopCaptureOptions {
- #if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
-   rtc::scoped_refptr<DesktopConfigurationMonitor> configuration_monitor_;
-   bool allow_iosurface_ = false;
-+  bool allow_sck_capturer_ = false;
- #endif
- 
-   rtc::scoped_refptr<FullScreenWindowDetector> full_screen_window_detector_;
-diff --git a/modules/desktop_capture/screen_capturer_darwin.mm b/modules/desktop_capture/screen_capturer_darwin.mm
-index d5a7bb0522..81e90f25d3 100644
---- a/modules/desktop_capture/screen_capturer_darwin.mm
-+++ b/modules/desktop_capture/screen_capturer_darwin.mm
-@@ -11,6 +11,7 @@
- #include <memory>
- 
- #include "modules/desktop_capture/mac/screen_capturer_mac.h"
-+#include "modules/desktop_capture/mac/screen_capturer_sck.h"
- 
- namespace webrtc {
- 
-@@ -21,9 +22,17 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateRawScreenCapturer(
-     return nullptr;
+ void ScreenCapturerSck::CaptureFrame() {
++  int64_t capture_start_time_millis = rtc::TimeMillis();
++
+   if (permanent_error_) {
+     callback_->OnCaptureResult(Result::ERROR_PERMANENT, nullptr);
+     return;
+@@ -155,6 +160,7 @@ void ScreenCapturerSck::CaptureFrame() {
+     MutexLock lock(&latest_frame_lock_);
+     if (latest_frame_) {
+       frame = latest_frame_->Share();
++      frame->set_dpi(DesktopVector(latest_frame_dpi_, latest_frame_dpi_));
+       if (frame_is_dirty_) {
+         frame->mutable_updated_region()->AddRect(DesktopRect::MakeSize(frame->size()));
+         frame_is_dirty_ = false;
+@@ -163,6 +169,7 @@ void ScreenCapturerSck::CaptureFrame() {
    }
  
--  std::unique_ptr<ScreenCapturerMac> capturer(new ScreenCapturerMac(
--      options.configuration_monitor(), options.detect_updated_region(), options.allow_iosurface()));
--  if (!capturer.get()->Init()) {
-+  if (options.allow_sck_capturer()) {
-+    // This will return nullptr on systems that don't support ScreenCaptureKit.
-+    std::unique_ptr<DesktopCapturer> sck_capturer = CreateScreenCapturerSck(options);
-+    if (sck_capturer) {
-+      return sck_capturer;
-+    }
+   if (frame) {
++    frame->set_capture_time_ms(rtc::TimeSince(capture_start_time_millis));
+     callback_->OnCaptureResult(Result::SUCCESS, std::move(frame));
+   } else {
+     callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
+@@ -234,6 +241,11 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+     config.captureResolution = SCCaptureResolutionNominal;
+   }
+ 
++  {
++    MutexLock lock(&latest_frame_lock_);
++    latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
 +  }
 +
-+  auto capturer = std::make_unique<ScreenCapturerMac>(
-+      options.configuration_monitor(), options.detect_updated_region(), options.allow_iosurface());
-+  if (!capturer->Init()) {
-     return nullptr;
-   }
+   MutexLock lock(&lock_);
  
+   if (stream_) {
