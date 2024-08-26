@@ -51,6 +51,11 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
   bool is_idr = (source[0] & 0x0F) == H264::NaluType::kIdr;
   uint8_t nal_ref_idc = (source[0] & 0x60) >> 5;
 
+  uint32_t num_ref_idx_l0_active_minus1 =
+      pps_->num_ref_idx_l0_default_active_minus1;
+  uint32_t num_ref_idx_l1_active_minus1 =
+      pps_->num_ref_idx_l1_default_active_minus1;
+
   // first_mb_in_slice: ue(v)
   slice_reader.ReadExponentialGolomb();
   // slice_type: ue(v)
@@ -114,10 +119,10 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
       // num_ref_idx_active_override_flag: u(1)
       if (slice_reader.Read<bool>()) {
         // num_ref_idx_l0_active_minus1: ue(v)
-        slice_reader.ReadExponentialGolomb();
+        num_ref_idx_l0_active_minus1 = slice_reader.ReadExponentialGolomb();
         if (slice_type == H264::SliceType::kB) {
           // num_ref_idx_l1_active_minus1: ue(v)
-          slice_reader.ReadExponentialGolomb();
+          num_ref_idx_l1_active_minus1 = slice_reader.ReadExponentialGolomb();
         }
       }
       break;
@@ -180,17 +185,67 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
   if (!slice_reader.Ok()) {
     return kInvalidStream;
   }
-  // TODO(pbos): Do we need support for pred_weight_table()?
   if ((pps_->weighted_pred_flag && (slice_type == H264::SliceType::kP ||
                                     slice_type == H264::SliceType::kSp)) ||
       (pps_->weighted_bipred_idc == 1 && slice_type == H264::SliceType::kB)) {
-    RTC_LOG(LS_ERROR) << "Streams with pred_weight_table unsupported.";
-    return kUnsupportedStream;
+    // pred_weight_table()
+    // luma_log2_weight_denom: ue(v)
+    slice_reader.ReadExponentialGolomb();
+
+    // If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal
+    // to chroma_format_idc. Otherwise(separate_colour_plane_flag is equal to
+    // 1), ChromaArrayType is set equal to 0.
+    uint8_t chroma_array_type =
+        sps_->separate_colour_plane_flag == 0 ? sps_->chroma_format_idc : 0;
+
+    if (chroma_array_type != 0) {
+      // chroma_log2_weight_denom: ue(v)
+      slice_reader.ReadExponentialGolomb();
+    }
+
+    for (uint32_t i = 0; i <= num_ref_idx_l0_active_minus1; i++) {
+      //    luma_weight_l0_flag 2 u(1)
+      if (slice_reader.Read<bool>()) {
+        // luma_weight_l0[i] 2 se(v)
+        slice_reader.ReadExponentialGolomb();
+        // luma_offset_l0[i] 2 se(v)
+        slice_reader.ReadExponentialGolomb();
+      }
+      if (chroma_array_type != 0) {
+        // chroma_weight_l0_flag: u(1)
+        if (slice_reader.Read<bool>()) {
+          for (uint8_t j = 0; j < 2; j++) {
+            // chroma_weight_l0[i][j] 2 se(v)
+            slice_reader.ReadExponentialGolomb();
+            // chroma_offset_l0[i][j] 2 se(v)
+            slice_reader.ReadExponentialGolomb();
+          }
+        }
+      }
+    }
+    if (slice_type % 5 == 1) {
+      for (uint32_t i = 0; i <= num_ref_idx_l1_active_minus1; i++) {
+        // luma_weight_l1_flag: u(1)
+        if (slice_reader.Read<bool>()) {
+          // luma_weight_l1[i] 2 se(v)
+          slice_reader.ReadExponentialGolomb();
+          // luma_offset_l1[i] 2 se(v)
+          slice_reader.ReadExponentialGolomb();
+        }
+        if (chroma_array_type != 0) {
+          // chroma_weight_l1_flag: u(1)
+          if (slice_reader.Read<bool>()) {
+            for (uint8_t j = 0; j < 2; j++) {
+              // chroma_weight_l1[i][j] 2 se(v)
+              slice_reader.ReadExponentialGolomb();
+              // chroma_offset_l1[i][j] 2 se(v)
+              slice_reader.ReadExponentialGolomb();
+            }
+          }
+        }
+      }
+    }
   }
-  // if ((weighted_pred_flag && (slice_type == P || slice_type == SP)) ||
-  //    (weighted_bipred_idc == 1 && slice_type == B)) {
-  //  pred_weight_table()
-  // }
   if (nal_ref_idc != 0) {
     // dec_ref_pic_marking():
     if (is_idr) {

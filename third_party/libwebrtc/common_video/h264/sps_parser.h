@@ -30,6 +30,7 @@ class RTC_EXPORT SpsParser {
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t delta_pic_order_always_zero_flag = 0;
+    uint32_t chroma_format_idc = 1;
     uint32_t separate_colour_plane_flag = 0;
     uint32_t frame_mbs_only_flag = 0;
     uint32_t log2_max_frame_num = 4;          // Smallest valid value.

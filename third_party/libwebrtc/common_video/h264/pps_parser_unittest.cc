@@ -106,9 +106,9 @@ void WritePps(const PpsParser::PpsState& pps,
   }
 
   // num_ref_idx_l0_default_active_minus1: ue(v)
-  bit_buffer.WriteExponentialGolomb(kIgnored);
+  bit_buffer.WriteExponentialGolomb(pps.num_ref_idx_l0_default_active_minus1);
   // num_ref_idx_l1_default_active_minus1: ue(v)
-  bit_buffer.WriteExponentialGolomb(kIgnored);
+  bit_buffer.WriteExponentialGolomb(pps.num_ref_idx_l1_default_active_minus1);
   // weighted_pred_flag: u(1)
   bit_buffer.WriteBits(pps.weighted_pred_flag ? 1 : 0, 1);
   // weighted_bipred_idc: u(2)
@@ -179,6 +179,10 @@ class PpsParserTest : public ::testing::Test {
     ASSERT_TRUE(parsed_pps_);
     EXPECT_EQ(pps.bottom_field_pic_order_in_frame_present_flag,
               parsed_pps_->bottom_field_pic_order_in_frame_present_flag);
+    EXPECT_EQ(pps.num_ref_idx_l0_default_active_minus1,
+              parsed_pps_->num_ref_idx_l0_default_active_minus1);
+    EXPECT_EQ(pps.num_ref_idx_l1_default_active_minus1,
+              parsed_pps_->num_ref_idx_l1_default_active_minus1);
     EXPECT_EQ(pps.weighted_pred_flag, parsed_pps_->weighted_pred_flag);
     EXPECT_EQ(pps.weighted_bipred_idc, parsed_pps_->weighted_bipred_idc);
     EXPECT_EQ(pps.entropy_coding_mode_flag,

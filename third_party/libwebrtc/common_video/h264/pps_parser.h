@@ -30,6 +30,8 @@ class PpsParser {
     bool bottom_field_pic_order_in_frame_present_flag = false;
     bool weighted_pred_flag = false;
     bool entropy_coding_mode_flag = false;
+    uint32_t num_ref_idx_l0_default_active_minus1 = 0;
+    uint32_t num_ref_idx_l1_default_active_minus1 = 0;
     uint32_t weighted_bipred_idc = false;
     uint32_t redundant_pic_cnt_present_flag = 0;
     int pic_init_qp_minus26 = 0;

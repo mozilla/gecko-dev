@@ -131,9 +131,9 @@ absl::optional<PpsParser::PpsState> PpsParser::ParseInternal(
     }
   }
   // num_ref_idx_l0_default_active_minus1: ue(v)
-  reader.ReadExponentialGolomb();
+  pps.num_ref_idx_l0_default_active_minus1 = reader.ReadExponentialGolomb();
   // num_ref_idx_l1_default_active_minus1: ue(v)
-  reader.ReadExponentialGolomb();
+  pps.num_ref_idx_l1_default_active_minus1 = reader.ReadExponentialGolomb();
   // weighted_pred_flag: u(1)
   pps.weighted_pred_flag = reader.Read<bool>();
   // weighted_bipred_idc: u(2)
