@@ -634,11 +634,7 @@ def perf_builder(name, perf_cat, **kwargs):
     add_milo(name, {"perf": perf_cat})
     properties = make_reclient_properties("rbe-webrtc-trusted")
     properties["builder_group"] = "client.webrtc.perf"
-    dimensions = {"pool": "luci.webrtc.perf", "os": "Linux", "cores": "2"}
-    if "Android" in name or "Fuchsia" in name:
-        # Android perf testers require more performant bots to finish under 3 hours.
-        # Fuchsia perf testers encountered "no space left on device" error on multiple runs.
-        dimensions["cores"] = "8"
+    dimensions = {"pool": "luci.webrtc.perf", "os": "Linux"}
     return webrtc_builder(
         name = name,
         dimensions = dimensions,
