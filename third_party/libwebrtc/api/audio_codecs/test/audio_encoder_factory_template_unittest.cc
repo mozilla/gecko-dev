@@ -17,14 +17,19 @@
 #include "api/audio_codecs/g722/audio_encoder_g722.h"
 #include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_audio_encoder.h"
 #include "test/scoped_key_value_config.h"
 
 namespace webrtc {
-
 namespace {
+
+using ::testing::IsNull;
+using ::testing::Pointer;
+using ::testing::Property;
 
 struct BogusParams {
   static SdpAudioFormat AudioFormat() { return {"bogus", 8000, 1}; }
@@ -73,10 +78,9 @@ struct AudioEncoderFakeApi {
   }
 };
 
-}  // namespace
-
 TEST(AudioEncoderFactoryTemplateTest, NoEncoderTypes) {
   test::ScopedKeyValueConfig field_trials;
+  const Environment env = CreateEnvironment(&field_trials);
   rtc::scoped_refptr<AudioEncoderFactory> factory(
       rtc::make_ref_counted<
           audio_encoder_factory_template_impl::AudioEncoderFactoryT<>>(
@@ -85,9 +89,12 @@ TEST(AudioEncoderFactoryTemplateTest, NoEncoderTypes) {
   EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(nullptr,
             factory->MakeAudioEncoder(17, {"bar", 16000, 1}, absl::nullopt));
+
+  EXPECT_THAT(factory->Create(env, {"bar", 16000, 1}, {}), IsNull());
 }
 
 TEST(AudioEncoderFactoryTemplateTest, OneEncoderType) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioEncoderFactory<AudioEncoderFakeApi<BogusParams>>();
   EXPECT_THAT(factory->GetSupportedEncoders(),
               ::testing::ElementsAre(
@@ -100,9 +107,14 @@ TEST(AudioEncoderFactoryTemplateTest, OneEncoderType) {
   auto enc = factory->MakeAudioEncoder(17, {"bogus", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, enc);
   EXPECT_EQ(8000, enc->SampleRateHz());
+
+  EXPECT_THAT(factory->Create(env, {"bar", 16000, 1}, {}), IsNull());
+  EXPECT_THAT(factory->Create(env, {"bogus", 8000, 1}, {}),
+              Pointer(Property(&AudioEncoder::SampleRateHz, 8000)));
 }
 
 TEST(AudioEncoderFactoryTemplateTest, TwoEncoderTypes) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioEncoderFactory<AudioEncoderFakeApi<BogusParams>,
                                            AudioEncoderFakeApi<ShamParams>>();
   EXPECT_THAT(factory->GetSupportedEncoders(),
@@ -127,6 +139,13 @@ TEST(AudioEncoderFactoryTemplateTest, TwoEncoderTypes) {
       17, {"sham", 16000, 2, {{"param", "value"}}}, absl::nullopt);
   ASSERT_NE(nullptr, enc2);
   EXPECT_EQ(16000, enc2->SampleRateHz());
+
+  EXPECT_THAT(factory->Create(env, {"bar", 16000, 1}, {}), IsNull());
+  EXPECT_THAT(factory->Create(env, {"bogus", 8000, 1}, {}),
+              Pointer(Property(&AudioEncoder::SampleRateHz, 8000)));
+  EXPECT_THAT(
+      factory->Create(env, {"sham", 16000, 2, {{"param", "value"}}}, {}),
+      Pointer(Property(&AudioEncoder::SampleRateHz, 16000)));
 }
 
 TEST(AudioEncoderFactoryTemplateTest, G711) {
@@ -221,4 +240,5 @@ TEST(AudioEncoderFactoryTemplateTest, Opus) {
   EXPECT_EQ(48000, enc->SampleRateHz());
 }
 
+}  // namespace
 }  // namespace webrtc
