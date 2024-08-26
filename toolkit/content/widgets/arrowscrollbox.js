@@ -101,9 +101,13 @@
       this.shadowRoot.addEventListener("mouseout", this.on_mouseout.bind(this));
 
       let overflowObserver = new ResizeObserver(([entry]) => {
-        let overflowing =
-          entry.contentRect[this.#verticalMode ? "height" : "width"] >
-          this.scrollClientSize;
+        let contentSize =
+          entry.contentRect[this.#verticalMode ? "height" : "width"];
+        // NOTE(emilio): This should be contentSize > scrollClientSize, but due
+        // to how Gecko internally rounds in those cases, we allow for some
+        // minor differences (the internal Gecko layout size is 1/60th of a
+        // pixel, so 0.02 should cover it).
+        let overflowing = contentSize - this.scrollClientSize > 0.02;
         if (overflowing == this.hasAttribute("overflowing")) {
           return;
         }
