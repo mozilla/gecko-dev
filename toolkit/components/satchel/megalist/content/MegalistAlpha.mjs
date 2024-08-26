@@ -213,6 +213,7 @@ export class MegalistAlpha extends MozLitElement {
         <panel-item
           action="import-from-browser"
           data-l10n-id="about-logins-menu-menuitem-import-from-another-browser"
+          @click=${() => this.#sendCommand("ImportFromBrowser")}
         ></panel-item>
         <panel-item
           action="import-from-file"

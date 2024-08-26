@@ -93,16 +93,16 @@ add_task(async function test_passwords_sidebar() {
   SidebarController.hide();
 });
 
+// Select the button within the <panel-item> element, as that is the target we want to click.
+// Triggering a click event directly on the <panel-item> would fail a11y tests because
+// <panel-item>  has a default role="presentation," which cannot be overridden.
+const getShadowBtn = (menu, selector) =>
+  menu.querySelector(selector).shadowRoot.querySelector("button");
+
 add_task(async function test_passwords_menu_external_links() {
   const passwordsSidebar = await openPasswordsSidebar();
   const menu = passwordsSidebar.querySelector("panel-list");
   const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
-
-  // Select the button within the <panel-item> element, as that is the target we want to click.
-  // Triggering a click event directly on the <panel-item> would fail a11y tests because
-  // <panel-item>  has a default role="presentation," which cannot be overridden.
-  const menuItem = selector =>
-    menu.querySelector(selector).shadowRoot.querySelector("button");
 
   menuButton.click();
   await BrowserTestUtils.waitForEvent(menu, "shown");
@@ -112,7 +112,7 @@ add_task(async function test_passwords_menu_external_links() {
     PREFERENCES_URL
   );
 
-  menuItem("[action='open-preferences']").click();
+  getShadowBtn(menu, "[action='open-preferences']").click();
   await preferencesTabPromise;
   ok(true, "passwords settings in preferences opened.");
 
@@ -120,7 +120,7 @@ add_task(async function test_passwords_menu_external_links() {
   await BrowserTestUtils.waitForEvent(menu, "shown");
   const helpTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, SUPPORT_URL);
 
-  menuItem("[action='open-help']").click();
+  getShadowBtn(menu, "[action='open-help']").click();
   const helpTab = await helpTabPromise;
   ok(true, "support link opened.");
 
@@ -128,6 +128,35 @@ add_task(async function test_passwords_menu_external_links() {
   // We need this since removing gBrowser.selectedTab (this is the tab that has about:preferences)
   // without a fallback causes an error. Leaving it causes a leak when running in chaos mode.
   // It seems that our testing framework is smart enough to cleanup about:blank pages.
+  BrowserTestUtils.addTab(gBrowser, "about:blank");
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  SidebarController.hide();
+});
+
+async function waitForMigrationWizard() {
+  let wizardReadyPromise = BrowserTestUtils.waitForEvent(
+    window,
+    "MigrationWizard:Ready"
+  );
+  await BrowserTestUtils.waitForLocationChange(
+    gBrowser,
+    "about:preferences#general"
+  );
+  return wizardReadyPromise;
+}
+
+add_task(async function test_passwords_menu_import_from_browser() {
+  const passwordsSidebar = await openPasswordsSidebar();
+  const menu = passwordsSidebar.querySelector("panel-list");
+  const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
+
+  menuButton.click();
+  await BrowserTestUtils.waitForEvent(menu, "shown");
+
+  const wizardReadyPromise = waitForMigrationWizard();
+  getShadowBtn(menu, "[action='import-from-browser']").click();
+  const wizard = await wizardReadyPromise;
+  ok(wizard, "migration wizard opened");
   BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   SidebarController.hide();
