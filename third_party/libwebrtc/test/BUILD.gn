@@ -496,6 +496,7 @@ rtc_library("fixed_fps_video_frame_writer_adapter") {
     "testsupport/fixed_fps_video_frame_writer_adapter.h",
   ]
   deps = [
+    ":video_frame_writer",
     ":video_test_support",
     "../api/test/video:video_frame_writer",
     "../api/units:time_delta",
@@ -504,6 +505,12 @@ rtc_library("fixed_fps_video_frame_writer_adapter") {
     "../system_wrappers",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
+}
+
+rtc_library("video_frame_writer") {
+  sources = []
+
+  deps = []
 }
 
 rtc_library("video_test_support") {
