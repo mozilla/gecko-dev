@@ -132,9 +132,8 @@ class Breakpoint extends PureComponent {
   }
 
   highlightText(text = "", editor) {
-    const node = document.createElement("div");
-    editor.CodeMirror.runMode(text, "application/javascript", node);
-    return { __html: node.innerHTML };
+    const htmlString = editor.highlightText(document, text);
+    return { __html: htmlString };
   }
 
   render() {
@@ -172,6 +171,7 @@ class Breakpoint extends PureComponent {
           title: text,
         },
         span({
+          className: "cm-highlighted",
           dangerouslySetInnerHTML: this.highlightText(text, editor),
         })
       ),

@@ -33,7 +33,7 @@ body {
 
 .theme-link,
 .cm-s-mozilla .cm-link,
-.cm-editor .tok-link,
+:is(.cm-editor, .cm-highlighted) .tok-link,
 .CodeMirror-Tern-type {
   color: var(--grey-45);
 }
@@ -45,7 +45,7 @@ body {
  :is(
   .theme-link,
   .cm-s-mozilla .cm-link,
-  .cm-editor .tok-link
+  :is(.cm-editor, .cm-highlighted) .tok-link
 ):visited {
   color: var(--theme-link-color);
 }
@@ -54,7 +54,7 @@ body {
 .cm-s-mozilla .cm-meta,
 .cm-s-mozilla .cm-hr,
 .cm-s-mozilla .cm-comment,
-.cm-editor :is(
+:is(.cm-editor, .cm-highlighted) :is(
   .tok-meta,
   .tok-comment
 ),
@@ -74,7 +74,7 @@ body {
 }
 
 .cm-s-mozilla .cm-number,
-.cm-editor .tok-number,
+:is(.cm-editor, .cm-highlighted) .tok-number,
 .variable-or-property .token-number,
 .variable-or-property[return] > .title > .name,
 .variable-or-property[scope] > .title > .name {
@@ -89,14 +89,14 @@ body {
 .cm-s-mozilla .cm-attribute,
 .cm-s-mozilla .cm-builtin,
 .cm-s-mozilla .cm-keyword,
-.cm-editor .tok-keyword,
+:is(.cm-editor, .cm-highlighted) .tok-keyword,
 .variables-view-variable > .title > .name {
   color: var(--theme-highlight-red);
 }
 
 .cm-s-mozilla .cm-def,
 .cm-s-mozilla .cm-variable-2,
-.cm-editor :is(
+:is(.cm-editor, .cm-highlighted) :is(
   .tok-variableName.tok-definition,
   .tok-variableName
 ) {
@@ -104,12 +104,12 @@ body {
 }
 
 .cm-s-mozilla .cm-variable,
-.cm-editor .tok-variableName2 {
+:is(.cm-editor, .cm-highlighted) .tok-variableName2 {
   color: var(--theme-highlight-purple);
 }
 
 .cm-s-mozilla .cm-property,
-.cm-editor .tok-propertyName {
+:is(.cm-editor, .cm-highlighted) .tok-propertyName {
   color: var(--theme-highlight-green);
 }
 
@@ -122,7 +122,7 @@ body {
 .cm-s-mozilla .cm-header,
 .cm-s-mozilla .cm-bracket,
 .cm-s-mozilla .cm-qualifier,
-.cm-editor .tok-heading,
+:is(.cm-editor, .cm-highlighted) .tok-heading,
 .variables-view-property > .title > .name {
   color: var(--theme-highlight-blue);
 }
@@ -137,7 +137,7 @@ body {
 
 .cm-s-mozilla .cm-string,
 .cm-s-mozilla .cm-string-2,
-.cm-editor .tok-string,
+:is(.cm-editor, .cm-highlighted) .tok-string,
 .variable-or-property .token-string,
 .CodeMirror-Tern-farg {
   color: #709AFF;
@@ -151,7 +151,7 @@ body {
 .cm-s-mozilla .cm-atom,
 .cm-s-mozilla .cm-quote,
 .cm-s-mozilla .cm-error,
-.cm-editor :is(
+:is(.cm-editor, .cm-highlighted) :is(
   .tok-atom,
   .tok-bool,
   .tok-invalid
@@ -210,7 +210,7 @@ body {
 }
 
 .cm-s-mozilla .cm-operator,
-.cm-editor :is(
+:is(.cm-editor, .cm-highlighted) :is(
   .tok-punctuation,
   .tok-operator
 ) {
@@ -258,7 +258,7 @@ div.CodeMirror span.marked-text {
 
 .cm-s-mozilla .empty-line .CodeMirror-linenumber,
 /* Codemirror 6 */
-.cm-editor .cm-gutterElement.empty-line {
+:is(.cm-editor, .cm-highlighted) .cm-gutterElement.empty-line {
   color: var(--grey-50);
 }
 
@@ -276,7 +276,7 @@ div.CodeMirror span.eval-text {
 
 .cm-s-mozilla .CodeMirror-linenumber, /* line number text */
 /* Codemirror 6 */
-.cm-editor .cm-gutterElement {
+:is(.cm-editor, .cm-highlighted) .cm-gutterElement {
   color: var(--grey-40);
 }
 

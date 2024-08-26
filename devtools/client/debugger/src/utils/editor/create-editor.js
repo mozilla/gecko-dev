@@ -38,8 +38,14 @@ export function createEditor(useCm6 = false) {
   });
 }
 
-export function createHeadlessEditor() {
-  const editor = createEditor();
+/**
+ * Create an headless editor (can be used for syntax highlighting for example)
+ *
+ * @param {Boolean} useCm6: Should the headless editor use CodeMirror 6
+ * @returns {CodeMirror}
+ */
+export function createHeadlessEditor(useCm6) {
+  const editor = createEditor(useCm6);
   editor.appendToLocalElement(document.createElement("div"));
   return editor;
 }

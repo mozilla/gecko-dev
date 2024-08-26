@@ -3205,6 +3205,52 @@ class Editor extends EventEmitter {
     const name = element.tagName.toLowerCase();
     return name === "input" || name === "textarea";
   }
+
+  /**
+   * Parse passed code string and returns an HTML string with the same classes CodeMirror
+   * adds to handle syntax highlighting.
+   *
+   * @param {Document} doc: A document that will be used to create elements
+   * @param {String} code: The code to highlight
+   * @returns {String} The HTML string for the parsed code
+   */
+  highlightText(doc, code) {
+    if (!doc) {
+      return code;
+    }
+
+    const outputNode = doc.createElement("div");
+    if (!this.config.cm6) {
+      this.CodeMirror.runMode(code, "application/javascript", outputNode);
+    } else {
+      const { codemirrorLangJavascript, lezerHighlight } = this.#CodeMirror6;
+      const { highlightCode, classHighlighter } = lezerHighlight;
+
+      function emit(text, classes) {
+        const textNode = doc.createTextNode(text);
+        if (classes) {
+          const span = doc.createElement("span");
+          span.appendChild(textNode);
+          span.className = classes;
+          outputNode.appendChild(span);
+        } else {
+          outputNode.appendChild(textNode);
+        }
+      }
+      function emitBreak() {
+        outputNode.appendChild(doc.createTextNode("\n"));
+      }
+
+      highlightCode(
+        code,
+        codemirrorLangJavascript.javascriptLanguage.parser.parse(code),
+        classHighlighter,
+        emit,
+        emitBreak
+      );
+    }
+    return outputNode.innerHTML;
+  }
 }
 
 // Since Editor is a thin layer over CodeMirror some methods

@@ -25,6 +25,7 @@ import {
   getShouldPauseOnExceptions,
   getShouldPauseOnCaughtExceptions,
 } from "../../../selectors/index";
+import { features } from "../../../utils/prefs";
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -44,9 +45,15 @@ class Breakpoints extends Component {
     this.removeEditor();
   }
 
-  getHeadlessEditor() {
+  /**
+   * Get an headless editor that can be used for syntax highlighting
+   *
+   * @param {Boolean} useCm6: Should the headless editor use CodeMirror 6
+   * @returns {CodeMirror}
+   */
+  getHeadlessEditor(useCm6) {
     if (!this.headlessEditor) {
-      this.headlessEditor = createHeadlessEditor();
+      this.headlessEditor = createHeadlessEditor(useCm6);
     }
     return this.headlessEditor;
   }
@@ -119,7 +126,9 @@ class Breakpoints extends Component {
       return null;
     }
 
-    const editor = this.getHeadlessEditor();
+    // We need to create a specific editor instance to handle cases where we don't have
+    // any editor opened yet.
+    const editor = this.getHeadlessEditor(features.codemirrorNext);
     const sources = breakpointSources.map(({ source }) => source);
     return div(
       {
