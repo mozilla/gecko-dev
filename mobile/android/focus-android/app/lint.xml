@@ -10,6 +10,22 @@
     <issue id="StringFormatCount" severity="ignore" />
     <issue id="TypographyEllipsis" severity="ignore" />
     <issue id="ExtraTranslation" severity="warning" />
+    <issue id="BlankString" severity="error">
+        <ignore path="**/values/preference_keys.xml" />
+    </issue>
+    <issue id="BrandUsage" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+        <ignore path="**/values/app.xml" />
+    </issue>
+    <issue id="IncorrectEllipsisCharacter" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+    </issue>
+    <issue id="IncorrectStraightQuote" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+    </issue>
+    <issue id="IncorrectStraightDoubleQuote" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+    </issue>
 
     <!-- Ignore support library lint bug: https://code.google.com/p/android/issues/detail?id=227098
          (Present in 25.3.1, despite claims of being fixed in 23) -->

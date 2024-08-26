@@ -15,6 +15,26 @@
     <issue id="StringFormatCount" severity="ignore" />
     <issue id="TypographyEllipsis" severity="ignore" />
     <issue id="ExtraTranslation" severity="ignore" />
+    <issue id="BrandUsage" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+        <ignore path="**/values-*/*_strings.xml" />
+        <ignore path="**/values/*_strings.xml" />
+    </issue>
+    <issue id="IncorrectStraightQuote" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+    </issue>
+    <issue id="IncorrectStraightDoubleQuote" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+        <ignore path="**/values/*_strings.xml" />
+        <ignore path="**/values/arrays.xml" />
+    </issue>
+    <issue id="IncorrectEllipsisCharacter" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+    </issue>
+    <issue id="BlankString" severity="error">
+        <ignore path="**/values-*/strings.xml" />
+        <ignore path="**/values/*_strings.xml" />
+    </issue>
 
     <!-- Lints that are disabled by default -->
     <issue id="ConvertToWebp" severity="warning" />
@@ -67,4 +87,3 @@
     <!-- Correctness: checks with increased severity -->
     <issue id="PrivateResource" severity="error" />
 </lint>
-
