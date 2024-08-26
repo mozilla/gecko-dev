@@ -68,7 +68,7 @@ object Versions {
         const val coordinatorlayout = "1.2.0"
         const val core = "1.13.1"
         const val drawerlayout = "1.2.0"
-        const val fragment = "1.6.2"
+        const val fragment = "1.8.2"
         const val recyclerview = "1.3.2"
         const val room = "2.6.1"
         const val savedstate = "1.2.1"
