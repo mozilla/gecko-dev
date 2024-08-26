@@ -68,9 +68,8 @@
   'ios-device-16.7': {
     'swarming': {
       'dimensions': {
-        'os': 'iOS-16.7.1',
-        'pool': 'chrome.tests',
-        'device_status': 'available'
+        'os': 'iOS-16.7.5',
+        'pool': 'chrome.tests'
       }
     }
   },
@@ -101,11 +100,11 @@
       }]
     }
   },
-  'ios_runtime_cache_17_4': {
+  'ios_runtime_cache_17_5': {
     'swarming': {
       'named_caches': [{
-        'name': 'runtime_ios_17_4',
-        'path': 'Runtime-ios-17.4'
+        'name': 'runtime_ios_17_5',
+        'path': 'Runtime-ios-17.5'
       }]
     }
   },
@@ -322,10 +321,10 @@
     }
   },
   'xcode_15_main': {
-    'args': ['--xcode-build-version', '15c500b'],
+    'args': ['--xcode-build-version', '15f31d'],
     'swarming': {
       'named_caches': [{
-        'name': 'xcode_ios_15c500b',
+        'name': 'xcode_ios_15f31d',
         'path': 'Xcode.app'
       }]
     }
