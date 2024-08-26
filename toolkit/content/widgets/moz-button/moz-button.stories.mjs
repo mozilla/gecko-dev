@@ -6,7 +6,7 @@ import { html, ifDefined } from "../vendor/lit.all.mjs";
 import "./moz-button.mjs";
 
 export default {
-  title: "UI Widgets/Moz Button",
+  title: "UI Widgets/Button",
   component: "moz-button",
   argTypes: {
     l10nId: {
