@@ -207,6 +207,10 @@ void APZEventResult::SetStatusForFastFling(
   // to content at all.
   mStatus = nsEventStatus_eConsumeNoDefault;
 
+  // Re-initialize with DispatchToContent::No, since being in a fast fling
+  // means the event will definitely not be dispatched to content.
+  mHandledResult = APZHandledResult::Initialize(aTarget, DispatchToContent::No);
+
   // In the case of fast fling, the event will never be sent to content, so we
   // want a result where `aDispatchToContent` is false whatever the original
   // `aFlags.mDispatchToContent` is.

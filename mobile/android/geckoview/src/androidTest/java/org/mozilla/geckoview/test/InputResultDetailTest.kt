@@ -607,4 +607,125 @@ class InputResultDetailTest : BaseSessionTest() {
             PanZoomController.OVERSCROLL_FLAG_HORIZONTAL,
         )
     }
+
+    @WithDisplay(width = 100, height = 100)
+    @Test
+    fun testOppositeTouchScrollingDuringFastFling() {
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "apz.touch_start_tolerance" to "0", // To avoid touch events fall into slop state.
+                "apz.fling_min_velocity_threshold" to "0", // To trigger fling animations easier.
+                "apz.android.chrome_fling_physics.friction" to "0.0001", // To keep the fling animation alive for a while.
+            ),
+        )
+        setupDocument(BUG1912358_HTML_PATH)
+
+        // Prepare a scroll event listener.
+        val scrollPromise = mainSession.evaluatePromiseJS(
+            """
+            new Promise(resolve => {
+                window.addEventListener('scroll', () => {
+                    resolve(true);
+                }, { once: true });
+            });
+            """.trimIndent(),
+        )
+
+        // Send a series of touch events to trigger a fast fling animation.
+        var downTime = SystemClock.uptimeMillis()
+        var down = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_DOWN,
+            50f,
+            50f,
+            0,
+        )
+        var result = mainSession.panZoomController.onTouchEventForDetailResult(down)
+
+        // Send two touch move events here since with "apz.touch_start_tolerance=0"
+        // a touch move event doesn't scroll.
+        var move = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_MOVE,
+            50f,
+            40f,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(move)
+
+        move = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_MOVE,
+            50f,
+            30f,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(move)
+
+        // Make sure the content has been scrolled.
+        assertThat("scroll", scrollPromise.value as Boolean, equalTo(true))
+        var value = sessionRule.waitForResult(result)
+        assertResultDetail(
+            "testOppositeTouchScrollingDuringFastFling",
+            value,
+            PanZoomController.INPUT_RESULT_HANDLED,
+            PanZoomController.SCROLLABLE_FLAG_BOTTOM,
+            (PanZoomController.OVERSCROLL_FLAG_HORIZONTAL or PanZoomController.OVERSCROLL_FLAG_VERTICAL),
+        )
+
+        var up = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_UP,
+            50f,
+            10f,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(up)
+
+        // Send a new series of upward touch events during the fling animation.
+        downTime = SystemClock.uptimeMillis()
+        down = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_DOWN,
+            50f,
+            50f,
+            0,
+        )
+        result = mainSession.panZoomController.onTouchEventForDetailResult(down)
+
+        move = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_MOVE,
+            50f,
+            60f,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(move)
+
+        up = MotionEvent.obtain(
+            downTime,
+            SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_UP,
+            50f,
+            60f,
+            0,
+        )
+        mainSession.panZoomController.onTouchEvent(up)
+
+        value = sessionRule.waitForResult(result)
+
+        assertResultDetail(
+            "testOppositeTouchScrollingDuringFastFling",
+            value,
+            PanZoomController.INPUT_RESULT_HANDLED,
+            (PanZoomController.SCROLLABLE_FLAG_BOTTOM or PanZoomController.SCROLLABLE_FLAG_TOP),
+            (PanZoomController.OVERSCROLL_FLAG_HORIZONTAL or PanZoomController.OVERSCROLL_FLAG_VERTICAL),
+        )
+    }
 }
