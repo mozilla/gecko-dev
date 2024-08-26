@@ -76,7 +76,10 @@ class TabListener : public nsIDOMEventListener,
   void RemoveListeners();
   void SetEpoch(uint32_t aEpoch) { mEpoch = aEpoch; }
   uint32_t GetEpoch() { return mEpoch; }
-  void UpdateSHistoryChanges() { AddTimerForUpdate(); }
+  void UpdateSHistoryChanges() {
+    mSessionStore->SetSHistoryChanged();
+    AddTimerForUpdate();
+  }
   void SetOwnerContent(Element* aElement);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
