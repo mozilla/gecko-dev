@@ -658,11 +658,9 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     /**
      * Handles intents received when the activity is open.
      */
-    final override fun onNewIntent(intent: Intent?) {
+    final override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let {
-            handleNewIntent(it)
-        }
+        handleNewIntent(intent)
         startupPathProvider.onIntentReceived(intent)
     }
 
