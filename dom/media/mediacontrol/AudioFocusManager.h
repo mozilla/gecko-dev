@@ -29,24 +29,15 @@ class AudioFocusManager {
   void RevokeAudioFocus(IMediaController* aController);
 
   explicit AudioFocusManager() = default;
-  ~AudioFocusManager();
+  ~AudioFocusManager() = default;
 
   uint32_t GetAudioFocusNums() const;
 
  private:
   friend class MediaControlService;
-  // Return true if we manage audio focus by clearing other controllers owning
-  // audio focus before assigning audio focus to the new controller.
-  bool ClearFocusControllersIfNeeded();
-
-  void CreateTimerForUpdatingTelemetry();
-  // This would check if user has managed audio focus by themselves and update
-  // the result to telemetry. This method should only be called from timer.
-  void UpdateTelemetryDataFromTimer(uint32_t aPrevFocusNum,
-                                    uint64_t aPrevActiveControllerNum);
+  void ClearFocusControllersIfNeeded();
 
   nsTArray<RefPtr<IMediaController>> mOwningFocusControllers;
-  RefPtr<SimpleTimer> mTelemetryTimer;
 };
 
 }  // namespace mozilla::dom
