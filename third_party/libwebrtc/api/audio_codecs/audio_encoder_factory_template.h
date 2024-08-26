@@ -44,8 +44,7 @@ struct Helper<> {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       int payload_type,
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id,
-      const FieldTrialsView* field_trials) {
+      absl::optional<AudioCodecPairId> codec_pair_id) {
     return nullptr;
   }
   static absl::Nullable<std::unique_ptr<AudioEncoder>> CreateAudioEncoder(
@@ -78,14 +77,13 @@ struct Helper<T, Ts...> {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       int payload_type,
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id,
-      const FieldTrialsView* field_trials) {
+      absl::optional<AudioCodecPairId> codec_pair_id) {
     auto opt_config = T::SdpToConfig(format);
     if (opt_config) {
       return T::MakeAudioEncoder(*opt_config, payload_type, codec_pair_id);
     } else {
       return Helper<Ts...>::MakeAudioEncoder(payload_type, format,
-                                             codec_pair_id, field_trials);
+                                             codec_pair_id);
     }
   }
 
@@ -106,10 +104,6 @@ struct Helper<T, Ts...> {
 template <typename... Ts>
 class AudioEncoderFactoryT : public AudioEncoderFactory {
  public:
-  explicit AudioEncoderFactoryT(const FieldTrialsView* field_trials) {
-    field_trials_ = field_trials;
-  }
-
   std::vector<AudioCodecSpec> GetSupportedEncoders() override {
     std::vector<AudioCodecSpec> specs;
     Helper<Ts...>::AppendSupportedEncoders(&specs);
@@ -125,8 +119,7 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
       int payload_type,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) override {
-    return Helper<Ts...>::MakeAudioEncoder(payload_type, format, codec_pair_id,
-                                           field_trials_);
+    return Helper<Ts...>::MakeAudioEncoder(payload_type, format, codec_pair_id);
   }
 
   absl::Nullable<std::unique_ptr<AudioEncoder>> Create(
@@ -135,8 +128,6 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
       Options options) override {
     return Helper<Ts...>::CreateAudioEncoder(env, format, options);
   }
-
-  const FieldTrialsView* field_trials_;
 };
 
 }  // namespace audio_encoder_factory_template_impl
@@ -177,8 +168,7 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 // TODO(kwiberg): Point at CreateBuiltinAudioEncoderFactory() for an example of
 // how it is used.
 template <typename... Ts>
-rtc::scoped_refptr<AudioEncoderFactory> CreateAudioEncoderFactory(
-    const FieldTrialsView* field_trials = nullptr) {
+rtc::scoped_refptr<AudioEncoderFactory> CreateAudioEncoderFactory() {
   // There's no technical reason we couldn't allow zero template parameters,
   // but such a factory couldn't create any encoders, and callers can do this
   // by mistake by simply forgetting the <> altogether. So we forbid it in
@@ -187,8 +177,14 @@ rtc::scoped_refptr<AudioEncoderFactory> CreateAudioEncoderFactory(
                 "Caller must give at least one template parameter");
 
   return rtc::make_ref_counted<
-      audio_encoder_factory_template_impl::AudioEncoderFactoryT<Ts...>>(
-      field_trials);
+      audio_encoder_factory_template_impl::AudioEncoderFactoryT<Ts...>>();
+}
+
+// TODO: bugs.webrtc.org/343086059 - Delete after 2024-07-24
+template <typename... Ts>
+[[deprecated]] rtc::scoped_refptr<AudioEncoderFactory>
+CreateAudioEncoderFactory(const FieldTrialsView*) {
+  return CreateAudioEncoderFactory<Ts...>();
 }
 
 }  // namespace webrtc
