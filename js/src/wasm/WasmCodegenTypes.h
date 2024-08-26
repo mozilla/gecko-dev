@@ -985,8 +985,8 @@ class CalleeDesc {
     } import;
     struct {
       uint32_t instanceDataOffset_;
-      uint32_t minLength_;
-      mozilla::Maybe<uint32_t> maxLength_;
+      uint64_t minLength_;
+      mozilla::Maybe<uint64_t> maxLength_;
       CallIndirectId callIndirectId_;
     } table;
     SymbolicAddress builtin_;

@@ -100,7 +100,7 @@ if (MemoryMaxRuntime < 65536) {
     testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, false);
     testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, true);
 } else {
-    let testMemoryFailCreate = function(initial, maximum, shared) {
+    let testMemoryFailCreate = function(initial, maximum, shared, jsError, jsMsg) {
         assertErrorMessage(() => wasmEvalText(`(module
     (memory ${initial} ${maximum || ''} ${shared ? 'shared' : ''})
   )`), WebAssembly.CompileError, /(initial memory size too big)|(memory size minimum must not be greater than maximum)/);
@@ -108,12 +108,12 @@ if (MemoryMaxRuntime < 65536) {
             initial,
             maximum,
             shared
-        }), RangeError, /bad Memory initial size/);
+        }), jsError, jsMsg);
     }
 
-    testMemoryFailCreate(MemoryMaxRuntime + 1, undefined, false);
-    testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, false);
-    testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, true);
+    testMemoryFailCreate(MemoryMaxRuntime + 1, undefined, false, RangeError, /bad Memory initial size/);
+    testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, false, RangeError, /initial Memory size cannot be greater than maximum/);
+    testMemoryFailCreate(MemoryMaxRuntime + 1, MemoryMaxValid, true, RangeError, /initial Memory size cannot be greater than maximum/);
 }
 
 

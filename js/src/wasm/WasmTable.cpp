@@ -47,6 +47,7 @@ Table::Table(JSContext* cx, const TableDesc& desc,
   // referencing.
   elemType_.AddRef();
   MOZ_ASSERT(repr() == TableRepr::Func);
+  MOZ_ASSERT(length_ <= MaxTableElemsRuntime);
 }
 
 Table::Table(JSContext* cx, const TableDesc& desc,
@@ -63,6 +64,7 @@ Table::Table(JSContext* cx, const TableDesc& desc,
   // referencing.
   elemType_.AddRef();
   MOZ_ASSERT(repr() == TableRepr::Ref);
+  MOZ_ASSERT(length_ <= MaxTableElemsRuntime);
 }
 
 Table::~Table() {
@@ -381,7 +383,7 @@ uint32_t Table::grow(uint32_t delta) {
 
   CheckedInt<uint32_t> newLength = oldLength;
   newLength += delta;
-  if (!newLength.isValid() || newLength.value() > MaxTableLength) {
+  if (!newLength.isValid() || newLength.value() > MaxTableElemsRuntime) {
     return -1;
   }
 

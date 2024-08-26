@@ -553,7 +553,7 @@ static int32_t PerformWake(Instance* instance, PtrT byteOffset, int32_t count,
   Pages pages = instance->memory(memoryIndex)->volatilePages();
 #ifdef JS_64BIT
   // Ensure that the memory size is no more than 4GiB.
-  MOZ_ASSERT(pages <= Pages(MaxMemory32LimitField));
+  MOZ_ASSERT(pages <= Pages(MaxMemory32PagesValidation));
 #endif
   return uint32_t(pages.value());
 }
@@ -569,7 +569,7 @@ static int32_t PerformWake(Instance* instance, PtrT byteOffset, int32_t count,
 
   Pages pages = instance->memory(memoryIndex)->volatilePages();
 #ifdef JS_64BIT
-  MOZ_ASSERT(pages <= Pages(MaxMemory64LimitField));
+  MOZ_ASSERT(pages <= Pages(MaxMemory64PagesValidation));
 #endif
   return pages.value();
 }

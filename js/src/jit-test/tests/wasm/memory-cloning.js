@@ -11,6 +11,10 @@ function makeMemoryDesc(memtype, d) {
     return d;
 }
 
+function Idx(memtype, v) {
+    return memtype == 'i64' ? BigInt(v) : v;
+}
+
 function Zero(memtype) {
     return memtype == 'i64' ? 0n : 0;
 }
@@ -19,7 +23,7 @@ function Zero(memtype) {
 // shared, whether we transfer them or not.
 
 for ( let memtype of memtypes ) {
-    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: 2, maximum: 4}));
+    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: Idx(memtype, 2), maximum: Idx(memtype, 4)}));
     assertErrorMessage(() => serialize(mem1),
 		       TypeError,
 		       /unsupported type for structured data/);
@@ -33,7 +37,7 @@ for ( let memtype of memtypes ) {
 
 for ( let memtype of memtypes ) {
     let ptrtype = memtype == 'i64' ? memtype : 'i32';
-    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: 2, maximum: 4, shared: true}));
+    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: Idx(memtype, 2), maximum: Idx(memtype, 4), shared: true}));
     let buf1 = mem1.buffer;
 
     // Serialization and deserialization of shared memories work:
@@ -82,7 +86,7 @@ for ( let memtype of memtypes ) {
 // Should not be possible to transfer a shared memory
 
 for ( let memtype of memtypes ) {
-    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: 2, maximum: 4, shared: true}));
+    let mem1 = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: Idx(memtype, 2), maximum: Idx(memtype, 4), shared: true}));
     assertErrorMessage(() => serialize(mem1, [mem1]),
 		       TypeError,
 		       /Shared memory objects must not be in the transfer list/);
@@ -94,10 +98,10 @@ for ( let memtype of memtypes ) {
 // and before deserialization.
 
 for ( let memtype of memtypes ) {
-    let mem = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: 2, maximum: 4, shared: true}));
+    let mem = new WebAssembly.Memory(makeMemoryDesc(memtype, {initial: Idx(memtype, 2), maximum: Idx(memtype, 4), shared: true}));
     let buf = mem.buffer;
     let clonedbuf = serialize(buf, [], {SharedArrayBuffer: 'allow'});
-    mem.grow(1);
+    mem.grow(Idx(memtype, 1));
     let buf2 = deserialize(clonedbuf, {SharedArrayBuffer: 'allow'});
     assertEq(buf.byteLength, buf2.byteLength);
 }

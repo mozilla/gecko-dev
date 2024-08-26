@@ -138,9 +138,14 @@ static inline size_t MaxMemoryBytes(IndexType t) {
 // platforms.  Also see ComputeMappedSize().)
 extern size_t MaxMemoryBoundsCheckLimit(IndexType t);
 
-static inline uint64_t MaxMemoryLimitField(IndexType indexType) {
-  return indexType == IndexType::I32 ? MaxMemory32LimitField
-                                     : MaxMemory64LimitField;
+static inline uint64_t MaxMemoryPagesValidation(IndexType indexType) {
+  return indexType == IndexType::I32 ? MaxMemory32PagesValidation
+                                     : MaxMemory64PagesValidation;
+}
+
+static inline uint64_t MaxTableElemsValidation(IndexType indexType) {
+  return indexType == IndexType::I32 ? MaxTable32ElemsValidation
+                                     : MaxTable64ElemsValidation;
 }
 
 // Compute the 'clamped' maximum size of a memory. See

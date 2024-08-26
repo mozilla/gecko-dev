@@ -50,7 +50,7 @@ class Table : public ShareableBase<Table> {
   const RefType elemType_;
   const bool isAsmJS_;
   uint32_t length_;
-  const mozilla::Maybe<uint32_t> maximum_;
+  const mozilla::Maybe<uint64_t> maximum_;
 
   template <class>
   friend struct js::MallocProvider;
@@ -79,7 +79,7 @@ class Table : public ShareableBase<Table> {
 
   bool isFunction() const { return elemType().isFuncHierarchy(); }
   uint32_t length() const { return length_; }
-  mozilla::Maybe<uint32_t> maximum() const { return maximum_; }
+  mozilla::Maybe<uint64_t> maximum() const { return maximum_; }
 
   // Raw pointer to the table for use in TableInstanceData.
   uint8_t* instanceElements() const;

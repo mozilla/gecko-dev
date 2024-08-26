@@ -2,10 +2,10 @@
 
 // Basic tests around creating and linking memories with i64 indices
 
-const MaxMemory64Pages = 0x1_0000_0000_0000;
-const MaxTable64Elems = 0xFFFF_FFFF; // for validation
+const MaxMemory64PagesValidation = 0x1_0000_0000_0000n; // from spec
+const MaxTable64ElemsValidation = 0xFFFF_FFFF_FFFF_FFFFn; // from spec
+const MaxTableElemsRuntime = 10000000; // from WasmConstants.h
 const MaxUint32 = 0xFFFF_FFFF;
-const MaxTableElems = 10000000; // for runtime
 
 // test the validity of different i64 memory types in validation, compilation,
 // and the JS-API.
@@ -21,10 +21,15 @@ function memoryTypeDescriptor(shared, initial, max) {
     shared,
   };
 }
-function validMemoryType(shared, initial, max) {
+function validAndInstantiableMemoryType(shared, initial, max) {
   wasmValidateText(memoryTypeModuleText(shared, initial, max));
   wasmEvalText(memoryTypeModuleText(shared, initial, max));
   new WebAssembly.Memory(memoryTypeDescriptor(shared, initial, max));
+}
+function validButNotInstantiableMemoryType(shared, initial, max, errorMessage) {
+  wasmValidateText(memoryTypeModuleText(shared, initial, max));
+  assertErrorMessage(() => wasmEvalText(memoryTypeModuleText(shared, initial, max)), WebAssembly.RuntimeError, errorMessage);
+  assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(shared, initial, max)), WebAssembly.RuntimeError, errorMessage);
 }
 function invalidMemoryType(shared, initial, max, compileMessage, jsMessage) {
   wasmFailValidateText(memoryTypeModuleText(shared, initial, max), compileMessage);
@@ -45,10 +50,15 @@ function tableTypeDescriptor(element, initial, max) {
     maximum: max,
   };
 }
-function validTableType(element, initial, max) {
+function validAndInstantiableTableType(element, initial, max) {
   wasmValidateText(tableTypeModuleText(element, initial, max));
   wasmEvalText(tableTypeModuleText(element, initial, max));
   new WebAssembly.Table(tableTypeDescriptor(element, initial, max));
+}
+function validButNotInstantiableTableType(element, initial, max, errorMessage) {
+  wasmValidateText(tableTypeModuleText(element, initial, max));
+  assertErrorMessage(() => wasmEvalText(tableTypeModuleText(element, initial, max)), WebAssembly.RuntimeError, errorMessage);
+  assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor(element, initial, max)), WebAssembly.RuntimeError, errorMessage);
 }
 function invalidTableType(element, initial, max, compileMessage, jsMessage) {
   wasmFailValidateText(tableTypeModuleText(element, initial, max), compileMessage);
@@ -57,38 +67,57 @@ function invalidTableType(element, initial, max, compileMessage, jsMessage) {
 }
 
 // valid to define a memory with i64
-validMemoryType(false, 0);
+validAndInstantiableMemoryType(false, 0n);
 // valid to define max with i64
-validMemoryType(false, 0, 1);
+validAndInstantiableMemoryType(false, 0n, 1n);
 // invalid for min to be greater than max with i64
-invalidMemoryType(false, 2, 1, /minimum must not be greater than maximum/, /bad Memory maximum size/);
+invalidMemoryType(false, 2n, 1n, /minimum must not be greater than maximum/, /initial Memory size cannot be greater than maximum/);
 // valid to define shared memory with max with i64
-validMemoryType(true, 1, 2);
+validAndInstantiableMemoryType(true, 1n, 2n);
 // invalid to define shared memory without max with i64
-invalidMemoryType(true, 1, undefined, /maximum length required for shared memory/, /maximum is not specified/);
+invalidMemoryType(true, 1n, undefined, /maximum length required for shared memory/, /maximum is not specified/);
 
 // valid to define a table with i64
-validTableType('funcref', 0);
+validAndInstantiableTableType('funcref', 0n);
 // valid to define table max with i64
-validTableType('funcref', 0, 1);
+validAndInstantiableTableType('funcref', 0n, 1n);
 // invalid for table min to be greater than max with i64
-invalidTableType('funcref', 2, 1, /minimum must not be greater than maximum/, /bad Table maximum size/);
+invalidTableType('funcref', 2n, 1n, /minimum must not be greater than maximum/, /initial Table size cannot be greater than maximum/);
 
-// test the limits of memory64 memories
-validMemoryType(false, 0, MaxMemory64Pages);
-invalidMemoryType(false, 0, MaxMemory64Pages + 1, /maximum memory size too big/, /bad Memory maximum/);
-validMemoryType(true, 0, MaxMemory64Pages);
-invalidMemoryType(true, 0, MaxMemory64Pages + 1, /maximum memory size too big/, /bad Memory maximum/);
+// test the validation limits of memory64 memories
+validButNotInstantiableMemoryType(false, MaxMemory64PagesValidation, undefined, /too many memory pages/);
+validButNotInstantiableMemoryType(false, MaxMemory64PagesValidation, MaxMemory64PagesValidation, /too many memory pages/);
+validAndInstantiableMemoryType(false, 0n, MaxMemory64PagesValidation);
+invalidMemoryType(false, 0n, MaxMemory64PagesValidation + 1n, /maximum memory size too big/, /bad Memory maximum/);
+validAndInstantiableMemoryType(true, 0n, MaxMemory64PagesValidation);
+invalidMemoryType(true, 0n, MaxMemory64PagesValidation + 1n, /maximum memory size too big/, /bad Memory maximum/);
 
-// test the limits of memory64 tables
-validTableType('funcref', 0, MaxTable64Elems);
-invalidTableType('funcref', 0, MaxTable64Elems + 1, /too many table elements/, /bad Table maximum/);
+// test the validation limits of memory64 tables
+validButNotInstantiableTableType('funcref', MaxTable64ElemsValidation, undefined, /too many table elements/);
+validButNotInstantiableTableType('funcref', MaxTable64ElemsValidation, MaxTable64ElemsValidation, /too many table elements/);
+validAndInstantiableTableType('funcref', 0n, MaxTable64ElemsValidation);
+// cannot create oversize table via either text or binary format since the full u64 range is valid
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, MaxTable64ElemsValidation + 1n)), TypeError, /bad Table maximum/);
+
+// further validation of memory64 descriptor params
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0)), TypeError, /bad Memory initial size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, -1n)), TypeError, /bad Memory initial size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 2n**64n)), TypeError, /bad Memory initial size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, 1)), TypeError, /bad Memory maximum size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, -1n)), TypeError, /bad Memory maximum size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, 2n**64n)), TypeError, /bad Memory maximum size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0)), TypeError, /bad Table initial size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', -1n)), TypeError, /bad Table initial size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 2n**64n)), TypeError, /bad Table initial size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, 1)), TypeError, /bad Table maximum size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, -1n)), TypeError, /bad Table maximum size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, 2n**64n)), TypeError, /bad Table maximum size/);
 
 // test that linking requires index types to be equal
 function testLinkMemory(importedIndexType, importIndexType) {
   let imported = new WebAssembly.Memory({
     index: importedIndexType,
-    initial: 0,
+    initial: importedIndexType === 'i64' ? 0n : 0,
   });
   let testModule =
       `(module
@@ -103,7 +132,7 @@ function testLinkTable(importedIndexType, importIndexType) {
   const imported = new WebAssembly.Table({
     element: 'funcref',
     index: importedIndexType,
-    initial: 0,
+    initial: importedIndexType === 'i64' ? 0n : 0,
   });
   const testModule =
       `(module
@@ -400,7 +429,7 @@ wasmFailValidateText(`
 
 if (getBuildConfiguration("pointer-byte-size") == 8) {
     try {
-        new WebAssembly.Memory({index:"i64", initial:65536 * 1.5, maximum:65536 * 2});
+        new WebAssembly.Memory({index:"i64", initial:BigInt(65536 * 1.5), maximum:BigInt(65536 * 2)});
     } catch (e) {
         // OOM is OK.
         if (!(e instanceof WebAssembly.RuntimeError) || !String(e).match(/too many memory pages/)) {
@@ -412,13 +441,13 @@ if (getBuildConfiguration("pointer-byte-size") == 8) {
 // JS-API
 
 if (WebAssembly.Function) {
-  const m64 = new WebAssembly.Memory({ index: "i64", initial:1 });
+  const m64 = new WebAssembly.Memory({ index: "i64", initial:1n });
   assertEq(m64.type().index, "i64");
 
   const m32 = new WebAssembly.Memory({ initial:1 });
   assertEq(m32.type().index, "i32");
 
-  const t64 = new WebAssembly.Table({ index: "i64", element: "funcref", initial: 1 });
+  const t64 = new WebAssembly.Table({ index: "i64", element: "funcref", initial: 1n });
   assertEq(t64.type().index, "i64");
 
   const t32 = new WebAssembly.Table({ initial: 1, element: "funcref" });
@@ -429,11 +458,11 @@ if (WebAssembly.Function) {
     (table (export "table") i64 1 0x1000 funcref)
   )`);
   assertEq(ins.exports.mem.type().index, "i64");
-  assertEq(ins.exports.mem.type().minimum, 1);
-  assertEq(ins.exports.mem.type().maximum, 0x100000000);
+  assertEq(ins.exports.mem.type().minimum, 1n);
+  assertEq(ins.exports.mem.type().maximum, 0x100000000n);
   assertEq(ins.exports.table.type().index, "i64");
-  assertEq(ins.exports.table.type().minimum, 1);
-  assertEq(ins.exports.table.type().maximum, 0x1000);
+  assertEq(ins.exports.table.type().minimum, 1n);
+  assertEq(ins.exports.table.type().maximum, 0x1000n);
 }
 
 // Instructions
@@ -1558,7 +1587,7 @@ for ( let shared of ['','shared'] ) {
         const ins = makeTest(LOC, start, max, shared);
         if (max != '') {
             // This can OOM legitimately; let it.
-            let res = ins.exports.mem.grow(max - start);
+            let res = Number(ins.exports.mem.grow(BigInt(max - start)));
             if (res == -1) {
                 print("SPURIOUS OOM");
                 continue;
@@ -1754,9 +1783,9 @@ const table64Tests = [
   },
 ];
 for (const test of table64Tests) {
-  const externalTable = new WebAssembly.Table({ index: "i64", element: test.elem, initial: 2 });
-  externalTable.set(0, test.jsval);
-  externalTable.set(1, null);
+  const externalTable = new WebAssembly.Table({ index: "i64", element: test.elem, initial: 2n });
+  externalTable.set(0n, test.jsval);
+  externalTable.set(1n, null);
 
   const {
     internalTable,
@@ -1803,39 +1832,45 @@ for (const test of table64Tests) {
     )
   )`, { "": { externalTable } }).exports;
 
-  assertEq(internalTable.get(0) === null, false);
-  assertEq(internalTable.get(1) === null, true);
+  assertEq(internalTable.get(0n) === null, false);
+  assertEq(internalTable.get(1n) === null, true);
   assertEq(extIsNull(0n), 0);
   assertEq(extIsNull(1n), 1);
 
   swapExt();
-  const tmp = internalTable.get(0);
-  internalTable.set(0, internalTable.get(1));
-  internalTable.set(1, tmp);
+  const tmp = internalTable.get(0n);
+  internalTable.set(0n, internalTable.get(1n));
+  internalTable.set(1n, tmp);
 
-  assertEq(internalTable.get(0) === null, true);
-  assertEq(internalTable.get(1) === null, false);
+  assertEq(internalTable.get(0n) === null, true);
+  assertEq(internalTable.get(1n) === null, false);
   assertEq(extIsNull(0n), 1);
   assertEq(extIsNull(1n), 0);
 
   // Test bounds checks
   const indexes = [
-    [-1, TypeError],
-    [2, RangeError],
-    [0 + (MaxUint32 + 1), RangeError],
-    [1 + (MaxUint32 + 1), RangeError],
-    [2 + (MaxUint32 + 1), RangeError],
-    [Number.MAX_SAFE_INTEGER, RangeError],
-    [Number.MAX_SAFE_INTEGER + 1, TypeError],
+    [-1n, false, TypeError],
+    [2n, false, RangeError],
+    [BigInt(0 + (MaxUint32 + 1)), false, RangeError],
+    [BigInt(1 + (MaxUint32 + 1)), false, RangeError],
+    [BigInt(2 + (MaxUint32 + 1)), false, RangeError],
+    [BigInt(Number.MAX_SAFE_INTEGER), false, RangeError],
+    [BigInt(Number.MAX_SAFE_INTEGER + 1), false, RangeError],
+    [2n**64n - 1n, false, RangeError],
+    [2n**64n, true, TypeError],
   ];
-  for (const [index, jsError] of indexes) {
-    assertErrorMessage(() => getInternal(BigInt(index)), WebAssembly.RuntimeError, /index out of bounds/);
-    assertErrorMessage(() => setInternal(BigInt(index), null), WebAssembly.RuntimeError, /index out of bounds/);
+  for (const [index, jsOnly, jsError] of indexes) {
+    if (!jsOnly) {
+      assertErrorMessage(() => getInternal(index), WebAssembly.RuntimeError, /index out of bounds/);
+      assertErrorMessage(() => setInternal(index, null), WebAssembly.RuntimeError, /index out of bounds/);
+    }
     assertErrorMessage(() => internalTable.get(index), jsError, /bad Table get index/);
     assertErrorMessage(() => internalTable.set(index, null), jsError, /bad Table set index/);
 
-    assertErrorMessage(() => getExternal(BigInt(index)), WebAssembly.RuntimeError, /index out of bounds/);
-    assertErrorMessage(() => setExternal(BigInt(index), null), WebAssembly.RuntimeError, /index out of bounds/);
+    if (!jsOnly) {
+      assertErrorMessage(() => getExternal(index), WebAssembly.RuntimeError, /index out of bounds/);
+      assertErrorMessage(() => setExternal(index, null), WebAssembly.RuntimeError, /index out of bounds/);
+    }
     assertErrorMessage(() => externalTable.get(index), jsError, /bad Table get index/);
     assertErrorMessage(() => externalTable.set(index, null), jsError, /bad Table set index/);
   }
@@ -2108,6 +2143,14 @@ for (const [idxType1, idxType2] of types) {
 
   // and now explode!
 
+  if (idxType1 === "i64") {
+    // JS API must use BigInt for i64
+    assertErrorMessage(() => f1.grow(1), TypeError, /Table grow delta/);
+    assertErrorMessage(() => f1.get(0), TypeError, /Table get index/);
+    assertErrorMessage(() => f1.set(0, null), TypeError, /Table set index/);
+    assertEq(typeof f1.length, "bigint");
+  }
+
   const indexes = [
     -1,
     11, // length is 12, so test around the boundary
@@ -2170,7 +2213,7 @@ for (const [idxType1, idxType2] of types) {
     }
   }
 
-  const maxDelta = MaxTableElems - 12;
+  const maxDelta = MaxTableElemsRuntime - 12;
   assertEq(maxDelta % 2, 0, "maxDelta needs to be even for this test to work");
 
   try {
@@ -2179,36 +2222,36 @@ for (const [idxType1, idxType2] of types) {
     tryGrow(() => growF2(idx2(maxDelta / 2)));
     tryGrow(() => growE1(idx1(maxDelta / 2)));
     tryGrow(() => growE2(idx2(maxDelta / 2)));
-    f1.grow(maxDelta / 2, null);
-    f2.grow(maxDelta / 2, null);
-    e1.grow(maxDelta / 2, null);
-    e2.grow(maxDelta / 2, null);
+    f1.grow(idx1(maxDelta / 2), null);
+    f2.grow(idx2(maxDelta / 2), null);
+    e1.grow(idx1(maxDelta / 2), null);
+    e2.grow(idx2(maxDelta / 2), null);
 
-    assertEq(sizeF1(), idx1(MaxTableElems));
-    assertEq(sizeF2(), idx2(MaxTableElems));
-    assertEq(sizeE1(), idx1(MaxTableElems));
-    assertEq(sizeE2(), idx2(MaxTableElems));
+    assertEq(sizeF1(), idx1(MaxTableElemsRuntime));
+    assertEq(sizeF2(), idx2(MaxTableElemsRuntime));
+    assertEq(sizeE1(), idx1(MaxTableElemsRuntime));
+    assertEq(sizeE2(), idx2(MaxTableElemsRuntime));
 
     for (const delta of indexes) {
       if (idxType1 === "i64") {
         console.log(delta);
         assertEq(growF1(idx1(delta)), idx1(-1), `growing by ${delta}`);
         assertEq(growE1(idx1(delta)), idx1(-1), `growing by ${delta}`);
-        assertErrorMessage(() => f1.grow(delta, null), Error, /grow/); // Loose to accept either TypeError or RangeError
-        assertErrorMessage(() => e1.grow(delta, null), Error, /grow/);
+        assertErrorMessage(() => f1.grow(idx1(delta), null), Error, /grow/); // Loose to accept either TypeError or RangeError
+        assertErrorMessage(() => e1.grow(idx1(delta), null), Error, /grow/);
       }
       if (idxType2 === "i64") {
         assertEq(growF2(idx2(delta)), idx2(-1), `growing by ${delta}`);
         assertEq(growE2(idx2(delta)), idx2(-1), `growing by ${delta}`);
-        assertErrorMessage(() => f2.grow(delta, null), Error, /grow/);
-        assertErrorMessage(() => e2.grow(delta, null), Error, /grow/);
+        assertErrorMessage(() => f2.grow(idx2(delta), null), Error, /grow/);
+        assertErrorMessage(() => e2.grow(idx2(delta), null), Error, /grow/);
       }
     }
 
-    assertEq(sizeF1(), idx1(MaxTableElems));
-    assertEq(sizeF2(), idx2(MaxTableElems));
-    assertEq(sizeE1(), idx1(MaxTableElems));
-    assertEq(sizeE2(), idx2(MaxTableElems));
+    assertEq(sizeF1(), idx1(MaxTableElemsRuntime));
+    assertEq(sizeF2(), idx2(MaxTableElemsRuntime));
+    assertEq(sizeE1(), idx1(MaxTableElemsRuntime));
+    assertEq(sizeE2(), idx2(MaxTableElemsRuntime));
   } catch (e) {
     if (e instanceof RangeError) {
       // This can happen due to resource exhaustion on some platforms and is not worth

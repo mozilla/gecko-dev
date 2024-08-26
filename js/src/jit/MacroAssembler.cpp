@@ -6530,7 +6530,7 @@ void MacroAssembler::wasmClampTable64Index(Register64 index, Register out) {
   move64To32(index, out);
   jump(&ret);
   bind(&oob);
-  static_assert(wasm::MaxTableLength < UINT32_MAX);
+  static_assert(wasm::MaxTableElemsRuntime < UINT32_MAX);
   move32(Imm32(UINT32_MAX), out);
   bind(&ret);
 };

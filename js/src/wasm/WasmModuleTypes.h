@@ -791,7 +791,7 @@ using MemoryDescVector = Vector<MemoryDesc, 1, SystemAllocPolicy>;
 
 // We don't need to worry about overflow with a Memory32 field when
 // using a uint64_t.
-static_assert(MaxMemory32LimitField <= UINT64_MAX / PageSize);
+static_assert(MaxMemory32PagesValidation <= UINT64_MAX / PageSize);
 
 struct TableDesc {
   Limits limits;
@@ -810,27 +810,13 @@ struct TableDesc {
         isImported(isImported),
         isExported(isExported),
         isAsmJS(isAsmJS),
-        initExpr(std::move(initExpr)) {
-    // Table limits are enforced by validation to never be greater than
-    // UINT32_MAX. This means that we can always safely convert table limits to
-    // uint32_t (unlike with memories, which are the other main use of Limits.)
-    static_assert(MaxTableLimitField <= UINT32_MAX);
-    MOZ_ASSERT(limits.initial <= UINT32_MAX);
-    MOZ_ASSERT_IF(limits.maximum.isSome(),
-                  limits.maximum.value() <= UINT32_MAX);
-  }
+        initExpr(std::move(initExpr)) {}
 
   IndexType indexType() const { return limits.indexType; }
 
-  uint32_t initialLength() const {
-    // Note the conversion to uint32_t.
-    return limits.initial;
-  }
+  uint64_t initialLength() const { return limits.initial; }
 
-  mozilla::Maybe<uint32_t> maximumLength() const {
-    // Note the conversion to uint32_t.
-    return limits.maximum;
-  }
+  mozilla::Maybe<uint64_t> maximumLength() const { return limits.maximum; }
 };
 
 using TableDescVector = Vector<TableDesc, 0, SystemAllocPolicy>;

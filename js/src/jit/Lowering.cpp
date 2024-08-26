@@ -6635,13 +6635,14 @@ void LIRGenerator::visitWasmCall(MWasmCallT ins) {
     MDefinition* index = ins->getOperand(ins->numArgs());
 
     if (ins->callee().which() == wasm::CalleeDesc::WasmTable) {
-      uint32_t minLength = ins->callee().wasmTableMinLength();
-      mozilla::Maybe<uint32_t> maxLength = ins->callee().wasmTableMaxLength();
+      uint64_t minLength = ins->callee().wasmTableMinLength();
+      mozilla::Maybe<uint64_t> maxLength = ins->callee().wasmTableMaxLength();
       if (index->isConstant() &&
           uint32_t(index->toConstant()->toInt32()) < minLength) {
         needsBoundsCheck = false;
       }
-      if (maxLength.isSome() && *maxLength == minLength) {
+      if (minLength <= UINT32_MAX && maxLength.isSome() &&
+          *maxLength == minLength) {
         tableSize = maxLength;
       }
     }

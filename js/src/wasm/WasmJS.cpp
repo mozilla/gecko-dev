@@ -587,9 +587,57 @@ static bool EnforceRangeU64(JSContext* cx, HandleValue v, const char* kind,
   return EnforceRange(cx, v, kind, noun, (1LL << 53) - 1, u64);
 }
 
-static bool GetLimit(JSContext* cx, HandleObject obj, const char* name,
-                     const char* noun, const char* msg, uint32_t range,
-                     bool* found, uint64_t* value) {
+static bool EnforceRangeBigInt64(JSContext* cx, HandleValue v, const char* kind,
+                                 const char* noun, uint64_t* u64) {
+  if (!v.isBigInt() || !BigInt::isUint64(v.toBigInt(), u64)) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_ENFORCE_RANGE, kind, noun);
+    return false;
+  }
+  return true;
+}
+
+static bool EnforceIndexValue(JSContext* cx, HandleValue v, IndexType indexType,
+                              const char* kind, const char* noun,
+                              uint64_t* result) {
+  switch (indexType) {
+    case IndexType::I32: {
+      uint32_t result32;
+      if (!EnforceRangeU32(cx, v, kind, noun, &result32)) {
+        return false;
+      }
+      *result = uint64_t(result32);
+      return true;
+    }
+    case IndexType::I64:
+      return EnforceRangeBigInt64(cx, v, kind, noun, result);
+    default:
+      MOZ_CRASH("unknown index type");
+  }
+}
+
+// The IndexValue typedef, a union of number and bigint, is used in the JS API
+// spec for memory and table arguments, where number is used for memory32 and
+// bigint is used for memory64.
+static Value IndexValue(JSContext* cx, uint64_t value, IndexType indexType) {
+  switch (indexType) {
+    case IndexType::I32:
+      MOZ_ASSERT(value <= UINT32_MAX);
+      return NumberValue(value);
+    case IndexType::I64:
+      return BigIntValue(BigInt::createFromUint64(cx, value));
+    default:
+      MOZ_CRASH("unknown index type");
+  }
+}
+
+// Gets an IndexValue property ("initial" or "maximum") from a MemoryDescriptor
+// or TableDescriptor. The values returned by this should be run through
+// CheckLimits to enforce the validation limits prescribed by the spec.
+static bool GetDescriptorIndexValue(JSContext* cx, HandleObject obj,
+                                    const char* name, const char* noun,
+                                    const char* msg, IndexType indexType,
+                                    bool* found, uint64_t* value) {
   JSAtom* atom = Atomize(cx, name, strlen(name));
   if (!atom) {
     return false;
@@ -606,10 +654,8 @@ static bool GetLimit(JSContext* cx, HandleObject obj, const char* name,
     return true;
   }
   *found = true;
-  // The range can be greater than 53, but then the logic in EnforceRange has to
-  // change to avoid precision loss.
-  MOZ_ASSERT(range < 54);
-  return EnforceRange(cx, val, noun, msg, (uint64_t(1) << range) - 1, value);
+
+  return EnforceIndexValue(cx, val, indexType, noun, msg, value);
 }
 
 static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
@@ -646,14 +692,11 @@ static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
 #endif
 
   const char* noun = (kind == LimitsKind::Memory ? "Memory" : "Table");
-  // 2^48 is a valid value, so the range goes to 49 bits.  Values above 2^48 are
-  // filtered later, just as values above 2^16 are filtered for mem32.
-  const uint32_t range = limits->indexType == IndexType::I32 ? 32 : 49;
   uint64_t limit = 0;
 
   bool haveInitial = false;
-  if (!GetLimit(cx, obj, "initial", noun, "initial size", range, &haveInitial,
-                &limit)) {
+  if (!GetDescriptorIndexValue(cx, obj, "initial", noun, "initial size",
+                               limits->indexType, &haveInitial, &limit)) {
     return false;
   }
   if (haveInitial) {
@@ -662,8 +705,8 @@ static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
 
   bool haveMinimum = false;
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
-  if (!GetLimit(cx, obj, "minimum", noun, "initial size", range, &haveMinimum,
-                &limit)) {
+  if (!GetDescriptorIndexValue(cx, obj, "minimum", noun, "initial size",
+                               limits->indexType, &haveMinimum, &limit)) {
     return false;
   }
   if (haveMinimum) {
@@ -683,8 +726,8 @@ static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
   }
 
   bool haveMaximum = false;
-  if (!GetLimit(cx, obj, "maximum", noun, "maximum size", range, &haveMaximum,
-                &limit)) {
+  if (!GetDescriptorIndexValue(cx, obj, "maximum", noun, "maximum size",
+                               limits->indexType, &haveMaximum, &limit)) {
     return false;
   }
   if (haveMaximum) {
@@ -733,22 +776,45 @@ static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
   return true;
 }
 
-static bool CheckLimits(JSContext* cx, uint64_t maximumField, LimitsKind kind,
+static bool CheckLimits(JSContext* cx, uint64_t validationMax, LimitsKind kind,
                         Limits* limits) {
   const char* noun = (kind == LimitsKind::Memory ? "Memory" : "Table");
 
-  if (limits->initial > maximumField) {
+  // There are several layers of validation and error-throwing here, including
+  // one which is currently not defined by the JS API spec:
+  //
+  // - [EnforceRange] on parameters (must be TypeError)
+  // - A check that initial <= maximum (must be RangeError)
+  // - Either a mem_alloc or table_alloc operation, which has two components:
+  //   - A pre-condition that the given memory or table type is valid
+  //     (not specified, RangeError in practice)
+  //   - The actual allocation (should report OOM if it fails)
+  //
+  // There are two questions currently left open by the spec: when is the memory
+  // or table type validated, and if it is invalid, what type of exception does
+  // it throw? In practice, all browsers throw RangeError, and by the time you
+  // read this the spec will hopefully have been updated to reflect this. See
+  // the following issue: https://github.com/WebAssembly/spec/issues/1792
+
+  // Check that initial <= maximum
+  if (limits->maximum.isSome() && *limits->maximum < limits->initial) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_MAX_LT_INITIAL, noun);
+    return false;
+  }
+
+  // Check wasm validation limits
+  if (limits->initial > validationMax) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
                              noun, "initial size");
     return false;
   }
-
-  if (limits->maximum.isSome() &&
-      (*limits->maximum > maximumField || limits->initial > *limits->maximum)) {
+  if (limits->maximum.isSome() && *limits->maximum > validationMax) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
                              noun, "maximum size");
     return false;
   }
+
   return true;
 }
 
@@ -858,8 +924,8 @@ static JSObject* FuncTypeToObject(JSContext* cx, const FuncType& type) {
 }
 
 static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
-                                   RefType type, uint32_t initial,
-                                   Maybe<uint32_t> maximum) {
+                                   RefType type, uint64_t initial,
+                                   Maybe<uint64_t> maximum) {
   Rooted<IdValueVector> props(cx, IdValueVector(cx));
 
   RootedString elementType(cx, TypeToString(cx, type));
@@ -870,15 +936,17 @@ static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
   }
 
   if (maximum.isSome()) {
-    if (!props.append(IdValuePair(NameToId(cx->names().maximum),
-                                  NumberValue(maximum.value())))) {
+    RootedId maximumId(cx, NameToId(cx->names().maximum));
+    Value maximumValue = IndexValue(cx, maximum.value(), indexType);
+    if (!props.append(IdValuePair(maximumId, maximumValue))) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
   }
 
-  if (!props.append(
-          IdValuePair(NameToId(cx->names().minimum), NumberValue(initial)))) {
+  RootedId minimumId(cx, NameToId(cx->names().minimum));
+  Value minimumValue = IndexValue(cx, initial, indexType);
+  if (!props.append(IdValuePair(minimumId, minimumValue))) {
     ReportOutOfMemory(cx);
     return nullptr;
   }
@@ -904,28 +972,17 @@ static JSObject* MemoryTypeToObject(JSContext* cx, bool shared,
                                     Maybe<wasm::Pages> maxPages) {
   Rooted<IdValueVector> props(cx, IdValueVector(cx));
   if (maxPages) {
-    double maxPagesNum;
-    if (indexType == IndexType::I32) {
-      maxPagesNum = double(mozilla::AssertedCast<uint32_t>(maxPages->value()));
-    } else {
-      // The maximum number of pages is 2^48.
-      maxPagesNum = double(maxPages->value());
-    }
-    if (!props.append(IdValuePair(NameToId(cx->names().maximum),
-                                  NumberValue(maxPagesNum)))) {
+    RootedId maximumId(cx, NameToId(cx->names().maximum));
+    Value maximumValue = IndexValue(cx, maxPages.value().value(), indexType);
+    if (!props.append(IdValuePair(maximumId, maximumValue))) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
   }
 
-  double minPagesNum;
-  if (indexType == IndexType::I32) {
-    minPagesNum = double(mozilla::AssertedCast<uint32_t>(minPages.value()));
-  } else {
-    minPagesNum = double(minPages.value());
-  }
-  if (!props.append(IdValuePair(NameToId(cx->names().minimum),
-                                NumberValue(minPagesNum)))) {
+  RootedId minimumId(cx, NameToId(cx->names().minimum));
+  Value minimumValue = IndexValue(cx, minPages.value(), indexType);
+  if (!props.append(IdValuePair(minimumId, minimumValue))) {
     ReportOutOfMemory(cx);
     return nullptr;
   }
@@ -2086,7 +2143,7 @@ bool WasmMemoryObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   RootedObject obj(cx, &args[0].toObject());
   Limits limits;
   if (!GetLimits(cx, obj, LimitsKind::Memory, &limits) ||
-      !CheckLimits(cx, MaxMemoryLimitField(limits.indexType),
+      !CheckLimits(cx, MaxMemoryPagesValidation(limits.indexType),
                    LimitsKind::Memory, &limits)) {
     return false;
   }
@@ -2180,8 +2237,9 @@ bool WasmMemoryObject::growImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  uint32_t delta;
-  if (!EnforceRangeU32(cx, args.get(0), "Memory", "grow delta", &delta)) {
+  uint64_t delta;
+  if (!EnforceIndexValue(cx, args.get(0), memory->indexType(), "Memory",
+                         "grow delta", &delta)) {
     return false;
   }
 
@@ -2193,7 +2251,7 @@ bool WasmMemoryObject::growImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  args.rval().setInt32(int32_t(ret));
+  args.rval().set(IndexValue(cx, ret, memory->indexType()));
   return true;
 }
 
@@ -2638,11 +2696,12 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   Limits limits;
   if (!GetLimits(cx, obj, LimitsKind::Table, &limits) ||
-      !CheckLimits(cx, MaxTableLimitField, LimitsKind::Table, &limits)) {
+      !CheckLimits(cx, MaxTableElemsValidation(limits.indexType),
+                   LimitsKind::Table, &limits)) {
     return false;
   }
 
-  if (limits.initial > MaxTableLength) {
+  if (limits.initial > MaxTableElemsRuntime) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_TABLE_IMP_LIMIT);
     return false;
@@ -2655,8 +2714,6 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // The rest of the runtime expects table limits to be within a 32-bit range.
-  static_assert(MaxTableLimitField <= UINT32_MAX, "invariant");
   Rooted<WasmTableObject*> table(
       cx, WasmTableObject::create(cx, limits, tableType, proto));
   if (!table) {
@@ -2696,8 +2753,10 @@ static bool IsTable(HandleValue v) {
 
 /* static */
 bool WasmTableObject::lengthGetterImpl(JSContext* cx, const CallArgs& args) {
-  args.rval().setNumber(
-      args.thisv().toObject().as<WasmTableObject>().table().length());
+  const WasmTableObject& tableObj =
+      args.thisv().toObject().as<WasmTableObject>();
+  args.rval().set(
+      IndexValue(cx, tableObj.table().length(), tableObj.table().indexType()));
   return true;
 }
 
@@ -2713,32 +2772,24 @@ const JSPropertySpec WasmTableObject::properties[] = {
     JS_PS_END,
 };
 
-static bool ToTableIndexOrDelta(JSContext* cx, HandleValue v,
-                                const Table& table, const char* noun,
-                                uint32_t* index, bool isIndex) {
-  switch (table.indexType()) {
-    case IndexType::I32: {
-      if (!EnforceRangeU32(cx, v, "Table", noun, index)) {
-        return false;
-      }
-    } break;
-    case IndexType::I64: {
-      uint64_t index64;
-      if (!EnforceRangeU64(cx, v, "Table", noun, &index64)) {
-        return false;
-      }
-
-      // Since our runtime limits for table length are always less than
-      // UINT32_MAX, clamping i64 values to UINT32_MAX will always trigger
-      // bounds checks. See MacroAssembler::wasmClampTable64Index and its uses.
-      static_assert(MaxTableLength < UINT32_MAX);
-      *index = index64 > UINT32_MAX ? UINT32_MAX : uint32_t(index64);
-    } break;
-    default:
-      MOZ_CRASH("unknown index type");
+// Gets an IndexValue parameter for a table. This differs from our general
+// EnforceIndexValue because our table implementation still uses 32-bit sizes
+// internally, and this function therefore returns a uint32_t. Values outside
+// the 32-bit range will be clamped to UINT32_MAX, which will always trigger
+// bounds checks for all Table uses of IndexValue. See
+// MacroAssembler::wasmClampTable64Index and its uses.
+static bool EnforceTableIndexValue(JSContext* cx, HandleValue v,
+                                   const Table& table, const char* noun,
+                                   uint32_t* result, bool isIndex) {
+  uint64_t result64;
+  if (!EnforceIndexValue(cx, v, table.indexType(), "Table", noun, &result64)) {
+    return false;
   }
 
-  if (isIndex && *index >= table.length()) {
+  static_assert(MaxTableElemsRuntime < UINT32_MAX);
+  *result = result64 > UINT32_MAX ? UINT32_MAX : uint32_t(result64);
+
+  if (isIndex && *result >= table.length()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_WASM_BAD_RANGE, "Table", noun);
     return false;
@@ -2779,7 +2830,8 @@ bool WasmTableObject::getImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t index;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "get index", &index, true)) {
+  if (!EnforceTableIndexValue(cx, args.get(0), table, "get index", &index,
+                              /*isIndex=*/true)) {
     return false;
   }
 
@@ -2803,7 +2855,8 @@ bool WasmTableObject::setImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t index;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "set index", &index, true)) {
+  if (!EnforceTableIndexValue(cx, args.get(0), table, "set index", &index,
+                              /*isIndex=*/true)) {
     return false;
   }
 
@@ -2834,8 +2887,8 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
   }
 
   uint32_t delta;
-  if (!ToTableIndexOrDelta(cx, args.get(0), table, "grow delta", &delta,
-                           false)) {
+  if (!EnforceTableIndexValue(cx, args.get(0), table, "grow delta", &delta,
+                              /*isIndex=*/false)) {
     return false;
   }
 
@@ -2869,7 +2922,7 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
   }
 #endif
 
-  args.rval().setInt32(int32_t(oldLength));
+  args.rval().set(IndexValue(cx, oldLength, table.indexType()));
   return true;
 }
 

@@ -2042,7 +2042,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   bool declareFuncPtrTable(FuncType&& sig, TaggedParserAtomIndex name,
                            uint32_t firstUse, uint32_t mask,
                            uint32_t* tableIndex) {
-    if (mask > MaxTableLength) {
+    if (mask > MaxTableElemsRuntime) {
       return failCurrentOffset("function pointer table too big");
     }
 

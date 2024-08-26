@@ -2622,6 +2622,8 @@ class FunctionCompiler {
       MOZ_ASSERT(callIndirectId.kind() == CallIndirectIdKind::AsmJS);
       uint32_t tableIndex = codeMeta_.asmJSSigToTableIndex[funcTypeIndex];
       const TableDesc& table = codeMeta_.tables[tableIndex];
+      // ensured by asm.js validation
+      MOZ_ASSERT(table.initialLength() <= UINT32_MAX);
       MOZ_ASSERT(IsPowerOfTwo(table.initialLength()));
 
       MDefinition* mask = constantI32(int32_t(table.initialLength() - 1));
