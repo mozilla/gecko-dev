@@ -780,11 +780,13 @@ public class GeckoViewActivity extends AppCompatActivity
       new BooleanSetting(R.string.key_dfpi, R.bool.dfpi_default) {
         @Override
         public void setValue(final GeckoRuntimeSettings settings, final Boolean value) {
-          int cookieBehavior =
-              value
-                  ? ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS
-                  : ContentBlocking.CookieBehavior.ACCEPT_NON_TRACKERS;
-          settings.getContentBlocking().setCookieBehavior(cookieBehavior);
+          // If dFPI is enabled set appropriate cookieBehavior, else do not overwrite.
+          if (value) {
+            settings
+                .getContentBlocking()
+                .setCookieBehavior(
+                    ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS);
+          }
         }
       };
 
