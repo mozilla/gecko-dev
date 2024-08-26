@@ -255,29 +255,45 @@ async function testPrompt(Prompt, useLocalFile = false) {
       popupNotification.checkbox.checked = true;
 
       await clickMainAction();
-      // If the prompt does not use the permission manager, it can not set a
-      // persistent allow. Temporary allow is not supported.
-      if (usePermissionManager && permissionKey) {
+
+      if (permissionKey) {
         curPerm = SitePermissions.getForPrincipal(
           principal,
           permissionKey,
           browser
         );
-        Assert.equal(
-          curPerm.state,
-          SitePermissions.ALLOW,
-          "Should have allowed the action"
-        );
-        Assert.equal(
-          curPerm.scope,
-          SitePermissions.SCOPE_PERSISTENT,
-          "Allow should be permanent"
-        );
-        Assert.ok(
-          !mockRequest._cancelled,
-          "The request should not have been cancelled"
-        );
-        Assert.ok(mockRequest._allowed, "The request should have been allowed");
+
+        if (usePermissionManager) {
+          Assert.equal(
+            curPerm.state,
+            SitePermissions.ALLOW,
+            "Should have allowed the action"
+          );
+          Assert.equal(
+            curPerm.scope,
+            SitePermissions.SCOPE_PERSISTENT,
+            "Allow should be permanent"
+          );
+          Assert.ok(
+            !mockRequest._cancelled,
+            "The request should not have been cancelled"
+          );
+          Assert.ok(
+            mockRequest._allowed,
+            "The request should have been allowed"
+          );
+        } else {
+          // If the prompt does not use the permission manager, it can not set a
+          // persistent allow.
+          Assert.deepEqual(
+            curPerm,
+            {
+              state: SitePermissions.ALLOW,
+              scope: SitePermissions.SCOPE_TEMPORARY,
+            },
+            "Should have allowed the action temporarily"
+          );
+        }
       }
     }
   );

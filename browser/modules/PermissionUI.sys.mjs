@@ -462,10 +462,7 @@ class PermissionPrompt {
                 promptAction.action,
                 scope
               );
-            } else if (promptAction.action == lazy.SitePermissions.BLOCK) {
-              // Temporarily store BLOCK permissions only
-              // SitePermissions does not consider subframes when storing temporary
-              // permissions on a tab, thus storing ALLOW could be exploited.
+            } else {
               lazy.SitePermissions.setForPrincipal(
                 this.principal,
                 this.permissionKey,
@@ -482,19 +479,13 @@ class PermissionPrompt {
               this.cancel();
             }
           } else if (this.permissionKey) {
-            // TODO: Add support for permitTemporaryAllow
-            if (promptAction.action == lazy.SitePermissions.BLOCK) {
-              // Temporarily store BLOCK permissions.
-              // We don't consider subframes when storing temporary
-              // permissions on a tab, thus storing ALLOW could be exploited.
-              lazy.SitePermissions.setForPrincipal(
-                null,
-                this.permissionKey,
-                promptAction.action,
-                lazy.SitePermissions.SCOPE_TEMPORARY,
-                this.browser
-              );
-            }
+            lazy.SitePermissions.setForPrincipal(
+              null,
+              this.permissionKey,
+              promptAction.action,
+              lazy.SitePermissions.SCOPE_TEMPORARY,
+              this.browser
+            );
           }
         },
       };
