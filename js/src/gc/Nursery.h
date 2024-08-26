@@ -257,6 +257,10 @@ class Nursery {
 
   [[nodiscard]] inline bool addStringBuffer(JSLinearString* s);
 
+  [[nodiscard]] inline bool addExtensibleStringBuffer(
+      JSLinearString* s, mozilla::StringBuffer* buffer);
+  inline void removeExtensibleStringBuffer(JSLinearString* s);
+
   size_t sizeOfMallocedBuffers(mozilla::MallocSizeOf mallocSizeOf) const;
 
   // Wasm "trailer" (C++-heap-allocated) blocks.
@@ -735,6 +739,14 @@ class Nursery {
   using StringAndBufferVector =
       JS::GCVector<StringAndBuffer, 8, SystemAllocPolicy>;
   StringAndBufferVector stringBuffers_;
+
+  // Like stringBuffers_, but for extensible strings for flattened ropes. This
+  // requires a HashMap instead of a Vector because we need to remove the entry
+  // when transferring the buffer to a new extensible string during flattening.
+  using ExtensibleStringBuffers =
+      HashMap<JSLinearString*, mozilla::StringBuffer*,
+              js::PointerHasher<JSLinearString*>, js::SystemAllocPolicy>;
+  ExtensibleStringBuffers extensibleStringBuffers_;
 
   // List of StringBuffers to release off-thread.
   using StringBufferVector =
