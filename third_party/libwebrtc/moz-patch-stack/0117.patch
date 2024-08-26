@@ -1,0 +1,70 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Fri, 23 Aug 2024 11:07:00 +0000
+Subject: Bug 1914196 - Cherry-pick upstream libwebrtc commit c2f0260894
+ r=webrtc-reviewers,mjf
+
+Upstream commit: https://webrtc.googlesource.com/src/+/c2f02608946e393367edf31bc7d4888c23002576
+       Restrict ScreenCaptureKit capturer to macOS 14+.
+
+       ScreenCapturerSCK uses some fields that were not available in macOS 13
+       but the code compiles with the older SDK because of missing annotations
+       that were added in the macOS 15 SDK.
+
+       Bug: chromium:351843815
+       Change-Id: Ic1a89b4cab43d6ee81d447ccc33ef94439752c45
+       Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/356860
+       Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+       Commit-Queue: Lambros Lambrou <lambroslambrou@chromium.org>
+       Cr-Commit-Position: refs/heads/main@{#42624}
+
+Differential Revision: https://phabricator.services.mozilla.com/D219811
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e1f5fd9b80fc9cc104adb56b22ba320e52e1fe3f
+---
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 64a63304b5..2dad8b356b 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -30,7 +30,9 @@ class ScreenCapturerSck;
+ 
+ // The ScreenCaptureKit API was available in macOS 12.3, but full-screen capture was reported to be
+ // broken before macOS 13 - see http://crbug.com/40234870.
+-API_AVAILABLE(macos(13.0))
++// Also, the `SCContentFilter` fields `contentRect` and `pointPixelScale` were introduced in
++// macOS 14.
++API_AVAILABLE(macos(14.0))
+ @interface SckHelper : NSObject <SCStreamDelegate, SCStreamOutput>
+ 
+ - (instancetype)initWithCapturer:(webrtc::ScreenCapturerSck*)capturer;
+@@ -46,7 +48,7 @@ API_AVAILABLE(macos(13.0))
+ 
+ namespace webrtc {
+ 
+-class API_AVAILABLE(macos(13.0)) ScreenCapturerSck final : public DesktopCapturer {
++class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
+  public:
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+ 
+@@ -236,10 +238,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+-
+-  if (@available(macOS 14.0, *)) {
+-    config.captureResolution = SCCaptureResolutionNominal;
+-  }
++  config.captureResolution = SCCaptureResolutionNominal;
+ 
+   {
+     MutexLock lock(&latest_frame_lock_);
+@@ -354,7 +353,7 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+ }
+ 
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+-  if (@available(macOS 13.0, *)) {
++  if (@available(macOS 14.0, *)) {
+     return std::make_unique<ScreenCapturerSck>(options);
+   } else {
+     return nullptr;
