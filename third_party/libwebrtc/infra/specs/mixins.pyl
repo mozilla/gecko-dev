@@ -18,6 +18,13 @@
       }
     }
   },
+  'arm64': {
+    'swarming': {
+      'dimensions': {
+        'cpu': 'arm64'
+      }
+    }
+  },
   'chrome-tester-service-account': {
     'swarming': {
       'service_account':
