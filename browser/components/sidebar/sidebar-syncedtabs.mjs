@@ -125,6 +125,7 @@ class SyncedTabsInSidebar extends SidebarPage {
   deviceTemplate(deviceName, deviceType, tabItems) {
     return html`<moz-card
       type="accordion"
+      expanded
       .heading=${deviceName}
       icon
       class=${deviceType}

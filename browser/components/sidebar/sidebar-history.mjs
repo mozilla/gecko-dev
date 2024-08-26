@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const NEVER_REMEMBER_HISTORY_PREF = "browser.privatebrowsing.autostart";
+const DAYS_EXPANDED_INITIALLY = 2;
 
 export class SidebarHistory extends SidebarPage {
   static queries = {
@@ -99,9 +100,10 @@ export class SidebarHistory extends SidebarPage {
     switch (this.controller.sortOption) {
       case "date":
         return historyVisits.map(
-          ({ l10nId, items }) =>
+          ({ l10nId, items }, i) =>
             html` <moz-card
               type="accordion"
+              ?expanded=${i < DAYS_EXPANDED_INITIALLY}
               data-l10n-attrs="heading"
               data-l10n-id=${l10nId}
               data-l10n-args=${JSON.stringify({
@@ -114,7 +116,7 @@ export class SidebarHistory extends SidebarPage {
       case "site":
         return historyVisits.map(
           ({ domain, items }) =>
-            html` <moz-card type="accordion" heading=${domain}>
+            html` <moz-card type="accordion" expanded heading=${domain}>
               <div>${this.#tabListTemplate(this.getTabItems(items))}</div>
             </moz-card>`
         );
