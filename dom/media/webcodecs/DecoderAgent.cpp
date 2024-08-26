@@ -250,7 +250,7 @@ RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
     return mShutdownWhileCreationPromise.Ensure(__func__);
   }
 
-  // If decoder creation has been completed but failed, no decoder would be set.
+  // If decoder creation has been completed but failed, no decoder is set.
   if (!mDecoder) {
     LOG("DecoderAgent #%d (%p) shutdown without an active decoder", mId, this);
     MOZ_ASSERT(mState == State::Error);
@@ -263,7 +263,7 @@ RefPtr<ShutdownPromise> DecoderAgent::Shutdown() {
     MOZ_ASSERT(!mDryRequest.Exists());
     MOZ_ASSERT(mDryPromise.IsEmpty());
     MOZ_ASSERT(mDrainAndFlushPromise.IsEmpty());
-    // ~DecoderAgent() ensures the state must be Unconfigured.
+    // ~DecoderAgent() will ensure that the decoder is shutdown.
     SetState(State::Unconfigured);
     return ShutdownPromise::CreateAndResolve(true, __func__);
   }
