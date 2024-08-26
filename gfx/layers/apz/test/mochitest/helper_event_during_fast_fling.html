@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=width-device; initial-scale=1.0">
+  <title>Test that events are not delivered during a fast fling</title>
+  <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
+  <script type="application/javascript" src="apz_test_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+</head>
+<body style="height:2000vh">
+</body>
+<script type="application/javascript">
+
+SimpleTest.requestFlakyTimeout(
+  "Wait for a period of the time where touch events trigger a fast fling"
+);
+
+const isAndroid = getPlatform() == "android";
+async function synthesizeNativeTouchOnWindow(aX, aY, aType) {
+  // We use `synthesizeNativeTouch` directly here since with
+  // `synthesizeNativeTouchSequences` we can't do fast fling because
+  // every time stamp difference of each touch event becomes smaller than
+  // `MIN_VELOCITY_SAMPLE_TIME` (50ms) on desktops.
+  await synthesizeNativeTouch(document.documentElement, aX, aY, aType);
+  if (!isAndroid) {
+    // Wait 50ms.
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+}
+
+async function test() {
+  let scrollEventPromise = waitForScrollEvent(window);
+  let touchendEventPromise = promiseOneEvent(window, "touchend");
+
+  // Do a fast fling.
+  await synthesizeNativeTouchOnWindow(
+                              100, 400,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+
+  // Call promiseApzFlushedRepaints to make sure the response from the
+  // main-thread has been received in APZ.
+  await promiseApzFlushedRepaints();
+
+  await synthesizeNativeTouchOnWindow(
+                              100, 390,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+  await synthesizeNativeTouchOnWindow(
+                              100, 380,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+  await synthesizeNativeTouchOnWindow(
+                              100, 370,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+  await synthesizeNativeTouchOnWindow(
+                              100, 100,
+                              SpecialPowers.DOMWindowUtils.TOUCH_REMOVE);
+
+  await Promise.all([ scrollEventPromise, touchendEventPromise ]);
+
+  // Now we should be in a fast-fling state so that there should be no event observed.
+  window.addEventListener("touchstart", () => {
+    ok(false, "touchstart event should not be delivered.");
+  });
+  window.addEventListener("touchmove", () => {
+    ok(false, "touchmove event should not be delivered.");
+  });
+  window.addEventListener("touchend", () => {
+    ok(false, "touchend event should not be delivered.");
+  });
+  window.addEventListener("contextmenu", () => {
+    ok(false, "contextmenu event should not be delivered.");
+  });
+
+  await synthesizeNativeTouch(window, 100, 200,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+
+  const context_menus_delay = SpecialPowers.getIntPref("ui.click_hold_context_menus.delay");
+  // Waiting for a period of the time that a contextmenu event would be fired.
+  await new Promise(resolve => setTimeout(resolve, context_menus_delay));
+
+  scrollEventPromise = waitForScrollEvent(window);
+  await synthesizeNativeTouch(window, 100, 200,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+  await synthesizeNativeTouch(window, 100, 150,
+                              SpecialPowers.DOMWindowUtils.TOUCH_CONTACT);
+  await synthesizeNativeTouch(window, 100, 100,
+                              SpecialPowers.DOMWindowUtils.TOUCH_REMOVE);
+  await scrollEventPromise;
+}
+
+if (getPlatform() == "windows") {
+  ok(true, "Test doesn't run on Windows since it frequently fais probably " +
+           "due to the difference of contextmenu event");
+  subtestDone();
+} else if (getPlatform() == "android" && SpecialPowers.isDebugBuild) {
+  ok(true, "Test doesn't run on Android debug builds since processing each " +
+           "touch event sometimes takes over AssumePointerMoveStoppedTime in " +
+           "AndroidVelocityTracker.cpp");
+  subtestDone();
+} else {
+  waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+}
+</script>
+</html>
