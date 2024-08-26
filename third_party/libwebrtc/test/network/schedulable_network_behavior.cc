@@ -117,9 +117,10 @@ TimeDelta SchedulableNetworkBehavior::UpdateConfigAndReschedule() {
   webrtc::TimeDelta time_since_first_sent_packet =
       reschedule_time - first_send_time_;
   if (next_schedule_index_ != 0) {
-    delay = webrtc::TimeDelta::Millis(schedule_.item()[next_schedule_index_]
-                                          .time_since_first_sent_packet_ms()) -
-            (time_since_first_sent_packet - wrap_time_delta_);
+    delay = std::max(TimeDelta::Millis(schedule_.item()[next_schedule_index_]
+                                           .time_since_first_sent_packet_ms()) -
+                         (time_since_first_sent_packet - wrap_time_delta_),
+                     TimeDelta::Zero());
   } else if (!schedule_.has_repeat_schedule_after_last_ms()) {
     // No more schedule items.
     schedule_task_.Stop();
