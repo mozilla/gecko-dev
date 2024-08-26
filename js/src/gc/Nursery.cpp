@@ -1911,62 +1911,6 @@ size_t Nursery::sizeOfMallocedBuffers(
   return total;
 }
 
-void js::Nursery::sweepStringsWithBuffer() {
-  // Add StringBuffers to stringBuffersToReleaseAfterMinorGC_. Strings we
-  // tenured must have an additional refcount at this point.
-
-  MOZ_ASSERT(stringBuffersToReleaseAfterMinorGC_.empty());
-
-  auto sweep = [&](JSLinearString* str,
-                   mozilla::StringBuffer* buffer) -> JSLinearString* {
-    MOZ_ASSERT(inCollectedRegion(str));
-
-    if (!IsForwarded(str)) {
-      MOZ_ASSERT(str->hasStringBuffer() || str->isAtomRef());
-      MOZ_ASSERT_IF(str->hasStringBuffer(), str->stringBuffer() == buffer);
-      if (!stringBuffersToReleaseAfterMinorGC_.append(buffer)) {
-        // Release on the main thread on OOM.
-        buffer->Release();
-      }
-      return nullptr;
-    }
-
-    JSLinearString* dst = Forwarded(str);
-    if (!IsInsideNursery(dst)) {
-      MOZ_ASSERT_IF(dst->hasStringBuffer() && dst->stringBuffer() == buffer,
-                    buffer->RefCount() > 1);
-      if (!stringBuffersToReleaseAfterMinorGC_.append(buffer)) {
-        // Release on the main thread on OOM.
-        buffer->Release();
-      }
-      return nullptr;
-    }
-
-    return dst;
-  };
-
-  stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
-    if (JSLinearString* dst = sweep(entry.first, entry.second)) {
-      entry.first = dst;
-      return false;
-    }
-    return true;
-  });
-
-  AutoEnterOOMUnsafeRegion oomUnsafe;
-
-  ExtensibleStringBuffers buffers(std::move(extensibleStringBuffers_));
-  MOZ_ASSERT(extensibleStringBuffers_.empty());
-
-  for (ExtensibleStringBuffers::Enum e(buffers); !e.empty(); e.popFront()) {
-    if (JSLinearString* dst = sweep(e.front().key(), e.front().value())) {
-      if (!extensibleStringBuffers_.putNew(dst, e.front().value())) {
-        oomUnsafe.crash("sweepStringsWithBuffer");
-      }
-    }
-  }
-}
-
 void js::Nursery::sweep() {
   // It's important that the context's GCUse is not Finalizing at this point,
   // otherwise we will miscount memory attached to nursery objects with
@@ -1995,7 +1939,37 @@ void js::Nursery::sweep() {
     return false;
   });
 
-  sweepStringsWithBuffer();
+  // Add StringBuffers to stringBuffersToReleaseAfterMinorGC_. Strings we
+  // tenured must have an additional refcount at this point.
+  MOZ_ASSERT(stringBuffersToReleaseAfterMinorGC_.empty());
+  stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
+    auto [str, buffer] = entry;
+    MOZ_ASSERT(inCollectedRegion(str));
+
+    if (!IsForwarded(str)) {
+      MOZ_ASSERT(str->hasStringBuffer() || str->isAtomRef());
+      MOZ_ASSERT_IF(str->hasStringBuffer(), str->stringBuffer() == buffer);
+      if (!stringBuffersToReleaseAfterMinorGC_.append(buffer)) {
+        // Release on the main thread on OOM.
+        buffer->Release();
+      }
+      return true;
+    }
+
+    JSLinearString* dst = Forwarded(str);
+    if (!IsInsideNursery(dst)) {
+      MOZ_ASSERT_IF(dst->hasStringBuffer() && dst->stringBuffer() == buffer,
+                    buffer->RefCount() > 1);
+      if (!stringBuffersToReleaseAfterMinorGC_.append(buffer)) {
+        // Release on the main thread on OOM.
+        buffer->Release();
+      }
+      return true;
+    }
+
+    entry.first = dst;
+    return false;
+  });
 
   for (ZonesIter zone(runtime(), SkipAtoms); !zone.done(); zone.next()) {
     zone->sweepAfterMinorGC(&trc);
