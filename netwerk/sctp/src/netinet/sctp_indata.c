@@ -778,21 +778,6 @@ sctp_build_readq_entry_from_ctl(struct sctp_queued_to_read *nc, struct sctp_queu
 	nc->do_not_ref_stcb = control->do_not_ref_stcb;
 }
 
-static void
-sctp_reset_a_control(struct sctp_queued_to_read *control,
-                     struct sctp_inpcb *inp, uint32_t tsn)
-{
-	control->fsn_included = tsn;
-	if (control->on_read_q) {
-		/*
-		 * We have to purge it from there,
-		 * hopefully this will work :-)
-		 */
-		TAILQ_REMOVE(&inp->read_queue, control, next);
-		control->on_read_q = 0;
-	}
-}
-
 static int
 sctp_handle_old_unordered_data(struct sctp_tcb *stcb,
                                struct sctp_association *asoc,
@@ -1375,7 +1360,7 @@ out:
 
 /*
  * Dump onto the re-assembly queue, in its proper place. After dumping on the
- * queue, see if anthing can be delivered. If so pull it off (or as much as
+ * queue, see if anything can be delivered. If so pull it off (or as much as
  * we can. If we run out of space then we must dump what we can and set the
  * appropriate flag to say we queued what we could.
  */
@@ -1923,7 +1908,8 @@ sctp_process_a_data_chunk(struct sctp_tcb *stcb, struct sctp_association *asoc,
 				SCTP_SNPRINTF(msg, sizeof(msg), "Duplicate MID=%8.8x detected.", mid);
 				goto err_out;
 			} else {
-				if ((tsn == control->fsn_included + 1) &&
+				if ((control->first_frag_seen) &&
+				    (tsn == control->fsn_included + 1) &&
 				    (control->end_added == 0)) {
 					SCTP_SNPRINTF(msg, sizeof(msg),
 					              "Illegal message sequence, missing end for MID: %8.8x",
@@ -5308,12 +5294,16 @@ sctp_update_acked(struct sctp_tcb *stcb, struct sctp_shutdown_chunk *cp, int *ab
 
 static void
 sctp_kick_prsctp_reorder_queue(struct sctp_tcb *stcb,
-			       struct sctp_stream_in *strmin)
+                               struct sctp_stream_in *strmin)
 {
 	struct sctp_queued_to_read *control, *ncontrol;
 	struct sctp_association *asoc;
 	uint32_t mid;
 	int need_reasm_check = 0;
+
+	KASSERT(stcb != NULL, ("stcb == NULL"));
+	SCTP_TCB_LOCK_ASSERT(stcb);
+	SCTP_INP_READ_LOCK_ASSERT(stcb->sctp_ep);
 
 	asoc = &stcb->asoc;
 	mid = strmin->last_mid_delivered;
@@ -5352,11 +5342,9 @@ sctp_kick_prsctp_reorder_queue(struct sctp_tcb *stcb,
 				/* deliver it to at least the delivery-q */
 				if (stcb->sctp_socket) {
 					sctp_mark_non_revokable(asoc, control->sinfo_tsn);
-					sctp_add_to_readq(stcb->sctp_ep, stcb,
-							  control,
-							  &stcb->sctp_socket->so_rcv,
-							  1, SCTP_READ_LOCK_HELD,
-							  SCTP_SO_NOT_LOCKED);
+					sctp_add_to_readq(stcb->sctp_ep, stcb, control,
+					                  &stcb->sctp_socket->so_rcv, 1,
+					                  SCTP_READ_LOCK_HELD, SCTP_SO_NOT_LOCKED);
 				}
 			} else {
 				/* Its a fragmented message */
@@ -5422,10 +5410,9 @@ sctp_kick_prsctp_reorder_queue(struct sctp_tcb *stcb,
 				strmin->last_mid_delivered = control->mid;
 				if (stcb->sctp_socket) {
 					sctp_mark_non_revokable(asoc, control->sinfo_tsn);
-					sctp_add_to_readq(stcb->sctp_ep, stcb,
-							  control,
-							  &stcb->sctp_socket->so_rcv, 1,
-							  SCTP_READ_LOCK_HELD, SCTP_SO_NOT_LOCKED);
+					sctp_add_to_readq(stcb->sctp_ep, stcb, control,
+					                  &stcb->sctp_socket->so_rcv, 1,
+					                  SCTP_READ_LOCK_HELD, SCTP_SO_NOT_LOCKED);
 				}
 				mid = strmin->last_mid_delivered + 1;
 			} else {
@@ -5448,8 +5435,8 @@ sctp_kick_prsctp_reorder_queue(struct sctp_tcb *stcb,
 
 static void
 sctp_flush_reassm_for_str_seq(struct sctp_tcb *stcb,
-	struct sctp_association *asoc, struct sctp_stream_in *strm,
-	struct sctp_queued_to_read *control, int ordered, uint32_t cumtsn)
+                              struct sctp_association *asoc, struct sctp_stream_in *strm,
+                              struct sctp_queued_to_read *control, int ordered, uint32_t cumtsn)
 {
 	struct sctp_tmit_chunk *chk, *nchk;
 
@@ -5461,6 +5448,11 @@ sctp_flush_reassm_for_str_seq(struct sctp_tcb *stcb,
 	 * delivery function... to see if it can be delivered... But
 	 * for now we just dump everything on the queue.
 	 */
+
+	KASSERT(stcb != NULL, ("stcb == NULL"));
+	SCTP_TCB_LOCK_ASSERT(stcb);
+	SCTP_INP_READ_LOCK_ASSERT(stcb->sctp_ep);
+
 	if (!asoc->idata_supported && !ordered &&
 	    control->first_frag_seen &&
 	    SCTP_TSN_GT(control->fsn_included, cumtsn)) {
@@ -5491,17 +5483,30 @@ sctp_flush_reassm_for_str_seq(struct sctp_tcb *stcb,
 		sctp_free_a_chunk(stcb, chk, SCTP_SO_NOT_LOCKED);
 	}
 	if (!TAILQ_EMPTY(&control->reasm)) {
-		/* This has to be old data, unordered */
+		KASSERT(!asoc->idata_supported,
+		    ("Reassembly queue not empty for I-DATA"));
+		KASSERT(!ordered,
+		    ("Reassembly queue not empty for ordered data"));
 		if (control->data) {
 			sctp_m_freem(control->data);
 			control->data = NULL;
 		}
-		sctp_reset_a_control(control, stcb->sctp_ep, cumtsn);
+		control->fsn_included = 0xffffffff;
+		control->first_frag_seen = 0;
+		control->last_frag_seen = 0;
+		if (control->on_read_q) {
+			/*
+			 * We have to purge it from there,
+			 * hopefully this will work :-)
+			 */
+			TAILQ_REMOVE(&stcb->sctp_ep->read_queue, control, next);
+			control->on_read_q = 0;
+		}
 		chk = TAILQ_FIRST(&control->reasm);
 		if (chk->rec.data.rcv_flags & SCTP_DATA_FIRST_FRAG) {
 			TAILQ_REMOVE(&control->reasm, chk, sctp_next);
 			sctp_add_chk_to_control(control, strm, stcb, asoc,
-						chk, SCTP_READ_LOCK_HELD);
+			                        chk, SCTP_READ_LOCK_HELD);
 		}
 		sctp_deliver_reasm_check(stcb, asoc, strm, SCTP_READ_LOCK_HELD);
 		return;

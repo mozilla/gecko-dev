@@ -1312,7 +1312,9 @@ sctp_flush(struct socket *so, int how)
 			}
 			sctp_free_a_readq(stcb, control);
 		} else {
-			stcb->asoc.size_on_all_streams += control->length;
+			if (stcb != NULL) {
+				stcb->asoc.size_on_all_streams += control->length;
+			}
 		}
 	}
 	SOCK_UNLOCK(so);

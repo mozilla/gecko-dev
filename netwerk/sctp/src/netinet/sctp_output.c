@@ -5370,7 +5370,8 @@ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
                                       int param_offset, int *abort_processing,
                                       struct sctp_chunkhdr *cp,
                                       int *nat_friendly,
-                                      int *cookie_found)
+                                      int *cookie_found,
+                                      uint32_t *edmid)
 {
 	/*
 	 * Given a mbuf containing an INIT or INIT-ACK with the param_offset
@@ -5386,8 +5387,8 @@ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
 	 * hoped that this routine may be reused in the future by new
 	 * features.
 	 */
+	struct sctp_zero_checksum_acceptable zero_chksum, *zero_chksum_p;
 	struct sctp_paramhdr *phdr, params;
-
 	struct mbuf *mat, *m_tmp, *op_err, *op_err_last;
 	int at, limit, pad_needed;
 	uint16_t ptype, plen, padded_size;
@@ -5395,6 +5396,9 @@ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
 	*abort_processing = 0;
 	if (cookie_found != NULL) {
 		*cookie_found = 0;
+	}
+	if (edmid != NULL) {
+		*edmid = SCTP_EDMID_NONE;
 	}
 	mat = in_initpkt;
 	limit = ntohs(cp->chunk_length) - sizeof(struct sctp_init_chunk);
@@ -5451,6 +5455,22 @@ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
 			}
 			at += padded_size;
 			break;
+		case SCTP_ZERO_CHECKSUM_ACCEPTABLE:
+			if (padded_size != sizeof(struct sctp_zero_checksum_acceptable)) {
+				SCTPDBG(SCTP_DEBUG_OUTPUT1, "Invalid size - error checksum acceptable %d\n", plen);
+				goto invalid_size;
+			}
+			if (edmid != NULL) {
+				phdr = sctp_get_next_param(mat, at,
+				                           (struct sctp_paramhdr *)&zero_chksum,
+				                           sizeof(struct sctp_zero_checksum_acceptable));
+				if (phdr != NULL) {
+					zero_chksum_p = (struct sctp_zero_checksum_acceptable *)phdr;
+					*edmid = ntohl(zero_chksum_p->edmid);
+				}
+			}
+			at += padded_size;
+			break;
 		case SCTP_RANDOM:
 			if (padded_size > (sizeof(struct sctp_auth_random) + SCTP_RANDOM_MAX_SIZE)) {
 				SCTPDBG(SCTP_DEBUG_OUTPUT1, "Invalid size - error random %d\n", plen);
@@ -5491,11 +5511,16 @@ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
 			at += padded_size;
 			break;
 		case SCTP_HAS_NAT_SUPPORT:
+			if (padded_size != sizeof(struct sctp_paramhdr)) {
+				SCTPDBG(SCTP_DEBUG_OUTPUT1, "Invalid size - error nat support %d\n", plen);
+				goto invalid_size;
+			}
 			*nat_friendly = 1;
-			/* FALLTHROUGH */
+			at += padded_size;
+			break;
 		case SCTP_PRSCTP_SUPPORTED:
 			if (padded_size != sizeof(struct sctp_paramhdr)) {
-				SCTPDBG(SCTP_DEBUG_OUTPUT1, "Invalid size - error prsctp/nat support %d\n", plen);
+				SCTPDBG(SCTP_DEBUG_OUTPUT1, "Invalid size - error prsctp %d\n", plen);
 				goto invalid_size;
 			}
 			at += padded_size;
@@ -5992,7 +6017,9 @@ sctp_send_initiate_ack(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 	int nat_friendly = 0;
 	int error;
 	struct socket *so;
+	uint32_t edmid;
 	uint16_t num_ext, chunk_len, padding_len, parameter_len;
+	bool use_zero_crc;
 
 	if (stcb) {
 		asoc = &stcb->asoc;
@@ -6036,7 +6063,7 @@ sctp_send_initiate_ack(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 	                                               (offset + sizeof(struct sctp_init_chunk)),
 	                                               &abort_flag,
 	                                               (struct sctp_chunkhdr *)init_chk,
-	                                               &nat_friendly, NULL);
+	                                               &nat_friendly, NULL, &edmid);
 	if (abort_flag) {
 	do_a_abort:
 		if (op_err == NULL) {
@@ -6716,6 +6743,12 @@ sctp_send_initiate_ack(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 		over_addr = NULL;
 	}
 
+	if (asoc != NULL) {
+		use_zero_crc = (asoc->rcv_edmid != SCTP_EDMID_NONE) && (asoc->rcv_edmid == edmid);
+	} else {
+		use_zero_crc = (inp->rcv_edmid != SCTP_EDMID_NONE) && (inp->rcv_edmid == edmid);
+	}
+
 	if ((error = sctp_lowlevel_chunk_output(inp, NULL, NULL, to, m, 0, NULL, 0, 0,
 	                                        0, 0,
 	                                        inp->sctp_lport, sh->src_port, init_chk->init.initiate_tag,
@@ -6723,7 +6756,7 @@ sctp_send_initiate_ack(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 #if defined(__FreeBSD__) && !defined(__Userspace__)
 	                                        mflowtype, mflowid,
 #endif
-	                                        false, /* XXXMT: Improve this! */
+	                                        use_zero_crc,
 	                                        SCTP_SO_NOT_LOCKED))) {
 		SCTPDBG(SCTP_DEBUG_OUTPUT4, "Gak send error %d\n", error);
 		if (error == ENOBUFS) {
@@ -7245,7 +7278,9 @@ sctp_sendall_iterator(struct sctp_inpcb *inp, struct sctp_tcb *stcb, void *ptr,
 		} else {
 			m = sctp_get_mbuf_for_msg(sizeof(struct sctp_paramhdr),
 			                          0, M_NOWAIT, 1, MT_DATA);
-			SCTP_BUF_LEN(m) = sizeof(struct sctp_paramhdr);
+			if (m != NULL) {
+				SCTP_BUF_LEN(m) = sizeof(struct sctp_paramhdr);
+			}
 		}
 		if (m != NULL) {
 			struct sctp_paramhdr *ph;
@@ -7442,18 +7477,28 @@ static int
 sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
     struct sctp_nonpad_sndrcvinfo *srcv)
 {
-	int ret;
 	struct sctp_copy_all *ca;
+	struct mbuf *mat;
+	ssize_t sndlen;
+	int ret;
 
+	if (uio != NULL) {
 #if defined(__APPLE__) && !defined(__Userspace__)
 #if defined(APPLE_LEOPARD)
-	if (uio->uio_resid > SCTP_BASE_SYSCTL(sctp_sendall_limit)) {
+		sndlen = uio->uio_resid;
 #else
-	if (uio_resid(uio) > SCTP_BASE_SYSCTL(sctp_sendall_limit)) {
+		sndlen = uio_resid(uio);
 #endif
 #else
-	if (uio->uio_resid > (ssize_t)SCTP_BASE_SYSCTL(sctp_sendall_limit)) {
+		sndlen = uio->uio_resid;
 #endif
+	} else {
+		sndlen = 0;
+		for (mat = m; mat; mat = SCTP_BUF_NEXT(mat)) {
+			sndlen += SCTP_BUF_LEN(mat);
+		}
+	}
+	if (sndlen > (ssize_t)SCTP_BASE_SYSCTL(sctp_sendall_limit)) {
 		/* You must not be larger than the limit! */
 		return (EMSGSIZE);
 	}
@@ -7465,12 +7510,10 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 		return (ENOMEM);
 	}
 	memset(ca, 0, sizeof(struct sctp_copy_all));
-
 	ca->inp = inp;
 	if (srcv != NULL) {
 		memcpy(&ca->sndrcv, srcv, sizeof(struct sctp_nonpad_sndrcvinfo));
 	}
-
 	/* Serialize. */
 	SCTP_INP_WLOCK(inp);
 	if ((inp->sctp_flags & SCTP_PCB_FLAGS_SND_ITERATOR_UP) != 0) {
@@ -7481,23 +7524,14 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 	}
 	inp->sctp_flags |= SCTP_PCB_FLAGS_SND_ITERATOR_UP;
 	SCTP_INP_WUNLOCK(inp);
-
 	/*
 	 * take off the sendall flag, it would be bad if we failed to do
 	 * this :-0
 	 */
 	ca->sndrcv.sinfo_flags &= ~SCTP_SENDALL;
 	/* get length and mbuf chain */
-	if (uio) {
-#if defined(__APPLE__) && !defined(__Userspace__)
-#if defined(APPLE_LEOPARD)
-		ca->sndlen = uio->uio_resid;
-#else
-		ca->sndlen = uio_resid(uio);
-#endif
-#else
-		ca->sndlen = uio->uio_resid;
-#endif
+	ca->sndlen = sndlen;
+	if (uio != NULL) {
 #if defined(__APPLE__) && !defined(__Userspace__)
 		SCTP_SOCKET_UNLOCK(SCTP_INP_SO(inp), 0);
 #endif
@@ -7515,20 +7549,14 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 			return (ENOMEM);
 		}
 	} else {
-		/* Gather the length of the send */
-		struct mbuf *mat;
-
-		ca->sndlen = 0;
-		for (mat = m; mat; mat = SCTP_BUF_NEXT(mat)) {
-			ca->sndlen += SCTP_BUF_LEN(mat);
-		}
+		ca->m = m;
 	}
 	ret = sctp_initiate_iterator(NULL, sctp_sendall_iterator, NULL,
-				     SCTP_PCB_ANY_FLAGS, SCTP_PCB_ANY_FEATURES,
-				     SCTP_ASOC_ANY_STATE,
-				     (void *)ca, 0,
-				     sctp_sendall_completes, inp, 1);
-	if (ret) {
+	                             SCTP_PCB_ANY_FLAGS, SCTP_PCB_ANY_FEATURES,
+	                             SCTP_ASOC_ANY_STATE,
+	                             (void *)ca, 0,
+	                             sctp_sendall_completes, inp, 1);
+	if (ret != 0) {
 		SCTP_INP_WLOCK(inp);
 		inp->sctp_flags &= ~SCTP_PCB_FLAGS_SND_ITERATOR_UP;
 		SCTP_INP_WUNLOCK(inp);
@@ -12166,7 +12194,7 @@ sctp_send_hb(struct sctp_tcb *stcb, struct sctp_nets *net,int so_locked)
 	/* Fill out hb parameter */
 	hb->heartbeat.hb_info.ph.param_type = htons(SCTP_HEARTBEAT_INFO);
 	hb->heartbeat.hb_info.ph.param_length = htons(sizeof(struct sctp_heartbeat_info_param));
-	hb->heartbeat.hb_info.time_value_1 = (uint32_t)now.tv_sec;
+	hb->heartbeat.hb_info.time_value_1 = now.tv_sec;
 	hb->heartbeat.hb_info.time_value_2 = now.tv_usec;
 	/* Did our user request this one, put it in */
 	hb->heartbeat.hb_info.addr_family = (uint8_t)net->ro._l_addr.sa.sa_family;
