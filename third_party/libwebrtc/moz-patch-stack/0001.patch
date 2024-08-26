@@ -1,110 +1,288 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Mon, 26 Aug 2024 16:49:41 -0600
-Subject: (tmp-cherry-pick) [M128] Revert "Update support for missing HIGH
- profiles and 1080p" (bef5d63112)
+Date: Mon, 26 Aug 2024 17:07:10 -0600
+Subject: (tmp-cherry-pick) Revert "Roll chromium_revision
+ 536609c347..ba1ae79f58 (1316213:1319128)" (0592d2b3c4)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
+This reverts commit 3be745a20a6a54dadfc7d9369465f1236fd87b56.
 
-This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
-
-Reason for revert: chromium:354143228
+Reason for revert: Investigating jni_zero issues
 
 Original change's description:
-> Update support for missing HIGH profiles and 1080p
+> Roll chromium_revision 536609c347..ba1ae79f58 (1316213:1319128)
 >
-> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
 >
-> Bug: webrtc:347724928
-> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
-> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42528}
+> Manually changed ninja package to 'infra/3pp/build_support/ninja-1_11_1/${{platform}}'
+>
+> Change log: https://chromium.googlesource.com/chromium/src/+log/536609c347..ba1ae79f58
+> Full diff: https://chromium.googlesource.com/chromium/src/+/536609c347..ba1ae79f58
+>
+> Changed dependencies
+> * fuchsia_version: version:21.20240613.1.1..version:21.20240620.2.1
+> * ninja_version: version:2@1.11.1.chromium.6..version:2@1.11.1.chromium.2
+> * reclient_version: re_client_version:0.143.0.518e369-gomaip..re_client_version:0.148.0.41b09b51-gomaip
+> * src/base: https://chromium.googlesource.com/chromium/src/base/+log/21aa1c623a..aa6dbe6d6a
+> * src/build: https://chromium.googlesource.com/chromium/src/build/+log/574613cf34..5bce81deee
+> * src/buildtools: https://chromium.googlesource.com/chromium/src/buildtools/+log/8acbed5185..94d7b86a83
+> * src/buildtools/reclient: re_client_version:0.143.0.518e369-gomaip..re_client_version:0.148.0.41b09b51-gomaip
+> * src/ios: https://chromium.googlesource.com/chromium/src/ios/+log/c5094fae2f..9e33110a5d
+> * src/testing: https://chromium.googlesource.com/chromium/src/testing/+log/ca3cf42d0a..a1b47952f3
+> * src/third_party: https://chromium.googlesource.com/chromium/src/third_party/+log/361b05ad7c..91945cadc2
+> * src/third_party/androidx: Z-16gFTbhA-coeMbJVUhkfglE569L1q8iVWgtwIs9oMC..-zomVY2T8V3NRjAUbZNAZpFp8dAPuNdu3oQsnmhhIHEC
+> * src/third_party/boringssl/src: https://boringssl.googlesource.com/boringssl.git/+log/9cac8a6b38..f01108e476
+> * src/third_party/catapult: https://chromium.googlesource.com/catapult.git/+log/1a0040059f..022cd349fe
+> * src/third_party/depot_tools: https://chromium.googlesource.com/chromium/tools/depot_tools.git/+log/66df2a3ec7..f1c7c96958
+> * src/third_party/ffmpeg: https://chromium.googlesource.com/chromium/third_party/ffmpeg.git/+log/bc1ee906ce..d941d9677b
+> * src/third_party/freetype/src: https://chromium.googlesource.com/chromium/src/third_party/freetype2.git/+log/d41a855aab..73720c7c99
+> * src/third_party/icu: https://chromium.googlesource.com/chromium/deps/icu.git/+log/43953f57b0..163e29159e
+> * src/third_party/kotlinc/current: 0jpbSygC1gCOFyv-hsyNVfvxPLhDSXnTCSnxHY_mjKoC..9KgLQsrBWX4kePu9T7eDB1JknSYIPKmmumTEE70lyHYC
+> * src/third_party/libaom/source/libaom: https://aomedia.googlesource.com/aom.git/+log/49c02efb61..afedaf9da5
+> * src/third_party/libc++/src: https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git/+log/6caebae1eb..09b99fd8ab
+> * src/third_party/libc++abi/src: https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git/+log/472d9aad97..bac941ca44
+> * src/third_party/libunwind/src: https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git/+log/c8f1d81998..dcc1ffafb5
+> * src/third_party/libvpx/source/libvpx: https://chromium.googlesource.com/webm/libvpx.git/+log/a2508b5711..253d6365e3
+> * src/third_party/ninja: version:2@1.11.1.chromium.6..version:2@1.11.1.chromium.2
+> * src/third_party/perfetto: https://android.googlesource.com/platform/external/perfetto.git/+log/1990573f6d..f9098afffa
+> * src/third_party/r8: BbsWCeVMT641FkMRNj4fbXc-wfImc7dl45HwKXWk0hsC..M8rc1oybTkWXWpoImSQ8gAwv6mdEyvAPnQNs6Dus_28C
+> * src/third_party/re2/src: https://chromium.googlesource.com/external/github.com/google/re2.git/+log/4a8cee3dd3..6144b62bec
+> * src/third_party/turbine: s6-zuFNzLDZOl_FmPkk2_LENOqUKjkYmpqR9l0SDo94C..xWEBZuFKl1Dvw_zOpabeMkGVYlEllIxK06D-RoC6wUsC
+> * src/tools: https://chromium.googlesource.com/chromium/src/tools/+log/4d74770ca4..a8fe86b922
+> DEPS diff: https://chromium.googlesource.com/chromium/src/+/536609c347..ba1ae79f58/DEPS
+>
+> Clang version changed llvmorg-19-init-10646-g084e2b53:llvmorg-19-init-14561-gecea8371
+> Details: https://chromium.googlesource.com/chromium/src/+/536609c347..ba1ae79f58/tools/clang/scripts/update.py
+>
+> BUG=None
+>
+> Change-Id: Id887574c285eb12c82ed71e3434bd380646560ef
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355520
+> Reviewed-by: Jeremy Leconte <jleconte@google.com>
+> Commit-Queue: Björn Terelius <terelius@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42535}
 
-(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
-
-Bug: chromium:354143228, webrtc:347724928
-Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#42675}
-No-Try: True
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
+Bug: None
+Change-Id: Ic31468e3b114329aef9646f5196128fbd3ca6403
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355703
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6613@{#1}
-Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
+Reviewed-by: Artem Titov <titovartem@webrtc.org>
+Commit-Queue: Artem Titov <titovartem@webrtc.org>
+Auto-Submit: Björn Terelius <terelius@webrtc.org>
+Reviewed-by: Tomas Gunnarsson <tommi@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42540}
 ---
- modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
- .../test/videocodec_test_fixture_impl.cc      |  2 +-
- 2 files changed, 11 insertions(+), 17 deletions(-)
+ DEPS | 58 +++++++++++++++++++++++++++++-----------------------------
+ 1 file changed, 29 insertions(+), 29 deletions(-)
 
-diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
-index b2deda5ea8..60142c88c1 100644
---- a/modules/video_coding/codecs/h264/h264.cc
-+++ b/modules/video_coding/codecs/h264/h264.cc
-@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
-   //
-   // We support both packetization modes 0 (mandatory) and 1 (optional,
-   // preferred).
--  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "1", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "0", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "1", add_scalability_modes),
-+                           H264Level::kLevel3_1, "1", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "0", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
-+                           H264Level::kLevel3_1, "0", add_scalability_modes),
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
-                            add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
-                            add_scalability_modes)};
- }
+diff --git a/DEPS b/DEPS
+index 7ecdceeb09..a79629bf93 100644
+--- a/DEPS
++++ b/DEPS
+@@ -10,7 +10,7 @@ vars = {
+   # chromium waterfalls. More info at: crbug.com/570091.
+   'checkout_configuration': 'default',
+   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
+-  'chromium_revision': 'ba1ae79f58162c2a16454c1672eb636d8e197687',
++  'chromium_revision': '536609c3477d65334638c9a128a88a60f2102091',
  
-@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
+   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
+   # process the raw profiles produced by instrumented targets (built with
+@@ -30,7 +30,7 @@ vars = {
  
-   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
+   # By default, download the fuchsia sdk from the public sdk directory.
+   'fuchsia_sdk_cipd_prefix': 'fuchsia/sdk/core/',
+-  'fuchsia_version': 'version:21.20240620.2.1',
++  'fuchsia_version': 'version:21.20240613.1.1',
+   # By default, download the fuchsia images from the fuchsia GCS bucket.
+   'fuchsia_images_bucket': 'fuchsia',
+   'checkout_fuchsia': False,
+@@ -45,11 +45,11 @@ vars = {
+   # RBE instance to use for running remote builds
+   'rbe_instance': 'projects/rbe-webrtc-developer/instances/default_instance',
+   # reclient CIPD package version
+-  'reclient_version': 're_client_version:0.148.0.41b09b51-gomaip',
++  'reclient_version': 're_client_version:0.143.0.518e369-gomaip',
  
-+  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
-+  // support decoding.
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
+   # ninja CIPD package version
+   # https://chrome-infra-packages.appspot.com/p/infra/3pp/tools/ninja
+-  'ninja_version': 'version:2@1.11.1.chromium.2',
++  'ninja_version': 'version:2@1.11.1.chromium.6',
  
-   return supportedCodecs;
- }
-diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index 82bc6e37f9..9c708263a7 100644
---- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-+++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-@@ -173,7 +173,7 @@ SdpVideoFormat CreateSdpVideoFormat(
-     CodecParameterMap codec_params = {
-         {cricket::kH264FmtpProfileLevelId,
-          *H264ProfileLevelIdToString(H264ProfileLevelId(
--             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
-+             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
-         {cricket::kH264FmtpPacketizationMode, packetization_mode},
-         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
+   # condition to allowlist deps for non-git-source processing.
+   'non_git_source': 'True',
+@@ -58,24 +58,24 @@ vars = {
+ deps = {
+   # TODO(kjellander): Move this to be Android-only.
+   'src/base':
+-    'https://chromium.googlesource.com/chromium/src/base@aa6dbe6d6a68e6503360a7e0e18b8464c56fc159',
++    'https://chromium.googlesource.com/chromium/src/base@21aa1c623a46bfbbab7140e986442cbe10f38fcb',
+   'src/build':
+-    'https://chromium.googlesource.com/chromium/src/build@5bce81deee6d30ac58c45f6cd53e859c62780687',
++    'https://chromium.googlesource.com/chromium/src/build@574613cf34fb84abeffa86722b4f3df29a5371f6',
+   'src/buildtools':
+-    'https://chromium.googlesource.com/chromium/src/buildtools@94d7b86a83537f8a7db7dccb0bf885739f7a81aa',
++    'https://chromium.googlesource.com/chromium/src/buildtools@8acbed51859808fe82c5c4c079efe05a012ea041',
+   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
+   'src/examples/androidtests/third_party/gradle': {
+     'url': 'https://chromium.googlesource.com/external/github.com/gradle/gradle.git@f2d1fb54a951d8b11d25748e4711bec8d128d7e3',
+     'condition': 'checkout_android',
+   },
+   'src/ios': {
+-    'url': 'https://chromium.googlesource.com/chromium/src/ios@9e33110a5d6d22342302264579598e42c4623ebb',
++    'url': 'https://chromium.googlesource.com/chromium/src/ios@c5094fae2fd92dde5e29a0c1946cfa83f4faa108',
+     'condition': 'checkout_ios',
+   },
+   'src/testing':
+-    'https://chromium.googlesource.com/chromium/src/testing@a1b47952f3737c536f14a74ff70bc12ed2c1ac7d',
++    'https://chromium.googlesource.com/chromium/src/testing@ca3cf42d0ad759c9b3c07eac93d5ecbb54a44dd4',
+   'src/third_party':
+-    'https://chromium.googlesource.com/chromium/src/third_party@91945cadc24feea7b44e1682d17844b6ab508d6d',
++    'https://chromium.googlesource.com/chromium/src/third_party@361b05ad7c6585296b649f9f7c8d41ec4fcb5291',
  
+   'src/buildtools/linux64': {
+     'packages': [
+@@ -123,11 +123,11 @@ deps = {
+   'src/third_party/clang-format/script':
+     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/clang/tools/clang-format.git@3c0acd2d4e73dd911309d9e970ba09d58bf23a62',
+   'src/third_party/libc++/src':
+-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git@09b99fd8ab300c93ff7b8df6688cafb27bd3db28',
++    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git@6caebae1ebab6e0ac7db95d732a60035f26c6b89',
+   'src/third_party/libc++abi/src':
+-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@bac941ca447afdea824073f3138ef49869e675db',
++    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@472d9aad97ad38d294aa0634100a4a1c0b6b34b9',
+   'src/third_party/libunwind/src':
+-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@dcc1ffafb55a188d09e46c51dc9cd2f091521ea8',
++    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@c8f1d81998280ae2ea0e76ddb60aae6e1b4b860e',
+ 
+   'src/third_party/test_fonts/test_fonts': {
+       'dep_type': 'gcs',
+@@ -146,7 +146,7 @@ deps = {
+   'src/third_party/ninja': {
+     'packages': [
+       {
+-        'package': 'infra/3pp/build_support/ninja-1_11_1/${{platform}}',
++        'package': 'infra/3pp/tools/ninja/${{platform}}',
+         'version': Var('ninja_version'),
+       }
+     ],
+@@ -207,11 +207,11 @@ deps = {
+   },
+ 
+   'src/third_party/boringssl/src':
+-    'https://boringssl.googlesource.com/boringssl.git@f01108e4761e1d4189cb134322c3cb01dc71ef87',
++    'https://boringssl.googlesource.com/boringssl.git@9cac8a6b38c1cbd45c77aee108411d588da006fe',
+   'src/third_party/breakpad/breakpad':
+     'https://chromium.googlesource.com/breakpad/breakpad.git@76788faa4ef163081f82273bfca7fae8a734b971',
+   'src/third_party/catapult':
+-    'https://chromium.googlesource.com/catapult.git@022cd349fe146c3dd0ba31f2789c630fc40e76a0',
++    'https://chromium.googlesource.com/catapult.git@1a0040059f507232fecfba0fc6982c73f81edbb8',
+   'src/third_party/ced/src': {
+     'url': 'https://chromium.googlesource.com/external/github.com/google/compact_enc_det.git@ba412eaaacd3186085babcd901679a48863c7dd5',
+   },
+@@ -224,9 +224,9 @@ deps = {
+   'src/third_party/crc32c/src':
+     'https://chromium.googlesource.com/external/github.com/google/crc32c.git@fa5ade41ee480003d9c5af6f43567ba22e4e17e6',
+   'src/third_party/depot_tools':
+-    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@f1c7c96958b849668e62799e74b204c9fe9fe17c',
++    'https://chromium.googlesource.com/chromium/tools/depot_tools.git@66df2a3ec70d0628d47df1fdba69838a870a1303',
+   'src/third_party/ffmpeg':
+-    'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@d941d9677bb4802f01750fd908ec284fb72c84df',
++    'https://chromium.googlesource.com/chromium/third_party/ffmpeg.git@bc1ee906cede137c061bea5a5e8d0743374392a5',
+   'src/third_party/flatbuffers/src':
+     'https://chromium.googlesource.com/external/github.com/google/flatbuffers.git@6ede1ccc9e24e00d5b19c19d6df0f09fdf1a64fe',
+   'src/third_party/grpc/src': {
+@@ -238,7 +238,7 @@ deps = {
+       'condition': 'checkout_linux',
+   },
+   'src/third_party/freetype/src':
+-    'https://chromium.googlesource.com/chromium/src/third_party/freetype2.git@73720c7c9958e87b3d134a7574d1720ad2d24442',
++    'https://chromium.googlesource.com/chromium/src/third_party/freetype2.git@d41a855aab6d8ce131c465ce01f0f536e0fb2269',
+   'src/third_party/harfbuzz-ng/src':
+     'https://chromium.googlesource.com/external/github.com/harfbuzz/harfbuzz.git@1da053e87f0487382404656edca98b85fe51f2fd',
+   'src/third_party/google_benchmark/src': {
+@@ -254,7 +254,7 @@ deps = {
+   'src/third_party/googletest/src':
+     'https://chromium.googlesource.com/external/github.com/google/googletest.git@1d17ea141d2c11b8917d2c7d029f1c4e2b9769b2',
+   'src/third_party/icu': {
+-    'url': 'https://chromium.googlesource.com/chromium/deps/icu.git@163e29159ecb39d4c165c48272e565614a1e024a',
++    'url': 'https://chromium.googlesource.com/chromium/deps/icu.git@43953f57b037778a1b8005564afabe214834f7bd',
+   },
+   'src/third_party/jdk/current': {
+       'packages': [
+@@ -300,7 +300,7 @@ deps = {
+       'packages': [
+           {
+               'package': 'chromium/third_party/kotlinc',
+-              'version': '9KgLQsrBWX4kePu9T7eDB1JknSYIPKmmumTEE70lyHYC',
++              'version': '0jpbSygC1gCOFyv-hsyNVfvxPLhDSXnTCSnxHY_mjKoC',
+           },
+       ],
+       'condition': 'checkout_android',
+@@ -318,17 +318,17 @@ deps = {
+   'src/third_party/dav1d/libdav1d':
+     'https://chromium.googlesource.com/external/github.com/videolan/dav1d.git@92f592ed104ba92ad35c781ee93f354525eef503',
+   'src/third_party/libaom/source/libaom':
+-    'https://aomedia.googlesource.com/aom.git@afedaf9da5a13c372b8c7a645ab1bf18f80b56cd',
++    'https://aomedia.googlesource.com/aom.git@49c02efb61e1aaf2108c704c7f542d0343069f16',
+   'src/third_party/libunwindstack': {
+       'url': 'https://chromium.googlesource.com/chromium/src/third_party/libunwindstack.git@a3bb4cd02e0e984a235069f812cbef2b37c389e5',
+       'condition': 'checkout_android',
+   },
+   'src/third_party/perfetto':
+-    'https://android.googlesource.com/platform/external/perfetto.git@f9098afffa2c70acecfec66ba520f59b3864be83',
++    'https://android.googlesource.com/platform/external/perfetto.git@1990573f6d71b581cb1fb48df3445883e93020a5',
+   'src/third_party/protobuf-javascript/src':
+     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
+   'src/third_party/libvpx/source/libvpx':
+-    'https://chromium.googlesource.com/webm/libvpx.git@253d6365e3f134f4aca6f5fc312336cb501a1c6f',
++    'https://chromium.googlesource.com/webm/libvpx.git@a2508b5711b6eb7aee197c8de16a46bda6fdbe88',
+   'src/third_party/libyuv':
+     'https://chromium.googlesource.com/libyuv/libyuv.git@a6a2ec654b1be1166b376476a7555c89eca0c275',
+   'src/third_party/lss': {
+@@ -353,13 +353,13 @@ deps = {
+     'https://chromium.googlesource.com/external/github.com/cisco/openh264@09a4f3ec842a8932341b195c5b01e141c8a16eb7',
+ 
+   'src/third_party/re2/src':
+-    'https://chromium.googlesource.com/external/github.com/google/re2.git@6144b62bece50a4af8bcdb166f04f6ec5af3d6d8',
++    'https://chromium.googlesource.com/external/github.com/google/re2.git@4a8cee3dd3c3d81b6fe8b867811e193d5819df07',
+ 
+   'src/third_party/r8': {
+       'packages': [
+           {
+               'package': 'chromium/third_party/r8',
+-              'version': 'M8rc1oybTkWXWpoImSQ8gAwv6mdEyvAPnQNs6Dus_28C',
++              'version': 'BbsWCeVMT641FkMRNj4fbXc-wfImc7dl45HwKXWk0hsC',
+           },
+       ],
+       'condition': 'checkout_android',
+@@ -383,7 +383,7 @@ deps = {
+     'condition': 'checkout_android',
+   },
+   'src/tools':
+-    'https://chromium.googlesource.com/chromium/src/tools@a8fe86b922a84de686c3b15c87e2a9ac84d06db3',
++    'https://chromium.googlesource.com/chromium/src/tools@4d74770ca4a91dd3e38c6d700f88a720d0044d58',
+ 
+   'src/third_party/espresso': {
+       'packages': [
+@@ -422,7 +422,7 @@ deps = {
+     'packages': [
+       {
+           'package': 'chromium/third_party/androidx',
+-          'version': '-zomVY2T8V3NRjAUbZNAZpFp8dAPuNdu3oQsnmhhIHEC',
++          'version': 'Z-16gFTbhA-coeMbJVUhkfglE569L1q8iVWgtwIs9oMC',
+       },
+     ],
+     'condition': 'checkout_android',
+@@ -515,7 +515,7 @@ deps = {
+       'packages': [
+           {
+               'package': 'chromium/third_party/turbine',
+-              'version': 'xWEBZuFKl1Dvw_zOpabeMkGVYlEllIxK06D-RoC6wUsC',
++              'version': 's6-zuFNzLDZOl_FmPkk2_LENOqUKjkYmpqR9l0SDo94C',
+           },
+       ],
+       'condition': 'checkout_android',
