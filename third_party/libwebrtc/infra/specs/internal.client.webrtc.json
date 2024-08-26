@@ -435,7 +435,6 @@
           ],
           "dimensions": {
             "cpu": "arm64",
-            "device_status": "available",
             "id": "mac-438-e504",
             "os": "iOS-17.4.1",
             "pool": "WebRTC"
