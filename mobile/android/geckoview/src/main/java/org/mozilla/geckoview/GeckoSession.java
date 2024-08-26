@@ -4302,18 +4302,6 @@ public class GeckoSession {
     default void onMetaViewportFitChange(
         @NonNull final GeckoSession session, @NonNull final String viewportFit) {}
 
-    /**
-     * This method is scheduled for deprecation, see Bug 1898055 for details.
-     *
-     * <p>Session is on a product url.
-     *
-     * @param session The GeckoSession that initiated the callback.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "session-onProductUrl", version = 131)
-    @UiThread
-    default void onProductUrl(@NonNull final GeckoSession session) {}
-
     /** Element details for onContextMenu callbacks. */
     class ContextElement {
       @Retention(RetentionPolicy.SOURCE)

@@ -2160,11 +2160,6 @@ public class GeckoViewActivity extends AppCompatActivity
     }
 
     @Override
-    public void onProductUrl(@NonNull final GeckoSession session) {
-      Log.d("Gecko", "onProductUrl");
-    }
-
-    @Override
     public void onShowDynamicToolbar(final GeckoSession session) {
       final View toolbar = findViewById(R.id.toolbar);
       if (toolbar != null) {
