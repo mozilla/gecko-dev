@@ -36,3 +36,17 @@ add_task(async function test_sidebar_position_end() {
 
   await BrowserTestUtils.closeWindow(win);
 });
+
+add_task(async function test_sidebar_position_end_new_window() {
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const { document } = win;
+  const sidebar = document.getElementById("sidebar-main");
+  const sidebarBox = document.getElementById("sidebar-box");
+  ok(sidebar, "Sidebar is shown.");
+  await sidebar.updateComplete;
+
+  is(sidebar.style.order, "5", "Sidebar is shown at the end");
+  is(sidebarBox.style.order, "4", "Sidebar is shown at the end");
+
+  await BrowserTestUtils.closeWindow(win);
+});
