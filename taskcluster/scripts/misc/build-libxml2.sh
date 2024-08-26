@@ -7,6 +7,8 @@ cd $MOZ_FETCHES_DIR/libxml2
 
 export PATH="$MOZ_FETCHES_DIR/clang/bin:$PATH"
 
+TARGET=${1?"First argument must be a valid value for CMAKE_C_COMPILER_TARGET"}
+
 # Building the .rc file requires some extra work, but we don't
 # actually need it, so just remove its creation.
 sed -i /libxml2\\.rc/d CMakeLists.txt
@@ -16,6 +18,7 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=Off \
   -DCMAKE_C_COMPILER=clang-cl \
+  -DCMAKE_C_COMPILER_TARGET=$TARGET \
   -DCMAKE_LINKER=lld-link \
   -DCMAKE_MT=llvm-mt \
   -DCMAKE_C_FLAGS="-fuse-ld=lld -Xclang -ivfsoverlay -Xclang $MOZ_FETCHES_DIR/vs/overlay.yaml -winsysroot $MOZ_FETCHES_DIR/vs" \

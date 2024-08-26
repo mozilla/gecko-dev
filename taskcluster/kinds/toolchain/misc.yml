@@ -574,6 +574,22 @@ win64-libxml2:
         symbol: TW64(libxml2)
     run:
         script: build-libxml2.sh
+        arguments: ['x86_64-pc-windows-msvc']
+        toolchain-artifact: public/build/libxml2.tar.zst
+    fetches:
+        fetch:
+            - libxml2
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+
+win64-aarch64-libxml2:
+    description: "libxml2 toolchain build"
+    treeherder:
+        symbol: TW64(libxml2-aarch64)
+    run:
+        script: build-libxml2.sh
+        arguments: ['aarch64-pc-windows-msvc']
         toolchain-artifact: public/build/libxml2.tar.zst
     fetches:
         fetch:

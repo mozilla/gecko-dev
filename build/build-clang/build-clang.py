@@ -25,6 +25,7 @@ import zstandard
 SUPPORTED_TARGETS = {
     "x86_64-unknown-linux-gnu": ("Linux", "x86_64"),
     "x86_64-pc-windows-msvc": ("Windows", "AMD64"),
+    "aarch64-pc-windows-msvc": ("Windows", "ARM64"),
     "x86_64-apple-darwin": ("Darwin", "x86_64"),
     "aarch64-apple-darwin": ("Darwin", "arm64"),
 }
@@ -624,6 +625,9 @@ def main():
         exe_ext = ".exe"
         cc_name = "clang-cl"
         cxx_name = "clang-cl"
+
+        # Used by llvm/lib/DebugInfo/PDB
+        os.environ["VSCMD_ARG_TGT_ARCH"] = SUPPORTED_TARGETS[target][1].lower()
     else:
         exe_ext = ""
         cc_name = "clang"
