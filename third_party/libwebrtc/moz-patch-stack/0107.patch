@@ -1,44 +1,31 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
 Date: Mon, 6 May 2024 07:28:00 +0000
-Subject: Bug 1892329 - Invert _captureThread check in
- VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
+Subject: Bug 1892329 - Fix threading issues in VideoCaptureModuleV4L2 once and
+ for all. r=webrtc-reviewers,mjf
 
-Differential Revision: https://phabricator.services.mozilla.com/D208186
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
+Differential Revision: https://phabricator.services.mozilla.com/D208187
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65e120a9c1dcb9c8f1c8930e808b03aa149eaf40
 ---
- .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
- 1 file changed, 12 insertions(+), 9 deletions(-)
+ modules/video_capture/linux/video_capture_v4l2.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 74af348a6c..29ca864e19 100644
+index 29ca864e19..b6e7e79a2a 100644
 --- a/modules/video_capture/linux/video_capture_v4l2.cc
 +++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   }
+@@ -300,7 +300,6 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   _requestedCapability = capability;
+   _captureStarted = true;
+   _streaming = true;
+-  }
  
    // start capture thread;
--  if (_captureThread.empty()) {
--    quit_ = false;
--    _captureThread = rtc::PlatformThread::SpawnJoinable(
--        [self = scoped_refptr(this)] {
--          while (self->CaptureProcess()) {
--          }
--        },
--        "CaptureThread",
--        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-+  if (!_captureThread.empty()) {
-+    return 0;
+   if (!_captureThread.empty()) {
+@@ -308,6 +307,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
    }
-+
-+  quit_ = false;
-+
-+  _captureThread = rtc::PlatformThread::SpawnJoinable(
-+      [self = scoped_refptr(this)] {
-+        while (self->CaptureProcess()) {
-+        }
-+      },
-+      "CaptureThread",
-+      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
-   return 0;
- }
  
+   quit_ = false;
++  }
+ 
+   _captureThread = rtc::PlatformThread::SpawnJoinable(
+       [self = scoped_refptr(this)] {

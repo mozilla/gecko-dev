@@ -1,72 +1,45 @@
-From: Daniel Baker <dbaker@mozilla.com>
-Date: Mon, 26 Aug 2024 15:13:25 -0600
-Subject: (tmp-cherry-pick) Revert "Temporary add
- 'RTPVideoHeaderH264::nalus_length'." (a0b22af9e1)
+From: Jakob Ivarsson <jakobi@webrtc.org>
+Date: Thu, 20 Jun 2024 09:12:36 +0000
+Subject: (cherry-pick-branch-heads/6533) [Merge 127] Reset the speech encoder
+ when creating a comfort noise encoder.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit 04dd95fcac549fbdc330cee1de65074961db5934.
+This is to make sure that the two encoders are "in sync" (the CNG
+encoder can be created from an existing speech encoder).
 
-Reason for revert: code has been updated
+This is a speculative fix for a crash in the CNG encoder where a packet
+is unexpectedly emitted from the speech encoder.
 
-Original change's description:
-> Temporary add 'RTPVideoHeaderH264::nalus_length'.
->
-> This is a forward fix for https://webrtc-review.googlesource.com/c/src/+/354622 that breaks client code using nalus_length.
->
-> No-Try: true
-> Change-Id: Ic0fc41696e408adefe4eb8792150a64b1eab49da
-> Bug: None
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/354840
-> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-> Commit-Queue: Jeremy Leconte <jleconte@google.com>
-> Owners-Override: Jeremy Leconte <jleconte@google.com>
-> Cr-Commit-Position: refs/heads/main@{#42493}
+(cherry picked from commit 0fd67312ea078b3b997306d56284b85492b37650)
 
-Bug: None
-Change-Id: I1b65fe94ca07efdb8c7643e2ac46517050095018
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/354860
-Commit-Queue: Jeremy Leconte <jleconte@google.com>
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Philip Eliasson <philipel@webrtc.org>
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42496}
+Bug: webrtc:42225071, chromium:338342746
+Change-Id: I42571e56e032897f7f083f04d785f6a08ebfb813
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355160
+Commit-Queue: Jakob Ivarsson‎ <jakobi@webrtc.org>
+Reviewed-by: Tomas Lundqvist <tomasl@google.com>
+Cr-Original-Commit-Position: refs/heads/main@{#42516}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355863
+Reviewed-by: Daniel Johansson <dajo@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6533@{#1}
+Cr-Branched-From: 63c380918687cd4c233e9eb856e98ba4c0589722-refs/heads/main@{#42455}
 ---
- modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc  | 2 --
- modules/video_coding/codecs/h264/include/h264_globals.h | 2 --
- 2 files changed, 4 deletions(-)
+ modules/audio_coding/codecs/cng/audio_encoder_cng.cc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-index 07a9e74d65..e6b206cdd7 100644
---- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-+++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-@@ -221,7 +221,6 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
-     }
+diff --git a/modules/audio_coding/codecs/cng/audio_encoder_cng.cc b/modules/audio_coding/codecs/cng/audio_encoder_cng.cc
+index 7546ac178f..de82cd99b9 100644
+--- a/modules/audio_coding/codecs/cng/audio_encoder_cng.cc
++++ b/modules/audio_coding/codecs/cng/audio_encoder_cng.cc
+@@ -89,7 +89,9 @@ AudioEncoderCng::AudioEncoderCng(AudioEncoderCngConfig&& config)
+                       : CreateVad(config.vad_mode)),
+       cng_encoder_(new ComfortNoiseEncoder(SampleRateHz(),
+                                            sid_frame_interval_ms_,
+-                                           num_cng_coefficients_)) {}
++                                           num_cng_coefficients_)) {
++  speech_encoder_->Reset();
++}
  
-     h264_header.nalus.push_back(nalu);
--    ++h264_header.nalus_length;
-   }
+ AudioEncoderCng::~AudioEncoderCng() = default;
  
-   return parsed_payload;
-@@ -280,7 +279,6 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
-   h264_header.nalu_type = original_nal_type;
-   if (first_fragment) {
-     h264_header.nalus = {nalu};
--    h264_header.nalus_length = 1;
-   }
-   return parsed_payload;
- }
-diff --git a/modules/video_coding/codecs/h264/include/h264_globals.h b/modules/video_coding/codecs/h264/include/h264_globals.h
-index 64a382935e..dac36dd734 100644
---- a/modules/video_coding/codecs/h264/include/h264_globals.h
-+++ b/modules/video_coding/codecs/h264/include/h264_globals.h
-@@ -83,8 +83,6 @@ struct RTPVideoHeaderH264 {
-   // The packetization type of this buffer - single, aggregated or fragmented.
-   H264PacketizationTypes packetization_type;
-   std::vector<NaluInfo> nalus;
--  // TODO - jleconte: Remove 'nalus_length' once all the code has been migrated.
--  size_t nalus_length;
-   // The packetization mode of this transport. Packetization mode
-   // determines which packetization types are allowed when packetizing.
-   H264PacketizationMode packetization_mode;
