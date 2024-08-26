@@ -44,6 +44,8 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
             object : InstallReferrerStateListener {
                 override fun onInstallReferrerSetupFinished(responseCode: Int) {
                     PlayStoreAttribution.attributionTime.stopAndAccumulate(timerId)
+                    val firstSession = FirstSessionPing(context)
+
                     when (responseCode) {
                         InstallReferrerClient.InstallReferrerResponse.OK -> {
                             // Connection established.
@@ -72,11 +74,17 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
 
                             utmParams.recordInstallReferrer(context.settings())
                             context.settings().utmParamsKnown = true
+
+                            firstSession.checkAndSend()
                         }
 
-                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED -> {
-                            // API not available on the current Play Store app.
+                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED,
+                        InstallReferrerClient.InstallReferrerResponse.DEVELOPER_ERROR,
+                        InstallReferrerClient.InstallReferrerResponse.PERMISSION_ERROR,
+                        -> {
+                            // unrecoverable errors, but we still want to send the first-session ping.
                             context.settings().utmParamsKnown = true
+                            firstSession.checkAndSend()
                         }
 
                         InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
