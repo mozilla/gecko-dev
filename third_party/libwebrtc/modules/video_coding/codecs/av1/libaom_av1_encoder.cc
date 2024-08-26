@@ -107,7 +107,8 @@ class LibaomAv1Encoder final : public VideoEncoder {
 
   bool SvcEnabled() const { return svc_params_.has_value(); }
   // Fills svc_params_ memeber value. Returns false on error.
-  bool SetSvcParams(ScalableVideoController::StreamLayersConfig svc_config);
+  bool SetSvcParams(ScalableVideoController::StreamLayersConfig svc_config,
+                    const aom_codec_enc_cfg_t& encoder_config);
   // Configures the encoder with layer for the next frame.
   void SetSvcLayerId(
       const ScalableVideoController::LayerFrameConfig& layer_frame);
@@ -223,10 +224,6 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  if (!SetSvcParams(svc_controller_->StreamConfig())) {
-    return WEBRTC_VIDEO_CODEC_ERROR;
-  }
-
   // Initialize encoder configuration structure with default values
   aom_codec_err_t ret =
       aom_codec_enc_config_default(aom_codec_av1_cx(), &cfg_, kUsageProfile);
@@ -276,6 +273,11 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
                         << " on aom_codec_enc_init.";
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
+
+  if (!SetSvcParams(svc_controller_->StreamConfig(), cfg_)) {
+    return WEBRTC_VIDEO_CODEC_ERROR;
+  }
+
   inited_ = true;
 
   // Set control parameters
@@ -441,7 +443,8 @@ int LibaomAv1Encoder::NumberOfThreads(int width,
 }
 
 bool LibaomAv1Encoder::SetSvcParams(
-    ScalableVideoController::StreamLayersConfig svc_config) {
+    ScalableVideoController::StreamLayersConfig svc_config,
+    const aom_codec_enc_cfg_t& encoder_config) {
   bool svc_enabled =
       svc_config.num_spatial_layers > 1 || svc_config.num_temporal_layers > 1;
   if (!svc_enabled) {
@@ -466,8 +469,8 @@ bool LibaomAv1Encoder::SetSvcParams(
   int num_layers =
       svc_config.num_spatial_layers * svc_config.num_temporal_layers;
   for (int i = 0; i < num_layers; ++i) {
-    svc_params.min_quantizers[i] = kQpMin;
-    svc_params.max_quantizers[i] = encoder_settings_.qpMax;
+    svc_params.min_quantizers[i] = encoder_config.rc_min_quantizer;
+    svc_params.max_quantizers[i] = encoder_config.rc_max_quantizer;
   }
 
   // Assume each temporal layer doubles framerate.
