@@ -28,6 +28,7 @@ class ShoppingSettings extends MozLitElement {
       autoOpenToggleEl: "#shopping-settings-auto-open-toggle",
       autoOpenToggleDescriptionEl: "#shopping-auto-open-description",
       dividerEl: ".divider",
+      sidebarEnabledStateEl: "#shopping-settings-sidebar-enabled-state",
       optOutButtonEl: "#shopping-settings-opt-out-button",
       shoppingCardEl: "shopping-card",
       adsLearnMoreLinkEl: "#shopping-ads-learn-more-link",
@@ -82,11 +83,11 @@ class ShoppingSettings extends MozLitElement {
           <moz-toggle
             id="shopping-settings-recommendations-toggle"
             ?pressed=${this.adsEnabledByUser}
-            data-l10n-id="shopping-settings-recommendations-toggle2"
+            data-l10n-id="shopping-settings-recommendations-toggle"
             data-l10n-attrs="label"
             @toggle=${this.onToggleRecommendations}>
           </moz-toggle/>
-          <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more3">
+          <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more2">
             <a
               id="shopping-ads-learn-more-link"
               target="_blank"
@@ -158,7 +159,7 @@ class ShoppingSettings extends MozLitElement {
       <shopping-card
         data-l10n-id="shopping-settings-label"
         data-l10n-attrs="label"
-        type="accordion"
+        type=${!this.autoOpenEnabled ? "accordion" : ""}
       >
         <div
           id="shopping-settings-wrapper"
@@ -168,14 +169,20 @@ class ShoppingSettings extends MozLitElement {
           slot="content"
         >
           <section id="shopping-settings-toggles-section">
-            ${autoOpenToggleMarkup} ${adsToggleMarkup}
+            ${adsToggleMarkup} ${autoOpenToggleMarkup}
           </section>
           ${this.autoOpenEnabled
             ? html`<span class="divider" role="separator"></span>`
             : null}
           <section id="shopping-settings-opt-out-section">
+            ${this.autoOpenEnabled
+              ? html`<span
+                  id="shopping-settings-sidebar-enabled-state"
+                  data-l10n-id="shopping-settings-sidebar-enabled-state"
+                ></span>`
+              : null}
             <button
-              class="small-button shopping-button"
+              class="shopping-button"
               id="shopping-settings-opt-out-button"
               data-l10n-id="shopping-settings-opt-out-button"
               @click=${this.onDisableShopping}
@@ -185,6 +192,7 @@ class ShoppingSettings extends MozLitElement {
       </shopping-card>
       <p
         id="powered-by-fakespot"
+        class="deemphasized"
         data-l10n-id="powered-by-fakespot"
         @click=${this.fakespotLinkClicked}
       >

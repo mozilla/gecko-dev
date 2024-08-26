@@ -420,6 +420,11 @@ add_task(
               ),
               "Settings card should have a special classname with autoOpen pref enabled"
             );
+            is(
+              shoppingSettings.shoppingCardEl?.type,
+              "",
+              "shopping-card type should be default"
+            );
 
             ok(
               shoppingSettings.recommendationsToggleEl,
@@ -436,6 +441,10 @@ add_task(
               "There should be a description for the auto-open toggle"
             );
             ok(shoppingSettings.dividerEl, "There should be a divider");
+            ok(
+              shoppingSettings.sidebarEnabledStateEl,
+              "There should be a message about the sidebar active state"
+            );
 
             ok(
               shoppingSettings.optOutButtonEl,
@@ -497,6 +506,11 @@ add_task(
               ),
               "Settings card should have a special classname with autoOpen pref enabled"
             );
+            is(
+              shoppingSettings.shoppingCardEl?.type,
+              "",
+              "shopping-card type should be default"
+            );
 
             ok(
               !shoppingSettings.recommendationsToggleEl,
@@ -513,6 +527,10 @@ add_task(
               "There should be a description for the auto-open toggle"
             );
             ok(shoppingSettings.dividerEl, "There should be a divider");
+            ok(
+              shoppingSettings.sidebarEnabledStateEl,
+              "There should be a message about the sidebar active state"
+            );
 
             ok(
               shoppingSettings.optOutButtonEl,

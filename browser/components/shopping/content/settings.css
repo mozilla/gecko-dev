@@ -26,6 +26,11 @@
     }
   }
 
+  #powered-by-fakespot {
+    font-size: 12px;
+    color: var(--text-color-deemphasized);
+  }
+
   #shopping-settings-toggles-section {
     display: grid;
     row-gap: 8px;
@@ -57,6 +62,7 @@
     }
 
     #shopping-settings-opt-out-section {
+      justify-content: flex-start;
       row-gap: var(--shopping-settings-between-label-and-control-option-gap);
 
       #shopping-settings-opt-out-button {
@@ -65,9 +71,4 @@
       }
     }
   }
-}
-
-#powered-by-fakespot {
-  font-size: var(--font-size-small);
-  color: var(--text-color-deemphasized);
 }

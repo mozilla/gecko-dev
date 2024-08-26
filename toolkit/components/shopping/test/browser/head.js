@@ -8,8 +8,6 @@ const OTHER_PRODUCT_TEST_URL =
   "https://example.com/Another-Product/dp/HIJKLMN456";
 const BAD_PRODUCT_TEST_URL = "https://example.com/Bad-Product/dp/0000000000";
 const NEEDS_ANALYSIS_TEST_URL = "https://example.com/Bad-Product/dp/OPQRSTU789";
-const PRODUCT_TEST_URL_NOT_SPONSORED =
-  "https://example.com/Some-Product/dp/VWXYZAB012";
 
 async function promiseSidebarUpdated(sidebar, expectedProduct) {
   let browser = sidebar.querySelector("browser");

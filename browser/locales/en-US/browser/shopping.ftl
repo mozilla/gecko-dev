@@ -101,10 +101,10 @@ shopping-show-less-button = Show less
 
 shopping-settings-label =
   .label = Settings
-shopping-settings-recommendations-toggle2 =
-  .label = Show recommendations and sponsored content
-shopping-settings-recommendations-learn-more3 =
-  { -brand-product-name } doesn’t share your personal data, so these recommendations won’t follow you around the internet. <a data-l10n-name="review-quality-url">Learn more</a>
+shopping-settings-recommendations-toggle =
+  .label = Show ads in Review Checker
+shopping-settings-recommendations-learn-more2 =
+  You’ll see occasional ads for relevant products. We only advertise products with reliable reviews. <a data-l10n-name="review-quality-url">Learn more</a>
 shopping-settings-opt-out-button = Turn off Review Checker
 powered-by-fakespot = Review Checker is powered by <a data-l10n-name="fakespot-link">{ -fakespot-brand-full-name }</a>.
 
@@ -122,6 +122,8 @@ shopping-settings-auto-open-description-three-sites = When you view products on 
 # Variables:
 #   $currentSite (String) - The current shopping page name
 shopping-settings-auto-open-description-single-site = When you view products on { $currentSite }
+
+shopping-settings-sidebar-enabled-state = Review Checker is <strong>On</strong>
 
 ## Strings for the adjusted rating component
 
@@ -185,7 +187,7 @@ shopping-unanalyzed-product-analyze-button = Check review quality
 
 more-to-consider-ad-label =
   .label = More to consider
-shopping-sponsored-label = Sponsored
+ad-by-fakespot = Ad by { -fakespot-brand-name }
 
 ## Shopping survey strings.
 
