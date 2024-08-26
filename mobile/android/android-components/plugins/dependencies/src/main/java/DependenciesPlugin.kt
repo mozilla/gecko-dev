@@ -45,7 +45,6 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.14"
 
-    const val material = "1.9.0"
     const val ksp = "1.0.20"
     val ksp_plugin = "$kotlin-$ksp"
 
@@ -98,6 +97,7 @@ object Versions {
     }
 
     object Google {
+        const val material = "1.12.0"
         const val play_review = "2.0.1"
         const val play_services_ads_id = "16.0.0"
         const val play_services_base = "18.5.0"
@@ -194,7 +194,7 @@ object ComponentsDependencies {
     const val androidx_test_rules = "androidx.test:rules:${Versions.AndroidX.test}"
     const val androidx_test_uiautomator = "androidx.test.uiautomator:uiautomator:${Versions.AndroidX.test_uiautomator}"
 
-    const val google_material = "com.google.android.material:material:${Versions.material}"
+    const val google_material = "com.google.android.material:material:${Versions.Google.material}"
 
     const val plugin_serialization = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin:${Versions.kotlin}"
 
