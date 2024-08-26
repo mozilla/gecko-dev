@@ -5355,12 +5355,12 @@
       if (aTab.group && aTab.group.id === aGroup.id) {
         return;
       }
+
+      let oldPosition = aTab._tPos;
       let wasFocused = document.activeElement == this.selectedTab;
       aGroup.appendChild(aTab);
 
-      // pass -1 to oldPosition because a move occurred even if position
-      // hasn't changed
-      this._updateAfterMoveTabTo(aTab, -1, wasFocused);
+      this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
     },
 
     _updateAfterMoveTabTo(aTab, oldPosition, wasFocused = null) {
@@ -5379,8 +5379,8 @@
       if (aTab.pinned) {
         this.tabContainer._positionPinnedTabs();
       }
-      // Pinning and unpinning vertical tabs bypasses moveTabTo,
-      // so we still want to check whether its worth dispatching an event
+      // Pinning/unpinning vertical tabs, and moving tabs into tab groups, both bypass moveTabTo.
+      // We still want to check whether its worth dispatching an event.
       if (oldPosition == aTab._tPos) {
         return;
       }
