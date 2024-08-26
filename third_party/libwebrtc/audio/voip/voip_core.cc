@@ -380,8 +380,8 @@ VoipResult VoipCore::SetSendCodec(ChannelId channel_id,
     return VoipResult::kInvalidArgument;
   }
 
-  auto encoder = encoder_factory_->MakeAudioEncoder(
-      payload_type, encoder_format, absl::nullopt);
+  auto encoder = encoder_factory_->Create(env_, encoder_format,
+                                          {.payload_type = payload_type});
   channel->SetEncoder(payload_type, encoder_format, std::move(encoder));
 
   return VoipResult::kOk;
