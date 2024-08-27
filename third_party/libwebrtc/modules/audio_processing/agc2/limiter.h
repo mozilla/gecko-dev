@@ -29,11 +29,6 @@ class Limiter {
           size_t samples_per_channel,
           absl::string_view histogram_name_prefix);
 
-  [[deprecated("Use constructor that accepts samples_per_channel")]] Limiter(
-      int sample_rate_hz,
-      ApmDataDumper* apm_data_dumper,
-      absl::string_view histogram_name_prefix);
-
   Limiter(const Limiter& limiter) = delete;
   Limiter& operator=(const Limiter& limiter) = delete;
   ~Limiter();
@@ -41,10 +36,6 @@ class Limiter {
   // Applies limiter and hard-clipping to `signal`.
   void Process(DeinterleavedView<float> signal);
 
-  [[deprecated("Use DeinterleavedView version")]] void Process(
-      AudioFrameView<float> signal) {
-    return Process(signal.view());
-  }
   InterpolatedGainCurve::Stats GetGainCurveStats() const;
 
   // Supported values must be
@@ -52,11 +43,6 @@ class Limiter {
   // * Below or equal to kMaximalNumberOfSamplesPerChannel so that samples
   //   fit in the per_sample_scaling_factors_ array.
   void SetSamplesPerChannel(size_t samples_per_channel);
-
-  [[deprecated("Use SetSamplesPerChannel")]] void SetSampleRate(
-      int sample_rate_hz) {
-    SetSamplesPerChannel(SampleRateToDefaultChannelSize(sample_rate_hz));
-  }
 
   // Resets the internal state.
   void Reset();

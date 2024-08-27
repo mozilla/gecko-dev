@@ -95,14 +95,6 @@ Limiter::Limiter(ApmDataDumper* apm_data_dumper,
   RTC_DCHECK_LE(samples_per_channel, kMaximalNumberOfSamplesPerChannel);
 }
 
-// Deprecated ctor.
-Limiter::Limiter(int sample_rate_hz,
-                 ApmDataDumper* apm_data_dumper,
-                 absl::string_view histogram_name_prefix)
-    : Limiter(apm_data_dumper,
-              SampleRateToDefaultChannelSize(sample_rate_hz),
-              histogram_name_prefix) {}
-
 Limiter::~Limiter() = default;
 
 void Limiter::Process(DeinterleavedView<float> signal) {

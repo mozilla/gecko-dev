@@ -48,12 +48,6 @@ class FixedDigitalLevelEstimator {
   std::array<float, kSubFramesInFrame> ComputeLevel(
       DeinterleavedView<const float> float_frame);
 
-  [[deprecated(
-      "Use DeinterleavedView variant")]] std::array<float, kSubFramesInFrame>
-  ComputeLevel(const AudioFrameView<const float>& float_frame) {
-    return ComputeLevel(float_frame.view());
-  }
-
   // Rate may be changed at any time (but not concurrently) from the
   // value passed to the constructor. The class is not thread safe.
   void SetSamplesPerChannel(size_t samples_per_channel);
