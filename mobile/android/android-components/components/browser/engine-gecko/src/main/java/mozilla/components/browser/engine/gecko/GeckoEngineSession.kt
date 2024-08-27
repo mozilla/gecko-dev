@@ -1603,10 +1603,6 @@ class GeckoEngineSession(
         override fun onShowDynamicToolbar(geckoSession: GeckoSession) {
             notifyObservers { onShowDynamicToolbar() }
         }
-
-        override fun onHideDynamicToolbar(geckoSession: GeckoSession) {
-            notifyObservers { onHideDynamicToolbar() }
-        }
     }
 
     private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {

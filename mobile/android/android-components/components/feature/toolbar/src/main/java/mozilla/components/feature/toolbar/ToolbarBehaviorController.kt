@@ -39,18 +39,10 @@ class ToolbarBehaviorController(
             }.distinctUntilChangedBy {
                 arrayOf(it.content.loading, it.content.showToolbarAsExpanded)
             }.collect { state ->
-                if (state.content.showToolbarAsExpanded != null) {
-                    if (state.content.showToolbarAsExpanded == true) {
-                        expandToolbar()
-                        store.dispatch(ContentAction.UpdateExpandedToolbarStateAction(state.id, null))
-                        return@collect
-                    }
-
-                    if (state.content.showToolbarAsExpanded == false) {
-                        collapseToolbar()
-                        store.dispatch(ContentAction.UpdateExpandedToolbarStateAction(state.id, null))
-                        return@collect
-                    }
+                if (state.content.showToolbarAsExpanded) {
+                    expandToolbar()
+                    store.dispatch(ContentAction.UpdateExpandedToolbarStateAction(state.id, false))
+                    return@collect
                 }
 
                 if (state.content.loading) {
@@ -73,11 +65,6 @@ class ToolbarBehaviorController(
     @VisibleForTesting
     internal fun expandToolbar() {
         toolbar.expand()
-    }
-
-    @VisibleForTesting
-    internal fun collapseToolbar() {
-        toolbar.collapse()
     }
 
     @VisibleForTesting

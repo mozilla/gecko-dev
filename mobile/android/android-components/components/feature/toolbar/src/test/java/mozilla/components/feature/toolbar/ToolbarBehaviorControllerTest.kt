@@ -32,9 +32,8 @@ class ToolbarBehaviorControllerTest {
 
     @Test
     fun `Controller should check the status of the provided custom tab id`() {
-        val customTabContent: ContentState = spy(ContentState("url"))
-        val normalTabContent: ContentState = spy(ContentState("example"))
-
+        val customTabContent: ContentState = mock()
+        val normalTabContent: ContentState = mock()
         val state = spy(
             BrowserState(
                 tabs = listOf(TabSessionState("123", normalTabContent)),
@@ -57,8 +56,8 @@ class ToolbarBehaviorControllerTest {
 
     @Test
     fun `Controller should check the status of the currently selected tab if not initialized with a custom tab id`() {
-        val customTabContent: ContentState = spy(ContentState("url"))
-        val normalTabContent: ContentState = spy(ContentState("example"))
+        val customTabContent: ContentState = mock()
+        val normalTabContent: ContentState = mock()
         val state = spy(
             BrowserState(
                 tabs = listOf(TabSessionState("123", normalTabContent)),
@@ -146,7 +145,7 @@ class ToolbarBehaviorControllerTest {
     }
 
     @Test
-    fun `Controller should expand the toolbar and set showToolbarAsExpanded to null when showToolbarAsExpanded is true`() {
+    fun `Controller should expand the toolbar and set showToolbarAsExpanded to false when showToolbarAsExpanded is true`() {
         val normalTabContent = ContentState("url", showToolbarAsExpanded = true)
         val store = spy(
             BrowserStore(
@@ -162,32 +161,12 @@ class ToolbarBehaviorControllerTest {
         shadowOf(getMainLooper()).idle()
 
         verify(controller).expandToolbar()
-        verify(store).dispatch(ContentAction.UpdateExpandedToolbarStateAction("123", null))
+        verify(store).dispatch(ContentAction.UpdateExpandedToolbarStateAction("123", false))
     }
 
     @Test
-    fun `Controller should collapse the toolbar and set showToolbarAsExpanded to null when showToolbarAsExpanded is false`() {
+    fun `Controller should not expand the toolbar and not update the current state if showToolbarAsExpanded is false`() {
         val normalTabContent = ContentState("url", showToolbarAsExpanded = false)
-        val store = spy(
-            BrowserStore(
-                BrowserState(
-                    tabs = listOf(TabSessionState("123", normalTabContent)),
-                    selectedTabId = "123",
-                ),
-            ),
-        )
-        val controller = spy(ToolbarBehaviorController(mock(), store))
-
-        controller.start()
-        shadowOf(getMainLooper()).idle()
-
-        verify(controller).collapseToolbar()
-        verify(store).dispatch(ContentAction.UpdateExpandedToolbarStateAction("123", null))
-    }
-
-    @Test
-    fun `Controller should neither expand nor collapse the toolbar and not update the current state if showToolbarAsExpanded is null`() {
-        val normalTabContent = ContentState("url", showToolbarAsExpanded = null)
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(TabSessionState("123", normalTabContent)),
@@ -200,7 +179,6 @@ class ToolbarBehaviorControllerTest {
         shadowOf(getMainLooper()).idle()
 
         verify(controller, never()).expandToolbar()
-        verify(controller, never()).collapseToolbar()
     }
 
     @Test

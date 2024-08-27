@@ -101,7 +101,7 @@ data class ContentState(
     val recordingDevices: List<RecordingDevice> = emptyList(),
     val desktopMode: Boolean = false,
     val appIntent: AppIntentState? = null,
-    val showToolbarAsExpanded: Boolean? = null,
+    val showToolbarAsExpanded: Boolean = false,
     val previewImageUrl: String? = null,
     val isSearch: Boolean = false,
     val hasFormData: Boolean = false,
