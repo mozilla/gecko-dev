@@ -13,18 +13,21 @@
 #include <vector>
 
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 namespace webrtc {
 namespace {
-
+constexpr int kStaticQpThreshold = 13;
 constexpr QualityConvergenceMonitor::Parameters kParametersOnlyStaticThreshold =
-    {.static_qp_threshold = 13, .dynamic_detection_enabled = false};
+    {.static_qp_threshold = kStaticQpThreshold,
+     .dynamic_detection_enabled = false};
 constexpr QualityConvergenceMonitor::Parameters
-    kParametersWithDynamicDetection = {.static_qp_threshold = 13,
-                                       .dynamic_detection_enabled = true,
-                                       .recent_window_length = 3,
-                                       .past_window_length = 9,
-                                       .dynamic_qp_threshold = 24};
+    kParametersWithDynamicDetection = {
+        .static_qp_threshold = kStaticQpThreshold,
+        .dynamic_detection_enabled = true,
+        .recent_window_length = 3,
+        .past_window_length = 9,
+        .dynamic_qp_threshold = 24};
 
 // Test the basics of the algorithm.
 
@@ -190,6 +193,109 @@ TEST(QualityConvergenceMonitorAlgorithm,
   }
   monitor->AddSample(23, /*is_refresh_frame=*/true);
   EXPECT_TRUE(monitor->AtTargetQuality());
+}
+
+// Test default values and that they can be overridden with field trials.
+
+TEST(QualityConvergenceMonitorSetup, DefaultParameters) {
+  test::ScopedKeyValueConfig field_trials;
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecVP8, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters vp8_parameters =
+      monitor->GetParametersForTesting();
+  EXPECT_EQ(vp8_parameters.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_FALSE(vp8_parameters.dynamic_detection_enabled);
+
+  monitor = QualityConvergenceMonitor::Create(kStaticQpThreshold,
+                                              kVideoCodecVP9, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters vp9_parameters =
+      monitor->GetParametersForTesting();
+  EXPECT_EQ(vp9_parameters.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_TRUE(vp9_parameters.dynamic_detection_enabled);
+  EXPECT_EQ(vp9_parameters.dynamic_qp_threshold, 28);  // 13 + 15.
+  EXPECT_EQ(vp9_parameters.recent_window_length, 6u);
+  EXPECT_EQ(vp9_parameters.past_window_length, 6u);
+
+  monitor = QualityConvergenceMonitor::Create(kStaticQpThreshold,
+                                              kVideoCodecAV1, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters av1_parameters =
+      monitor->GetParametersForTesting();
+  EXPECT_EQ(av1_parameters.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_TRUE(av1_parameters.dynamic_detection_enabled);
+  EXPECT_EQ(av1_parameters.dynamic_qp_threshold, 28);  // 13 + 15.
+  EXPECT_EQ(av1_parameters.recent_window_length, 6u);
+  EXPECT_EQ(av1_parameters.past_window_length, 6u);
+}
+
+TEST(QualityConvergenceMonitorSetup, OverrideVp8Parameters) {
+  test::ScopedKeyValueConfig field_trials(
+      "WebRTC-QCM-Dynamic-VP8/"
+      "enabled:1,alpha:0.08,recent_length:6,past_length:4/");
+
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecVP8, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
+  EXPECT_EQ(p.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_TRUE(p.dynamic_detection_enabled);
+  EXPECT_EQ(p.dynamic_qp_threshold, 23);  // 13 + 10.
+  EXPECT_EQ(p.recent_window_length, 6u);
+  EXPECT_EQ(p.past_window_length, 4u);
+}
+
+TEST(QualityConvergenceMonitorSetup, OverrideVp9Parameters) {
+  test::ScopedKeyValueConfig field_trials(
+      "WebRTC-QCM-Dynamic-VP9/"
+      "enabled:1,alpha:0.08,recent_length:6,past_length:4/");
+
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecVP9, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
+  EXPECT_EQ(p.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_TRUE(p.dynamic_detection_enabled);
+  EXPECT_EQ(p.dynamic_qp_threshold, 33);  // 13 + 20.
+  EXPECT_EQ(p.recent_window_length, 6u);
+  EXPECT_EQ(p.past_window_length, 4u);
+}
+
+TEST(QualityConvergenceMonitorSetup, OverrideAv1Parameters) {
+  test::ScopedKeyValueConfig field_trials(
+      "WebRTC-QCM-Dynamic-AV1/"
+      "enabled:1,alpha:0.10,recent_length:8,past_length:8/");
+
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecAV1, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
+  EXPECT_EQ(p.static_qp_threshold, kStaticQpThreshold);
+  EXPECT_TRUE(p.dynamic_detection_enabled);
+  EXPECT_EQ(p.dynamic_qp_threshold, 38);  // 13 + 25.
+  EXPECT_EQ(p.recent_window_length, 8u);
+  EXPECT_EQ(p.past_window_length, 8u);
+}
+
+TEST(QualityConvergenceMonitorSetup, DisableVp9Dynamic) {
+  test::ScopedKeyValueConfig field_trials("WebRTC-QCM-Dynamic-VP9/enabled:0/");
+
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecVP9, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
+  EXPECT_FALSE(p.dynamic_detection_enabled);
+}
+
+TEST(QualityConvergenceMonitorSetup, DisableAv1Dynamic) {
+  test::ScopedKeyValueConfig field_trials("WebRTC-QCM-Dynamic-AV1/enabled:0/");
+
+  auto monitor = QualityConvergenceMonitor::Create(
+      kStaticQpThreshold, kVideoCodecAV1, field_trials);
+  ASSERT_TRUE(monitor);
+  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
+  EXPECT_FALSE(p.dynamic_detection_enabled);
 }
 
 }  // namespace

@@ -14,6 +14,7 @@
 #include <deque>
 #include <memory>
 
+#include "api/field_trials_view.h"
 #include "api/video/video_codec_type.h"
 
 namespace webrtc {
@@ -47,6 +48,11 @@ class QualityConvergenceMonitor {
 
   explicit QualityConvergenceMonitor(const Parameters& params);
 
+  static std::unique_ptr<QualityConvergenceMonitor> Create(
+      int static_qp_threshold,
+      VideoCodecType codec,
+      const FieldTrialsView& trials);
+
   // Add the supplied `qp` value to the detection window.
   // `is_refresh_frame` must only be `true` if the corresponding
   // video frame is a refresh frame that is used to improve the visual quality.
@@ -55,6 +61,10 @@ class QualityConvergenceMonitor {
   // Returns `true` if the algorithm has determined that the supplied QP values
   // have converged and reached the target quality.
   bool AtTargetQuality() const;
+
+  // Used in tests to verify that default values and field trials are set
+  // correctly.
+  Parameters GetParametersForTesting() const { return params_; }
 
  private:
   const Parameters params_;

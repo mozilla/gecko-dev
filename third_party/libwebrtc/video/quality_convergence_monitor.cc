@@ -13,8 +13,76 @@
 #include <numeric>
 
 #include "rtc_base/checks.h"
+#include "rtc_base/experiments/struct_parameters_parser.h"
 
 namespace webrtc {
+namespace {
+constexpr size_t kDefaultRecentWindowLength = 6;
+constexpr size_t kDefaultPastWindowLength = 6;
+constexpr float kDefaultAlpha = 0.06;
+
+struct DynamicDetectionConfig {
+  bool enabled = false;
+  // alpha is a percentage of the codec-specific max QP value that is used to
+  // determine the dynamic QP threshold:
+  //   dynamic_qp_threshold = static_qp_threshold + alpha * max_QP
+  double alpha = kDefaultAlpha;
+  int recent_length = kDefaultRecentWindowLength;
+  int past_length = kDefaultPastWindowLength;
+  std::unique_ptr<StructParametersParser> Parser();
+};
+
+std::unique_ptr<StructParametersParser> DynamicDetectionConfig::Parser() {
+  // The empty comments ensures that each pair is on a separate line.
+  return StructParametersParser::Create("enabled", &enabled,              //
+                                        "alpha", &alpha,                  //
+                                        "recent_length", &recent_length,  //
+                                        "past_length", &past_length);
+}
+
+QualityConvergenceMonitor::Parameters GetParameters(
+    int static_qp_threshold,
+    VideoCodecType codec,
+    const FieldTrialsView& trials) {
+  QualityConvergenceMonitor::Parameters params;
+  params.static_qp_threshold = static_qp_threshold;
+
+  DynamicDetectionConfig dynamic_config;
+  // Apply codec specific settings.
+  int max_qp = 0;
+  switch (codec) {
+    case kVideoCodecVP8:
+      dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP8"));
+      max_qp = 127;
+      break;
+    case kVideoCodecVP9:
+      // Change to enabled by default for VP9.
+      dynamic_config.enabled = true;
+      dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP9"));
+      max_qp = 255;
+      break;
+    case kVideoCodecAV1:
+      // Change to enabled by default for AV1.
+      dynamic_config.enabled = true;
+      dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-AV1"));
+      max_qp = 255;
+      break;
+    case kVideoCodecGeneric:
+    case kVideoCodecH264:
+    case kVideoCodecH265:
+      break;
+  }
+
+  if (dynamic_config.enabled) {
+    params.dynamic_detection_enabled = dynamic_config.enabled;
+    params.dynamic_qp_threshold =
+        params.static_qp_threshold + max_qp * dynamic_config.alpha;
+    params.recent_window_length = dynamic_config.recent_length;
+    params.past_window_length = dynamic_config.past_length;
+  }
+  return params;
+}
+}  // namespace
 
 QualityConvergenceMonitor::QualityConvergenceMonitor(const Parameters& params)
     : params_(params) {
@@ -119,6 +187,16 @@ void QualityConvergenceMonitor::AddSample(int qp, bool is_refresh_frame) {
 
 bool QualityConvergenceMonitor::AtTargetQuality() const {
   return at_target_quality_;
+}
+
+// Static
+std::unique_ptr<QualityConvergenceMonitor> QualityConvergenceMonitor::Create(
+    int static_qp_threshold,
+    VideoCodecType codec,
+    const FieldTrialsView& trials) {
+  Parameters params = GetParameters(static_qp_threshold, codec, trials);
+  return std::unique_ptr<QualityConvergenceMonitor>(
+      new QualityConvergenceMonitor(params));
 }
 
 }  // namespace webrtc
