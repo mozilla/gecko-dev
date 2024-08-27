@@ -27,7 +27,6 @@ import org.mozilla.fenix.autofill.AutofillConfirmActivity
 import org.mozilla.fenix.autofill.AutofillSearchActivity
 import org.mozilla.fenix.autofill.AutofillUnlockActivity
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.metrics.MetricsMiddleware
 import org.mozilla.fenix.datastore.pocketStoriesSelectedCategoriesDataStore
 import org.mozilla.fenix.ext.asRecentTabs
@@ -215,9 +214,6 @@ class Components(private val context: Context) {
                     emptyList()
                 },
                 recentHistory = emptyList(),
-                orientation = OrientationMode.fromInteger(
-                    context.resources.configuration.orientation,
-                ),
             ).run { filterState(blocklistHandler) },
             middlewares = listOf(
                 BlocklistMiddleware(blocklistHandler),
