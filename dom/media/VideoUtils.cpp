@@ -487,17 +487,7 @@ bool ExtractH264CodecDetails(const nsAString& aCodec, uint8_t& aProfile,
     level *= 10;
   }
 
-  // Check if valid level value
   aLevel = static_cast<H264_LEVEL>(level);
-  if (aLevel < H264_LEVEL::H264_LEVEL_1 ||
-      aLevel > H264_LEVEL::H264_LEVEL_6_2) {
-    return false;
-  }
-  if ((level % 10) > 2) {
-    if (level != 13) {
-      return false;
-    }
-  }
 
   return true;
 }
