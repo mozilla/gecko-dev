@@ -49,7 +49,7 @@
         scrollbox: this,
         requestHandle: 0,
         /* 0 indicates there is no pending request */
-        start: function arrowSmoothScroll_start() {
+        start() {
           this.lastFrameTime = window.performance.now();
           if (!this.requestHandle) {
             this.requestHandle = window.requestAnimationFrame(
@@ -57,11 +57,11 @@
             );
           }
         },
-        stop: function arrowSmoothScroll_stop() {
+        stop() {
           window.cancelAnimationFrame(this.requestHandle);
           this.requestHandle = 0;
         },
-        sample: function arrowSmoothScroll_handleEvent(timeStamp) {
+        sample(timeStamp) {
           const scrollIndex = this.scrollbox._scrollIndex;
           const timePassed = timeStamp - this.lastFrameTime;
           this.lastFrameTime = timeStamp;
@@ -84,21 +84,17 @@
       this._destination = 0;
       this._direction = 0;
 
-      this.addEventListener("wheel", this.on_wheel);
-      this.addEventListener("touchstart", this.on_touchstart);
-      this.addEventListener("touchmove", this.on_touchmove);
-      this.addEventListener("touchend", this.on_touchend);
-      this.shadowRoot.addEventListener("click", this.on_click.bind(this));
-      this.shadowRoot.addEventListener(
-        "mousedown",
-        this.on_mousedown.bind(this)
-      );
-      this.shadowRoot.addEventListener(
-        "mouseover",
-        this.on_mouseover.bind(this)
-      );
-      this.shadowRoot.addEventListener("mouseup", this.on_mouseup.bind(this));
-      this.shadowRoot.addEventListener("mouseout", this.on_mouseout.bind(this));
+      this.addEventListener("wheel", this);
+      this.addEventListener("touchstart", this);
+      this.addEventListener("touchmove", this);
+      this.addEventListener("touchend", this);
+      this.shadowRoot.addEventListener("click", this);
+      this.shadowRoot.addEventListener("mousedown", this);
+      this.shadowRoot.addEventListener("mouseover", this);
+      this.shadowRoot.addEventListener("mouseup", this);
+      this.shadowRoot.addEventListener("mouseout", this);
+      this.scrollbox.addEventListener("scroll", this);
+      this.scrollbox.addEventListener("scrollend", this);
 
       let slot = this.shadowRoot.querySelector("slot");
       let overflowObserver = new ResizeObserver(_ => {
@@ -127,16 +123,6 @@
       });
       overflowObserver.observe(slot);
       overflowObserver.observe(this.scrollbox);
-
-      this.scrollbox.addEventListener("scroll", event => {
-        this.on_scroll(event);
-        this.dispatchEvent(new Event("scroll"));
-      });
-
-      this.scrollbox.addEventListener("scrollend", event => {
-        this.on_scrollend(event);
-        this.dispatchEvent(new Event("scrollend"));
-      });
     }
 
     connectedCallback() {
@@ -499,8 +485,19 @@
       if (this._mousedown) {
         this._stopScroll();
         this._mousedown = true;
-        document.addEventListener("mouseup", this);
-        document.addEventListener("blur", this, true);
+
+        let mouseUpOrBlur = aEvent => {
+          if (
+            aEvent.type == "mouseup" ||
+            (aEvent.type == "blur" && aEvent.target == document)
+          ) {
+            this._mousedown = false;
+            document.removeEventListener("mouseup", mouseUpOrBlur);
+            document.removeEventListener("blur", mouseUpOrBlur, true);
+          }
+        };
+        document.addEventListener("mouseup", mouseUpOrBlur);
+        document.addEventListener("blur", mouseUpOrBlur, true);
       }
     }
 
@@ -548,17 +545,6 @@
       }
 
       this.ensureElementIsVisible(targetElement);
-    }
-
-    handleEvent(aEvent) {
-      if (
-        aEvent.type == "mouseup" ||
-        (aEvent.type == "blur" && aEvent.target == document)
-      ) {
-        this._mousedown = false;
-        document.removeEventListener("mouseup", this);
-        document.removeEventListener("blur", this, true);
-      }
     }
 
     scrollByPixels(aPixels, aInstant) {
@@ -761,12 +747,14 @@
     on_scroll() {
       this._isScrolling = true;
       this._updateScrollButtonsDisabledState();
+      this.dispatchEvent(new Event("scroll"));
     }
 
     on_scrollend() {
       this._isScrolling = false;
       this._destination = 0;
       this._direction = 0;
+      this.dispatchEvent(new Event("scrollend"));
     }
 
     on_click(event) {
