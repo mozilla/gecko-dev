@@ -83,7 +83,7 @@
       --urlbar-icon-fill-opacity: 1;
     }
 
-    --chrome-content-separator-color: light-dark(rgb(204, 204, 204), hsl(240, 5%, 5%));
+    --chrome-content-separator-color: light-dark(rgb(82, 82, 94), rgb(240, 240, 244));
 
     --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);

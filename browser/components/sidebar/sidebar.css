@@ -5,6 +5,10 @@
 @import url("chrome://global/skin/global.css");
 
 :root {
+  --sidebar-background-color: -moz-sidebar;
+  --sidebar-text-color: -moz-sidebartext;
+  --sidebar-border-color: -moz-sidebarborder;
+
   background-color: transparent;
   height: 100%;
 }
@@ -52,6 +56,7 @@ moz-card {
   padding: var(--space-large);
   height: 100%;
   box-sizing: border-box;
+  border-radius: var(--border-radius-medium);
   width: 100%;
 }
 

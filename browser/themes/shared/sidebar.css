@@ -33,6 +33,16 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
+    background-color: var(--toolbar-bgcolor);
+    color: var(--toolbar-color);
+    padding-block-end: var(--space-small);
+    padding-inline-end: var(--space-small);
+    position: relative;
+
+    &[positionend] {
+      padding-inline-end: 0;
+      padding-inline-start: var(--space-small);
+    }
   }
 
   &[sidebarcommand="viewGenaiChatSidebar"] {
@@ -54,6 +64,17 @@
 
 #sidebar {
   flex: 1;
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    height: 100%;
+    box-sizing: border-box;
+    display: inline-block;
+    width: 100%;
+    border-radius: var(--border-radius-medium);
+    box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
+    border: 0.5px solid var(--sidebar-border-color);
+  }
 }
 
 .sidebar-splitter {
@@ -79,7 +100,12 @@
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
-    transition: background-color .5s ease-in-out;
+    transition: background-color 0.5s ease-in-out;
+    border-color: transparent;
+    /* #sidebar splitter requires z-index manipulation in order to be
+    interactive and allow box shadows for #sidebar-box and #appcontent
+    to be visible  */
+    z-index: 2;
 
     &:hover {
       background-color: var(--focus-outline-color);

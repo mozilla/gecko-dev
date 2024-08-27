@@ -141,6 +141,11 @@ body {
     --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
 
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media (-moz-bool-pref: "sidebar.revamp") {
+      --chrome-content-separator-color: var(--sidebar-border-color), light-dark(rgb(82, 82, 94), rgb(240, 240, 244));
+    }
+
     @media not (prefers-contrast) {
       --focus-outline-color: light-dark(#0061E0, #00DDFF);
     }
@@ -195,6 +200,11 @@ body {
   &:-moz-window-inactive {
     background-color: var(--toolbox-non-lwt-bgcolor-inactive);
     color: var(--toolbox-non-lwt-textcolor-inactive);
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    border-bottom: none;
   }
 
   &[fullscreenShouldAnimate] {
