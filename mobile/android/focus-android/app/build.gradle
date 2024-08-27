@@ -80,7 +80,7 @@ android {
             matchingFallbacks = ['release']
 
             if (gradle.ext.vcsHashFileContent) {
-                buildConfigField "String", "VCS_HASH", "hg-\"${gradle.ext.vcsHashFileContent}\""
+                buildConfigField "String", "VCS_HASH", "\"hg-${gradle.ext.vcsHashFileContent}\""
             } else {
                 buildConfigField "String", "VCS_HASH", "\"${Config.vcsHash}\""
             }
