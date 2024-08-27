@@ -88,8 +88,10 @@ static MOZ_ALWAYS_INLINE void Debug_SetSlotRangeToCrashOnTouch(HeapSlot* begin,
 
 class ArrayObject;
 
-/*
- * ES6 20130308 draft 8.4.2.4 ArraySetLength.
+/**
+ * 10.4.2.4 ArraySetLength ( A, Desc )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
  *
  * |id| must be "length", |desc| is the new non-accessor descriptor, and
  * |result| receives an error code if the change is invalid.
@@ -1766,12 +1768,12 @@ inline void NativeObject::privatePreWriteBarrier(HeapSlot* pprivate) {
 /*** Standard internal methods **********************************************/
 
 /*
- * These functions should follow the algorithms in ES6 draft rev 29 section 9.1
- * ("Ordinary Object Internal Methods"). It's an ongoing project.
+ * These functions should follow the algorithms in ES2025 section 10.1
+ * ("Ordinary Object Internal Methods").
  *
- * Many native objects are not "ordinary" in ES6, so these functions also have
- * to serve some of the special needs of Functions (9.2, 9.3, 9.4.1), Arrays
- * (9.4.2), Strings (9.4.3), and so on.
+ * Many native objects are not "ordinary" in ES2025, so these functions also
+ * have to serve some of the special needs of Arrays (10.4.2), Strings (10.4.3),
+ * and so on.
  */
 
 extern bool NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
@@ -1824,13 +1826,6 @@ extern bool NativeGetElement(JSContext* cx, Handle<NativeObject*> obj,
 
 bool GetSparseElementHelper(JSContext* cx, Handle<NativeObject*> obj,
                             int32_t int_id, MutableHandleValue result);
-
-bool SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
-                           HandleValue receiver, ObjectOpResult& result);
-
-bool SetPropertyOnProto(JSContext* cx, HandleObject obj, HandleId id,
-                        HandleValue v, HandleValue receiver,
-                        ObjectOpResult& result);
 
 bool AddOrUpdateSparseElementHelper(JSContext* cx, Handle<NativeObject*> obj,
                                     int32_t int_id, HandleValue v, bool strict);

@@ -1594,19 +1594,19 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
                               ObjectOpResult& result) {
   desc_.assertValid();
 
-  // Section numbers and step numbers below refer to ES2018, draft rev
-  // 540b827fccf6122a984be99ab9af7be20e3b5562.
+  // Section numbers and step numbers below refer to ES2025, draft rev
+  // ac21460fedf4b926520b06c9820bdbebad596a8b.
   //
-  // This function aims to implement 9.1.6 [[DefineOwnProperty]] as well as
-  // the [[DefineOwnProperty]] methods described in 9.4.2.1 (arrays), 9.4.4.2
-  // (arguments), and 9.4.5.3 (typed array views).
+  // This function aims to implement 10.1.6 [[DefineOwnProperty]] as well as
+  // the [[DefineOwnProperty]] methods described in 10.4.2.1 (arrays), 10.4.4.2
+  // (arguments), and 10.4.5.3 (typed arrays).
 
   // Dispense with custom behavior of exotic native objects first.
   if (obj->is<ArrayObject>()) {
-    // 9.4.2.1 step 2. Redefining an array's length is very special.
+    // 10.4.2.1 step 1. Redefining an array's length is very special.
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
     if (id == NameToId(cx->names().length)) {
-      // 9.1.6.3 ValidateAndApplyPropertyDescriptor, step 7.a.
+      // 10.1.6.3 ValidateAndApplyPropertyDescriptor, step 5.c.
       if (desc_.isAccessorDescriptor()) {
         return result.fail(JSMSG_CANT_REDEFINE_PROP);
       }
@@ -1614,7 +1614,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
       return ArraySetLength(cx, arr, id, desc_, result);
     }
 
-    // 9.4.2.1 step 3. Don't extend a fixed-length array.
+    // 10.4.2.1 step 2. Don't extend a fixed-length array.
     uint32_t index;
     if (IdIsIndex(id, &index)) {
       if (WouldDefinePastNonwritableLength(arr, index)) {
@@ -1622,7 +1622,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
       }
     }
   } else if (obj->is<TypedArrayObject>()) {
-    // 9.4.5.3 step 3. Indexed properties of typed arrays are special.
+    // 10.4.5.3 step 1. Indexed properties of typed arrays are special.
     if (mozilla::Maybe<uint64_t> index = ToTypedArrayIndex(id)) {
       Rooted<TypedArrayObject*> tobj(cx, &obj->as<TypedArrayObject>());
       return DefineTypedArrayElement(cx, tobj, index.value(), desc_, result);
@@ -1662,7 +1662,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     }
   }
 
-  // 9.1.6.1 OrdinaryDefineOwnProperty step 1.
+  // 10.1.6.1 OrdinaryDefineOwnProperty step 1.
   PropertyResult prop;
   if (desc_.resolving()) {
     // We are being called from a resolve or enumerate hook to reify a
@@ -1678,7 +1678,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
   }
 
   // From this point, the step numbers refer to
-  // 9.1.6.3, ValidateAndApplyPropertyDescriptor.
+  // 10.1.6.3, ValidateAndApplyPropertyDescriptor.
   // Step 1 is a redundant assertion.
 
   // Filling in desc: Here we make a copy of the desc_ argument. We will turn
@@ -1709,9 +1709,11 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     return result.succeed();
   }
 
-  // Step 3 and 7.a.i.3, 8.a.iii, 10 (partially). Prop might not actually
-  // have a real shape, e.g. in the case of typed array elements,
-  // GetPropertyAttributes is used to paper-over that difference.
+  // Step 3 is an assertion.
+
+  // Step 4 and 5 (partially). Prop might not actually have a real shape, e.g.
+  // in the case of dense array elements, GetPropertyAttributes is used to
+  // paper-over that difference.
   JS::PropertyAttributes attrs = GetPropertyAttributes(obj, prop);
   bool redundant;
   if (!DefinePropertyIsRedundant(cx, obj, id, prop, attrs, desc, &redundant)) {
@@ -1721,11 +1723,14 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     return result.succeed();
   }
 
-  // Step 4.
+  // Step 5.
   if (!attrs.configurable()) {
+    // Step 5.a.
     if (desc.hasConfigurable() && desc.configurable()) {
       return result.fail(JSMSG_CANT_REDEFINE_PROP);
     }
+
+    // Step 5.b.
     if (desc.hasEnumerable() && desc.enumerable() != attrs.enumerable()) {
       return result.fail(JSMSG_CANT_REDEFINE_PROP);
     }
@@ -1843,7 +1848,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     return false;
   }
 
-  // Step 10.
+  // Step 7.
   return result.succeed();
 }
 
@@ -1913,7 +1918,7 @@ static bool DefineNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
     // encounter it in this function.
     MOZ_ASSERT(id != NameToId(cx->names().length));
 
-    // 9.4.2.1 step 3. Don't extend a fixed-length array.
+    // 10.4.2.1 step 2. Don't extend a fixed-length array.
     uint32_t index;
     if (IdIsIndex(id, &index)) {
       if (WouldDefinePastNonwritableLength(&obj->as<ArrayObject>(), index)) {
@@ -1951,7 +1956,7 @@ static bool DefineNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
   MOZ_ASSERT(prop.isNotFound(), "didn't expect to find an existing property");
 #endif
 
-  // 9.1.6.3, ValidateAndApplyPropertyDescriptor.
+  // 10.1.6.3, ValidateAndApplyPropertyDescriptor.
   // Step 1 is a redundant assertion, step 3 and later don't apply here.
 
   // Step 2.
@@ -2025,30 +2030,34 @@ bool js::AddOrUpdateSparseElementHelper(JSContext* cx,
 
 /*** [[HasProperty]] ********************************************************/
 
-// ES6 draft rev31 9.1.7.1 OrdinaryHasProperty
+/**
+ * 10.1.7.1 OrdinaryHasProperty ( O, P )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ */
 bool js::NativeHasProperty(JSContext* cx, Handle<NativeObject*> obj,
                            HandleId id, bool* foundp) {
   Rooted<NativeObject*> pobj(cx, obj);
   PropertyResult prop;
 
   // This loop isn't explicit in the spec algorithm. See the comment on step
-  // 7.a. below.
+  // 4.a. below.
   for (;;) {
-    // Steps 2-3.
+    // Step 1.
     if (!NativeLookupOwnPropertyInline<CanGC>(cx, pobj, id, &prop)) {
       return false;
     }
 
-    // Step 4.
+    // Step 2.
     if (prop.isFound()) {
       *foundp = true;
       return true;
     }
 
-    // Step 5-6.
+    // Step 3.
     JSObject* proto = pobj->staticPrototype();
 
-    // Step 8.
+    // Step 5. (Reordered)
     // As a side-effect of NativeLookupOwnPropertyInline, we may determine that
     // a property is not found and the proto chain should not be searched. This
     // can occur for:
@@ -2060,11 +2069,10 @@ bool js::NativeHasProperty(JSContext* cx, Handle<NativeObject*> obj,
       return true;
     }
 
-    // Step 7.a. If the prototype is also native, this step is a
-    // recursive tail call, and we don't need to go through all the
-    // plumbing of HasProperty; the top of the loop is where
-    // we're going to end up anyway. But if pobj is non-native,
-    // that optimization would be incorrect.
+    // Step 4.a. If the prototype is also native, this step is a recursive tail
+    // call, and we don't need to go through all the plumbing of HasProperty;
+    // the top of the loop is where we're going to end up anyway. But if |proto|
+    // is non-native, that optimization would be incorrect.
     if (!proto->is<NativeObject>()) {
       RootedObject protoRoot(cx, proto);
       return HasProperty(cx, protoRoot, id, foundp);
@@ -2222,10 +2230,10 @@ static inline bool GeneralizedGetProperty(JSContext* cx, HandleObject obj,
     return false;
   }
   if (nameLookup) {
-    // When nameLookup is true, GetProperty implements ES6 rev 34 (2015 Feb
-    // 20) 8.1.1.2.6 GetBindingValue, with step 3 (the call to HasProperty)
-    // and step 6 (the call to Get) fused so that only a single lookup is
-    // needed.
+    // When nameLookup is true, GeneralizedGetProperty implements 9.1.1.2.6
+    // GetBindingValue, ES2025 rev ac21460fedf4b926520b06c9820bdbebad596a8b,
+    // with step 2 (the call to HasProperty) and step 4 (the call to Get) fused
+    // so that only a single lookup is needed.
     //
     // If we get here, we've reached a non-native object. Fall back on the
     // algorithm as specified, with two separate lookups. (Note that we
@@ -2285,6 +2293,11 @@ bool js::GetSparseElementHelper(JSContext* cx, Handle<NativeObject*> obj,
   return GetExistingProperty<CanGC>(cx, receiver, obj, id, prop, result);
 }
 
+/**
+ * 10.1.8.1 OrdinaryGet ( O, P, Receiver )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ */
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool NativeGetPropertyInline(
     JSContext* cx, typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
@@ -2295,15 +2308,15 @@ static MOZ_ALWAYS_INLINE bool NativeGetPropertyInline(
   PropertyResult prop;
 
   // This loop isn't explicit in the spec algorithm. See the comment on step
-  // 4.d below.
+  // 2.c below.
   for (;;) {
-    // Steps 2-3.
+    // Step 1.
     if (!NativeLookupOwnPropertyInline<allowGC>(cx, pobj, id, &prop)) {
       return false;
     }
 
     if (prop.isFound()) {
-      // Steps 5-8. Special case for dense elements because
+      // Steps 3-7. Special case for dense elements because
       // GetExistingProperty doesn't support those.
       if (prop.isDenseElement()) {
         vp.set(pobj->getDenseElement(prop.denseElementIndex()));
@@ -2319,20 +2332,19 @@ static MOZ_ALWAYS_INLINE bool NativeGetPropertyInline(
                                           prop.propertyInfo(), vp);
     }
 
-    // Steps 4.a-b.
+    // Step 2.a.
     JSObject* proto = pobj->staticPrototype();
 
-    // Step 4.c. The spec algorithm simply returns undefined if proto is
+    // Step 2.b. The spec algorithm simply returns undefined if proto is
     // null, but see the comment on GetNonexistentProperty.
     if (!proto || prop.shouldIgnoreProtoChain()) {
       return GetNonexistentProperty(cx, id, nameLookup, vp);
     }
 
-    // Step 4.d. If the prototype is also native, this step is a
-    // recursive tail call, and we don't need to go through all the
-    // plumbing of JSObject::getGeneric; the top of the loop is where
-    // we're going to end up anyway. But if pobj is non-native,
-    // that optimization would be incorrect.
+    // Step 2. If the prototype is also native, this step is a recursive tail
+    // call, and we don't need to go through all the plumbing of GetProperty;
+    // the top of the loop is where we're going to end up anyway. But if |proto|
+    // is non-native, that optimization would be incorrect.
     if (proto->getOpsGetProperty()) {
       RootedObject protoRoot(cx, proto);
       return GeneralizedGetProperty(cx, protoRoot, id, receiver, nameLookup,
@@ -2466,18 +2478,22 @@ static bool NativeSetExistingDataProperty(JSContext* cx,
   return SetCustomDataProperty(cx, obj, id, v, result);
 }
 
-/*
+/**
+ * 10.1.9.2 OrdinarySetWithOwnDescriptor ( O, P, V, Receiver, ownDesc )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ *
  * When a [[Set]] operation finds no existing property with the given id
  * or finds a writable data property on the prototype chain, we end up here.
  * Finish the [[Set]] by defining a new property on receiver.
  *
- * This implements ES6 draft rev 28, 9.1.9 [[Set]] steps 5.b-f, but it
- * is really old code and there are a few barnacles.
+ * This implements steps 2.b-e, but it is really old code and there are a few
+ * barnacles.
  */
-bool js::SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
-                               HandleValue receiverValue,
-                               ObjectOpResult& result) {
-  // Step 5.b.
+static bool SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
+                                  HandleValue receiverValue,
+                                  ObjectOpResult& result) {
+  // Step 2.b.
   if (!receiverValue.isObject()) {
     return result.fail(JSMSG_SET_NON_OBJECT_RECEIVER);
   }
@@ -2485,7 +2501,7 @@ bool js::SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
 
   bool existing;
   {
-    // Steps 5.c-d.
+    // Step 2.c.
     Rooted<mozilla::Maybe<PropertyDescriptor>> desc(cx);
     if (!GetOwnPropertyDescriptor(cx, receiver, id, &desc)) {
       return false;
@@ -2493,21 +2509,21 @@ bool js::SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
 
     existing = desc.isSome();
 
-    // Step 5.e.
+    // Step 2.d.
     if (existing) {
-      // Step 5.e.i.
+      // Step 2.d.i.
       if (desc->isAccessorDescriptor()) {
         return result.fail(JSMSG_OVERWRITING_ACCESSOR);
       }
 
-      // Step 5.e.ii.
+      // Step 2.d.ii.
       if (!desc->writable()) {
         return result.fail(JSMSG_READ_ONLY);
       }
     }
   }
 
-  // Steps 5.e.iii-iv. and 5.f.i. Define the new data property.
+  // Steps 2.d.iii-iv. and 2.e.i. Define the new data property.
   Rooted<PropertyDescriptor> desc(cx);
   if (existing) {
     desc = PropertyDescriptor::Empty();
@@ -2520,27 +2536,13 @@ bool js::SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
   return DefineProperty(cx, receiver, id, desc, result);
 }
 
-// When setting |id| for |receiver| and |obj| has no property for id, continue
-// the search up the prototype chain.
-bool js::SetPropertyOnProto(JSContext* cx, HandleObject obj, HandleId id,
-                            HandleValue v, HandleValue receiver,
-                            ObjectOpResult& result) {
-  MOZ_ASSERT(!obj->is<ProxyObject>());
-
-  RootedObject proto(cx, obj->staticPrototype());
-  if (proto) {
-    return SetProperty(cx, proto, id, v, receiver, result);
-  }
-
-  return SetPropertyByDefining(cx, id, v, receiver, result);
-}
-
-/*
+/**
+ * 10.1.9.2 OrdinarySetWithOwnDescriptor ( O, P, V, Receiver, ownDesc )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ *
  * Implement "the rest of" assignment to a property when no property
  * receiver[id] was found anywhere on the prototype chain.
- *
- * FIXME: This should be updated to follow ES6 draft rev 28, section 9.1.9,
- * steps 4.d.i and 5.
  */
 template <QualifiedBool IsQualified>
 static bool SetNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
@@ -2555,7 +2557,7 @@ static bool SetNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
   }
 
   // Pure optimization for the common case. There's no point performing the
-  // lookup in step 5.c again, as our caller just did it for us.
+  // lookup in step 2.c again, as our caller just did it for us.
   if (IsQualified && receiver.isObject() && obj == &receiver.toObject()) {
     // Ensure that a custom GetOwnPropertyOp, if present, doesn't
     // introduce additional properties which weren't previously found by
@@ -2570,7 +2572,7 @@ static bool SetNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
     }
 #endif
 
-    // Step 5.e. Define the new data property.
+    // Step 2.e. Define the new data property.
     if (DefinePropertyOp op = obj->getOpsDefineProperty()) {
       Rooted<PropertyDescriptor> desc(
           cx, PropertyDescriptor::Data(v, {JS::PropertyAttribute::Configurable,
@@ -2596,12 +2598,15 @@ static bool SetDenseElement(JSContext* cx, Handle<NativeObject*> obj,
   return result.succeed();
 }
 
-/*
- * Finish the assignment `receiver[id] = v` when an existing property (shape)
- * has been found on a native object (pobj). This implements ES6 draft rev 32
- * (2015 Feb 2) 9.1.9 steps 5 and 6.
+/**
+ * 10.1.9.2 OrdinarySetWithOwnDescriptor ( O, P, V, Receiver, ownDesc )
  *
- * It is necessary to pass both id and shape because shape could be an implicit
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ *
+ * Finish the assignment `receiver[id] = v` when an existing property |prop|
+ * has been found on a native object |pobj|.
+ *
+ * It is necessary to pass both id and prop because prop could be an implicit
  * dense or typed array element (i.e. not actually a pointer to a Shape).
  */
 static bool SetExistingProperty(JSContext* cx, HandleId id, HandleValue v,
@@ -2609,9 +2614,11 @@ static bool SetExistingProperty(JSContext* cx, HandleId id, HandleValue v,
                                 Handle<NativeObject*> pobj,
                                 const PropertyResult& prop,
                                 ObjectOpResult& result) {
-  // Step 5 for dense elements.
+  // Step 1. (Performed in caller)
+
+  // Step 2 for dense and typed array elements.
   if (prop.isDenseElement() || prop.isTypedArrayElement()) {
-    // Step 5.a.
+    // Step 2.a.
     if (pobj->denseElementsAreFrozen()) {
       return result.fail(JSMSG_READ_ONLY);
     }
@@ -2627,25 +2634,25 @@ static bool SetExistingProperty(JSContext* cx, HandleId id, HandleValue v,
       return SetDenseElement(cx, pobj, prop.denseElementIndex(), v, result);
     }
 
-    // Steps 5.b-f.
+    // Steps 2.b-e.
     return SetPropertyByDefining(cx, id, v, receiver, result);
   }
 
-  // Step 5 for all other properties.
+  // Step 2 for all other properties.
   PropertyInfo propInfo = prop.propertyInfo();
   if (propInfo.isDataDescriptor()) {
-    // Step 5.a.
+    // Step 2.a.
     if (!propInfo.writable()) {
       return result.fail(JSMSG_READ_ONLY);
     }
 
-    // steps 5.c-f.
+    // steps 2.c-d.
     if (receiver.isObject() && pobj == &receiver.toObject()) {
       // Pure optimization for the common case. There's no point performing
-      // the lookup in step 5.c again, as our caller just did it for us. The
+      // the lookup in step 2.c again, as our caller just did it for us. The
       // result is |shapeProp|.
 
-      // Steps 5.e.i-ii.
+      // Steps 2.d.iii-iv.
       return NativeSetExistingDataProperty(cx, pobj, id, propInfo, v, result);
     }
 
@@ -2654,34 +2661,45 @@ static bool SetExistingProperty(JSContext* cx, HandleId id, HandleValue v,
     return SetPropertyByDefining(cx, id, v, receiver, result);
   }
 
-  // Steps 6-11.
+  // Step 3.
   MOZ_ASSERT(propInfo.isAccessorProperty());
 
+  // Step 4.
   JSObject* setterObject = pobj->getSetter(propInfo);
+
+  // Step 5.
   if (!setterObject) {
     return result.fail(JSMSG_GETTER_ONLY);
   }
 
+  // Step 6.
   RootedValue setter(cx, ObjectValue(*setterObject));
   if (!js::CallSetter(cx, receiver, setter, v)) {
     return false;
   }
 
+  // Step 7.
   return result.succeed();
 }
 
+/**
+ * 10.1.9 [[Set]] ( P, V, Receiver )
+ * 10.1.9.1 OrdinarySet ( O, P, V, Receiver )
+ * 10.1.9.2 OrdinarySetWithOwnDescriptor ( O, P, V, Receiver, ownDesc )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ */
 template <QualifiedBool IsQualified>
 bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
                            HandleId id, HandleValue v, HandleValue receiver,
                            ObjectOpResult& result) {
-  // Step numbers below reference ES6 rev 27 9.1.9, the [[Set]] internal
-  // method for ordinary objects. We substitute our own names for these names
-  // used in the spec: O -> pobj, P -> id, ownDesc -> shape.
+  // We substitute our own names for these names used in the spec:
+  // O -> pobj, P -> id, ownDesc -> prop.
   PropertyResult prop;
   Rooted<NativeObject*> pobj(cx, obj);
 
   // This loop isn't explicit in the spec algorithm. See the comment on step
-  // 4.c.i below. (There's a very similar loop in the NativeGetProperty
+  // 1.b.i below. (There's a very similar loop in the NativeGetProperty
   // implementation, but unfortunately not similar enough to common up.)
   //
   // We're intentionally not spec-compliant for TypedArrays:
@@ -2690,17 +2708,17 @@ bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
   // Bug 1502889 showed that this behavior isn't web-compatible. This issue is
   // also reported at <https://github.com/tc39/ecma262/issues/1541>.
   for (;;) {
-    // Steps 2-3.
+    // OrdinarySet, step 1.
     if (!NativeLookupOwnPropertyInline<CanGC>(cx, pobj, id, &prop)) {
       return false;
     }
 
+    // OrdinarySetWithOwnDescriptor, steps 2-3.
     if (prop.isFound()) {
-      // Steps 5-6.
       return SetExistingProperty(cx, id, v, receiver, pobj, prop, result);
     }
 
-    // Steps 4.a-b.
+    // OrdinarySetWithOwnDescriptor, steps 1.a-b.
     // As a side-effect of NativeLookupOwnPropertyInline, we may determine that
     // a property is not found and the proto chain should not be searched. This
     // can occur for:
@@ -2709,16 +2727,15 @@ bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
     //    property being resolved).
     JSObject* proto = pobj->staticPrototype();
     if (!proto || prop.shouldIgnoreProtoChain()) {
-      // Step 4.d.i (and step 5).
+      // OrdinarySetWithOwnDescriptor, step 1.c.i (and step 2).
       return SetNonexistentProperty<IsQualified>(cx, obj, id, v, receiver,
                                                  result);
     }
 
-    // Step 4.c.i. If the prototype is also native, this step is a
-    // recursive tail call, and we don't need to go through all the
-    // plumbing of SetProperty; the top of the loop is where we're going to
-    // end up anyway. But if pobj is non-native, that optimization would be
-    // incorrect.
+    // Step 1.b.i. If the prototype is also native, this step is a recursive
+    // tail call, and we don't need to go through all the plumbing of
+    // SetProperty; the top of the loop is where we're going to end up anyway.
+    // But if |proto| is non-native, that optimization would be incorrect.
     if (!proto->is<NativeObject>()) {
       // Unqualified assignments are not specified to go through [[Set]]
       // at all, but they do go through this function. So check for
@@ -2780,20 +2797,24 @@ static bool CallJSDeletePropertyOp(JSContext* cx, JSDeletePropertyOp op,
   return result.succeed();
 }
 
-// ES6 draft rev31 9.1.10 [[Delete]]
+/**
+ * 10.1.10.1 OrdinaryDelete ( O, P )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ */
 bool js::NativeDeleteProperty(JSContext* cx, Handle<NativeObject*> obj,
                               HandleId id, ObjectOpResult& result) {
 #ifdef ENABLE_RECORD_TUPLE
   MOZ_ASSERT(!js::IsExtendedPrimitive(*obj));
 #endif
 
-  // Steps 2-3.
+  // Step 1.
   PropertyResult prop;
   if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &prop)) {
     return false;
   }
 
-  // Step 4.
+  // Step 2.
   if (prop.isNotFound()) {
     // If no property call the class's delProperty hook, passing succeeded
     // as the result parameter. This always succeeds when there is no hook.
@@ -2801,7 +2822,7 @@ bool js::NativeDeleteProperty(JSContext* cx, Handle<NativeObject*> obj,
                                   id, result);
   }
 
-  // Step 6. Non-configurable property.
+  // Step 4. (Reordered) Non-configurable property.
   if (!GetPropertyAttributes(obj, prop).configurable()) {
     return result.failCantDelete();
   }
@@ -2819,7 +2840,7 @@ bool js::NativeDeleteProperty(JSContext* cx, Handle<NativeObject*> obj,
     return true;
   }
 
-  // Step 5.
+  // Step 3.
   if (prop.isDenseElement()) {
     obj->setDenseElementHole(prop.denseElementIndex());
   } else {

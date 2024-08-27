@@ -1133,8 +1133,11 @@ bool TypedArrayObjectTemplate<uint64_t>::convertValue(JSContext* cx,
   return true;
 }
 
-// https://tc39.github.io/proposal-bigint/#sec-integerindexedelementset
-// 9.4.5.11 IntegerIndexedElementSet ( O, index, value )
+/**
+ * 10.4.5.16 TypedArraySetElement ( O, index, value )
+ *
+ * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+ */
 template <typename NativeType>
 /* static */ bool TypedArrayObjectTemplate<NativeType>::setElement(
     JSContext* cx, Handle<TypedArrayObject*> obj, uint64_t index, HandleValue v,
@@ -1142,22 +1145,20 @@ template <typename NativeType>
   MOZ_ASSERT(!obj->hasDetachedBuffer());
   MOZ_ASSERT(index < obj->length().valueOr(0));
 
-  // Step 1 is enforced by the caller.
-
-  // Steps 2-3.
+  // Steps 1-2.
   NativeType nativeValue;
   if (!convertValue(cx, v, &nativeValue)) {
     return false;
   }
 
-  // Step 4.
+  // Step 3.
   if (index < obj->length().valueOr(0)) {
     MOZ_ASSERT(!obj->hasDetachedBuffer(),
                "detaching an array buffer sets the length to zero");
     TypedArrayObjectTemplate<NativeType>::setIndex(*obj, index, nativeValue);
   }
 
-  // Step 5.
+  // Step 4.
   return result.succeed();
 }
 
@@ -3847,13 +3848,13 @@ bool js::SetTypedArrayElementOutOfBounds(JSContext* cx,
   return result.succeed();
 }
 
-// ES2021 draft rev b3f9b5089bcc3ddd8486379015cd11eb1427a5eb
-// 9.4.5.3 [[DefineOwnProperty]], step 3.b.
+// ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
+// 10.4.5.3 [[DefineOwnProperty]], step 1.b.
 bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
                                  uint64_t index,
                                  Handle<PropertyDescriptor> desc,
                                  ObjectOpResult& result) {
-  // These are all substeps of 3.b.
+  // These are all substeps of 1.b.
 
   // Step i.
   if (index >= obj->length().valueOr(0)) {
@@ -3864,17 +3865,17 @@ bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
   }
 
   // Step ii.
-  if (desc.isAccessorDescriptor()) {
-    return result.fail(JSMSG_CANT_REDEFINE_PROP);
-  }
-
-  // Step iii.
   if (desc.hasConfigurable() && !desc.configurable()) {
     return result.fail(JSMSG_CANT_REDEFINE_PROP);
   }
 
-  // Step iv.
+  // Step iii.
   if (desc.hasEnumerable() && !desc.enumerable()) {
+    return result.fail(JSMSG_CANT_REDEFINE_PROP);
+  }
+
+  // Step iv.
+  if (desc.isAccessorDescriptor()) {
     return result.fail(JSMSG_CANT_REDEFINE_PROP);
   }
 
