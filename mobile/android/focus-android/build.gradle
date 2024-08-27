@@ -20,7 +20,7 @@ buildscript {
     dependencies {
         classpath ComponentsDependencies.tools_androidgradle
         classpath ComponentsDependencies.tools_kotlingradle
-        classpath FocusDependencies.osslicenses_plugin
+        classpath ComponentsDependencies.osslicenses_plugin
         classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
 

@@ -28,10 +28,6 @@ object FocusVersions {
         const val fastlane = "2.1.1"
         const val junit = "5.10.2"
     }
-
-    object ThirdParty {
-        const val osslicenses_plugin = "0.10.4"
-    }
 }
 
 object FocusDependencies {
@@ -42,7 +38,6 @@ object FocusDependencies {
 
     const val adjust = "com.adjust.sdk:adjust-android:${FocusVersions.Adjust.adjust}"
     const val install_referrer = "com.android.installreferrer:installreferrer:${FocusVersions.Adjust.install_referrer}"
-    const val osslicenses_plugin = "com.google.android.gms:oss-licenses-plugin:${FocusVersions.ThirdParty.osslicenses_plugin}"
 
     const val falcon = "com.jraska:falcon:${FocusVersions.Testing.falcon}"
     const val fastlane = "tools.fastlane:screengrab:${FocusVersions.Testing.fastlane}"

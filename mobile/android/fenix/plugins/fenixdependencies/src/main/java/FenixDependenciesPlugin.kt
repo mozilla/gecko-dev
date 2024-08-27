@@ -13,8 +13,6 @@ class FenixDependenciesPlugin : Plugin<Settings> {
 }
 
 object FenixVersions {
-    const val osslicenses_plugin = "0.10.4"
-
     const val falcon = "2.2.0"
     const val fastlane = "2.1.1"
 
@@ -36,8 +34,6 @@ object FenixVersions {
 
 @Suppress("unused")
 object FenixDependencies {
-    const val osslicenses_plugin = "com.google.android.gms:oss-licenses-plugin:${FenixVersions.osslicenses_plugin}"
-
     const val androidx_core_splashscreen = "androidx.core:core-splashscreen:${FenixVersions.androidx_splash_screen}"
     const val androidx_profileinstaller = "androidx.profileinstaller:profileinstaller:${FenixVersions.androidx_profileinstaller}"
     const val androidx_viewpager2 = "androidx.viewpager2:viewpager2:${FenixVersions.androidx_viewpager2}"
