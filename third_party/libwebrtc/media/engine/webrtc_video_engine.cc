@@ -990,7 +990,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::ConfigureVideoEncoderSettings(
 
       // TODO(webrtc:329396373): Remove after flexible mode is fully deployed.
       vp9_settings.flexibleMode =
-          IsDisabled(call_->trials(), "WebRTC-Video-Vp9FlexibleMode");
+          !IsDisabled(call_->trials(), "WebRTC-Video-Vp9FlexibleMode");
     } else {
       // Multiple spatial layers vp9 screenshare needs flexible mode.
       vp9_settings.flexibleMode = vp9_settings.numberOfSpatialLayers > 1;
