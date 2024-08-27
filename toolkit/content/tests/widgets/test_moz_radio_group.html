@@ -5,7 +5,7 @@
   <title>MozRadio and MozRadioGroup Tests</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
-  <script type="module" src="chrome://global/content/elements/moz-radio-group.mjs"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script>
     let html, render, renderTarget, defaultTemplate;
@@ -52,14 +52,14 @@
 
       let firstRadioButton = radioButtons[0];
       is(
-        firstRadioButton.labelEl.innerText,
+        firstRadioButton.labelEl.innerText.trim(),
         "First",
         "Radio button label text is set."
       );
       firstRadioButton.label = TEST_LABEL;
       await firstRadioButton.updateComplete;
       is(
-        firstRadioButton.labelEl.innerText,
+        firstRadioButton.labelEl.innerText.trim(),
         TEST_LABEL,
         "Radio button label text is updated."
       );
@@ -646,6 +646,86 @@
         ATTR_DESCRIPTION,
         "Attribute text takes precedence over slotted text."
       );
+    });
+
+    add_task(async function testRadioButtonAccesskey() {
+      const UNIQUE_ACCESS_KEY = "F";
+      const SHARED_ACCESS_KEY = "d"
+
+      let accessKeyTemplate = html`
+        <moz-radio-group name="test-name" label="Radio group label">
+          <moz-radio value="first" label="First" accesskey=${UNIQUE_ACCESS_KEY}></moz-radio>
+          <moz-radio checked value="second" label="Second" accesskey=${SHARED_ACCESS_KEY}></moz-radio>
+          <moz-radio value="third" label="Third" accesskey=${SHARED_ACCESS_KEY}></moz-radio>
+        </moz-radio-group>
+      `;
+
+      let { radioButtons } = await renderRadioElements(
+        accessKeyTemplate
+      );
+      let [firstRadio, secondRadio, thirdRadio] = radioButtons;
+
+      // Validate that activating a unique accesskey focuses and checks the radio input.
+      firstRadio.blur();
+      isnot(
+        document.activeElement,
+        firstRadio,
+        "First radio button is not focused."
+      );
+      isnot(
+        firstRadio.shadowRoot.activeElement,
+        firstRadio.radioButton,
+        "Radio input element is not focused."
+      );
+      ok(!firstRadio.checked, "Radio button is not checked.");
+
+      synthesizeKey(
+        UNIQUE_ACCESS_KEY,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        firstRadio,
+        "Radio button recieves focus after accesskey is pressed."
+      );
+      is(
+        firstRadio.shadowRoot.activeElement,
+        firstRadio.radioButton,
+        "Radio input element is focused after accesskey is pressed."
+      );
+      ok(firstRadio.checked, "Radio button is checked after accesskey is pressed.");
+
+      // Validate that activating a shared accesskey toggles focus between inputs.
+      synthesizeKey(
+        SHARED_ACCESS_KEY,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        secondRadio,
+        "Focus moves to the radio button with the shared accesskey."
+      );
+      ok(!secondRadio.checked, "Second radio button is not checked.");
+
+      synthesizeKey(
+        SHARED_ACCESS_KEY,
+        navigator.platform.includes("Mac")
+          ? { altKey: true, ctrlKey: true }
+          : { altKey: true, shiftKey: true }
+      );
+
+      is(
+        document.activeElement,
+        thirdRadio,
+        "Focus cycles between radio buttons with the same accesskey."
+      );
+      ok(!thirdRadio.checked, "Third radio button is not checked.");
     });
   </script>
 </head>

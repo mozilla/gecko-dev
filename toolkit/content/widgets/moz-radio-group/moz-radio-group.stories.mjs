@@ -11,6 +11,7 @@ let icons = [
   "chrome://global/skin/icons/delete.svg",
   "chrome://global/skin/icons/defaultFavicon.svg",
 ];
+let accesskeyOptions = ["h", "w", "X"];
 
 let defaultLabelIds = ["moz-radio-0", "moz-radio-1", "moz-radio-2"];
 let wrappedLabelIds = [
@@ -34,6 +35,9 @@ export default {
         wrapped: wrappedLabelIds,
       },
       control: { type: "radio" },
+    },
+    accesskeys: {
+      if: { arg: "showAccesskeys", truthy: true },
     },
   },
   parameters: {
@@ -87,6 +91,8 @@ const Template = ({
   disabled,
   disabledButtons,
   showDescriptions,
+  showAccesskeys,
+  accesskeys,
 }) => html`
   <moz-radio-group
     name=${groupName}
@@ -103,6 +109,7 @@ const Template = ({
             ? buttonLabels[i].replace("moz-radio", "moz-radio-described")
             : buttonLabels[i]}
           iconSrc=${ifDefined(showIcons ? icons[i] : "")}
+          accesskey=${ifDefined(showAccesskeys ? accesskeys[i] : "")}
         ></moz-radio>
       `
     )}
@@ -119,6 +126,8 @@ Default.args = {
   disabled: false,
   disabledButtons: [],
   showDescriptions: false,
+  showAccesskeys: false,
+  accesskeys: accesskeyOptions,
 };
 
 export const AllUnchecked = Template.bind({});
@@ -149,4 +158,10 @@ export const WithDescriptions = Template.bind({});
 WithDescriptions.args = {
   ...Default.args,
   showDescriptions: true,
+};
+
+export const WithAccesskeys = Template.bind({});
+WithAccesskeys.args = {
+  ...Default.args,
+  showAccesskeys: true,
 };

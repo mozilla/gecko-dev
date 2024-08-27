@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "../vendor/lit.all.mjs";
+import { html, ifDefined } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
@@ -232,6 +232,12 @@ export class MozRadio extends MozLitElement {
   #controller;
 
   static properties = {
+    accessKey: { type: String, state: true },
+    accessKeyAttribute: {
+      type: String,
+      attribute: "accesskey",
+      reflect: true,
+    },
     checked: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
     disabled: { type: Boolean, reflect: true },
@@ -296,6 +302,11 @@ export class MozRadio extends MozLitElement {
         this.#controller.syncFocusState();
       }
     }
+
+    if (changedProperties.has("accessKeyAttribute")) {
+      this.accessKey = this.accessKeyAttribute;
+      this.accessKeyAttribute = null;
+    }
   }
 
   handleClick() {
@@ -337,6 +348,7 @@ export class MozRadio extends MozLitElement {
       aria-describedby="description"
       tabindex=${this.inputTabIndex}
       ?disabled=${this.disabled || this.#controller.disabled}
+      accesskey=${ifDefined(this.accessKey)}
       @click=${this.handleClick}
       @change=${this.handleChange}
     />`;
@@ -363,7 +375,13 @@ export class MozRadio extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-radio.css"
       />
-      <label part="label">${this.inputTemplate()}${this.labelTemplate()}</label>
+      <label
+        part="label"
+        is="moz-label"
+        shownaccesskey=${ifDefined(this.accessKey)}
+      >
+        ${this.inputTemplate()}${this.labelTemplate()}
+      </label>
       ${this.descriptionTemplate()}
     `;
   }

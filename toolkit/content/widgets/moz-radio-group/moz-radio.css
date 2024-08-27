@@ -11,6 +11,7 @@
 
 label {
   display: block;
+  padding-inline-start: var(--radio-space-offset);
 }
 
 input {
@@ -18,24 +19,17 @@ input {
   font-size: inherit;
   min-height: var(--radio-size);
   min-width: var(--radio-size);
-  vertical-align: top;
   font-family: inherit;
+  margin-inline-start: calc(-1 * var(--radio-space-offset));
 }
 
 input,
 .icon {
-  margin: calc((1lh - var(--radio-size)) / 2) 0;
+  margin-block: calc((1lh - var(--radio-size)) / 2);
 }
 
 .label-content {
   position: relative;
-  padding-inline-start: var(--space-small);
-  width: calc(100% - var(--radio-space-offset));
-}
-
-.label-content,
-.text {
-  display: inline-block;
 }
 
 .icon {
@@ -47,10 +41,11 @@ input,
   position: absolute;
 
   & + .text {
-    text-indent: calc(var(--icon-size-default) + var(--space-small));
+    margin-inline-start: calc(var(--icon-size-default) + var(--space-small));
   }
 }
 
 .description {
   margin-inline-start: var(--radio-space-offset);
+  display: block;
 }
