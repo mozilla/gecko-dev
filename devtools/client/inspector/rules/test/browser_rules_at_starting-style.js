@@ -80,8 +80,10 @@ const TEST_URI = `
       --my-color: white;
       --my-overridden-color: white !important;
       --my-registered-color: white;
+      --empty-start: 1px;
       --check-my-overridden-color: var(--my-overridden-color);
       --check-my-registered-color: var(--my-registered-color);
+      --check-empty-start: var(--empty-start);
       color: var(--my-color);
       background-color: firebrick;
       padding-top: 2px !important;
@@ -93,6 +95,7 @@ const TEST_URI = `
       outline-offset: 10px;
 
       @starting-style {
+        --empty-start: ;
         background-color: goldenrod;
         padding-top: 3px;
         margin-top: 3px;
@@ -389,6 +392,18 @@ add_task(async function () {
         `inherits:true`,
         `initial-value:lavender`,
       ],
+    }
+  );
+
+  info("Check var() for a empty variable in regular rule");
+  await assertVariableTooltipForProperty(
+    view,
+    `main, [data-test="top-level"]`,
+    "--check-empty-start",
+    {
+      header: "1px",
+      // The starting-style value is displayed in the tooltip
+      startingStyle: "<empty>",
     }
   );
 

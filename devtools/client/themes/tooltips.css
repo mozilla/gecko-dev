@@ -5,11 +5,12 @@
 /* Import stylesheets for specific tooltip widgets */
 @import url(chrome://devtools/skin/accessibility-color-contrast.css);
 @import url(chrome://devtools/skin/badge.css);
+@import url(chrome://devtools/skin/inspector-shared.css);
+@import url(chrome://devtools/skin/variables.css);
 @import url(chrome://devtools/content/shared/widgets/cubic-bezier.css);
 @import url(chrome://devtools/content/shared/widgets/filter-widget.css);
 @import url(chrome://devtools/content/shared/widgets/linear-widget.css);
 @import url(chrome://devtools/content/shared/widgets/spectrum.css);
-@import url(chrome://devtools/skin/variables.css);
 /*
  * compatibility.css is primarily used by the Compatibility panel, so import it in a layer
  * to give it a lower importance than the rule here and mitigate styling mismatch.

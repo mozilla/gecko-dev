@@ -55,6 +55,10 @@ add_task(async function () {
 
   await assertVariableTooltipForProperty(view, "div", "background", {
     header: "var(--empty)",
-    computed: "",
+    computed: "<empty>",
+  });
+
+  await assertVariableTooltipForProperty(view, "*", "--nested-with-empty", {
+    header: "<empty>",
   });
 });

@@ -6,6 +6,14 @@
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
+loader.lazyGetter(this, "L10N_EMPTY", function () {
+  const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
+  const L10N = new LocalizationHelper(
+    "devtools/shared/locales/styleinspector.properties"
+  );
+  return L10N.getStr("rule.variableEmpty");
+});
+
 /**
  * Set the tooltip content of a provided HTMLTooltip instance to display a
  * variable preview matching the provided text.
@@ -16,7 +24,7 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  *         A document element to create the HTML elements needed for the tooltip.
  * @param  {Object} params
  * @param  {String} params.topSectionText
- *         Text to display in the top section of tooltip (e.g. "--x = blue" or "--x is not defined").
+ *         Text to display in the top section of tooltip (e.g. "blue" or "--x is not defined").
  * @param  {String} params.computed
  *         The computed value for the variable.
  * @param  {Object} params.registeredProperty
@@ -28,7 +36,7 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  * @param  {String} params.registeredProperty.initialValue
  *         The registered property `initial-value`
  * @param  {String} params.startingStyle
- *         The text for @starting-style value (e.g. `--x = red`)
+ *         The text for @starting-style value (e.g. `red`)
  */
 function setVariableTooltip(
   tooltip,
@@ -41,7 +49,7 @@ function setVariableTooltip(
 
   const valueEl = doc.createElementNS(XHTML_NS, "section");
   valueEl.classList.add("variable-value");
-  valueEl.append(doc.createTextNode(topSectionText));
+  appendValue(doc, valueEl, topSectionText);
   div.appendChild(valueEl);
 
   if (typeof computed !== "undefined") {
@@ -51,7 +59,7 @@ function setVariableTooltip(
     const h2 = doc.createElementNS(XHTML_NS, "h2");
     h2.append(doc.createTextNode("computed value"));
     const computedValueEl = doc.createElementNS(XHTML_NS, "div");
-    computedValueEl.append(doc.createTextNode(computed));
+    appendValue(doc, computedValueEl, computed);
     section.append(h2, computedValueEl);
 
     div.appendChild(section);
@@ -64,7 +72,7 @@ function setVariableTooltip(
     const h2 = doc.createElementNS(XHTML_NS, "h2");
     h2.append(doc.createTextNode("@starting-style"));
     const startingStyleValue = doc.createElementNS(XHTML_NS, "div");
-    startingStyleValue.append(doc.createTextNode(startingStyle));
+    appendValue(doc, startingStyleValue, startingStyle);
     section.append(h2, startingStyleValue);
 
     div.appendChild(section);
@@ -83,14 +91,14 @@ function setVariableTooltip(
       const dt = doc.createElementNS(XHTML_NS, "dt");
       dt.append(doc.createTextNode(label));
       const dd = doc.createElementNS(XHTML_NS, "dd");
-      dd.append(doc.createTextNode(value));
+      appendValue(doc, dd, value);
       dl.append(dt, dd);
       if (lineBreak) {
         dl.append(doc.createElementNS(XHTML_NS, "br"));
       }
     };
 
-    const hasInitialValue = !!registeredProperty.initialValue;
+    const hasInitialValue = typeof registeredProperty.initialValue === "string";
 
     addProperty("syntax:", `"${registeredProperty.syntax}"`);
     addProperty("inherits:", registeredProperty.inherits, hasInitialValue);
@@ -105,6 +113,15 @@ function setVariableTooltip(
   tooltip.panel.innerHTML = "";
   tooltip.panel.appendChild(div);
   tooltip.setContentSize({ width: "auto", height: "auto" });
+}
+
+function appendValue(doc, el, value) {
+  if (value !== "") {
+    el.append(doc.createTextNode(value));
+  } else {
+    el.append(doc.createTextNode(`<${L10N_EMPTY}>`));
+    el.classList.add("empty-css-variable");
+  }
 }
 
 module.exports.setVariableTooltip = setVariableTooltip;

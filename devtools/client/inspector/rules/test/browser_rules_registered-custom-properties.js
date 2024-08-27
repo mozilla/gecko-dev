@@ -49,6 +49,12 @@ const TEST_URI = `https://example.org/document-builder.sjs?html=${encodeURICompo
       initial-value: ${CSS_NOT_DEFINED_INITIAL_VALUE};
     }
 
+    @property --empty {
+      syntax: "*";
+      inherits: true;
+      initial-value: ;
+    }
+
     main {
       --js-no-inherit: ${JS_NO_INHERIT_MAIN_VALUE};
       --js-inherit: ${JS_INHERIT_MAIN_VALUE};
@@ -65,6 +71,7 @@ const TEST_URI = `https://example.org/document-builder.sjs?html=${encodeURICompo
       outline: 10px solid var(--constructed, green);
       text-decoration-color: var(--js-not-defined, blue);
       caret-color: var(--css-dynamic-registered, turquoise);
+      --test-empty: var(--empty);
     }
 
     aside {
@@ -124,6 +131,14 @@ add_task(async function () {
         `  syntax: "<color>";`,
         `  inherits: true;`,
         `  initial-value: ${CSS_NOT_DEFINED_INITIAL_VALUE};`,
+      ],
+    },
+    {
+      header: `--empty {`,
+      propertyDefinition: [
+        `  syntax: "*";`,
+        `  inherits: true;`,
+        `  initial-value: ;`,
       ],
     },
     {
@@ -207,6 +222,14 @@ add_task(async function () {
       registeredProperty: [`syntax:"*"`, `inherits:true`],
     }
   );
+  await assertVariableTooltipForProperty(view, "h1", "--test-empty", {
+    header: "<empty>",
+    registeredProperty: [
+      `syntax:"*"`,
+      `inherits:true`,
+      `initial-value:<empty>`,
+    ],
+  });
 
   info(
     "Check that registered properties from new regular stylesheets are displayed"
