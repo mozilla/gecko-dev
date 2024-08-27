@@ -10,6 +10,7 @@
 
 #include "ScopedNSSTypes.h"
 #include "certt.h"
+#include "mozpkix/test/pkixtestutil.h"
 #include "seccomon.h"
 
 enum OCSPResponseType {
@@ -61,6 +62,7 @@ struct OCSPHost {
 SECItemArray* GetOCSPResponseForType(
     OCSPResponseType aORT, const mozilla::UniqueCERTCertificate& aCert,
     const mozilla::UniquePLArenaPool& aArena, const char* aAdditionalCertName,
-    time_t aThisUpdateSkew);
+    time_t aThisUpdateSkew,
+    mozilla::pkix::test::ByteString* aSignedCertificateTimestamps = nullptr);
 
 #endif  // OCSPCommon_h

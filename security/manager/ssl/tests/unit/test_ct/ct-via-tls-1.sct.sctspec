@@ -1,0 +1,6 @@
+key:default
+timestamp:20240826
+certificate:
+issuer:Test CA
+subject:ct-via-tls.example.com
+extension:subjectAlternativeName:*.example.com

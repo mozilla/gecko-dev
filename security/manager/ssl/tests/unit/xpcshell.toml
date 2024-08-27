@@ -168,6 +168,11 @@ tags = "remote-settings psm"
 skip-if = ["!debug"]
 run-sequentially = "hardcoded ports"
 
+["test_ct_stapled.js"]
+# Requires hard-coded debug-only data
+skip-if = ["!debug"]
+run-sequentially = "hardcoded ports"
+
 ["test_data_storage.js"]
 
 ["test_db_format_pref_new.js"]

@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "TLSServer.h"
+#include "mozpkix/pkixder.h"
 #include "mozpkix/test/pkixtestnss.h"
 #include "mozpkix/test/pkixtestutil.h"
 #include "nss.h"
@@ -35,7 +36,8 @@ SECItemArray* GetOCSPResponseForType(OCSPResponseType aORT,
                                      const UniqueCERTCertificate& aCert,
                                      const UniquePLArenaPool& aArena,
                                      const char* aAdditionalCertName,
-                                     time_t aThisUpdateSkew) {
+                                     time_t aThisUpdateSkew,
+                                     ByteString* aSCTList) {
   MOZ_ASSERT(aArena);
   MOZ_ASSERT(aCert);
   // Note: |aAdditionalCertName| may or may not need to be non-null depending
@@ -193,6 +195,22 @@ SECItemArray* GetOCSPResponseForType(OCSPResponseType aORT,
   if (!context.signerKeyPair) {
     PrintPRError("PK11_FindKeyByAnyCert failed");
     return nullptr;
+  }
+
+  OCSPResponseExtension singleExtension;
+  if (aSCTList) {
+    // SingleExtension for Signed Certificate Timestamp List.
+    // See Section 3.3 of RFC 6962.
+    // python DottedOIDToCode.py --tlv
+    //   id_ocsp_singleExtensionSctList 1.3.6.1.4.1.11129.2.4.5
+    static const uint8_t tlv_id_ocsp_singleExtensionSctList[] = {
+        0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x05};
+    singleExtension.id.assign(tlv_id_ocsp_singleExtensionSctList,
+                              sizeof(tlv_id_ocsp_singleExtensionSctList));
+    singleExtension.critical = true;
+    singleExtension.value = TLV(der::OCTET_STRING, *aSCTList);
+    singleExtension.next = nullptr;
+    context.singleExtensions = &singleExtension;
   }
 
   ByteString response(CreateEncodedOCSPResponse(context));

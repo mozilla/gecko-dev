@@ -1245,3 +1245,42 @@ function append_line_to_data_storage_file(
     ) + line;
   outputStream.write(line, line.length);
 }
+
+// Helper function for add_ct_test. Returns a function that checks that the
+// nsITransportSecurityInfo of the connection has the expected CT and resumed
+// statuses.
+function expectCT(expectedCTValue, expectedResumed) {
+  return securityInfo => {
+    Assert.equal(
+      securityInfo.certificateTransparencyStatus,
+      expectedCTValue,
+      "actual and expected CT status should match"
+    );
+    Assert.equal(
+      securityInfo.resumed,
+      expectedResumed,
+      "connection should be resumed (or not) as expected"
+    );
+  };
+}
+
+// Helper function to add a certificate transparency test. The connection is
+// expected to succeed with the given CT status (see nsITransportSecurityInfo).
+// Additionally, if an additional connection is made, it is expected that TLS
+// resumption is used and that the CT status is the same with the resumed
+// connection.
+function add_ct_test(host, expectedCTValue) {
+  add_connection_test(
+    host,
+    PRErrorCodeSuccess,
+    null,
+    expectCT(expectedCTValue, false)
+  );
+  // Test that session resumption results in the same expected CT status.
+  add_connection_test(
+    host,
+    PRErrorCodeSuccess,
+    null,
+    expectCT(expectedCTValue, true)
+  );
+}

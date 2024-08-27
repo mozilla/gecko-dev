@@ -1,0 +1,6 @@
+key:alternate
+timestamp:20240820
+certificate:
+issuer:Test CA
+subject:ct-via-ocsp.example.com
+extension:subjectAlternativeName:*.example.com

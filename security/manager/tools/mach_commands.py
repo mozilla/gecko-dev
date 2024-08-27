@@ -11,13 +11,13 @@ from mozpack.path import basedir
 
 
 def run_module_main_on(module, input_filename, output_is_binary):
-    """Run the given module (pycert or pykey) on the given
+    """Run the given module (pycert, pykey, etc.) on the given
     file."""
     # By convention, the specification files have names of the form
     # "name.ext.*spec", where "ext" is some extension, and the "*" in
     # "*spec" identifies what kind of specification it represents
-    # (certspec or keyspec). Taking off the ".*spec" part results in the
-    # desired filename for this file.
+    # (certspec, keyspec, etc.). Taking off the ".*spec" part results in
+    # the desired filename for this file.
     output_filename = os.path.splitext(input_filename)[0]
     mode = "w"
     encoding = "utf-8"
@@ -48,6 +48,12 @@ def is_pkcs12spec_file(filename):
     return filename.endswith(".pkcs12spec")
 
 
+def is_sctspec_file(filename):
+    """Returns True if the given filename is an SCT
+    specification file (.sctspec) and False otherwise."""
+    return filename.endswith(".sctspec")
+
+
 def is_specification_file(filename):
     """Returns True if the given filename is a specification
     file supported by this script, and False otherewise."""
@@ -55,6 +61,7 @@ def is_specification_file(filename):
         is_certspec_file(filename)
         or is_keyspec_file(filename)
         or is_pkcs12spec_file(filename)
+        or is_sctspec_file(filename)
     )
 
 
@@ -82,6 +89,7 @@ def is_excluded_directory(directory, exclusions):
 def generate_test_certs(command_context, specifications):
     """Generate test certificates and keys from specifications."""
     import pycert
+    import pyct
     import pykey
     import pypkcs12
 
@@ -96,6 +104,9 @@ def generate_test_certs(command_context, specifications):
             module = pykey
         elif is_pkcs12spec_file(specification):
             module = pypkcs12
+            output_is_binary = True
+        elif is_sctspec_file(specification):
+            module = pyct
             output_is_binary = True
         else:
             raise UserError(

@@ -11,12 +11,14 @@
 // it. That is, when the server is all set up and ready to receive connections,
 // it will connect to a specified port and issue a simple HTTP request.
 
+#include <fstream>
 #include <stdio.h>
 
 #include "OCSPCommon.h"
 #include "TLSServer.h"
 
 using namespace mozilla;
+using namespace mozilla::pkix::test;
 using namespace mozilla::test;
 
 const OCSPHost sOCSPHosts[] = {
@@ -98,20 +100,100 @@ const OCSPHost sOCSPHosts[] = {
      "multi-tls-feature-bad-ee"},
     {nullptr, ORTNull, nullptr, nullptr}};
 
+enum class SCTsVia {
+  None,
+  OCSP,
+  TLS,
+};
+
+struct CTHost {
+  const char* mHostName;
+  std::vector<const char*> mSCTFilenames;
+  SCTsVia mSCTsVia;
+};
+
+const CTHost sCTHosts[] = {
+    {"ct-via-ocsp.example.com",
+     {"test_ct/ct-via-ocsp-1.sct", "test_ct/ct-via-ocsp-2.sct"},
+     SCTsVia::OCSP},
+    {"ct-via-tls.example.com",
+     {"test_ct/ct-via-tls-1.sct", "test_ct/ct-via-tls-2.sct"},
+     SCTsVia::TLS},
+    {"ct-tampered.example.com",
+     {"test_ct/ct-tampered-1.sct", "test_ct/ct-tampered-2.sct"},
+     SCTsVia::TLS},
+    {nullptr, {}, SCTsVia::None}};
+
+ByteString ReadSCTList(const std::vector<const char*>& sctFilenames) {
+  std::vector<std::string> scts;
+  for (const auto& sctFilename : sctFilenames) {
+    std::ifstream in(sctFilename, std::ios::binary);
+    if (in.bad() || !in.is_open()) {
+      if (gDebugLevel >= DEBUG_ERRORS) {
+        fprintf(stderr, "couldn't open '%s'\n", sctFilename);
+        return ByteString();
+      }
+    }
+    std::ostringstream contentsStream;
+    contentsStream << in.rdbuf();
+    std::string contents = contentsStream.str();
+    scts.push_back(std::move(contents));
+  }
+
+  ByteString contents;
+  for (const auto& sct : scts) {
+    // Each SCT has a 2-byte length prefix.
+    contents.push_back(sct.length() / 256);
+    contents.push_back(sct.length() % 256);
+    contents.append(reinterpret_cast<const uint8_t*>(sct.data()), sct.length());
+  }
+  // The entire SCT list also has a 2-byte length prefix.
+  ByteString sctList;
+  sctList.push_back(contents.length() / 256);
+  sctList.push_back(contents.length() % 256);
+  sctList.append(reinterpret_cast<const uint8_t*>(contents.data()),
+                 contents.length());
+  return sctList;
+}
+
 int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
                           uint32_t aSrvNameArrSize, void* aArg) {
+  const char* hostName = nullptr;
+  OCSPResponseType ocspResponseType = ORTNone;
+  const char* additionalCertName = nullptr;
+  const char* serverCertName = nullptr;
+  ByteString sctList;
+  SCTsVia sctsVia = SCTsVia::None;
+
   const OCSPHost* host =
       GetHostForSNI(aSrvNameArr, aSrvNameArrSize, sOCSPHosts);
-  if (!host) {
-    return SSL_SNI_SEND_ALERT;
+  if (host) {
+    hostName = host->mHostName;
+    ocspResponseType = host->mORT;
+    additionalCertName = host->mAdditionalCertName;
+    serverCertName = host->mServerCertName;
+  } else {
+    const CTHost* ctHost =
+        GetHostForSNI(aSrvNameArr, aSrvNameArrSize, sCTHosts);
+    if (!ctHost) {
+      return SSL_SNI_SEND_ALERT;
+    }
+    hostName = ctHost->mHostName;
+    ocspResponseType = ORTGood;
+    serverCertName = ctHost->mHostName;
+    sctList = ReadSCTList(ctHost->mSCTFilenames);
+    if (sctList.empty()) {
+      return SSL_SNI_SEND_ALERT;
+    }
+    sctsVia = ctHost->mSCTsVia;
   }
 
   if (gDebugLevel >= DEBUG_VERBOSE) {
-    fprintf(stderr, "found pre-defined host '%s'\n", host->mHostName);
+    fprintf(stderr, "found pre-defined host '%s'\n", hostName);
   }
 
   const char* certNickname =
-      host->mServerCertName ? host->mServerCertName : DEFAULT_CERT_NICKNAME;
+      serverCertName ? serverCertName : DEFAULT_CERT_NICKNAME;
 
   UniqueCERTCertificate cert;
   SSLKEAType certKEA;
@@ -121,7 +203,7 @@ int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
   }
 
   // If the OCSP response type is "none", don't staple a response.
-  if (host->mORT == ORTNone) {
+  if (ocspResponseType == ORTNone) {
     return 0;
   }
 
@@ -132,8 +214,9 @@ int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
   }
 
   // response is contained by the arena - freeing the arena will free it
-  SECItemArray* response = GetOCSPResponseForType(host->mORT, cert, arena,
-                                                  host->mAdditionalCertName, 0);
+  SECItemArray* response =
+      GetOCSPResponseForType(ocspResponseType, cert, arena, additionalCertName,
+                             0, sctsVia == SCTsVia::OCSP ? &sctList : nullptr);
   if (!response) {
     return SSL_SNI_SEND_ALERT;
   }
@@ -143,6 +226,16 @@ int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
   if (st != SECSuccess) {
     PrintPRError("SSL_SetStapledOCSPResponses failed");
     return SSL_SNI_SEND_ALERT;
+  }
+
+  if (sctsVia == SCTsVia::TLS) {
+    SECItem scts = {siBuffer, const_cast<unsigned char*>(sctList.data()),
+                    (unsigned int)sctList.size()};
+    st = SSL_SetSignedCertTimestamps(aFd, &scts, certKEA);
+    if (st != SECSuccess) {
+      PrintPRError("SSL_SetSignedCertTimestamps failed");
+      return SSL_SNI_SEND_ALERT;
+    }
   }
 
   return 0;
