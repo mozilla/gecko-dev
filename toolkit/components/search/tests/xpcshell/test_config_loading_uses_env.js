@@ -1,7 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* Check default search engine is picked from list.json searchDefault */
+/**
+ * Integration type test to check that the search service uses the environment
+ * when loading the search configuration.
+ *
+ * More extensive testing of the search configuration takes place in
+ * test_engine_selector_environment.js.
+ */
 
 "use strict";
 

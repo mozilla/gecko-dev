@@ -54,6 +54,12 @@ const CONFIG = [
   { globalDefault: "appDefault", globalDefaultPrivate: "appDefaultPrivate" },
 ];
 
+const CONFIG_NO_PRIVATE = [
+  { identifier: "appDefault" },
+  { identifier: "other" },
+  { globalDefault: "appDefault" },
+];
+
 let engine1;
 let engine2;
 let appDefault;
@@ -267,6 +273,9 @@ add_task(async function test_telemetry_private_empty_submission_url() {
   await SearchTestUtils.installOpenSearchEngine({
     url: `${gDataUrl}simple.xml`,
     setAsDefaultPrivate: true,
+    // We don't want it to reset to the default at the test end, as we
+    // reset the search service in a later test in this file.
+    skipReset: true,
   });
 
   await assertGleanDefaultEngine({
@@ -623,4 +632,45 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_ui_pref() {
       engineId: "otherEngine2",
     },
   });
+});
+
+add_task(async function test_no_private_default_falls_back_to_normal_default() {
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG_NO_PRIVATE);
+  Services.search.wrappedJSObject.reset();
+  await Services.search.init();
+
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
+    true
+  );
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
+    true
+  );
+  Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
+
+  await Services.search.init();
+
+  Assert.ok(Services.search.isInitialized, "search initialized");
+
+  Assert.equal(
+    Services.search.appDefaultEngine.name,
+    "appDefault",
+    "Should have the expected engine as app default"
+  );
+  Assert.equal(
+    Services.search.defaultEngine.name,
+    "appDefault",
+    "Should have the expected engine as default"
+  );
+  Assert.equal(
+    Services.search.appPrivateDefaultEngine.name,
+    "appDefault",
+    "Should have the same engine for the app private default"
+  );
+  Assert.equal(
+    Services.search.defaultPrivateEngine.name,
+    "appDefault",
+    "Should have the same engine for the private default"
+  );
 });

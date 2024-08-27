@@ -49,6 +49,8 @@ tags = "remote-settings"
 
 ["test_config_engine_params.js"]
 
+["test_config_loading_uses_env.js"]
+
 ["test_configExpansion.js"]
 support-files = [
   "../../schema/search-config-v2-schema.json",
@@ -106,14 +108,6 @@ tags = "remotesettings searchmain"
 ["test_initialization_status_telemetry.js"]
 
 ["test_initialization_with_region.js"]
-
-["test_list_json_locale.js"]
-
-["test_list_json_no_private_default.js"]
-
-["test_list_json_searchdefault.js"]
-
-["test_list_json_searchorder.js"]
 
 ["test_maybereloadengine_order.js"]
 
