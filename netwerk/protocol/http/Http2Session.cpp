@@ -3676,6 +3676,15 @@ nsresult Http2Session::ProcessConnectedPush(
   nsresult rv = pushConnectedStream->WriteSegments(this, count, countWritten);
   mSegmentWriter = nullptr;
 
+  if (mNeedsCleanup) {
+    LOG3(
+        ("Http2Session::ProcessConnectedPush session=%p stream=%p 0x%X "
+         "cleanup stream based on mNeedsCleanup.\n",
+         this, mNeedsCleanup, mNeedsCleanup ? mNeedsCleanup->StreamID() : 0));
+    CleanupStream(mNeedsCleanup, NS_OK, CANCEL_ERROR);
+    mNeedsCleanup = nullptr;
+  }
+
   // The pipe in nsHttpTransaction rewrites CLOSED error codes into OK
   // so we need this check to determine the truth.
   Http2Stream* h2Stream = pushConnectedStream->GetHttp2Stream();
