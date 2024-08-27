@@ -797,8 +797,10 @@ static bool with_LookupProperty(JSContext* cx, HandleObject obj, HandleId id,
   }
 
   if (propp->isFound()) {
-    bool scopable;
-    if (!CheckUnscopables(cx, actual, id, &scopable)) {
+    bool scopable = true;
+    ;
+    if (obj->as<WithEnvironmentObject>().isSyntactic() &&
+        !CheckUnscopables(cx, actual, id, &scopable)) {
       return false;
     }
     if (!scopable) {
@@ -826,7 +828,7 @@ static bool with_HasProperty(JSContext* cx, HandleObject obj, HandleId id,
   if (!HasProperty(cx, actual, id, foundp)) {
     return false;
   }
-  if (!*foundp) {
+  if (!*foundp || !obj->as<WithEnvironmentObject>().isSyntactic()) {
     return true;
   }
 
@@ -2424,9 +2426,10 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
 
     if (isWith) {
       size_t j = 0;
+      bool isSyntactic = env->as<WithEnvironmentObject>().isSyntactic();
       for (size_t i = 0; i < props.length(); i++) {
-        bool inScope;
-        if (!CheckUnscopables(cx, env, props[i], &inScope)) {
+        bool inScope = true;
+        if (isSyntactic && !CheckUnscopables(cx, env, props[i], &inScope)) {
           return false;
         }
         if (inScope) {
