@@ -493,30 +493,33 @@ IdentityCredential::CollectFromCredentialStoreInMainProcess(
     return IdentityCredential::GetIPCIdentityCredentialsPromise::
         CreateAndReject(rv, __func__);
   }
+
+  if (!aOptions.mProviders.WasPassed()) {
+    return IdentityCredential::GetIPCIdentityCredentialsPromise::
+        CreateAndResolve(CopyableTArray<mozilla::dom::IPCIdentityCredential>(),
+                         __func__);
+  }
+
   nsTArray<RefPtr<nsIPrincipal>> idpPrincipals;
-  if (aOptions.mProviders.WasPassed()) {
-    for (const auto& idpConfig : aOptions.mProviders.Value()) {
-      if (idpConfig.mOrigin.WasPassed()) {
-        RefPtr<nsIURI> idpURI;
-        rv = NS_NewURI(getter_AddRefs(idpURI), idpConfig.mOrigin.Value());
-        if (NS_FAILED(rv)) {
-          continue;
-        }
-        RefPtr<nsIPrincipal> idpPrincipal =
-            BasePrincipal::CreateContentPrincipal(
-                idpURI, aPrincipal->OriginAttributesRef());
-        idpPrincipals.AppendElement(idpPrincipal);
-      } else if (idpConfig.mLoginURL.WasPassed()) {
-        RefPtr<nsIURI> idpURI;
-        rv = NS_NewURI(getter_AddRefs(idpURI), idpConfig.mLoginURL.Value());
-        if (NS_FAILED(rv)) {
-          continue;
-        }
-        RefPtr<nsIPrincipal> idpPrincipal =
-            BasePrincipal::CreateContentPrincipal(
-                idpURI, aPrincipal->OriginAttributesRef());
-        idpPrincipals.AppendElement(idpPrincipal);
+  for (const auto& idpConfig : aOptions.mProviders.Value()) {
+    if (idpConfig.mOrigin.WasPassed()) {
+      RefPtr<nsIURI> idpURI;
+      rv = NS_NewURI(getter_AddRefs(idpURI), idpConfig.mOrigin.Value());
+      if (NS_FAILED(rv)) {
+        continue;
       }
+      RefPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
+          idpURI, aPrincipal->OriginAttributesRef());
+      idpPrincipals.AppendElement(idpPrincipal);
+    } else if (idpConfig.mLoginURL.WasPassed()) {
+      RefPtr<nsIURI> idpURI;
+      rv = NS_NewURI(getter_AddRefs(idpURI), idpConfig.mLoginURL.Value());
+      if (NS_FAILED(rv)) {
+        continue;
+      }
+      RefPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
+          idpURI, aPrincipal->OriginAttributesRef());
+      idpPrincipals.AppendElement(idpPrincipal);
     }
   }
 
