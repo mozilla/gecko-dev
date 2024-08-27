@@ -1014,6 +1014,7 @@ if (rtc_include_tests) {
       "../rtc_base:task_queue_for_test",
       "../rtc_base:threading",
       "../rtc_base/memory:always_valid_pointer",
+      "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]
   }
