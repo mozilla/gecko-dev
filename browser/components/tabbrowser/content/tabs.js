@@ -2226,13 +2226,6 @@
         this._notifyBackgroundTab(tab);
       }
 
-      // XXXmano: this is a temporary workaround for bug 345399
-      // We need to manually update the scroll buttons disabled state
-      // if a tab was inserted to the overflow area or removed from it
-      // without any scrolling and when the tabbar has already
-      // overflowed.
-      this.arrowScrollbox._updateScrollButtonsDisabledState();
-
       // If this browser isn't lazy (indicating it's probably created by
       // session restore), preload the next about:newtab if we don't
       // already have a preloaded browser.

@@ -4475,9 +4475,6 @@
         if (aNewTab) {
           gURLBar.select();
         }
-
-        // workaround for bug 345399
-        this.tabContainer.arrowScrollbox._updateScrollButtonsDisabledState();
       }
 
       // We're going to remove the tab and the browser now.

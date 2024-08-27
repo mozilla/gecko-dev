@@ -110,6 +110,11 @@
         // pixel, so 0.02 should cover it).
         let overflowing = contentSize - this.scrollClientSize > 0.02;
         if (overflowing == this.hasAttribute("overflowing")) {
+          if (overflowing) {
+            // Update scroll buttons' disabled state when the slot or scrollbox
+            // size changes while we were already overflowing.
+            this._updateScrollButtonsDisabledState();
+          }
           return;
         }
         window.requestAnimationFrame(() => {
