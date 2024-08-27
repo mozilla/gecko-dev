@@ -99,22 +99,25 @@ bool js::NativeObject::toDictionaryMode(JSContext* cx,
   MOZ_ASSERT(!obj->inDictionaryMode());
   MOZ_ASSERT(cx->isInsideCurrentCompartment(obj));
 
-  Rooted<NativeShape*> shape(cx, obj->shape());
+  RootedTuple<NativeShape*, SharedPropMap*, DictionaryPropMap*, BaseShape*>
+      roots(cx);
+
+  RootedField<NativeShape*> shape(roots, obj->shape());
   uint32_t span = obj->slotSpan();
 
   uint32_t mapLength = shape->propMapLength();
   MOZ_ASSERT(mapLength > 0, "shouldn't convert empty object to dictionary");
 
   // Clone the shared property map to an unshared dictionary map.
-  Rooted<SharedPropMap*> map(cx, shape->propMap()->asShared());
-  Rooted<DictionaryPropMap*> dictMap(
-      cx, SharedPropMap::toDictionaryMap(cx, map, mapLength));
+  RootedField<SharedPropMap*> map(roots, shape->propMap()->asShared());
+  RootedField<DictionaryPropMap*> dictMap(
+      roots, SharedPropMap::toDictionaryMap(cx, map, mapLength));
   if (!dictMap) {
     return false;
   }
 
   // Allocate and use a new dictionary shape.
-  Rooted<BaseShape*> base(cx, shape->base());
+  RootedField<BaseShape*> base(roots, shape->base());
   shape = DictionaryShape::new_(cx, base, shape->objectFlags(),
                                 shape->numFixedSlots(), dictMap, mapLength);
   if (!shape) {

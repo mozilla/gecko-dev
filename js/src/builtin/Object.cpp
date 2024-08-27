@@ -1204,9 +1204,10 @@ JS_PUBLIC_API bool JS_AssignObject(JSContext* cx, JS::HandleObject target,
 static bool obj_assign(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Object", "assign");
   CallArgs args = CallArgsFromVp(argc, vp);
+  RootedTuple<JSObject*, JSObject*> roots(cx);
 
   // Step 1.
-  RootedObject to(cx, ToObject(cx, args.get(0)));
+  RootedField<JSObject*, 0> to(roots, ToObject(cx, args.get(0)));
   if (!to) {
     return false;
   }
@@ -1215,7 +1216,6 @@ static bool obj_assign(JSContext* cx, unsigned argc, Value* vp) {
   // there's 1 argument, the loop below is a no-op.
 
   // Step 4.
-  RootedObject from(cx);
   for (size_t i = 1; i < args.length(); i++) {
     // Step 4.a.
     if (args[i].isNullOrUndefined()) {
@@ -1223,7 +1223,7 @@ static bool obj_assign(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     // Step 4.b.i.
-    from = ToObject(cx, args[i]);
+    RootedField<JSObject*, 1> from(roots, ToObject(cx, args[i]));
     if (!from) {
       return false;
     }

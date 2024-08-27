@@ -2124,14 +2124,20 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
    * correctness pitfalls due to incorrect compilation of destructor calls
    * around computed gotos.
    */
-  RootedValue rootValue0(cx), rootValue1(cx);
-  RootedObject rootObject0(cx), rootObject1(cx);
-  RootedFunction rootFunction0(cx);
-  Rooted<JSAtom*> rootAtom0(cx);
-  Rooted<PropertyName*> rootName0(cx);
-  RootedId rootId0(cx);
-  RootedScript rootScript0(cx);
-  Rooted<Scope*> rootScope0(cx);
+  RootedTuple<Value, Value, JSObject*, JSObject*, JSFunction*, JSAtom*,
+              PropertyName*, PropertyKey, JSScript*, Scope*>
+      roots(cx);
+  RootedField<Value, 0> rootValue0(roots);
+  RootedField<Value, 1> rootValue1(roots);
+  RootedField<JSObject*, 2> rootObject0(roots);
+  RootedField<JSObject*, 3> rootObject1(roots);
+  RootedField<JSFunction*> rootFunction0(roots);
+  RootedField<JSAtom*> rootAtom0(roots);
+  RootedField<PropertyName*> rootName0(roots);
+  RootedField<PropertyKey> rootId0(roots);
+  RootedField<JSScript*> rootScript0(roots);
+  RootedField<Scope*> rootScope0(roots);
+
   DebugOnly<uint32_t> blockDepth;
 
   /* State communicated between non-local jumps: */
@@ -3375,7 +3381,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       HandleValue arr = REGS.stackHandleAt(-1 - construct);
       MutableHandleValue ret = REGS.stackHandleAt(-3 - construct);
 
-      RootedValue& newTarget = rootValue0;
+      ReservedRooted<Value> newTarget(&rootValue0);
       if (construct) {
         newTarget = REGS.sp[-1];
       } else {

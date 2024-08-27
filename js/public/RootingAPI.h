@@ -1309,7 +1309,6 @@ class MOZ_RAII RootedField : public js::RootedOperations<T, RootedField<T, N>> {
   template <typename... Fs, typename S>
   explicit RootedField(RootedTuple<Fs...>& rootedTuple, S&& value)
       : RootedField(rootedTuple) {
-    MOZ_ASSERT(*ptr == SafelyInitialized<T>::create());
     *ptr = std::forward<S>(value);
   }
 

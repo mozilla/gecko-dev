@@ -959,7 +959,7 @@ static MOZ_ALWAYS_INLINE void InitElemArrayOperation(JSContext* cx,
 }
 
 /*
- * As an optimization, the interpreter creates a handful of reserved Rooted<T>
+ * As an optimization, the interpreter creates a handful of reserved rooted
  * variables at the beginning, thus inserting them into the Rooted list once
  * upon entry. ReservedRooted "borrows" a reserved Rooted variable and uses it
  * within a local scope, resetting the value to nullptr (or the appropriate
@@ -967,29 +967,26 @@ static MOZ_ALWAYS_INLINE void InitElemArrayOperation(JSContext* cx,
  * from the rooter list, while preventing stale values from being kept alive
  * unnecessarily.
  */
-
 template <typename T>
 class ReservedRooted : public RootedOperations<T, ReservedRooted<T>> {
-  Rooted<T>* savedRoot;
+  MutableHandle<T> savedRoot;
 
  public:
-  ReservedRooted(Rooted<T>* root, const T& ptr) : savedRoot(root) {
-    *root = ptr;
+  ReservedRooted(MutableHandle<T> root, const T& ptr) : savedRoot(root) {
+    root.set(ptr);
   }
 
-  explicit ReservedRooted(Rooted<T>* root) : savedRoot(root) {
-    *root = JS::SafelyInitialized<T>::create();
-  }
+  explicit ReservedRooted(MutableHandle<T> root) : savedRoot(root) { clear(); }
 
-  ~ReservedRooted() { *savedRoot = JS::SafelyInitialized<T>::create(); }
+  ~ReservedRooted() { clear(); }
 
-  void set(const T& p) const { *savedRoot = p; }
-  operator Handle<T>() { return *savedRoot; }
-  operator Rooted<T>&() { return *savedRoot; }
-  MutableHandle<T> operator&() { return &*savedRoot; }
+  void clear() { savedRoot.set(JS::SafelyInitialized<T>::create()); }
+  void set(const T& p) { savedRoot.set(p); }
+  operator Handle<T>() { return savedRoot; }
+  MutableHandle<T> operator&() { return savedRoot; }
 
-  DECLARE_NONPOINTER_ACCESSOR_METHODS(savedRoot->get())
-  DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(savedRoot->get())
+  DECLARE_NONPOINTER_ACCESSOR_METHODS(savedRoot.get())
+  DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(savedRoot.get())
   DECLARE_POINTER_CONSTREF_OPS(T)
   DECLARE_POINTER_ASSIGN_OPS(ReservedRooted, T)
 };
