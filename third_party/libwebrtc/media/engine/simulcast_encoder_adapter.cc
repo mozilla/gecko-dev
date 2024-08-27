@@ -277,6 +277,7 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
 }
 
 SimulcastEncoderAdapter::~SimulcastEncoderAdapter() {
+  RTC_DCHECK_RUN_ON(&encoder_queue_);
   RTC_DCHECK(!Initialized());
   DestroyStoredEncoders();
 }
@@ -714,6 +715,7 @@ bool SimulcastEncoderAdapter::Initialized() const {
 }
 
 void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+  RTC_DCHECK_RUN_ON(&encoder_queue_);
   while (!cached_encoder_contexts_.empty()) {
     cached_encoder_contexts_.pop_back();
   }
@@ -722,6 +724,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
 std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
 SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
     bool is_lowest_quality_stream) const {
+  RTC_DCHECK_RUN_ON(&encoder_queue_);
   bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                  is_lowest_quality_stream &&
                                  prefer_temporal_support_on_base_layer_;
