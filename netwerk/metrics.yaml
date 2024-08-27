@@ -280,11 +280,13 @@ networking:
       as a denomenator for measuring CHIPS adoption.
     bugs:
       - https://bugzilla.mozilla.org/1865199
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 132
+    expires: 138
 
   set_cookie_foreign:
     type: rate
@@ -294,11 +296,13 @@ networking:
       adoption.
     bugs:
       - https://bugzilla.mozilla.org/1865199
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 132
+    expires: 138
     denominator_metric: networking.set_cookie
 
   set_cookie_partitioned:
@@ -308,11 +312,13 @@ networking:
       attribute. This tracks the adoption of CHIPS.
     bugs:
       - https://bugzilla.mozilla.org/1865199
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 132
+    expires: 138
     denominator_metric: networking.set_cookie
 
   set_cookie_foreign_partitioned:
@@ -323,11 +329,13 @@ networking:
       of CHIPS.
     bugs:
       - https://bugzilla.mozilla.org/1865199
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 132
+    expires: 138
     denominator_metric: networking.set_cookie
 
   dns_lookup_time:
