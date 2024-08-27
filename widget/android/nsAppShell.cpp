@@ -336,6 +336,26 @@ class GeckoAppShellSupport final
   static bool IsGpuProcessEnabled() {
     return gfx::gfxVars::GPUProcessEnabled();
   }
+
+  static void OnSystemLocaleChanged() {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (PastShutdownPhase(ShutdownPhase::XPCOMShutdown)) {
+      return;
+    }
+
+    intl::OSPreferences::GetInstance()->Refresh();
+  }
+
+  static void OnTimezoneChanged() {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (PastShutdownPhase(ShutdownPhase::XPCOMShutdown)) {
+      return;
+    }
+
+    nsBaseAppShell::OnSystemTimezoneChange();
+  }
 };
 
 class XPCOMEventTargetWrapper final

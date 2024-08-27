@@ -5,8 +5,11 @@
 
 package org.mozilla.gecko;
 
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.hardware.input.InputManager;
@@ -30,6 +33,8 @@ public class GeckoSystemStateListener implements InputManager.InputDeviceListene
   private static Context sApplicationContext;
   private InputManager mInputManager;
   private boolean mIsNightMode;
+  private BroadcastReceiver mBroadcastReceiver;
+  private IntentFilter mIntentFilter;
 
   public static GeckoSystemStateListener getInstance() {
     return listenerInstance;
@@ -66,6 +71,28 @@ public class GeckoSystemStateListener implements InputManager.InputDeviceListene
             /*Settings.Secure.ACCESSIBILITY_HIGH_TEXT_CONTRAST_ENABLED*/ "high_text_contrast_enabled");
     contentResolver.registerContentObserver(textContrastSetting, false, mContentObserver);
 
+    mBroadcastReceiver =
+        new BroadcastReceiver() {
+          @Override
+          public void onReceive(final Context context, final Intent intent) {
+            if (!GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
+              return;
+            }
+            if (intent.getAction().equals(Intent.ACTION_LOCALE_CHANGED)) {
+              GeckoAppShell.onSystemLocaleChanged();
+              return;
+            }
+            if (intent.getAction().equals(Intent.ACTION_TIMEZONE_CHANGED)) {
+              GeckoAppShell.onTimezoneChanged();
+              return;
+            }
+          }
+        };
+    final IntentFilter filter = new IntentFilter();
+    filter.addAction(Intent.ACTION_LOCALE_CHANGED);
+    filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+    context.registerReceiver(mBroadcastReceiver, filter);
+
     mIsNightMode =
         (sApplicationContext.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK)
@@ -90,9 +117,12 @@ public class GeckoSystemStateListener implements InputManager.InputDeviceListene
     final ContentResolver contentResolver = sApplicationContext.getContentResolver();
     contentResolver.unregisterContentObserver(mContentObserver);
 
+    GeckoAppShell.getApplicationContext().unregisterReceiver(mBroadcastReceiver);
+
     mInitialized = false;
     mInputManager = null;
     mContentObserver = null;
+    mBroadcastReceiver = null;
   }
 
   @WrapForJNI(calledFrom = "gecko")

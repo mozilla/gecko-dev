@@ -1604,4 +1604,10 @@ public class GeckoAppShell {
     // this on any SDK level but must suppress the new API lint.
     return android.os.Process.isIsolated();
   }
+
+  @WrapForJNI(dispatchTo = "gecko")
+  public static native void onSystemLocaleChanged();
+
+  @WrapForJNI(dispatchTo = "gecko")
+  public static native void onTimezoneChanged();
 }
