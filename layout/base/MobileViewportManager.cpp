@@ -93,6 +93,8 @@ float MobileViewportManager::ComputeIntrinsicResolution() const {
   ScreenIntSize displaySize = GetLayoutDisplaySize();
   CSSToScreenScale intrinsicScale = ComputeIntrinsicScale(
       mContext->GetViewportInfo(displaySize), displaySize, mMobileViewportSize);
+  MVM_LOG("%p: intrinsic scale based on CSS viewport size is %f", this,
+          intrinsicScale.scale);
   CSSToLayoutDeviceScale cssToDev = mContext->CSSToDevPixelScale();
   return (intrinsicScale / cssToDev).scale;
 }
@@ -105,7 +107,6 @@ mozilla::CSSToScreenScale MobileViewportManager::ComputeIntrinsicScale(
       aViewportOrContentSize.IsEmpty()
           ? CSSToScreenScale(1.0)
           : MaxScaleRatio(ScreenSize(aDisplaySize), aViewportOrContentSize);
-  MVM_LOG("%p: Intrinsic computed zoom is %f\n", this, intrinsicScale.scale);
   return ClampZoom(intrinsicScale, aViewportInfo);
 }
 
@@ -295,6 +296,10 @@ void MobileViewportManager::UpdateResolutionForFirstPaint(
     }
     defaultZoom =
         ComputeIntrinsicScale(viewportInfo, compositionSize, contentSize);
+    MVM_LOG(
+        "%p: overriding default zoom with intrinsic scale of %f based on "
+        "content size",
+        this, defaultZoom.scale);
   }
   MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
              defaultZoom <= viewportInfo.GetMaxZoom());
@@ -309,6 +314,7 @@ void MobileViewportManager::UpdateResolutionForViewportSizeChange(
   nsViewportInfo viewportInfo = mContext->GetViewportInfo(displaySize);
 
   CSSToScreenScale zoom = GetZoom();
+  MVM_LOG("%p: current zoom level: %f", this, zoom.scale);
   // Non-positive zoom factors can produce NaN or negative viewport sizes,
   // so we better be sure we've got a positive zoom factor.
   MOZ_ASSERT(zoom > CSSToScreenScale(0.0f), "zoom factor must be positive");
@@ -410,6 +416,7 @@ void MobileViewportManager::UpdateResolutionForViewportSizeChange(
   CSSToScreenScale adjustedZoom = ScaleZoomWithDisplayWidth(
       zoom, adjustedRatio, aViewportSize, mMobileViewportSize);
   CSSToScreenScale newZoom = ClampZoom(adjustedZoom, viewportInfo);
+  MVM_LOG("%p: applying new zoom level: %f", this, newZoom.scale);
 
   ApplyNewZoom(newZoom);
 }
@@ -427,6 +434,8 @@ void MobileViewportManager::UpdateResolutionForContentSizeChange(
   ScreenIntSize compositionSize = GetCompositionSize(displaySize);
   CSSToScreenScale intrinsicScale =
       ComputeIntrinsicScale(viewportInfo, compositionSize, aContentSize);
+  MVM_LOG("%p: intrinsic scale based on content size is %f", this,
+          intrinsicScale.scale);
 
   // We try to scale down the contents only IF the document has no
   // initial-scale AND IF it's not restored documents AND IF the resolution
