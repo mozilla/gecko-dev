@@ -39,14 +39,9 @@ var subtests = [
     ["ui.touch_activation.duration_ms", 90000]
   ]},
   {"file": "helper_bug1806400-4.html", "prefs": doubletap_prefs},
-  // Add new subtests here. If this starts timing out because it's taking too
-  // long, create a test_group_touchevents-6.html file. Refer to 1423011#c57
-  // for more details.
-  // You can still add tests to test_group_touchevents-4.html, it hasn't gotten
-  // too long yet, but this file was created because adding a specific test to
-  // test_group_touchevents-5.html would timeout (without making any progress)
-  // with fission x-origin tests. So you can add tests here or in
-  // test_group_touchevents-4.html until they start timing out.
+
+  // Add new subtests to test_group_touch_events-N.html (for largest N),
+  // not this file.
 ];
 
 // The following tests intermittently fail on Linux.

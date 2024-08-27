@@ -17,14 +17,10 @@ var subtests = [
              ["apz.fling_stopped_threshold", "0"],
              ["apz.velocity_relevance_time_ms", "1000"],
              ["apz.fling_min_velocity_threshold", "0.0"]]},
+
   // Add new subtests here. If this starts timing out because it's taking too
   // long, create a test_group_touchevents-7.html file. Refer to 1423011#c57
   // for more details.
-  // You can still add tests to test_group_touchevents-5.html, it hasn't gotten
-  // too long yet, but this file was created because adding a specific test to
-  // test_group_touchevents-6.html would timeout (without making any progress)
-  // with fission x-origin tests. So you can add tests here or in
-  // test_group_touchevents-5.html until they start timing out.
 ];
 
 if (isApzEnabled()) {
