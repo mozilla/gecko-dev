@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.db.DownloadsDatabase
 import mozilla.components.feature.downloads.db.Migrations
+import mozilla.components.feature.downloads.db.toDownloadEntity
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -161,11 +162,13 @@ class OnDeviceDownloadStorageTest {
 
         val downloads = getDownloadsPagedList()
 
-        assertEquals(3, downloads.size)
-
-        assertTrue(DownloadStorage.isSameDownload(download1, downloads.first()))
-        assertTrue(DownloadStorage.isSameDownload(download2, downloads[1]))
-        assertTrue(DownloadStorage.isSameDownload(download3, downloads[2]))
+        val expected = listOf(
+            download1.toDownloadEntity(),
+            download2.toDownloadEntity(),
+            download3.toDownloadEntity(),
+        )
+        val actual = downloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -178,10 +181,12 @@ class OnDeviceDownloadStorageTest {
 
         val downloads = getDownloadsPagedList()
 
-        assertEquals(2, downloads.size)
-
-        assertTrue(DownloadStorage.isSameDownload(download1.copy(url = ""), downloads.first()))
-        assertTrue(DownloadStorage.isSameDownload(download2, downloads[1]))
+        val expected = listOf(
+            download1.copy(url = "").toDownloadEntity(),
+            download2.toDownloadEntity(),
+        )
+        val actual = downloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -192,23 +197,30 @@ class OnDeviceDownloadStorageTest {
         storage.add(download1)
         storage.add(download2)
 
-        var downloads = getDownloadsPagedList()
+        val downloads = getDownloadsPagedList()
 
-        assertEquals(2, downloads.size)
+        val expected = listOf(
+            download1.toDownloadEntity(),
+            download2.toDownloadEntity(),
+        )
+        val actual = downloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(expected, actual)
 
-        assertTrue(DownloadStorage.isSameDownload(download1, downloads.first()))
-        assertTrue(DownloadStorage.isSameDownload(download2, downloads[1]))
-
-        val updatedDownload1 = createMockDownload("1", "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==")
+        val updatedDownload1 =
+            createMockDownload("1", "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==")
         val updatedDownload2 = createMockDownload("2", "updated_url2")
 
         storage.update(updatedDownload1)
         storage.update(updatedDownload2)
 
-        downloads = getDownloadsPagedList()
+        val updatedDownloads = getDownloadsPagedList()
 
-        assertTrue(DownloadStorage.isSameDownload(updatedDownload1.copy(url = ""), downloads.first()))
-        assertTrue(DownloadStorage.isSameDownload(updatedDownload2, downloads[1]))
+        val updatedExpected = listOf(
+            updatedDownload1.copy(url = "").toDownloadEntity(),
+            updatedDownload2.toDownloadEntity(),
+        )
+        val updatedActual = updatedDownloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(updatedExpected, updatedActual)
     }
 
     @Test
@@ -224,10 +236,12 @@ class OnDeviceDownloadStorageTest {
         storage.remove(download1)
 
         val downloads = getDownloadsPagedList()
-        val downloadFromDB = downloads.first()
 
-        assertEquals(1, downloads.size)
-        assertTrue(DownloadStorage.isSameDownload(download2, downloadFromDB))
+        val expected = listOf(
+            download2.toDownloadEntity(),
+        )
+        val actual = downloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -240,10 +254,12 @@ class OnDeviceDownloadStorageTest {
 
         val downloads = getDownloadsPagedList()
 
-        assertEquals(2, downloads.size)
-
-        assertTrue(DownloadStorage.isSameDownload(download1, downloads.first()))
-        assertTrue(DownloadStorage.isSameDownload(download2, downloads[1]))
+        val expected = listOf(
+            download1.toDownloadEntity(),
+            download2.toDownloadEntity(),
+        )
+        val actual = downloads.map { it.toDownloadEntity() }.sortedBy { it.createdAt }
+        assertEquals(expected, actual)
     }
 
     @Test
