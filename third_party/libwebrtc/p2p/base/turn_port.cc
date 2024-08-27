@@ -989,7 +989,9 @@ void TurnPort::Release() {
 
 void TurnPort::Close() {
   if (!ready()) {
-    OnAllocateError(SERVER_NOT_REACHABLE_ERROR, "");
+    OnAllocateError(
+        SERVER_NOT_REACHABLE_ERROR,
+        GetProtocol() != PROTO_UDP ? "Failed to establish connection" : "");
   }
   request_manager_.Clear();
   // Stop the port from creating new connections.
