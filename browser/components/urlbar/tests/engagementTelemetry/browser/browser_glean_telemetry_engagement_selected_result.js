@@ -464,8 +464,8 @@ add_task(async function selected_result_rs_adm_sponsored() {
   });
 
   await doTest(async () => {
-    await openPopup("sponsored");
-    await selectRowByURL("https://example.com/sponsored");
+    await openPopup("amp");
+    await selectRowByURL("https://example.com/amp");
     await doEnter();
 
     assertEngagementTelemetry([
@@ -487,8 +487,8 @@ add_task(async function selected_result_rs_adm_nonsponsored() {
   });
 
   await doTest(async () => {
-    await openPopup("nonsponsored");
-    await selectRowByURL("https://example.com/nonsponsored");
+    await openPopup("wikipedia");
+    await selectRowByURL("https://example.com/wikipedia");
     await doEnter();
 
     assertEngagementTelemetry([
@@ -886,8 +886,8 @@ add_task(async function selected_result_rust_adm_sponsored() {
   });
 
   await doTest(async () => {
-    await openPopup("sponsored");
-    await selectRowByURL("https://example.com/sponsored");
+    await openPopup("amp");
+    await selectRowByURL("https://example.com/amp");
     await doEnter();
 
     assertEngagementTelemetry([
@@ -909,8 +909,8 @@ add_task(async function selected_result_rust_adm_nonsponsored() {
   });
 
   await doTest(async () => {
-    await openPopup("nonsponsored");
-    await selectRowByURL("https://example.com/nonsponsored");
+    await openPopup("wikipedia");
+    await selectRowByURL("https://example.com/wikipedia");
     await doEnter();
 
     assertEngagementTelemetry([
