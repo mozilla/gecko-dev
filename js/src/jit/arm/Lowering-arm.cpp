@@ -674,7 +674,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
 
   if (ins->type() == MIRType::Int64) {
     auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase);
-    if (ins->access().offset32() || ins->access().type() == Scalar::Int64) {
+    if (ins->access().offset() || ins->access().type() == Scalar::Int64) {
       lir->setTemp(0, tempCopy(base, 0));
     }
     if (ins->hasMemoryBase()) {
@@ -685,7 +685,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   }
 
   auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase);
-  if (ins->access().offset32()) {
+  if (ins->access().offset()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 
@@ -714,7 +714,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   if (ins->value()->type() == MIRType::Int64) {
     LInt64Allocation value = useInt64RegisterAtStart(ins->value());
     auto* lir = new (alloc()) LWasmStoreI64(ptr, value, memoryBase);
-    if (ins->access().offset32() || ins->access().type() == Scalar::Int64) {
+    if (ins->access().offset() || ins->access().type() == Scalar::Int64) {
       lir->setTemp(0, tempCopy(base, 0));
     }
     add(lir, ins);
@@ -724,7 +724,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   LAllocation value = useRegisterAtStart(ins->value());
   auto* lir = new (alloc()) LWasmStore(ptr, value, memoryBase);
 
-  if (ins->access().offset32()) {
+  if (ins->access().offset()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 

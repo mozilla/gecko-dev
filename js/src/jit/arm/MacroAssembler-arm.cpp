@@ -6262,7 +6262,7 @@ void MacroAssemblerARM::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
   MOZ_ASSERT(!access.isWidenSimd128Load());
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset32();
+  uint32_t offset = access.offset();
 
   Scalar::Type type = access.type();
 
@@ -6383,7 +6383,7 @@ void MacroAssemblerARM::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
   MOZ_ASSERT(ptr == ptrScratch);
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset32();
+  uint32_t offset = access.offset();
   unsigned byteSize = access.byteSize();
   Scalar::Type type = access.type();
 

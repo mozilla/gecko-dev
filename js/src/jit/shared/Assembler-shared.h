@@ -541,7 +541,7 @@ using SymbolicAccessVector = Vector<SymbolicAccess, 0, SystemAllocPolicy>;
 
 class MemoryAccessDesc {
   uint32_t memoryIndex_;
-  uint64_t offset_;
+  uint64_t offset64_;
   uint32_t align_;
   Scalar::Type type_;
   jit::Synchronization sync_;
@@ -557,7 +557,7 @@ class MemoryAccessDesc {
       BytecodeOffset trapOffset, mozilla::DebugOnly<bool> hugeMemory,
       jit::Synchronization sync = jit::Synchronization::None())
       : memoryIndex_(memoryIndex),
-        offset_(offset),
+        offset64_(offset),
         align_(align),
         type_(type),
         sync_(sync),
@@ -573,24 +573,24 @@ class MemoryAccessDesc {
     return memoryIndex_;
   }
 
-  // The offset is a 64-bit value because of memory64. Almost always, it will
-  // fit in 32 bits, and therefore offset32() is used almost everywhere in the
-  // engine. The compiler front-ends must use offset64() to bypass the check
-  // performed by offset32(), and must resolve offsets that don't fit in 32 bits
-  // early in the compilation pipeline so that no large offsets are observed
-  // later.
-  uint32_t offset32() const {
-    MOZ_ASSERT(offset_ <= UINT32_MAX);
-    return uint32_t(offset_);
+  // The offset is a 64-bit value because of memory64.  Almost always, it will
+  // fit in 32 bits, and hence offset() checks that it will, this method is used
+  // almost everywhere in the engine.  The compiler front-ends must use
+  // offset64() to bypass the check performed by offset(), and must resolve
+  // offsets that don't fit in 32 bits early in the compilation pipeline so that
+  // no large offsets are observed later.
+  uint32_t offset() const {
+    MOZ_ASSERT(offset64_ <= UINT32_MAX);
+    return uint32_t(offset64_);
   }
-  uint64_t offset64() const { return offset_; }
+  uint64_t offset64() const { return offset64_; }
 
   // The offset can be cleared without worrying about its magnitude.
-  void clearOffset() { offset_ = 0; }
+  void clearOffset() { offset64_ = 0; }
 
   // The offset can be set (after compile-time evaluation) but only to values
   // that fit in 32 bits.
-  void setOffset32(uint32_t offset) { offset_ = offset; }
+  void setOffset32(uint32_t offset) { offset64_ = offset; }
 
   uint32_t align() const { return align_; }
   Scalar::Type type() const { return type_; }

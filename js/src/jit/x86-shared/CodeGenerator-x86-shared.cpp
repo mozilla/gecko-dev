@@ -325,7 +325,7 @@ void CodeGenerator::visitWasmReinterpret(LWasmReinterpret* lir) {
 
 void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
   const MAsmJSLoadHeap* mir = ins->mir();
-  MOZ_ASSERT(mir->access().offset64() == 0);
+  MOZ_ASSERT(mir->access().offset() == 0);
 
   const LAllocation* ptr = ins->ptr();
   const LAllocation* boundsCheckLimit = ins->boundsCheckLimit();
@@ -3726,7 +3726,7 @@ void CodeGenerator::visitWasmLoadLaneSimd128(LWasmLoadLaneSimd128* ins) {
   const wasm::MemoryAccessDesc& access = mir->access();
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset32();
+  uint32_t offset = access.offset();
 
   const LAllocation* value = ins->src();
   Operand srcAddr = toMemoryAccessOperand(ins, offset);
@@ -3777,7 +3777,7 @@ void CodeGenerator::visitWasmStoreLaneSimd128(LWasmStoreLaneSimd128* ins) {
   const wasm::MemoryAccessDesc& access = mir->access();
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset32();
+  uint32_t offset = access.offset();
 
   const LAllocation* src = ins->src();
   Operand destAddr = toMemoryAccessOperand(ins, offset);

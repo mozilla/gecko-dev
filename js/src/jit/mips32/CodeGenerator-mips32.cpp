@@ -413,7 +413,7 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
 void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register64 output = ToOutRegister64(lir);
-  uint32_t offset = lir->mir()->access().offset32();
+  uint32_t offset = lir->mir()->access().offset();
 
   BaseIndex addr(HeapReg, ptr, TimesOne, offset);
 
@@ -425,7 +425,7 @@ void CodeGenerator::visitWasmAtomicStoreI64(LWasmAtomicStoreI64* lir) {
   Register ptr = ToRegister(lir->ptr());
   Register64 value = ToRegister64(lir->value());
   Register tmp = ToRegister(lir->tmp());
-  uint32_t offset = lir->mir()->access().offset32();
+  uint32_t offset = lir->mir()->access().offset();
 
   BaseIndex addr(HeapReg, ptr, TimesOne, offset);
 

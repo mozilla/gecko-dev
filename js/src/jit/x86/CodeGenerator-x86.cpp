@@ -287,7 +287,7 @@ void CodeGeneratorX86::emitWasmLoad(T* ins) {
   const MWasmLoad* mir = ins->mir();
 
   mir->access().assertOffsetInGuardPages();
-  uint32_t offset = mir->access().offset32();
+  uint32_t offset = mir->access().offset();
 
   const LAllocation* ptr = ins->ptr();
   const LAllocation* memoryBase = ins->memoryBase();
@@ -319,7 +319,7 @@ void CodeGeneratorX86::emitWasmStore(T* ins) {
   const MWasmStore* mir = ins->mir();
 
   mir->access().assertOffsetInGuardPages();
-  uint32_t offset = mir->access().offset32();
+  uint32_t offset = mir->access().offset();
 
   const LAllocation* ptr = ins->ptr();
   const LAllocation* memoryBase = ins->memoryBase();
@@ -360,7 +360,7 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   Register memoryBase = ToRegister(ins->memoryBase());
   Register output = ToRegister(ins->output());
 
-  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset32()),
+  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset()),
             addrTemp);
 
   Address memAddr(addrTemp, 0);
@@ -376,7 +376,7 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
   Register memoryBase = ToRegister(ins->memoryBase());
   Register output = ToRegister(ins->output());
 
-  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset32()),
+  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset()),
             addrTemp);
 
   Address memAddr(addrTemp, 0);
@@ -395,7 +395,7 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   AtomicOp op = mir->operation();
   Register memoryBase = ToRegister(ins->memoryBase());
 
-  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset32()),
+  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset()),
             addrTemp);
 
   Address memAddr(addrTemp, 0);
@@ -419,7 +419,7 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
   AtomicOp op = mir->operation();
   Register memoryBase = ToRegister(ins->memoryBase());
 
-  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset32()),
+  masm.leal(Operand(memoryBase, ptrReg, TimesOne, mir->access().offset()),
             addrTemp);
 
   Address memAddr(addrTemp, 0);
@@ -434,7 +434,7 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
 
 void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* ins) {
   ins->mir()->access().assertOffsetInGuardPages();
-  uint32_t offset = ins->mir()->access().offset32();
+  uint32_t offset = ins->mir()->access().offset();
 
   const LAllocation* memoryBase = ins->memoryBase();
   const LAllocation* ptr = ins->ptr();
@@ -451,7 +451,7 @@ void CodeGenerator::visitWasmAtomicLoadI64(LWasmAtomicLoadI64* ins) {
 
 void CodeGenerator::visitWasmCompareExchangeI64(LWasmCompareExchangeI64* ins) {
   ins->mir()->access().assertOffsetInGuardPages();
-  uint32_t offset = ins->mir()->access().offset32();
+  uint32_t offset = ins->mir()->access().offset();
 
   const LAllocation* memoryBase = ins->memoryBase();
   const LAllocation* ptr = ins->ptr();
@@ -476,7 +476,7 @@ void CodeGeneratorX86::emitWasmStoreOrExchangeAtomicI64(
   const LAllocation* memoryBase = ins->memoryBase();
   const LAllocation* ptr = ins->ptr();
   Operand srcAddr(ToRegister(memoryBase), ToRegister(ptr), TimesOne,
-                  access.offset32());
+                  access.offset());
 
   DebugOnly<const LInt64Allocation> value = ins->value();
   MOZ_ASSERT(ToRegister64(value).low == ebx);
@@ -512,7 +512,7 @@ void CodeGenerator::visitWasmAtomicExchangeI64(LWasmAtomicExchangeI64* ins) {
 
 void CodeGenerator::visitWasmAtomicBinopI64(LWasmAtomicBinopI64* ins) {
   ins->access().assertOffsetInGuardPages();
-  uint32_t offset = ins->access().offset32();
+  uint32_t offset = ins->access().offset();
 
   const LAllocation* memoryBase = ins->memoryBase();
   const LAllocation* ptr = ins->ptr();

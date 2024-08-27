@@ -1514,7 +1514,7 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   Register out = ToRegister(ins->output());
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
 
   if (mir->access().type() == Scalar::Int64) {
     masm.wasmCompareExchange64(mir->access(), srcAddr, Register64(oldval),
@@ -1533,7 +1533,7 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
   Register out = ToRegister(ins->output());
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
 
   if (mir->access().type() == Scalar::Int64) {
     masm.wasmAtomicExchange64(mir->access(), srcAddr, Register64(oldval),
@@ -1556,7 +1556,7 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   MOZ_ASSERT(ins->temp()->isBogusTemp());
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
   AtomicOp op = mir->operation();
 
   if (mir->access().type() == Scalar::Int64) {
@@ -1579,7 +1579,7 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
   Register flagTemp = ToRegister(ins->flagTemp());
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
   AtomicOp op = mir->operation();
 
   if (mir->access().type() == Scalar::Int64) {
@@ -2079,7 +2079,7 @@ static Maybe<uint64_t> IsAbsoluteAddress(const LAllocation* ptr,
     uint64_t base_address = c->type() == MIRType::Int32
                                 ? uint64_t(uint32_t(c->toInt32()))
                                 : uint64_t(c->toInt64());
-    uint64_t offset = access.offset32();
+    uint64_t offset = access.offset();
     return Some(base_address + offset);
   }
   return Nothing();
@@ -3887,7 +3887,7 @@ void CodeGenerator::visitWasmReduceSimd128ToInt64(
 static inline wasm::MemoryAccessDesc DeriveMemoryAccessDesc(
     const wasm::MemoryAccessDesc& access, Scalar::Type type) {
   return wasm::MemoryAccessDesc(access.memoryIndex(), type, access.align(),
-                                access.offset32(), access.trapOffset(),
+                                access.offset(), access.trapOffset(),
                                 access.isHugeMemory());
 }
 
