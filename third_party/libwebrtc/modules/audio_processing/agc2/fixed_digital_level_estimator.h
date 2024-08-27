@@ -27,7 +27,7 @@ class FixedDigitalLevelEstimator {
  public:
   // `samples_per_channel` is expected to be derived from this formula:
   //   sample_rate_hz * kFrameDurationMs / 1000
-  // or
+  // or, for a 10ms duration:
   //   sample_rate_hz / 100
   // I.e. the number of samples for 10ms of the given sample rate. The
   // expectation is that samples per channel is divisible by
@@ -46,7 +46,13 @@ class FixedDigitalLevelEstimator {
   // ms of audio produces a level estimates in the same scale. The
   // level estimate contains kSubFramesInFrame values.
   std::array<float, kSubFramesInFrame> ComputeLevel(
-      const AudioFrameView<const float>& float_frame);
+      DeinterleavedView<const float> float_frame);
+
+  [[deprecated(
+      "Use DeinterleavedView variant")]] std::array<float, kSubFramesInFrame>
+  ComputeLevel(const AudioFrameView<const float>& float_frame) {
+    return ComputeLevel(float_frame.view());
+  }
 
   // Rate may be changed at any time (but not concurrently) from the
   // value passed to the constructor. The class is not thread safe.

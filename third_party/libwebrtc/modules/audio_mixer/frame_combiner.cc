@@ -106,22 +106,22 @@ void MixToFloatFrame(rtc::ArrayView<const AudioFrame* const> mix_list,
   }
 }
 
-void RunLimiter(AudioFrameView<float> mixing_buffer_view, Limiter* limiter) {
-  limiter->SetSamplesPerChannel(mixing_buffer_view.samples_per_channel());
-  limiter->Process(mixing_buffer_view);
+void RunLimiter(DeinterleavedView<float> deinterleaved, Limiter* limiter) {
+  limiter->SetSamplesPerChannel(deinterleaved.samples_per_channel());
+  limiter->Process(deinterleaved);
 }
 
 // Both interleaves and rounds.
-void InterleaveToAudioFrame(AudioFrameView<const float> mixing_buffer_view,
+void InterleaveToAudioFrame(DeinterleavedView<float> deinterleaved,
                             AudioFrame* audio_frame_for_mixing) {
   InterleavedView<int16_t> mixing_data = audio_frame_for_mixing->mutable_data(
-      mixing_buffer_view.samples_per_channel(),
-      mixing_buffer_view.num_channels());
+      deinterleaved.samples_per_channel(), deinterleaved.num_channels());
   // Put data in the result frame.
   for (size_t i = 0; i < mixing_data.num_channels(); ++i) {
+    auto channel = deinterleaved[i];
     for (size_t j = 0; j < mixing_data.samples_per_channel(); ++j) {
       mixing_data[mixing_data.num_channels() * j + i] =
-          FloatS16ToS16(mixing_buffer_view.channel(i)[j]);
+          FloatS16ToS16(channel[j]);
     }
   }
 }
@@ -191,21 +191,11 @@ void FrameCombiner::Combine(rtc::ArrayView<AudioFrame* const> mix_list,
       mixing_buffer_.data(), samples_per_channel, number_of_channels);
   MixToFloatFrame(mix_list, deinterleaved);
 
-  // Put float data in an AudioFrameView.
-  // TODO(tommi): We should be able to just use `deinterleaved` without an
-  // additional array of pointers.
-  std::array<float*, kMaximumNumberOfChannels> channel_pointers{};
-  for (size_t i = 0; i < number_of_channels; ++i) {
-    channel_pointers[i] = deinterleaved[i].data();
-  }
-  AudioFrameView<float> mixing_buffer_view(
-      channel_pointers.data(), number_of_channels, samples_per_channel);
-
   if (use_limiter_) {
-    RunLimiter(mixing_buffer_view, &limiter_);
+    RunLimiter(deinterleaved, &limiter_);
   }
 
-  InterleaveToAudioFrame(mixing_buffer_view, audio_frame_for_mixing);
+  InterleaveToAudioFrame(deinterleaved, audio_frame_for_mixing);
 }
 
 }  // namespace webrtc

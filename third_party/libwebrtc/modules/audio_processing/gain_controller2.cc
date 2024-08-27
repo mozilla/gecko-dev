@@ -258,7 +258,7 @@ void GainController2::Process(absl::optional<float> speech_probability,
   // computation in `limiter_`.
   fixed_gain_applier_.ApplyGain(float_frame);
 
-  limiter_.Process(float_frame);
+  limiter_.Process(float_frame.view());
 
   // Periodically log limiter stats.
   if (++calls_since_last_limiter_log_ == kLogLimiterStatsPeriodNumFrames) {

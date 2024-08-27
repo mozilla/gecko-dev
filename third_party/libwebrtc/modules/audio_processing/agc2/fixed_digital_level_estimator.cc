@@ -56,15 +56,15 @@ void FixedDigitalLevelEstimator::CheckParameterCombination() {
 }
 
 std::array<float, kSubFramesInFrame> FixedDigitalLevelEstimator::ComputeLevel(
-    const AudioFrameView<const float>& float_frame) {
+    DeinterleavedView<const float> float_frame) {
   RTC_DCHECK_GT(float_frame.num_channels(), 0);
   RTC_DCHECK_EQ(float_frame.samples_per_channel(), samples_in_frame_);
 
   // Compute max envelope without smoothing.
   std::array<float, kSubFramesInFrame> envelope{};
-  for (int channel_idx = 0; channel_idx < float_frame.num_channels();
+  for (size_t channel_idx = 0; channel_idx < float_frame.num_channels();
        ++channel_idx) {
-    const auto channel = float_frame.channel(channel_idx);
+    const auto channel = float_frame[channel_idx];
     for (int sub_frame = 0; sub_frame < kSubFramesInFrame; ++sub_frame) {
       for (int sample_in_sub_frame = 0;
            sample_in_sub_frame < samples_in_sub_frame_; ++sample_in_sub_frame) {
@@ -99,7 +99,7 @@ std::array<float, kSubFramesInFrame> FixedDigitalLevelEstimator::ComputeLevel(
 
     // Dump data for debug.
     RTC_DCHECK(apm_data_dumper_);
-    const auto channel = float_frame.channel(0);
+    const auto channel = float_frame[0];
     apm_data_dumper_->DumpRaw("agc2_level_estimator_samples",
                               samples_in_sub_frame_,
                               &channel[sub_frame * samples_in_sub_frame_]);
