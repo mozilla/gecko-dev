@@ -19,6 +19,8 @@
 #include "wasm/WasmBCClass.h"
 #include "wasm/WasmBCDefs.h"
 #include "wasm/WasmBCRegDefs.h"
+#include "wasm/WasmConstants.h"
+#include "wasm/WasmMemory.h"
 
 #include "jit/MacroAssembler-inl.h"
 
@@ -100,7 +102,7 @@ void BaseCompiler::bceCheckLocal(MemoryAccessDesc* access, AccessCheck* check,
     return;
   }
 
-  uint32_t offsetGuardLimit =
+  uint64_t offsetGuardLimit =
       GetMaxOffsetGuardLimit(codeMeta_.hugeMemoryEnabled(0));
 
   if ((bceSafe_ & (BCESet(1) << local)) &&
@@ -133,13 +135,21 @@ void BaseCompiler::bceLocalIsUpdated(uint32_t local) {
 template <>
 RegI32 BaseCompiler::popConstMemoryAccess<RegI32>(MemoryAccessDesc* access,
                                                   AccessCheck* check) {
+  MOZ_ASSERT(isMem32(access->memoryIndex()));
+
   int32_t addrTemp;
   MOZ_ALWAYS_TRUE(popConst(&addrTemp));
   uint32_t addr = addrTemp;
 
-  uint32_t offsetGuardLimit = GetMaxOffsetGuardLimit(
+  uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
       codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
+  // Validation ensures that the offset is in 32-bit range, and the calculation
+  // of the limit cannot overflow due to our choice of HugeOffsetGuardLimit.
+#ifdef WASM_SUPPORTS_HUGE_MEMORY
+  static_assert(MaxMemory32LimitField * PageSize <=
+                UINT64_MAX - HugeOffsetGuardLimit);
+#endif
   uint64_t ea = uint64_t(addr) + uint64_t(access->offset());
   uint64_t limit = codeMeta_.memories[access->memoryIndex()].initialLength32() +
                    offsetGuardLimit;
@@ -163,25 +173,28 @@ RegI32 BaseCompiler::popConstMemoryAccess<RegI32>(MemoryAccessDesc* access,
 template <>
 RegI64 BaseCompiler::popConstMemoryAccess<RegI64>(MemoryAccessDesc* access,
                                                   AccessCheck* check) {
+  MOZ_ASSERT(isMem64(access->memoryIndex()));
+
   int64_t addrTemp;
   MOZ_ALWAYS_TRUE(popConst(&addrTemp));
   uint64_t addr = addrTemp;
 
-  uint32_t offsetGuardLimit = GetMaxOffsetGuardLimit(
+  uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
       codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
-  uint64_t ea = addr + access->offset64();
-  bool overflow = ea < addr;
-  uint64_t limit = codeMeta_.memories[access->memoryIndex()].initialLength64() +
-                   offsetGuardLimit;
+  mozilla::CheckedUint64 ea(addr);
+  ea += access->offset64();
+  mozilla::CheckedUint64 limit(
+      codeMeta_.memories[access->memoryIndex()].initialLength64());
+  limit += offsetGuardLimit;
 
-  if (!overflow) {
-    check->omitBoundsCheck = ea < limit;
-    check->omitAlignmentCheck = (ea & (access->byteSize() - 1)) == 0;
+  if (ea.isValid() && limit.isValid()) {
+    check->omitBoundsCheck = ea.value() < limit.value();
+    check->omitAlignmentCheck = (ea.value() & (access->byteSize() - 1)) == 0;
 
     // Fold the offset into the pointer if we can, as this is always
     // beneficial.
-    addr = uint64_t(ea);
+    addr = ea.value();
     access->clearOffset();
   }
 
@@ -366,7 +379,7 @@ template <typename RegIndexType>
 void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
                                        AccessCheck* check, RegPtr instance,
                                        RegIndexType ptr) {
-  uint32_t offsetGuardLimit = GetMaxOffsetGuardLimit(
+  uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
       codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
   // Fold offset if necessary for further computations.
@@ -435,7 +448,7 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
 
 template <typename RegIndexType>
 void BaseCompiler::computeEffectiveAddress(MemoryAccessDesc* access) {
-  if (access->offset()) {
+  if (access->offset64()) {
     Label ok;
     RegIndexType ptr = pop<RegIndexType>();
     branchAddNoOverflow(access->offset64(), ptr, &ok);
@@ -526,7 +539,8 @@ RegPtr BaseCompiler::maybeLoadInstanceForAccess(const MemoryAccessDesc* access,
 void BaseCompiler::executeLoad(MemoryAccessDesc* access, AccessCheck* check,
                                RegPtr instance, RegPtr memoryBase, RegI32 ptr,
                                AnyReg dest, RegI32 temp) {
-  // Emit the load.  At this point, 64-bit offsets will have been resolved.
+  // Emit the load. At this point, 64-bit offsets will have been folded away by
+  // prepareMemoryAccess.
 #if defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
   Operand srcAddr(memoryBase, ptr, TimesOne, access->offset());
@@ -659,7 +673,8 @@ void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
 void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
                                 RegPtr instance, RegPtr memoryBase, RegI32 ptr,
                                 AnyReg src, RegI32 temp) {
-  // Emit the store.  At this point, 64-bit offsets will have been resolved.
+  // Emit the store. At this point, 64-bit offsets will have been folded away by
+  // prepareMemoryAccess.
 #if defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
   Operand dstAddr(memoryBase, ptr, TimesOne, access->offset());
@@ -1031,7 +1046,8 @@ Address BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
       ToRegister(ptr));
 #endif
 
-  // At this point, 64-bit offsets will have been resolved.
+  // At this point, 64-bit offsets will have been folded away by
+  // prepareMemoryAccess.
   return Address(ToRegister(ptr), access->offset());
 }
 
