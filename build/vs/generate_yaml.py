@@ -47,7 +47,7 @@ if __name__ == "__main__":
                 and not any(e in payload["fileName"] for e in args.exclude)
             ]
             reduced.append(filtered)
-    with open(args.output, "w") as out:
+    with open(args.output, "w", newline="\n") as out:
         print("# Generated with:", file=out)
         print(
             "# ./mach python --virtualenv build build/vs/generate_yaml.py \\", file=out
