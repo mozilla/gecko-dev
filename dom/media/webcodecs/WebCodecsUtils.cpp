@@ -171,6 +171,12 @@ Result<RefPtr<MediaByteBuffer>, nsresult> GetExtraDataFromArrayBuffer(
   return data->Length() > 0 ? data : nullptr;
 }
 
+bool IsArrayBufferEmpty(
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer) {
+  return ProcessTypedArraysFixed(
+      aBuffer, [&](const Span<uint8_t>& aData) { return aData.IsEmpty(); });
+}
+
 bool CopyExtradataToDescription(
     JSContext* aCx, Span<const uint8_t>& aSrc,
     OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest) {
