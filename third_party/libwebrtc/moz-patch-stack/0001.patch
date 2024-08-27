@@ -72,7 +72,7 @@ index 3a790fd680..606a49f9b7 100644
      "../../api/video:video_bitrate_allocator",
      "../../api/video:video_codec_constants",
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index cef37a9300..21d46023f6 100644
+index b9a9ffe9a9..3bcb4f66f8 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -29,13 +29,11 @@

@@ -59,6 +59,8 @@ namespace {
 
 // Encoder configuration parameters
 constexpr int kQpMin = 10;
+constexpr int kAv1ScreenshareMinimumQindex =
+    40;  // Min qindex corresponding to kQpMin.
 constexpr int kUsageProfile = AOM_USAGE_REALTIME;
 constexpr int kMinQindex = 145;  // Min qindex threshold for QP scaling.
 constexpr int kMaxQindex = 205;  // Max qindex threshold for QP scaling.
@@ -866,6 +868,8 @@ VideoEncoder::EncoderInfo LibaomAv1Encoder::GetEncoderInfo() const {
     info.resolution_bitrate_limits =
         encoder_info_override_.resolution_bitrate_limits();
   }
+
+  info.minimum_qp = kAv1ScreenshareMinimumQindex;
   return info;
 }
 
