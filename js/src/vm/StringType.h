@@ -805,8 +805,7 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   bool hasStringBuffer() const {
     MOZ_ASSERT_IF(flags() & HAS_STRING_BUFFER_BIT,
-                  isLinear() && !isInline() && !isDependent() &&
-                      !isExternal() && !isExtensible());
+                  isLinear() && !isInline() && !isDependent() && !isExternal());
     return flags() & HAS_STRING_BUFFER_BIT;
   }
 

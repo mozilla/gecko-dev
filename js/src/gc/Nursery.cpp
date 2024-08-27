@@ -1917,8 +1917,8 @@ void js::Nursery::sweepStringsWithBuffer() {
 
   MOZ_ASSERT(stringBuffersToReleaseAfterMinorGC_.empty());
 
-  stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
-    auto [str, buffer] = entry;
+  auto sweep = [&](JSLinearString* str,
+                   mozilla::StringBuffer* buffer) -> JSLinearString* {
     MOZ_ASSERT(inCollectedRegion(str));
 
     if (!IsForwarded(str)) {
@@ -1928,7 +1928,7 @@ void js::Nursery::sweepStringsWithBuffer() {
         // Release on the main thread on OOM.
         buffer->Release();
       }
-      return true;
+      return nullptr;
     }
 
     JSLinearString* dst = Forwarded(str);
@@ -1939,12 +1939,32 @@ void js::Nursery::sweepStringsWithBuffer() {
         // Release on the main thread on OOM.
         buffer->Release();
       }
-      return true;
+      return nullptr;
     }
 
-    entry.first = dst;
-    return false;
+    return dst;
+  };
+
+  stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
+    if (JSLinearString* dst = sweep(entry.first, entry.second)) {
+      entry.first = dst;
+      return false;
+    }
+    return true;
   });
+
+  AutoEnterOOMUnsafeRegion oomUnsafe;
+
+  ExtensibleStringBuffers buffers(std::move(extensibleStringBuffers_));
+  MOZ_ASSERT(extensibleStringBuffers_.empty());
+
+  for (ExtensibleStringBuffers::Enum e(buffers); !e.empty(); e.popFront()) {
+    if (JSLinearString* dst = sweep(e.front().key(), e.front().value())) {
+      if (!extensibleStringBuffers_.putNew(dst, e.front().value())) {
+        oomUnsafe.crash("sweepStringsWithBuffer");
+      }
+    }
+  }
 }
 
 void js::Nursery::sweep() {

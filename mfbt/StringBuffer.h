@@ -95,7 +95,7 @@ class StringBuffer {
    * for Alloc. Adds +1 to aLength for the null-terminator.
    */
   template <typename CharT>
-  static bool IsValidLength(size_t aLength) {
+  static constexpr bool IsValidLength(size_t aLength) {
     auto checkedSize =
         (CheckedUint32(aLength) + 1) * sizeof(CharT) + sizeof(StringBuffer);
     return checkedSize.isValid();

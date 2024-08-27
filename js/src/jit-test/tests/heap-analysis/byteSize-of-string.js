@@ -277,6 +277,7 @@ assertEq(byteSize(ext16),                                               s(Nurser
 ext16 = copyString(ext16);
 rope16a = ext16 + fragment16;
 minorgc();
+finishBackgroundFree();
 assertEq(byteSize(rope16a),                                             s(RN, RN));
 rope16a.match(/x/, function() { assertEq(true, false); });
 assertEq(byteSize(rope16a),                                             s(XN + 128 * 1024, XN + 128 * 1024));

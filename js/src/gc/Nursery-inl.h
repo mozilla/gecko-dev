@@ -37,6 +37,18 @@ inline bool js::Nursery::addStringBuffer(JSLinearString* s) {
   return stringBuffers_.emplaceBack(s, s->stringBuffer());
 }
 
+inline bool js::Nursery::addExtensibleStringBuffer(
+    JSLinearString* s, mozilla::StringBuffer* buffer) {
+  MOZ_ASSERT(IsInsideNursery(s));
+  MOZ_ASSERT(isEnabled());
+  return extensibleStringBuffers_.putNew(s, buffer);
+}
+
+inline void js::Nursery::removeExtensibleStringBuffer(JSLinearString* s) {
+  MOZ_ASSERT(gc::IsInsideNursery(s));
+  extensibleStringBuffers_.remove(s);
+}
+
 inline bool js::Nursery::shouldTenure(gc::Cell* cell) {
   MOZ_ASSERT(semispaceEnabled());
   MOZ_ASSERT(inCollectedRegion(cell));
