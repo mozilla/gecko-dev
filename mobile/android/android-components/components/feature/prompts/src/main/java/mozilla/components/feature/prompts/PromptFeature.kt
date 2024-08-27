@@ -608,7 +608,8 @@ class PromptFeature private constructor(
     }
 
     @Suppress("NestedBlockDepth")
-    private fun processPromptRequest(
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal fun processPromptRequest(
         promptRequest: PromptRequest,
         session: SessionState,
     ) {
