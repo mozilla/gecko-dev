@@ -55,7 +55,7 @@ fun MicrosurveyFooter(
         Spacer(modifier = Modifier.height(12.dp))
 
         LinkText(
-            text = stringResource(id = R.string.about_privacy_notice),
+            text = stringResource(id = R.string.micro_survey_privacy_notice_2),
             linkTextStates = listOf(
                 LinkTextState(
                     text = stringResource(id = R.string.micro_survey_privacy_notice_2),
