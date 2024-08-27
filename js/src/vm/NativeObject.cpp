@@ -1934,7 +1934,7 @@ static bool DefineNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
     // Indexed properties of typed arrays are special.
     if (mozilla::Maybe<uint64_t> index = ToTypedArrayIndex(id)) {
       Rooted<TypedArrayObject*> tobj(cx, &obj->as<TypedArrayObject>());
-      return SetTypedArrayElementOutOfBounds(cx, tobj, *index, v, result);
+      return SetTypedArrayElement(cx, tobj, *index, v, result);
     }
   } else if (obj->is<ArgumentsObject>()) {
     // If this method is called with either |length| or |@@iterator|, the

@@ -301,11 +301,6 @@ bool SetTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
                           uint64_t index, HandleValue v,
                           ObjectOpResult& result);
 
-bool SetTypedArrayElementOutOfBounds(JSContext* cx,
-                                     Handle<TypedArrayObject*> obj,
-                                     uint64_t index, HandleValue v,
-                                     ObjectOpResult& result);
-
 /*
  * Implements [[DefineOwnProperty]] for TypedArrays when the property
  * key is a TypedArray index.

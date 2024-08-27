@@ -1142,9 +1142,6 @@ template <typename NativeType>
 /* static */ bool TypedArrayObjectTemplate<NativeType>::setElement(
     JSContext* cx, Handle<TypedArrayObject*> obj, uint64_t index, HandleValue v,
     ObjectOpResult& result) {
-  MOZ_ASSERT(!obj->hasDetachedBuffer());
-  MOZ_ASSERT(index < obj->length().valueOr(0));
-
   // Steps 1-2.
   NativeType nativeValue;
   if (!convertValue(cx, v, &nativeValue)) {
@@ -3815,37 +3812,6 @@ bool js::SetTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
   }
 
   MOZ_CRASH("Unsupported TypedArray type");
-}
-
-bool js::SetTypedArrayElementOutOfBounds(JSContext* cx,
-                                         Handle<TypedArrayObject*> obj,
-                                         uint64_t index, HandleValue v,
-                                         ObjectOpResult& result) {
-  // This method is only called for non-existent properties, which means any
-  // absent indexed properties must be out of range. Unless the typed array is
-  // backed by a growable SharedArrayBuffer, in which case another thread may
-  // have grown the buffer.
-  MOZ_ASSERT(index >= obj->length().valueOr(0) ||
-             (obj->isSharedMemory() && obj->bufferShared()->isGrowable()));
-
-  // The following steps refer to 10.4.5.16 TypedArraySetElement.
-
-  // Steps 1-2.
-  RootedValue converted(cx);
-  if (!obj->convertValue(cx, v, &converted)) {
-    return false;
-  }
-
-  // Step 3.
-  if (index < obj->length().valueOr(0)) {
-    // Side-effects when converting the value may have put the index in-bounds
-    // when the backing buffer is resizable.
-    MOZ_ASSERT(obj->hasResizableBuffer());
-    return SetTypedArrayElement(cx, obj, index, converted, result);
-  }
-
-  // Step 4.
-  return result.succeed();
 }
 
 // ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
