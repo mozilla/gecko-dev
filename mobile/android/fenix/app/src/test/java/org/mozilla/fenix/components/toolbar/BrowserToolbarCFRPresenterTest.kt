@@ -552,7 +552,7 @@ class BrowserToolbarCFRPresenterTest {
             browserStore = browserStore,
             settings = settings,
             toolbar = toolbar,
-            sessionId = sessionId,
+            customTabId = sessionId,
             isPrivate = isPrivate,
             onShoppingCfrActionClicked = {},
             onShoppingCfrDisplayed = {},

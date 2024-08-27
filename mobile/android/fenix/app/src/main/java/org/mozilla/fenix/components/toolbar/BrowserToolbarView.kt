@@ -174,21 +174,20 @@ class BrowserToolbarView(
 
             toolbarIntegration = if (customTabSession != null) {
                 CustomTabToolbarIntegration(
-                    this,
-                    view,
-                    view as ScrollableToolbar,
-                    menuToolbar,
-                    customTabSession.id,
+                    context = this,
+                    toolbar = view,
+                    scrollableToolbar = view as ScrollableToolbar,
+                    toolbarMenu = menuToolbar,
+                    customTabId = customTabSession.id,
                     isPrivate = customTabSession.content.private,
                 )
             } else {
                 DefaultToolbarIntegration(
-                    this,
-                    view,
-                    layout as ScrollableToolbar,
-                    menuToolbar,
-                    lifecycleOwner,
-                    sessionId = null,
+                    context = this,
+                    toolbar = view,
+                    scrollableToolbar = layout as ScrollableToolbar,
+                    toolbarMenu = menuToolbar,
+                    lifecycleOwner = lifecycleOwner,
                     isPrivate = components.core.store.state.selectedTab?.content?.private ?: false,
                     interactor = interactor,
                 )

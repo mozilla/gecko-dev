@@ -38,7 +38,7 @@ abstract class ToolbarIntegration(
     toolbar: BrowserToolbar,
     scrollableToolbar: ScrollableToolbar,
     toolbarMenu: ToolbarMenu,
-    sessionId: String?,
+    customTabId: String?,
     isPrivate: Boolean,
     renderStyle: ToolbarFeature.RenderStyle,
 ) : LifecycleAwareFeature {
@@ -47,7 +47,7 @@ abstract class ToolbarIntegration(
     private val toolbarPresenter: ToolbarPresenter = ToolbarPresenter(
         toolbar = toolbar,
         store = store,
-        customTabId = sessionId,
+        customTabId = customTabId,
         shouldDisplaySearchTerms = true,
         urlRenderConfiguration = ToolbarFeature.UrlRenderConfiguration(
             context.components.publicSuffixList,
@@ -57,9 +57,9 @@ abstract class ToolbarIntegration(
     )
 
     private val menuPresenter =
-        MenuPresenter(toolbar, context.components.core.store, sessionId)
+        MenuPresenter(toolbar, context.components.core.store, customTabId)
 
-    private val toolbarController = ToolbarBehaviorController(scrollableToolbar, store, sessionId)
+    private val toolbarController = ToolbarBehaviorController(scrollableToolbar, store, customTabId)
 
     init {
         toolbar.display.menuBuilder = toolbarMenu.menuBuilder
@@ -90,7 +90,7 @@ class DefaultToolbarIntegration(
     scrollableToolbar: ScrollableToolbar,
     toolbarMenu: ToolbarMenu,
     private val lifecycleOwner: LifecycleOwner,
-    sessionId: String? = null,
+    customTabId: String? = null,
     private val isPrivate: Boolean,
     private val interactor: BrowserToolbarInteractor,
 ) : ToolbarIntegration(
@@ -98,7 +98,7 @@ class DefaultToolbarIntegration(
     toolbar = toolbar,
     scrollableToolbar = scrollableToolbar,
     toolbarMenu = toolbarMenu,
-    sessionId = sessionId,
+    customTabId = customTabId,
     isPrivate = isPrivate,
     renderStyle = ToolbarFeature.RenderStyle.UncoloredUrl,
 ) {
@@ -110,7 +110,7 @@ class DefaultToolbarIntegration(
         settings = context.settings(),
         toolbar = toolbar,
         isPrivate = isPrivate,
-        sessionId = sessionId,
+        customTabId = customTabId,
         onShoppingCfrActionClicked = interactor::onShoppingCfrActionClicked,
         onShoppingCfrDisplayed = interactor::onShoppingCfrDisplayed,
     )

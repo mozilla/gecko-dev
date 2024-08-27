@@ -16,14 +16,14 @@ class CustomTabToolbarIntegration(
     toolbar: BrowserToolbar,
     scrollableToolbar: ScrollableToolbar,
     toolbarMenu: ToolbarMenu,
-    sessionId: String,
+    customTabId: String,
     isPrivate: Boolean,
 ) : ToolbarIntegration(
     context = context,
     toolbar = toolbar,
     scrollableToolbar = scrollableToolbar,
     toolbarMenu = toolbarMenu,
-    sessionId = sessionId,
+    customTabId = customTabId,
     isPrivate = isPrivate,
     renderStyle = ToolbarFeature.RenderStyle.RegistrableDomain,
 )

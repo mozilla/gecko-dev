@@ -80,7 +80,7 @@ internal var CFR_MINIMUM_NUMBER_OPENED_TABS = 5
  * @param settings used to read and write persistent user settings
  * @param toolbar will serve as anchor for the CFRs
  * @param isPrivate Whether or not the session is private.
- * @param sessionId optional custom tab id used to identify the custom tab in which to show a CFR.
+ * @param customTabId Optional custom tab id used to identify the custom tab in which to show a CFR.
  * @param onShoppingCfrActionClicked Triggered when the user taps on the shopping CFR action.
  * @param onShoppingCfrDisplayed Triggered when CFR is displayed to the user.
  * @param shoppingExperienceFeature Used to determine if [ShoppingExperienceFeature] is enabled.
@@ -92,7 +92,7 @@ class BrowserToolbarCFRPresenter(
     private val settings: Settings,
     private val toolbar: BrowserToolbar,
     private val isPrivate: Boolean,
-    private val sessionId: String? = null,
+    private val customTabId: String? = null,
     private val onShoppingCfrActionClicked: () -> Unit,
     private val onShoppingCfrDisplayed: () -> Unit,
     private val shoppingExperienceFeature: ShoppingExperienceFeature = DefaultShoppingExperienceFeature(),
@@ -111,7 +111,7 @@ class BrowserToolbarCFRPresenter(
         when (getCFRToShow()) {
             ToolbarCFR.TCP -> {
                 scope = browserStore.flowScoped { flow ->
-                    flow.mapNotNull { it.findCustomTabOrSelectedTab(sessionId)?.content?.progress }
+                    flow.mapNotNull { it.findCustomTabOrSelectedTab(customTabId)?.content?.progress }
                         // The "transformWhile" below ensures that the 100% progress is only collected once.
                         .transformWhile { progress ->
                             emit(progress)
@@ -124,7 +124,7 @@ class BrowserToolbarCFRPresenter(
             }
             ToolbarCFR.COOKIE_BANNERS -> {
                 scope = browserStore.flowScoped { flow ->
-                    flow.mapNotNull { it.findCustomTabOrSelectedTab(sessionId) }
+                    flow.mapNotNull { it.findCustomTabOrSelectedTab(customTabId) }
                         .ifAnyChanged { tab ->
                             arrayOf(
                                 tab.cookieBanner,
@@ -161,7 +161,7 @@ class BrowserToolbarCFRPresenter(
             ToolbarCFR.ERASE -> {
                 scope = browserStore.flowScoped { flow ->
                     flow
-                        .mapNotNull { it.findCustomTabOrSelectedTab(sessionId) }
+                        .mapNotNull { it.findCustomTabOrSelectedTab(customTabId) }
                         .filter { it.content.private }
                         .map { it.content.progress }
                         // The "transformWhile" below ensures that the 100% progress is only collected once.
