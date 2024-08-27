@@ -69,6 +69,7 @@ devtools.jar:
     skin/badge.css (themes/badge.css)
     skin/inspector.css (themes/inspector.css)
     skin/inspector-shared.css (themes/inspector-shared.css)
+    skin/inspector-swatches.css (themes/inspector-swatches.css)
     skin/images/profiler-stopwatch.svg (themes/images/profiler-stopwatch.svg)
     skin/images/debugging-addons.svg (themes/images/debugging-addons.svg)
     skin/images/debugging-tabs.svg (themes/images/debugging-tabs.svg)

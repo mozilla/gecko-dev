@@ -352,12 +352,18 @@ TooltipsOverlay.prototype = {
         registeredProperty,
         startingStyleVariable,
         variableComputed,
+        outputParserOptions,
+        cssProperties,
+        value,
       } = nodeInfo.value;
       await this._setVariablePreviewTooltip({
         topSectionText: variable,
         computed: variableComputed,
         registeredProperty,
         startingStyle: startingStyleVariable,
+        outputParserOptions,
+        cssProperties,
+        variableName: value,
       });
 
       this.sendOpenScalarToTelemetry(type);

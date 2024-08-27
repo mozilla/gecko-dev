@@ -1005,19 +1005,26 @@ async function assertTooltipHiddenOnMouseOut(tooltip, target) {
  * @param {String} ruleSelector
  * @param {String} propertyName
  * @param {Object} tooltipExpected
- * @param {String} tooltipExpected.header: The text that is displayed in the top section
+ * @param {String} tooltipExpected.header: The HTML for the top section
  *        (might be the only section when the variable is not a registered property and
- *        there is no starting-style).
- * @param {String} tooltipExpected.computed: The text that is displayed in the computed value section.
+ *        there is no starting-style, nor computed value).
+ * @param {Array<String>} tooltipExpected.headerClasses: Classes applied on the header element
+ *        (no need to include `variable-value` which is always added).
+ * @param {String} tooltipExpected.computed: The HTML for the computed value section.
+ * @param {Array<String>} tooltipExpected.computedClasses: Classes applied on the computed value element.
  * @param {Integer} tooltipExpected.index: The index in the property value for the variable
  *        element we want to check. Defaults to 0 so we can quickly check values when only
  *        one variable is used.
  * @param {Boolean} tooltipExpected.isMatched: Is the element matched or unmatched, defaults
  *        to true.
- * @param {String} tooltipExpected.startingStyle: The text that is displayed in the starting-style
- *        section. Pass undefined if the tooltip isn't supposed to have a `@starting-style` section.
- * @param {Array<String>} tooltipExpected.registeredProperty: Array of the registered property
- *        fields (e.g. [`syntax:"<color>"`, `inherits:true`, `initial-value:aqua`]).
+ * @param {String} tooltipExpected.startingStyle: The HTML for the starting-style section.
+ *        Pass undefined if the tooltip isn't supposed to have a `@starting-style` section.
+ * @param {Array<String>} tooltipExpected.startingStyleClasses: Classes applied on the
+ *        starting-style value element.
+ * @param {Object} tooltipExpected.registeredProperty: Object whose properties should match
+ *        the displayed registered property fields, e.g:
+ *        {syntax:`"&lt;color&gt;"`, inherits:"true", "initial-value": "10px"}
+ *        The properties values are the HTML of the dd elements.
  *        Pass undefined if the tooltip isn't supposed to have a @property section.
  */
 async function assertVariableTooltipForProperty(
@@ -1026,11 +1033,14 @@ async function assertVariableTooltipForProperty(
   propertyName,
   {
     computed,
+    computedClasses = ["theme-fg-color1"],
     header,
+    headerClasses = ["theme-fg-color1"],
     index = 0,
     isMatched = true,
     registeredProperty,
     startingStyle,
+    startingStyleClasses = ["theme-fg-color1"],
   }
 ) {
   // retrieve tooltip target
@@ -1067,9 +1077,14 @@ async function assertVariableTooltipForProperty(
     ".registered-property dl"
   );
   is(
-    valueEl?.textContent,
+    valueEl?.innerHTML,
     header,
     `CSS variable #${index} preview tooltip has expected header text for ${propertyName} in ${ruleSelector}`
+  );
+  Assert.deepEqual(
+    [...valueEl.classList],
+    ["variable-value", ...headerClasses],
+    `CSS variable #${index} preview tooltip has expected classes for ${propertyName} in ${ruleSelector}`
   );
 
   if (typeof computed !== "string") {
@@ -1080,9 +1095,14 @@ async function assertVariableTooltipForProperty(
     );
   } else {
     is(
-      computedValueEl?.innerText,
+      computedValueEl?.innerHTML,
       computed,
       `CSS variable #${index} preview tooltip has expected computed value section for ${propertyName} in ${ruleSelector}`
+    );
+    Assert.deepEqual(
+      [...computedValueEl.classList],
+      computedClasses,
+      `CSS variable #${index} preview tooltip has expected classes on computed value for ${propertyName} in ${ruleSelector}`
     );
   }
 
@@ -1093,11 +1113,28 @@ async function assertVariableTooltipForProperty(
       `CSS variable #${index} preview tooltip doesn't have registered property section for ${propertyName} in ${ruleSelector}`
     );
   } else {
+    const dts = registeredPropertyEl.querySelectorAll("dt");
+    const registeredPropertyEntries = Object.entries(registeredProperty);
     is(
-      registeredPropertyEl?.innerText,
-      registeredProperty.join("\n"),
-      `CSS variable #${index} preview tooltip has expected registered property section for ${propertyName} in ${ruleSelector}`
+      dts.length,
+      registeredPropertyEntries.length,
+      `CSS variable #${index} preview tooltip has the expected number of element in the registered property section for ${propertyName} in ${ruleSelector}`
     );
+    for (let i = 0; i < registeredPropertyEntries.length; i++) {
+      const [label, value] = registeredPropertyEntries[i];
+      const dt = dts[i];
+      const dd = dt.nextElementSibling;
+      is(
+        dt.innerText,
+        `${label}:`,
+        `CSS variable #${index} preview tooltip has expected ${label} registered property element for ${propertyName} in ${ruleSelector}`
+      );
+      is(
+        dd.innerHTML,
+        value,
+        `CSS variable #${index} preview tooltip has expected HTML for ${label} registered property element for ${propertyName} in ${ruleSelector}`
+      );
+    }
   }
 
   if (!startingStyle) {
@@ -1108,9 +1145,14 @@ async function assertVariableTooltipForProperty(
     );
   } else {
     is(
-      startingStyleEl?.innerText,
+      startingStyleEl?.innerHTML,
       startingStyle,
       `CSS variable #${index} preview tooltip has expected starting-style section for ${propertyName} in ${ruleSelector}`
+    );
+    Assert.deepEqual(
+      [...startingStyleEl.classList],
+      startingStyleClasses,
+      `CSS variable #${index} preview tooltip has expected classes on starting-style value for ${propertyName} in ${ruleSelector}`
     );
   }
 

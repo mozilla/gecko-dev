@@ -581,7 +581,7 @@ TextPropertyEditor.prototype = {
     }
 
     const outputParser = this.ruleView._outputParser;
-    const parserOptions = {
+    this.outputParserOptions = {
       angleClass: "ruleview-angle",
       angleSwatchClass: SHARED_SWATCH_CLASS + " " + ANGLE_SWATCH_CLASS,
       bezierClass: "ruleview-bezier",
@@ -615,9 +615,13 @@ TextPropertyEditor.prototype = {
     };
 
     if (this.rule.darkColorScheme !== undefined) {
-      parserOptions.isDarkColorScheme = this.rule.darkColorScheme;
+      this.outputParserOptions.isDarkColorScheme = this.rule.darkColorScheme;
     }
-    const frag = outputParser.parseCssProperty(name, val, parserOptions);
+    const frag = outputParser.parseCssProperty(
+      name,
+      val,
+      this.outputParserOptions
+    );
 
     // Save the initial value as the last committed value,
     // for restoring after pressing escape.
@@ -755,7 +759,7 @@ TextPropertyEditor.prototype = {
     const span = this.valueSpan.querySelector("." + FILTER_SWATCH_CLASS);
     if (this.ruleEditor.isEditable) {
       if (span) {
-        parserOptions.filterSwatch = true;
+        this.outputParserOptions.filterSwatch = true;
 
         this.ruleView.tooltips.getTooltip("filterEditor").addSwatch(
           span,
@@ -766,7 +770,7 @@ TextPropertyEditor.prototype = {
             onRevert: this._onSwatchRevert,
           },
           outputParser,
-          parserOptions
+          this.outputParserOptions
         );
         const title = l10n("rule.filterSwatch.tooltip");
         span.setAttribute("title", title);

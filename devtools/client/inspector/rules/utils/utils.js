@@ -173,6 +173,8 @@ function getNodeInfo(node, elementStyle) {
         syntax: node.dataset.registeredPropertySyntax,
         inherits: node.dataset.registeredPropertyInherits,
       },
+      outputParserOptions: declaration.editor.outputParserOptions,
+      cssProperties: declaration.editor.ruleView.cssProperties,
     };
   } else if (
     declaration &&
