@@ -7,12 +7,17 @@
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 const OutputParser = require("resource://devtools/client/shared/output-parser.js");
-loader.lazyGetter(this, "L10N_EMPTY", function () {
+loader.lazyGetter(this, "L10N", function () {
   const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
-  const L10N = new LocalizationHelper(
+  return new LocalizationHelper(
     "devtools/shared/locales/styleinspector.properties"
   );
+});
+loader.lazyGetter(this, "L10N_EMPTY", function () {
   return L10N.getStr("rule.variableEmpty");
+});
+loader.lazyGetter(this, "L10N_COMPUTED_VALUE", function () {
+  return L10N.getStr("rule.variableComputedValue");
 });
 
 /**
@@ -86,7 +91,7 @@ function setVariableTooltip(
     section.classList.add("computed", "variable-tooltip-section");
 
     const h2 = doc.createElementNS(XHTML_NS, "h2");
-    h2.append(doc.createTextNode("computed value"));
+    h2.append(doc.createTextNode(L10N_COMPUTED_VALUE));
     const computedValueEl = doc.createElementNS(XHTML_NS, "div");
     appendValue(doc, computedValueEl, computed, parse);
     section.append(h2, computedValueEl);
