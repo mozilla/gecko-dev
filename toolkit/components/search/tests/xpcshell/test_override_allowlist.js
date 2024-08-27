@@ -226,7 +226,13 @@ let baseExtension;
 let remoteSettingsStub;
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "originalDefault" },
+    {
+      identifier: "simple",
+      base: { name: kOverriddenEngineName },
+    },
+  ]);
   await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 

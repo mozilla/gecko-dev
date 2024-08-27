@@ -8,7 +8,26 @@
 "use strict";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines");
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "basic",
+      base: {
+        name: "enterprise-a",
+      },
+    },
+    {
+      identifier: "suffix",
+      base: {
+        name: "enterprise-b",
+      },
+      variants: [
+        {
+          environment: { allRegionsAndLocales: true },
+          telemetrySuffix: "b",
+        },
+      ],
+    },
+  ]);
 
   const result = await Services.search.init();
   Assert.ok(
@@ -17,9 +36,6 @@ add_setup(async function () {
   );
 
   useHttpServer();
-  await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine.xml`,
-  });
 });
 
 function checkIdentifier(engineName, expectedIdentifier, expectedTelemetryId) {
@@ -44,18 +60,31 @@ function checkIdentifier(engineName, expectedIdentifier, expectedTelemetryId) {
   );
 }
 
-add_task(async function test_from_profile() {
-  // An engine loaded from the profile directory won't have an identifier,
-  // because it's not built-in.
+add_task(async function test_appProvided_basic() {
+  checkIdentifier("enterprise-a", "basic", "basic");
+});
+
+add_task(async function test_appProvided_suffix() {
+  checkIdentifier("enterprise-b", "suffix-b", "suffix-b");
+});
+
+add_task(async function test_opensearch() {
+  await SearchTestUtils.installOpenSearchEngine({
+    url: `${gDataUrl}engine.xml`,
+  });
+
+  // An OpenSearch engine won't have a dedicated identifier because it's not
+  // built-in.
   checkIdentifier(kTestEngineName, null, `other-${kTestEngineName}`);
 });
 
-add_task(async function test_from_telemetry_id() {
-  checkIdentifier("basic", "basic-telemetry", "basic-telemetry");
-});
+add_task(async function test_webExtension() {
+  await SearchTestUtils.installSearchExtension({
+    id: "enterprise-c",
+    name: "Enterprise C",
+  });
 
-add_task(async function test_from_webextension_id() {
-  // If not specified, the telemetry Id is derived from the WebExtension prefix,
-  // it should not use the WebExtension display name.
-  checkIdentifier("Simple Engine", "simple", "simple");
+  // A WebExtension engine won't have a dedicated identifier because it's not
+  // built-in.
+  checkIdentifier("Enterprise C", null, `other-Enterprise C`);
 });

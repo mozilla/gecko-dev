@@ -32,7 +32,13 @@ let extension;
 let extensionInfo;
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "originalDefault" },
+    {
+      identifier: "simple",
+      base: { name: ENGINE_NAME },
+    },
+  ]);
   await SearchTestUtils.initXPCShellAddonManager();
   await Services.search.init();
 

@@ -11,7 +11,6 @@
 let CONFIG = [
   {
     identifier: "testEngine",
-    recordType: "engine",
     base: {
       aliases: ["testEngine1", "testEngine2"],
       charset: "EUC-JP",
@@ -50,11 +49,9 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
   },
   {
     identifier: "testOtherValuesEngine",
-    recordType: "engine",
     base: {
       classification: "unknown",
       name: "testOtherValuesEngine name",
@@ -65,7 +62,6 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
   },
   {
     identifier: "override",
@@ -95,13 +91,8 @@ let CONFIG = [
     ],
   },
   {
-    recordType: "defaultEngines",
     globalDefault: "engine_no_initial_icon",
     specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -119,7 +110,7 @@ const TEST_CONFIG_OVERRIDE = [
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines", null, CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
@@ -236,11 +227,10 @@ add_task(async function test_engine_remote_override() {
   Assert.equal(engine.clickUrl, null, "Should not have a click URL");
 
   // Now apply and test the overrides.
-  const overrides = await RemoteSettings(SearchUtils.SETTINGS_OVERRIDES_KEY);
-  sinon.stub(overrides, "get").returns(TEST_CONFIG_OVERRIDE);
-
-  await Services.search.wrappedJSObject.reset();
-  await Services.search.init();
+  await SearchTestUtils.updateRemoteSettingsConfig(
+    CONFIG,
+    TEST_CONFIG_OVERRIDE
+  );
 
   engine = Services.search.getEngineById("override");
   Assert.ok(engine, "Should have found the override engine");

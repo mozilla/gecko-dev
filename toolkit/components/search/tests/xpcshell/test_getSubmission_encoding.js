@@ -3,16 +3,17 @@
 
 "use strict";
 
-const prefix = "https://example.com/?sourceId=Mozilla-search&search=";
+const prefix = "https://www.example.com/search?q=";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "utf8", base: { charset: "UTF-8" } },
+    { identifier: "windows1252", base: { charset: "windows-1252" } },
+  ]);
   await Services.search.init();
 });
 
 function testEncode(engine, charset, query, expected) {
-  engine.wrappedJSObject._queryCharset = charset;
-
   Assert.equal(
     engine.getSubmission(query).uri.spec,
     prefix + expected,
@@ -20,9 +21,12 @@ function testEncode(engine, charset, query, expected) {
   );
 }
 
-add_task(async function test_getSubmission_encoding() {
-  let engine = await Services.search.getEngineByName("Simple Engine");
-
+add_task(async function test_getSubmission_utf8() {
+  let engine = Services.search.getEngineById("utf8");
   testEncode(engine, "UTF-8", "caff\u00E8", "caff%C3%A8");
+});
+
+add_task(async function test_getSubmission_windows1252() {
+  let engine = Services.search.getEngineById("windows1252");
   testEncode(engine, "windows-1252", "caff\u00E8", "caff%E8");
 });

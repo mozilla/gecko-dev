@@ -27,7 +27,6 @@ support-files = [
   "data/search-obsolete-langpack.json",
   "data/searchSuggestions.sjs",
   "data1/search-config-v2.json",
-  "simple-engines/search-config-v2.json",
 ]
 
 ["test_SearchStaticData.js"]

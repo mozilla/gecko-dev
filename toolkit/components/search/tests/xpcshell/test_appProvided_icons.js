@@ -9,18 +9,6 @@
 "use strict";
 
 // A skeleton configuration that gets filled in from TESTS during `add_setup`.
-let CONFIG = [
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine_no_icon",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
-];
-
 let TESTS = [
   {
     engineId: "engine_no_icon",
@@ -104,12 +92,12 @@ add_setup(async function () {
 
   await db.clear();
 
+  let partialConfig = [];
+
   for (let test of TESTS) {
-    CONFIG.push({
+    partialConfig.push({
       identifier: test.engineId,
-      recordType: "engine",
       base: {
-        name: test.engineId + " name",
         urls: {
           search: {
             base: "https://example.com/" + test.engineId,
@@ -117,7 +105,6 @@ add_setup(async function () {
           },
         },
       },
-      variants: [{ environment: { allRegionsAndLocales: true } }],
     });
 
     if ("icons" in test) {
@@ -127,7 +114,7 @@ add_setup(async function () {
     }
   }
 
-  await SearchTestUtils.useTestEngines("simple-engines", null, CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(partialConfig);
   await Services.search.init();
 });
 
@@ -135,7 +122,7 @@ for (let test of TESTS) {
   add_task(async function () {
     info("Testing engine: " + test.engineId);
 
-    let engine = Services.search.getEngineByName(test.engineId + " name");
+    let engine = Services.search.getEngineById(test.engineId);
     if (test.expectedIcon) {
       let engineIconURL = await engine.getIconURL(16);
       Assert.notEqual(

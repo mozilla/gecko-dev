@@ -12,9 +12,7 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 let CONFIG = [
   {
     identifier: "engine_no_initial_icon",
-    recordType: "engine",
     base: {
-      name: "engine_no_initial_icon name",
       urls: {
         search: {
           base: "https://example.com/1",
@@ -22,13 +20,10 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
   },
   {
     identifier: "engine_icon_updates",
-    recordType: "engine",
     base: {
-      name: "engine_icon_updates name",
       urls: {
         search: {
           base: "https://example.com/2",
@@ -36,13 +31,10 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
   },
   {
     identifier: "engine_icon_not_local",
-    recordType: "engine",
     base: {
-      name: "engine_icon_not_local name",
       urls: {
         search: {
           base: "https://example.com/3",
@@ -50,13 +42,10 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
   },
   {
     identifier: "engine_icon_out_of_date",
-    recordType: "engine",
     base: {
-      name: "engine_icon_out_of_date name",
       urls: {
         search: {
           base: "https://example.com/4",
@@ -64,16 +53,6 @@ let CONFIG = [
         },
       },
     },
-    variants: [{ environment: { allRegionsAndLocales: true } }],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine_no_initial_icon",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -91,8 +70,8 @@ async function assertIconMatches(actualIconData, expectedIcon) {
   );
 }
 
-async function assertEngineIcon(engineName, expectedIcon) {
-  let engine = Services.search.getEngineByName(engineName);
+async function assertEngineIcon(engineId, expectedIcon) {
+  let engine = Services.search.getEngineById(engineId);
   let engineIconURL = await engine.getIconURL(16);
 
   if (expectedIcon) {
@@ -176,7 +155,7 @@ add_setup(async function setup() {
   await client.db.update(record);
   await client.db.importChanges({}, record.lastModified);
 
-  await SearchTestUtils.useTestEngines("simple-engines", null, CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 
   // Testing that an icon is not local generates a `Could not find {id}...`
@@ -251,7 +230,7 @@ add_task(async function test_icon_added_existing_engine() {
   SearchTestUtils.idleService._fireObservers("idle");
 
   await promiseIconChanged;
-  await assertEngineIcon("engine_no_initial_icon name", "bigIcon.ico");
+  await assertEngineIcon("engine_no_initial_icon", "bigIcon.ico");
 });
 
 add_task(async function test_icon_updated() {
@@ -259,7 +238,7 @@ add_task(async function test_icon_updated() {
   // correctly updated.
 
   // Check the engine has the expected icon to start with.
-  await assertEngineIcon("engine_icon_updates name", "remoteIcon.ico");
+  await assertEngineIcon("engine_icon_updates", "remoteIcon.ico");
 
   // Update the icon for the engine.
   let mock = await mockRecordWithAttachment({
@@ -286,14 +265,14 @@ add_task(async function test_icon_updated() {
   SearchTestUtils.idleService._fireObservers("idle");
 
   await promiseIconChanged;
-  await assertEngineIcon("engine_icon_updates name", "bigIcon.ico");
+  await assertEngineIcon("engine_icon_updates", "bigIcon.ico");
 });
 
 add_task(async function test_icon_not_local() {
   // Tests that a download is queued and triggered when the icon for an engine
   // is not in either the local dump nor the cache.
 
-  await assertEngineIcon("engine_icon_not_local name", null);
+  await assertEngineIcon("engine_icon_not_local", null);
 
   // A download should have been queued, so fire idle to trigger it.
   let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
@@ -303,14 +282,14 @@ add_task(async function test_icon_not_local() {
   SearchTestUtils.idleService._fireObservers("idle");
   await promiseIconChanged;
 
-  await assertEngineIcon("engine_icon_not_local name", "bigIcon.ico");
+  await assertEngineIcon("engine_icon_not_local", "bigIcon.ico");
 });
 
 add_task(async function test_icon_out_of_date() {
   // Tests that a download is queued and triggered when the icon for an engine
   // is not in either the local dump nor the cache.
 
-  await assertEngineIcon("engine_icon_out_of_date name", "remoteIcon.ico");
+  await assertEngineIcon("engine_icon_out_of_date", "remoteIcon.ico");
 
   // A download should have been queued, so fire idle to trigger it.
   let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
@@ -320,5 +299,5 @@ add_task(async function test_icon_out_of_date() {
   SearchTestUtils.idleService._fireObservers("idle");
   await promiseIconChanged;
 
-  await assertEngineIcon("engine_icon_out_of_date name", "bigIcon.ico");
+  await assertEngineIcon("engine_icon_out_of_date", "bigIcon.ico");
 });

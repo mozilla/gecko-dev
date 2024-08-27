@@ -12,7 +12,7 @@ let extensionPostData;
 let oldRemoveEngineFunc;
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("simple-engines");
+  SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
 
   Services.telemetry.canRecordExtended = true;
 
