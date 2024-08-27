@@ -119,5 +119,10 @@
   // _TopSites.scss
   .top-site-outer {
     margin-block-end: 0;
+
+    .layout-variant-a,
+    .layout-variant-b & {
+      margin-block-end: var(--space-medium);
+    }
   }
 }
