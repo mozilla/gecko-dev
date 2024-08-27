@@ -73,6 +73,21 @@
           "prefersContrast": "{text.color.@base}"
         }
       },
+      "deemphasized": {
+        "@base": {
+          "value": {
+            "brand": {
+              "light": "{color.gray.30}",
+              "dark": "{color.gray.70}"
+            },
+            "platform": {
+              "default": "color-mix(in srgb, currentColor 24%, transparent)"
+            },
+            "prefersContrast": "currentColor",
+            "forcedColors": "ButtonText"
+          }
+        }
+      },
       "interactive": {
         "@base": {
           "value": {
@@ -557,6 +572,9 @@
     "gray": {
       "05": {
         "value": "#fbfbfe"
+      },
+      "30": {
+        "value": "#bac2ca"
       },
       "50": {
         "value": "#bfbfc9"

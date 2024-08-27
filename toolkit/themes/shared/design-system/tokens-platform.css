@@ -17,6 +17,7 @@
     --background-color-canvas: Canvas;
 
     /** Border **/
+    --border-color-deemphasized: color-mix(in srgb, currentColor 24%, transparent);
     --border-color-interactive: color-mix(in srgb, currentColor 15%, var(--color-gray-60));
 
     /** Button **/

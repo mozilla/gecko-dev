@@ -17,6 +17,7 @@
     --background-color-canvas: light-dark(var(--color-white), var(--color-gray-90));
 
     /** Border **/
+    --border-color-deemphasized: light-dark(var(--color-gray-30), var(--color-gray-70));
     --border-color-interactive: light-dark(var(--color-gray-60), var(--color-gray-50));
 
     /** Button **/

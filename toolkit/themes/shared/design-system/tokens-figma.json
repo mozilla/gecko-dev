@@ -39,6 +39,11 @@
     "dark": "#00000000",
     "forcedColors": "CanvasText"
   },
+  "border/color/deemphasized": {
+    "light": "#bac2caff",
+    "dark": "#5b5b66ff",
+    "forcedColors": "ButtonText"
+  },
   "border/color/interactive": {
     "light": "#8f8f9dff",
     "dark": "#bfbfc9ff",
@@ -309,6 +314,7 @@
   "color/cyan/20": "#aaf2ffff",
   "color/cyan/30": "#80ebffff",
   "color/cyan/50": "#00ddffff",
+  "color/gray/30": "#bac2caff",
   "color/gray/50": "#bfbfc9ff",
   "color/gray/60": "#8f8f9dff",
   "color/gray/70": "#5b5b66ff",

@@ -14,6 +14,7 @@
   position: absolute;
   font: menu;
   background-color: var(--background-color-box);
+  color: var(--text-color);
   border-radius: 4px;
   padding: 6px 0;
   margin-bottom: 16px;
@@ -45,7 +46,7 @@
 }
 
 :host(:not([inxulpanel])) {
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border: 1px solid var(--border-color-deemphasized);
 }
 
 .list {
@@ -56,7 +57,8 @@
 ::slotted(hr:not([hidden])) {
   display: block !important;
   height: 1px !important;
-  background: var(--border-color-interactive) !important;
+  background-color: var(--border-color-deemphasized) !important;
+  color: inherit !important;
   padding: 0 !important;
   margin: 6px 0 !important;
   border: none !important;

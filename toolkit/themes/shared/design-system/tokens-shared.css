@@ -102,6 +102,7 @@
     --color-cyan-30: #80ebff;
     --color-cyan-50: #00ddff;
     --color-gray-05: #fbfbfe;
+    --color-gray-30: #bac2ca;
     --color-gray-50: #bfbfc9;
     --color-gray-60: #8f8f9d;
     --color-gray-70: #5b5b66;
@@ -201,6 +202,7 @@
 
       /** Border **/
       --border-color: var(--text-color);
+      --border-color-deemphasized: currentColor;
       --border-color-interactive: var(--text-color);
 
       /** Button **/
@@ -238,6 +240,7 @@
     :root,
     :host(.anonymous-content-host) {
       /** Border **/
+      --border-color-deemphasized: ButtonText;
       --border-color-interactive: ButtonText;
       --border-color-interactive-hover: SelectedItem;
       --border-color-interactive-active: ButtonText;
