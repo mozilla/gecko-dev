@@ -5,7 +5,7 @@
 firefox-relay-offer-what-fxa-and-relay-provides = An account unlocks access to more privacy-protecting products. All emails sent to your email masks will be forwarded to your real email address (unless you decide to block them).
 
 firefox-relay-and-fxa-opt-in-confirmation-enable-button =
-    .label = Sign in to Firefox and use mask
+    .label = Sign in to { -brand-product-name } and use mask
     .accesskey = S
 firefox-relay-and-fxa-opt-in-confirmation-disable =
     .label = Don’t show me this again
