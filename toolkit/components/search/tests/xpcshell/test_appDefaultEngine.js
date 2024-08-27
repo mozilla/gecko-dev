@@ -30,7 +30,7 @@ const CONFIG = [
 
 add_setup(async function () {
   Region._setHomeRegion("an", false);
-  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 add_task(async function test_appDefaultEngine() {

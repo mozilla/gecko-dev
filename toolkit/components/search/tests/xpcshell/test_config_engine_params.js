@@ -61,7 +61,7 @@ const CONFIG = [
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 

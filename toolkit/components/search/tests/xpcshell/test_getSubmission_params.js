@@ -67,7 +67,7 @@ add_setup(async function () {
     };
   });
 
-  await SearchTestUtils.setRemoteSettingsConfig(config);
+  SearchTestUtils.setRemoteSettingsConfig(config);
   await Services.search.init();
 });
 

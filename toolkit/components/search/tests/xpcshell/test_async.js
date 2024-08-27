@@ -4,7 +4,7 @@
 const CONFIG = [{ identifier: "engine-1" }, { identifier: "engine-2" }];
 
 add_setup(async function () {
-  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   Services.fog.initializeFOG();
 });
 
