@@ -50,7 +50,9 @@ bool IsValid(Timestamp timestamp) {
   return timestamp.IsFinite();
 }
 
-double ToKiloBytes(DataSize datasize) { return datasize.bytes() / 1000.0; }
+double ToKiloBytes(DataSize datasize) {
+  return datasize.bytes() / 1000.0;
+}
 
 struct PacketResultsSummary {
   int num_packets = 0;
@@ -240,7 +242,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
   if (!IsValid(current_best_estimate_.loss_limited_bandwidth)) {
     if (!IsValid(delay_based_estimate)) {
       RTC_LOG(LS_WARNING) << "The delay based estimate must be finite: "
-                        << ToString(delay_based_estimate);
+                          << ToString(delay_based_estimate);
       return;
     }
     current_best_estimate_.loss_limited_bandwidth = delay_based_estimate;
@@ -340,7 +342,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
     if (config_->lower_bound_by_acked_rate_factor > 0.0) {
       current_best_estimate_.loss_limited_bandwidth =
           std::max(current_best_estimate_.loss_limited_bandwidth,
-                  GetInstantLowerBound());
+                   GetInstantLowerBound());
     }
   }
 
@@ -417,7 +419,8 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
 }
 
 bool LossBasedBweV2::IsEstimateIncreasingWhenLossLimited(
-    DataRate old_estimate, DataRate new_estimate) {
+    DataRate old_estimate,
+    DataRate new_estimate) {
   return (old_estimate < new_estimate ||
           (old_estimate == new_estimate &&
            (loss_based_result_.state == LossBasedState::kIncreasing ||
@@ -545,69 +548,68 @@ absl::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
                     key_value_config->Lookup("WebRTC-Bwe-LossBasedBweV2"));
   }
 
-  absl::optional<Config> config;
   if (!enabled.Get()) {
-    return config;
+    return absl::nullopt;
   }
-  config.emplace(Config());
-  config->bandwidth_rampup_upper_bound_factor =
+  Config config;
+  config.bandwidth_rampup_upper_bound_factor =
       bandwidth_rampup_upper_bound_factor.Get();
-  config->bandwidth_rampup_upper_bound_factor_in_hold =
+  config.bandwidth_rampup_upper_bound_factor_in_hold =
       bandwidth_rampup_upper_bound_factor_in_hold.Get();
-  config->bandwidth_rampup_hold_threshold =
+  config.bandwidth_rampup_hold_threshold =
       bandwidth_rampup_hold_threshold.Get();
-  config->rampup_acceleration_max_factor = rampup_acceleration_max_factor.Get();
-  config->rampup_acceleration_maxout_time =
+  config.rampup_acceleration_max_factor = rampup_acceleration_max_factor.Get();
+  config.rampup_acceleration_maxout_time =
       rampup_acceleration_maxout_time.Get();
-  config->candidate_factors = candidate_factors.Get();
-  config->higher_bandwidth_bias_factor = higher_bandwidth_bias_factor.Get();
-  config->higher_log_bandwidth_bias_factor =
+  config.candidate_factors = candidate_factors.Get();
+  config.higher_bandwidth_bias_factor = higher_bandwidth_bias_factor.Get();
+  config.higher_log_bandwidth_bias_factor =
       higher_log_bandwidth_bias_factor.Get();
-  config->inherent_loss_lower_bound = inherent_loss_lower_bound.Get();
-  config->loss_threshold_of_high_bandwidth_preference =
+  config.inherent_loss_lower_bound = inherent_loss_lower_bound.Get();
+  config.loss_threshold_of_high_bandwidth_preference =
       loss_threshold_of_high_bandwidth_preference.Get();
-  config->bandwidth_preference_smoothing_factor =
+  config.bandwidth_preference_smoothing_factor =
       bandwidth_preference_smoothing_factor.Get();
-  config->inherent_loss_upper_bound_bandwidth_balance =
+  config.inherent_loss_upper_bound_bandwidth_balance =
       inherent_loss_upper_bound_bandwidth_balance.Get();
-  config->inherent_loss_upper_bound_offset =
+  config.inherent_loss_upper_bound_offset =
       inherent_loss_upper_bound_offset.Get();
-  config->initial_inherent_loss_estimate = initial_inherent_loss_estimate.Get();
-  config->newton_iterations = newton_iterations.Get();
-  config->newton_step_size = newton_step_size.Get();
-  config->append_acknowledged_rate_candidate =
+  config.initial_inherent_loss_estimate = initial_inherent_loss_estimate.Get();
+  config.newton_iterations = newton_iterations.Get();
+  config.newton_step_size = newton_step_size.Get();
+  config.append_acknowledged_rate_candidate =
       append_acknowledged_rate_candidate.Get();
-  config->append_delay_based_estimate_candidate =
+  config.append_delay_based_estimate_candidate =
       append_delay_based_estimate_candidate.Get();
-  config->append_upper_bound_candidate_in_alr =
+  config.append_upper_bound_candidate_in_alr =
       append_upper_bound_candidate_in_alr.Get();
-  config->observation_duration_lower_bound =
+  config.observation_duration_lower_bound =
       observation_duration_lower_bound.Get();
-  config->observation_window_size = observation_window_size.Get();
-  config->sending_rate_smoothing_factor = sending_rate_smoothing_factor.Get();
-  config->instant_upper_bound_temporal_weight_factor =
+  config.observation_window_size = observation_window_size.Get();
+  config.sending_rate_smoothing_factor = sending_rate_smoothing_factor.Get();
+  config.instant_upper_bound_temporal_weight_factor =
       instant_upper_bound_temporal_weight_factor.Get();
-  config->instant_upper_bound_bandwidth_balance =
+  config.instant_upper_bound_bandwidth_balance =
       instant_upper_bound_bandwidth_balance.Get();
-  config->instant_upper_bound_loss_offset =
+  config.instant_upper_bound_loss_offset =
       instant_upper_bound_loss_offset.Get();
-  config->temporal_weight_factor = temporal_weight_factor.Get();
-  config->bandwidth_backoff_lower_bound_factor =
+  config.temporal_weight_factor = temporal_weight_factor.Get();
+  config.bandwidth_backoff_lower_bound_factor =
       bandwidth_backoff_lower_bound_factor.Get();
-  config->max_increase_factor = max_increase_factor.Get();
-  config->delayed_increase_window = delayed_increase_window.Get();
-  config->not_increase_if_inherent_loss_less_than_average_loss =
+  config.max_increase_factor = max_increase_factor.Get();
+  config.delayed_increase_window = delayed_increase_window.Get();
+  config.not_increase_if_inherent_loss_less_than_average_loss =
       not_increase_if_inherent_loss_less_than_average_loss.Get();
-  config->not_use_acked_rate_in_alr = not_use_acked_rate_in_alr.Get();
-  config->use_in_start_phase = use_in_start_phase.Get();
-  config->min_num_observations = min_num_observations.Get();
-  config->lower_bound_by_acked_rate_factor =
+  config.not_use_acked_rate_in_alr = not_use_acked_rate_in_alr.Get();
+  config.use_in_start_phase = use_in_start_phase.Get();
+  config.min_num_observations = min_num_observations.Get();
+  config.lower_bound_by_acked_rate_factor =
       lower_bound_by_acked_rate_factor.Get();
-  config->hold_duration_factor = hold_duration_factor.Get();
-  config->use_byte_loss_rate = use_byte_loss_rate.Get();
-  config->padding_duration = padding_duration.Get();
-  config->bound_best_candidate = bound_best_candidate.Get();
-  config->pace_at_loss_based_estimate = pace_at_loss_based_estimate.Get();
+  config.hold_duration_factor = hold_duration_factor.Get();
+  config.use_byte_loss_rate = use_byte_loss_rate.Get();
+  config.padding_duration = padding_duration.Get();
+  config.bound_best_candidate = bound_best_candidate.Get();
+  config.pace_at_loss_based_estimate = pace_at_loss_based_estimate.Get();
   return config;
 }
 
