@@ -91,8 +91,11 @@ float MobileViewportManager::ComputeIntrinsicResolution() const {
   }
 
   ScreenIntSize displaySize = GetLayoutDisplaySize();
-  CSSToScreenScale intrinsicScale = ComputeIntrinsicScale(
-      mContext->GetViewportInfo(displaySize), displaySize, mMobileViewportSize);
+  nsViewportInfo viewportInfo = mContext->GetViewportInfo(displaySize);
+  // Use the up-to-date CSS viewport size from viewportInfo rather than
+  // mMobileViewportSize, which may not have been updated yet.
+  CSSToScreenScale intrinsicScale =
+      ComputeIntrinsicScale(viewportInfo, displaySize, viewportInfo.GetSize());
   MVM_LOG("%p: intrinsic scale based on CSS viewport size is %f", this,
           intrinsicScale.scale);
   CSSToLayoutDeviceScale cssToDev = mContext->CSSToDevPixelScale();
