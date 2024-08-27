@@ -137,13 +137,6 @@ void FrameEncodeMetadataWriter::OnEncodeStarted(const VideoFrame& frame) {
   }
 }
 
-// Deprecated, remove once downstream projects are updated.
-// https://crbug.com/328598314.
-void FrameEncodeMetadataWriter::FillTimingInfo(size_t simulcast_svc_idx,
-                                               EncodedImage* encoded_image) {
-  FillMetadataAndTimingInfo(simulcast_svc_idx, encoded_image);
-}
-
 void FrameEncodeMetadataWriter::FillMetadataAndTimingInfo(
     size_t simulcast_svc_idx,
     EncodedImage* encoded_image) {

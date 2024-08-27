@@ -37,10 +37,6 @@ class FrameEncodeMetadataWriter {
   void FillMetadataAndTimingInfo(size_t simulcast_svc_idx,
                                  EncodedImage* encoded_image);
 
-  // Deprecated, remove once downstream projects are updated.
-  // https://crbug.com/328598314.
-  void FillTimingInfo(size_t simulcast_svc_idx, EncodedImage* encoded_image);
-
   void UpdateBitstream(const CodecSpecificInfo* codec_specific_info,
                        EncodedImage* encoded_image);
 
