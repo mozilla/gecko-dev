@@ -9691,7 +9691,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.6.30",
+    apiVersion: "4.6.52",
     data,
     password,
     disableAutoFetch,
@@ -11360,8 +11360,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.6.30";
-const build = "e0fc1a341";
+const version = "4.6.52";
+const build = "b58c24ab0";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -13419,10 +13419,9 @@ class PopupElement {
     if (this.#dateObj) {
       const modificationDate = document.createElement("span");
       modificationDate.classList.add("popupDate");
-      modificationDate.setAttribute("data-l10n-id", "pdfjs-annotation-date-string");
+      modificationDate.setAttribute("data-l10n-id", "pdfjs-annotation-date-time-string");
       modificationDate.setAttribute("data-l10n-args", JSON.stringify({
-        date: this.#dateObj.toLocaleDateString(),
-        time: this.#dateObj.toLocaleTimeString()
+        dateObj: this.#dateObj.valueOf()
       }));
       header.append(modificationDate);
     }
@@ -17175,7 +17174,8 @@ class StampEditor extends AnnotationEditor {
       this._reportTelemetry({
         action: "pdfjs.image.image_added",
         data: {
-          alt_text_modal: false
+          alt_text_modal: false,
+          alt_text_type: "empty"
         }
       });
       try {
@@ -18458,8 +18458,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.6.30";
-const pdfjsBuild = "e0fc1a341";
+const pdfjsVersion = "4.6.52";
+const pdfjsBuild = "b58c24ab0";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

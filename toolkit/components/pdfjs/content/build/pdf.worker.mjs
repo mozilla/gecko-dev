@@ -9452,8 +9452,8 @@ class Lexer {
     const strBuf = this.strBuf;
     strBuf.length = 0;
     let ch = this.currentChar;
-    let isFirstHex = true;
-    let firstDigit, secondDigit;
+    let firstDigit = -1,
+      digit = -1;
     this._hexStringNumWarn = 0;
     while (true) {
       if (ch < 0) {
@@ -9466,25 +9466,20 @@ class Lexer {
         ch = this.nextChar();
         continue;
       } else {
-        if (isFirstHex) {
-          firstDigit = toHexDigit(ch);
-          if (firstDigit === -1) {
-            this._hexStringWarn(ch);
-            ch = this.nextChar();
-            continue;
-          }
+        digit = toHexDigit(ch);
+        if (digit === -1) {
+          this._hexStringWarn(ch);
+        } else if (firstDigit === -1) {
+          firstDigit = digit;
         } else {
-          secondDigit = toHexDigit(ch);
-          if (secondDigit === -1) {
-            this._hexStringWarn(ch);
-            ch = this.nextChar();
-            continue;
-          }
-          strBuf.push(String.fromCharCode(firstDigit << 4 | secondDigit));
+          strBuf.push(String.fromCharCode(firstDigit << 4 | digit));
+          firstDigit = -1;
         }
-        isFirstHex = !isFirstHex;
         ch = this.nextChar();
       }
+    }
+    if (firstDigit !== -1) {
+      strBuf.push(String.fromCharCode(firstDigit << 4));
     }
     return strBuf.join("");
   }
@@ -37419,6 +37414,7 @@ class Catalog {
     this.globalImageCache = new GlobalImageCache();
     this.pageKidsCountCache = new RefSetCache();
     this.pageIndexCache = new RefSetCache();
+    this.pageDictCache = new RefSetCache();
     this.nonBlendModesSet = new RefSet();
     this.systemFontCache = new Map();
   }
@@ -38282,6 +38278,7 @@ class Catalog {
     this.globalImageCache.clear(manuallyTriggered);
     this.pageKidsCountCache.clear();
     this.pageIndexCache.clear();
+    this.pageDictCache.clear();
     this.nonBlendModesSet.clear();
     const translatedFonts = await Promise.all(this.fontCache);
     for (const {
@@ -38303,7 +38300,8 @@ class Catalog {
     }
     const xref = this.xref,
       pageKidsCountCache = this.pageKidsCountCache,
-      pageIndexCache = this.pageIndexCache;
+      pageIndexCache = this.pageIndexCache,
+      pageDictCache = this.pageDictCache;
     let currentPageIndex = 0;
     while (nodesToVisit.length) {
       const currentNode = nodesToVisit.pop();
@@ -38317,7 +38315,7 @@ class Catalog {
           throw new FormatError("Pages tree contains circular reference.");
         }
         visitedNodes.put(currentNode);
-        const obj = await xref.fetchAsync(currentNode);
+        const obj = await (pageDictCache.get(currentNode) || xref.fetchAsync(currentNode));
         if (obj instanceof Dict) {
           let type = obj.getRaw("Type");
           if (type instanceof Ref) {
@@ -38378,7 +38376,11 @@ class Catalog {
         throw new FormatError("Page dictionary kids object is not an array.");
       }
       for (let last = kids.length - 1; last >= 0; last--) {
-        nodesToVisit.push(kids[last]);
+        const lastKid = kids[last];
+        nodesToVisit.push(lastKid);
+        if (currentNode === this.toplevelPagesDict && lastKid instanceof Ref && !pageDictCache.has(lastKid)) {
+          pageDictCache.put(lastKid, xref.fetchAsync(lastKid));
+        }
       }
     }
     throw new Error(`Page index ${pageIndex} not found.`);
@@ -55774,7 +55776,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.6.30";
+    const workerVersion = "4.6.52";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56338,8 +56340,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// CONCATENATED MODULE: ./src/pdf.worker.js
 
-const pdfjsVersion = "4.6.30";
-const pdfjsBuild = "e0fc1a341";
+const pdfjsVersion = "4.6.52";
+const pdfjsBuild = "b58c24ab0";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

@@ -1559,7 +1559,7 @@ class L10n {
       id: ids,
       args
     }]);
-    return messages?.[0].value || fallback;
+    return messages[0]?.value || fallback;
   }
   async translate(element) {
     this.#elements.add(element);
@@ -1567,6 +1567,13 @@ class L10n {
       this.#l10n.connectRoot(element);
       await this.#l10n.translateRoots();
     } catch {}
+  }
+  async translateOnce(element) {
+    try {
+      await this.#l10n.translateElements([element]);
+    } catch (ex) {
+      console.error(`translateOnce: "${ex}".`);
+    }
   }
   async destroy() {
     for (const element of this.#elements) {
@@ -6148,7 +6155,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.6.30";
+    const viewerVersion = "4.6.52";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -9774,8 +9781,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.6.30";
-const pdfjsBuild = "e0fc1a341";
+const pdfjsVersion = "4.6.52";
+const pdfjsBuild = "b58c24ab0";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
