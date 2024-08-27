@@ -1604,7 +1604,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
   // Dispense with custom behavior of exotic native objects first.
   if (obj->is<ArrayObject>()) {
     // 10.4.2.1 step 1. Redefining an array's length is very special.
-    Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
+    auto arr = HandleObject(obj).as<ArrayObject>();
     if (id == NameToId(cx->names().length)) {
       // 10.1.6.3 ValidateAndApplyPropertyDescriptor, step 5.c.
       if (desc_.isAccessorDescriptor()) {
@@ -1624,41 +1624,32 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
   } else if (obj->is<TypedArrayObject>()) {
     // 10.4.5.3 step 1. Indexed properties of typed arrays are special.
     if (mozilla::Maybe<uint64_t> index = ToTypedArrayIndex(id)) {
-      Rooted<TypedArrayObject*> tobj(cx, &obj->as<TypedArrayObject>());
+      auto tobj = HandleObject(obj).as<TypedArrayObject>();
       return DefineTypedArrayElement(cx, tobj, index.value(), desc_, result);
     }
-  } else if (obj->is<ArgumentsObject>()) {
-    Rooted<ArgumentsObject*> argsobj(cx, &obj->as<ArgumentsObject>());
+  } else if (obj->is<ArgumentsObject>() && !desc_.resolving()) {
+    auto argsobj = HandleObject(obj).as<ArgumentsObject>();
     if (id.isAtom(cx->names().length)) {
       // Either we are resolving the .length property on this object,
       // or redefining it. In the latter case only, we must reify the
       // property.
-      if (!desc_.resolving()) {
-        if (!ArgumentsObject::reifyLength(cx, argsobj)) {
-          return false;
-        }
+      if (!ArgumentsObject::reifyLength(cx, argsobj)) {
+        return false;
       }
     } else if (id.isAtom(cx->names().callee) &&
-               argsobj->is<MappedArgumentsObject>()) {
+               obj->is<MappedArgumentsObject>()) {
       // Do same thing as .length for .callee on MappedArgumentsObject.
-      if (!desc_.resolving()) {
-        Rooted<MappedArgumentsObject*> mapped(
-            cx, &argsobj->as<MappedArgumentsObject>());
-        if (!MappedArgumentsObject::reifyCallee(cx, mapped)) {
-          return false;
-        }
+      auto mapped = HandleObject(argsobj).as<MappedArgumentsObject>();
+      if (!MappedArgumentsObject::reifyCallee(cx, mapped)) {
+        return false;
       }
     } else if (id.isWellKnownSymbol(JS::SymbolCode::iterator)) {
       // Do same thing as .length for [@@iterator].
-      if (!desc_.resolving()) {
-        if (!ArgumentsObject::reifyIterator(cx, argsobj)) {
-          return false;
-        }
+      if (!ArgumentsObject::reifyIterator(cx, argsobj)) {
+        return false;
       }
     } else if (id.isInt()) {
-      if (!desc_.resolving()) {
-        argsobj->markElementOverridden();
-      }
+      argsobj->markElementOverridden();
     }
   }
 
