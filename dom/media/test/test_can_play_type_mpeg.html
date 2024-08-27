@@ -57,6 +57,9 @@ function check_mp4(v, enabled) {
   // H.264 High Profile Level 3.1, AAC-LC
   check("video/mp4; codecs=\"avc1.64001F, mp4a.40.2\"", "probably");
 
+  // Bogus H.264 level, return "probably" for web compat reasons
+  check("video/mp4; codecs=\"avc1.4D401D, mp4a.40.2\"", "probably");
+
   check("video/mp4; codecs=\"avc1.42E01E\"", "probably");
   check("video/mp4; codecs=\"avc1.42001E\"", "probably");
   check("video/mp4; codecs=\"avc1.58A01E\"", "probably");
