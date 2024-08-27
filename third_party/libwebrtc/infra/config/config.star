@@ -276,6 +276,10 @@ luci.bucket(
             "project-webrtc-tryjob-access",
         ]),
     ],
+    constraints = luci.bucket_constraints(
+        pools = ["luci.webrtc.try"],
+        service_accounts = ["webrtc-try-builder@chops-service-accounts.iam.gserviceaccount.com"],
+    ),
 )
 
 luci.bucket(
