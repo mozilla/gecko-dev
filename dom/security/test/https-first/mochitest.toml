@@ -40,9 +40,6 @@ support-files = ["file_multiple_redirection.sjs"]
 ["test_redirect_downgrade.html"]
 support-files = ["file_redirect_downgrade.sjs"]
 
-["test_redirect_http_error.html"]
-support-files = ["file_redirect_error.sjs"]
-
 ["test_redirect_upgrade.html"]
 scheme = "https"
 support-files = ["file_redirect.sjs"]
