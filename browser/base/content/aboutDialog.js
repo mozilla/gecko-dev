@@ -43,15 +43,28 @@ function init() {
   }
 
   // Include the build ID and display warning if this is an "a#" (nightly or aurora) build
-  let versionId = "aboutDialog-version";
+  let versionIdMap = new Map([
+    ["base", "aboutDialog-version"],
+    ["base-nightly", "aboutDialog-version-nightly"],
+    ["base-arch", "aboutdialog-version-arch"],
+    ["base-arch-nightly", "aboutdialog-version-arch-nightly"],
+  ]);
+  let versionIdKey = "base";
   let versionAttributes = {
     version: AppConstants.MOZ_APP_VERSION_DISPLAY,
-    bits: Services.appinfo.is64Bit ? 64 : 32,
   };
+
+  let arch = Services.sysinfo.get("arch");
+  if (["x86", "x86-64"].includes(arch)) {
+    versionAttributes.bits = Services.appinfo.is64Bit ? 64 : 32;
+  } else {
+    versionIdKey += "-arch";
+    versionAttributes.arch = arch;
+  }
 
   let version = Services.appinfo.version;
   if (/a\d+$/.test(version)) {
-    versionId = "aboutDialog-version-nightly";
+    versionIdKey += "-nightly";
     let buildID = Services.appinfo.appBuildID;
     let year = buildID.slice(0, 4);
     let month = buildID.slice(4, 6);
@@ -65,7 +78,11 @@ function init() {
   // Use Fluent arguments for append version and the architecture of the build
   let versionField = document.getElementById("version");
 
-  document.l10n.setAttributes(versionField, versionId, versionAttributes);
+  document.l10n.setAttributes(
+    versionField,
+    versionIdMap.get(versionIdKey),
+    versionAttributes
+  );
 
   // Show a release notes link if we have a URL.
   let relNotesLink = document.getElementById("releasenotes");
