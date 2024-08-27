@@ -1826,6 +1826,8 @@ abstract class BaseBrowserFragment :
             owner = this,
             view = view,
         )
+
+        reinitializeEngineView()
     }
 
     private fun updateBrowserToolbarForMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
