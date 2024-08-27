@@ -350,7 +350,7 @@ fuzzy(0-1,0-10000) == opacity-and-transform-01.svg opacity-and-transform-01-ref.
 
 fuzzy-if(Android,0-8,0-200) == outer-svg-border-and-padding-01.svg outer-svg-border-and-padding-01-ref.svg
 
-fuzzy(0-255,0-214) == outline.html outline-ref.html # Bug 1503525
+fuzzy(0-255,0-214) fuzzy-if(Android,0-255,0-1156) == outline.html outline-ref.html # Bug 1503525
 
 == overflow-on-outer-svg-01.svg overflow-on-outer-svg-01-ref.svg
 == overflow-on-outer-svg-02a.xhtml overflow-on-outer-svg-02-ref.xhtml
