@@ -121,6 +121,18 @@ export var UrlbarUtils = {
     ACTIONS: 8,
   },
 
+  // Per-result exposure telemetry.
+  EXPOSURE_TELEMETRY: {
+    // Exposure telemetry will not be recorded for the result.
+    NONE: 0,
+    // Exposure telemetry will be recorded for the result and the result will be
+    // visible in the view as usual.
+    SHOWN: 1,
+    // Exposure telemetry will be recorded for the result but the result will
+    // not be present in the view.
+    HIDDEN: 2,
+  },
+
   // This defines icon locations that are commonly used in the UI.
   ICON: {
     // DEFAULT is defined lazily so it doesn't eagerly initialize PlacesUtils.
@@ -639,21 +651,20 @@ export var UrlbarUtils = {
   },
 
   /**
-   * Get the number of rows a result should span in the autocomplete dropdown.
+   * Gets the number of rows a result should span in the view.
    *
-   * @param {UrlbarResult} result The result.
-   * @param {bool} includeExposureResultHidden If false and
-   *   `result.exposureResultHidden` is true, zero will be returned since the
-   *   result should be hidden and not take up any rows at all. Otherwise the
-   *   result's true span is returned.
+   * @param {UrlbarResult} result
+   *   The result.
+   * @param {bool} includeHiddenExposures
+   *   Whether a span should be returned if the result is a hidden exposure. If
+   *   false and `result.isHiddenExposure` is true, zero will be returned since
+   *   the result should be hidden and not take up any rows at all. Otherwise
+   *   the result's true span is returned.
    * @returns {number}
-   *          The number of rows the result should span in the autocomplete
-   *          dropdown.
+   *   The number of rows the result should span in the view.
    */
-  getSpanForResult(result, { includeExposureResultHidden = false } = {}) {
-    // We know this result will be hidden in the final view so assign it
-    // a span of zero.
-    if (result.exposureResultHidden && !includeExposureResultHidden) {
+  getSpanForResult(result, { includeHiddenExposures = false } = {}) {
+    if (!includeHiddenExposures && result.isHiddenExposure) {
       return 0;
     }
 

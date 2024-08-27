@@ -1030,9 +1030,11 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    *   Global state that we use to make decisions during this sort.
    */
   _updateStatePreAdd(result, state) {
-    // check if this result should trigger an exposure
-    // if so mark the result properties and skip the rest of the state setting.
-    if (this._checkAndSetExposureProperties(result)) {
+    // Check whether the result should trigger exposure telemetry. If it will
+    // not be visible because it's a hidden exposure, it should not affect the
+    // muxer's state, so bail now.
+    this.#setExposureTelemetryProperty(result);
+    if (result.isHiddenExposure) {
       return;
     }
 
@@ -1156,7 +1158,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
    */
   _updateStatePostAdd(result, state) {
     // bail early if the result will be hidden from the final view.
-    if (result.exposureResultHidden) {
+    if (result.isHiddenExposure) {
       return;
     }
 
@@ -1376,31 +1378,22 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
 
   /**
    * Checks exposure eligibility and visibility for the given result.
-   * If the result passes the exposure check, we set two properties
-   * on the UrlbarResult: `result.exposureResultType` a string containing
-   * the results of `UrlbarUtils.searchEngagementTelemetryType` and
-   * `result.exposureResultHidden` a boolean which indicates whether the
-   * result should be hidden from the view.
+   * If the result passes the exposure check, we set `result.exposureTelemetry`
+   * to the appropriate `UrlbarUtils.EXPOSURE_TELEMETRY` value.
    *
    * @param {UrlbarResult} result
    *   The result.
-   * @returns {boolean}
-   *   A boolean indicating if this is a hidden exposure result.
    */
-  _checkAndSetExposureProperties(result) {
-    const exposureResultsPref = lazy.UrlbarPrefs.get("exposureResults");
-    const exposureResults = exposureResultsPref?.split(",");
-    if (exposureResults) {
+  #setExposureTelemetryProperty(result) {
+    const exposureResults = lazy.UrlbarPrefs.get("exposureResults");
+    if (exposureResults.size) {
       const telemetryType = UrlbarUtils.searchEngagementTelemetryType(result);
-      if (exposureResults.includes(telemetryType)) {
-        result.exposureResultType = telemetryType;
-        result.exposureResultHidden = !lazy.UrlbarPrefs.get(
-          "showExposureResults"
-        );
+      if (exposureResults.has(telemetryType)) {
+        result.exposureTelemetry = lazy.UrlbarPrefs.get("showExposureResults")
+          ? UrlbarUtils.EXPOSURE_TELEMETRY.SHOWN
+          : UrlbarUtils.EXPOSURE_TELEMETRY.HIDDEN;
       }
     }
-
-    return result.exposureResultHidden;
   }
 }
 

@@ -58,14 +58,8 @@ export class UrlbarResult {
     // source filters in the ProvidersManager, that otherwise may skip them.
     this.heuristic = false;
 
-    // Exposure specific properties. These allow us to track the exposure
-    // of a result through the query process.
-    // A non-zero value here indicates that this result's exposure should be
-    // recorded in the exposure event.
-    this.exposureResultType = "";
-
-    // Determines if the exposure result should be hidden from the view.
-    this.exposureResultHidden = false;
+    // Allows us to track the exposure of a result through the query process.
+    this.exposureTelemetry = lazy.UrlbarUtils.EXPOSURE_TELEMETRY.NONE;
 
     // The payload contains result data. Some of the data is common across
     // multiple types, but most of it will vary.
@@ -173,6 +167,17 @@ export class UrlbarResult {
    */
   get hasSuggestedIndex() {
     return typeof this.suggestedIndex == "number";
+  }
+
+  /**
+   * Convenience getter that returns whether the result's exposure telemetry
+   * indicates it should be hidden.
+   *
+   * @returns {boolean}
+   *   Whether the result should be hidden.
+   */
+  get isHiddenExposure() {
+    return this.exposureTelemetry == lazy.UrlbarUtils.EXPOSURE_TELEMETRY.HIDDEN;
   }
 
   /**

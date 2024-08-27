@@ -1022,6 +1022,17 @@ async function check_results({
     return payload;
   }
 
+  let propertiesToCheck = {
+    type: {},
+    source: {},
+    heuristic: {},
+    isBestMatch: { map: v => !!v },
+    providerName: { optional: true },
+    suggestedIndex: { optional: true },
+    isSuggestedIndexRelativeToGroup: { optional: true, map: v => !!v },
+    exposureTelemetry: { optional: true },
+  };
+
   for (let i = 0; i < matches.length; i++) {
     let actual = context.results[i];
     let expected = matches[i];
@@ -1032,46 +1043,16 @@ async function check_results({
         " expected=" +
         JSON.stringify(expected)
     );
-    Assert.equal(
-      actual.type,
-      expected.type,
-      `result.type at result index ${i}`
-    );
-    Assert.equal(
-      actual.source,
-      expected.source,
-      `result.source at result index ${i}`
-    );
-    Assert.equal(
-      actual.heuristic,
-      expected.heuristic,
-      `result.heuristic at result index ${i}`
-    );
-    Assert.equal(
-      !!actual.isBestMatch,
-      !!expected.isBestMatch,
-      `result.isBestMatch at result index ${i}`
-    );
-    if (expected.providerName) {
-      Assert.equal(
-        actual.providerName,
-        expected.providerName,
-        `result.providerName at result index ${i}`
-      );
-    }
-    if (expected.hasOwnProperty("suggestedIndex")) {
-      Assert.equal(
-        actual.suggestedIndex,
-        expected.suggestedIndex,
-        `result.suggestedIndex at result index ${i}`
-      );
-    }
-    if (expected.hasOwnProperty("isSuggestedIndexRelativeToGroup")) {
-      Assert.equal(
-        !!actual.isSuggestedIndexRelativeToGroup,
-        expected.isSuggestedIndexRelativeToGroup,
-        `result.isSuggestedIndexRelativeToGroup at result index ${i}`
-      );
+
+    for (let [key, { optional, map }] of Object.entries(propertiesToCheck)) {
+      if (!optional || expected.hasOwnProperty(key)) {
+        map ??= v => v;
+        Assert.equal(
+          map(actual[key]),
+          map(expected[key]),
+          `result.${key} at result index ${i}`
+        );
+      }
     }
 
     if (expected.payload) {

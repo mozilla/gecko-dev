@@ -1163,8 +1163,10 @@ class TelemetryEvent {
    *        exposures are enabled for its result type.
    */
   addExposure(result) {
-    if (result.exposureResultType) {
-      this.#exposureResultTypes.add(result.exposureResultType);
+    if (result.exposureTelemetry) {
+      this.#exposureResultTypes.add(
+        lazy.UrlbarUtils.searchEngagementTelemetryType(result)
+      );
     }
   }
 
@@ -1177,8 +1179,10 @@ class TelemetryEvent {
    *        result if exposures are enabled for its result type.
    */
   addTentativeExposure(result) {
-    if (result.exposureResultType) {
-      this.#tentativeExposureResultTypes.add(result.exposureResultType);
+    if (result.exposureTelemetry) {
+      this.#tentativeExposureResultTypes.add(
+        lazy.UrlbarUtils.searchEngagementTelemetryType(result)
+      );
     }
   }
 

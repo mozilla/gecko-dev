@@ -1585,6 +1585,12 @@ class Preferences {
         }
         return new Set(value);
       }
+      case "exposureResults":
+        return new Set(
+          this._readPref(pref)
+            .split(",")
+            .map(s => s.trim())
+        );
     }
     return this._readPref(pref);
   }
