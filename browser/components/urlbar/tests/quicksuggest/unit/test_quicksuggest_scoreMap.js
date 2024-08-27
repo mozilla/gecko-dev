@@ -165,7 +165,7 @@ add_task(async function sponsoredWithout_nonsponsoredWithout_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITHOUT_SCORE,
     }),
@@ -203,7 +203,7 @@ add_task(
       },
       expectedFeatureName: "AdmWikipedia",
       expectedScore: score,
-      expectedResult: makeExpectedAdmResult({
+      expectedResult: makeExpectedAmpResult({
         keyword,
         suggestion: SPONSORED_WITHOUT_SCORE,
       }),
@@ -241,7 +241,7 @@ add_task(async function sponsoredWith_nonsponsoredWith_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITH_SCORE,
     }),
@@ -276,7 +276,7 @@ add_task(async function sponsoredWith_nonsponsoredWith_sponsoredWins_both() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITH_SCORE,
     }),
@@ -311,7 +311,7 @@ add_task(async function sponsoredWithout_addonWithout_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITHOUT_SCORE,
     }),
@@ -329,7 +329,7 @@ add_task(async function sponsoredWithout_addonWithout_sponsoredWins_both() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITHOUT_SCORE,
     }),
@@ -346,7 +346,7 @@ add_task(async function sponsoredWith_addonWith_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITH_SCORE,
     }),
@@ -380,7 +380,7 @@ add_task(async function sponsoredWith_addonWith_sponsoredWins_both() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITH_SCORE,
     }),
@@ -420,7 +420,7 @@ add_task(async function merino_sponsored_addon_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword: "test",
       suggestion: MERINO_SPONSORED_SUGGESTION,
       source: "merino",
@@ -475,7 +475,7 @@ add_task(async function merino_sponsored_unknown_sponsoredWins() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: score,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword: "test",
       suggestion: MERINO_SPONSORED_SUGGESTION,
       source: "merino",
@@ -503,7 +503,7 @@ add_task(async function merino_sponsored_unknown_unknownWins() {
     },
     expectedFeatureName: null,
     expectedScore: score,
-    expectedResult: makeExpectedDefaultResult({
+    expectedResult: makeExpectedDefaultMerinoResult({
       suggestion: MERINO_UNKNOWN_SUGGESTION,
     }),
   });
@@ -520,7 +520,7 @@ add_task(async function stringValue() {
     },
     expectedFeatureName: "AdmWikipedia",
     expectedScore: 123.456,
-    expectedResult: makeExpectedAdmResult({
+    expectedResult: makeExpectedAmpResult({
       keyword,
       suggestion: SPONSORED_WITH_SCORE,
     }),
@@ -602,14 +602,14 @@ async function doTest({
   await cleanUpNimbus();
 }
 
-function makeExpectedAdmResult({
+function makeExpectedAmpResult({
   suggestion,
   keyword,
   source,
   provider,
   requestId,
 }) {
-  return makeAmpResult({
+  return QuickSuggestTestUtils.ampResult({
     keyword,
     source,
     provider,
@@ -626,7 +626,7 @@ function makeExpectedAdmResult({
 }
 
 function makeExpectedWikipediaResult({ suggestion, keyword, source }) {
-  return makeWikipediaResult({
+  return QuickSuggestTestUtils.wikipediaResult({
     keyword,
     source,
     title: suggestion.title,
@@ -639,7 +639,7 @@ function makeExpectedWikipediaResult({ suggestion, keyword, source }) {
 }
 
 function makeExpectedAddonResult({ suggestion, source, provider }) {
-  return makeAmoResult({
+  return QuickSuggestTestUtils.amoResult({
     source,
     provider,
     title: suggestion.title,
@@ -650,7 +650,7 @@ function makeExpectedAddonResult({ suggestion, source, provider }) {
   });
 }
 
-function makeExpectedDefaultResult({ suggestion }) {
+function makeExpectedDefaultMerinoResult({ suggestion }) {
   return {
     type: UrlbarUtils.RESULT_TYPE.URL,
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,

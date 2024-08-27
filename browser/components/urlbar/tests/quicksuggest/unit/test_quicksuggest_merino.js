@@ -19,11 +19,11 @@ const REMOTE_SETTINGS_RESULTS = [
   }),
 ];
 
-const EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT = makeAmpResult({
+const EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT = QuickSuggestTestUtils.ampResult({
   keyword: SEARCH_STRING,
 });
 
-const EXPECTED_MERINO_URLBAR_RESULT = makeAmpResult({
+const EXPECTED_MERINO_URLBAR_RESULT = QuickSuggestTestUtils.ampResult({
   source: "merino",
   provider: "adm",
   requestId: "request_id",
@@ -367,7 +367,7 @@ add_task(async function multipleMerinoSuggestions() {
   await check_results({
     context,
     matches: [
-      makeAmpResult({
+      QuickSuggestTestUtils.ampResult({
         keyword: "multipleMerinoSuggestions 1 full_keyword",
         title: "multipleMerinoSuggestions 1 title",
         url: "multipleMerinoSuggestions 1 url",

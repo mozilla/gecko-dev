@@ -851,7 +851,7 @@ async function doKeywordsTest({
     info("Got fetch");
   }
 
-  let expectedResult = makeWeatherResult(
+  let expectedResult = QuickSuggestTestUtils.weatherResult(
     !alwaysExpectMerinoResult
       ? undefined
       : { source: "merino", provider: "accuweather", telemetryType: null }
@@ -939,8 +939,8 @@ async function doMatchingQuickSuggestTest(pref, isSponsored) {
     }),
     matches: [
       isSponsored
-        ? makeAmpResult({ keyword })
-        : makeWikipediaResult({ keyword }),
+        ? QuickSuggestTestUtils.ampResult({ keyword })
+        : QuickSuggestTestUtils.wikipediaResult({ keyword }),
     ],
   });
 
@@ -958,7 +958,7 @@ async function doMatchingQuickSuggestTest(pref, isSponsored) {
     }),
     // The result should always come from Merino.
     matches: [
-      makeWeatherResult({
+      QuickSuggestTestUtils.weatherResult({
         source: "merino",
         provider: "accuweather",
         telemetryType: null,
@@ -1364,7 +1364,7 @@ async function doIncrementTest({
     info("Got fetch");
   }
 
-  let expectedResult = makeWeatherResult(
+  let expectedResult = QuickSuggestTestUtils.weatherResult(
     !alwaysExpectMerinoResult
       ? undefined
       : { source: "merino", provider: "accuweather", telemetryType: null }

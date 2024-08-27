@@ -58,7 +58,9 @@ add_tasks_with_rust(async function basic() {
     for (let i = 1; i < fullKeyword.length; i++) {
       const keyword = fullKeyword.substring(0, i);
       const shouldMatch = i >= firstWord.length;
-      const matches = shouldMatch ? [makeMdnResult(suggestion)] : [];
+      const matches = shouldMatch
+        ? [QuickSuggestTestUtils.mdnResult(suggestion)]
+        : [];
       await check_results({
         context: createContext(keyword, {
           providers: [UrlbarProviderQuickSuggest.name],
@@ -75,7 +77,7 @@ add_tasks_with_rust(async function basic() {
       }),
       matches:
         UrlbarPrefs.get("quickSuggestRustEnabled") && !fullKeyword.includes(" ")
-          ? [makeMdnResult(suggestion)]
+          ? [QuickSuggestTestUtils.mdnResult(suggestion)]
           : [],
     });
   }
@@ -99,7 +101,7 @@ add_tasks_with_rust(async function disableByLocalPref() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [makeMdnResult(suggestion)],
+      matches: [QuickSuggestTestUtils.mdnResult(suggestion)],
     });
 
     // Now disable them.
@@ -148,7 +150,7 @@ add_tasks_with_rust(async function nimbus() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [makeMdnResult(suggestion)],
+    matches: [QuickSuggestTestUtils.mdnResult(suggestion)],
   });
   await cleanUpNimbusEnable();
 
@@ -185,6 +187,6 @@ add_tasks_with_rust(async function mixedCaseQuery() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [makeMdnResult(suggestion)],
+    matches: [QuickSuggestTestUtils.mdnResult(suggestion)],
   });
 });

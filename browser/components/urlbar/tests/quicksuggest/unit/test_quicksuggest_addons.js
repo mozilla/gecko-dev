@@ -536,27 +536,14 @@ add_task(async function rustProviders() {
 });
 
 function makeExpectedResult({ suggestion, source, setUtmParams = true }) {
-  if (
-    source == "remote-settings" &&
-    UrlbarPrefs.get("quicksuggest.rustEnabled")
-  ) {
-    source = "rust";
-  }
-
   let provider;
-  switch (source) {
-    case "remote-settings":
-      provider = "AddonSuggestions";
-      break;
-    case "rust":
-      provider = "Amo";
-      break;
-    case "merino":
-      provider = "amo";
-      break;
+  if (source == "merino") {
+    provider = "amo";
+  } else {
+    source = undefined;
   }
 
-  return makeAmoResult({
+  return QuickSuggestTestUtils.amoResult({
     source,
     provider,
     setUtmParams,
