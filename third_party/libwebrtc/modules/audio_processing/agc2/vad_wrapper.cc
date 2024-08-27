@@ -13,7 +13,6 @@
 #include <array>
 #include <utility>
 
-#include "api/array_view.h"
 #include "common_audio/resampler/include/push_resampler.h"
 #include "modules/audio_processing/agc2/agc2_common.h"
 #include "modules/audio_processing/agc2/rnn_vad/common.h"
@@ -36,7 +35,7 @@ class MonoVadImpl : public VoiceActivityDetectorWrapper::MonoVad {
 
   int SampleRateHz() const override { return rnn_vad::kSampleRate24kHz; }
   void Reset() override { rnn_vad_.Reset(); }
-  float Analyze(rtc::ArrayView<const float> frame) override {
+  float Analyze(MonoView<const float> frame) override {
     RTC_DCHECK_EQ(frame.size(), rnn_vad::kFrameSize10ms24kHz);
     std::array<float, rnn_vad::kFeatureVectorSize> feature_vector;
     const bool is_silence = features_extractor_.CheckSilenceComputeFeatures(
@@ -87,7 +86,8 @@ VoiceActivityDetectorWrapper::VoiceActivityDetectorWrapper(
 
 VoiceActivityDetectorWrapper::~VoiceActivityDetectorWrapper() = default;
 
-float VoiceActivityDetectorWrapper::Analyze(AudioFrameView<const float> frame) {
+float VoiceActivityDetectorWrapper::Analyze(
+    DeinterleavedView<const float> frame) {
   // Periodically reset the VAD.
   time_to_vad_reset_--;
   if (time_to_vad_reset_ <= 0) {
@@ -98,7 +98,7 @@ float VoiceActivityDetectorWrapper::Analyze(AudioFrameView<const float> frame) {
   // Resample the first channel of `frame`.
   RTC_DCHECK_EQ(frame.samples_per_channel(), frame_size_);
   MonoView<float> dst(resampled_buffer_.data(), resampled_buffer_.size());
-  resampler_.Resample(frame.channel(0), dst);
+  resampler_.Resample(frame[0], dst);
 
   return vad_->Analyze(resampled_buffer_);
 }

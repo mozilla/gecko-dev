@@ -64,11 +64,11 @@ struct SpeechLevel {
 };
 
 // Computes the audio levels for the first channel in `frame`.
-AudioLevels ComputeAudioLevels(AudioFrameView<float> frame,
+AudioLevels ComputeAudioLevels(DeinterleavedView<float> frame,
                                ApmDataDumper& data_dumper) {
   float peak = 0.0f;
   float rms = 0.0f;
-  for (const auto& x : frame.channel(0)) {
+  for (const auto& x : frame[0]) {
     peak = std::max(std::fabs(x), peak);
     rms += x * x;
   }
@@ -182,8 +182,8 @@ void GainController2::Process(absl::optional<float> speech_probability,
       saturation_protector_->Reset();
   }
 
-  AudioFrameView<float> float_frame(audio->channels(), audio->num_channels(),
-                                    audio->num_frames());
+  DeinterleavedView<float> float_frame = audio->view();
+
   // Compute speech probability.
   if (vad_) {
     // When the VAD component runs, `speech_probability` should not be specified
@@ -258,7 +258,7 @@ void GainController2::Process(absl::optional<float> speech_probability,
   // computation in `limiter_`.
   fixed_gain_applier_.ApplyGain(float_frame);
 
-  limiter_.Process(float_frame.view());
+  limiter_.Process(float_frame);
 
   // Periodically log limiter stats.
   if (++calls_since_last_limiter_log_ == kLogLimiterStatsPeriodNumFrames) {
