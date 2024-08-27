@@ -15,7 +15,6 @@
 #include <deque>
 #include <limits>
 #include <memory>
-#include <ostream>  // no-presubmit-check bugs.webrtc.org/8982
 #include <queue>
 #include <tuple>
 #include <utility>
@@ -55,29 +54,6 @@
 #include "test/time_controller/simulated_time_controller.h"
 #include "test/video_decoder_proxy_factory.h"
 #include "video/call_stats2.h"
-
-namespace webrtc {
-
-// Printing SdpVideoFormat for gmock argument matchers.
-void PrintTo(const SdpVideoFormat& value, std::ostream* os) {
-  *os << value.ToString();
-}
-
-void PrintTo(const RecordableEncodedFrame::EncodedResolution& value,
-             std::ostream* os) {
-  *os << value.width << "x" << value.height;
-}
-
-inline std::ostream& operator<<(std::ostream& stream, Timestamp value) {
-  return stream << ToString(value);
-}
-
-void PrintTo(const RecordableEncodedFrame& value, std::ostream* os) {
-  *os << "RecordableEncodedFrame(render_time=" << value.render_time()
-      << " resolution=" << ::testing::PrintToString(value.resolution()) << ")";
-}
-
-}  // namespace webrtc
 
 namespace webrtc {
 
