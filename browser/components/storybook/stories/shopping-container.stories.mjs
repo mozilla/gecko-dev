@@ -64,7 +64,7 @@ const MOCK_HIGHLIGHTS = {
   },
 };
 
-const MOCK_RECOMMENDED_ADS = [
+const MOCK_RECOMMENDED_ADS_SPONSORED = [
   {
     name: "VIVO Electric 60 x 24 inch Stand Up Desk | Black Table Top, Black Frame, Height Adjustable Standing Workstation with Memory Preset Controller (DESK-KIT-1B6B)",
     url: "www.example.com",
@@ -73,6 +73,19 @@ const MOCK_RECOMMENDED_ADS = [
     grade: "A",
     adjusted_rating: 4.6,
     sponsored: true,
+    image_blob: new Blob(new Uint8Array(), { type: "image/jpeg" }),
+  },
+];
+
+const MOCK_RECOMMENDED_NOT_SPONSORED = [
+  {
+    name: "VIVO Electric 60 x 24 inch Stand Up Desk | Black Table Top, Black Frame, Height Adjustable Standing Workstation with Memory Preset Controller (DESK-KIT-1B6B)",
+    url: "www.example.com",
+    price: "249.99",
+    currency: "USD",
+    grade: "A",
+    adjusted_rating: 4.6,
+    sponsored: false,
     image_blob: new Blob(new Uint8Array(), { type: "image/jpeg" }),
   },
 ];
@@ -194,8 +207,7 @@ ReanalysisInProgress.args = {
 };
 
 /**
- * When ad functionality is enabled and the user wants the ad
- * component visible.
+ * When a sponsored ad is served, and the user wants the ad component visible.
  */
 export const AdVisibleByUser = Template.bind({});
 AdVisibleByUser.args = {
@@ -208,12 +220,28 @@ AdVisibleByUser.args = {
   },
   adsEnabled: true,
   adsEnabledByUser: true,
-  recommendationData: MOCK_RECOMMENDED_ADS,
+  recommendationData: MOCK_RECOMMENDED_ADS_SPONSORED,
 };
 
 /**
- * When ad functionality is enabled, but the user wants the ad
- * component hidden.
+ * When a non-sponsored recommendation is served, and the user wants the recommendation component visible.
+ */
+export const RecommendationVisibleByUser = Template.bind({});
+RecommendationVisibleByUser.args = {
+  data: {
+    product_id: "ABCD123",
+    needs_analysis: false,
+    adjusted_rating: 5,
+    grade: "B",
+    highlights: MOCK_HIGHLIGHTS,
+  },
+  adsEnabled: true,
+  adsEnabledByUser: true,
+  recommendationData: MOCK_RECOMMENDED_NOT_SPONSORED,
+};
+
+/**
+ * When a sponsored ad is served, and the user wants the ad component hidden.
  */
 export const AdHiddenByUser = Template.bind({});
 AdHiddenByUser.args = {
@@ -226,7 +254,7 @@ AdHiddenByUser.args = {
   },
   adsEnabled: true,
   adsEnabledByUser: false,
-  recommendationData: MOCK_RECOMMENDED_ADS,
+  recommendationData: MOCK_RECOMMENDED_ADS_SPONSORED,
 };
 
 export const NotEnoughReviews = Template.bind({});

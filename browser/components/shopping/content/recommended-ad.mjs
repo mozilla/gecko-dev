@@ -24,6 +24,7 @@ class RecommendedAd extends MozLitElement {
       linkEl: "#recommended-ad-wrapper",
       priceEl: "#price",
       ratingEl: "moz-five-star",
+      sponsoredLabelEl: "#sponsored-label",
     };
   }
 
@@ -142,7 +143,14 @@ class RecommendedAd extends MozLitElement {
           </div>
         </a>
       </shopping-card>
-      <p id="sponsored-label" data-l10n-id="shopping-sponsored-label"></p>
+      ${
+        this.product.sponsored
+          ? html`<p
+              id="sponsored-label"
+              data-l10n-id="shopping-sponsored-label"
+            ></p>`
+          : null
+      }
     `;
   }
 }
