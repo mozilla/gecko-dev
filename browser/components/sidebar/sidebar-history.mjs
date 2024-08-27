@@ -224,6 +224,11 @@ export class SidebarHistory extends SidebarPage {
     this._menu.openPopup(e.target, menuPos, 0, 0, false, false, e);
   }
 
+  shouldUpdate() {
+    // don't update/render until initial history visits entries are available
+    return !this.controller.isHistoryPending;
+  }
+
   willUpdate() {
     this._menuSortByDate.setAttribute(
       "checked",

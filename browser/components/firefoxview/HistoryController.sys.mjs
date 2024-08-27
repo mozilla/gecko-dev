@@ -67,7 +67,7 @@ export class HistoryController {
       ? options?.component
       : "firefoxview";
     this.historyCache = {
-      entries: [],
+      entries: null,
       searchQuery: null,
       sortOption: null,
     };
@@ -99,13 +99,18 @@ export class HistoryController {
   }
 
   get historyVisits() {
-    return this.historyCache.entries;
+    return this.historyCache.entries || [];
+  }
+
+  get isHistoryPending() {
+    return this.historyCache.entries === null;
   }
 
   get searchResults() {
-    return this.historyCache.searchQuery
-      ? this.historyCache.entries[0].items
-      : null;
+    if (this.historyCache.searchQuery && this.historyCache.entries?.length) {
+      return this.historyCache.entries[0].items;
+    }
+    return null;
   }
 
   get totalVisitsCount() {

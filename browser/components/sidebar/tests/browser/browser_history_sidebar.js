@@ -61,6 +61,9 @@ async function showHistorySidebar() {
   }
   const { contentDocument, contentWindow } = SidebarController.browser;
   const component = contentDocument.querySelector("sidebar-history");
+  await BrowserTestUtils.waitForCondition(
+    () => !component.controller.isHistoryPending
+  );
   await component.updateComplete;
   return { component, contentWindow };
 }
@@ -285,7 +288,7 @@ add_task(async function test_history_context_menu() {
   );
   await BrowserTestUtils.closeWindow(privateWin);
 
-  info("Copy link.");
+  info(`Copy link from: ${rows[0].mainEl.href}`);
   await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
     contextMenu.activateItem(getItem("copy-link"))
   );
