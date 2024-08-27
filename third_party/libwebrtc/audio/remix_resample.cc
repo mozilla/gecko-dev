@@ -24,48 +24,49 @@ namespace voe {
 void RemixAndResample(const AudioFrame& src_frame,
                       PushResampler<int16_t>* resampler,
                       AudioFrame* dst_frame) {
-  RemixAndResample(src_frame.data(), src_frame.samples_per_channel_,
-                   src_frame.num_channels_, src_frame.sample_rate_hz_,
-                   resampler, dst_frame);
+  RemixAndResample(src_frame.data_view(), src_frame.sample_rate_hz_, resampler,
+                   dst_frame);
   dst_frame->timestamp_ = src_frame.timestamp_;
   dst_frame->elapsed_time_ms_ = src_frame.elapsed_time_ms_;
   dst_frame->ntp_time_ms_ = src_frame.ntp_time_ms_;
   dst_frame->packet_infos_ = src_frame.packet_infos_;
 }
 
-// TODO: b/335805780 - Accept ArrayView.
-void RemixAndResample(const int16_t* src_data,
-                      size_t samples_per_channel,
-                      size_t num_channels,
+void RemixAndResample(InterleavedView<const int16_t> src_data,
                       int sample_rate_hz,
                       PushResampler<int16_t>* resampler,
                       AudioFrame* dst_frame) {
-  const int16_t* audio_ptr = src_data;
-  size_t audio_ptr_num_channels = num_channels;
+  // The `samples_per_channel_` members must have been set correctly based on
+  // the associated sample rate and the assumed 10ms buffer size.
+  // TODO(tommi): Remove the `sample_rate_hz` param.
+  RTC_DCHECK_EQ(SampleRateToDefaultChannelSize(sample_rate_hz),
+                src_data.samples_per_channel());
+  RTC_DCHECK_EQ(SampleRateToDefaultChannelSize(dst_frame->sample_rate_hz_),
+                dst_frame->samples_per_channel());
+
+  // Temporary buffer in case downmixing is required.
   std::array<int16_t, AudioFrame::kMaxDataSizeSamples> downmixed_audio;
 
   // Downmix before resampling.
-  if (num_channels > dst_frame->num_channels_) {
-    RTC_DCHECK(num_channels == 2 || num_channels == 4)
-        << "num_channels: " << num_channels;
+  if (src_data.num_channels() > dst_frame->num_channels_) {
+    RTC_DCHECK(src_data.num_channels() == 2 || src_data.num_channels() == 4)
+        << "num_channels: " << src_data.num_channels();
     RTC_DCHECK(dst_frame->num_channels_ == 1 || dst_frame->num_channels_ == 2)
         << "dst_frame->num_channels_: " << dst_frame->num_channels_;
 
-    AudioFrameOperations::DownmixChannels(
-        InterleavedView<const int16_t>(src_data, samples_per_channel,
-                                       num_channels),
-        InterleavedView<int16_t>(&downmixed_audio[0], samples_per_channel,
-                                 dst_frame->num_channels_));
-    audio_ptr = downmixed_audio.data();
-    audio_ptr_num_channels = dst_frame->num_channels_;
+    InterleavedView<int16_t> downmixed(downmixed_audio.data(),
+                                       src_data.samples_per_channel(),
+                                       dst_frame->num_channels_);
+    AudioFrameOperations::DownmixChannels(src_data, downmixed);
+    src_data = downmixed;
   }
 
   if (resampler->InitializeIfNeeded(sample_rate_hz, dst_frame->sample_rate_hz_,
-                                    audio_ptr_num_channels) == -1) {
+                                    src_data.num_channels()) == -1) {
     RTC_FATAL() << "InitializeIfNeeded failed: sample_rate_hz = "
                 << sample_rate_hz << ", dst_frame->sample_rate_hz_ = "
                 << dst_frame->sample_rate_hz_
-                << ", audio_ptr_num_channels = " << audio_ptr_num_channels;
+                << ", num_channels = " << src_data.num_channels();
   }
 
   // TODO(yujo): for muted input frames, don't resample. Either 1) allow
@@ -73,28 +74,19 @@ void RemixAndResample(const int16_t* src_data,
   // how much to zero here; or 2) make resampler accept a hint that the input is
   // zeroed.
 
-  // Ensure the `samples_per_channel_` member is set correctly based on the
-  // destination sample rate, number of channels and assumed 10ms buffer size.
-  // TODO(tommi): Could we rather assume that this has been done by the caller?
-  dst_frame->SetSampleRateAndChannelSize(dst_frame->sample_rate_hz_);
-
-  InterleavedView<const int16_t> src_view(audio_ptr, samples_per_channel,
-                                          audio_ptr_num_channels);
   // Stash away the originally requested number of channels. Then provide
   // `dst_frame` as a target buffer with the same number of channels as the
   // source.
   auto original_dst_number_of_channels = dst_frame->num_channels_;
   int out_length = resampler->Resample(
-      src_view, dst_frame->mutable_data(dst_frame->samples_per_channel_,
-                                        src_view.num_channels()));
-  RTC_CHECK_NE(out_length, -1) << "Resample failed: audio_ptr = " << audio_ptr
-                               << ", src_length = " << src_view.data().size();
-
+      src_data, dst_frame->mutable_data(dst_frame->samples_per_channel_,
+                                        src_data.num_channels()));
+  RTC_CHECK_NE(out_length, -1) << "src_data.size=" << src_data.size();
   RTC_DCHECK_EQ(dst_frame->samples_per_channel(),
-                out_length / audio_ptr_num_channels);
+                out_length / src_data.num_channels());
 
   // Upmix after resampling.
-  if (num_channels == 1 && original_dst_number_of_channels == 2) {
+  if (src_data.num_channels() == 1 && original_dst_number_of_channels == 2) {
     // The audio in dst_frame really is mono at this point; MonoToStereo will
     // set this back to stereo.
     RTC_DCHECK_EQ(dst_frame->num_channels_, 1);

@@ -38,8 +38,8 @@ void InitializeCaptureFrame(int input_sample_rate,
   RTC_DCHECK(audio_frame);
   int min_processing_rate_hz = std::min(input_sample_rate, send_sample_rate_hz);
   for (int native_rate_hz : AudioProcessing::kNativeSampleRatesHz) {
-    audio_frame->sample_rate_hz_ = native_rate_hz;
-    if (audio_frame->sample_rate_hz_ >= min_processing_rate_hz) {
+    audio_frame->SetSampleRateAndChannelSize(native_rate_hz);
+    if (native_rate_hz >= min_processing_rate_hz) {
       break;
     }
   }
@@ -149,6 +149,9 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
   RTC_DCHECK_LE(bytes_per_sample * number_of_frames * number_of_channels,
                 AudioFrame::kMaxDataSizeBytes);
 
+  InterleavedView<const int16_t> source(static_cast<const int16_t*>(audio_data),
+                                        number_of_frames, number_of_channels);
+
   int send_sample_rate_hz = 0;
   size_t send_num_channels = 0;
   bool swap_stereo_channels = false;
@@ -162,9 +165,8 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
   std::unique_ptr<AudioFrame> audio_frame(new AudioFrame());
   InitializeCaptureFrame(sample_rate, send_sample_rate_hz, number_of_channels,
                          send_num_channels, audio_frame.get());
-  voe::RemixAndResample(static_cast<const int16_t*>(audio_data),
-                        number_of_frames, number_of_channels, sample_rate,
-                        &capture_resampler_, audio_frame.get());
+  voe::RemixAndResample(source, sample_rate, &capture_resampler_,
+                        audio_frame.get());
   ProcessCaptureFrame(audio_delay_milliseconds, key_pressed,
                       swap_stereo_channels, audio_processing_,
                       audio_frame.get());
