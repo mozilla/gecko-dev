@@ -67,7 +67,6 @@ if (rtc_include_tests) {
         "../../rtc_base/third_party/base64",
         "../../system_wrappers",
         "../../test:test_support",
-        "../../test:video_test_support",
       ]
       sources += [
         "screen_capturer_integration_test.cc",

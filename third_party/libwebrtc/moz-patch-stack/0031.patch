@@ -908,10 +908,10 @@ index a0dd3942ee..47b9466a44 100644
      } else {
        cflags = [
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 90930adc0d..3b4a9e805f 100644
+index ddbf3c3d58..1d6f6d567f 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
-@@ -348,37 +348,12 @@ rtc_library("desktop_capture") {
+@@ -347,37 +347,12 @@ rtc_library("desktop_capture") {
      ]
      deps += [ ":desktop_capture_objc" ]
    }
@@ -949,7 +949,7 @@ index 90930adc0d..3b4a9e805f 100644
    }
  
    if (rtc_use_x11_extensions) {
-@@ -537,9 +512,7 @@ rtc_library("desktop_capture") {
+@@ -536,9 +511,7 @@ rtc_library("desktop_capture") {
      deps += [ "../../rtc_base:sanitizer" ]
    }
  
@@ -1236,7 +1236,7 @@ index eef2754883..90f746e594 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 2a91b4de4f..4b62da9450 100644
+index 3055c616ed..4d1a9691de 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -231,6 +231,7 @@ rtc_library("audio_test_common") {
@@ -1268,7 +1268,7 @@ index 2a91b4de4f..4b62da9450 100644
  
    deps = [
      "../api:array_view",
-@@ -551,7 +557,9 @@ rtc_library("video_test_support") {
+@@ -519,7 +525,9 @@ rtc_library("video_frame_writer") {
    ]
  
    if (!is_ios) {
@@ -1278,7 +1278,7 @@ index 2a91b4de4f..4b62da9450 100644
      sources += [ "testsupport/jpeg_frame_writer.cc" ]
    } else {
      sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-@@ -1292,6 +1300,7 @@ if (!build_with_chromium) {
+@@ -1300,6 +1308,7 @@ if (!build_with_chromium) {
    }
  }
  
@@ -1286,7 +1286,7 @@ index 2a91b4de4f..4b62da9450 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1305,6 +1314,7 @@ if (!build_with_chromium && is_android) {
+@@ -1313,6 +1322,7 @@ if (!build_with_chromium && is_android) {
      ]
    }
  }
@@ -1295,7 +1295,7 @@ index 2a91b4de4f..4b62da9450 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index e8449b580a..3fcc525546 100644
+index 227febc4d8..16af1bab2e 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -17,7 +17,7 @@ rtc_library("video_stream_encoder_interface") {
