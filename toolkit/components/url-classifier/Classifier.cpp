@@ -1439,6 +1439,10 @@ nsresult Classifier::UpdateTableV4(TableUpdateArray& aUpdates,
       // get prefixes from the lookup cache first.
       if (prefixes1.IsEmpty() && prefixes2.IsEmpty()) {
         lookupCacheV4->GetPrefixes(prefixes1);
+
+        // Bug 1911932: Temporary move the ApplyUpdate call here to verify the
+        // issue.
+        rv = lookupCacheV4->ApplyUpdate(updateV4, *input, *output);
       } else {
         MOZ_ASSERT(prefixes1.IsEmpty() ^ prefixes2.IsEmpty());
 
@@ -1447,9 +1451,12 @@ nsresult Classifier::UpdateTableV4(TableUpdateArray& aUpdates,
         // output should always point to the empty prefix set.
         input = prefixes1.IsEmpty() ? &prefixes2 : &prefixes1;
         output = prefixes1.IsEmpty() ? &prefixes1 : &prefixes2;
+
+        // Bug 1911932: Temporary move the ApplyUpdate call here to verify the
+        // issue.
+        rv = lookupCacheV4->ApplyUpdate(updateV4, *input, *output);
       }
 
-      rv = lookupCacheV4->ApplyUpdate(updateV4, *input, *output);
       if (NS_FAILED(rv)) {
         return rv;
       }
