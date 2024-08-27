@@ -150,7 +150,7 @@ private fun TranslationMenuItem(
                 id = R.string.browser_menu_translated_to,
                 translatedLanguage,
             ),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_active_24),
             state = if (isReaderViewActive) MenuItemState.DISABLED else MenuItemState.ACTIVE,
             onClick = onClick,
         )
