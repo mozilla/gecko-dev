@@ -101,6 +101,14 @@ def generate(output):
                 f"""
                 /// Macro used to name a path in the srcdir for use with macros like `include!`
                 #[macro_export]
+                macro_rules! windows_rs_path {{
+                    ($path:literal) => {{
+                        concat!({escape_rust_string(windows_rs_dir + "/")}, $path)
+                    }}
+                }}
+
+                /// Macro used to re-export windows-rs's public items
+                #[macro_export]
                 macro_rules! windows_rs_lib {{
                     () => {{
                         #[path = {escape_rust_string(windows_rs_dir + "/src/lib.rs")}]

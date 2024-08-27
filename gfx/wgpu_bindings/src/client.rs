@@ -544,9 +544,7 @@ pub extern "C" fn wgpu_client_make_device_queue_id(
     adapter_id: id::AdapterId,
 ) -> DeviceQueueId {
     let backend = adapter_id.backend();
-    let mut identities_guard = client
-        .identities
-        .lock();
+    let mut identities_guard = client.identities.lock();
     let hub = identities_guard.select(backend);
     let device = hub.devices.process(backend);
     let queue = hub.queues.process(backend);

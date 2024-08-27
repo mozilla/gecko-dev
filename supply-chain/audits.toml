@@ -3105,9 +3105,12 @@ criteria = "safe-to-deploy"
 delta = "0.20.0 -> 22.0.0"
 
 [[audits.naga]]
-who = "Jim Blandy <jimb@red-bean.com>"
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+delta = "22.0.0 -> 22.0.0@git:cc11260547ae7cc2814888208f244227ed32a1d0"
 importable = false
 
 [[audits.net2]]
@@ -4654,6 +4657,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.2.3 -> 0.2.4"
 
+[[audits.unicode-xid]]
+who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.4 -> 0.2.5"
+
 [[audits.uniffi]]
 who = "Travis Long <tlong@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -5080,9 +5088,12 @@ criteria = "safe-to-deploy"
 delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-core]]
-who = "Jim Blandy <jimb@red-bean.com>"
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+delta = "22.0.0 -> 22.0.0@git:cc11260547ae7cc2814888208f244227ed32a1d0"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5149,9 +5160,12 @@ criteria = "safe-to-deploy"
 delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-hal]]
-who = "Jim Blandy <jimb@red-bean.com>"
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+delta = "22.0.0 -> 22.0.0@git:cc11260547ae7cc2814888208f244227ed32a1d0"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5218,9 +5232,12 @@ criteria = "safe-to-deploy"
 delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-types]]
-who = "Jim Blandy <jimb@red-bean.com>"
+who = [
+    "Jim Blandy <jimb@red-bean.com>",
+    "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
+]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+delta = "22.0.0 -> 22.0.0@git:cc11260547ae7cc2814888208f244227ed32a1d0"
 importable = false
 
 [[audits.whatsys]]

@@ -87,7 +87,7 @@
 //! [`ash`]: https://crates.io/crates/ash
 //! [MoltenVK]: https://github.com/KhronosGroup/MoltenVK
 //! [`metal`]: https://crates.io/crates/metal
-//! [`d3d12`]: ahttps://crates.io/crates/d3d12
+//! [`d3d12`]: https://crates.io/crates/d3d12
 //!
 //! ## Secondary backends
 //!
@@ -262,6 +262,17 @@ pub mod api {
     pub use super::vulkan::Api as Vulkan;
 }
 
+mod dynamic;
+
+pub(crate) use dynamic::impl_dyn_resource;
+pub use dynamic::{
+    DynAccelerationStructure, DynAcquiredSurfaceTexture, DynAdapter, DynBindGroup,
+    DynBindGroupLayout, DynBuffer, DynCommandBuffer, DynCommandEncoder, DynComputePipeline,
+    DynDevice, DynExposedAdapter, DynFence, DynInstance, DynOpenDevice, DynPipelineCache,
+    DynPipelineLayout, DynQuerySet, DynQueue, DynRenderPipeline, DynResource, DynSampler,
+    DynShaderModule, DynSurface, DynSurfaceTexture, DynTexture, DynTextureView,
+};
+
 use std::{
     borrow::{Borrow, Cow},
     fmt,
@@ -303,6 +314,8 @@ pub enum DeviceError {
     Lost,
     #[error("Creation of a resource failed for a reason other than running out of memory.")]
     ResourceCreationFailed,
+    #[error("Unexpected error variant (driver implementation is at fault)")]
+    Unexpected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Error)]
@@ -381,13 +394,13 @@ impl InstanceError {
 }
 
 pub trait Api: Clone + fmt::Debug + Sized {
-    type Instance: Instance<A = Self>;
-    type Surface: Surface<A = Self>;
-    type Adapter: Adapter<A = Self>;
-    type Device: Device<A = Self>;
+    type Instance: DynInstance + Instance<A = Self>;
+    type Surface: DynSurface + Surface<A = Self>;
+    type Adapter: DynAdapter + Adapter<A = Self>;
+    type Device: DynDevice + Device<A = Self>;
 
-    type Queue: Queue<A = Self>;
-    type CommandEncoder: CommandEncoder<A = Self>;
+    type Queue: DynQueue + Queue<A = Self>;
+    type CommandEncoder: DynCommandEncoder + CommandEncoder<A = Self>;
 
     /// This API's command buffer type.
     ///
@@ -397,14 +410,14 @@ pub trait Api: Clone + fmt::Debug + Sized {
     /// them to [`CommandEncoder::reset_all`].
     ///
     /// [`CommandEncoder`]: Api::CommandEncoder
-    type CommandBuffer: WasmNotSendSync + fmt::Debug;
+    type CommandBuffer: DynCommandBuffer;
 
-    type Buffer: fmt::Debug + WasmNotSendSync + 'static;
-    type Texture: fmt::Debug + WasmNotSendSync + 'static;
-    type SurfaceTexture: fmt::Debug + WasmNotSendSync + Borrow<Self::Texture>;
-    type TextureView: fmt::Debug + WasmNotSendSync;
-    type Sampler: fmt::Debug + WasmNotSendSync;
-    type QuerySet: fmt::Debug + WasmNotSendSync;
+    type Buffer: DynBuffer;
+    type Texture: DynTexture;
+    type SurfaceTexture: DynSurfaceTexture + Borrow<Self::Texture>;
+    type TextureView: DynTextureView;
+    type Sampler: DynSampler;
+    type QuerySet: DynQuerySet;
 
     /// A value you can block on to wait for something to finish.
     ///
@@ -423,17 +436,17 @@ pub trait Api: Clone + fmt::Debug + Sized {
     /// before a lower-valued operation, then waiting for the fence to reach the
     /// lower value could return before the lower-valued operation has actually
     /// finished.
-    type Fence: fmt::Debug + WasmNotSendSync;
+    type Fence: DynFence;
 
-    type BindGroupLayout: fmt::Debug + WasmNotSendSync;
-    type BindGroup: fmt::Debug + WasmNotSendSync;
-    type PipelineLayout: fmt::Debug + WasmNotSendSync;
-    type ShaderModule: fmt::Debug + WasmNotSendSync;
-    type RenderPipeline: fmt::Debug + WasmNotSendSync;
-    type ComputePipeline: fmt::Debug + WasmNotSendSync;
-    type PipelineCache: fmt::Debug + WasmNotSendSync;
+    type BindGroupLayout: DynBindGroupLayout;
+    type BindGroup: DynBindGroup;
+    type PipelineLayout: DynPipelineLayout;
+    type ShaderModule: DynShaderModule;
+    type RenderPipeline: DynRenderPipeline;
+    type ComputePipeline: DynComputePipeline;
+    type PipelineCache: DynPipelineCache;
 
-    type AccelerationStructure: fmt::Debug + WasmNotSendSync + 'static;
+    type AccelerationStructure: DynAccelerationStructure + 'static;
 }
 
 pub trait Instance: Sized + WasmNotSendSync {
@@ -779,7 +792,7 @@ pub trait Device: WasmNotSendSync {
     /// The new `CommandEncoder` is in the "closed" state.
     unsafe fn create_command_encoder(
         &self,
-        desc: &CommandEncoderDescriptor<Self::A>,
+        desc: &CommandEncoderDescriptor<<Self::A as Api>::Queue>,
     ) -> Result<<Self::A as Api>::CommandEncoder, DeviceError>;
     unsafe fn destroy_command_encoder(&self, pool: <Self::A as Api>::CommandEncoder);
 
@@ -791,12 +804,20 @@ pub trait Device: WasmNotSendSync {
     unsafe fn destroy_bind_group_layout(&self, bg_layout: <Self::A as Api>::BindGroupLayout);
     unsafe fn create_pipeline_layout(
         &self,
-        desc: &PipelineLayoutDescriptor<Self::A>,
+        desc: &PipelineLayoutDescriptor<<Self::A as Api>::BindGroupLayout>,
     ) -> Result<<Self::A as Api>::PipelineLayout, DeviceError>;
     unsafe fn destroy_pipeline_layout(&self, pipeline_layout: <Self::A as Api>::PipelineLayout);
+
+    #[allow(clippy::type_complexity)]
     unsafe fn create_bind_group(
         &self,
-        desc: &BindGroupDescriptor<Self::A>,
+        desc: &BindGroupDescriptor<
+            <Self::A as Api>::BindGroupLayout,
+            <Self::A as Api>::Buffer,
+            <Self::A as Api>::Sampler,
+            <Self::A as Api>::TextureView,
+            <Self::A as Api>::AccelerationStructure,
+        >,
     ) -> Result<<Self::A as Api>::BindGroup, DeviceError>;
     unsafe fn destroy_bind_group(&self, group: <Self::A as Api>::BindGroup);
 
@@ -806,16 +827,29 @@ pub trait Device: WasmNotSendSync {
         shader: ShaderInput,
     ) -> Result<<Self::A as Api>::ShaderModule, ShaderError>;
     unsafe fn destroy_shader_module(&self, module: <Self::A as Api>::ShaderModule);
+
+    #[allow(clippy::type_complexity)]
     unsafe fn create_render_pipeline(
         &self,
-        desc: &RenderPipelineDescriptor<Self::A>,
+        desc: &RenderPipelineDescriptor<
+            <Self::A as Api>::PipelineLayout,
+            <Self::A as Api>::ShaderModule,
+            <Self::A as Api>::PipelineCache,
+        >,
     ) -> Result<<Self::A as Api>::RenderPipeline, PipelineError>;
     unsafe fn destroy_render_pipeline(&self, pipeline: <Self::A as Api>::RenderPipeline);
+
+    #[allow(clippy::type_complexity)]
     unsafe fn create_compute_pipeline(
         &self,
-        desc: &ComputePipelineDescriptor<Self::A>,
+        desc: &ComputePipelineDescriptor<
+            <Self::A as Api>::PipelineLayout,
+            <Self::A as Api>::ShaderModule,
+            <Self::A as Api>::PipelineCache,
+        >,
     ) -> Result<<Self::A as Api>::ComputePipeline, PipelineError>;
     unsafe fn destroy_compute_pipeline(&self, pipeline: <Self::A as Api>::ComputePipeline);
+
     unsafe fn create_pipeline_cache(
         &self,
         desc: &PipelineCacheDescriptor<'_>,
@@ -879,7 +913,7 @@ pub trait Device: WasmNotSendSync {
     ) -> Result<<Self::A as Api>::AccelerationStructure, DeviceError>;
     unsafe fn get_acceleration_structure_build_sizes(
         &self,
-        desc: &GetAccelerationStructureBuildSizesDescriptor<Self::A>,
+        desc: &GetAccelerationStructureBuildSizesDescriptor<<Self::A as Api>::Buffer>,
     ) -> AccelerationStructureBuildSizes;
     unsafe fn get_acceleration_structure_device_address(
         &self,
@@ -1098,11 +1132,11 @@ pub trait CommandEncoder: WasmNotSendSync + fmt::Debug {
 
     unsafe fn transition_buffers<'a, T>(&mut self, barriers: T)
     where
-        T: Iterator<Item = BufferBarrier<'a, Self::A>>;
+        T: Iterator<Item = BufferBarrier<'a, <Self::A as Api>::Buffer>>;
 
     unsafe fn transition_textures<'a, T>(&mut self, barriers: T)
     where
-        T: Iterator<Item = TextureBarrier<'a, Self::A>>;
+        T: Iterator<Item = TextureBarrier<'a, <Self::A as Api>::Texture>>;
 
     // copy operations
 
@@ -1223,17 +1257,24 @@ pub trait CommandEncoder: WasmNotSendSync + fmt::Debug {
     // render passes
 
     // Begins a render pass, clears all active bindings.
-    unsafe fn begin_render_pass(&mut self, desc: &RenderPassDescriptor<Self::A>);
+    unsafe fn begin_render_pass(
+        &mut self,
+        desc: &RenderPassDescriptor<<Self::A as Api>::QuerySet, <Self::A as Api>::TextureView>,
+    );
     unsafe fn end_render_pass(&mut self);
 
     unsafe fn set_render_pipeline(&mut self, pipeline: &<Self::A as Api>::RenderPipeline);
 
     unsafe fn set_index_buffer<'a>(
         &mut self,
-        binding: BufferBinding<'a, Self::A>,
+        binding: BufferBinding<'a, <Self::A as Api>::Buffer>,
         format: wgt::IndexFormat,
     );
-    unsafe fn set_vertex_buffer<'a>(&mut self, index: u32, binding: BufferBinding<'a, Self::A>);
+    unsafe fn set_vertex_buffer<'a>(
+        &mut self,
+        index: u32,
+        binding: BufferBinding<'a, <Self::A as Api>::Buffer>,
+    );
     unsafe fn set_viewport(&mut self, rect: &Rect<f32>, depth_range: Range<f32>);
     unsafe fn set_scissor_rect(&mut self, rect: &Rect<u32>);
     unsafe fn set_stencil_reference(&mut self, value: u32);
@@ -1286,7 +1327,10 @@ pub trait CommandEncoder: WasmNotSendSync + fmt::Debug {
     // compute passes
 
     // Begins a compute pass, clears all active bindings.
-    unsafe fn begin_compute_pass(&mut self, desc: &ComputePassDescriptor<Self::A>);
+    unsafe fn begin_compute_pass(
+        &mut self,
+        desc: &ComputePassDescriptor<<Self::A as Api>::QuerySet>,
+    );
     unsafe fn end_compute_pass(&mut self);
 
     unsafe fn set_compute_pipeline(&mut self, pipeline: &<Self::A as Api>::ComputePipeline);
@@ -1311,7 +1355,13 @@ pub trait CommandEncoder: WasmNotSendSync + fmt::Debug {
         descriptors: T,
     ) where
         Self::A: 'a,
-        T: IntoIterator<Item = BuildAccelerationStructureDescriptor<'a, Self::A>>;
+        T: IntoIterator<
+            Item = BuildAccelerationStructureDescriptor<
+                'a,
+                <Self::A as Api>::Buffer,
+                <Self::A as Api>::AccelerationStructure,
+            >,
+        >;
 
     unsafe fn place_acceleration_structure_barrier(
         &mut self,
@@ -1723,17 +1773,17 @@ pub struct BindGroupLayoutDescriptor<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub struct PipelineLayoutDescriptor<'a, A: Api> {
+pub struct PipelineLayoutDescriptor<'a, B: DynBindGroupLayout + ?Sized> {
     pub label: Label<'a>,
     pub flags: PipelineLayoutFlags,
-    pub bind_group_layouts: &'a [&'a A::BindGroupLayout],
+    pub bind_group_layouts: &'a [&'a B],
     pub push_constant_ranges: &'a [wgt::PushConstantRange],
 }
 
 #[derive(Debug)]
-pub struct BufferBinding<'a, A: Api> {
+pub struct BufferBinding<'a, B: DynBuffer + ?Sized> {
     /// The buffer being bound.
-    pub buffer: &'a A::Buffer,
+    pub buffer: &'a B,
 
     /// The offset at which the bound region starts.
     ///
@@ -1756,10 +1806,9 @@ pub struct BufferBinding<'a, A: Api> {
     pub size: Option<wgt::BufferSize>,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for BufferBinding<'_, A> {
+impl<'a, T: DynBuffer + ?Sized> Clone for BufferBinding<'a, T> {
     fn clone(&self) -> Self {
-        Self {
+        BufferBinding {
             buffer: self.buffer,
             offset: self.offset,
             size: self.size,
@@ -1768,15 +1817,14 @@ impl<A: Api> Clone for BufferBinding<'_, A> {
 }
 
 #[derive(Debug)]
-pub struct TextureBinding<'a, A: Api> {
-    pub view: &'a A::TextureView,
+pub struct TextureBinding<'a, T: DynTextureView + ?Sized> {
+    pub view: &'a T,
     pub usage: TextureUses,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for TextureBinding<'_, A> {
+impl<'a, T: DynTextureView + ?Sized> Clone for TextureBinding<'a, T> {
     fn clone(&self) -> Self {
-        Self {
+        TextureBinding {
             view: self.view,
             usage: self.usage,
         }
@@ -1800,20 +1848,27 @@ pub struct BindGroupEntry {
 ///    of the corresponding resource array, selected by the relevant
 ///    `BindGroupLayoutEntry`.
 #[derive(Clone, Debug)]
-pub struct BindGroupDescriptor<'a, A: Api> {
+pub struct BindGroupDescriptor<
+    'a,
+    Bgl: DynBindGroupLayout + ?Sized,
+    B: DynBuffer + ?Sized,
+    S: DynSampler + ?Sized,
+    T: DynTextureView + ?Sized,
+    A: DynAccelerationStructure + ?Sized,
+> {
     pub label: Label<'a>,
-    pub layout: &'a A::BindGroupLayout,
-    pub buffers: &'a [BufferBinding<'a, A>],
-    pub samplers: &'a [&'a A::Sampler],
-    pub textures: &'a [TextureBinding<'a, A>],
+    pub layout: &'a Bgl,
+    pub buffers: &'a [BufferBinding<'a, B>],
+    pub samplers: &'a [&'a S],
+    pub textures: &'a [TextureBinding<'a, T>],
     pub entries: &'a [BindGroupEntry],
-    pub acceleration_structures: &'a [&'a A::AccelerationStructure],
+    pub acceleration_structures: &'a [&'a A],
 }
 
 #[derive(Clone, Debug)]
-pub struct CommandEncoderDescriptor<'a, A: Api> {
+pub struct CommandEncoderDescriptor<'a, Q: DynQueue + ?Sized> {
     pub label: Label<'a>,
-    pub queue: &'a A::Queue,
+    pub queue: &'a Q,
 }
 
 /// Naga shader module.
@@ -1854,9 +1909,9 @@ pub struct DebugSource {
 
 /// Describes a programmable pipeline stage.
 #[derive(Debug)]
-pub struct ProgrammableStage<'a, A: Api> {
+pub struct ProgrammableStage<'a, M: DynShaderModule + ?Sized> {
     /// The compiled shader module for this stage.
-    pub module: &'a A::ShaderModule,
+    pub module: &'a M,
     /// The name of the entry point in the compiled shader. There must be a function with this name
     ///  in the shader.
     pub entry_point: &'a str,
@@ -1869,8 +1924,7 @@ pub struct ProgrammableStage<'a, A: Api> {
     pub zero_initialize_workgroup_memory: bool,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for ProgrammableStage<'_, A> {
+impl<M: DynShaderModule + ?Sized> Clone for ProgrammableStage<'_, M> {
     fn clone(&self) -> Self {
         Self {
             module: self.module,
@@ -1883,14 +1937,19 @@ impl<A: Api> Clone for ProgrammableStage<'_, A> {
 
 /// Describes a compute pipeline.
 #[derive(Clone, Debug)]
-pub struct ComputePipelineDescriptor<'a, A: Api> {
+pub struct ComputePipelineDescriptor<
+    'a,
+    Pl: DynPipelineLayout + ?Sized,
+    M: DynShaderModule + ?Sized,
+    Pc: DynPipelineCache + ?Sized,
+> {
     pub label: Label<'a>,
     /// The layout of bind groups for this pipeline.
-    pub layout: &'a A::PipelineLayout,
+    pub layout: &'a Pl,
     /// The compiled compute stage and its entry point.
-    pub stage: ProgrammableStage<'a, A>,
+    pub stage: ProgrammableStage<'a, M>,
     /// The cache which will be used and filled when compiling this pipeline
-    pub cache: Option<&'a A::PipelineCache>,
+    pub cache: Option<&'a Pc>,
 }
 
 pub struct PipelineCacheDescriptor<'a> {
@@ -1911,14 +1970,19 @@ pub struct VertexBufferLayout<'a> {
 
 /// Describes a render (graphics) pipeline.
 #[derive(Clone, Debug)]
-pub struct RenderPipelineDescriptor<'a, A: Api> {
+pub struct RenderPipelineDescriptor<
+    'a,
+    Pl: DynPipelineLayout + ?Sized,
+    M: DynShaderModule + ?Sized,
+    Pc: DynPipelineCache + ?Sized,
+> {
     pub label: Label<'a>,
     /// The layout of bind groups for this pipeline.
-    pub layout: &'a A::PipelineLayout,
+    pub layout: &'a Pl,
     /// The format of any vertex buffers used with this pipeline.
     pub vertex_buffers: &'a [VertexBufferLayout<'a>],
     /// The vertex stage for this pipeline.
-    pub vertex_stage: ProgrammableStage<'a, A>,
+    pub vertex_stage: ProgrammableStage<'a, M>,
     /// The properties of the pipeline at the primitive assembly and rasterization level.
     pub primitive: wgt::PrimitiveState,
     /// The effect of draw calls on the depth and stencil aspects of the output target, if any.
@@ -1926,14 +1990,14 @@ pub struct RenderPipelineDescriptor<'a, A: Api> {
     /// The multi-sampling properties of the pipeline.
     pub multisample: wgt::MultisampleState,
     /// The fragment stage for this pipeline.
-    pub fragment_stage: Option<ProgrammableStage<'a, A>>,
+    pub fragment_stage: Option<ProgrammableStage<'a, M>>,
     /// The effect of draw calls on the color aspect of the output target.
     pub color_targets: &'a [Option<wgt::ColorTargetState>],
     /// If the pipeline will be used with a multiview render pass, this indicates how many array
     /// layers the attachments will have.
     pub multiview: Option<NonZeroU32>,
     /// The cache which will be used and filled when compiling this pipeline
-    pub cache: Option<&'a A::PipelineCache>,
+    pub cache: Option<&'a Pc>,
 }
 
 #[derive(Debug, Clone)]
@@ -1966,14 +2030,14 @@ pub struct Rect<T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct BufferBarrier<'a, A: Api> {
-    pub buffer: &'a A::Buffer,
+pub struct BufferBarrier<'a, B: DynBuffer + ?Sized> {
+    pub buffer: &'a B,
     pub usage: Range<BufferUses>,
 }
 
 #[derive(Debug, Clone)]
-pub struct TextureBarrier<'a, A: Api> {
-    pub texture: &'a A::Texture,
+pub struct TextureBarrier<'a, T: DynTexture + ?Sized> {
+    pub texture: &'a T,
     pub range: wgt::ImageSubresourceRange,
     pub usage: Range<TextureUses>,
 }
@@ -2016,104 +2080,53 @@ pub struct BufferTextureCopy {
     pub size: CopyExtent,
 }
 
-#[derive(Debug)]
-pub struct Attachment<'a, A: Api> {
-    pub view: &'a A::TextureView,
+#[derive(Clone, Debug)]
+pub struct Attachment<'a, T: DynTextureView + ?Sized> {
+    pub view: &'a T,
     /// Contains either a single mutating usage as a target,
     /// or a valid combination of read-only usages.
     pub usage: TextureUses,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for Attachment<'_, A> {
-    fn clone(&self) -> Self {
-        Self {
-            view: self.view,
-            usage: self.usage,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ColorAttachment<'a, A: Api> {
-    pub target: Attachment<'a, A>,
-    pub resolve_target: Option<Attachment<'a, A>>,
+#[derive(Clone, Debug)]
+pub struct ColorAttachment<'a, T: DynTextureView + ?Sized> {
+    pub target: Attachment<'a, T>,
+    pub resolve_target: Option<Attachment<'a, T>>,
     pub ops: AttachmentOps,
     pub clear_value: wgt::Color,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for ColorAttachment<'_, A> {
-    fn clone(&self) -> Self {
-        Self {
-            target: self.target.clone(),
-            resolve_target: self.resolve_target.clone(),
-            ops: self.ops,
-            clear_value: self.clear_value,
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
-pub struct DepthStencilAttachment<'a, A: Api> {
-    pub target: Attachment<'a, A>,
+pub struct DepthStencilAttachment<'a, T: DynTextureView + ?Sized> {
+    pub target: Attachment<'a, T>,
     pub depth_ops: AttachmentOps,
     pub stencil_ops: AttachmentOps,
     pub clear_value: (f32, u32),
 }
 
-#[derive(Debug)]
-pub struct RenderPassTimestampWrites<'a, A: Api> {
-    pub query_set: &'a A::QuerySet,
+#[derive(Clone, Debug)]
+pub struct PassTimestampWrites<'a, Q: DynQuerySet + ?Sized> {
+    pub query_set: &'a Q,
     pub beginning_of_pass_write_index: Option<u32>,
     pub end_of_pass_write_index: Option<u32>,
 }
 
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for RenderPassTimestampWrites<'_, A> {
-    fn clone(&self) -> Self {
-        Self {
-            query_set: self.query_set,
-            beginning_of_pass_write_index: self.beginning_of_pass_write_index,
-            end_of_pass_write_index: self.end_of_pass_write_index,
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
-pub struct RenderPassDescriptor<'a, A: Api> {
+pub struct RenderPassDescriptor<'a, Q: DynQuerySet + ?Sized, T: DynTextureView + ?Sized> {
     pub label: Label<'a>,
     pub extent: wgt::Extent3d,
     pub sample_count: u32,
-    pub color_attachments: &'a [Option<ColorAttachment<'a, A>>],
-    pub depth_stencil_attachment: Option<DepthStencilAttachment<'a, A>>,
+    pub color_attachments: &'a [Option<ColorAttachment<'a, T>>],
+    pub depth_stencil_attachment: Option<DepthStencilAttachment<'a, T>>,
     pub multiview: Option<NonZeroU32>,
-    pub timestamp_writes: Option<RenderPassTimestampWrites<'a, A>>,
-    pub occlusion_query_set: Option<&'a A::QuerySet>,
-}
-
-#[derive(Debug)]
-pub struct ComputePassTimestampWrites<'a, A: Api> {
-    pub query_set: &'a A::QuerySet,
-    pub beginning_of_pass_write_index: Option<u32>,
-    pub end_of_pass_write_index: Option<u32>,
-}
-
-// Rust gets confused about the impl requirements for `A`
-impl<A: Api> Clone for ComputePassTimestampWrites<'_, A> {
-    fn clone(&self) -> Self {
-        Self {
-            query_set: self.query_set,
-            beginning_of_pass_write_index: self.beginning_of_pass_write_index,
-            end_of_pass_write_index: self.end_of_pass_write_index,
-        }
-    }
+    pub timestamp_writes: Option<PassTimestampWrites<'a, Q>>,
+    pub occlusion_query_set: Option<&'a Q>,
 }
 
 #[derive(Clone, Debug)]
-pub struct ComputePassDescriptor<'a, A: Api> {
+pub struct ComputePassDescriptor<'a, Q: DynQuerySet + ?Sized> {
     pub label: Label<'a>,
-    pub timestamp_writes: Option<ComputePassTimestampWrites<'a, A>>,
+    pub timestamp_writes: Option<PassTimestampWrites<'a, Q>>,
 }
 
 /// Stores the text of any validation errors that have occurred since
@@ -2188,13 +2201,17 @@ pub struct AccelerationStructureBuildSizes {
 /// Updates use source_acceleration_structure if present, else the update will be performed in place.
 /// For updates, only the data is allowed to change (not the meta data or sizes).
 #[derive(Clone, Debug)]
-pub struct BuildAccelerationStructureDescriptor<'a, A: Api> {
-    pub entries: &'a AccelerationStructureEntries<'a, A>,
+pub struct BuildAccelerationStructureDescriptor<
+    'a,
+    B: DynBuffer + ?Sized,
+    A: DynAccelerationStructure + ?Sized,
+> {
+    pub entries: &'a AccelerationStructureEntries<'a, B>,
     pub mode: AccelerationStructureBuildMode,
     pub flags: AccelerationStructureBuildFlags,
-    pub source_acceleration_structure: Option<&'a A::AccelerationStructure>,
-    pub destination_acceleration_structure: &'a A::AccelerationStructure,
-    pub scratch_buffer: &'a A::Buffer,
+    pub source_acceleration_structure: Option<&'a A>,
+    pub destination_acceleration_structure: &'a A,
+    pub scratch_buffer: &'a B,
     pub scratch_buffer_offset: wgt::BufferAddress,
 }
 
@@ -2204,8 +2221,8 @@ pub struct BuildAccelerationStructureDescriptor<'a, A: Api> {
 ///   may result in reduced size requirements.
 /// - Any other change may result in a bigger or smaller size requirement.
 #[derive(Clone, Debug)]
-pub struct GetAccelerationStructureBuildSizesDescriptor<'a, A: Api> {
-    pub entries: &'a AccelerationStructureEntries<'a, A>,
+pub struct GetAccelerationStructureBuildSizesDescriptor<'a, B: DynBuffer + ?Sized> {
+    pub entries: &'a AccelerationStructureEntries<'a, B>,
     pub flags: AccelerationStructureBuildFlags,
 }
 
@@ -2214,31 +2231,31 @@ pub struct GetAccelerationStructureBuildSizesDescriptor<'a, A: Api> {
 /// * `Triangles` - Multiple triangle meshes for a bottom level acceleration structure
 /// * `AABBs` - List of list of axis aligned bounding boxes for a bottom level acceleration structure
 #[derive(Debug)]
-pub enum AccelerationStructureEntries<'a, A: Api> {
-    Instances(AccelerationStructureInstances<'a, A>),
-    Triangles(Vec<AccelerationStructureTriangles<'a, A>>),
-    AABBs(Vec<AccelerationStructureAABBs<'a, A>>),
+pub enum AccelerationStructureEntries<'a, B: DynBuffer + ?Sized> {
+    Instances(AccelerationStructureInstances<'a, B>),
+    Triangles(Vec<AccelerationStructureTriangles<'a, B>>),
+    AABBs(Vec<AccelerationStructureAABBs<'a, B>>),
 }
 
 /// * `first_vertex` - offset in the vertex buffer (as number of vertices)
 /// * `indices` - optional index buffer with attributes
 /// * `transform` - optional transform
 #[derive(Clone, Debug)]
-pub struct AccelerationStructureTriangles<'a, A: Api> {
-    pub vertex_buffer: Option<&'a A::Buffer>,
+pub struct AccelerationStructureTriangles<'a, B: DynBuffer + ?Sized> {
+    pub vertex_buffer: Option<&'a B>,
     pub vertex_format: wgt::VertexFormat,
     pub first_vertex: u32,
     pub vertex_count: u32,
     pub vertex_stride: wgt::BufferAddress,
-    pub indices: Option<AccelerationStructureTriangleIndices<'a, A>>,
-    pub transform: Option<AccelerationStructureTriangleTransform<'a, A>>,
+    pub indices: Option<AccelerationStructureTriangleIndices<'a, B>>,
+    pub transform: Option<AccelerationStructureTriangleTransform<'a, B>>,
     pub flags: AccelerationStructureGeometryFlags,
 }
 
 /// * `offset` - offset in bytes
 #[derive(Clone, Debug)]
-pub struct AccelerationStructureAABBs<'a, A: Api> {
-    pub buffer: Option<&'a A::Buffer>,
+pub struct AccelerationStructureAABBs<'a, B: DynBuffer + ?Sized> {
+    pub buffer: Option<&'a B>,
     pub offset: u32,
     pub count: u32,
     pub stride: wgt::BufferAddress,
@@ -2247,25 +2264,25 @@ pub struct AccelerationStructureAABBs<'a, A: Api> {
 
 /// * `offset` - offset in bytes
 #[derive(Clone, Debug)]
-pub struct AccelerationStructureInstances<'a, A: Api> {
-    pub buffer: Option<&'a A::Buffer>,
+pub struct AccelerationStructureInstances<'a, B: DynBuffer + ?Sized> {
+    pub buffer: Option<&'a B>,
     pub offset: u32,
     pub count: u32,
 }
 
 /// * `offset` - offset in bytes
 #[derive(Clone, Debug)]
-pub struct AccelerationStructureTriangleIndices<'a, A: Api> {
+pub struct AccelerationStructureTriangleIndices<'a, B: DynBuffer + ?Sized> {
     pub format: wgt::IndexFormat,
-    pub buffer: Option<&'a A::Buffer>,
+    pub buffer: Option<&'a B>,
     pub offset: u32,
     pub count: u32,
 }
 
 /// * `offset` - offset in bytes
 #[derive(Clone, Debug)]
-pub struct AccelerationStructureTriangleTransform<'a, A: Api> {
-    pub buffer: &'a A::Buffer,
+pub struct AccelerationStructureTriangleTransform<'a, B: DynBuffer + ?Sized> {
+    pub buffer: &'a B,
     pub offset: u32,
 }
 

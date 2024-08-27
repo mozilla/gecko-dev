@@ -10,7 +10,6 @@ use crate::{
     device::{DeviceError, WaitIdleError},
     get_lowest_common_denom,
     global::Global,
-    hal_api::HalApi,
     hal_label,
     id::{self, QueueId},
     init_tracker::{has_copy_partial_init_tracker_coverage, TextureInitRange},
@@ -25,7 +24,6 @@ use crate::{
     FastHashMap, SubmissionIndex,
 };
 
-use hal::{CommandEncoder as _, Device as _, Queue as _};
 use smallvec::SmallVec;
 
 use std::{
@@ -38,27 +36,27 @@ use thiserror::Error;
 
 use super::Device;
 
-pub struct Queue<A: HalApi> {
-    raw: ManuallyDrop<A::Queue>,
-    pub(crate) device: Arc<Device<A>>,
+pub struct Queue {
+    raw: ManuallyDrop<Box<dyn hal::DynQueue>>,
+    pub(crate) device: Arc<Device>,
 }
 
-impl<A: HalApi> Queue<A> {
-    pub(crate) fn new(device: Arc<Device<A>>, raw: A::Queue) -> Self {
+impl Queue {
+    pub(crate) fn new(device: Arc<Device>, raw: Box<dyn hal::DynQueue>) -> Self {
         Queue {
             raw: ManuallyDrop::new(raw),
             device,
         }
     }
 
-    pub(crate) fn raw(&self) -> &A::Queue {
-        &self.raw
+    pub(crate) fn raw(&self) -> &dyn hal::DynQueue {
+        self.raw.as_ref()
     }
 }
 
 crate::impl_resource_type!(Queue);
 // TODO: https://github.com/gfx-rs/wgpu/issues/4014
-impl<A: HalApi> Labeled for Queue<A> {
+impl Labeled for Queue {
     fn label(&self) -> &str {
         ""
     }
@@ -66,7 +64,7 @@ impl<A: HalApi> Labeled for Queue<A> {
 crate::impl_parent_device!(Queue);
 crate::impl_storage_item!(Queue);
 
-impl<A: HalApi> Drop for Queue<A> {
+impl Drop for Queue {
     fn drop(&mut self) {
         resource_log!("Drop {}", self.error_ident());
         // SAFETY: we never access `self.raw` beyond this point.
@@ -142,10 +140,10 @@ impl SubmittedWorkDoneClosure {
 /// - `ActiveSubmission::temp_resources`: temporary resources used by a queue
 ///   submission, to be freed when it completes
 #[derive(Debug)]
-pub enum TempResource<A: HalApi> {
-    StagingBuffer(FlushedStagingBuffer<A>),
-    DestroyedBuffer(DestroyedBuffer<A>),
-    DestroyedTexture(DestroyedTexture<A>),
+pub enum TempResource {
+    StagingBuffer(FlushedStagingBuffer),
+    DestroyedBuffer(DestroyedBuffer),
+    DestroyedTexture(DestroyedTexture),
 }
 
 /// A series of raw [`CommandBuffer`]s that have been submitted to a
@@ -153,24 +151,24 @@ pub enum TempResource<A: HalApi> {
 ///
 /// [`CommandBuffer`]: hal::Api::CommandBuffer
 /// [`wgpu_hal::CommandEncoder`]: hal::CommandEncoder
-pub(crate) struct EncoderInFlight<A: HalApi> {
-    raw: A::CommandEncoder,
-    cmd_buffers: Vec<A::CommandBuffer>,
-    pub(crate) trackers: Tracker<A>,
+pub(crate) struct EncoderInFlight {
+    raw: Box<dyn hal::DynCommandEncoder>,
+    cmd_buffers: Vec<Box<dyn hal::DynCommandBuffer>>,
+    pub(crate) trackers: Tracker,
 
     /// These are the buffers that have been tracked by `PendingWrites`.
-    pub(crate) pending_buffers: FastHashMap<TrackerIndex, Arc<Buffer<A>>>,
+    pub(crate) pending_buffers: FastHashMap<TrackerIndex, Arc<Buffer>>,
     /// These are the textures that have been tracked by `PendingWrites`.
-    pub(crate) pending_textures: FastHashMap<TrackerIndex, Arc<Texture<A>>>,
+    pub(crate) pending_textures: FastHashMap<TrackerIndex, Arc<Texture>>,
 }
 
-impl<A: HalApi> EncoderInFlight<A> {
+impl EncoderInFlight {
     /// Free all of our command buffers.
     ///
     /// Return the command encoder, fully reset and ready to be
     /// reused.
-    pub(crate) unsafe fn land(mut self) -> A::CommandEncoder {
-        unsafe { self.raw.reset_all(self.cmd_buffers.into_iter()) };
+    pub(crate) unsafe fn land(mut self) -> Box<dyn hal::DynCommandEncoder> {
+        unsafe { self.raw.reset_all(self.cmd_buffers) };
         {
             // This involves actually decrementing the ref count of all command buffer
             // resources, so can be _very_ expensive.
@@ -204,8 +202,8 @@ impl<A: HalApi> EncoderInFlight<A> {
 ///
 /// All uses of [`StagingBuffer`]s end up here.
 #[derive(Debug)]
-pub(crate) struct PendingWrites<A: HalApi> {
-    pub command_encoder: A::CommandEncoder,
+pub(crate) struct PendingWrites {
+    pub command_encoder: Box<dyn hal::DynCommandEncoder>,
 
     /// True if `command_encoder` is in the "recording" state, as
     /// described in the docs for the [`wgpu_hal::CommandEncoder`]
@@ -214,13 +212,13 @@ pub(crate) struct PendingWrites<A: HalApi> {
     /// [`wgpu_hal::CommandEncoder`]: hal::CommandEncoder
     pub is_recording: bool,
 
-    temp_resources: Vec<TempResource<A>>,
-    dst_buffers: FastHashMap<TrackerIndex, Arc<Buffer<A>>>,
-    dst_textures: FastHashMap<TrackerIndex, Arc<Texture<A>>>,
+    temp_resources: Vec<TempResource>,
+    dst_buffers: FastHashMap<TrackerIndex, Arc<Buffer>>,
+    dst_textures: FastHashMap<TrackerIndex, Arc<Texture>>,
 }
 
-impl<A: HalApi> PendingWrites<A> {
-    pub fn new(command_encoder: A::CommandEncoder) -> Self {
+impl PendingWrites {
+    pub fn new(command_encoder: Box<dyn hal::DynCommandEncoder>) -> Self {
         Self {
             command_encoder,
             is_recording: false,
@@ -230,7 +228,7 @@ impl<A: HalApi> PendingWrites<A> {
         }
     }
 
-    pub fn dispose(mut self, device: &A::Device) {
+    pub fn dispose(mut self, device: &dyn hal::DynDevice) {
         unsafe {
             if self.is_recording {
                 self.command_encoder.discard_encoding();
@@ -241,39 +239,39 @@ impl<A: HalApi> PendingWrites<A> {
         self.temp_resources.clear();
     }
 
-    pub fn insert_buffer(&mut self, buffer: &Arc<Buffer<A>>) {
+    pub fn insert_buffer(&mut self, buffer: &Arc<Buffer>) {
         self.dst_buffers
             .insert(buffer.tracker_index(), buffer.clone());
     }
 
-    pub fn insert_texture(&mut self, texture: &Arc<Texture<A>>) {
+    pub fn insert_texture(&mut self, texture: &Arc<Texture>) {
         self.dst_textures
             .insert(texture.tracker_index(), texture.clone());
     }
 
-    pub fn contains_buffer(&self, buffer: &Arc<Buffer<A>>) -> bool {
+    pub fn contains_buffer(&self, buffer: &Arc<Buffer>) -> bool {
         self.dst_buffers.contains_key(&buffer.tracker_index())
     }
 
-    pub fn contains_texture(&self, texture: &Arc<Texture<A>>) -> bool {
+    pub fn contains_texture(&self, texture: &Arc<Texture>) -> bool {
         self.dst_textures.contains_key(&texture.tracker_index())
     }
 
-    pub fn consume_temp(&mut self, resource: TempResource<A>) {
+    pub fn consume_temp(&mut self, resource: TempResource) {
         self.temp_resources.push(resource);
     }
 
-    pub fn consume(&mut self, buffer: FlushedStagingBuffer<A>) {
+    pub fn consume(&mut self, buffer: FlushedStagingBuffer) {
         self.temp_resources
             .push(TempResource::StagingBuffer(buffer));
     }
 
     fn pre_submit(
         &mut self,
-        command_allocator: &CommandAllocator<A>,
-        device: &A::Device,
-        queue: &A::Queue,
-    ) -> Result<Option<EncoderInFlight<A>>, DeviceError> {
+        command_allocator: &CommandAllocator,
+        device: &dyn hal::DynDevice,
+        queue: &dyn hal::DynQueue,
+    ) -> Result<Option<EncoderInFlight>, DeviceError> {
         if self.is_recording {
             let pending_buffers = mem::take(&mut self.dst_buffers);
             let pending_textures = mem::take(&mut self.dst_textures);
@@ -298,7 +296,7 @@ impl<A: HalApi> PendingWrites<A> {
         }
     }
 
-    pub fn activate(&mut self) -> &mut A::CommandEncoder {
+    pub fn activate(&mut self) -> &mut dyn hal::DynCommandEncoder {
         if !self.is_recording {
             unsafe {
                 self.command_encoder
@@ -307,7 +305,7 @@ impl<A: HalApi> PendingWrites<A> {
             }
             self.is_recording = true;
         }
-        &mut self.command_encoder
+        self.command_encoder.as_mut()
     }
 
     pub fn deactivate(&mut self) {
@@ -363,7 +361,7 @@ pub enum QueueSubmitError {
 //TODO: move out common parts of write_xxx.
 
 impl Global {
-    pub fn queue_write_buffer<A: HalApi>(
+    pub fn queue_write_buffer(
         &self,
         queue_id: QueueId,
         buffer_id: id::BufferId,
@@ -373,7 +371,7 @@ impl Global {
         profiling::scope!("Queue::write_buffer");
         api_log!("Queue::write_buffer {buffer_id:?} {}bytes", data.len());
 
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let buffer = hub
             .buffers
@@ -434,14 +432,14 @@ impl Global {
         result
     }
 
-    pub fn queue_create_staging_buffer<A: HalApi>(
+    pub fn queue_create_staging_buffer(
         &self,
         queue_id: QueueId,
         buffer_size: wgt::BufferSize,
         id_in: Option<id::StagingBufferId>,
     ) -> Result<(id::StagingBufferId, NonNull<u8>), QueueWriteError> {
         profiling::scope!("Queue::create_staging_buffer");
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let queue = hub
             .queues
@@ -453,14 +451,14 @@ impl Global {
         let staging_buffer = StagingBuffer::new(device, buffer_size)?;
         let ptr = unsafe { staging_buffer.ptr() };
 
-        let fid = hub.staging_buffers.prepare(id_in);
+        let fid = hub.staging_buffers.prepare(queue_id.backend(), id_in);
         let id = fid.assign(Arc::new(staging_buffer));
         resource_log!("Queue::create_staging_buffer {id:?}");
 
         Ok((id, ptr))
     }
 
-    pub fn queue_write_staging_buffer<A: HalApi>(
+    pub fn queue_write_staging_buffer(
         &self,
         queue_id: QueueId,
         buffer_id: id::BufferId,
@@ -468,7 +466,7 @@ impl Global {
         staging_buffer_id: id::StagingBufferId,
     ) -> Result<(), QueueWriteError> {
         profiling::scope!("Queue::write_staging_buffer");
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let queue = hub
             .queues
@@ -504,7 +502,7 @@ impl Global {
         result
     }
 
-    pub fn queue_validate_write_buffer<A: HalApi>(
+    pub fn queue_validate_write_buffer(
         &self,
         _queue_id: QueueId,
         buffer_id: id::BufferId,
@@ -512,7 +510,7 @@ impl Global {
         buffer_size: wgt::BufferSize,
     ) -> Result<(), QueueWriteError> {
         profiling::scope!("Queue::validate_write_buffer");
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let buffer = hub
             .buffers
@@ -524,9 +522,9 @@ impl Global {
         Ok(())
     }
 
-    fn queue_validate_write_buffer_impl<A: HalApi>(
+    fn queue_validate_write_buffer_impl(
         &self,
-        buffer: &Buffer<A>,
+        buffer: &Buffer,
         buffer_offset: u64,
         buffer_size: wgt::BufferSize,
     ) -> Result<(), TransferError> {
@@ -549,16 +547,16 @@ impl Global {
         Ok(())
     }
 
-    fn queue_write_staging_buffer_impl<A: HalApi>(
+    fn queue_write_staging_buffer_impl(
         &self,
-        queue: &Arc<Queue<A>>,
-        device: &Arc<Device<A>>,
-        pending_writes: &mut PendingWrites<A>,
-        staging_buffer: &FlushedStagingBuffer<A>,
+        queue: &Arc<Queue>,
+        device: &Arc<Device>,
+        pending_writes: &mut PendingWrites,
+        staging_buffer: &FlushedStagingBuffer,
         buffer_id: id::BufferId,
         buffer_offset: u64,
     ) -> Result<(), QueueWriteError> {
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let dst = hub
             .buffers
@@ -586,11 +584,12 @@ impl Global {
             buffer: staging_buffer.raw(),
             usage: hal::BufferUses::MAP_WRITE..hal::BufferUses::COPY_SRC,
         })
-        .chain(transition.map(|pending| pending.into_hal(&dst, &snatch_guard)));
+        .chain(transition.map(|pending| pending.into_hal(&dst, &snatch_guard)))
+        .collect::<Vec<_>>();
         let encoder = pending_writes.activate();
         unsafe {
-            encoder.transition_buffers(barriers);
-            encoder.copy_buffer_to_buffer(staging_buffer.raw(), dst_raw, iter::once(region));
+            encoder.transition_buffers(&barriers);
+            encoder.copy_buffer_to_buffer(staging_buffer.raw(), dst_raw, &[region]);
         }
 
         pending_writes.insert_buffer(&dst);
@@ -606,7 +605,7 @@ impl Global {
         Ok(())
     }
 
-    pub fn queue_write_texture<A: HalApi>(
+    pub fn queue_write_texture(
         &self,
         queue_id: QueueId,
         destination: &ImageCopyTexture,
@@ -617,7 +616,7 @@ impl Global {
         profiling::scope!("Queue::write_texture");
         api_log!("Queue::write_texture {:?} {size:?}", destination.texture);
 
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let queue = hub
             .queues
@@ -723,7 +722,7 @@ impl Global {
                         encoder,
                         &mut trackers.textures,
                         &device.alignments,
-                        &device.zero_buffer,
+                        device.zero_buffer.as_ref(),
                         &device.snatchable_lock.read(),
                     )
                     .map_err(QueueWriteError::from)?;
@@ -802,24 +801,26 @@ impl Global {
 
         let staging_buffer = staging_buffer.flush();
 
-        let regions = (0..array_layer_count).map(|array_layer_offset| {
-            let mut texture_base = dst_base.clone();
-            texture_base.array_layer += array_layer_offset;
-            hal::BufferTextureCopy {
-                buffer_layout: wgt::ImageDataLayout {
-                    offset: array_layer_offset as u64
-                        * rows_per_image as u64
-                        * stage_bytes_per_row as u64,
-                    bytes_per_row: Some(stage_bytes_per_row),
-                    rows_per_image: Some(rows_per_image),
-                },
-                texture_base,
-                size: hal_copy_size,
-            }
-        });
+        let regions = (0..array_layer_count)
+            .map(|array_layer_offset| {
+                let mut texture_base = dst_base.clone();
+                texture_base.array_layer += array_layer_offset;
+                hal::BufferTextureCopy {
+                    buffer_layout: wgt::ImageDataLayout {
+                        offset: array_layer_offset as u64
+                            * rows_per_image as u64
+                            * stage_bytes_per_row as u64,
+                        bytes_per_row: Some(stage_bytes_per_row),
+                        rows_per_image: Some(rows_per_image),
+                    },
+                    texture_base,
+                    size: hal_copy_size,
+                }
+            })
+            .collect::<Vec<_>>();
 
         {
-            let barrier = hal::BufferBarrier {
+            let buffer_barrier = hal::BufferBarrier {
                 buffer: staging_buffer.raw(),
                 usage: hal::BufferUses::MAP_WRITE..hal::BufferUses::COPY_SRC,
             };
@@ -829,10 +830,14 @@ impl Global {
                 trackers
                     .textures
                     .set_single(&dst, selector, hal::TextureUses::COPY_DST);
+            let texture_barriers = transition
+                .map(|pending| pending.into_hal(dst_raw))
+                .collect::<Vec<_>>();
+
             unsafe {
-                encoder.transition_textures(transition.map(|pending| pending.into_hal(dst_raw)));
-                encoder.transition_buffers(iter::once(barrier));
-                encoder.copy_buffer_to_texture(staging_buffer.raw(), dst_raw, regions);
+                encoder.transition_textures(&texture_barriers);
+                encoder.transition_buffers(&[buffer_barrier]);
+                encoder.copy_buffer_to_texture(staging_buffer.raw(), dst_raw, &regions);
             }
         }
 
@@ -843,7 +848,7 @@ impl Global {
     }
 
     #[cfg(webgl)]
-    pub fn queue_copy_external_image_to_texture<A: HalApi>(
+    pub fn queue_copy_external_image_to_texture(
         &self,
         queue_id: QueueId,
         source: &wgt::ImageCopyExternalImage,
@@ -852,7 +857,7 @@ impl Global {
     ) -> Result<(), QueueWriteError> {
         profiling::scope!("Queue::copy_external_image_to_texture");
 
-        let hub = A::hub(self);
+        let hub = &self.hub;
 
         let queue = hub
             .queues
@@ -990,7 +995,7 @@ impl Global {
                         encoder,
                         &mut trackers.textures,
                         &device.alignments,
-                        &device.zero_buffer,
+                        device.zero_buffer.as_ref(),
                         &device.snatchable_lock.read(),
                     )
                     .map_err(QueueWriteError::from)?;
@@ -1015,16 +1020,36 @@ impl Global {
             size: hal_copy_size,
         };
 
+        let mut trackers = device.trackers.lock();
+        let transitions = trackers
+            .textures
+            .set_single(&dst, selector, hal::TextureUses::COPY_DST);
+
+        // `copy_external_image_to_texture` is exclusive to the WebGL backend.
+        // Don't go through the `DynCommandEncoder` abstraction and directly to the WebGL backend.
+        let encoder_webgl = encoder
+            .as_any_mut()
+            .downcast_mut::<hal::gles::CommandEncoder>()
+            .unwrap();
+        let dst_raw_webgl = dst_raw
+            .as_any()
+            .downcast_ref::<hal::gles::Texture>()
+            .unwrap();
+        let transitions_webgl = transitions.map(|pending| {
+            let dyn_transition = pending.into_hal(dst_raw);
+            hal::TextureBarrier {
+                texture: dst_raw_webgl,
+                range: dyn_transition.range,
+                usage: dyn_transition.usage,
+            }
+        });
+
+        use hal::CommandEncoder as _;
         unsafe {
-            let mut trackers = device.trackers.lock();
-            let transitions =
-                trackers
-                    .textures
-                    .set_single(&dst, selector, hal::TextureUses::COPY_DST);
-            encoder.transition_textures(transitions.map(|pending| pending.into_hal(dst_raw)));
-            encoder.copy_external_image_to_texture(
+            encoder_webgl.transition_textures(transitions_webgl);
+            encoder_webgl.copy_external_image_to_texture(
                 source,
-                dst_raw,
+                dst_raw_webgl,
                 destination.premultiplied_alpha,
                 iter::once(regions),
             );
@@ -1033,7 +1058,7 @@ impl Global {
         Ok(())
     }
 
-    pub fn queue_submit<A: HalApi>(
+    pub fn queue_submit(
         &self,
         queue_id: QueueId,
         command_buffer_ids: &[id::CommandBufferId],
@@ -1042,7 +1067,7 @@ impl Global {
         api_log!("Queue::submit {queue_id:?}");
 
         let (submit_index, callbacks) = {
-            let hub = A::hub(self);
+            let hub = &self.hub;
 
             let queue = hub
                 .queues
@@ -1180,13 +1205,13 @@ impl Global {
 
                         //Note: locking the trackers has to be done after the storages
                         let mut trackers = device.trackers.lock();
-                        baked.initialize_buffer_memory(&mut *trackers, &snatch_guard)?;
-                        baked.initialize_texture_memory(&mut *trackers, device, &snatch_guard)?;
+                        baked.initialize_buffer_memory(&mut trackers, &snatch_guard)?;
+                        baked.initialize_texture_memory(&mut trackers, device, &snatch_guard)?;
                         //Note: stateless trackers are not merged:
                         // device already knows these resources exist.
                         CommandBuffer::insert_barriers_from_device_tracker(
-                            &mut baked.encoder,
-                            &mut *trackers,
+                            baked.encoder.as_mut(),
+                            &mut trackers,
                             &baked.trackers,
                             &snatch_guard,
                         );
@@ -1212,9 +1237,10 @@ impl Global {
                                 .set_from_usage_scope_and_drain_transitions(
                                     &used_surface_textures,
                                     &snatch_guard,
-                                );
+                                )
+                                .collect::<Vec<_>>();
                             let present = unsafe {
-                                baked.encoder.transition_textures(texture_barriers);
+                                baked.encoder.transition_textures(&texture_barriers);
                                 baked.encoder.end_encoding().unwrap()
                             };
                             baked.list.push(present);
@@ -1262,11 +1288,12 @@ impl Global {
                         .set_from_usage_scope_and_drain_transitions(
                             &used_surface_textures,
                             &snatch_guard,
-                        );
+                        )
+                        .collect::<Vec<_>>();
                     unsafe {
                         pending_writes
                             .command_encoder
-                            .transition_textures(texture_barriers);
+                            .transition_textures(&texture_barriers);
                     };
                 }
             }
@@ -1279,16 +1306,18 @@ impl Global {
 
             let hal_command_buffers = active_executions
                 .iter()
-                .flat_map(|e| e.cmd_buffers.iter())
+                .flat_map(|e| e.cmd_buffers.iter().map(|b| b.as_ref()))
                 .collect::<Vec<_>>();
 
             {
                 let mut submit_surface_textures =
-                    SmallVec::<[_; 2]>::with_capacity(submit_surface_textures_owned.len());
+                    SmallVec::<[&dyn hal::DynSurfaceTexture; 2]>::with_capacity(
+                        submit_surface_textures_owned.len(),
+                    );
 
                 for texture in submit_surface_textures_owned.values() {
                     let raw = match texture.inner.get(&snatch_guard) {
-                        Some(TextureInner::Surface { raw, .. }) => raw,
+                        Some(TextureInner::Surface { raw, .. }) => raw.as_ref(),
                         _ => unreachable!(),
                     };
                     submit_surface_textures.push(raw);
@@ -1300,7 +1329,7 @@ impl Global {
                         .submit(
                             &hal_command_buffers,
                             &submit_surface_textures,
-                            (&mut fence, submit_index),
+                            (fence.as_mut(), submit_index),
                         )
                         .map_err(DeviceError::from)?;
                 }
@@ -1343,18 +1372,15 @@ impl Global {
         Ok(submit_index)
     }
 
-    pub fn queue_get_timestamp_period<A: HalApi>(
-        &self,
-        queue_id: QueueId,
-    ) -> Result<f32, InvalidQueue> {
-        let hub = A::hub(self);
+    pub fn queue_get_timestamp_period(&self, queue_id: QueueId) -> Result<f32, InvalidQueue> {
+        let hub = &self.hub;
         match hub.queues.get(queue_id) {
             Ok(queue) => Ok(unsafe { queue.raw().get_timestamp_period() }),
             Err(_) => Err(InvalidQueue),
         }
     }
 
-    pub fn queue_on_submitted_work_done<A: HalApi>(
+    pub fn queue_on_submitted_work_done(
         &self,
         queue_id: QueueId,
         closure: SubmittedWorkDoneClosure,
@@ -1362,7 +1388,7 @@ impl Global {
         api_log!("Queue::on_submitted_work_done {queue_id:?}");
 
         //TODO: flush pending writes
-        let hub = A::hub(self);
+        let hub = &self.hub;
         match hub.queues.get(queue_id) {
             Ok(queue) => queue.device.lock_life().add_work_done_closure(closure),
             Err(_) => return Err(InvalidQueue),

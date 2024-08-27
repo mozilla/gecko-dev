@@ -1,6 +1,5 @@
 use crate::{
     binding_model,
-    hal_api::HalApi,
     hub::Hub,
     id::{BindGroupLayoutId, PipelineLayoutId},
     resource::{
@@ -12,15 +11,13 @@ use crate::{
 };
 
 use arrayvec::ArrayVec;
-use hal::Device as _;
 use smallvec::SmallVec;
 use std::os::raw::c_char;
 use thiserror::Error;
 use wgt::{BufferAddress, DeviceLostReason, TextureFormat};
 
-use std::{iter, num::NonZeroU32};
+use std::num::NonZeroU32;
 
-pub mod any_device;
 pub(crate) mod bgl;
 pub mod global;
 mod life;
@@ -300,9 +297,9 @@ impl DeviceLostClosure {
     }
 }
 
-fn map_buffer<A: HalApi>(
-    raw: &A::Device,
-    buffer: &Buffer<A>,
+fn map_buffer(
+    raw: &dyn hal::DynDevice,
+    buffer: &Buffer,
     offset: BufferAddress,
     size: BufferAddress,
     kind: HostMap,
@@ -315,8 +312,9 @@ fn map_buffer<A: HalApi>(
     };
 
     if !mapping.is_coherent && kind == HostMap::Read {
+        #[allow(clippy::single_range_in_vec_init)]
         unsafe {
-            raw.invalidate_mapped_ranges(raw_buffer, iter::once(offset..offset + size));
+            raw.invalidate_mapped_ranges(raw_buffer, &[offset..offset + size]);
         }
     }
 
@@ -350,7 +348,7 @@ fn map_buffer<A: HalApi>(
         mapped[fill_range].fill(0);
 
         if !mapping.is_coherent && kind == HostMap::Read {
-            unsafe { raw.flush_mapped_ranges(raw_buffer, iter::once(uninitialized)) };
+            unsafe { raw.flush_mapped_ranges(raw_buffer, &[uninitialized]) };
         }
     }
 
@@ -406,6 +404,7 @@ impl From<hal::DeviceError> for DeviceError {
             hal::DeviceError::Lost => DeviceError::Lost,
             hal::DeviceError::OutOfMemory => DeviceError::OutOfMemory,
             hal::DeviceError::ResourceCreationFailed => DeviceError::ResourceCreationFailed,
+            hal::DeviceError::Unexpected => DeviceError::Lost,
         }
     }
 }
@@ -434,13 +433,21 @@ pub struct ImplicitPipelineIds<'a> {
 }
 
 impl ImplicitPipelineIds<'_> {
-    fn prepare<A: HalApi>(self, hub: &Hub<A>) -> ImplicitPipelineContext {
+    fn prepare(self, hub: &Hub) -> ImplicitPipelineContext {
+        let backend = self.root_id.backend();
         ImplicitPipelineContext {
-            root_id: hub.pipeline_layouts.prepare(Some(self.root_id)).into_id(),
+            root_id: hub
+                .pipeline_layouts
+                .prepare(backend, Some(self.root_id))
+                .into_id(),
             group_ids: self
                 .group_ids
                 .iter()
-                .map(|id_in| hub.bind_group_layouts.prepare(Some(*id_in)).into_id())
+                .map(|id_in| {
+                    hub.bind_group_layouts
+                        .prepare(backend, Some(*id_in))
+                        .into_id()
+                })
                 .collect(),
         }
     }

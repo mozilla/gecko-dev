@@ -1,10 +1,10 @@
-// Copyright 2012-2015 The Rust Project Developers. See the COPYRIGHT
+// Copyright 2012-2024 The Rust Project Developers. See the COPYRIGHT
 // file at the top-level directory of this distribution and at
-// http://rust-lang.org/COPYRIGHT.
+// https://www.rust-lang.org/policies/licenses.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
@@ -14,7 +14,7 @@
 
 /// The version of [Unicode](http://www.unicode.org/)
 /// that this version of unicode-xid is based on.
-pub const UNICODE_VERSION: (u64, u64, u64) = (15, 0, 0);
+pub const UNICODE_VERSION: (u64, u64, u64) = (15, 1, 0);
 
 fn bsearch_range_table(c: char, r: &[(char, char)]) -> bool {
     use core::cmp::Ordering::{Equal, Greater, Less};
@@ -338,6 +338,7 @@ pub mod derived_property {
         ('\u{1fe0}', '\u{1fec}'),
         ('\u{1ff2}', '\u{1ff4}'),
         ('\u{1ff6}', '\u{1ffc}'),
+        ('\u{200c}', '\u{200d}'),
         ('\u{203f}', '\u{2040}'),
         ('\u{2054}', '\u{2054}'),
         ('\u{2071}', '\u{2071}'),
@@ -383,8 +384,7 @@ pub mod derived_property {
         ('\u{3041}', '\u{3096}'),
         ('\u{3099}', '\u{309a}'),
         ('\u{309d}', '\u{309f}'),
-        ('\u{30a1}', '\u{30fa}'),
-        ('\u{30fc}', '\u{30ff}'),
+        ('\u{30a1}', '\u{30ff}'),
         ('\u{3105}', '\u{312f}'),
         ('\u{3131}', '\u{318e}'),
         ('\u{31a0}', '\u{31bf}'),
@@ -468,7 +468,7 @@ pub mod derived_property {
         ('\u{ff21}', '\u{ff3a}'),
         ('\u{ff3f}', '\u{ff3f}'),
         ('\u{ff41}', '\u{ff5a}'),
-        ('\u{ff66}', '\u{ffbe}'),
+        ('\u{ff65}', '\u{ffbe}'),
         ('\u{ffc2}', '\u{ffc7}'),
         ('\u{ffca}', '\u{ffcf}'),
         ('\u{ffd2}', '\u{ffd7}'),
@@ -809,6 +809,7 @@ pub mod derived_property {
         ('\u{2b740}', '\u{2b81d}'),
         ('\u{2b820}', '\u{2cea1}'),
         ('\u{2ceb0}', '\u{2ebe0}'),
+        ('\u{2ebf0}', '\u{2ee5d}'),
         ('\u{2f800}', '\u{2fa1d}'),
         ('\u{30000}', '\u{3134a}'),
         ('\u{31350}', '\u{323af}'),
@@ -1483,6 +1484,7 @@ pub mod derived_property {
         ('\u{2b740}', '\u{2b81d}'),
         ('\u{2b820}', '\u{2cea1}'),
         ('\u{2ceb0}', '\u{2ebe0}'),
+        ('\u{2ebf0}', '\u{2ee5d}'),
         ('\u{2f800}', '\u{2fa1d}'),
         ('\u{30000}', '\u{3134a}'),
         ('\u{31350}', '\u{323af}'),

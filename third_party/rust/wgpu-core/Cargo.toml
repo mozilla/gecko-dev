@@ -53,7 +53,7 @@ smallvec = "1"
 thiserror = "1.0.63"
 
 [dependencies.bytemuck]
-version = "1.16"
+version = "1.17"
 features = ["derive"]
 optional = true
 

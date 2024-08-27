@@ -31,7 +31,7 @@ pub(crate) trait StorageItem: ResourceType {
 #[macro_export]
 macro_rules! impl_storage_item {
     ($ty:ident) => {
-        impl<A: HalApi> $crate::storage::StorageItem for $ty<A> {
+        impl $crate::storage::StorageItem for $ty {
             type Marker = $crate::id::markers::$ty;
         }
     };

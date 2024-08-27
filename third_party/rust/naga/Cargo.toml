@@ -71,7 +71,7 @@ version = "0.2.1"
 optional = true
 
 [dependencies.serde]
-version = "1.0.206"
+version = "1.0.208"
 features = ["derive"]
 optional = true
 
@@ -83,7 +83,7 @@ optional = true
 version = "1.4.1"
 
 [dependencies.unicode-xid]
-version = "0.2.3"
+version = "0.2.5"
 optional = true
 
 [dev-dependencies]

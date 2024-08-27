@@ -13,7 +13,7 @@ use std::sync::atomic::Ordering;
 
 type ShaderStage<'a> = (
     naga::ShaderStage,
-    &'a crate::ProgrammableStage<'a, super::Api>,
+    &'a crate::ProgrammableStage<'a, super::ShaderModule>,
 );
 type NameBindingMap = rustc_hash::FxHashMap<String, (super::BindingRegister, u8)>;
 
@@ -205,7 +205,7 @@ impl super::Device {
     fn create_shader(
         gl: &glow::Context,
         naga_stage: naga::ShaderStage,
-        stage: &crate::ProgrammableStage<super::Api>,
+        stage: &crate::ProgrammableStage<super::ShaderModule>,
         context: CompilationContext,
         program: glow::Program,
     ) -> Result<glow::Shader, crate::PipelineError> {
@@ -1109,7 +1109,7 @@ impl crate::Device for super::Device {
 
     unsafe fn create_command_encoder(
         &self,
-        _desc: &crate::CommandEncoderDescriptor<super::Api>,
+        _desc: &crate::CommandEncoderDescriptor<super::Queue>,
     ) -> Result<super::CommandEncoder, crate::DeviceError> {
         self.counters.command_encoders.add(1);
 
@@ -1140,7 +1140,7 @@ impl crate::Device for super::Device {
 
     unsafe fn create_pipeline_layout(
         &self,
-        desc: &crate::PipelineLayoutDescriptor<super::Api>,
+        desc: &crate::PipelineLayoutDescriptor<super::BindGroupLayout>,
     ) -> Result<super::PipelineLayout, crate::DeviceError> {
         use naga::back::glsl;
 
@@ -1232,7 +1232,13 @@ impl crate::Device for super::Device {
 
     unsafe fn create_bind_group(
         &self,
-        desc: &crate::BindGroupDescriptor<super::Api>,
+        desc: &crate::BindGroupDescriptor<
+            super::BindGroupLayout,
+            super::Buffer,
+            super::Sampler,
+            super::TextureView,
+            super::AccelerationStructure,
+        >,
     ) -> Result<super::BindGroup, crate::DeviceError> {
         let mut contents = Vec::new();
 
@@ -1340,7 +1346,11 @@ impl crate::Device for super::Device {
 
     unsafe fn create_render_pipeline(
         &self,
-        desc: &crate::RenderPipelineDescriptor<super::Api>,
+        desc: &crate::RenderPipelineDescriptor<
+            super::PipelineLayout,
+            super::ShaderModule,
+            super::PipelineCache,
+        >,
     ) -> Result<super::RenderPipeline, crate::PipelineError> {
         let gl = &self.shared.context.lock();
         let mut shaders = ArrayVec::new();
@@ -1430,7 +1440,11 @@ impl crate::Device for super::Device {
 
     unsafe fn create_compute_pipeline(
         &self,
-        desc: &crate::ComputePipelineDescriptor<super::Api>,
+        desc: &crate::ComputePipelineDescriptor<
+            super::PipelineLayout,
+            super::ShaderModule,
+            super::PipelineCache,
+        >,
     ) -> Result<super::ComputePipeline, crate::PipelineError> {
         let gl = &self.shared.context.lock();
         let mut shaders = ArrayVec::new();
@@ -1463,12 +1477,12 @@ impl crate::Device for super::Device {
     unsafe fn create_pipeline_cache(
         &self,
         _: &crate::PipelineCacheDescriptor<'_>,
-    ) -> Result<(), crate::PipelineCacheError> {
+    ) -> Result<super::PipelineCache, crate::PipelineCacheError> {
         // Even though the cache doesn't do anything, we still return something here
         // as the least bad option
-        Ok(())
+        Ok(super::PipelineCache)
     }
-    unsafe fn destroy_pipeline_cache(&self, (): ()) {}
+    unsafe fn destroy_pipeline_cache(&self, _: super::PipelineCache) {}
 
     #[cfg_attr(target_arch = "wasm32", allow(unused))]
     unsafe fn create_query_set(
@@ -1589,22 +1603,26 @@ impl crate::Device for super::Device {
     unsafe fn create_acceleration_structure(
         &self,
         _desc: &crate::AccelerationStructureDescriptor,
-    ) -> Result<(), crate::DeviceError> {
+    ) -> Result<super::AccelerationStructure, crate::DeviceError> {
         unimplemented!()
     }
     unsafe fn get_acceleration_structure_build_sizes<'a>(
         &self,
-        _desc: &crate::GetAccelerationStructureBuildSizesDescriptor<'a, super::Api>,
+        _desc: &crate::GetAccelerationStructureBuildSizesDescriptor<'a, super::Buffer>,
     ) -> crate::AccelerationStructureBuildSizes {
         unimplemented!()
     }
     unsafe fn get_acceleration_structure_device_address(
         &self,
-        _acceleration_structure: &(),
+        _acceleration_structure: &super::AccelerationStructure,
     ) -> wgt::BufferAddress {
         unimplemented!()
     }
-    unsafe fn destroy_acceleration_structure(&self, _acceleration_structure: ()) {}
+    unsafe fn destroy_acceleration_structure(
+        &self,
+        _acceleration_structure: super::AccelerationStructure,
+    ) {
+    }
 
     fn get_internal_counters(&self) -> wgt::HalCounters {
         self.counters.clone()

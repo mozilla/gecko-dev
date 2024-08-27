@@ -17,7 +17,7 @@ default = []
 [dependencies.wgc]
 package = "wgpu-core"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
 # TODO: remove the replay feature on the next update containing https://github.com/gfx-rs/wgpu/pull/5182
 features = ["serde", "replay", "trace", "strict_asserts", "wgsl", "api_log_info"]
 
@@ -26,40 +26,36 @@ features = ["serde", "replay", "trace", "strict_asserts", "wgsl", "api_log_info"
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.wgc]
 package = "wgpu-core"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
 features = ["metal"]
 
 # We want the wgpu-core Direct3D backends on Windows.
 [target.'cfg(windows)'.dependencies.wgc]
 package = "wgpu-core"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
 features = ["dx12"]
 
 # We want the wgpu-core Vulkan backend on Linux and Windows.
 [target.'cfg(any(windows, all(unix, not(any(target_os = "macos", target_os = "ios")))))'.dependencies.wgc]
 package = "wgpu-core"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
 features = ["vulkan"]
 
 [dependencies.wgt]
 package = "wgpu-types"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
 
 [dependencies.wgh]
 package = "wgpu-hal"
 git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
-features = ["windows_rs", "oom_panic", "device_lost_panic", "internal_error_panic"]
-
-[target.'cfg(windows)'.dependencies.d3d12]
-git = "https://github.com/gfx-rs/wgpu"
-rev = "c6a3d927345a81eeb13e9e3720002c4cc6f25e54"
+rev = "cc11260547ae7cc2814888208f244227ed32a1d0"
+features = ["oom_panic", "device_lost_panic", "internal_error_panic"]
 
 [target.'cfg(windows)'.dependencies]
-winapi = "0.3"
+windows = { version = "0.58", default-features = false, features = ["Win32_Graphics_Direct3D12"]}
 
 [dependencies]
 bincode = "1"

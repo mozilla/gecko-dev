@@ -98,18 +98,23 @@ cfg_aliases = "0.1"
 [features]
 device_lost_panic = []
 dx12 = [
-    "naga/hlsl-out-if-target-windows",
-    "dep:d3d12",
     "dep:bit-set",
     "dep:libloading",
     "dep:range-alloc",
-    "winapi/std",
-    "winapi/winbase",
-    "winapi/d3d12",
-    "winapi/d3d12shader",
-    "winapi/d3d12sdklayers",
-    "winapi/dxgi1_6",
-    "winapi/errhandlingapi",
+    "dep:windows-core",
+    "gpu-allocator/d3d12",
+    "naga/hlsl-out-if-target-windows",
+    "windows/Win32_Graphics_Direct3D_Fxc",
+    "windows/Win32_Graphics_Direct3D",
+    "windows/Win32_Graphics_Direct3D12",
+    "windows/Win32_Graphics_DirectComposition",
+    "windows/Win32_Graphics_Dxgi_Common",
+    "windows/Win32_Security",
+    "windows/Win32_System_Diagnostics_Debug",
+    "windows/Win32_System_Kernel",
+    "windows/Win32_System_Performance",
+    "windows/Win32_System_Threading",
+    "windows/Win32_UI_WindowsAndMessaging",
 ]
 dxc_shader_compiler = ["dep:hassle-rs"]
 fragile-send-sync-non-atomic-wasm = ["wgt/fragile-send-sync-non-atomic-wasm"]
@@ -144,14 +149,13 @@ vulkan = [
     "dep:smallvec",
     "dep:android_system_properties",
 ]
-windows_rs = ["dep:gpu-allocator"]
 
 [target."cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))".dependencies]
-js-sys = "0.3.69"
+js-sys = "0.3.70"
 wasm-bindgen = "0.2.87"
 
 [target."cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))".dependencies.web-sys]
-version = "0.3.69"
+version = "0.3.70"
 features = [
     "Window",
     "HtmlCanvasElement",
@@ -188,7 +192,7 @@ features = ["dynamic"]
 optional = true
 
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.libloading]
-version = ">=0.7, <0.9"
+version = "0.8"
 optional = true
 
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.renderdoc-sys]
@@ -219,7 +223,7 @@ features = [
 ]
 
 [target."cfg(target_os = \"emscripten\")".dependencies.libloading]
-version = ">=0.7, <0.9"
+version = "0.8"
 optional = true
 
 [target."cfg(unix)".dependencies]
@@ -229,22 +233,12 @@ libc = "0.2"
 version = "0.8"
 optional = true
 
-[target."cfg(windows)".dependencies.d3d12]
-version = "22.0.0"
-path = "../d3d12/"
-features = ["libloading"]
-optional = true
-
 [target."cfg(windows)".dependencies.glutin_wgl_sys]
 version = "0.6"
 optional = true
 
 [target."cfg(windows)".dependencies.gpu-allocator]
 version = "0.27"
-features = [
-    "d3d12",
-    "public-winapi",
-]
 optional = true
 default-features = false
 
@@ -256,16 +250,12 @@ optional = true
 version = "0.1"
 optional = true
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3"
-features = [
-    "profileapi",
-    "windef",
-    "winuser",
-    "dcomp",
-]
-
 [target."cfg(windows)".dependencies.windows]
+version = "0.58"
+optional = true
+default-features = false
+
+[target."cfg(windows)".dependencies.windows-core]
 version = "0.58"
 optional = true
 default-features = false
