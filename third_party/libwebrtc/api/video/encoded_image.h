@@ -200,6 +200,16 @@ class RTC_EXPORT EncodedImage {
     at_target_quality_ = at_target_quality;
   }
 
+  // Returns whether the frame that was encoded is a steady-state refresh frame
+  // intended to improve the visual quality.
+  bool IsSteadyStateRefreshFrame() const {
+    return is_steady_state_refresh_frame_;
+  }
+
+  void SetIsSteadyStateRefreshFrame(bool refresh_frame) {
+    is_steady_state_refresh_frame_ = refresh_frame;
+  }
+
   webrtc::VideoFrameType FrameType() const { return _frameType; }
 
   void SetFrameType(webrtc::VideoFrameType frame_type) {
@@ -260,6 +270,9 @@ class RTC_EXPORT EncodedImage {
   bool retransmission_allowed_ = true;
   // True if the encoded image can be considered to be of target quality.
   bool at_target_quality_ = false;
+  // True if the frame that was encoded is a steady-state refresh frame intended
+  // to improve the visual quality.
+  bool is_steady_state_refresh_frame_ = false;
 };
 
 }  // namespace webrtc
