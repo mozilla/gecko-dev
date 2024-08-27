@@ -15,6 +15,7 @@
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocShell.h"  // XXX Why does only this need to be included here?
+#include "nsIMutationObserver.h"
 #include "nsIReflowObserver.h"
 #include "nsIScrollObserver.h"
 #include "nsIWidget.h"
@@ -59,6 +60,7 @@ class IMEContentObserver final : public nsStubMutationObserver,
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+  NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED
   NS_DECL_NSIREFLOWOBSERVER
 
   // nsIScrollObserver
