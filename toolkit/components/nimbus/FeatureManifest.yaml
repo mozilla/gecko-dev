@@ -824,6 +824,19 @@ newtabTopicSelection:
       setPref:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config
+    regionTopicLabelConfig:
+      description: A comma-separated list of regions that get topic labels by default.
+      type: string
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.topicLabels.region-topic-label-config
+    localeTopicLabelConfig:
+      description: A comma-separated list of locales that get topic Labels by default.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.topicLabels.locale-topic-label-config
+
 
 pocketNewtab:
   description: The Pocket section in newtab

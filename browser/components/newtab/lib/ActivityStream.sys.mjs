@@ -51,6 +51,11 @@ const REGION_TOPICS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config";
 const LOCALE_TOPICS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.locale-topics-config";
+
+const REGION_TOPIC_LABEL_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.topicLabels.region-topic-label-config";
+const LOCALE_TOPIC_LABEL_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.topicLabels.locale-topic-label-config";
 const REGION_BASIC_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-basic-config";
 
@@ -97,6 +102,22 @@ function showTopicsSelection({ geo, locale }) {
     .map(s => s.trim())
     .filter(item => item);
   return topicsGeo.includes(geo) && topicsLocale.includes(locale);
+}
+
+function showTopicLabels({ geo, locale }) {
+  const geoString =
+    Services.prefs.getStringPref(REGION_TOPIC_LABEL_CONFIG) || "";
+  const localeString =
+    Services.prefs.getStringPref(LOCALE_TOPIC_LABEL_CONFIG) || "";
+  const topicLabelGeo = geoString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  const topicLabelLocale = localeString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  return topicLabelGeo.includes(geo) && topicLabelLocale.includes(locale);
 }
 
 function showThumbsUpDown({ geo, locale }) {
@@ -667,7 +688,8 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.topicLabels.enabled",
     {
       title: "Enables topic labels for discovery stream",
-      value: true,
+      // pref is dynamic
+      getValue: showTopicLabels,
     },
   ],
   [
