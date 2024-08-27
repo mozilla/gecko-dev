@@ -1911,37 +1911,12 @@ size_t Nursery::sizeOfMallocedBuffers(
   return total;
 }
 
-void js::Nursery::sweep() {
-  // It's important that the context's GCUse is not Finalizing at this point,
-  // otherwise we will miscount memory attached to nursery objects with
-  // CellAllocPolicy.
-  AutoSetThreadIsSweeping setThreadSweeping(runtime()->gcContext());
-
-  MinorSweepingTracer trc(runtime());
-
-  // Sweep unique IDs first before we sweep any tables that may be keyed based
-  // on them.
-  cellsWithUid_.mutableEraseIf([](Cell*& cell) {
-    auto* obj = static_cast<JSObject*>(cell);
-    if (!IsForwarded(obj)) {
-      gc::RemoveUniqueId(obj);
-      return true;
-    }
-
-    JSObject* dst = Forwarded(obj);
-    gc::TransferUniqueId(dst, obj);
-
-    if (!IsInsideNursery(dst)) {
-      return true;
-    }
-
-    cell = dst;
-    return false;
-  });
-
+void js::Nursery::sweepStringsWithBuffer() {
   // Add StringBuffers to stringBuffersToReleaseAfterMinorGC_. Strings we
   // tenured must have an additional refcount at this point.
+
   MOZ_ASSERT(stringBuffersToReleaseAfterMinorGC_.empty());
+
   stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
     auto [str, buffer] = entry;
     MOZ_ASSERT(inCollectedRegion(str));
@@ -1970,6 +1945,37 @@ void js::Nursery::sweep() {
     entry.first = dst;
     return false;
   });
+}
+
+void js::Nursery::sweep() {
+  // It's important that the context's GCUse is not Finalizing at this point,
+  // otherwise we will miscount memory attached to nursery objects with
+  // CellAllocPolicy.
+  AutoSetThreadIsSweeping setThreadSweeping(runtime()->gcContext());
+
+  MinorSweepingTracer trc(runtime());
+
+  // Sweep unique IDs first before we sweep any tables that may be keyed based
+  // on them.
+  cellsWithUid_.mutableEraseIf([](Cell*& cell) {
+    auto* obj = static_cast<JSObject*>(cell);
+    if (!IsForwarded(obj)) {
+      gc::RemoveUniqueId(obj);
+      return true;
+    }
+
+    JSObject* dst = Forwarded(obj);
+    gc::TransferUniqueId(dst, obj);
+
+    if (!IsInsideNursery(dst)) {
+      return true;
+    }
+
+    cell = dst;
+    return false;
+  });
+
+  sweepStringsWithBuffer();
 
   for (ZonesIter zone(runtime(), SkipAtoms); !zone.done(); zone.next()) {
     zone->sweepAfterMinorGC(&trc);
