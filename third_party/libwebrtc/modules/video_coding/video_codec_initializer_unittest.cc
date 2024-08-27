@@ -535,6 +535,51 @@ TEST_F(VideoCodecInitializerTest, Av1TwoSpatialLayersBitratesAreConsistent) {
             codec.spatialLayers[1].maxBitrate);
 }
 
+TEST_F(VideoCodecInitializerTest, Av1ConfiguredMinBitrateApplied) {
+  VideoEncoderConfig config;
+  config.simulcast_layers.resize(1);
+  config.simulcast_layers[0].min_bitrate_bps = 28000;
+  config.codec_type = VideoCodecType::kVideoCodecAV1;
+  std::vector<VideoStream> streams = {DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL3T2;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  EXPECT_EQ(codec.spatialLayers[0].minBitrate, 28u);
+  EXPECT_GE(codec.spatialLayers[0].targetBitrate,
+            codec.spatialLayers[0].minBitrate);
+}
+
+TEST_F(VideoCodecInitializerTest,
+       Av1ConfiguredMinBitrateLimitedByDefaultTargetBitrate) {
+  VideoEncoderConfig config;
+  config.simulcast_layers.resize(1);
+  config.simulcast_layers[0].min_bitrate_bps = 2228000;
+  config.codec_type = VideoCodecType::kVideoCodecAV1;
+  std::vector<VideoStream> streams = {DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL3T2;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  EXPECT_GE(codec.spatialLayers[0].targetBitrate,
+            codec.spatialLayers[0].minBitrate);
+}
+
+TEST_F(VideoCodecInitializerTest, Av1ConfiguredMinBitrateNotAppliedIfUnset) {
+  VideoEncoderConfig config;
+  config.simulcast_layers.resize(1);
+  config.codec_type = VideoCodecType::kVideoCodecAV1;
+  std::vector<VideoStream> streams = {DefaultStream()};
+  streams[0].scalability_mode = ScalabilityMode::kL3T2;
+
+  VideoCodec codec =
+      VideoCodecInitializer::SetupCodec(env_.field_trials(), config, streams);
+
+  EXPECT_GT(codec.spatialLayers[0].minBitrate, 0u);
+}
+
 TEST_F(VideoCodecInitializerTest, Av1TwoSpatialLayersActiveByDefault) {
   VideoEncoderConfig config;
   config.codec_type = VideoCodecType::kVideoCodecAV1;
