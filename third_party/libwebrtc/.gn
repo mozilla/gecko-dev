@@ -41,6 +41,8 @@ no_check_targets = [
 exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
                         [ "//build_overrides/build.gni" ]
 
+export_compile_commands = [ "*" ]
+
 default_args = {
   # Webrtc does not support component builds because we are not using the
   # template "component" but we rely directly on "rtc_static_library" and
