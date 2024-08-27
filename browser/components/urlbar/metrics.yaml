@@ -537,11 +537,12 @@ urlbar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1852058#c2
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1866204#c8
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892377#c2
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912174#c8
     data_sensitivity:
       - interaction
     notification_emails:
       - fx-search-telemetry@mozilla.com
-    expires: 132
+    expires: 136
 
   pref_max_results:
     lifetime: application
