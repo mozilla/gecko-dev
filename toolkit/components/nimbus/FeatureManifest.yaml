@@ -2479,6 +2479,18 @@ fingerprintingProtection:
       description: >-
         Uses a different math backend for Math.sin/cos/tan in JavaScript that exposes less entropy
 
+userCharacteristics:
+  description: Control user characteristic data collection
+  owner: tihuang@mozilla.com
+  hasExposure: false
+  variables:
+    currentVersion:
+      type: int
+      setPref:
+        branch: user
+        pref: toolkit.telemetry.user_characteristics_ping.current_version
+      description: The current collection version of the user characteristics.
+
 migrationWizard:
   description: Prefs to control the Migration Wizard UI.
   owner: mconley@mozilla.com
