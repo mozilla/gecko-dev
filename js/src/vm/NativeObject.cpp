@@ -1928,14 +1928,6 @@ static bool DefineNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
         return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
       }
     }
-  } else if (obj->is<TypedArrayObject>()) {
-    // TypedArray Exotic Objects, 10.4.5.5 step 1.
-    //
-    // Indexed properties of typed arrays are special.
-    if (mozilla::Maybe<uint64_t> index = ToTypedArrayIndex(id)) {
-      Rooted<TypedArrayObject*> tobj(cx, &obj->as<TypedArrayObject>());
-      return SetTypedArrayElement(cx, tobj, *index, v, result);
-    }
   } else if (obj->is<ArgumentsObject>()) {
     // If this method is called with either |length| or |@@iterator|, the
     // property was previously deleted and hence should already be marked
@@ -1950,6 +1942,9 @@ static bool DefineNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
       obj->as<ArgumentsObject>().markElementOverridden();
     }
   }
+
+  // Indexed properties of typed arrays are handled by the caller.
+  MOZ_ASSERT_IF(obj->is<TypedArrayObject>(), ToTypedArrayIndex(id).isNothing());
 
 #ifdef DEBUG
   PropertyResult prop;
@@ -2539,8 +2534,11 @@ static bool SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
   return DefineProperty(cx, receiver, id, desc, result);
 }
 
+enum class TypedArrayOutOfRange : bool { No, Yes };
+
 /**
  * 10.1.9.2 OrdinarySetWithOwnDescriptor ( O, P, V, Receiver, ownDesc )
+ * 10.4.5.5 [[Set]] ( P, V, Receiver )
  *
  * ES2025 draft rev ac21460fedf4b926520b06c9820bdbebad596a8b
  *
@@ -2549,13 +2547,41 @@ static bool SetPropertyByDefining(JSContext* cx, HandleId id, HandleValue v,
  */
 template <QualifiedBool IsQualified>
 static bool SetNonexistentProperty(JSContext* cx, Handle<NativeObject*> obj,
-                                   HandleId id, HandleValue v,
-                                   HandleValue receiver,
+                                   Handle<NativeObject*> pobj, HandleId id,
+                                   HandleValue v, HandleValue receiver,
+                                   TypedArrayOutOfRange typedArrayOutOfRange,
                                    ObjectOpResult& result) {
   if (!IsQualified && receiver.isObject() &&
       receiver.toObject().isUnqualifiedVarObj()) {
     if (!MaybeReportUndeclaredVarAssignment(cx, id)) {
       return false;
+    }
+  }
+
+  // Unqualified access may also need to take this code path, but it's currently
+  // hard to tell, because with-environment objects call SetProperty<Qualified>,
+  // which seems a bit dubious. And other environment objects probably don't
+  // have typed array objects in the middle of their prototype chain, so we
+  // can't really test this code path without first fixing with-environments.
+  if constexpr (IsQualified) {
+    // Indexed properties of typed arrays are special.
+    if (typedArrayOutOfRange == TypedArrayOutOfRange::Yes) {
+      MOZ_ASSERT(pobj->is<TypedArrayObject>(),
+                 "typed array out-of-range reported by non-typed array?");
+      MOZ_ASSERT(pobj == obj || !obj->is<TypedArrayObject>(),
+                 "prototype chain not traversed for typed array indices");
+
+      // 10.4.5.5, step 1.b.i.
+      if (receiver.isObject() && pobj == &receiver.toObject()) {
+        mozilla::Maybe<uint64_t> index = ToTypedArrayIndex(id);
+        MOZ_ASSERT(index, "typed array out-of-range reported by non-index?");
+
+        auto tobj = HandleObject(pobj).as<TypedArrayObject>();
+        return SetTypedArrayElement(cx, tobj, *index, v, result);
+      }
+
+      // 10.4.5.5, step 1.b.ii.
+      return result.succeed();
     }
   }
 
@@ -2704,12 +2730,6 @@ bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
   // This loop isn't explicit in the spec algorithm. See the comment on step
   // 1.b.i below. (There's a very similar loop in the NativeGetProperty
   // implementation, but unfortunately not similar enough to common up.)
-  //
-  // We're intentionally not spec-compliant for TypedArrays:
-  // When |pobj| is a TypedArray and |id| is a TypedArray index, we should
-  // ignore |receiver| and instead always try to set the property on |pobj|.
-  // Bug 1502889 showed that this behavior isn't web-compatible. This issue is
-  // also reported at <https://github.com/tc39/ecma262/issues/1541>.
   for (;;) {
     // OrdinarySet, step 1.
     if (!NativeLookupOwnPropertyInline<CanGC>(cx, pobj, id, &prop)) {
@@ -2731,8 +2751,9 @@ bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
     JSObject* proto = pobj->staticPrototype();
     if (!proto || prop.shouldIgnoreProtoChain()) {
       // OrdinarySetWithOwnDescriptor, step 1.c.i (and step 2).
-      return SetNonexistentProperty<IsQualified>(cx, obj, id, v, receiver,
-                                                 result);
+      return SetNonexistentProperty<IsQualified>(
+          cx, obj, pobj, id, v, receiver,
+          TypedArrayOutOfRange{prop.isTypedArrayOutOfRange()}, result);
     }
 
     // Step 1.b.i. If the prototype is also native, this step is a recursive
@@ -2750,8 +2771,8 @@ bool js::NativeSetProperty(JSContext* cx, Handle<NativeObject*> obj,
           return false;
         }
         if (!found) {
-          return SetNonexistentProperty<IsQualified>(cx, obj, id, v, receiver,
-                                                     result);
+          return SetNonexistentProperty<IsQualified>(
+              cx, obj, pobj, id, v, receiver, TypedArrayOutOfRange::No, result);
         }
       }
 

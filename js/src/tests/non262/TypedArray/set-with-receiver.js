@@ -9,7 +9,8 @@ for (var constructor of anyTypedArrayConstructors) {
     // Out-of-bounds
     assertEq(Reflect.set(ta, 10, 47, receiver), true);
     assertEq(ta[10], undefined);
-    assertEq(receiver[10], 47);
+    assertEq(receiver[10], undefined);
+    assertEq(Object.hasOwn(receiver, 10), false);
 
     // Detached
     if (typeof detachArrayBuffer === "function" &&
@@ -20,7 +21,7 @@ for (var constructor of anyTypedArrayConstructors) {
         assertEq(ta[0], undefined);
         assertEq(Reflect.set(ta, 0, 42, receiver), true);
         assertEq(ta[0], undefined);
-        assertEq(receiver[0], 42);
+        assertEq(receiver[0], 47);
     }
 }
 
