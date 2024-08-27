@@ -945,7 +945,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // and two are active.
   ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, /*num_layers=*/3u,
                                            /*num_active_layers=*/2u),
-                   kDefaultTimeout.ms());
+                   kLongTimeoutForRampingUp.ms());
   // Wait until scalability mode is reported and expected resolution reached.
   // Ramp up time may be significant.
   ASSERT_TRUE_WAIT(HasOutboundRtpWithRidAndScalabilityMode(
