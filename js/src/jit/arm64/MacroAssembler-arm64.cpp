@@ -463,7 +463,7 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
                                         Register memoryBase_, Register ptr_,
                                         AnyRegister outany, Register64 out64) {
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
 
   MOZ_ASSERT(memoryBase_ != ptr_);
 
@@ -617,7 +617,7 @@ void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
                                          AnyRegister valany, Register64 val64,
                                          Register memoryBase_, Register ptr_) {
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
 
   ARMRegister memoryBase(memoryBase_, 64);
   ARMRegister ptr(ptr_, 64);

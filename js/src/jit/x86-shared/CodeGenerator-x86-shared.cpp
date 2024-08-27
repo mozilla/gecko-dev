@@ -3726,7 +3726,7 @@ void CodeGenerator::visitWasmLoadLaneSimd128(LWasmLoadLaneSimd128* ins) {
   const wasm::MemoryAccessDesc& access = mir->access();
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
 
   const LAllocation* value = ins->src();
   Operand srcAddr = toMemoryAccessOperand(ins, offset);
@@ -3777,7 +3777,7 @@ void CodeGenerator::visitWasmStoreLaneSimd128(LWasmStoreLaneSimd128* ins) {
   const wasm::MemoryAccessDesc& access = mir->access();
 
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
 
   const LAllocation* src = ins->src();
   Operand destAddr = toMemoryAccessOperand(ins, offset);

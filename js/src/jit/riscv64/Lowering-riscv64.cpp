@@ -825,7 +825,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
 
   if (ins->type() == MIRType::Int64) {
     auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase);
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -834,7 +834,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   }
 
   auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase);
-  if (ins->access().offset()) {
+  if (ins->access().offset32()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 
@@ -856,7 +856,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
     LAllocation baseAlloc = useRegisterAtStart(base);
     LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
     auto* lir = new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase);
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -867,7 +867,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   LAllocation baseAlloc = useRegisterAtStart(base);
   LAllocation valueAlloc = useRegisterAtStart(value);
   auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase);
-  if (ins->access().offset()) {
+  if (ins->access().offset32()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 

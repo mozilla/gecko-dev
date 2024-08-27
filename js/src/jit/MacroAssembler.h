@@ -3791,7 +3791,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // MUST equal `ptrScratch`, and that register will be updated based on
   // conditions listed below (where it is only mentioned as `ptr`).
 
-  // `ptr` will be updated if access.offset() != 0 or access.type() ==
+  // `ptr` will be updated if access.offset32() != 0 or access.type() ==
   // Scalar::Int64.
   void wasmLoad(const wasm::MemoryAccessDesc& access, Register memoryBase,
                 Register ptr, Register ptrScratch, AnyRegister output)
