@@ -369,6 +369,9 @@ function makeSubtreeChildrenHTML(
   const runMySubtree = async () => {
     const results: SubtreeResult[] = [];
     for (const { runSubtree } of childFns) {
+      if (stopRequested) {
+        break;
+      }
       results.push(await runSubtree());
     }
     return mergeSubtreeResults(...results);
@@ -491,6 +494,7 @@ function makeTreeNodeHeaderHTML(
   {
     $('<input>')
       .attr('type', 'text')
+      .attr('title', n.query.toString())
       .prop('readonly', true)
       .addClass('nodequery')
       .on('click', event => {

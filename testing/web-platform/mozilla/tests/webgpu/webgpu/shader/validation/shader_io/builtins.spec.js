@@ -25,7 +25,11 @@ export const kBuiltins = [
 { name: 'num_workgroups', stage: 'compute', io: 'in', type: 'vec3<u32>' },
 { name: 'sample_index', stage: 'fragment', io: 'in', type: 'u32' },
 { name: 'sample_mask', stage: 'fragment', io: 'in', type: 'u32' },
-{ name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' }];
+{ name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' },
+{ name: 'subgroup_invocation_id', stage: 'compute', io: 'in', type: 'u32' },
+{ name: 'subgroup_size', stage: 'compute', io: 'in', type: 'u32' },
+{ name: 'subgroup_invocation_id', stage: 'fragment', io: 'in', type: 'u32' },
+{ name: 'subgroup_size', stage: 'fragment', io: 'in', type: 'u32' }];
 
 
 // List of types to test against.
@@ -81,6 +85,9 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
 }).
 fn((t) => {
   const code = generateShader({
@@ -119,6 +126,9 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
 }).
 fn((t) => {
   let code = '';
@@ -288,6 +298,11 @@ u.
 combineWithParams(kBuiltins).
 combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var'])
 ).
+beforeAllSubcases((t) => {
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
+}).
 fn((t) => {
   let code = '';
   if (t.params.use === 'alias') {

@@ -659,11 +659,28 @@ export const kBlendFactors: readonly GPUBlendFactor[] = [
   'src-alpha-saturated',
   'constant',
   'one-minus-constant',
+  'src1',
+  'one-minus-src1',
+  'src1-alpha',
+  'one-minus-src1-alpha',
 ];
+
+/** Check if `blendFactor` belongs to the blend factors in the extension "dual-source-blending". */
+export function IsDualSourceBlendingFactor(blendFactor?: GPUBlendFactor): boolean {
+  switch (blendFactor) {
+    case 'src1':
+    case 'one-minus-src1':
+    case 'src1-alpha':
+    case 'one-minus-src1-alpha':
+      return true;
+    default:
+      return false;
+  }
+}
 
 /** List of all GPUBlendOperation values. */
 export const kBlendOperations: readonly GPUBlendOperation[] = [
-  'add', //
+  'add',
   'subtract',
   'reverse-subtract',
   'min',

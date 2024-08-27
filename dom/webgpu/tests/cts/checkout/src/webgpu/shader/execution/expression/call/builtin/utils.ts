@@ -1,5 +1,4 @@
-import { assert, unreachable } from '../../../../../../common/util/util.js';
-import { virtualMipSize } from '../../../../../util/texture/base.js';
+import { assert } from '../../../../../../common/util/util.js';
 
 /* Valid types of Boundaries */
 export type Boundary =
@@ -44,102 +43,6 @@ export function generateCoordBoundaries(numDimensions: number): Boundary[] {
   }
 
   return ret;
-}
-
-export type LevelSpec = -1 | 0 | 'numLevels-1' | 'numLevels';
-
-export function getMipLevelFromLevelSpec(mipLevelCount: number, levelSpec: LevelSpec): number {
-  switch (levelSpec) {
-    case -1:
-      return -1;
-    case 0:
-      return 0;
-    case 'numLevels':
-      return mipLevelCount;
-    case 'numLevels-1':
-      return mipLevelCount - 1;
-    default:
-      unreachable();
-  }
-}
-
-export function isLevelSpecNegative(levelSpec: LevelSpec) {
-  return levelSpec === -1;
-}
-
-export type LayerSpec = -1 | 0 | 'numLayers-1' | 'numLayers';
-
-export function getLayerFromLayerSpec(arrayLayerCount: number, layerSpec: LayerSpec): number {
-  switch (layerSpec) {
-    case -1:
-      return -1;
-    case 0:
-      return 0;
-    case 'numLayers':
-      return arrayLayerCount;
-    case 'numLayers-1':
-      return arrayLayerCount - 1;
-    default:
-      unreachable();
-  }
-}
-
-export function isLayerSpecNegative(layerSpec: LayerSpec) {
-  return layerSpec === -1;
-}
-
-function getCoordForSize(size: [number, number, number], boundary: Boundary) {
-  const coord = size.map(v => Math.floor(v / 2));
-  switch (boundary) {
-    case 'in-bounds':
-      break;
-    default: {
-      const axis = boundary[0];
-      const axisIndex = axis.charCodeAt(0) - 'x'.charCodeAt(0);
-      const axisSize = size[axisIndex];
-      const location = boundary.substring(2);
-      let v = 0;
-      switch (location) {
-        case 'min-wrap':
-          v = -1;
-          break;
-        case 'min-boundary':
-          v = 0;
-          break;
-        case 'max-wrap':
-          v = axisSize;
-          break;
-        case 'max-boundary':
-          v = axisSize - 1;
-          break;
-        default:
-          unreachable();
-      }
-      coord[axisIndex] = v;
-    }
-  }
-  return coord;
-}
-
-function getNumDimensions(dimension: GPUTextureDimension) {
-  switch (dimension) {
-    case '1d':
-      return 1;
-    case '2d':
-      return 2;
-    case '3d':
-      return 3;
-  }
-}
-
-export function getCoordinateForBoundaries<T>(
-  texture: GPUTexture,
-  mipLevel: number,
-  boundary: Boundary
-) {
-  const size = virtualMipSize(texture.dimension, texture, mipLevel);
-  const coord = getCoordForSize(size, boundary);
-  return coord.slice(0, getNumDimensions(texture.dimension)) as T;
 }
 
 /**

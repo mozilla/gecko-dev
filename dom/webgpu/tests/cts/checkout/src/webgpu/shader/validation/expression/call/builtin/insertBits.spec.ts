@@ -119,6 +119,8 @@ Validates that count and offset must be smaller than the size of the primitive.
         { offset: 0, count: 33 },
         { offset: 1, count: 33 },
       ] as const)
+      // in_shader: Is the function call statically accessed by the entry point?
+      .combine('in_shader', [false, true] as const)
   )
   .fn(t => {
     let offsetArg = '';
@@ -160,7 +162,10 @@ fn foo() {
     const shader_error =
       error && t.params.offsetStage === 'constant' && t.params.countStage === 'constant';
     const pipeline_error =
-      error && t.params.offsetStage !== 'runtime' && t.params.countStage !== 'runtime';
+      t.params.in_shader &&
+      error &&
+      t.params.offsetStage !== 'runtime' &&
+      t.params.countStage !== 'runtime';
     t.expectCompileResult(!shader_error, wgsl);
     if (!shader_error) {
       const constants: Record<string, number> = {};
@@ -171,6 +176,7 @@ fn foo() {
         code: wgsl,
         constants,
         reference: ['o_offset', 'o_count'],
+        statements: t.params.in_shader ? ['foo();'] : [],
       });
     }
   });

@@ -225,7 +225,7 @@ g.test('use_import_to_refresh')
       } else {
         bindGroup = t.device.createBindGroup({
           layout: t.getDefaultBindGroupLayout(),
-          entries: [{ binding: 0, resource: externalTexture }],
+          entries: [{ binding: 0, resource: mayBeTheSameExternalTexture }],
         });
         t.submitCommandBuffer(bindGroup, true);
       }

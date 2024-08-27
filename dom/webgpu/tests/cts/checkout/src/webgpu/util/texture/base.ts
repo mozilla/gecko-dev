@@ -3,6 +3,8 @@ import { kTextureFormatInfo } from '../../format_info.js';
 import { align } from '../../util/math.js';
 import { reifyExtent3D } from '../../util/unions.js';
 
+export type SampleCoord = Required<GPUOrigin3DDict> & { sampleIndex?: number };
+
 /**
  * Compute the maximum mip level count allowed for a given texture size and texture dimension.
  */
@@ -266,13 +268,16 @@ export function reifyTextureViewDescriptor(
  * @param subrectSize - Subrect size
  */
 export function* fullSubrectCoordinates(
-  subrectOrigin: Required<GPUOrigin3DDict>,
-  subrectSize: Required<GPUExtent3DDict>
-): Generator<Required<GPUOrigin3DDict>> {
+  subrectOrigin: SampleCoord,
+  subrectSize: Required<GPUExtent3DDict>,
+  sampleCount = 1
+): Generator<Required<SampleCoord>> {
   for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
     for (let y = subrectOrigin.y; y < subrectOrigin.y + subrectSize.height; ++y) {
       for (let x = subrectOrigin.x; x < subrectOrigin.x + subrectSize.width; ++x) {
-        yield { x, y, z };
+        for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
+          yield { x, y, z, sampleIndex };
+        }
       }
     }
   }

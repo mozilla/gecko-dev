@@ -6,7 +6,7 @@ import {
 } from '../../../util/shader.js';
 import { ValidationTest } from '../validation_test.js';
 
-type ColorTargetState = GPUColorTargetState & { format: ColorTextureFormat };
+export type ColorTargetState = GPUColorTargetState & { format: ColorTextureFormat };
 
 const values = [0, 1, 0, 1];
 export class CreateRenderPipelineValidationTest extends ValidationTest {

@@ -1785,6 +1785,14 @@ export function isDepthOrStencilTextureFormat(format: GPUTextureFormat) {
   return isDepthTextureFormat(format) || isStencilTextureFormat(format);
 }
 
+export function isEncodableTextureFormat(format: GPUTextureFormat) {
+  return kEncodableTextureFormats.includes(format as EncodableTextureFormat);
+}
+
+export function canUseAsRenderTarget(format: GPUTextureFormat) {
+  return kTextureFormatInfo[format].colorRender || isDepthOrStencilTextureFormat(format);
+}
+
 export const kCompatModeUnsupportedStorageTextureFormats: readonly GPUTextureFormat[] = [
   'rg32float',
   'rg32sint',
@@ -1813,6 +1821,13 @@ export function isRegularTextureFormat(format: GPUTextureFormat) {
  */
 export function isCompressedFloatTextureFormat(format: GPUTextureFormat) {
   return isCompressedTextureFormat(format) && format.includes('float');
+}
+
+/**
+ * Returns true of format can be multisampled.
+ */
+export function isMultisampledTextureFormat(format: GPUTextureFormat): boolean {
+  return kAllTextureFormatInfo[format].multisample;
 }
 
 export const kFeaturesForFormats = getFeaturesForFormats(kAllTextureFormats);

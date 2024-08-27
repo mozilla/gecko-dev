@@ -3,11 +3,11 @@ import { kTextureFormatInfo, EncodableTextureFormat } from '../../format_info.js
 import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
-import { fullSubrectCoordinates } from './base.js';
+import { fullSubrectCoordinates, SampleCoord } from './base.js';
 import { kTexelRepresentationInfo, makeClampToRange, PerTexelComponent } from './texel_data.js';
 
 /** Function taking some x,y,z coordinates and returning `Readonly<T>`. */
-export type PerPixelAtLevel<T> = (coords: Required<GPUOrigin3DDict>) => Readonly<T>;
+export type PerPixelAtLevel<T> = (coords: SampleCoord) => Readonly<T>;
 
 /**
  * Wrapper to view various representations of texture data in other ways. E.g., can:
@@ -57,11 +57,13 @@ export class TexelView {
       rowsPerImage,
       subrectOrigin,
       subrectSize,
+      sampleCount = 1,
     }: {
       bytesPerRow: number;
       rowsPerImage: number;
       subrectOrigin: GPUOrigin3D;
       subrectSize: GPUExtent3D;
+      sampleCount?: number;
     }
   ) {
     const origin = reifyOrigin3D(subrectOrigin);
@@ -70,7 +72,7 @@ export class TexelView {
     const info = kTextureFormatInfo[format];
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
-    return TexelView.fromTexelsAsBytes(format, coords => {
+    return TexelView.fromTexelsAsBytes(format, (coords: SampleCoord) => {
       assert(
         coords.x >= origin.x &&
           coords.y >= origin.y &&
@@ -83,7 +85,9 @@ export class TexelView {
 
       const imageOffsetInRows = (coords.z - origin.z) * rowsPerImage;
       const rowOffset = (imageOffsetInRows + (coords.y - origin.y)) * bytesPerRow;
-      const offset = rowOffset + (coords.x - origin.x) * info.bytesPerBlock;
+      const offset =
+        rowOffset +
+        ((coords.x - origin.x) * sampleCount + (coords.sampleIndex ?? 0)) * info.bytesPerBlock;
 
       // MAINTENANCE_TODO: To support block formats, decode the block and then index into the result.
       return subrectData.subarray(offset, offset + info.bytesPerBlock) as Uint8Array;
@@ -137,11 +141,13 @@ export class TexelView {
       rowsPerImage,
       subrectOrigin: subrectOrigin_,
       subrectSize: subrectSize_,
+      sampleCount = 1,
     }: {
       bytesPerRow: number;
       rowsPerImage: number;
       subrectOrigin: GPUOrigin3D;
       subrectSize: GPUExtent3D;
+      sampleCount?: number;
     }
   ): void {
     const subrectOrigin = reifyOrigin3D(subrectOrigin_);
@@ -153,8 +159,12 @@ export class TexelView {
     for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
       for (let y = subrectOrigin.y; y < subrectOrigin.y + subrectSize.height; ++y) {
         for (let x = subrectOrigin.x; x < subrectOrigin.x + subrectSize.width; ++x) {
-          const start = (z * rowsPerImage + y) * bytesPerRow + x * info.bytesPerBlock;
-          memcpy({ src: this.bytes({ x, y, z }) }, { dst: subrectData, start });
+          for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
+            const start =
+              (z * rowsPerImage + y) * bytesPerRow +
+              (x * sampleCount + sampleIndex) * info.bytesPerBlock;
+            memcpy({ src: this.bytes({ x, y, z, sampleIndex }) }, { dst: subrectData, start });
+          }
         }
       }
     }
@@ -162,7 +172,7 @@ export class TexelView {
 
   /** Returns a pretty table string of the given coordinates and their values. */
   // MAINTENANCE_TODO: Unify some internal helpers with those in texture_ok.ts.
-  toString(subrectOrigin: Required<GPUOrigin3DDict>, subrectSize: Required<GPUExtent3DDict>) {
+  toString(subrectOrigin: SampleCoord, subrectSize: Required<GPUExtent3DDict>) {
     const info = kTextureFormatInfo[this.format];
     const repr = kTexelRepresentationInfo[this.format];
 

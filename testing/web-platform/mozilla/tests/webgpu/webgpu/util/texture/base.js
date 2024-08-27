@@ -3,6 +3,8 @@
 **/import { assert, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { align } from '../../util/math.js';
 import { reifyExtent3D } from '../../util/unions.js';
 
+
+
 /**
  * Compute the maximum mip level count allowed for a given texture size and texture dimension.
  */
@@ -267,12 +269,15 @@ view)
  */
 export function* fullSubrectCoordinates(
 subrectOrigin,
-subrectSize)
+subrectSize,
+sampleCount = 1)
 {
   for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
     for (let y = subrectOrigin.y; y < subrectOrigin.y + subrectSize.height; ++y) {
       for (let x = subrectOrigin.x; x < subrectOrigin.x + subrectSize.width; ++x) {
-        yield { x, y, z };
+        for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
+          yield { x, y, z, sampleIndex };
+        }
       }
     }
   }

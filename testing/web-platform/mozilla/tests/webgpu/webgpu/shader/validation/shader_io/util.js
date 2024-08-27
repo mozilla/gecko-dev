@@ -24,6 +24,10 @@
 }) {
   let code = '';
 
+  if (attribute.includes('subgroup')) {
+    code += 'enable subgroups;\n';
+  }
+
   if (use_struct) {
     // Generate a struct that wraps the entry point IO variable.
     code += 'struct S {\n';

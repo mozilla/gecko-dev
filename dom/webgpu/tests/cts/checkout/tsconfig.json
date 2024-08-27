@@ -11,6 +11,7 @@
       "@webgpu/types",
       // Required for standalone.ts
       "@types/jquery",
+      "@types/w3c-image-capture",
     ],
     /* Output options */
     "noEmit": true,

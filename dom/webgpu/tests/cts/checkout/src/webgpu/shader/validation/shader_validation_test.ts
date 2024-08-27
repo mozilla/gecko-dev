@@ -119,9 +119,14 @@ export class ShaderValidationTest extends GPUTest {
     constants?: Record<string, GPUPipelineConstantValue>;
     // List of additional module-scope variable the entrypoint needs to reference
     reference?: string[];
+    // List of additional statements to insert in the entry point.
+    statements?: string[];
   }) {
     const phonies: Array<string> = [];
 
+    if (args.statements !== undefined) {
+      phonies.push(...args.statements);
+    }
     if (args.constants !== undefined) {
       phonies.push(...keysOf(args.constants).map(c => `_ = ${c};`));
     }

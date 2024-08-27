@@ -5,23 +5,20 @@ note: uniformity validation is covered in src/webgpu/shader/validation/uniformit
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { unreachable } from '../../../../../../common/util/util.js';
 import {
   isCompressedTextureFormat,
   kCompressedTextureFormats,
   kEncodableTextureFormats,
-  kTextureFormatInfo,
 } from '../../../../../format_info.js';
-import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
-import { hashU32 } from '../../../../../util/math.js';
+import { TextureTestMixin } from '../../../../../gpu_test.js';
 
 import {
   vec2,
   vec3,
   TextureCall,
   putDataInTextureThenDrawAndCheckResultsComparedToSoftwareRasterizer,
-  generateSamplePoints2D,
-  generateSamplePoints3D,
+  generateTextureBuiltinInputs2D,
+  generateTextureBuiltinInputs3D,
   kSamplePointMethods,
   doTextureCalls,
   checkCallResults,
@@ -30,38 +27,17 @@ import {
   kCubeSamplePointMethods,
   SamplePointMethods,
   chooseTextureSize,
+  isPotentiallyFilterableAndFillable,
+  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable,
+  getDepthOrArrayLayersForViewDimension,
+  getTextureTypeForTextureViewDimension,
+  WGSLTextureSampleTest,
 } from './texture_utils.js';
 import { generateCoordBoundaries, generateOffsets } from './utils.js';
 
 const kTestableColorFormats = [...kEncodableTextureFormats, ...kCompressedTextureFormats] as const;
 
-function getDepthOrArrayLayersForViewDimension(viewDimension: GPUTextureViewDimension) {
-  switch (viewDimension) {
-    case '2d':
-      return 1;
-    case '3d':
-      return 8;
-    case 'cube':
-      return 6;
-    default:
-      unreachable();
-  }
-}
-
-function getTextureTypeForTextureViewDimension(viewDimension: GPUTextureViewDimension) {
-  switch (viewDimension) {
-    case '2d':
-      return 'texture_2d<f32>';
-    case '3d':
-      return 'texture_3d<f32>';
-    case 'cube':
-      return 'texture_cube<f32>';
-    default:
-      unreachable();
-  }
-}
-
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureTestMixin(WGSLTextureSampleTest));
 
 g.test('sampled_1d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesample')
@@ -104,33 +80,19 @@ Parameters:
   .params(u =>
     u
       .combine('format', kTestableColorFormats)
-      .filter(t => {
-        const type = kTextureFormatInfo[t.format].color?.type;
-        const canPotentialFilter = type === 'float' || type === 'unfilterable-float';
-        // We can't easily put random bytes into compressed textures if they are float formats
-        // since we want the range to be +/- 1000 and not +/- infinity or NaN.
-        const isFillable = !isCompressedTextureFormat(t.format) || !t.format.endsWith('float');
-        return canPotentialFilter && isFillable;
-      })
-      .combine('sample_points', kSamplePointMethods)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('samplePoints', kSamplePointMethods)
       .beginSubcases()
       .combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat'] as const)
       .combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat'] as const)
       .combine('minFilter', ['nearest', 'linear'] as const)
       .combine('offset', [false, true] as const)
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.skipIfTextureFormatNotSupported(format);
-    const info = kTextureFormatInfo[format];
-    if (info.color?.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    } else {
-      t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-    }
-  })
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
   .fn(async t => {
-    const { format, sample_points, addressModeU, addressModeV, minFilter, offset } = t.params;
+    const { format, samplePoints, addressModeU, addressModeV, minFilter, offset } = t.params;
 
     // We want at least 4 blocks or something wide enough for 3 mip levels.
     const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -141,26 +103,27 @@ Parameters:
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
-
-    const calls: TextureCall<vec2>[] = generateSamplePoints2D(50, minFilter === 'nearest', {
-      method: sample_points,
-      textureWidth: texture.width,
-      textureHeight: texture.height,
-    }).map((c, i) => {
-      const hash = hashU32(i);
-      return {
-        builtin: 'textureSample',
-        coordType: 'f',
-        coords: c,
-        offset: offset ? [(hash & 0xf) - 8, ((hash >> 4) & 0xf) - 8] : undefined,
-      };
-    });
     const sampler: GPUSamplerDescriptor = {
       addressModeU,
       addressModeV,
       minFilter,
       magFilter: minFilter,
     };
+
+    const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
+      sampler,
+      method: samplePoints,
+      descriptor,
+      offset: true,
+      hashInputs: [format, samplePoints, addressModeU, addressModeV, minFilter, offset],
+    }).map(({ coords, offset }) => {
+      return {
+        builtin: 'textureSample',
+        coordType: 'f',
+        coords,
+        offset,
+      };
+    });
     const viewDescriptor = {};
     const results = await doTextureCalls(
       t,
@@ -194,14 +157,7 @@ test mip level selection based on derivatives
   .params(u =>
     u
       .combine('format', kTestableColorFormats)
-      .filter(t => {
-        const type = kTextureFormatInfo[t.format].color?.type;
-        const canPotentialFilter = type === 'float' || type === 'unfilterable-float';
-        // We can't easily put random bytes into compressed textures if they are float formats
-        // since we want the range to be +/- 1000 and not +/- infinity or NaN.
-        const isFillable = !isCompressedTextureFormat(t.format) || !t.format.endsWith('float');
-        return canPotentialFilter && isFillable;
-      })
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('mipmapFilter', ['nearest', 'linear'] as const)
       .beginSubcases()
       // note: this is the derivative we want at sample time. It is not the value
@@ -220,16 +176,9 @@ test mip level selection based on derivatives
         { ddx: 1.5, ddy: 1.5, uvwStart: [-3.5, -4] as const }, // test mix between 1 and 2 with negative coords
       ])
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.skipIfTextureFormatNotSupported(format);
-    const info = kTextureFormatInfo[format];
-    if (info.color?.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    } else {
-      t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-    }
-  })
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
   .fn(async t => {
     const { format, mipmapFilter, ddx, ddy, uvwStart, offset } = t.params;
 
@@ -285,18 +234,11 @@ Parameters:
   .params(u =>
     u
       .combine('format', kTestableColorFormats)
-      .filter(t => {
-        const type = kTextureFormatInfo[t.format].color?.type;
-        const canPotentialFilter = type === 'float' || type === 'unfilterable-float';
-        // We can't easily put random bytes into compressed textures if they are float formats
-        // since we want the range to be +/- 1000 and not +/- infinity or NaN.
-        const isFillable = !isCompressedTextureFormat(t.format) || !t.format.endsWith('float');
-        return canPotentialFilter && isFillable;
-      })
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
       .combine('viewDimension', ['3d', 'cube'] as const)
       .filter(t => !isCompressedTextureFormat(t.format) || t.viewDimension === 'cube')
-      .combine('sample_points', kCubeSamplePointMethods)
-      .filter(t => t.sample_points !== 'cube-edges' || t.viewDimension !== '3d')
+      .combine('samplePoints', kCubeSamplePointMethods)
+      .filter(t => t.samplePoints !== 'cube-edges' || t.viewDimension !== '3d')
       .beginSubcases()
       .combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat'] as const)
       .combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat'] as const)
@@ -305,19 +247,20 @@ Parameters:
       .combine('offset', [false, true] as const)
       .filter(t => t.viewDimension !== 'cube' || t.offset !== true)
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.skipIfTextureFormatNotSupported(format);
-    const info = kTextureFormatInfo[format];
-    if (info.color?.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    } else {
-      t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-    }
-  })
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
   .fn(async t => {
-    const { format, viewDimension, sample_points, addressModeU, addressModeV, minFilter, offset } =
-      t.params;
+    const {
+      format,
+      viewDimension,
+      samplePoints,
+      addressModeU,
+      addressModeV,
+      addressModeW,
+      minFilter,
+      offset,
+    } = t.params;
 
     const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });
     const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);
@@ -330,37 +273,53 @@ Parameters:
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
-
-    const calls: TextureCall<vec3>[] = (
-      viewDimension === '3d'
-        ? generateSamplePoints3D(50, minFilter === 'nearest', {
-            method: sample_points as SamplePointMethods,
-            textureWidth: texture.width,
-            textureHeight: texture.height,
-            textureDepthOrArrayLayers: texture.depthOrArrayLayers,
-          })
-        : generateSamplePointsCube(50, minFilter === 'nearest', {
-            method: sample_points,
-            textureWidth: texture.width,
-            textureDepthOrArrayLayers: texture.depthOrArrayLayers,
-          })
-    ).map((c, i) => {
-      const hash = hashU32(i);
-      return {
-        builtin: 'textureSample',
-        coordType: 'f',
-        coords: c,
-        offset: offset
-          ? [(hash & 0xf) - 8, ((hash >> 4) & 0xf) - 8, ((hash >> 8) & 0xf) - 8]
-          : undefined,
-      };
-    });
     const sampler: GPUSamplerDescriptor = {
       addressModeU,
       addressModeV,
+      addressModeW,
       minFilter,
       magFilter: minFilter,
     };
+
+    const calls: TextureCall<vec3>[] = (
+      viewDimension === '3d'
+        ? generateTextureBuiltinInputs3D(50, {
+            method: samplePoints as SamplePointMethods,
+            sampler,
+            descriptor,
+            hashInputs: [
+              format,
+              viewDimension,
+              samplePoints,
+              addressModeU,
+              addressModeV,
+              addressModeW,
+              minFilter,
+              offset,
+            ],
+          })
+        : generateSamplePointsCube(50, {
+            method: samplePoints,
+            sampler,
+            descriptor,
+            hashInputs: [
+              format,
+              viewDimension,
+              samplePoints,
+              addressModeU,
+              addressModeV,
+              addressModeW,
+              minFilter,
+            ],
+          })
+    ).map(({ coords, offset }) => {
+      return {
+        builtin: 'textureSample',
+        coordType: 'f',
+        coords,
+        offset,
+      };
+    });
     const viewDescriptor = {
       dimension: viewDimension,
     };

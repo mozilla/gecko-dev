@@ -1697,7 +1697,7 @@ export const listing = [
       "api",
       "validation",
       "render_pipeline",
-      "vertex_state"
+      "unsupported_wgsl"
     ]
   },
   {
@@ -1705,8 +1705,8 @@ export const listing = [
       "compat",
       "api",
       "validation",
-      "shader_module",
-      "shader_module"
+      "render_pipeline",
+      "vertex_state"
     ]
   },
   {
@@ -3135,6 +3135,26 @@ export const listing = [
       "expression",
       "call",
       "builtin",
+      "subgroupBallot"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "subgroupBroadcast"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
       "tan"
     ]
   },
@@ -3226,6 +3246,16 @@ export const listing = [
       "call",
       "builtin",
       "textureSample"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "textureSampleBaseClampToEdge"
     ]
   },
   {
@@ -3833,6 +3863,14 @@ export const listing = [
       "execution",
       "statement",
       "increment_decrement"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "statement",
+      "phony"
     ]
   },
   {
@@ -4747,6 +4785,26 @@ export const listing = [
       "call",
       "builtin",
       "step"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "validation",
+      "expression",
+      "call",
+      "builtin",
+      "subgroupBallot"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "validation",
+      "expression",
+      "call",
+      "builtin",
+      "subgroupBroadcast"
     ]
   },
   {

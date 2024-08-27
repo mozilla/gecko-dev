@@ -262,6 +262,14 @@ const kFragmentBuiltinValues = [
 {
   builtin: `sample_mask`,
   type: `u32`
+},
+{
+  builtin: `subgroup_invocation_id`,
+  type: `u32`
+},
+{
+  builtin: `subgroup_size`,
+  type: `u32`
 }];
 
 
@@ -273,6 +281,10 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.builtin),
     'compatibility mode does not support sample_index or sample_mask'
   );
+  const builtin = t.params.builtin;
+  if (builtin.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
 }).
 fn((t) => {
   let cond = ``;
@@ -297,7 +309,9 @@ fn((t) => {
         unreachable(`Unhandled type`);
       }
   }
+  const enable = t.params.builtin.includes('subgroup') ? 'enable subgroups;' : '';
   const code = `
+${enable}
 @group(0) @binding(0) var s : sampler;
 @group(0) @binding(1) var tex : texture_2d<f32>;
 
@@ -338,12 +352,27 @@ const kComputeBuiltinValues = [
   builtin: `num_workgroups`,
   type: `vec3<u32>`,
   uniform: true
+},
+{
+  builtin: `subgroup_invocation_id`,
+  type: `u32`,
+  uniform: false
+},
+{
+  builtin: `subgroup_size`,
+  type: `u32`,
+  uniform: true
 }];
 
 
 g.test('compute_builtin_values').
 desc(`Test uniformity of compute built-in values`).
 params((u) => u.combineWithParams(kComputeBuiltinValues).beginSubcases()).
+beforeAllSubcases((t) => {
+  if (t.params.builtin.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
+}).
 fn((t) => {
   let cond = ``;
   switch (t.params.type) {
@@ -367,7 +396,9 @@ fn((t) => {
         unreachable(`Unhandled type`);
       }
   }
+  const enable = t.params.builtin.includes('subgroup') ? 'enable subgroups;' : '';
   const code = `
+${enable}
 @compute @workgroup_size(16,1,1)
 fn main(@builtin(${t.params.builtin}) p : ${t.params.type}) {
   if ${cond} {

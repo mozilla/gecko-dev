@@ -26,6 +26,10 @@ export const kBuiltins = [
   { name: 'sample_index', stage: 'fragment', io: 'in', type: 'u32' },
   { name: 'sample_mask', stage: 'fragment', io: 'in', type: 'u32' },
   { name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' },
+  { name: 'subgroup_invocation_id', stage: 'compute', io: 'in', type: 'u32' },
+  { name: 'subgroup_size', stage: 'compute', io: 'in', type: 'u32' },
+  { name: 'subgroup_invocation_id', stage: 'fragment', io: 'in', type: 'u32' },
+  { name: 'subgroup_size', stage: 'fragment', io: 'in', type: 'u32' },
 ] as const;
 
 // List of types to test against.
@@ -81,6 +85,9 @@ g.test('stage_inout')
       t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
       'compatibility mode does not support sample_index or sample_mask'
     );
+    if (t.params.name.includes('subgroup')) {
+      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+    }
   })
   .fn(t => {
     const code = generateShader({
@@ -119,6 +126,9 @@ g.test('type')
       t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
       'compatibility mode does not support sample_index or sample_mask'
     );
+    if (t.params.name.includes('subgroup')) {
+      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+    }
   })
   .fn(t => {
     let code = '';
@@ -288,6 +298,11 @@ g.test('reuse_builtin_name')
       .combineWithParams(kBuiltins)
       .combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var'])
   )
+  .beforeAllSubcases(t => {
+    if (t.params.name.includes('subgroup')) {
+      t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+    }
+  })
   .fn(t => {
     let code = '';
     if (t.params.use === 'alias') {
