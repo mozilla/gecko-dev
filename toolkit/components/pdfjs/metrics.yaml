@@ -703,11 +703,11 @@ pdfjs.image:
       extra_keys:
         alt_text_modal:
           type: boolean
-          description: present, empty, skipped.
-        alt_text_type:
-          type: string
           description: >
             Indicates if the alt text modal was displayed and the user clicked save, or if it was skipped and the image was added directly after selection.
+        alt_text_type:
+          type: string
+          description: present, empty, skipped.
 
     alt_text_edit:
       type: labeled_boolean

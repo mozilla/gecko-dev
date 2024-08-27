@@ -87,8 +87,11 @@ add_task(async function test_telemetry_new_alt_text_settings() {
 
       await telemetryPromise;
       await Services.fog.testFlushAllChildren();
-      const value = Glean.pdfjsImage.altTextEdit.ai_generation.testGetValue();
+      let value = Glean.pdfjsImage.altTextEdit.ai_generation.testGetValue();
       Assert.ok(value, "Should have ai_generation enabled");
+
+      value = Glean.pdfjsImage.altTextEdit.ask_to_edit.testGetValue();
+      Assert.ok(value, "Should have ask_to_edit enabled");
 
       // We test the telemetry for the settings dialog.
       await clickOn(browser, "#secondaryToolbarToggle");
@@ -264,6 +267,7 @@ add_task(async function test_telemetry_new_alt_text_dialog() {
         [
           {
             alt_text_modal: "true",
+            alt_text_type: "present",
           },
         ],
         false
