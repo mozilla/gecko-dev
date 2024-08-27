@@ -5,41 +5,6 @@ support-files = ["head.js"]
 environment = "MOZ_DONT_LOCK_UTILITY_PLZ_FILE_A_BUG=1"
 tags = "os_integration"
 
-["browser_audio_telemetry_content.js"]
-skip-if = ["os == 'win'"] # gfx blocks us because media.rdd-process.enabled=false disables PDMFactory::AllDecodersAreRemote()
-support-files = [
-  "head-telemetry.js",
-  "../../../../dom/media/test/small-shot.ogg",
-  "../../../../dom/media/test/small-shot.mp3",
-  "../../../../dom/media/test/small-shot.m4a",
-  "../../../../dom/media/test/small-shot.flac"
-]
-
-["browser_audio_telemetry_rdd.js"]
-support-files = [
-  "head-telemetry.js",
-  "../../../../dom/media/test/small-shot.ogg",
-  "../../../../dom/media/test/small-shot.mp3",
-  "../../../../dom/media/test/small-shot.m4a",
-  "../../../../dom/media/test/small-shot.flac"
-]
-
-["browser_audio_telemetry_utility.js"]
-support-files = [
-  "head-telemetry.js",
-  "../../../../dom/media/test/small-shot.ogg",
-  "../../../../dom/media/test/small-shot.mp3",
-  "../../../../dom/media/test/small-shot.m4a",
-  "../../../../dom/media/test/small-shot.flac"
-]
-
-["browser_audio_telemetry_utility_EME.js"]
-support-files = [
-  "head-telemetry.js",
-  "../../../../dom/media/test/eme_standalone.js",
-  "../../../../dom/media/test/short-aac-encrypted-audio.mp4"
-]
-
 ["browser_utility_audioDecodeCrash.js"]
 support-files = [
   "../../../../dom/media/test/small-shot.ogg",

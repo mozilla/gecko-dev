@@ -3055,28 +3055,6 @@ media:
       - 'rdd'
       - 'utility'
 
-  audio_process_per_codec_name:
-    bug_numbers:
-      - 1804249
-      - 1861305
-    description: >
-      Process where audio decoding happens and codec name
-    expires: "132"
-    kind: uint
-    keyed: true
-    notification_emails:
-      - media-alerts@mozilla.com
-      - alissy@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - "firefox"
-    record_in_processes:
-      - 'main'
-      - 'content'
-      - 'rdd'
-      - 'utility'
-    release_channel_collection: opt-out
-
   video_hardware_decoding_support:
     bug_numbers:
       - 1733722

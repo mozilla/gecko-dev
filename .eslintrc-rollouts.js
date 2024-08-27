@@ -478,7 +478,6 @@ const rollouts = [
       "gfx/layers/apz/test/mochitest/**",
       "image/test/**",
       "intl/**",
-      "ipc/glue/test/browser/head-telemetry.js",
       "js/src/builtin/**",
       "js/xpconnect/**",
       "layout/**",
