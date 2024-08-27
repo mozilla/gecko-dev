@@ -20,8 +20,6 @@ namespace {
 using ::cricket::EncoderStreamFactory;
 using test::ExplicitKeyValueConfig;
 
-constexpr int kMaxQp = 48;
-
 std::vector<Resolution> GetStreamResolutions(
     const std::vector<VideoStream>& streams) {
   std::vector<Resolution> res;
@@ -45,10 +43,7 @@ VideoStream LayerWithRequestedResolution(Resolution res) {
 TEST(EncoderStreamFactory, SinglecastRequestedResolution) {
   ExplicitKeyValueConfig field_trials("");
   VideoEncoder::EncoderInfo encoder_info;
-  auto factory = rtc::make_ref_counted<EncoderStreamFactory>(
-      "VP8", kMaxQp,
-      /* is_screenshare= */ false,
-      /* conference_mode= */ false, encoder_info);
+  auto factory = rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
   VideoEncoderConfig encoder_config;
   encoder_config.number_of_streams = 1;
   encoder_config.simulcast_layers.push_back(
@@ -69,10 +64,8 @@ TEST(EncoderStreamFactory, SinglecastRequestedResolutionWithAdaptation) {
       /* target_pixels_per_frame= */ absl::nullopt,
       /* max_frame_rate= */ absl::nullopt);
   VideoEncoder::EncoderInfo encoder_info;
-  auto factory = rtc::make_ref_counted<EncoderStreamFactory>(
-      "VP8", kMaxQp,
-      /* is_screenshare= */ false,
-      /* conference_mode= */ false, encoder_info, restrictions);
+  auto factory =
+      rtc::make_ref_counted<EncoderStreamFactory>(encoder_info, restrictions);
   VideoEncoderConfig encoder_config;
   encoder_config.number_of_streams = 1;
   encoder_config.simulcast_layers.push_back(

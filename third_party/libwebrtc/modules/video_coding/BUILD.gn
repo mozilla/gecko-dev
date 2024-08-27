@@ -442,6 +442,7 @@ rtc_library("video_coding_utility") {
     "../../rtc_base/system:file_wrapper",
     "../../rtc_base/system:no_unique_address",
     "../../rtc_base/task_utils:repeating_task",
+    "../../video/config:encoder_config",
     "../rtp_rtcp:rtp_rtcp_format",
     "svc:scalability_mode_util",
     "//third_party/abseil-cpp/absl/numeric:bits",

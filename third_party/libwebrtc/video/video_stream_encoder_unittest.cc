@@ -2226,16 +2226,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.max_bitrate_bps = 0;
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 270p should be used.
@@ -2291,16 +2287,12 @@ TEST_F(VideoStreamEncoderTest,
        DefaultEncoderMaxAndMinBitratesUsedForTwoStreamsHighestActive) {
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.max_bitrate_bps = 0;
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // Default bitrate limits for 270p should be used.
@@ -2365,16 +2357,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Three streams, middle stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 3;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
   config.simulcast_layers[2].active = false;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 360p should be used.
@@ -2410,16 +2398,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Three streams, lowest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 3;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = true;
   config.simulcast_layers[1].active = false;
   config.simulcast_layers[2].active = false;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // Resolution on lowest stream lower than 270p. The encoder limits not applied
@@ -2447,16 +2431,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
   config.simulcast_layers[1].max_bitrate_bps = kMaxBitrateBps;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 270p should be used.
@@ -2675,15 +2655,11 @@ TEST_P(ResolutionAlignmentTest, SinkWantsAlignmentApplied) {
   // Fill config with the scaling factor by which to reduce encoding size.
   const int num_streams = scale_factors_.size();
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, num_streams, &config);
   for (int i = 0; i < num_streams; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = scale_factors_[i];
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(std::move(config), kMaxPayloadLength);
 
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
@@ -5842,13 +5818,9 @@ TEST_F(VideoStreamEncoderTest,
 
 TEST_F(VideoStreamEncoderTest, InitialFrameDropAccountsForResolutionScaling) {
   VideoEncoderConfig video_encoder_config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(PayloadStringToCodecType("VP8"), 1,
                                  &video_encoder_config);
-  video_encoder_config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  video_encoder_config.video_stream_factory = nullptr;
   for (auto& layer : video_encoder_config.simulcast_layers) {
     layer.num_temporal_layers = 1;
     layer.max_framerate = kDefaultFramerate;
@@ -5894,13 +5866,9 @@ TEST_F(VideoStreamEncoderTest, InitialFrameDropActivatesWhenLayersChange) {
   // Trigger QVGA "singlecast"
   // Update the config.
   VideoEncoderConfig video_encoder_config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(PayloadStringToCodecType("VP8"), 3,
                                  &video_encoder_config);
-  video_encoder_config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  video_encoder_config.video_stream_factory = nullptr;
   for (auto& layer : video_encoder_config.simulcast_layers) {
     layer.num_temporal_layers = 1;
     layer.max_framerate = kDefaultFramerate;
@@ -8099,16 +8067,12 @@ TEST_F(VideoStreamEncoderTest, EncoderResetAccordingToParameterChange) {
   const int number_layers =
       sizeof(downscale_factors) / sizeof(downscale_factors[0]);
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, number_layers, &config);
   for (int i = 0; i < number_layers; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = downscale_factors[i];
     config.simulcast_layers[i].active = true;
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -8225,16 +8189,12 @@ TEST_F(VideoStreamEncoderTest, EncoderResolutionsExposedInSimulcast) {
       kFrameWidth / kDownscaleFactors[2], kFrameHeight / kDownscaleFactors[2]);
 
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumSimulcastLayers, &config);
   for (size_t i = 0; i < kNumSimulcastLayers; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = kDownscaleFactors[i];
     config.simulcast_layers[i].active = true;
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -8998,7 +8958,6 @@ TEST_P(VideoStreamEncoderWithRealEncoderTest, HandlesLayerToggling) {
       kFrameWidth / kDownscaleFactors[2], kFrameHeight / kDownscaleFactors[2]);
 
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   if (codec_type_ == VideoCodecType::kVideoCodecVP9) {
     test::FillEncoderConfiguration(codec_type_, 1, &config);
     config.max_bitrate_bps = kSimulcastTargetBitrate.bps();
@@ -9048,11 +9007,7 @@ TEST_P(VideoStreamEncoderWithRealEncoderTest, HandlesLayerToggling) {
     }
   };
 
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          CodecTypeToPayloadString(codec_type_), /*max qp*/ 56,
-          /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -9169,15 +9124,10 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
 
   void ConfigureEncoder(const VideoStream& stream) {
     VideoEncoderConfig config;
-    webrtc::VideoEncoder::EncoderInfo encoder_info;
-
     test::FillEncoderConfiguration(kVideoCodecVP8, /*num_streams=*/1, &config);
     config.max_bitrate_bps = stream.max_bitrate_bps;
     config.simulcast_layers[0] = stream;
-    config.video_stream_factory =
-        rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-            /*codec_name=*/"VP8", /*max_qp=*/0, /*is_screenshare=*/false,
-            /*conference_mode=*/false, encoder_info);
+    config.video_stream_factory = nullptr;
     video_stream_encoder_->ConfigureEncoder(std::move(config),
                                             kMaxPayloadLength);
   }

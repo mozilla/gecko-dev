@@ -996,11 +996,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
         encoder_config_);
   } else {
     auto factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-        encoder_config_.video_format.name, encoder_config_.max_qp,
-        encoder_config_.content_type ==
-            webrtc::VideoEncoderConfig::ContentType::kScreen,
-        encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
-        latest_restrictions_);
+        encoder_->GetEncoderInfo(), latest_restrictions_);
 
     streams = factory->CreateEncoderStreams(
         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
