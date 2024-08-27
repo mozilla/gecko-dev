@@ -6,7 +6,7 @@ package org.mozilla.fenix.library.bookmarks.ui
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Reducer
-import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.UiStore
 
 /**
  * A Store for handling [BookmarksState] and dispatching [BookmarksAction].
@@ -19,7 +19,7 @@ internal class BookmarksStore(
     initialState: BookmarksState = BookmarksState.default,
     reducer: Reducer<BookmarksState, BookmarksAction> = ::bookmarksReducer,
     middleware: List<Middleware<BookmarksState, BookmarksAction>> = listOf(),
-) : Store<BookmarksState, BookmarksAction>(
+) : UiStore<BookmarksState, BookmarksAction>(
     initialState = initialState,
     reducer = reducer,
     middleware = middleware,
