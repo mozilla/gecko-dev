@@ -1349,6 +1349,59 @@ Maybe<nsTArray<uint8_t>> nsRFPService::GenerateKey(nsIChannel* aChannel) {
   return key;
 }
 
+// static
+Maybe<nsTArray<uint8_t>> nsRFPService::GenerateKeyForServiceWorker(
+    nsIURI* aURI, bool aForeignByAncestorContext) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(aURI);
+
+  RefPtr<nsRFPService> service = GetOrCreate();
+
+  RefPtr<nsIPrincipal> principal =
+      BasePrincipal::CreateContentPrincipal(aURI->GetSpecOrDefault());
+  OriginAttributes attrs = principal->OriginAttributesRef();
+  attrs.SetPartitionKey(aURI, aForeignByAncestorContext);
+
+  nsAutoCString oaSuffix;
+  attrs.CreateSuffix(oaSuffix);
+
+  nsID sessionKey = {};
+  if (NS_FAILED(service->GetBrowsingSessionKey(attrs, sessionKey))) {
+    return Nothing();
+  }
+  auto sessionKeyStr = sessionKey.ToString();
+
+  // Generate the key by using the hMAC. The key is based on the session key and
+  // the partitionKey, i.e. top-level site.
+  HMAC hmac;
+
+  nsresult rv = hmac.Begin(
+      SEC_OID_SHA256,
+      Span(reinterpret_cast<const uint8_t*>(sessionKeyStr.get()), NSID_LENGTH));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return Nothing();
+  }
+
+  // Using the OriginAttributes to get the top level site. The site is composed
+  // of scheme, host, and port.
+  NS_ConvertUTF16toUTF8 topLevelSite(attrs.mPartitionKey);
+  rv = hmac.Update(reinterpret_cast<const uint8_t*>(topLevelSite.get()),
+                   topLevelSite.Length());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return Nothing();
+  }
+
+  Maybe<nsTArray<uint8_t>> key;
+  key.emplace();
+
+  rv = hmac.End(key.ref());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return Nothing();
+  }
+
+  return key;
+}
+
 NS_IMETHODIMP
 nsRFPService::CleanAllRandomKeys() {
   MOZ_ASSERT(XRE_IsParentProcess());
