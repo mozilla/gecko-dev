@@ -1019,10 +1019,6 @@ bool Device::CheckNewWarning(const nsACString& aMessage) {
 }
 
 void Device::Destroy() {
-  if (IsLost()) {
-    return;
-  }
-
   // Unmap all buffers from this device, as specified by
   // https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy.
   dom::AutoJSAPI jsapi;
@@ -1033,6 +1029,13 @@ void Device::Destroy() {
     }
 
     mTrackedBuffers.Clear();
+  }
+
+  if (!IsBridgeAlive()) {
+    // Resolve our lost promise in the same way as if we had a successful
+    // round-trip through the bridge.
+    ResolveLost(Some(dom::GPUDeviceLostReason::Destroyed), u""_ns);
+    return;
   }
 
   mBridge->SendDeviceDestroy(mId);
