@@ -273,6 +273,11 @@ abstract class Settings {
      * Setting to control whehter to use fdlibm for Math.sin, Math.cos, and Math.tan.
      */
     open var fdlibmMathEnabled: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control the user characteristic ping current version.
+     */
+    open var userCharacteristicPingCurrentVersion: Int by UnsupportedSetting()
 }
 
 /**
@@ -327,6 +332,7 @@ data class DefaultSettings(
     override var queryParameterStrippingAllowList: String = "",
     override var queryParameterStrippingStripList: String = "",
     override var emailTrackerBlockingPrivateBrowsing: Boolean = false,
+    override var userCharacteristicPingCurrentVersion: Int = 0,
 ) : Settings()
 
 class UnsupportedSetting<T> {

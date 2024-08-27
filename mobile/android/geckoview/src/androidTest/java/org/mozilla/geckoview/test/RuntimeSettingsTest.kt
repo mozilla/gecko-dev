@@ -553,4 +553,26 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(false),
         )
     }
+
+    @Test
+    fun userCharacteristicPingCurrentVersion() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setUserCharacteristicPingCurrentVersion(5)
+
+        assertThat(
+            "UserCharacteristicPingCurrentVersion runtime settings should return expected value",
+            geckoRuntimeSettings.userCharacteristicPingCurrentVersion,
+            equalTo(5),
+        )
+
+        val currentVersion =
+            (sessionRule.getPrefs("toolkit.telemetry.user_characteristics_ping.current_version").get(0)) as Int
+
+        assertThat(
+            "UserCharacteristicPingCurrentVersion pref value should be expected value",
+            currentVersion,
+            equalTo(5),
+        )
+    }
 }

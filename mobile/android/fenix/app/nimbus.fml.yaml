@@ -547,6 +547,14 @@ features:
         value:
           enabled: false
 
+  user-characteristics:
+    description: A feature for control user characteristic data collection
+    variables:
+      currentVersion:
+        description: The current collection version of the user characteristics.
+        type: Int
+        default: 0
+
 types:
   objects: {}
 

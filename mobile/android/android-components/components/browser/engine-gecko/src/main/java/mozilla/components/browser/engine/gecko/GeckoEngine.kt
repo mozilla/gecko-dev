@@ -1347,6 +1347,10 @@ class GeckoEngine(
         override var fdlibmMathEnabled: Boolean
             get() = runtime.settings.fdlibmMathEnabled
             set(value) { runtime.settings.setFdlibmMathEnabled(value) }
+
+        override var userCharacteristicPingCurrentVersion: Int
+            get() = runtime.settings.userCharacteristicPingCurrentVersion
+            set(value) { runtime.settings.setUserCharacteristicPingCurrentVersion(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1377,6 +1381,7 @@ class GeckoEngine(
             this.fingerprintingProtectionOverrides = it.fingerprintingProtectionOverrides
             this.fdlibmMathEnabled = it.fdlibmMathEnabled
             this.emailTrackerBlockingPrivateBrowsing = it.emailTrackerBlockingPrivateBrowsing
+            this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
         }
     }
 

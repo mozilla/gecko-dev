@@ -176,6 +176,7 @@ class Core(
             cookieBannerHandlingGlobalRules = context.settings().shouldEnableCookieBannerGlobalRules,
             cookieBannerHandlingGlobalRulesSubFrames = context.settings().shouldEnableCookieBannerGlobalRulesSubFrame,
             emailTrackerBlockingPrivateBrowsing = true,
+            userCharacteristicPingCurrentVersion = FxNimbus.features.userCharacteristics.value().currentVersion,
         )
 
         GeckoEngine(
