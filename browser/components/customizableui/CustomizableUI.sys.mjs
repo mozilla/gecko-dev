@@ -40,8 +40,6 @@ const kPrefProtonToolbarVersion = "browser.proton.toolbar.version";
 const kPrefHomeButtonUsed = "browser.engagement.home-button.has-used";
 const kPrefLibraryButtonUsed = "browser.engagement.library-button.has-used";
 const kPrefSidebarButtonUsed = "browser.engagement.sidebar-button.has-used";
-const kPrefSidebarRevampEnabled = "sidebar.revamp";
-const kPrefSidebarVerticalTabsEnabled = "sidebar.verticalTabs";
 
 const kExpectedWindowURL = AppConstants.BROWSER_CHROME_URL;
 
@@ -350,8 +348,6 @@ var CustomizableUIInternal = {
     SearchWidgetTracker.init();
 
     Services.obs.addObserver(this, "browser-set-toolbar-visibility");
-
-    Services.prefs.addObserver(kPrefSidebarVerticalTabsEnabled, this);
   },
 
   onEnabled(addon) {
@@ -3810,15 +3806,6 @@ var CustomizableUIInternal = {
       let [toolbar, visibility] = JSON.parse(aData);
       CustomizableUI.setToolbarVisibility(toolbar, visibility == "true");
     }
-
-    if (
-      aTopic === "nsPref:changed" &&
-      aData === kPrefSidebarVerticalTabsEnabled
-    ) {
-      if (!Services.prefs.getBoolPref(kPrefSidebarRevampEnabled, false)) {
-        Services.prefs.setBoolPref(kPrefSidebarRevampEnabled, true);
-      }
-    }
   },
 };
 Object.freeze(CustomizableUIInternal);
@@ -5554,7 +5541,6 @@ class OverflowableToolbar {
 
     if (!this.#initialized) {
       Services.obs.removeObserver(this, "browser-delayed-startup-finished");
-      Services.prefs.removeObserver(kPrefSidebarVerticalTabsEnabled, this);
       return;
     }
 
