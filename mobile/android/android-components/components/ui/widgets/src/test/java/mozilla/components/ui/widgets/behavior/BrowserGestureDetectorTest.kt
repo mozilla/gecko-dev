@@ -17,42 +17,22 @@ import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.anyFloat
 import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 
 @RunWith(AndroidJUnit4::class)
 class BrowserGestureDetectorTest {
-    // Robolectric currently (April 17th 2020) only offer a stub in it's `ShadowScaleGestureDetector`
-    // so unit tests based on the actual implementation of `ScaleGestureListener` are not possible.
-
-    // Used spies and not mocks as it was observed that verifying more of the below as mocks
-    // will fail the tests because of "UnfinishedVerificationException"
-    private val scrollListener = spy { _: Float, _: Float -> run {} }
-    private val verticalScrollListener = spy { _: Float -> run {} }
-    private val horizontalScrollListener = spy { _: Float -> run {} }
-    private val scaleBeginListener = spy { _: Float -> run {} }
-    private val scaleInProgressListener = spy { _: Float -> run {} }
-    private val scaleEndListener = spy { _: Float -> run {} }
-    private val gesturesListener = BrowserGestureDetector.GesturesListener(
-        onScroll = scrollListener,
-        onVerticalScroll = verticalScrollListener,
-        onHorizontalScroll = horizontalScrollListener,
-        onScaleBegin = scaleBeginListener,
-        onScale = scaleInProgressListener,
-        onScaleEnd = scaleEndListener,
-    )
 
     @Test
     fun `Detector should not attempt to detect zoom if MotionEvent's action is ACTION_CANCEL`() {
-        val detector = spy(BrowserGestureDetector(testContext, mock()))
+        val detector = BrowserGestureDetector(testContext, mock())
         val scaleDetector: ScaleGestureDetector = mock()
         detector.scaleGestureDetector = scaleDetector
 
@@ -69,7 +49,7 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector should not attempt to detect scrolls if a zoom gesture is in progress`() {
-        val detector = spy(BrowserGestureDetector(testContext, mock()))
+        val detector = BrowserGestureDetector(testContext, mock())
         val scrollDetector: GestureDetector = mock()
         val scaleDetector: ScaleGestureDetector = mock()
         detector.gestureDetector = scrollDetector
@@ -88,7 +68,7 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector's handleTouchEvent returns false if the event was not handled`() {
-        val detector = spy(BrowserGestureDetector(testContext, mock()))
+        val detector = BrowserGestureDetector(testContext, mock())
         val unhandledEvent = TestUtils.getMotionEvent(ACTION_DOWN)
 
         // Neither the scale detector, nor the scroll detector should be interested
@@ -102,7 +82,7 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector's handleTouchEvent returns true if the event was handled`() {
-        val detector = spy(BrowserGestureDetector(testContext, mock()))
+        val detector = BrowserGestureDetector(testContext, mock())
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
         val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
@@ -116,7 +96,23 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector should inform about scroll and vertical scrolls events`() {
-        val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
+        var scrollValues = Pair(0f, 0f)
+        var verticalScroll = 0f
+        var horizontalScroll = 0f
+        var scaleBeginCalled = false
+        var scaleInProgressCalled = false
+        var scaleEndCalled = false
+
+        val gesturesListener = BrowserGestureDetector.GesturesListener(
+            onScroll = { x, y -> scrollValues = Pair(x, y) },
+            onVerticalScroll = { y -> verticalScroll = y },
+            onHorizontalScroll = { x -> horizontalScroll = x },
+            onScaleBegin = { scaleBeginCalled = true },
+            onScale = { scaleInProgressCalled = true },
+            onScaleEnd = { scaleEndCalled = true },
+        )
+
+        val detector = BrowserGestureDetector(testContext, gesturesListener)
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
         val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
@@ -127,20 +123,47 @@ class BrowserGestureDetectorTest {
 
         // If the movement was more on the Y axis both "onScroll" and "onVerticalScroll" callbacks
         // should be called but no others.
-        verify(scrollListener).invoke(-100f, -200f)
-        verify(verticalScrollListener).invoke(-200f)
-        verify(horizontalScrollListener, never()).invoke(anyFloat())
-        verify(scaleBeginListener, never()).invoke(anyFloat())
-        verify(scaleInProgressListener, never()).invoke(anyFloat())
-        verify(scaleEndListener, never()).invoke(anyFloat())
+        assertEquals(-200f, verticalScroll)
+        assertEquals(0f, horizontalScroll)
+        assertEquals(Pair(-100f, -200f), scrollValues)
+
+        assertFalse(scaleBeginCalled)
+        assertFalse(scaleInProgressCalled)
+        assertFalse(scaleEndCalled)
     }
 
     @Test
     fun `Detector should prioritize vertical scrolls over horizontal scrolls`() {
-        val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
+        var scrollValues = Pair(0f, 0f)
+        var verticalScroll = 0f
+        var horizontalScroll = 0f
+        var scaleBeginCalled = false
+        var scaleInProgressCalled = false
+        var scaleEndCalled = false
+
+        val gesturesListener = BrowserGestureDetector.GesturesListener(
+            onScroll = { x, y -> scrollValues = Pair(x, y) },
+            onVerticalScroll = { y -> verticalScroll = y },
+            onHorizontalScroll = { x -> horizontalScroll = x },
+            onScaleBegin = { scaleBeginCalled = true },
+            onScale = { scaleInProgressCalled = true },
+            onScaleEnd = { scaleEndCalled = true },
+        )
+
+        val detector = BrowserGestureDetector(testContext, gesturesListener)
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
-        val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
+        val moveEvent = TestUtils.getMotionEvent(
+            ACTION_MOVE,
+            0f,
+            0f,
+            previousEvent = downEvent,
+        )
+        val moveEvent2 = TestUtils.getMotionEvent(
+            ACTION_MOVE,
+            100f,
+            100f,
+            previousEvent = moveEvent,
+        )
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -148,17 +171,34 @@ class BrowserGestureDetectorTest {
 
         // If the movement was for the same amount on both the Y axis and the X axis
         // both "onScroll" and "onVerticalScroll" callbacks should be called but no others.
-        verify(scrollListener).invoke(-100f, -100f)
-        verify(verticalScrollListener).invoke(-100f)
-        verify(horizontalScrollListener, never()).invoke(anyFloat())
-        verify(scaleBeginListener, never()).invoke(anyFloat())
-        verify(scaleInProgressListener, never()).invoke(anyFloat())
-        verify(scaleEndListener, never()).invoke(anyFloat())
+        assertEquals(-100f, verticalScroll)
+        assertEquals(0f, horizontalScroll)
+        assertEquals(Pair(-100f, -100f), scrollValues)
+
+        assertFalse(scaleBeginCalled)
+        assertFalse(scaleInProgressCalled)
+        assertFalse(scaleEndCalled)
     }
 
     @Test
     fun `Detector should inform about scroll and horizontal scrolls events`() {
-        val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
+        var scrollValues = Pair(0f, 0f)
+        var verticalScroll = 0f
+        var horizontalScroll = 0f
+        var scaleBeginCalled = false
+        var scaleInProgressCalled = false
+        var scaleEndCalled = false
+
+        val gesturesListener = BrowserGestureDetector.GesturesListener(
+            onScroll = { x, y -> scrollValues = Pair(x, y) },
+            onVerticalScroll = { y -> verticalScroll = y },
+            onHorizontalScroll = { x -> horizontalScroll = x },
+            onScaleBegin = { scaleBeginCalled = true },
+            onScale = { scaleInProgressCalled = true },
+            onScaleEnd = { scaleEndCalled = true },
+        )
+
+        val detector = BrowserGestureDetector(testContext, gesturesListener)
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
         val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 101f, 100f, previousEvent = moveEvent)
@@ -169,17 +209,18 @@ class BrowserGestureDetectorTest {
 
         // If the movement was for the same amount on both the Y axis and the X axis
         // both "onScroll" and "onVerticalScroll" callbacks should be called but no others.
-        verify(scrollListener).invoke(-101f, -100f)
-        verify(horizontalScrollListener).invoke(-101f)
-        verify(verticalScrollListener, never()).invoke(anyFloat())
-        verify(scaleBeginListener, never()).invoke(anyFloat())
-        verify(scaleInProgressListener, never()).invoke(anyFloat())
-        verify(scaleEndListener, never()).invoke(anyFloat())
+        assertEquals(-101f, horizontalScroll)
+        assertEquals(Pair(-101f, -100f), scrollValues)
+
+        assertEquals(0f, verticalScroll)
+        assertFalse(scaleBeginCalled)
+        assertFalse(scaleInProgressCalled)
+        assertFalse(scaleEndCalled)
     }
 
     @Test
     fun `Detector should always pass the ACTION_DOWN, ACTION_UP, ACTION_CANCEL events to the scroll detector`() {
-        val detector = spy(BrowserGestureDetector(testContext, mock()))
+        val detector = BrowserGestureDetector(testContext, mock())
         val scrollDetector: GestureDetector = mock()
         val scaleDetector: ScaleGestureDetector = mock()
         detector.gestureDetector = scrollDetector
@@ -205,6 +246,22 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector should not crash when the scroll detector receives a null first MotionEvent`() {
+        var scrollValues = Pair(0f, 0f)
+        var verticalScroll = 0f
+        var horizontalScroll = 0f
+        var scaleBeginCalled = false
+        var scaleInProgressCalled = false
+        var scaleEndCalled = false
+
+        val gesturesListener = BrowserGestureDetector.GesturesListener(
+            onScroll = { x, y -> scrollValues = Pair(x, y) },
+            onVerticalScroll = { y -> verticalScroll = y },
+            onHorizontalScroll = { x -> horizontalScroll = x },
+            onScaleBegin = { scaleBeginCalled = true },
+            onScale = { scaleInProgressCalled = true },
+            onScaleEnd = { scaleEndCalled = true },
+        )
+
         val crashReporting: CrashReporting = mock()
         val detector = BrowserGestureDetector(testContext, gesturesListener, crashReporting)
         // We need a previous event for ACTION_MOVE.
@@ -218,14 +275,13 @@ class BrowserGestureDetectorTest {
         detector.handleTouchEvent(moveEvent)
         detector.handleTouchEvent(moveEvent2)
 
-        verify(scrollListener).invoke(-100f, -200f)
-
+        assertEquals(Pair(-100f, -200f), scrollValues)
         // We don't crash but neither can identify vertical / horizontal scrolls.
 
-        verify(verticalScrollListener, never()).invoke(anyFloat())
-        verify(horizontalScrollListener, never()).invoke(anyFloat())
-        verify(scaleBeginListener, never()).invoke(anyFloat())
-        verify(scaleInProgressListener, never()).invoke(anyFloat())
-        verify(scaleEndListener, never()).invoke(anyFloat())
+        assertEquals(0f, verticalScroll)
+        assertEquals(0f, horizontalScroll)
+        assertFalse(scaleBeginCalled)
+        assertFalse(scaleInProgressCalled)
+        assertFalse(scaleEndCalled)
     }
 }

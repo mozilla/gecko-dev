@@ -8,18 +8,18 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class EditTextTest {
-    private val onDonePressed: () -> Unit = spy {}
 
     @Test
     fun `GIVEN a callback, WHEN action done is performed - IME_ACTION_DONE -, THEN onDonePress should be called`() {
+        var donePressed = false
+        val onDonePressed: () -> Unit = { donePressed = true }
         val view = EditText(testContext)
         val editorInfo = EditorInfo()
         val inputConnection = view.onCreateInputConnection(editorInfo)
@@ -27,11 +27,14 @@ class EditTextTest {
         view.onDone(false, onDonePressed)
         inputConnection.performEditorAction(EditorInfo.IME_ACTION_DONE)
 
-        verify(onDonePressed).invoke()
+        assertTrue(donePressed)
     }
 
     @Test
     fun `GIVEN a callback, WHEN a different action is performed - IME_ACTION_SEARCH -, THEN onDonePress shouldn't be called `() {
+        var donePressed = false
+        val onDonePressed: () -> Unit = { donePressed = true }
+
         val view = EditText(testContext)
         val editorInfo = EditorInfo()
         val inputConnection = view.onCreateInputConnection(editorInfo)
@@ -39,6 +42,6 @@ class EditTextTest {
         view.onDone(false, onDonePressed)
         inputConnection.performEditorAction(EditorInfo.IME_ACTION_SEARCH)
 
-        verify(onDonePressed, never()).invoke()
+        assertFalse(donePressed)
     }
 }

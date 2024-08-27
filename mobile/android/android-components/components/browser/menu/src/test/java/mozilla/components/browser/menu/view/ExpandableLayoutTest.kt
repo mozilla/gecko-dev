@@ -164,7 +164,8 @@ class ExpandableLayoutTest {
 
     @Test
     fun `GIVEN an expanded menu WHEN onInterceptTouchEvent is called for a touch on the menu THEN super is called`() {
-        val blankTouchListener = spy {}
+        var blankTouchListenerCalled = false
+        val blankTouchListener = { blankTouchListenerCalled = true }
         val expandableLayout = spy(
             ExpandableLayout.wrapContentInExpandableView(
                 FrameLayout(testContext),
@@ -178,13 +179,14 @@ class ExpandableLayoutTest {
 
         expandableLayout.onInterceptTouchEvent(event)
 
-        verify(blankTouchListener, never()).invoke()
+        assertFalse(blankTouchListenerCalled)
         verify(expandableLayout).callParentOnInterceptTouchEvent(event)
     }
 
     @Test
     fun `GIVEN a menu currently expanding WHEN onInterceptTouchEvent is called for a touch on the menu THEN the touch is swallowed`() {
-        val blankTouchListener = spy {}
+        var blankTouchListenerCalled = false
+        val blankTouchListener = { blankTouchListenerCalled = true }
         val expandableLayout = spy(
             ExpandableLayout.wrapContentInExpandableView(
                 FrameLayout(testContext),
@@ -199,13 +201,14 @@ class ExpandableLayoutTest {
 
         expandableLayout.onInterceptTouchEvent(event)
 
-        verify(blankTouchListener, never()).invoke()
+        assertFalse(blankTouchListenerCalled)
         verify(expandableLayout, never()).callParentOnInterceptTouchEvent(event)
     }
 
     @Test
     fun `GIVEN an expanded menu WHEN onInterceptTouchEvent is called for a outside the menu THEN super blankTouchListener is invoked`() {
-        val blankTouchListener = spy {}
+        var blankTouchListenerCalled = false
+        val blankTouchListener = { blankTouchListenerCalled = true }
         val expandableLayout = spy(
             ExpandableLayout.wrapContentInExpandableView(
                 FrameLayout(testContext),
@@ -219,7 +222,7 @@ class ExpandableLayoutTest {
 
         expandableLayout.onInterceptTouchEvent(event)
 
-        verify(blankTouchListener).invoke()
+        assertTrue(blankTouchListenerCalled)
         verify(expandableLayout, never()).callParentOnInterceptTouchEvent(event)
     }
 
@@ -276,7 +279,7 @@ class ExpandableLayoutTest {
     @Test
     fun `GIVEN blankTouchListener set WHEN onInterceptTouchEvent is called for a touch that does not intersect wrappedView's bounds THEN blankTouchListener is called`() {
         var listenerCalled = false
-        val listener = spy { listenerCalled = true }
+        val listener = { listenerCalled = true }
         val expandableLayout = spy(
             ExpandableLayout.wrapContentInExpandableView(
                 FrameLayout(testContext),
@@ -295,7 +298,7 @@ class ExpandableLayoutTest {
     @Test
     fun `GIVEN blankTouchListener set WHEN onInterceptTouchEvent is called for a touch that intersects wrappedView's bounds THEN blankTouchListener is not called`() {
         var listenerCalled = false
-        val listener = spy { listenerCalled = true }
+        val listener = { listenerCalled = true }
         val expandableLayout = spy(
             ExpandableLayout.wrapContentInExpandableView(
                 FrameLayout(testContext),

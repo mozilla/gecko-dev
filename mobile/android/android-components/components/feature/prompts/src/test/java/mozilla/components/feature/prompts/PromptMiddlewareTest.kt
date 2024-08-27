@@ -14,12 +14,11 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
 
 class PromptMiddlewareTest {
 
@@ -49,28 +48,30 @@ class PromptMiddlewareTest {
 
     @Test
     fun `Process only one popup prompt request at a time`() {
-        val onDeny = spy { }
+        var onDenyCalled = false
+        val onDeny = { onDenyCalled = true }
         val popupPrompt1 = PromptRequest.Popup("https://firefox.com", onAllow = { }, onDeny = onDeny)
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, popupPrompt1)).joinBlocking()
         assertEquals(1, tab()!!.content.promptRequests.size)
         assertEquals(popupPrompt1, tab()!!.content.promptRequests[0])
-        verify(onDeny, never()).invoke()
+        assertFalse(onDenyCalled)
 
         val popupPrompt2 = PromptRequest.Popup("https://firefox.com", onAllow = { }, onDeny = onDeny)
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, popupPrompt2)).joinBlocking()
         assertEquals(1, tab()!!.content.promptRequests.size)
         assertEquals(popupPrompt1, tab()!!.content.promptRequests[0])
-        verify(onDeny).invoke()
+        assertTrue(onDenyCalled)
     }
 
     @Test
     fun `Process popup followed by other prompt request`() {
-        val onDeny = spy { }
+        var onDenyCalled = false
+        val onDeny = { onDenyCalled = true }
         val popupPrompt = PromptRequest.Popup("https://firefox.com", onAllow = { }, onDeny = onDeny)
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, popupPrompt)).joinBlocking()
         assertEquals(1, tab()!!.content.promptRequests.size)
         assertEquals(popupPrompt, tab()!!.content.promptRequests[0])
-        verify(onDeny, never()).invoke()
+        assertFalse(onDenyCalled)
 
         val alert = PromptRequest.Alert("title", "message", false, { }, { })
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, alert)).joinBlocking()
@@ -86,13 +87,14 @@ class PromptMiddlewareTest {
         assertEquals(1, tab()!!.content.promptRequests.size)
         assertEquals(alert, tab()!!.content.promptRequests[0])
 
-        val onDeny = spy { }
+        var onDenyCalled = false
+        val onDeny = { onDenyCalled = true }
         val popupPrompt = PromptRequest.Popup("https://firefox.com", onAllow = { }, onDeny = onDeny)
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, popupPrompt)).joinBlocking()
         assertEquals(2, tab()!!.content.promptRequests.size)
         assertEquals(alert, tab()!!.content.promptRequests[0])
         assertEquals(popupPrompt, tab()!!.content.promptRequests[1])
-        verify(onDeny, never()).invoke()
+        assertFalse(onDenyCalled)
     }
 
     @Test
