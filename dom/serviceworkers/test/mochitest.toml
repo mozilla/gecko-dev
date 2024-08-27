@@ -25,14 +25,18 @@ skip-if = [
 ]
 
 ["test_https_fetch.html"]
-skip-if = ["condprof"]  #: timed out
+# GeckoView overwrites cookieBehavior 0 preferences in ContentBlocking.java.
+# Therefore we need to skip these tests on android.
+skip-if = ["os == 'android'", "condprof"]  #: timed out
 
 ["test_https_fetch_cloned_response.html"]
 
 ["test_https_origin_after_redirect.html"]
 
 ["test_https_origin_after_redirect_cached.html"]
-skip-if = ["condprof"]  #: timed out
+# GeckoView overwrites cookieBehavior 0 preferences in ContentBlocking.java.
+# Therefore we need to skip these tests on android.
+skip-if = ["os == 'android'", "condprof"]  #: timed out
 
 ["test_https_synth_fetch_from_cached_sw.html"]
 
