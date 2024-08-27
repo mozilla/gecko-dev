@@ -50,6 +50,8 @@ rtc_library("audio_encoder_opus") {
     "../../../modules/audio_coding:webrtc_opus",
     "../../../rtc_base:checks",
     "../../../rtc_base/system:rtc_export",
+    "../../environment",
+    "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
