@@ -67,7 +67,7 @@ class ChannelSendTest : public ::testing::Test {
     encoder_factory_ = CreateBuiltinAudioEncoderFactory();
     SdpAudioFormat opus = SdpAudioFormat("opus", kRtpRateHz, 2);
     std::unique_ptr<AudioEncoder> encoder =
-        encoder_factory_->MakeAudioEncoder(kPayloadType, opus, {});
+        encoder_factory_->Create(env_, opus, {.payload_type = kPayloadType});
     channel_->SetEncoder(kPayloadType, opus, std::move(encoder));
     transport_controller_.EnsureStarted();
     channel_->RegisterSenderCongestionControlObjects(&transport_controller_);

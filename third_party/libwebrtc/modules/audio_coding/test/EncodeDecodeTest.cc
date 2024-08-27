@@ -18,6 +18,8 @@
 #include "absl/strings/string_view.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "rtc_base/strings/string_builder.h"
 #include "test/gtest.h"
@@ -67,8 +69,8 @@ void Sender::Setup(AudioCodingModule* acm,
   // Fast-forward 1 second (100 blocks) since the file starts with silence.
   _pcmFile.FastForward(100);
 
-  acm->SetEncoder(CreateBuiltinAudioEncoderFactory()->MakeAudioEncoder(
-      payload_type, format, absl::nullopt));
+  acm->SetEncoder(CreateBuiltinAudioEncoderFactory()->Create(
+      CreateEnvironment(), format, {.payload_type = payload_type}));
   _packetization = new TestPacketization(rtpStream, format.clockrate_hz);
   EXPECT_EQ(0, acm->RegisterTransportCallback(_packetization));
 

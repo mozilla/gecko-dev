@@ -17,6 +17,7 @@
 #include "absl/strings/match.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/include/module_common_types.h"
 #include "rtc_base/logging.h"
@@ -107,7 +108,8 @@ void TestPack::reset_payload_size() {
 }
 
 TestAllCodecs::TestAllCodecs()
-    : acm_a_(AudioCodingModule::Create()),
+    : env_(CreateEnvironment()),
+      acm_a_(AudioCodingModule::Create()),
       acm_b_(std::make_unique<acm2::AcmReceiver>(
           acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
       channel_a_to_b_(NULL),
@@ -319,12 +321,10 @@ void TestAllCodecs::RegisterSendCodec(char* codec_name,
   }
 
   auto factory = CreateBuiltinAudioEncoderFactory();
-  constexpr int payload_type = 17;
   SdpAudioFormat format = {codec_name, clockrate_hz, num_channels};
   format.parameters["ptime"] = rtc::ToString(rtc::CheckedDivExact(
       packet_size, rtc::CheckedDivExact(sampling_freq_hz, 1000)));
-  acm_a_->SetEncoder(
-      factory->MakeAudioEncoder(payload_type, format, absl::nullopt));
+  acm_a_->SetEncoder(factory->Create(env_, format, {.payload_type = 17}));
 }
 
 void TestAllCodecs::Run(TestPack* channel) {

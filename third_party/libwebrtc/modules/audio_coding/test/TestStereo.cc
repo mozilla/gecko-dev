@@ -15,6 +15,7 @@
 #include "absl/strings/match.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/include/module_common_types.h"
 #include "rtc_base/strings/string_builder.h"
@@ -98,7 +99,8 @@ void TestPackStereo::set_lost_packet(bool lost) {
 }
 
 TestStereo::TestStereo()
-    : acm_a_(AudioCodingModule::Create()),
+    : env_(CreateEnvironment()),
+      acm_a_(AudioCodingModule::Create()),
       acm_b_(std::make_unique<acm2::AcmReceiver>(
           acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
       channel_a2b_(NULL),
@@ -488,10 +490,9 @@ void TestStereo::RegisterSendCodec(char side,
     channels = 2;
     params["maxaveragebitrate"] = rtc::ToString(rate);
   }
-  constexpr int payload_type = 17;
-  auto encoder = encoder_factory->MakeAudioEncoder(
-      payload_type, SdpAudioFormat(codec_name, clockrate_hz, channels, params),
-      absl::nullopt);
+  auto encoder = encoder_factory->Create(
+      env_, SdpAudioFormat(codec_name, clockrate_hz, channels, params),
+      {.payload_type = 17});
   EXPECT_NE(nullptr, encoder);
   my_acm->SetEncoder(std::move(encoder));
 
