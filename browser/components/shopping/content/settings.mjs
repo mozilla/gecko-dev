@@ -82,11 +82,11 @@ class ShoppingSettings extends MozLitElement {
           <moz-toggle
             id="shopping-settings-recommendations-toggle"
             ?pressed=${this.adsEnabledByUser}
-            data-l10n-id="shopping-settings-recommendations-toggle"
+            data-l10n-id="shopping-settings-recommendations-toggle2"
             data-l10n-attrs="label"
             @toggle=${this.onToggleRecommendations}>
           </moz-toggle/>
-          <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more2">
+          <span id="shopping-ads-learn-more" data-l10n-id="shopping-settings-recommendations-learn-more3">
             <a
               id="shopping-ads-learn-more-link"
               target="_blank"

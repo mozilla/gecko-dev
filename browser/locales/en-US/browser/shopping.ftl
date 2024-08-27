@@ -101,10 +101,10 @@ shopping-show-less-button = Show less
 
 shopping-settings-label =
   .label = Settings
-shopping-settings-recommendations-toggle =
-  .label = Show ads in Review Checker
-shopping-settings-recommendations-learn-more2 =
-  You’ll see occasional ads for relevant products. We only advertise products with reliable reviews. <a data-l10n-name="review-quality-url">Learn more</a>
+shopping-settings-recommendations-toggle2 =
+  .label = Show recommendations and sponsored content
+shopping-settings-recommendations-learn-more3 =
+  { -brand-product-name } doesn’t share your personal data, so these recommendations won’t follow you around the internet. <a data-l10n-name="review-quality-url">Learn more</a>
 shopping-settings-opt-out-button = Turn off Review Checker
 powered-by-fakespot = Review Checker is powered by <a data-l10n-name="fakespot-link">{ -fakespot-brand-full-name }</a>.
 
