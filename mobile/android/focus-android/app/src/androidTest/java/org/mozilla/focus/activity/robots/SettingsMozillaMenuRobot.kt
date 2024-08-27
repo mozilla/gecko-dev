@@ -74,6 +74,14 @@ class SettingsMozillaMenuRobot {
             .check(matches(isDisplayed()))
     }
 
+    fun verifyTheLibrariesListNotEmpty() {
+        val librariesList = mDevice.findObject(UiSelector().resourceId("$packageName:id/about_libraries_listview"))
+        assertTrue(
+            "Libraries list is empty",
+            librariesList.childCount > 10,
+        )
+    }
+
     class Transition {
         fun openAboutPage(interact: SettingsMozillaMenuRobot.() -> Unit): Transition {
             aboutFocusPageLink

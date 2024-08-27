@@ -7,6 +7,8 @@ package org.mozilla.fenix.ui
 import androidx.test.uiautomator.UiSelector
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.BuildConfig
+import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithCondition
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RetryTestRule
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -66,6 +68,19 @@ class SettingsAboutTest : TestSetup() {
         }.openSettings {
         }.openAboutFirefoxPreview {
             verifyAboutFirefoxPreviewInfo()
+        }
+    }
+
+    @Test
+    fun verifyLibrariesListInReleaseBuilds() {
+        runWithCondition(!BuildConfig.DEBUG) {
+            homeScreen {
+            }.openThreeDotMenu {
+            }.openSettings {
+            }.openAboutFirefoxPreview {
+                verifyLibrariesUsedLink()
+                verifyTheLibrariesListNotEmpty()
+            }
         }
     }
 }

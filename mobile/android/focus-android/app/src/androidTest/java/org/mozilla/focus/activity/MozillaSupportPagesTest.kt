@@ -4,6 +4,7 @@
 package org.mozilla.focus.activity
 
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner
+import mozilla.components.browser.engine.gecko.BuildConfig
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -98,7 +99,10 @@ class MozillaSupportPagesTest {
         }.openSettings {
         }.openMozillaSettingsMenu {
         }.openLibrariesUsedPage {
-            verifyLibrariesUsedTitle()
+            if (!BuildConfig.DEBUG) {
+                verifyLibrariesUsedTitle()
+                verifyTheLibrariesListNotEmpty()
+            }
         }
     }
 

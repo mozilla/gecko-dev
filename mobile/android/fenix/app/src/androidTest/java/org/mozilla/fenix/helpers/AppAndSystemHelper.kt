@@ -582,7 +582,10 @@ object AppAndSystemHelper {
     fun runWithCondition(condition: Boolean, testBlock: () -> Unit) {
         Log.i(TAG, "runWithCondition: Trying to run the test based on condition. The condition is: $condition.")
         if (condition) {
+            Log.i(TAG, "runWithCondition: The condition was true. Running the test.")
             testBlock()
+        } else {
+            Log.i(TAG, "runWithCondition: The condition was false. Skipping the test.")
         }
     }
 

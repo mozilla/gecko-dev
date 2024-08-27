@@ -17,6 +17,8 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.hasDescendant
+import androidx.test.espresso.matcher.ViewMatchers.hasMinimumChildCount
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -212,15 +214,28 @@ class SettingsSubMenuAboutRobot {
         Log.i(TAG, "verifyLibrariesUsedLink: Trying to verify that the \"Libraries that we use\" link is visible")
         onView(withText("Libraries that we use")).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
         Log.i(TAG, "verifyLibrariesUsedLink: Verified that the \"Libraries that we use\" link is visible")
+    }
+
+    fun verifyTheLibrariesListNotEmpty() {
         Log.i(TAG, "verifyLibrariesUsedLink: Trying to click the \"Libraries that we use\" link")
         onView(withText("Libraries that we use")).perform(click())
         Log.i(TAG, "verifyLibrariesUsedLink: Clicked the \"Libraries that we use\" link")
         Log.i(TAG, "verifyLibrariesUsedLink: Trying to verify that the toolbar has title: \"$appName | OSS Libraries\"")
-        onView(withId(R.id.navigationToolbar)).check(matches(hasDescendant(withText(containsString("$appName | OSS Libraries")))))
+        onView(withId(R.id.navigationToolbar)).check(
+            matches(
+                hasDescendant(
+                    withText(
+                        containsString("$appName | OSS Libraries"),
+                    ),
+                ),
+            ),
+        )
         Log.i(TAG, "verifyLibrariesUsedLink: Verified that the toolbar has title: \"$appName | OSS Libraries\"")
-        Log.i(TAG, "verifyLibrariesUsedLink: Trying to perform press back action")
-        Espresso.pressBack()
-        Log.i(TAG, "verifyLibrariesUsedLink: Performed press back action")
+        Log.i(TAG, "verifyTheLibrariesListNotEmpty: Trying to verify that the OSS Libraries list has more then 10 items.")
+        onView(withId(R.id.about_libraries_listview))
+            .check(matches(isDisplayed()))
+            .check(matches(hasMinimumChildCount(10)))
+        Log.i(TAG, "verifyTheLibrariesListNotEmpty: Verify that the OSS Libraries list has more then 10 items.")
     }
 
     fun verifyTheLinksList() {
