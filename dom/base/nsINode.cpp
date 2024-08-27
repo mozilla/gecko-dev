@@ -591,71 +591,44 @@ nsIContent* nsINode::GetSelectionRootContent(PresShell* aPresShell,
                                              bool aAllowCrossShadowBoundary) {
   NS_ENSURE_TRUE(aPresShell, nullptr);
 
-  const bool isContent = IsContent();
+  if (IsDocument()) return AsDocument()->GetRootElement();
+  if (!IsContent()) return nullptr;
 
-  if (!isContent && !IsDocument()) {
+  if (GetComposedDoc() != aPresShell->GetDocument()) {
     return nullptr;
   }
 
-  if (isContent) {
-    if (GetComposedDoc() != aPresShell->GetDocument()) {
-      return nullptr;
-    }
-
-    if (AsContent()->HasIndependentSelection() ||
-        IsInNativeAnonymousSubtree()) {
-      // This node should be an inclusive descendant of input/textarea editor.
-      // In that case, the anonymous <div> for TextEditor should be always the
-      // selection root.
-      // FIXME: If Selection for the document is collapsed in <input> or
-      // <textarea>, returning anonymous <div> may make the callers confused.
-      // Perhaps, we should do this only when this is in the native anonymous
-      // subtree unless the callers explicitly want to retrieve the anonymous
-      // <div> from a text control element.
-      if (Element* anonymousDivElement =
-              GetAnonymousRootElementOfTextEditor()) {
-        return anonymousDivElement;
-      }
+  if (AsContent()->HasIndependentSelection() || IsInNativeAnonymousSubtree()) {
+    // This node should be an inclusive descendant of input/textarea editor.
+    // In that case, the anonymous <div> for TextEditor should be always the
+    // selection root.
+    // FIXME: If Selection for the document is collapsed in <input> or
+    // <textarea>, returning anonymous <div> may make the callers confused.
+    // Perhaps, we should do this only when this is in the native anonymous
+    // subtree unless the callers explicitly want to retrieve the anonymous
+    // <div> from a text control element.
+    if (Element* anonymousDivElement = GetAnonymousRootElementOfTextEditor()) {
+      return anonymousDivElement;
     }
   }
 
-  if (nsPresContext* presContext = aPresShell->GetPresContext()) {
-    if (HTMLEditor* htmlEditor = nsContentUtils::GetHTMLEditor(presContext)) {
-      // When there is an HTMLEditor, selection root should be one of focused
-      // editing host, <body> or root of the (sub)tree which this node belong.
-
-      // If this node is in design mode or this node is not editable, selection
-      // root should be the <body> if this node is not in any subtrees and there
-      // is a <body> or the root of the shadow DOM if this node is in a shadow
-      // or the document element.
-      // XXX If this node is not connected, it seems that this should return
-      // nullptr because this node is not selectable.
+  nsPresContext* presContext = aPresShell->GetPresContext();
+  if (presContext) {
+    HTMLEditor* htmlEditor = nsContentUtils::GetHTMLEditor(presContext);
+    if (htmlEditor) {
+      // This node is in HTML editor.
       if (!IsInComposedDoc() || IsInDesignMode() ||
           !HasFlag(NODE_IS_EDITABLE)) {
-        Element* const bodyOrDocumentElement = [&]() -> Element* {
-          if (Element* const bodyElement = OwnerDoc()->GetBodyElement()) {
-            return bodyElement;
-          }
-          return OwnerDoc()->GetDocumentElement();
-        }();
-        NS_ENSURE_TRUE(bodyOrDocumentElement, nullptr);
-        return nsContentUtils::IsInSameAnonymousTree(this,
-                                                     bodyOrDocumentElement)
-                   ? bodyOrDocumentElement
+        nsIContent* editorRoot = htmlEditor->GetRoot();
+        NS_ENSURE_TRUE(editorRoot, nullptr);
+        return nsContentUtils::IsInSameAnonymousTree(this, editorRoot)
+                   ? editorRoot
                    : GetRootForContentSubtree(AsContent());
       }
-      // If this node is editable but not in the design mode, this is always an
-      // editable node in an editing host of contenteditable.  In this case,
-      // let's use the editing host element as selection root.
-      MOZ_ASSERT(IsEditable());
-      MOZ_ASSERT(!IsInDesignMode());
-      MOZ_ASSERT(IsContent());
+      // If the document isn't editable but this is editable, this is in
+      // contenteditable.  Use the editing host element for selection root.
       return static_cast<nsIContent*>(this)->GetEditingHost();
     }
-  }
-
-  if (!isContent) {
-    return nullptr;
   }
 
   RefPtr<nsFrameSelection> fs = aPresShell->FrameSelection();

@@ -415,7 +415,8 @@ nsresult IMEStateManager::OnRemoveContent(nsPresContext& aPresContext,
 
     if (compositionInContent) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
-              ("  OnRemoveContent(), composition is in the content"));
+              ("  OnRemoveContent(), "
+               "composition is in the content"));
 
       // Try resetting the native IME state.  Be aware, typically, this method
       // is called during the content being removed.  Then, the native
@@ -429,15 +430,8 @@ nsresult IMEStateManager::OnRemoveContent(nsPresContext& aPresContext,
     }
   }
 
-  if (!sFocusedPresContext ||
-      // If focused element is a text control or an editing host, we need to
-      // emulate "blur" on it when it's removed.
-      (sFocusedElement && sFocusedElement != &aElement) ||
-      // If it is (or was) in design mode, we need to emulate "blur" on the
-      // document when the observing element (typically, <body>) is removed.
-      (!sFocusedElement &&
-       (!sActiveIMEContentObserver ||
-        sActiveIMEContentObserver->GetObservingElement() != &aElement))) {
+  if (!sFocusedPresContext || !sFocusedElement ||
+      !sFocusedElement->IsInclusiveDescendantOf(&aElement)) {
     return NS_OK;
   }
   MOZ_ASSERT(sFocusedPresContext == &aPresContext);
@@ -469,46 +463,17 @@ nsresult IMEStateManager::OnRemoveContent(nsPresContext& aPresContext,
   SetIMEState(newState, &aPresContext, nullptr, textInputHandlingWidget, action,
               origin);
   if (sFocusedPresContext != &aPresContext || sFocusedElement) {
-    return NS_OK;  // Somebody already has focus, don't steal it.
+    return NS_OK;  // Some body must have set focus
   }
 
   if (IsIMEObserverNeeded(newState)) {
-    // Initializing IMEContentObserver instance requires Selection, but its
-    // ranges have not been adjusted for this removal.  Therefore, we need to
-    // wait a moment.
-    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
-        "IMEStateManager::RecreateIMEContentObserverWhenContentRemoved",
-        [presContext = OwningNonNull{aPresContext}]() {
-          MOZ_ASSERT(sFocusedPresContext == presContext);
-          MOZ_ASSERT(!sFocusedElement);
-          if (RefPtr<HTMLEditor> htmlEditor =
-                  nsContentUtils::GetHTMLEditor(presContext)) {
-            CreateIMEContentObserver(*htmlEditor, nullptr);
-          }
-        }));
+    if (RefPtr<HTMLEditor> htmlEditor =
+            nsContentUtils::GetHTMLEditor(&aPresContext)) {
+      CreateIMEContentObserver(*htmlEditor, nullptr);
+    }
   }
 
   return NS_OK;
-}
-
-void IMEStateManager::OnParentChainChangedOfObservingElement(
-    IMEContentObserver& aObserver) {
-  if (!sFocusedPresContext || sActiveIMEContentObserver != &aObserver) {
-    return;
-  }
-  RefPtr<nsPresContext> presContext = aObserver.GetPresContext();
-  RefPtr<Element> element = aObserver.GetObservingElement();
-  if (NS_WARN_IF(!presContext) || NS_WARN_IF(!element)) {
-    return;
-  }
-  MOZ_LOG(sISMLog, LogLevel::Info,
-          ("OnParentChainChangedOfObservingElement(aObserver=0x%p), "
-           "sFocusedPresContext=0x%p, sFocusedElement=0x%p, "
-           "aObserver->GetPresContext()=0x%p, "
-           "aObserver->GetObservingElement()=0x%p",
-           &aObserver, sFocusedPresContext.get(), sFocusedElement.get(),
-           presContext.get(), element.get()));
-  OnRemoveContent(*presContext, *element);
 }
 
 // static
