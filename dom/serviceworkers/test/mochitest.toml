@@ -7,6 +7,9 @@
 prefs = ["network.cookie.cookieBehavior=0"]
 dupe-manifest = true
 tags = "condprof"
+# GeckoView overwrites cookieBehavior 0 preferences in ContentBlocking.java.
+# Therefore we need to skip these tests on android.
+skip-if = ["os == 'android'"]
 
 # Following tests are not working currently when dFPI is enabled. So, we put
 # these tests here instead of mochitest-common.toml so that these tests won't run
