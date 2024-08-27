@@ -19,7 +19,9 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     border-radius: var(--border-radius-medium);
     position: relative;
     overflow: hidden;
+  }
 
+  &.placeholder-seen {
     &::before {
       content: '';
       display: block;
