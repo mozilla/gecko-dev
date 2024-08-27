@@ -3886,20 +3886,7 @@ bool js::DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
 
   // Step vi.
   if (desc.hasValue()) {
-    switch (obj->type()) {
-#define DEFINE_TYPED_ARRAY_ELEMENT(_, T, N)                        \
-  case Scalar::N:                                                  \
-    return TypedArrayObjectTemplate<T>::setElement(cx, obj, index, \
-                                                   desc.value(), result);
-      JS_FOR_EACH_TYPED_ARRAY(DEFINE_TYPED_ARRAY_ELEMENT)
-#undef DEFINE_TYPED_ARRAY_ELEMENT
-      case Scalar::MaxTypedArrayViewType:
-      case Scalar::Int64:
-      case Scalar::Simd128:
-        break;
-    }
-
-    MOZ_CRASH("Unsupported TypedArray type");
+    return SetTypedArrayElement(cx, obj, index, desc.value(), result);
   }
 
   // Step vii.
