@@ -32,7 +32,16 @@ const SUBMISSION_NO = [
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "engine",
+      base: {
+        urls: {
+          search: { base: "https://1.example.com", searchTermParamName: "q" },
+        },
+      },
+    },
+  ]);
 });
 
 async function addAndMakeDefault(name, search_url, search_url_get_params) {
@@ -74,7 +83,7 @@ add_task(async function test_submission_url_matching() {
 });
 
 add_task(async function test_submission_url_built_in() {
-  const engine = await Services.search.getEngineByName("engine1");
+  const engine = await Services.search.getEngineById("engine");
   await Services.search.setDefault(
     engine,
     Ci.nsISearchService.CHANGE_REASON_UNKNOWN
@@ -83,7 +92,7 @@ add_task(async function test_submission_url_built_in() {
   const engineInfo = Services.search.getDefaultEngineInfo();
   Assert.equal(
     engineInfo.defaultSearchEngineData.submissionURL,
-    "https://1.example.com/search?q=",
+    "https://1.example.com/?q=",
     "Should have given the submission url for a built-in engine."
   );
 });

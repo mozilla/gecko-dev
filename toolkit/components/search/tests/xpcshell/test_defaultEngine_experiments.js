@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * Test that defaultEngine property can be set and yields the proper events and\
+ * Test that defaultEngine property can be set and yields the proper events and
  * behavior (search results)
  */
 
@@ -11,6 +11,46 @@
 ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
+
+const CONFIG = [
+  { identifier: "engine1" },
+  { identifier: "engine2" },
+  {
+    identifier: "exp2",
+    variants: [
+      {
+        environment: { allRegionsAndLocales: true, experiment: "exp2" },
+      },
+    ],
+  },
+  {
+    identifier: "exp3",
+    variants: [
+      {
+        environment: { allRegionsAndLocales: true, experiment: "exp3" },
+      },
+    ],
+  },
+  {
+    recordType: "defaultEngines",
+    globalDefault: "engine1",
+    globalDefaultPrivate: "engine1",
+    specificDefaults: [
+      {
+        environment: { experiment: "exp1" },
+        default: "engine2",
+      },
+      {
+        environment: { experiment: "exp2" },
+        defaultPrivate: "exp2",
+      },
+      {
+        environment: { experiment: "exp3" },
+        default: "exp3",
+      },
+    ],
+  },
+];
 
 let getVariableStub;
 
@@ -45,7 +85,7 @@ add_setup(async () => {
   do_get_profile();
   Services.fog.initializeFOG();
 
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
   let promiseSaved = promiseSaveSettingsData();
   await Services.search.init();

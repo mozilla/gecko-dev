@@ -32,25 +32,25 @@ const enginesSettings = {
   },
   engines: [
     {
-      id: "engine1",
+      id: "appDefault",
       _metaData: { alias: null },
       _isAppProvided: true,
-      _name: "engine1",
+      _name: "appDefault",
     },
     {
-      id: "engine2",
+      id: "other",
       _metaData: { alias: null },
       _isAppProvided: true,
-      _name: "engine2",
+      _name: "other",
     },
     // This is a user-installed engine - the only one that was listed due to the
     // original issue.
     {
       id: DUPLICATE_ENGINE_ID,
-      _name: "engine1",
-      _shortName: "engine1",
+      _name: "appDefault",
+      _shortName: "appDefault",
       _loadPath: "[https]oldduplicateversion",
-      description: "An old near duplicate version of engine1",
+      description: "An old near duplicate version of appDefault",
       _iconURL:
         "data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAEAgQAhIOEAMjHyABIR0gA6ejpAGlqaQCpqKkAKCgoAPz9/AAZGBkAmJiYANjZ2ABXWFcAent6ALm6uQA8OjwAiIiIiIiIiIiIiI4oiL6IiIiIgzuIV4iIiIhndo53KIiIiB/WvXoYiIiIfEZfWBSIiIEGi/foqoiIgzuL84i9iIjpGIoMiEHoiMkos3FojmiLlUipYliEWIF+iDe0GoRa7D6GPbjcu1yIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       _iconMapObj: {
@@ -81,7 +81,17 @@ add_setup(async function () {
     true
   );
 
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "appDefault",
+      base: {
+        urls: {
+          search: { base: "https://1.example.com", searchTermParamName: "q" },
+        },
+      },
+    },
+    { identifier: "other" },
+  ]);
   Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
   Services.locale.availableLocales = ["en-US"];
   Services.locale.requestedLocales = ["en-US"];
@@ -121,11 +131,11 @@ add_task(async function test_cached_duplicate() {
     "Should have successfully created the search service"
   );
 
-  let engine = Services.search.getEngineByName("engine1");
+  let engine = Services.search.getEngineByName("appDefault");
   let submission = engine.getSubmission("foo");
   Assert.equal(
     submission.uri.spec,
-    "https://1.example.com/search?q=foo",
+    "https://1.example.com/?q=foo",
     "Should have not changed the app provided engine."
   );
 
@@ -138,7 +148,7 @@ add_task(async function test_cached_duplicate() {
 
   Assert.deepEqual(
     engines.map(e => e.name),
-    ["engine1", "engine2"],
+    ["appDefault", "other"],
     "Should have the expected default engines"
   );
 });

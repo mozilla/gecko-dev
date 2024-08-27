@@ -24,23 +24,23 @@ const enginesSettings = {
     // We use the second engine here so that the user's default is set
     // to something different, and hence so that we exercise the appropriate
     // code paths.
-    defaultEngineId: "engine2",
+    defaultEngineId: "other",
     defaultEngineIdHash: "TBD",
-    visibleDefaultEngines: "engine1,engine2",
+    visibleDefaultEngines: "appDefault,other",
     visibleDefaultEnginesHash: "TBD",
   },
   engines: [
     {
       _metaData: { alias: null },
       _isAppProvided: true,
-      _name: "engine1",
-      id: "engine1",
+      _name: "appDefault",
+      id: "appDefault",
     },
     {
       _metaData: { alias: null },
       _isAppProvided: true,
-      _name: "engine2",
-      id: "engine2",
+      _name: "other",
+      id: "other",
     },
   ],
 };
@@ -52,7 +52,10 @@ add_setup(async function () {
     true
   );
 
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "appDefault" },
+    { identifier: "other" },
+  ]);
   Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
   Services.locale.availableLocales = ["en-US"];
   Services.locale.requestedLocales = ["en-US"];
@@ -92,12 +95,12 @@ add_task(async function test_cached_engine_properties() {
   const engines = await Services.search.getEngines();
   Assert.equal(
     Services.search.defaultEngine.name,
-    "engine2",
+    "other",
     "Should have the expected default engine"
   );
   Assert.deepEqual(
     engines.map(e => e.name),
-    ["engine1", "engine2"],
+    ["appDefault", "other"],
     "Should have the expected application provided engines"
   );
 });

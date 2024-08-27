@@ -2,10 +2,14 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const kDefaultEngineName = "engine1";
+const kOtherAppProvidedEngineId = "engine2";
 
 add_setup(async function () {
   useHttpServer();
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: kDefaultEngineName },
+    { identifier: kOtherAppProvidedEngineId },
+  ]);
   Assert.ok(!Services.search.isInitialized);
   Services.prefs.setBoolPref(
     "browser.search.removeEngineInfobar.enabled",
@@ -13,7 +17,6 @@ add_setup(async function () {
   );
 });
 
-// Check that the default engine matches the defaultenginename pref
 add_task(async function test_defaultEngine() {
   await Services.search.init();
   await SearchTestUtils.installOpenSearchEngine({
@@ -112,29 +115,22 @@ add_task(async function test_resetToOriginalDefaultEngine() {
 
 add_task(async function test_fallback_kept_after_restart() {
   // Set current engine to a default engine that isn't the original default.
-  let builtInEngines = await Services.search.getAppProvidedEngines();
-  let nonDefaultBuiltInEngine;
-  for (let engine of builtInEngines) {
-    if (engine.name != kDefaultEngineName) {
-      nonDefaultBuiltInEngine = engine;
-      break;
-    }
-  }
+  let otherAppProvidedEngine = Services.search.getEngineById(
+    kOtherAppProvidedEngineId
+  );
+
   await Services.search.setDefault(
-    nonDefaultBuiltInEngine,
+    otherAppProvidedEngine,
     Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   );
-  Assert.equal(
-    Services.search.defaultEngine.name,
-    nonDefaultBuiltInEngine.name
-  );
+  Assert.equal(Services.search.defaultEngine.name, otherAppProvidedEngine.name);
   await promiseAfterSettings();
 
   // Remove that engine...
-  await Services.search.removeEngine(nonDefaultBuiltInEngine);
+  await Services.search.removeEngine(otherAppProvidedEngine);
   // The engine being a default (built-in) one, it should be hidden
   // rather than actually removed.
-  Assert.ok(nonDefaultBuiltInEngine.hidden);
+  Assert.ok(otherAppProvidedEngine.hidden);
 
   // Using the defaultEngine getter should force a fallback to the
   // original default engine.
@@ -143,7 +139,7 @@ add_task(async function test_fallback_kept_after_restart() {
   // Restoring the default engines should unhide our built-in test
   // engine, but not change the value of defaultEngine.
   Services.search.restoreDefaultEngines();
-  Assert.ok(!nonDefaultBuiltInEngine.hidden);
+  Assert.ok(!otherAppProvidedEngine.hidden);
   Assert.equal(Services.search.defaultEngine.name, kDefaultEngineName);
   await promiseAfterSettings();
 

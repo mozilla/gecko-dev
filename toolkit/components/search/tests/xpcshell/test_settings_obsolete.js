@@ -60,7 +60,10 @@ async function checkLoadSettingProperties(settingsFile, engineName) {
  * Test reading from search.json.mozlz4
  */
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "engine1" },
+    { identifier: "engine2" },
+  ]);
 });
 
 add_task(async function test_obsolete_distribution_engine() {

@@ -4,7 +4,17 @@
 "use strict";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "engine1",
+      base: {
+        urls: {
+          search: { base: "https://1.example.com", searchTermParamName: "q" },
+        },
+      },
+    },
+    { identifier: "engine2" },
+  ]);
   await Services.search.init();
   await promiseAfterSettings();
 });
@@ -169,7 +179,7 @@ add_task(async function test_upgrade_to_existing_name_not_allowed() {
 
   Assert.equal(
     Services.search.getEngineByName("engine1").getSubmission("abc").uri.spec,
-    "https://1.example.com/search?q=abc",
+    "https://1.example.com/?q=abc",
     "Should have not changed the original engine"
   );
 

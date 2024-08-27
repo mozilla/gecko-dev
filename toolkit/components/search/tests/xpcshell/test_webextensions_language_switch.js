@@ -12,7 +12,7 @@ add_setup(async function () {
   ];
   Services.locale.requestedLocales = ["en"];
 
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
   await Services.search.init();
   await promiseAfterSettings();
 });

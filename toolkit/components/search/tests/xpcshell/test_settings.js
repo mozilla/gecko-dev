@@ -16,7 +16,10 @@ var settingsTemplate;
  * Test reading from search.json.mozlz4
  */
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "engine1" },
+    { identifier: "engine2" },
+  ]);
   await Services.search.init();
 });
 

@@ -16,7 +16,7 @@ AddonTestUtils.createAppInfo(
 );
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([{ identifier: "appDefault" }]);
 
   xpi = AddonTestUtils.createTempWebExtensionFile({
     manifest: {
@@ -83,7 +83,7 @@ add_task(async function test_removeAddonOnStartup() {
   let newDefault = await Services.search.getDefault();
   Assert.equal(
     newDefault.name,
-    "engine1",
+    "appDefault",
     "Should have changed the default engine back to the configuration default"
   );
 

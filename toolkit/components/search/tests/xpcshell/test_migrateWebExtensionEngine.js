@@ -7,7 +7,7 @@ const kExtensionID = "simple@tests.mozilla.org";
 
 add_setup(async function () {
   useHttpServer("opensearch");
-  await SearchTestUtils.useTestEngines("data1");
+  SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
   await Services.search.init();
 });
 
