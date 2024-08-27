@@ -118,7 +118,7 @@ index 026382b0c7..2f2de25df6 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 7328df134a..c8bda37ad6 100644
+index 3c78142a25..dbc03c9f8b 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -130,7 +130,7 @@ index 7328df134a..c8bda37ad6 100644
    # This target should (transitively) cause everything to be built; if you run
    # 'ninja default' and then 'ninja all', the second build should do no work.
    group("default") {
-@@ -158,6 +158,10 @@ config("common_inherited_config") {
+@@ -154,6 +154,10 @@ config("common_inherited_config") {
      defines += [ "WEBRTC_ENABLE_OBJC_SYMBOL_EXPORT" ]
    }
  
@@ -141,7 +141,7 @@ index 7328df134a..c8bda37ad6 100644
    if (!rtc_builtin_ssl_root_certificates) {
      defines += [ "WEBRTC_EXCLUDE_BUILT_IN_SSL_ROOT_CERTS" ]
    }
-@@ -513,9 +517,11 @@ config("common_config") {
+@@ -509,9 +513,11 @@ config("common_config") {
    }
  }
  
@@ -153,7 +153,7 @@ index 7328df134a..c8bda37ad6 100644
  
  if (!build_with_chromium) {
    # Target to build all the WebRTC production code.
-@@ -566,6 +572,34 @@ if (!build_with_chromium) {
+@@ -562,6 +568,34 @@ if (!build_with_chromium) {
        "sdk",
        "video",
      ]
@@ -188,7 +188,7 @@ index 7328df134a..c8bda37ad6 100644
  
      if (rtc_include_builtin_audio_codecs) {
        deps += [
-@@ -578,6 +612,16 @@ if (!build_with_chromium) {
+@@ -574,6 +608,16 @@ if (!build_with_chromium) {
        deps += [
          "api/video:video_frame",
          "api/video:video_rtp_headers",
@@ -1317,7 +1317,7 @@ index 7e85a556d0..2d585ab01b 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index f2cbb815d7..cec6e34405 100644
+index 3f0e7feccb..c7d1b523a9 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1344,7 +1344,7 @@ index f2cbb815d7..cec6e34405 100644
  declare_args() {
    # Setting this to true will make RTC_EXPORT (see rtc_base/system/rtc_export.h)
    # expand to code that will manage symbols visibility.
-@@ -96,7 +106,7 @@ declare_args() {
+@@ -92,7 +102,7 @@ declare_args() {
    # will tell the pre-processor to remove the default definition of the
    # SystemTimeNanos() which is defined in rtc_base/system_time.cc. In
    # that case a new implementation needs to be provided.
@@ -1353,7 +1353,7 @@ index f2cbb815d7..cec6e34405 100644
  
    # Setting this to false will require the API user to pass in their own
    # SSLCertificateVerifier to verify the certificates presented from a
-@@ -122,7 +132,7 @@ declare_args() {
+@@ -118,7 +128,7 @@ declare_args() {
  
    # Used to specify an external OpenSSL include path when not compiling the
    # library that comes with WebRTC (i.e. rtc_build_ssl == 0).
@@ -1362,7 +1362,7 @@ index f2cbb815d7..cec6e34405 100644
  
    # Enable when an external authentication mechanism is used for performing
    # packet authentication for RTP packets instead of libsrtp.
-@@ -136,13 +146,13 @@ declare_args() {
+@@ -132,13 +142,13 @@ declare_args() {
    rtc_exclude_audio_processing_module = false
  
    # Set this to false to skip building examples.
@@ -1379,7 +1379,7 @@ index f2cbb815d7..cec6e34405 100644
  
    # Set this to use PipeWire on the Wayland display server.
    # By default it's only enabled on desktop Linux (excludes ChromeOS) and
-@@ -153,9 +163,6 @@ declare_args() {
+@@ -149,9 +159,6 @@ declare_args() {
    # Set this to link PipeWire and required libraries directly instead of using the dlopen.
    rtc_link_pipewire = false
  
@@ -1389,7 +1389,7 @@ index f2cbb815d7..cec6e34405 100644
    # Experimental: enable use of Android AAudio which requires Android SDK 26 or above
    # and NDK r16 or above.
    rtc_enable_android_aaudio = false
-@@ -291,7 +298,7 @@ declare_args() {
+@@ -287,7 +294,7 @@ declare_args() {
    rtc_build_json = !build_with_mozilla
    rtc_build_libsrtp = !build_with_mozilla
    rtc_build_libvpx = !build_with_mozilla
@@ -1398,7 +1398,7 @@ index f2cbb815d7..cec6e34405 100644
    rtc_build_opus = !build_with_mozilla
    rtc_build_ssl = !build_with_mozilla
  
-@@ -310,7 +317,7 @@ declare_args() {
+@@ -306,7 +313,7 @@ declare_args() {
  
    # Chromium uses its own IO handling, so the internal ADM is only built for
    # standalone WebRTC.
@@ -1407,7 +1407,7 @@ index f2cbb815d7..cec6e34405 100644
  
    # Set this to true to enable the avx2 support in webrtc.
    # TODO: Make sure that AVX2 works also for non-clang compilers.
-@@ -354,6 +361,9 @@ declare_args() {
+@@ -350,6 +357,9 @@ declare_args() {
    rtc_enable_grpc = rtc_enable_protobuf && (is_linux || is_mac)
  }
  
@@ -1417,7 +1417,7 @@ index f2cbb815d7..cec6e34405 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1197,7 +1207,7 @@ if (is_mac || is_ios) {
+@@ -1193,7 +1203,7 @@ if (is_mac || is_ios) {
    }
  }
  
