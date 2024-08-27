@@ -1059,10 +1059,10 @@ TextComposition* TextCompositionArray::GetCompositionFor(
 TextComposition* TextCompositionArray::GetCompositionInContent(
     nsPresContext* aPresContext, nsIContent* aContent) {
   // There should be only one composition per content object.
-  for (index_type i = Length(); i > 0; --i) {
-    nsINode* node = ElementAt(i - 1)->GetEventTargetNode();
-    if (node && node->IsInclusiveDescendantOf(aContent)) {
-      return ElementAt(i - 1);
+  for (TextComposition* const composition : Reversed(*this)) {
+    nsINode* node = composition->GetEventTargetNode();
+    if (node && node->IsInclusiveFlatTreeDescendantOf(aContent)) {
+      return composition;
     }
   }
   return nullptr;
