@@ -51,7 +51,7 @@ EncoderBitrateAdjuster::EncoderBitrateAdjuster(
     Clock& clock)
     : utilize_bandwidth_headroom_(RateControlSettings(field_trials)
                                       .BitrateAdjusterCanUseNetworkHeadroom()),
-      use_newfangled_headroom_adjustment_(field_trials.IsEnabled(
+      use_newfangled_headroom_adjustment_(!field_trials.IsDisabled(
           "WebRTC-BitrateAdjusterUseNewfangledHeadroomAdjustment")),
       frames_since_layout_change_(0),
       min_bitrates_bps_{},

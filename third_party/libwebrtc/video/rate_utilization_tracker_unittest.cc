@@ -248,5 +248,22 @@ TEST(RateUtilizationTrackerTest, EqualTimestampsTreatedAtSameDataPoint) {
       PrettyCloseTo(3.0 / 4.0));
 }
 
+TEST(RateUtilizationTrackerTest, FullRateAfterLastDataPoint) {
+  RateUtilizationTracker tracker(kDefaultMaxDataPoints, kDefaultTimeWindow);
+  constexpr TimeDelta kFrameInterval = TimeDelta::Seconds(1) / 33;
+  constexpr DataRate kTargetRate = DataRate::KilobitsPerSec(100);
+  constexpr DataSize kIdealFrameSize = kTargetRate * kFrameInterval;
+
+  tracker.OnDataRateChanged(kTargetRate, kStartTime);
+  tracker.OnDataProduced(kIdealFrameSize, kStartTime);
+
+  // New rate update, but accumulated rate for last data point fully saturated
+  // by next to last rate update.
+  tracker.OnDataRateChanged(kTargetRate, kStartTime + kFrameInterval * 2);
+
+  EXPECT_THAT(tracker.GetRateUtilizationFactor(kStartTime + kFrameInterval * 3),
+              PrettyCloseTo(1.0 / 3.0));
+}
+
 }  // namespace
 }  // namespace webrtc
