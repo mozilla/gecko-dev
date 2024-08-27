@@ -12,8 +12,11 @@
 #![cfg_attr(all(not(stdsimd_split), target_arch = "arm", feature = "neon"), feature(stdsimd))]
 #![cfg_attr(
     all(target_arch = "arm", feature = "neon"),
-    feature(arm_target_feature, raw_ref_op)
-
+    feature(arm_target_feature)
+)]
+#![cfg_attr(
+    all(not(stable_raw_ref_op), target_arch = "arm", feature = "neon"),
+    feature(raw_ref_op)
 )]
 
 /// These values match the Rendering Intent values from the ICC spec
