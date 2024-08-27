@@ -76,6 +76,7 @@
 #include "test/video_encoder_proxy_factory.h"
 #include "video/config/encoder_stream_factory.h"
 #include "video/config/video_encoder_config.h"
+#include "video/encoder_bitrate_adjuster.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/send_statistics_proxy.h"
 
@@ -2579,6 +2580,58 @@ TEST_F(VideoStreamEncoderTest,
   video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
                                           kMaxPayloadLength);
   EXPECT_TRUE(video_source_.sink_wants().is_active);
+
+  video_stream_encoder_->Stop();
+}
+
+TEST_F(VideoStreamEncoderTest, CorrectlyAdjustsAv1Bitrate) {
+  ResetEncoder("AV1", /*num_streams*/ 2, /*num_temporal_layers=*/2,
+               /*num_spatial_layers=*/1, /*screenshare*/ false,
+               kDefaultFramerate,
+               VideoStreamEncoder::BitrateAllocationCallbackType::
+                   kVideoLayersAllocation);
+
+  // Let link allocation and stable bitrate be 2x the target bitrate.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, 2 * kTargetBitrate, 2 * kTargetBitrate, 0, 0, 0);
+
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+  WaitForEncodedFrame(CurrentTimeMs());
+
+  // Before enough data has been gathered, some default pushback is applied.
+  VideoEncoder::RateControlParameters rate_settings =
+      *fake_encoder_.GetAndResetLastRateControlSettings();
+  // Allow 5% diff from target bitrate.
+  const double allowed_error_bps =
+      rate_settings.target_bitrate.get_sum_bps() * 0.05;
+  EXPECT_NEAR(rate_settings.bitrate.get_sum_bps(),
+              rate_settings.target_bitrate.get_sum_bps() /
+                  EncoderBitrateAdjuster::kDefaultUtilizationFactor,
+              allowed_error_bps);
+
+  // Insert frames until bitrate adjuster is saturated.
+  const TimeDelta runtime =
+      TimeDelta::Millis(EncoderBitrateAdjuster::kWindowSizeMs);
+  const Timestamp start_time = clock()->CurrentTime();
+  while (clock()->CurrentTime() - start_time < runtime) {
+    video_source_.IncomingCapturedFrame(
+        CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+    WaitForEncodedFrame(CurrentTimeMs());
+  }
+
+  // Make sure rate has been reallocated.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate - DataRate::BitsPerSec(500), 2 * kTargetBitrate,
+      2 * kTargetBitrate, 0, 0, 0);
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+  WaitForEncodedFrame(CurrentTimeMs());
+
+  // Pushback should no longer happen.
+  rate_settings = *fake_encoder_.GetAndResetLastRateControlSettings();
+  EXPECT_NEAR(rate_settings.bitrate.get_sum_bps(),
+              rate_settings.target_bitrate.get_sum_bps(), allowed_error_bps);
 
   video_stream_encoder_->Stop();
 }
