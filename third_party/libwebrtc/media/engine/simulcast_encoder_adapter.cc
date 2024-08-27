@@ -15,21 +15,41 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
+#include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/nullability.h"
 #include "absl/types/optional.h"
+#include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
-#include "api/video/i420_buffer.h"
+#include "api/sequence_checker.h"
+#include "api/units/data_rate.h"
+#include "api/units/timestamp.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
 #include "api/video/video_codec_constants.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
+#include "api/video/video_frame_type.h"
 #include "api/video/video_rotation.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/simulcast_stream.h"
+#include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "api/video_codecs/video_encoder_software_fallback_wrapper.h"
-#include "media/base/media_constants.h"
+#include "common_video/framerate_controller.h"
 #include "media/base/sdp_video_format_utils.h"
 #include "media/base/video_common.h"
 #include "modules/video_coding/include/video_error_codes.h"
@@ -789,17 +809,15 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   // To support the full set of scalability modes in the event that this is the
   // only active encoding, prefer VideoCodec::GetScalabilityMode() if all other
   // encodings are inactive.
-  if (codec.GetScalabilityMode().has_value()) {
-    bool only_active_stream = true;
-    for (int i = 0; i < codec.numberOfSimulcastStreams; ++i) {
-      if (i != stream_idx && codec.simulcastStream[i].active) {
-        only_active_stream = false;
-        break;
-      }
+  bool only_active_stream = true;
+  for (int i = 0; i < codec.numberOfSimulcastStreams; ++i) {
+    if (i != stream_idx && codec.simulcastStream[i].active) {
+      only_active_stream = false;
+      break;
     }
-    if (only_active_stream) {
-      scalability_mode = codec.GetScalabilityMode();
-    }
+  }
+  if (codec.GetScalabilityMode().has_value() && only_active_stream) {
+    scalability_mode = codec.GetScalabilityMode();
   }
   if (scalability_mode.has_value()) {
     codec_params.SetScalabilityMode(*scalability_mode);
@@ -829,6 +847,15 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   } else if (codec.codecType == webrtc::kVideoCodecH264) {
     codec_params.H264()->numberOfTemporalLayers =
         stream_params.numberOfTemporalLayers;
+  } else if (codec.codecType == webrtc::kVideoCodecVP9 &&
+             scalability_mode.has_value() && !only_active_stream) {
+    // If VP9 simulcast then explicitly set a single spatial layer for each
+    // simulcast stream.
+    codec_params.VP9()->numberOfSpatialLayers = 1;
+    codec_params.VP9()->numberOfTemporalLayers =
+        stream_params.GetNumberOfTemporalLayers();
+    codec_params.VP9()->interLayerPred = InterLayerPredMode::kOff;
+    codec_params.spatialLayers[0] = stream_params;
   }
 
   // Cap start bitrate to the min bitrate in order to avoid strange codec

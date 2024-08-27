@@ -581,7 +581,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 8b5fd93338..868f662df9 100644
+index 3870a3b735..57b3d64265 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -77,7 +77,7 @@ rtc_library("rtc_media_base") {
@@ -694,7 +694,7 @@ index 8b5fd93338..868f662df9 100644
  
  rtc_library("rtc_simulcast_encoder_adapter") {
    visibility = [ "*" ]
-@@ -505,6 +530,11 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -513,6 +538,11 @@ rtc_library("rtc_internal_video_codecs") {
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/types:optional",
    ]
@@ -706,7 +706,7 @@ index 8b5fd93338..868f662df9 100644
  
    if (enable_libaom) {
      defines += [ "RTC_USE_LIBAOM_AV1_ENCODER" ]
-@@ -524,6 +554,13 @@ rtc_library("rtc_internal_video_codecs") {
+@@ -532,6 +562,13 @@ rtc_library("rtc_internal_video_codecs") {
      "engine/internal_encoder_factory.cc",
      "engine/internal_encoder_factory.h",
    ]
