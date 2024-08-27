@@ -10,10 +10,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/9e64a965e26c83792
  1 file changed, 3 insertions(+)
 
 diff --git a/rtc_base/platform_thread.cc b/rtc_base/platform_thread.cc
-index 71a9f1b224..bcbb784b97 100644
+index feb4338998..614860f8a0 100644
 --- a/rtc_base/platform_thread.cc
 +++ b/rtc_base/platform_thread.cc
-@@ -50,6 +50,9 @@ bool SetPriority(ThreadPriority priority) {
+@@ -52,6 +52,9 @@ bool SetPriority(ThreadPriority priority) {
    // TODO(tommi): Switch to the same mechanism as Chromium uses for changing
    // thread priorities.
    return true;
