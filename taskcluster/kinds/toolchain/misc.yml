@@ -511,6 +511,7 @@ win64-aarch64-vs2022:
         resources:
             - build/vs/vs2022-aarch64.yaml
         toolchain-artifact: project/gecko/vs/vs.tar.zst
+        toolchain-alias: win64-aarch64-vs
 
 linux64-afl-instrumentation-4.0:
     description: "AFL++ instrumentation toolchain build"
