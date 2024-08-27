@@ -28,7 +28,6 @@ support-files = [
   "data/searchSuggestions.sjs",
   "data1/search-config-v2.json",
   "simple-engines/search-config-v2.json",
-  "test-extensions/search-config-v2.json",
 ]
 
 ["test_SearchStaticData.js"]

@@ -13,12 +13,25 @@ ChromeUtils.defineESModuleGetters(lazy, {
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
-  await SearchTestUtils.useTestEngines("test-extensions");
+
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "default",
+      base: {
+        urls: {
+          search: {
+            base: "https://example.com/unchanged",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+  ]);
   await SearchTestUtils.initXPCShellAddonManager();
 });
 
 add_task(async function test_install_duplicate_engine_startup() {
-  let name = "Plain";
+  let name = "default";
   consoleAllowList.push("#loadStartupEngines failed for");
   // Do not use SearchTestUtils.installSearchExtension, as we need to manually
   // start the search service after installing the extension.
@@ -41,7 +54,7 @@ add_task(async function test_install_duplicate_engine_startup() {
   let submission = engine.getSubmission("foo");
   Assert.equal(
     submission.uri.spec,
-    "https://duckduckgo.com/?t=ffsb&q=foo",
+    "https://example.com/unchanged?q=foo",
     "Should have not changed the app provided engine."
   );
 

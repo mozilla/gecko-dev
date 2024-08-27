@@ -19,7 +19,8 @@ let extension;
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
-  await SearchTestUtils.useTestEngines("test-extensions");
+
+  SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
   await SearchTestUtils.initXPCShellAddonManager();
 });
 

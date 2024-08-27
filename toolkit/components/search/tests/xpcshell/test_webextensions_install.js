@@ -15,12 +15,20 @@ add_setup(async function () {
   server.registerContentType("sjs", "sjs");
   gBaseUrl = `http://localhost:${server.identity.primaryPort}/`;
 
-  await SearchTestUtils.useTestEngines("test-extensions");
-
-  Services.locale.availableLocales = [
-    ...Services.locale.availableLocales,
-    "af",
-  ];
+  SearchTestUtils.setRemoteSettingsConfig([
+    {
+      identifier: "default",
+      base: {
+        urls: {
+          search: {
+            base: "https://example.com/unchanged",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+    { identifier: "additional" },
+  ]);
 
   registerCleanupFunction(async () => {
     Services.prefs.clearUserPref("browser.search.region");
@@ -32,7 +40,7 @@ add_task(async function basic_install_test() {
   await promiseAfterSettings();
 
   // On first boot, we get the configuration defaults
-  Assert.deepEqual(await getEngineNames(), ["Plain", "Special"]);
+  Assert.deepEqual(await getEngineNames(), ["default", "additional"]);
 
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
@@ -43,8 +51,8 @@ add_task(async function basic_install_test() {
   );
   Assert.deepEqual((await getEngineNames()).sort(), [
     "Example",
-    "Plain",
-    "Special",
+    "additional",
+    "default",
   ]);
 
   let engine = await Services.search.getEngineByName("Example");
@@ -58,11 +66,11 @@ add_task(async function basic_install_test() {
   await extension.awaitStartup();
   await extension.unload();
   await promiseAfterSettings();
-  Assert.deepEqual(await getEngineNames(), ["Plain", "Special"]);
+  Assert.deepEqual(await getEngineNames(), ["default", "additional"]);
 });
 
 add_task(async function test_install_duplicate_engine() {
-  let name = "Plain";
+  let name = "default";
   consoleAllowList.push(`An engine called ${name} already exists`);
   let extension = await SearchTestUtils.installSearchExtension(
     {
@@ -72,11 +80,11 @@ add_task(async function test_install_duplicate_engine() {
     { skipUnload: true }
   );
 
-  let engine = await Services.search.getEngineByName("Plain");
+  let engine = await Services.search.getEngineByName("default");
   let submission = engine.getSubmission("foo");
   Assert.equal(
     submission.uri.spec,
-    "https://duckduckgo.com/?t=ffsb&q=foo",
+    "https://example.com/unchanged?q=foo",
     "Should have not changed the app provided engine."
   );
 

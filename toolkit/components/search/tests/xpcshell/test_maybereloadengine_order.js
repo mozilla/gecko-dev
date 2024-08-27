@@ -8,7 +8,19 @@
 "use strict";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("test-extensions");
+  SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "globalDefault" },
+    { identifier: "trDefault" },
+    {
+      globalDefault: "default",
+      specificDefaults: [
+        {
+          default: "trDefault",
+          environment: { regions: ["tr"] },
+        },
+      ],
+    },
+  ]);
 });
 
 add_task(async function basic_multilocale_test() {
@@ -25,7 +37,7 @@ add_task(async function basic_multilocale_test() {
 
   Assert.deepEqual(
     engines.map(e => e._name),
-    ["Special", "Plain"],
+    ["trDefault", "globalDefault"],
     "Special engine is default so should be first"
   );
 
