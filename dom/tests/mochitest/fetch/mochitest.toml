@@ -92,14 +92,12 @@ skip-if = [
 ["test_fetch_cached_redirect.html"]
 
 ["test_fetch_cors.html"]
-scheme = "https"
 skip-if = [
   "http3",
   "http2",
 ]
 
 ["test_fetch_cors_sw_empty_reroute.html"]
-scheme = "https"
 skip-if = [
   "os == 'android'", # Bug 1623134
   "http3",
@@ -107,7 +105,6 @@ skip-if = [
 ]
 
 ["test_fetch_cors_sw_reroute.html"]
-scheme = "https"
 skip-if = [
   "os == 'android'", # Bug 1623134
   "http3",
