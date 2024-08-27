@@ -21,6 +21,8 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
+import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
+import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTab
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
 import org.mozilla.fenix.home.recenttabs.view.RecentTabMenuItem
@@ -41,6 +43,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @param privateBrowsingInteractor for interactions in private browsing mode.
  * @param topSiteInteractor For interactions with the top sites UI.
  * @param recentTabInteractor For interactions with the recent tab UI.
+ * @param recentSyncedTabInteractor For interactions with the recent synced tab UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @Composable
@@ -49,6 +52,7 @@ internal fun Homepage(
     privateBrowsingInteractor: PrivateBrowsingInteractor,
     topSiteInteractor: TopSiteInteractor,
     recentTabInteractor: RecentTabInteractor,
+    recentSyncedTabInteractor: RecentSyncedTabInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -82,6 +86,20 @@ internal fun Homepage(
                             cardBackgroundColor = cardBackgroundColor,
                             recentTabs = recentTabs,
                         )
+
+                        if (showRecentSyncedTab) {
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            RecentSyncedTab(
+                                tab = syncedTab,
+                                backgroundColor = cardBackgroundColor,
+                                buttonBackgroundColor = buttonBackgroundColor,
+                                buttonTextColor = buttonTextColor,
+                                onRecentSyncedTabClick = recentSyncedTabInteractor::onRecentSyncedTabClicked,
+                                onSeeAllSyncedTabsButtonClick = recentSyncedTabInteractor::onSyncedTabShowAllClicked,
+                                onRemoveSyncedTab = recentSyncedTabInteractor::onRemovedRecentSyncedTab,
+                            )
+                        }
                     }
                 }
             }
@@ -135,10 +153,15 @@ private fun HomepagePreview() {
                     showRecentTabs = true,
                     recentTabs = FakeHomepagePreview.recentTabs(),
                     cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
+                    buttonTextColor = WallpaperState.default.buttonTextColor,
+                    buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
+                    showRecentSyncedTab = true,
+                    syncedTab = FakeHomepagePreview.recentSyncedTab(),
                 ),
                 topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
+                recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
                 onTopSitesItemBound = {},
             )
         }
@@ -161,6 +184,7 @@ private fun PrivateHomepagePreview() {
                 topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
+                recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
                 onTopSitesItemBound = {},
             )
         }

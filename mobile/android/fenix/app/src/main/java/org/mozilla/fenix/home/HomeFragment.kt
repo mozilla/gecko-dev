@@ -1162,6 +1162,7 @@ class HomeFragment : Fragment() {
                         privateBrowsingInteractor = sessionControlInteractor,
                         topSiteInteractor = sessionControlInteractor,
                         recentTabInteractor = sessionControlInteractor,
+                        recentSyncedTabInteractor = sessionControlInteractor,
                         onTopSitesItemBound = {
                             StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
                         },

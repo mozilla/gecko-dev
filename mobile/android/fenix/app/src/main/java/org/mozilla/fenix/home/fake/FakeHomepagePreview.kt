@@ -7,9 +7,12 @@ package org.mozilla.fenix.home.fake
 import com.google.firebase.util.nextAlphanumericString
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
+import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
+import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
@@ -49,6 +52,13 @@ internal object FakeHomepagePreview {
             override fun onRecentTabClicked(tabId: String) { /* no op */ }
             override fun onRecentTabShowAllClicked() { /* no op */ }
             override fun onRemoveRecentTab(tab: RecentTab.Tab) { /* no op */ }
+        }
+
+    internal val recentSyncedTabInterator
+        get() = object : RecentSyncedTabInteractor {
+            override fun onRecentSyncedTabClicked(tab: RecentSyncedTab) { /* no op */ }
+            override fun onSyncedTabShowAllClicked() { /* no op */ }
+            override fun onRemovedRecentSyncedTab(tab: RecentSyncedTab) { /* no op */ }
         }
 
     internal fun topSites(
@@ -120,6 +130,15 @@ internal object FakeHomepagePreview {
                 )
             }
         }
+
+    internal fun recentSyncedTab() =
+        RecentSyncedTab(
+            deviceDisplayName = "Desktop",
+            deviceType = DeviceType.DESKTOP,
+            title = "Mozilla",
+            url = URL,
+            previewImageUrl = null,
+        )
 
     private const val URL = "mozilla.com"
 
