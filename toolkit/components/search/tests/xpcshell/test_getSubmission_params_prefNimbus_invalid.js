@@ -14,11 +14,34 @@ const { NimbusFeatures } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 
-const baseURL = "https://www.google.com/search?q=foo";
-const baseURLSearchConfigV2 = "https://www.google.com/search?";
+const baseURL = "https://example.com/search?";
 
 let getVariableStub;
 let updateStub;
+
+const CONFIG = [
+  {
+    identifier: "preferenceEngine",
+    base: {
+      urls: {
+        search: {
+          base: "https://example.com/search",
+          params: [
+            {
+              name: "code",
+              experimentConfig: "code",
+            },
+            {
+              name: "test",
+              experimentConfig: "test",
+            },
+          ],
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+];
 
 add_setup(async function () {
   consoleAllowList.push("Failed to load nimbus variables for extraParams");
@@ -27,9 +50,9 @@ add_setup(async function () {
   getVariableStub = sinon.stub(NimbusFeatures.search, "getVariable");
   sinon.stub(NimbusFeatures.search, "ready").resolves();
 
-  // The test engines used in this test need to be recognized as 'default'
-  // engines, or their MozParams will be ignored.
-  await SearchTestUtils.useTestEngines();
+  // The test engines used in this test need to be recognized as application
+  // provided engines, or their MozParams will be ignored.
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 add_task(async function test_bad_nimbus_setting_on_init() {
@@ -42,10 +65,10 @@ add_task(async function test_bad_nimbus_setting_on_init() {
     "Should have called onUpdate to listen for future updates"
   );
 
-  const engine = Services.search.getEngineByName("engine-pref");
+  const engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURL,
+    baseURL + "q=foo",
     "Should have been able to get a submission URL"
   );
 });
@@ -63,10 +86,10 @@ add_task(async function test_switch_to_good_nimbus_setting() {
 
   updateStub.firstCall.args[0]();
 
-  const engine = Services.search.getEngineByName("engine-pref");
+  const engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURLSearchConfigV2 + "code=supergood%26id%3Dunique123456&q=foo",
+    baseURL + "code=supergood%26id%3Dunique123456&q=foo",
     "Should have got the submission URL with the updated code"
   );
 });
@@ -78,10 +101,10 @@ add_task(async function test_switch_back_to_bad_nimbus_setting() {
 
   updateStub.firstCall.args[0]();
 
-  const engine = Services.search.getEngineByName("engine-pref");
+  const engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURL,
+    baseURL + "q=foo",
     "Should have not have the extra parameters on the submission URL after a bad update"
   );
 });

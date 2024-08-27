@@ -13,13 +13,36 @@ const { AppConstants } = ChromeUtils.importESModule(
 const defaultBranch = Services.prefs.getDefaultBranch(
   SearchUtils.BROWSER_SEARCH_PREF
 );
-const baseURL = "https://www.google.com/search?q=foo";
-const baseURLSearchConfigV2 = "https://www.google.com/search?";
+const baseURL = "https://example.com/search?";
+
+const CONFIG = [
+  {
+    identifier: "preferenceEngine",
+    base: {
+      urls: {
+        search: {
+          base: "https://example.com/search",
+          params: [
+            {
+              name: "code",
+              experimentConfig: "code",
+            },
+            {
+              name: "test",
+              experimentConfig: "test",
+            },
+          ],
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+];
 
 add_setup(async function () {
-  // The test engines used in this test need to be recognized as 'default'
-  // engines, or their MozParams will be ignored.
-  await SearchTestUtils.useTestEngines();
+  // The test engines used in this test need to be recognized as application
+  // provided engines, or their MozParams will be ignored.
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 add_task(async function test_pref_initial_value() {
@@ -37,10 +60,10 @@ add_task(async function test_pref_initial_value() {
 
   await Services.search.init();
 
-  const engine = Services.search.getEngineByName("engine-pref");
+  const engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURLSearchConfigV2 + "code=good%26id%3Dunique&q=foo",
+    baseURL + "code=good%26id%3Dunique&q=foo",
     "Should have got the submission URL with the correct code"
   );
 
@@ -56,10 +79,10 @@ add_task(async function test_pref_updated() {
   // Update the pref without re-init nor restart.
   defaultBranch.setCharPref("param.code", "supergood&id=unique123456");
 
-  const engine = Services.search.getEngineByName("engine-pref");
+  const engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURLSearchConfigV2 + "code=supergood%26id%3Dunique123456&q=foo",
+    baseURL + "code=supergood%26id%3Dunique123456&q=foo",
     "Should have got the submission URL with the updated code"
   );
 });
@@ -69,10 +92,10 @@ add_task(async function test_pref_cleared() {
   // Note you can't delete a preference from the default branch.
   defaultBranch.setCharPref("param.code", "");
 
-  let engine = Services.search.getEngineByName("engine-pref");
+  let engine = Services.search.getEngineById("preferenceEngine");
   Assert.equal(
     engine.getSubmission("foo").uri.spec,
-    baseURL,
+    baseURL + "q=foo",
     "Should have just the base URL after the pref was cleared"
   );
 });

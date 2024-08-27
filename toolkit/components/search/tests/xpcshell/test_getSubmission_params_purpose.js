@@ -8,68 +8,93 @@
 
 "use strict";
 
+const CONFIG = [
+  {
+    identifier: "engineWithPurposes",
+    base: {
+      urls: {
+        search: {
+          base: "https://www.example.com/search",
+          params: [
+            {
+              name: "channel",
+              searchAccessPoint: {
+                addressbar: "fflb",
+                contextmenu: "rcs",
+              },
+            },
+            {
+              name: "extra",
+              value: "foo",
+            },
+          ],
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+  {
+    identifier: "engineWithPurposesReordered",
+    base: {
+      urls: {
+        search: {
+          base: "https://www.example.com/search",
+          params: [
+            // This time we put the purposes second, to ensure they are
+            // correctly inserted regardless of where they are in the URL.
+            {
+              name: "extra",
+              value: "foo",
+            },
+            {
+              name: "channel",
+              searchAccessPoint: {
+                addressbar: "fflb",
+                contextmenu: "rcs",
+              },
+            },
+          ],
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+];
+
 add_setup(async function () {
   // The test engines used in this test need to be recognized as 'default'
   // engines, or their MozParams used to set the purpose will be ignored.
-  await SearchTestUtils.useTestEngines();
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
 add_task(async function test_purpose() {
-  let engine = Services.search.getEngineByName("Test search engine");
+  let engines = [
+    Services.search.getEngineById("engineWithPurposes"),
+    Services.search.getEngineById("engineWithPurposesReordered"),
+  ];
 
-  function check_submission(aValue, aSearchTerm, aType, aPurpose) {
-    let submissionURL = engine.getSubmission(aSearchTerm, aType, aPurpose).uri
+  function check_submission(engine, value, searchTerm, type, purpose) {
+    let submissionURL = engine.getSubmission(searchTerm, type, purpose).uri
       .spec;
     let searchParams = new URLSearchParams(submissionURL.split("?")[1]);
-    if (aValue) {
-      Assert.equal(searchParams.get("channel"), aValue);
+    if (value) {
+      Assert.equal(searchParams.get("channel"), value);
     } else {
       Assert.ok(!searchParams.has("channel"));
     }
-    Assert.equal(searchParams.get("q"), aSearchTerm);
+    Assert.equal(searchParams.get("q"), searchTerm);
   }
 
-  check_submission("", "foo");
-  check_submission("", "foo", null);
-  check_submission("", "foo", "text/html");
-  check_submission("rcs", "foo", null, "contextmenu");
-  check_submission("rcs", "foo", "text/html", "contextmenu");
-  check_submission("fflb", "foo", null, "keyword");
-  check_submission("fflb", "foo", "text/html", "keyword");
-  check_submission("", "foo", "text/html", "invalid");
-
-  // Tests for a purpose on the search form (ie. empty query).
-  engine = Services.search.getEngineByName("engine-rel-searchform-purpose");
-
-  // verify that the 'system' purpose falls back to the 'searchbar' purpose.
-  check_submission("sb", "foo", "text/html", "system");
-  check_submission("sb", "foo", "text/html", "searchbar");
-});
-
-add_task(async function test_purpose() {
-  let engine = Services.search.getEngineByName(
-    "Test search engine (Reordered)"
-  );
-
-  function check_submission(aValue, aSearchTerm, aType, aPurpose) {
-    let submissionURL = engine.getSubmission(aSearchTerm, aType, aPurpose).uri
-      .spec;
-    let searchParams = new URLSearchParams(submissionURL.split("?")[1]);
-    if (aValue) {
-      Assert.equal(searchParams.get("channel"), aValue);
-    } else {
-      Assert.ok(!searchParams.has("channel"));
-    }
-    Assert.equal(searchParams.get("q"), aSearchTerm);
+  for (let engine of engines) {
+    info(`Testing ${engine.identifier}`);
+    check_submission(engine, "", "foo");
+    check_submission(engine, "", "foo", "text/html");
+    check_submission(engine, "", "foo", null);
+    check_submission(engine, "rcs", "foo", null, "contextmenu");
+    check_submission(engine, "rcs", "foo", "text/html", "contextmenu");
+    check_submission(engine, "fflb", "foo", null, "keyword");
+    check_submission(engine, "fflb", "foo", "text/html", "keyword");
+    check_submission(engine, "", "foo", "text/html", "invalid");
   }
-
-  check_submission("", "foo");
-  check_submission("", "foo", null);
-  check_submission("", "foo", "text/html");
-  check_submission("rcs", "foo", null, "contextmenu");
-  check_submission("rcs", "foo", "text/html", "contextmenu");
-  check_submission("fflb", "foo", null, "keyword");
-  check_submission("fflb", "foo", "text/html", "keyword");
-  check_submission("", "foo", "text/html", "invalid");
 });

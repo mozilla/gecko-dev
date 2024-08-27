@@ -11,6 +11,12 @@ const { EnterprisePolicyTesting } = ChromeUtils.importESModule(
   "resource://testing-common/EnterprisePolicyTesting.sys.mjs"
 );
 
+const CONFIG = [
+  { identifier: "appDefaultEngine" },
+  { identifier: "otherEngine" },
+  { identifier: "otherEngineToMakeDefault" },
+];
+
 SearchSettings.SETTINGS_INVALIDATION_DELAY = 100;
 
 /**
@@ -41,7 +47,7 @@ add_setup(async function () {
   policies.observe(null, "policies-startup", null);
 
   Services.fog.initializeFOG();
-  await SearchTestUtils.useTestEngines();
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 add_task(async function test_enterprise_policy_engine() {
@@ -155,26 +161,34 @@ add_task(async function test_enterprise_policy_hidden_default() {
   await setupPolicyEngineWithJson({
     policies: {
       SearchEngines: {
-        Remove: ["Test search engine"],
+        Remove: ["appDefaultEngine"],
       },
     },
   });
 
   Services.search.resetToAppDefaultEngine();
 
-  Assert.equal(Services.search.defaultEngine.name, "engine-resourceicon");
+  Assert.ok(
+    Services.search.getEngineById("appDefaultEngine").hidden,
+    "Should have removed the application default engine"
+  );
+
+  Assert.equal(Services.search.defaultEngine.identifier, "otherEngine");
 });
 
 add_task(async function test_enterprise_policy_default() {
   await setupPolicyEngineWithJson({
     policies: {
       SearchEngines: {
-        Default: "engine-pref",
+        Default: "otherEngineToMakeDefault",
       },
     },
   });
 
   Services.search.resetToAppDefaultEngine();
 
-  Assert.equal(Services.search.defaultEngine.name, "engine-pref");
+  Assert.equal(
+    Services.search.defaultEngine.identifier,
+    "otherEngineToMakeDefault"
+  );
 });

@@ -8,19 +8,48 @@
 
 "use strict";
 
-const EXPECTED_ORDER = [
-  // Default engines
-  "Test search engine",
-  "engine-pref",
-  // Now the engines in orderHint order.
-  "engine-resourceicon",
-  "engine-chromeicon",
-  "engine-rel-searchform-purpose",
-  "Test search engine (Reordered)",
+// The expected order everywhere apart from the `gd` locale.
+const EXPECTED_DEFAULT_ORDER = [
+  "engine1",
+  "engine6",
+  "engine2",
+  "engine3",
+  "engine5",
+  "engine4",
+];
+
+// The expected order when the `gd` locale is applied.
+const EXPECTED_GD_ORDER = [
+  "engine1",
+  "engine4",
+  "engine6",
+  "engine2",
+  "engine3",
+  "engine5",
+];
+const CONFIG = [
+  { identifier: "engine1" },
+  { identifier: "engine2" },
+  { identifier: "engine3" },
+  { identifier: "engine4" },
+  { identifier: "engine5" },
+  { identifier: "engine6" },
+  {
+    orders: [
+      {
+        environment: { allRegionsAndLocales: true },
+        order: EXPECTED_DEFAULT_ORDER,
+      },
+      {
+        environment: { locales: ["gd"] },
+        order: EXPECTED_GD_ORDER,
+      },
+    ],
+  },
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines();
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
   Services.locale.availableLocales = [
     ...Services.locale.availableLocales,
@@ -50,8 +79,8 @@ async function checkOrder(type, expectedOrder) {
 }
 
 add_task(async function test_engine_sort_only_builtins() {
-  await checkOrder("getAppProvidedEngines", EXPECTED_ORDER);
-  await checkOrder("getEngines", EXPECTED_ORDER);
+  await checkOrder("getAppProvidedEngines", EXPECTED_DEFAULT_ORDER);
+  await checkOrder("getEngines", EXPECTED_DEFAULT_ORDER);
 });
 
 add_task(async function test_engine_sort_with_non_builtins_sort() {
@@ -65,23 +94,17 @@ add_task(async function test_engine_sort_with_non_builtins_sort() {
   );
 
   // We should still have the same built-in engines listed.
-  await checkOrder("getAppProvidedEngines", EXPECTED_ORDER);
+  await checkOrder("getAppProvidedEngines", EXPECTED_DEFAULT_ORDER);
 
-  const expected = [...EXPECTED_ORDER];
-  expected.splice(EXPECTED_ORDER.length, 0, "nonbuiltin1");
+  const expected = [...EXPECTED_DEFAULT_ORDER];
+  expected.splice(EXPECTED_DEFAULT_ORDER.length, 0, "nonbuiltin1");
   await checkOrder("getEngines", expected);
 });
 
 add_task(async function test_engine_sort_with_locale() {
   await promiseSetLocale("gd");
 
-  const expected = [
-    "engine-resourceicon-gd",
-    "engine-pref",
-    "engine-rel-searchform-purpose",
-    "engine-chromeicon",
-    "Test search engine (Reordered)",
-  ];
+  const expected = [...EXPECTED_GD_ORDER];
 
   await checkOrder("getAppProvidedEngines", expected);
   expected.push("nonbuiltin1");

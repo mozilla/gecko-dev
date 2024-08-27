@@ -8,6 +8,52 @@
 
 "use strict";
 
+const CONFIG = [
+  {
+    identifier: "appDefault",
+    base: {
+      name: "Application Default",
+      urls: {
+        search: { base: "https://example.org", searchTermParamName: "q1" },
+      },
+    },
+  },
+  {
+    identifier: "appDefaultPrivate",
+    base: {
+      name: "Application Default Private",
+      urls: {
+        search: { base: "https://example.org", searchTermParamName: "q2" },
+      },
+    },
+  },
+  {
+    identifier: "otherEngine1",
+    base: {
+      name: "Other Engine 1",
+      urls: {
+        search: {
+          base: "https://example.org/engine1/",
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+  {
+    identifier: "otherEngine2",
+    base: {
+      name: "Other Engine 2",
+      urls: {
+        search: {
+          base: "https://example.org/engine2/",
+          searchTermParamName: "q",
+        },
+      },
+    },
+  },
+  { globalDefault: "appDefault", globalDefaultPrivate: "appDefaultPrivate" },
+];
+
 let engine1;
 let engine2;
 let appDefault;
@@ -17,7 +63,7 @@ add_setup(async () => {
   do_get_profile();
   Services.fog.initializeFOG();
 
-  await SearchTestUtils.useTestEngines();
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
   Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
   Services.prefs.setBoolPref(
@@ -33,37 +79,37 @@ add_setup(async () => {
 
   await Services.search.init();
 
-  appDefault = Services.search.appDefaultEngine;
-  appPrivateDefault = Services.search.appPrivateDefaultEngine;
-  engine1 = Services.search.getEngineByName("engine-rel-searchform-purpose");
-  engine2 = Services.search.getEngineByName("engine-chromeicon");
+  appDefault = Services.search.getEngineById("appDefault");
+  appPrivateDefault = Services.search.getEngineById("appDefaultPrivate");
+  engine1 = Services.search.getEngineById("otherEngine1");
+  engine2 = Services.search.getEngineById("otherEngine2");
 });
 
 add_task(async function test_defaultPrivateEngine() {
   Assert.equal(
-    Services.search.defaultPrivateEngine,
-    appPrivateDefault,
+    Services.search.defaultPrivateEngine.identifier,
+    appPrivateDefault.identifier,
     "Should have the app private default as the default private engine"
   );
   Assert.equal(
-    Services.search.defaultEngine,
-    appDefault,
+    Services.search.defaultEngine.identifier,
+    appDefault.identifier,
     "Should have the app default as the default engine"
   );
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
-      displayName: "Test search engine",
-      loadPath: "[app]engine",
-      submissionUrl: "https://www.google.com/search?q=",
+      engineId: "appDefault",
+      displayName: "Application Default",
+      loadPath: "[app]appDefault",
+      submissionUrl: "https://example.org/?q1=",
       verified: "default",
     },
     private: {
-      engineId: "engine-pref",
-      displayName: "engine-pref",
-      loadPath: "[app]engine-pref",
-      submissionUrl: "https://www.google.com/search?q=",
+      engineId: "appDefaultPrivate",
+      displayName: "Application Default Private",
+      loadPath: "[app]appDefaultPrivate",
+      submissionUrl: "https://example.org/?q2=",
       verified: "default",
     },
   });
@@ -89,17 +135,17 @@ add_task(async function test_defaultPrivateEngine() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
-      displayName: "Test search engine",
-      loadPath: "[app]engine",
-      submissionUrl: "https://www.google.com/search?q=",
+      engineId: "appDefault",
+      displayName: "Application Default",
+      loadPath: "[app]appDefault",
+      submissionUrl: "https://example.org/?q1=",
       verified: "default",
     },
     private: {
-      engineId: "engine-rel-searchform-purpose",
-      displayName: "engine-rel-searchform-purpose",
-      loadPath: "[app]engine-rel-searchform-purpose",
-      submissionUrl: "https://www.google.com/search?channel=sb&q=",
+      engineId: "otherEngine1",
+      displayName: "Other Engine 1",
+      loadPath: "[app]otherEngine1",
+      submissionUrl: "https://example.org/engine1/?q=",
       verified: "default",
     },
   });
@@ -136,17 +182,17 @@ add_task(async function test_defaultPrivateEngine() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
-      displayName: "Test search engine",
-      loadPath: "[app]engine",
-      submissionUrl: "https://www.google.com/search?q=",
+      engineId: "appDefault",
+      displayName: "Application Default",
+      loadPath: "[app]appDefault",
+      submissionUrl: "https://example.org/?q1=",
       verified: "default",
     },
     private: {
-      engineId: "engine-chromeicon",
-      displayName: "engine-chromeicon",
-      loadPath: "[app]engine-chromeicon",
-      submissionUrl: "https://www.google.com/search?q=",
+      engineId: "otherEngine2",
+      displayName: "Other Engine 2",
+      loadPath: "[app]otherEngine2",
+      submissionUrl: "https://example.org/engine2/?q=",
       verified: "default",
     },
   });
@@ -169,10 +215,10 @@ add_task(async function test_defaultPrivateEngine() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
+      engineId: "appDefault",
     },
     private: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
   });
 
@@ -190,10 +236,10 @@ add_task(async function test_defaultPrivateEngine() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
+      engineId: "appDefault",
     },
     private: {
-      engineId: "engine-pref",
+      engineId: "appDefaultPrivate",
     },
   });
 
@@ -207,10 +253,10 @@ add_task(async function test_defaultPrivateEngine() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
     private: {
-      engineId: "engine-pref",
+      engineId: "appDefaultPrivate",
     },
   });
 
@@ -245,10 +291,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
+      engineId: "appDefault",
     },
     private: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
   });
 
@@ -265,7 +311,7 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine",
+      engineId: "appDefault",
     },
     private: {
       engineId: "",
@@ -298,7 +344,7 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
     private: {
       engineId: "",
@@ -333,10 +379,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
     private: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
   });
 
@@ -360,10 +406,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
     private: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
   });
 });
@@ -381,10 +427,10 @@ add_task(async function test_defaultPrivateEngine_ui_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
   });
 
@@ -401,7 +447,7 @@ add_task(async function test_defaultPrivateEngine_ui_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
       engineId: "",
@@ -423,7 +469,7 @@ add_task(async function test_defaultPrivateEngine_ui_turned_off() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-rel-searchform-purpose",
+      engineId: "otherEngine1",
     },
     private: {
       engineId: "",
@@ -447,10 +493,10 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
   });
 
@@ -472,7 +518,7 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
       engineId: "",
@@ -497,10 +543,10 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
   });
 });
@@ -521,10 +567,10 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_ui_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
   });
 
@@ -546,7 +592,7 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_ui_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
       engineId: "",
@@ -571,10 +617,10 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_ui_pref() {
 
   await assertGleanDefaultEngine({
     normal: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
     private: {
-      engineId: "engine-chromeicon",
+      engineId: "otherEngine2",
     },
   });
 });
