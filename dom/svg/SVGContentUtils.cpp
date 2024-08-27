@@ -33,7 +33,7 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/ComputedStyle.h"
-#include "SVGPathDataParser.h"
+#include "SVGOuterSVGFrame.h"
 #include "SVGPathData.h"
 #include "SVGPathElement.h"
 
@@ -532,13 +532,10 @@ static gfx::Matrix GetCTMInternal(SVGElement* aElement, CTMType aCTMType,
          !ancestor->IsSVGElement(nsGkAtoms::foreignObject)) {
     element = static_cast<SVGElement*>(ancestor);
     if (aCTMType == CTMType::NonScalingStroke &&
-        element->IsSVGElement(nsGkAtoms::svg) &&
-        !static_cast<SVGSVGElement*>(element)->IsInner()) {
-      auto* frame = element->GetPrimaryFrame();
-      if (auto* anonKid =
-              frame ? frame->PrincipalChildList().FirstChild() : nullptr) {
+        element->IsSVGElement(nsGkAtoms::svg)) {
+      if (SVGOuterSVGFrame* frame = do_QueryFrame(element->GetPrimaryFrame())) {
         Matrix childTransform;
-        if (anonKid->IsSVGTransformed(&childTransform)) {
+        if (frame->HasChildrenOnlyTransform(&childTransform)) {
           return gfx::ToMatrix(matrix) * childTransform;
         }
       }

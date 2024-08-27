@@ -2042,16 +2042,18 @@ class nsIFrame : public nsQueryFrame {
   }
 
   /**
-   * Returns true if this frame is an SVG frame that has SVG transforms applied
-   * to it, or if its parent frame is an SVG frame that has children-only
+   * Returns true if this frame's parent is an SVG frame that has children-only
    * transforms (e.g. an SVG viewBox attribute).
-   * If aOwnTransforms is non-null and the frame has its own SVG transforms,
-   * aOwnTransforms will be set to these transforms. If aFromParentTransforms
-   * is non-null and the frame has an SVG parent with children-only transforms,
-   * then aFromParentTransforms will be set to these transforms.
+   * If aFromParentTransforms is non-null, then aFromParentTransforms will be
+   * set to these transforms.
    */
-  virtual bool IsSVGTransformed(Matrix* aOwnTransforms = nullptr,
-                                Matrix* aFromParentTransforms = nullptr) const;
+  bool GetParentSVGTransforms(Matrix* aFromParentTransforms = nullptr) const {
+    if (!HasAnyStateBits(NS_FRAME_SVG_LAYOUT)) {
+      return false;
+    }
+    return DoGetParentSVGTransforms(aFromParentTransforms);
+  }
+  virtual bool DoGetParentSVGTransforms(Matrix* = nullptr) const;
 
   /**
    * Returns whether this frame will attempt to extend the 3d transforms of its

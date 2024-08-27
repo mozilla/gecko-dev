@@ -47,9 +47,6 @@ class SVGClipPathFrame final : public SVGContainerFrame {
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override {}
 
-  bool IsSVGTransformed(Matrix* aOwnTransforms,
-                        Matrix* aFromParentTransforms) const override;
-
   // SVGClipPathFrame methods:
 
   /**

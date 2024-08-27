@@ -239,16 +239,15 @@ void SVGViewportFrame::NotifyViewportOrTransformChanged(uint32_t aFlags) {
 // SVGContainerFrame methods:
 
 bool SVGViewportFrame::HasChildrenOnlyTransform(gfx::Matrix* aTransform) const {
-  SVGViewportElement* content = static_cast<SVGViewportElement*>(GetContent());
-
-  if (content->HasViewBoxOrSyntheticViewBox()) {
-    // XXX Maybe return false if the transform is the identity transform?
-    if (aTransform) {
-      *aTransform = content->GetViewBoxTransform();
-    }
-    return true;
+  auto* content = static_cast<SVGViewportElement*>(GetContent());
+  if (!content->HasViewBoxOrSyntheticViewBox()) {
+    return false;
   }
-  return false;
+  // XXX Maybe return false if the transform is the identity transform?
+  if (aTransform) {
+    *aTransform = content->GetViewBoxTransform();
+  }
+  return true;
 }
 
 }  // namespace mozilla

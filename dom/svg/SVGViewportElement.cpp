@@ -112,11 +112,10 @@ inline float ComputeSynthesizedViewBoxDimension(
 // public helpers:
 
 void SVGViewportElement::UpdateHasChildrenOnlyTransform() {
-  bool hasChildrenOnlyTransform =
+  mHasChildrenOnlyTransform =
       HasViewBoxOrSyntheticViewBox() ||
       (IsRootSVGSVGElement() &&
        static_cast<SVGSVGElement*>(this)->IsScaledOrTranslated());
-  mHasChildrenOnlyTransform = hasChildrenOnlyTransform;
 }
 
 void SVGViewportElement::ChildrenOnlyTransformChanged(uint32_t aFlags) {
@@ -253,7 +252,7 @@ gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
                                                                    nullptr);
     childToUser = ThebesMatrix(GetViewBoxTransform().PostTranslate(x, y));
   } else if (IsRootSVGSVGElement()) {
-    const SVGSVGElement* svg = static_cast<const SVGSVGElement*>(this);
+    const auto* svg = static_cast<const SVGSVGElement*>(this);
     const SVGPoint& translate = svg->GetCurrentTranslate();
     float scale = svg->CurrentScale();
     childToUser =

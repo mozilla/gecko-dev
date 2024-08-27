@@ -147,9 +147,9 @@ void SVGForeignObjectFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                                            &newList);
 }
 
-bool SVGForeignObjectFrame::IsSVGTransformed(
-    Matrix* aOwnTransform, Matrix* aFromParentTransform) const {
-  return SVGUtils::IsSVGTransformed(this, aOwnTransform, aFromParentTransform);
+bool SVGForeignObjectFrame::DoGetParentSVGTransforms(
+    Matrix* aFromParentTransform) const {
+  return SVGUtils::GetParentSVGTransforms(this, aFromParentTransform);
 }
 
 void SVGForeignObjectFrame::PaintSVG(gfxContext& aContext,

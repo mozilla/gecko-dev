@@ -85,8 +85,7 @@ class SVGImageFrame final : public nsIFrame,
 
   void DidSetComputedStyle(ComputedStyle* aOldStyle) final;
 
-  bool IsSVGTransformed(Matrix* aOwnTransforms = nullptr,
-                        Matrix* aFromParentTransforms = nullptr) const override;
+  bool DoGetParentSVGTransforms(Matrix*) const override;
 
   bool GetIntrinsicImageDimensions(gfx::Size& aSize,
                                    AspectRatio& aAspectRatio) const;

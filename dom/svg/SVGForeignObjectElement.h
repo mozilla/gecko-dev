@@ -32,7 +32,7 @@ class SVGForeignObjectElement final : public SVGGraphicsElement {
 
  public:
   // SVGElement specializations:
-  virtual gfxMatrix PrependLocalTransformsTo(
+  gfxMatrix PrependLocalTransformsTo(
       const gfxMatrix& aMatrix,
       SVGTransformTypes aWhich = eAllTransforms) const override;
   bool HasValidDimensions() const override;

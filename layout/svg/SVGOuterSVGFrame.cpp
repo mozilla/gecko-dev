@@ -526,14 +526,6 @@ nsresult SVGOuterSVGFrame::AttributeChanged(int32_t aNameSpaceID,
   return NS_OK;
 }
 
-bool SVGOuterSVGFrame::IsSVGTransformed(Matrix* aOwnTransform,
-                                        Matrix* aFromParentTransform) const {
-  // Our anonymous child's HasChildrenOnlyTransform() implementation makes sure
-  // our children-only transforms are applied to our children.  We only care
-  // about transforms that transform our own frame here.
-  return false;
-}
-
 //----------------------------------------------------------------------
 // painting
 
@@ -796,55 +788,50 @@ void SVGOuterSVGAnonChildFrame::BuildDisplayList(
                                                         &newList);
 }
 
-static Matrix ComputeOuterSVGAnonChildFrameTransform(
-    const SVGOuterSVGAnonChildFrame* aFrame) {
+bool SVGOuterSVGFrame::HasChildrenOnlyTransform(Matrix* aTransform) const {
   // Our elements 'transform' attribute is applied to our SVGOuterSVGFrame
   // parent, and the element's children-only transforms are applied to us, the
-  // anonymous child frame. Since we are the child frame, we apply the
-  // children-only transforms as if they are our own transform.
-  SVGSVGElement* content = static_cast<SVGSVGElement*>(aFrame->GetContent());
-
+  // anonymous child frame.
+  auto* content = static_cast<SVGSVGElement*>(GetContent());
   if (!content->HasChildrenOnlyTransform()) {
-    return Matrix();
+    return false;
   }
-
-  // Outer-<svg> doesn't use x/y, so we can pass eChildToUserSpace here.
-  gfxMatrix ownMatrix =
-      content->PrependLocalTransformsTo(gfxMatrix(), eChildToUserSpace);
-
-  if (ownMatrix.HasNonTranslation()) {
-    // viewBox, currentScale and currentTranslate should only produce a
-    // rectilinear transform.
-    MOZ_ASSERT(ownMatrix.IsRectilinear(),
-               "Non-rectilinear transform will break the following logic");
-
-    // The nsDisplayTransform code will apply this transform to our frame,
-    // including to our frame position.  We don't want our frame position to
-    // be scaled though, so we need to correct for that in the transform.
-    // XXX Yeah, this is a bit hacky.
-    CSSPoint pos = CSSPixel::FromAppUnits(aFrame->GetPosition());
-    CSSPoint scaledPos = CSSPoint(ownMatrix._11 * pos.x, ownMatrix._22 * pos.y);
-    CSSPoint deltaPos = scaledPos - pos;
-    ownMatrix *= gfxMatrix::Translation(-deltaPos.x, -deltaPos.y);
+  if (aTransform) {
+    // Outer-<svg> doesn't use x/y, so we can pass eChildToUserSpace here.
+    *aTransform = gfx::ToMatrix(
+        content->PrependLocalTransformsTo(gfxMatrix(), eChildToUserSpace));
+    if (aTransform->HasNonTranslation()) {
+      // The nsDisplayTransform code will apply this transform to our inner kid,
+      // including to its frame position.  We don't want our frame position to
+      // be scaled though, so we need to correct for that in the transform.
+      // XXX Yeah, this is a bit hacky.
+      // viewBox, currentScale and currentTranslate should only produce a
+      // rectilinear transform.
+      MOZ_ASSERT(aTransform->IsRectilinear(),
+                 "Non-rectilinear transform will break the following logic");
+      CSSPoint pos =
+          CSSPixel::FromAppUnits(GetContentRectRelativeToSelf().TopLeft());
+      CSSPoint scaledPos =
+          CSSPoint(aTransform->_11 * pos.x, aTransform->_22 * pos.y);
+      CSSPoint deltaPos = scaledPos - pos;
+      *aTransform *= Matrix::Translation(-deltaPos.x, -deltaPos.y);
+    }
   }
-
-  return gfx::ToMatrix(ownMatrix);
+  return true;
 }
 
-// We want this frame to be a reference frame. An easy way to achieve that is
-// to always return true from this method, even for identity transforms.
-// This frame being a reference frame ensures that the offset between this
-// <svg> element and the parent reference frame is completely absorbed by the
-// nsDisplayTransform that's created for this frame, and that this offset does
-// not affect our descendants' transforms. Consequently, if the <svg> element
-// moves, e.g. during scrolling, the transform matrices of our contents are
-// unaffected. This simplifies invalidation.
-bool SVGOuterSVGAnonChildFrame::IsSVGTransformed(
-    Matrix* aOwnTransform, Matrix* aFromParentTransform) const {
-  if (aOwnTransform) {
-    *aOwnTransform = ComputeOuterSVGAnonChildFrameTransform(this);
-  }
-
+bool SVGOuterSVGAnonChildFrame::DoGetParentSVGTransforms(
+    Matrix* aFromParentTransform) const {
+  // We want this frame to be a reference frame. An easy way to achieve that is
+  // to always return true from this method, even for identity transforms.
+  // This frame being a reference frame ensures that the offset between this
+  // <svg> element and the parent reference frame is completely absorbed by the
+  // nsDisplayTransform that's created for this frame, and that this offset does
+  // not affect our descendants' transforms. Consequently, if the <svg> element
+  // moves, e.g. during scrolling, the transform matrices of our contents are
+  // unaffected. This simplifies invalidation.
+  // TODO(emilio): Is the comment above true for WebRender nowadays?
+  SVGUtils::GetParentSVGTransforms(this, aFromParentTransform);
   return true;
 }
 

@@ -50,8 +50,7 @@ class SVGForeignObjectFrame final : public nsContainerFrame,
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  bool IsSVGTransformed(Matrix* aOwnTransform,
-                        Matrix* aFromParentTransform) const override;
+  bool DoGetParentSVGTransforms(Matrix*) const override;
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {

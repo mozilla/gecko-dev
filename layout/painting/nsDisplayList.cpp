@@ -6231,13 +6231,14 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
 
   /* Get the matrix, then change its basis to factor in the origin. */
   Matrix4x4 result;
-  // Call IsSVGTransformed() regardless of the value of
-  // aProperties.HasTransform(), since we still need any
-  // potential parentsChildrenOnlyTransform.
-  Matrix svgTransform, parentsChildrenOnlyTransform;
-  const bool hasSVGTransforms =
+
+  // See the comment for SVGContainerFrame::HasChildrenOnlyTransform for
+  // an explanation of what children-only transforms are.
+  Matrix parentsChildrenOnlyTransform;
+  const bool parentHasChildrenOnlyTransform =
       frame && frame->HasAnyStateBits(NS_FRAME_MAY_BE_TRANSFORMED) &&
-      frame->IsSVGTransformed(&svgTransform, &parentsChildrenOnlyTransform);
+      frame->GetParentSVGTransforms(&parentsChildrenOnlyTransform) &&
+      !parentsChildrenOnlyTransform.IsIdentity();
   bool shouldRound = nsLayoutUtils::ShouldSnapToGrid(frame);
 
   /* Transformed frames always have a transform, or are preserving 3d (and might
@@ -6248,21 +6249,9 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
         aProperties.mMotion.ptrOr(nullptr), aProperties.mTransform, aRefBox,
         aAppUnitsPerPixel);
   }
-  if (hasSVGTransforms) {
-    // Correct the translation components for zoom:
-    float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
-    svgTransform._31 *= pixelsPerCSSPx;
-    svgTransform._32 *= pixelsPerCSSPx;
-    result *= Matrix4x4::From2D(svgTransform);
-  }
 
   // Apply any translation due to 'transform-origin' and/or 'transform-box':
   result.ChangeBasis(aProperties.mToTransformOrigin);
-
-  // See the comment for SVGContainerFrame::HasChildrenOnlyTransform for
-  // an explanation of what children-only transforms are.
-  const bool parentHasChildrenOnlyTransform =
-      hasSVGTransforms && !parentsChildrenOnlyTransform.IsIdentity();
 
   if (parentHasChildrenOnlyTransform) {
     float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;

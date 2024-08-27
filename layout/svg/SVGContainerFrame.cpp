@@ -197,9 +197,9 @@ void SVGDisplayContainerFrame::RemoveFrame(DestroyContext& aContext,
   SVGContainerFrame::RemoveFrame(aContext, aListID, aOldFrame);
 }
 
-bool SVGDisplayContainerFrame::IsSVGTransformed(
-    gfx::Matrix* aOwnTransform, gfx::Matrix* aFromParentTransform) const {
-  return SVGUtils::IsSVGTransformed(this, aOwnTransform, aFromParentTransform);
+bool SVGDisplayContainerFrame::DoGetParentSVGTransforms(
+    gfx::Matrix* aFromParentTransform) const {
+  return SVGUtils::GetParentSVGTransforms(this, aFromParentTransform);
 }
 
 //----------------------------------------------------------------------

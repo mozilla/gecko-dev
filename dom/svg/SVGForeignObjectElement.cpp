@@ -72,10 +72,8 @@ already_AddRefed<DOMSVGAnimatedLength> SVGForeignObjectElement::Height() {
 gfxMatrix SVGForeignObjectElement::PrependLocalTransformsTo(
     const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
   // 'transform' attribute:
-  gfxMatrix fromUserSpace =
-      SVGGraphicsElement::PrependLocalTransformsTo(aMatrix, aWhich);
   if (aWhich == eUserSpaceToParent) {
-    return fromUserSpace;
+    return aMatrix;
   }
   // our 'x' and 'y' attributes:
   float x, y;
@@ -88,11 +86,9 @@ gfxMatrix SVGForeignObjectElement::PrependLocalTransformsTo(
   }
 
   gfxMatrix toUserSpace = gfxMatrix::Translation(x, y);
-  if (aWhich == eChildToUserSpace) {
-    return toUserSpace * aMatrix;
-  }
-  MOZ_ASSERT(aWhich == eAllTransforms, "Unknown TransformTypes");
-  return toUserSpace * fromUserSpace;
+  MOZ_ASSERT(aWhich == eAllTransforms || aWhich == eChildToUserSpace,
+             "Unknown TransformTypes");
+  return toUserSpace * aMatrix;
 }
 
 /* virtual */

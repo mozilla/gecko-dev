@@ -395,11 +395,9 @@ void SVGClipPathFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 gfxMatrix SVGClipPathFrame::GetCanvasTM() { return mMatrixForChildren; }
 
 gfxMatrix SVGClipPathFrame::GetClipPathTransform(nsIFrame* aClippedFrame) {
-  SVGClipPathElement* content = static_cast<SVGClipPathElement*>(GetContent());
+  gfxMatrix tm = SVGUtils::GetTransformMatrixInUserSpace(this);
 
-  gfxMatrix tm = content->PrependLocalTransformsTo({}, eChildToUserSpace) *
-                 SVGUtils::GetTransformMatrixInUserSpace(this);
-
+  auto* content = static_cast<SVGClipPathElement*>(GetContent());
   SVGAnimatedEnumeration* clipPathUnits =
       &content->mEnumAttributes[SVGClipPathElement::CLIPPATHUNITS];
 
@@ -453,22 +451,6 @@ SVGBBox SVGClipPathFrame::GetBBoxForClipPathFrame(const SVGBBox& aBBox,
         aBBox, aMatrix, aFlags));
   }
   return unionBBox;
-}
-
-bool SVGClipPathFrame::IsSVGTransformed(Matrix* aOwnTransforms,
-                                        Matrix* aFromParentTransforms) const {
-  const auto* e = static_cast<SVGElement const*>(GetContent());
-  Matrix m = ToMatrix(e->PrependLocalTransformsTo({}, eUserSpaceToParent));
-
-  if (m.IsIdentity()) {
-    return false;
-  }
-
-  if (aOwnTransforms) {
-    *aOwnTransforms = m;
-  }
-
-  return true;
 }
 
 }  // namespace mozilla

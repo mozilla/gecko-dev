@@ -127,8 +127,7 @@ class SVGDisplayContainerFrame : public SVGContainerFrame,
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  bool IsSVGTransformed(Matrix* aOwnTransform = nullptr,
-                        Matrix* aFromParentTransform = nullptr) const override;
+  bool DoGetParentSVGTransforms(Matrix*) const override;
 
   // ISVGDisplayableFrame interface:
   void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,

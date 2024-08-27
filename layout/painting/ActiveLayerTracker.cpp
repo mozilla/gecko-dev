@@ -221,15 +221,14 @@ static void IncrementScaleRestyleCountIfNeeded(nsIFrame* aFrame,
   // This function is basically a simplified copy of
   // nsDisplayTransform::GetResultingTransformMatrixInternal.
 
-  Matrix svgTransform, parentsChildrenOnlyTransform;
-  const bool hasSVGTransforms =
-      aFrame->HasAnyStateBits(NS_FRAME_MAY_BE_TRANSFORMED) &&
-      aFrame->IsSVGTransformed(&svgTransform, &parentsChildrenOnlyTransform);
+  Matrix parentsChildrenOnlyTransform;
+  const bool parentHasChildrenOnlyTransform =
+      aFrame->GetParentSVGTransforms(&parentsChildrenOnlyTransform);
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
   if (!aFrame->HasAnyStateBits(NS_FRAME_MAY_BE_TRANSFORMED) ||
       (!display->HasTransformProperty() && !display->HasIndividualTransform() &&
-       display->mOffsetPath.IsNone() && !hasSVGTransforms)) {
+       display->mOffsetPath.IsNone() && !parentHasChildrenOnlyTransform)) {
     if (aActivity->mPreviousTransformScale.isSome()) {
       // The transform was removed.
       aActivity->mPreviousTransformScale = Nothing();
@@ -249,12 +248,8 @@ static void IncrementScaleRestyleCountIfNeeded(nsIFrame* aFrame,
     transform = nsStyleTransformMatrix::ReadTransforms(
         display->mTranslate, display->mRotate, display->mScale, nullptr,
         display->mTransform, refBox, AppUnitsPerCSSPixel());
-  } else if (hasSVGTransforms) {
-    transform = Matrix4x4::From2D(svgTransform);
   }
 
-  const bool parentHasChildrenOnlyTransform =
-      hasSVGTransforms && !parentsChildrenOnlyTransform.IsIdentity();
   if (parentHasChildrenOnlyTransform) {
     transform *= Matrix4x4::From2D(parentsChildrenOnlyTransform);
   }

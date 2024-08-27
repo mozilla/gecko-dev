@@ -1626,7 +1626,7 @@ bool KeyframeEffect::CanAnimateTransformOnCompositor(
 
   // Async 'transform' animations of aFrames with SVG transforms is not
   // supported.  See bug 779599.
-  if (primaryFrame->IsSVGTransformed()) {
+  if (primaryFrame->GetParentSVGTransforms()) {
     aPerformanceWarning = AnimationPerformanceWarning::Type::TransformSVG;
     return false;
   }

@@ -1693,10 +1693,10 @@ nsRect nsIFrame::GetMarginRectRelativeToSelf() const {
 bool nsIFrame::IsTransformed() const {
   if (!HasAnyStateBits(NS_FRAME_MAY_BE_TRANSFORMED)) {
     MOZ_ASSERT(!IsCSSTransformed());
-    MOZ_ASSERT(!IsSVGTransformed());
+    MOZ_ASSERT(!GetParentSVGTransforms());
     return false;
   }
-  return IsCSSTransformed() || IsSVGTransformed();
+  return IsCSSTransformed() || GetParentSVGTransforms();
 }
 
 bool nsIFrame::IsCSSTransformed() const {
@@ -1741,10 +1741,7 @@ bool nsIFrame::HasOpacityInternal(float aThreshold,
   return HasAnimationOfOpacity(aEffectSet);
 }
 
-bool nsIFrame::IsSVGTransformed(gfx::Matrix* aOwnTransforms,
-                                gfx::Matrix* aFromParentTransforms) const {
-  return false;
-}
+bool nsIFrame::DoGetParentSVGTransforms(gfx::Matrix*) const { return false; }
 
 bool nsIFrame::Extend3DContext(const nsStyleDisplay* aStyleDisplay,
                                const nsStyleEffects* aStyleEffects,

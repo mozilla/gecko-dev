@@ -170,9 +170,9 @@ void SVGImageFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   // TODO(heycam): We should handle aspect-ratio, like nsImageFrame does.
 }
 
-bool SVGImageFrame::IsSVGTransformed(gfx::Matrix* aOwnTransform,
-                                     gfx::Matrix* aFromParentTransform) const {
-  return SVGUtils::IsSVGTransformed(this, aOwnTransform, aFromParentTransform);
+bool SVGImageFrame::DoGetParentSVGTransforms(
+    gfx::Matrix* aFromParentTransform) const {
+  return SVGUtils::GetParentSVGTransforms(this, aFromParentTransform);
 }
 
 //----------------------------------------------------------------------

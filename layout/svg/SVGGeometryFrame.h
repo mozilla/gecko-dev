@@ -70,8 +70,7 @@ class SVGGeometryFrame final : public nsIFrame, public ISVGDisplayableFrame {
 
   void DidSetComputedStyle(ComputedStyle* aOldComputedStyle) override;
 
-  bool IsSVGTransformed(Matrix* aOwnTransforms = nullptr,
-                        Matrix* aFromParentTransforms = nullptr) const override;
+  bool DoGetParentSVGTransforms(Matrix*) const override;
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {
