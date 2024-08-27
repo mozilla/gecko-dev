@@ -81,9 +81,6 @@ int Resample(const AudioFrame& frame,
   RTC_CHECK_EQ(destination.data().size(),
                frame.num_channels_ * target_number_of_samples_per_channel);
 
-  resampler->InitializeIfNeeded(frame.sample_rate_hz_, destination_sample_rate,
-                                static_cast<int>(frame.num_channels()));
-
   // TODO(yujo): Add special case handling of muted frames.
   return resampler->Resample(frame.data_view(), destination);
 }

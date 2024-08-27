@@ -19,6 +19,7 @@
 
 #include "api/audio/audio_processing.h"
 #include "common_audio/channel_buffer.h"
+#include "common_audio/include/audio_util.h"
 
 namespace webrtc {
 
@@ -32,7 +33,8 @@ enum Band { kBand0To8kHz = 0, kBand8To16kHz = 1, kBand16To24kHz = 2 };
 class AudioBuffer {
  public:
   static const int kSplitBandSize = 160;
-  static const int kMaxSampleRate = 384000;
+  // TODO(tommi): Remove this (`AudioBuffer::kMaxSampleRate`) constant.
+  static const int kMaxSampleRate = webrtc::kMaxSampleRateHz;
   AudioBuffer(size_t input_rate,
               size_t input_num_channels,
               size_t buffer_rate,

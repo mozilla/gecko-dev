@@ -50,7 +50,7 @@ class MockVad : public VoiceActivityDetectorWrapper::MonoVad {
 TEST(GainController2VoiceActivityDetectorWrapper, CtorAndInitReadSampleRate) {
   auto vad = std::make_unique<MockVad>();
   EXPECT_CALL(*vad, SampleRateHz)
-      .Times(2)
+      .Times(1)
       .WillRepeatedly(Return(kSampleRate8kHz));
   EXPECT_CALL(*vad, Reset).Times(AnyNumber());
   auto vad_wrapper = std::make_unique<VoiceActivityDetectorWrapper>(

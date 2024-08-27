@@ -73,27 +73,19 @@ VoiceActivityDetectorWrapper::VoiceActivityDetectorWrapper(
     int sample_rate_hz)
     : vad_reset_period_frames_(
           rtc::CheckedDivExact(vad_reset_period_ms, kFrameDurationMs)),
+      frame_size_(rtc::CheckedDivExact(sample_rate_hz, kNumFramesPerSecond)),
       time_to_vad_reset_(vad_reset_period_frames_),
-      vad_(std::move(vad)) {
-  RTC_DCHECK(vad_);
+      vad_(std::move(vad)),
+      resampled_buffer_(
+          rtc::CheckedDivExact(vad_->SampleRateHz(), kNumFramesPerSecond)),
+      resampler_(frame_size_,
+                 resampled_buffer_.size(),
+                 /*num_channels=*/1) {
   RTC_DCHECK_GT(vad_reset_period_frames_, 1);
-  resampled_buffer_.resize(
-      rtc::CheckedDivExact(vad_->SampleRateHz(), kNumFramesPerSecond));
-  Initialize(sample_rate_hz);
+  vad_->Reset();
 }
 
 VoiceActivityDetectorWrapper::~VoiceActivityDetectorWrapper() = default;
-
-void VoiceActivityDetectorWrapper::Initialize(int sample_rate_hz) {
-  RTC_DCHECK_GT(sample_rate_hz, 0);
-  frame_size_ = rtc::CheckedDivExact(sample_rate_hz, kNumFramesPerSecond);
-  int status =
-      resampler_.InitializeIfNeeded(sample_rate_hz, vad_->SampleRateHz(),
-                                    /*num_channels=*/1);
-  constexpr int kStatusOk = 0;
-  RTC_DCHECK_EQ(status, kStatusOk);
-  vad_->Reset();
-}
 
 float VoiceActivityDetectorWrapper::Analyze(AudioFrameView<const float> frame) {
   // Periodically reset the VAD.

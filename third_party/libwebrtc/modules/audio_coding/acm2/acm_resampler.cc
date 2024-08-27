@@ -44,14 +44,6 @@ int ACMResampler::Resample10Msec(const int16_t* in_audio,
     return static_cast<int>(dst.samples_per_channel());
   }
 
-  if (resampler_.InitializeIfNeeded(in_freq_hz, out_freq_hz,
-                                    num_audio_channels) != 0) {
-    RTC_LOG(LS_ERROR) << "InitializeIfNeeded(" << in_freq_hz << ", "
-                      << out_freq_hz << ", " << num_audio_channels
-                      << ") failed.";
-    return -1;
-  }
-
   int out_length = resampler_.Resample(src, dst);
   if (out_length == -1) {
     RTC_LOG(LS_ERROR) << "Resample(" << in_audio << ", " << src.data().size()

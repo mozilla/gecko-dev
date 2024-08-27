@@ -2157,17 +2157,11 @@ void AudioProcessingImpl::InitializeVoiceActivityDetector() {
     return;
   }
 
-  if (!submodules_.voice_activity_detector) {
-    RTC_DCHECK(!!submodules_.gain_controller2);
-    // TODO(bugs.webrtc.org/13663): Cache CPU features in APM and use here.
-    submodules_.voice_activity_detector =
-        std::make_unique<VoiceActivityDetectorWrapper>(
-            submodules_.gain_controller2->GetCpuFeatures(),
-            proc_fullband_sample_rate_hz());
-  } else {
-    submodules_.voice_activity_detector->Initialize(
-        proc_fullband_sample_rate_hz());
-  }
+  // TODO(bugs.webrtc.org/13663): Cache CPU features in APM and use here.
+  submodules_.voice_activity_detector =
+      std::make_unique<VoiceActivityDetectorWrapper>(
+          submodules_.gain_controller2->GetCpuFeatures(),
+          proc_fullband_sample_rate_hz());
 }
 
 void AudioProcessingImpl::InitializeNoiseSuppressor() {
