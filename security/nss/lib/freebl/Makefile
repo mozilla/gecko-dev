@@ -178,15 +178,7 @@ endif
     endif
 endif
 
-ifeq (OS2,$(OS_TARGET))
-    ASFILES  = mpi_x86_os2.s
-    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
-    DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
-    DEFINES += -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
-    DEFINES += -DMP_IS_LITTLE_ENDIAN
-endif
-
-ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))
+ifeq (,$(filter-out WINNT,$(OS_TARGET)))
 ifndef USE_64
 # 32-bit Windows
 ifdef NS_USE_GCC
@@ -366,7 +358,7 @@ endif
 # to bind the blapi function references in FREEBLVector vector
 # (ldvector.c) to the blapi functions defined in the freebl
 # shared libraries.
-ifeq (,$(filter-out BSD_OS FreeBSD Linux NetBSD OpenBSD, $(OS_TARGET)))
+ifeq (,$(filter-out FreeBSD Linux NetBSD OpenBSD, $(OS_TARGET)))
     MKSHLIB += -Wl,-Bsymbolic
 endif
 
@@ -441,7 +433,7 @@ ifeq ($(CPU_ARCH),sparc)
 	    ifdef BUILD_OPT
                 SOL_CFLAGS += -xO4
 	    endif
- 	    SOL_CFLAGS += -xtarget=generic
+		SOL_CFLAGS += -xtarget=generic
 	    ARCHFLAG = -xarch=v8plus
 	    SOLARIS_AS_FLAGS = -xarch=v8plus -K PIC
 	endif
@@ -466,7 +458,7 @@ ifeq ($(CPU_ARCH),sparc)
 	    ifdef BUILD_OPT
                 SOL_CFLAGS += -xO4
 	    endif
- 	    SOL_CFLAGS += -xtarget=generic
+		SOL_CFLAGS += -xtarget=generic
 	    ARCHFLAG = -xarch=v9
 	    SOLARIS_AS_FLAGS = -xarch=v9 -K PIC
 	endif
@@ -533,11 +525,11 @@ else
 	    DEFINES += -DINTEL_GCM
 	else
 	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s sha-fast-amd64-sun.s
- 	    ASFILES += mp_comba_amd64_sun.s mpcpucache_amd64.s
+		ASFILES += mp_comba_amd64_sun.s mpcpucache_amd64.s
 	    ASFLAGS += -xarch=generic64 -K PIC
             SOL_CFLAGS += -xprefetch=no
 	    SHA_SRCS =
- 	    MPCPU_SRCS =
+		MPCPU_SRCS =
 	    # Intel acceleration for GCM does not build currently with Studio
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
@@ -552,10 +544,10 @@ else
 	DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
 	DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
 	ASFILES  = mpi_i86pc.s
- 	ifndef NS_USE_GCC
- 	   MPCPU_SRCS =
- 	   ASFILES += mpcpucache_x86.s
- 	endif
+	ifndef NS_USE_GCC
+		MPCPU_SRCS =
+		ASFILES += mpcpucache_x86.s
+	endif
     endif
 endif # Solaris for non-sparc family CPUs
 endif # target == SunO

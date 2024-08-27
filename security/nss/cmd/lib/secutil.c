@@ -42,11 +42,7 @@ static char consoleName[] = {
 #ifdef XP_UNIX
     "/dev/tty"
 #else
-#ifdef XP_OS2
-    "\\DEV\\CON"
-#else
     "CON:"
-#endif
 #endif
 };
 

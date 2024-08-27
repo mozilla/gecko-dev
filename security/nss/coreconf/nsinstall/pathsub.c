@@ -72,19 +72,6 @@ getcomponent(char *path, char *name)
     return path;
 }
 
-#ifdef UNIXWARE
-/* The static buffer in Unixware's readdir is too small. */
-struct dirent * readdir(DIR *d)
-{
-    static struct dirent *buf = NULL;
-#define MAX_PATH_LEN 1024
-
-    if (buf == NULL)
-	buf = (struct dirent *)xmalloc(sizeof(struct dirent) + MAX_PATH_LEN) ;
-    return readdir_r(d, buf);
-}
-#endif
-
 /* APPARENT BUG - ignores argument "dir", uses ".." instead. */
 char *
 ino2name(ino_t ino, char *dir)

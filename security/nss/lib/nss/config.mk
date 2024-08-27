@@ -90,7 +90,7 @@ SHARED_LIBRARY_DIRS += \
 	$(NULL)
 endif
 
-ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))
+ifeq (,$(filter-out WINNT,$(OS_TARGET)))
 ifndef NS_USE_GCC
 # Export 'mktemp' to be backward compatible with NSS 3.2.x and 3.3.x
 # but do not put it in the import library.  See bug 142575.

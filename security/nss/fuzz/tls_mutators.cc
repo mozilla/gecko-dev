@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <algorithm>
-#include "shared.h"
-#include "tls_parser.h"
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <random>
+#include <vector>
 
-#include "ssl.h"
-extern "C" {
-#include "sslimpl.h"
-}
+#include "tls_parser.h"
 
 using namespace nss_test;
 
@@ -29,14 +29,14 @@ class Record {
     assert(data_ && size_ > 0);
 
     // Copy data in case other == this.
-    uint8_t buf[size_];
-    memcpy(buf, data_, size_);
+    std::vector<uint8_t> buf(size_);
+    memcpy(buf.data(), data_, size_);
 
     uint8_t *dest = const_cast<uint8_t *>(other->data());
     // Make room for the record we want to insert.
     memmove(dest + size_, other->data(), other->size() + other->remaining());
     // Insert the record.
-    memcpy(dest, buf, size_);
+    memcpy(dest, buf.data(), size_);
   }
 
   void truncate(size_t length) {
@@ -125,25 +125,25 @@ size_t ShuffleRecords(uint8_t *data, size_t size, size_t max_size,
                       unsigned int seed) {
   std::mt19937 rng(seed);
 
-  // Store the original corpus.
-  uint8_t buf[size];
-  memcpy(buf, data, size);
-
   // Find TLS records in the corpus.
-  auto records = ParseRecords(buf, sizeof(buf));
+  auto records = ParseRecords(data, size);
   if (records.empty()) {
     return 0;
   }
 
+  // Store the original corpus.
+  std::vector<uint8_t> buf(size);
+  memcpy(buf.data(), data, size);
+
   // Find offset of first record in target buffer.
-  uint8_t *dest = const_cast<uint8_t *>(ParseRecords(data, size).at(0)->data());
+  uint8_t *dest = const_cast<uint8_t *>(records.at(0)->data());
 
   // Shuffle record order.
   std::shuffle(records.begin(), records.end(), rng);
 
   // Write records to their new positions.
   for (auto &rec : records) {
-    memcpy(dest, rec->data(), rec->size());
+    memcpy(dest, buf.data() + (rec->data() - data), rec->size());
     dest += rec->size();
   }
 

@@ -255,7 +255,7 @@ PK11_UnconfigurePKCS11(void)
  */
 
 static const char *dllname =
-#if defined(XP_WIN32) || defined(XP_OS2)
+#if defined(XP_WIN32)
     "nssckbi.dll";
 #elif defined(HPUX) && !defined(__ia64) /* HP-UX PA-RISC */
     "libnssckbi.sl";

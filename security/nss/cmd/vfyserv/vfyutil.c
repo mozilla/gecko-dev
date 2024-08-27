@@ -81,6 +81,7 @@ myAuthCertificate(void *arg, PRFileDesc *socket,
 {
 
     SECCertificateUsage certUsage;
+    CERTCertList *peerChain;
     CERTCertificate *cert;
     void *pinArg;
     char *hostName;
@@ -95,7 +96,20 @@ myAuthCertificate(void *arg, PRFileDesc *socket,
 
     certUsage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
 
-    cert = SSL_PeerCertificate(socket);
+    /* Construct, or obtain references to, CERTCertificates for the chain
+     * presented by the peer. This ensures that the certificates are in
+     * the certificate DB during CERT_VerifyCertificateNow.
+     */
+    peerChain = SSL_PeerCertificateChain(socket);
+    if (!peerChain) {
+        return SECFailure;
+    }
+
+    if (CERT_LIST_EMPTY(peerChain) || !CERT_LIST_HEAD(peerChain)->cert) {
+        CERT_DestroyCertList(peerChain);
+        return SECFailure;
+    }
+    cert = CERT_LIST_HEAD(peerChain)->cert;
 
     pinArg = SSL_RevealPinArg(socket);
 
@@ -114,7 +128,7 @@ myAuthCertificate(void *arg, PRFileDesc *socket,
     if (isServer || secStatus != SECSuccess) {
         SECU_printCertProblems(stderr, (CERTCertDBHandle *)arg, cert,
                                checksig, certUsage, pinArg, PR_FALSE);
-        CERT_DestroyCertificate(cert);
+        CERT_DestroyCertList(peerChain);
         return secStatus;
     }
 
@@ -137,7 +151,7 @@ myAuthCertificate(void *arg, PRFileDesc *socket,
     if (hostName)
         PR_Free(hostName);
 
-    CERT_DestroyCertificate(cert);
+    CERT_DestroyCertList(peerChain);
     return secStatus;
 }
 

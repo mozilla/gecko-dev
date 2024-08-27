@@ -18,7 +18,7 @@ INTERNAL_TOOLS  = 1
 
 include $(DEPTH)/coreconf/config.mk
 
-ifeq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 PROGRAM		=
 TARGETS		=
 else

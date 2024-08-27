@@ -762,7 +762,27 @@
       "label": "Certigna",
       "binNumber": 148,
       "sha256Fingerprint": "47ai2y7XzkiEL3rFMkHHtx1UFEv7QMEfPx0LQvXuoS0="
+    },
+    {
+      "label": "SecureSign_Root_CA15",
+      "binNumber": 149,
+      "sha256Fingerprint": "53jw8JX+hDcpzRoAgheeUxSpwpFEKAXh+x2PtriIbDo="
+    },
+    {
+      "label": "SecureSign_Root_CA14",
+      "binNumber": 150,
+      "sha256Fingerprint": "SwCcEDRJT5q1a7o7odYnMfxNINiVWtzsEKklYHJh4zg="
+    },
+    {
+      "label": "SecureSign_Root_CA12",
+      "binNumber": 151,
+      "sha256Fingerprint": "PwNLtXBNRLLQhUWgIFfek+vzkF/OchrLxzDAbdrukE4="
+    },
+    {
+      "label": "TWCA_CYBER_Root_CA",
+      "binNumber": 152,
+      "sha256Fingerprint": "P2O7KBS+F07ItkOc8I1tVvC3xAWIOlZIozRCTWs+xVg="
     }
   ],
-  "maxBin": 148
+  "maxBin": 152
 }

@@ -2,11 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef tls_server_config_h__
-#define tls_server_config_h__
+#ifndef TLS_SERVER_CONFIG_H_
+#define TLS_SERVER_CONFIG_H_
 
-#include <stdint.h>
 #include <cstddef>
+#include <cstdint>
+
+#include "sslt.h"
+
+#ifdef IS_DTLS_FUZZ
+#define SSL_VERSION_RANGE_MIN_VALID 0x0302
+#else
+#define SSL_VERSION_RANGE_MIN_VALID 0x0301
+#endif
+#define SSL_VERSION_RANGE_MAX_VALID 0x0304
 
 class ServerConfig {
  public:
@@ -18,10 +27,23 @@ class ServerConfig {
   bool EnableDeflate();
   bool EnableCbcRandomIv();
   bool RequireSafeNegotiation();
-  bool EnableCache();
+  bool NoCache();
+  bool EnableGrease();
+  bool SetCertificateCompressionAlgorithm();
+  bool SetVersionRange();
+  bool AddExternalPsk();
+  bool EnableZeroRtt();
+  bool EnableAlpn();
+  bool EnableFallbackScsv();
+  bool EnableSessionTickets();
+  bool NoLocks();
+
+  SSLHashType PskHashType();
+  const SSLVersionRange& VersionRange();
 
  private:
-  uint64_t config_;
+  uint32_t config_;
+  SSLVersionRange ssl_version_range_;
 };
 
-#endif  // tls_server_config_h__
+#endif  // TLS_SERVER_CONFIG_H_

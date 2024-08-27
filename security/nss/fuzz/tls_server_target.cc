@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <assert.h>
-#include <stdint.h>
+#include <cassert>
+#include <cstdint>
 #include <memory>
 
 #include "blapi.h"
 #include "prinit.h"
-#include "ssl.h"
-
+#include "seccomon.h"
 #include "shared.h"
+#include "ssl.h"
+#include "sslexp.h"
 #include "tls_common.h"
 #include "tls_mutators.h"
 #include "tls_server_certs.h"
@@ -21,15 +22,15 @@
 __attribute__((constructor)) static void set_is_dtls() {
   TlsMutators::SetIsDTLS();
 }
+
+#define ImportFD DTLS_ImportFD
+#else
+#define ImportFD SSL_ImportFD
 #endif
 
-PRFileDesc* ImportFD(PRFileDesc* model, PRFileDesc* fd) {
-#ifdef IS_DTLS_FUZZ
-  return DTLS_ImportFD(model, fd);
-#else
-  return SSL_ImportFD(model, fd);
-#endif
-}
+const SSLCertificateCompressionAlgorithm kCompressionAlg = {
+    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+const PRUint8 kPskIdentity[] = "fuzz-identity";
 
 class SSLServerSessionCache {
  public:
@@ -44,7 +45,7 @@ class SSLServerSessionCache {
 
 static void SetSocketOptions(PRFileDesc* fd,
                              std::unique_ptr<ServerConfig>& config) {
-  SECStatus rv = SSL_OptionSet(fd, SSL_NO_CACHE, config->EnableCache());
+  SECStatus rv = SSL_OptionSet(fd, SSL_NO_CACHE, config->NoCache());
   assert(rv == SECSuccess);
 
   rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
@@ -67,6 +68,52 @@ static void SetSocketOptions(PRFileDesc* fd,
                      config->RequireSafeNegotiation());
   assert(rv == SECSuccess);
 
+  rv = SSL_OptionSet(fd, SSL_ENABLE_GREASE, config->EnableGrease());
+  assert(rv == SECSuccess);
+
+  if (config->SetCertificateCompressionAlgorithm()) {
+    rv = SSL_SetCertificateCompressionAlgorithm(fd, kCompressionAlg);
+    assert(rv == SECSuccess);
+  }
+
+  if (config->SetVersionRange()) {
+    rv = SSL_VersionRangeSet(fd, &config->VersionRange());
+    assert(rv == SECSuccess);
+  }
+
+  if (config->AddExternalPsk()) {
+    PK11SlotInfo* slot = PK11_GetInternalSlot();
+    assert(slot);
+
+    PK11SymKey* key =
+        PK11_KeyGen(slot, CKM_NSS_CHACHA20_POLY1305, nullptr, 32, nullptr);
+    assert(key);
+
+    rv = SSL_AddExternalPsk(fd, key, kPskIdentity, sizeof(kPskIdentity) - 1,
+                            ssl_hash_sha256);
+    assert(rv == SECSuccess);
+
+    PK11_FreeSlot(slot);
+    PK11_FreeSymKey(key);
+  }
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_0RTT_DATA, config->EnableZeroRtt());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_ALPN, config->EnableAlpn());
+  assert(rv == SECSuccess);
+
+  rv =
+      SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, config->EnableFallbackScsv());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_SESSION_TICKETS,
+                     config->EnableSessionTickets());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_LOCKS, config->NoLocks());
+  assert(rv == SECSuccess);
+
 #ifndef IS_DTLS_FUZZ
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
@@ -77,7 +124,6 @@ static void SetSocketOptions(PRFileDesc* fd,
 static PRStatus InitModelSocket(void* arg) {
   PRFileDesc* fd = reinterpret_cast<PRFileDesc*>(arg);
 
-  EnableAllProtocolVersions();
   EnableAllCipherSuites(fd);
   InstallServerCertificates(fd);
 
@@ -86,16 +132,11 @@ static PRStatus InitModelSocket(void* arg) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
-  assert(db != nullptr);
-
   static std::unique_ptr<SSLServerSessionCache> cache(
       new SSLServerSessionCache());
-  assert(cache != nullptr);
 
+  EnableAllProtocolVersions();
   std::unique_ptr<ServerConfig> config(new ServerConfig(data, len));
-
-  // Clear the cache. We never want to resume as we couldn't reproduce that.
-  SSL_ClearSessionCache();
 
   // Reset the RNG state.
   assert(RNG_RandomUpdate(NULL, 0) == SECSuccess);
@@ -119,15 +160,19 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   SetSocketOptions(ssl_fd, config);
   DoHandshake(ssl_fd, true);
 
+  // Clear the cache. We never want to resume as we couldn't reproduce that.
+  SSL_ClearSessionCache();
+
   return 0;
 }
 
 extern "C" size_t LLVMFuzzerCustomMutator(uint8_t* data, size_t size,
                                           size_t max_size, unsigned int seed) {
-  using namespace TlsMutators;
-  return CustomMutate({DropRecord, ShuffleRecords, DuplicateRecord,
-                       TruncateRecord, FragmentRecord},
-                      data, size, max_size, seed);
+  return CustomMutate(
+      {TlsMutators::DropRecord, TlsMutators::ShuffleRecords,
+       TlsMutators::DuplicateRecord, TlsMutators::TruncateRecord,
+       TlsMutators::FragmentRecord},
+      data, size, max_size, seed);
 }
 
 extern "C" size_t LLVMFuzzerCustomCrossOver(const uint8_t* data1, size_t size1,

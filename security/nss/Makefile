@@ -79,9 +79,6 @@ endif
 ifdef USE_64
 NSPR_CONFIGURE_OPTS += --enable-64bit
 endif
-ifeq ($(OS_TARGET),WIN95)
-NSPR_CONFIGURE_OPTS += --enable-win32-target=WIN95
-endif
 ifdef USE_DEBUG_RTL
 NSPR_CONFIGURE_OPTS += --enable-debug-rtl
 endif

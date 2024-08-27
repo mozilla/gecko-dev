@@ -2,31 +2,27 @@
 
 source $(dirname "$0")/tools.sh
 
-type="$1"
-shift
+target="$1"
+corpus="$2"
+shift 2
 
 # Fetch artifact if needed.
 fetch_dist
 
-# Clone corpus.
-./nss/fuzz/config/clone_corpus.sh
+# Create and change to corpus directory.
+mkdir -p "nss/fuzz/corpus/$corpus"
+cd "nss/fuzz/corpus/$corpus"
 
-# Ensure we have a corpus.
-if [ ! -d "nss/fuzz/corpus/$type" ]; then
-  mkdir -p nss/fuzz/corpus/$type
+# Fetch and unzip the public OSS-Fuzz corpus.
+curl -O "https://storage.googleapis.com/nss-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/nss_$corpus/public.zip"
+unzip public.zip
+rm public.zip
 
-  set +x
-
-  # Create a corpus out of what we have.
-  for f in $(find nss/fuzz/corpus -type f); do
-    cp $f "nss/fuzz/corpus/$type"
-  done
-
-  set -x
-fi
+# Change back to previous working directory.
+cd $OLDPWD
 
 # Fetch objdir name.
 objdir=$(cat dist/latest)
 
 # Run nssfuzz.
-dist/$objdir/bin/nssfuzz-"$type" "$@"
+dist/"$objdir"/bin/nssfuzz-"$target" "nss/fuzz/corpus/$corpus" "$@"

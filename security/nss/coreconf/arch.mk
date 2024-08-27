@@ -38,46 +38,12 @@ endif
 # Force the older BSD/OS versions to use the new arch name.
 #
 
-ifeq ($(OS_ARCH),BSD_386)
-    OS_ARCH = BSD_OS
-endif
-
-#
-# Catch Deterim if SVR4 is NCR or UNIXWARE
-#
-
-ifeq ($(OS_ARCH),UNIX_SV)
-    ifneq ($(findstring NCR, $(shell grep NCR /etc/bcheckrc | head -1 )),)
-	OS_ARCH = NCR
-    else
-	# Make UnixWare something human readable
-	OS_ARCH = UNIXWARE
-    endif
-
-    # Get the OS release number, not 4.2
-    OS_RELEASE := $(shell uname -v)
-endif
-
 ifeq ($(OS_ARCH),UNIX_System_V)
     OS_ARCH	= NEC
 endif
 
 ifeq ($(OS_ARCH),AIX)
     OS_RELEASE := $(shell uname -v).$(shell uname -r)
-endif
-
-#
-# SINIX changes name to ReliantUNIX with 5.43
-#
-
-ifeq ($(OS_ARCH),ReliantUNIX-N)
-    OS_ARCH    = ReliantUNIX
-    OS_RELEASE = 5.4
-endif
-
-ifeq ($(OS_ARCH),SINIX-N)
-    OS_ARCH    = ReliantUNIX
-    OS_RELEASE = 5.4
 endif
 
 #
@@ -110,31 +76,12 @@ ifeq ($(OS_ARCH),GNU_kFreeBSD)
     KERNEL = FreeBSD
 endif
 
-#
-# For OS/2
-#
-ifeq ($(OS_ARCH),OS_2)
-    OS_ARCH = OS2
-    OS_RELEASE := $(shell uname -v)
-endif
-
 #######################################################################
 # Master "Core Components" macros for getting the OS target           #
 #######################################################################
 
 #
 # Note: OS_TARGET should be specified on the command line for gmake.
-# When OS_TARGET=WIN95 is specified, then a Windows 95 target is built.
-# The difference between the Win95 target and the WinNT target is that
-# the WinNT target uses Windows NT specific features not available
-# in Windows 95. The Win95 target will run on Windows NT, but (supposedly)
-# at lesser performance (the Win95 target uses threads; the WinNT target
-# uses fibers).
-#
-# If OS_TARGET is not specified, it defaults to $(OS_ARCH), i.e., no
-# cross-compilation, except on Windows, where it defaults to WIN95.
-#
-
 #
 # On WIN32, we also define the variable CPU_ARCH, if it isn't already.
 #
@@ -221,15 +168,7 @@ ifeq ($(OS_TARGET),Android)
 endif
 
 ifndef OS_TARGET
-ifeq ($(OS_ARCH), WINNT)
-    OS_TARGET = WIN95
-else
     OS_TARGET = $(OS_ARCH)
-endif
-endif
-
-ifeq ($(OS_TARGET), WIN95)
-    OS_RELEASE = 4.0
 endif
 
 ifdef OS_TARGET_RELEASE

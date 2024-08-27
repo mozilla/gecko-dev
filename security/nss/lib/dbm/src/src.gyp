@@ -11,7 +11,6 @@
       'type': 'static_library',
       'sources': [
         'db.c',
-        'dirent.c',
         'h_bigkey.c',
         'h_func.c',
         'h_log2.c',

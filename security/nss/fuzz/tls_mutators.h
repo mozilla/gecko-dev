@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef tls_mutators_h__
-#define tls_mutators_h__
+#ifndef TLS_MUTATORS_H_
+#define TLS_MUTATORS_H_
+
+#include <cstddef>
+#include <cstdint>
 
 namespace TlsMutators {
 
@@ -26,4 +29,4 @@ size_t CrossOver(const uint8_t *data1, size_t size1, const uint8_t *data2,
 
 }  // namespace TlsMutators
 
-#endif  // tls_mutators_h__
+#endif  // TLS_MUTATORS_H_

@@ -569,9 +569,6 @@ NSS tools : modutil
    | }
    | }
    | }
-   | WIN95::x86 {
-   | EquivalentPlatform {WINNT::x86}
-   | }
    | SUNOS:5.5.1:sparc {
    | ModuleName { "Example UNIX Module" }
    | ModuleFile { unix/fort.so }
@@ -660,8 +657,6 @@ NSS tools : modutil
 
    o NEC (mips)
 
-   o OS2 (x86)
-
    o OSF (alpha)
 
    o ReliantUNIX (mips)
@@ -676,10 +671,6 @@ NSS tools : modutil
 
    o UnixWare (x86)
 
-   o WIN16 (x86)
-
-   o WIN95 (x86)
-
    o WINNT (x86)
 
    For example:
@@ -687,7 +678,6 @@ NSS tools : modutil
    | IRIX:6.2:mips
    | SUNOS:5.5.1:sparc
    | Linux:2.0.32:x86
-   | WIN95::x86
 
    | The module information is defined independently for each platform in the
    | ModuleName, ModuleFile, and Files attributes. These attributes must be

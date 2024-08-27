@@ -2,14 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef tls_common_h__
-#define tls_common_h__
+#ifndef TLS_COMMON_H_
+#define TLS_COMMON_H_
 
-#include "prinit.h"
+#include <cstddef>
+
+#include "prio.h"
+#include "seccomon.h"
 
 void FixTime(PRFileDesc* fd);
-PRStatus EnableAllProtocolVersions();
+void EnableAllProtocolVersions();
 void EnableAllCipherSuites(PRFileDesc* fd);
 void DoHandshake(PRFileDesc* fd, bool isServer);
 
-#endif  // tls_common_h__
+SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output);
+SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
+                                 size_t outputLen, size_t* usedLen);
+
+#endif  // TLS_COMMON_H_

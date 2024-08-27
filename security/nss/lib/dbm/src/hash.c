@@ -41,9 +41,6 @@ static char sccsid[] = "@(#)hash.c  8.9 (Berkeley) 6/16/94";
 #endif
 
 #if !defined(macintosh)
-#ifdef XP_OS2
-#include <sys/types.h>
-#endif
 #include <sys/stat.h>
 #endif
 
@@ -182,7 +179,7 @@ dbm_hash_open(const char *file, int flags, int mode, const HASHINFO *info, int d
     hashp->file_size = statbuf.st_size;
 
     if (file) {
-#if defined(_WIN32) || defined(_WINDOWS) || defined(macintosh) || defined(XP_OS2)
+#if defined(_WIN32) || defined(_WINDOWS) || defined(macintosh)
         if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
             RETURN_ERROR(errno, error1);
 #else
@@ -340,7 +337,7 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
         if (stat(file, &statbuf))
             return (NULL);
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2)
+#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
 #if defined(__QNX__) && !defined(__QNXNTO__)
         hashp->BSIZE = 512; /* preferred blk size on qnx4 */
 #else
@@ -483,7 +480,7 @@ hdestroy(HTAB *hashp)
         (void)close(hashp->fp);
 
     if (hashp->filename) {
-#if defined(_WIN32) || defined(_WINDOWS) || defined(XP_OS2)
+#if defined(_WIN32) || defined(_WINDOWS)
         if (hashp->is_temp)
             (void)unlink(hashp->filename);
 #endif

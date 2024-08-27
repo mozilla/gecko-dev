@@ -203,7 +203,7 @@ kill_selfserv()
 
   echo "trying to kill selfserv with PID ${PID} at `date`"
 
-  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+  if [ "${OS_ARCH}" = "WINNT" ]; then
       echo "${KILL} ${PID}"
       ${KILL} ${PID}
   else
@@ -1025,7 +1025,7 @@ ssl_policy_selfserv()
   # UNIX-like OS's. Other OS's can't properly clean up the child processes
   # when our test suite kills the parent, so just use the single process 
   # self serve for them
-  if [ "${OS_ARCH}" != "WINNT" -a "${OS_ARCH}" != "WIN95" -a "${OS_ARCH}" != "OS2" ]; then
+  if [ "${OS_ARCH}" != "WINNT" ]; then
       SERVER_OPTIONS="-M 3 ${SERVER_OPTIONS}"
   fi
   

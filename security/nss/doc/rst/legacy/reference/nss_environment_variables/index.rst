@@ -477,8 +477,6 @@ NSS environment variables
    |                        |                        | the system on which    |                        |
    |                        |                        | the build is           |                        |
    |                        |                        | performed.             |                        |
-   |                        |                        | Values understood:     |                        |
-   |                        |                        | WIN95                  |                        |
    +------------------------+------------------------+------------------------+------------------------+
    | ``USE_64``             | Boolean                | On platforms that has  | Before 3.0             |
    |                        | (1 to enable)          | separate 32-bit and    |                        |

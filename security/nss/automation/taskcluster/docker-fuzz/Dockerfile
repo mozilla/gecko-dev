@@ -31,6 +31,7 @@ RUN apt-get update \
     pkg-config \
     python-is-python3 \
     python3-requests \
+    unzip \
     valgrind \
     zlib1g-dev \
  && rm -rf /var/lib/apt/lists/* \

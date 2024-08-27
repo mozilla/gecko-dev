@@ -31,8 +31,6 @@ typedef void (*ETVoidPtrFunc)(void *data);
  *  the specified block of memory. Will calculate
  *  for all supported algorithms, now MD5.
  *
- *  This version supports huge pointers for WIN16.
- *
  */
 JAR_Digest *PR_CALLBACK
 JAR_calculate_digest(void *data, long length)

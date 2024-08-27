@@ -469,9 +469,6 @@ Platforms {
          }
       }
    }
-   WIN95::x86 {
-      EquivalentPlatform {WINNT::x86}
-   }
    SUNOS:5.5.1:sparc {
       ModuleName { "Example UNIX Module" }
       ModuleFile { unix/fort.so }
@@ -551,16 +548,7 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 	<para>NEC (mips)</para>
 	</listitem>
 	<listitem>
-	<para>OS2 (x86)</para>
-	</listitem>
-	<listitem>
 	<para>OSF (alpha)</para>
-	</listitem>
-	<listitem>
-	<para>ReliantUNIX (mips)</para>
-	</listitem>
-	<listitem>
-	<para>SCO (x86)</para>
 	</listitem>
 	<listitem>
 	<para>SOLARIS (sparc)</para>
@@ -575,12 +563,6 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 	<para>UnixWare (x86)</para>
 	</listitem>
 	<listitem>
-	<para>WIN16 (x86)</para>
-	</listitem>
-	<listitem>
-	<para>WIN95 (x86)</para>
-	</listitem>
-	<listitem>
 	<para>WINNT (x86)</para>
 	</listitem>
 	</itemizedlist>
@@ -589,7 +571,7 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 <programlisting>IRIX:6.2:mips
 SUNOS:5.5.1:sparc
 Linux:2.0.32:x86
-WIN95::x86</programlisting>
+</programlisting>
 	<para>The module information is defined independently for each platform in the <command>ModuleName</command>, <command>ModuleFile</command>, and <command>Files</command> attributes. These attributes must be given unless an <command>EquivalentPlatform</command> attribute is specified. </para>
 
 	<para><command>Per-Platform Keys</command></para>

@@ -1136,9 +1136,6 @@ dbm_free_ovflpage(HTAB *hashp, BUFHEAD *obufp)
 static int
 open_temp(HTAB *hashp)
 {
-#ifdef XP_OS2
-    hashp->fp = mkstemp(NULL);
-#else
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
     sigset_t set, oset;
 #endif
@@ -1196,7 +1193,6 @@ open_temp(HTAB *hashp)
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
     (void)sigprocmask(SIG_SETMASK, &oset, (sigset_t *)NULL);
 #endif
-#endif /* !OS2 */
     return (hashp->fp != -1 ? 0 : -1);
 }
 

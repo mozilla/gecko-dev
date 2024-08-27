@@ -24,25 +24,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-ifeq ($(OS_ARCH), WINNT)
-
-EXTRA_LIBS += \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
-	$(NULL)
-
-else
-
-EXTRA_SHARED_LIBS += \
-	-L$(NSPR_LIB_DIR) \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
-	$(NULL)
-
-endif
-
+include ../platlibs.mk
 
 # sign any and all shared libraries that contain the word freebl
 ifeq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1)
@@ -81,11 +63,6 @@ include ../platrules.mk
 SRCDIR = $(call core_abspath,.)
 
 %.chk: %.$(DLL_SUFFIX) 
-ifeq ($(OS_TARGET), OS2)
-	cd $(OBJDIR) ; cmd.exe /c $(SRCDIR)/sign.cmd $(DIST) \
-	$(call core_abspath,$(OBJDIR)) $(OS_TARGET) \
-	$(call core_abspath,$(NSPR_LIB_DIR)) $(call core_abspath,$<)
-else
     ifeq ($(CROSS_COMPILE),1)
 	# do nothing
     else
@@ -93,7 +70,7 @@ else
 	$(call core_abspath,$(OBJDIR)) $(OS_TARGET) \
 	$(call core_abspath,$(NSPR_LIB_DIR)) $(call core_abspath,$<)
     endif
-endif
+
 
 libs: install
 ifdef CHECKLOC

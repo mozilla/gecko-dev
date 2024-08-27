@@ -2055,7 +2055,7 @@ SECStatus SSLExp_PeerCertificateChainDER(PRFileDesc *fd, SECItemArray **out);
 
 SEC_END_PROTOS
 
-#if defined(XP_UNIX) || defined(XP_OS2)
+#if defined(XP_UNIX)
 #define SSL_GETPID getpid
 #elif defined(WIN32)
 #define SSL_GETPID _getpid

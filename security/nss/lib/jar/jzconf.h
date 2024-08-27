@@ -68,7 +68,7 @@
 #define UNALIGNED_OK
 #endif
 
-#if (defined(MSDOS) || defined(_WINDOWS) || defined(WIN32) || defined(XP_OS2)) && !defined(STDC)
+#if (defined(MSDOS) || defined(_WINDOWS) || defined(WIN32)) && !defined(STDC)
 #define STDC
 #endif
 #if (defined(__STDC__) || defined(__cplusplus)) && !defined(STDC)

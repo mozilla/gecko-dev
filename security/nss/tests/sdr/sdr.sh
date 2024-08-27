@@ -130,7 +130,7 @@ sdr_main()
   wc -c ${DECODED}
   RARRAY=($(wc -c ${DECODED}))
   CHARCOUNT=9800
-  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+  if [ "${OS_ARCH}" = "WINNT" ]; then
     # includes include carriage returns as well as line feeds for new line
     CHARCOUNT=10100
   fi

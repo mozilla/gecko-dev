@@ -540,7 +540,6 @@
           [ 'OS=="win"', {
             'defines': [
               '_WINDOWS',
-              'WIN95',
               '_CRT_SECURE_NO_WARNINGS',
               '_CRT_NONSTDC_NO_WARNINGS',
             ],

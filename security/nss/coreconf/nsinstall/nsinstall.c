@@ -26,7 +26,7 @@ typedef unsigned int mode_t;
 
 #define HAVE_LCHOWN
 
-#if defined(AIX) || defined(BSDI) || defined(HPUX) || defined(LINUX) || defined(SUNOS4) || defined(SCO) || defined(UNIXWARE) || defined(NTO) || defined(DARWIN) || defined(__riscos__)
+#if defined(AIX) || defined(HPUX) || defined(LINUX) || defined(NTO) || defined(DARWIN) || defined(__riscos__)
 #undef HAVE_LCHOWN
 #endif
 
@@ -36,16 +36,11 @@ typedef unsigned int mode_t;
 #include <getopt.h>
 #endif
 
-#if defined(SCO) || defined(UNIXWARE) || defined(SNI) || defined(NCR) || defined(NEC)
+#if defined(NCR)
 #if !defined(S_ISLNK) && defined(S_IFLNK)
 #define S_ISLNK(a)	(((a) & S_IFMT) == S_IFLNK)
 #endif
 #endif
-
-#if defined(SNI)
-extern int fchmod(int fildes, mode_t mode);
-#endif
-
 
 #ifdef GETCWD_CANT_MALLOC
 /*

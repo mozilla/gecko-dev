@@ -644,7 +644,7 @@ function scheduleFuzzingRun(base, name, target, max_len, symbol = null, corpus =
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
-        `${target} nss/fuzz/corpus/${corpus || target} ` +
+        `${target} ${corpus || target} ` +
         `-max_total_time=${MAX_FUZZ_TIME} ` +
         `-max_len=${max_len}`
     ],

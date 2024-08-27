@@ -59,15 +59,9 @@ static int _gettemp(char *path, register int *doopen, int extraFlags);
 int
 mkstemp(char *path)
 {
-#ifdef XP_OS2
-    FILE *temp = tmpfile();
-
-    return (temp ? fileno(temp) : -1);
-#else
     int fd;
 
     return (_gettemp(path, &fd, 0) ? fd : -1);
-#endif
 }
 
 int

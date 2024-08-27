@@ -4,7 +4,11 @@
 
 #include "shared.h"
 
-size_t CustomMutate(Mutators mutators, uint8_t *data, size_t size,
+#include <cstddef>
+#include <cstdint>
+#include <random>
+
+size_t CustomMutate(Mutators mutators, uint8_t* data, size_t size,
                     size_t max_size, unsigned int seed) {
   std::mt19937 rng(seed);
   static std::bernoulli_distribution bdist;

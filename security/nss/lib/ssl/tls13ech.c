@@ -864,7 +864,7 @@ tls13_EncryptClientHello(sslSocket *ss, SECItem *aadItem, const sslBuffer *chInn
     PRINT_BUF(50, (ss, "ciphertext from ECH Encrypt", chCt->data, chCt->len));
 #else
     /* Fake a tag. */
-    SECITEM_AllocItem(NULL, chCt, chPt.len + TLS13_ECH_AEAD_TAG_LEN);
+    chCt = SECITEM_AllocItem(NULL, NULL, chPt.len + TLS13_ECH_AEAD_TAG_LEN);
     if (!chCt) {
         goto loser;
     }

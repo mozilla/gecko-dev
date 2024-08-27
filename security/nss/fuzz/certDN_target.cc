@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <cassert>
 #include <string>
 
-#include "shared.h"
+#include "cert.h"
 
 #define TEST_FUNCTION(f) \
   out = f(certName);     \

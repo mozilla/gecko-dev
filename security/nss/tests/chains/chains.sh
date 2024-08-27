@@ -79,7 +79,7 @@ kill_httpserv()
 
   echo "trying to kill httpserv with PID ${PID} at `date`"
 
-  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+  if [ "${OS_ARCH}" = "WINNT" ]; then
       echo "${KILL} ${PID}"
       ${KILL} ${PID}
   else

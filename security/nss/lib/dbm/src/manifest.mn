@@ -22,7 +22,6 @@ CSRCS = db.c	   \
 	hash.c	   \
 	hash_buf.c \
 	mktemp.c   \
-	dirent.c   \
 	$(NULL)
 
 LIBRARY_NAME = dbm

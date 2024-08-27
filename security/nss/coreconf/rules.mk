@@ -181,12 +181,6 @@ endif
 	$(RANLIB) $@
 
 
-ifeq ($(OS_TARGET),OS2)
-$(IMPORT_LIBRARY): $(MAPFILE)
-	rm -f $@
-	$(IMPLIB) $@ $<
-	$(RANLIB) $@
-endif
 ifeq ($(OS_ARCH),WINNT)
 $(IMPORT_LIBRARY): $(SHARED_LIBRARY)
 endif
@@ -249,7 +243,7 @@ WCCFLAGS3 := $(subst -D,-d,$(WCCFLAGS2))
 # Translate source filenames to absolute paths. This is required for
 # debuggers under Windows & OS/2 to find source files automatically
 
-ifeq (,$(filter-out OS2 AIX,$(OS_TARGET)))
+ifeq (,$(filter-out AIX,$(OS_TARGET)))
 # OS/2 and AIX
 NEED_ABSOLUTE_PATH := 1
 PWD := $(shell pwd)

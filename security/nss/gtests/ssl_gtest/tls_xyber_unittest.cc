@@ -129,7 +129,8 @@ void CheckECDHShareReuse(const std::shared_ptr<TlsExtensionCapture>& capture) {
   ASSERT_TRUE(xyber_share.data());
   ASSERT_TRUE(x25519_share.data());
   ASSERT_GT(xyber_share.len(), x25519_share.len());
-  EXPECT_EQ(0, memcmp(xyber_share.data(), x25519_share.data(), x25519_share.len()));
+  EXPECT_EQ(
+      0, memcmp(xyber_share.data(), x25519_share.data(), x25519_share.len()));
 }
 
 TEST_P(TlsKeyExchangeTest13, XyberShareReuseFirst) {

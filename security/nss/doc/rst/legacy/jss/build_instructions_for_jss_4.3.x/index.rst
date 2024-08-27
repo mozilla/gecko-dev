@@ -60,7 +60,7 @@ Build instructions for JSS 4.3.x
          JAVA_HOME=/cygdrive/c/programs/jdk1.5.0 (or wherever your JDK is installed)
          export JAVA_HOME
 
-      | **Windows build Configurations WINNT vs WIN95**
+      | **Windows build Configurations WINNT**
 
       .. code::
 

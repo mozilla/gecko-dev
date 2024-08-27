@@ -996,12 +996,8 @@ getBoundListenSocket(unsigned short port)
         errExit("PR_SetSocketOption(PR_SockOpt_Reuseaddr)");
     }
 
-#ifndef WIN95
     /* Set PR_SockOpt_Linger because it helps prevent a server bind issue
-     * after clean shutdown . See bug 331413 .
-     * Don't do it in the WIN95 build configuration because clean shutdown is
-     * not implemented, and PR_SockOpt_Linger causes a hang in ssl.sh .
-     * See bug 332348 */
+     * after clean shutdown . See bug 331413 .*/
     opt.option = PR_SockOpt_Linger;
     opt.value.linger.polarity = PR_TRUE;
     opt.value.linger.linger = PR_SecondsToInterval(1);
@@ -1010,7 +1006,6 @@ getBoundListenSocket(unsigned short port)
         PR_Close(listen_sock);
         errExit("PR_SetSocketOption(PR_SockOpt_Linger)");
     }
-#endif
 
     prStatus = PR_Bind(listen_sock, &addr);
     if (prStatus < 0) {

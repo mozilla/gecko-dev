@@ -15,8 +15,13 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:dbm_exports',
-        '<(DEPTH)/exports.gyp:nss_exports'
-      ]
+        '<(DEPTH)/exports.gyp:nss_exports',
+        '<(DEPTH)/lib/ssl/ssl.gyp:ssl',
+        '<(DEPTH)/lib/zlib/zlib.gyp:nss_zlib'
+      ],
+      'include_dirs': [
+        '<(DEPTH)/lib/ssl',
+      ],
     }
   ],
   'target_defaults': {

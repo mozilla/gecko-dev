@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
 #include "asn1_mutators.h"
+#include "certt.h"
+#include "keythi.h"
+#include "secdert.h"
 #include "shared.h"
 
 const std::vector<const SEC_ASN1Template *> templates = {

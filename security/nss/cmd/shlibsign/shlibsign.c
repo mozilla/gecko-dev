@@ -55,6 +55,9 @@
 /* nss headers for definition of HASH_HashType */
 #include "hasht.h"
 
+#include "basicutil.h"
+#include "secitem.h"
+
 CK_BBOOL cktrue = CK_TRUE;
 CK_BBOOL ckfalse = CK_FALSE;
 static PRBool verbose = PR_FALSE;
@@ -111,7 +114,7 @@ usage(const char *program_name)
     PR_fprintf(debug_out,
                "Usage: %s [-v] [-V] [-o outfile] [-d dbdir] [-f pwfile]\n"
                "          [-F] [-p pwd] -[P dbprefix ] [-t hash]"
-               "          [-D] [-k keysize] [-c]"
+               "          [-D] [-k keysize] [-c] [-K key]"
                "-i shared_library_name\n",
                program_name);
     PR_fprintf(debug_out, "Valid Hashes: ");
@@ -136,6 +139,7 @@ long_usage(const char *program_name)
     PR_fprintf(debug_out, "\t-t <hash>    Hash for HMAC/or DSA\n");
     PR_fprintf(debug_out, "\t-D           Sign with DSA rather than HMAC\n");
     PR_fprintf(debug_out, "\t-k <keysize> size of the DSA key\n");
+    PR_fprintf(debug_out, "\t-K <key>     key-material to use for hmac (hex-string, without leading 0x)\n");
     PR_fprintf(debug_out, "\t-c           Use compatible versions for old NSS\n");
     PR_fprintf(debug_out, "\t-P <prefix>  database prefix\n");
     PR_fprintf(debug_out, "\t-f <file>    password File : echo pw > file \n");
@@ -1067,7 +1071,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
 
 CK_RV
 shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
-              CK_SESSION_HANDLE hRwSession, int keySize, PRFileDesc *ifd,
+              CK_SESSION_HANDLE hRwSession, int keySize, char *key, PRFileDesc *ifd,
               PRFileDesc *ofd, const HashTable *hash)
 {
     CK_MECHANISM hmacMech = { 0, NULL, 0 };
@@ -1098,40 +1102,78 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
                    "Internal error:Could find sha256 entry in table.\n");
     }
 
-    hmacKeyTemplate[0].type = CKA_TOKEN;
-    hmacKeyTemplate[0].pValue = &ckfalse; /* session object */
-    hmacKeyTemplate[0].ulValueLen = sizeof(ckfalse);
-    hmacKeyTemplate[1].type = CKA_PRIVATE;
-    hmacKeyTemplate[1].pValue = &cktrue;
-    hmacKeyTemplate[1].ulValueLen = sizeof(cktrue);
-    hmacKeyTemplate[2].type = CKA_SENSITIVE;
-    hmacKeyTemplate[2].pValue = &ckfalse;
-    hmacKeyTemplate[2].ulValueLen = sizeof(cktrue);
-    hmacKeyTemplate[3].type = CKA_SIGN;
-    hmacKeyTemplate[3].pValue = &cktrue;
-    hmacKeyTemplate[3].ulValueLen = sizeof(cktrue);
-    hmacKeyTemplate[4].type = CKA_EXTRACTABLE;
-    hmacKeyTemplate[4].pValue = &ckfalse;
-    hmacKeyTemplate[4].ulValueLen = sizeof(ckfalse);
-    hmacKeyTemplate[5].type = CKA_VALUE_LEN;
-    hmacKeyTemplate[5].pValue = (void *)&hash->hashLength;
-    hmacKeyTemplate[5].ulValueLen = sizeof(hash->hashLength);
-    hmacKeyTemplate[6].type = CKA_KEY_TYPE;
-    hmacKeyTemplate[6].pValue = (void *)&hash->keyType;
-    hmacKeyTemplate[6].ulValueLen = sizeof(hash->keyType);
-    hmacKeyGenMech.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
-    hmacMech.mechanism = hash->hmac;
+    if (key == NULL) {
+        hmacKeyTemplate[0].type = CKA_TOKEN;
+        hmacKeyTemplate[0].pValue = &ckfalse; /* session object */
+        hmacKeyTemplate[0].ulValueLen = sizeof(ckfalse);
+        hmacKeyTemplate[1].type = CKA_PRIVATE;
+        hmacKeyTemplate[1].pValue = &cktrue;
+        hmacKeyTemplate[1].ulValueLen = sizeof(cktrue);
+        hmacKeyTemplate[2].type = CKA_SENSITIVE;
+        hmacKeyTemplate[2].pValue = &ckfalse;
+        hmacKeyTemplate[2].ulValueLen = sizeof(cktrue);
+        hmacKeyTemplate[3].type = CKA_SIGN;
+        hmacKeyTemplate[3].pValue = &cktrue;
+        hmacKeyTemplate[3].ulValueLen = sizeof(cktrue);
+        hmacKeyTemplate[4].type = CKA_EXTRACTABLE;
+        hmacKeyTemplate[4].pValue = &ckfalse;
+        hmacKeyTemplate[4].ulValueLen = sizeof(ckfalse);
+        hmacKeyTemplate[5].type = CKA_VALUE_LEN;
+        hmacKeyTemplate[5].pValue = (void *)&hash->hashLength;
+        hmacKeyTemplate[5].ulValueLen = sizeof(hash->hashLength);
+        hmacKeyTemplate[6].type = CKA_KEY_TYPE;
+        hmacKeyTemplate[6].pValue = (void *)&hash->keyType;
+        hmacKeyTemplate[6].ulValueLen = sizeof(hash->keyType);
+        hmacKeyGenMech.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
 
-    /* Generate a DSA key pair */
-    logIt("Generate an HMAC key ... \n");
-    crv = pFunctionList->C_GenerateKey(hRwSession, &hmacKeyGenMech,
-                                       hmacKeyTemplate,
-                                       PR_ARRAY_SIZE(hmacKeyTemplate),
-                                       &hHMACKey);
+        /* Generate a DSA key pair */
+        logIt("Generate an HMAC key ... \n");
+        crv = pFunctionList->C_GenerateKey(hRwSession, &hmacKeyGenMech,
+                                           hmacKeyTemplate,
+                                           PR_ARRAY_SIZE(hmacKeyTemplate),
+                                           &hHMACKey);
+    } else {
+        SECItem keyitem = { 0 };
+        if (SECU_HexString2SECItem(NULL, &keyitem, key) == NULL) {
+            pk11error("Reading HMAC key from commandline failed. Not a valid hex-key.", crv);
+            return crv;
+        }
+
+        CK_OBJECT_CLASS secret_key_obj_class = CKO_SECRET_KEY;
+        CK_ATTRIBUTE hmacKeyObject[] = {
+            {
+                .type = CKA_CLASS,
+                .pValue = &secret_key_obj_class,
+                .ulValueLen = sizeof(CK_OBJECT_CLASS),
+            },
+            {
+                .type = CKA_KEY_TYPE,
+                .pValue = (void *)&hash->keyType,
+                .ulValueLen = sizeof(hash->keyType),
+            },
+            {
+                .type = CKA_VALUE,
+                .pValue = keyitem.data,
+                .ulValueLen = keyitem.len,
+            },
+            {
+                .type = CKA_SIGN,
+                .pValue = &cktrue,
+                .ulValueLen = sizeof(cktrue),
+            },
+        };
+        logIt("Using static HMAC key ... \n");
+        crv = pFunctionList->C_CreateObject(hRwSession,
+                                            hmacKeyObject,
+                                            PR_ARRAY_SIZE(hmacKeyObject),
+                                            &hHMACKey);
+    }
+
     if (crv != CKR_OK) {
         pk11error("HMAC key generation failed", crv);
         return crv;
     }
+    hmacMech.mechanism = hash->hmac;
 
     /* compute the digest */
     memset(sign, 0, sizeof(sign));
@@ -1256,6 +1298,7 @@ main(int argc, char **argv)
     static PRBool useDSA = PR_FALSE;
     PRBool successful = PR_FALSE;
     const HashTable *hash = NULL;
+    char *key = NULL;
 
 #ifdef USES_LINKS
     int ret;
@@ -1279,7 +1322,7 @@ main(int argc, char **argv)
 
     program_name = strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
-    optstate = PL_CreateOptState(argc, argv, "i:o:f:Fd:hH?k:p:P:vVs:t:Dc");
+    optstate = PL_CreateOptState(argc, argv, "i:o:f:Fd:hH?k:K:p:P:vVs:t:Dc");
     if (optstate == NULL) {
         lperror("PL_CreateOptState failed");
         return 1;
@@ -1327,6 +1370,14 @@ main(int argc, char **argv)
                     usage(program_name);
                 }
                 keySize = atoi(optstate->value);
+                break;
+
+            case 'K':
+                if (!optstate->value) {
+                    PL_DestroyOptState(optstate);
+                    usage(program_name);
+                }
+                key = PL_strdup(optstate->value);
                 break;
 
             case 'f':
@@ -1567,7 +1618,7 @@ main(int argc, char **argv)
                            keySize, ifd, ofd, hash);
     } else {
         crv = shlibSignHMAC(pFunctionList, pSlotList[slotIndex], hRwSession,
-                            keySize, ifd, ofd, hash);
+                            keySize, key, ifd, ofd, hash);
     }
     if (crv == CKR_INTERNAL_OUT_FAILURE) {
         lperror(output_file);
