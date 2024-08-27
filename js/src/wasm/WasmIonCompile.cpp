@@ -1361,7 +1361,7 @@ class FunctionCompiler {
   // the offset rather than vice versa is that a small offset can be ignored
   // by both explicit bounds checking and bounds check elimination.
   void foldConstantPointer(MemoryAccessDesc* access, MDefinition** base) {
-    uint32_t offsetGuardLimit = GetMaxOffsetGuardLimit(
+    uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
         codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
     if ((*base)->isConstant()) {
@@ -1373,9 +1373,8 @@ class FunctionCompiler {
       }
 
       uint64_t offset = access->offset64();
-
       if (offset < offsetGuardLimit && basePtr < offsetGuardLimit - offset) {
-        offset += uint32_t(basePtr);
+        offset += basePtr;
         access->setOffset32(uint32_t(offset));
         *base = isMem64(access->memoryIndex()) ? constantI64(int64_t(0))
                                                : constantI32(0);
@@ -1387,7 +1386,7 @@ class FunctionCompiler {
   // be checked, compute the effective address, trapping on overflow.
   void maybeComputeEffectiveAddress(MemoryAccessDesc* access,
                                     MDefinition** base, bool mustAddOffset) {
-    uint32_t offsetGuardLimit = GetMaxOffsetGuardLimit(
+    uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
         codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
     if (access->offset64() >= offsetGuardLimit ||
@@ -1476,8 +1475,8 @@ class FunctionCompiler {
     MOZ_ASSERT(!inDeadCode());
     MOZ_ASSERT(!codeMeta_.isAsmJS());
 
-    // Attempt to fold an offset into a constant base pointer so as to simplify
-    // the addressing expression.  This may update *base.
+    // Attempt to fold a constant base pointer into the offset so as to simplify
+    // the addressing expression. This may update *base.
     foldConstantPointer(access, base);
 
     // Determine whether an alignment check is needed and whether the offset
@@ -1541,7 +1540,8 @@ class FunctionCompiler {
     return codeMeta_.hugeMemoryEnabled(memoryIndex);
   }
 
-  // Add the offset into the pointer to yield the EA; trap on overflow.
+  // Add the offset into the pointer to yield the EA; trap on overflow. Clears
+  // the offset on the memory access as a result.
   MDefinition* computeEffectiveAddress(MDefinition* base,
                                        MemoryAccessDesc* access) {
     if (inDeadCode()) {
