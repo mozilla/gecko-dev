@@ -83,17 +83,6 @@ bug-numbers = [1643027]
 is-public-jexl = "nightly_build"
 default-value-jexl = "false"
 
-[cookie-samesite-none-requires-secure]
-group = "experimental-features-group-customize-browsing"
-title = "experimental-features-cookie-samesite-none-requires-secure2"
-description = "experimental-features-cookie-samesite-none-requires-secure2-description"
-restart-required = false
-preference = "network.cookie.sameSite.noneRequiresSecure"
-type = "boolean"
-bug-numbers = [1618610, 1617609]
-is-public-jexl = "false"
-default-value-jexl = "nightly_build"
-
 [media-jxl]
 group = "experimental-features-group-webpage-display"
 title = "experimental-features-media-jxl"

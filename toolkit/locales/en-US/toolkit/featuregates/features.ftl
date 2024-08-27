@@ -20,11 +20,6 @@ experimental-features-media-jxl =
     .label = Media: JPEG XL
 experimental-features-media-jxl-description = With this feature enabled, { -brand-short-name } supports the JPEG XL (JXL) format. This is an enhanced image file format that supports lossless transition from traditional JPEG files. See <a data-l10n-name="bugzilla">bug 1539075</a> for more details.
 
-# Do not translate 'SameSite', 'Lax' and 'None'.
-experimental-features-cookie-samesite-none-requires-secure2 =
-    .label = Cookies: SameSite=None requires secure attribute
-experimental-features-cookie-samesite-none-requires-secure2-description = Cookies with “SameSite=None” attribute require the secure attribute. This feature requires “Cookies: SameSite=Lax by default”.
-
 # "Service Worker" is an API name and is usually not translated.
 experimental-features-devtools-serviceworker-debugger-support =
     .label = Developer Tools: Service Worker debugging
