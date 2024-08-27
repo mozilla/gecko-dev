@@ -1,546 +1,110 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 16:03:15 -0600
-Subject: (tmp-cherry-pick) Revert "Reland "Rewrite simulcast config to
- equivalent SVC for vp9 simulcast"" (881c1a73ad)
+Date: Mon, 26 Aug 2024 16:49:41 -0600
+Subject: (tmp-cherry-pick) [M128] Revert "Update support for missing HIGH
+ profiles and 1080p" (bef5d63112)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-This reverts commit aab34560cf8a23b61d04dcb5410ddec49715cdcb.
+M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
 
-Reason for revert: Breaks downstream projects again.
+This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
+
+Reason for revert: chromium:354143228
 
 Original change's description:
-> Reland "Rewrite simulcast config to equivalent SVC for vp9 simulcast"
+> Update support for missing HIGH profiles and 1080p
 >
-> This reverts commit b58937316b42a04f8ed2c569d80d813bbc44b3c5.
+> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
 >
-> Reason for revert: Reland after downstream project fix.
->
-> Original change's description:
-> > Revert "Rewrite simulcast config to equivalent SVC for vp9 simulcast"
-> >
-> > This reverts commit 86ff48adaea08fd4e7044595e1c25a22fcceac34.
-> >
-> > Reason for revert: Speculative revert due to failing downstream tests
-> >
-> > Original change's description:
-> > > Rewrite simulcast config to equivalent SVC for vp9 simulcast
-> > >
-> > > This allows to utilize libvpx optimizations considerably improving performance.
-> > > The change happens inside libvpx_vp9_encoder and is invisible to other parts of webrtc.
-> > >
-> > > This CL includes unit tests, an E2E test already exists: StandardPath/PeerConnectionEncodingsIntegrationParameterizedTest.Simulcast/VP9 in peerconnection_unittests.
-> > >
-> > > Bug: webrtc:347737882
-> > > Change-Id: Ic48316ad597700ed07e594d592413cf84b6b20d4
-> > > Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355003
-> > > Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-> > > Reviewed-by: Erik Språng <sprang@webrtc.org>
-> > > Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
-> > > Cr-Commit-Position: refs/heads/main@{#42554}
-> >
-> > Bug: webrtc:347737882
-> > Change-Id: Ib84c9c0e20763348abfae838f2fb1aff31581a55
-> > Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355943
-> > Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-> > Owners-Override: Jeremy Leconte <jleconte@google.com>
-> > Reviewed-by: Jeremy Leconte <jleconte@google.com>
-> > Commit-Queue: Jeremy Leconte <jleconte@google.com>
-> > Cr-Commit-Position: refs/heads/main@{#42564}
->
-> Bug: webrtc:347737882
-> Change-Id: I020d51892982a6e776bb169584c27f7c1360d521
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/356142
-> Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-> Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42574}
+> Bug: webrtc:347724928
+> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
+> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42528}
 
-Bug: webrtc:347737882
-Change-Id: Id3472578159cfbe9cffeb812f1cb2c96e722298f
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/356260
+(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
+
+Bug: chromium:354143228, webrtc:347724928
+Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42675}
+No-Try: True
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42579}
+Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6613@{#1}
+Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- experiments/field_trials.py                   |  3 -
- modules/video_coding/BUILD.gn                 |  1 -
- .../codecs/vp9/libvpx_vp9_encoder.cc          | 52 ++++---------
- .../codecs/vp9/libvpx_vp9_encoder.h           |  3 -
- modules/video_coding/codecs/vp9/svc_config.cc | 42 ----------
- modules/video_coding/codecs/vp9/svc_config.h  |  7 --
- .../codecs/vp9/svc_config_unittest.cc         | 75 ------------------
- .../codecs/vp9/test/vp9_impl_unittest.cc      | 76 -------------------
- 8 files changed, 15 insertions(+), 244 deletions(-)
+ modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
+ .../test/videocodec_test_fixture_impl.cc      |  2 +-
+ 2 files changed, 11 insertions(+), 17 deletions(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index d7459d701f..12338e360a 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -143,9 +143,6 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-VP8-MaxFrameInterval',
-                42225870,
-                date(2024, 4, 1)),
--    FieldTrial('WebRTC-VP9-SvcForSimulcast',
--               347737882,
--               date(2024, 10, 1)),
-     FieldTrial('WebRTC-Video-AV1EvenPayloadSizes',
-                42226301,
-                date(2024, 11, 1)),
-diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index 3a790fd680..606a49f9b7 100644
---- a/modules/video_coding/BUILD.gn
-+++ b/modules/video_coding/BUILD.gn
-@@ -630,7 +630,6 @@ rtc_library("webrtc_vp9_helpers") {
-   deps = [
-     ":codec_globals_headers",
-     ":video_codec_interface",
--    "../../api/video:encoded_image",
-     "../../api/video:video_bitrate_allocation",
-     "../../api/video:video_bitrate_allocator",
-     "../../api/video:video_codec_constants",
-diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index b9a9ffe9a9..3bcb4f66f8 100644
---- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-+++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -29,13 +29,11 @@
- #include "common_video/libyuv/include/webrtc_libyuv.h"
- #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
- #include "modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h"
--#include "modules/video_coding/codecs/vp9/svc_config.h"
- #include "modules/video_coding/svc/create_scalability_structure.h"
- #include "modules/video_coding/svc/scalability_mode_util.h"
- #include "modules/video_coding/svc/scalable_video_controller.h"
- #include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
- #include "modules/video_coding/svc/svc_rate_allocator.h"
--#include "modules/video_coding/utility/simulcast_utility.h"
- #include "modules/video_coding/utility/vp9_uncompressed_header_parser.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/experiments/field_trial_list.h"
-@@ -257,8 +255,6 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
-       first_frame_in_picture_(true),
-       ss_info_needed_(false),
-       force_all_active_layers_(false),
--      enable_svc_for_simulcast_(
--          !env.field_trials().IsDisabled("WebRTC-VP9-SvcForSimulcast")),
-       is_flexible_mode_(false),
-       variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
-       quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-@@ -528,25 +524,12 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
-   if (&codec_ != inst) {
-     codec_ = *inst;
-   }
--
--  if (enable_svc_for_simulcast_ && codec_.numberOfSimulcastStreams > 1) {
--    if (!SimulcastUtility::ValidSimulcastParameters(
--            codec_, codec_.numberOfSimulcastStreams)) {
--      return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
--    }
--    RTC_LOG(LS_INFO) << "Rewriting simulcast config to SVC.";
--    svc_for_simulcast_ = true;
--    ConvertSimulcastConfigToSvc(codec_);
--  } else {
--    svc_for_simulcast_ = false;
--  }
--
-   memset(&svc_params_, 0, sizeof(vpx_svc_extra_cfg_t));
- 
-   force_key_frame_ = true;
-   pics_since_key_ = 0;
- 
--  scalability_mode_ = codec_.GetScalabilityMode();
-+  scalability_mode_ = inst->GetScalabilityMode();
-   if (scalability_mode_.has_value()) {
-     // Use settings from `ScalabilityMode` identifier.
-     RTC_LOG(LS_INFO) << "Create scalability structure "
-@@ -562,14 +545,14 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
-     num_temporal_layers_ = info.num_temporal_layers;
-     inter_layer_pred_ = ScalabilityModeToInterLayerPredMode(*scalability_mode_);
-   } else {
--    num_spatial_layers_ = codec_.VP9()->numberOfSpatialLayers;
-+    num_spatial_layers_ = inst->VP9().numberOfSpatialLayers;
-     RTC_DCHECK_GT(num_spatial_layers_, 0);
--    num_temporal_layers_ = codec_.VP9()->numberOfTemporalLayers;
-+    num_temporal_layers_ = inst->VP9().numberOfTemporalLayers;
-     if (num_temporal_layers_ == 0) {
-       num_temporal_layers_ = 1;
-     }
--    inter_layer_pred_ = codec_.VP9()->interLayerPred;
--    svc_controller_ = CreateVp9ScalabilityStructure(codec_);
-+    inter_layer_pred_ = inst->VP9().interLayerPred;
-+    svc_controller_ = CreateVp9ScalabilityStructure(*inst);
-   }
- 
-   framerate_controller_ = std::vector<FramerateControllerDeprecated>(
-@@ -619,7 +602,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
- 
-   config_->g_w = codec_.width;
-   config_->g_h = codec_.height;
--  config_->rc_target_bitrate = codec_.startBitrate;  // in kbit/s
-+  config_->rc_target_bitrate = inst->startBitrate;  // in kbit/s
-   config_->g_error_resilient = is_svc_ ? VPX_ERROR_RESILIENT_DEFAULT : 0;
-   // Setting the time base of the codec.
-   config_->g_timebase.num = 1;
-@@ -627,7 +610,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
-   config_->g_lag_in_frames = 0;  // 0- no frame lagging
-   config_->g_threads = 1;
-   // Rate control settings.
--  config_->rc_dropframe_thresh = codec_.GetFrameDropEnabled() ? 30 : 0;
-+  config_->rc_dropframe_thresh = inst->GetFrameDropEnabled() ? 30 : 0;
-   config_->rc_end_usage = VPX_CBR;
-   config_->g_pass = VPX_RC_ONE_PASS;
-   config_->rc_min_quantizer =
-@@ -644,20 +627,20 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
-   config_->kf_mode = VPX_KF_DISABLED;
-   // TODO(webm:1592): work-around for libvpx issue, as it can still
-   // put some key-frames at will even in VPX_KF_DISABLED kf_mode.
--  config_->kf_max_dist = codec_.VP9()->keyFrameInterval;
-+  config_->kf_max_dist = inst->VP9().keyFrameInterval;
-   config_->kf_min_dist = config_->kf_max_dist;
-   if (quality_scaler_experiment_.enabled) {
-     // In that experiment webrtc wide quality scaler is used instead of libvpx
-     // internal scaler.
-     config_->rc_resize_allowed = 0;
-   } else {
--    config_->rc_resize_allowed = codec_.VP9()->automaticResizeOn ? 1 : 0;
-+    config_->rc_resize_allowed = inst->VP9().automaticResizeOn ? 1 : 0;
-   }
-   // Determine number of threads based on the image size and #cores.
-   config_->g_threads =
-       NumberOfThreads(config_->g_w, config_->g_h, settings.number_of_cores);
- 
--  is_flexible_mode_ = codec_.VP9()->flexibleMode;
-+  is_flexible_mode_ = inst->VP9().flexibleMode;
- 
-   if (num_spatial_layers_ > 1 &&
-       codec_.mode == VideoCodecMode::kScreensharing && !is_flexible_mode_) {
-@@ -716,7 +699,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
-   }
-   ref_buf_ = {};
- 
--  return InitAndSetControlSettings(&codec_);
-+  return InitAndSetControlSettings(inst);
+diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
+index b2deda5ea8..60142c88c1 100644
+--- a/modules/video_coding/codecs/h264/h264.cc
++++ b/modules/video_coding/codecs/h264/h264.cc
+@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
+   //
+   // We support both packetization modes 0 (mandatory) and 1 (optional,
+   // preferred).
+-  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "1", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "0", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "1", add_scalability_modes),
++                           H264Level::kLevel3_1, "1", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "0", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
++                           H264Level::kLevel3_1, "0", add_scalability_modes),
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
+                            add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
+                            add_scalability_modes)};
  }
  
- int LibvpxVp9Encoder::NumberOfThreads(int width,
-@@ -798,7 +781,7 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
-   SvcRateAllocator init_allocator(codec_);
-   current_bitrate_allocation_ =
-       init_allocator.Allocate(VideoBitrateAllocationParameters(
--          codec_.startBitrate * 1000, codec_.maxFramerate));
-+          inst->startBitrate * 1000, inst->maxFramerate));
-   if (!SetSvcRates(current_bitrate_allocation_)) {
-     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
-   }
-@@ -819,7 +802,7 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
-           performance_flags_by_spatial_index_[si].deblock_mode;
-     }
-     bool denoiser_on =
--        AllowDenoising() && codec_.VP9()->denoisingOn &&
-+        AllowDenoising() && inst->VP9().denoisingOn &&
-         performance_flags_by_spatial_index_[num_spatial_layers_ - 1]
-             .allow_denoising;
-     libvpx_->codec_control(encoder_, VP9E_SET_NOISE_SENSITIVITY,
-@@ -829,7 +812,7 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
-   libvpx_->codec_control(encoder_, VP8E_SET_MAX_INTRA_BITRATE_PCT,
-                          rc_max_intra_target_);
-   libvpx_->codec_control(encoder_, VP9E_SET_AQ_MODE,
--                         codec_.VP9()->adaptiveQpMode ? 3 : 0);
-+                         inst->VP9().adaptiveQpMode ? 3 : 0);
+@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
  
-   libvpx_->codec_control(encoder_, VP9E_SET_FRAME_PARALLEL_DECODING, 0);
-   libvpx_->codec_control(encoder_, VP9E_SET_SVC_GF_TEMPORAL_REF, 0);
-@@ -919,7 +902,7 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
+   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
  
-   if (AllowDenoising() && !performance_flags_.use_per_layer_speed) {
-     libvpx_->codec_control(encoder_, VP9E_SET_NOISE_SENSITIVITY,
--                           codec_.VP9()->denoisingOn ? 1 : 0);
-+                           inst->VP9().denoisingOn ? 1 : 0);
-   }
++  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
++  // support decoding.
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
  
-   if (codec_.mode == VideoCodecMode::kScreensharing) {
-@@ -1741,10 +1724,6 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
- 
-     codec_specific_.end_of_picture = end_of_picture;
- 
--    if (svc_for_simulcast_) {
--      ConvertSvcFrameToSimulcast(encoded_image_, codec_specific_);
--    }
--
-     encoded_complete_callback_->OnEncodedImage(encoded_image_,
-                                                &codec_specific_);
- 
-@@ -1782,7 +1761,6 @@ int LibvpxVp9Encoder::RegisterEncodeCompleteCallback(
- VideoEncoder::EncoderInfo LibvpxVp9Encoder::GetEncoderInfo() const {
-   EncoderInfo info;
-   info.supports_native_handle = false;
--  info.supports_simulcast = true;
-   info.implementation_name = "libvpx";
-   if (quality_scaler_experiment_.enabled && inited_ &&
-       codec_.VP9().automaticResizeOn) {
-diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-index 89f156e2ed..0134e3ea58 100644
---- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-+++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-@@ -151,9 +151,6 @@ class LibvpxVp9Encoder : public VideoEncoder {
-   bool ss_info_needed_;
-   bool force_all_active_layers_;
- 
--  bool svc_for_simulcast_ = false;
--  const bool enable_svc_for_simulcast_;
--
-   std::unique_ptr<ScalableVideoController> svc_controller_;
-   absl::optional<ScalabilityMode> scalability_mode_;
-   std::vector<FramerateControllerDeprecated> framerate_controller_;
-diff --git a/modules/video_coding/codecs/vp9/svc_config.cc b/modules/video_coding/codecs/vp9/svc_config.cc
-index 56bbfc143f..555af835a5 100644
---- a/modules/video_coding/codecs/vp9/svc_config.cc
-+++ b/modules/video_coding/codecs/vp9/svc_config.cc
-@@ -246,46 +246,4 @@ std::vector<SpatialLayer> GetSvcConfig(
-   }
+   return supportedCodecs;
  }
+diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+index 82bc6e37f9..9c708263a7 100644
+--- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
++++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+@@ -173,7 +173,7 @@ SdpVideoFormat CreateSdpVideoFormat(
+     CodecParameterMap codec_params = {
+         {cricket::kH264FmtpProfileLevelId,
+          *H264ProfileLevelIdToString(H264ProfileLevelId(
+-             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
++             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
+         {cricket::kH264FmtpPacketizationMode, packetization_mode},
+         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
  
--void ConvertSimulcastConfigToSvc(VideoCodec& codec) {
--  if (codec.IsSinglecast()) {
--    return;
--  }
--  for (size_t i = 0; i < codec.numberOfSimulcastStreams; ++i) {
--    codec.spatialLayers[i] = codec.simulcastStream[i];
--  }
--  codec.simulcastStream[0] =
--      codec.simulcastStream[codec.numberOfSimulcastStreams - 1];
--  codec.VP9()->numberOfSpatialLayers = codec.numberOfSimulcastStreams;
--  codec.VP9()->numberOfTemporalLayers =
--      codec.spatialLayers[0].numberOfTemporalLayers;
--  codec.VP9()->interLayerPred = InterLayerPredMode::kOff;
--  codec.numberOfSimulcastStreams = 1;
--  codec.UnsetScalabilityMode();
--}
--
--void ConvertSvcFrameToSimulcast(EncodedImage& encoded_image,
--                                CodecSpecificInfo& codec_specific) {
--  int sid = encoded_image.SpatialIndex().value_or(0);
--  encoded_image.SetSimulcastIndex(sid);
--  encoded_image.SetSpatialIndex(absl::nullopt);
--  codec_specific.end_of_picture = true;
--  int num_temporal_layers =
--      ScalabilityModeToNumTemporalLayers(*codec_specific.scalability_mode);
--  RTC_DCHECK_LE(num_temporal_layers, 3);
--  if (num_temporal_layers == 1) {
--    codec_specific.scalability_mode = ScalabilityMode::kL1T1;
--  } else if (num_temporal_layers == 2) {
--    codec_specific.scalability_mode = ScalabilityMode::kL1T2;
--  } else if (num_temporal_layers == 3) {
--    codec_specific.scalability_mode = ScalabilityMode::kL1T3;
--  }
--  CodecSpecificInfoVP9& vp9_info = codec_specific.codecSpecific.VP9;
--  vp9_info.num_spatial_layers = 1;
--  vp9_info.first_active_layer = 0;
--  if (vp9_info.ss_data_available) {
--    vp9_info.width[0] = vp9_info.width[sid];
--    vp9_info.height[0] = vp9_info.height[sid];
--  }
--}
--
- }  // namespace webrtc
-diff --git a/modules/video_coding/codecs/vp9/svc_config.h b/modules/video_coding/codecs/vp9/svc_config.h
-index a1e0157ccb..adeaf0f161 100644
---- a/modules/video_coding/codecs/vp9/svc_config.h
-+++ b/modules/video_coding/codecs/vp9/svc_config.h
-@@ -14,10 +14,8 @@
- 
- #include <vector>
- 
--#include "api/video/encoded_image.h"
- #include "api/video_codecs/spatial_layer.h"
- #include "api/video_codecs/video_codec.h"
--#include "modules/video_coding/include/video_codec_interface.h"
- #include "modules/video_coding/svc/scalable_video_controller.h"
- 
- namespace webrtc {
-@@ -36,11 +34,6 @@ std::vector<SpatialLayer> GetSvcConfig(
-     absl::optional<ScalableVideoController::StreamLayersConfig> config =
-         absl::nullopt);
- 
--void ConvertSimulcastConfigToSvc(VideoCodec& codec);
--
--void ConvertSvcFrameToSimulcast(EncodedImage& encoded_image,
--                                CodecSpecificInfo& codec_specific);
--
- }  // namespace webrtc
- 
- #endif  // MODULES_VIDEO_CODING_CODECS_VP9_SVC_CONFIG_H_
-diff --git a/modules/video_coding/codecs/vp9/svc_config_unittest.cc b/modules/video_coding/codecs/vp9/svc_config_unittest.cc
-index cf98ffbf63..ba3b22fc09 100644
---- a/modules/video_coding/codecs/vp9/svc_config_unittest.cc
-+++ b/modules/video_coding/codecs/vp9/svc_config_unittest.cc
-@@ -317,79 +317,4 @@ TEST(SvcConfig, ScreenSharing) {
-     EXPECT_LE(layer.targetBitrate, layer.maxBitrate);
-   }
- }
--
--TEST(SimulcastToSvc, ConvertsConfig) {
--  VideoCodec codec;
--  codec.codecType = kVideoCodecVP9;
--  codec.SetScalabilityMode(ScalabilityMode::kL1T3);
--  codec.width = 1280;
--  codec.height = 720;
--  codec.minBitrate = 10;
--  codec.maxBitrate = 2500;
--  codec.numberOfSimulcastStreams = 3;
--  codec.VP9()->numberOfSpatialLayers = 1;
--  codec.VP9()->interLayerPred = InterLayerPredMode::kOff;
--  codec.simulcastStream[0] = {.width = 320,
--                              .height = 180,
--                              .maxFramerate = 30,
--                              .numberOfTemporalLayers = 3,
--                              .maxBitrate = 100,
--                              .targetBitrate = 70,
--                              .minBitrate = 50,
--                              .qpMax = 150,
--                              .active = true};
--  codec.simulcastStream[1] = {.width = 640,
--                              .height = 360,
--                              .maxFramerate = 30,
--                              .numberOfTemporalLayers = 3,
--                              .maxBitrate = 250,
--                              .targetBitrate = 150,
--                              .minBitrate = 100,
--                              .qpMax = 150,
--                              .active = true};
--  codec.simulcastStream[2] = {.width = 12800,
--                              .height = 720,
--                              .maxFramerate = 30,
--                              .numberOfTemporalLayers = 3,
--                              .maxBitrate = 1500,
--                              .targetBitrate = 1200,
--                              .minBitrate = 800,
--                              .qpMax = 150,
--                              .active = true};
--  VideoCodec result = codec;
--  ConvertSimulcastConfigToSvc(result);
--  EXPECT_EQ(result.numberOfSimulcastStreams, 1);
--  EXPECT_EQ(result.spatialLayers[0], codec.simulcastStream[0]);
--  EXPECT_EQ(result.spatialLayers[1], codec.simulcastStream[1]);
--  EXPECT_EQ(result.spatialLayers[2], codec.simulcastStream[2]);
--  EXPECT_EQ(result.VP9()->numberOfTemporalLayers, 3);
--  EXPECT_EQ(result.VP9()->numberOfSpatialLayers, 3);
--  EXPECT_EQ(result.VP9()->interLayerPred, InterLayerPredMode::kOff);
--}
--
--TEST(SimulcastToSvc, ConvertsEncodedImage) {
--  EncodedImage image;
--  image.SetRtpTimestamp(123);
--  image.SetSpatialIndex(1);
--  image.SetTemporalIndex(0);
--  image._encodedWidth = 640;
--  image._encodedHeight = 360;
--
--  CodecSpecificInfo codec_specific;
--  codec_specific.codecType = kVideoCodecVP9;
--  codec_specific.end_of_picture = false;
--  codec_specific.codecSpecific.VP9.num_spatial_layers = 3;
--  codec_specific.codecSpecific.VP9.first_active_layer = 0;
--  codec_specific.scalability_mode = ScalabilityMode::kS3T3;
--
--  ConvertSvcFrameToSimulcast(image, codec_specific);
--
--  EXPECT_EQ(image.SpatialIndex(), absl::nullopt);
--  EXPECT_EQ(image.SimulcastIndex().value_or(-1), 1);
--  EXPECT_EQ(image.TemporalIndex().value_or(-1), 0);
--
--  EXPECT_EQ(codec_specific.end_of_picture, true);
--  EXPECT_EQ(codec_specific.scalability_mode, ScalabilityMode::kL1T3);
--}
--
- }  // namespace webrtc
-diff --git a/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc b/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
-index eb54be9d7b..9fd2875435 100644
---- a/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
-+++ b/modules/video_coding/codecs/vp9/test/vp9_impl_unittest.cc
-@@ -414,82 +414,6 @@ TEST_F(TestVp9Impl, EncoderExplicitLayering) {
-             encoder_->InitEncode(&codec_settings_, kSettings));
- }
- 
--TEST_F(TestVp9Impl, EncoderAcceptsSvcLikeSimulcast) {
--  // Override default settings.
--  codec_settings_.VP9()->numberOfTemporalLayers = 3;
--  codec_settings_.VP9()->numberOfSpatialLayers = 1;
--  codec_settings_.numberOfSimulcastStreams = 3;
--
--  codec_settings_.width = 1280;
--  codec_settings_.height = 720;
--  codec_settings_.simulcastStream[0].minBitrate = 30;
--  codec_settings_.simulcastStream[0].maxBitrate = 150;
--  codec_settings_.simulcastStream[0].targetBitrate =
--      (codec_settings_.simulcastStream[0].minBitrate +
--       codec_settings_.simulcastStream[0].maxBitrate) /
--      2;
--  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 3;
--  codec_settings_.simulcastStream[0].active = true;
--
--  codec_settings_.simulcastStream[1].minBitrate = 200;
--  codec_settings_.simulcastStream[1].maxBitrate = 500;
--  codec_settings_.simulcastStream[1].targetBitrate =
--      (codec_settings_.simulcastStream[1].minBitrate +
--       codec_settings_.simulcastStream[1].maxBitrate) /
--      2;
--  codec_settings_.simulcastStream[1].numberOfTemporalLayers = 3;
--  codec_settings_.simulcastStream[1].active = true;
--
--  codec_settings_.simulcastStream[2].minBitrate = 600;
--  codec_settings_.simulcastStream[2].maxBitrate = 1200;
--  codec_settings_.simulcastStream[2].targetBitrate =
--      (codec_settings_.simulcastStream[2].minBitrate +
--       codec_settings_.simulcastStream[2].maxBitrate) /
--      2;
--  codec_settings_.simulcastStream[2].numberOfTemporalLayers = 3;
--  codec_settings_.simulcastStream[2].active = true;
--
--  codec_settings_.simulcastStream[0].width = codec_settings_.width / 4;
--  codec_settings_.simulcastStream[0].height = codec_settings_.height / 4;
--  codec_settings_.simulcastStream[0].maxFramerate =
--      codec_settings_.maxFramerate;
--  codec_settings_.simulcastStream[1].width = codec_settings_.width / 2;
--  codec_settings_.simulcastStream[1].height = codec_settings_.height / 2;
--  codec_settings_.simulcastStream[1].maxFramerate =
--      codec_settings_.maxFramerate;
--  codec_settings_.simulcastStream[2].width = codec_settings_.width;
--  codec_settings_.simulcastStream[2].height = codec_settings_.height;
--  codec_settings_.simulcastStream[2].maxFramerate =
--      codec_settings_.maxFramerate;
--
--  EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
--            encoder_->InitEncode(&codec_settings_, kSettings));
--
--  // Ensure it fails if temporal configs are different.
--  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 1;
--  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
--            encoder_->InitEncode(&codec_settings_, kSettings));
--
--  // Restore for following tests.
--  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 3;
--
--  // Ensure it fails if scaling factors in horz/vert dimentions are different.
--  codec_settings_.simulcastStream[0].width = codec_settings_.width / 4;
--  codec_settings_.simulcastStream[0].height = codec_settings_.height / 16;
--  codec_settings_.simulcastStream[1].width = codec_settings_.width / 2;
--  codec_settings_.simulcastStream[1].height = codec_settings_.height / 4;
--  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
--            encoder_->InitEncode(&codec_settings_, kSettings));
--
--  // Ensure it fails if scaling factor is not power of two.
--  codec_settings_.simulcastStream[0].width = codec_settings_.width / 9;
--  codec_settings_.simulcastStream[0].height = codec_settings_.height / 9;
--  codec_settings_.simulcastStream[1].width = codec_settings_.width / 3;
--  codec_settings_.simulcastStream[1].height = codec_settings_.height / 3;
--  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
--            encoder_->InitEncode(&codec_settings_, kSettings));
--}
--
- TEST_F(TestVp9Impl, EnableDisableSpatialLayers) {
-   // Configure encoder to produce N spatial layers. Encode frames of layer 0
-   // then enable layer 1 and encode more frames and so on until layer N-1.
