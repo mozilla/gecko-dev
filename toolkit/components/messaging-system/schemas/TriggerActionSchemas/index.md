@@ -54,6 +54,7 @@ let patterns: string[];
 * [cookieBannerHandled](#cookiebannerhandled)
 * [messagesLoaded](#messagesloaded)
 * [pageActionInUrlbar](#pageactioninurlbar)
+* [onSearch](#onsearch)
 
 ### `openArticleURL`
 
@@ -264,5 +265,22 @@ Happens when a page action appears in the location bar. The specific page action
 {
   trigger: { id: "pageActionInUrlbar" },
   targeting: "pageAction == 'reader-mode-button'"
+}
+```
+
+### `onSearch`
+
+Happens when the user uses the search feature in the awesome bar.
+
+The `isSuggestion` boolean context variable is available in targeting, and will evaluate to true if the search was initiated from a recommendation in the awesomebar.
+
+The `searchSource` string context variable is also available in targeting, and returns the search source. It will be one of four values: `urlbar-handoff` if one of the faux-search inputs were used (such as the one present on the newtab page), `urlbar-searchmode` if the user has selected a search engine, `urlbar-persisted` if the user has changed tabs or windows and come back to their search term in the URL bar, or `urlbar` if the user is doing a standard search by entering a term into the URL bar and pressing enter, or clicking on a search suggestion.
+
+The `isOneOff` boolean context variable is available in targeting, and will be true if one of the one-off search features (typically found at the bottom of the awesomebar's dropdown menu) is used.
+
+```js
+{
+  trigger: { id: "onSearch" },
+  targeting: "isSuggestion && searchSource === 'urlbar-handoff' && isOneOff"
 }
 ```

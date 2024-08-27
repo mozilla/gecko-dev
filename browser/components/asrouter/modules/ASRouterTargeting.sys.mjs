@@ -147,6 +147,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
     return behaviorString === "embedded";
   }
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "totalSearches",
+  "browser.search.totalSearches",
+  0
+);
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   AUS: ["@mozilla.org/updates/update-service;1", "nsIApplicationUpdateService"],
@@ -1062,6 +1068,10 @@ const TargetingGetters = {
       memory = Number(memory) / 1024 / 1024;
     }
     return memory;
+  },
+
+  get totalSearches() {
+    return lazy.totalSearches;
   },
 };
 

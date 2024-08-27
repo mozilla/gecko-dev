@@ -772,6 +772,10 @@ pref("browser.search.serpMetricsRecordedCounter", 0);
 // days
 pref("browser.search.widget.removeAfterDaysUnused", 120);
 
+// The number of times the search function in the URL bar has been used,
+// capped at 100.
+pref("browser.search.totalSearches", 0);
+
 // Enable new experimental shopping features. This is solely intended as a
 // rollout/"emergency stop" button - it will go away once the feature has
 // rolled out. There will be separate controls for user opt-in/opt-out.

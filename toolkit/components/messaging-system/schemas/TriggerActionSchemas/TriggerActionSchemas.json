@@ -302,6 +302,42 @@
           "additionalProperties": false,
           "required": ["id"],
           "description": "Happens when a page action appears in the urlbar. The specific page action(s) to watch can be specified by id in the targeting expression."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["onSearch"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "isSuggestion": {
+                  "type": "boolean",
+                  "description": "When the search was a suggestion"
+                },
+                "searchSource": {
+                  "type": "string",
+                  "enum": [
+                    "urlbar-handoff",
+                    "urlbar-searchmode",
+                    "urlbar-persisted",
+                    "urlbar"
+                  ],
+                  "description": "The source of the search that occurred"
+                },
+                "isOneOff": {
+                  "type": "boolean",
+                  "description": "When the search is a one-off search"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when a search is completed"
         }
       ]
     }

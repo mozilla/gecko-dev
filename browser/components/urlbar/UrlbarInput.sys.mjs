@@ -9,6 +9,7 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
@@ -2726,8 +2727,9 @@ export class UrlbarInput {
   }
 
   /**
-   * Get the url to load for the search query and records in telemetry that it
-   * is being loaded.
+   * Records in telemetry that a search is being loaded,
+   * updates an incremental total number of searches in a pref,
+   * and informs ASRouter that a search has occurred via a trigger send
    *
    * @param {nsISearchEngine} engine
    *   The engine to generate the query for.
@@ -2746,11 +2748,37 @@ export class UrlbarInput {
    */
   _recordSearch(engine, event, searchActionDetails = {}) {
     const isOneOff = this.view.oneOffSearchButtons.eventTargetIsAOneOff(event);
+    const searchSource = this.getSearchSource(event);
+
+    // Record when the user uses the search bar to be
+    // used for message targeting. This is arbitrarily capped
+    // at 100, only to prevent the number from growing ifinitely.
+    const totalSearches = Services.prefs.getIntPref(
+      "browser.search.totalSearches"
+    );
+    const totalSearchesCap = 100;
+    if (totalSearches <= totalSearchesCap) {
+      Services.prefs.setIntPref(
+        "browser.search.totalSearches",
+        totalSearches + 1
+      );
+    }
+
+    // Sending a trigger to ASRouter when a search happens
+    lazy.ASRouter.sendTriggerMessage({
+      browser: this.window.gBrowser.selectedBrowser,
+      id: "onSearch",
+      context: {
+        isSuggestion: searchActionDetails.isSuggestion || false,
+        searchSource,
+        isOneOff,
+      },
+    });
 
     lazy.BrowserSearchTelemetry.recordSearch(
       this.window.gBrowser.selectedBrowser,
       engine,
-      this.getSearchSource(event),
+      searchSource,
       {
         ...searchActionDetails,
         isOneOff,

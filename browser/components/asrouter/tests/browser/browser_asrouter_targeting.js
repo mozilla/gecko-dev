@@ -1685,3 +1685,18 @@ add_task(async function check_memoryMB() {
   // runs this unit test it has between 500MB and 1TB of RAM.
   ok(memory > 500 && memory < 5_000_000);
 });
+
+add_task(async function check_totalSearches() {
+  await pushPrefs(["browser.search.totalSearches", 20]);
+  is(
+    typeof ASRouterTargeting.Environment.totalSearches,
+    "number",
+    "should return a number"
+  );
+
+  is(
+    await ASRouterTargeting.Environment.totalSearches,
+    20,
+    "should return a value of 20"
+  );
+});

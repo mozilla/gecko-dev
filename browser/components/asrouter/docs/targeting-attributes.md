@@ -75,6 +75,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [userPrefs](#userprefs)
 * [usesFirefoxSync](#usesfirefoxsync)
 * [xpinstallEnabled](#xpinstallEnabled)
+* [totalSearches](#totalSearches)
 
 ## Detailed usage
 
@@ -1026,6 +1027,7 @@ A boolean. `true` when hasPackageId is `true` on Windows, `false` otherwise.
 ### `isDeviceMigration`
 
 A boolean. `true` when [support.mozilla.org](https://support.mozilla.org) has been used to download the browser as part of a "migration" campaign, for device migration guidance, `false` otherwise.
+
 ### `screenImpressions`
 
 An array that maps about:welcome screen IDs to their most recent impression timestamp. Should only be used for unique screen IDs to avoid unintentionally targeting messages with identical screen IDs.
@@ -1034,3 +1036,7 @@ An array that maps about:welcome screen IDs to their most recent impression time
 ```
 declare const screenImpressions: { [key: string]: Array<UnixEpochNumber> };
 ```
+
+### `totalSearches`
+
+Returns the number of times a user has completed a search in the URL Bar. The number is arbitrarily capped at 100.

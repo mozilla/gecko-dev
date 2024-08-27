@@ -7,6 +7,14 @@ const { ASRouter } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/ASRouter.sys.mjs"
 );
 
+ChromeUtils.defineLazyGetter(this, "SearchTestUtils", () => {
+  const { SearchTestUtils: module } = ChromeUtils.importESModule(
+    "resource://testing-common/SearchTestUtils.sys.mjs"
+  );
+  module.init(this);
+  return module;
+});
+
 const mockIdleService = {
   _observers: new Set(),
   _fireObservers(state) {
@@ -39,6 +47,21 @@ add_setup(async function () {
   if (inChaosMode && AppConstants.platform === "macosx") {
     requestLongerTimeout(2);
   }
+
+  // Installing this search extension prevents errors that
+  // are generated from contacting the outside world
+  // when completing searches during tests
+  await SearchTestUtils.installSearchExtension(
+    {
+      search_url:
+        "https://example.com/browser/browser/components/search/test/browser/test.html",
+      search_url_get_params: "s={searchTerms}&abc=ff",
+      suggest_url:
+        "https://example.com/browser/browser/components/search/test/browser/searchSuggestionEngine.sjs",
+      suggest_url_get_params: "query={searchTerms}",
+    },
+    { setAsDefault: true }
+  );
 
   registerCleanupFunction(() => {
     const trigger = ASRouterTriggerListeners.get("openURL");
@@ -427,4 +450,58 @@ add_task(async function test_pageActionInUrlbarTrigger() {
   sandbox.restore();
 
   PictureInPicture.updateUrlbarToggle(gBrowser.selectedBrowser);
+});
+
+add_task(async function test_onSearchIncrement() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  Services.prefs.setIntPref("browser.search.totalSearches", 0);
+
+  const onLoaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  let SEARCH_TERM = "test search term";
+  gURLBar.value = SEARCH_TERM;
+  gURLBar.focus();
+  EventUtils.synthesizeKey("KEY_Enter");
+  await onLoaded;
+
+  const totalSearches = Services.prefs.getIntPref(
+    "browser.search.totalSearches",
+    0
+  );
+  Assert.equal(totalSearches, 1, "Total searches has incremented by 1");
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_onSearchTrigger() {
+  const sandbox = sinon.createSandbox();
+
+  const receivedTrigger = new Promise(resolve => {
+    sandbox
+      .stub(ASRouter, "sendTriggerMessage")
+      .callsFake(({ id, context }) => {
+        if (
+          id === "onSearch" &&
+          context.isSuggestion === false &&
+          context.isOneOff === false &&
+          context.searchSource === "urlbar"
+        ) {
+          resolve(true);
+        }
+      });
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  const onLoaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  let SEARCH_TERM = "test search term";
+  gURLBar.value = SEARCH_TERM;
+  gURLBar.focus();
+  EventUtils.synthesizeKey("KEY_Enter");
+  await onLoaded;
+
+  let onSearch = await receivedTrigger;
+
+  ok(onSearch, "onSearch trigger sent");
+
+  sandbox.restore();
+  BrowserTestUtils.removeTab(tab);
 });
