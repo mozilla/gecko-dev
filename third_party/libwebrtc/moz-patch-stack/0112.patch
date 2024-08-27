@@ -1,78 +1,30 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Sat, 20 Jul 2024 07:04:00 +0000
-Subject: Bug 1907013 - WebRTC backport: PipeWire camera: support additional
- formats and fix RGB/BGR mapping r=jib,webrtc-reviewers
+From: Byron Campen <docfaraday@gmail.com>
+Date: Thu, 25 Jul 2024 10:07:00 -0500
+Subject: Bug 1909234 - (fix-4fec6f9c67dc) Hollow out the new ssl_adapter lib.
+ r?mjf
 
-This is a simple backprot of an WebRTC upstream change.
-
-Upstream commit: b1ebcfbfd6afb57f314b6689ca001aca1b13a5b4
-
-Differential Revision: https://phabricator.services.mozilla.com/D216138
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1888c46045fa055f0c17bac365f5c96f4814f59e
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c4d7c93b78fb52d28452d055
 ---
- modules/video_capture/linux/pipewire_session.cc      |  6 ++++++
- .../video_capture/linux/video_capture_pipewire.cc    | 12 ++++++++++--
- 2 files changed, 16 insertions(+), 2 deletions(-)
+ rtc_base/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index d52d6aacc8..107ea3dfbd 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -35,12 +35,18 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
-       return VideoType::kYUY2;
-     case SPA_VIDEO_FORMAT_UYVY:
-       return VideoType::kUYVY;
-+    case SPA_VIDEO_FORMAT_RGB16:
-+      return VideoType::kRGB565;
-     case SPA_VIDEO_FORMAT_RGB:
-+      return VideoType::kBGR24;
-+    case SPA_VIDEO_FORMAT_BGR:
-       return VideoType::kRGB24;
-     case SPA_VIDEO_FORMAT_BGRA:
-       return VideoType::kARGB;
-     case SPA_VIDEO_FORMAT_RGBA:
-       return VideoType::kABGR;
-+    case SPA_VIDEO_FORMAT_ARGB:
-+      return VideoType::kBGRA;
-     default:
-       return VideoType::kUnknown;
-   }
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index 9ff4fdb9b1..1672b7583f 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -34,10 +34,15 @@ struct {
-     {SPA_VIDEO_FORMAT_YUY2, VideoType::kYUY2},
-     {SPA_VIDEO_FORMAT_UYVY, VideoType::kUYVY},
-     // PipeWire is big-endian for the formats, while libyuv is little-endian
--    // This means that BGRA == ARGB and RGBA == ABGR
-+    // This means that BGRA == ARGB, RGBA == ABGR and similar
-+    // This follows mapping in libcamera PipeWire plugin:
-+    // https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/spa/plugins/libcamera/libcamera-utils.cpp
-     {SPA_VIDEO_FORMAT_BGRA, VideoType::kARGB},
-     {SPA_VIDEO_FORMAT_RGBA, VideoType::kABGR},
--    {SPA_VIDEO_FORMAT_RGB, VideoType::kRGB24},
-+    {SPA_VIDEO_FORMAT_ARGB, VideoType::kBGRA},
-+    {SPA_VIDEO_FORMAT_RGB, VideoType::kBGR24},
-+    {SPA_VIDEO_FORMAT_BGR, VideoType::kRGB24},
-+    {SPA_VIDEO_FORMAT_RGB16, VideoType::kRGB565},
- };
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 63b5b047ee..cc9d60e48d 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1641,6 +1641,7 @@ if (!build_with_mozilla) {
+ }
  
- VideoType VideoCaptureModulePipeWire::PipeWireRawFormatToVideoType(
-@@ -302,13 +307,16 @@ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
-         break;
-       case VideoType::kYUY2:
-       case VideoType::kUYVY:
-+      case VideoType::kRGB565:
-         stride = configured_capability_.width * 2;
-         break;
-       case VideoType::kRGB24:
-+      case VideoType::kBGR24:
-         stride = configured_capability_.width * 3;
-         break;
-       case VideoType::kARGB:
-       case VideoType::kABGR:
-+      case VideoType::kBGRA:
-         stride = configured_capability_.width * 4;
-         break;
-       default:
+ rtc_library("ssl_adapter") {
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   sources = [
+     "openssl_adapter.cc",
+@@ -1690,6 +1691,7 @@ rtc_library("ssl_adapter") {
+     configs += [ ":external_ssl_library" ]
+   }
+ }
++}
+ 
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]
