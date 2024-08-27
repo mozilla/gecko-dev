@@ -11,53 +11,15 @@
 
 "use strict";
 
-const CONFIG_V2 = [
+const CONFIG = [
   {
-    recordType: "engine",
-    identifier: "engine",
-    base: {
-      name: "Test search engine",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [],
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
+    identifier: "appDefault",
+    base: { name: "Application Default" },
   },
   {
-    recordType: "engine",
-    identifier: "engine-pref",
-    base: {
-      name: "engine-pref",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [],
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { regions: ["FR"] },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
+    identifier: "notInFR",
+    base: { name: "Not In FR" },
+    variants: [{ environment: { regions: ["FR"] } }],
   },
 ];
 
@@ -71,7 +33,7 @@ add_setup(async () => {
   // `engine-pref`.
   Region._setHomeRegion("US", false);
 
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
@@ -79,8 +41,8 @@ add_task(async function test_reload_engines_with_duplicate() {
   let engines = await Services.search.getEngines();
 
   Assert.deepEqual(
-    engines.map(e => e.name),
-    ["Test search engine"],
+    engines.map(e => e.identifier),
+    ["appDefault"],
     "Should have the expected default engines"
   );
   // Simulate a user installing a search engine that shares the same name as an
@@ -88,7 +50,7 @@ add_task(async function test_reload_engines_with_duplicate() {
   let engine = await SearchTestUtils.installOpenSearchEngine({
     url: `${gDataUrl}engineMaker.sjs?${JSON.stringify({
       baseURL: gDataUrl,
-      name: "engine-pref",
+      name: "Not In FR",
       method: "GET",
     })}`,
   });
@@ -109,12 +71,12 @@ add_task(async function test_reload_engines_with_duplicate() {
   engines = await Services.search.getEngines();
 
   Assert.deepEqual(
-    engines.map(e => e.name),
-    ["Test search engine", "engine-pref"],
+    engines.map(e => e.identifier),
+    ["appDefault", "notInFR"],
     "Should have the expected default engines"
   );
 
-  let enginePref = await Services.search.getEngineByName("engine-pref");
+  let enginePref = await Services.search.getEngineByName("Not In FR");
 
   Assert.equal(
     enginePref.alias,

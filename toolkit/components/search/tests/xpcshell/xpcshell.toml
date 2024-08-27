@@ -12,8 +12,6 @@ support-files = [
   "data/engine-fr.xml",
   "data/engineMaker.sjs",
   "data/engineImages.xml",
-  "data/search-config-v2.json",
-  "data/search-config-v2-no-order-hint.json",
   "data/iconsRedirect.sjs",
   "data/search.json",
   "data/search-legacy.json",

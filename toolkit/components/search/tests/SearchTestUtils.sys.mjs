@@ -173,38 +173,6 @@ class _SearchTestUtils {
   }
 
   /**
-   * For xpcshell tests, configures loading engines from test data located in
-   * particular folders. Will be replaced by `setRemoteSettingsConfig`.
-   *
-   * @param {string} [folder]
-   *   The folder name to use.
-   * @param {string} [subFolder]
-   *   The subfolder to use, if any.
-   * @param {Array} [configData]
-   *   An array which contains the configuration to set.
-   */
-  async useTestEngines(folder = "data", subFolder = null, configData = null) {
-    if (configData) {
-      this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, configData);
-      return;
-    }
-
-    let workDir = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
-    let configFileName =
-      "file://" +
-      PathUtils.join(
-        workDir.path,
-        folder,
-        subFolder ?? "",
-        "search-config-v2.json"
-      );
-
-    let response = await fetch(configFileName);
-    let json = await response.json();
-    this.#stubConfig(lazy.SearchUtils.SETTINGS_KEY, json.data);
-  }
-
-  /**
    * Stubs the get property of the remote settings client with a
    * given Key. Configuration does not get expanded.
    *

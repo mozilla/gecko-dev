@@ -8,16 +8,25 @@
 
 "use strict";
 
+const CONFIG = [
+  { identifier: "defaultSearchEngine" },
+  { identifier: "anEngineEarlyInAlphabet" },
+  { identifier: "engineLaterInAlphabet" },
+  { identifier: "zEngineEvenLaterInAlphabet" },
+  { identifier: "secondEngineInSortOrder" },
+  { identifier: "zFirstEngineInSortOrder" },
+  {
+    orders: [
+      {
+        environment: { allRegionsAndLocales: true },
+        order: ["zFirstEngineInSortOrder", "secondEngineInSortOrder"],
+      },
+    ],
+  },
+];
+
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines(
-    "data",
-    null,
-    (
-      await readJSONFile(
-        do_get_file("data/search-config-v2-no-order-hint.json")
-      )
-    ).data
-  );
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 
   Services.prefs.setBoolPref(
     SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
@@ -49,14 +58,14 @@ add_task(async function test_engine_sort_with_non_builtins_sort() {
 
   const EXPECTED_ORDER = [
     // Default engine.
-    "Test search engine",
-    // Alphabetical order for the two with orderHint = 1000.
-    "engine-chromeicon",
-    "engine-rel-searchform-purpose",
-    // Alphabetical order for the remaining engines without orderHint.
-    "engine-pref",
-    "engine-resourceicon",
-    "Test search engine (Reordered)",
+    "defaultSearchEngine",
+    // The two engines from the sort order.
+    "zFirstEngineInSortOrder",
+    "secondEngineInSortOrder",
+    // Alphabetical order for the remaining engines which aren't in the sort order.
+    "anEngineEarlyInAlphabet",
+    "engineLaterInAlphabet",
+    "zEngineEvenLaterInAlphabet",
   ];
 
   // We should still have the same built-in engines listed.

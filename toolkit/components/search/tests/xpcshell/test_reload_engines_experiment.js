@@ -3,39 +3,12 @@
 
 "use strict";
 
-const CONFIG_V2 = [
+const CONFIG = [
+  { identifier: "appDefault" },
   {
-    recordType: "engine",
-    identifier: "engine",
+    identifier: "non-experiment",
     base: {
-      name: "Test search engine",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [
-            {
-              name: "channel",
-              searchAccessPoint: {
-                addressbar: "fflb",
-                contextmenu: "rcs",
-              },
-            },
-          ],
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "engine-same-name-en",
-    base: {
-      name: "engine-same-name",
+      name: "same-name",
       urls: {
         search: {
           base: "https://www.google.com/search",
@@ -43,17 +16,11 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
   },
   {
-    recordType: "engine",
-    identifier: "engine-same-name-gd",
+    identifier: "experiment",
     base: {
-      name: "engine-same-name",
+      name: "same-name",
       urls: {
         search: {
           base: "https://www.example.com/search",
@@ -67,19 +34,10 @@ const CONFIG_V2 = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 // This is to verify that the loaded configuration matches what we expect for
@@ -90,13 +48,13 @@ add_task(async function test_initial_config_correct() {
   const installedEngines = await Services.search.getAppProvidedEngines();
   Assert.deepEqual(
     installedEngines.map(e => e.identifier),
-    ["engine", "engine-same-name-en"],
+    ["appDefault", "non-experiment"],
     "Should have the correct list of engines installed."
   );
 
   Assert.equal(
     (await Services.search.getDefault()).identifier,
-    "engine",
+    "appDefault",
     "Should have loaded the expected default engine"
   );
 });
@@ -117,7 +75,9 @@ add_task(async function test_config_updated_engine_changes() {
         subject.QueryInterface(Ci.nsISearchEngine).identifier
       );
     } else if (data == SearchUtils.MODIFIED_TYPE.REMOVED) {
-      enginesRemoved.push(subject.QueryInterface(Ci.nsISearchEngine).name);
+      enginesRemoved.push(
+        subject.QueryInterface(Ci.nsISearchEngine).identifier
+      );
     }
   }
   Services.obs.addObserver(enginesObs, SearchUtils.TOPIC_ENGINE_MODIFIED);
@@ -132,19 +92,19 @@ add_task(async function test_config_updated_engine_changes() {
 
   Assert.deepEqual(
     enginesAdded,
-    ["engine-same-name-gd"],
+    ["experiment"],
     "Should have added the correct engines"
   );
 
   Assert.deepEqual(
     enginesModified.sort(),
-    ["engine", "engine-same-name-en"],
+    ["appDefault", "non-experiment"],
     "Should have modified the expected engines"
   );
 
   Assert.deepEqual(
     enginesRemoved,
-    ["engine-same-name"],
+    ["non-experiment"],
     "Should have removed the expected engine"
   );
 
@@ -152,13 +112,11 @@ add_task(async function test_config_updated_engine_changes() {
 
   Assert.deepEqual(
     installedEngines.map(e => e.identifier),
-    ["engine", "engine-same-name-gd"],
+    ["appDefault", "experiment"],
     "Should have the correct list of engines installed in the expected order."
   );
 
-  const engineWithSameName = await Services.search.getEngineByName(
-    "engine-same-name"
-  );
+  const engineWithSameName = await Services.search.getEngineByName("same-name");
   Assert.equal(
     engineWithSameName.getSubmission("test").uri.spec,
     "https://www.example.com/search?q=test",

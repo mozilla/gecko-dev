@@ -3,74 +3,19 @@
 
 "use strict";
 
-const CONFIG_V2 = [
+const CONFIG = [
   {
-    recordType: "engine",
-    identifier: "engine",
-    base: {
-      name: "Test search engine",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [
-            {
-              name: "channel",
-              searchAccessPoint: {
-                addressbar: "fflb",
-                contextmenu: "rcs",
-              },
-            },
-          ],
-          searchTermParamName: "q",
-        },
-        suggestions: {
-          base: "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
+    identifier: "appDefault",
   },
   {
-    recordType: "engine",
-    identifier: "engine-pref",
-    base: {
-      name: "engine-pref",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [
-            {
-              name: "code",
-              experimentConfig: "code",
-            },
-            {
-              name: "test",
-              experimentConfig: "test",
-            },
-          ],
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
+    identifier: "defaultInFRRegion",
   },
   {
-    recordType: "engine",
-    identifier: "engine-chromeicon",
+    identifier: "hasParamsInFRRegion",
     base: {
-      name: "engine-chromeicon",
       urls: {
         search: {
-          base: "https://www.google.com/search",
+          base: "https://www.example.com/search",
           searchTermParamName: "q",
         },
       },
@@ -83,7 +28,6 @@ const CONFIG_V2 = [
         environment: { regions: ["FR"] },
         urls: {
           search: {
-            base: "https://www.google.com/search",
             params: [
               {
                 name: "c",
@@ -97,62 +41,11 @@ const CONFIG_V2 = [
     ],
   },
   {
-    recordType: "engine",
-    identifier: "engine-rel-searchform-purpose",
-    base: {
-      name: "engine-rel-searchform-purpose",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { excludedRegions: ["FR"] },
-        urls: {
-          search: {
-            params: [
-              {
-                name: "channel",
-                searchAccessPoint: {
-                  addressbar: "fflb",
-                  contextmenu: "rcs",
-                  searchbar: "sb",
-                },
-              },
-            ],
-          },
-        },
-      },
-    ],
+    identifier: "notInFRRegion1",
+    variants: [{ environment: { excludedRegions: ["FR"] } }],
   },
   {
-    recordType: "engine",
-    identifier: "engine-reordered",
-    base: {
-      name: "Test search engine (Reordered)",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [
-            {
-              name: "channel",
-              searchAccessPoint: {
-                addressbar: "fflb",
-                contextmenu: "rcs",
-              },
-            },
-          ],
-          searchTermParamName: "q",
-        },
-        suggestions: {
-          base: "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox",
-          searchTermParamName: "q",
-        },
-      },
-    },
+    identifier: "onlyInFRRegion",
     variants: [
       {
         environment: { regions: ["FR"] },
@@ -160,13 +53,28 @@ const CONFIG_V2 = [
     ],
   },
   {
-    recordType: "engine",
-    identifier: "engine-resourceicon",
+    identifier: "notInFRRegion2",
+    variants: [
+      {
+        environment: { excludedRegions: ["FR"] },
+      },
+    ],
+  },
+  {
+    identifier: "engineOrderedInFR",
+    variants: [
+      {
+        environment: { regions: ["FR"] },
+      },
+    ],
+  },
+  {
+    identifier: "engineSameName",
     base: {
-      name: "engine-resourceicon",
+      name: "Same Name",
       urls: {
         search: {
-          base: "https://www.google.com/search",
+          base: "https://www.example.org/same",
           searchTermParamName: "q",
         },
       },
@@ -178,13 +86,12 @@ const CONFIG_V2 = [
     ],
   },
   {
-    recordType: "engine",
-    identifier: "engine-resourceicon-gd",
+    identifier: "engineSameNameOther",
     base: {
-      name: "engine-resourceicon-gd",
+      name: "Same Name",
       urls: {
         search: {
-          base: "https://www.google.com/search",
+          base: "https://www.example.com/other",
           searchTermParamName: "q",
         },
       },
@@ -196,61 +103,23 @@ const CONFIG_V2 = [
     ],
   },
   {
-    recordType: "engine",
-    identifier: "engine-same-name",
-    base: {
-      name: "engine-same-name",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { excludedRegions: ["FR"] },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "engine-same-name-gd",
-    base: {
-      name: "engine-same-name-gd",
-      urls: {
-        search: {
-          base: "https://www.example.com/search",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { regions: ["FR"] },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
     specificDefaults: [
       {
-        default: "engine",
-        defaultPrivate: "engine",
+        default: "appDefault",
+        defaultPrivate: "appDefault",
         environment: { excludedRegions: ["FR"] },
       },
       {
-        default: "engine-pref",
-        defaultPrivate: "engine-pref",
+        default: "defaultInFRRegion",
+        defaultPrivate: "defaultInFRRegion",
         environment: { regions: ["FR"] },
       },
     ],
   },
   {
-    recordType: "engineOrders",
     orders: [
       {
-        order: ["engine-resourceicon-gd"],
+        order: ["engineOrderedInFR"],
         environment: { regions: ["FR"] },
       },
     ],
@@ -269,7 +138,7 @@ add_setup(async function () {
   );
 
   SearchTestUtils.useMockIdleService();
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 
 // This is to verify that the loaded configuration matches what we expect for
@@ -283,25 +152,25 @@ add_task(async function test_initial_config_correct() {
   Assert.deepEqual(
     installedEngines.map(e => e.identifier),
     [
-      "engine",
-      "engine-chromeicon",
-      "engine-pref",
-      "engine-rel-searchform-purpose",
-      "engine-resourceicon",
-      "engine-same-name",
+      "appDefault",
+      "defaultInFRRegion",
+      "hasParamsInFRRegion",
+      "notInFRRegion1",
+      "notInFRRegion2",
+      "engineSameName",
     ],
     "Should have the correct list of engines installed."
   );
 
   Assert.equal(
     (await Services.search.getDefault()).identifier,
-    "engine",
+    "appDefault",
     "Should have loaded the expected default engine"
   );
 
   Assert.equal(
     (await Services.search.getDefaultPrivate()).identifier,
-    "engine",
+    "appDefault",
     "Should have loaded the expected private default engine"
   );
 });
@@ -331,7 +200,9 @@ add_task(async function test_config_updated_engine_changes() {
         subject.QueryInterface(Ci.nsISearchEngine).identifier
       );
     } else if (data == SearchUtils.MODIFIED_TYPE.REMOVED) {
-      enginesRemoved.push(subject.QueryInterface(Ci.nsISearchEngine).name);
+      enginesRemoved.push(
+        subject.QueryInterface(Ci.nsISearchEngine).identifier
+      );
     }
   }
   Services.obs.addObserver(enginesObs, SearchUtils.TOPIC_ENGINE_MODIFIED);
@@ -345,24 +216,20 @@ add_task(async function test_config_updated_engine_changes() {
 
   Assert.deepEqual(
     enginesAdded,
-    ["engine-resourceicon-gd", "engine-reordered", "engine-same-name-gd"],
+    ["engineOrderedInFR", "onlyInFRRegion", "engineSameNameOther"],
     "Should have added the correct engines"
   );
 
   Assert.deepEqual(
     enginesModified.sort(),
-    ["engine", "engine-chromeicon", "engine-pref"],
+    ["appDefault", "defaultInFRRegion", "hasParamsInFRRegion"],
     "Should have modified the expected engines"
   );
 
   Assert.deepEqual(
     enginesRemoved,
-    [
-      "engine-rel-searchform-purpose",
-      "engine-resourceicon",
-      "engine-same-name",
-    ],
-    "Should have removed the expected engine"
+    ["notInFRRegion1", "notInFRRegion2", "engineSameName"],
+    "Should have removed the expected engines"
   );
 
   const installedEngines = await Services.search.getAppProvidedEngines();
@@ -370,12 +237,12 @@ add_task(async function test_config_updated_engine_changes() {
   Assert.deepEqual(
     installedEngines.map(e => e.identifier),
     [
-      "engine-pref",
-      "engine-resourceicon-gd",
-      "engine-chromeicon",
-      "engine-same-name-gd",
-      "engine",
-      "engine-reordered",
+      "defaultInFRRegion",
+      "engineOrderedInFR",
+      "appDefault",
+      "hasParamsInFRRegion",
+      "onlyInFRRegion",
+      "engineSameNameOther",
     ],
     "Should have the correct list of engines installed in the expected order."
   );
@@ -383,32 +250,32 @@ add_task(async function test_config_updated_engine_changes() {
   const newDefault = await defaultEngineChanged;
   Assert.equal(
     newDefault.QueryInterface(Ci.nsISearchEngine).name,
-    "engine-pref",
+    "defaultInFRRegion",
     "Should have correctly notified the new default engine"
   );
 
   const newDefaultPrivate = await defaultPrivateEngineChanged;
   Assert.equal(
     newDefaultPrivate.QueryInterface(Ci.nsISearchEngine).name,
-    "engine-pref",
+    "defaultInFRRegion",
     "Should have correctly notified the new default private engine"
   );
 
-  const engineWithParams = await Services.search.getEngineByName(
-    "engine-chromeicon"
+  const engineWithParams = await Services.search.getEngineById(
+    "hasParamsInFRRegion"
   );
   Assert.equal(
     engineWithParams.getSubmission("test").uri.spec,
-    "https://www.google.com/search?c=my-test&q1=test",
+    "https://www.example.com/search?c=my-test&q1=test",
     "Should have updated the parameters"
   );
 
-  const engineWithSameName = await Services.search.getEngineByName(
-    "engine-same-name-gd"
+  const engineWithSameName = await Services.search.getEngineById(
+    "engineSameNameOther"
   );
   Assert.equal(
     engineWithSameName.getSubmission("test").uri.spec,
-    "https://www.example.com/search?q=test",
+    "https://www.example.com/other?q=test",
     "Should have correctly switched to the engine of the same name"
   );
 
@@ -427,19 +294,17 @@ add_task(async function test_user_settings_persist() {
   await reload;
 
   Assert.ok(
-    (await visibleEngines()).includes("engine-rel-searchform-purpose"),
+    (await visibleEngines()).includes("notInFRRegion1"),
     "Rel Searchform engine should be included by default"
   );
 
   let settingsFileWritten = promiseAfterSettings();
-  let engine = await Services.search.getEngineByName(
-    "engine-rel-searchform-purpose"
-  );
+  let engine = await Services.search.getEngineById("notInFRRegion1");
   await Services.search.removeEngine(engine);
   await settingsFileWritten;
 
   Assert.ok(
-    !(await visibleEngines()).includes("engine-rel-searchform-purpose"),
+    !(await visibleEngines()).includes("notInFRRegion1"),
     "Rel Searchform engine has been removed"
   );
 
@@ -452,7 +317,7 @@ add_task(async function test_user_settings_persist() {
   await reload;
 
   Assert.ok(
-    !(await visibleEngines()).includes("engine-rel-searchform-purpose"),
+    !(await visibleEngines()).includes("notInFRRegion1"),
     "Rel Searchform removal should be remembered"
   );
 });

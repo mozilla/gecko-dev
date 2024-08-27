@@ -8,43 +8,12 @@
 
 "use strict";
 
-const CONFIG_V2 = [
+const CONFIG = [
+  { identifier: "appDefault" },
   {
-    recordType: "engine",
-    identifier: "engine",
+    identifier: "notGDLocale",
     base: {
-      name: "Test search engine",
-      urls: {
-        search: {
-          base: "https://www.google.com/search",
-          params: [
-            {
-              name: "channel",
-              searchAccessPoint: {
-                addressbar: "fflb",
-                contextmenu: "rcs",
-              },
-            },
-          ],
-          searchTermParamName: "q",
-        },
-        suggestions: {
-          base: "https://suggestqueries.google.com/complete/search?output=firefox&client=firefox",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
-    identifier: "engine-diff-name-en",
-    base: {
-      name: "engine-diff-name-en",
+      name: "Not GD Locale",
       urls: {
         search: {
           base: "https://en.wikipedia.com/search",
@@ -52,17 +21,12 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: { excludedLocales: ["gd"] },
-      },
-    ],
+    variants: [{ environment: { excludedLocales: ["gd"] } }],
   },
   {
-    recordType: "engine",
-    identifier: "engine-diff-name-gd",
+    identifier: "localeGD",
     base: {
-      name: "engine-diff-name-gd",
+      name: "GD Locale",
       urls: {
         search: {
           base: "https://gd.wikipedia.com/search",
@@ -70,20 +34,7 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: { locales: ["gd"] },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
+    variants: [{ environment: { locales: ["gd"] } }],
   },
 ];
 
@@ -95,24 +46,19 @@ add_setup(async () => {
   ];
   Services.locale.requestedLocales = ["gd"];
 
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
 add_task(async function test_config_updated_engine_changes() {
   let engines = await Services.search.getEngines();
   Assert.deepEqual(
-    engines.map(e => e.name),
-    ["Test search engine", "engine-diff-name-gd"],
+    engines.map(e => e.identifier),
+    ["appDefault", "localeGD"],
     "Should have the correct engines installed"
   );
 
-  let engine = await Services.search.getEngineByName("engine-diff-name-gd");
-  Assert.equal(
-    engine.name,
-    "engine-diff-name-gd",
-    "Should have the correct engine name"
-  );
+  let engine = await Services.search.getEngineByName("GD Locale");
   Assert.equal(
     engine.getSubmission("test").uri.spec,
     "https://gd.wikipedia.com/search?q=test",
@@ -123,17 +69,12 @@ add_task(async function test_config_updated_engine_changes() {
 
   engines = await Services.search.getEngines();
   Assert.deepEqual(
-    engines.map(e => e.name),
-    ["Test search engine", "engine-diff-name-en"],
+    engines.map(e => e.identifier),
+    ["appDefault", "notGDLocale"],
     "Should have the correct engines installed after locale change"
   );
 
-  engine = await Services.search.getEngineByName("engine-diff-name-en");
-  Assert.equal(
-    engine.name,
-    "engine-diff-name-en",
-    "Should have the correct engine name"
-  );
+  engine = await Services.search.getEngineByName("Not GD Locale");
   Assert.equal(
     engine.getSubmission("test").uri.spec,
     "https://en.wikipedia.com/search?q=test",
