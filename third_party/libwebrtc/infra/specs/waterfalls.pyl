@@ -438,6 +438,7 @@
           'isolated_scripts': 'ios_simulator_tests_matrix',
         },
       },
+      'iwyu_verifier': {},
       'linux_asan': {
         'os_type': 'linux',
         'mixins': ['linux-focal', 'x86-64', 'resultdb-json-format'],

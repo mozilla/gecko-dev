@@ -5228,6 +5228,7 @@
       }
     ]
   },
+  "iwyu_verifier": {},
   "linux_asan": {
     "isolated_scripts": [
       {
