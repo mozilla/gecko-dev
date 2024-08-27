@@ -413,7 +413,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   if (IsUnaligned(ins->access())) {
     if (ins->type() == MIRType::Int64) {
       auto* lir = new (alloc()) LWasmUnalignedLoadI64(ptr, memoryBase, temp());
-      if (ins->access().offset()) {
+      if (ins->access().offset32()) {
         lir->setTemp(0, tempCopy(base, 0));
       }
 
@@ -422,7 +422,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
     }
 
     auto* lir = new (alloc()) LWasmUnalignedLoad(ptr, memoryBase, temp());
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -439,7 +439,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
     }
 #endif
     auto* lir = new (alloc()) LWasmLoadI64(ptr, memoryBase);
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -448,7 +448,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   }
 
   auto* lir = new (alloc()) LWasmLoad(ptr, memoryBase);
-  if (ins->access().offset()) {
+  if (ins->access().offset32()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 
@@ -471,7 +471,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
       LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
       auto* lir = new (alloc())
           LWasmUnalignedStoreI64(baseAlloc, valueAlloc, memoryBase, temp());
-      if (ins->access().offset()) {
+      if (ins->access().offset32()) {
         lir->setTemp(0, tempCopy(base, 0));
       }
 
@@ -482,7 +482,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
     LAllocation valueAlloc = useRegisterAtStart(value);
     auto* lir = new (alloc())
         LWasmUnalignedStore(baseAlloc, valueAlloc, memoryBase, temp());
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -503,7 +503,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
     LAllocation baseAlloc = useRegisterAtStart(base);
     LInt64Allocation valueAlloc = useInt64RegisterAtStart(value);
     auto* lir = new (alloc()) LWasmStoreI64(baseAlloc, valueAlloc, memoryBase);
-    if (ins->access().offset()) {
+    if (ins->access().offset32()) {
       lir->setTemp(0, tempCopy(base, 0));
     }
 
@@ -514,7 +514,7 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   LAllocation baseAlloc = useRegisterAtStart(base);
   LAllocation valueAlloc = useRegisterAtStart(value);
   auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBase);
-  if (ins->access().offset()) {
+  if (ins->access().offset32()) {
     lir->setTemp(0, tempCopy(base, 0));
   }
 
@@ -564,7 +564,7 @@ void LIRGenerator::visitWasmUnsignedToFloat32(MWasmUnsignedToFloat32* ins) {
 }
 
 void LIRGenerator::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins) {
-  MOZ_ASSERT(ins->access().offset() == 0);
+  MOZ_ASSERT(ins->access().offset32() == 0);
 
   MDefinition* base = ins->base();
   MOZ_ASSERT(base->type() == MIRType::Int32);
@@ -590,7 +590,7 @@ void LIRGenerator::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins) {
 }
 
 void LIRGenerator::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins) {
-  MOZ_ASSERT(ins->access().offset() == 0);
+  MOZ_ASSERT(ins->access().offset32() == 0);
 
   MDefinition* base = ins->base();
   MOZ_ASSERT(base->type() == MIRType::Int32);

@@ -150,7 +150,7 @@ RegI32 BaseCompiler::popConstMemoryAccess<RegI32>(MemoryAccessDesc* access,
   static_assert(MaxMemory32LimitField * PageSize <=
                 UINT64_MAX - HugeOffsetGuardLimit);
 #endif
-  uint64_t ea = uint64_t(addr) + uint64_t(access->offset());
+  uint64_t ea = uint64_t(addr) + uint64_t(access->offset32());
   uint64_t limit = codeMeta_.memories[access->memoryIndex()].initialLength32() +
                    offsetGuardLimit;
 
@@ -543,7 +543,7 @@ void BaseCompiler::executeLoad(MemoryAccessDesc* access, AccessCheck* check,
   // prepareMemoryAccess.
 #if defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
-  Operand srcAddr(memoryBase, ptr, TimesOne, access->offset());
+  Operand srcAddr(memoryBase, ptr, TimesOne, access->offset32());
 
   if (dest.tag == AnyReg::I64) {
     masm.wasmLoadI64(*access, srcAddr, dest.i64());
@@ -555,7 +555,7 @@ void BaseCompiler::executeLoad(MemoryAccessDesc* access, AccessCheck* check,
   masm.addPtr(
       Address(instance, instanceOffsetOfMemoryBase(access->memoryIndex())),
       ptr);
-  Operand srcAddr(ptr, access->offset());
+  Operand srcAddr(ptr, access->offset32());
 
   if (dest.tag == AnyReg::I64) {
     MOZ_ASSERT(dest.i64() == specific_.abiReturnRegI64);
@@ -677,7 +677,7 @@ void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
   // prepareMemoryAccess.
 #if defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
-  Operand dstAddr(memoryBase, ptr, TimesOne, access->offset());
+  Operand dstAddr(memoryBase, ptr, TimesOne, access->offset32());
 
   masm.wasmStore(*access, src.any(), dstAddr);
 #elif defined(JS_CODEGEN_X86)
@@ -685,7 +685,7 @@ void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
   masm.addPtr(
       Address(instance, instanceOffsetOfMemoryBase(access->memoryIndex())),
       ptr);
-  Operand dstAddr(ptr, access->offset());
+  Operand dstAddr(ptr, access->offset32());
 
   if (access->type() == Scalar::Int64) {
     masm.wasmStoreI64(*access, src.i64(), dstAddr);
@@ -1048,7 +1048,7 @@ Address BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
 
   // At this point, 64-bit offsets will have been folded away by
   // prepareMemoryAccess.
-  return Address(ToRegister(ptr), access->offset());
+  return Address(ToRegister(ptr), access->offset32());
 }
 
 #ifndef WASM_HAS_HEAPREG

@@ -557,7 +557,7 @@ void CodeGeneratorX64::emitWasmLoad(T* ins) {
   const MWasmLoad* mir = ins->mir();
 
   mir->access().assertOffsetInGuardPages();
-  uint32_t offset = mir->access().offset();
+  uint32_t offset = mir->access().offset32();
 
   // ptr is a GPR and is either a 32-bit value zero-extended to 64-bit, or a
   // true 64-bit value.
@@ -584,7 +584,7 @@ void CodeGeneratorX64::emitWasmStore(T* ins) {
   const wasm::MemoryAccessDesc& access = mir->access();
 
   mir->access().assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
 
   const LAllocation* value = ins->getOperand(ins->ValueIndex);
   const LAllocation* ptr = ins->ptr();
@@ -613,7 +613,7 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   Scalar::Type accessType = mir->access().type();
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
 
   if (accessType == Scalar::Int64) {
     masm.wasmCompareExchange64(mir->access(), srcAddr, Register64(oldval),
@@ -634,7 +634,7 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
 
   Scalar::Type accessType = mir->access().type();
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
 
   if (accessType == Scalar::Int64) {
     masm.wasmAtomicExchange64(mir->access(), srcAddr, Register64(value),
@@ -663,7 +663,7 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   }
 
   AtomicOp op = mir->operation();
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
 
   if (accessType == Scalar::Int64) {
     Register64 val = Register64(ToRegister(value));
@@ -692,7 +692,7 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
   Scalar::Type accessType = mir->access().type();
   AtomicOp op = mir->operation();
 
-  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset32());
 
   if (accessType == Scalar::Int64) {
     Register64 val = Register64(ToRegister(value));

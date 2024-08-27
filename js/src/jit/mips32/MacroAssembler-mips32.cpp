@@ -2369,7 +2369,7 @@ void MacroAssembler::wasmUnalignedStoreI64(const wasm::MemoryAccessDesc& access,
 void MacroAssemblerMIPSCompat::wasmLoadI64Impl(
     const wasm::MemoryAccessDesc& access, Register memoryBase, Register ptr,
     Register ptrScratch, Register64 output, Register tmp) {
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
   MOZ_ASSERT_IF(offset, ptrScratch != InvalidReg);
 
   MOZ_ASSERT(!access.isZeroExtendSimd128Load());
@@ -2438,7 +2438,7 @@ void MacroAssemblerMIPSCompat::wasmStoreI64Impl(
     const wasm::MemoryAccessDesc& access, Register64 value, Register memoryBase,
     Register ptr, Register ptrScratch, Register tmp) {
   access.assertOffsetInGuardPages();
-  uint32_t offset = access.offset();
+  uint32_t offset = access.offset32();
   MOZ_ASSERT_IF(offset, ptrScratch != InvalidReg);
 
   // Maybe add the offset.
