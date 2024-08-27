@@ -11,6 +11,7 @@ import io.mockk.verify
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.junit.Before
 import org.junit.Test
+import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.DefaultBrowserToolbarInteractor
 
 class DefaultBrowserToolbarInteractorTest {
@@ -114,5 +115,14 @@ class DefaultBrowserToolbarInteractorTest {
         interactor.onNewTabButtonLongClicked()
 
         verify { browserToolbarController.handleNewTabButtonLongClick() }
+    }
+
+    @Test
+    fun onMenuButtonClicked() {
+        val accessPoint = MenuAccessPoint.Browser
+
+        interactor.onMenuButtonClicked(accessPoint)
+
+        verify { browserToolbarController.handleMenuButtonClicked(accessPoint) }
     }
 }

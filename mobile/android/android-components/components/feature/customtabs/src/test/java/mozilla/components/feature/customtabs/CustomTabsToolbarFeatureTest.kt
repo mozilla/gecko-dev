@@ -642,6 +642,75 @@ class CustomTabsToolbarFeatureTest {
     }
 
     @Test
+    fun `GIVEN the default custom tabs toolbar button config and listeners THEN do not add menu button`() {
+        val tab = createCustomTab("https://www.mozilla.org", id = "mozilla", config = CustomTabConfig())
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = spy(BrowserToolbar(testContext))
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store = store,
+                toolbar = toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+            ) {},
+        )
+
+        feature.start()
+
+        verify(feature, never()).addMenuButton(anyInt())
+        verify(toolbar, never()).addBrowserAction(any())
+    }
+
+    @Test
+    fun `GIVEN custom tabs toolbar config to show menu with a menu listener THEN show menu button with custom menu listener`() {
+        val tab = createCustomTab("https://www.mozilla.org", id = "mozilla", config = CustomTabConfig())
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = spy(BrowserToolbar(testContext))
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        var clicked = false
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store = store,
+                toolbar = toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                customTabsToolbarButtonConfig = CustomTabsToolbarButtonConfig(
+                    showMenu = true,
+                ),
+                customTabsToolbarListeners = CustomTabsToolbarListeners(
+                    menuListener = { clicked = true },
+                ),
+            ) {},
+        )
+
+        feature.start()
+
+        verify(feature).addMenuButton(anyInt())
+
+        val captor = argumentCaptor<Toolbar.ActionButton>()
+        verify(toolbar).addBrowserAction(captor.capture())
+
+        val button = captor.value.createView(FrameLayout(testContext))
+        button.performClick()
+        assertTrue(clicked)
+    }
+
+    @Test
     fun `does not add share button by default`() {
         val tab = createCustomTab("https://www.mozilla.org", id = "mozilla", config = CustomTabConfig())
         val store = BrowserStore(

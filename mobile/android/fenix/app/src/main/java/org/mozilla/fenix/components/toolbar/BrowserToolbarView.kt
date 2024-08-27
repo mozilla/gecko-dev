@@ -178,6 +178,7 @@ class BrowserToolbarView(
                     toolbar = view,
                     scrollableToolbar = view as ScrollableToolbar,
                     toolbarMenu = menuToolbar,
+                    interactor = interactor,
                     customTabId = customTabSession.id,
                     isPrivate = customTabSession.content.private,
                 )

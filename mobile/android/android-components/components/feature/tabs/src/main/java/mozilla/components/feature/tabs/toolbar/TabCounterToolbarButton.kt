@@ -27,12 +27,13 @@ import java.lang.ref.WeakReference
  */
 open class TabCounterToolbarButton(
     private val lifecycleOwner: LifecycleOwner,
-    override val visible: () -> Boolean = { true },
     private val countBasedOnSelectedTabType: Boolean = true,
     private val showTabs: () -> Unit,
     private val store: BrowserStore,
     private val menu: TabCounterMenu? = null,
     private val showMaskInPrivateMode: Boolean = true,
+    override val visible: () -> Boolean = { true },
+    override val weight: () -> Int = { -1 },
 ) : Toolbar.Action {
 
     private var reference = WeakReference<TabCounter>(null)

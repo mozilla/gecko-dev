@@ -168,7 +168,12 @@ class CustomTabsToolbarFeature(
             addMenuItems()
         }
 
-        if (!customTabsToolbarButtonConfig.showMenu) {
+        if (customTabsToolbarButtonConfig.showMenu &&
+            menuBuilder == null &&
+            customTabsToolbarListeners.menuListener != null
+        ) {
+            addMenuButton(readableColor)
+        } else if (!customTabsToolbarButtonConfig.showMenu) {
             toolbar.display.hideMenuButton()
         }
     }
@@ -319,6 +324,25 @@ class CustomTabsToolbarFeature(
     }
 
     /**
+     * Display a menu button on the toolbar. When clicked, it activates
+     * [CustomTabsToolbarListeners.menuListener].
+     */
+    @VisibleForTesting
+    internal fun addMenuButton(@ColorInt readableColor: Int) {
+        val drawableIcon = getDrawable(context, iconsR.drawable.mozac_ic_ellipsis_vertical_24)
+        drawableIcon?.setTint(readableColor)
+
+        val button = Toolbar.ActionButton(
+            drawableIcon,
+            context.getString(R.string.mozac_feature_customtabs_menu_button),
+        ) {
+            customTabsToolbarListeners.menuListener?.invoke()
+        }
+
+        toolbar.addBrowserAction(button)
+    }
+
+    /**
      * Build the menu items displayed when the 3-dot overflow menu is opened.
      */
     @VisibleForTesting
@@ -384,10 +408,12 @@ data class CustomTabsColorsConfig(
 /**
  * Holds click listeners for buttons on the custom tabs toolbar.
  *
+ * @property menuListener Invoked when the menu button is pressed.
  * @property refreshListener Invoked when the refresh button is pressed.
  * @property shareListener Invoked when the share button is pressed.
  */
 data class CustomTabsToolbarListeners(
+    val menuListener: (() -> Unit)? = null,
     val refreshListener: (() -> Unit)? = null,
     val shareListener: (() -> Unit)? = null,
 )

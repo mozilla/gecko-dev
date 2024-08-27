@@ -20,7 +20,9 @@ import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
+import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 
@@ -31,10 +33,11 @@ class CustomTabsIntegration(
     toolbar: BrowserToolbar,
     sessionId: String,
     private val activity: Activity,
-    onItemTapped: (ToolbarMenu.Item) -> Unit = {},
+    private val interactor: BrowserToolbarInteractor,
     shouldReverseItems: Boolean,
     isSandboxCustomTab: Boolean,
     private val isPrivate: Boolean,
+    isMenuRedesignEnabled: Boolean,
     isNavBarEnabled: Boolean,
 ) : LifecycleAwareFeature, UserInteractionHandler {
 
@@ -61,7 +64,7 @@ class CustomTabsIntegration(
             sessionId,
             shouldReverseItems,
             isSandboxCustomTab,
-            onItemTapped = onItemTapped,
+            onItemTapped = interactor::onBrowserToolbarMenuItemTapped,
         )
     }
 
@@ -70,12 +73,19 @@ class CustomTabsIntegration(
         toolbar = toolbar,
         sessionId = sessionId,
         useCases = useCases,
-        menuBuilder = customTabToolbarMenu.menuBuilder,
+        menuBuilder = if (isMenuRedesignEnabled) null else customTabToolbarMenu.menuBuilder,
         menuItemIndex = START_OF_MENU_ITEMS_INDEX,
         window = activity.window,
         customTabsToolbarListeners = CustomTabsToolbarListeners(
-            shareListener = { onItemTapped.invoke(ToolbarMenu.Item.Share) },
-            refreshListener = { onItemTapped.invoke(ToolbarMenu.Item.Reload(bypassCache = false)) },
+            menuListener = { interactor.onMenuButtonClicked(accessPoint = MenuAccessPoint.External) },
+            shareListener = { interactor.onBrowserToolbarMenuItemTapped(ToolbarMenu.Item.Share) },
+            refreshListener = {
+                interactor.onBrowserToolbarMenuItemTapped(
+                    ToolbarMenu.Item.Reload(
+                        bypassCache = false,
+                    ),
+                )
+            },
         ),
         closeListener = { activity.finishAndRemoveTask() },
         appNightMode = activity.settings().getAppNightMode(),
