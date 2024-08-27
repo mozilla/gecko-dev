@@ -41,38 +41,10 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
         sequence_idx_{} {}
 
  protected:
-  void SetUpAdjuster(size_t num_spatial_layers,
-                     size_t num_temporal_layers,
-                     bool vp9_svc) {
-    // Initialize some default VideoCodec instance with the given number of
-    // layers.
-    if (vp9_svc) {
-      codec_.codecType = VideoCodecType::kVideoCodecVP9;
-      codec_.numberOfSimulcastStreams = 1;
-      codec_.VP9()->numberOfSpatialLayers = num_spatial_layers;
-      codec_.VP9()->numberOfTemporalLayers = num_temporal_layers;
-      for (size_t si = 0; si < num_spatial_layers; ++si) {
-        codec_.spatialLayers[si].minBitrate = 100 * (1 << si);
-        codec_.spatialLayers[si].targetBitrate = 200 * (1 << si);
-        codec_.spatialLayers[si].maxBitrate = 300 * (1 << si);
-        codec_.spatialLayers[si].active = true;
-        codec_.spatialLayers[si].numberOfTemporalLayers = num_temporal_layers;
-      }
-    } else {
-      codec_.codecType = VideoCodecType::kVideoCodecVP8;
-      codec_.numberOfSimulcastStreams = num_spatial_layers;
-      codec_.VP8()->numberOfTemporalLayers = num_temporal_layers;
-      for (size_t si = 0; si < num_spatial_layers; ++si) {
-        codec_.simulcastStream[si].minBitrate = 100 * (1 << si);
-        codec_.simulcastStream[si].targetBitrate = 200 * (1 << si);
-        codec_.simulcastStream[si].maxBitrate = 300 * (1 << si);
-        codec_.simulcastStream[si].active = true;
-        codec_.simulcastStream[si].numberOfTemporalLayers = num_temporal_layers;
-        codec_.spatialLayers[si].width = 320 * (1<<si);
-        codec_.spatialLayers[si].height = 180 * (1<<si);
-      }
-    }
-
+  void SetUpAdjusterWithCodec(size_t num_spatial_layers,
+                              size_t num_temporal_layers,
+                              const VideoCodec& codec) {
+    codec_ = codec;
     for (size_t si = 0; si < num_spatial_layers; ++si) {
       encoder_info_.fps_allocation[si].resize(num_temporal_layers);
       double fraction = 1.0;
@@ -89,6 +61,39 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
     current_adjusted_allocation_ =
         adjuster_->AdjustRateAllocation(VideoEncoder::RateControlParameters(
             current_input_allocation_, target_framerate_fps_));
+  }
+
+  void SetUpAdjuster(size_t num_spatial_layers,
+                     size_t num_temporal_layers,
+                     bool vp9_svc) {
+    // Initialize some default VideoCodec instance with the given number of
+    // layers.
+    VideoCodec codec;
+    if (vp9_svc) {
+      codec.codecType = VideoCodecType::kVideoCodecVP9;
+      codec.numberOfSimulcastStreams = 1;
+      codec.VP9()->numberOfSpatialLayers = num_spatial_layers;
+      codec.VP9()->numberOfTemporalLayers = num_temporal_layers;
+      for (size_t si = 0; si < num_spatial_layers; ++si) {
+        codec.spatialLayers[si].minBitrate = 100 * (1 << si);
+        codec.spatialLayers[si].targetBitrate = 200 * (1 << si);
+        codec.spatialLayers[si].maxBitrate = 300 * (1 << si);
+        codec.spatialLayers[si].active = true;
+        codec.spatialLayers[si].numberOfTemporalLayers = num_temporal_layers;
+      }
+    } else {
+      codec.codecType = VideoCodecType::kVideoCodecVP8;
+      codec.numberOfSimulcastStreams = num_spatial_layers;
+      codec.VP8()->numberOfTemporalLayers = num_temporal_layers;
+      for (size_t si = 0; si < num_spatial_layers; ++si) {
+        codec.simulcastStream[si].minBitrate = 100 * (1 << si);
+        codec.simulcastStream[si].targetBitrate = 200 * (1 << si);
+        codec.simulcastStream[si].maxBitrate = 300 * (1 << si);
+        codec.simulcastStream[si].active = true;
+        codec.simulcastStream[si].numberOfTemporalLayers = num_temporal_layers;
+      }
+    }
+    SetUpAdjusterWithCodec(num_spatial_layers, num_temporal_layers, codec);
   }
 
   void InsertFrames(std::vector<std::vector<double>> media_utilization_factors,
@@ -509,23 +514,30 @@ TEST_F(EncoderBitrateAdjusterTest, DontExceedMediaRateEvenWithHeadroom) {
   }
 }
 
-TEST_F(EncoderBitrateAdjusterTest, HonorMinBitrateSettingFromEncoderInfo) {
+TEST_F(EncoderBitrateAdjusterTest, HonorsMinBitrateWithAv1) {
   // Single layer, well behaved encoder.
-  const int high_bitrate = 20000;
-  const int a_lower_min_bitrate = 12000;
-  current_input_allocation_.SetBitrate(0, 0, high_bitrate);
+  const DataRate kHighBitrate = DataRate::KilobitsPerSec(20);
+  const DataRate kALowerMinBitrate = DataRate::KilobitsPerSec(15);
+
+  current_input_allocation_.SetBitrate(0, 0, kHighBitrate.bps());
+
   VideoBitrateAllocation expected_input_allocation;
-  expected_input_allocation.SetBitrate(0, 0, a_lower_min_bitrate);
+  expected_input_allocation.SetBitrate(0, 0, kALowerMinBitrate.bps());
 
   target_framerate_fps_ = 30;
 
-  SetUpAdjuster(1, 1, false);
+  VideoCodec codec;
+  codec.codecType = VideoCodecType::kVideoCodecAV1;
+  codec.numberOfSimulcastStreams = 1;
+  codec.SetScalabilityMode(ScalabilityMode::kL1T1);
+  codec.spatialLayers[0].minBitrate = kALowerMinBitrate.kbps();
+  codec.spatialLayers[0].targetBitrate = 500;
+  codec.spatialLayers[0].maxBitrate = 1000;
+  codec.spatialLayers[0].active = true;
+  codec.spatialLayers[0].numberOfTemporalLayers = 1;
 
-  auto new_resolution_limit = VideoEncoder::ResolutionBitrateLimits(
-      codec_.spatialLayers[0].width * codec_.spatialLayers[0].height, 15000,
-      a_lower_min_bitrate, 2000000);
-  encoder_info_.resolution_bitrate_limits.push_back(new_resolution_limit);
-  adjuster_->OnEncoderInfo(encoder_info_);
+  SetUpAdjusterWithCodec(/*num_spatial_layers=*/1, /*num_temporal_layers=*/1,
+                         codec);
 
   InsertFrames({{2.0}}, kWindowSizeMs);
 
