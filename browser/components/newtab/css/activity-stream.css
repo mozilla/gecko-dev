@@ -2337,6 +2337,13 @@ main section {
     inset-block-start: 24px;
   }
 }
+.no-search.layout-variant-a .weather, .no-search.layout-variant-a .weather, .layout-variant-a .weather, .layout-variant-b .weather {
+  position: absolute;
+  inset-inline-start: var(--space-xlarge);
+  inset-block-start: var(--space-xlarge);
+  margin-block-start: 0;
+  margin-inline-start: 0;
+}
 .no-search .weather {
   position: relative;
   margin-block-start: var(--space-xlarge);
@@ -2367,11 +2374,9 @@ main section {
   }
 }
 
-@media (min-width: 610px) {
-  .layout-variant-a.has-weather.no-search .outer-wrapper,
+.layout-variant-a.has-weather.no-search .outer-wrapper,
 .layout-variant-b.has-weather.no-search .outer-wrapper {
-    padding-top: 24px;
-  }
+  padding-top: 24px;
 }
 
 .has-weather.has-search .outer-wrapper:not(.only-search) {
@@ -2396,11 +2401,9 @@ main section {
   }
 }
 
-@media (min-width: 610px) {
-  .layout-variant-a.has-weather.has-search .outer-wrapper:not(.only-search),
+.layout-variant-a.has-weather.has-search .outer-wrapper:not(.only-search),
 .layout-variant-b.has-weather.has-search .outer-wrapper:not(.only-search) {
-    padding-top: 24px;
-  }
+  padding-top: 24px;
 }
 
 .weatherNotAvailable {

@@ -26,6 +26,19 @@
     }
   }
 
+  // Bug 1914055 - Layout experiment: Position the weather widget absolutely
+  // across all breakpoints to keep logo margins consistent
+  .no-search.layout-variant-a &,
+  .no-search.layout-variant-a &,
+  .layout-variant-a &,
+  .layout-variant-b & {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+  }
+
   // Edge case: users with weather enabled/search disabled
   .no-search & {
     position: relative;
@@ -62,9 +75,7 @@
 .layout-variant-a.has-weather.no-search,
 .layout-variant-b.has-weather.no-search {
   .outer-wrapper {
-    @media (min-width: $break-point-medium) {
-      padding-top: 24px;
-    }
+    padding-top: 24px;
   }
 }
 
@@ -97,9 +108,7 @@
 .layout-variant-a.has-weather.has-search,
 .layout-variant-b.has-weather.has-search {
   .outer-wrapper:not(.only-search) {
-    @media (min-width: $break-point-medium) {
-      padding-top: 24px;
-    }
+    padding-top: 24px;
   }
 }
 
