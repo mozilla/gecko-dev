@@ -19,6 +19,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPrefs_svg.h"
 #include "mozilla/SVGContextPaint.h"
 #include "mozilla/SVGContentUtils.h"
 #include "mozilla/SVGObserverUtils.h"
@@ -466,51 +467,33 @@ SVGBBox SVGGeometryFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
 
     // Account for stroke:
     if (getStroke) {
-#if 0
-      // This disabled code is how we would calculate the stroke bounds using
-      // Moz2D Path::GetStrokedBounds(). Unfortunately at the time of writing
-      // it there are two problems that prevent us from using it.
-      //
-      // First, it seems that some of the Moz2D backends are really dumb. Not
-      // only do some GetStrokeOptions() implementations sometimes
-      // significantly overestimate the stroke bounds, but if an argument is
-      // passed for the aTransform parameter then they just return bounds-of-
-      // transformed-bounds.  These two things combined can lead the bounds to
-      // be unacceptably oversized, leading to massive over-invalidation.
-      //
-      // Second, the way we account for non-scaling-stroke by transforming the
-      // path using the transform to the outer-<svg> element is not compatible
-      // with the way that SVGGeometryFrame::Reflow() inserts a scale
-      // into aToBBoxUserspace and then scales the bounds that we return.
-      SVGContentUtils::AutoStrokeOptions strokeOptions;
-      SVGContentUtils::GetStrokeOptions(&strokeOptions, element,
-                                        Style(), nullptr,
-                                        SVGContentUtils::eIgnoreStrokeDashing);
       Rect strokeBBoxExtents;
-      gfxMatrix userToOuterSVG;
-      if (SVGUtils::GetNonScalingStrokeTransform(this, &userToOuterSVG)) {
-        Matrix outerSVGToUser = ToMatrix(userToOuterSVG);
-        outerSVGToUser.Invert();
-        Matrix outerSVGToBBox = aToBBoxUserspace * outerSVGToUser;
-        RefPtr<PathBuilder> builder =
-          pathInUserSpace->TransformedCopyToBuilder(ToMatrix(userToOuterSVG));
-        RefPtr<Path> pathInOuterSVGSpace = builder->Finish();
-        strokeBBoxExtents =
-          pathInOuterSVGSpace->GetStrokedBounds(strokeOptions, outerSVGToBBox);
+      if (StaticPrefs::svg_Moz2D_strokeBounds_enabled()) {
+        SVGContentUtils::AutoStrokeOptions strokeOptions;
+        SVGContentUtils::GetStrokeOptions(
+            &strokeOptions, element, Style(), nullptr,
+            SVGContentUtils::eIgnoreStrokeDashing);
+        gfxMatrix userToOuterSVG;
+        if (SVGUtils::GetNonScalingStrokeTransform(this, &userToOuterSVG)) {
+          Matrix outerSVGToUser = ToMatrix(userToOuterSVG);
+          outerSVGToUser.Invert();
+          Matrix outerSVGToBBox = aToBBoxUserspace * outerSVGToUser;
+          RefPtr<PathBuilder> builder =
+              pathInUserSpace->TransformedCopyToBuilder(
+                  ToMatrix(userToOuterSVG));
+          RefPtr<Path> pathInOuterSVGSpace = builder->Finish();
+          strokeBBoxExtents = pathInOuterSVGSpace->GetStrokedBounds(
+              strokeOptions, outerSVGToBBox);
+        } else {
+          strokeBBoxExtents = pathInUserSpace->GetStrokedBounds(
+              strokeOptions, aToBBoxUserspace);
+        }
       } else {
-        strokeBBoxExtents =
-          pathInUserSpace->GetStrokedBounds(strokeOptions, aToBBoxUserspace);
+        strokeBBoxExtents = ToRect(SVGUtils::PathExtentsToMaxStrokeExtents(
+            ThebesRect(pathBBoxExtents), this, ThebesMatrix(aToBBoxUserspace)));
       }
       MOZ_ASSERT(strokeBBoxExtents.IsFinite(), "bbox is about to go bad");
       bbox.UnionEdges(strokeBBoxExtents);
-#else
-      // For now we just use SVGUtils::PathExtentsToMaxStrokeExtents:
-      gfxRect strokeBBoxExtents = SVGUtils::PathExtentsToMaxStrokeExtents(
-          ThebesRect(pathBBoxExtents), this, ThebesMatrix(aToBBoxUserspace));
-      MOZ_ASSERT(ToRect(strokeBBoxExtents).IsFinite(),
-                 "bbox is about to go bad");
-      bbox.UnionEdges(strokeBBoxExtents);
-#endif
     }
   }
 

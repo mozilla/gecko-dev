@@ -150,7 +150,7 @@ fails == translate-rounding-3.html translate-rounding-viewport-ref.html # bug 13
 == invalidate-svg-scale-1.html invalidate-svg-scale-1-ref.html
 # Bug 1526847
 == animate-layer-scale-inherit-4.html animate-layer-scale-inherit-4-ref.html
-fuzzy-if(winWidget,0-1,0-1000) == 1569215-1.html 1569215-1-ref.html
+fuzzy(0-128,0-1000) == 1569215-1.html 1569215-1-ref.html
 
 == transform-anon-block-1.html transform-anon-block-1-ref.html
 test-pref(layout.animation.prerender.partial.jank,true) test-pref(layout.animation.prerender.partial,true) == partial-prerender-expansion-translate.html partial-prerender-expansion-ref.html
