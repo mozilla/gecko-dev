@@ -50,9 +50,6 @@ tags = "remote-settings"
 ["test_async.js"]
 
 ["test_config_engine_params.js"]
-support-files = [
-  "method-extensions/search-config-v2.json",
-]
 
 ["test_configExpansion.js"]
 support-files = [

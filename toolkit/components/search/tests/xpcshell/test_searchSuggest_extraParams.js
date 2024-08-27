@@ -1,23 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const TEST_CONFIG_V2 = [
+const CONFIG = [
   {
-    recordType: "engine",
     identifier: "get",
     base: {
       name: "Get Engine",
       urls: {
-        search: {
-          base: "https://example.com",
-          params: [
-            {
-              name: "webExtension",
-              value: "1",
-            },
-          ],
-          searchTermParamName: "search",
-        },
         suggestions: {
           base: "https://example.com",
           params: [
@@ -34,29 +23,11 @@ const TEST_CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "get",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines(
-    "method-extensions",
-    null,
-    TEST_CONFIG_V2
-  );
+  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
