@@ -260,7 +260,7 @@ class NodePicker {
 
   // eslint-disable-next-line complexity
   _onKeyDown(event) {
-    if (!this._currentNode || !this._isPicking) {
+    if (!this._isPicking) {
       return;
     }
 
@@ -269,16 +269,46 @@ class NodePicker {
       return;
     }
 
-    let currentNode = this._currentNode.node.rawNode;
+    // Handle keys which don't require a currently picked node:
+    // - ENTER/CARRIAGE_RETURN: Picks currentNode
+    // - ESC/CTRL+SHIFT+C: Cancels picker, picks currentNode
+    // - SHIFT: Trigger onHover, handling `pointer-events: none` nodes
+    switch (event.keyCode) {
+      // Select the element.
+      case event.DOM_VK_RETURN:
+        this._onPick(event);
+        return;
 
-    /**
-     * KEY: Action/scope
-     * LEFT_KEY: wider or parent
-     * RIGHT_KEY: narrower or child
-     * ENTER/CARRIAGE_RETURN: Picks currentNode
-     * ESC/CTRL+SHIFT+C: Cancels picker, picks currentNode
-     * SHIFT: Trigger onHover, handling `pointer-events: none` nodes
-     */
+      // Cancel pick mode.
+      case event.DOM_VK_ESCAPE:
+        this.cancelPick();
+        this._walker.emit("picker-node-canceled");
+        return;
+      case event.DOM_VK_C: {
+        const { altKey, ctrlKey, metaKey, shiftKey } = event;
+
+        if (
+          (IS_OSX && metaKey && altKey | shiftKey) ||
+          (!IS_OSX && ctrlKey && shiftKey)
+        ) {
+          this.cancelPick();
+          this._walker.emit("picker-node-canceled");
+        }
+        return;
+      }
+      case event.DOM_VK_SHIFT:
+        this._onHovered(this._lastMouseMoveEvent, true);
+        return;
+    }
+
+    // Handle keys which require a currently picked node:
+    // - LEFT_KEY: wider or parent
+    // - RIGHT_KEY: narrower or child
+    if (!this._currentNode) {
+      return;
+    }
+
+    let currentNode = this._currentNode.node.rawNode;
     switch (event.keyCode) {
       // Wider.
       case event.DOM_VK_LEFT:
@@ -289,7 +319,7 @@ class NodePicker {
         break;
 
       // Narrower.
-      case event.DOM_VK_RIGHT:
+      case event.DOM_VK_RIGHT: {
         if (!currentNode.children.length) {
           return;
         }
@@ -307,31 +337,8 @@ class NodePicker {
 
         currentNode = child;
         break;
+      }
 
-      // Select the element.
-      case event.DOM_VK_RETURN:
-        this._onPick(event);
-        return;
-
-      // Cancel pick mode.
-      case event.DOM_VK_ESCAPE:
-        this.cancelPick();
-        this._walker.emit("picker-node-canceled");
-        return;
-      case event.DOM_VK_C:
-        const { altKey, ctrlKey, metaKey, shiftKey } = event;
-
-        if (
-          (IS_OSX && metaKey && altKey | shiftKey) ||
-          (!IS_OSX && ctrlKey && shiftKey)
-        ) {
-          this.cancelPick();
-          this._walker.emit("picker-node-canceled");
-        }
-        return;
-      case event.DOM_VK_SHIFT:
-        this._onHovered(this._lastMouseMoveEvent, true);
-        return;
       default:
         return;
     }
