@@ -2078,7 +2078,9 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
   // simulcast and spatial indices.
   int stream_idx = encoded_image.SpatialIndex().value_or(
       encoded_image.SimulcastIndex().value_or(0));
-  frame_encode_metadata_writer_.FillTimingInfo(stream_idx, &image_copy);
+
+  frame_encode_metadata_writer_.FillMetadataAndTimingInfo(stream_idx,
+                                                          &image_copy);
   frame_encode_metadata_writer_.UpdateBitstream(codec_specific_info,
                                                 &image_copy);
   VideoCodecType codec_type = codec_specific_info

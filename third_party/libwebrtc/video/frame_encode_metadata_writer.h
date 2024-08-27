@@ -34,6 +34,11 @@ class FrameEncodeMetadataWriter {
 
   void OnEncodeStarted(const VideoFrame& frame);
 
+  void FillMetadataAndTimingInfo(size_t simulcast_svc_idx,
+                                 EncodedImage* encoded_image);
+
+  // Deprecated, remove once downstream projects are updated.
+  // https://crbug.com/328598314.
   void FillTimingInfo(size_t simulcast_svc_idx, EncodedImage* encoded_image);
 
   void UpdateBitstream(const CodecSpecificInfo* codec_specific_info,
@@ -55,6 +60,7 @@ class FrameEncodeMetadataWriter {
     int64_t timestamp_us = 0;
     VideoRotation rotation = kVideoRotation_0;
     absl::optional<ColorSpace> color_space;
+    bool is_steady_state_refresh_frame = false;
     RtpPacketInfos packet_infos;
   };
   struct TimingFramesLayerInfo {
