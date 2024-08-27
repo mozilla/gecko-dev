@@ -1,59 +1,48 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 21 Jun 2024 16:28:00 -0500
-Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
- third_party library.
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P2 - for BSD reference null socket server
+ instead;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
+Differential Revision: https://phabricator.services.mozilla.com/D211095
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0993ae41fb7db1624dedc5cf2278cd5a505f18f5
 ---
- BUILD.gn                                |  2 ++
- modules/video_coding/generic_decoder.cc | 10 +++++-----
- 2 files changed, 7 insertions(+), 5 deletions(-)
+ rtc_base/internal/default_socket_server.cc | 4 ++--
+ rtc_base/virtual_socket_server.cc          | 2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index 3c8a589c04..9e3ab0758b 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -279,6 +279,7 @@ config("rtc_prod_config") {
- }
+diff --git a/rtc_base/internal/default_socket_server.cc b/rtc_base/internal/default_socket_server.cc
+index 5632b989fc..cb7b81978a 100644
+--- a/rtc_base/internal/default_socket_server.cc
++++ b/rtc_base/internal/default_socket_server.cc
+@@ -14,7 +14,7 @@
  
- group("tracing") {
-+if (!build_with_mozilla) {
-   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
-   if (rtc_use_perfetto) {
-     if (build_with_chromium) {
-@@ -295,6 +296,7 @@ group("tracing") {
-         [ "//third_party/perfetto/include/perfetto/tracing" ]
-   }
- }
-+}
+ #include "rtc_base/socket_server.h"
  
- if (rtc_use_perfetto) {
-   rtc_library("webrtc_libperfetto") {
-diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 0bfc628d2c..0a9920a176 100644
---- a/modules/video_coding/generic_decoder.cc
-+++ b/modules/video_coding/generic_decoder.cc
-@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
-                                       absl::optional<int32_t> decode_time_ms,
-                                       absl::optional<uint8_t> qp) {
-   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
--  TRACE_EVENT(
--      "webrtc", "VCMDecodedFrameCallback::Decoded",
--      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
-+  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
-+                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
-+                       decodedImage.rtp_timestamp());
-   // TODO(holmer): We should improve this so that we can handle multiple
-   // callbacks from one call to Decode().
-   absl::optional<FrameInfo> frame_info;
-@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
- int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
-                                   Timestamp now,
-                                   int64_t render_time_ms) {
--  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
--              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
-+  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
-+               frame.RtpTimestamp());
-   FrameInfo frame_info;
-   frame_info.rtp_timestamp = frame.RtpTimestamp();
-   frame_info.decode_start = now;
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+ #include "rtc_base/null_socket_server.h"
+ #else
+ #include "rtc_base/physical_socket_server.h"
+@@ -23,7 +23,7 @@
+ namespace rtc {
+ 
+ std::unique_ptr<SocketServer> CreateDefaultSocketServer() {
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+   return std::unique_ptr<SocketServer>(new rtc::NullSocketServer);
+ #else
+   return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
+diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
+index bec7d9733f..b5488f5ff5 100644
+--- a/rtc_base/virtual_socket_server.cc
++++ b/rtc_base/virtual_socket_server.cc
+@@ -24,7 +24,9 @@
+ #include "rtc_base/event.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/logging.h"
++#if !defined(WEBRTC_BSD)
+ #include "rtc_base/physical_socket_server.h"
++#endif
+ #include "rtc_base/socket_address_pair.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/time_utils.h"

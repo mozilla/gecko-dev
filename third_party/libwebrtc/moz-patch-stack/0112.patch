@@ -1,78 +1,59 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Sat, 20 Jul 2024 07:04:00 +0000
-Subject: Bug 1907013 - WebRTC backport: PipeWire camera: support additional
- formats and fix RGB/BGR mapping r=jib,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 21 Jun 2024 16:28:00 -0500
+Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
+ third_party library.
 
-This is a simple backprot of an WebRTC upstream change.
-
-Upstream commit: b1ebcfbfd6afb57f314b6689ca001aca1b13a5b4
-
-Differential Revision: https://phabricator.services.mozilla.com/D216138
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1888c46045fa055f0c17bac365f5c96f4814f59e
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
 ---
- modules/video_capture/linux/pipewire_session.cc      |  6 ++++++
- .../video_capture/linux/video_capture_pipewire.cc    | 12 ++++++++++--
- 2 files changed, 16 insertions(+), 2 deletions(-)
+ BUILD.gn                                |  2 ++
+ modules/video_coding/generic_decoder.cc | 10 +++++-----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index d52d6aacc8..107ea3dfbd 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -35,12 +35,18 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
-       return VideoType::kYUY2;
-     case SPA_VIDEO_FORMAT_UYVY:
-       return VideoType::kUYVY;
-+    case SPA_VIDEO_FORMAT_RGB16:
-+      return VideoType::kRGB565;
-     case SPA_VIDEO_FORMAT_RGB:
-+      return VideoType::kBGR24;
-+    case SPA_VIDEO_FORMAT_BGR:
-       return VideoType::kRGB24;
-     case SPA_VIDEO_FORMAT_BGRA:
-       return VideoType::kARGB;
-     case SPA_VIDEO_FORMAT_RGBA:
-       return VideoType::kABGR;
-+    case SPA_VIDEO_FORMAT_ARGB:
-+      return VideoType::kBGRA;
-     default:
-       return VideoType::kUnknown;
-   }
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index 9ff4fdb9b1..1672b7583f 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -34,10 +34,15 @@ struct {
-     {SPA_VIDEO_FORMAT_YUY2, VideoType::kYUY2},
-     {SPA_VIDEO_FORMAT_UYVY, VideoType::kUYVY},
-     // PipeWire is big-endian for the formats, while libyuv is little-endian
--    // This means that BGRA == ARGB and RGBA == ABGR
-+    // This means that BGRA == ARGB, RGBA == ABGR and similar
-+    // This follows mapping in libcamera PipeWire plugin:
-+    // https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/spa/plugins/libcamera/libcamera-utils.cpp
-     {SPA_VIDEO_FORMAT_BGRA, VideoType::kARGB},
-     {SPA_VIDEO_FORMAT_RGBA, VideoType::kABGR},
--    {SPA_VIDEO_FORMAT_RGB, VideoType::kRGB24},
-+    {SPA_VIDEO_FORMAT_ARGB, VideoType::kBGRA},
-+    {SPA_VIDEO_FORMAT_RGB, VideoType::kBGR24},
-+    {SPA_VIDEO_FORMAT_BGR, VideoType::kRGB24},
-+    {SPA_VIDEO_FORMAT_RGB16, VideoType::kRGB565},
- };
+diff --git a/BUILD.gn b/BUILD.gn
+index 3c8a589c04..9e3ab0758b 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -279,6 +279,7 @@ config("rtc_prod_config") {
+ }
  
- VideoType VideoCaptureModulePipeWire::PipeWireRawFormatToVideoType(
-@@ -302,13 +307,16 @@ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
-         break;
-       case VideoType::kYUY2:
-       case VideoType::kUYVY:
-+      case VideoType::kRGB565:
-         stride = configured_capability_.width * 2;
-         break;
-       case VideoType::kRGB24:
-+      case VideoType::kBGR24:
-         stride = configured_capability_.width * 3;
-         break;
-       case VideoType::kARGB:
-       case VideoType::kABGR:
-+      case VideoType::kBGRA:
-         stride = configured_capability_.width * 4;
-         break;
-       default:
+ group("tracing") {
++if (!build_with_mozilla) {
+   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
+   if (rtc_use_perfetto) {
+     if (build_with_chromium) {
+@@ -295,6 +296,7 @@ group("tracing") {
+         [ "//third_party/perfetto/include/perfetto/tracing" ]
+   }
+ }
++}
+ 
+ if (rtc_use_perfetto) {
+   rtc_library("webrtc_libperfetto") {
+diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
+index 0bfc628d2c..0a9920a176 100644
+--- a/modules/video_coding/generic_decoder.cc
++++ b/modules/video_coding/generic_decoder.cc
+@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
+                                       absl::optional<int32_t> decode_time_ms,
+                                       absl::optional<uint8_t> qp) {
+   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
+-  TRACE_EVENT(
+-      "webrtc", "VCMDecodedFrameCallback::Decoded",
+-      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
++  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
++                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
++                       decodedImage.rtp_timestamp());
+   // TODO(holmer): We should improve this so that we can handle multiple
+   // callbacks from one call to Decode().
+   absl::optional<FrameInfo> frame_info;
+@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
+ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
+                                   Timestamp now,
+                                   int64_t render_time_ms) {
+-  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
+-              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
++  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
++               frame.RtpTimestamp());
+   FrameInfo frame_info;
+   frame_info.rtp_timestamp = frame.RtpTimestamp();
+   frame_info.decode_start = now;
