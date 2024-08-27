@@ -15,7 +15,7 @@
 #include <deque>
 #include <limits>
 #include <memory>
-#include <ostream>
+#include <ostream>  // no-presubmit-check bugs.webrtc.org/8982
 #include <queue>
 #include <tuple>
 #include <utility>
@@ -66,6 +66,10 @@ void PrintTo(const SdpVideoFormat& value, std::ostream* os) {
 void PrintTo(const RecordableEncodedFrame::EncodedResolution& value,
              std::ostream* os) {
   *os << value.width << "x" << value.height;
+}
+
+inline std::ostream& operator<<(std::ostream& stream, Timestamp value) {
+  return stream << ToString(value);
 }
 
 void PrintTo(const RecordableEncodedFrame& value, std::ostream* os) {
