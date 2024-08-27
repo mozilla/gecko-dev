@@ -385,6 +385,8 @@ int SimulcastEncoderAdapter::InitEncode(
     }
 
     encoder_context->Release();
+    encoder_context->encoder().RegisterEncodeCompleteCallback(
+        encoded_complete_callback_);
     if (total_streams_count_ == 1) {
       RTC_LOG(LS_ERROR) << "[SEA] InitEncode: failed with error code: "
                         << WebRtcVideoCodecErrorToString(ret);

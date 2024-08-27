@@ -191,12 +191,16 @@ class MockVideoEncoderFactory : public VideoEncoderFactory {
       std::vector<VideoEncoder::ResolutionBitrateLimits> limits) {
     resolution_bitrate_limits_ = limits;
   }
+  void set_fallback_from_simulcast(bool value) {
+    fallback_from_simulcast_ = value;
+  }
 
   void DestroyVideoEncoder(VideoEncoder* encoder);
 
  private:
   bool create_video_encoder_return_nullptr_ = false;
   int32_t init_encode_return_value_ = 0;
+  bool fallback_from_simulcast_ = false;
   std::vector<MockVideoEncoder*> encoders_;
   std::vector<const char*> encoder_names_;
   // Keep number of entries in sync with `kMaxSimulcastStreams`.
@@ -221,6 +225,9 @@ class MockVideoEncoder : public VideoEncoder {
   int32_t InitEncode(const VideoCodec* codecSettings,
                      const VideoEncoder::Settings& settings) override {
     codec_ = *codecSettings;
+    if (codec_.numberOfSimulcastStreams > 1 && fallback_from_simulcast_) {
+      return WEBRTC_VIDEO_CODEC_FALLBACK_SOFTWARE;
+    }
     return init_encode_return_value_;
   }
 
@@ -263,6 +270,8 @@ class MockVideoEncoder : public VideoEncoder {
 
   const VideoCodec& codec() const { return codec_; }
 
+  EncodedImageCallback* callback() const { return callback_; }
+
   void SendEncodedImage(int width, int height) {
     // Sends a fake image of the given width/height.
     EncodedImage image;
@@ -283,6 +292,10 @@ class MockVideoEncoder : public VideoEncoder {
 
   void set_init_encode_return_value(int32_t value) {
     init_encode_return_value_ = value;
+  }
+
+  void set_fallback_from_simulcast(bool value) {
+    fallback_from_simulcast_ = value;
   }
 
   void set_scaling_settings(const VideoEncoder::ScalingSettings& settings) {
@@ -343,6 +356,7 @@ class MockVideoEncoder : public VideoEncoder {
   bool has_trusted_rate_controller_ = false;
   bool is_hardware_accelerated_ = false;
   int32_t init_encode_return_value_ = 0;
+  bool fallback_from_simulcast_ = false;
   VideoEncoder::RateControlParameters last_set_rates_;
   FramerateFractions fps_allocation_;
   bool supports_simulcast_ = false;
@@ -368,6 +382,7 @@ std::unique_ptr<VideoEncoder> MockVideoEncoderFactory::Create(
 
   auto encoder = std::make_unique<::testing::NiceMock<MockVideoEncoder>>(this);
   encoder->set_init_encode_return_value(init_encode_return_value_);
+  encoder->set_fallback_from_simulcast(fallback_from_simulcast_);
   const char* encoder_name = encoder_names_.empty()
                                  ? "codec_implementation_name"
                                  : encoder_names_[encoders_.size()];
@@ -508,6 +523,28 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
     adapter_->RegisterEncodeCompleteCallback(this);
   }
 
+  void SetupCodecWithEarlyEncodeCompleteCallback(
+      std::vector<bool> active_streams) {
+    SimulcastTestFixtureImpl::DefaultSettings(
+        &codec_, static_cast<const int*>(kTestTemporalLayerProfile),
+        kVideoCodecVP8);
+    ASSERT_LE(active_streams.size(), codec_.numberOfSimulcastStreams);
+    codec_.numberOfSimulcastStreams = active_streams.size();
+    for (size_t stream_idx = 0; stream_idx < kMaxSimulcastStreams;
+         ++stream_idx) {
+      if (stream_idx >= codec_.numberOfSimulcastStreams) {
+        // Reset parameters of unspecified stream.
+        codec_.simulcastStream[stream_idx] = {0};
+      } else {
+        codec_.simulcastStream[stream_idx].active = active_streams[stream_idx];
+      }
+    }
+    rate_allocator_ = std::make_unique<SimulcastRateAllocator>(env_, codec_);
+    // Register the callback before the InitEncode().
+    adapter_->RegisterEncodeCompleteCallback(this);
+    EXPECT_EQ(0, adapter_->InitEncode(&codec_, kSettings));
+  }
+
   void VerifyCodec(const VideoCodec& ref, int stream_index) {
     const VideoCodec& target =
         helper_->factory()->encoders()[stream_index]->codec();
@@ -595,6 +632,17 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
 TEST_F(TestSimulcastEncoderAdapterFake, InitEncode) {
   SetupCodec();
   VerifyCodecSettings();
+}
+
+TEST_F(TestSimulcastEncoderAdapterFake, EarlyCallbackSetupNotLost) {
+  helper_->factory()->set_supports_simulcast(true);
+  helper_->factory()->set_fallback_from_simulcast(true);
+  SetupCodecWithEarlyEncodeCompleteCallback(
+      /*active_streams=*/{true, true, true});
+  for (size_t idx = 0; idx < 3; ++idx) {
+    auto callback = helper_->factory()->encoders()[idx]->callback();
+    EXPECT_NE(callback, nullptr);
+  }
 }
 
 TEST_F(TestSimulcastEncoderAdapterFake, ReleaseWithoutInitEncode) {
