@@ -10,6 +10,8 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.home.bookmarks.Bookmark
+import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
@@ -53,6 +55,13 @@ internal object FakeHomepagePreview {
             override fun onRecentSyncedTabClicked(tab: RecentSyncedTab) { /* no op */ }
             override fun onSyncedTabShowAllClicked() { /* no op */ }
             override fun onRemovedRecentSyncedTab(tab: RecentSyncedTab) { /* no op */ }
+        }
+
+    internal val bookmarksInteractor
+        get() = object : BookmarksInteractor {
+            override fun onBookmarkClicked(bookmark: Bookmark) { /* no op */ }
+            override fun onShowAllBookmarksClicked() { /* no op */ }
+            override fun onBookmarkRemoved(bookmark: Bookmark) { /* no op */ }
         }
 
     internal fun topSites(
@@ -133,6 +142,19 @@ internal object FakeHomepagePreview {
             url = URL,
             previewImageUrl = null,
         )
+
+    internal fun bookmarks(bookmarkCount: Int = 4) =
+        mutableListOf<Bookmark>().apply {
+            repeat(bookmarkCount) {
+                add(
+                    Bookmark(
+                        title = "Other Bookmark Title",
+                        url = "https://www.example.com",
+                        previewImageUrl = null,
+                    ),
+                )
+            }
+        }
 
     private const val URL = "mozilla.com"
 

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
+import org.mozilla.fenix.home.bookmarks.Bookmark
+import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
+import org.mozilla.fenix.home.bookmarks.view.Bookmarks
+import org.mozilla.fenix.home.bookmarks.view.BookmarksMenuItem
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
@@ -44,6 +50,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @param topSiteInteractor For interactions with the top sites UI.
  * @param recentTabInteractor For interactions with the recent tab UI.
  * @param recentSyncedTabInteractor For interactions with the recent synced tab UI.
+ * @param bookmarksInteractor For interactions with the bookmarks UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @Composable
@@ -53,6 +60,7 @@ internal fun Homepage(
     topSiteInteractor: TopSiteInteractor,
     recentTabInteractor: RecentTabInteractor,
     recentSyncedTabInteractor: RecentSyncedTabInteractor,
+    bookmarksInteractor: BookmarksInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -101,6 +109,14 @@ internal fun Homepage(
                             )
                         }
                     }
+
+                    if (showBookmarks) {
+                        BookmarksSection(
+                            bookmarks = bookmarks,
+                            cardBackgroundColor = cardBackgroundColor,
+                            interactor = bookmarksInteractor,
+                        )
+                    }
                 }
             }
         }
@@ -137,13 +153,45 @@ private fun RecentTabsSection(
 }
 
 @Composable
+private fun BookmarksSection(
+    bookmarks: List<Bookmark>,
+    cardBackgroundColor: Color,
+    interactor: BookmarksInteractor,
+) {
+    Spacer(modifier = Modifier.height(40.dp))
+
+    HomeSectionHeader(
+        headerText = stringResource(R.string.home_bookmarks_title),
+        description = stringResource(R.string.home_bookmarks_show_all_content_description),
+        onShowAllClick = interactor::onShowAllBookmarksClicked,
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    Bookmarks(
+        bookmarks = bookmarks,
+        menuItems = listOf(
+            BookmarksMenuItem(
+                stringResource(id = R.string.home_bookmarks_menu_item_remove),
+                onClick = interactor::onBookmarkRemoved,
+            ),
+        ),
+        backgroundColor = cardBackgroundColor,
+        onBookmarkClick = interactor::onBookmarkClicked,
+    )
+}
+
+@Composable
 @LightDarkPreview
 private fun HomepagePreview() {
     FirefoxTheme {
-        Box(
+        val scrollState = rememberScrollState()
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = FirefoxTheme.colors.layer1),
+                .background(color = FirefoxTheme.colors.layer1)
+                .verticalScroll(scrollState),
         ) {
             Homepage(
                 HomepageState.Normal(
@@ -157,11 +205,14 @@ private fun HomepagePreview() {
                     buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
                     showRecentSyncedTab = true,
                     syncedTab = FakeHomepagePreview.recentSyncedTab(),
+                    showBookmarks = true,
+                    bookmarks = FakeHomepagePreview.bookmarks(),
                 ),
                 topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
                 recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
+                bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
                 onTopSitesItemBound = {},
             )
         }
@@ -185,6 +236,7 @@ private fun PrivateHomepagePreview() {
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
                 recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
+                bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
                 onTopSitesItemBound = {},
             )
         }

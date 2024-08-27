@@ -10,6 +10,7 @@ import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
 import org.mozilla.fenix.ext.shouldShowRecentTabs
+import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recenttabs.RecentTab
@@ -36,9 +37,11 @@ internal sealed class HomepageState {
      * @property topSites List of [TopSite] to display.
      * @property recentTabs List of [RecentTab] to display.
      * @property syncedTab The [RecentSyncedTab] to display.
+     * @property bookmarks List of [Bookmark] to display.
      * @property showTopSites Whether to show top sites or not.
      * @property showRecentTabs Whether to show recent tabs or not.
      * @property showRecentSyncedTab Whether to show recent synced tab or not.
+     * @property showBookmarks Whether to show bookmarks.
      * @property topSiteColors The color set defined by [TopSiteColors] used to style a top site.
      * @property cardBackgroundColor Background color for card items.
      * @property buttonBackgroundColor Background [Color] for buttons.
@@ -48,9 +51,11 @@ internal sealed class HomepageState {
         val topSites: List<TopSite>,
         val recentTabs: List<RecentTab>,
         val syncedTab: RecentSyncedTab?,
+        val bookmarks: List<Bookmark>,
         val showTopSites: Boolean,
         val showRecentTabs: Boolean,
         val showRecentSyncedTab: Boolean,
+        val showBookmarks: Boolean,
         val topSiteColors: TopSiteColors,
         val cardBackgroundColor: Color,
         val buttonBackgroundColor: Color,
@@ -92,6 +97,8 @@ internal sealed class HomepageState {
                         },
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,
                         buttonTextColor = wallpaperState.buttonTextColor,
+                        showBookmarks = settings.showBookmarksHomeFeature && bookmarks.isNotEmpty(),
+                        bookmarks = bookmarks,
                     )
                 }
             }
