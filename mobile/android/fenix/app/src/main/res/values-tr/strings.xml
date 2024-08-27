@@ -122,6 +122,9 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title">Yeni: Tek dokunuşla geri ve ileri okları</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Daha hızlı gezinmeniz için gezinti çubuğu artık her an parmaklarınızın ucunda.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamera erişimi gerekiyor. Android ayarlarına gidin, izinlere girin ve izin verin.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

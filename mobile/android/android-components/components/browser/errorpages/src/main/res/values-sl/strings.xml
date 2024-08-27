@@ -220,7 +220,7 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Neveljaven naslov</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
-      <p>Vneseni naslov ni v prepoznani obliki. Preverite, da v vrstici z naslovom ni napak, in poskusite znova.</p>
+      <p>Vneseni naslov ni v prepoznani obliki. Preverite, da v naslovni vrstici ni napak, in poskusite znova.</p>
     ]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Neveljaven naslov</string>

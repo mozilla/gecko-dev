@@ -118,6 +118,12 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Podótkńće so šipkow a dźeržće je, zo byšće mjez stronami w historiji tutoho rajtarka tam a sam skočił.</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Nowy: šipkaj wróćo a doprědka z jednym podótkom</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Wužiwajće spěšnišu nawigaciju, kotruž přeco k ruce maće.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Přistup ke kamerje trěbny. Wočińće nastajenja Android, podótkńće so zapiska Prawa a podótkńće so zapiska Dowolić.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -202,6 +208,9 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Přiswojće sej %s</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Rozšěrjenja waše přehladowanje polěpšuja, wot měnjenja napohlada a wukona %s do polěpšenja priwatnosće a wěstoty.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Dalše informacije</string>
     <!-- Browser menu button that opens the extensions manager -->
