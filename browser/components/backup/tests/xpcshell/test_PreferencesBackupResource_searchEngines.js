@@ -26,7 +26,10 @@ do_get_profile();
 const FAKE_SEARCH_EXTENSION_NAME = "Some WebExtension Search Engine";
 
 add_setup(async function () {
-  await SearchTestUtils.useTestEngines("search-data");
+  await SearchTestUtils.setRemoteSettingsConfig([
+    { identifier: "engine1" },
+    { identifier: "engine2" },
+  ]);
   Services.prefs.setCharPref(SearchUtils.BROWSER_SEARCH_PREF + "region", "US");
   Services.locale.availableLocales = ["en-US"];
   Services.locale.requestedLocales = ["en-US"];

@@ -63,8 +63,5 @@ support-files = [
 ["test_PreferencesBackupResource.js"]
 
 ["test_PreferencesBackupResource_searchEngines.js"]
-support-files = [
-  "search-data/search-config-v2.json",
-]
 
 ["test_SessionStoreBackupResource.js"]

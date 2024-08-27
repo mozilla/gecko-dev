@@ -182,7 +182,9 @@ add_task(async function setup() {
 
   await TelemetryEnvironmentTesting.spoofProfileReset();
   await TelemetryEnvironment.delayedInit();
-  await SearchTestUtils.useTestEngines("data", "search-extensions");
+  // The environment needs the search service initialised, so use a dummy
+  // configuration.
+  await SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
 });
 
 add_task(async function test_checkEnvironment() {

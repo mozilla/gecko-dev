@@ -30,6 +30,27 @@ var gHttpRoot = null;
 // The URL of the data directory, on the webserver.
 var gDataRoot = null;
 
+const SEARCH_CONFIG = [
+  {
+    identifier: "telemetrySearchIdentifier",
+    base: {
+      name: "telemetrySearchIdentifier",
+      urls: {
+        search: {
+          base: "https://ar.wikipedia.org/wiki/%D8%AE%D8%A7%D8%B5:%D8%A8%D8%AD%D8%AB",
+          params: [
+            {
+              name: "sourceId",
+              value: "Mozilla-search",
+            },
+          ],
+          searchTermParamName: "search",
+        },
+      },
+    },
+  },
+];
+
 add_task(async function setup() {
   TelemetryEnvironmentTesting.registerFakeSysInfo();
   TelemetryEnvironmentTesting.spoofGfxAdapter();
@@ -82,7 +103,7 @@ add_task(async function setup() {
 
   await TelemetryEnvironmentTesting.spoofProfileReset();
   await TelemetryEnvironment.delayedInit();
-  await SearchTestUtils.useTestEngines("data", "search-extensions");
+  await SearchTestUtils.setRemoteSettingsConfig(SEARCH_CONFIG);
 
   // Now continue with startup.
   let initPromise = TelemetryEnvironment.onInitialized();

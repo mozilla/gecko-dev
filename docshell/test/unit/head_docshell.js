@@ -25,40 +25,12 @@ const kPostSearchEngineID = "test_urifixup_search_engine_post";
 const kPostSearchEngineURL = "https://www.example.org/";
 const kPostSearchEngineData = "q={searchTerms}";
 
-const CONFIG_V2 = [
-  {
-    recordType: "engine",
-    identifier: "test_urifixup_search_engine_app_provided",
-    base: {
-      name: "test_urifixup_search_engine_app_provided",
-      urls: {
-        search: {
-          base: "https://www.example.org/",
-          searchTermParamName: "search",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "test_urifixup_search_engine_app_provided",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
-];
+const CONFIG = [{ identifier: "test_urifixup_search_engine_app_provided" }];
 
 async function setupSearchService() {
   SearchTestUtils.init(this);
 
-  await SearchTestUtils.useTestEngines(".", null, CONFIG_V2);
+  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 }
 

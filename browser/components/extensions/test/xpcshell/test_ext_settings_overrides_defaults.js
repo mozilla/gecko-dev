@@ -23,10 +23,9 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
-const CONFIG_V2 = [
+const CONFIG = [
   {
-    recordType: "engine",
-    identifier: "test",
+    identifier: "MozParamsTest",
     base: {
       name: "MozParamsTest",
       urls: {
@@ -92,17 +91,9 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
   },
   {
-    recordType: "engine",
-    identifier: "test2",
+    identifier: "MozParamsTest2",
     base: {
       name: "MozParamsTest2",
       urls: {
@@ -118,22 +109,6 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: true,
-        },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "test",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -157,7 +132,7 @@ add_task(async function setup() {
   AddonTestUtils.usePrivilegedSignatures = false;
   AddonTestUtils.overrideCertDB();
   await AddonTestUtils.promiseStartupManager();
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
   registerCleanupFunction(async () => {
     await AddonTestUtils.promiseShutdownManager();
@@ -239,7 +214,7 @@ add_task(async function test_extension_overriding_app_provided_default() {
   sinon.stub(settings, "get").returns([
     {
       thirdPartyId: "test@thirdparty.example.com",
-      overridesAppIdv2: "test2",
+      overridesAppIdv2: "MozParamsTest2",
       urls: [
         {
           search_url: "https://example.com/?q={searchTerms}&foo=myparams",

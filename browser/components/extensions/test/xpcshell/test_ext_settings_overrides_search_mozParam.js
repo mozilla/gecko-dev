@@ -50,10 +50,9 @@ const params = [
   { name: "prefval", condition: "pref", pref: "code" },
 ];
 
-const CONFIG_V2 = [
+const CONFIG = [
   {
-    recordType: "engine",
-    identifier: "test",
+    identifier: "MozParamsTest",
     base: {
       name: "MozParamsTest",
       urls: {
@@ -119,20 +118,6 @@ const CONFIG_V2 = [
         },
       },
     },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "test",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -140,7 +125,7 @@ add_task(async function setup() {
   let readyStub = sinon.stub(NimbusFeatures.search, "ready").resolves();
   let updateStub = sinon.stub(NimbusFeatures.search, "onUpdate");
   await promiseStartupManager();
-  await SearchTestUtils.useTestEngines("data", null, CONFIG_V2);
+  await SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
   registerCleanupFunction(async () => {
     await promiseShutdownManager();
