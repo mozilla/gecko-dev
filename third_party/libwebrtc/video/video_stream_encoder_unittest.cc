@@ -2611,8 +2611,7 @@ TEST_F(VideoStreamEncoderTest, CorrectlyAdjustsAv1Bitrate) {
               allowed_error_bps);
 
   // Insert frames until bitrate adjuster is saturated.
-  const TimeDelta runtime =
-      TimeDelta::Millis(EncoderBitrateAdjuster::kWindowSizeMs);
+  const TimeDelta runtime = EncoderBitrateAdjuster::kWindowSize;
   const Timestamp start_time = clock()->CurrentTime();
   while (clock()->CurrentTime() - start_time < runtime) {
     video_source_.IncomingCapturedFrame(

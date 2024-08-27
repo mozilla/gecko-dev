@@ -11,19 +11,26 @@
 #include "video/encoder_bitrate_adjuster.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "api/field_trials_view.h"
 #include "api/units/data_rate.h"
-#include "rtc_base/fake_clock.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/time_controller/simulated_time_controller.h"
 
 namespace webrtc {
 namespace test {
 
-class EncoderBitrateAdjusterTest : public ::testing::Test {
+using ::testing::Test;
+using ::testing::Values;
+using ::testing::WithParamInterface;
+
+class EncoderBitrateAdjusterTest : public Test,
+                                   public WithParamInterface<std::string> {
  public:
   static constexpr int64_t kWindowSizeMs = 3000;
   static constexpr int kDefaultBitrateBps = 300000;
@@ -35,10 +42,12 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
   static_assert(kSequenceLength % 2 == 0, "Sequence length must be even.");
 
   EncoderBitrateAdjusterTest()
-      : target_bitrate_(DataRate::BitsPerSec(kDefaultBitrateBps)),
+      : time_controller_(/*start_time=*/Timestamp::Millis(123)),
+        target_bitrate_(DataRate::BitsPerSec(kDefaultBitrateBps)),
         target_framerate_fps_(kDefaultFrameRateFps),
         tl_pattern_idx_{},
-        sequence_idx_{} {}
+        sequence_idx_{},
+        scoped_field_trial_(GetParam()) {}
 
  protected:
   void SetUpAdjusterWithCodec(size_t num_spatial_layers,
@@ -55,8 +64,8 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
       }
     }
 
-    adjuster_ =
-        std::make_unique<EncoderBitrateAdjuster>(codec_, scoped_field_trial_);
+    adjuster_ = std::make_unique<EncoderBitrateAdjuster>(
+        codec_, scoped_field_trial_, *time_controller_.GetClock());
     adjuster_->OnEncoderInfo(encoder_info_);
     current_adjusted_allocation_ =
         adjuster_->AdjustRateAllocation(VideoEncoder::RateControlParameters(
@@ -112,7 +121,8 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
     const int64_t start_us = rtc::TimeMicros();
     while (rtc::TimeMicros() <
            start_us + (duration_ms * rtc::kNumMicrosecsPerMillisec)) {
-      clock_.AdvanceTime(TimeDelta::Seconds(1) / target_framerate_fps_);
+      time_controller_.AdvanceTime(TimeDelta::Seconds(1) /
+                                   target_framerate_fps_);
       for (size_t si = 0; si < NumSpatialLayers(); ++si) {
         const std::vector<int>& tl_pattern =
             kTlPatterns[NumTemporalLayers(si) - 1];
@@ -231,12 +241,14 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
     return multiplied_allocation;
   }
 
+  GlobalSimulatedTimeController time_controller_;
+
   VideoCodec codec_;
   VideoEncoder::EncoderInfo encoder_info_;
   std::unique_ptr<EncoderBitrateAdjuster> adjuster_;
   VideoBitrateAllocation current_input_allocation_;
   VideoBitrateAllocation current_adjusted_allocation_;
-  rtc::ScopedFakeClock clock_;
+
   DataRate target_bitrate_;
   double target_framerate_fps_;
   int tl_pattern_idx_[kMaxSpatialLayers];
@@ -250,7 +262,7 @@ class EncoderBitrateAdjusterTest : public ::testing::Test {
       {0, 3, 2, 3, 1, 3, 2, 3}};
 };
 
-TEST_F(EncoderBitrateAdjusterTest, SingleLayerOptimal) {
+TEST_P(EncoderBitrateAdjusterTest, SingleLayerOptimal) {
   // Single layer, well behaved encoder.
   current_input_allocation_.SetBitrate(0, 0, 300000);
   target_framerate_fps_ = 30;
@@ -264,7 +276,7 @@ TEST_F(EncoderBitrateAdjusterTest, SingleLayerOptimal) {
   ExpectNear(current_input_allocation_, current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, SingleLayerOveruse) {
+TEST_P(EncoderBitrateAdjusterTest, SingleLayerOveruse) {
   // Single layer, well behaved encoder.
   current_input_allocation_.SetBitrate(0, 0, 300000);
   target_framerate_fps_ = 30;
@@ -278,7 +290,7 @@ TEST_F(EncoderBitrateAdjusterTest, SingleLayerOveruse) {
              current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, SingleLayerUnderuse) {
+TEST_P(EncoderBitrateAdjusterTest, SingleLayerUnderuse) {
   // Single layer, well behaved encoder.
   current_input_allocation_.SetBitrate(0, 0, 300000);
   target_framerate_fps_ = 30;
@@ -291,7 +303,7 @@ TEST_F(EncoderBitrateAdjusterTest, SingleLayerUnderuse) {
   ExpectNear(current_input_allocation_, current_adjusted_allocation_, 0.00);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersOptimalSize) {
+TEST_P(EncoderBitrateAdjusterTest, ThreeTemporalLayersOptimalSize) {
   // Three temporal layers, 60%/20%/20% bps distro, well behaved encoder.
   current_input_allocation_.SetBitrate(0, 0, 180000);
   current_input_allocation_.SetBitrate(0, 1, 60000);
@@ -305,7 +317,7 @@ TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersOptimalSize) {
   ExpectNear(current_input_allocation_, current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersOvershoot) {
+TEST_P(EncoderBitrateAdjusterTest, ThreeTemporalLayersOvershoot) {
   // Three temporal layers, 60%/20%/20% bps distro.
   // 10% overshoot on all layers.
   current_input_allocation_.SetBitrate(0, 0, 180000);
@@ -322,7 +334,7 @@ TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersOvershoot) {
              current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersUndershoot) {
+TEST_P(EncoderBitrateAdjusterTest, ThreeTemporalLayersUndershoot) {
   // Three temporal layers, 60%/20%/20% bps distro, undershoot all layers.
   current_input_allocation_.SetBitrate(0, 0, 180000);
   current_input_allocation_.SetBitrate(0, 1, 60000);
@@ -337,7 +349,7 @@ TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersUndershoot) {
   ExpectNear(current_input_allocation_, current_adjusted_allocation_, 0.0);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersSkewedOvershoot) {
+TEST_P(EncoderBitrateAdjusterTest, ThreeTemporalLayersSkewedOvershoot) {
   // Three temporal layers, 60%/20%/20% bps distro.
   // 10% overshoot on base layer, 20% on higher layers.
   current_input_allocation_.SetBitrate(0, 0, 180000);
@@ -355,7 +367,7 @@ TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersSkewedOvershoot) {
              current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersNonLayeredEncoder) {
+TEST_P(EncoderBitrateAdjusterTest, ThreeTemporalLayersNonLayeredEncoder) {
   // Three temporal layers, 60%/20%/20% bps allocation, 10% overshoot,
   // encoder does not actually support temporal layers.
   current_input_allocation_.SetBitrate(0, 0, 180000);
@@ -376,7 +388,7 @@ TEST_F(EncoderBitrateAdjusterTest, ThreeTemporalLayersNonLayeredEncoder) {
   ExpectNear(expected_allocation, current_adjusted_allocation_, 0.01);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, IgnoredStream) {
+TEST_P(EncoderBitrateAdjusterTest, IgnoredStream) {
   // Encoder with three temporal layers, but in a mode that does not support
   // deterministic frame rate. Those are ignored, even if bitrate overshoots.
   current_input_allocation_.SetBitrate(0, 0, 180000);
@@ -395,7 +407,7 @@ TEST_F(EncoderBitrateAdjusterTest, IgnoredStream) {
   ExpectNear(current_input_allocation_, current_adjusted_allocation_, 0.00);
 }
 
-TEST_F(EncoderBitrateAdjusterTest, DifferentSpatialOvershoots) {
+TEST_P(EncoderBitrateAdjusterTest, DifferentSpatialOvershoots) {
   // Two streams, both with three temporal layers.
   // S0 has 5% overshoot, S1 has 25% overshoot.
   current_input_allocation_.SetBitrate(0, 0, 180000);
@@ -427,13 +439,14 @@ TEST_F(EncoderBitrateAdjusterTest, DifferentSpatialOvershoots) {
   }
 }
 
-TEST_F(EncoderBitrateAdjusterTest, HeadroomAllowsOvershootToMediaRate) {
+TEST_P(EncoderBitrateAdjusterTest, HeadroomAllowsOvershootToMediaRate) {
+  if (GetParam() == "WebRTC-VideoRateControl/adjuster_use_headroom:false/") {
+    // This test does not make sense without headroom adjustment.
+    GTEST_SKIP();
+  }
+
   // Two streams, both with three temporal layers.
   // Media rate is 1.0, but network rate is higher.
-  test::ScopedKeyValueConfig field_trial(
-      scoped_field_trial_,
-      "WebRTC-VideoRateControl/adjuster_use_headroom:true/");
-
   const uint32_t kS0Bitrate = 300000;
   const uint32_t kS1Bitrate = 900000;
   current_input_allocation_.SetBitrate(0, 0, kS0Bitrate / 3);
@@ -470,12 +483,14 @@ TEST_F(EncoderBitrateAdjusterTest, HeadroomAllowsOvershootToMediaRate) {
   }
 }
 
-TEST_F(EncoderBitrateAdjusterTest, DontExceedMediaRateEvenWithHeadroom) {
+TEST_P(EncoderBitrateAdjusterTest, DontExceedMediaRateEvenWithHeadroom) {
+  if (GetParam() == "WebRTC-VideoRateControl/adjuster_use_headroom:false/") {
+    // This test does not make sense without headroom adjustment.
+    GTEST_SKIP();
+  }
+
   // Two streams, both with three temporal layers.
   // Media rate is 1.1, but network rate is higher.
-  test::ScopedKeyValueConfig field_trial(
-      scoped_field_trial_,
-      "WebRTC-VideoRateControl/adjuster_use_headroom:true/");
 
   const uint32_t kS0Bitrate = 300000;
   const uint32_t kS1Bitrate = 900000;
@@ -489,32 +504,37 @@ TEST_F(EncoderBitrateAdjusterTest, DontExceedMediaRateEvenWithHeadroom) {
   target_framerate_fps_ = 30;
 
   // Run twice, once configured as simulcast and once as VP9 SVC.
-  for (int i = 0; i < 2; ++i) {
-    SetUpAdjuster(2, 3, i == 0);
-    // Network rate has 30% overshoot, media rate has 10% overshoot.
-    InsertFrames({{1.1, 1.1, 1.1}, {1.1, 1.1, 1.1}},
-                 {{1.3, 1.3, 1.3}, {1.3, 1.3, 1.3}},
-                 kWindowSizeMs * kSequenceLength);
+  for (const bool is_svc : {false, true}) {
+    SetUpAdjuster(/*num_spatial_layers=*/2,
+                  /*num_temporal_layers=*/3, is_svc);
 
-    // Push back by 30%.
+    // First insert frames with no overshoot.
+    InsertFrames({{1.0, 1.0, 1.0}}, kWindowSizeMs * kSequenceLength);
+    // Verify encoder is not pushed backed.
     current_adjusted_allocation_ =
         adjuster_->AdjustRateAllocation(VideoEncoder::RateControlParameters(
             current_input_allocation_, target_framerate_fps_));
     // The up-down causes a bit more noise, allow slightly more error margin.
-    ExpectNear(MultiplyAllocation(current_input_allocation_, 1 / 1.3),
+    ExpectNear(MultiplyAllocation(current_input_allocation_, 1.0),
                current_adjusted_allocation_, 0.015);
+
+    // Change network rate to 30% overshoot, media rate has 10% overshoot.
+    InsertFrames({{1.1, 1.1, 1.1}, {1.1, 1.1, 1.1}},
+                 {{1.3, 1.3, 1.3}, {1.3, 1.3, 1.3}},
+                 kWindowSizeMs * kSequenceLength);
 
     // Add 100% link headroom, overshoot from network to media rate is allowed.
     current_adjusted_allocation_ =
         adjuster_->AdjustRateAllocation(VideoEncoder::RateControlParameters(
             current_input_allocation_, target_framerate_fps_,
             DataRate::BitsPerSec(current_input_allocation_.get_sum_bps() * 2)));
+
     ExpectNear(MultiplyAllocation(current_input_allocation_, 1 / 1.1),
-               current_adjusted_allocation_, 0.015);
+               current_adjusted_allocation_, 0.02);
   }
 }
 
-TEST_F(EncoderBitrateAdjusterTest, HonorsMinBitrateWithAv1) {
+TEST_P(EncoderBitrateAdjusterTest, HonorsMinBitrateWithAv1) {
   // Single layer, well behaved encoder.
   const DataRate kHighBitrate = DataRate::KilobitsPerSec(20);
   const DataRate kALowerMinBitrate = DataRate::KilobitsPerSec(15);
@@ -548,6 +568,14 @@ TEST_F(EncoderBitrateAdjusterTest, HonorsMinBitrateWithAv1) {
   // errors etc.
   ExpectNear(expected_input_allocation, current_adjusted_allocation_, 0.01);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    AdjustWithHeadroomVariations,
+    EncoderBitrateAdjusterTest,
+    Values("WebRTC-VideoRateControl/adjuster_use_headroom:false/",
+           "WebRTC-VideoRateControl/adjuster_use_headroom:true/",
+           "WebRTC-VideoRateControl/adjuster_use_headroom:true/"
+           "WebRTC-BitrateAdjusterUseNewfangledHeadroomAdjustment/Enabled/"));
 
 }  // namespace test
 }  // namespace webrtc

@@ -1345,8 +1345,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
 
   const VideoEncoder::EncoderInfo info = encoder_->GetEncoderInfo();
   if (rate_control_settings_.UseEncoderBitrateAdjuster()) {
-    bitrate_adjuster_ =
-        std::make_unique<EncoderBitrateAdjuster>(codec, env_.field_trials());
+    bitrate_adjuster_ = std::make_unique<EncoderBitrateAdjuster>(
+        codec, env_.field_trials(), env_.clock());
     bitrate_adjuster_->OnEncoderInfo(info);
   }
 
