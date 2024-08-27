@@ -57,6 +57,7 @@ const L10N_TWISTY_EXPAND_LABEL = STYLE_INSPECTOR_L10N.getStr(
 const L10N_TWISTY_COLLAPSE_LABEL = STYLE_INSPECTOR_L10N.getStr(
   "rule.twistyCollapse.label"
 );
+const L10N_EMPTY_VARIABLE = STYLE_INSPECTOR_L10N.getStr("rule.variableEmpty");
 
 const FILTER_CHANGED_TIMEOUT = 150;
 
@@ -1481,9 +1482,17 @@ class PropertyView {
    *
    * @param {String} value
    * @param {String} baseURI
-   * @returns {DocumentFragment}
+   * @returns {DocumentFragment|Element}
    */
   #parseValue(value, baseURI) {
+    if (this.isCustomProperty && value === "") {
+      const doc = this.#tree.styleDocument;
+      const el = doc.createElement("span");
+      el.classList.add("empty-css-variable");
+      el.append(doc.createTextNode(`<${L10N_EMPTY_VARIABLE}>`));
+      return el;
+    }
+
     // Sadly, because this fragment is added to the template by DOM Templater
     // we lose any events that are attached. This means that URLs will open in a
     // new window. At some point we should fix this by stopping using the

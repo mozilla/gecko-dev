@@ -56,6 +56,7 @@ const TEST_URI = `
     #match-2 {
       --global-custom-property: gold;
       --custom-property-2: cyan;
+      --custom-property-empty: ;
       --registered-color-secondary: rgb(13, 17, 23);
       border: var(--registered-length) solid var( /* color */ --registered-color );
     }
@@ -189,6 +190,10 @@ add_task(async function () {
     {
       name: "--custom-property-2",
       value: "cyan",
+    },
+    {
+      name: "--custom-property-empty",
+      value: "<empty>",
     },
     {
       name: "--global-custom-property",
