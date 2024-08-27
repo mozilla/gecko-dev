@@ -78,10 +78,10 @@ $icon-size: 16px;
 $smaller-icon-size: 12px;
 $larger-icon-size: 32px;
 
-$searchbar-width-small: ($grid-unit * 2 + $base-gutter * 1) - 24px;
-$searchbar-width-medium: ($grid-unit * 4 + $base-gutter * 3) - 120px;
-$searchbar-width-large: ($grid-unit * 6 + $base-gutter * 5) - 136px;
-$searchbar-width-largest: ($grid-unit * 6 + $base-gutter * 5) - 16px;
+$searchbar-width-small: ($grid-unit * 2 + $base-gutter * 1) - 24px; // 200px
+$searchbar-width-medium: ($grid-unit * 4 + $base-gutter * 3) - 120px; // 360px
+$searchbar-width-large: ($grid-unit * 6 + $base-gutter * 5) - 136px; // 600px
+$searchbar-width-largest: ($grid-unit * 6 + $base-gutter * 5) - 16px; // 720px
 
 $wrapper-default-width: $grid-unit * 2 + $base-gutter * 1 + $section-horizontal-padding * 2; // 2 top sites
 $wrapper-max-width-medium: $grid-unit * 4 + $base-gutter * 3 + $section-horizontal-padding * 2; // 4 top sites

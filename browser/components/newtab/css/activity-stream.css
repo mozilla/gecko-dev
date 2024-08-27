@@ -510,7 +510,7 @@ main section {
 
 .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-  width: 346px;
+  width: auto;
 }
 .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card {
@@ -520,46 +520,64 @@ main section {
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
   grid-gap: var(--space-large);
 }
+.layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+  width: 346px;
+  margin: 0 auto;
+}
 @media (min-width: 610px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-    width: 346px;
+    width: auto;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
     grid-template-columns: repeat(1, 1fr);
   }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 346px;
+  }
 }
 @media (min-width: 866px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-    width: 659px;
+    width: auto;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 659px;
+  }
 }
 @media (min-width: 1122px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-    width: 989px;
+    width: auto;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-card-grid,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
     grid-template-columns: repeat(3, 1fr);
     grid-gap: var(--space-xlarge);
   }
+  .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
+.layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 989px;
+  }
 }
 @media (min-width: 1698px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
-    width: 1311px;
+    width: auto;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .body-wrapper,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .body-wrapper {
     display: flex;
     flex-direction: column;
+    width: 1311px;
   }
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer {
@@ -584,6 +602,9 @@ main section {
 
 .non-collapsible-section {
   padding: 0 25px;
+}
+.layout-variant-a .non-collapsible-section, .layout-variant-b .non-collapsible-section {
+  padding: 0;
 }
 
 .prefs-button button {
@@ -1476,6 +1497,19 @@ main section {
     width: 720px;
   }
 }
+.layout-variant-a .search-wrapper .search-inner-wrapper, .layout-variant-b .search-wrapper .search-inner-wrapper {
+  width: 304px;
+}
+@media (min-width: 866px) {
+  .layout-variant-a .search-wrapper .search-inner-wrapper, .layout-variant-b .search-wrapper .search-inner-wrapper {
+    width: 510px;
+  }
+}
+@media (min-width: 1122px) {
+  .layout-variant-a .search-wrapper .search-inner-wrapper, .layout-variant-b .search-wrapper .search-inner-wrapper {
+    width: 720px;
+  }
+}
 .search-wrapper .search-handoff-button,
 .search-wrapper input {
   background: var(--newtab-background-color-secondary) var(--newtab-search-icon) 16px center no-repeat;
@@ -1597,6 +1631,10 @@ main section {
 .search-handoff-button .fake-textbox {
   opacity: 0.54;
   text-align: start;
+}
+.layout-variant-a .search-handoff-button .fake-textbox, .layout-variant-b .search-handoff-button .fake-textbox {
+  -webkit-line-clamp: 1;
+  overflow: hidden;
 }
 .search-handoff-button .fake-caret {
   animation: caret-animation 1.3s steps(5, start) infinite;
@@ -3241,7 +3279,7 @@ main section {
 .layout-variant-a .collapsible-section .button-topic-selection, .layout-variant-b .collapsible-section .button-topic-selection {
   display: none;
 }
-@media (min-width: 610px) {
+@media (min-width: 866px) {
   .layout-variant-a .collapsible-section .button-topic-selection, .layout-variant-b .collapsible-section .button-topic-selection {
     display: block;
   }

@@ -51,7 +51,23 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     @media (min-width: $break-point-widest) {
       width: $searchbar-width-largest;
     }
+
+    // Bug 1914053 - Layout experiment: search bar width
+    .layout-variant-a &,
+    .layout-variant-b & {
+      width: 304px;
+
+      @media (min-width: $break-point-large) {
+        width: 510px;
+      }
+
+      @media (min-width: $break-point-widest) {
+        width: 720px;
+      }
+    }
+
   }
+
 
   .search-handoff-button,
   input {
@@ -200,6 +216,13 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   .fake-textbox {
     opacity: 0.54;
     text-align: start;
+
+    // Bug 1914055 - Layout experiment: search spacing
+    .layout-variant-a &,
+    .layout-variant-b & {
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+    }
   }
 
   .fake-caret {

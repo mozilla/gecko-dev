@@ -87,7 +87,7 @@ main {
 .layout-variant-a,
 .layout-variant-b {
   .ds-outer-wrapper-breakpoint-override main {
-    width: 346px;
+    width: auto;
 
     .ds-card {
       width: 296px;
@@ -97,37 +97,57 @@ main {
       grid-gap: var(--space-large);
     }
 
-    @media (min-width: $break-point-medium) {
+    .body-wrapper {
       width: 346px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: $break-point-medium) {
+      width: auto;
 
       .ds-card-grid {
         grid-template-columns: repeat(1, 1fr);
       }
+
+      .body-wrapper {
+        width: 346px;
+      }
+
     }
 
     @media (min-width: $break-point-large) {
-      width: 659px;
+      width: auto;
 
       .ds-card-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
+      .body-wrapper {
+        width: 659px;
+      }
     }
 
     @media (min-width: $break-point-widest) {
-      width: 989px;
+      width: auto;
 
       .ds-card-grid {
         grid-template-columns: repeat(3, 1fr);
         grid-gap: var(--space-xlarge);
       }
+
+      .body-wrapper {
+        width: 989px;
+      }
+
     }
 
     @media (min-width: $break-point-ultra-wide) {
-      width: 1311px;
+      width: auto;
 
       .body-wrapper {
         display: flex;
         flex-direction: column;
+        width: 1311px;
       }
 
       .ds-highlights .card-outer {
@@ -164,6 +184,12 @@ main {
 
 .non-collapsible-section {
   padding: 0 $section-horizontal-padding;
+
+  // Bug 1914053 - Layout experiment: search bar width
+  .layout-variant-a &,
+  .layout-variant-b & {
+    padding: 0;
+  }
 }
 
 .prefs-button {
