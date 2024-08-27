@@ -17,21 +17,21 @@ import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.utils.Settings
 
 /**
- * State object that describes the homepage
+ * State object that describes the homepage.
  */
 internal sealed class HomepageState {
 
     /**
-     * State type corresponding with private browsing mode
+     * State type corresponding with private browsing mode.
      *
-     * @property feltPrivateBrowsingEnabled whether felt private browsing is enabled
+     * @property feltPrivateBrowsingEnabled Whether felt private browsing is enabled.
      */
     internal data class Private(
         val feltPrivateBrowsingEnabled: Boolean,
     ) : HomepageState()
 
     /**
-     * State corresponding with the homepage when firefox is not in private browsing mode
+     * State corresponding with the homepage in normal browsing mode.
      *
      * @property topSites List of [TopSite] to display.
      * @property recentTabs List of [RecentTab] to display.
@@ -60,7 +60,7 @@ internal sealed class HomepageState {
     companion object {
 
         /**
-         * Builds a new [HomepageState] from the current [AppState] and [Settings]
+         * Builds a new [HomepageState] from the current [AppState] and [Settings].
          *
          * @param appState State to build the [HomepageState] from.
          * @param settings Settings corresponding to how the homepage should be displayed.

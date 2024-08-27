@@ -24,18 +24,12 @@ import kotlin.random.Random
 internal object FakeHomepagePreview {
     private val random = Random(seed = 1)
 
-    /**
-     * Fake private browsing interactor
-     */
     internal val privateBrowsingInteractor
         get() = object : PrivateBrowsingInteractor {
             override fun onLearnMoreClicked() { /* no op */ }
             override fun onPrivateModeButtonClicked(newMode: BrowsingMode) { /* no op */ }
         }
 
-    /**
-     * Fake top sites interactor
-     */
     internal val topSitesInteractor
         get() = object : TopSiteInteractor {
             override fun onOpenInPrivateTabClicked(topSite: TopSite) { /* no op */ }
