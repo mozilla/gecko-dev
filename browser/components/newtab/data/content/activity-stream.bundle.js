@@ -3208,8 +3208,10 @@ class _DSCard extends (external_React_default()).PureComponent {
   }
   render() {
     if (this.props.placeholder || !this.state.isSeen) {
+      // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
+      const placeholderClassName = this.state.isSeen ? `placeholder-seen` : ``;
       return /*#__PURE__*/external_React_default().createElement("div", {
-        className: "ds-card placeholder",
+        className: `ds-card placeholder ${placeholderClassName}`,
         ref: this.setPlaceholderRef
       }, /*#__PURE__*/external_React_default().createElement("div", {
         className: "placeholder-image placeholder-fill"
