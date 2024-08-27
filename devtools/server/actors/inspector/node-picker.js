@@ -393,19 +393,66 @@ class NodePicker {
   }
 
   _startPickerListeners() {
+    const eventsToSuppress = [
+      { type: "click", handler: this._onPick },
+      { type: "dblclick", handler: this._preventContentEvent },
+      { type: "keydown", handler: this._onKeyDown },
+      { type: "keyup", handler: this._onKeyUp },
+      { type: "mousedown", handler: this._preventContentEvent },
+      { type: "mousemove", handler: this._onHovered },
+      { type: "mouseup", handler: this._preventContentEvent },
+    ];
+
     const target = this._targetActor.chromeEventHandler;
     this.#eventListenersAbortController = new AbortController();
-    const config = {
-      capture: true,
-      signal: this.#eventListenersAbortController.signal,
-    };
-    target.addEventListener("mousemove", this._onHovered, config);
-    target.addEventListener("click", this._onPick, config);
-    target.addEventListener("mousedown", this._preventContentEvent, config);
-    target.addEventListener("mouseup", this._preventContentEvent, config);
-    target.addEventListener("dblclick", this._preventContentEvent, config);
-    target.addEventListener("keydown", this._onKeyDown, config);
-    target.addEventListener("keyup", this._onKeyUp, config);
+
+    for (const event of eventsToSuppress) {
+      const { type, handler } = event;
+
+      // When the node picker is enabled, DOM events should not be propagated or
+      // trigger regular listeners.
+      //
+      // Event listeners can be added in two groups:
+      // - the default group, used by all webcontent event listeners
+      // - the mozSystemGroup group, which can be used by privileged JS
+      //
+      // For instance, the <video> widget controls rely on mozSystemGroup events
+      // to handle clicks on their UI elements.
+      //
+      // In general we need to prevent events from both groups, as well as
+      // handle a few events such as `click` to actually pick nodes.
+      //
+      // However events from the default group are resolved before the events
+      // from the mozSystemGroup.
+      // See https://searchfox.org/mozilla-central/rev/a85b25946f7f8eebf466bd7ad821b82b68a9231f/dom/events/EventDispatcher.cpp#652
+      //
+      // Therefore we need to make sure that we only "stop picking" in the
+      // mozSystemGroup event listeners. When we stop picking, we will remove
+      // the listeners added here, and if we do it too early, some unexpected
+      // callbacks might still be triggered.
+      //
+      // For instance, if we were to stop picking in the default group "click"
+      // event, then the mozSystemGroup "click" event would no longer be stopped
+      // by our listeners, and some widget callbacks might be triggered, such as
+      // <video> controls.
+      //
+      // As a summary: content listeners are resolved before mozSystemGroup
+      // events, so we only prevent content listeners and handle the pick logic
+      // at the latest point possible, in the mozSystemGroup listeners.
+
+      // 1. Prevent content events.
+      target.addEventListener(type, this._preventContentEvent, {
+        capture: true,
+        signal: this.#eventListenersAbortController.signal,
+      });
+
+      // 2. Prevent mozSystemGroup events and handle pick logic.
+      target.addEventListener(type, handler, {
+        capture: true,
+        mozSystemGroup: true,
+        signal: this.#eventListenersAbortController.signal,
+      });
+    }
 
     this._setSuppressedEventListener(this._onSuppressedEvent);
   }

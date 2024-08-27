@@ -359,6 +359,8 @@ skip-if = [
 
 ["browser_inspector_picker-useragent-widget.js"]
 
+["browser_inspector_picker_video_widget.js"]
+
 ["browser_inspector_portrait_mode.js"]
 
 ["browser_inspector_pseudoclass-lock.js"]
