@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "api/audio/audio_processing.h"
+#include "api/audio/audio_view.h"
 #include "common_audio/channel_buffer.h"
 #include "common_audio/include/audio_util.h"
 
@@ -57,6 +58,13 @@ class AudioBuffer {
   // cannot be larger than the specified buffer_num_channels. The number is also
   // reset at each call to CopyFrom or InterleaveFrom.
   void set_num_channels(size_t num_channels);
+
+  // Returns a DeinterleavedView<> over the channel data.
+  DeinterleavedView<float> view() {
+    return DeinterleavedView<float>(
+        num_channels_ && buffer_num_frames_ ? channels()[0] : nullptr,
+        buffer_num_frames_, num_channels_);
+  }
 
   size_t num_channels() const { return num_channels_; }
   size_t num_frames() const { return buffer_num_frames_; }

@@ -56,6 +56,7 @@ rtc_library("audio_buffer") {
 
   deps = [
     "../../api:array_view",
+    "../../api/audio:audio_frame_api",
     "../../api/audio:audio_processing",
     "../../common_audio",
     "../../common_audio:common_audio_c",
@@ -364,6 +365,7 @@ if (rtc_include_tests) {
         "../../api:scoped_refptr",
         "../../api/audio:aec3_config",
         "../../api/audio:aec3_factory",
+        "../../api/audio:audio_frame_api",
         "../../api/audio:audio_processing",
         "../../api/audio:echo_detector_creator",
         "../../common_audio",

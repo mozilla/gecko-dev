@@ -1474,9 +1474,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
     absl::optional<float> voice_probability;
     if (!!submodules_.voice_activity_detector) {
       voice_probability = submodules_.voice_activity_detector->Analyze(
-          AudioFrameView<const float>(capture_buffer->channels(),
-                                      capture_buffer->num_channels(),
-                                      capture_buffer->num_frames()));
+          AudioFrameView<const float>(capture_buffer->view()));
     }
 
     if (submodules_.transient_suppressor) {
