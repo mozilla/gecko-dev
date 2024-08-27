@@ -86,3 +86,25 @@ add_task(async function test_toggle_vertical_tabs() {
 
   await BrowserTestUtils.closeWindow(win);
 });
+
+add_task(async function test_enabling_vertical_tabs_enables_sidebar_revamp() {
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", false]] });
+  ok(
+    !Services.prefs.getBoolPref("sidebar.revamp", false),
+    "sidebar.revamp pref is false initially."
+  );
+  ok(
+    !Services.prefs.getBoolPref("sidebar.verticalTabs", false),
+    "sidebar.verticalTabs pref is false initially."
+  );
+
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+  ok(
+    Services.prefs.getBoolPref("sidebar.verticalTabs", false),
+    "sidebar.verticalTabs pref is enabled after we've enabled it."
+  );
+  ok(
+    Services.prefs.getBoolPref("sidebar.revamp", false),
+    "sidebar.revamp pref is also enabled after we've enabled vertical tabs."
+  );
+});
