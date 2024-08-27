@@ -239,8 +239,7 @@ bool AutoResolving::alreadyStartedSlow() const {
   AutoResolving* cursor = link;
   do {
     MOZ_ASSERT(this != cursor);
-    if (object.get() == cursor->object && id.get() == cursor->id &&
-        kind == cursor->kind) {
+    if (object.get() == cursor->object && id.get() == cursor->id) {
       return true;
     }
   } while (!!(cursor = cursor->link));

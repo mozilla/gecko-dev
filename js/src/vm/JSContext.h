@@ -970,11 +970,8 @@ namespace js {
 
 struct MOZ_RAII AutoResolving {
  public:
-  enum Kind { LOOKUP, WATCH };
-
-  AutoResolving(JSContext* cx, HandleObject obj, HandleId id,
-                Kind kind = LOOKUP)
-      : context(cx), object(obj), id(id), kind(kind), link(cx->resolvingList) {
+  AutoResolving(JSContext* cx, HandleObject obj, HandleId id)
+      : context(cx), object(obj), id(id), link(cx->resolvingList) {
     MOZ_ASSERT(obj);
     cx->resolvingList = this;
   }
@@ -992,7 +989,6 @@ struct MOZ_RAII AutoResolving {
   JSContext* const context;
   HandleObject object;
   HandleId id;
-  Kind const kind;
   AutoResolving* const link;
 };
 
