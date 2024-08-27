@@ -157,7 +157,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(trackingPage.url) {
-            waitForPageToLoad()
+            verifyUrl(trackingPage.url.toString())
         }
         enhancedTrackingProtection {
         }.openEnhancedTrackingProtectionSheet {
