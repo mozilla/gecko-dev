@@ -263,7 +263,7 @@ class RTC_EXPORT VideoEncoder {
     // The minimum QP that the encoder is expected to use with the current
     // configuration. This may be used to determine if the encoder has reached
     // its target video quality for static screenshare content.
-    absl::optional<int> minimum_qp;
+    absl::optional<int> min_qp;
   };
 
   struct RTC_EXPORT RateControlParameters {

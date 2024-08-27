@@ -1857,7 +1857,7 @@ VideoEncoder::EncoderInfo LibvpxVp9Encoder::GetEncoderInfo() const {
     }
 
     if (codec_.mode == VideoCodecMode::kScreensharing) {
-      info.minimum_qp = variable_framerate_screenshare::kMinQP;
+      info.min_qp = variable_framerate_screenshare::kMinQP;
     }
   }
   if (!encoder_info_override_.resolution_bitrate_limits().empty()) {

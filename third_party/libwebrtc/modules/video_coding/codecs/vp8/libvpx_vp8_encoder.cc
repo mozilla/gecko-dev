@@ -68,7 +68,7 @@ constexpr char kVp8ForcePartitionResilience[] =
 // bitstream range of [0, 127] and not the user-level range of [0,63].
 constexpr int kLowVp8QpThreshold = 29;
 constexpr int kHighVp8QpThreshold = 95;
-constexpr int kVp8ScreenshareMinimumQp = 15;
+constexpr int kScreenshareMinQp = 15;
 
 constexpr int kTokenPartitions = VP8_ONE_TOKENPARTITION;
 constexpr uint32_t kVp832ByteAlign = 32u;
@@ -1355,7 +1355,7 @@ VideoEncoder::EncoderInfo LibvpxVp8Encoder::GetEncoderInfo() const {
     }
 
     if (codec_.mode == VideoCodecMode::kScreensharing) {
-      info.minimum_qp = kVp8ScreenshareMinimumQp;
+      info.min_qp = kScreenshareMinQp;
     }
   }
 

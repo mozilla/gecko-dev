@@ -1437,7 +1437,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 3bcb4f66f8..90fcb8463d 100644
+index fc3640cee0..b4508a224e 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -255,6 +255,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,

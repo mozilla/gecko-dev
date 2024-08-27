@@ -58,16 +58,15 @@ namespace webrtc {
 namespace {
 
 // Encoder configuration parameters
-constexpr int kQpMin = 10;
-constexpr int kAv1ScreenshareMinimumQindex =
-    40;  // Min qindex corresponding to kQpMin.
+constexpr int kMinQp = 10;
+constexpr int kMinQindex = 40;  // Min qindex corresponding to kMinQp.
 constexpr int kUsageProfile = AOM_USAGE_REALTIME;
-constexpr int kMinQindex = 145;  // Min qindex threshold for QP scaling.
-constexpr int kMaxQindex = 205;  // Max qindex threshold for QP scaling.
+constexpr int kLowQindex = 145;   // Low qindex threshold for QP scaling.
+constexpr int kHighQindex = 205;  // High qindex threshold for QP scaling.
 constexpr int kBitDepth = 8;
 constexpr int kLagInFrames = 0;  // No look ahead.
 constexpr int kRtpTicksPerSecond = 90000;
-constexpr double kMinimumFrameRate = 1.0;
+constexpr double kMinFrameRateFps = 1.0;
 
 aom_superblock_size_t GetSuperblockSize(int width, int height, int threads) {
   int resolution = width * height;
@@ -159,7 +158,7 @@ int32_t VerifyCodecSettings(const VideoCodec& codec_settings) {
   if (codec_settings.maxFramerate < 1) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
-  if (codec_settings.qpMax < kQpMin || codec_settings.qpMax > 63) {
+  if (codec_settings.qpMax < kMinQp || codec_settings.qpMax > 63) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
   return WEBRTC_VIDEO_CODEC_OK;
@@ -248,7 +247,7 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   cfg_.rc_dropframe_thresh = encoder_settings_.GetFrameDropEnabled() ? 30 : 0;
   cfg_.g_input_bit_depth = kBitDepth;
   cfg_.kf_mode = AOM_KF_DISABLED;
-  cfg_.rc_min_quantizer = kQpMin;
+  cfg_.rc_min_quantizer = kMinQp;
   cfg_.rc_max_quantizer = encoder_settings_.qpMax;
   cfg_.rc_undershoot_pct = 50;
   cfg_.rc_overshoot_pct = 50;
@@ -797,9 +796,9 @@ void LibaomAv1Encoder::SetRates(const RateControlParameters& parameters) {
     RTC_LOG(LS_WARNING) << "SetRates() while encoder is not initialized";
     return;
   }
-  if (parameters.framerate_fps < kMinimumFrameRate) {
+  if (parameters.framerate_fps < kMinFrameRateFps) {
     RTC_LOG(LS_WARNING) << "Unsupported framerate (must be >= "
-                        << kMinimumFrameRate
+                        << kMinFrameRateFps
                         << " ): " << parameters.framerate_fps;
     return;
   }
@@ -851,7 +850,7 @@ VideoEncoder::EncoderInfo LibaomAv1Encoder::GetEncoderInfo() const {
   info.scaling_settings =
       (inited_ && !encoder_settings_.AV1().automatic_resize_on)
           ? VideoEncoder::ScalingSettings::kOff
-          : VideoEncoder::ScalingSettings(kMinQindex, kMaxQindex);
+          : VideoEncoder::ScalingSettings(kLowQindex, kHighQindex);
   info.preferred_pixel_formats = {VideoFrameBuffer::Type::kI420,
                                   VideoFrameBuffer::Type::kNV12};
   if (SvcEnabled()) {
@@ -868,7 +867,7 @@ VideoEncoder::EncoderInfo LibaomAv1Encoder::GetEncoderInfo() const {
         encoder_info_override_.resolution_bitrate_limits();
   }
 
-  info.minimum_qp = kAv1ScreenshareMinimumQindex;
+  info.min_qp = kMinQindex;
   return info;
 }
 
