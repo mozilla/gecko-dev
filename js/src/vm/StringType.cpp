@@ -605,7 +605,8 @@ JSExtensibleString& JSLinearString::makeExtensible(size_t capacity) {
 }
 
 template <typename CharT>
-static MOZ_ALWAYS_INLINE bool AllocCharsForFlatten(JSString* str, size_t length,
+static MOZ_ALWAYS_INLINE bool AllocCharsForFlatten(Nursery& nursery,
+                                                   JSString* str, size_t length,
                                                    CharT** chars,
                                                    size_t* capacity) {
   /*
@@ -618,9 +619,20 @@ static MOZ_ALWAYS_INLINE bool AllocCharsForFlatten(JSString* str, size_t length,
       length > DOUBLING_MAX ? length + (length / 8) : RoundUpPow2(length);
 
   static_assert(JSString::MAX_LENGTH * sizeof(CharT) <= UINT32_MAX);
-  *chars =
-      str->zone()->pod_arena_malloc<CharT>(js::StringBufferArena, *capacity);
-  return *chars != nullptr;
+
+  auto buffer = str->zone()->make_pod_arena_array<CharT>(js::StringBufferArena,
+                                                         *capacity);
+  if (!buffer) {
+    return false;
+  }
+  if (!str->isTenured()) {
+    if (!nursery.registerMallocedBuffer(buffer.get(),
+                                        *capacity * sizeof(CharT))) {
+      return false;
+    }
+  }
+  *chars = buffer.release();
+  return true;
 }
 
 UniqueLatin1Chars JSRope::copyLatin1Chars(JSContext* maybecx,
@@ -1021,16 +1033,9 @@ JSLinearString* JSRope::flattenInternal(JSRope* root) {
     }
   } else {
     // If we can't reuse the leftmost child's buffer, allocate a new one.
-    if (!AllocCharsForFlatten(root, wholeLength, &wholeChars, &wholeCapacity)) {
+    if (!AllocCharsForFlatten(nursery, root, wholeLength, &wholeChars,
+                              &wholeCapacity)) {
       return nullptr;
-    }
-
-    if (!root->isTenured()) {
-      if (!nursery.registerMallocedBuffer(wholeChars,
-                                          wholeCapacity * sizeof(CharT))) {
-        js_free(wholeChars);
-        return nullptr;
-      }
     }
   }
 
