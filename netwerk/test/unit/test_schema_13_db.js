@@ -16,7 +16,7 @@ add_task(async function test_schema_13_db() {
   let dbConnection = Services.storage.openDatabase(do_get_cookie_file(profile));
   let version = dbConnection.schemaVersion;
   dbConnection.close();
-  Assert.ok(version >= 13);
+  Assert.equal(version, 13);
 
   // Close the profile.
   await promise_close_profile();
@@ -65,7 +65,7 @@ add_task(async function test_schema_13_db() {
   // Open connection to manipulated db
   dbConnection = Services.storage.openDatabase(do_get_cookie_file(profile));
   // Check that schema is still correct after profile reload / db opening
-  Assert.ok(dbConnection.schemaVersion >= 13);
+  Assert.equal(dbConnection.schemaVersion, 13);
 
   // Count cookies with isPartitionedAttributeSet set to 1 (true)
   let stmt = dbConnection.createStatement(

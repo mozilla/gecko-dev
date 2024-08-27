@@ -48,7 +48,7 @@ function dotest()
 {
   SimpleTest.waitForExplicitFinish();
   SpecialPowers.pushPrefEnv({
-    set: [["network.cookie.maxageCap", kSevenDays]],
+    set: [["privacy.documentCookies.maxage", kSevenDays]],
   }).then(_ => {
     gScript = SpecialPowers.loadChromeScript(kScriptURL);
 
