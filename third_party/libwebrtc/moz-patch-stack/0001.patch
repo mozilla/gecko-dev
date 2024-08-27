@@ -1,110 +1,2869 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Mon, 26 Aug 2024 16:49:41 -0600
-Subject: (tmp-cherry-pick) [M128] Revert "Update support for missing HIGH
- profiles and 1080p" (bef5d63112)
+Date: Tue, 27 Aug 2024 17:48:19 -0600
+Subject: (tmp-cherry-pick) Revert "Remove jni_zero type aliases in
+ jni_generator_helper.h." (756f58963f)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
+This reverts commit 9fcaa034bc032da9de5d6fcdd45528169f44d343.
 
-This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
-
-Reason for revert: chromium:354143228
+Reason for revert: Breaks downstream project.
 
 Original change's description:
-> Update support for missing HIGH profiles and 1080p
+> Remove jni_zero type aliases in jni_generator_helper.h.
 >
-> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
+> This CL removes some type alias from
+> sdk/android/src/jni/jni_generator_helper.h and make sure all the
+> jni_zero types are referred to using the jni_zero:: namespace.
 >
-> Bug: webrtc:347724928
-> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
-> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42528}
+> The goal is to remove sdk/android/src/jni/jni_generator_helper.h
+> in future CLs.
+>
+> Bug: b/319078685, b/351773023
+> Change-Id: Ief60fce3e8f301f09ac5392d143aa5a82a445bcb
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/356882
+> Reviewed-by: Zoé Lepaul <xalep@webrtc.org>
+> Reviewed-by: Jeremy Leconte <jleconte@google.com>
+> Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42618}
 
-(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
-
-Bug: chromium:354143228, webrtc:347724928
-Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#42675}
-No-Try: True
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
+Bug: b/319078685, b/351773023
+Change-Id: I003acf68e2b84bd0a5cda7c7180a28bcd3ca3772
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/356902
+Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6613@{#1}
-Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
+Cr-Commit-Position: refs/heads/main@{#42619}
 ---
- modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
- .../test/videocodec_test_fixture_impl.cc      |  2 +-
- 2 files changed, 11 insertions(+), 17 deletions(-)
+ .../androidvoip/jni/android_voip_client.cc    |  20 +-
+ .../androidvoip/jni/android_voip_client.h     |  23 +-
+ .../instrumentationtests/loggable_test.cc     |   2 +-
+ .../video_frame_buffer_test.cc                |   5 +-
+ .../audio_device_android.cc                   |  16 +-
+ sdk/android/native_api/codecs/wrapper.cc      |   8 +-
+ sdk/android/native_api/jni/java_types.cc      |  90 +++---
+ sdk/android/native_api/jni/java_types.h       |  99 +++---
+ sdk/android/native_api/jni/scoped_java_ref.h  |  10 +-
+ .../network_monitor/network_monitor.cc        |   2 +-
+ sdk/android/native_api/video/wrapper.cc       |   2 +-
+ sdk/android/src/jni/android_histogram.cc      |  13 +-
+ .../src/jni/audio_device/audio_record_jni.cc  |  19 +-
+ .../src/jni/audio_device/audio_record_jni.h   |  19 +-
+ .../src/jni/audio_device/audio_track_jni.cc   |  13 +-
+ .../src/jni/audio_device/audio_track_jni.h    |  15 +-
+ .../audio_device/java_audio_device_module.cc  |   8 +-
+ sdk/android/src/jni/h264_utils.cc             |   4 +-
+ sdk/android/src/jni/java_i420_buffer.cc       |  12 +-
+ sdk/android/src/jni/jni_common.cc             |   7 +-
+ sdk/android/src/jni/jni_generator_helper.h    |  20 ++
+ sdk/android/src/jni/nv12_buffer.cc            |  37 ++-
+ sdk/android/src/jni/nv21_buffer.cc            |  33 +-
+ .../pc/call_session_file_rotating_log_sink.cc |  12 +-
+ sdk/android/src/jni/pc/data_channel.cc        |  54 ++--
+ sdk/android/src/jni/pc/dtmf_sender.cc         |  13 +-
+ sdk/android/src/jni/pc/logging.cc             |   5 +-
+ sdk/android/src/jni/pc/media_source.cc        |   5 +-
+ sdk/android/src/jni/pc/peer_connection.cc     | 291 +++++++++---------
+ .../src/jni/pc/peer_connection_factory.cc     |  62 ++--
+ sdk/android/src/jni/pc/rtc_certificate.cc     |  11 +-
+ sdk/android/src/jni/pc/rtp_receiver.cc        |  13 +-
+ sdk/android/src/jni/pc/rtp_sender.cc          |  10 +-
+ sdk/android/src/jni/pc/rtp_transceiver.cc     |  12 +-
+ .../src/jni/software_video_decoder_factory.cc |   6 +-
+ .../src/jni/software_video_encoder_factory.cc |   6 +-
+ sdk/android/src/jni/video_decoder_fallback.cc |   4 +-
+ sdk/android/src/jni/video_encoder_fallback.cc |   4 +-
+ sdk/android/src/jni/video_track.cc            |   5 +-
+ sdk/android/src/jni/yuv_helper.cc             |  63 ++--
+ 40 files changed, 503 insertions(+), 550 deletions(-)
 
-diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
-index b2deda5ea8..60142c88c1 100644
---- a/modules/video_coding/codecs/h264/h264.cc
-+++ b/modules/video_coding/codecs/h264/h264.cc
-@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
-   //
-   // We support both packetization modes 0 (mandatory) and 1 (optional,
-   // preferred).
--  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "1", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "0", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "1", add_scalability_modes),
-+                           H264Level::kLevel3_1, "1", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "0", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
-+                           H264Level::kLevel3_1, "0", add_scalability_modes),
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
-                            add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
-                            add_scalability_modes)};
+diff --git a/examples/androidvoip/jni/android_voip_client.cc b/examples/androidvoip/jni/android_voip_client.cc
+index 183f97afa0..5915f0ac67 100644
+--- a/examples/androidvoip/jni/android_voip_client.cc
++++ b/examples/androidvoip/jni/android_voip_client.cc
+@@ -122,7 +122,7 @@ namespace webrtc_examples {
+ 
+ void AndroidVoipClient::Init(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& application_context) {
++    const webrtc::JavaParamRef<jobject>& application_context) {
+   webrtc::VoipEngineConfig config;
+   config.encoder_factory = webrtc::CreateBuiltinAudioEncoderFactory();
+   config.decoder_factory = webrtc::CreateBuiltinAudioDecoderFactory();
+@@ -166,8 +166,8 @@ AndroidVoipClient::~AndroidVoipClient() {
+ 
+ AndroidVoipClient* AndroidVoipClient::Create(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& application_context,
+-    const jni_zero::JavaParamRef<jobject>& j_voip_client) {
++    const webrtc::JavaParamRef<jobject>& application_context,
++    const webrtc::JavaParamRef<jobject>& j_voip_client) {
+   // Using `new` to access a non-public constructor.
+   auto voip_client =
+       absl::WrapUnique(new AndroidVoipClient(env, j_voip_client));
+@@ -182,7 +182,7 @@ void AndroidVoipClient::GetSupportedCodecs(JNIEnv* env) {
+   for (const webrtc::AudioCodecSpec& spec : supported_codecs_) {
+     names.push_back(spec.format.name);
+   }
+-  jni_zero::ScopedJavaLocalRef<jstring> (*convert_function)(
++  webrtc::ScopedJavaLocalRef<jstring> (*convert_function)(
+       JNIEnv*, const std::string&) = &webrtc::NativeToJavaString;
+   Java_VoipClient_onGetSupportedCodecsCompleted(
+       env_, j_voip_client_,
+@@ -225,7 +225,7 @@ void AndroidVoipClient::SetEncoder(const std::string& encoder) {
+ 
+ void AndroidVoipClient::SetEncoder(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jstring>& j_encoder_string) {
++    const webrtc::JavaParamRef<jstring>& j_encoder_string) {
+   const std::string& chosen_encoder =
+       webrtc::JavaToNativeString(env, j_encoder_string);
+   voip_thread_->PostTask(
+@@ -254,7 +254,7 @@ void AndroidVoipClient::SetDecoders(const std::vector<std::string>& decoders) {
+ 
+ void AndroidVoipClient::SetDecoders(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_decoder_strings) {
++    const webrtc::JavaParamRef<jobject>& j_decoder_strings) {
+   const std::vector<std::string>& chosen_decoders =
+       webrtc::JavaListToNativeVector<std::string, jstring>(
+           env, j_decoder_strings, &webrtc::JavaToNativeString);
+@@ -272,7 +272,7 @@ void AndroidVoipClient::SetLocalAddress(const std::string& ip_address,
+ 
+ void AndroidVoipClient::SetLocalAddress(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jstring>& j_ip_address_string,
++    const webrtc::JavaParamRef<jstring>& j_ip_address_string,
+     jint j_port_number_int) {
+   const std::string& ip_address =
+       webrtc::JavaToNativeString(env, j_ip_address_string);
+@@ -291,7 +291,7 @@ void AndroidVoipClient::SetRemoteAddress(const std::string& ip_address,
+ 
+ void AndroidVoipClient::SetRemoteAddress(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jstring>& j_ip_address_string,
++    const webrtc::JavaParamRef<jstring>& j_ip_address_string,
+     jint j_port_number_int) {
+   const std::string& ip_address =
+       webrtc::JavaToNativeString(env, j_ip_address_string);
+@@ -508,8 +508,8 @@ void AndroidVoipClient::OnSignalReadRTCPPacket(
+ 
+ static jlong JNI_VoipClient_CreateClient(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& application_context,
+-    const jni_zero::JavaParamRef<jobject>& j_voip_client) {
++    const webrtc::JavaParamRef<jobject>& application_context,
++    const webrtc::JavaParamRef<jobject>& j_voip_client) {
+   return webrtc::NativeToJavaPointer(
+       AndroidVoipClient::Create(env, application_context, j_voip_client));
+ }
+diff --git a/examples/androidvoip/jni/android_voip_client.h b/examples/androidvoip/jni/android_voip_client.h
+index 41b6a691da..1d9a13b29d 100644
+--- a/examples/androidvoip/jni/android_voip_client.h
++++ b/examples/androidvoip/jni/android_voip_client.h
+@@ -49,8 +49,8 @@ class AndroidVoipClient : public webrtc::Transport {
+   // they are done with it (this class provides a Delete() method).
+   static AndroidVoipClient* Create(
+       JNIEnv* env,
+-      const jni_zero::JavaParamRef<jobject>& application_context,
+-      const jni_zero::JavaParamRef<jobject>& j_voip_client);
++      const webrtc::JavaParamRef<jobject>& application_context,
++      const webrtc::JavaParamRef<jobject>& j_voip_client);
+ 
+   ~AndroidVoipClient() override;
+ 
+@@ -66,23 +66,22 @@ class AndroidVoipClient : public webrtc::Transport {
+ 
+   // Sets the encoder used by the VoIP API.
+   void SetEncoder(JNIEnv* env,
+-                  const jni_zero::JavaParamRef<jstring>& j_encoder_string);
++                  const webrtc::JavaParamRef<jstring>& j_encoder_string);
+ 
+   // Sets the decoders used by the VoIP API.
+   void SetDecoders(JNIEnv* env,
+-                   const jni_zero::JavaParamRef<jobject>& j_decoder_strings);
++                   const webrtc::JavaParamRef<jobject>& j_decoder_strings);
+ 
+   // Sets two local/remote addresses, one for RTP packets, and another for
+   // RTCP packets. The RTP address will have IP address j_ip_address_string
+   // and port number j_port_number_int, the RTCP address will have IP address
+   // j_ip_address_string and port number j_port_number_int+1.
+-  void SetLocalAddress(
+-      JNIEnv* env,
+-      const jni_zero::JavaParamRef<jstring>& j_ip_address_string,
+-      jint j_port_number_int);
++  void SetLocalAddress(JNIEnv* env,
++                       const webrtc::JavaParamRef<jstring>& j_ip_address_string,
++                       jint j_port_number_int);
+   void SetRemoteAddress(
+       JNIEnv* env,
+-      const jni_zero::JavaParamRef<jstring>& j_ip_address_string,
++      const webrtc::JavaParamRef<jstring>& j_ip_address_string,
+       jint j_port_number_int);
+ 
+   // Starts a VoIP session, then calls a callback method with a boolean
+@@ -129,12 +128,12 @@ class AndroidVoipClient : public webrtc::Transport {
+ 
+  private:
+   AndroidVoipClient(JNIEnv* env,
+-                    const jni_zero::JavaParamRef<jobject>& j_voip_client)
++                    const webrtc::JavaParamRef<jobject>& j_voip_client)
+       : voip_thread_(rtc::Thread::CreateWithSocketServer()),
+         j_voip_client_(env, j_voip_client) {}
+ 
+   void Init(JNIEnv* env,
+-            const jni_zero::JavaParamRef<jobject>& application_context);
++            const webrtc::JavaParamRef<jobject>& application_context);
+ 
+   // Overloaded methods having native C++ variables as arguments.
+   void SetEncoder(const std::string& encoder);
+@@ -154,7 +153,7 @@ class AndroidVoipClient : public webrtc::Transport {
+   std::unique_ptr<rtc::Thread> voip_thread_;
+   // Reference to the VoipClient java instance used to
+   // invoke callbacks when operations are finished.
+-  jni_zero::ScopedJavaGlobalRef<jobject> j_voip_client_
++  webrtc::ScopedJavaGlobalRef<jobject> j_voip_client_
+       RTC_GUARDED_BY(voip_thread_);
+   // A list of AudioCodecSpec supported by the built-in
+   // encoder/decoder factories.
+diff --git a/sdk/android/instrumentationtests/loggable_test.cc b/sdk/android/instrumentationtests/loggable_test.cc
+index 49bd82e988..304da05b40 100644
+--- a/sdk/android/instrumentationtests/loggable_test.cc
++++ b/sdk/android/instrumentationtests/loggable_test.cc
+@@ -23,7 +23,7 @@ JNI_FUNCTION_DECLARATION(void,
+                          jclass,
+                          jstring j_message) {
+   std::string message =
+-      JavaToNativeString(jni, jni_zero::JavaParamRef<jstring>(jni, j_message));
++      JavaToNativeString(jni, JavaParamRef<jstring>(jni, j_message));
+   RTC_LOG(LS_INFO) << message;
  }
  
-@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
+diff --git a/sdk/android/instrumentationtests/video_frame_buffer_test.cc b/sdk/android/instrumentationtests/video_frame_buffer_test.cc
+index aa07a03217..d7f35dfede 100644
+--- a/sdk/android/instrumentationtests/video_frame_buffer_test.cc
++++ b/sdk/android/instrumentationtests/video_frame_buffer_test.cc
+@@ -21,8 +21,7 @@ JNI_FUNCTION_DECLARATION(jint,
+                          JNIEnv* jni,
+                          jclass,
+                          jobject video_frame_buffer) {
+-  const jni_zero::JavaParamRef<jobject> j_video_frame_buffer(
+-      jni, video_frame_buffer);
++  const JavaParamRef<jobject> j_video_frame_buffer(jni, video_frame_buffer);
+   rtc::scoped_refptr<VideoFrameBuffer> buffer =
+       JavaToNativeFrameBuffer(jni, j_video_frame_buffer);
+   return static_cast<jint>(buffer->type());
+@@ -33,7 +32,7 @@ JNI_FUNCTION_DECLARATION(jobject,
+                          JNIEnv* jni,
+                          jclass,
+                          jobject i420_buffer) {
+-  const jni_zero::JavaParamRef<jobject> j_i420_buffer(jni, i420_buffer);
++  const JavaParamRef<jobject> j_i420_buffer(jni, i420_buffer);
+   rtc::scoped_refptr<VideoFrameBuffer> buffer =
+       JavaToNativeFrameBuffer(jni, j_i420_buffer);
+   const I420BufferInterface* inputBuffer = buffer->GetI420();
+diff --git a/sdk/android/native_api/audio_device_module/audio_device_android.cc b/sdk/android/native_api/audio_device_module/audio_device_android.cc
+index 039897e45a..62bedb1afb 100644
+--- a/sdk/android/native_api/audio_device_module/audio_device_android.cc
++++ b/sdk/android/native_api/audio_device_module/audio_device_android.cc
+@@ -40,8 +40,8 @@ void GetDefaultAudioParameters(JNIEnv* env,
+                                jobject application_context,
+                                AudioParameters* input_parameters,
+                                AudioParameters* output_parameters) {
+-  const jni_zero::JavaParamRef<jobject> j_context(env, application_context);
+-  const jni_zero::ScopedJavaLocalRef<jobject> j_audio_manager =
++  const JavaParamRef<jobject> j_context(env, application_context);
++  const ScopedJavaLocalRef<jobject> j_audio_manager =
+       jni::GetAudioManager(env, j_context);
+   const int input_sample_rate = jni::GetDefaultSampleRate(env, j_audio_manager);
+   const int output_sample_rate =
+@@ -78,8 +78,8 @@ CreateJavaInputAndAAudioOutputAudioDeviceModule(JNIEnv* env,
+                                                 jobject application_context) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   // Get default audio input/output parameters.
+-  const jni_zero::JavaParamRef<jobject> j_context(env, application_context);
+-  const jni_zero::ScopedJavaLocalRef<jobject> j_audio_manager =
++  const JavaParamRef<jobject> j_context(env, application_context);
++  const ScopedJavaLocalRef<jobject> j_audio_manager =
+       jni::GetAudioManager(env, j_context);
+   AudioParameters input_parameters;
+   AudioParameters output_parameters;
+@@ -104,8 +104,8 @@ rtc::scoped_refptr<AudioDeviceModule> CreateJavaAudioDeviceModule(
+     jobject application_context) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   // Get default audio input/output parameters.
+-  const jni_zero::JavaParamRef<jobject> j_context(env, application_context);
+-  const jni_zero::ScopedJavaLocalRef<jobject> j_audio_manager =
++  const JavaParamRef<jobject> j_context(env, application_context);
++  const ScopedJavaLocalRef<jobject> j_audio_manager =
+       jni::GetAudioManager(env, j_context);
+   AudioParameters input_parameters;
+   AudioParameters output_parameters;
+@@ -155,8 +155,8 @@ CreateJavaInputAndOpenSLESOutputAudioDeviceModule(JNIEnv* env,
+                                                   jobject application_context) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   // Get default audio input/output parameters.
+-  const jni_zero::JavaParamRef<jobject> j_context(env, application_context);
+-  const jni_zero::ScopedJavaLocalRef<jobject> j_audio_manager =
++  const JavaParamRef<jobject> j_context(env, application_context);
++  const ScopedJavaLocalRef<jobject> j_audio_manager =
+       jni::GetAudioManager(env, j_context);
+   AudioParameters input_parameters;
+   AudioParameters output_parameters;
+diff --git a/sdk/android/native_api/codecs/wrapper.cc b/sdk/android/native_api/codecs/wrapper.cc
+index 4d11833989..f3f1994779 100644
+--- a/sdk/android/native_api/codecs/wrapper.cc
++++ b/sdk/android/native_api/codecs/wrapper.cc
+@@ -22,28 +22,28 @@ namespace webrtc {
  
-   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
- 
-+  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
-+  // support decoding.
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
- 
-   return supportedCodecs;
+ SdpVideoFormat JavaToNativeVideoCodecInfo(JNIEnv* jni, jobject codec_info) {
+   return jni::VideoCodecInfoToSdpVideoFormat(
+-      jni, jni_zero::JavaParamRef<jobject>(jni, codec_info));
++      jni, JavaParamRef<jobject>(jni, codec_info));
  }
-diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index 82bc6e37f9..9c708263a7 100644
---- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-+++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-@@ -173,7 +173,7 @@ SdpVideoFormat CreateSdpVideoFormat(
-     CodecParameterMap codec_params = {
-         {cricket::kH264FmtpProfileLevelId,
-          *H264ProfileLevelIdToString(H264ProfileLevelId(
--             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
-+             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
-         {cricket::kH264FmtpPacketizationMode, packetization_mode},
-         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
  
+ std::unique_ptr<VideoDecoderFactory> JavaToNativeVideoDecoderFactory(
+     JNIEnv* jni,
+     jobject decoder_factory) {
+   return std::make_unique<jni::VideoDecoderFactoryWrapper>(
+-      jni, jni_zero::JavaParamRef<jobject>(jni, decoder_factory));
++      jni, JavaParamRef<jobject>(jni, decoder_factory));
+ }
+ 
+ std::unique_ptr<VideoEncoderFactory> JavaToNativeVideoEncoderFactory(
+     JNIEnv* jni,
+     jobject encoder_factory) {
+   return std::make_unique<jni::VideoEncoderFactoryWrapper>(
+-      jni, jni_zero::JavaParamRef<jobject>(jni, encoder_factory));
++      jni, JavaParamRef<jobject>(jni, encoder_factory));
+ }
+ 
+ std::vector<VideoEncoder::ResolutionBitrateLimits>
+ JavaToNativeResolutionBitrateLimits(JNIEnv* jni,
+                                     const jobjectArray j_bitrate_limits_array) {
+   return jni::JavaToNativeResolutionBitrateLimits(
+-      jni, jni_zero::JavaParamRef<jobjectArray>(jni, j_bitrate_limits_array));
++      jni, JavaParamRef<jobjectArray>(jni, j_bitrate_limits_array));
+ }
+ 
+ }  // namespace webrtc
+diff --git a/sdk/android/native_api/jni/java_types.cc b/sdk/android/native_api/jni/java_types.cc
+index c428443996..58b6b6b760 100644
+--- a/sdk/android/native_api/jni/java_types.cc
++++ b/sdk/android/native_api/jni/java_types.cc
+@@ -28,7 +28,7 @@
+ 
+ namespace webrtc {
+ 
+-Iterable::Iterable(JNIEnv* jni, const jni_zero::JavaRef<jobject>& iterable)
++Iterable::Iterable(JNIEnv* jni, const JavaRef<jobject>& iterable)
+     : jni_(jni), iterable_(jni, iterable) {}
+ 
+ Iterable::Iterable(Iterable&& other) = default;
+@@ -39,8 +39,7 @@ Iterable::~Iterable() = default;
+ Iterable::Iterator::Iterator() = default;
+ 
+ // Creates an iterator pointing to the beginning of the specified collection.
+-Iterable::Iterator::Iterator(JNIEnv* jni,
+-                             const jni_zero::JavaRef<jobject>& iterable)
++Iterable::Iterator::Iterator(JNIEnv* jni, const JavaRef<jobject>& iterable)
+     : jni_(jni) {
+   iterator_ = JNI_Iterable::Java_Iterable_iterator(jni, iterable);
+   RTC_CHECK(!iterator_.is_null());
+@@ -100,40 +99,36 @@ bool Iterable::Iterator::AtEnd() const {
+   return jni_ == nullptr || IsNull(jni_, iterator_);
+ }
+ 
+-bool IsNull(JNIEnv* jni, const jni_zero::JavaRef<jobject>& obj) {
++bool IsNull(JNIEnv* jni, const JavaRef<jobject>& obj) {
+   return jni->IsSameObject(obj.obj(), nullptr);
+ }
+ 
+-std::string GetJavaEnumName(JNIEnv* jni,
+-                            const jni_zero::JavaRef<jobject>& j_enum) {
++std::string GetJavaEnumName(JNIEnv* jni, const JavaRef<jobject>& j_enum) {
+   return JavaToStdString(jni, JNI_Enum::Java_Enum_name(jni, j_enum));
+ }
+ 
+-Iterable GetJavaMapEntrySet(JNIEnv* jni,
+-                            const jni_zero::JavaRef<jobject>& j_map) {
++Iterable GetJavaMapEntrySet(JNIEnv* jni, const JavaRef<jobject>& j_map) {
+   return Iterable(jni, JNI_Map::Java_Map_entrySet(jni, j_map));
+ }
+ 
+ ScopedJavaLocalRef<jobject> GetJavaMapEntryKey(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_entry) {
++    const JavaRef<jobject>& j_entry) {
+   return jni::Java_JniHelper_getKey(jni, j_entry);
+ }
+ 
+ ScopedJavaLocalRef<jobject> GetJavaMapEntryValue(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_entry) {
++    const JavaRef<jobject>& j_entry) {
+   return jni::Java_JniHelper_getValue(jni, j_entry);
+ }
+ 
+-int64_t JavaToNativeLong(JNIEnv* env,
+-                         const jni_zero::JavaRef<jobject>& j_long) {
++int64_t JavaToNativeLong(JNIEnv* env, const JavaRef<jobject>& j_long) {
+   return JNI_Long::Java_Long_longValue(env, j_long);
+ }
+ 
+-absl::optional<bool> JavaToNativeOptionalBool(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& boolean) {
++absl::optional<bool> JavaToNativeOptionalBool(JNIEnv* jni,
++                                              const JavaRef<jobject>& boolean) {
+   if (IsNull(jni, boolean))
+     return absl::nullopt;
+   return JNI_Boolean::Java_Boolean_booleanValue(jni, boolean);
+@@ -141,7 +136,7 @@ absl::optional<bool> JavaToNativeOptionalBool(
+ 
+ absl::optional<double> JavaToNativeOptionalDouble(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_double) {
++    const JavaRef<jobject>& j_double) {
+   if (IsNull(jni, j_double))
+     return absl::nullopt;
+   return JNI_Double::Java_Double_doubleValue(jni, j_double);
+@@ -149,16 +144,15 @@ absl::optional<double> JavaToNativeOptionalDouble(
+ 
+ absl::optional<int32_t> JavaToNativeOptionalInt(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& integer) {
++    const JavaRef<jobject>& integer) {
+   if (IsNull(jni, integer))
+     return absl::nullopt;
+   return JNI_Integer::Java_Integer_intValue(jni, integer);
+ }
+ 
+ // Given a jstring, reinterprets it to a new native string.
+-std::string JavaToNativeString(JNIEnv* jni,
+-                               const jni_zero::JavaRef<jstring>& j_string) {
+-  const jni_zero::ScopedJavaLocalRef<jbyteArray> j_byte_array =
++std::string JavaToNativeString(JNIEnv* jni, const JavaRef<jstring>& j_string) {
++  const ScopedJavaLocalRef<jbyteArray> j_byte_array =
+       jni::Java_JniHelper_getStringBytes(jni, j_string);
+ 
+   const size_t len = jni->GetArrayLength(j_byte_array.obj());
+@@ -172,11 +166,11 @@ std::string JavaToNativeString(JNIEnv* jni,
+ 
+ std::map<std::string, std::string> JavaToNativeStringMap(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_map) {
++    const JavaRef<jobject>& j_map) {
+   return JavaToNativeMap<std::string, std::string>(
+       jni, j_map,
+-      [](JNIEnv* env, jni_zero::JavaRef<jobject> const& key,
+-         jni_zero::JavaRef<jobject> const& value) {
++      [](JNIEnv* env, JavaRef<jobject> const& key,
++         JavaRef<jobject> const& value) {
+         return std::make_pair(
+             JavaToNativeString(env, static_java_ref_cast<jstring>(env, key)),
+             JavaToNativeString(env, static_java_ref_cast<jstring>(env, value)));
+@@ -202,7 +196,7 @@ ScopedJavaLocalRef<jobject> NativeToJavaLong(JNIEnv* env, int64_t u) {
+ ScopedJavaLocalRef<jstring> NativeToJavaString(JNIEnv* env, const char* str) {
+   jstring j_str = env->NewStringUTF(str);
+   CHECK_EXCEPTION(env) << "error during NewStringUTF";
+-  return jni_zero::ScopedJavaLocalRef<jstring>(env, j_str);
++  return ScopedJavaLocalRef<jstring>(env, j_str);
+ }
+ 
+ ScopedJavaLocalRef<jstring> NativeToJavaString(JNIEnv* jni,
+@@ -231,8 +225,8 @@ ScopedJavaLocalRef<jstring> NativeToJavaString(
+ ScopedJavaLocalRef<jbyteArray> NativeToJavaByteArray(
+     JNIEnv* env,
+     rtc::ArrayView<int8_t> container) {
+-  jni_zero::ScopedJavaLocalRef<jbyteArray> jarray(
+-      env, env->NewByteArray(container.size()));
++  ScopedJavaLocalRef<jbyteArray> jarray(env,
++                                        env->NewByteArray(container.size()));
+   int8_t* array_ptr =
+       env->GetByteArrayElements(jarray.obj(), /*isCopy=*/nullptr);
+   memcpy(array_ptr, container.data(), container.size() * sizeof(int8_t));
+@@ -243,8 +237,7 @@ ScopedJavaLocalRef<jbyteArray> NativeToJavaByteArray(
+ ScopedJavaLocalRef<jintArray> NativeToJavaIntArray(
+     JNIEnv* env,
+     rtc::ArrayView<int32_t> container) {
+-  jni_zero::ScopedJavaLocalRef<jintArray> jarray(
+-      env, env->NewIntArray(container.size()));
++  ScopedJavaLocalRef<jintArray> jarray(env, env->NewIntArray(container.size()));
+   int32_t* array_ptr =
+       env->GetIntArrayElements(jarray.obj(), /*isCopy=*/nullptr);
+   memcpy(array_ptr, container.data(), container.size() * sizeof(int32_t));
+@@ -252,9 +245,8 @@ ScopedJavaLocalRef<jintArray> NativeToJavaIntArray(
+   return jarray;
+ }
+ 
+-std::vector<int8_t> JavaToNativeByteArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jbyteArray>& jarray) {
++std::vector<int8_t> JavaToNativeByteArray(JNIEnv* env,
++                                          const JavaRef<jbyteArray>& jarray) {
+   int8_t* array_ptr =
+       env->GetByteArrayElements(jarray.obj(), /*isCopy=*/nullptr);
+   size_t array_length = env->GetArrayLength(jarray.obj());
+@@ -263,9 +255,8 @@ std::vector<int8_t> JavaToNativeByteArray(
+   return container;
+ }
+ 
+-std::vector<int32_t> JavaToNativeIntArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jintArray>& jarray) {
++std::vector<int32_t> JavaToNativeIntArray(JNIEnv* env,
++                                          const JavaRef<jintArray>& jarray) {
+   int32_t* array_ptr =
+       env->GetIntArrayElements(jarray.obj(), /*isCopy=*/nullptr);
+   size_t array_length = env->GetArrayLength(jarray.obj());
+@@ -274,9 +265,8 @@ std::vector<int32_t> JavaToNativeIntArray(
+   return container;
+ }
+ 
+-std::vector<float> JavaToNativeFloatArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jfloatArray>& jarray) {
++std::vector<float> JavaToNativeFloatArray(JNIEnv* env,
++                                          const JavaRef<jfloatArray>& jarray) {
+   // jfloat is a "machine-dependent native type" which represents a 32-bit
+   // float. C++ makes no guarantees about the size of floating point types, and
+   // some exotic architectures don't even have 32-bit floats (or even binary
+@@ -300,7 +290,7 @@ ScopedJavaLocalRef<jobjectArray> NativeToJavaBooleanArray(
+ ScopedJavaLocalRef<jobjectArray> NativeToJavaDoubleArray(
+     JNIEnv* env,
+     const std::vector<double>& container) {
+-  jni_zero::ScopedJavaLocalRef<jobject> (*convert_function)(JNIEnv*, double) =
++  ScopedJavaLocalRef<jobject> (*convert_function)(JNIEnv*, double) =
+       &NativeToJavaDouble;
+   return NativeToJavaObjectArray(env, container, java_lang_Double_clazz(env),
+                                  convert_function);
+@@ -309,7 +299,7 @@ ScopedJavaLocalRef<jobjectArray> NativeToJavaDoubleArray(
+ ScopedJavaLocalRef<jobjectArray> NativeToJavaIntegerArray(
+     JNIEnv* env,
+     const std::vector<int32_t>& container) {
+-  jni_zero::ScopedJavaLocalRef<jobject> (*convert_function)(JNIEnv*, int32_t) =
++  ScopedJavaLocalRef<jobject> (*convert_function)(JNIEnv*, int32_t) =
+       &NativeToJavaInteger;
+   return NativeToJavaObjectArray(env, container, java_lang_Integer_clazz(env),
+                                  convert_function);
+@@ -325,8 +315,8 @@ ScopedJavaLocalRef<jobjectArray> NativeToJavaLongArray(
+ ScopedJavaLocalRef<jobjectArray> NativeToJavaStringArray(
+     JNIEnv* env,
+     const std::vector<std::string>& container) {
+-  jni_zero::ScopedJavaLocalRef<jstring> (*convert_function)(
+-      JNIEnv*, const std::string&) = &NativeToJavaString;
++  ScopedJavaLocalRef<jstring> (*convert_function)(JNIEnv*, const std::string&) =
++      &NativeToJavaString;
+   return NativeToJavaObjectArray(
+       env, container,
+       static_cast<jclass>(jni::Java_JniHelper_getStringClass(env).obj()),
+@@ -339,7 +329,7 @@ JavaListBuilder::JavaListBuilder(JNIEnv* env)
+ 
+ JavaListBuilder::~JavaListBuilder() = default;
+ 
+-void JavaListBuilder::add(const jni_zero::JavaRef<jobject>& element) {
++void JavaListBuilder::add(const JavaRef<jobject>& element) {
+   JNI_ArrayList::Java_ArrayList_add(env_, j_list_, element);
+ }
+ 
+@@ -350,8 +340,8 @@ JavaMapBuilder::JavaMapBuilder(JNIEnv* env)
+ 
+ JavaMapBuilder::~JavaMapBuilder() = default;
+ 
+-void JavaMapBuilder::put(const jni_zero::JavaRef<jobject>& key,
+-                         const jni_zero::JavaRef<jobject>& value) {
++void JavaMapBuilder::put(const JavaRef<jobject>& key,
++                         const JavaRef<jobject>& value) {
+   JNI_Map::Java_Map_put(env_, j_map_, key, value);
+ }
+ 
+@@ -367,15 +357,13 @@ jlong NativeToJavaPointer(const void* ptr) {
+ }
+ 
+ // Given a list of jstrings, reinterprets it to a new vector of native strings.
+-std::vector<std::string> JavaToStdVectorStrings(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& list) {
++std::vector<std::string> JavaToStdVectorStrings(JNIEnv* jni,
++                                                const JavaRef<jobject>& list) {
+   std::vector<std::string> converted_list;
+   if (!list.is_null()) {
+-    for (const jni_zero::JavaRef<jobject>& str : Iterable(jni, list)) {
+-      converted_list.push_back(
+-          JavaToStdString(jni, jni_zero::JavaParamRef<jstring>(
+-                                   jni, static_cast<jstring>(str.obj()))));
++    for (const JavaRef<jobject>& str : Iterable(jni, list)) {
++      converted_list.push_back(JavaToStdString(
++          jni, JavaParamRef<jstring>(jni, static_cast<jstring>(str.obj()))));
+     }
+   }
+   return converted_list;
+diff --git a/sdk/android/native_api/jni/java_types.h b/sdk/android/native_api/jni/java_types.h
+index a4deda11a7..47b4164d4c 100644
+--- a/sdk/android/native_api/jni/java_types.h
++++ b/sdk/android/native_api/jni/java_types.h
+@@ -52,7 +52,7 @@ namespace webrtc {
+ // Java iterator.
+ class Iterable {
+  public:
+-  Iterable(JNIEnv* jni, const jni_zero::JavaRef<jobject>& iterable);
++  Iterable(JNIEnv* jni, const JavaRef<jobject>& iterable);
+   Iterable(Iterable&& other);
+ 
+   ~Iterable();
+@@ -66,7 +66,7 @@ class Iterable {
+     Iterator();
+     // Creates an iterator pointing to the beginning of the specified
+     // collection.
+-    Iterator(JNIEnv* jni, const jni_zero::JavaRef<jobject>& iterable);
++    Iterator(JNIEnv* jni, const JavaRef<jobject>& iterable);
+ 
+     // Move constructor - necessary to be able to return iterator types from
+     // functions.
+@@ -93,14 +93,14 @@ class Iterable {
+     // iterators.
+     bool operator==(const Iterator& other);
+     bool operator!=(const Iterator& other) { return !(*this == other); }
+-    jni_zero::ScopedJavaLocalRef<jobject>& operator*();
++    ScopedJavaLocalRef<jobject>& operator*();
+ 
+    private:
+     bool AtEnd() const;
+ 
+     JNIEnv* jni_ = nullptr;
+-    jni_zero::ScopedJavaLocalRef<jobject> iterator_;
+-    jni_zero::ScopedJavaLocalRef<jobject> value_;
++    ScopedJavaLocalRef<jobject> iterator_;
++    ScopedJavaLocalRef<jobject> value_;
+     SequenceChecker thread_checker_;
+   };
+ 
+@@ -109,56 +109,50 @@ class Iterable {
+ 
+  private:
+   JNIEnv* jni_;
+-  jni_zero::ScopedJavaLocalRef<jobject> iterable_;
++  ScopedJavaLocalRef<jobject> iterable_;
+ };
+ 
+ // Returns true if `obj` == null in Java.
+-bool IsNull(JNIEnv* jni, const jni_zero::JavaRef<jobject>& obj);
++bool IsNull(JNIEnv* jni, const JavaRef<jobject>& obj);
+ 
+ // Returns the name of a Java enum.
+-std::string GetJavaEnumName(JNIEnv* jni,
+-                            const jni_zero::JavaRef<jobject>& j_enum);
++std::string GetJavaEnumName(JNIEnv* jni, const JavaRef<jobject>& j_enum);
+ 
+-Iterable GetJavaMapEntrySet(JNIEnv* jni,
+-                            const jni_zero::JavaRef<jobject>& j_map);
+-ScopedJavaLocalRef<jobject> GetJavaMapEntryKey(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_entry);
++Iterable GetJavaMapEntrySet(JNIEnv* jni, const JavaRef<jobject>& j_map);
++ScopedJavaLocalRef<jobject> GetJavaMapEntryKey(JNIEnv* jni,
++                                               const JavaRef<jobject>& j_entry);
+ ScopedJavaLocalRef<jobject> GetJavaMapEntryValue(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_entry);
++    const JavaRef<jobject>& j_entry);
+ 
+ // --------------------------------------------------------
+ // -- Methods for converting Java types to native types. --
+ // --------------------------------------------------------
+ 
+-int64_t JavaToNativeLong(JNIEnv* env, const jni_zero::JavaRef<jobject>& j_long);
++int64_t JavaToNativeLong(JNIEnv* env, const JavaRef<jobject>& j_long);
+ 
+-absl::optional<bool> JavaToNativeOptionalBool(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& boolean);
++absl::optional<bool> JavaToNativeOptionalBool(JNIEnv* jni,
++                                              const JavaRef<jobject>& boolean);
+ absl::optional<double> JavaToNativeOptionalDouble(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_double);
++    const JavaRef<jobject>& j_double);
+ absl::optional<int32_t> JavaToNativeOptionalInt(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& integer);
++    const JavaRef<jobject>& integer);
+ 
+ // Given a (UTF-16) jstring return a new UTF-8 native string.
+-std::string JavaToNativeString(JNIEnv* jni,
+-                               const jni_zero::JavaRef<jstring>& j_string);
++std::string JavaToNativeString(JNIEnv* jni, const JavaRef<jstring>& j_string);
+ 
+ template <typename T, typename Convert>
+-std::vector<T> JavaToNativeVector(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jobjectArray>& j_container,
+-    Convert convert) {
++std::vector<T> JavaToNativeVector(JNIEnv* env,
++                                  const JavaRef<jobjectArray>& j_container,
++                                  Convert convert) {
+   std::vector<T> container;
+   const size_t size = env->GetArrayLength(j_container.obj());
+   container.reserve(size);
+   for (size_t i = 0; i < size; ++i) {
+     container.emplace_back(convert(
+-        env, jni_zero::ScopedJavaLocalRef<jobject>(
++        env, ScopedJavaLocalRef<jobject>(
+                  env, env->GetObjectArrayElement(j_container.obj(), i))));
+   }
+   CHECK_EXCEPTION(env) << "Error during JavaToNativeVector";
+@@ -167,7 +161,7 @@ std::vector<T> JavaToNativeVector(
+ 
+ template <typename T, typename Java_T = jobject, typename Convert>
+ std::vector<T> JavaListToNativeVector(JNIEnv* env,
+-                                      const jni_zero::JavaRef<jobject>& j_list,
++                                      const JavaRef<jobject>& j_list,
+                                       Convert convert) {
+   std::vector<T> native_list;
+   if (!j_list.is_null()) {
+@@ -182,7 +176,7 @@ std::vector<T> JavaListToNativeVector(JNIEnv* env,
+ 
+ template <typename Key, typename T, typename Convert>
+ std::map<Key, T> JavaToNativeMap(JNIEnv* env,
+-                                 const jni_zero::JavaRef<jobject>& j_map,
++                                 const JavaRef<jobject>& j_map,
+                                  Convert convert) {
+   std::map<Key, T> container;
+   for (auto const& j_entry : GetJavaMapEntrySet(env, j_map)) {
+@@ -195,7 +189,7 @@ std::map<Key, T> JavaToNativeMap(JNIEnv* env,
+ // Converts Map<String, String> to std::map<std::string, std::string>.
+ std::map<std::string, std::string> JavaToNativeStringMap(
+     JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_map);
++    const JavaRef<jobject>& j_map);
+ 
+ // --------------------------------------------------------
+ // -- Methods for converting native types to Java types. --
+@@ -226,7 +220,7 @@ ScopedJavaLocalRef<jobjectArray> NativeToJavaObjectArray(
+     const std::vector<T>& container,
+     jclass clazz,
+     Convert convert) {
+-  jni_zero::ScopedJavaLocalRef<jobjectArray> j_container(
++  ScopedJavaLocalRef<jobjectArray> j_container(
+       env, env->NewObjectArray(container.size(), clazz, nullptr));
+   int i = 0;
+   for (const T& element : container) {
+@@ -244,15 +238,12 @@ ScopedJavaLocalRef<jintArray> NativeToJavaIntArray(
+     JNIEnv* env,
+     rtc::ArrayView<int32_t> container);
+ 
+-std::vector<int8_t> JavaToNativeByteArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jbyteArray>& jarray);
+-std::vector<int32_t> JavaToNativeIntArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jintArray>& jarray);
+-std::vector<float> JavaToNativeFloatArray(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jfloatArray>& jarray);
++std::vector<int8_t> JavaToNativeByteArray(JNIEnv* env,
++                                          const JavaRef<jbyteArray>& jarray);
++std::vector<int32_t> JavaToNativeIntArray(JNIEnv* env,
++                                          const JavaRef<jintArray>& jarray);
++std::vector<float> JavaToNativeFloatArray(JNIEnv* env,
++                                          const JavaRef<jfloatArray>& jarray);
+ 
+ ScopedJavaLocalRef<jobjectArray> NativeToJavaBooleanArray(
+     JNIEnv* env,
+@@ -276,12 +267,12 @@ class JavaListBuilder {
+  public:
+   explicit JavaListBuilder(JNIEnv* env);
+   ~JavaListBuilder();
+-  void add(const jni_zero::JavaRef<jobject>& element);
+-  jni_zero::ScopedJavaLocalRef<jobject> java_list() { return j_list_; }
++  void add(const JavaRef<jobject>& element);
++  ScopedJavaLocalRef<jobject> java_list() { return j_list_; }
+ 
+  private:
+   JNIEnv* env_;
+-  jni_zero::ScopedJavaLocalRef<jobject> j_list_;
++  ScopedJavaLocalRef<jobject> j_list_;
+ };
+ 
+ template <typename C, typename Convert>
+@@ -300,13 +291,12 @@ class JavaMapBuilder {
+  public:
+   explicit JavaMapBuilder(JNIEnv* env);
+   ~JavaMapBuilder();
+-  void put(const jni_zero::JavaRef<jobject>& key,
+-           const jni_zero::JavaRef<jobject>& value);
+-  jni_zero::ScopedJavaLocalRef<jobject> GetJavaMap() { return j_map_; }
++  void put(const JavaRef<jobject>& key, const JavaRef<jobject>& value);
++  ScopedJavaLocalRef<jobject> GetJavaMap() { return j_map_; }
+ 
+  private:
+   JNIEnv* env_;
+-  jni_zero::ScopedJavaLocalRef<jobject> j_map_;
++  ScopedJavaLocalRef<jobject> j_map_;
+ };
+ 
+ template <typename C, typename Convert>
+@@ -344,34 +334,33 @@ jlong NativeToJavaPointer(const void* ptr);
+ 
+ // Deprecated. Use JavaToNativeString.
+ inline std::string JavaToStdString(JNIEnv* jni,
+-                                   const jni_zero::JavaRef<jstring>& j_string) {
++                                   const JavaRef<jstring>& j_string) {
+   return JavaToNativeString(jni, j_string);
+ }
+ 
+ // Deprecated. Use scoped jobjects instead.
+ inline std::string JavaToStdString(JNIEnv* jni, jstring j_string) {
+-  return JavaToStdString(jni, jni_zero::JavaParamRef<jstring>(jni, j_string));
++  return JavaToStdString(jni, JavaParamRef<jstring>(jni, j_string));
+ }
+ 
+ // Deprecated. Use JavaListToNativeVector<std::string, jstring> instead.
+ // Given a List of (UTF-16) jstrings
+ // return a new vector of UTF-8 native strings.
+-std::vector<std::string> JavaToStdVectorStrings(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& list);
++std::vector<std::string> JavaToStdVectorStrings(JNIEnv* jni,
++                                                const JavaRef<jobject>& list);
+ 
+ // Deprecated. Use JavaToNativeStringMap instead.
+ // Parses Map<String, String> to std::map<std::string, std::string>.
+ inline std::map<std::string, std::string> JavaToStdMapStrings(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_map) {
++    const JavaRef<jobject>& j_map) {
+   return JavaToNativeStringMap(jni, j_map);
+ }
+ 
+ // Deprecated. Use scoped jobjects instead.
+ inline std::map<std::string, std::string> JavaToStdMapStrings(JNIEnv* jni,
+                                                               jobject j_map) {
+-  return JavaToStdMapStrings(jni, jni_zero::JavaParamRef<jobject>(jni, j_map));
++  return JavaToStdMapStrings(jni, JavaParamRef<jobject>(jni, j_map));
+ }
+ 
+ }  // namespace webrtc
+diff --git a/sdk/android/native_api/jni/scoped_java_ref.h b/sdk/android/native_api/jni/scoped_java_ref.h
+index 07f7d9bfe7..cd30e52126 100644
+--- a/sdk/android/native_api/jni/scoped_java_ref.h
++++ b/sdk/android/native_api/jni/scoped_java_ref.h
+@@ -28,12 +28,10 @@ using jni_zero::ScopedJavaGlobalRef;
+ using jni_zero::ScopedJavaLocalRef;
+ 
+ template <typename T>
+-inline jni_zero::ScopedJavaLocalRef<T> static_java_ref_cast(
+-    JNIEnv* env,
+-    jni_zero::JavaRef<jobject> const& ref) {
+-  jni_zero::ScopedJavaLocalRef<jobject> owned_ref(env, ref);
+-  return jni_zero::ScopedJavaLocalRef<T>(env,
+-                                         static_cast<T>(owned_ref.Release()));
++inline ScopedJavaLocalRef<T> static_java_ref_cast(JNIEnv* env,
++                                                  JavaRef<jobject> const& ref) {
++  ScopedJavaLocalRef<jobject> owned_ref(env, ref);
++  return ScopedJavaLocalRef<T>(env, static_cast<T>(owned_ref.Release()));
+ }
+ 
+ }  // namespace webrtc
+diff --git a/sdk/android/native_api/network_monitor/network_monitor.cc b/sdk/android/native_api/network_monitor/network_monitor.cc
+index 7a30e134db..facbdbdd9d 100644
+--- a/sdk/android/native_api/network_monitor/network_monitor.cc
++++ b/sdk/android/native_api/network_monitor/network_monitor.cc
+@@ -20,7 +20,7 @@ std::unique_ptr<rtc::NetworkMonitorFactory> CreateAndroidNetworkMonitorFactory(
+     JNIEnv* env,
+     jobject application_context) {
+   return std::make_unique<jni::AndroidNetworkMonitorFactory>(
+-      env, jni_zero::JavaParamRef<jobject>(env, application_context));
++      env, JavaParamRef<jobject>(env, application_context));
+ }
+ 
+ std::unique_ptr<rtc::NetworkMonitorFactory>
+diff --git a/sdk/android/native_api/video/wrapper.cc b/sdk/android/native_api/video/wrapper.cc
+index 9ef8c0ad8a..0115970045 100644
+--- a/sdk/android/native_api/video/wrapper.cc
++++ b/sdk/android/native_api/video/wrapper.cc
+@@ -22,7 +22,7 @@ std::unique_ptr<rtc::VideoSinkInterface<VideoFrame>> JavaToNativeVideoSink(
+     JNIEnv* jni,
+     jobject video_sink) {
+   return std::make_unique<jni::VideoSinkWrapper>(
+-      jni, jni_zero::JavaParamRef<jobject>(jni, video_sink));
++      jni, JavaParamRef<jobject>(jni, video_sink));
+ }
+ 
+ ScopedJavaLocalRef<jobject> NativeToJavaVideoFrame(JNIEnv* jni,
+diff --git a/sdk/android/src/jni/android_histogram.cc b/sdk/android/src/jni/android_histogram.cc
+index 54042c402b..aa4c0a28be 100644
+--- a/sdk/android/src/jni/android_histogram.cc
++++ b/sdk/android/src/jni/android_histogram.cc
+@@ -20,12 +20,11 @@
+ namespace webrtc {
+ namespace jni {
+ 
+-static jlong JNI_Histogram_CreateCounts(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_name,
+-    jint min,
+-    jint max,
+-    jint buckets) {
++static jlong JNI_Histogram_CreateCounts(JNIEnv* jni,
++                                        const JavaParamRef<jstring>& j_name,
++                                        jint min,
++                                        jint max,
++                                        jint buckets) {
+   std::string name = JavaToStdString(jni, j_name);
+   return jlongFromPointer(
+       metrics::HistogramFactoryGetCounts(name, min, max, buckets));
+@@ -33,7 +32,7 @@ static jlong JNI_Histogram_CreateCounts(
+ 
+ static jlong JNI_Histogram_CreateEnumeration(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_name,
++    const JavaParamRef<jstring>& j_name,
+     jint max) {
+   std::string name = JavaToStdString(jni, j_name);
+   return jlongFromPointer(metrics::HistogramFactoryGetEnumeration(name, max));
+diff --git a/sdk/android/src/jni/audio_device/audio_record_jni.cc b/sdk/android/src/jni/audio_device/audio_record_jni.cc
+index 141e142a58..d206297001 100644
+--- a/sdk/android/src/jni/audio_device/audio_record_jni.cc
++++ b/sdk/android/src/jni/audio_device/audio_record_jni.cc
+@@ -49,15 +49,15 @@ class ScopedHistogramTimer {
+ 
+ ScopedJavaLocalRef<jobject> AudioRecordJni::CreateJavaWebRtcAudioRecord(
+     JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_context,
+-    const jni_zero::JavaRef<jobject>& j_audio_manager) {
++    const JavaRef<jobject>& j_context,
++    const JavaRef<jobject>& j_audio_manager) {
+   return Java_WebRtcAudioRecord_Constructor(env, j_context, j_audio_manager);
+ }
+ 
+ AudioRecordJni::AudioRecordJni(JNIEnv* env,
+                                const AudioParameters& audio_parameters,
+                                int total_delay_ms,
+-                               const jni_zero::JavaRef<jobject>& j_audio_record)
++                               const JavaRef<jobject>& j_audio_record)
+     : j_audio_record_(env, j_audio_record),
+       audio_parameters_(audio_parameters),
+       total_delay_ms_(total_delay_ms),
+@@ -229,8 +229,8 @@ int32_t AudioRecordJni::EnableBuiltInNS(bool enable) {
+ 
+ void AudioRecordJni::CacheDirectBufferAddress(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_caller,
+-    const jni_zero::JavaParamRef<jobject>& byte_buffer) {
++    const JavaParamRef<jobject>& j_caller,
++    const JavaParamRef<jobject>& byte_buffer) {
+   RTC_LOG(LS_INFO) << "OnCacheDirectBufferAddress";
+   RTC_DCHECK(thread_checker_.IsCurrent());
+   RTC_DCHECK(!direct_buffer_address_);
+@@ -242,11 +242,10 @@ void AudioRecordJni::CacheDirectBufferAddress(
+ 
+ // This method is called on a high-priority thread from Java. The name of
+ // the thread is 'AudioRecordThread'.
+-void AudioRecordJni::DataIsRecorded(
+-    JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_caller,
+-    int length,
+-    int64_t capture_timestamp_ns) {
++void AudioRecordJni::DataIsRecorded(JNIEnv* env,
++                                    const JavaParamRef<jobject>& j_caller,
++                                    int length,
++                                    int64_t capture_timestamp_ns) {
+   RTC_DCHECK(thread_checker_java_.IsCurrent());
+   if (!audio_device_buffer_) {
+     RTC_LOG(LS_ERROR) << "AttachAudioBuffer has not been called";
+diff --git a/sdk/android/src/jni/audio_device/audio_record_jni.h b/sdk/android/src/jni/audio_device/audio_record_jni.h
+index 3eff2d488c..72e6157b88 100644
+--- a/sdk/android/src/jni/audio_device/audio_record_jni.h
++++ b/sdk/android/src/jni/audio_device/audio_record_jni.h
+@@ -44,15 +44,15 @@ namespace jni {
+ // thread is used.
+ class AudioRecordJni : public AudioInput {
+  public:
+-  static jni_zero::ScopedJavaLocalRef<jobject> CreateJavaWebRtcAudioRecord(
++  static ScopedJavaLocalRef<jobject> CreateJavaWebRtcAudioRecord(
+       JNIEnv* env,
+-      const jni_zero::JavaRef<jobject>& j_context,
+-      const jni_zero::JavaRef<jobject>& j_audio_manager);
++      const JavaRef<jobject>& j_context,
++      const JavaRef<jobject>& j_audio_manager);
+ 
+   AudioRecordJni(JNIEnv* env,
+                  const AudioParameters& audio_parameters,
+                  int total_delay_ms,
+-                 const jni_zero::JavaRef<jobject>& j_webrtc_audio_record);
++                 const JavaRef<jobject>& j_webrtc_audio_record);
+   ~AudioRecordJni() override;
+ 
+   int32_t Init() override;
+@@ -78,10 +78,9 @@ class AudioRecordJni : public AudioInput {
+   // is also stored in `direct_buffer_capacity_in_bytes_`.
+   // This method will be called by the WebRtcAudioRecord constructor, i.e.,
+   // on the same thread that this object is created on.
+-  void CacheDirectBufferAddress(
+-      JNIEnv* env,
+-      const jni_zero::JavaParamRef<jobject>& j_caller,
+-      const jni_zero::JavaParamRef<jobject>& byte_buffer);
++  void CacheDirectBufferAddress(JNIEnv* env,
++                                const JavaParamRef<jobject>& j_caller,
++                                const JavaParamRef<jobject>& byte_buffer);
+ 
+   // Called periodically by the Java based WebRtcAudioRecord object when
+   // recording has started. Each call indicates that there are `length` new
+@@ -90,7 +89,7 @@ class AudioRecordJni : public AudioInput {
+   // This method is called on a high-priority thread from Java. The name of
+   // the thread is 'AudioRecordThread'.
+   void DataIsRecorded(JNIEnv* env,
+-                      const jni_zero::JavaParamRef<jobject>& j_caller,
++                      const JavaParamRef<jobject>& j_caller,
+                       int length,
+                       int64_t capture_timestamp_ns);
+ 
+@@ -104,7 +103,7 @@ class AudioRecordJni : public AudioInput {
+ 
+   // Wraps the Java specific parts of the AudioRecordJni class.
+   JNIEnv* env_ = nullptr;
+-  jni_zero::ScopedJavaGlobalRef<jobject> j_audio_record_;
++  ScopedJavaGlobalRef<jobject> j_audio_record_;
+ 
+   const AudioParameters audio_parameters_;
+ 
+diff --git a/sdk/android/src/jni/audio_device/audio_track_jni.cc b/sdk/android/src/jni/audio_device/audio_track_jni.cc
+index a2ec0c6c43..512c10f545 100644
+--- a/sdk/android/src/jni/audio_device/audio_track_jni.cc
++++ b/sdk/android/src/jni/audio_device/audio_track_jni.cc
+@@ -27,15 +27,14 @@ namespace jni {
+ 
+ ScopedJavaLocalRef<jobject> AudioTrackJni::CreateJavaWebRtcAudioTrack(
+     JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_context,
+-    const jni_zero::JavaRef<jobject>& j_audio_manager) {
++    const JavaRef<jobject>& j_context,
++    const JavaRef<jobject>& j_audio_manager) {
+   return Java_WebRtcAudioTrack_Constructor(env, j_context, j_audio_manager);
+ }
+ 
+-AudioTrackJni::AudioTrackJni(
+-    JNIEnv* env,
+-    const AudioParameters& audio_parameters,
+-    const jni_zero::JavaRef<jobject>& j_webrtc_audio_track)
++AudioTrackJni::AudioTrackJni(JNIEnv* env,
++                             const AudioParameters& audio_parameters,
++                             const JavaRef<jobject>& j_webrtc_audio_track)
+     : j_audio_track_(env, j_webrtc_audio_track),
+       audio_parameters_(audio_parameters),
+       direct_buffer_address_(nullptr),
+@@ -230,7 +229,7 @@ void AudioTrackJni::AttachAudioBuffer(AudioDeviceBuffer* audioBuffer) {
+ 
+ void AudioTrackJni::CacheDirectBufferAddress(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& byte_buffer) {
++    const JavaParamRef<jobject>& byte_buffer) {
+   RTC_LOG(LS_INFO) << "OnCacheDirectBufferAddress";
+   RTC_DCHECK(thread_checker_.IsCurrent());
+   RTC_DCHECK(!direct_buffer_address_);
+diff --git a/sdk/android/src/jni/audio_device/audio_track_jni.h b/sdk/android/src/jni/audio_device/audio_track_jni.h
+index 41fbb0a853..10f3ee7c35 100644
+--- a/sdk/android/src/jni/audio_device/audio_track_jni.h
++++ b/sdk/android/src/jni/audio_device/audio_track_jni.h
+@@ -41,14 +41,14 @@ namespace jni {
+ // thread is used.
+ class AudioTrackJni : public AudioOutput {
+  public:
+-  static jni_zero::ScopedJavaLocalRef<jobject> CreateJavaWebRtcAudioTrack(
++  static ScopedJavaLocalRef<jobject> CreateJavaWebRtcAudioTrack(
+       JNIEnv* env,
+-      const jni_zero::JavaRef<jobject>& j_context,
+-      const jni_zero::JavaRef<jobject>& j_audio_manager);
++      const JavaRef<jobject>& j_context,
++      const JavaRef<jobject>& j_audio_manager);
+ 
+   AudioTrackJni(JNIEnv* env,
+                 const AudioParameters& audio_parameters,
+-                const jni_zero::JavaRef<jobject>& j_webrtc_audio_track);
++                const JavaRef<jobject>& j_webrtc_audio_track);
+   ~AudioTrackJni() override;
+ 
+   int32_t Init() override;
+@@ -74,9 +74,8 @@ class AudioTrackJni : public AudioOutput {
+   // `byte_buffer` in `direct_buffer_address_`. The size of the buffer
+   // is also stored in `direct_buffer_capacity_in_bytes_`.
+   // Called on the same thread as the creating thread.
+-  void CacheDirectBufferAddress(
+-      JNIEnv* env,
+-      const jni_zero::JavaParamRef<jobject>& byte_buffer);
++  void CacheDirectBufferAddress(JNIEnv* env,
++                                const JavaParamRef<jobject>& byte_buffer);
+   // Called periodically by the Java based WebRtcAudioTrack object when
+   // playout has started. Each call indicates that `length` new bytes should
+   // be written to the memory area `direct_buffer_address_` for playout.
+@@ -94,7 +93,7 @@ class AudioTrackJni : public AudioOutput {
+ 
+   // Wraps the Java specific parts of the AudioTrackJni class.
+   JNIEnv* env_ = nullptr;
+-  jni_zero::ScopedJavaGlobalRef<jobject> j_audio_track_;
++  ScopedJavaGlobalRef<jobject> j_audio_track_;
+ 
+   // Contains audio parameters provided to this class at construction by the
+   // AudioManager.
+diff --git a/sdk/android/src/jni/audio_device/java_audio_device_module.cc b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
+index de68fc68c5..1c3cbe4bbe 100644
+--- a/sdk/android/src/jni/audio_device/java_audio_device_module.cc
++++ b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
+@@ -20,10 +20,10 @@ namespace jni {
+ 
+ static jlong JNI_JavaAudioDeviceModule_CreateAudioDeviceModule(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_context,
+-    const jni_zero::JavaParamRef<jobject>& j_audio_manager,
+-    const jni_zero::JavaParamRef<jobject>& j_webrtc_audio_record,
+-    const jni_zero::JavaParamRef<jobject>& j_webrtc_audio_track,
++    const JavaParamRef<jobject>& j_context,
++    const JavaParamRef<jobject>& j_audio_manager,
++    const JavaParamRef<jobject>& j_webrtc_audio_record,
++    const JavaParamRef<jobject>& j_webrtc_audio_track,
+     int input_sample_rate,
+     int output_sample_rate,
+     jboolean j_use_stereo_input,
+diff --git a/sdk/android/src/jni/h264_utils.cc b/sdk/android/src/jni/h264_utils.cc
+index 0529141df6..882df95b82 100644
+--- a/sdk/android/src/jni/h264_utils.cc
++++ b/sdk/android/src/jni/h264_utils.cc
+@@ -17,8 +17,8 @@ namespace jni {
+ 
+ static jboolean JNI_H264Utils_IsSameH264Profile(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& params1,
+-    const jni_zero::JavaParamRef<jobject>& params2) {
++    const JavaParamRef<jobject>& params1,
++    const JavaParamRef<jobject>& params2) {
+   return H264IsSameProfile(JavaToNativeStringMap(env, params1),
+                            JavaToNativeStringMap(env, params2));
+ }
+diff --git a/sdk/android/src/jni/java_i420_buffer.cc b/sdk/android/src/jni/java_i420_buffer.cc
+index 061ce174e1..860cdb272c 100644
+--- a/sdk/android/src/jni/java_i420_buffer.cc
++++ b/sdk/android/src/jni/java_i420_buffer.cc
+@@ -17,21 +17,21 @@ namespace jni {
+ 
+ static void JNI_JavaI420Buffer_CropAndScaleI420(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_src_y,
++    const JavaParamRef<jobject>& j_src_y,
+     jint src_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_src_u,
++    const JavaParamRef<jobject>& j_src_u,
+     jint src_stride_u,
+-    const jni_zero::JavaParamRef<jobject>& j_src_v,
++    const JavaParamRef<jobject>& j_src_v,
+     jint src_stride_v,
+     jint crop_x,
+     jint crop_y,
+     jint crop_width,
+     jint crop_height,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_y,
++    const JavaParamRef<jobject>& j_dst_y,
+     jint dst_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_u,
++    const JavaParamRef<jobject>& j_dst_u,
+     jint dst_stride_u,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_v,
++    const JavaParamRef<jobject>& j_dst_v,
+     jint dst_stride_v,
+     jint scale_width,
+     jint scale_height) {
+diff --git a/sdk/android/src/jni/jni_common.cc b/sdk/android/src/jni/jni_common.cc
+index a70335c482..b99fc60864 100644
+--- a/sdk/android/src/jni/jni_common.cc
++++ b/sdk/android/src/jni/jni_common.cc
+@@ -25,16 +25,15 @@ static void JNI_JniCommon_ReleaseRef(JNIEnv* jni,
+   reinterpret_cast<RefCountInterface*>(j_native_ref_counted_pointer)->Release();
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_JniCommon_AllocateByteBuffer(
+-    JNIEnv* jni,
+-    jint size) {
++static ScopedJavaLocalRef<jobject> JNI_JniCommon_AllocateByteBuffer(JNIEnv* jni,
++                                                                    jint size) {
+   void* new_data = ::operator new(size);
+   return NewDirectByteBuffer(jni, new_data, size);
+ }
+ 
+ static void JNI_JniCommon_FreeByteBuffer(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& byte_buffer) {
++    const JavaParamRef<jobject>& byte_buffer) {
+   void* data = jni->GetDirectBufferAddress(byte_buffer.obj());
+   ::operator delete(data);
+ }
+diff --git a/sdk/android/src/jni/jni_generator_helper.h b/sdk/android/src/jni/jni_generator_helper.h
+index 227dfb4331..f955cf94cf 100644
+--- a/sdk/android/src/jni/jni_generator_helper.h
++++ b/sdk/android/src/jni/jni_generator_helper.h
+@@ -32,6 +32,13 @@
+ #define JNI_GENERATOR_EXPORT extern "C" JNIEXPORT JNICALL
+ #endif
+ 
++namespace webrtc {
++using jni_zero::JavaParamRef;
++using jni_zero::JavaRef;
++using jni_zero::ScopedJavaGlobalRef;
++using jni_zero::ScopedJavaLocalRef;
++}  // namespace webrtc
++
+ // Re-export helpers in the old jni_generator namespace.
+ // TODO(b/319078685): Remove once all uses of the jni_generator has been
+ // updated.
+@@ -109,4 +116,17 @@ static_assert(sizeof(JniJavaCallContextChecked) ==
+ 
+ }  // namespace jni_generator
+ 
++// Re-export helpers in the namespaces that the old jni_generator script
++// expects.
++// TODO(b/319078685): Remove once all uses of the jni_generator has been
++// updated.
++namespace base {
++namespace android {
++using jni_zero::JavaParamRef;
++using jni_zero::JavaRef;
++using jni_zero::MethodID;
++using jni_zero::ScopedJavaLocalRef;
++using jni_zero::internal::LazyGetClass;
++}  // namespace android
++}  // namespace base
+ #endif  // SDK_ANDROID_SRC_JNI_JNI_GENERATOR_HELPER_H_
+diff --git a/sdk/android/src/jni/nv12_buffer.cc b/sdk/android/src/jni/nv12_buffer.cc
+index 5fb5e381be..4a51f895c1 100644
+--- a/sdk/android/src/jni/nv12_buffer.cc
++++ b/sdk/android/src/jni/nv12_buffer.cc
+@@ -20,25 +20,24 @@
+ namespace webrtc {
+ namespace jni {
+ 
+-static void JNI_NV12Buffer_CropAndScale(
+-    JNIEnv* jni,
+-    jint crop_x,
+-    jint crop_y,
+-    jint crop_width,
+-    jint crop_height,
+-    jint scale_width,
+-    jint scale_height,
+-    const jni_zero::JavaParamRef<jobject>& j_src,
+-    jint src_width,
+-    jint src_height,
+-    jint src_stride,
+-    jint src_slice_height,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_y,
+-    jint dst_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_u,
+-    jint dst_stride_u,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_v,
+-    jint dst_stride_v) {
++static void JNI_NV12Buffer_CropAndScale(JNIEnv* jni,
++                                        jint crop_x,
++                                        jint crop_y,
++                                        jint crop_width,
++                                        jint crop_height,
++                                        jint scale_width,
++                                        jint scale_height,
++                                        const JavaParamRef<jobject>& j_src,
++                                        jint src_width,
++                                        jint src_height,
++                                        jint src_stride,
++                                        jint src_slice_height,
++                                        const JavaParamRef<jobject>& j_dst_y,
++                                        jint dst_stride_y,
++                                        const JavaParamRef<jobject>& j_dst_u,
++                                        jint dst_stride_u,
++                                        const JavaParamRef<jobject>& j_dst_v,
++                                        jint dst_stride_v) {
+   const int src_stride_y = src_stride;
+   const int src_stride_uv = src_stride;
+   const int crop_chroma_x = crop_x / 2;
+diff --git a/sdk/android/src/jni/nv21_buffer.cc b/sdk/android/src/jni/nv21_buffer.cc
+index 2d77f4198f..ad43698648 100644
+--- a/sdk/android/src/jni/nv21_buffer.cc
++++ b/sdk/android/src/jni/nv21_buffer.cc
+@@ -21,23 +21,22 @@
+ namespace webrtc {
+ namespace jni {
+ 
+-static void JNI_NV21Buffer_CropAndScale(
+-    JNIEnv* jni,
+-    jint crop_x,
+-    jint crop_y,
+-    jint crop_width,
+-    jint crop_height,
+-    jint scale_width,
+-    jint scale_height,
+-    const jni_zero::JavaParamRef<jbyteArray>& j_src,
+-    jint src_width,
+-    jint src_height,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_y,
+-    jint dst_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_u,
+-    jint dst_stride_u,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_v,
+-    jint dst_stride_v) {
++static void JNI_NV21Buffer_CropAndScale(JNIEnv* jni,
++                                        jint crop_x,
++                                        jint crop_y,
++                                        jint crop_width,
++                                        jint crop_height,
++                                        jint scale_width,
++                                        jint scale_height,
++                                        const JavaParamRef<jbyteArray>& j_src,
++                                        jint src_width,
++                                        jint src_height,
++                                        const JavaParamRef<jobject>& j_dst_y,
++                                        jint dst_stride_y,
++                                        const JavaParamRef<jobject>& j_dst_u,
++                                        jint dst_stride_u,
++                                        const JavaParamRef<jobject>& j_dst_v,
++                                        jint dst_stride_v) {
+   const int src_stride_y = src_width;
+   const int src_stride_uv = src_width;
+   const int crop_chroma_x = crop_x / 2;
+diff --git a/sdk/android/src/jni/pc/call_session_file_rotating_log_sink.cc b/sdk/android/src/jni/pc/call_session_file_rotating_log_sink.cc
+index d97d5907b6..cef4df500a 100644
+--- a/sdk/android/src/jni/pc/call_session_file_rotating_log_sink.cc
++++ b/sdk/android/src/jni/pc/call_session_file_rotating_log_sink.cc
+@@ -18,7 +18,7 @@ namespace jni {
+ 
+ static jlong JNI_CallSessionFileRotatingLogSink_AddSink(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_dirPath,
++    const JavaParamRef<jstring>& j_dirPath,
+     jint j_maxFileSize,
+     jint j_severity) {
+   std::string dir_path = JavaToStdString(jni, j_dirPath);
+@@ -44,25 +44,25 @@ static void JNI_CallSessionFileRotatingLogSink_DeleteSink(JNIEnv* jni,
+   delete sink;
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jbyteArray>
++static ScopedJavaLocalRef<jbyteArray>
+ JNI_CallSessionFileRotatingLogSink_GetLogData(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_dirPath) {
++    const JavaParamRef<jstring>& j_dirPath) {
+   std::string dir_path = JavaToStdString(jni, j_dirPath);
+   rtc::CallSessionFileRotatingStreamReader file_reader(dir_path);
+   size_t log_size = file_reader.GetSize();
+   if (log_size == 0) {
+     RTC_LOG_V(rtc::LoggingSeverity::LS_WARNING)
+         << "CallSessionFileRotatingStream returns 0 size for path " << dir_path;
+-    return jni_zero::ScopedJavaLocalRef<jbyteArray>(jni, jni->NewByteArray(0));
++    return ScopedJavaLocalRef<jbyteArray>(jni, jni->NewByteArray(0));
+   }
+ 
+   // TODO(nisse, sakal): To avoid copying, change api to use ByteBuffer.
+   std::unique_ptr<jbyte> buffer(static_cast<jbyte*>(malloc(log_size)));
+   size_t read = file_reader.ReadAll(buffer.get(), log_size);
+ 
+-  jni_zero::ScopedJavaLocalRef<jbyteArray> result =
+-      jni_zero::ScopedJavaLocalRef<jbyteArray>(jni, jni->NewByteArray(read));
++  ScopedJavaLocalRef<jbyteArray> result =
++      ScopedJavaLocalRef<jbyteArray>(jni, jni->NewByteArray(read));
+   jni->SetByteArrayRegion(result.obj(), 0, read, buffer.get());
+ 
+   return result;
+diff --git a/sdk/android/src/jni/pc/data_channel.cc b/sdk/android/src/jni/pc/data_channel.cc
+index 231deb8481..c08aed5525 100644
+--- a/sdk/android/src/jni/pc/data_channel.cc
++++ b/sdk/android/src/jni/pc/data_channel.cc
+@@ -27,8 +27,7 @@ namespace {
+ // and dispatching the callback from C++ back to Java.
+ class DataChannelObserverJni : public DataChannelObserver {
+  public:
+-  DataChannelObserverJni(JNIEnv* jni,
+-                         const jni_zero::JavaRef<jobject>& j_observer);
++  DataChannelObserverJni(JNIEnv* jni, const JavaRef<jobject>& j_observer);
+   ~DataChannelObserverJni() override {}
+ 
+   void OnBufferedAmountChange(uint64_t previous_amount) override;
+@@ -36,12 +35,12 @@ class DataChannelObserverJni : public DataChannelObserver {
+   void OnMessage(const DataBuffer& buffer) override;
+ 
+  private:
+-  const jni_zero::ScopedJavaGlobalRef<jobject> j_observer_global_;
++  const ScopedJavaGlobalRef<jobject> j_observer_global_;
+ };
+ 
+ DataChannelObserverJni::DataChannelObserverJni(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_observer)
++    const JavaRef<jobject>& j_observer)
+     : j_observer_global_(jni, j_observer) {}
+ 
+ void DataChannelObserverJni::OnBufferedAmountChange(uint64_t previous_amount) {
+@@ -57,25 +56,23 @@ void DataChannelObserverJni::OnStateChange() {
+ 
+ void DataChannelObserverJni::OnMessage(const DataBuffer& buffer) {
+   JNIEnv* env = AttachCurrentThreadIfNeeded();
+-  jni_zero::ScopedJavaLocalRef<jobject> byte_buffer = NewDirectByteBuffer(
++  ScopedJavaLocalRef<jobject> byte_buffer = NewDirectByteBuffer(
+       env, const_cast<char*>(buffer.data.data<char>()), buffer.data.size());
+-  jni_zero::ScopedJavaLocalRef<jobject> j_buffer =
++  ScopedJavaLocalRef<jobject> j_buffer =
+       Java_Buffer_Constructor(env, byte_buffer, buffer.binary);
+   Java_Observer_onMessage(env, j_observer_global_, j_buffer);
+ }
+ 
+-DataChannelInterface* ExtractNativeDC(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc) {
++DataChannelInterface* ExtractNativeDC(JNIEnv* jni,
++                                      const JavaParamRef<jobject>& j_dc) {
+   return reinterpret_cast<DataChannelInterface*>(
+       Java_DataChannel_getNativeDataChannel(jni, j_dc));
+ }
+ 
+ }  // namespace
+ 
+-DataChannelInit JavaToNativeDataChannelInit(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_init) {
++DataChannelInit JavaToNativeDataChannelInit(JNIEnv* env,
++                                            const JavaRef<jobject>& j_init) {
+   DataChannelInit init;
+   init.ordered = Java_Init_getOrdered(env, j_init);
+   init.maxRetransmitTime = Java_Init_getMaxRetransmitTimeMs(env, j_init);
+@@ -97,8 +94,8 @@ ScopedJavaLocalRef<jobject> WrapNativeDataChannel(
+ 
+ static jlong JNI_DataChannel_RegisterObserver(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer) {
++    const JavaParamRef<jobject>& j_dc,
++    const JavaParamRef<jobject>& j_observer) {
+   auto observer = std::make_unique<DataChannelObserverJni>(jni, j_observer);
+   ExtractNativeDC(jni, j_dc)->RegisterObserver(observer.get());
+   return jlongFromPointer(observer.release());
+@@ -106,35 +103,33 @@ static jlong JNI_DataChannel_RegisterObserver(
+ 
+ static void JNI_DataChannel_UnregisterObserver(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc,
++    const JavaParamRef<jobject>& j_dc,
+     jlong native_observer) {
+   ExtractNativeDC(jni, j_dc)->UnregisterObserver();
+   delete reinterpret_cast<DataChannelObserverJni*>(native_observer);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jstring> JNI_DataChannel_Label(
++static ScopedJavaLocalRef<jstring> JNI_DataChannel_Label(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc) {
++    const JavaParamRef<jobject>& j_dc) {
+   return NativeToJavaString(jni, ExtractNativeDC(jni, j_dc)->label());
+ }
+ 
+-static jint JNI_DataChannel_Id(JNIEnv* jni,
+-                               const jni_zero::JavaParamRef<jobject>& j_dc) {
++static jint JNI_DataChannel_Id(JNIEnv* jni, const JavaParamRef<jobject>& j_dc) {
+   int id = ExtractNativeDC(jni, j_dc)->id();
+   RTC_CHECK_LE(id, std::numeric_limits<int32_t>::max())
+       << "id overflowed jint!";
+   return static_cast<jint>(id);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_DataChannel_State(
++static ScopedJavaLocalRef<jobject> JNI_DataChannel_State(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc) {
++    const JavaParamRef<jobject>& j_dc) {
+   return Java_State_fromNativeIndex(jni, ExtractNativeDC(jni, j_dc)->state());
+ }
+ 
+-static jlong JNI_DataChannel_BufferedAmount(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc) {
++static jlong JNI_DataChannel_BufferedAmount(JNIEnv* jni,
++                                            const JavaParamRef<jobject>& j_dc) {
+   uint64_t buffered_amount = ExtractNativeDC(jni, j_dc)->buffered_amount();
+   RTC_CHECK_LE(buffered_amount, std::numeric_limits<int64_t>::max())
+       << "buffered_amount overflowed jlong!";
+@@ -142,15 +137,14 @@ static jlong JNI_DataChannel_BufferedAmount(
+ }
+ 
+ static void JNI_DataChannel_Close(JNIEnv* jni,
+-                                  const jni_zero::JavaParamRef<jobject>& j_dc) {
++                                  const JavaParamRef<jobject>& j_dc) {
+   ExtractNativeDC(jni, j_dc)->Close();
+ }
+ 
+-static jboolean JNI_DataChannel_Send(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_dc,
+-    const jni_zero::JavaParamRef<jbyteArray>& data,
+-    jboolean binary) {
++static jboolean JNI_DataChannel_Send(JNIEnv* jni,
++                                     const JavaParamRef<jobject>& j_dc,
++                                     const JavaParamRef<jbyteArray>& data,
++                                     jboolean binary) {
+   std::vector<int8_t> buffer = JavaToNativeByteArray(jni, data);
+   bool ret = ExtractNativeDC(jni, j_dc)->Send(
+       DataBuffer(rtc::CopyOnWriteBuffer(buffer.data(), buffer.size()), binary));
+diff --git a/sdk/android/src/jni/pc/dtmf_sender.cc b/sdk/android/src/jni/pc/dtmf_sender.cc
+index d9143b43cb..cbf1928b13 100644
+--- a/sdk/android/src/jni/pc/dtmf_sender.cc
++++ b/sdk/android/src/jni/pc/dtmf_sender.cc
+@@ -22,17 +22,16 @@ static jboolean JNI_DtmfSender_CanInsertDtmf(JNIEnv* jni,
+       ->CanInsertDtmf();
+ }
+ 
+-static jboolean JNI_DtmfSender_InsertDtmf(
+-    JNIEnv* jni,
+-    jlong j_dtmf_sender_pointer,
+-    const jni_zero::JavaParamRef<jstring>& tones,
+-    jint duration,
+-    jint inter_tone_gap) {
++static jboolean JNI_DtmfSender_InsertDtmf(JNIEnv* jni,
++                                          jlong j_dtmf_sender_pointer,
++                                          const JavaParamRef<jstring>& tones,
++                                          jint duration,
++                                          jint inter_tone_gap) {
+   return reinterpret_cast<DtmfSenderInterface*>(j_dtmf_sender_pointer)
+       ->InsertDtmf(JavaToStdString(jni, tones), duration, inter_tone_gap);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jstring> JNI_DtmfSender_Tones(
++static ScopedJavaLocalRef<jstring> JNI_DtmfSender_Tones(
+     JNIEnv* jni,
+     jlong j_dtmf_sender_pointer) {
+   return NativeToJavaString(
+diff --git a/sdk/android/src/jni/pc/logging.cc b/sdk/android/src/jni/pc/logging.cc
+index d61816781f..46a4b5aa29 100644
+--- a/sdk/android/src/jni/pc/logging.cc
++++ b/sdk/android/src/jni/pc/logging.cc
+@@ -51,9 +51,8 @@ JNI_FUNCTION_DECLARATION(void,
+                          jstring j_tag,
+                          jstring j_message) {
+   std::string message =
+-      JavaToStdString(jni, jni_zero::JavaParamRef<jstring>(jni, j_message));
+-  std::string tag =
+-      JavaToStdString(jni, jni_zero::JavaParamRef<jstring>(jni, j_tag));
++      JavaToStdString(jni, JavaParamRef<jstring>(jni, j_message));
++  std::string tag = JavaToStdString(jni, JavaParamRef<jstring>(jni, j_tag));
+   RTC_LOG_TAG(static_cast<rtc::LoggingSeverity>(j_severity), tag.c_str())
+       << message;
+ }
+diff --git a/sdk/android/src/jni/pc/media_source.cc b/sdk/android/src/jni/pc/media_source.cc
+index 210a5afb41..e20f28f310 100644
+--- a/sdk/android/src/jni/pc/media_source.cc
++++ b/sdk/android/src/jni/pc/media_source.cc
+@@ -14,9 +14,8 @@
+ namespace webrtc {
+ namespace jni {
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_MediaSource_GetState(
+-    JNIEnv* jni,
+-    jlong j_p) {
++static ScopedJavaLocalRef<jobject> JNI_MediaSource_GetState(JNIEnv* jni,
++                                                            jlong j_p) {
+   return Java_State_fromNativeIndex(
+       jni, reinterpret_cast<MediaSourceInterface*>(j_p)->state());
+ }
+diff --git a/sdk/android/src/jni/pc/peer_connection.cc b/sdk/android/src/jni/pc/peer_connection.cc
+index c8f0b1486a..de23e489ae 100644
+--- a/sdk/android/src/jni/pc/peer_connection.cc
++++ b/sdk/android/src/jni/pc/peer_connection.cc
+@@ -64,9 +64,8 @@ namespace jni {
+ 
+ namespace {
+ 
+-PeerConnectionInterface* ExtractNativePC(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_pc) {
++PeerConnectionInterface* ExtractNativePC(JNIEnv* jni,
++                                         const JavaRef<jobject>& j_pc) {
+   return reinterpret_cast<OwnedPeerConnection*>(
+              Java_PeerConnection_getNativeOwnedPeerConnection(jni, j_pc))
+       ->pc();
+@@ -74,25 +73,24 @@ PeerConnectionInterface* ExtractNativePC(
+ 
+ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_ice_servers) {
++    const JavaRef<jobject>& j_ice_servers) {
+   PeerConnectionInterface::IceServers ice_servers;
+-  for (const jni_zero::JavaRef<jobject>& j_ice_server :
+-       Iterable(jni, j_ice_servers)) {
+-    jni_zero::ScopedJavaLocalRef<jobject> j_ice_server_tls_cert_policy =
++  for (const JavaRef<jobject>& j_ice_server : Iterable(jni, j_ice_servers)) {
++    ScopedJavaLocalRef<jobject> j_ice_server_tls_cert_policy =
+         Java_IceServer_getTlsCertPolicy(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jobject> urls =
++    ScopedJavaLocalRef<jobject> urls =
+         Java_IceServer_getUrls(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jstring> username =
++    ScopedJavaLocalRef<jstring> username =
+         Java_IceServer_getUsername(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jstring> password =
++    ScopedJavaLocalRef<jstring> password =
+         Java_IceServer_getPassword(jni, j_ice_server);
+     PeerConnectionInterface::TlsCertPolicy tls_cert_policy =
+         JavaToNativeTlsCertPolicy(jni, j_ice_server_tls_cert_policy);
+-    jni_zero::ScopedJavaLocalRef<jstring> hostname =
++    ScopedJavaLocalRef<jstring> hostname =
+         Java_IceServer_getHostname(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jobject> tls_alpn_protocols =
++    ScopedJavaLocalRef<jobject> tls_alpn_protocols =
+         Java_IceServer_getTlsAlpnProtocols(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jobject> tls_elliptic_curves =
++    ScopedJavaLocalRef<jobject> tls_elliptic_curves =
+         Java_IceServer_getTlsEllipticCurves(jni, j_ice_server);
+     PeerConnectionInterface::IceServer server;
+     server.urls = JavaListToNativeVector<std::string, jstring>(
+@@ -110,9 +108,8 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+   return ice_servers;
+ }
+ 
+-SdpSemantics JavaToNativeSdpSemantics(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_sdp_semantics) {
++SdpSemantics JavaToNativeSdpSemantics(JNIEnv* jni,
++                                      const JavaRef<jobject>& j_sdp_semantics) {
+   std::string enum_name = GetJavaEnumName(jni, j_sdp_semantics);
+ 
+   if (enum_name == "PLAN_B")
+@@ -146,33 +143,33 @@ ScopedJavaLocalRef<jobject> NativeToJavaAdapterType(JNIEnv* env,
+ 
+ void JavaToNativeRTCConfiguration(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_rtc_config,
++    const JavaRef<jobject>& j_rtc_config,
+     PeerConnectionInterface::RTCConfiguration* rtc_config) {
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_transports_type =
++  ScopedJavaLocalRef<jobject> j_ice_transports_type =
+       Java_RTCConfiguration_getIceTransportsType(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_bundle_policy =
++  ScopedJavaLocalRef<jobject> j_bundle_policy =
+       Java_RTCConfiguration_getBundlePolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_rtcp_mux_policy =
++  ScopedJavaLocalRef<jobject> j_rtcp_mux_policy =
+       Java_RTCConfiguration_getRtcpMuxPolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_rtc_certificate =
++  ScopedJavaLocalRef<jobject> j_rtc_certificate =
+       Java_RTCConfiguration_getCertificate(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_tcp_candidate_policy =
++  ScopedJavaLocalRef<jobject> j_tcp_candidate_policy =
+       Java_RTCConfiguration_getTcpCandidatePolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_candidate_network_policy =
++  ScopedJavaLocalRef<jobject> j_candidate_network_policy =
+       Java_RTCConfiguration_getCandidateNetworkPolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_servers =
++  ScopedJavaLocalRef<jobject> j_ice_servers =
+       Java_RTCConfiguration_getIceServers(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_continual_gathering_policy =
++  ScopedJavaLocalRef<jobject> j_continual_gathering_policy =
+       Java_RTCConfiguration_getContinualGatheringPolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_turn_port_prune_policy =
++  ScopedJavaLocalRef<jobject> j_turn_port_prune_policy =
+       Java_RTCConfiguration_getTurnPortPrunePolicy(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_turn_customizer =
++  ScopedJavaLocalRef<jobject> j_turn_customizer =
+       Java_RTCConfiguration_getTurnCustomizer(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_network_preference =
++  ScopedJavaLocalRef<jobject> j_network_preference =
+       Java_RTCConfiguration_getNetworkPreference(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_sdp_semantics =
++  ScopedJavaLocalRef<jobject> j_sdp_semantics =
+       Java_RTCConfiguration_getSdpSemantics(jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_crypto_options =
++  ScopedJavaLocalRef<jobject> j_crypto_options =
+       Java_RTCConfiguration_getCryptoOptions(jni, j_rtc_config);
+ 
+   rtc_config->type = JavaToNativeIceTransportsType(jni, j_ice_transports_type);
+@@ -215,38 +212,36 @@ void JavaToNativeRTCConfiguration(
+   rtc_config->surface_ice_candidates_on_ice_transport_type_changed =
+       Java_RTCConfiguration_getSurfaceIceCandidatesOnIceTransportTypeChanged(
+           jni, j_rtc_config);
+-  jni_zero::ScopedJavaLocalRef<jobject>
+-      j_ice_check_interval_strong_connectivity =
+-          Java_RTCConfiguration_getIceCheckIntervalStrongConnectivity(
+-              jni, j_rtc_config);
++  ScopedJavaLocalRef<jobject> j_ice_check_interval_strong_connectivity =
++      Java_RTCConfiguration_getIceCheckIntervalStrongConnectivity(jni,
++                                                                  j_rtc_config);
+   rtc_config->ice_check_interval_strong_connectivity =
+       JavaToNativeOptionalInt(jni, j_ice_check_interval_strong_connectivity);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_check_interval_weak_connectivity =
++  ScopedJavaLocalRef<jobject> j_ice_check_interval_weak_connectivity =
+       Java_RTCConfiguration_getIceCheckIntervalWeakConnectivity(jni,
+                                                                 j_rtc_config);
+   rtc_config->ice_check_interval_weak_connectivity =
+       JavaToNativeOptionalInt(jni, j_ice_check_interval_weak_connectivity);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_check_min_interval =
++  ScopedJavaLocalRef<jobject> j_ice_check_min_interval =
+       Java_RTCConfiguration_getIceCheckMinInterval(jni, j_rtc_config);
+   rtc_config->ice_check_min_interval =
+       JavaToNativeOptionalInt(jni, j_ice_check_min_interval);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_unwritable_timeout =
++  ScopedJavaLocalRef<jobject> j_ice_unwritable_timeout =
+       Java_RTCConfiguration_getIceUnwritableTimeout(jni, j_rtc_config);
+   rtc_config->ice_unwritable_timeout =
+       JavaToNativeOptionalInt(jni, j_ice_unwritable_timeout);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_ice_unwritable_min_checks =
++  ScopedJavaLocalRef<jobject> j_ice_unwritable_min_checks =
+       Java_RTCConfiguration_getIceUnwritableMinChecks(jni, j_rtc_config);
+   rtc_config->ice_unwritable_min_checks =
+       JavaToNativeOptionalInt(jni, j_ice_unwritable_min_checks);
+-  jni_zero::ScopedJavaLocalRef<jobject> j_stun_candidate_keepalive_interval =
++  ScopedJavaLocalRef<jobject> j_stun_candidate_keepalive_interval =
+       Java_RTCConfiguration_getStunCandidateKeepaliveInterval(jni,
+                                                               j_rtc_config);
+   rtc_config->stun_candidate_keepalive_interval =
+       JavaToNativeOptionalInt(jni, j_stun_candidate_keepalive_interval);
+-  jni_zero::ScopedJavaLocalRef<jobject>
+-      j_stable_writable_connection_ping_interval_ms =
+-          Java_RTCConfiguration_getStableWritableConnectionPingIntervalMs(
+-              jni, j_rtc_config);
++  ScopedJavaLocalRef<jobject> j_stable_writable_connection_ping_interval_ms =
++      Java_RTCConfiguration_getStableWritableConnectionPingIntervalMs(
++          jni, j_rtc_config);
+   rtc_config->stable_writable_connection_ping_interval_ms =
+       JavaToNativeOptionalInt(jni,
+                               j_stable_writable_connection_ping_interval_ms);
+@@ -277,7 +272,7 @@ void JavaToNativeRTCConfiguration(
+   rtc_config->enable_implicit_rollback =
+       Java_RTCConfiguration_getEnableImplicitRollback(jni, j_rtc_config);
+ 
+-  jni_zero::ScopedJavaLocalRef<jstring> j_turn_logging_id =
++  ScopedJavaLocalRef<jstring> j_turn_logging_id =
+       Java_RTCConfiguration_getTurnLoggingId(jni, j_rtc_config);
+   if (!IsNull(jni, j_turn_logging_id)) {
+     rtc_config->turn_logging_id = JavaToNativeString(jni, j_turn_logging_id);
+@@ -287,16 +282,15 @@ void JavaToNativeRTCConfiguration(
+     Java_RTCConfiguration_getPortAllocatorFlags(jni, j_rtc_config);
+ }
+ 
+-rtc::KeyType GetRtcConfigKeyType(
+-    JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_rtc_config) {
++rtc::KeyType GetRtcConfigKeyType(JNIEnv* env,
++                                 const JavaRef<jobject>& j_rtc_config) {
+   return JavaToNativeKeyType(
+       env, Java_RTCConfiguration_getKeyType(env, j_rtc_config));
+ }
+ 
+ PeerConnectionObserverJni::PeerConnectionObserverJni(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_observer)
++    const JavaRef<jobject>& j_observer)
+     : j_observer_global_(jni, j_observer) {}
+ 
+ PeerConnectionObserverJni::~PeerConnectionObserverJni() = default;
+@@ -315,11 +309,9 @@ void PeerConnectionObserverJni::OnIceCandidateError(
+     int error_code,
+     const std::string& error_text) {
+   JNIEnv* env = AttachCurrentThreadIfNeeded();
+-  jni_zero::ScopedJavaLocalRef<jobject> event =
+-      Java_IceCandidateErrorEvent_Constructor(
+-          env, NativeToJavaString(env, address), port,
+-          NativeToJavaString(env, url), error_code,
+-          NativeToJavaString(env, error_text));
++  ScopedJavaLocalRef<jobject> event = Java_IceCandidateErrorEvent_Constructor(
++      env, NativeToJavaString(env, address), port, NativeToJavaString(env, url),
++      error_code, NativeToJavaString(env, error_text));
+   Java_Observer_onIceCandidateError(env, j_observer_global_, event);
+ }
+ 
+@@ -418,7 +410,7 @@ void PeerConnectionObserverJni::OnAddTrack(
+     rtc::scoped_refptr<RtpReceiverInterface> receiver,
+     const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams) {
+   JNIEnv* env = AttachCurrentThreadIfNeeded();
+-  jni_zero::ScopedJavaLocalRef<jobject> j_rtp_receiver =
++  ScopedJavaLocalRef<jobject> j_rtp_receiver =
+       NativeToJavaRtpReceiver(env, receiver);
+   rtp_receivers_.emplace_back(env, j_rtp_receiver);
+ 
+@@ -429,7 +421,7 @@ void PeerConnectionObserverJni::OnAddTrack(
+ void PeerConnectionObserverJni::OnRemoveTrack(
+     rtc::scoped_refptr<RtpReceiverInterface> receiver) {
+   JNIEnv* env = AttachCurrentThreadIfNeeded();
+-  jni_zero::ScopedJavaLocalRef<jobject> j_rtp_receiver =
++  ScopedJavaLocalRef<jobject> j_rtp_receiver =
+       NativeToJavaRtpReceiver(env, receiver);
+   rtp_receivers_.emplace_back(env, j_rtp_receiver);
+ 
+@@ -439,7 +431,7 @@ void PeerConnectionObserverJni::OnRemoveTrack(
+ void PeerConnectionObserverJni::OnTrack(
+     rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {
+   JNIEnv* env = AttachCurrentThreadIfNeeded();
+-  jni_zero::ScopedJavaLocalRef<jobject> j_rtp_transceiver =
++  ScopedJavaLocalRef<jobject> j_rtp_transceiver =
+       NativeToJavaRtpTransceiver(env, transceiver);
+   rtp_transceivers_.emplace_back(env, j_rtp_transceiver);
+ 
+@@ -469,7 +461,7 @@ PeerConnectionObserverJni::NativeToJavaMediaStreamArray(
+   return NativeToJavaObjectArray(
+       jni, streams, GetMediaStreamClass(jni),
+       [this](JNIEnv* env, rtc::scoped_refptr<MediaStreamInterface> stream)
+-          -> const jni_zero::ScopedJavaGlobalRef<jobject>& {
++          -> const ScopedJavaGlobalRef<jobject>& {
+         return GetOrCreateJavaStream(env, stream).j_media_stream();
+       });
+ }
+@@ -496,7 +488,7 @@ OwnedPeerConnection::~OwnedPeerConnection() {
+ 
+ static jlong JNI_PeerConnection_CreatePeerConnectionObserver(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_observer) {
++    const JavaParamRef<jobject>& j_observer) {
+   return jlongFromPointer(new PeerConnectionObserverJni(jni, j_observer));
+ }
+ 
+@@ -506,14 +498,13 @@ static void JNI_PeerConnection_FreeOwnedPeerConnection(JNIEnv*, jlong j_p) {
+ 
+ static jlong JNI_PeerConnection_GetNativePeerConnection(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return jlongFromPointer(ExtractNativePC(jni, j_pc));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_GetLocalDescription(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetLocalDescription(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   PeerConnectionInterface* pc = ExtractNativePC(jni, j_pc);
+   // It's only safe to operate on SessionDescriptionInterface on the
+   // signaling thread, but `jni` may only be used on the current thread, so we
+@@ -530,10 +521,9 @@ JNI_PeerConnection_GetLocalDescription(
+   return sdp.empty() ? nullptr : NativeToJavaSessionDescription(jni, sdp, type);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_GetRemoteDescription(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetRemoteDescription(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   PeerConnectionInterface* pc = ExtractNativePC(jni, j_pc);
+   // It's only safe to operate on SessionDescriptionInterface on the
+   // signaling thread, but `jni` may only be used on the current thread, so we
+@@ -550,9 +540,9 @@ JNI_PeerConnection_GetRemoteDescription(
+   return sdp.empty() ? nullptr : NativeToJavaSessionDescription(jni, sdp, type);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetCertificate(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetCertificate(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   const PeerConnectionInterface::RTCConfiguration rtc_config =
+       ExtractNativePC(jni, j_pc)->GetConfiguration();
+   rtc::scoped_refptr<rtc::RTCCertificate> certificate =
+@@ -560,12 +550,11 @@ static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetCertificate(
+   return NativeToJavaRTCCertificatePEM(jni, certificate->ToPEM());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_CreateDataChannel(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_CreateDataChannel(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jstring>& j_label,
+-    const jni_zero::JavaParamRef<jobject>& j_init) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jstring>& j_label,
++    const JavaParamRef<jobject>& j_init) {
+   DataChannelInit init = JavaToNativeDataChannelInit(jni, j_init);
+   auto result = ExtractNativePC(jni, j_pc)->CreateDataChannelOrError(
+       JavaToNativeString(jni, j_label), &init);
+@@ -577,9 +566,9 @@ JNI_PeerConnection_CreateDataChannel(
+ 
+ static void JNI_PeerConnection_CreateOffer(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer,
+-    const jni_zero::JavaParamRef<jobject>& j_constraints) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer,
++    const JavaParamRef<jobject>& j_constraints) {
+   std::unique_ptr<MediaConstraints> constraints =
+       JavaToNativeMediaConstraints(jni, j_constraints);
+   auto observer = rtc::make_ref_counted<CreateSdpObserverJni>(
+@@ -591,9 +580,9 @@ static void JNI_PeerConnection_CreateOffer(
+ 
+ static void JNI_PeerConnection_CreateAnswer(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer,
+-    const jni_zero::JavaParamRef<jobject>& j_constraints) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer,
++    const JavaParamRef<jobject>& j_constraints) {
+   std::unique_ptr<MediaConstraints> constraints =
+       JavaToNativeMediaConstraints(jni, j_constraints);
+   auto observer = rtc::make_ref_counted<CreateSdpObserverJni>(
+@@ -605,8 +594,8 @@ static void JNI_PeerConnection_CreateAnswer(
+ 
+ static void JNI_PeerConnection_SetLocalDescriptionAutomatically(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer) {
+   auto observer =
+       rtc::make_ref_counted<SetLocalSdpObserverJni>(jni, j_observer);
+   ExtractNativePC(jni, j_pc)->SetLocalDescription(observer);
+@@ -614,9 +603,9 @@ static void JNI_PeerConnection_SetLocalDescriptionAutomatically(
+ 
+ static void JNI_PeerConnection_SetLocalDescription(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer,
+-    const jni_zero::JavaParamRef<jobject>& j_sdp) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer,
++    const JavaParamRef<jobject>& j_sdp) {
+   auto observer =
+       rtc::make_ref_counted<SetLocalSdpObserverJni>(jni, j_observer);
+   ExtractNativePC(jni, j_pc)->SetLocalDescription(
+@@ -625,39 +614,38 @@ static void JNI_PeerConnection_SetLocalDescription(
+ 
+ static void JNI_PeerConnection_SetRemoteDescription(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer,
+-    const jni_zero::JavaParamRef<jobject>& j_sdp) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer,
++    const JavaParamRef<jobject>& j_sdp) {
+   auto observer =
+       rtc::make_ref_counted<SetRemoteSdpObserverJni>(jni, j_observer);
+   ExtractNativePC(jni, j_pc)->SetRemoteDescription(
+       JavaToNativeSessionDescription(jni, j_sdp), observer);
+ }
+ 
+-static void JNI_PeerConnection_RestartIce(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++static void JNI_PeerConnection_RestartIce(JNIEnv* jni,
++                                          const JavaParamRef<jobject>& j_pc) {
+   ExtractNativePC(jni, j_pc)->RestartIce();
+ }
+ 
+ static void JNI_PeerConnection_SetAudioPlayout(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jboolean playout) {
+   ExtractNativePC(jni, j_pc)->SetAudioPlayout(playout);
+ }
+ 
+ static void JNI_PeerConnection_SetAudioRecording(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jboolean recording) {
+   ExtractNativePC(jni, j_pc)->SetAudioRecording(recording);
+ }
+ 
+ static jboolean JNI_PeerConnection_SetConfiguration(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_rtc_config) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_rtc_config) {
+   // Need to merge constraints into RTCConfiguration again, which are stored
+   // in the OwnedPeerConnection object.
+   OwnedPeerConnection* owned_pc = reinterpret_cast<OwnedPeerConnection*>(
+@@ -673,10 +661,10 @@ static jboolean JNI_PeerConnection_SetConfiguration(
+ 
+ static jboolean JNI_PeerConnection_AddIceCandidate(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jstring>& j_sdp_mid,
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jstring>& j_sdp_mid,
+     jint j_sdp_mline_index,
+-    const jni_zero::JavaParamRef<jstring>& j_candidate_sdp) {
++    const JavaParamRef<jstring>& j_candidate_sdp) {
+   std::string sdp_mid = JavaToNativeString(jni, j_sdp_mid);
+   std::string sdp = JavaToNativeString(jni, j_candidate_sdp);
+   std::unique_ptr<IceCandidateInterface> candidate(
+@@ -686,11 +674,11 @@ static jboolean JNI_PeerConnection_AddIceCandidate(
+ 
+ static void JNI_PeerConnection_AddIceCandidateWithObserver(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jstring>& j_sdp_mid,
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jstring>& j_sdp_mid,
+     jint j_sdp_mline_index,
+-    const jni_zero::JavaParamRef<jstring>& j_candidate_sdp,
+-    const jni_zero::JavaParamRef<jobject>& j_observer) {
++    const JavaParamRef<jstring>& j_candidate_sdp,
++    const JavaParamRef<jobject>& j_observer) {
+   std::string sdp_mid = JavaToNativeString(jni, j_sdp_mid);
+   std::string sdp = JavaToNativeString(jni, j_candidate_sdp);
+   std::unique_ptr<IceCandidateInterface> candidate(
+@@ -705,8 +693,8 @@ static void JNI_PeerConnection_AddIceCandidateWithObserver(
+ 
+ static jboolean JNI_PeerConnection_RemoveIceCandidates(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobjectArray>& j_candidates) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobjectArray>& j_candidates) {
+   std::vector<cricket::Candidate> candidates =
+       JavaToNativeVector<cricket::Candidate>(jni, j_candidates,
+                                              &JavaToNativeCandidate);
+@@ -715,7 +703,7 @@ static jboolean JNI_PeerConnection_RemoveIceCandidates(
+ 
+ static jboolean JNI_PeerConnection_AddLocalStream(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_stream) {
+   return ExtractNativePC(jni, j_pc)->AddStream(
+       reinterpret_cast<MediaStreamInterface*>(native_stream));
+@@ -723,17 +711,17 @@ static jboolean JNI_PeerConnection_AddLocalStream(
+ 
+ static void JNI_PeerConnection_RemoveLocalStream(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_stream) {
+   ExtractNativePC(jni, j_pc)->RemoveStream(
+       reinterpret_cast<MediaStreamInterface*>(native_stream));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_CreateSender(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_CreateSender(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jstring>& j_kind,
+-    const jni_zero::JavaParamRef<jstring>& j_stream_id) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jstring>& j_kind,
++    const JavaParamRef<jstring>& j_stream_id) {
+   std::string kind = JavaToNativeString(jni, j_kind);
+   std::string stream_id = JavaToNativeString(jni, j_stream_id);
+   rtc::scoped_refptr<RtpSenderInterface> sender =
+@@ -741,32 +729,32 @@ static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_CreateSender(
+   return NativeToJavaRtpSender(jni, sender);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetSenders(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetSenders(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return NativeToJavaList(jni, ExtractNativePC(jni, j_pc)->GetSenders(),
+                           &NativeToJavaRtpSender);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetReceivers(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetReceivers(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return NativeToJavaList(jni, ExtractNativePC(jni, j_pc)->GetReceivers(),
+                           &NativeToJavaRtpReceiver);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetTransceivers(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_GetTransceivers(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return NativeToJavaList(jni, ExtractNativePC(jni, j_pc)->GetTransceivers(),
+                           &NativeToJavaRtpTransceiver);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTrack(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTrack(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     const jlong native_track,
+-    const jni_zero::JavaParamRef<jobject>& j_stream_labels) {
++    const JavaParamRef<jobject>& j_stream_labels) {
+   RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> result =
+       ExtractNativePC(jni, j_pc)->AddTrack(
+           rtc::scoped_refptr<MediaStreamTrackInterface>(
+@@ -783,7 +771,7 @@ static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTrack(
+ 
+ static jboolean JNI_PeerConnection_RemoveTrack(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_sender) {
+   return ExtractNativePC(jni, j_pc)
+       ->RemoveTrackOrError(rtc::scoped_refptr<RtpSenderInterface>(
+@@ -791,12 +779,11 @@ static jboolean JNI_PeerConnection_RemoveTrack(
+       .ok();
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_AddTransceiverWithTrack(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTransceiverWithTrack(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_track,
+-    const jni_zero::JavaParamRef<jobject>& j_init) {
++    const JavaParamRef<jobject>& j_init) {
+   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
+       ExtractNativePC(jni, j_pc)->AddTransceiver(
+           rtc::scoped_refptr<MediaStreamTrackInterface>(
+@@ -811,12 +798,11 @@ JNI_PeerConnection_AddTransceiverWithTrack(
+   }
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_AddTransceiverOfType(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_AddTransceiverOfType(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_media_type,
+-    const jni_zero::JavaParamRef<jobject>& j_init) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_media_type,
++    const JavaParamRef<jobject>& j_init) {
+   RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
+       ExtractNativePC(jni, j_pc)->AddTransceiver(
+           JavaToNativeMediaType(jni, j_media_type),
+@@ -832,8 +818,8 @@ JNI_PeerConnection_AddTransceiverOfType(
+ 
+ static jboolean JNI_PeerConnection_OldGetStats(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_observer,
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_observer,
+     jlong native_track) {
+   auto observer = rtc::make_ref_counted<StatsObserverJni>(jni, j_observer);
+   return ExtractNativePC(jni, j_pc)->GetStats(
+@@ -844,8 +830,8 @@ static jboolean JNI_PeerConnection_OldGetStats(
+ 
+ static void JNI_PeerConnection_NewGetStats(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_callback) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_callback) {
+   auto callback =
+       rtc::make_ref_counted<RTCStatsCollectorCallbackWrapper>(jni, j_callback);
+   ExtractNativePC(jni, j_pc)->GetStats(callback.get());
+@@ -853,9 +839,9 @@ static void JNI_PeerConnection_NewGetStats(
+ 
+ static void JNI_PeerConnection_NewGetStatsSender(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_sender,
+-    const jni_zero::JavaParamRef<jobject>& j_callback) {
++    const JavaParamRef<jobject>& j_callback) {
+   auto callback =
+       rtc::make_ref_counted<RTCStatsCollectorCallbackWrapper>(jni, j_callback);
+   ExtractNativePC(jni, j_pc)->GetStats(
+@@ -866,9 +852,9 @@ static void JNI_PeerConnection_NewGetStatsSender(
+ 
+ static void JNI_PeerConnection_NewGetStatsReceiver(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     jlong native_receiver,
+-    const jni_zero::JavaParamRef<jobject>& j_callback) {
++    const JavaParamRef<jobject>& j_callback) {
+   auto callback =
+       rtc::make_ref_counted<RTCStatsCollectorCallbackWrapper>(jni, j_callback);
+   ExtractNativePC(jni, j_pc)->GetStats(
+@@ -879,10 +865,10 @@ static void JNI_PeerConnection_NewGetStatsReceiver(
+ 
+ static jboolean JNI_PeerConnection_SetBitrate(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
+-    const jni_zero::JavaParamRef<jobject>& j_min,
+-    const jni_zero::JavaParamRef<jobject>& j_current,
+-    const jni_zero::JavaParamRef<jobject>& j_max) {
++    const JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_min,
++    const JavaParamRef<jobject>& j_current,
++    const JavaParamRef<jobject>& j_max) {
+   BitrateSettings params;
+   params.min_bitrate_bps = JavaToNativeOptionalInt(jni, j_min);
+   params.start_bitrate_bps = JavaToNativeOptionalInt(jni, j_current);
+@@ -892,7 +878,7 @@ static jboolean JNI_PeerConnection_SetBitrate(
+ 
+ static jboolean JNI_PeerConnection_StartRtcEventLog(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc,
++    const JavaParamRef<jobject>& j_pc,
+     int file_descriptor,
+     int max_size_bytes) {
+   // TODO(eladalon): It would be better to not allow negative values into PC.
+@@ -910,44 +896,41 @@ static jboolean JNI_PeerConnection_StartRtcEventLog(
+ 
+ static void JNI_PeerConnection_StopRtcEventLog(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   ExtractNativePC(jni, j_pc)->StopRtcEventLog();
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_SignalingState(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_SignalingState(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return Java_SignalingState_fromNativeIndex(
+       env, ExtractNativePC(env, j_pc)->signaling_state());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_IceConnectionState(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_IceConnectionState(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return Java_IceConnectionState_fromNativeIndex(
+       env, ExtractNativePC(env, j_pc)->ice_connection_state());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_PeerConnection_ConnectionState(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_ConnectionState(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return Java_PeerConnectionState_fromNativeIndex(
+       env,
+       static_cast<int>(ExtractNativePC(env, j_pc)->peer_connection_state()));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_PeerConnection_IceGatheringState(
++static ScopedJavaLocalRef<jobject> JNI_PeerConnection_IceGatheringState(
+     JNIEnv* env,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++    const JavaParamRef<jobject>& j_pc) {
+   return Java_IceGatheringState_fromNativeIndex(
+       env, ExtractNativePC(env, j_pc)->ice_gathering_state());
+ }
+ 
+-static void JNI_PeerConnection_Close(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_pc) {
++static void JNI_PeerConnection_Close(JNIEnv* jni,
++                                     const JavaParamRef<jobject>& j_pc) {
+   ExtractNativePC(jni, j_pc)->Close();
+ }
+ 
+diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
+index 679c532cea..9d4f94f16c 100644
+--- a/sdk/android/src/jni/pc/peer_connection_factory.cc
++++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
+@@ -61,24 +61,23 @@ std::unique_ptr<T> TakeOwnershipOfUniquePtr(jlong native_pointer) {
+   return std::unique_ptr<T>(reinterpret_cast<T*>(native_pointer));
+ }
+ 
+-typedef void (*JavaMethodPointer)(JNIEnv*, const jni_zero::JavaRef<jobject>&);
++typedef void (*JavaMethodPointer)(JNIEnv*, const JavaRef<jobject>&);
+ 
+ // Post a message on the given thread that will call the Java method on the
+ // given Java object.
+ void PostJavaCallback(JNIEnv* env,
+                       rtc::Thread* queue,
+-                      const jni_zero::JavaRef<jobject>& j_object,
++                      const JavaRef<jobject>& j_object,
+                       JavaMethodPointer java_method_pointer) {
+-  jni_zero::ScopedJavaGlobalRef<jobject> object(env, j_object);
++  ScopedJavaGlobalRef<jobject> object(env, j_object);
+   queue->PostTask([object = std::move(object), java_method_pointer] {
+     java_method_pointer(AttachCurrentThreadIfNeeded(), object);
+   });
+ }
+ 
+ absl::optional<PeerConnectionFactoryInterface::Options>
+-JavaToNativePeerConnectionFactoryOptions(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_options) {
++JavaToNativePeerConnectionFactoryOptions(JNIEnv* jni,
++                                         const JavaRef<jobject>& j_options) {
+   if (j_options.is_null())
+     return absl::nullopt;
+ 
+@@ -121,9 +120,8 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+       std::move(socket_factory), std::move(network_thread),
+       std::move(worker_thread), std::move(signaling_thread), pcf);
+ 
+-  jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
+-      Java_PeerConnectionFactory_Constructor(
+-          env, NativeToJavaPointer(owned_factory));
++  ScopedJavaLocalRef<jobject> j_pcf = Java_PeerConnectionFactory_Constructor(
++      env, NativeToJavaPointer(owned_factory));
+ 
+   PostJavaCallback(env, owned_factory->network_thread(), j_pcf,
+                    &Java_PeerConnectionFactory_onNetworkThreadReady);
+@@ -172,7 +170,7 @@ static void JNI_PeerConnectionFactory_InitializeAndroidGlobals(JNIEnv* jni) {
+ 
+ static void JNI_PeerConnectionFactory_InitializeFieldTrials(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_trials_init_string) {
++    const JavaParamRef<jstring>& j_trials_init_string) {
+   std::unique_ptr<std::string>& field_trials_init_string =
+       GetStaticObjects().field_trials_init_string;
+ 
+@@ -191,17 +189,17 @@ static void JNI_PeerConnectionFactory_InitializeInternalTracer(JNIEnv* jni) {
+   rtc::tracing::SetupInternalTracer();
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jstring>
++static ScopedJavaLocalRef<jstring>
+ JNI_PeerConnectionFactory_FindFieldTrialsFullName(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_name) {
++    const JavaParamRef<jstring>& j_name) {
+   return NativeToJavaString(
+       jni, field_trial::FindFullName(JavaToStdString(jni, j_name)));
+ }
+ 
+ static jboolean JNI_PeerConnectionFactory_StartInternalTracingCapture(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jstring>& j_event_tracing_filename) {
++    const JavaParamRef<jstring>& j_event_tracing_filename) {
+   if (j_event_tracing_filename.is_null())
+     return false;
+ 
+@@ -227,13 +225,13 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+ // `network_state_predictor_factory`, `neteq_factory`.
+ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& jcontext,
+-    const jni_zero::JavaParamRef<jobject>& joptions,
++    const JavaParamRef<jobject>& jcontext,
++    const JavaParamRef<jobject>& joptions,
+     rtc::scoped_refptr<AudioDeviceModule> audio_device_module,
+     rtc::scoped_refptr<AudioEncoderFactory> audio_encoder_factory,
+     rtc::scoped_refptr<AudioDecoderFactory> audio_decoder_factory,
+-    const jni_zero::JavaParamRef<jobject>& jencoder_factory,
+-    const jni_zero::JavaParamRef<jobject>& jdecoder_factory,
++    const JavaParamRef<jobject>& jencoder_factory,
++    const JavaParamRef<jobject>& jdecoder_factory,
+     rtc::scoped_refptr<AudioProcessing> audio_processor,
+     std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory,
+     std::unique_ptr<NetworkControllerFactoryInterface>
+@@ -308,16 +306,16 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+       std::move(worker_thread), std::move(signaling_thread));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
++static ScopedJavaLocalRef<jobject>
+ JNI_PeerConnectionFactory_CreatePeerConnectionFactory(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& jcontext,
+-    const jni_zero::JavaParamRef<jobject>& joptions,
++    const JavaParamRef<jobject>& jcontext,
++    const JavaParamRef<jobject>& joptions,
+     jlong native_audio_device_module,
+     jlong native_audio_encoder_factory,
+     jlong native_audio_decoder_factory,
+-    const jni_zero::JavaParamRef<jobject>& jencoder_factory,
+-    const jni_zero::JavaParamRef<jobject>& jdecoder_factory,
++    const JavaParamRef<jobject>& jencoder_factory,
++    const JavaParamRef<jobject>& jdecoder_factory,
+     jlong native_audio_processor,
+     jlong native_fec_controller_factory,
+     jlong native_network_controller_factory,
+@@ -351,7 +349,7 @@ static void JNI_PeerConnectionFactory_FreeFactory(JNIEnv*, jlong j_p) {
+ static jlong JNI_PeerConnectionFactory_CreateLocalMediaStream(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jstring>& label) {
++    const JavaParamRef<jstring>& label) {
+   rtc::scoped_refptr<MediaStreamInterface> stream(
+       PeerConnectionFactoryFromJava(native_factory)
+           ->CreateLocalMediaStream(JavaToStdString(jni, label)));
+@@ -361,7 +359,7 @@ static jlong JNI_PeerConnectionFactory_CreateLocalMediaStream(
+ static jlong JNI_PeerConnectionFactory_CreateAudioSource(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jobject>& j_constraints) {
++    const JavaParamRef<jobject>& j_constraints) {
+   std::unique_ptr<MediaConstraints> constraints =
+       JavaToNativeMediaConstraints(jni, j_constraints);
+   cricket::AudioOptions options;
+@@ -375,7 +373,7 @@ static jlong JNI_PeerConnectionFactory_CreateAudioSource(
+ jlong JNI_PeerConnectionFactory_CreateAudioTrack(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jstring>& id,
++    const JavaParamRef<jstring>& id,
+     jlong native_source) {
+   rtc::scoped_refptr<AudioTrackInterface> track(
+       PeerConnectionFactoryFromJava(native_factory)
+@@ -388,7 +386,7 @@ jlong JNI_PeerConnectionFactory_CreateAudioTrack(
+ ScopedJavaLocalRef<jobject> JNI_PeerConnectionFactory_GetRtpSenderCapabilities(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jobject>& media_type) {
++    const JavaParamRef<jobject>& media_type) {
+   auto factory = PeerConnectionFactoryFromJava(native_factory);
+   return NativeToJavaRtpCapabilities(
+       jni, factory->GetRtpSenderCapabilities(
+@@ -399,7 +397,7 @@ ScopedJavaLocalRef<jobject>
+ JNI_PeerConnectionFactory_GetRtpReceiverCapabilities(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jobject>& media_type) {
++    const JavaParamRef<jobject>& media_type) {
+   auto factory = PeerConnectionFactoryFromJava(native_factory);
+   return NativeToJavaRtpCapabilities(
+       jni, factory->GetRtpReceiverCapabilities(
+@@ -429,10 +427,10 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+     JNIEnv* jni,
+     jlong factory,
+-    const jni_zero::JavaParamRef<jobject>& j_rtc_config,
+-    const jni_zero::JavaParamRef<jobject>& j_constraints,
++    const JavaParamRef<jobject>& j_rtc_config,
++    const JavaParamRef<jobject>& j_constraints,
+     jlong observer_p,
+-    const jni_zero::JavaParamRef<jobject>& j_sslCertificateVerifier) {
++    const JavaParamRef<jobject>& j_sslCertificateVerifier) {
+   std::unique_ptr<PeerConnectionObserver> observer(
+       reinterpret_cast<PeerConnectionObserver*>(observer_p));
+ 
+@@ -494,7 +492,7 @@ static jlong JNI_PeerConnectionFactory_CreateVideoSource(
+ static jlong JNI_PeerConnectionFactory_CreateVideoTrack(
+     JNIEnv* jni,
+     jlong native_factory,
+-    const jni_zero::JavaParamRef<jstring>& id,
++    const JavaParamRef<jstring>& id,
+     jlong native_source) {
+   rtc::scoped_refptr<VideoTrackInterface> track =
+       PeerConnectionFactoryFromJava(native_factory)
+@@ -513,7 +511,7 @@ static jlong JNI_PeerConnectionFactory_GetNativePeerConnectionFactory(
+ 
+ static void JNI_PeerConnectionFactory_InjectLoggable(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_logging,
++    const JavaParamRef<jobject>& j_logging,
+     jint nativeSeverity) {
+   std::unique_ptr<JNILogSink>& jni_log_sink = GetStaticObjects().jni_log_sink;
+ 
+diff --git a/sdk/android/src/jni/pc/rtc_certificate.cc b/sdk/android/src/jni/pc/rtc_certificate.cc
+index fb5f2b6b32..db7c150ca5 100644
+--- a/sdk/android/src/jni/pc/rtc_certificate.cc
++++ b/sdk/android/src/jni/pc/rtc_certificate.cc
+@@ -23,10 +23,10 @@ namespace jni {
+ 
+ rtc::RTCCertificatePEM JavaToNativeRTCCertificatePEM(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_rtc_certificate) {
+-  jni_zero::ScopedJavaLocalRef<jstring> privatekey_field =
++    const JavaRef<jobject>& j_rtc_certificate) {
++  ScopedJavaLocalRef<jstring> privatekey_field =
+       Java_RtcCertificatePem_getPrivateKey(jni, j_rtc_certificate);
+-  jni_zero::ScopedJavaLocalRef<jstring> certificate_field =
++  ScopedJavaLocalRef<jstring> certificate_field =
+       Java_RtcCertificatePem_getCertificate(jni, j_rtc_certificate);
+   return rtc::RTCCertificatePEM(JavaToNativeString(jni, privatekey_field),
+                                 JavaToNativeString(jni, certificate_field));
+@@ -40,10 +40,9 @@ ScopedJavaLocalRef<jobject> NativeToJavaRTCCertificatePEM(
+       NativeToJavaString(jni, certificate.certificate()));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
+-JNI_RtcCertificatePem_GenerateCertificate(
++static ScopedJavaLocalRef<jobject> JNI_RtcCertificatePem_GenerateCertificate(
+     JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_key_type,
++    const JavaParamRef<jobject>& j_key_type,
+     jlong j_expires) {
+   rtc::KeyType key_type = JavaToNativeKeyType(jni, j_key_type);
+   uint64_t expires = (uint64_t)j_expires;
+diff --git a/sdk/android/src/jni/pc/rtp_receiver.cc b/sdk/android/src/jni/pc/rtp_receiver.cc
+index d99f1a71b2..7a3600b424 100644
+--- a/sdk/android/src/jni/pc/rtp_receiver.cc
++++ b/sdk/android/src/jni/pc/rtp_receiver.cc
+@@ -26,8 +26,7 @@ namespace {
+ // dispatches C++ callbacks to Java.
+ class RtpReceiverObserverJni : public RtpReceiverObserverInterface {
+  public:
+-  RtpReceiverObserverJni(JNIEnv* env,
+-                         const jni_zero::JavaRef<jobject>& j_observer)
++  RtpReceiverObserverJni(JNIEnv* env, const JavaRef<jobject>& j_observer)
+       : j_observer_global_(env, j_observer) {}
+ 
+   ~RtpReceiverObserverJni() override = default;
+@@ -39,7 +38,7 @@ class RtpReceiverObserverJni : public RtpReceiverObserverInterface {
+   }
+ 
+  private:
+-  const jni_zero::ScopedJavaGlobalRef<jobject> j_observer_global_;
++  const ScopedJavaGlobalRef<jobject> j_observer_global_;
+ };
+ 
+ }  // namespace
+@@ -54,7 +53,7 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpReceiver(
+ 
+ JavaRtpReceiverGlobalOwner::JavaRtpReceiverGlobalOwner(
+     JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_receiver)
++    const JavaRef<jobject>& j_receiver)
+     : j_receiver_(env, j_receiver) {}
+ 
+ JavaRtpReceiverGlobalOwner::JavaRtpReceiverGlobalOwner(
+@@ -75,7 +74,7 @@ static jlong JNI_RtpReceiver_GetTrack(JNIEnv* jni,
+           .release());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject> JNI_RtpReceiver_GetParameters(
++static ScopedJavaLocalRef<jobject> JNI_RtpReceiver_GetParameters(
+     JNIEnv* jni,
+     jlong j_rtp_receiver_pointer) {
+   RtpParameters parameters =
+@@ -84,7 +83,7 @@ static jni_zero::ScopedJavaLocalRef<jobject> JNI_RtpReceiver_GetParameters(
+   return NativeToJavaRtpParameters(jni, parameters);
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jstring> JNI_RtpReceiver_GetId(
++static ScopedJavaLocalRef<jstring> JNI_RtpReceiver_GetId(
+     JNIEnv* jni,
+     jlong j_rtp_receiver_pointer) {
+   return NativeToJavaString(
+@@ -95,7 +94,7 @@ static jni_zero::ScopedJavaLocalRef<jstring> JNI_RtpReceiver_GetId(
+ static jlong JNI_RtpReceiver_SetObserver(
+     JNIEnv* jni,
+     jlong j_rtp_receiver_pointer,
+-    const jni_zero::JavaParamRef<jobject>& j_observer) {
++    const JavaParamRef<jobject>& j_observer) {
+   RtpReceiverObserverJni* rtpReceiverObserver =
+       new RtpReceiverObserverJni(jni, j_observer);
+   reinterpret_cast<RtpReceiverInterface*>(j_rtp_receiver_pointer)
+diff --git a/sdk/android/src/jni/pc/rtp_sender.cc b/sdk/android/src/jni/pc/rtp_sender.cc
+index 88682d2919..ddb53f69c7 100644
+--- a/sdk/android/src/jni/pc/rtp_sender.cc
++++ b/sdk/android/src/jni/pc/rtp_sender.cc
+@@ -47,7 +47,7 @@ jlong JNI_RtpSender_GetTrack(JNIEnv* jni, jlong j_rtp_sender_pointer) {
+ static void JNI_RtpSender_SetStreams(
+     JNIEnv* jni,
+     jlong j_rtp_sender_pointer,
+-    const jni_zero::JavaParamRef<jobject>& j_stream_labels) {
++    const JavaParamRef<jobject>& j_stream_labels) {
+   reinterpret_cast<RtpSenderInterface*>(j_rtp_sender_pointer)
+       ->SetStreams(JavaListToNativeVector<std::string, jstring>(
+           jni, j_stream_labels, &JavaToNativeString));
+@@ -56,8 +56,8 @@ static void JNI_RtpSender_SetStreams(
+ ScopedJavaLocalRef<jobject> JNI_RtpSender_GetStreams(
+     JNIEnv* jni,
+     jlong j_rtp_sender_pointer) {
+-  jni_zero::ScopedJavaLocalRef<jstring> (*convert_function)(
+-      JNIEnv*, const std::string&) = &NativeToJavaString;
++  ScopedJavaLocalRef<jstring> (*convert_function)(JNIEnv*, const std::string&) =
++      &NativeToJavaString;
+   return NativeToJavaList(
+       jni,
+       reinterpret_cast<RtpSenderInterface*>(j_rtp_sender_pointer)->stream_ids(),
+@@ -74,7 +74,7 @@ jlong JNI_RtpSender_GetDtmfSender(JNIEnv* jni, jlong j_rtp_sender_pointer) {
+ jboolean JNI_RtpSender_SetParameters(
+     JNIEnv* jni,
+     jlong j_rtp_sender_pointer,
+-    const jni_zero::JavaParamRef<jobject>& j_parameters) {
++    const JavaParamRef<jobject>& j_parameters) {
+   if (IsNull(jni, j_parameters)) {
+     return false;
+   }
+@@ -108,7 +108,7 @@ static void JNI_RtpSender_SetFrameEncryptor(JNIEnv* jni,
+               j_frame_encryptor_pointer)));
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jstring> JNI_RtpSender_GetMediaType(
++static ScopedJavaLocalRef<jstring> JNI_RtpSender_GetMediaType(
+     JNIEnv* jni,
+     jlong j_rtp_sender_pointer) {
+   cricket::MediaType media_type =
+diff --git a/sdk/android/src/jni/pc/rtp_transceiver.cc b/sdk/android/src/jni/pc/rtp_transceiver.cc
+index 327a5f9e89..4d5b00d79d 100644
+--- a/sdk/android/src/jni/pc/rtp_transceiver.cc
++++ b/sdk/android/src/jni/pc/rtp_transceiver.cc
+@@ -38,7 +38,7 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpTransceiverDirection(
+ 
+ RtpTransceiverInit JavaToNativeRtpTransceiverInit(
+     JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_init) {
++    const JavaRef<jobject>& j_init) {
+   RtpTransceiverInit init;
+ 
+   // Convert the direction.
+@@ -46,13 +46,13 @@ RtpTransceiverInit JavaToNativeRtpTransceiverInit(
+       Java_RtpTransceiverInit_getDirectionNativeIndex(jni, j_init));
+ 
+   // Convert the stream ids.
+-  jni_zero::ScopedJavaLocalRef<jobject> j_stream_ids =
++  ScopedJavaLocalRef<jobject> j_stream_ids =
+       Java_RtpTransceiverInit_getStreamIds(jni, j_init);
+   init.stream_ids = JavaListToNativeVector<std::string, jstring>(
+       jni, j_stream_ids, &JavaToNativeString);
+ 
+   // Convert the send encodings.
+-  jni_zero::ScopedJavaLocalRef<jobject> j_send_encodings =
++  ScopedJavaLocalRef<jobject> j_send_encodings =
+       Java_RtpTransceiverInit_getSendEncodings(jni, j_init);
+   init.send_encodings = JavaListToNativeVector<RtpEncodingParameters, jobject>(
+       jni, j_send_encodings, &JavaToNativeRtpEncodingParameters);
+@@ -72,7 +72,7 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpTransceiver(
+ 
+ JavaRtpTransceiverGlobalOwner::JavaRtpTransceiverGlobalOwner(
+     JNIEnv* env,
+-    const jni_zero::JavaRef<jobject>& j_transceiver)
++    const JavaRef<jobject>& j_transceiver)
+     : j_transceiver_(env, j_transceiver) {}
+ 
+ JavaRtpTransceiverGlobalOwner::JavaRtpTransceiverGlobalOwner(
+@@ -144,7 +144,7 @@ ScopedJavaLocalRef<jobject> JNI_RtpTransceiver_CurrentDirection(
+ ScopedJavaLocalRef<jobject> JNI_RtpTransceiver_SetCodecPreferences(
+     JNIEnv* jni,
+     jlong j_rtp_transceiver_pointer,
+-    const jni_zero::JavaParamRef<jobject>& j_codecs) {
++    const JavaParamRef<jobject>& j_codecs) {
+   std::vector<RtpCodecCapability> codecs;
+   if (j_codecs) {
+     codecs = JavaListToNativeVector<RtpCodecCapability, jobject>(
+@@ -174,7 +174,7 @@ void JNI_RtpTransceiver_StopStandard(JNIEnv* jni,
+ jboolean JNI_RtpTransceiver_SetDirection(
+     JNIEnv* jni,
+     jlong j_rtp_transceiver_pointer,
+-    const jni_zero::JavaParamRef<jobject>& j_rtp_transceiver_direction) {
++    const base::android::JavaParamRef<jobject>& j_rtp_transceiver_direction) {
+   if (IsNull(jni, j_rtp_transceiver_direction)) {
+     return false;
+   }
+diff --git a/sdk/android/src/jni/software_video_decoder_factory.cc b/sdk/android/src/jni/software_video_decoder_factory.cc
+index ce4fd23119..6e711e813d 100644
+--- a/sdk/android/src/jni/software_video_decoder_factory.cc
++++ b/sdk/android/src/jni/software_video_decoder_factory.cc
+@@ -30,7 +30,7 @@ static jlong JNI_SoftwareVideoDecoderFactory_CreateFactory(JNIEnv* env) {
+ jboolean JNI_SoftwareVideoDecoderFactory_IsSupported(
+     JNIEnv* env,
+     jlong j_factory,
+-    const jni_zero::JavaParamRef<jobject>& j_info) {
++    const JavaParamRef<jobject>& j_info) {
+   return VideoCodecInfoToSdpVideoFormat(env, j_info)
+       .IsCodecInList(reinterpret_cast<VideoDecoderFactory*>(j_factory)
+                          ->GetSupportedFormats());
+@@ -40,7 +40,7 @@ jlong JNI_SoftwareVideoDecoderFactory_Create(
+     JNIEnv* env,
+     jlong j_factory,
+     jlong j_webrtc_env_ref,
+-    const jni_zero::JavaParamRef<jobject>& j_info) {
++    const JavaParamRef<jobject>& j_info) {
+   return NativeToJavaPointer(
+       reinterpret_cast<VideoDecoderFactory*>(j_factory)
+           ->Create(*reinterpret_cast<const Environment*>(j_webrtc_env_ref),
+@@ -48,7 +48,7 @@ jlong JNI_SoftwareVideoDecoderFactory_Create(
+           .release());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
++static webrtc::ScopedJavaLocalRef<jobject>
+ JNI_SoftwareVideoDecoderFactory_GetSupportedCodecs(JNIEnv* env,
+                                                    jlong j_factory) {
+   auto* const native_factory =
+diff --git a/sdk/android/src/jni/software_video_encoder_factory.cc b/sdk/android/src/jni/software_video_encoder_factory.cc
+index 2635b18f91..bcd4c1ddc5 100644
+--- a/sdk/android/src/jni/software_video_encoder_factory.cc
++++ b/sdk/android/src/jni/software_video_encoder_factory.cc
+@@ -27,7 +27,7 @@ static jlong JNI_SoftwareVideoEncoderFactory_CreateFactory(JNIEnv* env) {
+ jboolean JNI_SoftwareVideoEncoderFactory_IsSupported(
+     JNIEnv* env,
+     jlong j_factory,
+-    const jni_zero::JavaParamRef<jobject>& j_info) {
++    const JavaParamRef<jobject>& j_info) {
+   return VideoCodecInfoToSdpVideoFormat(env, j_info)
+       .IsCodecInList(reinterpret_cast<VideoEncoderFactory*>(j_factory)
+                          ->GetSupportedFormats());
+@@ -37,7 +37,7 @@ jlong JNI_SoftwareVideoEncoderFactory_Create(
+     JNIEnv* env,
+     jlong j_factory,
+     jlong j_webrtc_env_ref,
+-    const jni_zero::JavaParamRef<jobject>& j_info) {
++    const JavaParamRef<jobject>& j_info) {
+   return NativeToJavaPointer(
+       reinterpret_cast<VideoEncoderFactory*>(j_factory)
+           ->Create(*reinterpret_cast<const Environment*>(j_webrtc_env_ref),
+@@ -45,7 +45,7 @@ jlong JNI_SoftwareVideoEncoderFactory_Create(
+           .release());
+ }
+ 
+-static jni_zero::ScopedJavaLocalRef<jobject>
++static webrtc::ScopedJavaLocalRef<jobject>
+ JNI_SoftwareVideoEncoderFactory_GetSupportedCodecs(JNIEnv* env,
+                                                    jlong j_factory) {
+   auto* const native_factory =
+diff --git a/sdk/android/src/jni/video_decoder_fallback.cc b/sdk/android/src/jni/video_decoder_fallback.cc
+index 88e40f6587..86d643de64 100644
+--- a/sdk/android/src/jni/video_decoder_fallback.cc
++++ b/sdk/android/src/jni/video_decoder_fallback.cc
+@@ -22,8 +22,8 @@ namespace jni {
+ static jlong JNI_VideoDecoderFallback_Create(
+     JNIEnv* jni,
+     jlong j_webrtc_env_ref,
+-    const jni_zero::JavaParamRef<jobject>& j_fallback_decoder,
+-    const jni_zero::JavaParamRef<jobject>& j_primary_decoder) {
++    const JavaParamRef<jobject>& j_fallback_decoder,
++    const JavaParamRef<jobject>& j_primary_decoder) {
+   std::unique_ptr<VideoDecoder> fallback_decoder =
+       JavaToNativeVideoDecoder(jni, j_fallback_decoder, j_webrtc_env_ref);
+   std::unique_ptr<VideoDecoder> primary_decoder =
+diff --git a/sdk/android/src/jni/video_encoder_fallback.cc b/sdk/android/src/jni/video_encoder_fallback.cc
+index 41a0d3722a..fa1fbc9270 100644
+--- a/sdk/android/src/jni/video_encoder_fallback.cc
++++ b/sdk/android/src/jni/video_encoder_fallback.cc
+@@ -22,8 +22,8 @@ namespace jni {
+ jlong JNI_VideoEncoderFallback_Create(
+     JNIEnv* jni,
+     jlong j_webrtc_env_ref,
+-    const jni_zero::JavaParamRef<jobject>& j_fallback_encoder,
+-    const jni_zero::JavaParamRef<jobject>& j_primary_encoder) {
++    const JavaParamRef<jobject>& j_fallback_encoder,
++    const JavaParamRef<jobject>& j_primary_encoder) {
+   std::unique_ptr<VideoEncoder> fallback_encoder =
+       JavaToNativeVideoEncoder(jni, j_fallback_encoder, j_webrtc_env_ref);
+   std::unique_ptr<VideoEncoder> primary_encoder =
+diff --git a/sdk/android/src/jni/video_track.cc b/sdk/android/src/jni/video_track.cc
+index 87777e9d60..eb343ebdb3 100644
+--- a/sdk/android/src/jni/video_track.cc
++++ b/sdk/android/src/jni/video_track.cc
+@@ -35,9 +35,8 @@ static void JNI_VideoTrack_RemoveSink(JNIEnv* jni,
+           j_native_sink));
+ }
+ 
+-static jlong JNI_VideoTrack_WrapSink(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& sink) {
++static jlong JNI_VideoTrack_WrapSink(JNIEnv* jni,
++                                     const JavaParamRef<jobject>& sink) {
+   return jlongFromPointer(new VideoSinkWrapper(jni, sink));
+ }
+ 
+diff --git a/sdk/android/src/jni/yuv_helper.cc b/sdk/android/src/jni/yuv_helper.cc
+index 09ae9223ae..e812bc9527 100644
+--- a/sdk/android/src/jni/yuv_helper.cc
++++ b/sdk/android/src/jni/yuv_helper.cc
+@@ -19,9 +19,9 @@ namespace webrtc {
+ namespace jni {
+ 
+ void JNI_YuvHelper_CopyPlane(JNIEnv* jni,
+-                             const jni_zero::JavaParamRef<jobject>& j_src,
++                             const JavaParamRef<jobject>& j_src,
+                              jint src_stride,
+-                             const jni_zero::JavaParamRef<jobject>& j_dst,
++                             const JavaParamRef<jobject>& j_dst,
+                              jint dst_stride,
+                              jint width,
+                              jint height) {
+@@ -34,17 +34,17 @@ void JNI_YuvHelper_CopyPlane(JNIEnv* jni,
+ }
+ 
+ void JNI_YuvHelper_I420Copy(JNIEnv* jni,
+-                            const jni_zero::JavaParamRef<jobject>& j_src_y,
++                            const JavaParamRef<jobject>& j_src_y,
+                             jint src_stride_y,
+-                            const jni_zero::JavaParamRef<jobject>& j_src_u,
++                            const JavaParamRef<jobject>& j_src_u,
+                             jint src_stride_u,
+-                            const jni_zero::JavaParamRef<jobject>& j_src_v,
++                            const JavaParamRef<jobject>& j_src_v,
+                             jint src_stride_v,
+-                            const jni_zero::JavaParamRef<jobject>& j_dst_y,
++                            const JavaParamRef<jobject>& j_dst_y,
+                             jint dst_stride_y,
+-                            const jni_zero::JavaParamRef<jobject>& j_dst_u,
++                            const JavaParamRef<jobject>& j_dst_u,
+                             jint dst_stride_u,
+-                            const jni_zero::JavaParamRef<jobject>& j_dst_v,
++                            const JavaParamRef<jobject>& j_dst_v,
+                             jint dst_stride_v,
+                             jint width,
+                             jint height) {
+@@ -66,20 +66,19 @@ void JNI_YuvHelper_I420Copy(JNIEnv* jni,
+                    dst_v, dst_stride_v, width, height);
+ }
+ 
+-static void JNI_YuvHelper_I420ToNV12(
+-    JNIEnv* jni,
+-    const jni_zero::JavaParamRef<jobject>& j_src_y,
+-    jint src_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_src_u,
+-    jint src_stride_u,
+-    const jni_zero::JavaParamRef<jobject>& j_src_v,
+-    jint src_stride_v,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_y,
+-    jint dst_stride_y,
+-    const jni_zero::JavaParamRef<jobject>& j_dst_uv,
+-    jint dst_stride_uv,
+-    jint width,
+-    jint height) {
++static void JNI_YuvHelper_I420ToNV12(JNIEnv* jni,
++                                     const JavaParamRef<jobject>& j_src_y,
++                                     jint src_stride_y,
++                                     const JavaParamRef<jobject>& j_src_u,
++                                     jint src_stride_u,
++                                     const JavaParamRef<jobject>& j_src_v,
++                                     jint src_stride_v,
++                                     const JavaParamRef<jobject>& j_dst_y,
++                                     jint dst_stride_y,
++                                     const JavaParamRef<jobject>& j_dst_uv,
++                                     jint dst_stride_uv,
++                                     jint width,
++                                     jint height) {
+   const uint8_t* src_y =
+       static_cast<const uint8_t*>(jni->GetDirectBufferAddress(j_src_y.obj()));
+   const uint8_t* src_u =
+@@ -97,17 +96,17 @@ static void JNI_YuvHelper_I420ToNV12(
+ }
+ 
+ void JNI_YuvHelper_I420Rotate(JNIEnv* jni,
+-                              const jni_zero::JavaParamRef<jobject>& j_src_y,
++                              const JavaParamRef<jobject>& j_src_y,
+                               jint src_stride_y,
+-                              const jni_zero::JavaParamRef<jobject>& j_src_u,
++                              const JavaParamRef<jobject>& j_src_u,
+                               jint src_stride_u,
+-                              const jni_zero::JavaParamRef<jobject>& j_src_v,
++                              const JavaParamRef<jobject>& j_src_v,
+                               jint src_stride_v,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_y,
++                              const JavaParamRef<jobject>& j_dst_y,
+                               jint dst_stride_y,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_u,
++                              const JavaParamRef<jobject>& j_dst_u,
+                               jint dst_stride_u,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_v,
++                              const JavaParamRef<jobject>& j_dst_v,
+                               jint dst_stride_v,
+                               jint src_width,
+                               jint src_height,
+@@ -132,13 +131,13 @@ void JNI_YuvHelper_I420Rotate(JNIEnv* jni,
+ }
+ 
+ void JNI_YuvHelper_ABGRToI420(JNIEnv* jni,
+-                              const jni_zero::JavaParamRef<jobject>& j_src,
++                              const JavaParamRef<jobject>& j_src,
+                               jint src_stride,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_y,
++                              const JavaParamRef<jobject>& j_dst_y,
+                               jint dst_stride_y,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_u,
++                              const JavaParamRef<jobject>& j_dst_u,
+                               jint dst_stride_u,
+-                              const jni_zero::JavaParamRef<jobject>& j_dst_v,
++                              const JavaParamRef<jobject>& j_dst_v,
+                               jint dst_stride_v,
+                               jint src_width,
+                               jint src_height) {
