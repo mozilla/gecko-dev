@@ -48,6 +48,13 @@ Test multiple redirects using https-first and ensure the entire redirect chain i
     //         to http://example.com/../verify. Since the last redirect is http, and we
     //         had a downgrade in the redirect chain. We load the http version
     {name: "test downgrade HTTP", result: "scheme-http", query: "test5" },
+    // test 5: https-first upgrades http://example.com/test6 -> https://example.com/test6
+    //         that's redirect to https://example.com/.../downgrade which then redirects
+    //         https-first upgrades http://example.com/.../downgrade -> https://example.com/.../downgrade
+    //         that's redirect to http://example.com/.../downgrade which which is detected as http downgrade
+    //         to http://example.net/../verify. Since the last redirect is http, and we
+    //         had a downgrade in the redirect chain. We load the http version
+    {name: "test downgrade HTTP", result: "scheme-http", query: "test5" },
   ]
   let currentTest = 0;
   let testWin;

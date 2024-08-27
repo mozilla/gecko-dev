@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1904238
+Test error pages after redirects causing us to downgrade.
+-->
+
+<head>
+  <title>HTTPS-First-Mode - Test for multiple redirections</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+
+<body>
+
+  <script class="testbody" type="text/javascript">
+  "use strict";
+
+  SimpleTest.waitForExplicitFinish();
+
+  // Load an http:// window which gets upgraded to https://, redirected to a different
+  // https page. The other https page contains an error. Make sure that we don't
+  // downgrade on that error.
+  
+  const testCase = [
+    // The following three test cases are the same execpt the redirect method.
+    // They have the following schema:
+    //  1. The test case gets initiated by loading a page with schema http:
+    //     http://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?cross-302
+    //  2. The load gets upgraded via https-first and therefor sets the
+    //     `HTTPS_ONLY_UPGRADED_HTTPS_FIRST`-flag on the nsILoadInfo
+    //     from the channel. We load the https variant of the url:
+    //     https://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?cross-302
+    //  3. The server responds with a redirect with a different host, path and
+    //     still the https-scheme, indicating that following errors are not a
+    //     result of the https-first upgrade. When progressing the redirect,
+    //     we clear the `HTTPS_ONLY_UPGRADED_HTTPS_FIRST`-flag. We continue
+    //     with loading the resulting URL:
+    //     https://example.net/tests/dom/security/test/https-first/file_redirect_error.sjs?verify
+    //  4. We display the error returned by the server and not downgrade to
+    //     http-version.
+    "cross-302",
+    "cross-js",
+    "cross-meta",
+    // The following three test cases are the same as above, however in step 3
+    // the returned URL differs only in the path, not the host. Since the
+    // we haven't encountered a http-downgrade.
+    "same-302",
+    "same-js",
+    "same-meta",
+    // Makes sure cross origin redirects don't inherit the exception flag.
+    // This test case is the same as the first one, except before reaching
+    // the url in step 1 we encounter a http downgrade.
+    //  1. The test gets initiated with:
+    //     http://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?downgrade
+    //  2. Upgraded via https-first:
+    //     https://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?downgrade
+    //  3. The server responds with an redirect to the http version of the
+    //     and therefore explicitly downgrades the connection. We load the
+    //     http version we exempt example.com from loading securely.
+    //     http://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?downgrade
+    //  4. The server responds with the test case URL from test 1 "cross-302"
+    "downgrade-302",
+  ];
+  let currentTest = 0;
+  let testWin;
+  window.addEventListener("message", receiveMessage);
+
+  // receive message from loaded site verifying the scheme of
+  // the loaded document.
+  async function receiveMessage(event) {
+
+    let test = testCase[currentTest];
+      is(event.data.result,
+       "secure",
+       "expected https load in test " + test
+    );
+    testWin.close();
+    await SpecialPowers.removePermission(
+      "https-only-load-insecure",
+      "http://example.com"
+    );
+    if (++currentTest < testCase.length) {
+      startTest();
+      return;
+    }
+    window.removeEventListener("message", receiveMessage);
+    SimpleTest.finish();
+  }
+
+  async function startTest() {
+    const test = testCase[currentTest];
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    let uri = `http://example.com/tests/dom/security/test/https-first/file_redirect_error.sjs?${test}`;
+    testWin = window.open(uri);
+  }
+
+  // Set preference and start test
+  SpecialPowers.pushPrefEnv({ set: [
+    ["dom.security.https_first", true],
+  ]}, startTest);
+  </script>
+</body>
+</html>

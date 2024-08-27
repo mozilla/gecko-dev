@@ -4437,6 +4437,11 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
       newLoadInfo->SetLoadTriggeredFromExternal(false);
     }
     newLoadInfo->ResetSandboxedNullPrincipalID();
+
+    // Reset HTTPS-first and -only status on http redirect. To not unexpectedly
+    // downgrade requests that weren't upgraded via HTTPS-First (Bug 1904238).
+    Unused << newLoadInfo->SetHttpsOnlyStatus(
+        nsILoadInfo::HTTPS_ONLY_UNINITIALIZED);
   }
 
   newLoadInfo->AppendRedirectHistoryEntry(this, isInternalRedirect);
