@@ -47,7 +47,7 @@ class FrameCombiner {
   Limiter limiter_;
   const bool use_limiter_;
   std::array<float, kMaximumChannelSize * kMaximumNumberOfChannels>
-      mixing_buffer_;
+      mixing_buffer_ = {};
 };
 }  // namespace webrtc
 

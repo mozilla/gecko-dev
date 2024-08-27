@@ -96,7 +96,8 @@ void MixToFloatFrame(rtc::ArrayView<const AudioFrame* const> mix_list,
   // Convert to FloatS16 and mix.
   for (size_t i = 0; i < mix_list.size(); ++i) {
     InterleavedView<const int16_t> frame_data = mix_list[i]->data_view();
-    for (size_t j = 0; j < NumChannels(mixing_buffer); ++j) {
+    RTC_CHECK(!frame_data.empty());
+    for (size_t j = 0; j < number_of_channels; ++j) {
       MonoView<float> channel = mixing_buffer[j];
       for (size_t k = 0; k < SamplesPerChannel(channel); ++k) {
         channel[k] += frame_data[number_of_channels * k + j];
