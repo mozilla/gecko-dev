@@ -1667,6 +1667,7 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
       return false;
     }
   }
+  MOZ_ASSERT(!prop.isTypedArrayElement());
 
   // From this point, the step numbers refer to
   // 10.1.6.3, ValidateAndApplyPropertyDescriptor.
@@ -1725,6 +1726,49 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     if (desc.hasEnumerable() && desc.enumerable() != attrs.enumerable()) {
       return result.fail(JSMSG_CANT_REDEFINE_PROP);
     }
+
+    MOZ_ASSERT(
+        !desc.isGenericDescriptor(),
+        "redundant or conflicting generic property descriptor already handled");
+
+    // Steps 5.c-d.
+    //
+    // If this is an existing accessor property and the property definition is
+    // non-redundant, this must be an attempt to change an accessor function or
+    // a redefinition to a data property. Both operations are invalid.
+    //
+    // If this is an existing data property and the incoming property descriptor
+    // is an accessor property descriptor, this is an invalid redefinition to an
+    // accessor property.
+    if (IsAccessorDescriptor(prop) || desc.isAccessorDescriptor()) {
+      return result.fail(JSMSG_CANT_REDEFINE_PROP);
+    }
+
+    // Step 5.e.
+    if (!attrs.writable()) {
+      // Step 5.e.i.
+      if (desc.hasWritable() && desc.writable()) {
+        return result.fail(JSMSG_CANT_REDEFINE_PROP);
+      }
+
+      // Step 5.e.ii.
+      if (desc.hasValue()) {
+        RootedValue currentValue(cx);
+        if (!GetExistingDataProperty(cx, obj, id, prop, &currentValue)) {
+          return false;
+        }
+
+        bool same;
+        if (!SameValue(cx, desc.value(), currentValue, &same)) {
+          return false;
+        }
+        if (!same) {
+          return result.fail(JSMSG_CANT_REDEFINE_PROP);
+        }
+      }
+
+      return result.succeed();
+    }
   }
 
   // Fill in desc.[[Configurable]] and desc.[[Enumerable]] if missing.
@@ -1735,9 +1779,52 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
     desc.setEnumerable(attrs.enumerable());
   }
 
-  // Steps 5-8.
-  if (desc.isGenericDescriptor()) {
-    // Step 5. No further validation is required.
+  // Step 6.
+  if (desc.isDataDescriptor()) {
+    // Fill in desc.[[Value]] and desc.[[Writable]].
+    if (IsDataDescriptor(prop)) {
+      if (!desc.hasValue()) {
+        RootedValue currentValue(cx);
+        if (!GetExistingDataProperty(cx, obj, id, prop, &currentValue)) {
+          return false;
+        }
+
+        desc.setValue(currentValue);
+      }
+      if (!desc.hasWritable()) {
+        desc.setWritable(attrs.writable());
+      }
+    } else {
+      if (!desc.hasValue()) {
+        desc.setValue(UndefinedHandleValue);
+      }
+      if (!desc.hasWritable()) {
+        desc.setWritable(false);
+      }
+    }
+  } else if (desc.isAccessorDescriptor()) {
+    // Fill in desc.[[Get]] and desc.[[Set]] from shape.
+    if (IsAccessorDescriptor(prop)) {
+      PropertyInfo propInfo = prop.propertyInfo();
+      MOZ_ASSERT(propInfo.isAccessorProperty());
+      MOZ_ASSERT(desc.isAccessorDescriptor());
+
+      if (!desc.hasGetter()) {
+        desc.setGetter(obj->getGetter(propInfo));
+      }
+      if (!desc.hasSetter()) {
+        desc.setSetter(obj->getSetter(propInfo));
+      }
+    } else {
+      if (!desc.hasGetter()) {
+        desc.setGetter(nullptr);
+      }
+      if (!desc.hasSetter()) {
+        desc.setSetter(nullptr);
+      }
+    }
+  } else {
+    MOZ_ASSERT(desc.isGenericDescriptor());
 
     // Fill in desc. A generic descriptor has none of these fields, so copy
     // everything from shape.
@@ -1757,84 +1844,9 @@ bool js::NativeDefineProperty(JSContext* cx, Handle<NativeObject*> obj,
       desc.setGetter(obj->getGetter(propInfo));
       desc.setSetter(obj->getSetter(propInfo));
     }
-  } else if (desc.isDataDescriptor() != IsDataDescriptor(prop)) {
-    // Step 6.
-    if (!attrs.configurable()) {
-      return result.fail(JSMSG_CANT_REDEFINE_PROP);
-    }
-
-    // Fill in desc fields with default values (steps 6.b.i and 6.c.i).
-    CompletePropertyDescriptor(&desc);
-  } else if (desc.isDataDescriptor()) {
-    // Step 7.
-    bool frozen = !attrs.configurable() && !attrs.writable();
-
-    // Step 7.a.i.1.
-    if (frozen && desc.hasWritable() && desc.writable()) {
-      return result.fail(JSMSG_CANT_REDEFINE_PROP);
-    }
-
-    if (frozen || !desc.hasValue()) {
-      RootedValue currentValue(cx);
-      if (!GetExistingDataProperty(cx, obj, id, prop, &currentValue)) {
-        return false;
-      }
-
-      if (!desc.hasValue()) {
-        // Fill in desc.[[Value]].
-        desc.setValue(currentValue);
-      } else {
-        // Step 7.a.i.2.
-        bool same;
-        if (!SameValue(cx, desc.value(), currentValue, &same)) {
-          return false;
-        }
-        if (!same) {
-          return result.fail(JSMSG_CANT_REDEFINE_PROP);
-        }
-      }
-    }
-
-    // Step 7.a.i.3.
-    if (frozen) {
-      return result.succeed();
-    }
-
-    // Fill in desc.[[Writable]].
-    if (!desc.hasWritable()) {
-      desc.setWritable(attrs.writable());
-    }
-  } else {
-    // Step 8.
-    PropertyInfo propInfo = prop.propertyInfo();
-    MOZ_ASSERT(propInfo.isAccessorProperty());
-    MOZ_ASSERT(desc.isAccessorDescriptor());
-
-    // The spec says to use SameValue, but since the values in
-    // question are objects, we can just compare pointers.
-    if (desc.hasSetter()) {
-      // Step 8.a.i.
-      if (!attrs.configurable() && desc.setter() != obj->getSetter(propInfo)) {
-        return result.fail(JSMSG_CANT_REDEFINE_PROP);
-      }
-    } else {
-      // Fill in desc.[[Set]] from shape.
-      desc.setSetter(obj->getSetter(propInfo));
-    }
-    if (desc.hasGetter()) {
-      // Step 8.a.ii.
-      if (!attrs.configurable() && desc.getter() != obj->getGetter(propInfo)) {
-        return result.fail(JSMSG_CANT_REDEFINE_PROP);
-      }
-    } else {
-      // Fill in desc.[[Get]] from shape.
-      desc.setGetter(obj->getGetter(propInfo));
-    }
-
-    // Step 8.a.iii (Omitted).
   }
+  desc.assertComplete();
 
-  // Step 9.
   if (!AddOrChangeProperty<IsAddOrChange::Change>(cx, obj, id, desc, &prop)) {
     return false;
   }
