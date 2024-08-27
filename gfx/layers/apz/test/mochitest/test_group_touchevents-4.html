@@ -23,6 +23,13 @@ var subtests = [
   {"file": "helper_bug1638441_fixed_pos_hit_test.html"},
   {"file": "helper_bug1637135_narrow_viewport.html", "prefs": [["dom.meta-viewport.enabled", true]]},
   {"file": "helper_bug1714934_mouseevent_buttons.html"},
+  {"file": "helper_bug1889017_fullscreen.html", "prefs": [
+    ["dom.meta-viewport.enabled", true],
+    // For the test to exercise the intended bug, this needs to be less than
+    // the browser width divided by the device scale.
+    ["browser.viewport.desktopWidth", 600],
+    ["full-screen-api.allow-trusted-requests-only", false]
+  ]},
 
   // Add new subtests here. If this starts timing out because it's taking too
   // long, create a test_group_touchevents-5.html file. Refer to 1423011#c57

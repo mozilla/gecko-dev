@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1889017
+-->
+<head>
+  <meta charset="utf-8">
+  <!--
+     No meta viewport tag. We want the page to load with a desktop viewport,
+     which is set to a width of 600px in test_group_touchevents-4.html.
+    -->
+  <title>Test for Bug 1889017</title>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
+  <script type="application/javascript" src="apz_test_utils.js"></script>
+  <style>
+    #fullscreen {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      background: yellow;
+    }
+    /* The target element is beyond the 600px viewport width. */
+    #target {
+      margin-top: 50px;
+      margin-left: 650px;
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <div id="fullscreen">
+    <div id="target">
+  </div>
+  <script type="application/javascript">
+
+async function test() {
+  // Enter fullscreen mode.
+  await fullscreen.requestFullscreen();
+
+  // In fullscreen mode, try to tap the target element.
+  let mouseDownEvent = null;
+  let mouseDownPromise = new Promise(resolve => {
+    // Set the event listener on `window`, not `target`.
+    // This way, even if the event is incorrectly targeted,
+    // the test will not time out (instead, the assertion
+    // about `event.target` will fail).
+    window.addEventListener("mousedown", function(e) {
+      mouseDownEvent = e;
+      resolve();
+    });
+  });
+  await synthesizeNativeTap(target, 10, 10);
+  await mouseDownPromise;
+  is(mouseDownEvent.target, target, "mousedown event targeted the correct element");
+}
+
+if (getPlatform() == "android") {
+  waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+} else {
+  // The test is only run on Android because on desktop, the display
+  // size changes when entering fullscreen mode, which prevents the
+  // bug from reproducing.
+  ok(true, "This subtest is only run on Android");
+  subtestDone();
+}
+
+  </script>
+</body>
+</html>
