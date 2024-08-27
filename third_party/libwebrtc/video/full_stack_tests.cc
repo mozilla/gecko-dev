@@ -698,7 +698,14 @@ TEST(FullStackTest, Conference_Motion_Hd_3tl_AV1) {
   fixture->RunWithAnalyzer(conf_motion_hd);
 }
 
-TEST(FullStackTest, Screenshare_Slides_Simulcast_AV1) {
+#if defined(WEBRTC_MAC)
+// TODO(webrtc:351644561): Flaky on Mac x86/ARM.
+#define MAYBE_Screenshare_Slides_Simulcast_AV1 \
+  DISABLED_Screenshare_Slides_Simulcast_AV1
+#else
+#define MAYBE_Screenshare_Slides_Simulcast_AV1 Screenshare_Slides_Simulcast_AV1
+#endif
+TEST(FullStackTest, MAYBE_Screenshare_Slides_Simulcast_AV1) {
   auto fixture = CreateVideoQualityTestFixture();
   ParamsWithLogging screenshare;
   screenshare.analyzer = {.test_label = "screenshare_slides_simulcast_AV1",
