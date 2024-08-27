@@ -58,9 +58,6 @@ extern const char kCsAeadAes256Gcm[];
 // name, as defined in https://tools.ietf.org/html/rfc5764#section-4.1.2.
 std::string SrtpCryptoSuiteToName(int crypto_suite);
 
-// The reverse of above conversion.
-int SrtpCryptoSuiteFromName(absl::string_view crypto_suite);
-
 // Get key length and salt length for given crypto suite. Returns true for
 // valid suites, otherwise false.
 bool GetSrtpKeyAndSaltLengths(int crypto_suite,
@@ -69,9 +66,6 @@ bool GetSrtpKeyAndSaltLengths(int crypto_suite,
 
 // Returns true if the given crypto suite id uses a GCM cipher.
 bool IsGcmCryptoSuite(int crypto_suite);
-
-// Returns true if the given crypto suite name uses a GCM cipher.
-bool IsGcmCryptoSuiteName(absl::string_view crypto_suite);
 
 // SSLStreamAdapter : A StreamInterfaceAdapter that does SSL/TLS.
 // After SSL has been started, the stream will only open on successful
