@@ -13,6 +13,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.uiautomator.UiSelector
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemTextEquals
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
@@ -151,7 +152,7 @@ class SitePermissionsRobot {
         onView(ViewMatchers.withText("Allow $originSite to use its cookies on $currentSite?")).check(matches(isDisplayed()))
         Log.i(TAG, "verifyCrossOriginCookiesPermissionPrompt: Verified that the the storage access permission prompt title is displayed")
         Log.i(TAG, "verifyCrossOriginCookiesPermissionPrompt: Trying to verify that the storage access permission prompt message is displayed")
-        onView(ViewMatchers.withText("You may want to block access if it's not clear why $originSite needs this data.")).check(matches(isDisplayed()))
+        onView(ViewMatchers.withText(getStringResource(R.string.mozac_feature_sitepermissions_storage_access_message, originSite))).check(matches(isDisplayed()))
         Log.i(TAG, "verifyCrossOriginCookiesPermissionPrompt: Verified that the storage access permission prompt message is displayed")
         Log.i(TAG, "verifyCrossOriginCookiesPermissionPrompt: Trying to verify that the storage access permission prompt learn more link is displayed")
         onView(ViewMatchers.withText("Learn more")).check(matches(isDisplayed()))
