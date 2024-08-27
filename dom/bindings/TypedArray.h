@@ -800,6 +800,7 @@ struct TypedArray : public TypedArray_base<ArrayT> {
   }
   static inline ArrayT CreateCommon(JSContext* cx, size_t length,
                                     ErrorResult& error) {
+    error.MightThrowJSException();
     ArrayT array = CreateCommon(cx, length);
     if (array) {
       return array;
