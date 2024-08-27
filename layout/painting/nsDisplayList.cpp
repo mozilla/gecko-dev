@@ -876,17 +876,6 @@ void nsDisplayListBuilder::UpdateShouldBuildAsyncZoomContainer() {
   mBuildAsyncZoomContainer = !mIsRelativeToLayoutViewport &&
                              !document->Fullscreen() &&
                              nsLayoutUtils::AllowZoomingForDocument(document);
-
-  // If mIsRelativeToLayoutViewport == false, hit-testing on this
-  // display list will take into account the pres shell resolution.
-  // If we're not building an async zoom container (meaning, the
-  // resolution will not take effect visually), the resolution better
-  // be 1.0, otherwise rendering and hit-testing are out of sync.
-#ifdef DEBUG
-  if (!mIsRelativeToLayoutViewport && !mBuildAsyncZoomContainer) {
-    MOZ_ASSERT(document->GetPresShell()->GetResolution() == 1.0f);
-  }
-#endif
 }
 
 // Certain prefs may cause display list items to be added or removed when they
