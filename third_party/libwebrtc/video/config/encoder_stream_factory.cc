@@ -127,6 +127,123 @@ int NormalizeSimulcastSize(const FieldTrialsView& field_trials,
   return ((size >> base2_exponent) << base2_exponent);
 }
 
+// Override bitrate limits and other stream settings with values from
+// `encoder_config.simulcast_layers` which come from `RtpEncodingParameters`.
+void OverrideStreamSettings(
+    const webrtc::VideoEncoderConfig& encoder_config,
+    const absl::optional<webrtc::DataRate>& experimental_min_bitrate,
+    std::vector<webrtc::VideoStream>& layers) {
+  RTC_DCHECK_LE(layers.size(), encoder_config.simulcast_layers.size());
+
+  // Allow an experiment to override the minimum bitrate for the lowest
+  // spatial layer. The experiment's configuration has the lowest priority.
+  layers[0].min_bitrate_bps = experimental_min_bitrate
+                                  .value_or(webrtc::DataRate::BitsPerSec(
+                                      webrtc::kDefaultMinVideoBitrateBps))
+                                  .bps<int>();
+
+  const bool temporal_layers_supported =
+      IsTemporalLayersSupported(encoder_config.codec_type);
+
+  for (size_t i = 0; i < layers.size(); ++i) {
+    const webrtc::VideoStream& overrides = encoder_config.simulcast_layers[i];
+    webrtc::VideoStream& layer = layers[i];
+    layer.active = overrides.active;
+    layer.scalability_mode = overrides.scalability_mode;
+    layer.requested_resolution = overrides.requested_resolution;
+    // Update with configured num temporal layers if supported by codec.
+    if (overrides.num_temporal_layers > 0 && temporal_layers_supported) {
+      layer.num_temporal_layers = *overrides.num_temporal_layers;
+    }
+    if (overrides.max_framerate > 0) {
+      layer.max_framerate = overrides.max_framerate;
+    }
+    // Update simulcast bitrates with configured min and max bitrate.
+    if (overrides.min_bitrate_bps > 0) {
+      layer.min_bitrate_bps = overrides.min_bitrate_bps;
+    }
+    if (overrides.max_bitrate_bps > 0) {
+      layer.max_bitrate_bps = overrides.max_bitrate_bps;
+    }
+    if (overrides.target_bitrate_bps > 0) {
+      layer.target_bitrate_bps = overrides.target_bitrate_bps;
+    }
+    if (overrides.min_bitrate_bps > 0 && overrides.max_bitrate_bps > 0) {
+      // Min and max bitrate are configured.
+      // Set target to 3/4 of the max bitrate (or to max if below min).
+      if (overrides.target_bitrate_bps <= 0)
+        layer.target_bitrate_bps = layer.max_bitrate_bps * 3 / 4;
+      if (layer.target_bitrate_bps < layer.min_bitrate_bps)
+        layer.target_bitrate_bps = layer.max_bitrate_bps;
+    } else if (overrides.min_bitrate_bps > 0) {
+      // Only min bitrate is configured, make sure target/max are above min.
+      layer.target_bitrate_bps =
+          std::max(layer.target_bitrate_bps, layer.min_bitrate_bps);
+      layer.max_bitrate_bps =
+          std::max(layer.max_bitrate_bps, layer.min_bitrate_bps);
+    } else if (overrides.max_bitrate_bps > 0) {
+      // Only max bitrate is configured, make sure min/target are below max.
+      // Keep target bitrate if it is set explicitly in encoding config.
+      // Otherwise set target bitrate to 3/4 of the max bitrate
+      // or the one calculated from GetSimulcastConfig() which is larger.
+      layer.min_bitrate_bps =
+          std::min(layer.min_bitrate_bps, layer.max_bitrate_bps);
+      if (overrides.target_bitrate_bps <= 0) {
+        layer.target_bitrate_bps =
+            std::max(layer.target_bitrate_bps, layer.max_bitrate_bps * 3 / 4);
+      }
+      layer.target_bitrate_bps =
+          std::clamp(layer.target_bitrate_bps, layer.min_bitrate_bps,
+                     layer.max_bitrate_bps);
+    }
+
+    if (overrides.max_qp > 0) {
+      layer.max_qp = overrides.max_qp;
+    } else if (encoder_config.max_qp > 0) {
+      layer.max_qp = encoder_config.max_qp;
+    } else {
+      layer.max_qp = GetDefaultMaxQp(encoder_config.codec_type);
+    }
+  }
+
+  bool is_highest_layer_max_bitrate_configured =
+      encoder_config.simulcast_layers[layers.size() - 1].max_bitrate_bps > 0;
+  bool is_screencast = encoder_config.content_type ==
+                       webrtc::VideoEncoderConfig::ContentType::kScreen;
+  if (!is_screencast && !is_highest_layer_max_bitrate_configured &&
+      encoder_config.max_bitrate_bps > 0) {
+    // No application-configured maximum for the largest layer.
+    // If there is bitrate leftover, give it to the largest layer.
+    BoostMaxSimulcastLayer(
+        webrtc::DataRate::BitsPerSec(encoder_config.max_bitrate_bps), &layers);
+  }
+
+  // Sort the layers by max_bitrate_bps, they might not always be from
+  // smallest to biggest
+  std::vector<size_t> index(layers.size());
+  std::iota(index.begin(), index.end(), 0);
+  absl::c_stable_sort(index, [&layers](size_t a, size_t b) {
+    return layers[a].max_bitrate_bps < layers[b].max_bitrate_bps;
+  });
+
+  if (!layers[index[0]].active) {
+    // Adjust min bitrate of the first active layer to allow it to go as low as
+    // the lowest (now inactive) layer could.
+    // Otherwise, if e.g. a single HD stream is active, it would have 600kbps
+    // min bitrate, which would always be allocated to the stream.
+    // This would lead to congested network, dropped frames and overall bad
+    // experience.
+
+    const int min_configured_bitrate = layers[index[0]].min_bitrate_bps;
+    for (size_t i = 0; i < layers.size(); ++i) {
+      if (layers[index[i]].active) {
+        layers[index[i]].min_bitrate_bps = min_configured_bitrate;
+        break;
+      }
+    }
+  }
+}
+
 }  // namespace
 
 EncoderStreamFactory::EncoderStreamFactory(
@@ -334,132 +451,18 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     int height,
     const webrtc::VideoEncoderConfig& encoder_config,
     const absl::optional<webrtc::DataRate>& experimental_min_bitrate) const {
-  bool is_screencast = encoder_config.content_type ==
-                       webrtc::VideoEncoderConfig::ContentType::kScreen;
-  const bool is_legacy_screencast =
-      webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config);
-
   std::vector<webrtc::Resolution> resolutions =
       GetStreamResolutions(trials, width, height, encoder_config);
 
-  const bool temporal_layers_supported =
-      IsTemporalLayersSupported(encoder_config.codec_type);
   // Use legacy simulcast screenshare if conference mode is explicitly enabled
   // or use the regular simulcast configuration path which is generic.
   std::vector<webrtc::VideoStream> layers = GetSimulcastConfig(
-      resolutions, is_legacy_screencast, temporal_layers_supported, trials,
+      resolutions,
+      webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
+      IsTemporalLayersSupported(encoder_config.codec_type), trials,
       encoder_config.codec_type);
-  // Allow an experiment to override the minimum bitrate for the lowest
-  // spatial layer. The experiment's configuration has the lowest priority.
-  layers[0].min_bitrate_bps = experimental_min_bitrate
-                                  .value_or(webrtc::DataRate::BitsPerSec(
-                                      webrtc::kDefaultMinVideoBitrateBps))
-                                  .bps<int>();
 
-  // Update the active simulcast layers and configured bitrates.
-  for (size_t i = 0; i < layers.size(); ++i) {
-    layers[i].active = encoder_config.simulcast_layers[i].active;
-    layers[i].scalability_mode =
-        encoder_config.simulcast_layers[i].scalability_mode;
-    layers[i].requested_resolution =
-        encoder_config.simulcast_layers[i].requested_resolution;
-    // Update with configured num temporal layers if supported by codec.
-    if (encoder_config.simulcast_layers[i].num_temporal_layers &&
-        temporal_layers_supported) {
-      layers[i].num_temporal_layers =
-          *encoder_config.simulcast_layers[i].num_temporal_layers;
-    }
-    if (encoder_config.simulcast_layers[i].max_framerate > 0) {
-      layers[i].max_framerate =
-          encoder_config.simulcast_layers[i].max_framerate;
-    }
-    // Update simulcast bitrates with configured min and max bitrate.
-    if (encoder_config.simulcast_layers[i].min_bitrate_bps > 0) {
-      layers[i].min_bitrate_bps =
-          encoder_config.simulcast_layers[i].min_bitrate_bps;
-    }
-    if (encoder_config.simulcast_layers[i].max_bitrate_bps > 0) {
-      layers[i].max_bitrate_bps =
-          encoder_config.simulcast_layers[i].max_bitrate_bps;
-    }
-    if (encoder_config.simulcast_layers[i].target_bitrate_bps > 0) {
-      layers[i].target_bitrate_bps =
-          encoder_config.simulcast_layers[i].target_bitrate_bps;
-    }
-    if (encoder_config.simulcast_layers[i].min_bitrate_bps > 0 &&
-        encoder_config.simulcast_layers[i].max_bitrate_bps > 0) {
-      // Min and max bitrate are configured.
-      // Set target to 3/4 of the max bitrate (or to max if below min).
-      if (encoder_config.simulcast_layers[i].target_bitrate_bps <= 0)
-        layers[i].target_bitrate_bps = layers[i].max_bitrate_bps * 3 / 4;
-      if (layers[i].target_bitrate_bps < layers[i].min_bitrate_bps)
-        layers[i].target_bitrate_bps = layers[i].max_bitrate_bps;
-    } else if (encoder_config.simulcast_layers[i].min_bitrate_bps > 0) {
-      // Only min bitrate is configured, make sure target/max are above min.
-      layers[i].target_bitrate_bps =
-          std::max(layers[i].target_bitrate_bps, layers[i].min_bitrate_bps);
-      layers[i].max_bitrate_bps =
-          std::max(layers[i].max_bitrate_bps, layers[i].min_bitrate_bps);
-    } else if (encoder_config.simulcast_layers[i].max_bitrate_bps > 0) {
-      // Only max bitrate is configured, make sure min/target are below max.
-      // Keep target bitrate if it is set explicitly in encoding config.
-      // Otherwise set target bitrate to 3/4 of the max bitrate
-      // or the one calculated from GetSimulcastConfig() which is larger.
-      layers[i].min_bitrate_bps =
-          std::min(layers[i].min_bitrate_bps, layers[i].max_bitrate_bps);
-      if (encoder_config.simulcast_layers[i].target_bitrate_bps <= 0) {
-        layers[i].target_bitrate_bps = std::max(
-            layers[i].target_bitrate_bps, layers[i].max_bitrate_bps * 3 / 4);
-      }
-      layers[i].target_bitrate_bps = std::max(
-          std::min(layers[i].target_bitrate_bps, layers[i].max_bitrate_bps),
-          layers[i].min_bitrate_bps);
-    }
-
-    if (encoder_config.simulcast_layers[i].max_qp > 0) {
-      layers[i].max_qp = encoder_config.simulcast_layers[i].max_qp;
-    } else if (encoder_config.max_qp > 0) {
-      layers[i].max_qp = encoder_config.max_qp;
-    } else {
-      layers[i].max_qp = GetDefaultMaxQp(encoder_config.codec_type);
-    }
-  }
-
-  bool is_highest_layer_max_bitrate_configured =
-      encoder_config.simulcast_layers[layers.size() - 1].max_bitrate_bps > 0;
-
-  if (!is_screencast && !is_highest_layer_max_bitrate_configured &&
-      encoder_config.max_bitrate_bps > 0) {
-    // No application-configured maximum for the largest layer.
-    // If there is bitrate leftover, give it to the largest layer.
-    BoostMaxSimulcastLayer(
-        webrtc::DataRate::BitsPerSec(encoder_config.max_bitrate_bps), &layers);
-  }
-
-  // Sort the layers by max_bitrate_bps, they might not always be from
-  // smallest to biggest
-  std::vector<size_t> index(layers.size());
-  std::iota(index.begin(), index.end(), 0);
-  std::stable_sort(index.begin(), index.end(), [&layers](size_t a, size_t b) {
-    return layers[a].max_bitrate_bps < layers[b].max_bitrate_bps;
-  });
-
-  if (!layers[index[0]].active) {
-    // Adjust min bitrate of the first active layer to allow it to go as low as
-    // the lowest (now inactive) layer could.
-    // Otherwise, if e.g. a single HD stream is active, it would have 600kbps
-    // min bitrate, which would always be allocated to the stream.
-    // This would lead to congested network, dropped frames and overall bad
-    // experience.
-
-    const int min_configured_bitrate = layers[index[0]].min_bitrate_bps;
-    for (size_t i = 0; i < layers.size(); ++i) {
-      if (layers[index[i]].active) {
-        layers[index[i]].min_bitrate_bps = min_configured_bitrate;
-        break;
-      }
-    }
-  }
+  OverrideStreamSettings(encoder_config, experimental_min_bitrate, layers);
 
   return layers;
 }
