@@ -1,92 +1,204 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 19:24:38 -0600
-Subject: (tmp-cherry-pick) Revert "Remove iOS Debug (simulator) from LKGR
- bots." (1ac162ee20)
+Date: Tue, 27 Aug 2024 19:33:12 -0600
+Subject: (tmp-cherry-pick) Revert "Upgrade iOS buildbot xcode to 15f31d."
+ (36b548b31a)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit 4bded9601bfb38f2ef67574554c12370dca4708f.
+This reverts commit 74c761384fdeb6b4acbef2d06cf610c0a1b6482e.
 
-Reason for revert: Fixed with https://webrtc-review.googlesource.com/c/src/+/357640
+Reason for revert: breaks iOS compilation
 
 Original change's description:
-> Remove iOS Debug (simulator) from LKGR bots.
+> Upgrade iOS buildbot xcode to 15f31d.
 >
-> Temporarily skip while the bot gets fixed.
->
-> Bug: chromium:353975341
-> Change-Id: Ib42c18e929547c7abc58f2878c79f00f87001cae
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357540
-> Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-> Auto-Submit: Mirko Bonadei <mbonadei@webrtc.org>
-> Reviewed-by: Artem Titov <titovartem@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42656}
+> Change-Id: I42a4b07668fe03191d9528fed73eed6500568890
+> Bug: None
+> No-Try: true
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357542
+> Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+> Commit-Queue: Jeremy Leconte <jleconte@google.com>
+> Cr-Commit-Position: refs/heads/main@{#42660}
 
-Bug: chromium:353975341
-Change-Id: I184c9e597a28fff3ae052a07d8e6f17cc2251188
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357661
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Bug: None
+Change-Id: I2616433602f7bb5d3e9febc33f2008ffbeeb2065
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357544
+Reviewed-by: Björn Terelius <terelius@webrtc.org>
 Commit-Queue: Jeremy Leconte <jleconte@google.com>
-Reviewed-by: Artem Titov <titovartem@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42664}
+Cr-Commit-Position: refs/heads/main@{#42661}
 ---
- infra/config/config.star        | 4 +---
- infra/config/cr-buildbucket.cfg | 1 +
- infra/config/luci-notify.cfg    | 5 +++++
- infra/config/project.cfg        | 2 +-
- 4 files changed, 8 insertions(+), 4 deletions(-)
+ infra/config/config.star        |  8 +++---
+ infra/config/cr-buildbucket.cfg | 48 ++++++++++++++++-----------------
+ 2 files changed, 28 insertions(+), 28 deletions(-)
 
 diff --git a/infra/config/config.star b/infra/config/config.star
-index 2fc6311dc2..63f31a1ab7 100755
+index e5c8f1bb2e..8a42399d9c 100755
 --- a/infra/config/config.star
 +++ b/infra/config/config.star
-@@ -52,9 +52,7 @@ def os_from_name(name):
- # Add names of builders to remove from LKGR finder to this list. This is
- # useful when a failure can be safely ignored while fixing it without
- # blocking the LKGR finder on it.
--skipped_lkgr_bots = [
--    "iOS Debug (simulator)",
--]
-+skipped_lkgr_bots = []
+@@ -13,7 +13,7 @@ lucicfg.check_version("1.30.9")
+ WEBRTC_GIT = "https://webrtc.googlesource.com/src"
+ WEBRTC_GERRIT = "https://webrtc-review.googlesource.com/src"
+ WEBRTC_TROOPER_EMAIL = "webrtc-troopers-robots@google.com"
+-WEBRTC_XCODE = "15f31d"
++WEBRTC_XCODE14 = "14c18"
+ DEFAULT_CPU = "x86-64"
  
- # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
- lucicfg.enable_experiment("crbug.com/1182002")
+ # Helpers:
+@@ -707,10 +707,10 @@ def normal_builder_factory(**common_kwargs):
+ # Mixins:
+ 
+ ios_builder, ios_try_job = normal_builder_factory(
+-    properties = {"xcode_build_version": WEBRTC_XCODE},
++    properties = {"xcode_build_version": WEBRTC_XCODE14},
+     caches = [swarming.cache(
+-        name = "xcode_ios_" + WEBRTC_XCODE,
+-        path = "xcode_ios_" + WEBRTC_XCODE + ".app",
++        name = "xcode_ios_" + WEBRTC_XCODE14,
++        path = "xcode_ios_" + WEBRTC_XCODE14 + ".app",
+     )],
+ )
+ 
 diff --git a/infra/config/cr-buildbucket.cfg b/infra/config/cr-buildbucket.cfg
-index 46fced9412..b45c0c75fa 100644
+index 2d7f2b7c14..9edb6a2cc6 100644
 --- a/infra/config/cr-buildbucket.cfg
 +++ b/infra/config/cr-buildbucket.cfg
-@@ -1898,6 +1898,7 @@ buckets {
-         '          "Win64 Debug (Clang)",'
-         '          "Win64 Release (Clang)",'
-         '          "iOS API Framework Builder",'
-+        '          "iOS Debug (simulator)",'
-         '          "iOS64 Debug",'
-         '          "iOS64 Release"'
-         '        ]'
-diff --git a/infra/config/luci-notify.cfg b/infra/config/luci-notify.cfg
-index e2835fb848..53a6c5eb3b 100644
---- a/infra/config/luci-notify.cfg
-+++ b/infra/config/luci-notify.cfg
-@@ -943,6 +943,11 @@ notifiers {
-     name: "iOS Debug (simulator)"
-     repository: "https://webrtc.googlesource.com/src"
-   }
-+  tree_closers {
-+    tree_status_host: "webrtc-status.appspot.com"
-+    failed_step_regexp: "bot_update|compile|gclient runhooks|runhooks|update|extract build|cleanup_temp|taskkill|compile|gn"
-+    failed_step_regexp_exclude: ".*\\(experimental\\).*"
-+  }
- }
- notifiers {
-   notifications {
-diff --git a/infra/config/project.cfg b/infra/config/project.cfg
-index 8b377430f3..7ee089eda0 100644
---- a/infra/config/project.cfg
-+++ b/infra/config/project.cfg
-@@ -7,7 +7,7 @@
- name: "webrtc"
- access: "group:all"
- lucicfg {
--  version: "1.43.9"
-+  version: "1.43.8"
-   package_dir: "."
-   config_dir: "."
-   entry_point: "config.star"
+@@ -1593,13 +1593,13 @@ buckets {
+         '  },'
+         '  "builder_group": "client.webrtc",'
+         '  "recipe": "webrtc/ios_api_framework",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 29
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -1645,13 +1645,13 @@ buckets {
+         '  },'
+         '  "builder_group": "client.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -1697,13 +1697,13 @@ buckets {
+         '  },'
+         '  "builder_group": "client.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -1749,13 +1749,13 @@ buckets {
+         '  },'
+         '  "builder_group": "client.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-ci-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -3387,13 +3387,13 @@ buckets {
+         '  },'
+         '  "builder_group": "tryserver.webrtc",'
+         '  "recipe": "webrtc/ios_api_framework",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-try-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -3439,13 +3439,13 @@ buckets {
+         '  },'
+         '  "builder_group": "tryserver.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-try-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -3491,13 +3491,13 @@ buckets {
+         '  },'
+         '  "builder_group": "tryserver.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-try-builder@chops-service-accounts.iam.gserviceaccount.com"
+@@ -3543,13 +3543,13 @@ buckets {
+         '  },'
+         '  "builder_group": "tryserver.webrtc",'
+         '  "recipe": "webrtc/standalone",'
+-        '  "xcode_build_version": "15f31d"'
++        '  "xcode_build_version": "14c18"'
+         '}'
+       priority: 30
+       execution_timeout_secs: 7200
+       caches {
+-        name: "xcode_ios_15f31d"
+-        path: "xcode_ios_15f31d.app"
++        name: "xcode_ios_14c18"
++        path: "xcode_ios_14c18.app"
+       }
+       build_numbers: YES
+       service_account: "webrtc-try-builder@chops-service-accounts.iam.gserviceaccount.com"
