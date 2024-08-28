@@ -1298,7 +1298,7 @@ void ConfigureSimulcast(VideoCodec* vc) {
 
   const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
       /*min_layer=*/1, num_spatial_layers, vc->width, vc->height,
-      /*bitrate_priority=*/1.0, cricket::kDefaultVideoMaxQpVpx,
+      cricket::kDefaultVideoMaxQpVpx,
       /*is_screenshare=*/false, /*temporal_layers_supported=*/true,
       field_trials, webrtc::kVideoCodecVP8);
 

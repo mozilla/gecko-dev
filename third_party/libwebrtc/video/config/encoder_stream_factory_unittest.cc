@@ -79,4 +79,21 @@ TEST(EncoderStreamFactory, SinglecastRequestedResolutionWithAdaptation) {
                                            }));
 }
 
+TEST(EncoderStreamFactory, BitratePriority) {
+  constexpr double kBitratePriority = 0.123;
+  ExplicitKeyValueConfig field_trials("");
+  VideoEncoder::EncoderInfo encoder_info;
+  auto factory = rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
+  VideoEncoderConfig encoder_config;
+  encoder_config.number_of_streams = 2;
+  encoder_config.bitrate_priority = kBitratePriority;
+  encoder_config.simulcast_layers = {
+      LayerWithRequestedResolution({.width = 320, .height = 180}),
+      LayerWithRequestedResolution({.width = 640, .height = 360})};
+  auto streams =
+      factory->CreateEncoderStreams(field_trials, 640, 360, encoder_config);
+  ASSERT_EQ(streams.size(), 2u);
+  EXPECT_EQ(streams[0].bitrate_priority, kBitratePriority);
+  EXPECT_FALSE(streams[1].bitrate_priority);
+}
 }  // namespace webrtc

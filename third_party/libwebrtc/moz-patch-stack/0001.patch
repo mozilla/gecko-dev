@@ -96,10 +96,10 @@ index b2deda5ea8..60142c88c1 100644
    return supportedCodecs;
  }
 diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index 82bc6e37f9..9c708263a7 100644
+index 90beed85dd..81d13e3419 100644
 --- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
 +++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-@@ -173,7 +173,7 @@ SdpVideoFormat CreateSdpVideoFormat(
+@@ -172,7 +172,7 @@ SdpVideoFormat CreateSdpVideoFormat(
      CodecParameterMap codec_params = {
          {cricket::kH264FmtpProfileLevelId,
           *H264ProfileLevelIdToString(H264ProfileLevelId(

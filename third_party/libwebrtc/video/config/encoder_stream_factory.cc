@@ -149,15 +149,23 @@ std::vector<webrtc::VideoStream> EncoderStreamFactory::CreateEncoderStreams(
     }
   }
 
+  std::vector<webrtc::VideoStream> streams;
   if (is_simulcast ||
       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config)) {
-    return CreateSimulcastOrConferenceModeScreenshareStreams(
+    streams = CreateSimulcastOrConferenceModeScreenshareStreams(
         trials, frame_width, frame_height, encoder_config,
         experimental_min_bitrate);
+  } else {
+    streams = CreateDefaultVideoStreams(
+        frame_width, frame_height, encoder_config, experimental_min_bitrate);
   }
 
-  return CreateDefaultVideoStreams(frame_width, frame_height, encoder_config,
-                                   experimental_min_bitrate);
+  // The bitrate priority currently implemented on a per-sender level, so we
+  // just set it for the first simulcast layer.
+  RTC_DCHECK_GT(streams.size(), 0);
+  streams[0].bitrate_priority = encoder_config.bitrate_priority;
+
+  return streams;
 }
 
 std::vector<webrtc::VideoStream>
@@ -320,8 +328,7 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
   // or use the regular simulcast configuration path which is generic.
   layers = GetSimulcastConfig(
       FindRequiredActiveLayers(encoder_config),
-      encoder_config.number_of_streams, width, height,
-      encoder_config.bitrate_priority, encoder_config.max_qp,
+      encoder_config.number_of_streams, width, height, encoder_config.max_qp,
       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
       temporal_layers_supported, trials, encoder_config.codec_type);
   // Allow an experiment to override the minimum bitrate for the lowest

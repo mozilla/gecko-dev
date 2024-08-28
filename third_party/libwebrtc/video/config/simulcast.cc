@@ -332,7 +332,6 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     size_t max_layers,
     int width,
     int height,
-    double bitrate_priority,
     int max_qp,
     bool is_screenshare_with_conference_mode,
     bool temporal_layers_supported,
@@ -344,8 +343,8 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
   const bool base_heavy_tl3_rate_alloc =
       webrtc::RateControlSettings(trials).Vp8BaseHeavyTl3RateAllocation();
   if (is_screenshare_with_conference_mode) {
-    return GetScreenshareLayers(max_layers, width, height, bitrate_priority,
-                                max_qp, temporal_layers_supported,
+    return GetScreenshareLayers(max_layers, width, height, max_qp,
+                                temporal_layers_supported,
                                 base_heavy_tl3_rate_alloc, trials);
   } else {
     // Some applications rely on the old behavior limiting the simulcast layer
@@ -354,8 +353,8 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     max_layers = LimitSimulcastLayerCount(width, height, min_layers, max_layers,
                                           trials, codec);
 
-    return GetNormalSimulcastLayers(max_layers, width, height, bitrate_priority,
-                                    max_qp, temporal_layers_supported,
+    return GetNormalSimulcastLayers(max_layers, width, height, max_qp,
+                                    temporal_layers_supported,
                                     base_heavy_tl3_rate_alloc, trials, codec);
   }
 }
@@ -364,7 +363,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
     size_t layer_count,
     int width,
     int height,
-    double bitrate_priority,
     int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
@@ -437,12 +435,7 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
       break;
     }
   }
-  // Currently the relative bitrate priority of the sender is controlled by
-  // the value of the lowest VideoStream.
-  // TODO(bugs.webrtc.org/8630): The web specification describes being able to
-  // control relative bitrate for each individual simulcast layer, but this
-  // is currently just implemented per rtp sender.
-  layers[0].bitrate_priority = bitrate_priority;
+
   return layers;
 }
 
@@ -450,7 +443,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
     size_t max_layers,
     int width,
     int height,
-    double bitrate_priority,
     int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
@@ -504,9 +496,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
     layers[1].max_bitrate_bps = max_bitrate_bps;
   }
 
-  // The bitrate priority currently implemented on a per-sender level, so we
-  // just set it for the first simulcast layer.
-  layers[0].bitrate_priority = bitrate_priority;
   return layers;
 }
 
