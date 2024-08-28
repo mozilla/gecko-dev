@@ -113,13 +113,6 @@ export class ContextMenuChild extends JSWindowActorChild {
                 }
                 break;
               case "pictureinpicture":
-                if (!media.isCloningElementVisually) {
-                  Services.telemetry.keyedScalarAdd(
-                    "pictureinpicture.opened_method",
-                    "contextmenu",
-                    1
-                  );
-                }
                 let event = new this.contentWindow.CustomEvent(
                   "MozTogglePictureInPicture",
                   {

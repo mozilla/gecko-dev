@@ -2781,23 +2781,6 @@ os.environment:
       - windows
 
 pictureinpicture:
-  opened_method:
-    bug_numbers:
-      - 1560590
-      - 1616045
-    description: >
-      The number of times a Picture-in-Picture window was opened, per trigger
-      mechanism (e.g.: the video toggle, the context menu).
-    expires: "92"
-    kind: uint
-    keyed: true
-    notification_emails:
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - content
   saw_toggle:
     bug_numbers:
       - 1657155
