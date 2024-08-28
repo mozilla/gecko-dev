@@ -95,9 +95,31 @@ export default class SidebarMain extends MozLitElement {
       this.contextMenuTarget.getAttribute("extensionId") ||
       this.contextMenuTarget.className.includes("tab")
     ) {
+      this.updateExtensionContextMenuItems();
       return;
     }
     event.preventDefault();
+  }
+
+  async updateExtensionContextMenuItems() {
+    const extensionId = this.contextMenuTarget.getAttribute("extensionId");
+    if (!extensionId) {
+      return;
+    }
+    const addon = await window.AddonManager?.getAddonByID(extensionId);
+    if (!addon) {
+      // Disable all context menus items if the addon doesn't
+      // exist anymore from the AddonManager perspective.
+      this._manageExtensionMenuItem.disabled = true;
+      this._removeExtensionMenuItem.disabled = true;
+      this._reportExtensionMenuItem.disabled = true;
+    } else {
+      this._manageExtensionMenuItem.disabled = false;
+      this._removeExtensionMenuItem.disabled = !(
+        addon.permissions & AddonManager.PERM_CAN_UNINSTALL
+      );
+      this._reportExtensionMenuItem.disabled = !window.gAddonAbuseReportEnabled;
+    }
   }
 
   async manageExtension() {
