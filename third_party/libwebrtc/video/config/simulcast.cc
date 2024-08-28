@@ -332,7 +332,6 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     size_t max_layers,
     int width,
     int height,
-    int max_qp,
     bool is_screenshare_with_conference_mode,
     bool temporal_layers_supported,
     const webrtc::FieldTrialsView& trials,
@@ -343,7 +342,7 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
   const bool base_heavy_tl3_rate_alloc =
       webrtc::RateControlSettings(trials).Vp8BaseHeavyTl3RateAllocation();
   if (is_screenshare_with_conference_mode) {
-    return GetScreenshareLayers(max_layers, width, height, max_qp,
+    return GetScreenshareLayers(max_layers, width, height,
                                 temporal_layers_supported,
                                 base_heavy_tl3_rate_alloc, trials);
   } else {
@@ -353,7 +352,7 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     max_layers = LimitSimulcastLayerCount(width, height, min_layers, max_layers,
                                           trials, codec);
 
-    return GetNormalSimulcastLayers(max_layers, width, height, max_qp,
+    return GetNormalSimulcastLayers(max_layers, width, height,
                                     temporal_layers_supported,
                                     base_heavy_tl3_rate_alloc, trials, codec);
   }
@@ -363,7 +362,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
     size_t layer_count,
     int width,
     int height,
-    int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
     const webrtc::FieldTrialsView& trials,
@@ -381,8 +379,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
   for (size_t s = layer_count - 1;; --s) {
     layers[s].width = width;
     layers[s].height = height;
-    // TODO(pbos): Fill actual temporal-layer bitrate thresholds.
-    layers[s].max_qp = max_qp;
     layers[s].num_temporal_layers =
         temporal_layers_supported ? num_temporal_layers : 1;
 
@@ -443,7 +439,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
     size_t max_layers,
     int width,
     int height,
-    int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
     const webrtc::FieldTrialsView& trials) {
@@ -456,7 +451,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
   // respectively. See eg. webrtc::LibvpxVp8Encoder::SetRates().
   layers[0].width = width;
   layers[0].height = height;
-  layers[0].max_qp = max_qp;
   layers[0].max_framerate = 5;
   layers[0].min_bitrate_bps = webrtc::kDefaultMinVideoBitrateBps;
   layers[0].target_bitrate_bps = kScreenshareDefaultTl0Bitrate.bps();
@@ -485,7 +479,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
 
     layers[1].width = width;
     layers[1].height = height;
-    layers[1].max_qp = max_qp;
     layers[1].max_framerate = kDefaultVideoMaxFramerate;
     layers[1].num_temporal_layers =
         temporal_layers_supported ? kScreenshareTemporalLayers : 1;

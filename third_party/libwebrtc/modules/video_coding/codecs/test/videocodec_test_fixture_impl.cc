@@ -79,7 +79,7 @@ void ConfigureSimulcast(VideoCodec* codec_settings) {
   FieldTrialBasedConfig trials;
   const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
       /*min_layer=*/1, codec_settings->numberOfSimulcastStreams,
-      codec_settings->width, codec_settings->height, kMaxQp,
+      codec_settings->width, codec_settings->height,
       /* is_screenshare = */ false, true, trials, webrtc::kVideoCodecVP8);
 
   for (size_t i = 0; i < streams.size(); ++i) {
@@ -91,7 +91,7 @@ void ConfigureSimulcast(VideoCodec* codec_settings) {
     ss->maxBitrate = streams[i].max_bitrate_bps / 1000;
     ss->targetBitrate = streams[i].target_bitrate_bps / 1000;
     ss->minBitrate = streams[i].min_bitrate_bps / 1000;
-    ss->qpMax = streams[i].max_qp;
+    ss->qpMax = kMaxQp;
     ss->active = true;
   }
 }

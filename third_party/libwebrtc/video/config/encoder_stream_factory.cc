@@ -328,7 +328,7 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
   // or use the regular simulcast configuration path which is generic.
   layers = GetSimulcastConfig(
       FindRequiredActiveLayers(encoder_config),
-      encoder_config.number_of_streams, width, height, encoder_config.max_qp,
+      encoder_config.number_of_streams, width, height,
       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
       temporal_layers_supported, trials, encoder_config.codec_type);
   // Allow an experiment to override the minimum bitrate for the lowest

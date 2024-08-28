@@ -9591,8 +9591,8 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
     if (num_configured_streams > 1 || conference_mode) {
       expected_streams = GetSimulcastConfig(
           /*min_layers=*/1, num_configured_streams, capture_width,
-          capture_height, kDefaultVideoMaxQpVpx, screenshare && conference_mode,
-          true, field_trials_, webrtc::kVideoCodecVP8);
+          capture_height, screenshare && conference_mode, true, field_trials_,
+          webrtc::kVideoCodecVP8);
       if (screenshare && conference_mode) {
         for (const webrtc::VideoStream& stream : expected_streams) {
           // Never scale screen content.
@@ -9636,7 +9636,7 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
                 video_streams[i].max_bitrate_bps);
 
       EXPECT_GT(video_streams[i].max_qp, 0);
-      EXPECT_EQ(expected_streams[i].max_qp, video_streams[i].max_qp);
+      EXPECT_EQ(video_streams[i].max_qp, kDefaultVideoMaxQpVpx);
 
       EXPECT_EQ(num_configured_streams > 1 || conference_mode,
                 expected_streams[i].num_temporal_layers.has_value());

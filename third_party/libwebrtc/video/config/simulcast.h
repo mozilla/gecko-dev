@@ -41,7 +41,6 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     size_t max_layers,
     int width,
     int height,
-    int max_qp,
     bool is_screenshare_with_conference_mode,
     bool temporal_layers_supported,
     const webrtc::FieldTrialsView& trials,
@@ -52,7 +51,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
     size_t max_layers,
     int width,
     int height,
-    int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
     const webrtc::FieldTrialsView& trials,
@@ -63,7 +61,6 @@ std::vector<webrtc::VideoStream> GetScreenshareLayers(
     size_t max_layers,
     int width,
     int height,
-    int max_qp,
     bool temporal_layers_supported,
     bool base_heavy_tl3_rate_alloc,
     const webrtc::FieldTrialsView& trials);
