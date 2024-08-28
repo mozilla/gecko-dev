@@ -725,7 +725,7 @@ def check_compiler(configure_cache, compiler, language, target, android_version)
 @imports(_from="__builtin__", _import="open")
 @imports("json")
 @imports("os")
-def get_vc_paths(topsrcdir):
+def get_vc_paths(host, topsrcdir):
     def vswhere(args):
         program_files = os.environ.get("PROGRAMFILES(X86)") or os.environ.get(
             "PROGRAMFILES"
@@ -739,12 +739,13 @@ def get_vc_paths(topsrcdir):
             return []
         return json.loads(check_cmd_output(vswhere, "-format", "json", *args))
 
+    variant = "arm64" if host.cpu == "aarch64" else "x86.x64"
     for install in vswhere(
         [
             "-products",
             "*",
             "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            f"Microsoft.VisualStudio.Component.VC.Tools.{variant}",
         ]
     ):
         path = install["installationPath"]
@@ -823,7 +824,7 @@ def vc_compiler_paths_for_version(host, env, vc_path, winsysroot):
         # Don't try to do anything when VC_PATH is not set on cross-compiles.
         return
     else:
-        all_versions = sorted(get_vc_paths(env.topsrcdir), key=itemgetter(0))
+        all_versions = sorted(get_vc_paths(host, env.topsrcdir), key=itemgetter(0))
     if not all_versions:
         return
     # Choose the newest version.
