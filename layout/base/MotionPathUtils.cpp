@@ -364,7 +364,13 @@ Maybe<ResolvedMotionPathData> MotionPathUtils::ResolveMotionPath(
     // position of this box into account to offset the translation so it's final
     // position is not affected by other boxes in the same containing block.
     point -= NSPointToPoint(data.mCurrentPosition, AppUnitsPerCSSPixel());
-    directionAngle = atan2((double)tangent.y, (double)tangent.x);  // in Radian.
+    // If the path length is 0, it's unlikely to get a valid tangent angle, e.g.
+    // it may be (0, 0). And so we may get an undefined value from atan2().
+    // Therefore, we use 0rad as the default behavior.
+    directionAngle =
+        pathLength < std::numeric_limits<gfx::Float>::epsilon()
+            ? 0.0
+            : atan2((double)tangent.y, (double)tangent.x);  // in Radian.
   } else if (aPath.IsRay()) {
     const auto& ray = aPath.AsRay();
     MOZ_ASSERT(ray.mRay);
