@@ -7141,6 +7141,12 @@
           !(originalLocation.spec in FAVICON_DEFAULTS)
         ) {
           this.mTab.removeAttribute("image");
+        } else {
+          // Bug 1804166: Allow new tabs to set the favicon correctly if the
+          // new tabs behavior is set to open a blank page
+          // This is a no-op unless this.mBrowser._documentURI is in
+          // FAVICON_DEFAULTS.
+          gBrowser.setDefaultIcon(this.mTab, this.mBrowser._documentURI);
         }
 
         // For keyword URIs clear the user typed value since they will be changed into real URIs
@@ -7297,12 +7303,6 @@
               // to this new document and not to tabs opened by the previous one.
               gBrowser.clearRelatedTabs();
             }
-          }
-
-          // Bug 1804166: Allow new tabs to set the favicon correctly if the
-          // new tabs behavior is set to open a blank page
-          if (!isReload && !aWebProgress.isLoadingDocument) {
-            gBrowser.setDefaultIcon(this.mTab, this.mBrowser._documentURI);
           }
 
           if (
