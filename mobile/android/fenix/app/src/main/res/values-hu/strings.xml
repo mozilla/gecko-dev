@@ -105,6 +105,22 @@
     <string name="erase_action_cfr_message">Koppintson ide egy új privát munkamenet indításához. Törli az előzményeket, sütiket – mindent.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Böngésszen gyorsabban az új navigációval</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Ez a sáv eltűnik, ha lefelé görget, további teret adva a böngészésnek.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Ezen a webhelyen a sáv eltűnik, ha lefelé görget, további teret adva a böngészésnek.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Koppintson és tartsa lenyomva a nyilakat, hogy az oldalak között ugorjon ennek a lapnak az előzményeiben.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Új: vissza és előre nyilak egy koppintással</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Élvezze a gyorsabb navigációt, amely mindig egy karnyújtásnyira van.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamera-hozzáférés szükséges. Ugorjon az Android beállításokhoz, koppintson az engedélyekre, majd az engedélyezésre.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -186,6 +202,9 @@
     <string name="browser_menu_stop">Leállítás</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Kiegészítők</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Tegye sajátjává a %s böngészőt</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Kiegészítők kezelése</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -392,12 +411,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Firefox adatvédelmi nyilatkozat</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox adatvédelmi nyilatkozat</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Szeretjük biztonságban tartani Önt</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Tudja meg, hogy miért szeretik milliók a Firefoxot</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Tudja meg, hogy miért szeretik milliók a Firefoxot</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Biztonságos böngészés, több választási lehetőséggel</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -419,17 +438,17 @@
     <string name="juno_onboarding_sign_in_title_2">Maradjon titkosítva, amikor az eszközök között vált</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Ha be van jelentkezve és szinkronizálva van, akkor nagyobb biztonságban van. A Firefox titkosítja a jelszavait, könyvjelzőit és egyebeit.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Ha be van jelentkezve és szinkronizálva van, akkor nagyobb biztonságban van. A Firefox titkosítja a jelszavait, könyvjelzőit és egyebeit.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Bejelentkezés</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Most nem</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Az értesítések segítségével nagyobb biztonságban lehet a Firefoxszal</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Az értesítések segítségével nagyobb biztonságban lehet a Firefoxszal</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Küldjön biztonságosan lapokat eszközei között, és fedezzen fel más adatvédelmi funkciókat a Firefoxban.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Küldjön biztonságosan lapokat eszközei között, és fedezzen fel más adatvédelmi funkciókat a Firefoxban.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Értesítések bekapcsolása</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -437,13 +456,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Próbálja ki a Firefox keresőmodult</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Próbálja ki a Firefox keresőmodult</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Ha a Firefox a kezdőképernyőn van, akkor könnyen hozzáférhet az adatvédelmet előtérbe helyező böngészőhöz, amely blokkolja a webhelyek közötti követőket.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Ha a Firefox a kezdőképernyőn van, akkor könnyen hozzáférhet az adatvédelmet előtérbe helyező böngészőhöz, amely blokkolja a webhelyek közötti követőket.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Firefox modul hozzáadása</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Firefox modul hozzáadása</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Most nem</string>
 
@@ -484,9 +503,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Címsáv beállításai</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Címsáv – Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Címsáv – Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Ismerje meg a Firefox Suggestet</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Ismerje meg a Firefox Suggestet</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Értékelés a Google Playen</string>
     <!-- Preference linking to about page for Fenix
@@ -533,13 +552,13 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Támogatási kérés elküldve</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">A webhely jelenleg nem támogatott</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">A webhely jelenleg nem támogatott</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Bekapcsolja a sütibanner-blokkolót ennél a webhelynél: %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Kikapcsolja a sütibanner-blokkolót ennél a webhelynél: %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">A %1$s nem tudja automatikusan elutasítani a sütikéréseket ezen az oldalon. Küldhet egy kérést, hogy támogassák ezt az oldalt a jövőben.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">A %1$s nem tudja automatikusan elutasítani a sütikéréseket ezen az oldalon. Küldhet egy kérést, hogy támogassák ezt az oldalt a jövőben.</string>
 
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Kapcsolja ki, és a %1$s törli a sütiket, és újratölti a webhelyet. Ez kijelentkeztetheti, vagy kiürítheti a kosarait.</string>
@@ -752,7 +771,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Új kiegészítők érhetők el</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Nézzen meg több mint 100 új kiegészítőt, amellyel a sajátjává teheti a Firefoxot.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Nézzen meg több mint 100 új kiegészítőt, amellyel a sajátjává teheti a Firefoxot.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Kiegészítők felfedezése</string>
@@ -818,7 +837,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Fogadott lapok</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Értesítések a más firefoxos eszközökről fogadott lapokról.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Értesítések a más firefoxos eszközökről fogadott lapokról.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Lap fogadva</string>
     <!-- %s is the device name -->
@@ -1088,7 +1107,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Gyűjtemény neve</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Átnevezés</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Átnevezés</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Eltávolítás</string>
 
@@ -1392,7 +1411,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Másik eszköz csatlakoztatása</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Lap küldéséhez legalább egy másik eszközön is jelentkezzen be a Firefoxba.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Lap küldéséhez legalább egy másik eszközön is jelentkezzen be a Firefoxba.</string>
 
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Megértettem</string>
@@ -1433,10 +1452,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">A Firefox gyors és privát</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">A Firefox gyors és privát</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">A Firefox alapértelmezett böngészővé tétele</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">A Firefox alapértelmezett böngészővé tétele</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Próbálja ki a privát böngészést</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1456,7 +1475,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Segítsen a Firefox jobbá tételében egy rövid felmérés kitöltésével.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Segítsen a Firefox jobbá tételében egy rövid felmérés kitöltésével.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Kérdőív kitöltése</string>
     <!-- Preference for not taking the short survey. -->
@@ -1602,7 +1621,7 @@
     <string name="sync_scan_code">Olvassa le a kódot</string>
 
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[A számítógépen nyissa meg a Firefoxot, és ugorjon a <b>https://firefox.com/pair</b> oldalra]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[A számítógépen nyissa meg a Firefoxot, és ugorjon a <b>https://firefox.com/pair</b> oldalra]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Leolvasásra kész</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1610,7 +1629,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">E-mail használata ehelyett</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Nincs fiókja? <u>Hozzon létre egyet</u>, hogy szinkronizálja a Firefoxot az eszközök között.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Nincs fiókja? <u>Hozzon létre egyet</u>, hogy szinkronizálja a Firefoxot az eszközök között.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">A %s leállítja a szinkronizációt a fiókjával, de nem töröl semmilyen böngészési adatot erről az eszközről.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2132,7 +2151,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Engedélyezze a lapok szinkronizálását.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Nincs egyetlen lap sem nyitva a Firefoxban a többi eszközén.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Nincs egyetlen lap sem nyitva a Firefoxban a többi eszközén.</string>
 
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Tekintse meg a más eszközökről származó lapok listáját.</string>
@@ -2162,7 +2181,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Indítóikon neve</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">Rendben</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">Rendben</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Mégse</string>
 
@@ -2188,7 +2207,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Automatikus bezárás egy hónap után?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">A Firefox bezárhatja azokat a lapokat, amelyeket az elmúlt hónapban nem nézett meg.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">A Firefox bezárhatja azokat a lapokat, amelyeket az elmúlt hónapban nem nézett meg.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">AUTOMATIKUS BEZÁRÁS BEKAPCSOLÁSA</string>
 
@@ -2197,7 +2216,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Firefox Suggest</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google keresés</string>
@@ -2208,7 +2227,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Az alapértelmezett böngésző módosítása</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Állítsa be a webhelyek, e-mailek és üzenetek hivatkozásait, hogy azok automatikusan a Firefoxban nyíljanak meg.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Állítsa be a webhelyek, e-mailek és üzenetek hivatkozásait, hogy azok automatikusan a Firefoxban nyíljanak meg.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Eltávolítás</string>
@@ -2232,7 +2251,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">A motorháztető alatt: %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">A Firefox család tagja. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">A Firefox család tagja. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">További tudnivalók</string>
 
@@ -2384,7 +2403,7 @@
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Értékelés-ellenőrző megnyitása</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Értékelés-ellenőrző megnyitása</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2577,7 +2596,7 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Nyelvek letöltése</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Nyelvek letöltése</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Töltsön le teljes nyelveket a gyorsabb és kapcsolat nélküli fordítás érdekében. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2697,7 +2716,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Segítsen a Firefox jobbá tételében. Csak egy percébe kerül.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Segítsen a Firefox jobbá tételében. Csak egy percébe kerül.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Folytatás</string>
     <!-- Survey view -->
@@ -2711,8 +2730,6 @@
     <string name="micro_survey_privacy_notice_2">Adatvédelmi nyilatkozat</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Elküldés</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Bezárás</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">A felmérés kész</string>
     <!-- The survey completion confirmation text -->
@@ -2731,11 +2748,11 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Nem használom</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Mennyire elégedett a Firefox kezdőlapjával?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Mennyire elégedett a Firefox kezdőlapjával?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Segítsen jobbá tenni a nyomtatást a Firefoxban. Egy pillanat az egész.</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Segítsen jobbá tenni a nyomtatást a Firefoxban. Egy pillanat az egész.</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Mennyire elégedett a Firefoxban történő nyomtatással?</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Mennyire elégedett a Firefoxban történő nyomtatással?</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Kérdőív megnyitása</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->

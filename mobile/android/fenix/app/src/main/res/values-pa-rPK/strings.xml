@@ -427,12 +427,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">فائرفاکس پردے داری سوچنا</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">فائرفاکس پردے داری سوچنا</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">اسیں تہانوں سرکھیت رکھݨا چاہندے آں</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">پتا کرو کہ لکھاں فائرفاکس نوں پسند کیوں کردے ہن</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">پتا کرو کہ لکھاں فائرفاکس نوں پسند کیوں کردے ہن</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">ہور چوݨاں نال سرکھیت براؤز کرنا</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -455,20 +455,20 @@
     <string name="juno_onboarding_sign_in_title_2">جدوں تسیں ڈوائیساں وچالے تبادلا کرو تاں انکرپٹ رہو</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">جدوں تسیں سائین ان تے سِنک کردے ہو تاں تسیں ودھ سرکھیت ہندے او۔ فائرفاکس تہاڈے پاس‌ورداں، بُک‌مارکاں تے ہورناں نوں انکرپٹ کردا اے۔</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">جدوں تسیں سائین ان تے سِنک کردے ہو تاں تسیں ودھ سرکھیت ہندے او۔ فائرفاکس تہاڈے پاس‌ورداں، بُک‌مارکاں تے ہورناں نوں انکرپٹ کردا اے۔</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">فائرفاکس تہاڈے پاس‌ورڈاں، بک‌مارکاں تے ہوراں نوں تہاڈے ولوں لنک کرن دوران انکرپٹ کردا اے۔</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">فائرفاکس تہاڈے پاس‌ورڈاں، بک‌مارکاں تے ہوراں نوں تہاڈے ولوں لنک کرن دوران انکرپٹ کردا اے۔</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">سائین ان کرو</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">ہݨے نہیں</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">نوٹیفکیشن فائیرفاکس نال تہانوں سرکھیت رہݨ لئی مدد کردے ہن</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">نوٹیفکیشن فائیرفاکس نال تہانوں سرکھیت رہݨ لئی مدد کردے ہن</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">ٹیباں نوں سرکھیت روپ وچ آپݨے ڈوائیساں اُتے بھیجو تے فائرفاکس وچ ہور پردے داری فیچراں بارے جاݨوں۔</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">ٹیباں نوں سرکھیت روپ وچ آپݨے ڈوائیساں اُتے بھیجو تے فائرفاکس وچ ہور پردے داری فیچراں بارے جاݨوں۔</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">اطلاع نامے چالو کرو</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -476,14 +476,14 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">فائرفاکس کھوج وجیٹ ازماؤ</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">فائرفاکس کھوج وجیٹ ازماؤ</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">تہاڈی مکھ سکرین اُتے فائرفاکس نال تسیں پرائیویسی ادھارت براؤزر نوں سوکھی طرح ورت سکدے او، جو کہ انتر سائیٹ ٹریکراں اُتے پابندی لاوندا اے۔</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">تہاڈی مکھ سکرین اُتے فائرفاکس نال تسیں پرائیویسی ادھارت براؤزر نوں سوکھی طرح ورت سکدے او، جو کہ انتر سائیٹ ٹریکراں اُتے پابندی لاوندا اے۔</string>
 
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">فائرفاکس وجیٹ جوڑو</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">فائرفاکس وجیٹ جوڑو</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ہݨے نہیں</string>
 
@@ -526,9 +526,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">سرناواں پٹی لئی ترجیحاں</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">سرناواں پٹی – فائرفاکس سجھاؤ</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">سرناواں پٹی – فائرفاکس سجھاؤ</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">فائرفاکس سجھاؤ بارے پور جاݨو</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">فائرفاکس سجھاؤ بارے پور جاݨو</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">ایپ دکان تے درجہ دیو</string>
     <!-- Preference linking to about page for Fenix
@@ -578,13 +578,13 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">سہایتا بینتی بھیجی</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">سائیٹ ایس ویلے سہایک نہیں اے</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">سائیٹ ایس ویلے سہایک نہیں اے</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">کیہہ %1$s لئی کوکی جھنڈا روکو چالو کرنا اے؟</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">کیہہ %1$s لئی کوکی جھنڈا روکو بند کرنا اے؟</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s ایس سائیٹ لئی آپݨے آپ کوکی بینتیاں نوں بند نہیں کر سکدا اے۔ تسیں مستقبل وچ ایس سائیٹ واسطے سہایتا لئی بینتی کر سکدے او۔</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s ایس سائیٹ لئی آپݨے آپ کوکی بینتیاں نوں بند نہیں کر سکدا اے۔ تسیں مستقبل وچ ایس سائیٹ واسطے سہایتا لئی بینتی کر سکدے او۔</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">بند کرن نال %1$s ایس سائیٹ لئی کوکیاں مٹا کے ایس نوں مڑ لوڈ کرےگا۔ ایہہ تہانوں لاگ آؤٹ جاں تہاڈی خرید داری کارٹاں نوں خالی کرےگا۔</string>
 
@@ -798,7 +798,7 @@
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">نویاں پھیلاواں ہݨ موجود ہن</string>
 
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">100 توں ودھ پھیلاواں نوں ویکھو، جو فائرفاکس نوں تہاڈا آکھݨا بݨاوݨ لئی سہائک ہوݨ‌گیاں۔</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">100 توں ودھ پھیلاواں نوں ویکھو، جو فائرفاکس نوں تہاڈا آکھݨا بݨاوݨ لئی سہائک ہوݨ‌گیاں۔</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">پھیلاواں دی پڑچول کرو</string>
 
@@ -862,7 +862,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">ملیاں ٹیباں</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">ہور فائرفاکس ڈوائیساں توں ملیاں ٹیباں لئی سوچناواں ہن۔</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">ہور فائرفاکس ڈوائیساں توں ملیاں ٹیباں لئی سوچناواں ہن۔</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">ٹیب ملی گئی</string>
     <!-- %s is the device name -->
@@ -986,12 +986,18 @@
 
     <!-- Option in library for Recently Closed Tabs -->
     <string name="library_recently_closed_tabs">تازہ بند کیتیاں ٹیباں</string>
+    <!-- Option in library to open Recently Closed Tabs page -->
+    <string name="recently_closed_show_full_history">پوری تاریخ نوں دکھاؤ
+</string>
     <!-- Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected. -->
     <string name="recently_closed_tabs">%d ٹیباں</string>
     <!-- Text to show users they have one tab saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected. -->
     <string name="recently_closed_tab">%d ٹیب</string>
+
+    <!-- Recently closed tabs screen message when there are no recently closed tabs -->
+    <string name="recently_closed_empty_message">اتھے کوئی وی تازہ بند کیتیاں تیباں نہیں ہن</string>
 
     <!-- Tab Management -->
     <!-- Title of preference for tabs management -->
@@ -1014,18 +1020,61 @@
     <!-- Option for auto closing tabs that will auto close tabs after one month -->
     <string name="close_tabs_after_one_month">اک مہینے بعد</string>
 
+    <!-- Title of preference that allows a user to specify the auto-close settings for open tabs -->
+    <string name="preference_auto_close_tabs" tools:ignore="UnusedResources">کھلھیاں ٹیباں لئی آپے بند کرو</string>
+
+    <!-- Opening screen -->
+    <!-- Title of a preference that allows a user to choose what screen to show after opening the app -->
+    <string name="preferences_opening_screen">کھولھݨ والی سکرین</string>
     <!-- Option for always opening the homepage when re-opening the app -->
     <string name="opening_screen_homepage">مکھ صفحہ</string>
+
+    <!-- Option for always opening the user's last-open tab when re-opening the app -->
+    <string name="opening_screen_last_tab">پچھلی ٹیب</string>
+    <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
+    <string name="opening_screen_after_four_hours_of_inactivity">چار گھنٹیاں دی غیرفعالت دے بعد مکھ صفحہ</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to manual close-->
+    <string name="close_tabs_manually_summary">خود بند کرو
+</string>
+
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day-->
+    <string name="close_tabs_after_one_day_summary">اک دن بعد بند کرو</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one week-->
+    <string name="close_tabs_after_one_week_summary">اک ہفتے بعد بند کرو
+</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month-->
+    <string name="close_tabs_after_one_month_summary">اک مہینے بعد بند کرو</string>
+    <!-- Summary for homepage preference indicating always opening the homepage when re-opening the app -->
+    <string name="opening_screen_homepage_summary">مکھ سکرین اُتے کھولھو</string>
+    <!-- Summary for homepage preference indicating always opening the last-open tab when re-opening the app -->
+    <string name="opening_screen_last_tab_summary">پچھلی ٹیب اُتے کھولھو</string>
+    <!-- Summary for homepage preference indicating opening the homepage when re-opening the app after four hours of inactivity -->
+    <string name="opening_screen_after_four_hours_of_inactivity_summary">چار گھنٹیاں بعدے مکھ صفحے اُتے کھولھو</string>
+
+    <!-- Inactive tabs -->
+    <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
+    <string name="preferences_inactive_tabs">پراݨیاں ٹیباں نوں غیرفعال چ بھیجو</string>
+    <!-- Title of inactive tabs preference -->
+    <string name="preferences_inactive_tabs_title">پچھلے دو ہفتیاں وچ تہاڈے ولوں نہ ویکھیاں ٹیباں نوں غیرفعال بھاگ وچ بھیجیا جاندا اے۔</string>
 
     <!-- Studies -->
     <!-- Title of the remove studies button -->
     <string name="studies_remove">ہٹاؤ</string>
+    <!-- Title of the active section on the studies list -->
+    <string name="studies_active">فعال</string>
+    <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+    <string name="studies_description_2">%1$s وقتاً فوقتاً مطالعہ انسٹال کر تے چلا سکدا اے۔</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ہور جاݨو</string>
+    <!-- Dialog message shown after removing a study -->
+    <string name="studies_restart_app">تبدیلیاں لاگو کرن لئی ایپلیکیشن بند ہووےگی </string>
     <!-- Dialog button to confirm the removing a study. -->
     <string name="studies_restart_dialog_ok">ٹھیک اے</string>
     <!-- Dialog button text for canceling removing a study. -->
     <string name="studies_restart_dialog_cancel">رد کرو</string>
+
+    <!-- Toast shown after turning on/off studies preferences -->
+    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">تبدیلیاں لاگو کرن لئی ایپلیکیشن نوں بند کیتا جا رہا اے…</string>
 
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
@@ -1033,6 +1082,8 @@
 </string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title">نجی ٹیباں</string>
+    <!-- Title for the list of tabs in the synced tabs -->
+    <string name="tabs_header_synced_tabs_title">ہم وقت کیتیاں ٹیباں</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">نویں ٹیب کھولھو</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1043,10 +1094,26 @@
     <string name="tab_drawer_fab_sync">ہم وقت کرو</string>
     <!-- Text shown in the menu for sharing all tabs -->
     <string name="tab_tray_menu_item_share">سریاں ٹیباں سانجھیاں کرو</string>
+    <!-- Text shown in the menu to view recently closed tabs -->
+    <string name="tab_tray_menu_recently_closed">تازہ بند کیتیاں ٹیباں</string>
+    <!-- Text shown in the tabs tray inactive tabs section -->
+    <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources">تازہ بند کیتیاں</string>
+    <!-- Text shown in the menu to view account settings -->
+    <string name="tab_tray_menu_account_settings">کھاتے دیاں سیٹنگاں</string>
+    <!-- Text shown in the menu to view tab settings -->
+    <string name="tab_tray_menu_tab_settings">ٹیب سیٹنگاں</string>
+    <!-- Text shown in the menu for closing all tabs -->
+    <string name="tab_tray_menu_item_close">ساریاں ٹیباں بند کرو</string>
     <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
     <string name="tab_tray_multiselect_menu_item_bookmark">اتا پتہ</string>
     <!-- Text shown in the multiselect menu for closing selected tabs. -->
     <string name="tab_tray_multiselect_menu_item_close">بند کرو</string>
+    <!-- Content description for tabs tray multiselect share button -->
+    <string name="tab_tray_multiselect_share_content_description">چݨیاں ٹیباں سانجھیاں کرو</string>
+    <!-- Content description for tabs tray multiselect menu -->
+    <string name="tab_tray_multiselect_menu_content_description">چݨیاں ٹیباں دا مینو</string>
+    <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
+    <string name="remove_tab_from_collection">ٹیب نوں بھنڈار وچوں ہٹاؤ</string>
     <!-- Text for button to enter multiselect mode in tabs tray -->
     <string name="tabs_tray_select_tabs">ٹیباں چݨو</string>
     <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
@@ -1054,11 +1121,35 @@
     <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title  -->
     <string name="close_tab_title">%s ٹیب بند کرو</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
+    <string name="open_tabs_menu">ٹیب مینو کھلھو</string>
+    <!-- Open tabs menu item to save tabs to collection -->
+    <string name="tabs_menu_save_to_collection1">ٹیباں نوں بھنڈار چ سنبھالو</string>
+    <!-- Text for the menu button to delete a collection -->
+    <string name="collection_delete">بھنڈار ہٹاؤ</string>
+    <!-- Text for the menu button to rename a collection -->
+    <string name="collection_rename">بھنڈار دا ناں بدلو</string>
+    <!-- Text for the button to open tabs of the selected collection -->
+    <string name="collection_open_tabs">ساریاں کھولھو</string>
+    <!-- Hint for adding name of a collection -->
+    <string name="collection_name_hint">بھنڈار دا ناں</string>
     <!-- Text for the menu button to rename a top site -->
     <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">ناں بدلو</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ہٹاؤ</string>
 
+    <!-- Text for the menu button to delete a top site from history -->
+    <string name="delete_from_history">تاریخ چوں ہٹاؤ</string>
+    <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
+    <string name="pwa_site_controls_title_private">%1$s (نجی موڈ)</string>
+
+    <!-- History -->
+    <!-- Text for the button to search all history -->
+    <string name="history_search_1">کھوج دی لکھت پایو</string>
+    <!-- Text for the button to clear all history -->
+    <string name="history_delete_all">تاریخ ہٹاؤ</string>
+    <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
+    <string name="history_delete_multiple_items_snackbar">تاریخ ہٹایا گیا</string>
     <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
     <string name="history_delete_single_item_snackbar">%1$s مٹا گیا</string>
     <!-- Context description text for the button to delete a single history item -->
@@ -1080,6 +1171,16 @@
     <!-- Text for the header that groups the history older than the last month -->
     <string name="history_older">پراݨے</string>
 
+    <!-- Text shown when no history exists -->
+    <string name="history_empty_message">اتھے کوئی تاریخ نہیں اے</string>
+
+    <!-- Downloads -->
+    <!-- Text for the snackbar to confirm that multiple downloads items have been removed -->
+    <string name="download_delete_multiple_items_snackbar_1">ڈاؤن‌لوڈ ہٹائے گئے</string>
+    <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+    <string name="download_delete_single_item_snackbar">%1$s ہٹائے</string>
+    <!-- Text shown when no download exists -->
+    <string name="download_empty_message_1">کوئی ڈاؤن‌لوڈ کیتی فائل نہیں اے</string>
     <!-- History multi select title in app bar
     The first parameter is the number of downloads selected -->
     <string name="download_multi_select_title">%1$d چݨیاں</string>
@@ -1087,13 +1188,28 @@
     <string name="download_delete_item_1">ہٹاؤ</string>
 
 
+    <!-- Crashes -->
+    <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="tab_crash_title_2">افسوس۔ %1$s اوس صفحے نوں لوڈ نہیں کر سکدا اے۔</string>
+    <!-- Send crash report checkbox text on the tab crash page -->
+    <string name="tab_crash_send_report">کریش رپورٹ موزیلے نوں بھیجو</string>
     <!-- Close tab button text on the tab crash page -->
     <string name="tab_crash_close">ٹیب بند کرو</string>
 
+    <!-- Restore tab button text on the tab crash page -->
+    <string name="tab_crash_restore">ٹیب بحال کرو</string>
+
+    <!-- Bookmarks -->
+    <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
+    <string name="bookmark_delete_folder_confirmation_dialog">کیہہ تسیں ایہہ فولڈر نوں ہٹاؤݨا چاہندے او؟</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
+    <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s چݨیاں چیزاں نوں ہٹائےگا۔</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
     <string name="bookmark_delete_negative">رد کرو</string>
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">فولڈر پایو</string>
+    <!-- Snackbar title shown after a bookmark has been created. -->
+    <string name="bookmark_saved_snackbar">بک‌مارک سنبھالیا!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">سودھو</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1106,6 +1222,8 @@
     <string name="bookmark_menu_open_in_new_tab_button">نویں ٹیب چ کھولھو</string>
     <!-- Bookmark overflow menu open in private tab button -->
     <string name="bookmark_menu_open_in_private_tab_button">نجی ٹیب چ کھولھو</string>
+    <!-- Bookmark overflow menu open all in tabs button -->
+    <string name="bookmark_menu_open_all_in_tabs_button">سبھ نوں نویاں ٹیباں چ کھولھو</string>
     <!-- Bookmark overflow menu open all in private tabs button -->
     <string name="bookmark_menu_open_all_in_private_tabs_button">سبھناں نوں نجی ٹیباں چ کھولھو</string>
     <!-- Bookmark overflow menu delete button -->
@@ -1335,7 +1453,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">ہور ڈوائیس نال کنیکٹ کرو</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">ٹیب بھیجݨ لئی، گھٹو گھٹ ہور ڈوائیس تے فائرفاکس چ سائین ان کرو۔</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">ٹیب بھیجݨ لئی، گھٹو گھٹ ہور ڈوائیس تے فائرفاکس چ سائین ان کرو۔</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">ٹھیک اے</string>
 
@@ -1375,10 +1493,10 @@
     <string name="notification_marketing_channel_name">مارکیٹنگ</string>
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">فائرفاکس تیز تے نجی اے</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">فائرفاکس تیز تے نجی اے</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">فائرفاکس نوں آپݨا ڈفالٹ براؤزر بݨاؤ</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">فائرفاکس نوں آپݨا ڈفالٹ براؤزر بݨاؤ</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">نجی براؤز کرن نوں ازماؤ</string>
 
@@ -1398,7 +1516,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">چھوٹے جیہے سرویکھݨ دا حصہ بݨ کے فائرفاکس نوں بہتر بݨاوݨ لئی مدد کرو۔</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">چھوٹے جیہے سرویکھݨ دا حصہ بݨ کے فائرفاکس نوں بہتر بݨاوݨ لئی مدد کرو۔</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">سرویکھݨ بھرو</string>
     <!-- Preference for not taking the short survey. -->
@@ -1463,7 +1581,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">کوڈ سکین کرو</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[آپݨے کمپیوٹر تے فائرفاکس کھولھو تے <b>https://firefox.com/pair</b> تے جاؤ]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[آپݨے کمپیوٹر تے فائرفاکس کھولھو تے <b>https://firefox.com/pair</b> تے جاؤ]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">سکین کرن لئی تیار</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1471,7 +1589,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">ایس دی بجائے ای‌میل ورتوں</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[کھاتا نہیں اے؟ <u>ڈوائیساں وچالے</u> فائرفاکس ہم وقت کرن لئی بݨاؤ۔]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[کھاتا نہیں اے؟ <u>ڈوائیساں وچالے</u> فائرفاکس ہم وقت کرن لئی بݨاؤ۔]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s تہاڈے کھاتے نال ہم وقت کرن روک دیوےگا، پر ایس ڈوائیس تے تہاڈے براؤز کیتے ڈیٹے نوں ہٹائےگا نہیں۔</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1557,8 +1675,22 @@
     <string name="etp_cookies_description">کوکیاں تے پابندی لگاوندس اے، جو کہ اشتہار نیٹ‌ورک تے وشلیشݨ کرن والیاں کمپنیاں کئی سائیٹاں تے تہاڈے براؤز کرن دے ڈیٹے نوں اکتر کرن لئی ورتدیاں ہن۔</string>
     <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cookies_description_2">پوری کوکی سرکھیا چ جس سائیٹ تے تسیں او، اوس لئی کوکیاں ہندیاں ہن تاں کہ تہاڈے ولوں ہور سائیٹاں ورتے جاݨ دوران ٹریکر اوہناں دی ورتوں نہ کر سکݨ۔</string>
+    <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_cryptominers_description">تہاڈے ڈوائیس نوں ڈیجیٹل مدرہ دی ٹکسال وجوں ورتݨ لئی پہنچ حاصل کرن والیاں دیکھی سکرپٹاں نوں روکدا اے۔</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">پیڑاں راکھے</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">تہاڈے ڈوائیس بارے ولکھݨ طور تے پچھاݨے جاݨے والے ڈیٹے نوں اکتر ہوݨ توں روکدا اے، جس نوں ٹریکنگ لئی ورتیا جا سکدا اے۔</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">تہاڈے ڈوائیس بارے ولکھݨ طور تے پچھاݨے جاݨے والے ڈیٹے نوں اکتر ہوݨ توں روکدا اے، جس نوں ٹریکنگ لئی ورتیا جا سکدا اے۔</string>
+    <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_tracking_content_title">ٹوہا ٹوہی دے نشان</string>
+    <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_tracking_content_description">باہری اشتہار، ویڈیو تے ہورناں مواداں نوں روکدا اے، جس چ ٹریک کرن والا کوڈ ہندا اے۔ کجھ ویب‌سائیٹاں دا کم کاج متاثر ہو سکدا اے۔</string>
+    <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
+    <string name="etp_panel_on">ایس سائیٹ لئی حفاظتاں چالو ہن</string>
+    <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
+    <string name="etp_panel_off">ایسں سائیٹ لئی حفاظتاں بند ہن</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">ہور جاݨو</string>
 

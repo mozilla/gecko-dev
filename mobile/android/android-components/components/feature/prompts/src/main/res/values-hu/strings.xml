@@ -49,7 +49,9 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Jelszó frissítése?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">Hozzáadja a felhasználónevet a mentett jelszóhoz?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Hozzáadja a felhasználónevet a mentett jelszóhoz?</string>
+    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+    <string name="mozac_feature_prompt_login_add_username_headline_2">Frissíti a felhasználónevet?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Címke a szövegbeviteli mezőhöz</string>
@@ -116,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Erős jelszó javaslata</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Erős jelszó javaslata</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Erős jelszó használata</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Erős jelszó használata: %1$s</string>
@@ -125,7 +125,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Erős jelszót használ?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Védje fiókjait erős, véletlenszerűen előállított jelszóval. Kapjon gyors hozzáférést a jelszavaihoz azáltal, hogy elmenti a fiókjába.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Védje fiókjait erős, véletlenszerűen előállított jelszóval. Kapjon gyors hozzáférést a jelszavaihoz azáltal, hogy elmenti a fiókjába.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Védje meg fiókjait egy erős, véletlenszerűen előállított jelszóval. A fiókjába lesz mentve későbbi felhasználás céljából.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Jelszó használata</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -135,6 +138,9 @@
     <!-- Title for showing the suggest strong password updated confirmation snackbar -->
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Jelszó frissítve</string>
 
+
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">A felhasználónév frissítve</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Újraküldi az adatokat ennek a webhelynek?</string>
@@ -195,7 +201,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">A(z) %1$s használata bejelentkezési szolgáltatóként</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[A(z) %2$s fiókkal a(z) %1$s szolgáltatásba való bejelentkezésre az <a href="%3$s">Adatvédelmi irányelvek</a> és a <a href="%4$s">Szolgáltatási feltételei</a> vonatkoznak]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A(z) %2$s fiókkal a(z) %1$s szolgáltatásba való bejelentkezésre az <a href="%3$s">Adatvédelmi irányelvek</a> és a <a href="%4$s">Szolgáltatási feltételei</a> vonatkoznak]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Folytatás</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

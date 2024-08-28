@@ -111,6 +111,17 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Në një sajt, kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Prekni dhe mbani të prekura shigjetat, për të kaluar nëpër faqe në historikun e kësaj skede.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">E re: shigjeta me një prekje, për para dhe mbrapsht</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Shijoni lëvizje më të shpejtë që e keni përherë në majë të gishtave.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Lypset hyrje në kamera. Kaloni te rregullimet e Android-it, prekni mbi Leje dhe prekni Lejoje.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -191,6 +202,14 @@
     <string name="browser_menu_stop">Ndale</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Zgjerime</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Bëjeni %s si e doni</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Zgjerimet e shpien më tej shfletimin tuaj, nga ndryshimi se si duket dhe funksionon %s e deri përforcimi i privatësisë dhe sigurisë.</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Mësoni më tepër</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Administroni zgjerime</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -248,6 +267,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Përshtatni pamjen e Lexuesit</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Përshtatni Pamje Lexuesi</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Shtoni</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -277,10 +298,16 @@
     <string name="browser_menu_switch_to_mobile_site">Kalo te sajti për celular</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Mjete</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Pamje Lexuesi, Përktheni, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Pamje Lexuesi, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Ruaje</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Shtoni faqerojtës, Shkurtore, Kreu, Koleksion, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Faqeruajeni këtë faqe</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -298,6 +325,10 @@
     <string name="browser_menu_translated_to">Përkthyer në %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Shtypeni…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Mbylle %1$s</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -1227,6 +1258,9 @@
     <string name="bookmark_close_button_content_description">Mbylli faqerojtësit</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Kërkoni te faqerojtësit</string>
+
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Menu Elementësh për %s</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2751,8 +2785,6 @@
     <string name="micro_survey_privacy_notice_2">Shënim mbi privatësinë</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Parashtroje</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Mbylle</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Pyetësor i plotësuar</string>
     <!-- The survey completion confirmation text -->
