@@ -701,10 +701,7 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
                              const nsACString& aExpires,
                              const nsACString& aMaxage, int64_t aCurrentTime,
                              bool aFromHttp) {
-  // maxageCap is in seconds.
-  // Disabled for HTTP cookies.
-  int64_t maxageCap =
-      aFromHttp ? 0 : StaticPrefs::privacy_documentCookies_maxage();
+  int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
 
   /* Determine when the cookie should expire. This is done by taking the
    * difference between the server time and the time the server wants the cookie

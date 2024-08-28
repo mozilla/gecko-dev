@@ -112,7 +112,7 @@ add_task(async function test_migrate_invalid_cookie() {
   Assert.ok(cookie2Exists, "Cookie 2 was inadvertently removed");
   Assert.ok(!badcookieExists, "Bad cookie was not filtered by migration");
   // Schema was upgraded by cookie service
-  Assert.equal(schema12db.db.schemaVersion, 13);
+  Assert.ok(schema12db.db.schemaVersion >= 13);
 
   // reload to make sure removal was written correctly
   await promise_close_profile();
