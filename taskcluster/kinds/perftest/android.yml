@@ -435,3 +435,348 @@ hw-a51-background-resource-chrome:
             --android
             --output $MOZ_FETCHES_DIR/../artifacts
             --hooks testing/performance/background-resource/hooks_background_resource.py
+
+hw-a55-aarch64:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run ./mach perftest on a Samsung Galaxy a55
+    treeherder:
+        symbol: perftest-a55
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+
+hw-a55-startup-fenix-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-fenix-cmff)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --AndroidStartUp-product=fenix
+
+hw-a55-startup-fenix-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-fenix-cvns)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_view_nav_start
+            --perfherder
+            --AndroidStartUp-product=fenix
+
+hw-a55-startup-focus-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Focus on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-focus-cmff)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-focus-nightly
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --AndroidStartUp-product=focus
+
+hw-a55-startup-focus-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Focus on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-focus-cvns)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-focus-nightly
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_view_nav_start
+            --perfherder
+            --AndroidStartUp-product=focus
+
+hw-a55-startup-geckoview-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Geckoview on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-geckoview-cmff)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: geckoview_example.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: build-android-aarch64-shippable/opt
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --AndroidStartUp-product=geckoview_example
+
+hw-a55-startup-geckoview-cold-view-nav-start:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [trunk-only]
+    description: Run android startup perftest on Geckoview_example on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-geckoview-cvns)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: geckoview_example.apk
+              extract: false
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: build-android-aarch64-shippable/opt
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_view_nav_start
+            --perfherder
+            --AndroidStartUp-product=geckoview_example
+
+hw-a55-startup-chrome-m-cold-main-first-frame:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run android startup perftest on Chrome on a Samsung A55
+    treeherder:
+        symbol: perftest(startup-chrome-m-cmff)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: true
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor=mobile-browser
+            --AndroidStartUp
+            testing/performance/perftest_android_startup.js
+            --browsertime-cycles=0
+            --AndroidStartUp-test-name=cold_main_first_frame
+            --perfherder
+            --AndroidStartUp-product=chrome-m
+
+hw-a55-aarch64-perfstats-gv:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run PerfStats perftest on GeckoView on a Samsung A55
+    treeherder:
+        symbol: perftest(perfstats-gv)
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor mobile-browser
+            --app geckoview
+            --android
+            --android-app-name org.mozilla.geckoview_example
+            --android-activity org.mozilla.geckoview_example.GeckoViewActivity
+            --android-clear-logcat
+            --android-capture-logcat logcat
+            --android-install-apk gve_nightly_aarch64
+            --browsertime-geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+            --perfherder-metrics name:HttpChannelCompletion,unit:ms name:HttpChannelCompletion_Cache,unit:ms name:HttpChannelCompletion_Network,unit:ms name:DisplayListBuilding,unit:ms name:Reflowing,unit:ms name:Styling,unit:ms
+            --browsertime-iterations 10
+            --hooks testing/performance/hooks_perfstats.py
+            testing/performance/perftest_perfstats.js
+
+hw-a55-aarch64-perfstats-fenix:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run PerfStats perftest on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest(perfstats-fenix)
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor mobile-browser
+            --app fenix
+            --android
+            --android-app-name org.mozilla.fenix
+            --android-activity org.mozilla.fenix.IntentReceiverActivity
+            --android-clear-logcat
+            --android-capture-logcat logcat
+            --android-install-apk fenix_nightly_arm64_v8a
+            --browsertime-geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --perfherder
+            --perfherder-metrics name:HttpChannelCompletion,unit:ms name:HttpChannelCompletion_Cache,unit:ms name:HttpChannelCompletion_Network,unit:ms name:DisplayListBuilding,unit:ms name:Reflowing,unit:ms name:Styling,unit:ms
+            --browsertime-iterations 10
+            --hooks testing/performance/hooks_perfstats.py
+            testing/performance/perftest_perfstats.js
+
+hw-a55-record-websites:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Run perftest to record mobile websites
+    treeherder:
+        symbol: perftest(rec)
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: build-android-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run-on-projects: []
+    scopes:
+        - secrets:get:project/releng/gecko/build/level-{level}/conditioned-profiles
+        - secrets:get:project/perftest/gecko/level-{level}/perftest-login
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor mobile-browser
+            --android
+            --android-app-name org.mozilla.geckoview_example
+            --android-activity org.mozilla.geckoview_example.GeckoViewActivity
+            --android-clear-logcat
+            --android-capture-logcat logcat
+            --android-install-apk gve_nightly_aarch64
+            --browsertime-geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+            --proxy
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/hooks_recording.py
+            testing/performance/perftest_record.js
+
+hw-a55-background-resource-fenix:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [mozilla-central]
+    description: Run background resource test with Fenix on a Samsung A51
+    treeherder:
+        symbol: perftest-fenix(background-rsrc)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+        toolchain:
+            - android-xmlstarlet
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            testing/performance/background-resource/main.sh
+            --app fenix
+            --android
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/background-resource/hooks_background_resource.py
+
+hw-a55-background-resource-chrome:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [mozilla-central]
+    description: Run background CPU test with Chrome on a Samsung A55
+    treeherder:
+        symbol: perftest-chrome(background-rsrc)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        toolchain:
+            - android-xmlstarlet
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            testing/performance/background-resource/main.sh
+            --app chrome-m
+            --android
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/background-resource/hooks_background_resource.py
