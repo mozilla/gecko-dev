@@ -22,7 +22,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [currentDate](#currentdate)
 * [defaultPDFHandler](#defaultpdfhandler)
 * [devToolsOpenedCount](#devtoolsopenedcount)
-* [distributionId](#distributionId)
+* [distributionId](#distributionid)
 * [doesAppNeedPin](#doesappneedpin)
 * [doesAppNeedPrivatePin](#doesappneedprivatepin)
 * [firefoxVersion](#firefoxversion)
@@ -41,7 +41,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [isDefaultHandler](#isdefaulthandler)
 * [isDeviceMigration](#isdevicemigration)
 * [isFxAEnabled](#isfxaenabled)
-* [isFxASignedIn](#isFxASignedIn)
+* [isFxASignedIn](#isfxasignedin)
 * [isMajorUpgrade](#ismajorupgrade)
 * [isMSIX](#ismsix)
 * [isRTAMO](#isrtamo)
@@ -62,7 +62,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [providerCohorts](#providercohorts)
 * [recentBookmarks](#recentbookmarks)
 * [region](#region)
-* [screenImpressions](#screenImpressions)
+* [screenImpressions](#screenimpressions)
 * [searchEngines](#searchengines)
 * [sync](#sync)
 * [topFrecentSites](#topfrecentsites)
@@ -74,8 +74,8 @@ Please note that some targeting attributes require stricter controls on the tele
 * [useEmbeddedMigrationWizard](#useembeddedmigrationwizard)
 * [userPrefs](#userprefs)
 * [usesFirefoxSync](#usesfirefoxsync)
-* [xpinstallEnabled](#xpinstallEnabled)
-* [totalSearches](#totalSearches)
+* [xpinstallEnabled](#xpinstallenabled)
+* [totalSearches](#totalsearches)
 
 ## Detailed usage
 
