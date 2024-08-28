@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs, allow-untyped-calls
+
 from abc import ABC
 import math
 from typing import Any, Dict, Union
@@ -36,12 +38,13 @@ class BidiNode(BidiValue):
     shared_id: str
 
     def __init__(self, protocol_value: Dict[str, Any]):
+        do_delayed_imports()
         super().__init__(protocol_value)
         assert self.type == "node"
         self.shared_id = self.protocol_value["sharedId"]
 
     def to_classic_protocol_value(self) -> Dict[str, Any]:
-        return {WebElement.identifier: self.shared_id}
+        return {WebElement.identifier: self.shared_id}  # type: ignore
 
 
 class BidiWindow(BidiValue):
