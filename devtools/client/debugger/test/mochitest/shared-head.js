@@ -1409,6 +1409,7 @@ const keyMappings = {
   End: endKey,
   Start: startKey,
   Tab: { code: "VK_TAB" },
+  ShiftTab: { code: "VK_TAB", modifiers: { shiftKey: true } },
   Escape: { code: "VK_ESCAPE" },
   Delete: { code: "VK_DELETE" },
   pauseKey: { code: "VK_F8" },

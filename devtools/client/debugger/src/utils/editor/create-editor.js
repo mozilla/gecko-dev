@@ -27,8 +27,10 @@ export function createEditor(useCm6 = false) {
     gutters,
     value: " ",
     extraKeys: {
-      // Override code mirror keymap to avoid conflicts with split console.
+      // Override code mirror keymap to avoid conflicts with split console and tabbing to other elements.
       Esc: false,
+      Tab: false,
+      "Shift-Tab": false,
       "Cmd-F": false,
       "Ctrl-F": false,
       "Cmd-G": false,

@@ -308,41 +308,43 @@ class Editor extends EventEmitter {
     // Remember the initial value of autoCloseBrackets.
     this.config.autoCloseBracketsSaved = this.config.autoCloseBrackets;
 
-    // Overwrite default tab behavior. If something is selected,
-    // indent those lines. If nothing is selected and we're
+    // If the tab behaviour is not explicitly set from the config, set a tab behavior.
+    // If something is selected, indent those lines. If nothing is selected and we're
     // indenting with tabs, insert one tab. Otherwise insert N
     // whitespaces where N == indentUnit option.
-    this.config.extraKeys.Tab = cm => {
-      if (config.extraKeys?.Tab) {
-        // If a consumer registers its own extraKeys.Tab, we execute it before doing
-        // anything else. If it returns false, that mean that all the key handling work is
-        // done, so we can do an early return.
-        const res = config.extraKeys.Tab(cm);
-        if (res === false) {
+    if (this.config.extraKeys.Tab == undefined) {
+      this.config.extraKeys.Tab = cm => {
+        if (config.extraKeys?.Tab) {
+          // If a consumer registers its own extraKeys.Tab, we execute it before doing
+          // anything else. If it returns false, that mean that all the key handling work is
+          // done, so we can do an early return.
+          const res = config.extraKeys.Tab(cm);
+          if (res === false) {
+            return;
+          }
+        }
+
+        if (cm.somethingSelected()) {
+          cm.indentSelection("add");
           return;
         }
-      }
 
-      if (cm.somethingSelected()) {
-        cm.indentSelection("add");
-        return;
-      }
+        if (this.config.indentWithTabs) {
+          cm.replaceSelection("\t", "end", "+input");
+          return;
+        }
 
-      if (this.config.indentWithTabs) {
-        cm.replaceSelection("\t", "end", "+input");
-        return;
-      }
+        let num = cm.getOption("indentUnit");
+        if (cm.getCursor().ch !== 0) {
+          num -= cm.getCursor().ch % num;
+        }
+        cm.replaceSelection(" ".repeat(num), "end", "+input");
+      };
 
-      let num = cm.getOption("indentUnit");
-      if (cm.getCursor().ch !== 0) {
-        num -= cm.getCursor().ch % num;
+      if (this.config.cssProperties) {
+        // Ensure that autocompletion has cssProperties if it's passed in via the options.
+        this.config.autocompleteOpts.cssProperties = this.config.cssProperties;
       }
-      cm.replaceSelection(" ".repeat(num), "end", "+input");
-    };
-
-    if (this.config.cssProperties) {
-      // Ensure that autocompletion has cssProperties if it's passed in via the options.
-      this.config.autocompleteOpts.cssProperties = this.config.cssProperties;
     }
   }
 

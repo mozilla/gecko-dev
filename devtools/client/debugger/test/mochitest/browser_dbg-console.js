@@ -13,16 +13,18 @@ add_task(async function () {
 
   await selectSource(dbg, "script-switching-01.js");
 
-  // open the console
+  info("Open the split console");
   await getDebuggerSplitConsole(dbg);
   ok(dbg.toolbox.splitConsole, "Split console is shown.");
 
-  // close the console
+  info("Click to focus on the debugger editor");
   await clickElement(dbg, "codeMirror");
-  // First time to focus out of text area
-  pressKey(dbg, "Escape");
 
-  // Second time to hide console
+  info("Press ESC to close the split console");
   pressKey(dbg, "Escape");
   ok(!dbg.toolbox.splitConsole, "Split console is hidden.");
+
+  info("Press the ESC again to open the split console again");
+  pressKey(dbg, "Escape");
+  ok(dbg.toolbox.splitConsole, "Split console is shown.");
 });
