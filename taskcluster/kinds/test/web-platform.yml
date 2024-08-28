@@ -752,3 +752,4 @@ test-coverage-wpt:
     mozharness:
         extra-options:
             - --per-test-coverage
+            - --exclude-tag=webgpu  # https://bugzilla.mozilla.org/show_bug.cgi?id=1915310
