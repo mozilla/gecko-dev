@@ -9665,22 +9665,6 @@ telemetry.test:
     record_in_processes: ["all"]
     release_channel_collection: opt-out
 
-cache:
-  integrity_check_count:
-    bug_numbers:
-      - 1687685
-    description: >
-      The number of errors detected by a Cache API pragma_integrity_check() run in response to a constraint error detected by a VACUUM after performing a schema upgrade.
-    expires: "96"
-    kind: uint
-    notification_emails:
-      - storage-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
 opaque.response.blocking:
   cross_origin_opaque_response_count:
     bug_numbers:
