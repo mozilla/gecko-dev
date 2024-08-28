@@ -7,7 +7,7 @@
 :root {
   --sidebar-background-color: -moz-sidebar;
   --sidebar-text-color: -moz-sidebartext;
-  --sidebar-border-color: -moz-sidebarborder;
+  --sidebar-border-color: var(--lwt-sidebar-border-color, -moz-sidebarborder);
   --sidebar-collapsed-width: 51px;
   --sidebar-expanded-width: 192px;
   --sidebar-screenshot-overlay-z-index: 3;

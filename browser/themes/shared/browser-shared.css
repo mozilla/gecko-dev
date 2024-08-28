@@ -66,6 +66,11 @@ body {
   --toolbarbutton-border-radius: 4px;
 
   --chrome-content-separator-color: ThreeDShadow;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
+  }
+
   --tabs-navbar-separator-color: ThreeDShadow;
   --tabs-navbar-separator-style: solid;
 
@@ -137,13 +142,13 @@ body {
     color: var(--lwt-text-color);
 
     --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
-    --chrome-content-separator-color: rgba(0,0,0,.3);
+    --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
     --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
 
     /* stylelint-disable-next-line media-query-no-invalid */
     @media (-moz-bool-pref: "sidebar.revamp") {
-      --chrome-content-separator-color: var(--sidebar-border-color), light-dark(rgb(82, 82, 94), rgb(240, 240, 244));
+      --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
     }
 
     @media not (prefers-contrast) {

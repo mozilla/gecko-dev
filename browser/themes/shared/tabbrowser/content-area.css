@@ -41,6 +41,7 @@
     border-top: 0.5px solid var(--chrome-content-separator-color);
     border-inline-start: 0.5px solid var(--chrome-content-separator-color);
     box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
+    position: relative;
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
