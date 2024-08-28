@@ -14,7 +14,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/ResultExtensions.h"
 #include "nsNetCID.h"
@@ -884,9 +883,6 @@ void nsWindowMemoryReporter::CheckForGhostWindows(
       }
     }
   }
-
-  Telemetry::ScalarSetMaximum(
-      Telemetry::ScalarID::MEMORYREPORTER_MAX_GHOST_WINDOWS, mGhostWindowCount);
 }
 
 /* static */

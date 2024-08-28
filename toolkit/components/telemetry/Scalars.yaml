@@ -5143,24 +5143,6 @@ widget:
     record_in_processes:
       - 'main'
 
-# The following section contains memory reporter counters.
-memoryreporter:
-  max_ghost_windows:
-    bug_numbers:
-      - 1454724
-    description: >
-      The maximum number of leaked ghost windows seen.
-    expires: "66"
-    kind: uint
-    notification_emails:
-      - memshrink-telemetry-alerts@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'content'
-
 update:
   bitshresult:
     bug_numbers:
