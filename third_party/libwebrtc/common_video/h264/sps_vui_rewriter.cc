@@ -238,7 +238,9 @@ rtc::Buffer SpsVuiRewriter::ParseOutgoingBitstreamAndRewrite(
         nalu_index.payload_start_offset - nalu_index.start_offset);
     rtc::ArrayView<const uint8_t> nalu = buffer.subview(
         nalu_index.payload_start_offset, nalu_index.payload_size);
-
+    if (nalu.empty()) {
+      continue;
+    }
     if (H264::ParseNaluType(nalu[0]) == H264::NaluType::kSps) {
       // Check if stream uses picture order count type 0, and if so rewrite it
       // to enable faster decoding. Streams in that format incur additional

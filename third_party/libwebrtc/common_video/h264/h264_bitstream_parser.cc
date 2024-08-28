@@ -307,6 +307,9 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
 }
 
 void H264BitstreamParser::ParseSlice(rtc::ArrayView<const uint8_t> slice) {
+  if (slice.empty()) {
+    return;
+  }
   H264::NaluType nalu_type = H264::ParseNaluType(slice[0]);
   switch (nalu_type) {
     case H264::NaluType::kSps: {
