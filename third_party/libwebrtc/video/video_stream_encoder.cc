@@ -1254,6 +1254,10 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     codec.SetVideoEncoderComplexity(VideoCodecComplexity::kComplexityLow);
   }
 
+  quality_convergence_controller_.Initialize(
+      codec.numberOfSimulcastStreams, encoder_->GetEncoderInfo().min_qp,
+      codec.codecType, env_.field_trials());
+
   send_codec_ = codec;
 
   // Keep the same encoder, as long as the video_format is unchanged.
@@ -2085,14 +2089,23 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
             .Parse(codec_type, stream_idx, image_copy.data(), image_copy.size())
             .value_or(-1);
   }
+
+  // Check if the encoded image has reached target quality.
+  const size_t simulcast_index = encoded_image.SimulcastIndex().value_or(0);
+  bool at_target_quality =
+      quality_convergence_controller_.AddSampleAndCheckTargetQuality(
+          simulcast_index, image_copy.qp_,
+          image_copy.IsSteadyStateRefreshFrame());
+  image_copy.SetAtTargetQuality(at_target_quality);
   TRACE_EVENT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
                "stream_idx", stream_idx, "qp", image_copy.qp_);
+  TRACE_EVENT_INSTANT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
+                       TRACE_EVENT_SCOPE_GLOBAL, "simulcast_idx",
+                       simulcast_index, "at_target_quality", at_target_quality);
   RTC_LOG(LS_VERBOSE) << __func__ << " ntp time " << encoded_image.NtpTimeMs()
                       << " stream_idx " << stream_idx << " qp "
-                      << image_copy.qp_;
-  image_copy.SetAtTargetQuality(codec_type == kVideoCodecVP8 &&
-                                image_copy.qp_ <= kVp8SteadyStateQpThreshold);
-
+                      << image_copy.qp_ << " at target quality "
+                      << at_target_quality;
   return image_copy;
 }
 
