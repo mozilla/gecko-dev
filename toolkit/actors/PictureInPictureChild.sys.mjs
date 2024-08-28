@@ -1437,7 +1437,6 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       state.togglePolicy != lazy.TOGGLE_POLICIES.HIDDEN &&
       !toggle.hasAttribute("hidden")
     ) {
-      Services.telemetry.scalarAdd("pictureinpicture.saw_toggle", 1);
       const hasUsedPiP = Services.prefs.getBoolPref(TOGGLE_HAS_USED_PREF);
       let args = {
         firstTime: (!hasUsedPiP).toString(),
