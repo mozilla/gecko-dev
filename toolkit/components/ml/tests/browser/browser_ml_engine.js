@@ -171,7 +171,10 @@ add_task(async function test_ml_engine_destruction() {
     "The engine process is still active."
   );
 
-  await engineInstance.terminate();
+  await engineInstance.terminate(
+    /* shutDownIfEmpty */ true,
+    /* replacement */ false
+  );
 
   info(
     "The engineInstance is manually destroyed. The cleanup function should wait for the engine process to be destroyed."
