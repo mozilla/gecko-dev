@@ -128,9 +128,6 @@ add_task(
 
 add_task(async function middleclick_new_tab_button_with_url_in_clipboard() {
   await BrowserTestUtils.overflowTabs(registerCleanupFunction, window);
-  await BrowserTestUtils.waitForCondition(() => {
-    return Array.from(gBrowser.tabs).every(tab => tab._fullyOpen);
-  });
 
   var previousTabsLength = gBrowser.tabs.length;
   info("Previous tabs count is " + previousTabsLength);

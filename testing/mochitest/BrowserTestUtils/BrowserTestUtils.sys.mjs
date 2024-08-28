@@ -1920,6 +1920,18 @@ export var BrowserTestUtils = {
     let index = params.overflowAtStart ? 0 : undefined;
     let { gBrowser } = win;
     let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
+    if (arrowScrollbox.hasAttribute("overflowing")) {
+      return;
+    }
+    let promises = [];
+    promises.push(
+      BrowserTestUtils.waitForEvent(
+        arrowScrollbox,
+        "overflow",
+        false,
+        e => e.target == arrowScrollbox
+      )
+    );
     const originalSmoothScroll = arrowScrollbox.smoothScroll;
     arrowScrollbox.smoothScroll = false;
     registerCleanupFunction(() => {
@@ -1934,11 +1946,14 @@ export var BrowserTestUtils = {
       (width(arrowScrollbox) / tabMinWidth) * params.overflowTabFactor
     );
     while (gBrowser.tabs.length < tabCountForOverflow) {
-      BrowserTestUtils.addTab(gBrowser, "about:blank", {
-        skipAnimation: true,
-        index,
-      });
+      promises.push(
+        BrowserTestUtils.addTab(gBrowser, "about:blank", {
+          skipAnimation: true,
+          index,
+        })
+      );
     }
+    await Promise.all(promises);
   },
 
   /**
