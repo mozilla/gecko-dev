@@ -10,6 +10,7 @@ page_timeout = 60000
 type = "pageload"
 unit = "ms"
 use_live_sites = true
+support_class = "browsertime_pageload.py"
 
 ## Keep this test list in alphabetical order
 

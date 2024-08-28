@@ -821,79 +821,10 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                 if kwargs.get("gather_cpuTime", None):
                     _extract_cpu_vals()
             else:
-                # extracting values from browserScripts and statistics
-                for bt, raptor in conversion:
-                    if measure is not None and bt not in measure:
-                        continue
-                    # chrome and safari we just measure fcp and loadtime; skip fnbpaint and dcf
-                    if (
-                        self.app
-                        and self.app.lower()
-                        in NON_FIREFOX_BROWSERS + NON_FIREFOX_BROWSERS_MOBILE
-                        and bt
-                        in (
-                            "fnbpaint",
-                            "dcf",
-                        )
-                    ):
-                        continue
-
-                    # FCP uses a different path to get the timing, so we need to do
-                    # some checks here
-                    if bt == "fcp" and not _get_raptor_val(
-                        raw_result["browserScripts"][0]["timings"],
-                        raptor,
-                    ):
-                        continue
-
-                    # XXX looping several times in the list, could do better
-                    for cycle in raw_result["browserScripts"]:
-                        if bt not in bt_result["measurements"]:
-                            bt_result["measurements"][bt] = []
-                        val = _get_raptor_val(cycle["timings"], raptor)
-                        if not val:
-                            raise MissingResultsError(
-                                "Browsertime cycle missing {} measurement".format(
-                                    raptor
-                                )
-                            )
-                        bt_result["measurements"][bt].append(val)
-
-                    # let's add the browsertime statistics; we'll use those for overall values
-                    # instead of calculating our own based on the replicates
-                    bt_result["statistics"][bt] = _get_raptor_val(
-                        raw_result["statistics"]["timings"], raptor, retval={}
-                    )
-
-                _extract_cpu_vals()
-
-                if self.perfstats:
-                    for cycle in raw_result["geckoPerfStats"]:
-                        for metric in cycle:
-                            bt_result["measurements"].setdefault(
-                                "perfstat-" + metric, []
-                            ).append(cycle[metric])
-
-                if self.browsertime_visualmetrics:
-                    for cycle in raw_result["visualMetrics"]:
-                        for metric in cycle:
-                            if "progress" in metric.lower():
-                                # Bug 1665750 - Determine if we should display progress
-                                continue
-
-                            if metric not in measure:
-                                continue
-
-                            val = cycle[metric]
-                            if not accept_zero_vismet:
-                                if val == 0:
-                                    self.failed_vismets.append(metric)
-                                    continue
-
-                            bt_result["measurements"].setdefault(metric, []).append(val)
-                            bt_result["statistics"][metric] = raw_result["statistics"][
-                                "visualMetrics"
-                            ][metric]
+                raise Exception(
+                    "Test should be using browsertime_pageload.py as the "
+                    "support_class instead of the results.py/output.py parsing."
+                )
 
             _extract_android_power_vals()
 

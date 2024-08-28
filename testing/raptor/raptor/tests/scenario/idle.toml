@@ -10,6 +10,7 @@ scenario_time = 1200000
 test_url = "about:blank"
 type = "scenario"
 unit = "scenarioComplete"
+support_class = "browsertime_pageload.py"
 
 ["idle"]
 

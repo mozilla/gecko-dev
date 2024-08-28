@@ -1902,6 +1902,12 @@ class BrowsertimeOutput(PerftestOutput):
                 test.get("support_class").summarize_test(test, suite)
 
             elif test["type"] in ["pageload", "scenario", "power"]:
+                LOG.warning(
+                    "This test is using a soon-to-be deprecated method for summarizing "
+                    "output. A subclass of browsertime_pageload.py should be built for "
+                    "this instead. Output handling is already built there, and the results "
+                    "parsing will need to be added for this specific test."
+                )
                 for measurement_name, replicates in test["measurements"].items():
                     new_subtest = _process_measurements(measurement_name, replicates)
                     if measurement_name not in suite["subtests"]:

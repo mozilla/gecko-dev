@@ -15,6 +15,7 @@ type = "pageload"
 unit = "ms"
 use_live_sites = false
 benchmark_page = true
+support_class = "browsertime_pageload.py"
 
 # Keep this list in alphabetical order
 

@@ -15,6 +15,7 @@ unit = "ms"
 use_live_sites = false
 # TODO: Determine tests that should be included on mobile tp6-bench
 benchmark_page = true
+support_class = "browsertime_pageload.py"
 
 ## Keep this test list in alphabetical order
 

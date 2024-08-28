@@ -15,6 +15,7 @@ playback_version = "8.1.1"
 type = "pageload"
 unit = "ms"
 use_live_sites = false
+support_class = "browsertime_pageload.py"
 
 # Keep this list in alphabetical order
 # Do not use `measure.start(URL)` in interactive tests if they need to be recorded,

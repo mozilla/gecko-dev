@@ -13,6 +13,7 @@ playback_version = "5.1.1"
 type = "pageload"
 unit = "ms"
 use_live_sites = false
+support_class = "browsertime_pageload.py"
 
 # raptor-browsertime fission process switch time test
 

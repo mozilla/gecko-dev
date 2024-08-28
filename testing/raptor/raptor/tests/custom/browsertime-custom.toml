@@ -14,6 +14,7 @@ playback_version = "8.1.1"
 type = "pageload"
 unit = "ms"
 use_live_sites = true
+support_class = "browsertime_pageload.py"
 
 # Use this to run a custom browsertime test locally (with a custom url).
 # Essentially, this is "vanilla" browsertime in a raptor wrapper.

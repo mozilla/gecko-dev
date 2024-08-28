@@ -76,4 +76,5 @@ browsertime_args = "--browsertime.iterations=128 --browsertime.chunk_size=104857
 test_script = "indexeddb_write.js"
 
 ["getkeyrng"]
+support_class = "browsertime_pageload.py"
 test_script = "indexeddb_getkeyrange.js"
