@@ -10,7 +10,9 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.spyk
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -29,13 +31,16 @@ import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.telemetry.glean.testing.GleanTestRule
+import org.junit.After
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.shopping.ShoppingExperienceFeature
 import org.mozilla.fenix.utils.Settings
@@ -47,6 +52,16 @@ class BrowserToolbarCFRPresenterTest {
 
     @get:Rule
     val gleanTestRule = GleanTestRule(testContext)
+
+    @Before
+    fun setup() {
+        mockkStatic("org.mozilla.fenix.ext.ContextKt")
+    }
+
+    @After
+    fun teardown() {
+        unmockkStatic("org.mozilla.fenix.ext.ContextKt")
+    }
 
     @Test
     fun `GIVEN the TCP CFR should be shown for a custom tab WHEN the custom tab is fully loaded THEN the TCP CFR is shown`() {
@@ -466,7 +481,7 @@ class BrowserToolbarCFRPresenterTest {
 
         val presenter = createPresenterThatShowsCFRs(
             context = mockk {
-                every { resources.getBoolean(R.bool.tablet) } returns true
+                every { isTablet() } returns true
             },
             browserStore = browserStore,
             settings = mockk {
@@ -495,7 +510,9 @@ class BrowserToolbarCFRPresenterTest {
      * Creates and return a [spyk] of a [BrowserToolbarCFRPresenter] that can handle actually showing CFRs.
      */
     private fun createPresenterThatShowsCFRs(
-        context: Context = mockk(),
+        context: Context = mockk {
+            every { isTablet() } returns false
+        },
         anchor: View = mockk(),
         browserStore: BrowserStore = mockk(),
         settings: Settings = mockk {
@@ -524,7 +541,7 @@ class BrowserToolbarCFRPresenterTest {
             every { getString(R.string.tcp_cfr_message) } returns "Test"
             every { getColor(any()) } returns 0
             every { getString(R.string.pref_key_should_show_review_quality_cfr) } returns "test"
-            every { resources.getBoolean(R.bool.tablet) } returns false
+            every { isTablet() } returns false
         },
         anchor: View = mockk(relaxed = true),
         browserStore: BrowserStore = mockk(),
