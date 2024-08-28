@@ -11,11 +11,6 @@ AC_INIT(js/src/jsapi.h)
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
 
-if test -z "$JS_STANDALONE"; then
-  autoconfmk=autoconf-js.mk
-fi
-AC_SUBST(autoconfmk)
-
 dnl ========================================================
 dnl =
 dnl = Maintainer debug option (no --enable equivalent)

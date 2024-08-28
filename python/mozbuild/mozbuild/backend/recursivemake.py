@@ -1768,8 +1768,6 @@ class RecursiveMakeBackend(MakeBackend):
         with self._get_preprocessor(obj) as pp:
             if extra:
                 pp.context.update(extra)
-            if not pp.context.get("autoconfmk", ""):
-                pp.context["autoconfmk"] = "autoconf.mk"
             pp.handleLine(
                 "# THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n"
             )
@@ -1779,7 +1777,7 @@ class RecursiveMakeBackend(MakeBackend):
             pp.handleLine("srcdir := @srcdir@\n")
             pp.handleLine("srcdir_rel := @srcdir_rel@\n")
             pp.handleLine("relativesrcdir := @relativesrcdir@\n")
-            pp.handleLine("include $(DEPTH)/config/@autoconfmk@\n")
+            pp.handleLine("include $(DEPTH)/config/autoconf.mk\n")
             if not stub:
                 pp.do_include(obj.input_path)
             # Empty line to avoid failures when last line in Makefile.in ends
