@@ -3426,9 +3426,7 @@ bool gfxFont::ShapeText(DrawTarget* aDrawTarget, const char16_t* aText,
       gfxGraphiteShaper* shaper = mGraphiteShaper;
       if (!shaper) {
         shaper = new gfxGraphiteShaper(this);
-        if (mGraphiteShaper.compareExchange(nullptr, shaper)) {
-          Telemetry::ScalarAdd(Telemetry::ScalarID::BROWSER_USAGE_GRAPHITE, 1);
-        } else {
+        if (!mGraphiteShaper.compareExchange(nullptr, shaper)) {
           delete shaper;
           shaper = mGraphiteShaper;
         }

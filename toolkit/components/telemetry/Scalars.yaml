@@ -1227,23 +1227,6 @@ browser.startup:
       - 'main'
 
 # The following section contains the browser usage scalars.
-browser.usage:
-  graphite:
-    bug_numbers:
-      - 1331915
-    description: >
-      The number of times a graphite2 font has been loaded.
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - tom@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'all'
-
 browser.ui:
   toolbar_widgets:
     bug_numbers:
