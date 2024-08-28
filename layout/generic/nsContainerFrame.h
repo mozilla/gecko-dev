@@ -210,9 +210,9 @@ class nsContainerFrame : public nsSplittableFrame {
   template <typename ISizeData, typename F>
   void DoInlineIntrinsicISize(ISizeData* aData, F& aHandleChildren);
 
-  void DoInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
+  void DoInlineMinISize(gfxContext* aRenderingContext,
                         InlineMinISizeData* aData);
-  void DoInlinePrefISize(const mozilla::IntrinsicSizeInput& aInput,
+  void DoInlinePrefISize(gfxContext* aRenderingContext,
                          InlinePrefISizeData* aData);
 
   /**

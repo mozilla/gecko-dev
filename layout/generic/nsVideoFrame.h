@@ -59,7 +59,7 @@ class nsVideoFrame : public nsContainerFrame,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
       mozilla::ComputeSizeFlags aFlags) final;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) final;
 
   void Destroy(DestroyContext&) final;

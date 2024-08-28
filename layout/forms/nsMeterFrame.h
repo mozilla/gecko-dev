@@ -42,7 +42,7 @@ class nsMeterFrame final : public nsContainerFrame,
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   /**

@@ -105,7 +105,7 @@ class nsTableCellFrame : public nsContainerFrame,
                               nsDisplayListBuilder* aBuilder,
                               const nsDisplayListSet& aLists);
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   IntrinsicSizeOffsetData IntrinsicISizeOffsets(

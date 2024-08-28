@@ -596,16 +596,10 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
   return do_QueryFrame(Inner());
 }
 
-nscoord nsTableCellFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsTableCellFrame::IntrinsicISize(gfxContext* aContext,
                                          IntrinsicISizeType aType) {
-  // Note: a table cell has the same writing mode as its table ancestor, which
-  // may differ from its inner frame that derives its writing mode from the
-  // style of the <td> element. See nsTableCellFrame::Init().
-  const IntrinsicSizeInput innerInput(aInput, Inner()->GetWritingMode(),
-                                      GetWritingMode());
   return nsLayoutUtils::IntrinsicForContainer(
-      innerInput.mContext, Inner(), aType, innerInput.mPercentageBasis,
-      nsLayoutUtils::IGNORE_PADDING);
+      aContext, Inner(), aType, Nothing(), nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData

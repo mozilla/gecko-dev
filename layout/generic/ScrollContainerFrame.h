@@ -114,7 +114,7 @@ class ScrollContainerFrame : public nsContainerFrame,
                       nsIFrame::Sides aSkipSides,
                       nscoord aRadii[8]) const final;
 
-  nscoord IntrinsicISize(const IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          IntrinsicISizeType aType) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,

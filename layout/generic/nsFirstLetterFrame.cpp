@@ -109,23 +109,23 @@ nsresult nsFirstLetterFrame::GetChildFrameContainingOffset(
 // Needed for non-floating first-letter frames and for the continuations
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
-void nsFirstLetterFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
+void nsFirstLetterFrame::AddInlineMinISize(gfxContext* aRenderingContext,
                                            InlineMinISizeData* aData) {
-  DoInlineMinISize(aInput, aData);
+  DoInlineMinISize(aRenderingContext, aData);
 }
 
 // Needed for non-floating first-letter frames and for the continuations
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
-void nsFirstLetterFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
+void nsFirstLetterFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
                                             InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aInput, aData);
+  DoInlinePrefISize(aRenderingContext, aData);
 }
 
 // Needed for floating first-letter frames.
-nscoord nsFirstLetterFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsFirstLetterFrame::IntrinsicISize(gfxContext* aContext,
                                            IntrinsicISizeType aType) {
-  return IntrinsicISizeFromInline(aInput, aType);
+  return IntrinsicISizeFromInline(aContext, aType);
 }
 
 /* virtual */

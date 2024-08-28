@@ -149,22 +149,22 @@ void ColumnSetWrapperFrame::MarkIntrinsicISizesDirty() {
   }
 }
 
-nscoord ColumnSetWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord ColumnSetWrapperFrame::IntrinsicISize(gfxContext* aContext,
                                               IntrinsicISizeType aType) {
   if (aType == IntrinsicISizeType::MinISize) {
     if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-      mCachedMinISize = MinISize(aInput);
+      mCachedMinISize = MinISize(aContext);
     }
     return mCachedMinISize;
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = PrefISize(aInput);
+    mCachedPrefISize = PrefISize(aContext);
   }
   return mCachedPrefISize;
 }
 
-nscoord ColumnSetWrapperFrame::MinISize(const IntrinsicSizeInput& aInput) {
+nscoord ColumnSetWrapperFrame::MinISize(gfxContext* aContext) {
   nscoord iSize = 0;
 
   if (Maybe<nscoord> containISize =
@@ -199,16 +199,14 @@ nscoord ColumnSetWrapperFrame::MinISize(const IntrinsicSizeInput& aInput) {
     }
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput childInput(aInput, f->GetWritingMode(),
-                                          GetWritingMode());
-      iSize = std::max(iSize, f->GetMinISize(childInput));
+      iSize = std::max(iSize, f->GetMinISize(aContext));
     }
   }
 
   return iSize;
 }
 
-nscoord ColumnSetWrapperFrame::PrefISize(const IntrinsicSizeInput& aInput) {
+nscoord ColumnSetWrapperFrame::PrefISize(gfxContext* aContext) {
   nscoord iSize = 0;
 
   if (Maybe<nscoord> containISize =
@@ -237,9 +235,7 @@ nscoord ColumnSetWrapperFrame::PrefISize(const IntrinsicSizeInput& aInput) {
     iSize = ColumnUtils::IntrinsicISize(numColumns, colGap, colISize);
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput childInput(aInput, f->GetWritingMode(),
-                                          GetWritingMode());
-      iSize = std::max(iSize, f->GetPrefISize(childInput));
+      iSize = std::max(iSize, f->GetPrefISize(aContext));
     }
   }
 

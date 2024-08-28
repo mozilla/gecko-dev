@@ -69,14 +69,11 @@ struct CellISizeInfo {
   float prefPercent;
 };
 
-// A helper for ComputeColumnIntrinsicISizes(), used for both column and cell
-// intrinsic inline size calculations. The parts needed only for cells are
-// skipped when aIsCell is false.
+// Used for both column and cell calculations.  The parts needed only
+// for cells are skipped when aIsCell is false.
 static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
                                   nsIFrame* aFrame, WritingMode aWM,
                                   bool aIsCell) {
-  MOZ_ASSERT(aFrame->GetWritingMode() == aWM,
-             "The caller is expected to pass aFrame's writing mode!");
   nscoord minCoord, prefCoord;
   const nsStylePosition* stylePos = aFrame->StylePosition();
   bool isQuirks =
@@ -87,30 +84,8 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     // wrapping inside of it should not apply font size inflation.
     AutoMaybeDisableFontInflation an(aFrame);
 
-    // Resolve the cell's block size 'cellBSize' as a percentage basis, in case
-    // it impacts its children's inline-size contributions (e.g. via percentage
-    // block size + aspect-ratio). However, this behavior might not be
-    // web-compatible (Bug 1461852).
-    //
-    // Note that if the cell *itself* has a percentage-based block size, we
-    // treat it as unresolvable here by using an unconstrained cbBSize. It will
-    // be resolved during the "special bsize reflow" pass if the table has a
-    // specified block size. See nsTableFrame::Reflow() and
-    // ReflowInput::Flags::mSpecialBSizeReflow.
-    const nscoord cbBSize = NS_UNCONSTRAINEDSIZE;
-    const nscoord contentEdgeToBoxSizingBSize =
-        stylePos->mBoxSizing == StyleBoxSizing::Border
-            ? aFrame->IntrinsicBSizeOffsets().BorderPadding()
-            : 0;
-    const nscoord cellBSize = nsIFrame::ComputeBSizeValueAsPercentageBasis(
-        stylePos->BSize(aWM), stylePos->MinBSize(aWM), stylePos->MaxBSize(aWM),
-        cbBSize, contentEdgeToBoxSizingBSize);
-
-    const IntrinsicSizeInput input(
-        aRenderingContext,
-        Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, cellBSize)));
-    minCoord = aFrame->GetMinISize(input);
-    prefCoord = aFrame->GetPrefISize(input);
+    minCoord = aFrame->GetMinISize(aRenderingContext);
+    prefCoord = aFrame->GetPrefISize(aRenderingContext);
     // Until almost the end of this function, minCoord and prefCoord
     // represent the box-sizing based isize values (which mean they
     // should include inline padding and border width when

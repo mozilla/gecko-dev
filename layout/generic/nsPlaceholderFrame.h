@@ -92,9 +92,10 @@ class nsPlaceholderFrame final : public nsIFrame {
     mOutOfFlowFrame = aFrame;
   }
 
-  void AddInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
+  // nsIFrame overrides
+  void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(const mozilla::IntrinsicSizeInput& aInput,
+  void AddInlinePrefISize(gfxContext* aRenderingContext,
                           InlinePrefISizeData* aData) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
@@ -180,11 +181,6 @@ class nsPlaceholderFrame final : public nsIFrame {
   }
 
  protected:
-  // A helper to implement AddInlineMinISize() and AddInlinePrefISize().
-  void AddFloatToIntrinsicISizeData(const mozilla::IntrinsicSizeInput& aInput,
-                                    mozilla::IntrinsicISizeType aType,
-                                    InlineIntrinsicISizeData* aData) const;
-
   nsIFrame* mOutOfFlowFrame;
 };
 

@@ -165,7 +165,7 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   mozilla::dom::XULPopupElement& PopupElement() const;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,

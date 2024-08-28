@@ -2622,11 +2622,10 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
     const nscoord minISize = wm.IsVertical() ? constraints.mMinSize.height
                                              : constraints.mMinSize.width;
     const nscoord maxISize = wm.IsVertical() ? aMaxHeight : aMaxWidth;
-    const IntrinsicSizeInput input(rcx.get(), Nothing());
     if (aPrefWidth) {
-      prefISize = std::max(root->GetMinISize(input), aPrefWidth);
+      prefISize = std::max(root->GetMinISize(rcx.get()), aPrefWidth);
     } else {
-      prefISize = root->GetPrefISize(input);
+      prefISize = root->GetPrefISize(rcx.get());
     }
     prefISize = nsPresContext::RoundUpAppUnitsToCSSPixel(
         std::max(minISize, std::min(prefISize, maxISize)));

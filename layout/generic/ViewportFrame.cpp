@@ -269,11 +269,11 @@ void ViewportFrame::RemoveFrame(DestroyContext& aContext, ChildListID aListID,
 }
 #endif
 
-nscoord ViewportFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord ViewportFrame::IntrinsicISize(gfxContext* aContext,
                                       IntrinsicISizeType aType) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->IntrinsicISize(aInput, aType);
+             : mFrames.FirstChild()->IntrinsicISize(aContext, aType);
 }
 
 nsPoint ViewportFrame::AdjustReflowInputForScrollbars(

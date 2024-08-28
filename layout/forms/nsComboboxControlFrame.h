@@ -46,7 +46,7 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
   mozilla::a11y::AccType AccessibleType() final;
 #endif
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) final;
 
   // We're a leaf, so we need to report ourselves as the content insertion

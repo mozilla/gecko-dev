@@ -77,7 +77,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
             nsIFrame* aPrevInFlow) override;
   void BuildDisplayList(nsDisplayListBuilder*, const nsDisplayListSet&) final;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) final;
 
   mozilla::IntrinsicSize GetIntrinsicSize() final { return mIntrinsicSize; }
@@ -174,7 +174,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsImageMap* GetImageMap();
   nsImageMap* GetExistingImageMap() const { return mImageMap; }
 
-  void AddInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
+  void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) final;
 
   void DisconnectMap();

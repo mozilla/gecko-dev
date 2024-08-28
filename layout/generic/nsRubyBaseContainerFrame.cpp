@@ -126,7 +126,7 @@ static void GetIsLineBreakAllowed(nsIFrame* aFrame, bool aIsLineBreakable,
  * happens across the boundary of those frames.
  */
 static nscoord CalculateColumnPrefISize(
-    const IntrinsicSizeInput& aInput, const RubyColumnEnumerator& aEnumerator,
+    gfxContext* aRenderingContext, const RubyColumnEnumerator& aEnumerator,
     nsIFrame::InlineIntrinsicISizeData* aBaseISizeData) {
   nscoord max = 0;
   uint32_t levelCount = aEnumerator.GetLevelCount();
@@ -143,7 +143,7 @@ static nscoord CalculateColumnPrefISize(
         // ruby text container frame.
         data.SetLineContainer(frame->GetParent());
       }
-      frame->AddInlinePrefISize(aInput, &data);
+      frame->AddInlinePrefISize(aRenderingContext, &data);
       MOZ_ASSERT(data.mPrevLines == 0, "Shouldn't have prev lines");
       max = std::max(max, data.mCurrentLine);
       if (i == 0) {
@@ -159,8 +159,8 @@ static nscoord CalculateColumnPrefISize(
 //       computing min isize of ruby frame, which may cause problem.
 //       See bug 1134945.
 /* virtual */
-void nsRubyBaseContainerFrame::AddInlineMinISize(
-    const IntrinsicSizeInput& aInput, InlineMinISizeData* aData) {
+void nsRubyBaseContainerFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+                                                 InlineMinISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
 
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
@@ -171,7 +171,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
       data.SetLineContainer(aData->LineContainer());
       data.mSkipWhitespace = aData->mSkipWhitespace;
       data.mTrailingWhitespace = aData->mTrailingWhitespace;
-      AddInlinePrefISize(aInput, &data);
+      AddInlinePrefISize(aRenderingContext, &data);
       aData->mCurrentLine += data.mCurrentLine;
       if (data.mCurrentLine > 0) {
         aData->mAtStartOfLine = false;
@@ -194,14 +194,15 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
         nsIFrame* baseFrame = enumerator.GetFrameAtLevel(0);
         if (baseFrame) {
           gfxBreakPriority breakPriority = LineBreakBefore(
-              baseFrame, aInput.mContext->GetDrawTarget(), nullptr, nullptr);
+              baseFrame, aRenderingContext->GetDrawTarget(), nullptr, nullptr);
           if (breakPriority != gfxBreakPriority::eNoBreak) {
             aData->OptionallyBreak();
           }
         }
       }
       firstFrame = false;
-      nscoord isize = CalculateColumnPrefISize(aInput, enumerator, aData);
+      nscoord isize =
+          CalculateColumnPrefISize(aRenderingContext, enumerator, aData);
       aData->mCurrentLine += isize;
       if (isize > 0) {
         aData->mAtStartOfLine = false;
@@ -211,24 +212,23 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
 }
 
 /* virtual */
-void nsRubyBaseContainerFrame::AddInlinePrefISize(
-    const IntrinsicSizeInput& aInput, InlinePrefISizeData* aData) {
+void nsRubyBaseContainerFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+                                                  InlinePrefISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
-  const IntrinsicSizeInput input(aInput.mContext, Nothing());
 
   nscoord sum = 0;
   for (nsIFrame* frame = this; frame; frame = frame->GetNextInFlow()) {
     RubyColumnEnumerator enumerator(
         static_cast<nsRubyBaseContainerFrame*>(frame), textContainers);
     for (; !enumerator.AtEnd(); enumerator.Next()) {
-      sum += CalculateColumnPrefISize(input, enumerator, aData);
+      sum += CalculateColumnPrefISize(aRenderingContext, enumerator, aData);
     }
   }
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
       nsIFrame* frame = textContainers[i]->PrincipalChildList().FirstChild();
       InlinePrefISizeData data;
-      frame->AddInlinePrefISize(input, &data);
+      frame->AddInlinePrefISize(aRenderingContext, &data);
       MOZ_ASSERT(data.mPrevLines == 0, "Shouldn't have prev lines");
       sum = std::max(sum, data.mCurrentLine);
     }

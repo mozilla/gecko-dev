@@ -34,7 +34,7 @@ class MiddleCroppingBlockFrame : public nsBlockFrame,
   void Reflow(nsPresContext*, ReflowOutput&, const ReflowInput&,
               nsReflowStatus&) override;
 
-  nscoord IntrinsicISize(const IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          IntrinsicISizeType aType) override;
 
   /**

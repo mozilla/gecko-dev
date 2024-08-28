@@ -122,7 +122,7 @@ NS_QUERYFRAME_TAIL_INHERITING(SVGDisplayContainerFrame)
 //----------------------------------------------------------------------
 // nsIFrame methods
 
-nscoord SVGOuterSVGFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord SVGOuterSVGFrame::IntrinsicISize(gfxContext* aContext,
                                          IntrinsicISizeType aType) {
   if (aType == IntrinsicISizeType::MinISize) {
     return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);

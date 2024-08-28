@@ -56,8 +56,8 @@ void MiddleCroppingBlockFrame::UpdateDisplayedValueToUncroppedValue(
   UpdateDisplayedValue(value, /* aIsCropped = */ false, aNotify);
 }
 
-nscoord MiddleCroppingBlockFrame::IntrinsicISize(
-    const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
+nscoord MiddleCroppingBlockFrame::IntrinsicISize(gfxContext* aContext,
+                                                 IntrinsicISizeType aType) {
   nsAutoString prevValue;
   bool restoreOldValue = false;
 
@@ -71,7 +71,7 @@ nscoord MiddleCroppingBlockFrame::IntrinsicISize(
   // Our min inline size is the same as our pref inline size, so we always
   // delegate to nsBlockFrame's pref inline size.
   nscoord result =
-      nsBlockFrame::IntrinsicISize(aInput, IntrinsicISizeType::PrefISize);
+      nsBlockFrame::IntrinsicISize(aContext, IntrinsicISizeType::PrefISize);
 
   if (restoreOldValue) {
     UpdateDisplayedValue(prevValue, /* aIsCropped = */ true, false);

@@ -43,7 +43,7 @@ void nsCheckboxRadioFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 }
 
-nscoord nsCheckboxRadioFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsCheckboxRadioFrame::IntrinsicISize(gfxContext* aContext,
                                              IntrinsicISizeType aType) {
   return StyleDisplay()->HasAppearance() ? DefaultSize() : 0;
 }

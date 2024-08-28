@@ -46,7 +46,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 #endif
 
 /* virtual */
-void nsPlaceholderFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
+void nsPlaceholderFrame::AddInlineMinISize(gfxContext* aRenderingContext,
                                            InlineMinISizeData* aData) {
   // Override AddInlineMinISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
@@ -54,12 +54,16 @@ void nsPlaceholderFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
   // whitespace, and we don't want to set aData->mSkipWhitespace to
   // false.
 
-  // ...but push floats onto aData's list.
-  AddFloatToIntrinsicISizeData(aInput, IntrinsicISizeType::MinISize, aData);
+  // ...but push floats onto the list
+  if (mOutOfFlowFrame->IsFloating()) {
+    const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
+        aRenderingContext, mOutOfFlowFrame, IntrinsicISizeType::MinISize);
+    aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
+  }
 }
 
 /* virtual */
-void nsPlaceholderFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
+void nsPlaceholderFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
                                             InlinePrefISizeData* aData) {
   // Override AddInlinePrefISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
@@ -67,19 +71,10 @@ void nsPlaceholderFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
   // whitespace, and we don't want to set aData->mSkipWhitespace to
   // false.
 
-  // ...but push floats onto aData's list.
-  AddFloatToIntrinsicISizeData(aInput, IntrinsicISizeType::PrefISize, aData);
-}
-
-void nsPlaceholderFrame::AddFloatToIntrinsicISizeData(
-    const IntrinsicSizeInput& aInput, IntrinsicISizeType aType,
-    InlineIntrinsicISizeData* aData) const {
+  // ...but push floats onto the list
   if (mOutOfFlowFrame->IsFloating()) {
-    const IntrinsicSizeInput floatInput(
-        aInput, mOutOfFlowFrame->GetWritingMode(), GetWritingMode());
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        floatInput.mContext, mOutOfFlowFrame, aType,
-        floatInput.mPercentageBasis);
+        aRenderingContext, mOutOfFlowFrame, IntrinsicISizeType::PrefISize);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }

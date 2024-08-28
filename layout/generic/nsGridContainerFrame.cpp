@@ -9469,8 +9469,8 @@ void nsGridContainerFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   UpdateSubgridFrameState();
 }
 
-nscoord nsGridContainerFrame::ComputeIntrinsicISize(
-    const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
+nscoord nsGridContainerFrame::ComputeIntrinsicISize(gfxContext* aContext,
+                                                    IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -9478,7 +9478,7 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   // Calculate the sum of column sizes under intrinsic sizing.
   // https://drafts.csswg.org/css-grid-2/#intrinsic-sizes
   NormalizeChildLists();
-  GridReflowInput state(this, *aInput.mContext);
+  GridReflowInput state(this, *aContext);
   InitImplicitNamedAreas(state.mGridStyle);  // XXX optimize
 
   // The min/sz/max sizes are the input to the "repeat-to-fill" algorithm:
@@ -9539,18 +9539,18 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   return last.mPosition + last.mBase;
 }
 
-nscoord nsGridContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aContext,
                                              IntrinsicISizeType aType) {
   auto* firstCont = static_cast<nsGridContainerFrame*>(FirstContinuation());
   if (firstCont != this) {
-    return firstCont->IntrinsicISize(aInput, aType);
+    return firstCont->IntrinsicISize(aContext, aType);
   }
 
   nscoord& cachedISize = aType == IntrinsicISizeType::MinISize
                              ? mCachedMinISize
                              : mCachedPrefISize;
   if (cachedISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    cachedISize = ComputeIntrinsicISize(aInput, aType);
+    cachedISize = ComputeIntrinsicISize(aContext, aType);
   }
   return cachedISize;
 }

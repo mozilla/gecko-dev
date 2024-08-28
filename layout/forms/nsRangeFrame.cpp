@@ -624,7 +624,7 @@ nscoord nsRangeFrame::AutoCrossSize() {
                   NSToCoordRound(OneEmInAppUnits() * CROSS_AXIS_EM_SIZE));
 }
 
-nscoord nsRangeFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsRangeFrame::IntrinsicISize(gfxContext* aContext,
                                      IntrinsicISizeType aType) {
   if (aType == IntrinsicISizeType::MinISize) {
     const auto* pos = StylePosition();

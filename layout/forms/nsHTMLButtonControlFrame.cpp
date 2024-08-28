@@ -234,13 +234,13 @@ void nsHTMLButtonControlFrame::BuildDisplayList(
   DisplaySelectionOverlay(aBuilder, aLists.Content());
 }
 
-nscoord nsHTMLButtonControlFrame::IntrinsicISize(
-    const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
+nscoord nsHTMLButtonControlFrame::IntrinsicISize(gfxContext* aContext,
+                                                 IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
-  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext,
-                                              mFrames.FirstChild(), aType);
+  return nsLayoutUtils::IntrinsicForContainer(aContext, mFrames.FirstChild(),
+                                              aType);
 }
 
 void nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,

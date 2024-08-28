@@ -1467,8 +1467,10 @@ nscoord nsImageFrame::GetContinuationOffset() const {
   return offset;
 }
 
-nscoord nsImageFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsImageFrame::IntrinsicISize(gfxContext* aContext,
                                      IntrinsicISizeType aType) {
+  // XXX The caller doesn't account for constraints of the block-size,
+  // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();
   return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
 }
@@ -2845,11 +2847,10 @@ static bool IsInAutoWidthTableCellForQuirk(nsIFrame* aFrame) {
   return false;
 }
 
-void nsImageFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
+void nsImageFrame::AddInlineMinISize(gfxContext* aRenderingContext,
                                      InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
-      aInput.mContext, this, IntrinsicISizeType::MinISize,
-      aInput.mPercentageBasis);
+      aRenderingContext, this, IntrinsicISizeType::MinISize);
   bool canBreak = !IsInAutoWidthTableCellForQuirk(this);
   aData->DefaultAddInlineMinISize(this, isize, canBreak);
 }

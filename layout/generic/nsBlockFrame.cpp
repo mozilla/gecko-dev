@@ -807,30 +807,30 @@ bool nsBlockFrame::TextIndentAppliesTo(const LineIterator& aLine) const {
   return isFirstLineOrAfterHardBreak != textIndent.hanging;
 }
 
-nscoord nsBlockFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsBlockFrame::IntrinsicISize(gfxContext* aContext,
                                      IntrinsicISizeType aType) {
   nsIFrame* firstCont = FirstContinuation();
   if (firstCont != this) {
-    return firstCont->IntrinsicISize(aInput, aType);
+    return firstCont->IntrinsicISize(aContext, aType);
   }
 
   CheckIntrinsicCacheAgainstShrinkWrapState();
 
   if (aType == IntrinsicISizeType::MinISize) {
     if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-      mCachedMinISize = MinISize(aInput);
+      mCachedMinISize = MinISize(aContext);
     }
     return mCachedMinISize;
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = PrefISize(aInput);
+    mCachedPrefISize = PrefISize(aContext);
   }
   return mCachedPrefISize;
 }
 
 /* virtual */
-nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
+nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -871,12 +871,8 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
-        nsIFrame* kid = line->mFirstChild;
-        const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
-                                          GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            kidInput.mContext, kid, IntrinsicISizeType::MinISize,
-            kidInput.mPercentageBasis);
+            aContext, line->mFirstChild, IntrinsicISizeType::MinISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -887,9 +883,7 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
-                                            GetWritingMode());
-          kid->AddInlineMinISize(kidInput, &data);
+          kid->AddInlineMinISize(aContext, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
           }
@@ -909,7 +903,7 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
 }
 
 /* virtual */
-nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
+nscoord nsBlockFrame::PrefISize(gfxContext* aContext) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -947,19 +941,15 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
       AutoNoisyIndenter lineindent(gNoisyIntrinsic);
 #endif
       if (line->IsBlock()) {
-        nsIFrame* kid = line->mFirstChild;
         StyleClear clearType;
-        if (!data.mLineIsEmpty || BlockCanIntersectFloats(kid)) {
+        if (!data.mLineIsEmpty || BlockCanIntersectFloats(line->mFirstChild)) {
           clearType = StyleClear::Both;
         } else {
-          clearType = kid->StyleDisplay()->mClear;
+          clearType = line->mFirstChild->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
-        const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
-                                          GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            kidInput.mContext, kid, IntrinsicISizeType::PrefISize,
-            kidInput.mPercentageBasis);
+            aContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -975,9 +965,7 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
-                                            GetWritingMode());
-          kid->AddInlinePrefISize(kidInput, &data);
+          kid->AddInlinePrefISize(aContext, &data);
         }
       }
 #ifdef DEBUG
@@ -1034,12 +1022,6 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
         data.mLine = &line;
         data.SetLineContainer(curFrame);
         nsIFrame* kid = line->mFirstChild;
-        // Per comment in nsIFrame::GetPrefWidthTightBounds(), the function is
-        // only implemented for nsBlockFrame and nsTextFrame and is used to
-        // determine the intrinsic inline sizes of MathML token elements. These
-        // elements shouldn't have percentage block sizes that require a
-        // percentage basis for resolution.
-        const IntrinsicSizeInput kidInput(aRenderingContext, Nothing());
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
           rv = kid->GetPrefWidthTightBounds(aRenderingContext, &childX,
@@ -1047,7 +1029,7 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
           NS_ENSURE_SUCCESS(rv, rv);
           *aX = std::min(*aX, data.mCurrentLine + childX);
           *aXMost = std::max(*aXMost, data.mCurrentLine + childXMost);
-          kid->AddInlinePrefISize(kidInput, &data);
+          kid->AddInlinePrefISize(aRenderingContext, &data);
         }
       }
     }

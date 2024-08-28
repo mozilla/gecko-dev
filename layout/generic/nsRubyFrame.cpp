@@ -51,30 +51,24 @@ nsresult nsRubyFrame::GetFrameName(nsAString& aResult) const {
 #endif
 
 /* virtual */
-void nsRubyFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
+void nsRubyFrame::AddInlineMinISize(gfxContext* aRenderingContext,
                                     InlineMinISizeData* aData) {
-  auto handleChildren = [&](auto frame, auto data) {
-    // Ruby frames shouldn't have percentage block sizes that require a
-    // percentage basis for resolution.
-    const IntrinsicSizeInput input(aInput.mContext, Nothing());
+  auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
-      e.GetBaseContainer()->AddInlineMinISize(input, data);
+      e.GetBaseContainer()->AddInlineMinISize(aRenderingContext, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
 }
 
 /* virtual */
-void nsRubyFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
+void nsRubyFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
                                      InlinePrefISizeData* aData) {
-  auto handleChildren = [&](auto frame, auto data) {
-    // Ruby frames shouldn't have percentage block sizes that require a
-    // percentage basis for resolution.
-    const IntrinsicSizeInput input(aInput.mContext, Nothing());
+  auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
-      e.GetBaseContainer()->AddInlinePrefISize(input, data);
+      e.GetBaseContainer()->AddInlinePrefISize(aRenderingContext, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);

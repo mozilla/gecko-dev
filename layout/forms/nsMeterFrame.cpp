@@ -178,7 +178,7 @@ nsresult nsMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsMeterFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsMeterFrame::IntrinsicISize(gfxContext* aContext,
                                      IntrinsicISizeType aType) {
   nscoord iSize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {

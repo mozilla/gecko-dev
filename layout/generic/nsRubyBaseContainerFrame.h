@@ -29,9 +29,9 @@ class nsRubyBaseContainerFrame final : public nsContainerFrame {
   NS_DECL_QUERYFRAME
 
   bool CanContinueTextRun() const override;
-  void AddInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
+  void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(const mozilla::IntrinsicSizeInput& aInput,
+  void AddInlinePrefISize(gfxContext* aRenderingContext,
                           InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,

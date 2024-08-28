@@ -601,11 +601,11 @@ void nsCanvasFrame::PaintFocus(DrawTarget* aDrawTarget, nsPoint aPt) {
                              text->mColor.ToColor());
 }
 
-nscoord nsCanvasFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsCanvasFrame::IntrinsicISize(gfxContext* aContext,
                                       IntrinsicISizeType aType) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->IntrinsicISize(aInput, aType);
+             : mFrames.FirstChild()->IntrinsicISize(aContext, aType);
 }
 
 void nsCanvasFrame::Reflow(nsPresContext* aPresContext,

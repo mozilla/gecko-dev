@@ -49,7 +49,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
 
   void Destroy(DestroyContext&) override;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   mozilla::IntrinsicSize GetIntrinsicSize() override;

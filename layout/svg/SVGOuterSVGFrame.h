@@ -45,7 +45,7 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(SVGOuterSVGFrame)
 
-  nscoord IntrinsicISize(const IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          IntrinsicISizeType aType) override;
 
   IntrinsicSize GetIntrinsicSize() override;

@@ -72,7 +72,7 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   void RemoveFrame(DestroyContext&, ChildListID aListID,
                    nsIFrame* aOldFrame) override;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   /**

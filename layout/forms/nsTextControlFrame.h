@@ -60,7 +60,7 @@ class nsTextControlFrame : public nsContainerFrame,
 
   mozilla::ScrollContainerFrame* GetScrollTargetFrame() const override;
 
-  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
+  nscoord IntrinsicISize(gfxContext* aContext,
                          mozilla::IntrinsicISizeType aType) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,

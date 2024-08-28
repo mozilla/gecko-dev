@@ -5105,8 +5105,7 @@ void SVGTextFrame::DoReflow() {
     kid->MarkIntrinsicISizesDirty();
   }
 
-  const IntrinsicSizeInput input(renderingContext.get(), Nothing());
-  nscoord inlineSize = kid->GetPrefISize(input);
+  nscoord inlineSize = kid->GetPrefISize(renderingContext.get());
   WritingMode wm = kid->GetWritingMode();
   ReflowInput reflowInput(presContext, kid, renderingContext.get(),
                           LogicalSize(wm, inlineSize, NS_UNCONSTRAINEDSIZE));

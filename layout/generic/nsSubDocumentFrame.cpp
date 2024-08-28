@@ -555,7 +555,7 @@ nsresult nsSubDocumentFrame::GetFrameName(nsAString& aResult) const {
 }
 #endif
 
-nscoord nsSubDocumentFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
+nscoord nsSubDocumentFrame::IntrinsicISize(gfxContext* aContext,
                                            IntrinsicISizeType aType) {
   // Note: when computing max-content inline size (i.e. when aType is
   // IntrinsicISizeType::PrefISize), if the subdocument is an SVG document, then
