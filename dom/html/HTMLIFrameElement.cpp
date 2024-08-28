@@ -349,7 +349,16 @@ void HTMLIFrameElement::SetLazyLoading() {
 }
 
 void HTMLIFrameElement::StopLazyLoading() {
-  CancelLazyLoading(false /* aClearLazyLoadState */);
+  if (!mLazyLoading) {
+    return;
+  }
+
+  mLazyLoading = false;
+
+  Document* doc = OwnerDoc();
+  if (auto* obs = doc->GetLazyLoadObserver()) {
+    obs->Unobserve(*this);
+  }
 
   LoadSrc();
 
@@ -372,20 +381,4 @@ void HTMLIFrameElement::NodeInfoChanged(Document* aOldDoc) {
   }
 }
 
-void HTMLIFrameElement::CancelLazyLoading(bool aClearLazyLoadState) {
-  if (!mLazyLoading) {
-    return;
-  }
-
-  Document* doc = OwnerDoc();
-  if (auto* obs = doc->GetLazyLoadObserver()) {
-    obs->Unobserve(*this);
-  }
-
-  mLazyLoading = false;
-
-  if (aClearLazyLoadState) {
-    mLazyLoadState.Clear();
-  }
-}
 }  // namespace mozilla::dom

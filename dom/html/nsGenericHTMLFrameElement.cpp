@@ -154,21 +154,14 @@ void nsGenericHTMLFrameElement::SwapFrameLoaders(
 }
 
 void nsGenericHTMLFrameElement::LoadSrc() {
-  EnsureFrameLoader();
-
-  if (!mFrameLoader) {
+  // Waiting for lazy load, do nothing.
+  if (mLazyLoading) {
     return;
   }
 
-  if (mLazyLoading) {
-    // Waiting for lazy load, do nothing.
-    if (!mFrameLoader->GetExtantBrowsingContext()) {
-      // We still want to initialize the frame loader for the browsing
-      // context to exist, so that it can be found by name and such.
-      nsContentUtils::AddScriptRunner(
-          NewRunnableMethod("InitializeLazyFrameLoader", mFrameLoader.get(),
-                            &nsFrameLoader::GetBrowsingContext));
-    }
+  EnsureFrameLoader();
+
+  if (!mFrameLoader) {
     return;
   }
 
