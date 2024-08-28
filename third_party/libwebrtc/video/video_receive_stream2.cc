@@ -281,8 +281,7 @@ void VideoReceiveStream2::RegisterWithTransport(
   // Register with RtpStreamReceiverController.
   media_receiver_ = receiver_controller->CreateReceiver(
       remote_ssrc(), &rtp_video_stream_receiver_);
-  if (rtx_ssrc()) {
-    RTC_DCHECK(rtx_receive_stream_);
+  if (rtx_ssrc() && rtx_receive_stream_ != nullptr) {
     rtx_receiver_ = receiver_controller->CreateReceiver(
         rtx_ssrc(), rtx_receive_stream_.get());
   }

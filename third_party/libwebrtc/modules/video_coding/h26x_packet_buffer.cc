@@ -110,7 +110,7 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::InsertPacket(
 
   InsertResult result;
 
-  int64_t unwrapped_seq_num = seq_num_unwrapper_.Unwrap(packet->seq_num);
+  int64_t unwrapped_seq_num = packet->sequence_number;
   auto& packet_slot = GetPacket(unwrapped_seq_num);
   if (packet_slot != nullptr &&
       AheadOrAt(packet_slot->timestamp, packet->timestamp)) {
@@ -174,7 +174,7 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
     // Packets that were never assembled into a completed frame will stay in
     // the 'buffer_'. Check that the `packet` sequence number match the expected
     // unwrapped sequence number.
-    if (static_cast<uint16_t>(seq_num) != packet->seq_num) {
+    if (seq_num != packet->sequence_number) {
       return result;
     }
 

@@ -94,7 +94,6 @@ class H26xPacketBuffer {
   std::array<std::unique_ptr<Packet>, kBufferSize> buffer_;
   std::array<int64_t, kNumTrackedSequences> last_continuous_in_sequence_;
   int64_t last_continuous_in_sequence_index_ = 0;
-  SeqNumUnwrapper<uint16_t> seq_num_unwrapper_;
 
   // Map from pps_pic_parameter_set_id to the PPS payload associated with this
   // ID.

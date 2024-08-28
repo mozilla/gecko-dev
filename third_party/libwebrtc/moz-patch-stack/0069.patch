@@ -127,10 +127,10 @@ index 40e8f85e8e..6e764f8c15 100644
      TimeDelta total_decode_time = TimeDelta::Zero();
      // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index e1e572ea2f..b62b0d07fc 100644
+index b30e84078c..792c845235 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
-@@ -122,25 +122,27 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
+@@ -127,25 +127,27 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
    return result;
  }
  
@@ -156,12 +156,12 @@ index e1e572ea2f..b62b0d07fc 100644
    size_t iterations = std::min(diff, buffer_.size());
    for (size_t i = 0; i < iterations; ++i) {
      auto& stored = buffer_[first_seq_num_ % buffer_.size()];
-     if (stored != nullptr && AheadOf<uint16_t>(seq_num, stored->seq_num)) {
+     if (stored != nullptr && AheadOf<uint16_t>(seq_num, stored->seq_num())) {
 +      ++num_cleared_packets;
        stored = nullptr;
      }
      ++first_seq_num_;
-@@ -156,6 +158,8 @@ void PacketBuffer::ClearTo(uint16_t seq_num) {
+@@ -161,6 +163,8 @@ void PacketBuffer::ClearTo(uint16_t seq_num) {
  
    received_padding_.erase(received_padding_.begin(),
                            received_padding_.lower_bound(seq_num));
@@ -171,10 +171,10 @@ index e1e572ea2f..b62b0d07fc 100644
  
  void PacketBuffer::Clear() {
 diff --git a/modules/video_coding/packet_buffer.h b/modules/video_coding/packet_buffer.h
-index 53e08c95a1..47b2ffe199 100644
+index 9e143b8a85..87f87ca101 100644
 --- a/modules/video_coding/packet_buffer.h
 +++ b/modules/video_coding/packet_buffer.h
-@@ -78,7 +78,10 @@ class PacketBuffer {
+@@ -80,7 +80,10 @@ class PacketBuffer {
    ABSL_MUST_USE_RESULT InsertResult
    InsertPacket(std::unique_ptr<Packet> packet);
    ABSL_MUST_USE_RESULT InsertResult InsertPadding(uint16_t seq_num);
@@ -215,7 +215,7 @@ index 8e4941f961..7bcfc7c057 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 385a9d5ccf..a83e6ee860 100644
+index d5da05aba2..dbfbeda4d5 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -244,6 +244,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
@@ -234,7 +234,7 @@ index 385a9d5ccf..a83e6ee860 100644
        packet_buffer_(kPacketBufferStartSize,
                       PacketBufferMaxSize(field_trials_)),
        reference_finder_(std::make_unique<RtpFrameReferenceFinder>()),
-@@ -1245,7 +1247,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1244,7 +1246,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
      int64_t unwrapped_rtp_seq_num = rtp_seq_num_unwrapper_.Unwrap(seq_num);
      packet_infos_.erase(packet_infos_.begin(),
                          packet_infos_.upper_bound(unwrapped_rtp_seq_num));
@@ -273,7 +273,7 @@ index 1355352cf6..8f9f9db6db 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index 91510c57c8..67adcac577 100644
+index 25e836529d..3741421a68 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -209,6 +209,7 @@ VideoReceiveStream2::VideoReceiveStream2(
