@@ -46,25 +46,6 @@ std::vector<webrtc::VideoStream> GetSimulcastConfig(
     const webrtc::FieldTrialsView& trials,
     webrtc::VideoCodecType codec);
 
-// Gets the simulcast config layers for a non-screensharing case.
-std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
-    size_t max_layers,
-    int width,
-    int height,
-    bool temporal_layers_supported,
-    bool base_heavy_tl3_rate_alloc,
-    const webrtc::FieldTrialsView& trials,
-    webrtc::VideoCodecType codec);
-
-// Gets simulcast config layers for screenshare settings.
-std::vector<webrtc::VideoStream> GetScreenshareLayers(
-    size_t max_layers,
-    int width,
-    int height,
-    bool temporal_layers_supported,
-    bool base_heavy_tl3_rate_alloc,
-    const webrtc::FieldTrialsView& trials);
-
 }  // namespace cricket
 
 #endif  // VIDEO_CONFIG_SIMULCAST_H_
