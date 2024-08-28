@@ -2940,6 +2940,12 @@
       return group;
     },
 
+    removeTabGroup(group) {
+      this.removeTabs(group.tabs);
+      // TODO: remove the call to `group.remove` once bug1908413 is closed
+      group.remove();
+    },
+
     _determineURIToLoad(uriString, createLazyBrowser) {
       uriString = uriString || "about:blank";
       let aURIObject = null;

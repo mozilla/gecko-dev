@@ -12,9 +12,7 @@ add_task(async function test_tabGroupCreateAndAddTab() {
 
   Assert.ok(group.tabs.includes(tab1), "tab1 is in group");
 
-  // TODO add API to remove group
-  BrowserTestUtils.removeTab(tab1);
-  group.remove();
+  gBrowser.removeTabGroup(group);
 });
 
 add_task(async function test_tabGroupCreateWithTabs() {
@@ -26,10 +24,7 @@ add_task(async function test_tabGroupCreateWithTabs() {
   Assert.ok(group.tabs.includes(tab1), "tab1 is in group");
   Assert.ok(group.tabs.includes(tab2), "tab2 is in group");
 
-  // TODO add API to remove group
-  BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
-  group.remove();
+  gBrowser.removeTabGroup(group);
 });
 
 add_task(async function test_getTabGroups() {
@@ -47,8 +42,8 @@ add_task(async function test_getTabGroups() {
     "there are two groups in the tabstrip"
   );
 
-  group1.remove();
-  group2.remove();
+  gBrowser.removeTabGroup(group1);
+  gBrowser.removeTabGroup(group2);
   Assert.equal(
     gBrowser.tabGroups.length,
     0,
@@ -69,9 +64,7 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   group.querySelector(".tab-group-label").click();
   Assert.ok(!group.collapsed, "collapsed group is expanded on click");
 
-  // TODO add API to remove group
-  BrowserTestUtils.removeTab(tab1);
-  group.remove();
+  gBrowser.removeTabGroup(group);
 });
 
 add_task(async function test_tabGroupCollapsedTabsNotVisible() {
@@ -92,11 +85,9 @@ add_task(async function test_tabGroupCollapsedTabsNotVisible() {
     "tab in collapsed tab group is not visible"
   );
 
-  // TODO add API to remove group
-  // TODO BrowserTestUtils.removeTab breaks if the tab is not in a visible state
+  // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  BrowserTestUtils.removeTab(tab1);
-  group.remove();
+  gBrowser.removeTabGroup(group);
 });
 
 /*
@@ -121,10 +112,10 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabAfter() {
     "selected tab becomes adjacent tab after group on collapse"
   );
 
-  group.collapsed = false;
-  BrowserTestUtils.removeTab(tabInGroup);
+  // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   BrowserTestUtils.removeTab(adjacentTabAfter);
-  group.remove();
+  group.collapsed = false;
+  gBrowser.removeTabGroup(group);
 });
 
 /*
@@ -147,10 +138,10 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabBefore() {
     "selected tab becomes adjacent tab after group on collapse"
   );
 
-  group.collapsed = false;
-  BrowserTestUtils.removeTab(tabInGroup);
   BrowserTestUtils.removeTab(adjacentTabBefore);
-  group.remove();
+  // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
+  group.collapsed = false;
+  gBrowser.removeTabGroup(group);
 });
 
 add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
@@ -188,8 +179,7 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
   );
 
   group.collapsed = false;
-  BrowserTestUtils.removeTab(fgWindow.gBrowser.tabs[1]);
-  group.remove();
+  fgWindow.gBrowser.removeTabGroup(group);
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
@@ -213,8 +203,21 @@ add_task(async function test_tabUngroup() {
     "tab is in the same position as before ungroup"
   );
   Assert.equal(groupedTab.group, null, "tab no longer belongs to group");
+  Assert.equal(group.parentElement, null, "group is unloaded");
 
   BrowserTestUtils.removeTab(groupedTab);
   BrowserTestUtils.removeTab(extraTab1);
   BrowserTestUtils.removeTab(extraTab2);
+});
+
+add_task(async function test_tabGroupRemove() {
+  let group = gBrowser.addTabGroup("blue", "test");
+
+  let groupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  group.addTabs([groupedTab]);
+
+  gBrowser.removeTabGroup(group);
+
+  Assert.equal(groupedTab.parentElement, null, "grouped tab is unloaded");
+  Assert.equal(group.parentElement, null, "group is unloaded");
 });
