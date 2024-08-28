@@ -555,6 +555,10 @@ win64-aarch64-clang-18:
         max-run-time: 600
     run:
         script: repack-clang.sh
+        toolchain-alias:
+            by-project:
+                toolchains: null
+                default: win64-aarch64-clang
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         toolchain:
@@ -978,6 +982,77 @@ win64-clang-trunk:
         toolchain:
             - linux64-cctools-port
             - win64-clang-trunk-raw
+            - android-aarch64-compiler-rt-trunk
+            - android-aarch64-libunwind-trunk
+            - android-arm-compiler-rt-trunk
+            - android-arm-libunwind-trunk
+            - android-x64-compiler-rt-trunk
+            - android-x64-libunwind-trunk
+            - android-x86-compiler-rt-trunk
+            - android-x86-libunwind-trunk
+            - linux64-aarch64-compiler-rt-trunk
+            - linux64-x64-compiler-rt-trunk
+            - linux64-x86-compiler-rt-trunk
+            - macosx64-aarch64-compiler-rt-trunk
+            - macosx64-x64-compiler-rt-trunk
+            - wasm32-wasi-compiler-rt-trunk
+            - win32-compiler-rt-trunk
+            - win64-compiler-rt-trunk
+            - win64-aarch64-compiler-rt-trunk
+
+win64-aarch64-clang-trunk-raw:
+    description: "Clang-cl trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TW64(clang-trunk-aarch64-raw)
+    worker:
+        max-run-time: 3600
+    run:
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/win64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+        resources:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/win64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-trunk
+        toolchain:
+            - linux64-clang-trunk-stage1
+            - linux64-clang-trunk-profile
+            - win64-aarch64-compiler-rt-trunk
+            - vs-toolchain
+            - win64-aarch64-libxml2
+
+win64-aarch64-clang-trunk:
+    description: "Clang-cl trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TW64(clang-trunk-aarch64)
+    worker-type: b-linux-gcp
+    worker:
+        max-run-time: 600
+    run:
+        script: repack-clang.sh
+        toolchain-alias:
+            by-project:
+                toolchains: win64-aarch64-clang
+                default: null
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        toolchain:
+            - linux64-cctools-port
+            - win64-aarch64-clang-trunk-raw
             - android-aarch64-compiler-rt-trunk
             - android-aarch64-libunwind-trunk
             - android-arm-compiler-rt-trunk
