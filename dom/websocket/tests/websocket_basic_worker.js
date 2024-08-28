@@ -25,14 +25,14 @@ onmessage = function (event) {
   var ws = new WebSocket(
     "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_hello"
   );
-  ws.onopen = function (e) {
+  ws.onopen = function () {
     postMessage({ type: "status", status: true, msg: "OnOpen called" });
     ws.send("data");
   };
 
-  ws.onclose = function (e) {};
+  ws.onclose = function () {};
 
-  ws.onerror = function (e) {
+  ws.onerror = function () {
     postMessage({ type: "status", status: false, msg: "onerror called!" });
   };
 

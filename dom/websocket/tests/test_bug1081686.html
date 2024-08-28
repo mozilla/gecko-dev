@@ -28,10 +28,10 @@ function forcegc()
 
 function testWebSocket () {
   ws = new WebSocket("ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_hello");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     ws.send("data");
   }
-  ws.onclose = function(e) {
+  ws.onclose = function() {
     forcegc();
     setTimeout(function() {
       is(ws.readyState, 3, 'WebSocket is closed');
@@ -46,7 +46,7 @@ function testWebSocket () {
     }, 1000);
   }
 
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "onerror called!");
     SimpleTest.finish();
   }

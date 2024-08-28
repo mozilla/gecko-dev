@@ -19,7 +19,7 @@ var binaryMessage = "This is a binary message";
 var testIdx = 0;
 var sendText = true;
 
-tests = [
+let tests = [
   // enable PMCE
   [ true, true, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate" ],
   // disable PMCE
@@ -55,7 +55,7 @@ function sendMessage() {
 function testDeflate() {
   ws = new WebSocket(tests[testIdx][2]);
 
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     if (tests[testIdx][1]) {
       is(ws.extensions, "permessage-deflate", "permessage-deflate not negotiated!");
     } else {
@@ -72,7 +72,7 @@ function testDeflate() {
     }
   }
 
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "onerror called!");
     SimpleTest.finish();
   }

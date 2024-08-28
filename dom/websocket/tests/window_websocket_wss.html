@@ -14,7 +14,7 @@ onmessage = function(e) {
 }
 
 // Mixed content blocker will prevent loading iframes via http, so in that case pass back the error
-window.document.getElementById("frame").onerror = function(e) {
+window.document.getElementById("frame").onerror = function() {
   cleanup();
   window.opener.postMessage("Error - iframe not loaded", '*');
 }
@@ -40,11 +40,11 @@ else {
     else {
       socket = new WebSocket('wss://example.com/tests/dom/websocket/tests/file_websocket_hello');
     }
-    socket.onerror = function(e) {
+    socket.onerror = function() {
       cleanup();
       window.opener.postMessage("WS onerror", "*");
     };
-    socket.onopen = function(event) {
+    socket.onopen = function() {
       socket.close();
       cleanup();
       window.opener.postMessage("WS onopen", "*");

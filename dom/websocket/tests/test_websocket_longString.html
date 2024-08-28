@@ -15,7 +15,7 @@ is(ws.readyState, 0, "Initial readyState is 0");
 
 const longString = new Array(1024*1024).join('123456789ABCDEF');
 
-ws.onopen = function(e) {
+ws.onopen = function() {
   is(this, ws, "[onopen()] 'this' should point to the WebSocket.");
   ws.send(longString);
 };
@@ -27,7 +27,7 @@ ws.onclose = function(e) {
   SimpleTest.executeSoon(SimpleTest.finish);
 };
 
-ws.onerror = function(e) {
+ws.onerror = function() {
   is(this, ws, "[onerror()] 'this' should point to the WebSocket.");
   ok(false, "onerror()] should not have been called!");
   SimpleTest.executeSoon(SimpleTest.finish);

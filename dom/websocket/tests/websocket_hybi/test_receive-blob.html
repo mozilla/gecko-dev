@@ -42,7 +42,6 @@ function createArrayBufferContainingAllDistinctBytes()
 var ws = new WebSocket("ws://mochi.test:8888/tests/dom/websocket/tests/websocket_hybi/file_binary-frames");
 is(ws.binaryType, "blob", "should be 'blob'");
 
-var closeEvent;
 var receivedMessages = [];
 var expectedValues = [createArrayBufferContainingHelloWorld(), createEmptyArrayBuffer(), createArrayBufferContainingAllDistinctBytes()];
 
@@ -51,10 +50,8 @@ ws.onmessage = function(event)
     receivedMessages.push(event.data);
 };
 
-ws.onclose = function(event)
+ws.onclose = function()
 {
-    closeEvent = event;
-
     is(receivedMessages.length, expectedValues.length, "lengths not same");
     check(0);
 };
@@ -73,12 +70,12 @@ function check(index)
        "We should be receiving a Blob");
     var reader = new FileReader();
     reader.readAsArrayBuffer(receivedMessages[index]);
-    reader.onload = function(event)
+    reader.onload = function()
     {
         checkArrayBuffer(index, reader.result, expectedValues[index]);
         check(index + 1);
     };
-    reader.onerror = function(event)
+    reader.onerror = function()
     {
         ok(false, "Failed to read blob: error code = " + reader.error.code);
         check(index + 1);

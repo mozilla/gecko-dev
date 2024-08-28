@@ -93,23 +93,23 @@ support-files = ["iframe_websocket_sandbox.html"]
 support-files = ["websocket_sharedWorker.js"]
 
 ["test_worker_websocket1.html"]
-support-files = ["websocket_worker1.js"]
+support-files = ["websocket1.worker.js"]
 
 ["test_worker_websocket2.html"]
-support-files = ["websocket_worker2.js"]
+support-files = ["websocket2.worker.js"]
 skip-if = ["socketprocess_networking"] # bug 1787044
 
 ["test_worker_websocket3.html"]
-support-files = ["websocket_worker3.js"]
+support-files = ["websocket3.worker.js"]
 
 ["test_worker_websocket4.html"]
-support-files = ["websocket_worker4.js"]
+support-files = ["websocket4.worker.js"]
 skip-if = [
   "os == 'android'", # ssltunnel can't handle WSS scheme
 ]
 
 ["test_worker_websocket5.html"]
-support-files = ["websocket_worker5.js"]
+support-files = ["websocket5.worker.js"]
 
 ["test_worker_websocket_basic.html"]
 support-files = ["websocket_basic_worker.js"]

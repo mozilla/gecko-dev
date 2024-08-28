@@ -43,7 +43,7 @@ function testWebSocket1() {
 
   ws = new WebSocket(kUrl, "test");
   is(ws.url, kUrl, "[1] WebSocket.url");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     const params = ["protocol", "resource", "origin", "end"];
 
     gTestElement.textContent += "\nSending :";
@@ -61,7 +61,7 @@ function testWebSocket1() {
 
     SimpleTest.executeSoon(testWebSocket2);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "[1] onerror() should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
     SimpleTest.executeSoon(SimpleTest.finish);
@@ -86,7 +86,7 @@ function testWebSocket2() {
   var messageCount = 0;
 
   ws = new WebSocket(kUrl, "test");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     gTestElement.textContent += "\nSending :";
     for (var i = 1; i <= testCount; ++i) {
       if (i % displayInterval == 1) {
@@ -106,7 +106,7 @@ function testWebSocket2() {
 
     SimpleTest.executeSoon(testWebSocket3);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "[2] onerror() should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
     SimpleTest.executeSoon(SimpleTest.finish);
@@ -139,7 +139,7 @@ function testWebSocket3() {
   // Set this before onopen() is called,
   // otherwise its display would be delayed by forcegc() calls...
   gTestElement.textContent += "\nSending :";
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     for (var i = 1; i <= testCount; ++i) {
       forcegc();
       if (i % displayInterval == 1) {
@@ -161,7 +161,7 @@ function testWebSocket3() {
 
     SimpleTest.executeSoon(testWebSocket4);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "[3] onerror() should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
     SimpleTest.executeSoon(SimpleTest.finish);
@@ -190,7 +190,7 @@ function testWebSocket4() {
   const longString = "messageStart " + new Array(10000).join(" -huge WebSocket message- ") + " messageEnd";
 
   ws = new WebSocket(kUrl, "test");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     is(this, ws, "[4, onopen()] 'this' should point to the WebSocket.");
     gTestElement.textContent += "\nSending the huge message";
     ws.send(longString);
@@ -201,7 +201,7 @@ function testWebSocket4() {
 
     SimpleTest.executeSoon(testWebSocket5);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     is(this, ws, "[4, onerror()] 'this' should point to the WebSocket.");
     ok(false, "[4, onerror()] should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
@@ -224,7 +224,7 @@ function testWebSocket5() {
   gTestElement.textContent = "Running testWebSocket5()";
 
   ws = new WebSocket(kUrl, "test");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     is(this.bufferedAmount, 0, "[5] Length of empty buffer before closing");
     this.close();
   };
@@ -240,7 +240,7 @@ function testWebSocket5() {
 
     SimpleTest.executeSoon(testWebSocket6);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "[5] onerror() should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
     SimpleTest.executeSoon(SimpleTest.finish);
@@ -252,7 +252,7 @@ function testWebSocket6() {
 
   var msgReceived = false;
   ws = new WebSocket(kUrl, "test");
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     gTestElement.textContent += "\nSending ©";
     ws.send("©");
     gTestElement.textContent += " end";
@@ -264,7 +264,7 @@ function testWebSocket6() {
 
     SimpleTest.executeSoon(SimpleTest.finish);
   };
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "[6] onerror() should not have been called!");
     gTestElement.textContent += "\nonerror() should not have been called!";
     SimpleTest.executeSoon(SimpleTest.finish);

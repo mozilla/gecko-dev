@@ -20,7 +20,7 @@ let ws;
 function testWebSocket() {
   ws = new WebSocket(kUrl, "test");
 
-  ws.onopen = function(e) {
+  ws.onopen = function() {
     ok(true, "onopen is called");
     ws.send(data);
   };
@@ -39,7 +39,7 @@ function testWebSocket() {
     }
   };
 
-  ws.onerror = function(e) {
+  ws.onerror = function() {
     ok(false, "onerror() should not have been called!");
     SimpleTest.executeSoon(SimpleTest.finish);
   };

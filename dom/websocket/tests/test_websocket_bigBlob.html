@@ -26,20 +26,20 @@ ws.onmessage = function(e) {
   ws.close();
 }
 
-ws.onclose = function(e) {
+ws.onclose = function() {
   is(ws.readyState, 3, "Close readyState is 3");
 
   // check blob contents
   var reader = new FileReader();
-  reader.onload = function(event) {
+  reader.onload = function() {
     is(reader.result, new Array(1024*1024).join('123456789ABCDEF'), "All data matches");
   }
 
-  reader.onerror = function(event) {
+  reader.onerror = function() {
     ok(false, "Something bad happen.");
   }
 
-  reader.onloadend = function(event) {
+  reader.onloadend = function() {
     SimpleTest.finish();
   }
 

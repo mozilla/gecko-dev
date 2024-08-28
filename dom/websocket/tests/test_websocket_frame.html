@@ -137,13 +137,13 @@ function checkListener() {
 }
 
 var ws = new WebSocket(URI, "frame");
-ws.onopen = function(e) {
+ws.onopen = function() {
   info("onopen");
 
   ws.send(tests[0].payload);
 }
 
-ws.onclose = function(e) {
+ws.onclose = function() {
   info("onclose");
 }
 

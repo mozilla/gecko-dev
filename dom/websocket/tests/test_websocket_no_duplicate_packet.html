@@ -90,7 +90,7 @@ async function checkContent() {
   }
 }
 
-ws.onclose = function(e) {
+ws.onclose = function() {
   is(ws.readyState, 3, "Close readyState is 3");
   checkContent().then(() => {
     SimpleTest.finish();

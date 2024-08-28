@@ -1,9 +1,10 @@
+/* global onconnect:true */
 onconnect = function (evt) {
   var ws = new WebSocket(
     "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_hello"
   );
 
-  ws.onopen = function (e) {
+  ws.onopen = function () {
     evt.ports[0].postMessage({
       type: "status",
       status: true,
@@ -12,9 +13,9 @@ onconnect = function (evt) {
     ws.send("data");
   };
 
-  ws.onclose = function (e) {};
+  ws.onclose = function () {};
 
-  ws.onerror = function (e) {
+  ws.onerror = function () {
     evt.ports[0].postMessage({
       type: "status",
       status: false,

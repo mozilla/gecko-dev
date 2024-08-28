@@ -13,11 +13,11 @@ try{
   else {
     socket = new WebSocket('wss://example.com/tests/dom/websocket/tests/file_websocket_hello');
   }
-  socket.onerror = function(e) {
+  socket.onerror = function() {
     parent.postMessage('WS onerror', '*');
     close();
   };
-  socket.onopen = function(e) {
+  socket.onopen = function() {
     socket.close();
     parent.postMessage('WS onopen', '*');
     close();

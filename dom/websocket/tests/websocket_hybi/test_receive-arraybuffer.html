@@ -43,7 +43,6 @@ var ws = new WebSocket("ws://mochi.test:8888/tests/dom/websocket/tests/websocket
 ws.binaryType = "arraybuffer";
 is(ws.binaryType, "arraybuffer", "should be equal to 'arraybuffer'");
 
-var closeEvent;
 var receivedMessages = [];
 var expectedValues = [createArrayBufferContainingHelloWorld(), createEmptyArrayBuffer(), createArrayBufferContainingAllDistinctBytes()];
 
@@ -52,10 +51,8 @@ ws.onmessage = function(event)
     receivedMessages.push(event.data);
 };
 
-ws.onclose = function(event)
+ws.onclose = function()
 {
-    closeEvent = event;
-
     is(receivedMessages.length, expectedValues.length, "lengths not equal");
     for (var i = 0; i < expectedValues.length; ++i)
         check(i);

@@ -1,3 +1,6 @@
+// This file expects websocket_helpers.js in the same scope.
+/* import-globals-from websocket_helpers.js */
+
 function feedback() {
   postMessage({
     type: "feedback",

@@ -1,3 +1,5 @@
+/* exported tests */
+
 importScripts("websocket_helpers.js");
 importScripts("websocket_tests.js");
 importScripts("websocket_worker_helpers.js");

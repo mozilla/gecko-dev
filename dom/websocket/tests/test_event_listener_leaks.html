@@ -30,7 +30,7 @@ async function useWebSocket(contentWindow) {
       contentWindow.openCount += 1;
       resolve();
     };
-    ws.onerror = e => {
+    ws.onerror = () => {
       contentWindow.errorCount += 1;
       reject("websocket error");
     };

@@ -24,11 +24,11 @@ if (location.search == '?nested') {
 } else if (location.search == '?opener') {
   try{
     var socket = new WebSocket('ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_basic');
-    socket.onerror = function(e) {
+    socket.onerror = function() {
       opener.postMessage('WS onerror', '*');
       close();
     };
-    socket.onopen = function(event) {
+    socket.onopen = function() {
       opener.postMessage('WS onopen', '*');
       close();
     };
