@@ -1,0 +1,67 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "WebExtensions :: General"
+
+addons.search_detection:
+  etld_change_webrequest:
+    type: event
+    description: |
+      Recorded when a request for a search query is redirected to another
+      domain via the `webRequest` API.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsSearchDetection.etld_change#webrequest.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894526
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894526
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - tlong@mozilla.com
+    extra_keys: &etld_change_extra_keys
+      value:
+        description: Either "extension" or "server". Mapped to Legacy Telemetry's `value` parameter.
+        type: string
+      addonId:
+        description: The id of the addon
+        type: string
+      addonVersion:
+        description: The version of the addon
+        type: string
+      from:
+        description: The original domain (eTLD+1) of the request that matched a search endpoint.
+        type: string
+      to:
+        description: The domain (eTLD+1) of the final redirect target.
+        type: string
+    expires: never
+    telemetry_mirror: Addonssearchdetection_EtldChange_Webrequest
+    no_lint:
+      - COMMON_PREFIX
+
+  etld_change_other:
+    type: event
+    description: |
+      Recorded when a request for a search query is redirected to another
+      domain via something other than the `webRequest` API.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsSearchDetection.etld_change#other.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894526
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1894526
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - tlong@mozilla.com
+    extra_keys: *etld_change_extra_keys
+    expires: never
+    telemetry_mirror: Addonssearchdetection_EtldChange_Other
+    no_lint:
+      - COMMON_PREFIX

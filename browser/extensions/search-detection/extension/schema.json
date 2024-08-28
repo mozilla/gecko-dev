@@ -19,6 +19,25 @@
         "type": "function",
         "async": true,
         "parameters": [{ "name": "url", "type": "string" }]
+      },
+      {
+        "name": "report",
+        "type": "function",
+        "async": false,
+        "parameters": [
+          { "name": "maybeServerSideRedirect", "type": "boolean" },
+          {
+            "name": "extra",
+            "type": "object",
+            "properties": {
+              "addonId": { "type": "string" },
+              "addonVersion": { "type": "string" },
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        ]
       }
     ],
     "events": [

@@ -18,8 +18,8 @@ const TELEMETRY_EVENTS_FILTERS = {
   method: "etld_change",
 };
 
-// The search-detection built-in add-on registers dynamic events.
-const TELEMETRY_TEST_UTILS_OPTIONS = { clear: true, process: "dynamic" };
+// The search-detection built-in add-on records events in the parent process.
+const TELEMETRY_TEST_UTILS_OPTIONS = { clear: true, process: "parent" };
 
 const REDIRECT_SJS =
   "browser/browser/extensions/search-detection/tests/browser/redirect.sjs?q={searchTerms}";
@@ -44,6 +44,7 @@ const testServerSideRedirect = async ({
   expectedEvents,
   tabURL,
 }) => {
+  Services.fog.testResetFOG();
   Services.telemetry.clearEvents();
 
   const searchEngineName = "test search engine";
@@ -93,6 +94,26 @@ const testServerSideRedirect = async ({
     TELEMETRY_EVENTS_FILTERS,
     TELEMETRY_TEST_UTILS_OPTIONS
   );
+
+  let events = Glean.addonsSearchDetection.etldChangeOther.testGetValue();
+  if (!expectedEvents.length) {
+    Assert.equal(null, events);
+  } else {
+    Assert.equal(expectedEvents.length, events.length);
+    for (let index = 0; index < events.length; index++) {
+      Assert.equal(expectedEvents[index].value, events[index].extra.value);
+      Assert.equal(
+        expectedEvents[index].extra.addonId,
+        events[index].extra.addonId
+      );
+      Assert.equal(
+        expectedEvents[index].extra.addonVersion,
+        events[index].extra.addonVersion
+      );
+      Assert.equal(expectedEvents[index].extra.from, events[index].extra.from);
+      Assert.equal(expectedEvents[index].extra.to, events[index].extra.to);
+    }
+  }
 };
 
 add_task(function test_redirect_final() {

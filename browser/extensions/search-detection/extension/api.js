@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* global ExtensionCommon, ExtensionAPI, Services, XPCOMUtils, ExtensionUtils */
+/* global ExtensionCommon, ExtensionAPI, Glean, Services, XPCOMUtils, ExtensionUtils */
 
 const { AddonManager } = ChromeUtils.importESModule(
   "resource://gre/modules/AddonManager.sys.mjs"
@@ -27,6 +27,7 @@ const SEARCH_TOPIC_ENGINE_MODIFIED = "browser-search-engine-modified";
 
 this.addonsSearchDetection = class extends ExtensionAPI {
   getAPI(context) {
+    Services.telemetry.setEventRecordingEnabled("addonsSearchDetection", true);
     const { extension } = context;
 
     // We want to temporarily store the first monitored URLs that have been
@@ -108,6 +109,15 @@ this.addonsSearchDetection = class extends ExtensionAPI {
           } catch (err) {
             console.error(err);
             return null;
+          }
+        },
+
+        // Report a redirect via Glean and Telemetry.
+        report(maybeServerSideRedirect, extra) {
+          if (maybeServerSideRedirect) {
+            Glean.addonsSearchDetection.etldChangeOther.record(extra);
+          } else {
+            Glean.addonsSearchDetection.etldChangeWebrequest.record(extra);
           }
         },
 

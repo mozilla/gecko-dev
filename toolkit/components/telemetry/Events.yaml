@@ -311,6 +311,26 @@ addonsManager:
     bug_numbers: [1806056, 1817100, 1861295, 1912166]
     release_channel_collection: opt-out
 
+addonsSearchDetection:
+  etld_change:
+    description: |
+      Recorded when a request for a search query is redirected to another
+      domain. This can be via the webRequest API, or through other means.
+    objects: ["webrequest", "other"]
+    methods: ["etld_change"]
+    extra_keys:
+      addonId: The id of the addon, if available.
+      addonVersion: The version of the addon.
+      from: The original domain (eTLD+1) of the request that matched a search endpoint.
+      to: The domain (eTLD+1) of the final redirect target.
+    notification_emails: ["addons-dev-internal@mozilla.com", "tlong@mozilla.com"]
+    expiry_version: "never"
+    products:
+      - "firefox"
+    record_in_processes: ["main"]
+    bug_numbers: [1894526]
+    release_channel_collection: opt-out
+
 blocklist:
   addonBlockChange:
     description: >

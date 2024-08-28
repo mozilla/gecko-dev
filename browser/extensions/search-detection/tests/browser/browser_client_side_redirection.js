@@ -20,8 +20,8 @@ const TELEMETRY_EVENTS_FILTERS = {
   method: "etld_change",
 };
 
-// The search-detection built-in add-on registers dynamic events.
-const TELEMETRY_TEST_UTILS_OPTIONS = { clear: true, process: "dynamic" };
+// The search-detection built-in add-on records events in the parent process.
+const TELEMETRY_TEST_UTILS_OPTIONS = { clear: true, process: "parent" };
 
 async function testClientSideRedirect({
   background,
@@ -29,6 +29,7 @@ async function testClientSideRedirect({
   telemetryExpected = false,
   redirectingAppProvidedEngine = false,
 }) {
+  Services.fog.testResetFOG();
   Services.telemetry.clearEvents();
 
   // Load an extension that does a client-side redirect. We expect this
@@ -83,6 +84,21 @@ async function testClientSideRedirect({
     TELEMETRY_EVENTS_FILTERS,
     TELEMETRY_TEST_UTILS_OPTIONS
   );
+
+  let events = Glean.addonsSearchDetection.etldChangeWebrequest.testGetValue();
+  if (!telemetryExpected) {
+    Assert.equal(null, events);
+  } else {
+    Assert.equal(1, events.length);
+    Assert.equal("extension", events[0].extra.value);
+    Assert.equal(addonId, events[0].extra.addonId);
+    Assert.equal(addonVersion, events[0].extra.addonVersion);
+    Assert.equal(
+      redirectingAppProvidedEngine ? "example.org" : "example.com",
+      events[0].extra.from
+    );
+    Assert.equal("mochi.test", events[0].extra.to);
+  }
 }
 
 add_setup(async function () {

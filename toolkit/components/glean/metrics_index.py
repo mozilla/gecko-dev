@@ -69,6 +69,7 @@ firefox_desktop_metrics = [
     "browser/components/search/metrics.yaml",
     "browser/components/shopping/metrics.yaml",
     "browser/components/urlbar/metrics.yaml",
+    "browser/extensions/search-detection/metrics.yaml",
     "browser/modules/metrics.yaml",
     "dom/media/platforms/wmf/metrics.yaml",
     "services/fxaccounts/metrics.yaml",
