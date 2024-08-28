@@ -13,8 +13,6 @@ kind-dependencies:
     - post-beetmover-dummy
     - release-generate-checksums-beetmover
     - release-bouncer-sub
-    - signing-apk
-    - signing-bundle
 
 task-defaults:
     name: notify-release-drivers-promote

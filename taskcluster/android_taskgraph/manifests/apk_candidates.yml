@@ -37,11 +37,11 @@ s3_bucket_paths:
         fenix-nightly:
             - pub/fenix/nightly
         fenix-(release|beta):
-            - pub/fenix/releases
+            - pub/fenix/candidates
         focus-nightly:
             - pub/focus/nightly
         focus-beta|focus-release|klar-release:
-            - pub/focus/releases
+            - pub/focus/candidates
 default_locales:
     - multi
 tasktype_map:

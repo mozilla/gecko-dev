@@ -13,6 +13,7 @@ transforms:
 kind-dependencies:
     - beetmover-checksums
     - beetmover-repackage
+    - beetmover-android-app
 
 tasks:
     post-beetmover-dummy:

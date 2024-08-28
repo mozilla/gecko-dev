@@ -11,6 +11,7 @@ transforms:
 
 kind-dependencies:
     - release-generate-checksums-beetmover
+    - beetmover-android-app
     - post-update-verify-dummy
 
 task-defaults:
@@ -31,3 +32,17 @@ tasks:
         product: firefox
         shipping-product: firefox
         treeherder-platform: firefox-release/opt
+
+    fenix-push-to-release:
+        name: fenix_push_to_release
+        product: fenix
+        shipping-product: firefox-android
+        shipping-phase: ship
+        treeherder-platform: fenix-android-all/opt
+
+    focus-push-to-release:
+        name: focus_push_to_release
+        product: focus
+        shipping-product: firefox-android
+        shipping-phase: ship
+        treeherder-platform: focus-android-all/opt

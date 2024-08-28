@@ -31,8 +31,8 @@ tasks:
                 attribute: build-type
             copy-attributes: true
         attributes:
-            artifact_map: taskcluster/android_taskgraph/manifests/apk_releases.yml
-            shipping_phase: ship
+            artifact_map: taskcluster/android_taskgraph/manifests/apk_candidates.yml
+            shipping_phase: promote
         treeherder:
             symbol:
                 by-build-type:
