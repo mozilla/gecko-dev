@@ -316,13 +316,6 @@ user-id = 51017
 user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
-[[publisher.libz-rs-sys]]
-version = "0.2.1"
-when = "2024-07-08"
-user-id = 1303
-user-login = "rnijveld"
-user-name = "Ruben Nijveld"
-
 [[publisher.linux-raw-sys]]
 version = "0.4.12"
 when = "2023-11-30"
@@ -818,13 +811,6 @@ when = "2021-03-18"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
-
-[[publisher.zlib-rs]]
-version = "0.2.1"
-when = "2024-07-08"
-user-id = 1303
-user-login = "rnijveld"
-user-name = "Ruben Nijveld"
 
 [[audits.bytecode-alliance.wildcard-audits.arbitrary]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"

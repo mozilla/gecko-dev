@@ -84,8 +84,7 @@ SOURCES += [
 # zlib library
 DEFINES['FT_CONFIG_OPTION_SYSTEM_ZLIB'] = True
 CFLAGS += CONFIG['MOZ_ZLIB_CFLAGS']
-if not CONFIG["USE_LIBZ_RS"]:
-    USE_LIBS += ['zlib']
+USE_LIBS += ['zlib']
 
 # png library
 DEFINES['FT_CONFIG_OPTION_USE_PNG'] = True

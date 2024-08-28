@@ -50,11 +50,6 @@ git = "https://github.com/jfkthame/mapped_hyph.git"
 rev = "eff105f6ad7ec9b79816cfc1985a28e5340ad14b"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/memorysafety/zlib-rs?rev=e83fcefadb576e0ce32297cc516facb694d93b67"]
-git = "https://github.com/memorysafety/zlib-rs"
-rev = "e83fcefadb576e0ce32297cc516facb694d93b67"
-replace-with = "vendored-sources"
-
 [source."git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c"]
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
 rev = "61f399c53a641ebd3077c1f39f054f6d396a633c"

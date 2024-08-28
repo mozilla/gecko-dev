@@ -896,13 +896,6 @@ pkg_check_modules("MOZ_ZLIB", "zlib >= 1.2.3", when="--with-system-zlib")
 set_config("MOZ_SYSTEM_ZLIB", True, when="--with-system-zlib")
 
 
-@depends(with_system_zlib_option, milestone.is_nightly, when=toolkit)
-def use_libz_rs(system_zlib, is_nightly):
-    return not system_zlib and is_nightly
-
-
-set_config("USE_LIBZ_RS", True, when=use_libz_rs)
-
 with only_when(cross_compiling):
     option(
         env="JS_BINARY",

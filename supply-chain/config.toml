@@ -94,9 +94,6 @@ notes = "This crate has two testing-only dependencies which are specified as reg
 audit-as-crates-io = false
 notes = "This override is an api-compatible fork with an orthogonal implementation."
 
-[policy."libz-rs-sys:0.2.1@git:e83fcefadb576e0ce32297cc516facb694d93b67"]
-audit-as-crates-io = true
-
 [policy.malloc_size_of_derive]
 audit-as-crates-io = false
 notes = "This was originally servo code which Bobby Holley put on crates.io some years ago and that was moved in-tree as first-party code later on."
@@ -229,9 +226,6 @@ notes = "Local override of the crates.io crate that uses a non-vendored local co
 
 [policy.wr_malloc_size_of]
 audit-as-crates-io = false
-
-[policy."zlib-rs:0.2.1@git:e83fcefadb576e0ce32297cc516facb694d93b67"]
-audit-as-crates-io = true
 
 [[exemptions.ahash]]
 version = "0.7.6"
