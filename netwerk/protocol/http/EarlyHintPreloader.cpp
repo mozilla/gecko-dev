@@ -124,7 +124,6 @@ EarlyHintPreloader::~EarlyHintPreloader() {
     mTimer->Cancel();
     mTimer = nullptr;
   }
-  Telemetry::Accumulate(Telemetry::EH_STATE_OF_PRELOAD_REQUEST, mState);
 }
 
 /* static */

@@ -131,37 +131,9 @@ void EarlyHintsService::RegisterLinksAndGetConnectArgs(
 
 void EarlyHintsService::CollectTelemetry(Maybe<uint32_t> aResponseStatus,
                                          const nsACString& aProtocolVersion) {
-  // EH_NUM_OF_HINTS_PER_PAGE is only collected for the 2xx responses,
-  // regardless of the number of received mEarlyHintsCount.
-  // Other telemetry probes are only collected if there was at least one
-  // EarlyHints response.
-  if (aResponseStatus && (*aResponseStatus <= 299)) {
-    Telemetry::Accumulate(Telemetry::EH_NUM_OF_HINTS_PER_PAGE,
-                          mEarlyHintsCount);
-  }
   if (mEarlyHintsCount == 0) {
     return;
   }
-
-  Telemetry::LABELS_EH_FINAL_RESPONSE label =
-      Telemetry::LABELS_EH_FINAL_RESPONSE::Cancel;
-  if (aResponseStatus) {
-    if (*aResponseStatus <= 299) {
-      label = Telemetry::LABELS_EH_FINAL_RESPONSE::R2xx;
-
-      MOZ_ASSERT(mFirstEarlyHint);
-      Telemetry::AccumulateTimeDelta(Telemetry::EH_TIME_TO_FINAL_RESPONSE,
-                                     *mFirstEarlyHint, TimeStamp::NowLoRes());
-    } else if (*aResponseStatus <= 399) {
-      label = Telemetry::LABELS_EH_FINAL_RESPONSE::R3xx;
-    } else if (*aResponseStatus <= 499) {
-      label = Telemetry::LABELS_EH_FINAL_RESPONSE::R4xx;
-    } else {
-      label = Telemetry::LABELS_EH_FINAL_RESPONSE::Other;
-    }
-  }
-
-  Telemetry::AccumulateCategorical(label);
 
   // Bug 1851437: Add telemetry for Early Hints protocol version
   // glean does not allow keys named "http/1.0" or "http/1.1"

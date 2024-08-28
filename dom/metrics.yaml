@@ -260,67 +260,6 @@ performance.pageload:
         This is collected only on page load where the main document uses HTTP3.
         A "priority" header has not been received.
 
-  eh_fcp_preload_with_eh: &eh_fcp_preload_with_eh
-    type: timing_distribution
-    time_unit: millisecond
-    description: >
-        The time between navigationStart and the first contentful paint of
-        a foreground http or https root content document, in milliseconds.
-        The contentful paint timestamp is taken during display list
-        building and does not include rasterization or compositing of that paint.
-        This is collected only on page load where the main document uses
-        or supports Early Hints preload.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1808323
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898245
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898245
-    notification_emails:
-      - necko@mozilla.com
-      - kershaw@mozilla.com
-      - perf-telemetry-alerts@mozilla.com
-    expires: never
-
-  eh_fcp_preload_without_eh:
-    <<: *eh_fcp_preload_with_eh
-    description: >
-        The time between navigationStart and the first contentful paint of
-        a foreground http or https root content document, in milliseconds.
-        The contentful paint timestamp is taken during display list
-        building and does not include rasterization or compositing of that paint.
-        This is collected only on page load where the main document uses
-        preload without Early Hints.
-
-  eh_fcp_preconnect:
-    <<: *eh_fcp_preload_with_eh
-    description: >
-        The time between navigationStart and the first contentful paint of
-        a foreground http or https root content document, in milliseconds.
-        The contentful paint timestamp is taken during display list
-        building and does not include rasterization or compositing of that paint.
-        This is collected only on page load where the main document uses
-        preconnect but did not use Early Hints preload.
-
-  eh_fcp_preconnect_preload_with_eh:
-    <<: *eh_fcp_preload_with_eh
-    description: >
-        The time between navigationStart and the first contentful paint of
-        a foreground http or https root content document, in milliseconds.
-        The contentful paint timestamp is taken during display list
-        building and does not include rasterization or compositing of that paint.
-        This is collected on early page load where the main document uses
-        preconnect and supports Early Hints preload.
-
-  eh_fcp_preconnect_preload_without_eh:
-    <<: *eh_fcp_preload_with_eh
-    description: >
-        The time between navigationStart and the first contentful paint of
-        a foreground http or https root content document, in milliseconds.
-        The contentful paint timestamp is taken during display list
-        building and does not include rasterization or compositing of that paint.
-        This is collected on early page load where the preconnected main document uses
-        preconnect and preload without Early Hints.
-
 performance.time:
   dom_interactive:
     type: timing_distribution

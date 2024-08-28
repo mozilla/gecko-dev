@@ -131,8 +131,6 @@ support-files = [
   "early_hint_preload_test_helper.sys.mjs",
 ]
 
-["browser_103_telemetry.js"]
-
 ["browser_103_user_load.js"]
 support-files = ["early_hint_preload_test_helper.sys.mjs",]
 

@@ -2083,28 +2083,6 @@ static void AccumulatePriorityFcpGleanPref(
     MOZ_ASSERT_UNREACHABLE("Unknown value for http3WithPriorityKey");
   }
 }
-
-static void AccumulateEarlyHintFcpGleanPref(const nsCString& earlyHintKey,
-                                            const TimeDuration& duration) {
-  if (earlyHintKey == "preload_1"_ns) {
-    glean::performance_pageload::eh_fcp_preload_with_eh.AccumulateRawDuration(
-        duration);
-  } else if (earlyHintKey == "preload_0"_ns) {
-    glean::performance_pageload::eh_fcp_preload_without_eh
-        .AccumulateRawDuration(duration);
-  } else if (earlyHintKey == "preconnect_"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect.AccumulateRawDuration(
-        duration);
-  } else if (earlyHintKey == "preconnect_preload_1"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect_preload_with_eh
-        .AccumulateRawDuration(duration);
-  } else if (earlyHintKey == "preconnect_preload_0"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect_preload_without_eh
-        .AccumulateRawDuration(duration);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Unknown value for earlyHintKey");
-  }
-}
 #endif
 
 void Document::AccumulatePageLoadTelemetry(
@@ -2262,16 +2240,6 @@ void Document::AccumulatePageLoadTelemetry(
 #endif
     }
 
-    if (!earlyHintKey.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::EH_PERF_FIRST_CONTENTFUL_PAINT_MS, earlyHintKey,
-          navigationStart, firstContentfulComposite);
-#ifndef ANDROID
-      AccumulateEarlyHintFcpGleanPref(
-          earlyHintKey, firstContentfulComposite - navigationStart);
-#endif
-    }
-
     Telemetry::AccumulateTimeDelta(
         Telemetry::DNS_PERF_FIRST_CONTENTFUL_PAINT_MS, dnsKey, navigationStart,
         firstContentfulComposite);
@@ -2307,12 +2275,6 @@ void Document::AccumulatePageLoadTelemetry(
     if (!http3WithPriorityKey.IsEmpty()) {
       Telemetry::AccumulateTimeDelta(Telemetry::H3P_PERF_PAGE_LOAD_TIME_MS,
                                      http3WithPriorityKey, navigationStart,
-                                     loadEventStart);
-    }
-
-    if (!earlyHintKey.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(Telemetry::EH_PERF_PAGE_LOAD_TIME_MS,
-                                     earlyHintKey, navigationStart,
                                      loadEventStart);
     }
 
