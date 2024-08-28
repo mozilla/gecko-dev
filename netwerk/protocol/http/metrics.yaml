@@ -67,23 +67,6 @@ netwerk:
       - manuel@mozilla.com
     expires: never
 
-  eh_response_version:
-    type: labeled_counter
-    description: >
-      HTTP protocol version from Early Hints response
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1851437
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1851437
-    notification_emails:
-      - necko@mozilla.com
-    expires: never
-    labels:
-      - unknown
-      - http_1
-      - http_2
-      - http_3
-
 network:
   byte_range_request:
     type: labeled_counter

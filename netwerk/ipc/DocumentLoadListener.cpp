@@ -2672,11 +2672,7 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
   }
 
   if (httpChannel) {
-    uint32_t responseStatus = 0;
-    nsAutoCString protocol;
-    Unused << httpChannel->GetResponseStatus(&responseStatus);
-    Unused << httpChannel->GetProtocolVersion(protocol);
-    mEarlyHintsService.FinalResponse(responseStatus, protocol);
+    mEarlyHintsService.Reset();
   } else {
     mEarlyHintsService.Cancel(
         "DocumentLoadListener::OnStartRequest: no httpChannel"_ns);
