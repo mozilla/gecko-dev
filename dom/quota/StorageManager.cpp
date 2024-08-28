@@ -21,8 +21,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/FileSystemManager.h"
@@ -789,7 +787,6 @@ already_AddRefed<Promise> StorageManager::Persisted(ErrorResult& aRv) {
 already_AddRefed<Promise> StorageManager::Persist(ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
 
-  Telemetry::ScalarAdd(Telemetry::ScalarID::NAVIGATOR_STORAGE_PERSIST_COUNT, 1);
   return ExecuteOpOnMainOrWorkerThread(mOwner, RequestResolver::Type::Persist,
                                        aRv);
 }
@@ -797,8 +794,6 @@ already_AddRefed<Promise> StorageManager::Persist(ErrorResult& aRv) {
 already_AddRefed<Promise> StorageManager::Estimate(ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
 
-  Telemetry::ScalarAdd(Telemetry::ScalarID::NAVIGATOR_STORAGE_ESTIMATE_COUNT,
-                       1);
   return ExecuteOpOnMainOrWorkerThread(mOwner, RequestResolver::Type::Estimate,
                                        aRv);
 }

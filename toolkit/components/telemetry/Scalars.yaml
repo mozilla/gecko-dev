@@ -3816,43 +3816,6 @@ dom.event:
     record_in_processes:
       - 'content'
 
-navigator.storage:
-  estimate_count:
-    bug_numbers:
-      - 1359708
-    description: >
-      Number of times navigator.storage.estimate has been used.
-    expires: "60"
-    kind: uint
-    notification_emails:
-      - shuang@mozilla.com
-      - ttung@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
-  persist_count:
-    bug_numbers:
-      - 1359708
-    description: >
-      Number of times navigator.storage.persist has been used.
-    expires: "60"
-    kind: uint
-    notification_emails:
-      - shuang@mozilla.com
-      - ttung@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
 mozstorage:
   sqlitejsm_transaction_timeout:
     bug_numbers:
