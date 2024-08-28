@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-08-24T08:35:37.109364+00:00'
+updated_at: '2024-08-28T12:42:03.276491+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3399,12 +3399,13 @@ modules:
         owners:
           - *dao
         peers:
-          - *itielyn8
-          - *sfoster
-          - *emilio
-          - *jules
           - *cmkm
+          - *emilio
+          - *hjones
+          - *itielyn8
+          - *jules
           - *kcochrane
+          - *sfoster
         machine_name: desktop_theme
 
       - name: Desktop UI
@@ -4371,5 +4372,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2b820918028a169e0dd7eb608374b600b82c59e7
-  export: 13932a489e0e5bef0e8ff7e3513c17450c44152a
+  config: fd48eb8147e73f4b39107fe2f56f0d0903fc1166
+  export: e31a31001c2b73c5b6b1a223908fdb75caea2ac4
