@@ -2328,7 +2328,7 @@ RTCError MediaSessionDescriptionFactory::AddDataContentForAnswer(
     // 0 is treated specially - it means "I can accept any size". Since
     // we do not implement infinite size messages, reply with
     // kSctpSendBufferSize.
-    if (offer_data_description->max_message_size() == 0) {
+    if (offer_data_description->max_message_size() <= 0) {
       data_answer->as_sctp()->set_max_message_size(kSctpSendBufferSize);
     } else {
       data_answer->as_sctp()->set_max_message_size(std::min(
