@@ -162,9 +162,22 @@ var gSanitizePromptDialog = {
     document.l10n.setAttributes(OKButton, okButtonl10nID);
 
     if (!lazy.USE_OLD_DIALOG) {
+      this._sinceMidnightSanitizeDurationOption = document.getElementById(
+        "sanitizeSinceMidnight"
+      );
       this._cookiesAndSiteDataCheckbox =
         document.getElementById("cookiesAndStorage");
       this._cacheCheckbox = document.getElementById("cache");
+
+      let midnightTime = Intl.DateTimeFormat(navigator.language, {
+        hour: "numeric",
+        minute: "numeric",
+      }).format(new Date().setHours(0, 0, 0, 0));
+      document.l10n.setAttributes(
+        this._sinceMidnightSanitizeDurationOption,
+        "clear-time-duration-value-since-midnight",
+        { midnightTime }
+      );
     }
 
     document.addEventListener("dialogaccept", e => {
@@ -507,6 +520,7 @@ var gSanitizePromptDialog = {
 
     // make sure l10n updates are completed
     await document.l10n.translateElements([
+      this._sinceMidnightSanitizeDurationOption,
       this._cookiesAndSiteDataCheckbox,
       this._cacheCheckbox,
     ]);

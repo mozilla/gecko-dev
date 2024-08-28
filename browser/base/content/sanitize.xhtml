@@ -68,7 +68,11 @@
             data-l10n-id="clear-time-duration-value-last-4-hours"
             value="3"
           />
-          <menuitem data-l10n-id="clear-time-duration-value-today" value="4" />
+          <menuitem
+            data-l10n-id="clear-time-duration-value-today"
+            value="4"
+            id="sanitizeSinceMidnight"
+          />
           <menuseparator />
           <menuitem
             data-l10n-id="clear-time-duration-value-everything"
@@ -98,7 +102,9 @@
     </vbox>
 
     <groupbox>
-      <label><html:h2 data-l10n-id="history-section-label" /></label>
+      <label>
+        <html:h2 data-l10n-id="history-section-label" />
+      </label>
       <hbox>
         <vbox data-l10n-id="sanitize-prefs-style" data-l10n-attrs="style">
           <checkbox
@@ -124,7 +130,9 @@
       </hbox>
     </groupbox>
     <groupbox>
-      <label><html:h2 data-l10n-id="data-section-label" /></label>
+      <label>
+        <html:h2 data-l10n-id="data-section-label" />
+      </label>
       <hbox>
         <vbox data-l10n-id="sanitize-prefs-style" data-l10n-attrs="style">
           <checkbox
