@@ -1401,6 +1401,8 @@ rtc_library("video_codec_tester") {
     "../rtc_base:timeutils",
     "../rtc_base/synchronization:mutex",
     "../system_wrappers",
+    "../system_wrappers:field_trial",
+    "../test:explicit_key_value_config",
     "../test:fileutils",
     "../video/config:streams_config",
     "//third_party/abseil-cpp/absl/strings",

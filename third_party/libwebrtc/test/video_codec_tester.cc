@@ -46,7 +46,9 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/time_utils.h"
+#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/sleep.h"
+#include "test/explicit_key_value_config.h"
 #include "test/scoped_key_value_config.h"
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_reader.h"
@@ -1291,11 +1293,7 @@ void ConfigureSimulcast(VideoCodec* vc) {
     return;
   }
 
-  ScopedKeyValueConfig field_trials((rtc::StringBuilder()
-                                     << "WebRTC-VP8ConferenceTemporalLayers/"
-                                     << num_temporal_layers << "/")
-                                        .str());
-
+  ExplicitKeyValueConfig field_trials(field_trial::GetFieldTrialString());
   const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
       /*min_layer=*/1, num_spatial_layers, vc->width, vc->height,
       /*is_screenshare=*/false, /*temporal_layers_supported=*/true,
@@ -1312,8 +1310,7 @@ void ConfigureSimulcast(VideoCodec* vc) {
     SimulcastStream* ss = &vc->simulcastStream[i];
     ss->width = streams[i].width;
     ss->height = streams[i].height;
-    RTC_CHECK_EQ(*streams[i].num_temporal_layers, num_temporal_layers);
-    ss->numberOfTemporalLayers = *streams[i].num_temporal_layers;
+    ss->numberOfTemporalLayers = num_temporal_layers;
     ss->maxBitrate = streams[i].max_bitrate_bps / 1000;
     ss->targetBitrate = streams[i].target_bitrate_bps / 1000;
     ss->minBitrate = streams[i].min_bitrate_bps / 1000;

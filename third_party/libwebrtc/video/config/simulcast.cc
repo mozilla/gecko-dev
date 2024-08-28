@@ -178,27 +178,6 @@ std::vector<SimulcastFormat> GetSimulcastFormats(
   return formats;
 }
 
-// Multiway: Number of temporal layers for each simulcast stream.
-int DefaultNumberOfTemporalLayers(const webrtc::FieldTrialsView& trials) {
-  const std::string group_name =
-      trials.Lookup("WebRTC-VP8ConferenceTemporalLayers");
-  if (group_name.empty())
-    return kDefaultNumTemporalLayers;
-
-  int num_temporal_layers = kDefaultNumTemporalLayers;
-  if (sscanf(group_name.c_str(), "%d", &num_temporal_layers) == 1 &&
-      num_temporal_layers > 0 &&
-      num_temporal_layers <= webrtc::kMaxTemporalStreams) {
-    return num_temporal_layers;
-  }
-
-  RTC_LOG(LS_WARNING) << "Attempt to set number of temporal layers to "
-                         "incorrect value: "
-                      << group_name;
-
-  return kDefaultNumTemporalLayers;
-}
-
 int FindSimulcastFormatIndex(int width,
                              int height,
                              bool enable_lowres_bitrate_interpolation,
@@ -260,7 +239,8 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
   std::vector<webrtc::VideoStream> layers(layer_count);
   const bool enable_lowres_bitrate_interpolation =
       EnableLowresBitrateInterpolation(trials);
-  const int num_temporal_layers = DefaultNumberOfTemporalLayers(trials);
+  const int num_temporal_layers =
+      temporal_layers_supported ? kDefaultNumTemporalLayers : 1;
   // Format width and height has to be divisible by |2 ^ num_simulcast_layers -
   // 1|.
   width = NormalizeSimulcastSize(trials, width, layer_count);
@@ -270,8 +250,7 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
   for (size_t s = layer_count - 1;; --s) {
     layers[s].width = width;
     layers[s].height = height;
-    layers[s].num_temporal_layers =
-        temporal_layers_supported ? num_temporal_layers : 1;
+    layers[s].num_temporal_layers = num_temporal_layers;
 
     SimulcastFormat interpolated_format = InterpolateSimulcastFormat(
         width, height, /*max_roundup_rate=*/absl::nullopt,

@@ -1236,7 +1236,7 @@ index eef2754883..90f746e594 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index a3e396601e..b0b2b06152 100644
+index f083e02bd6..3079aaa2a6 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -231,6 +231,7 @@ rtc_library("audio_test_common") {
