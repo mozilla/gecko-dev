@@ -10,6 +10,7 @@
   class MozArrowScrollbox extends MozElements.BaseControl {
     static #startEndVertical = ["top", "bottom"];
     static #startEndHorizontal = ["left", "right"];
+    #scrollButtonUpdatePending = false;
 
     static get inheritedAttributes() {
       return {
@@ -79,7 +80,6 @@
       this._ensureElementIsVisibleAnimationFrame = 0;
       this._prevMouseScrolls = [null, null];
       this._touchStart = -1;
-      this._scrollButtonUpdatePending = false;
       this._isScrolling = false;
       this._destination = 0;
       this._direction = 0;
@@ -105,17 +105,17 @@
         // minor differences (the internal Gecko layout size is 1/60th of a
         // pixel, so 0.02 should cover it).
         let overflowing = contentSize - this.scrollClientSize > 0.02;
-        if (overflowing == this.hasAttribute("overflowing")) {
+        if (overflowing == this.overflowing) {
           if (overflowing) {
             // Update scroll buttons' disabled state when the slot or scrollbox
             // size changes while we were already overflowing.
-            this._updateScrollButtonsDisabledState();
+            this.#updateScrollButtonsDisabledState(/* aRafCount = */ 1);
           }
           return;
         }
         window.requestAnimationFrame(() => {
           this.toggleAttribute("overflowing", overflowing);
-          this._updateScrollButtonsDisabledState();
+          this.#updateScrollButtonsDisabledState(/* aRafCount = */ 1);
           this.dispatchEvent(
             new CustomEvent(overflowing ? "overflow" : "underflow")
           );
@@ -143,7 +143,11 @@
       }
 
       this.initializeAttributeInheritance();
-      this._updateScrollButtonsDisabledState();
+      this.#updateScrollButtonsDisabledState();
+    }
+
+    get overflowing() {
+      return this.hasAttribute("overflowing");
     }
 
     get fragment() {
@@ -553,75 +557,75 @@
       this.scrollbox.scrollBy(scrollOptions);
     }
 
-    _updateScrollButtonsDisabledState() {
-      if (!this.hasAttribute("overflowing")) {
+    // @param aRafCount how many animation frames we need to wait to get
+    // current layout data from getBoundsWithoutFlushing.
+    #updateScrollButtonsDisabledState(aRafCount = 2) {
+      if (!this.overflowing) {
         this.toggleAttribute("scrolledtoend", true);
         this.toggleAttribute("scrolledtostart", true);
+        this.#scrollButtonUpdatePending = false;
         return;
       }
 
-      if (this._scrollButtonUpdatePending) {
-        return;
-      }
-      this._scrollButtonUpdatePending = true;
+      if (aRafCount) {
+        if (this.#scrollButtonUpdatePending) {
+          return;
+        }
 
-      // Wait until after the next paint to get current layout data from
-      // getBoundsWithoutFlushing.
-      window.requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (!this.isConnected) {
-            // We've been destroyed in the meantime.
-            return;
-          }
-
-          this._scrollButtonUpdatePending = false;
-
-          let scrolledToStart = false;
-          let scrolledToEnd = false;
-
-          if (!this.hasAttribute("overflowing")) {
-            scrolledToStart = true;
-            scrolledToEnd = true;
+        this.#scrollButtonUpdatePending = true;
+        let oneIter = () => {
+          if (aRafCount--) {
+            if (this.#scrollButtonUpdatePending && this.isConnected) {
+              window.requestAnimationFrame(oneIter);
+            }
           } else {
-            let isAtEdge = (element, start) => {
-              let edge = start ? this.startEndProps[0] : this.startEndProps[1];
-              let scrollEdge = this._boundsWithoutFlushing(this.scrollbox)[
-                edge
-              ];
-              let elementEdge = this._boundsWithoutFlushing(element)[edge];
-              // This is enough slop (>2/3) so that no subpixel value should
-              // get us confused about whether we reached the end.
-              const EPSILON = 0.7;
-              if (start) {
-                return scrollEdge <= elementEdge + EPSILON;
-              }
-              return elementEdge <= scrollEdge + EPSILON;
-            };
-
-            let elements = this._getScrollableElements();
-            let [startElement, endElement] = [
-              elements[0],
-              elements[elements.length - 1],
-            ];
-            if (this.isRTLScrollbox) {
-              [startElement, endElement] = [endElement, startElement];
-            }
-            scrolledToStart =
-              startElement && isAtEdge(startElement, /* start = */ true);
-            scrolledToEnd =
-              endElement && isAtEdge(endElement, /* start = */ false);
-            if (this.isRTLScrollbox) {
-              [scrolledToStart, scrolledToEnd] = [
-                scrolledToEnd,
-                scrolledToStart,
-              ];
-            }
+            this.#updateScrollButtonsDisabledState(0);
           }
+        };
+        oneIter();
+        return;
+      }
 
-          this.toggleAttribute("scrolledtoend", scrolledToEnd);
-          this.toggleAttribute("scrolledtostart", scrolledToStart);
-        }, 0);
-      });
+      this.#scrollButtonUpdatePending = false;
+
+      let scrolledToStart = false;
+      let scrolledToEnd = false;
+
+      if (!this.overflowing) {
+        scrolledToStart = true;
+        scrolledToEnd = true;
+      } else {
+        let isAtEdge = (element, start) => {
+          let edge = start ? this.startEndProps[0] : this.startEndProps[1];
+          let scrollEdge = this._boundsWithoutFlushing(this.scrollbox)[edge];
+          let elementEdge = this._boundsWithoutFlushing(element)[edge];
+          // This is enough slop (>2/3) so that no subpixel value should
+          // get us confused about whether we reached the end.
+          const EPSILON = 0.7;
+          if (start) {
+            return scrollEdge <= elementEdge + EPSILON;
+          }
+          return elementEdge <= scrollEdge + EPSILON;
+        };
+
+        let elements = this._getScrollableElements();
+        let [startElement, endElement] = [
+          elements[0],
+          elements[elements.length - 1],
+        ];
+        if (this.isRTLScrollbox) {
+          [startElement, endElement] = [endElement, startElement];
+        }
+        scrolledToStart =
+          startElement && isAtEdge(startElement, /* start = */ true);
+        scrolledToEnd = endElement && isAtEdge(endElement, /* start = */ false);
+        if (this.isRTLScrollbox) {
+          [scrolledToStart, scrolledToEnd] = [scrolledToEnd, scrolledToStart];
+        }
+      }
+
+      this.toggleAttribute("scrolledtoend", scrolledToEnd);
+      this.toggleAttribute("scrolledtostart", scrolledToStart);
     }
 
     disconnectedCallback() {
@@ -635,7 +639,7 @@
 
     on_wheel(event) {
       // Don't consume the event if we can't scroll.
-      if (!this.hasAttribute("overflowing")) {
+      if (!this.overflowing) {
         return;
       }
 
@@ -746,7 +750,7 @@
 
     on_scroll() {
       this._isScrolling = true;
-      this._updateScrollButtonsDisabledState();
+      this.#updateScrollButtonsDisabledState();
       this.dispatchEvent(new Event("scroll"));
     }
 
