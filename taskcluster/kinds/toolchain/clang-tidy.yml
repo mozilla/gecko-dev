@@ -104,6 +104,30 @@ win64-clang-tidy:
             - vs-toolchain
             - win64-libxml2
 
+win64-aarch64-clang-tidy:
+    description: "Clang-tidy toolchain build"
+    index:
+        job-name: win64-aarch64-clang-tidy
+    treeherder:
+        symbol: TW64(clang-tidy-aarch64)
+    worker:
+        max-run-time: 7200
+    run:
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/win64-aarch64.json'
+        resources:
+            - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/win64-aarch64.json'
+    fetches:
+        toolchain:
+            - linux64-clang-18
+            - vs-toolchain
+            - win64-aarch64-libxml2
+
 linux64-clang-tidy-external:
     attributes:
         local-toolchain: false

@@ -1592,7 +1592,9 @@ def get_clang_tools(
 
     from mozbuild.bootstrap import bootstrap_toolchain
 
-    bootstrap_toolchain("clang-tools/clang-tidy")
+    clang_tidy = bootstrap_toolchain("clang-tools/clang-tidy")
+    if not clang_tidy:
+        raise Exception("clang-tidy not found")
 
     return 0 if _is_version_eligible(command_context, clang_paths) else 1, clang_paths
 
