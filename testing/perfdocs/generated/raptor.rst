@@ -13450,7 +13450,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **expected**: pass
    * **fore window**: 1
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-regression-test.toml#24>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/custom/browsertime-regression-test.toml#23>`__
    * **lower is better**: true
    * **max back window**: 3
    * **min back window**: 2
@@ -13458,7 +13458,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    * **page cycles**: 1
    * **page timeout**: 1800000
    * **subtest unit**: ms
-   * **support class**: browsertime_pageload.py
    * **test script**: constant_regression_test.js
    * **test summary**: flatten
    * **test url**: `<None>`__
