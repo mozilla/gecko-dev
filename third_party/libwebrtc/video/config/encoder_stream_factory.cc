@@ -320,23 +320,24 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     const absl::optional<webrtc::DataRate>& experimental_min_bitrate) const {
   bool is_screencast = encoder_config.content_type ==
                        webrtc::VideoEncoderConfig::ContentType::kScreen;
+  const bool is_legacy_screencast =
+      webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config);
   std::vector<webrtc::VideoStream> layers;
 
   const bool temporal_layers_supported =
       IsTemporalLayersSupported(encoder_config.codec_type);
   // Use legacy simulcast screenshare if conference mode is explicitly enabled
   // or use the regular simulcast configuration path which is generic.
-  layers = GetSimulcastConfig(
-      FindRequiredActiveLayers(encoder_config),
-      encoder_config.number_of_streams, width, height,
-      webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
-      temporal_layers_supported, trials, encoder_config.codec_type);
+  layers = GetSimulcastConfig(FindRequiredActiveLayers(encoder_config),
+                              encoder_config.number_of_streams, width, height,
+                              is_legacy_screencast, temporal_layers_supported,
+                              trials, encoder_config.codec_type);
   // Allow an experiment to override the minimum bitrate for the lowest
   // spatial layer. The experiment's configuration has the lowest priority.
-  if (experimental_min_bitrate) {
-    layers[0].min_bitrate_bps =
-        rtc::saturated_cast<int>(experimental_min_bitrate->bps());
-  }
+  layers[0].min_bitrate_bps = experimental_min_bitrate
+                                  .value_or(webrtc::DataRate::BitsPerSec(
+                                      webrtc::kDefaultMinVideoBitrateBps))
+                                  .bps<int>();
 
   const bool has_scale_resolution_down_by = absl::c_any_of(
       encoder_config.simulcast_layers, [](const webrtc::VideoStream& layer) {

@@ -71,6 +71,7 @@ if (rtc_include_tests) {
       ":streams_config",
       "../../call/adaptation:resource_adaptation",
       "../../media:media_constants",
+      "../../rtc_base/experiments:min_video_bitrate_experiment",
       "../../test:explicit_key_value_config",
       "../../test:test_support",
     ]
