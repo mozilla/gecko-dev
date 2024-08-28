@@ -49,6 +49,8 @@ if test -z "$bucket" -a -z "$SCCACHE_DISABLE"; then
             case $cloud in
             google)
                 bucket=${gcp_prefix}-l${MOZ_SCM_LEVEL}-${region}
+                # deal with length limit on serviceaccount names (https://bugzilla.mozilla.org/show_bug.cgi?id=1882374#c5)
+                serviceaccount=$(echo $bucket | sed s/northamerica/na/)
                 ;;
             aws)
                 bucket=${aws_prefix}-level-${MOZ_SCM_LEVEL}-sccache-${region}
@@ -74,7 +76,7 @@ if test -n "$bucket"; then
     if test "$cloud" = "google"; then
         mk_add_options "export SCCACHE_GCS_BUCKET=$bucket"
         mk_add_options "export SCCACHE_GCS_RW_MODE=READ_WRITE"
-        mk_add_options "export SCCACHE_GCS_CREDENTIALS_URL=http://taskcluster/auth/v1/gcp/credentials/$SCCACHE_GCS_PROJECT/${bucket}@$SCCACHE_GCS_PROJECT.iam.gserviceaccount.com"
+        mk_add_options "export SCCACHE_GCS_CREDENTIALS_URL=http://taskcluster/auth/v1/gcp/credentials/$SCCACHE_GCS_PROJECT/${serviceaccount}@$SCCACHE_GCS_PROJECT.iam.gserviceaccount.com"
     elif [ -n "${SCCACHE_GCS_KEY_PATH}" ]; then
         mk_add_options "export SCCACHE_GCS_BUCKET=$bucket"
     else
