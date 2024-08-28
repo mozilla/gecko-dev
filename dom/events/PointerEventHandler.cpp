@@ -658,33 +658,6 @@ void PointerEventHandler::InitPointerEventFromTouch(
 }
 
 /* static */
-void PointerEventHandler::InitCoalescedEventFromPointerEvent(
-    WidgetPointerEvent& aCoalescedEvent,
-    const WidgetPointerEvent& aSourceEvent) {
-  aCoalescedEvent.mFlags.mCancelable = false;
-  aCoalescedEvent.mFlags.mBubbles = false;
-
-  aCoalescedEvent.mTimeStamp = aSourceEvent.mTimeStamp;
-  aCoalescedEvent.mRefPoint = aSourceEvent.mRefPoint;
-  aCoalescedEvent.mModifiers = aSourceEvent.mModifiers;
-
-  // WidgetMouseEventBase
-  aCoalescedEvent.mButton = aSourceEvent.mButton;
-  aCoalescedEvent.mButtons = aSourceEvent.mButtons;
-  aCoalescedEvent.mPressure = aSourceEvent.mPressure;
-  aCoalescedEvent.mInputSource = aSourceEvent.mInputSource;
-
-  // pointerId, tiltX, tiltY, twist, tangentialPressure and convertToPointer.
-  aCoalescedEvent.AssignPointerHelperData(aSourceEvent);
-
-  // WidgetPointerEvent
-  aCoalescedEvent.mWidth = aSourceEvent.mWidth;
-  aCoalescedEvent.mHeight = aSourceEvent.mHeight;
-  aCoalescedEvent.mIsPrimary = aSourceEvent.mIsPrimary;
-  aCoalescedEvent.mFromTouchEvent = aSourceEvent.mFromTouchEvent;
-}
-
-/* static */
 EventMessage PointerEventHandler::ToPointerEventMessage(
     const WidgetGUIEvent* aMouseOrTouchEvent) {
   MOZ_ASSERT(aMouseOrTouchEvent);

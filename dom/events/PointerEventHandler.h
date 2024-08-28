@@ -223,10 +223,6 @@ class PointerEventHandler final {
                                         const WidgetTouchEvent& aTouchEvent,
                                         const mozilla::dom::Touch& aTouch);
 
-  static void InitCoalescedEventFromPointerEvent(
-      WidgetPointerEvent& aCoalescedEvent,
-      const WidgetPointerEvent& aSourceEvent);
-
   static bool ShouldGeneratePointerEventFromMouse(WidgetGUIEvent* aEvent) {
     return aEvent->mMessage == eMouseDown || aEvent->mMessage == eMouseUp ||
            (aEvent->mMessage == eMouseMove &&

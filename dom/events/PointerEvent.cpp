@@ -339,8 +339,6 @@ bool PointerEvent::EnableGetCoalescedEvents(JSContext* aCx, JSObject* aGlobal) {
 void PointerEvent::GetCoalescedEvents(
     nsTArray<RefPtr<PointerEvent>>& aPointerEvents) {
   WidgetPointerEvent* widgetEvent = mEvent->AsPointerEvent();
-  MOZ_ASSERT(widgetEvent);
-  EnsureFillingCoalescedEvents(*widgetEvent);
   if (mCoalescedEvents.IsEmpty() && widgetEvent &&
       widgetEvent->mCoalescedWidgetEvents &&
       !widgetEvent->mCoalescedWidgetEvents->mEvents.IsEmpty()) {
@@ -380,26 +378,6 @@ void PointerEvent::GetCoalescedEvents(
     }
   }
   aPointerEvents.AppendElements(mCoalescedEvents);
-}
-
-void PointerEvent::EnsureFillingCoalescedEvents(
-    WidgetPointerEvent& aWidgetEvent) {
-  if (!aWidgetEvent.IsTrusted() || aWidgetEvent.mMessage != ePointerMove ||
-      !mCoalescedEvents.IsEmpty() ||
-      (aWidgetEvent.mCoalescedWidgetEvents &&
-       !aWidgetEvent.mCoalescedWidgetEvents->mEvents.IsEmpty())) {
-    return;
-  }
-  if (!aWidgetEvent.mCoalescedWidgetEvents) {
-    aWidgetEvent.mCoalescedWidgetEvents = new WidgetPointerEventHolder();
-  }
-  WidgetPointerEvent* const coalescedEvent =
-      aWidgetEvent.mCoalescedWidgetEvents->mEvents.AppendElement(
-          WidgetPointerEvent(true, aWidgetEvent.mMessage,
-                             aWidgetEvent.mWidget));
-  MOZ_ASSERT(coalescedEvent);
-  PointerEventHandler::InitCoalescedEventFromPointerEvent(*coalescedEvent,
-                                                          aWidgetEvent);
 }
 
 void PointerEvent::GetPredictedEvents(
