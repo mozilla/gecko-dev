@@ -36,7 +36,7 @@ let gResponses = new Map(
     VWXYZAB012: [
       {
         name: "VIVO Electric 60 x 24 inch Stand Up Desk | Black Table Top, Black Frame, Height Adjustable Standing Workstation with Memory Preset Controller (DESK-KIT-1B6B)",
-        url: "https://example.com/Some-Product/dp/ABCDEFG123",
+        url: "https://example.com/Some-Product/dp/VWXYZAB012",
         image_url: "https://example.com/api/image.jpg",
         price: "249.99",
         currency: "USD",
