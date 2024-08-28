@@ -19,6 +19,7 @@
   browser                                          (%browser/**/*.ftl)
   preview/profiles.ftl                             (../components/profiles/content/profiles.ftl)
   preview/backupSettings.ftl                       (../locales-preview/backupSettings.ftl)
+  preview/firefoxRelayToAllBrowsers.ftl            (../locales-preview/firefoxRelayToAllBrowsers.ftl)
 
 @AB_CD@.jar:
 % locale browser @AB_CD@ %locale/browser/

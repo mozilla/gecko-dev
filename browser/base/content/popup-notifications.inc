@@ -253,6 +253,19 @@
       </popupnotificationcontent>
     </popupnotification>
 
+    <popupnotification id="fxa-and-relay-integration-offer-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <html:div>
+          <html:p data-l10n-id="firefox-relay-offer-why-to-use-relay"></html:p>
+          <html:p id="firefox-relay-offer-what-fxa-and-relay-provides" data-l10n-id="firefox-relay-offer-what-fxa-and-relay-provides"></html:p>
+          <html:p id="firefox-fxa-and-relay-offer-legal-notice" data-l10n-id="firefox-relay-offer-legal-notice">
+            <label id="firefox-fxa-and-relay-offer-tos-url" is="text-link" data-l10n-name="tos-url"/>
+            <label id="firefox-fxa-and-relay-offer-privacy-url" is="text-link" data-l10n-name="privacy-url"/>
+          </html:p>
+        </html:div>
+      </popupnotificationcontent>
+    </popupnotification>
+
     <popupnotification id="relay-integration-reuse-masks-notification" hidden="true">
       <popupnotificationcontent orient="vertical">
         <html:div>
