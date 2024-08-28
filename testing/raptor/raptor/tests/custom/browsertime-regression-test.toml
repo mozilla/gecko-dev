@@ -15,7 +15,6 @@ subtest_unit = "ms"
 type = "pageload"
 unit = "score"
 use_live_sites = true
-support_class = "browsertime_pageload.py"
 
 # Name these like `*-regression` where * represents
 # the kind of data is being produced. This makes it clearer
