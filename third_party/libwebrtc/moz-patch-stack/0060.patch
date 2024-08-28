@@ -1,24 +1,52 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 21 Jun 2022 11:11:09 -0500
-Subject: Bug 1773223 - Generate webrtc moz.builds for all platforms at once.
- r=mjf,firefox-build-system-reviewers,ahochheiden
+Date: Wed, 1 Jun 2022 12:47:00 -0500
+Subject: Bug 1766646 - (fix-f137b75a4d) specify default constructor on
+ config.emplace(...)
 
 ---
- build_overrides/build.gni | 4 ++++
- 1 file changed, 4 insertions(+)
+ .../goog_cc/loss_based_bwe_v2.cc                      | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/build_overrides/build.gni b/build_overrides/build.gni
-index 33a535525e..7d91ab85a9 100644
---- a/build_overrides/build.gni
-+++ b/build_overrides/build.gni
-@@ -50,6 +50,10 @@ if (host_os == "mac" || host_os == "linux") {
-   use_system_xcode = _result == 0
+diff --git a/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc b/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
+index 63d3ed3e42..765aef1a62 100644
+--- a/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
++++ b/modules/congestion_controller/goog_cc/loss_based_bwe_v2.cc
+@@ -50,7 +50,9 @@ bool IsValid(Timestamp timestamp) {
+   return timestamp.IsFinite();
  }
  
-+use_system_xcode = false
-+xcode_version = "10.15"
-+mac_xcode_version = "default"
-+
- declare_args() {
-   # WebRTC doesn't depend on //base from production code but only for testing
-   # purposes. In any case, it doesn't depend on //third_party/perfetto which
+-double ToKiloBytes(DataSize datasize) { return datasize.bytes() / 1000.0; }
++double ToKiloBytes(DataSize datasize) {
++  return datasize.bytes() / 1000.0;
++}
+ 
+ double GetLossProbability(double inherent_loss,
+                           DataRate loss_limited_bandwidth,
+@@ -208,7 +210,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
+   if (!IsValid(current_best_estimate_.loss_limited_bandwidth)) {
+     if (!IsValid(delay_based_estimate)) {
+       RTC_LOG(LS_WARNING) << "The delay based estimate must be finite: "
+-                        << ToString(delay_based_estimate);
++                          << ToString(delay_based_estimate);
+       return;
+     }
+     current_best_estimate_.loss_limited_bandwidth = delay_based_estimate;
+@@ -308,7 +310,7 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
+     if (config_->lower_bound_by_acked_rate_factor > 0.0) {
+       current_best_estimate_.loss_limited_bandwidth =
+           std::max(current_best_estimate_.loss_limited_bandwidth,
+-                  GetInstantLowerBound());
++                   GetInstantLowerBound());
+     }
+   }
+ 
+@@ -385,7 +387,8 @@ void LossBasedBweV2::UpdateBandwidthEstimate(
+ }
+ 
+ bool LossBasedBweV2::IsEstimateIncreasingWhenLossLimited(
+-    DataRate old_estimate, DataRate new_estimate) {
++    DataRate old_estimate,
++    DataRate new_estimate) {
+   return (old_estimate < new_estimate ||
+           (old_estimate == new_estimate &&
+            (loss_based_result_.state == LossBasedState::kIncreasing ||
