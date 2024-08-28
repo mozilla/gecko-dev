@@ -16,7 +16,6 @@
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Logging.h"
-#include "mozilla/SyncRunnable.h"
 
 namespace {
 static mozilla::LazyLogModule gMacOSWebAuthnServiceLog("macOSSingleSignOn");
