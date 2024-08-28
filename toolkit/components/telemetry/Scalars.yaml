@@ -1244,23 +1244,6 @@ browser.usage:
     record_in_processes:
       - 'all'
 
-  plugin_instantiated:
-    bug_numbers:
-      - 1381591
-    description: >-
-      The number of plugin instances that were created.
-    expires: never  # Jan-2021 but we don't have a version number for that
-    kind: uint
-    notification_emails:
-      - bsmedberg@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
 browser.ui:
   toolbar_widgets:
     bug_numbers:
@@ -3735,26 +3718,6 @@ devtools.accessibility:
     record_in_processes:
       - 'main'
 
-  service_enabled_count:
-    bug_numbers:
-      - 1447302
-      - 1503568
-      - 1587985
-    description: >
-      Number of times platform accessibility has been enabled in DevTools
-      Accessibility panel.
-    expires: never
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - accessibility@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-
   accessible_context_menu_opened:
     bug_numbers:
       - 1507870
@@ -4221,51 +4184,6 @@ normandy:
       - main
 
 # The following section contains graphics-related scalars.
-gfx.advanced.layers:
-  failure_id:
-    bug_numbers:
-      - 1365879
-    description: >
-      Each key is a failure for initializing Advanced Layers, and each value
-      is the number of times that failure was recorded. The failure codes
-      are unique strings present in MLGDeviceD3D11::Initialize, such that
-      a failure can be traced back to a specific Direct3D API call.
-    keyed: true
-    kind: uint
-    expires: "70"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - rhunt@mozilla.com
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-
-gfx.omtp:
-  paint_wait_ratio:
-    bug_numbers:
-      - 1386968
-      - 1518669
-      - 1673949
-      - 1674950
-    description: >
-      Ratio (in units of 1/100th of a percent) of how many times OMTP waited
-      for a paint for more than 200us, versus the total number of paints.
-    keyed: false
-    kind: uint
-    expires: "never" # 2021-10-01 this will move back to non-release collection.
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - rhunt@mozilla.com
-      - perf-telemetry-alerts@mozilla.com
-      - beth@mozilla.com
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'content'
-
 gfx.canvas.remote:
   activated:
     bug_numbers:
@@ -4295,27 +4213,6 @@ gfx.canvas.remote:
       - 1852144
     description: >
       Number of times remote canvas 2D has been deactivated due to device creation failure.
-    kind: uint
-    expires: "130"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - bowen@mozilla.com
-      - aosmond@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'gpu'
-
-  deactivated_bad_stream:
-    bug_numbers:
-      - 1641722
-      - 1672582
-      - 1706844
-      - 1739290
-      - 1852144
-    description: >
-      Number of times remote canvas 2D has been deactivated due to a stream read failure.
     kind: uint
     expires: "130"
     notification_emails:
@@ -4753,55 +4650,6 @@ printing:
     notification_emails:
       - jwatt@jwatt.org
       - jkew@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'content'
-
-  dialog_opened_without_preview:
-    bug_numbers:
-      - 1600623
-    description: >
-      A counter incremented every time the print dialog is opened without
-      opening print preview.
-    expires: never
-    kind: uint
-    notification_emails:
-      - jwatt@jwatt.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'content'
-
-  dialog_without_preview_cancelled:
-    bug_numbers:
-      - 1600623
-    description: >
-      A counter incremented every time a print dialog that was opened without
-      print preview is cancelled.
-    expires: never
-    kind: uint
-    notification_emails:
-      - jwatt@jwatt.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'content'
-
-  dialog_opened_via_preview:
-    bug_numbers:
-      - 1600623
-    description: >
-      A counter incremented every time the print dialog is opened from the old
-      print preview.
-    expires: never
-    kind: uint
-    notification_emails:
-      - jwatt@jwatt.org
-      - emalysz@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -7116,25 +6964,6 @@ deletion.request:
     kind: string
     notification_emails:
       - rfkelly@mozilla.com
-      - sync-team@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-    record_into_store:
-      - 'deletion-request'
-
-  ecosystem_client_id:
-    bug_numbers:
-      - 1635662
-    description: >
-      An identifier used by the ecosystem ping, to delete all ecosystem
-      metrics collected from this profile if the user opts out of telemetry.
-    expires: never
-    kind: string
-    notification_emails:
-      - lina@mozilla.com
       - sync-team@mozilla.com
     release_channel_collection: opt-out
     products:
@@ -9907,22 +9736,6 @@ cache:
       - 'main'
 
 opaque.response.blocking:
-  parsing_size_kb:
-    bug_numbers:
-      - 1695987
-    description: >
-      How many KB of response bodies are parsed by ORB?
-    expires: "93"
-    kind: uint
-    notification_emails:
-      - echuang@mozilla.com
-      - necko@mozilla.com
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-    release_channel_collection: opt-out
-
   cross_origin_opaque_response_count:
     bug_numbers:
       - 1804638
@@ -9994,71 +9807,6 @@ places:
     kind: uint
     notification_emails:
       - firefox-view-engineers@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-
-firstStartup:
-  statusCode:
-    bug_numbers:
-      - 1749345
-    description: >
-      Status of the FirstRun service, which runs post-install/early-startup in Firefox.
-    expires: never
-    kind: uint
-    notification_emails:
-      - rhelmer@mozilla.com
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-
-  elapsed:
-    bug_numbers:
-      - 1749345
-    description: >
-      Number of milliseconds the FirstRun service took to run.
-    expires: never
-    kind: uint
-    notification_emails:
-      - rhelmer@mozilla.com
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-
-  normandyInitTime:
-    bug_numbers:
-      - 1841138
-    description: >
-      Number of milliseconds until Normandy.init resolved in FirstStartup.
-    expires: never
-    kind: uint
-    notification_emails:
-      - rhelmer@mozilla.com
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-
-  deleteTasksTime:
-    bug_numbers:
-      - 1841138
-    description: >
-      Number of milliseconds until TaskScheduler.deleteAllTasks resolved in FirstStartup.
-    expires: never
-    kind: uint
-    notification_emails:
-      - rhelmer@mozilla.com
-      - mconley@mozilla.com
     release_channel_collection: opt-out
     products:
       - 'firefox'
