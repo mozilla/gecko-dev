@@ -580,12 +580,6 @@ class nsCocoaUtils {
   static BOOL WasLaunchedAtLogin();
 
   /**
-   * Should the application restore its state because it was launched by the OS
-   * at login?
-   */
-  static BOOL ShouldRestoreStateDueToLaunchAtLoginImpl();
-
-  /**
    * Array of promises waiting to be resolved due to a video capture request.
    */
   static PromiseArray sVideoCapturePromises;

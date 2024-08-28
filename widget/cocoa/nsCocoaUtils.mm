@@ -35,7 +35,6 @@
 #include "mozilla/Logging.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -295,7 +294,7 @@ BOOL nsCocoaUtils::WasLaunchedAtLogin() {
   return NO;
 }
 
-BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLoginImpl() {
+BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLogin() {
   // Check if we were launched by macOS as a result of having
   // "Reopen windows..." selected during a restart.
   if (!WasLaunchedAtLogin()) {
@@ -319,13 +318,6 @@ BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLoginImpl() {
   }
 
   return NO;
-}
-
-BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLogin() {
-  BOOL shouldRestore = ShouldRestoreStateDueToLaunchAtLoginImpl();
-  Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_IS_RESTORED_BY_MACOS,
-                       !!shouldRestore);
-  return shouldRestore;
 }
 
 void nsCocoaUtils::PrepareForNativeAppModalDialog() {
