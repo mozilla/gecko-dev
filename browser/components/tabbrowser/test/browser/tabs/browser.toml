@@ -248,9 +248,6 @@ support-files = [
 ]
 
 ["browser_overflowScroll.js"]
-skip-if = [
-  "win11_2009", # Bug 1797751
-]
 
 ["browser_paste_event_at_middle_click_on_link.js"]
 support-files = ["file_anchor_elements.html"]
