@@ -247,8 +247,6 @@ skip-if = ["os == 'android'"]
 
 ["browser_relay_telemetry.js"]
 
-["browser_relay_visibility.js"]
-
 ["browser_telemetry_SignUpFormRuleset.js"]
 
 ["browser_test_changeContentInputValue.js"]
