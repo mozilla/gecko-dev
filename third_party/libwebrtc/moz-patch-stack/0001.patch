@@ -35,7 +35,7 @@ Cr-Commit-Position: refs/heads/main@{#42664}
  4 files changed, 8 insertions(+), 4 deletions(-)
 
 diff --git a/infra/config/config.star b/infra/config/config.star
-index 8a42399d9c..8955686887 100755
+index 2fc6311dc2..63f31a1ab7 100755
 --- a/infra/config/config.star
 +++ b/infra/config/config.star
 @@ -52,9 +52,7 @@ def os_from_name(name):
@@ -50,10 +50,10 @@ index 8a42399d9c..8955686887 100755
  # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
  lucicfg.enable_experiment("crbug.com/1182002")
 diff --git a/infra/config/cr-buildbucket.cfg b/infra/config/cr-buildbucket.cfg
-index 9edb6a2cc6..456fe1fac0 100644
+index 46fced9412..b45c0c75fa 100644
 --- a/infra/config/cr-buildbucket.cfg
 +++ b/infra/config/cr-buildbucket.cfg
-@@ -1903,6 +1903,7 @@ buckets {
+@@ -1898,6 +1898,7 @@ buckets {
          '          "Win64 Debug (Clang)",'
          '          "Win64 Release (Clang)",'
          '          "iOS API Framework Builder",'
