@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.theme
 
+import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -290,11 +292,33 @@ enum class AcornWindowSize(
 
     companion object {
         /**
-         * Returns the [AcornWindowSize] that corresponds to the current window width.
+         * Helper function for obtaining the window's [AcornWindowSize] within Compose.
+         *
+         * @return The [AcornWindowSize] that corresponds to the current window width.
          */
         @Composable
-        fun getWindowSize(): AcornWindowSize {
-            val configuration = LocalConfiguration.current
+        fun getWindowSize(): AcornWindowSize = getWindowSizeToken(
+            configuration = LocalConfiguration.current,
+        )
+
+        /**
+         * Helper function for obtaining the window's [AcornWindowSize] via a [Context].
+         *
+         * @param context [Context] used to obtain the current [Configuration].
+         * @return The [AcornWindowSize] that corresponds to the current window width.
+         */
+        fun getWindowSize(context: Context): AcornWindowSize = getWindowSizeToken(
+            configuration = context.resources.configuration,
+        )
+
+        /**
+         * Internal function for deriving the window's [AcornWindowSize].
+         *
+         * @param configuration [Configuration] used to obtain the window's screen width.
+         * @return The [AcornWindowSize] calculated from the window's screen width. See [AcornWindowSize]
+         *  for possible values.
+         */
+        private fun getWindowSizeToken(configuration: Configuration): AcornWindowSize {
             val width = configuration.screenWidthDp.dp
             return when {
                 width < Small.windowWidthMax -> Small
