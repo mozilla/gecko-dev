@@ -7,9 +7,10 @@ package org.mozilla.fenix.compose.list
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -33,7 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -70,6 +73,7 @@ private const val TOAST_LENGTH = Toast.LENGTH_SHORT
  * @param maxDescriptionLines An optional maximum number of lines for the description text to span.
  * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
  * @param iconPainter [Painter] used to display an icon after the list item.
  * @param iconDescription Content description of the icon.
  * @param iconTint Tint applied to [iconPainter].
@@ -85,6 +89,7 @@ fun TextListItem(
     maxDescriptionLines: Int = 1,
     minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     iconPainter: Painter? = null,
     iconDescription: String? = null,
     iconTint: Color = FirefoxTheme.colors.iconPrimary,
@@ -98,6 +103,7 @@ fun TextListItem(
         maxDescriptionLines = maxDescriptionLines,
         minHeight = minHeight,
         onClick = onClick,
+        onLongClick = onLongClick,
     ) {
         if (iconPainter == null) {
             return@ListItem
@@ -138,6 +144,7 @@ fun TextListItem(
  * @param description An optional description text below the label.
  * @param faviconPainter Optional painter to use when fetching a new favicon is unnecessary.
  * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
  * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
  * at the end.
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
@@ -152,6 +159,7 @@ fun FaviconListItem(
     description: String? = null,
     faviconPainter: Painter? = null,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
     iconPainter: Painter? = null,
     iconDescription: String? = null,
@@ -162,6 +170,7 @@ fun FaviconListItem(
         modifier = modifier,
         description = description,
         onClick = onClick,
+        onLongClick = onLongClick,
         beforeListAction = {
             if (faviconPainter != null) {
                 Image(
@@ -225,6 +234,7 @@ fun FaviconListItem(
  * be clickable.
  * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
  * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
  * @param beforeIconDescription Content description of the icon.
  * @param beforeIconTint Tint applied to [beforeIconPainter].
@@ -247,6 +257,7 @@ fun IconListItem(
     enabled: Boolean = true,
     minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     beforeIconPainter: Painter,
     beforeIconDescription: String? = null,
     beforeIconTint: Color = FirefoxTheme.colors.iconPrimary,
@@ -266,6 +277,7 @@ fun IconListItem(
         enabled = enabled,
         minHeight = minHeight,
         onClick = onClick,
+        onLongClick = onLongClick,
         beforeListAction = {
             Icon(
                 painter = beforeIconPainter,
@@ -454,9 +466,11 @@ private fun SelectableItemIcon(
  * be clickable.
  * @param minHeight An optional minimum height for the list item.
  * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
  * @param beforeListAction Optional Composable for adding UI before the list item.
  * @param afterListAction Optional Composable for adding UI to the end of the list item.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ListItem(
     label: String,
@@ -469,16 +483,26 @@ private fun ListItem(
     enabled: Boolean = true,
     minHeight: Dp = LIST_ITEM_HEIGHT,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     beforeListAction: @Composable RowScope.() -> Unit = {},
     afterListAction: @Composable RowScope.() -> Unit = {},
 ) {
+    val haptics = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .height(IntrinsicSize.Min)
             .defaultMinSize(minHeight = minHeight)
             .thenConditional(
-                modifier = Modifier.clickable { onClick?.invoke() },
-                predicate = { onClick != null && enabled },
+                modifier = Modifier.combinedClickable(
+                    onClick = { onClick?.invoke() },
+                    onLongClick = {
+                        onLongClick?.let {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            it.invoke()
+                        }
+                    },
+                ),
+                predicate = { (onClick != null || onLongClick != null) && enabled },
             )
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
