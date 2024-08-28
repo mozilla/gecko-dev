@@ -494,7 +494,9 @@ android-hw-s21-13-0-android-aarch64-shippable-qr/opt:
 
 android-hw-a55-14-0-android-aarch64-shippable-qr/opt:
     build-platform: android-aarch64-shippable/opt
-    test-sets: []  # Bug 1910111
+    test-sets:
+        - android-hw-speedometer-tests
+        - android-hw-browsertime
 
 android-hw-s24-14-0-android-aarch64-shippable-qr/opt:
     build-platform: android-aarch64-shippable/opt
