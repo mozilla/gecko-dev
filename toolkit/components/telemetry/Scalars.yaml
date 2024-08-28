@@ -2842,25 +2842,6 @@ preferences:
       - 'firefox'
     record_in_processes:
       - main
-  search_query:
-    bug_numbers:
-      - 1359306
-    description: >-
-      Each key is a search query string when user performs a search action within
-      about:preferences, and each value is the number of times that key is recorded.
-      The telemetry data will be recorded if there is a successful search result highlighted.
-    expires: "62"
-    kind: uint
-    keyed: true
-    notification_emails:
-      - chsiang@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - main
-
 webrtc.video:
   recv_codec_used:
     bug_numbers:

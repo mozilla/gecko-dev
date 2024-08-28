@@ -270,11 +270,6 @@ var gSearchResultsPane = {
     // this next search.
     this.removeAllSearchIndicators(window, !query.length);
 
-    // Clear telemetry request if user types very frequently.
-    if (this.telemetryTimer) {
-      clearTimeout(this.telemetryTimer);
-    }
-
     let srHeader = document.getElementById("header-searchResults");
     let noResultsEl = document.getElementById("no-results-message");
     if (this.query) {
@@ -371,17 +366,6 @@ var gSearchResultsPane = {
         // Creating tooltips for all the instances found
         for (let anchorNode of this.listSearchTooltips) {
           this.createSearchTooltip(anchorNode, this.query);
-        }
-
-        // Implant search telemetry probe after user stops typing for a while
-        if (this.query.length >= 2) {
-          this.telemetryTimer = setTimeout(() => {
-            Services.telemetry.keyedScalarAdd(
-              "preferences.search_query",
-              this.query,
-              1
-            );
-          }, 1000);
         }
       }
     } else {
