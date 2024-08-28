@@ -6454,8 +6454,10 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
       continue;
     }
 
+    const IntrinsicSizeInput childInput(aInput, childFrame->GetWritingMode(),
+                                        GetWritingMode());
     nscoord childISize = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, childFrame, aType);
+        childInput.mContext, childFrame, aType, childInput.mPercentageBasis);
 
     // * For a row-oriented single-line flex container, the intrinsic
     // {min/pref}-isize is the sum of its items' {min/pref}-isizes and

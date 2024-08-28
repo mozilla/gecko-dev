@@ -792,7 +792,8 @@ void nsContainerFrame::DoInlineMinISize(const IntrinsicSizeInput& aInput,
                                         InlineMinISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      const IntrinsicSizeInput kidInput(aInput.mContext);
+      const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                        GetWritingMode());
       kid->AddInlineMinISize(kidInput, data);
     }
   };
@@ -803,7 +804,8 @@ void nsContainerFrame::DoInlinePrefISize(const IntrinsicSizeInput& aInput,
                                          InlinePrefISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      const IntrinsicSizeInput kidInput(aInput.mContext);
+      const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                        GetWritingMode());
       kid->AddInlinePrefISize(kidInput, data);
     }
   };
@@ -835,7 +837,7 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
     AutoMaybeDisableFontInflation an(this);
 
     WritingMode tableWM = GetParent()->GetWritingMode();
-    const IntrinsicSizeInput input(aRenderingContext);
+    const IntrinsicSizeInput input(aRenderingContext, Nothing());
     if (aWM.IsOrthogonalTo(tableWM)) {
       // For an orthogonal caption on a block-dir side of the table, shrink-wrap
       // to min-isize.

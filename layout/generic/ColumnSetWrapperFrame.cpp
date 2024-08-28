@@ -199,8 +199,9 @@ nscoord ColumnSetWrapperFrame::MinISize(const IntrinsicSizeInput& aInput) {
     }
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput input(aInput.mContext);
-      iSize = std::max(iSize, f->GetMinISize(input));
+      const IntrinsicSizeInput childInput(aInput, f->GetWritingMode(),
+                                          GetWritingMode());
+      iSize = std::max(iSize, f->GetMinISize(childInput));
     }
   }
 
@@ -236,8 +237,9 @@ nscoord ColumnSetWrapperFrame::PrefISize(const IntrinsicSizeInput& aInput) {
     iSize = ColumnUtils::IntrinsicISize(numColumns, colGap, colISize);
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput input(aInput.mContext);
-      iSize = std::max(iSize, f->GetPrefISize(input));
+      const IntrinsicSizeInput childInput(aInput, f->GetWritingMode(),
+                                          GetWritingMode());
+      iSize = std::max(iSize, f->GetPrefISize(childInput));
     }
   }
 

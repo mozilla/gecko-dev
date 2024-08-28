@@ -871,8 +871,12 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
+        nsIFrame* kid = line->mFirstChild;
+        const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                          GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            kidInput.mContext, kid, IntrinsicISizeType::MinISize,
+            kidInput.mPercentageBasis);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -883,7 +887,8 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput(aInput.mContext);
+          const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                            GetWritingMode());
           kid->AddInlineMinISize(kidInput, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
@@ -942,15 +947,19 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
       AutoNoisyIndenter lineindent(gNoisyIntrinsic);
 #endif
       if (line->IsBlock()) {
+        nsIFrame* kid = line->mFirstChild;
         StyleClear clearType;
-        if (!data.mLineIsEmpty || BlockCanIntersectFloats(line->mFirstChild)) {
+        if (!data.mLineIsEmpty || BlockCanIntersectFloats(kid)) {
           clearType = StyleClear::Both;
         } else {
-          clearType = line->mFirstChild->StyleDisplay()->mClear;
+          clearType = kid->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
+        const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                          GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
+            kidInput.mContext, kid, IntrinsicISizeType::PrefISize,
+            kidInput.mPercentageBasis);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -966,7 +975,8 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput(aInput.mContext);
+          const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
+                                            GetWritingMode());
           kid->AddInlinePrefISize(kidInput, &data);
         }
       }
@@ -1024,7 +1034,12 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
         data.mLine = &line;
         data.SetLineContainer(curFrame);
         nsIFrame* kid = line->mFirstChild;
-        const IntrinsicSizeInput kidInput(aRenderingContext);
+        // Per comment in nsIFrame::GetPrefWidthTightBounds(), the function is
+        // only implemented for nsBlockFrame and nsTextFrame and is used to
+        // determine the intrinsic inline sizes of MathML token elements. These
+        // elements shouldn't have percentage block sizes that require a
+        // percentage basis for resolution.
+        const IntrinsicSizeInput kidInput(aRenderingContext, Nothing());
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
           rv = kid->GetPrefWidthTightBounds(aRenderingContext, &childX,

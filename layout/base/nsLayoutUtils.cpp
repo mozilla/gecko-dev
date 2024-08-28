@@ -4041,6 +4041,9 @@ static Maybe<nscoord> GetPercentBSize(const LengthPercentage& aSize,
                                       nsIFrame* aFrame, bool aHorizontalAxis);
 
 // Only call on aSize for which GetAbsoluteSize returned Nothing().
+//
+// Bug 1363918: We can remove GetPercentBSize() after we've updated all of
+// IntrinsicForAxis()'s callsites to pass it a percentage basis.
 template <typename SizeOrMaxSize>
 static Maybe<nscoord> GetPercentBSize(const SizeOrMaxSize& aSize,
                                       nsIFrame* aFrame, bool aHorizontalAxis) {
@@ -4309,7 +4312,9 @@ static Maybe<nscoord> GetIntrinsicSize(nsIFrame::ExtremumLength aLength,
   if (aISizeFromAspectRatio) {
     result = *aISizeFromAspectRatio;
   } else {
-    const IntrinsicSizeInput input(aRenderingContext);
+    // Bug 1363918: We need to refactor this function to compute a percentage
+    // basis when computing intrinsic sizes.
+    const IntrinsicSizeInput input(aRenderingContext, Nothing());
     auto type = aLength == nsIFrame::ExtremumLength::MaxContent
                     ? IntrinsicISizeType::PrefISize
                     : IntrinsicISizeType::MinISize;
@@ -4439,7 +4444,9 @@ static nscoord AddIntrinsicSizeOffset(
     if (aISizeFromAspectRatio) {
       minContent = maxContent = *aISizeFromAspectRatio;
     } else {
-      const IntrinsicSizeInput input(aRenderingContext);
+      // Bug 1363918: We need to refactor this function to compute a percentage
+      // basis when computing intrinsic sizes.
+      const IntrinsicSizeInput input(aRenderingContext, Nothing());
       minContent = aFrame->GetMinISize(input);
       maxContent = aFrame->GetPrefISize(input);
     }
@@ -4643,6 +4650,32 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     fixedMinISize = GetAbsoluteSize(styleMinISize);
   }
 
+  // Handle elements with an intrinsic ratio (or size) and a specified
+  // height, min-height, or max-height.
+  // NOTE:
+  // 1. We treat "min-height:auto" as "0" for the purpose of this code,
+  // since that's what it means in all cases except for on flex items -- and
+  // even there, we're supposed to ignore it (i.e. treat it as 0) until the
+  // flex container explicitly considers it.
+  // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
+  // represents the ratio-determining axis of |aFrame|. It could be the inline
+  // axis or the block axis of |aFrame|. (So we are calculating the size
+  // along the ratio-dependent axis in this if-branch.)
+  StyleSize styleBSize = horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+  StyleSize styleMinBSize =
+      horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
+  StyleMaxSize styleMaxBSize =
+      horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
+
+  // According to the spec, max-content and min-content should behave as the
+  // property's initial values in block axis.
+  // It also make senses to use the initial values for -moz-fit-content and
+  // -moz-available for intrinsic size in block axis. Therefore, we reset them
+  // if needed.
+  if (isInlineAxis) {
+    ResetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
+  }
+
   auto childWM = aFrame->GetWritingMode();
   nscoord pmPercentageBasis = NS_UNCONSTRAINEDSIZE;
   if (aPercentageBasis.isSome()) {
@@ -4734,7 +4767,37 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      const IntrinsicSizeInput input(aRenderingContext);
+      // To resolve aFrame's intrinsic inline size, we first check if we can
+      // resolve a block-axis percentage basis for aFrame's children. This can
+      // influence their inline size contributions, e.g. if they have an
+      // aspect-ratio and a percentage-based block size.
+      const nscoord percentageBasisBSizeForFrame =
+          aPercentageBasis ? aPercentageBasis->BSize(childWM)
+                           : NS_UNCONSTRAINEDSIZE;
+      nscoord percentageBasisBSizeForChildren;
+      if (aFrame->IsBlockContainer()) {
+        // Compute and cache the box-sizing adjustment in contentEdgeToBoxSizing
+        // for later use within this function.
+        contentEdgeToBoxSizing.emplace(GetContentEdgeToBoxSizing(boxSizing));
+
+        // aFrame is a containing block, so its block size (with min and max
+        // block size constraints applied) serves as the percentage basis for
+        // its children.
+        percentageBasisBSizeForChildren =
+            nsIFrame::ComputeBSizeValueAsPercentageBasis(
+                styleBSize, styleMinBSize, styleMaxBSize,
+                percentageBasisBSizeForFrame,
+                contentEdgeToBoxSizing->BSize(childWM));
+      } else {
+        // aFrame is not a containing block, so its children share the same
+        // containing block as aFrame. Therefore, the percentage basis for
+        // aFrame's children is the same as that for aFrame.
+        percentageBasisBSizeForChildren = percentageBasisBSizeForFrame;
+      }
+      const IntrinsicSizeInput input(
+          aRenderingContext,
+          Some(LogicalSize(childWM, NS_UNCONSTRAINEDSIZE,
+                           percentageBasisBSizeForChildren)));
       result = aFrame->IntrinsicISize(input, aType);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
@@ -4745,33 +4808,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                   aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                   horizontalAxis ? "horizontal" : "vertical", result);
 #endif
-
-    // Handle elements with an intrinsic ratio (or size) and a specified
-    // height, min-height, or max-height.
-    // NOTE:
-    // 1. We treat "min-height:auto" as "0" for the purpose of this code,
-    // since that's what it means in all cases except for on flex items -- and
-    // even there, we're supposed to ignore it (i.e. treat it as 0) until the
-    // flex container explicitly considers it.
-    // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
-    // represents the ratio-determining axis of |aFrame|. It could be the inline
-    // axis or the block axis of |aFrame|. (So we are calculating the size
-    // along the ratio-dependent axis in this if-branch.)
-    StyleSize styleBSize =
-        horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
-    StyleSize styleMinBSize =
-        horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
-    StyleMaxSize styleMaxBSize =
-        horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
-
-    // According to the spec, max-content and min-content should behave as the
-    // property's initial values in block axis.
-    // It also make senses to use the initial values for -moz-fit-content and
-    // -moz-available for intrinsic size in block axis. Therefore, we reset them
-    // if needed.
-    if (isInlineAxis) {
-      ResetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
-    }
 
     // If our BSize or min/max-BSize properties are set to values that we can
     // resolve and that will impose a constraint when transferred through our
@@ -4808,7 +4844,10 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
 
         nscoord bSizeTakenByBoxSizing = GetDefiniteSizeTakenByBoxSizing(
             boxSizing, aFrame, !isInlineAxis, ignorePadding, aPercentageBasis);
-        contentEdgeToBoxSizing.emplace(GetContentEdgeToBoxSizing(boxSizing));
+        if (!contentEdgeToBoxSizing) {
+          contentEdgeToBoxSizing.emplace(GetContentEdgeToBoxSizing(boxSizing));
+        }
+
         // NOTE: This is only the minContentSize if we've been passed
         // MIN_INTRINSIC_ISIZE (which is fine, because this should only be used
         // inside a check for that flag).
@@ -4869,7 +4908,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   if (aFrame->IsTableFrame()) {
     // Tables can't shrink smaller than their intrinsic minimum inline size,
     // no matter what.
-    const IntrinsicSizeInput input(aRenderingContext);
+    const IntrinsicSizeInput input(aRenderingContext, Nothing());
     min = aFrame->GetMinISize(input);
   }
 

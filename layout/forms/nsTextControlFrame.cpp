@@ -249,7 +249,7 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(gfxContext* aRenderingContext,
   // Add the inline size of the button if our char size is explicit, so as to
   // make sure to make enough space for it.
   if (maybeCols.isSome() && mButton && mButton->GetPrimaryFrame()) {
-    const IntrinsicSizeInput input(aRenderingContext);
+    const IntrinsicSizeInput input(aRenderingContext, Nothing());
     intrinsicSize.ISize(aWM) += mButton->GetPrimaryFrame()->GetMinISize(input);
   }
 
