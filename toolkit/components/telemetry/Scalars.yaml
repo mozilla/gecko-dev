@@ -4784,45 +4784,6 @@ browser.timings:
       - 'main'
 
 # The following section contains the service worker scalars.
-sw:
-  cors_res_for_so_req_count:
-    bug_numbers:
-      - 1416629
-    description: >
-      The count of number of synthesize response made by service workers and
-      it's a cors type resposne for a same-origin mode request.
-    expires: "61"
-    kind: uint
-    notification_emails:
-      - sw-telemetry@mozilla.com
-      - ttung@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
-  alternative_body_used_count:
-    bug_numbers:
-      - 1423623
-      - 1433916
-    description: >
-      The count of number of synthesize response using alternative body.
-    expires: "68"
-    kind: uint
-    notification_emails:
-      - sw-telemetry@mozilla.com
-      - echuang@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'main'
-      - 'content'
-
 serviceworker:
   registrations:
     description: >

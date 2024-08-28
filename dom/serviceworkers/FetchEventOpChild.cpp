@@ -33,7 +33,6 @@
 #include "mozilla/LoadInfo.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/ipc/BackgroundChild.h"
@@ -480,9 +479,6 @@ nsresult FetchEventOpChild::StartSynthesizedResponse(
   }
   if (!body) {
     response->GetUnfilteredBody(getter_AddRefs(body));
-  } else {
-    Telemetry::ScalarAdd(Telemetry::ScalarID::SW_ALTERNATIVE_BODY_USED_COUNT,
-                         1);
   }
 
   // Propagate the URL to the content if the request mode is not "navigate".

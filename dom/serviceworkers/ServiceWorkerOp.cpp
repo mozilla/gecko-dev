@@ -34,7 +34,6 @@
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Client.h"
@@ -1481,8 +1480,6 @@ void FetchEventOp::ResolvedCallback(JSContext* aCx,
 
   if (requestMode == RequestMode::Same_origin &&
       response->Type() == ResponseType::Cors) {
-    Telemetry::ScalarAdd(Telemetry::ScalarID::SW_CORS_RES_FOR_SO_REQ_COUNT, 1);
-
     // XXXtt: Will have a pref to enable the quirk response in bug 1419684.
     // The variadic template provided by StringArrayAppender requires exactly
     // an nsString.
