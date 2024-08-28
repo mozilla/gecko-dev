@@ -4048,47 +4048,6 @@ normandy:
       - main
 
 # The following section contains graphics-related scalars.
-gfx.canvas.remote:
-  activated:
-    bug_numbers:
-      - 1641722
-      - 1672582
-      - 1706844
-      - 1739290
-    description: >
-      Number of times remote canvas 2D has been activated.
-    kind: uint
-    expires: "103"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - bowen@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'gpu'
-
-  deactivated_no_device:
-    bug_numbers:
-      - 1641722
-      - 1672582
-      - 1706844
-      - 1739290
-      - 1852144
-    description: >
-      Number of times remote canvas 2D has been deactivated due to device creation failure.
-    kind: uint
-    expires: "130"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - bowen@mozilla.com
-      - aosmond@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'gpu'
-
 gfx.hdr:
   windows_display_colorspace_bitfield:
     bug_numbers:

@@ -27,7 +27,6 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
 #include "GLContext.h"
 #include "RecordedCanvasEventImpl.h"
 
@@ -83,9 +82,6 @@ CanvasTranslator::CanvasTranslator(
           "CanvasTranslator::mCanvasTranslatorEventsLock") {
   mNextEventTimeout = TimeDuration::FromMilliseconds(
       StaticPrefs::gfx_canvas_remote_event_timeout_ms());
-
-  // Track when remote canvas has been activated.
-  Telemetry::ScalarAdd(Telemetry::ScalarID::GFX_CANVAS_REMOTE_ACTIVATED, 1);
 }
 
 CanvasTranslator::~CanvasTranslator() = default;
@@ -941,8 +937,6 @@ bool CanvasTranslator::CheckForFreshCanvasDevice(int aLineNumber) {
   mDevice = gfx::DeviceManagerDx::Get()->GetCanvasDevice();
   if (!mDevice) {
     // We don't have a canvas device, we need to deactivate.
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::GFX_CANVAS_REMOTE_DEACTIVATED_NO_DEVICE, 1);
     Deactivate();
     return false;
   }
