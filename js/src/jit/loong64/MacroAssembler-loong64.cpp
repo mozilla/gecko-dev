@@ -1168,6 +1168,13 @@ void MacroAssemblerLOONG64::ma_cmp_set(Register rd, Address address, Imm32 imm,
 }
 
 void MacroAssemblerLOONG64::ma_cmp_set(Register rd, Address address,
+                                       Register rk, Condition c) {
+  SecondScratchRegisterScope scratch2(asMasm());
+  ma_ld_d(scratch2, address);
+  ma_cmp_set(rd, scratch2, rk, c);
+}
+
+void MacroAssemblerLOONG64::ma_cmp_set(Register rd, Address address,
                                        ImmWord imm, Condition c) {
   SecondScratchRegisterScope scratch2(asMasm());
   ma_ld_d(scratch2, address);
