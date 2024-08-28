@@ -823,17 +823,13 @@ class Module::PartialTier2CompileTaskImpl : public PartialTier2CompileTask {
 
       // TODO: maybe have CompilePartialTier2 check `cancelled_` from time to
       // time and return early if it is set?  See bug 1911060.
-      bool success = CompilePartialTier2(*code_, funcIndex_);
+      UniqueChars error;
+      bool success = CompilePartialTier2(*code_, funcIndex_, &error);
 
       // FIXME: In the case `!success && !cancelled_`, compilation has failed
       // and this function will be stuck in state TierUpState::Requested
       // forever.  See bug 1911060.
 
-      // CompilePartialTier2 can only indicate failure via the returned bool,
-      // which indicates OOM, since it release-asserts for any other kind of
-      // failure.  Hence we have to provide dummy `error` and `warnings` to
-      // ReportTier2ResultsOffThread.
-      UniqueChars error;
       UniqueCharsVector warnings;
       ReportTier2ResultsOffThread(success, mozilla::Some(funcIndex_),
                                   code_->codeMeta().scriptedCaller(), error,

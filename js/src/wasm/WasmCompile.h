@@ -61,7 +61,8 @@ bool CompileCompleteTier2(const Bytes& bytecode, const Module& module,
 
 // Attempt to compile the second tier for the given functions of a wasm::Module.
 
-bool CompilePartialTier2(const Code& code, uint32_t funcIndex);
+bool CompilePartialTier2(const Code& code, uint32_t funcIndex,
+                         UniqueChars* error);
 
 // Compile the given WebAssembly module which has been broken into three
 // partitions:

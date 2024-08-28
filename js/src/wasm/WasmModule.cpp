@@ -62,8 +62,8 @@ void js::wasm::ReportTier2ResultsOffThread(bool success,
                                            const ScriptedCaller& scriptedCaller,
                                            const UniqueChars& error,
                                            const UniqueCharsVector& warnings) {
-  // See comments in Module::PartialTier2CompileTaskImpl::runHelperThreadTask.
-  MOZ_ASSERT_IF(maybeFuncIndex.isSome(), !error && warnings.length() == 0);
+  // Due to behaviour of PartialTier2CompileTaskImpl::runHelperThreadTask.
+  MOZ_ASSERT_IF(maybeFuncIndex.isSome(), warnings.length() == 0);
 
   // Get context to describe this tier-2 task.
   UniqueChars context = Tier2ResultsContext(scriptedCaller);

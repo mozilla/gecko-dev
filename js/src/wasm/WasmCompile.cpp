@@ -942,38 +942,18 @@ bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
   return mg.finishTier2(module);
 }
 
-class PartialTierModuleGenerator {
- private:
-  ModuleGenerator& mg_;
-  uint32_t targetFuncIndex_;
-
- public:
-  PartialTierModuleGenerator(ModuleGenerator& mg, uint32_t targetFuncIndex)
-      : mg_(mg), targetFuncIndex_(targetFuncIndex) {}
-
-  bool finishFuncDefs() { return mg_.finishFuncDefs(); }
-  bool compileFuncDef(uint32_t funcIndex, uint32_t lineOrBytecode,
-                      const uint8_t* begin, const uint8_t* end) {
-    if (funcIndex != targetFuncIndex_) {
-      return true;
-    }
-
-    return mg_.compileFuncDef(funcIndex, lineOrBytecode, begin, end);
-  }
-};
-
-bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex) {
+bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex,
+                               UniqueChars* error) {
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
 
   const CodeMetadata& codeMeta = code.codeMeta();
-  UniqueChars error;
   ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, nullptr,
-                     &error, nullptr);
+                     error, nullptr);
   if (!mg.initializePartialTier(code, funcIndex)) {
-    // The module is already validated, this must be an OOM
-    MOZ_ASSERT(!error);
+    // The module is already validated, so this can only be an OOM.
+    MOZ_ASSERT(!*error);
     return false;
   }
 
@@ -981,16 +961,13 @@ bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex) {
   const FuncDefRange& funcRange = code.codeMeta().funcDefRange(funcIndex);
   const uint8_t* bodyBegin = bytecode.begin() + funcRange.bytecodeOffset;
   const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
-  Decoder d(bytecode.begin(), bytecode.end(), 0, &error);
+  Decoder d(bytecode.begin(), bytecode.end(), 0, error);
   // The following sequence will compile/finish this function, on this thread.
-  if (!mg.compileFuncDef(funcIndex, funcRange.bytecodeOffset, bodyBegin,
-                         bodyEnd) ||
-      !mg.finishFuncDefs() || !mg.finishPartialTier2()) {
-    // The module is already validated, this must be an OOM
-    MOZ_RELEASE_ASSERT(!error);
-    return false;
-  }
-  return true;
+  // `error` (as stashed in `mg`) may get set to, for example, "stack frame too
+  // large", or to "", denoting OOM.
+  return mg.compileFuncDef(funcIndex, funcRange.bytecodeOffset, bodyBegin,
+                           bodyEnd) &&
+         mg.finishFuncDefs() && mg.finishPartialTier2();
 }
 
 class StreamingDecoder {
