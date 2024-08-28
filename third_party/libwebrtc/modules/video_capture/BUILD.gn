@@ -81,7 +81,10 @@ if (!build_with_chromium || is_linux || is_chromeos) {
         "linux/video_capture_v4l2.cc",
         "linux/video_capture_v4l2.h",
       ]
-      deps += [ "../../media:rtc_media_base" ]
+      deps += [
+        "../../media:rtc_media_base",
+        "../../rtc_base:sanitizer",
+      ]
 
       if (rtc_use_pipewire) {
         sources += [
