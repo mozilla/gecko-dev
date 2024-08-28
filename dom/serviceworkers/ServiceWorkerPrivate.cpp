@@ -1505,16 +1505,12 @@ void ServiceWorkerPrivate::UpdateRunning(int32_t aDelta, int32_t aFetchDelta) {
   if (sRunningServiceWorkers > sRunningServiceWorkersMax) {
     sRunningServiceWorkersMax = sRunningServiceWorkers;
     LOG(("ServiceWorker max now %d", sRunningServiceWorkersMax));
-    Telemetry::ScalarSet(Telemetry::ScalarID::SERVICEWORKER_RUNNING_MAX,
-                         u"All"_ns, sRunningServiceWorkersMax);
   }
   MOZ_ASSERT(((int64_t)sRunningServiceWorkersFetch) + aFetchDelta >= 0);
   sRunningServiceWorkersFetch += aFetchDelta;
   if (sRunningServiceWorkersFetch > sRunningServiceWorkersFetchMax) {
     sRunningServiceWorkersFetchMax = sRunningServiceWorkersFetch;
     LOG(("ServiceWorker Fetch max now %d", sRunningServiceWorkersFetchMax));
-    Telemetry::ScalarSet(Telemetry::ScalarID::SERVICEWORKER_RUNNING_MAX,
-                         u"Fetch"_ns, sRunningServiceWorkersFetchMax);
   }
   LOG(("ServiceWorkers running now %d/%d", sRunningServiceWorkers,
        sRunningServiceWorkersFetch));

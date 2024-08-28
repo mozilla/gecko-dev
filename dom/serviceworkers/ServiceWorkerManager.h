@@ -44,9 +44,6 @@ class PrincipalInfo;
 
 namespace dom {
 
-extern uint32_t gServiceWorkersRegistered;
-extern uint32_t gServiceWorkersRegisteredFetch;
-
 class ContentParent;
 class ServiceWorkerInfo;
 class ServiceWorkerJobQueue;

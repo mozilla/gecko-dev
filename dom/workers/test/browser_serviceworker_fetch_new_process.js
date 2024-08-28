@@ -314,12 +314,6 @@ function getSWTelemetrySums() {
     SERVICE_WORKER_RUNNING_Fetch: keyedhistograms.SERVICE_WORKER_RUNNING
       ? keyedhistograms.SERVICE_WORKER_RUNNING.Fetch.sum
       : 0,
-    SERVICEWORKER_RUNNING_MAX_All: keyedscalars["serviceworker.running_max"]
-      ? keyedscalars["serviceworker.running_max"].All
-      : 0,
-    SERVICEWORKER_RUNNING_MAX_Fetch: keyedscalars["serviceworker.running_max"]
-      ? keyedscalars["serviceworker.running_max"].Fetch
-      : 0,
   };
 }
 
@@ -372,22 +366,10 @@ add_task(async function test() {
       initialSums.SERVICE_WORKER_RUNNING_Fetch
   );
   info(
-    "Initial Max Running All: " +
-      initialSums.SERVICEWORKER_RUNNING_MAX_All +
-      ", Fetch: " +
-      initialSums.SERVICEWORKER_RUNNING_MAX_Fetch
-  );
-  info(
     "Running All: " +
       telemetrySums.SERVICE_WORKER_RUNNING_All +
       ", Fetch: " +
       telemetrySums.SERVICE_WORKER_RUNNING_Fetch
-  );
-  info(
-    "Max Running All: " +
-      telemetrySums.SERVICEWORKER_RUNNING_MAX_All +
-      ", Fetch: " +
-      telemetrySums.SERVICEWORKER_RUNNING_MAX_Fetch
   );
   Assert.greater(
     telemetrySums.SERVICE_WORKER_RUNNING_All,
@@ -399,7 +381,4 @@ add_task(async function test() {
     initialSums.SERVICE_WORKER_RUNNING_Fetch,
     "ServiceWorker running count changed"
   );
-  // We don't use ok()'s for MAX because MAX may have been set before we
-  // set canRecordExtended, and if so we won't record a new value unless
-  // the max increases again.
 });
