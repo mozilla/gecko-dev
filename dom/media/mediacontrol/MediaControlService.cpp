@@ -134,64 +134,6 @@ MediaControlService::~MediaControlService() {
   Shutdown();
 }
 
-void MediaControlService::NotifyMediaControlHasEverBeenUsed() {
-  // We've already updated the telemetry for using meida control.
-  if (mHasEverUsedMediaControl) {
-    return;
-  }
-  mHasEverUsedMediaControl = true;
-  const uint32_t usedOnMediaControl = 1;
-#ifdef XP_WIN
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Windows"_ns, usedOnMediaControl);
-#endif
-#ifdef XP_MACOSX
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"MacOS"_ns, usedOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_GTK
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Linux"_ns, usedOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_ANDROID
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Android"_ns, usedOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_UIKIT
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"iOS"_ns, usedOnMediaControl);
-#endif
-}
-
-void MediaControlService::NotifyMediaControlHasEverBeenEnabled() {
-  // We've already enabled the service and update the telemetry.
-  if (mHasEverEnabledMediaControl) {
-    return;
-  }
-  mHasEverEnabledMediaControl = true;
-  const uint32_t enableOnMediaControl = 0;
-#ifdef XP_WIN
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Windows"_ns, enableOnMediaControl);
-#endif
-#ifdef XP_MACOSX
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"MacOS"_ns, enableOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_GTK
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Linux"_ns, enableOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_ANDROID
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"Android"_ns, enableOnMediaControl);
-#endif
-#ifdef MOZ_WIDGET_UIKIT
-  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
-                       u"iOS"_ns, enableOnMediaControl);
-#endif
-}
-
 NS_IMETHODIMP
 MediaControlService::Observe(nsISupports* aSubject, const char* aTopic,
                              const char16_t* aData) {
