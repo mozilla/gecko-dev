@@ -725,7 +725,7 @@ async function testIDBEntries(index, hosts, dataByHost) {
 
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.documentCookies.maxage", 0]],
+    set: [["network.cookie.maxageCap", 0]],
   });
 
   const { commands } = await openTabAndSetupStorage(
