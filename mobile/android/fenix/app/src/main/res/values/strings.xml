@@ -207,7 +207,7 @@
     <string name="browser_menu_manage_extensions">Manage extensions</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Discover more extensions</string>
-    <!-- Browser menu description that is shown when extensions are disabled due to extension errors -->
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Temporarily disabled</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Account info</string>
