@@ -143,7 +143,6 @@ class EarlyHintPreloader final : public nsIStreamListener,
   void PriorizeAsPreload();
   void SetLinkHeader(const LinkHeader& aLinkHeader);
 
-  static void CollectResourcesTypeTelemetry(ASDestination aASDestination);
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIChannel> mRedirectChannel;
 

@@ -44,8 +44,6 @@ class EarlyHintsService {
   uint32_t LinkType() const { return mLinkType; }
 
  private:
-  void CollectLinkTypeTelemetry(const nsAString& aRel);
-
   Maybe<TimeStamp> mFirstEarlyHint;
   uint32_t mEarlyHintsCount{0};
 

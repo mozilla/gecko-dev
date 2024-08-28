@@ -206,7 +206,6 @@ void EarlyHintPreloader::MaybeCreateAndInsertPreload(
   ParseAsValue(aLinkHeader.mAs, as);
 
   ASDestination destination = static_cast<ASDestination>(as.GetEnumValue());
-  CollectResourcesTypeTelemetry(destination);
 
   if (!StaticPrefs::network_early_hints_enabled()) {
     return;
@@ -827,22 +826,5 @@ EarlyHintPreloader::GetInterface(const nsIID& aIID, void** aResult) {
   }
 
   return NS_ERROR_NO_INTERFACE;
-}
-
-void EarlyHintPreloader::CollectResourcesTypeTelemetry(
-    ASDestination aASDestination) {
-  if (aASDestination == ASDestination::DESTINATION_FONT) {
-    glean::netwerk::early_hints.Get("font"_ns).Add(1);
-  } else if (aASDestination == ASDestination::DESTINATION_SCRIPT) {
-    glean::netwerk::early_hints.Get("script"_ns).Add(1);
-  } else if (aASDestination == ASDestination::DESTINATION_STYLE) {
-    glean::netwerk::early_hints.Get("stylesheet"_ns).Add(1);
-  } else if (aASDestination == ASDestination::DESTINATION_IMAGE) {
-    glean::netwerk::early_hints.Get("image"_ns).Add(1);
-  } else if (aASDestination == ASDestination::DESTINATION_FETCH) {
-    glean::netwerk::early_hints.Get("fetch"_ns).Add(1);
-  } else {
-    glean::netwerk::early_hints.Get("other"_ns).Add(1);
-  }
 }
 }  // namespace mozilla::net

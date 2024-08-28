@@ -12,48 +12,6 @@ $tags:
 
 
 netwerk:
-  early_hints:
-    type: labeled_counter
-    labels:
-      - stylesheet
-      - fonts
-      - scripts
-      - fetch
-      - image
-      - other
-    description: >
-      Counts the different type of resources that are sent for early hints.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1772124
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1772124
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1797695
-    notification_emails:
-      - necko@mozilla.com
-      - vgosu@mozilla.com
-    expires: never
-  eh_link_type:
-    type: labeled_counter
-    labels:
-      - dns-prefetch
-      - icon
-      - modulepreload
-      - preconnect
-      - prefetch
-      - preload
-      - prerender
-      - stylesheet
-      - other
-    description: >
-      Counts different type of link headers that are sent in early hint
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1797936
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1797936
-    notification_emails:
-      - necko@mozilla.com
-      - manuel@mozilla.com
-    expires: never
   parent_connect_timeout:
     type: counter
     description: >
