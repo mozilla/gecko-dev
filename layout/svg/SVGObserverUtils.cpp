@@ -1768,7 +1768,7 @@ bool SVGObserverUtils::SelfOrAncestorHasRenderingObservers(
       return true;
     }
     const auto* frame = content->GetPrimaryFrame();
-    if (frame && frame->IsRenderingObserverContainer()) {
+    if (frame && frame->IsSVGRenderingObserverContainer()) {
       break;
     }
     content = content->GetFlattenedTreeParent();
@@ -1833,7 +1833,7 @@ void SVGObserverUtils::InvalidateRenderingObservers(nsIFrame* aFrame) {
     return;
   }
 
-  if (aFrame->IsRenderingObserverContainer()) {
+  if (aFrame->IsSVGRenderingObserverContainer()) {
     return;
   }
 
@@ -1847,7 +1847,7 @@ void SVGObserverUtils::InvalidateRenderingObservers(nsIFrame* aFrame) {
         return;
       }
     }
-    if (f->IsRenderingObserverContainer()) {
+    if (f->IsSVGRenderingObserverContainer()) {
       return;
     }
   }

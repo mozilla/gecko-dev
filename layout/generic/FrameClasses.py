@@ -28,6 +28,7 @@ TABLE_CELL = TABLE_PART | {"SupportsContainLayoutAndPaint"}
 MATHML_CONTAINER = (COMMON - {"SupportsContainLayoutAndPaint"}) | MATHML
 SVG_CONTENT = (COMMON - {"SupportsContainLayoutAndPaint"}) | SVG
 SVG_CONTAINER = SVG_CONTENT | {"SVGContainer"}
+SVG_RENDERING_OBSERVER_CONTAINER = SVG_CONTAINER | {"SVGRenderingObserverContainer"}
 
 # NOTE: Intentionally not including "COMMON" here.
 INLINE = LINE_PARTICIPANT | {"BidiInlineContainer"}
@@ -121,33 +122,36 @@ FRAME_CLASSES = [
     Frame("nsSubDocumentFrame", "SubDocument", REPLACED_SIZING | LEAF),
     Frame("PrintedSheetFrame", "PrintedSheet", COMMON),
     Frame("SVGAFrame", "SVGA", SVG_CONTAINER),
-    Frame("SVGClipPathFrame", "SVGClipPath", SVG_CONTAINER),
-    Frame("SVGContainerFrame", "None", SVG_CONTAINER),
+    Frame("SVGClipPathFrame", "SVGClipPath", SVG_RENDERING_OBSERVER_CONTAINER),
+    # Note that not all the SVGContainerFrame classes should have the rendering
+    # observer flag, but the specific instances (used for <svg:defs>) should.
+    Frame("SVGContainerFrame", "None", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame("SVGFEContainerFrame", "SVGFEContainer", SVG_CONTENT),
     Frame("SVGFEImageFrame", "SVGFEImage", SVG_CONTENT | LEAF),
     Frame("SVGFELeafFrame", "SVGFELeaf", SVG_CONTENT | LEAF),
     Frame("SVGFEUnstyledLeafFrame", "SVGFEUnstyledLeaf", SVG_CONTENT | LEAF),
-    Frame("SVGFilterFrame", "SVGFilter", SVG_CONTAINER),
+    Frame("SVGFilterFrame", "SVGFilter", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame("SVGForeignObjectFrame", "SVGForeignObject", SVG_CONTENT),
     Frame("SVGGeometryFrame", "SVGGeometry", SVG_CONTENT | LEAF),
     Frame("SVGGFrame", "SVGG", SVG_CONTAINER),
     Frame("SVGImageFrame", "SVGImage", SVG_CONTENT | LEAF),
     Frame("SVGInnerSVGFrame", "SVGInnerSVG", SVG_CONTAINER),
     Frame("SVGLinearGradientFrame", "SVGLinearGradient", SVG_CONTAINER),
-    Frame("SVGMarkerFrame", "SVGMarker", SVG_CONTAINER),
+    Frame("SVGMarkerFrame", "SVGMarker", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame("SVGMarkerAnonChildFrame", "SVGMarkerAnonChild", SVG_CONTAINER),
-    Frame("SVGMaskFrame", "SVGMask", SVG_CONTAINER),
+    Frame("SVGMaskFrame", "SVGMask", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame(
         "SVGOuterSVGFrame",
         "SVGOuterSVG",
-        SVG_CONTAINER | {"Replaced", "ReplacedSizing", "SupportsContainLayoutAndPaint"},
+        SVG_RENDERING_OBSERVER_CONTAINER
+        | {"Replaced", "ReplacedSizing", "SupportsContainLayoutAndPaint"},
     ),
     Frame("SVGOuterSVGAnonChildFrame", "SVGOuterSVGAnonChild", SVG_CONTAINER),
     Frame("SVGPatternFrame", "SVGPattern", SVG_CONTAINER),
     Frame("SVGRadialGradientFrame", "SVGRadialGradient", SVG_CONTAINER),
     Frame("SVGStopFrame", "SVGStop", SVG_CONTENT | LEAF),
     Frame("SVGSwitchFrame", "SVGSwitch", SVG_CONTAINER),
-    Frame("SVGSymbolFrame", "SVGSymbol", SVG_CONTAINER),
+    Frame("SVGSymbolFrame", "SVGSymbol", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame("SVGTextFrame", "SVGText", SVG_CONTAINER),
     # Not a leaf, though it always has a ShadowRoot, so in practice light DOM
     # children never render.

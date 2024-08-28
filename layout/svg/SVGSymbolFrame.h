@@ -24,9 +24,7 @@ class SVGSymbolFrame final : public SVGViewportFrame {
 
  protected:
   explicit SVGSymbolFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
-      : SVGViewportFrame(aStyle, aPresContext, kClassID) {
-    AddStateBits(NS_STATE_SVG_RENDERING_OBSERVER_CONTAINER);
-  }
+      : SVGViewportFrame(aStyle, aPresContext, kClassID) {}
 
  public:
   NS_DECL_QUERYFRAME

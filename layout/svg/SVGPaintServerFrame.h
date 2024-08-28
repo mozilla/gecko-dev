@@ -48,8 +48,7 @@ class SVGPaintServerFrame : public SVGContainerFrame {
   SVGPaintServerFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
                       ClassID aID)
       : SVGContainerFrame(aStyle, aPresContext, aID) {
-    AddStateBits(NS_FRAME_IS_NONDISPLAY |
-                 NS_STATE_SVG_RENDERING_OBSERVER_CONTAINER);
+    AddStateBits(NS_FRAME_IS_NONDISPLAY);
   }
 
  public:

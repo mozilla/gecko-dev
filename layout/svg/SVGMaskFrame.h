@@ -36,8 +36,7 @@ class SVGMaskFrame final : public SVGContainerFrame {
  protected:
   explicit SVGMaskFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
       : SVGContainerFrame(aStyle, aPresContext, kClassID), mInUse(false) {
-    AddStateBits(NS_FRAME_IS_NONDISPLAY |
-                 NS_STATE_SVG_RENDERING_OBSERVER_CONTAINER);
+    AddStateBits(NS_FRAME_IS_NONDISPLAY);
   }
 
  public:
