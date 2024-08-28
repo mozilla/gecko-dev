@@ -362,6 +362,7 @@ class ClassificationProvider:
                 ],
                 "task-specifier": "browsertime",
                 "task-test-finder": raptor_test_finder,
+                "framework": 13,
             },
             Suites.TALOS.value: {
                 "apps": [Apps.FIREFOX.value],
@@ -372,6 +373,7 @@ class ClassificationProvider:
                 ],
                 "task-specifier": "talos",
                 "task-test-finder": talos_test_finder,
+                "framework": 1,
             },
             Suites.AWSY.value: {
                 "apps": [Apps.FIREFOX.value],
@@ -379,6 +381,7 @@ class ClassificationProvider:
                 "variants": [],
                 "task-specifier": "awsy",
                 "task-test-finder": awsy_test_finder,
+                "framework": 4,
             },
         }
 

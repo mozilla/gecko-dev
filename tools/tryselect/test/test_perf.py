@@ -27,6 +27,7 @@ from tryselect.selectors.perfselector.classification import (
     check_for_live_sites,
     check_for_profile,
 )
+from tryselect.selectors.perfselector.perfpushinfo import PerfPushInfo
 
 here = os.path.abspath(os.path.dirname(__file__))
 FTG_SAMPLE_PATH = pathlib.Path(here, "full-task-graph-perf-test.json")
@@ -50,6 +51,7 @@ TASKS = [
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-htmlsuite",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-unity-webgl",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-wasm-firefox-wasm-godot",
+    "test-linux1804-64-shippable-qr/opt-browsertime-amazon",
 ]
 
 # The TEST_VARIANTS, and TEST_CATEGORIES are used to force
@@ -186,6 +188,12 @@ def category_reset():
         yield
     finally:
         PerfParser.categories = original_categories
+
+
+def setup_perfparser():
+    PerfParser.categories = TEST_CATEGORIES
+    PerfParser.variants = TEST_VARIANTS
+    PerfParser.push_info = PerfPushInfo()
 
 
 @pytest.mark.parametrize(
@@ -889,10 +897,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
             ),
         ),
         (
@@ -902,10 +911,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
             ),
         ),
         (
@@ -915,23 +925,21 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=cached_base_revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=cached_base_revision&newRev=revision&"
+                "baseRepo=try&newRepo=try&framework=13\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=cached_base_revision&newProject=try&newRevision=revision\n"
+                "Revision=cached_base_revision&newProject=try&newRevision=revision&framework=13\n"
             ),
         ),
         (
             {"dry_run": True},
-            [10, 1, 1, 10, 2, 0],
+            [10, 1, 1, 4, 2, 0],
             2,
             (
-                "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
-                "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=&newRev=revision&baseRepo=try&newRepo=try\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=&newProject=try&newRevision=revision\n"
+                "If you need any help, you can find us in the #perf-help Matrix channel:\n"
+                "https://matrix.to/#/#perf-help:mozilla.org\n"
             ),
         ),
         (
@@ -941,10 +949,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
             ),
         ),
         (
@@ -954,10 +963,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
             ),
         ),
         (
@@ -976,10 +986,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
             ),
         ),
         (
@@ -989,10 +1000,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=13\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=13\n"
             ),
         ),
         (
@@ -1002,10 +1014,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
             ),
         ),
         (
@@ -1015,10 +1028,11 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?baseRev=revision&newRev=revision&baseRepo=try&newRepo=try\n\n"
+                " https://perf.compare/compare-results?"
+                "baseRev=revision&newRev=revision&baseRepo=try&newRepo=try&framework=1\n\n"
                 " The old comparison tool is still available at this URL:\n"
                 " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                "Revision=revision&newProject=try&newRevision=revision\n"
+                "Revision=revision&newProject=try&newRevision=revision&framework=1\n"
             ),
         ),
     ],
@@ -1145,6 +1159,8 @@ def test_change_detection_task_injection_failure(
     expected_log_message,
     expected_failure,
 ):
+    setup_perfparser()
+
     with mock.patch("tryselect.selectors.perf.push_to_try") as ptt, mock.patch(
         "tryselect.selectors.perf.run_fzf"
     ) as fzf, mock.patch(
@@ -1394,7 +1410,9 @@ def test_save_revision_treeherder(args, call_counts, exists_cache_file):
         "tryselect.selectors.perf.pathlib.Path.open"
     ):
         is_file.return_value = exists_cache_file
-        PerfParser.save_revision_treeherder(TASKS, args[0], args[1])
+
+        PerfParser.push_info.base_revision = "base_revision_treeherder"
+        PerfParser.save_revision_treeherder(TASKS, args[0])
 
         assert load.call_count == call_counts[0]
         assert dump.call_count == call_counts[1]
@@ -1453,9 +1471,7 @@ def test_max_perf_tasks(
     expected_log_message,
     expected_failure,
 ):
-    # Set the categories, and variants to expand
-    PerfParser.categories = TEST_CATEGORIES
-    PerfParser.variants = TEST_VARIANTS
+    setup_perfparser()
 
     with mock.patch("tryselect.selectors.perf.push_to_try") as ptt, mock.patch(
         "tryselect.selectors.perf.print",
@@ -1466,7 +1482,6 @@ def test_max_perf_tasks(
     ), mock.patch(
         "tryselect.selectors.perf.PerfParser.perf_push_to_try",
         new_callable=mock.MagicMock,
-        return_value=("revision1", "revision2"),
     ) as perf_push_to_try_mock, mock.patch(
         "tryselect.selectors.perf.PerfParser.get_perf_tasks"
     ) as get_perf_tasks_mock, mock.patch(
@@ -1480,6 +1495,7 @@ def test_max_perf_tasks(
         get_tasks_mock.return_value = tasks
         get_perf_tasks_mock.return_value = tasks, [], []
 
+        PerfParser.push_info.finished_run = not expected_failure
         run(**options)
 
         assert perf_push_to_try_mock.call_count == 0 if expected_failure else 1
@@ -1616,6 +1632,12 @@ def test_test_selection(tests, tasks_found, categories_produced):
 
             assert len(all_tasks) == tasks_found
             assert len(PerfParser.categories) == categories_produced
+
+
+def test_unknown_framework():
+    setup_perfparser()
+    PerfParser.get_majority_framework(["unknown"])
+    assert PerfParser.push_info.framework == 1
 
 
 if __name__ == "__main__":
