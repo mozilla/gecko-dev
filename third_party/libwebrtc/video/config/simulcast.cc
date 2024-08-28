@@ -267,45 +267,6 @@ SimulcastFormat InterpolateSimulcastFormat(
   return {width, height, max_layers, max_bitrate, target_bitrate, min_bitrate};
 }
 
-SimulcastFormat InterpolateSimulcastFormat(
-    int width,
-    int height,
-    bool enable_lowres_bitrate_interpolation,
-    webrtc::VideoCodecType codec) {
-  return InterpolateSimulcastFormat(width, height, absl::nullopt,
-                                    enable_lowres_bitrate_interpolation, codec);
-}
-
-webrtc::DataRate FindSimulcastMaxBitrate(
-    int width,
-    int height,
-    bool enable_lowres_bitrate_interpolation,
-    webrtc::VideoCodecType codec) {
-  return InterpolateSimulcastFormat(width, height,
-                                    enable_lowres_bitrate_interpolation, codec)
-      .max_bitrate;
-}
-
-webrtc::DataRate FindSimulcastTargetBitrate(
-    int width,
-    int height,
-    bool enable_lowres_bitrate_interpolation,
-    webrtc::VideoCodecType codec) {
-  return InterpolateSimulcastFormat(width, height,
-                                    enable_lowres_bitrate_interpolation, codec)
-      .target_bitrate;
-}
-
-webrtc::DataRate FindSimulcastMinBitrate(
-    int width,
-    int height,
-    bool enable_lowres_bitrate_interpolation,
-    webrtc::VideoCodecType codec) {
-  return InterpolateSimulcastFormat(width, height,
-                                    enable_lowres_bitrate_interpolation, codec)
-      .min_bitrate;
-}
-
 void BoostMaxSimulcastLayer(webrtc::DataRate max_bitrate,
                             std::vector<webrtc::VideoStream>* layers) {
   if (layers->empty())
@@ -426,14 +387,15 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
     layers[s].max_qp = max_qp;
     layers[s].num_temporal_layers =
         temporal_layers_supported ? num_temporal_layers : 1;
-    layers[s].max_bitrate_bps =
-        FindSimulcastMaxBitrate(width, height,
-                                enable_lowres_bitrate_interpolation, codec)
-            .bps();
-    layers[s].target_bitrate_bps =
-        FindSimulcastTargetBitrate(width, height,
-                                   enable_lowres_bitrate_interpolation, codec)
-            .bps();
+
+    SimulcastFormat interpolated_format = InterpolateSimulcastFormat(
+        width, height, /*max_roundup_rate=*/absl::nullopt,
+        enable_lowres_bitrate_interpolation, codec);
+
+    layers[s].max_bitrate_bps = interpolated_format.max_bitrate.bps();
+    layers[s].target_bitrate_bps = interpolated_format.target_bitrate.bps();
+    layers[s].min_bitrate_bps = interpolated_format.min_bitrate.bps();
+
     if (s == 0) {
       // If alternative temporal rate allocation is selected, adjust the
       // bitrate of the lowest simulcast stream so that absolute bitrate for
@@ -459,10 +421,6 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
       layers[s].target_bitrate_bps =
           static_cast<int>(layers[s].target_bitrate_bps * rate_factor);
     }
-    layers[s].min_bitrate_bps =
-        FindSimulcastMinBitrate(width, height,
-                                enable_lowres_bitrate_interpolation, codec)
-            .bps();
 
     // Ensure consistency.
     layers[s].max_bitrate_bps =
