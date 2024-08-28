@@ -57,14 +57,6 @@
       },
     },
   },
-  'ios_runtime_cache_15_5': {
-    'swarming': {
-      'named_caches': [{
-        'name': 'runtime_ios_15_5',
-        'path': 'Runtime-ios-15.5'
-      }]
-    }
-  },
   'limited-capacity': {
     # Sometimes there are multiple tests that can be run only on one machine.
     # We need to increase timeouts so the tests dont expire before the machine is freed.
