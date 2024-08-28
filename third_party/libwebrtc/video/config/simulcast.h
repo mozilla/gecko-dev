@@ -15,8 +15,10 @@
 
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/units/data_rate.h"
+#include "api/video/resolution.h"
 #include "video/config/video_encoder_config.h"
 
 namespace cricket {
@@ -30,17 +32,19 @@ webrtc::DataRate GetTotalMaxBitrate(
 void BoostMaxSimulcastLayer(webrtc::DataRate max_bitrate,
                             std::vector<webrtc::VideoStream>* layers);
 
-// Round size to nearest simulcast-friendly size
-int NormalizeSimulcastSize(const webrtc::FieldTrialsView& field_trials,
-                           int size,
-                           size_t simulcast_layers);
+// Returns number of simulcast streams. The value depends on the resolution and
+// is restricted to the range from `min_num_layers` to `max_num_layers`,
+// inclusive.
+size_t LimitSimulcastLayerCount(size_t min_num_layers,
+                                size_t max_num_layers,
+                                int width,
+                                int height,
+                                const webrtc::FieldTrialsView& trials,
+                                webrtc::VideoCodecType codec);
 
 // Gets simulcast settings.
 std::vector<webrtc::VideoStream> GetSimulcastConfig(
-    size_t min_layers,
-    size_t max_layers,
-    int width,
-    int height,
+    rtc::ArrayView<const webrtc::Resolution> resolutions,
     bool is_screenshare_with_conference_mode,
     bool temporal_layers_supported,
     const webrtc::FieldTrialsView& trials,

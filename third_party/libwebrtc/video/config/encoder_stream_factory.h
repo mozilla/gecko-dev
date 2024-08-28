@@ -54,6 +54,12 @@ class EncoderStreamFactory
       int in_frame_height,
       webrtc::Resolution requested_resolution) const;
 
+  std::vector<webrtc::Resolution> GetStreamResolutions(
+      const webrtc::FieldTrialsView& trials,
+      int width,
+      int height,
+      const webrtc::VideoEncoderConfig& encoder_config) const;
+
   const int encoder_info_requested_resolution_alignment_;
   const absl::optional<webrtc::VideoSourceRestrictions> restrictions_;
 };

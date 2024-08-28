@@ -111,6 +111,22 @@ int GetDefaultMaxQp(webrtc::VideoCodecType codec_type) {
   }
 }
 
+// Round size to nearest simulcast-friendly size.
+// Simulcast stream width and height must both be dividable by
+// |2 ^ (simulcast_layers - 1)|.
+int NormalizeSimulcastSize(const FieldTrialsView& field_trials,
+                           int size,
+                           size_t simulcast_layers) {
+  int base2_exponent = static_cast<int>(simulcast_layers) - 1;
+  const absl::optional<int> experimental_base2_exponent =
+      webrtc::NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials);
+  if (experimental_base2_exponent &&
+      (size > (1 << *experimental_base2_exponent))) {
+    base2_exponent = *experimental_base2_exponent;
+  }
+  return ((size >> base2_exponent) << base2_exponent);
+}
+
 }  // namespace
 
 EncoderStreamFactory::EncoderStreamFactory(
@@ -322,47 +338,23 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
                        webrtc::VideoEncoderConfig::ContentType::kScreen;
   const bool is_legacy_screencast =
       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config);
-  std::vector<webrtc::VideoStream> layers;
+
+  std::vector<webrtc::Resolution> resolutions =
+      GetStreamResolutions(trials, width, height, encoder_config);
 
   const bool temporal_layers_supported =
       IsTemporalLayersSupported(encoder_config.codec_type);
   // Use legacy simulcast screenshare if conference mode is explicitly enabled
   // or use the regular simulcast configuration path which is generic.
-  layers = GetSimulcastConfig(FindRequiredActiveLayers(encoder_config),
-                              encoder_config.number_of_streams, width, height,
-                              is_legacy_screencast, temporal_layers_supported,
-                              trials, encoder_config.codec_type);
+  std::vector<webrtc::VideoStream> layers = GetSimulcastConfig(
+      resolutions, is_legacy_screencast, temporal_layers_supported, trials,
+      encoder_config.codec_type);
   // Allow an experiment to override the minimum bitrate for the lowest
   // spatial layer. The experiment's configuration has the lowest priority.
   layers[0].min_bitrate_bps = experimental_min_bitrate
                                   .value_or(webrtc::DataRate::BitsPerSec(
                                       webrtc::kDefaultMinVideoBitrateBps))
                                   .bps<int>();
-
-  const bool has_scale_resolution_down_by = absl::c_any_of(
-      encoder_config.simulcast_layers, [](const webrtc::VideoStream& layer) {
-        return layer.scale_resolution_down_by != -1.;
-      });
-
-  bool default_scale_factors_used = true;
-  if (has_scale_resolution_down_by) {
-    default_scale_factors_used = IsScaleFactorsPowerOfTwo(encoder_config);
-  }
-  const bool norm_size_configured =
-      webrtc::NormalizeSimulcastSizeExperiment::GetBase2Exponent(trials)
-          .has_value();
-  const int normalized_width =
-      (default_scale_factors_used || norm_size_configured) &&
-              (width >= kMinLayerSize)
-          ? NormalizeSimulcastSize(trials, width,
-                                   encoder_config.number_of_streams)
-          : width;
-  const int normalized_height =
-      (default_scale_factors_used || norm_size_configured) &&
-              (height >= kMinLayerSize)
-          ? NormalizeSimulcastSize(trials, height,
-                                   encoder_config.number_of_streams)
-          : height;
 
   // Update the active simulcast layers and configured bitrates.
   for (size_t i = 0; i < layers.size(); ++i) {
@@ -380,20 +372,6 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     if (encoder_config.simulcast_layers[i].max_framerate > 0) {
       layers[i].max_framerate =
           encoder_config.simulcast_layers[i].max_framerate;
-    }
-    if (encoder_config.simulcast_layers[i].requested_resolution.has_value()) {
-      auto res = GetLayerResolutionFromRequestedResolution(
-          normalized_width, normalized_height,
-          *encoder_config.simulcast_layers[i].requested_resolution);
-      layers[i].width = res.width;
-      layers[i].height = res.height;
-    } else if (has_scale_resolution_down_by) {
-      const double scale_resolution_down_by = std::max(
-          encoder_config.simulcast_layers[i].scale_resolution_down_by, 1.0);
-      layers[i].width = ScaleDownResolution(
-          normalized_width, scale_resolution_down_by, kMinLayerSize);
-      layers[i].height = ScaleDownResolution(
-          normalized_height, scale_resolution_down_by, kMinLayerSize);
     }
     // Update simulcast bitrates with configured min and max bitrate.
     if (encoder_config.simulcast_layers[i].min_bitrate_bps > 0) {
@@ -514,6 +492,71 @@ EncoderStreamFactory::GetLayerResolutionFromRequestedResolution(
     RTC_LOG(LS_ERROR) << "AdaptFrameResolution returned false!";
   }
   return {.width = out_width, .height = out_height};
+}
+
+std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
+    const webrtc::FieldTrialsView& trials,
+    int width,
+    int height,
+    const webrtc::VideoEncoderConfig& encoder_config) const {
+  std::vector<webrtc::Resolution> resolutions;
+  if (webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config)) {
+    for (size_t i = 0; i < encoder_config.number_of_streams; ++i) {
+      resolutions.push_back({.width = width, .height = height});
+    }
+  } else {
+    size_t min_num_layers = FindRequiredActiveLayers(encoder_config);
+    size_t max_num_layers = LimitSimulcastLayerCount(
+        min_num_layers, encoder_config.number_of_streams, width, height, trials,
+        encoder_config.codec_type);
+    RTC_DCHECK_LE(max_num_layers, encoder_config.number_of_streams);
+
+    const bool has_scale_resolution_down_by = absl::c_any_of(
+        encoder_config.simulcast_layers, [](const webrtc::VideoStream& layer) {
+          return layer.scale_resolution_down_by != -1.;
+        });
+
+    bool default_scale_factors_used = true;
+    if (has_scale_resolution_down_by) {
+      default_scale_factors_used = IsScaleFactorsPowerOfTwo(encoder_config);
+    }
+
+    const bool norm_size_configured =
+        webrtc::NormalizeSimulcastSizeExperiment::GetBase2Exponent(trials)
+            .has_value();
+    const int normalized_width =
+        (default_scale_factors_used || norm_size_configured) &&
+                (width >= kMinLayerSize)
+            ? NormalizeSimulcastSize(trials, width, max_num_layers)
+            : width;
+    const int normalized_height =
+        (default_scale_factors_used || norm_size_configured) &&
+                (height >= kMinLayerSize)
+            ? NormalizeSimulcastSize(trials, height, max_num_layers)
+            : height;
+
+    resolutions.resize(max_num_layers);
+    for (size_t i = 0; i < max_num_layers; i++) {
+      if (encoder_config.simulcast_layers[i].requested_resolution.has_value()) {
+        resolutions[i] = GetLayerResolutionFromRequestedResolution(
+            normalized_width, normalized_height,
+            *encoder_config.simulcast_layers[i].requested_resolution);
+      } else if (has_scale_resolution_down_by) {
+        const double scale_resolution_down_by = std::max(
+            encoder_config.simulcast_layers[i].scale_resolution_down_by, 1.0);
+        resolutions[i].width = ScaleDownResolution(
+            normalized_width, scale_resolution_down_by, kMinLayerSize);
+        resolutions[i].height = ScaleDownResolution(
+            normalized_height, scale_resolution_down_by, kMinLayerSize);
+      } else {
+        // Resolutions with default 1/2 scale factor, from low to high.
+        resolutions[i].width = normalized_width >> (max_num_layers - i - 1);
+        resolutions[i].height = normalized_height >> (max_num_layers - i - 1);
+      }
+    }
+  }
+
+  return resolutions;
 }
 
 }  // namespace cricket

@@ -18,8 +18,10 @@ rtc_library("streams_config") {
 
   deps = [
     ":encoder_config",
+    "../../api:array_view",
     "../../api:field_trials_view",
     "../../api/units:data_rate",
+    "../../api/video:resolution",
     "../../api/video:video_codec_constants",
     "../../api/video_codecs:video_codecs_api",
     "../../call/adaptation:resource_adaptation",
@@ -69,6 +71,7 @@ if (rtc_include_tests) {
     ]
     deps = [
       ":streams_config",
+      "../../api/video_codecs:scalability_mode",
       "../../call/adaptation:resource_adaptation",
       "../../media:media_constants",
       "../../rtc_base/experiments:min_video_bitrate_experiment",

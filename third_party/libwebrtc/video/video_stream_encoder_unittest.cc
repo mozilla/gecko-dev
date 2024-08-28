@@ -2666,9 +2666,11 @@ TEST_P(ResolutionAlignmentTest, SinkWantsAlignmentApplied) {
   config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(std::move(config), kMaxPayloadLength);
 
+  // We can get up to 3 streams of 1280x720 resolution each in this test. Make
+  // available bitrate large enough to get all streams encoded.
+  const DataRate kAvailableBitrate = 3 * kSimulcastTargetBitrate;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-      kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
-      0, 0, 0);
+      kAvailableBitrate, kAvailableBitrate, kAvailableBitrate, 0, 0, 0);
   // Wait for all layers before triggering event.
   sink_.SetNumExpectedLayers(num_streams);
 
