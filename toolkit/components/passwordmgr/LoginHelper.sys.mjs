@@ -676,23 +676,22 @@ export const LoginHelper = {
   getLoginOrigin(uriString, allowJS = false) {
     try {
       const mozProxyRegex = /^moz-proxy:\/\//i;
-      const isMozProxy = !!uriString.match(mozProxyRegex);
-      if (isMozProxy) {
-        // Special handling because uri.displayHostPort throws on moz-proxy://
-        return (
-          "moz-proxy://" +
-          Services.io.newURI(uriString.replace(mozProxyRegex, "https://"))
-            .displayHostPort
-        );
+      if (mozProxyRegex.test(uriString)) {
+        // Special handling for moz-proxy URIs
+        const uri = new URL(uriString.replace(mozProxyRegex, "https://"));
+        return `moz-proxy://${uri.host}`;
       }
 
-      const uri = Services.io.newURI(uriString);
-      if (allowJS && uri.scheme == "javascript") {
-        return "javascript:";
+      const uri = new URL(uriString);
+      if (uri.protocol === "javascript:") {
+        return allowJS ? "javascript:" : null;
       }
 
-      // Build this manually instead of using prePath to avoid including the userPass portion.
-      return uri.scheme + "://" + uri.displayHostPort;
+      // Ensure the URL has a host
+      // Execption: file URIs See Bug 1651186
+      return uri.host || uri.protocol === "file:"
+        ? `${uri.protocol}//${uri.host}`
+        : null;
     } catch {
       return null;
     }

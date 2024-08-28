@@ -27,6 +27,13 @@ const TESTCASES = [
     "moz-proxy://username:password@123.123.123.123:12345/foo",
     "moz-proxy://123.123.123.123:12345",
   ],
+  [
+    "moz-proxy://username:password@123.123.123.123/foo",
+    "moz-proxy://123.123.123.123",
+  ],
+  ["file:///foo/bar", "file://"],
+  ["file://foo/bar", "file://"],
+  ["randomprotocol://example.com", null],
 ];
 
 for (let [input, expected, allowJS] of TESTCASES) {
