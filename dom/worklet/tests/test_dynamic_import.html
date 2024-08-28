@@ -20,23 +20,16 @@ function configureTest() {
   // have limitations to post the result back to the main document:
   // Worklets have a different global, and they don't have postMessage() APIs,
   // and static import SimpleTest.js in worklets also don't work.
-  function consoleListener() {
-    this.observe = this.observe.bind(this);
-    ConsoleAPIStorage.addLogEventListener(this.observe, SpecialPowers.wrap(document).nodePrincipal);
+  function observe(aSubject) {
+    var obj = aSubject.wrappedJSObject;
+    info("Got console message:" + obj.arguments[0]);
+    is(TypeError.name + ": Success", obj.arguments[0], "import() should throw");
+
+    ConsoleAPIStorage.removeLogEventListener(observe);
+    SimpleTest.finish();
   }
 
-  consoleListener.prototype  = {
-    observe(aSubject) {
-      var obj = aSubject.wrappedJSObject;
-      info("Got console message:" + obj.arguments[0]);
-      is(TypeError.name + ": Success", obj.arguments[0], "import() should throw");
-
-      ConsoleAPIStorage.removeLogEventListener(this.observe);
-      SimpleTest.finish();
-    }
-  }
-
-  var cl = new consoleListener();
+  ConsoleAPIStorage.addLogEventListener(observe, SpecialPowers.wrap(document).nodePrincipal);
 }
 
 // This function is called into an iframe.

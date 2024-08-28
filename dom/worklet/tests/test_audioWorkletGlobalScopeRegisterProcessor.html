@@ -35,29 +35,21 @@ function configureTest() {
     "@mozilla.org/consoleAPI-storage;1"
   ].getService(SpecialPowers.Ci.nsIConsoleAPIStorage);
 
-  function consoleListener() {
-    this.observe = this.observe.bind(this);
-    ConsoleAPIStorage.addLogEventListener(this.observe, SpecialPowers.wrap(document).nodePrincipal);
-  }
+  function observe(aSubject) {
+    var obj = aSubject.wrappedJSObject;
+    if (obj.arguments[0] == expected_errors[expected_errors_i]) {
+      ok(true, "Expected error received: " + obj.arguments[0]);
+      expected_errors_i++;
+    }
 
-  consoleListener.prototype  = {
-    observe(aSubject) {
-      var obj = aSubject.wrappedJSObject;
-      if (obj.arguments[0] == expected_errors[expected_errors_i]) {
-        ok(true, "Expected error received: " + obj.arguments[0]);
-        expected_errors_i++;
-      }
-
-      if (expected_errors_i == expected_errors.length) {
-        // All errors have been received, this test has been completed
-        // succesfully!
-        ConsoleAPIStorage.removeLogEventListener(this.observe);
-        SimpleTest.finish();
-      }
+    if (expected_errors_i == expected_errors.length) {
+      // All errors have been received, this test has been completed
+      // succesfully!
+      ConsoleAPIStorage.removeLogEventListener(observe);
+      SimpleTest.finish();
     }
   }
-
-  var cl = new consoleListener();
+  ConsoleAPIStorage.addLogEventListener(observe, SpecialPowers.wrap(document).nodePrincipal);
 }
 
 // This function is called into an iframe.

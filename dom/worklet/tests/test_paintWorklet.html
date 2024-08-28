@@ -15,29 +15,23 @@ function configureTest() {
     "@mozilla.org/consoleAPI-storage;1"
   ].getService(SpecialPowers.Ci.nsIConsoleAPIStorage);
 
-  function consoleListener() {
-    this.observe = this.observe.bind(this);
-    ConsoleAPIStorage.addLogEventListener(this.observe, SpecialPowers.wrap(document).nodePrincipal);
-  }
+  function observe(aSubject) {
+    var obj = aSubject.wrappedJSObject;
+    if (obj.arguments[0] == "So far so good") {
+      ok(true, "Message received \\o/");
 
-  consoleListener.prototype  = {
-    observe(aSubject) {
-      var obj = aSubject.wrappedJSObject;
-      if (obj.arguments[0] == "So far so good") {
-        ok(true, "Message received \\o/");
-
-        ConsoleAPIStorage.removeLogEventListener(this.observe);
-        SimpleTest.finish();
-      }
+      ConsoleAPIStorage.removeLogEventListener(observe);
+      SimpleTest.finish();
     }
   }
 
-  var cl = new consoleListener();
+  ConsoleAPIStorage.addLogEventListener(observe, SpecialPowers.wrap(document).nodePrincipal);
 
   return SpecialPowers.pushPrefEnv({ "set": [["dom.paintWorklet.enabled", true]] });
 }
 
 // This function is called into an iframe.
+/* global paintWorklet */
 function runTestInIframe() {
   paintWorklet.addModule("worklet_paintWorklet.js")
 }

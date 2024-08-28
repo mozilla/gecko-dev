@@ -4,7 +4,7 @@ class WasmProcessWorkletProcessor extends AudioWorkletProcessor {
     this.port.postMessage(testModules());
   }
 
-  process(inputs, outputs, parameters) {
+  process() {
     // Do nothing, output silence
     return true;
   }
@@ -12,7 +12,7 @@ class WasmProcessWorkletProcessor extends AudioWorkletProcessor {
 
 function testModule(binary) {
   try {
-    let wasmModule = new WebAssembly.Module(binary);
+    new WebAssembly.Module(binary);
   } catch (error) {
     if (error instanceof WebAssembly.CompileError) {
       return error.message;

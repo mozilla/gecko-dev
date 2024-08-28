@@ -645,7 +645,6 @@ const rollouts = [
       "dom/webauthn/tests/**",
       "dom/websocket/tests/**",
       "dom/workers/test/**",
-      "dom/worklet/tests/**",
     ],
     rules: {
       "mozilla/avoid-removeChild": "off",
@@ -707,7 +706,6 @@ const rollouts = [
       "dom/webgpu/mochitest/**",
       "dom/websocket/tests/**",
       "dom/workers/test/**",
-      "dom/worklet/tests/**",
     ],
     rules: {
       "no-undef": "off",

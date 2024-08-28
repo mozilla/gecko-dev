@@ -16,26 +16,18 @@ function configureTest() {
     "@mozilla.org/consoleAPI-storage;1"
   ].getService(SpecialPowers.Ci.nsIConsoleAPIStorage);
 
-  function consoleListener() {
-    this.observe = this.observe.bind(this);
-    ConsoleAPIStorage.addLogEventListener(this.observe, SpecialPowers.wrap(document).nodePrincipal);
-  }
+  function observe(aSubject) {
+    var obj = aSubject.wrappedJSObject;
+    if (obj.arguments[0] == "Hello world from a worklet") {
+      ok(true, "Message received \\o/");
+      is(obj.filename,
+          new URL(WORKLET_SCRIPT, document.baseURI).toString());
 
-  consoleListener.prototype  = {
-    observe(aSubject) {
-      var obj = aSubject.wrappedJSObject;
-      if (obj.arguments[0] == "Hello world from a worklet") {
-        ok(true, "Message received \\o/");
-        is(obj.filename,
-           new URL(WORKLET_SCRIPT, document.baseURI).toString());
-
-        ConsoleAPIStorage.removeLogEventListener(this.observe);
-        SimpleTest.finish();
-      }
+      ConsoleAPIStorage.removeLogEventListener(observe);
+      SimpleTest.finish();
     }
   }
-
-  var cl = new consoleListener();
+  ConsoleAPIStorage.addLogEventListener(observe, SpecialPowers.wrap(document).nodePrincipal);
 }
 
 // This function is called into an iframe.

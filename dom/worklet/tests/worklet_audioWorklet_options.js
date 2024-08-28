@@ -4,7 +4,7 @@ class OptionsProcessWorkletProcessor extends AudioWorkletProcessor {
     this.port.postMessage(args[0].processorOptions);
   }
 
-  process(inputs, outputs, parameters) {
+  process() {
     return true;
   }
 }
