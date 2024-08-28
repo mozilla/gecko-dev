@@ -126,6 +126,9 @@ extern crate oblivious_http;
 
 extern crate mime_guess_ffi;
 
+#[cfg(feature = "libz-rs-sys")]
+extern crate libz_rs_sys;
+
 #[cfg(feature = "uniffi_fixtures")]
 mod uniffi_fixtures {
     extern crate arithmetical;

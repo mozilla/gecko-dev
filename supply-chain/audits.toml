@@ -2769,6 +2769,12 @@ who = "Mark Hammond <mhammond@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.27.0 -> 0.28.0"
 
+[[audits.libz-rs-sys]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.2.1 -> 0.2.1@git:e83fcefadb576e0ce32297cc516facb694d93b67"
+importable = false
+
 [[audits.linked-hash-map]]
 who = "Aria Beingessner <a.beingessner@gmail.com>"
 criteria = "safe-to-deploy"
@@ -5442,6 +5448,12 @@ non-1-byte-aligned type, however right now that is not the case
 (submitted https://github.com/zip-rs/zip2/issues/198).
 """
 
+[[audits.zlib-rs]]
+who = "Mike Hommey <mh+mozilla@glandium.org>"
+criteria = "safe-to-deploy"
+delta = "0.2.1 -> 0.2.1@git:e83fcefadb576e0ce32297cc516facb694d93b67"
+importable = false
+
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
@@ -5597,6 +5609,12 @@ criteria = "safe-to-deploy"
 user-id = 51017 # Yuki Okushi (JohnTitor)
 start = "2020-03-17"
 end = "2024-10-25"
+
+[[trusted.libz-rs-sys]]
+criteria = "safe-to-deploy"
+user-id = 1303 # Ruben Nijveld (rnijveld)
+start = "2024-02-23"
+end = "2024-09-01"
 
 [[trusted.linux-raw-sys]]
 criteria = "safe-to-deploy"
@@ -5903,3 +5921,9 @@ criteria = "safe-to-deploy"
 user-id = 64539 # Kenny Kerr (kennykerr)
 start = "2021-11-15"
 end = "2024-09-12"
+
+[[trusted.zlib-rs]]
+criteria = "safe-to-deploy"
+user-id = 1303 # Ruben Nijveld (rnijveld)
+start = "2024-02-23"
+end = "2024-09-01"
