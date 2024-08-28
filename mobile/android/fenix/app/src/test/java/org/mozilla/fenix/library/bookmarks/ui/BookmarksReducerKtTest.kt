@@ -16,14 +16,15 @@ class BookmarksReducerKtTest {
     }
 
     @Test
-    fun `WHEN bookmarks are loaded THEN they are added to state`() {
+    fun `WHEN bookmarks are loaded THEN they are added to state and folder title is updated`() {
         val state = BookmarksState.default
         val items = List(5) {
-            BookmarkItem.Folder("$it")
+            BookmarkItem.Folder("$it", "guid$it")
         }
+        val newTitle = "bookmarks"
 
-        val result = bookmarksReducer(state, BookmarksLoaded(items))
+        val result = bookmarksReducer(state, BookmarksLoaded(folderTitle = newTitle, bookmarkItems = items))
 
-        assertEquals(state.copy(bookmarkItems = items), result)
+        assertEquals(state.copy(folderTitle = newTitle, bookmarkItems = items), result)
     }
 }

@@ -8,6 +8,13 @@ package org.mozilla.fenix.library.bookmarks.ui
  * Function for reducing a new bookmarks state based on the received action.
  */
 internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = when (action) {
-    is BookmarksLoaded -> state.copy(bookmarkItems = action.bookmarkItems)
-    Init -> state
+    is BookmarksLoaded -> state.copy(
+        folderTitle = action.folderTitle,
+        bookmarkItems = action.bookmarkItems,
+    )
+    is FolderClicked,
+    is BookmarkClicked,
+    SearchClicked,
+    Init,
+    -> state
 }

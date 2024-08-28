@@ -10,11 +10,16 @@ import mozilla.components.lib.state.State
  * Represents the state of the Bookmarks list screen and its various subscreens.
  *
  * @property bookmarkItems Bookmark items to be displayed in the current list screen.
+ * @property folderTitle The title of currently selected folder whose children items are being displayed.
  */
-internal data class BookmarksState(val bookmarkItems: List<BookmarkItem>) : State {
+internal data class BookmarksState(
+    val bookmarkItems: List<BookmarkItem>,
+    val folderTitle: String,
+) : State {
     companion object {
         val default: BookmarksState = BookmarksState(
             bookmarkItems = listOf(),
+            "",
         )
     }
 }
