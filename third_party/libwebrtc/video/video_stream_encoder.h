@@ -422,7 +422,8 @@ class VideoStreamEncoder : public VideoStreamEncoderInterface,
   // The quality convergence controller is used to determine if a codec has
   // reached its target quality. This is used for screenshare to determine when
   // there's no need to continue encoding the same repeated frame.
-  QualityConvergenceController quality_convergence_controller_;
+  QualityConvergenceController quality_convergence_controller_
+      RTC_GUARDED_BY(encoder_queue_);
 
   // Enables encoder switching on initialization failures.
   bool switch_encoder_on_init_failures_;

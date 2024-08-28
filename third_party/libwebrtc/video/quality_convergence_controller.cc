@@ -44,6 +44,7 @@ void QualityConvergenceController::Initialize(
     absl::optional<int> static_qp_threshold,
     VideoCodecType codec,
     const FieldTrialsView& trials) {
+  RTC_DCHECK(sequence_checker_.IsCurrent());
   RTC_CHECK(number_of_layers > 0);
   number_of_layers_ = number_of_layers;
   convergence_monitors_.clear();
@@ -61,8 +62,17 @@ bool QualityConvergenceController::AddSampleAndCheckTargetQuality(
     int layer_index,
     int qp,
     bool is_refresh_frame) {
+  RTC_DCHECK(sequence_checker_.IsCurrent());
   RTC_CHECK(initialized_);
   if (layer_index < 0 || layer_index >= number_of_layers_) {
+    return false;
+  }
+
+  // TODO(kron): Remove temporary check that verifies that the initialization is
+  // working as expected. See https://crbug.com/359410061.
+  RTC_DCHECK(number_of_layers_ ==
+             static_cast<int>(convergence_monitors_.size()));
+  if (number_of_layers_ != static_cast<int>(convergence_monitors_.size())) {
     return false;
   }
 

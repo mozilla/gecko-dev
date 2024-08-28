@@ -2090,22 +2090,11 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
             .value_or(-1);
   }
 
-  // Check if the encoded image has reached target quality.
-  const size_t simulcast_index = encoded_image.SimulcastIndex().value_or(0);
-  bool at_target_quality =
-      quality_convergence_controller_.AddSampleAndCheckTargetQuality(
-          simulcast_index, image_copy.qp_,
-          image_copy.IsSteadyStateRefreshFrame());
-  image_copy.SetAtTargetQuality(at_target_quality);
   TRACE_EVENT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
                "stream_idx", stream_idx, "qp", image_copy.qp_);
-  TRACE_EVENT_INSTANT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
-                       TRACE_EVENT_SCOPE_GLOBAL, "simulcast_idx",
-                       simulcast_index, "at_target_quality", at_target_quality);
   RTC_LOG(LS_VERBOSE) << __func__ << " ntp time " << encoded_image.NtpTimeMs()
                       << " stream_idx " << stream_idx << " qp "
-                      << image_copy.qp_ << " at target quality "
-                      << at_target_quality;
+                      << image_copy.qp_;
   return image_copy;
 }
 
@@ -2128,10 +2117,15 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
   unsigned int image_width = image_copy._encodedWidth;
   unsigned int image_height = image_copy._encodedHeight;
   encoder_queue_->PostTask([this, codec_type, image_width, image_height,
-                            simulcast_index,
-                            at_target_quality =
-                                image_copy.IsAtTargetQuality()] {
+                            simulcast_index, qp = image_copy.qp_,
+                            is_steady_state_refresh_frame =
+                                image_copy.IsSteadyStateRefreshFrame()] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
+
+    // Check if the encoded image has reached target quality.
+    bool at_target_quality =
+        quality_convergence_controller_.AddSampleAndCheckTargetQuality(
+            simulcast_index, qp, is_steady_state_refresh_frame);
 
     // Let the frame cadence adapter know about quality convergence.
     if (frame_cadence_adapter_)

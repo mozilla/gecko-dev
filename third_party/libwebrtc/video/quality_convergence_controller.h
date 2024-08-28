@@ -16,6 +16,7 @@
 
 #include "absl/types/optional.h"
 #include "api/field_trials_view.h"
+#include "api/sequence_checker.h"
 #include "api/video/video_codec_type.h"
 #include "video/quality_convergence_monitor.h"
 
@@ -41,6 +42,7 @@ class QualityConvergenceController {
   bool initialized_ = false;
   int number_of_layers_ = 0;
   std::vector<std::unique_ptr<QualityConvergenceMonitor>> convergence_monitors_;
+  SequenceChecker sequence_checker_{SequenceChecker::kDetached};
 };
 
 }  // namespace webrtc
