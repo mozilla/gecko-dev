@@ -48,7 +48,7 @@ function dotest()
 {
   SimpleTest.waitForExplicitFinish();
   SpecialPowers.pushPrefEnv({
-    set: [["network.cookie.maxageCap", kSevenDays]],
+    set: [["privacy.documentCookies.maxage", kSevenDays]],
   }).then(_ => {
     gScript = SpecialPowers.loadChromeScript(kScriptURL);
 
@@ -101,7 +101,7 @@ function dotest()
           is(cookie.value, "value3", "The correct value expected");
           let d = new Date(cookie.expires * 1000);
           let [day, month, year] = [d.getUTCDate(), d.getUTCMonth(), d.getUTCFullYear()];
-          let d2 = new Date(kInSevenDays);
+          let d2 = new Date("Fri, 02 Jan 2037 00:00:01 GMT");
           let [day2, month2, year2] = [d2.getUTCDate(), d2.getUTCMonth(), d2.getUTCFullYear()];
           is(day, day2, "Days match");
           is(month, month2, "Months match");

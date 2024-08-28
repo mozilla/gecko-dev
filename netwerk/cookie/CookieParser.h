@@ -47,8 +47,7 @@ class CookieParser final {
   nsIURI* HostURI() const { return mHostURI; }
 
   bool Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
-             CookieStatus aStatus, nsCString& aCookieHeader,
-             const nsACString& aDateHeader, bool aFromHttp,
+             CookieStatus aStatus, nsCString& aCookieHeader, bool aFromHttp,
              bool aIsForeignAndNotAddon, bool aPartitionedOnly,
              bool aIsInPrivateBrowsing);
 
@@ -81,7 +80,7 @@ class CookieParser final {
 
   bool GetExpiry(CookieStruct& aCookieData, const nsACString& aExpires,
                  const nsACString& aMaxage, int64_t aCurrentTime,
-                 const nsACString& aDateHeader, bool aFromHttp);
+                 bool aFromHttp);
 
   bool CheckPath();
   bool CheckAttributeSize(const nsACString& currentValue,

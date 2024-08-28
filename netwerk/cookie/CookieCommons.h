@@ -142,9 +142,6 @@ class CookieCommons final {
 
   static void ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
                                   nsACString& aCookieString);
-
-  static void GetServerDateHeader(nsIChannel* aChannel,
-                                  nsACString& aServerDateHeader);
 };
 
 }  // namespace net
