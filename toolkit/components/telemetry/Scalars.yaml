@@ -2926,27 +2926,6 @@ mathml:
     record_in_processes:
       - 'content'
 
-mediarecorder:
-  recording_count:
-    bug_numbers:
-      - 1400757
-      - 1429765
-      - 1480589
-      - 1532391
-    description: >
-      The number of times a MediaRecorder has been started. Recorded when a MediaRecorder starts
-    expires: "72"
-    kind: uint
-    notification_emails:
-      - media-alerts@mozilla.com
-    release_channel_collection: opt-in
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - main
-      - content
-
 media:
   element_in_page_count:
     bug_numbers:

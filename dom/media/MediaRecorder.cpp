@@ -603,7 +603,6 @@ class MediaRecorder::Session : public PrincipalChangeObserver<MediaStreamTrack>,
         mAudioBitsPerSecond(aAudioBitsPerSecond),
         mRunningState(RunningState::Idling) {
     MOZ_ASSERT(NS_IsMainThread());
-    Telemetry::ScalarAdd(Telemetry::ScalarID::MEDIARECORDER_RECORDING_COUNT, 1);
   }
 
   void PrincipalChanged(MediaStreamTrack* aTrack) override {
