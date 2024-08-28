@@ -9,6 +9,7 @@ function checkRefCount(s, expected) {
     // stringRepresentation and the bufferRefCount field aren't available in
     // all builds.
     if (getBuildConfiguration("debug")) {
+        finishBackgroundFree();
         var repr = JSON.parse(stringRepresentation(s));
         assertEq(repr.bufferRefCount, expected);
     }
