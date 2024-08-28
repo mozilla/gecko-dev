@@ -45,11 +45,6 @@ export class KeyPressEventModelCheckerChild extends JSWindowActorChild {
     let isOldVersion = !editingElement.classList.contains(
       "WACViewPanel_DisableLegacyKeyCodeAndCharCode"
     );
-    Services.telemetry.keyedScalarAdd(
-      "dom.event.office_online_load_count",
-      isOldVersion ? "old" : "new",
-      1
-    );
     return isOldVersion;
   }
 
@@ -94,11 +89,6 @@ export class KeyPressEventModelCheckerChild extends JSWindowActorChild {
         return false;
       }
       let isOldVersion = version === "1.0";
-      Services.telemetry.keyedScalarAdd(
-        "dom.event.confluence_load_count",
-        isOldVersion ? "old" : "new",
-        1
-      );
       return isOldVersion;
     } catch (e) {
       return false;
