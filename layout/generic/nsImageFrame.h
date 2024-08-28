@@ -77,7 +77,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
             nsIFrame* aPrevInFlow) override;
   void BuildDisplayList(nsDisplayListBuilder*, const nsDisplayListSet&) final;
 
-  nscoord IntrinsicISize(gfxContext* aContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
                          mozilla::IntrinsicISizeType aType) final;
 
   mozilla::IntrinsicSize GetIntrinsicSize() final { return mIntrinsicSize; }

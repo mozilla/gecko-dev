@@ -4402,9 +4402,9 @@ nsIFrame* nsContinuingTextFrame::FirstInFlow() const {
 // XXX We really need to make :first-letter happen during frame
 // construction.
 
-nscoord nsTextFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsTextFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                     IntrinsicISizeType aType) {
-  return IntrinsicISizeFromInline(aContext, aType);
+  return IntrinsicISizeFromInline(aInput.mContext, aType);
 }
 
 //----------------------------------------------------------------------

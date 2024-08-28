@@ -896,9 +896,9 @@ void nsMathMLContainerFrame::UpdateIntrinsicISize(
   }
 }
 
-nscoord nsMathMLContainerFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsMathMLContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                                IntrinsicISizeType aType) {
-  UpdateIntrinsicISize(aContext);
+  UpdateIntrinsicISize(aInput.mContext);
   return mIntrinsicISize;
 }
 

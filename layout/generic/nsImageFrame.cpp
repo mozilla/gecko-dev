@@ -1467,7 +1467,7 @@ nscoord nsImageFrame::GetContinuationOffset() const {
   return offset;
 }
 
-nscoord nsImageFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsImageFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                      IntrinsicISizeType aType) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.

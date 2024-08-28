@@ -207,7 +207,7 @@ nsresult nsProgressFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsProgressFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsProgressFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                         IntrinsicISizeType aType) {
   nscoord iSize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {

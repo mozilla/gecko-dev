@@ -458,9 +458,9 @@ void nsMenuPopupFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   PropagateStyleToWidget(flags);
 }
 
-nscoord nsMenuPopupFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsMenuPopupFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                          IntrinsicISizeType aType) {
-  nscoord iSize = nsBlockFrame::IntrinsicISize(aContext, aType);
+  nscoord iSize = nsBlockFrame::IntrinsicISize(aInput, aType);
   if (!ShouldExpandToInflowParentOrAnchor()) {
     return iSize;
   }

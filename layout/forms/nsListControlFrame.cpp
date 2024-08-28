@@ -227,7 +227,7 @@ nscoord nsListControlFrame::CalcBSizeOfARow() {
   return rowBSize;
 }
 
-nscoord nsListControlFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsListControlFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                            IntrinsicISizeType aType) {
   // Always add scrollbar inline sizes to the intrinsic isize of the
   // scrolled content. Combobox frames depend on this happening in the
@@ -238,7 +238,7 @@ nscoord nsListControlFrame::IntrinsicISize(gfxContext* aContext,
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     result = *containISize;
   } else {
-    result = GetScrolledFrame()->IntrinsicISize(aContext, aType);
+    result = GetScrolledFrame()->IntrinsicISize(aInput, aType);
   }
   LogicalMargin scrollbarSize(wm, GetDesiredScrollbarSizes());
   result = NSCoordSaturatingAdd(result, scrollbarSize.IStartEnd(wm));
