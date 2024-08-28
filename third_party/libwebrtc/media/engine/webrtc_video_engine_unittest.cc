@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -83,6 +84,7 @@
 #include "video/config/simulcast.h"
 
 using ::testing::_;
+using ::testing::Combine;
 using ::testing::Contains;
 using ::testing::Each;
 using ::testing::ElementsAre;
@@ -7998,128 +8000,28 @@ TEST_F(WebRtcVideoChannelTest, SetRtpSendParametersPrioritySimulcastStreams) {
   EXPECT_TRUE(send_channel_->SetVideoSend(primary_ssrc, nullptr, nullptr));
 }
 
-TEST_F(WebRtcVideoChannelTest,
-       GetAndSetRtpSendParametersScaleResolutionDownByVP8) {
+struct ScaleResolutionDownByTestParameters {
+  std::string field_trials;
+  webrtc::Resolution resolution;
+  std::vector<std::optional<double>> scale_resolution_down_by;
+  std::vector<webrtc::Resolution> expected_resolutions;
+};
+
+class WebRtcVideoChannelScaleResolutionDownByTest
+    : public WebRtcVideoChannelTest,
+      public ::testing::WithParamInterface<
+          std::tuple<ScaleResolutionDownByTestParameters,
+                     /*codec_name=*/std::string>> {};
+
+TEST_P(WebRtcVideoChannelScaleResolutionDownByTest, ScaleResolutionDownBy) {
+  ScaleResolutionDownByTestParameters test_params = std::get<0>(GetParam());
+  std::string codec_name = std::get<1>(GetParam());
+  webrtc::test::ScopedKeyValueConfig field_trial(field_trials_,
+                                                 test_params.field_trials);
+  // Set up WebRtcVideoChannel for 3-layer simulcast.
+  encoder_factory_->AddSupportedVideoCodecType(codec_name);
   VideoSenderParameters parameters;
-  parameters.codecs.push_back(cricket::CreateVideoCodec(kVp8CodecName));
-  ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-  FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
-
-  webrtc::test::FrameForwarder frame_forwarder;
-  FakeFrameSource frame_source(1280, 720, rtc::kNumMicrosecsPerSec / 30);
-
-  VideoOptions options;
-  EXPECT_TRUE(
-      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
-  send_channel_->SetSend(true);
-
-  // Try layers in natural order (smallest to largest).
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 4.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 1.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(320u, video_streams[0].width);
-    EXPECT_EQ(180u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(1280u, video_streams[2].width);
-    EXPECT_EQ(720u, video_streams[2].height);
-  }
-
-  // Try layers in reverse natural order (largest to smallest).
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(1280u, video_streams[0].width);
-    EXPECT_EQ(720u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-
-  // Try layers in mixed order.
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 10.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(128u, video_streams[0].width);
-    EXPECT_EQ(72u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-
-  // Try with a missing scale setting, defaults to 1.0 if any other is set.
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by.reset();
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(1280u, video_streams[0].width);
-    EXPECT_EQ(720u, video_streams[0].height);
-    EXPECT_EQ(1280u, video_streams[1].width);
-    EXPECT_EQ(720u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-
-  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
-}
-
-TEST_F(WebRtcVideoChannelTest,
-       GetAndSetRtpSendParametersScaleResolutionDownByVP8WithOddResolution) {
-  // Ensure that the top layer has width and height divisible by 2^3,
-  // so that the bottom layer has width and height divisible by 2.
-  // TODO(bugs.webrtc.org/8785): Remove this field trial when we fully trust
-  // the number of simulcast layers set by the app.
-  webrtc::test::ScopedKeyValueConfig field_trial(
-      field_trials_, "WebRTC-NormalizeSimulcastResolution/Enabled-3/");
-
-  // Set up WebRtcVideoChannel for 3-layer VP8 simulcast.
-  VideoSenderParameters parameters;
-  parameters.codecs.push_back(cricket::CreateVideoCodec(kVp8CodecName));
+  parameters.codecs.push_back(cricket::CreateVideoCodec(codec_name));
   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
   FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
   webrtc::test::FrameForwarder frame_forwarder;
@@ -8130,194 +8032,87 @@ TEST_F(WebRtcVideoChannelTest,
   // Set `scale_resolution_down_by`'s.
   auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
   ASSERT_EQ(rtp_parameters.encodings.size(), 3u);
-  rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-  rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-  rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
+  rtp_parameters.encodings[0].scale_resolution_down_by =
+      test_params.scale_resolution_down_by[0];
+  rtp_parameters.encodings[1].scale_resolution_down_by =
+      test_params.scale_resolution_down_by[1];
+  rtp_parameters.encodings[2].scale_resolution_down_by =
+      test_params.scale_resolution_down_by[2];
   const auto result =
       send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
   ASSERT_TRUE(result.ok());
 
   // Use a capture resolution whose width and height are not divisible by 2^3.
   // (See field trial set at the top of the test.)
-  FakeFrameSource frame_source(2007, 1207, rtc::kNumMicrosecsPerSec / 30);
+  FakeFrameSource frame_source(test_params.resolution.width,
+                               test_params.resolution.height,
+                               rtc::kNumMicrosecsPerSec / 30);
   frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
 
   // Ensure the scaling is correct.
-  const auto video_streams = stream->GetVideoStreams();
-  ASSERT_EQ(video_streams.size(), 3u);
-  // Ensure that we round the capture resolution down for the top layer...
-  EXPECT_EQ(video_streams[0].width, 2000u);
-  EXPECT_EQ(video_streams[0].height, 1200u);
-  EXPECT_EQ(video_streams[1].width, 1000u);
-  EXPECT_EQ(video_streams[1].height, 600u);
-  // ...and that the bottom layer has a width/height divisible by 2.
-  EXPECT_EQ(video_streams[2].width, 500u);
-  EXPECT_EQ(video_streams[2].height, 300u);
+  const auto streams = stream->GetVideoStreams();
+  ASSERT_EQ(streams.size(), 3u);
+  EXPECT_EQ(static_cast<int>(streams[0].width),
+            test_params.expected_resolutions[0].width);
+  EXPECT_EQ(static_cast<int>(streams[0].height),
+            test_params.expected_resolutions[0].height);
+  EXPECT_EQ(static_cast<int>(streams[1].width),
+            test_params.expected_resolutions[1].width);
+  EXPECT_EQ(static_cast<int>(streams[1].height),
+            test_params.expected_resolutions[1].height);
+  EXPECT_EQ(static_cast<int>(streams[2].width),
+            test_params.expected_resolutions[2].width);
+  EXPECT_EQ(static_cast<int>(streams[2].height),
+            test_params.expected_resolutions[2].height);
 
   // Tear down.
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
 }
 
-TEST_F(WebRtcVideoChannelTest,
-       GetAndSetRtpSendParametersScaleResolutionDownByH264) {
-  encoder_factory_->AddSupportedVideoCodecType(kH264CodecName);
-  VideoSenderParameters parameters;
-  parameters.codecs.push_back(cricket::CreateVideoCodec(kH264CodecName));
-  ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-  FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
-
-  webrtc::test::FrameForwarder frame_forwarder;
-  FakeFrameSource frame_source(1280, 720, rtc::kNumMicrosecsPerSec / 30);
-
-  VideoOptions options;
-  EXPECT_TRUE(
-      send_channel_->SetVideoSend(last_ssrc_, &options, &frame_forwarder));
-  send_channel_->SetSend(true);
-
-  // Try layers in natural order (smallest to largest).
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 4.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 1.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(320u, video_streams[0].width);
-    EXPECT_EQ(180u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(1280u, video_streams[2].width);
-    EXPECT_EQ(720u, video_streams[2].height);
-  }
-
-  // Try layers in reverse natural order (largest to smallest).
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(1280u, video_streams[0].width);
-    EXPECT_EQ(720u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-
-  // Try layers in mixed order.
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 10.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(128u, video_streams[0].width);
-    EXPECT_EQ(72u, video_streams[0].height);
-    EXPECT_EQ(640u, video_streams[1].width);
-    EXPECT_EQ(360u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-
-  // Try with a missing scale setting, defaults to 1.0 if any other is set.
-  {
-    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-    ASSERT_EQ(3u, rtp_parameters.encodings.size());
-    rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-    rtp_parameters.encodings[1].scale_resolution_down_by.reset();
-    rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-    auto result =
-        send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-    ASSERT_TRUE(result.ok());
-
-    frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-    std::vector<webrtc::VideoStream> video_streams = stream->GetVideoStreams();
-    ASSERT_EQ(3u, video_streams.size());
-    EXPECT_EQ(1280u, video_streams[0].width);
-    EXPECT_EQ(720u, video_streams[0].height);
-    EXPECT_EQ(1280u, video_streams[1].width);
-    EXPECT_EQ(720u, video_streams[1].height);
-    EXPECT_EQ(320u, video_streams[2].width);
-    EXPECT_EQ(180u, video_streams[2].height);
-  }
-  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
-}
-
-TEST_F(WebRtcVideoChannelTest,
-       GetAndSetRtpSendParametersScaleResolutionDownByH264WithOddResolution) {
-  // Ensure that the top layer has width and height divisible by 2^3,
-  // so that the bottom layer has width and height divisible by 2.
-  // TODO(bugs.webrtc.org/8785): Remove this field trial when we fully trust
-  // the number of simulcast layers set by the app.
-  webrtc::test::ScopedKeyValueConfig field_trial(
-      field_trials_, "WebRTC-NormalizeSimulcastResolution/Enabled-3/");
-
-  // Set up WebRtcVideoChannel for 3-layer H264 simulcast.
-  encoder_factory_->AddSupportedVideoCodecType(kH264CodecName);
-  VideoSenderParameters parameters;
-  parameters.codecs.push_back(cricket::CreateVideoCodec(kH264CodecName));
-  ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
-  FakeVideoSendStream* stream = SetUpSimulcast(true, /*with_rtx=*/false);
-  webrtc::test::FrameForwarder frame_forwarder;
-  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, /*options=*/nullptr,
-                                          &frame_forwarder));
-  send_channel_->SetSend(true);
-
-  // Set `scale_resolution_down_by`'s.
-  auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
-  ASSERT_EQ(rtp_parameters.encodings.size(), 3u);
-  rtp_parameters.encodings[0].scale_resolution_down_by = 1.0;
-  rtp_parameters.encodings[1].scale_resolution_down_by = 2.0;
-  rtp_parameters.encodings[2].scale_resolution_down_by = 4.0;
-  const auto result =
-      send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
-  ASSERT_TRUE(result.ok());
-
-  // Use a capture resolution whose width and height are not divisible by 2^3.
-  // (See field trial set at the top of the test.)
-  FakeFrameSource frame_source(2007, 1207, rtc::kNumMicrosecsPerSec / 30);
-  frame_forwarder.IncomingCapturedFrame(frame_source.GetFrame());
-
-  // Ensure the scaling is correct.
-  const auto video_streams = stream->GetVideoStreams();
-  ASSERT_EQ(video_streams.size(), 3u);
-  // Ensure that we round the capture resolution down for the top layer...
-  EXPECT_EQ(video_streams[0].width, 2000u);
-  EXPECT_EQ(video_streams[0].height, 1200u);
-  EXPECT_EQ(video_streams[1].width, 1000u);
-  EXPECT_EQ(video_streams[1].height, 600u);
-  // ...and that the bottom layer has a width/height divisible by 2.
-  EXPECT_EQ(video_streams[2].width, 500u);
-  EXPECT_EQ(video_streams[2].height, 300u);
-
-  // Tear down.
-  EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
-}
+INSTANTIATE_TEST_SUITE_P(
+    All,
+    WebRtcVideoChannelScaleResolutionDownByTest,
+    Combine(Values(
+                // Try layers in natural order (smallest to largest).
+                ScaleResolutionDownByTestParameters{
+                    .resolution = {.width = 1280, .height = 720},
+                    .scale_resolution_down_by = {4, 2, 1},
+                    .expected_resolutions = {{.width = 320, .height = 180},
+                                             {.width = 640, .height = 360},
+                                             {.width = 1280, .height = 720}}},
+                // Try layers in reverse natural order (largest to smallest).
+                ScaleResolutionDownByTestParameters{
+                    .resolution = {.width = 1280, .height = 720},
+                    .scale_resolution_down_by = {1, 2, 4},
+                    .expected_resolutions = {{.width = 1280, .height = 720},
+                                             {.width = 640, .height = 360},
+                                             {.width = 320, .height = 180}}},
+                // Try layers in mixed order.
+                ScaleResolutionDownByTestParameters{
+                    .resolution = {.width = 1280, .height = 720},
+                    .scale_resolution_down_by = {10, 2, 4},
+                    .expected_resolutions = {{.width = 128, .height = 72},
+                                             {.width = 640, .height = 360},
+                                             {.width = 320, .height = 180}}},
+                // Try with a missing scale setting, defaults to 1.0 if any
+                // other is set.
+                ScaleResolutionDownByTestParameters{
+                    .resolution = {.width = 1280, .height = 720},
+                    .scale_resolution_down_by = {1, std::nullopt, 4},
+                    .expected_resolutions = {{.width = 1280, .height = 720},
+                                             {.width = 1280, .height = 720},
+                                             {.width = 320, .height = 180}}},
+                // Odd resolution. Request alignment by 8 to get the resolution
+                // of the smallest layer multiple by 2.
+                ScaleResolutionDownByTestParameters{
+                    .field_trials =
+                        "WebRTC-NormalizeSimulcastResolution/Enabled-3/",
+                    .resolution = {.width = 2007, .height = 1207},
+                    .scale_resolution_down_by = {1, 2, 4},
+                    .expected_resolutions = {{.width = 2000, .height = 1200},
+                                             {.width = 1000, .height = 600},
+                                             {.width = 500, .height = 300}}}),
+            Values(kVp8CodecName, kH264CodecName)));
 
 TEST_F(WebRtcVideoChannelTest, GetAndSetRtpSendParametersMaxFramerate) {
   SetUpSimulcast(true, /*with_rtx=*/false);
