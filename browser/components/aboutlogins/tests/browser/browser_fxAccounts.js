@@ -5,6 +5,11 @@ const { UIState } = ChromeUtils.importESModule(
   "resource://services-sync/UIState.sys.mjs"
 );
 
+const { FxAccounts } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccounts.sys.mjs"
+);
+const TEST_ACCOUNT_URL = "https://example.com/";
+
 function mockState(state) {
   UIState.get = () => ({
     status: state.status,
@@ -20,9 +25,11 @@ add_setup(async function () {
     url: "about:logins",
   });
   let getState = UIState.get;
+  sinon.stub(FxAccounts.config, "promiseManageURI").returns(TEST_ACCOUNT_URL);
   registerCleanupFunction(() => {
     BrowserTestUtils.removeTab(aboutLoginsTab);
     UIState.get = getState;
+    sinon.restore();
   });
 });
 
@@ -93,4 +100,30 @@ add_task(async function test_login_syncing_enabled() {
   );
 
   await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_click_fxaccount() {
+  let waitForTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "fxaccounts-button",
+    {},
+    gBrowser.selectedBrowser
+  );
+  let tab = await waitForTabPromise;
+  info("Tab successfully opened");
+  is(tab, gBrowser.selectedTab, "This is a foreground tab.");
+  Assert.equal(tab.linkedBrowser.currentURI.spec, TEST_ACCOUNT_URL);
+  BrowserTestUtils.removeTab(tab);
+  waitForTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "fxaccounts-button",
+    { button: 1 },
+    gBrowser.selectedBrowser
+  );
+  tab = await waitForTabPromise;
+  info("Tab successfully opened");
+  isnot(tab, gBrowser.selectedTab, "This is a background tab.");
+  gBrowser.selectedTab = tab;
+  Assert.equal(tab.linkedBrowser.currentURI.spec, TEST_ACCOUNT_URL);
+  BrowserTestUtils.removeTab(tab);
 });
