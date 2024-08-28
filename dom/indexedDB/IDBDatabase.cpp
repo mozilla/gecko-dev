@@ -22,7 +22,6 @@
 #include "mozilla/Services.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/storage.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/DOMStringListBinding.h"
 #include "mozilla/dom/Exceptions.h"
@@ -548,14 +547,6 @@ RefPtr<IDBTransaction> IDBDatabase::Transaction(
           return objectStore.metadata().name() == name;
         });
     if (foundIt == end) {
-      Telemetry::ScalarAdd(
-          storeNames.IsEmpty()
-              ? Telemetry::ScalarID::
-                    IDB_FAILURE_UNKNOWN_OBJECTSTORE_EMPTY_DATABASE
-              : Telemetry::ScalarID::
-                    IDB_FAILURE_UNKNOWN_OBJECTSTORE_NON_EMPTY_DATABASE,
-          1);
-
       // Not using nsPrintfCString in case "name" has embedded nulls.
       aRv.ThrowNotFoundError("'"_ns + NS_ConvertUTF16toUTF8(name) +
                              "' is not a known object store name"_ns);
