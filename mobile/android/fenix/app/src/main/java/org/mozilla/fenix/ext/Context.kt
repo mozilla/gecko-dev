@@ -22,6 +22,7 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.settings.advanced.getSelectedLocale
+import org.mozilla.fenix.theme.AcornWindowSize
 import java.lang.String.format
 import java.util.Locale
 
@@ -150,8 +151,7 @@ fun Context.tabClosedUndoMessage(private: Boolean): String =
 /**
  * Returns true if the device is a tablet
  */
-fun Context.isTablet(): Boolean =
-    resources.getBoolean(R.bool.tablet)
+fun Context.isTablet(): Boolean = AcornWindowSize.isTablet(this)
 
 /**
  *  This will record an event in the Nimbus internal event store. Used for behavioral targeting.

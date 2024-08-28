@@ -314,7 +314,7 @@ enum class AcornWindowSize(
         )
 
         /**
-         * Helper function used to determine when the user's app window is at least the size of a tablet.
+         * Helper function used to determine when the user's device is at least the size of a tablet.
          *
          * @return The [AcornWindowSize] that corresponds to the current window width.
          */
@@ -325,7 +325,7 @@ enum class AcornWindowSize(
         ).isNotSmall()
 
         /**
-         * Helper function used to determine when the user's app window is at least the size of a tablet.
+         * Helper function used to determine when the user's device is at least the size of a tablet.
          *
          * @param context [Context] used to obtain the current [Configuration].
          * @return The [AcornWindowSize] that corresponds to the current window width.
