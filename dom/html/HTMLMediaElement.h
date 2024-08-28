@@ -1414,6 +1414,10 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // changes its status of being used in the Picture-in-Picture mode.
   void UpdateMediaControlAfterPictureInPictureModeChanged();
 
+  // Return true if the element has pending callbacks that should prevent the
+  // suspension of video playback.
+  virtual bool HasPendingCallbacks() const { return false; }
+
   // The current decoder. Load() has been called on this decoder.
   // At most one of mDecoder and mSrcStream can be non-null.
   RefPtr<MediaDecoder> mDecoder;

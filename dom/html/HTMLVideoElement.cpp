@@ -749,6 +749,13 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
     return;
   }
 
+  // If we have got a dummy frame, then we must have suspended decoding and have
+  // no actual frame to present. This should only happen if we raced on
+  // requesting a callback, and the media state machine advancing.
+  if (NS_WARN_IF(frameSize.IsEmpty())) {
+    return;
+  }
+
   // If we have already displayed the expected frame, we need to make the
   // display time match the presentation time to indicate it is already
   // complete.
@@ -775,12 +782,29 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
 
   mLastPresentedFrameID = frameID;
   mVideoFrameRequestManager.Take(aCallbacks);
+
+  NS_DispatchToMainThread(NewRunnableMethod(
+      "HTMLVideoElement::FinishedVideoFrameRequestCallbacks", this,
+      &HTMLVideoElement::FinishedVideoFrameRequestCallbacks));
+}
+
+void HTMLVideoElement::FinishedVideoFrameRequestCallbacks() {
+  // After we have executed the rVFC and rAF callbacks, we need to check whether
+  // or not we have scheduled more. If we did not, then we need to notify the
+  // decoder, because it may be the only thing keeping the decoder fully active.
+  if (!HasPendingCallbacks()) {
+    NotifyDecoderActivityChanges();
+  }
 }
 
 uint32_t HTMLVideoElement::RequestVideoFrameCallback(
     VideoFrameRequestCallback& aCallback, ErrorResult& aRv) {
+  bool hasPending = HasPendingCallbacks();
   uint32_t handle = 0;
   aRv = mVideoFrameRequestManager.Schedule(aCallback, &handle);
+  if (!hasPending && HasPendingCallbacks()) {
+    NotifyDecoderActivityChanges();
+  }
   return handle;
 }
 
@@ -789,7 +813,9 @@ bool HTMLVideoElement::IsVideoFrameCallbackCancelled(uint32_t aHandle) {
 }
 
 void HTMLVideoElement::CancelVideoFrameCallback(uint32_t aHandle) {
-  mVideoFrameRequestManager.Cancel(aHandle);
+  if (mVideoFrameRequestManager.Cancel(aHandle) && !HasPendingCallbacks()) {
+    NotifyDecoderActivityChanges();
+  }
 }
 
 }  // namespace mozilla::dom

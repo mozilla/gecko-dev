@@ -140,10 +140,13 @@ void MediaDecoder::InitStatics() {
 NS_IMPL_ISUPPORTS(MediaMemoryTracker, nsIMemoryReporter)
 
 void MediaDecoder::NotifyOwnerActivityChanged(bool aIsOwnerInvisible,
-                                              bool aIsOwnerConnected) {
+                                              bool aIsOwnerConnected,
+                                              bool aIsOwnerInBackground,
+                                              bool aHasOwnerPendingCallbacks) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
-  SetElementVisibility(aIsOwnerInvisible, aIsOwnerConnected);
+  SetElementVisibility(aIsOwnerInvisible, aIsOwnerConnected,
+                       aIsOwnerInBackground, aHasOwnerPendingCallbacks);
 
   NotifyCompositor();
 }
@@ -242,6 +245,8 @@ MediaDecoder::MediaDecoder(MediaDecoderInit& aInit)
       mFiredMetadataLoaded(false),
       mIsOwnerInvisible(false),
       mIsOwnerConnected(false),
+      mIsOwnerInBackground(false),
+      mHasOwnerPendingCallbacks(false),
       mForcedHidden(false),
       mHasSuspendTaint(aInit.mHasSuspendTaint),
       mShouldResistFingerprinting(
@@ -1171,10 +1176,14 @@ void MediaDecoder::NotifyCompositor() {
 }
 
 void MediaDecoder::SetElementVisibility(bool aIsOwnerInvisible,
-                                        bool aIsOwnerConnected) {
+                                        bool aIsOwnerConnected,
+                                        bool aIsOwnerInBackground,
+                                        bool aHasOwnerPendingCallbacks) {
   MOZ_ASSERT(NS_IsMainThread());
   mIsOwnerInvisible = aIsOwnerInvisible;
   mIsOwnerConnected = aIsOwnerConnected;
+  mIsOwnerInBackground = aIsOwnerInBackground;
+  mHasOwnerPendingCallbacks = aHasOwnerPendingCallbacks;
   mTelemetryProbesReporter->OnVisibilityChanged(OwnerVisibility());
   UpdateVideoDecodeMode();
 }
@@ -1229,6 +1238,14 @@ void MediaDecoder::UpdateVideoDecodeMode() {
   if (!mIsOwnerConnected) {
     LOG("UpdateVideoDecodeMode(), set Normal because the element is not in "
         "tree.");
+    mDecoderStateMachine->SetVideoDecodeMode(VideoDecodeMode::Normal);
+    return;
+  }
+
+  // Don't suspend elements that have pending rVFC callbacks.
+  if (mHasOwnerPendingCallbacks && !mIsOwnerInBackground) {
+    LOG("UpdateVideoDecodeMode(), set Normal because the element has pending "
+        "callbacks while in foreground.");
     mDecoderStateMachine->SetVideoDecodeMode(VideoDecodeMode::Normal);
     return;
   }

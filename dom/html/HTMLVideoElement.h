@@ -193,6 +193,10 @@ class HTMLVideoElement final : public HTMLMediaElement {
  private:
   void ResetState() override;
 
+  bool HasPendingCallbacks() const final {
+    return !mVideoFrameRequestManager.IsEmpty();
+  }
+
   VideoFrameRequestManager mVideoFrameRequestManager;
   layers::ContainerFrameID mLastPresentedFrameID =
       layers::kContainerFrameID_Invalid;
@@ -206,6 +210,7 @@ class HTMLVideoElement final : public HTMLMediaElement {
                                       VideoFrameCallbackMetadata& aMd,
                                       nsTArray<VideoFrameRequest>& aCallbacks);
   bool IsVideoFrameCallbackCancelled(uint32_t aHandle);
+  void FinishedVideoFrameRequestCallbacks();
 
  private:
   static void MapAttributesIntoRule(MappedDeclarationsBuilder&);
