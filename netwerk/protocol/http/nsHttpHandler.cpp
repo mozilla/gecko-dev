@@ -496,7 +496,6 @@ nsresult nsHttpHandler::Init() {
     obsService->AddObserver(this, "psm:user-certificate-deleted", true);
     obsService->AddObserver(this, "intl:app-locales-changed", true);
     obsService->AddObserver(this, "browser-delayed-startup-finished", true);
-    obsService->AddObserver(this, "network:captive-portal-connectivity", true);
     obsService->AddObserver(this, "network:reset-http3-excluded-list", true);
     obsService->AddObserver(this, "network:socket-process-crashed", true);
 
@@ -2300,9 +2299,6 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
   } else if (!strcmp(topic, "intl:app-locales-changed")) {
     // If the locale changed, there's a chance the accept language did too
     mAcceptLanguagesIsDirty = true;
-  } else if (!strcmp(topic, "network:captive-portal-connectivity")) {
-    nsAutoCString data8 = NS_ConvertUTF16toUTF8(data);
-    mThroughCaptivePortal = data8.EqualsLiteral("captive");
   } else if (!strcmp(topic, "network:reset-http3-excluded-list")) {
     MutexAutoLock lock(mHttpExclusionLock);
     mExcludedHttp3Origins.Clear();

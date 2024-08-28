@@ -477,8 +477,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   HttpTrafficAnalyzer* GetHttpTrafficAnalyzer();
 
-  bool GetThroughCaptivePortal() { return mThroughCaptivePortal; }
-
   nsresult CompleteUpgrade(HttpTransactionShell* aTrans,
                            nsIHttpUpgradeListener* aUpgradeListener);
 
@@ -844,8 +842,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   // A list of trusted Microsoft SSO authority URLs
   nsTHashSet<nsCString> mMSAuthorities;
 #endif
-
-  Atomic<bool, Relaxed> mThroughCaptivePortal{false};
 
   // The mapping of channel id and the weak pointer of nsHttpChannel.
   nsTHashMap<nsUint64HashKey, nsWeakPtr> mIDToHttpChannelMap;

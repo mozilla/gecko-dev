@@ -69,7 +69,6 @@ Http3Session::Http3Session() {
   LOG(("Http3Session::Http3Session [this=%p]", this));
 
   mCurrentBrowserId = gHttpHandler->ConnMgr()->CurrentBrowserId();
-  mThroughCaptivePortal = gHttpHandler->GetThroughCaptivePortal();
 }
 
 static nsresult RawBytesToNetAddr(uint16_t aFamily, const uint8_t* aRemoteAddr,
@@ -379,20 +378,6 @@ Http3Session::~Http3Session() {
   Telemetry::Accumulate(
       Telemetry::HTTP3_TRANS_SENDING_BLOCKED_BY_FLOW_CONTROL_PER_CONN,
       mTransactionsSenderBlockedByFlowControlCount);
-
-  if (mThroughCaptivePortal) {
-    if (mTotalBytesRead || mTotalBytesWritten) {
-      auto total =
-          Clamp<uint32_t>((mTotalBytesRead >> 10) + (mTotalBytesWritten >> 10),
-                          0, std::numeric_limits<uint32_t>::max());
-      Telemetry::ScalarAdd(
-          Telemetry::ScalarID::NETWORKING_DATA_TRANSFERRED_CAPTIVE_PORTAL,
-          total);
-    }
-
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::NETWORKING_HTTP_CONNECTIONS_CAPTIVE_PORTAL, 1);
-  }
 
   Shutdown();
 }

@@ -560,7 +560,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   } mEarlyDataDisposition{EARLY_NONE};
 
   HttpTrafficCategory mTrafficCategory{HttpTrafficCategory::eInvalid};
-  bool mThroughCaptivePortal;
   Atomic<int32_t> mProxyConnectResponseCode{0};
 
   OnPushCallback mOnPushCallback;

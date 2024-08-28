@@ -370,7 +370,6 @@ class nsHttpConnection final : public HttpConnectionBase,
   std::function<void()> mContinueHandshakeDone{nullptr};
 
  private:
-  bool mThroughCaptivePortal;
   int64_t mTotalBytesWritten = 0;  // does not include CONNECT tunnel
 
   nsCOMPtr<nsIInputStream> mProxyConnectStream;

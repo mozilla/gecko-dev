@@ -349,7 +349,6 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   RefPtr<nsHttpConnectionInfo> mConnInfo;
 
-  bool mThroughCaptivePortal = false;
   int64_t mTotalBytesRead = 0;     // total data read
   int64_t mTotalBytesWritten = 0;  // total data read
   PRIntervalTime mLastWriteTime = 0;
