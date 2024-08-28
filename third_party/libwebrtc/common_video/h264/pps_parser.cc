@@ -29,16 +29,15 @@ constexpr int kMinPicInitQpDeltaValue = -26;
 // You can find it on this page:
 // http://www.itu.int/rec/T-REC-H.264
 
-absl::optional<PpsParser::PpsState> PpsParser::ParsePps(const uint8_t* data,
-                                                        size_t length) {
+absl::optional<PpsParser::PpsState> PpsParser::ParsePps(
+    rtc::ArrayView<const uint8_t> data) {
   // First, parse out rbsp, which is basically the source buffer minus emulation
   // bytes (the last byte of a 0x00 0x00 0x03 sequence). RBSP is defined in
   // section 7.3.1 of the H.264 standard.
-  return ParseInternal(H264::ParseRbsp(data, length));
+  return ParseInternal(H264::ParseRbsp(data));
 }
 
-bool PpsParser::ParsePpsIds(const uint8_t* data,
-                            size_t length,
+bool PpsParser::ParsePpsIds(rtc::ArrayView<const uint8_t> data,
                             uint32_t* pps_id,
                             uint32_t* sps_id) {
   RTC_DCHECK(pps_id);
@@ -46,7 +45,7 @@ bool PpsParser::ParsePpsIds(const uint8_t* data,
   // First, parse out rbsp, which is basically the source buffer minus emulation
   // bytes (the last byte of a 0x00 0x00 0x03 sequence). RBSP is defined in
   // section 7.3.1 of the H.264 standard.
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
+  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data);
   BitstreamReader reader(unpacked_buffer);
   *pps_id = reader.ReadExponentialGolomb();
   *sps_id = reader.ReadExponentialGolomb();
@@ -54,9 +53,8 @@ bool PpsParser::ParsePpsIds(const uint8_t* data,
 }
 
 absl::optional<PpsParser::SliceHeader> PpsParser::ParseSliceHeader(
-    const uint8_t* data,
-    size_t length) {
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
+    rtc::ArrayView<const uint8_t> data) {
+  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data);
   BitstreamReader slice_reader(unpacked_buffer);
   PpsParser::SliceHeader slice_header;
 

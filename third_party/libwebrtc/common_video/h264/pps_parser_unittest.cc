@@ -134,7 +134,7 @@ void WritePps(const PpsParser::PpsState& pps,
     bit_buffer.GetCurrentOffset(&byte_offset, &bit_offset);
   }
 
-  H264::WriteRbsp(data, byte_offset, out_buffer);
+  H264::WriteRbsp(rtc::MakeArrayView(data, byte_offset), out_buffer);
 }
 
 class PpsParserTest : public ::testing::Test {
@@ -175,7 +175,7 @@ class PpsParserTest : public ::testing::Test {
     buffer_.Clear();
     WritePps(pps, slice_group_map_type, num_slice_groups, pic_size_in_map_units,
              &buffer_);
-    parsed_pps_ = PpsParser::ParsePps(buffer_.data(), buffer_.size());
+    parsed_pps_ = PpsParser::ParsePps(buffer_);
     ASSERT_TRUE(parsed_pps_);
     EXPECT_EQ(pps.bottom_field_pic_order_in_frame_present_flag,
               parsed_pps_->bottom_field_pic_order_in_frame_present_flag);
@@ -219,18 +219,17 @@ TEST_F(PpsParserTest, MaxPps) {
 }
 
 TEST_F(PpsParserTest, ParseSliceHeader) {
-  std::vector<H264::NaluIndex> nalu_indices =
-      H264::FindNaluIndices(kH264BitstreamChunk, sizeof(kH264BitstreamChunk));
+  rtc::ArrayView<const uint8_t> chunk(kH264BitstreamChunk);
+  std::vector<H264::NaluIndex> nalu_indices = H264::FindNaluIndices(chunk);
   EXPECT_EQ(nalu_indices.size(), 3ull);
   for (const auto& index : nalu_indices) {
     H264::NaluType nalu_type =
-        H264::ParseNaluType(kH264BitstreamChunk[index.payload_start_offset]);
+        H264::ParseNaluType(chunk[index.payload_start_offset]);
     if (nalu_type == H264::NaluType::kIdr) {
       // Skip NAL type header and parse slice header.
       absl::optional<PpsParser::SliceHeader> slice_header =
-          PpsParser::ParseSliceHeader(
-              kH264BitstreamChunk + index.payload_start_offset + 1,
-              index.payload_size - 1);
+          PpsParser::ParseSliceHeader(chunk.subview(
+              index.payload_start_offset + 1, index.payload_size - 1));
       ASSERT_TRUE(slice_header.has_value());
       EXPECT_EQ(slice_header->first_mb_in_slice, 0u);
       EXPECT_EQ(slice_header->pic_parameter_set_id, 0u);

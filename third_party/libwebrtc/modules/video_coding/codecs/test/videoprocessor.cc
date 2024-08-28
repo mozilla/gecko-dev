@@ -52,7 +52,7 @@ size_t GetMaxNaluSizeBytes(const EncodedImage& encoded_frame,
     return 0;
 
   std::vector<webrtc::H264::NaluIndex> nalu_indices =
-      webrtc::H264::FindNaluIndices(encoded_frame.data(), encoded_frame.size());
+      webrtc::H264::FindNaluIndices(encoded_frame);
 
   RTC_CHECK(!nalu_indices.empty());
 

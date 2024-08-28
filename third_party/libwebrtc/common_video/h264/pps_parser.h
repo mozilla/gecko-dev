@@ -47,15 +47,19 @@ class PpsParser {
   };
 
   // Unpack RBSP and parse PPS state from the supplied buffer.
-  static absl::optional<PpsState> ParsePps(const uint8_t* data, size_t length);
+  static absl::optional<PpsState> ParsePps(rtc::ArrayView<const uint8_t> data);
+  // TODO: bugs.webrtc.org/42225170 - Deprecate.
+  static inline absl::optional<PpsState> ParsePps(const uint8_t* data,
+                                                  size_t length) {
+    return ParsePps(rtc::MakeArrayView(data, length));
+  }
 
-  static bool ParsePpsIds(const uint8_t* data,
-                          size_t length,
+  static bool ParsePpsIds(rtc::ArrayView<const uint8_t> data,
                           uint32_t* pps_id,
                           uint32_t* sps_id);
 
-  static absl::optional<SliceHeader> ParseSliceHeader(const uint8_t* data,
-                                                      size_t length);
+  static absl::optional<SliceHeader> ParseSliceHeader(
+      rtc::ArrayView<const uint8_t> data);
 
  protected:
   // Parse the PPS state, for a buffer where RBSP decoding has already been

@@ -217,9 +217,9 @@ void H264SpsPpsTracker::InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
     return;
   }
   absl::optional<SpsParser::SpsState> parsed_sps = SpsParser::ParseSps(
-      sps.data() + kNaluHeaderOffset, sps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(sps).subview(kNaluHeaderOffset));
   absl::optional<PpsParser::PpsState> parsed_pps = PpsParser::ParsePps(
-      pps.data() + kNaluHeaderOffset, pps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(pps).subview(kNaluHeaderOffset));
 
   if (!parsed_sps) {
     RTC_LOG(LS_WARNING) << "Failed to parse SPS.";

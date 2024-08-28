@@ -32,9 +32,9 @@ SpsParser::SpsState::~SpsState() = default;
 // http://www.itu.int/rec/T-REC-H.264
 
 // Unpack RBSP and parse SPS state from the supplied buffer.
-absl::optional<SpsParser::SpsState> SpsParser::ParseSps(const uint8_t* data,
-                                                        size_t length) {
-  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data, length);
+absl::optional<SpsParser::SpsState> SpsParser::ParseSps(
+    rtc::ArrayView<const uint8_t> data) {
+  std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data);
   BitstreamReader reader(unpacked_buffer);
   return ParseSpsUpToVui(reader);
 }

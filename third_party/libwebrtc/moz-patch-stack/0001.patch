@@ -96,7 +96,7 @@ index b2deda5ea8..60142c88c1 100644
    return supportedCodecs;
  }
 diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index 535640e780..596f2c435a 100644
+index 03a8beca23..40569597f3 100644
 --- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
 +++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
 @@ -178,7 +178,7 @@ SdpVideoFormat CreateSdpVideoFormat(

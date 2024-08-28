@@ -85,8 +85,8 @@ int64_t* GetContinuousSequence(rtc::ArrayView<int64_t> last_continuous,
 
 #ifdef RTC_ENABLE_H265
 bool HasVps(const H26xPacketBuffer::Packet& packet) {
-  std::vector<H265::NaluIndex> nalu_indices = H265::FindNaluIndices(
-      packet.video_payload.cdata(), packet.video_payload.size());
+  std::vector<H265::NaluIndex> nalu_indices =
+      H265::FindNaluIndices(packet.video_payload);
   return absl::c_any_of((nalu_indices), [&packet](
                                             const H265::NaluIndex& nalu_index) {
     return H265::ParseNaluType(
@@ -242,8 +242,8 @@ bool H26xPacketBuffer::MaybeAssembleFrame(int64_t start_seq_num_unwrapped,
       }
 #ifdef RTC_ENABLE_H265
     } else if (packet->codec() == kVideoCodecH265) {
-      std::vector<H265::NaluIndex> nalu_indices = H265::FindNaluIndices(
-          packet->video_payload.cdata(), packet->video_payload.size());
+      std::vector<H265::NaluIndex> nalu_indices =
+          H265::FindNaluIndices(packet->video_payload);
       for (const auto& nalu_index : nalu_indices) {
         uint8_t nalu_type = H265::ParseNaluType(
             packet->video_payload.cdata()[nalu_index.payload_start_offset]);
@@ -339,9 +339,9 @@ void H26xPacketBuffer::InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
     return;
   }
   absl::optional<SpsParser::SpsState> parsed_sps = SpsParser::ParseSps(
-      sps.data() + kNaluHeaderOffset, sps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(sps).subview(kNaluHeaderOffset));
   absl::optional<PpsParser::PpsState> parsed_pps = PpsParser::ParsePps(
-      pps.data() + kNaluHeaderOffset, pps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(pps).subview(kNaluHeaderOffset));
 
   if (!parsed_sps) {
     RTC_LOG(LS_WARNING) << "Failed to parse SPS.";
