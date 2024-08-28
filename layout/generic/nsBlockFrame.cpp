@@ -883,7 +883,8 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlineMinISize(aInput.mContext, &data);
+          const IntrinsicSizeInput kidInput(aInput.mContext);
+          kid->AddInlineMinISize(kidInput, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
           }
@@ -965,7 +966,8 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlinePrefISize(aInput.mContext, &data);
+          const IntrinsicSizeInput kidInput(aInput.mContext);
+          kid->AddInlinePrefISize(kidInput, &data);
         }
       }
 #ifdef DEBUG
@@ -1022,6 +1024,7 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
         data.mLine = &line;
         data.SetLineContainer(curFrame);
         nsIFrame* kid = line->mFirstChild;
+        const IntrinsicSizeInput kidInput(aRenderingContext);
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
           rv = kid->GetPrefWidthTightBounds(aRenderingContext, &childX,
@@ -1029,7 +1032,7 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
           NS_ENSURE_SUCCESS(rv, rv);
           *aX = std::min(*aX, data.mCurrentLine + childX);
           *aXMost = std::max(*aXMost, data.mCurrentLine + childXMost);
-          kid->AddInlinePrefISize(aRenderingContext, &data);
+          kid->AddInlinePrefISize(kidInput, &data);
         }
       }
     }

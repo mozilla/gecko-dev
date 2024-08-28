@@ -28,9 +28,9 @@ class nsRubyFrame final : public nsInlineFrame {
   NS_DECL_FRAMEARENA_HELPERS(nsRubyFrame)
   NS_DECL_QUERYFRAME
 
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  void AddInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const mozilla::IntrinsicSizeInput& aInput,
                           InlinePrefISizeData* aData) override;
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,

@@ -223,15 +223,15 @@ void nsInlineFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 // Reflow methods
 
 /* virtual */
-void nsInlineFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsInlineFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                       InlineMinISizeData* aData) {
-  DoInlineMinISize(aRenderingContext, aData);
+  DoInlineMinISize(aInput, aData);
 }
 
 /* virtual */
-void nsInlineFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void nsInlineFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                        InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aRenderingContext, aData);
+  DoInlinePrefISize(aInput, aData);
 }
 
 /* virtual */

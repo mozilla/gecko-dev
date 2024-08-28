@@ -53,9 +53,9 @@ class BRFrame final : public nsIFrame {
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  void AddInlineMinISize(const IntrinsicSizeInput& aInput,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                           InlinePrefISizeData* aData) override;
 
   Maybe<nscoord> GetNaturalBaselineBOffset(
@@ -165,7 +165,7 @@ void BRFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
 }
 
 /* virtual */
-void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void BRFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                 InlineMinISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     aData->ForceBreak();
@@ -173,7 +173,7 @@ void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 }
 
 /* virtual */
-void BRFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void BRFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                  InlinePrefISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     // Match the 1 appunit width assigned in the Reflow method above
