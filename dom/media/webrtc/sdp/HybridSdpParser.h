@@ -8,13 +8,11 @@
 #define _HYBRIDSDPPARSER_H_
 
 #include "sdp/SdpParser.h"
-#include "sdp/SdpTelemetry.h"
 
 namespace mozilla {
 
 // This shim parser delegates parsing to WEbRTC-SDP and SIPCC, based on
-// preference flags. Additionally it handles collecting telemetry and fallback
-// behavior between the parsers.
+// preference flags.
 class HybridSdpParser : public SdpParser {
   static const std::string& ParserName();
 

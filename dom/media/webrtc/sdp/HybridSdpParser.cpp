@@ -6,14 +6,12 @@
 #include "sdp/HybridSdpParser.h"
 #include "sdp/SdpLog.h"
 #include "sdp/SdpPref.h"
-#include "sdp/SdpTelemetry.h"
 #include "sdp/SipccSdpParser.h"
 #include "sdp/RsdparsaSdpParser.h"
 #include "sdp/ParsingResultComparer.h"
 
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 
 #include <unordered_map>
 
@@ -48,7 +46,6 @@ HybridSdpParser::HybridSdpParser()
 auto HybridSdpParser::Parse(const std::string& aText)
     -> UniquePtr<SdpParser::Results> {
   using Results = UniquePtr<SdpParser::Results>;
-  using Role = SdpTelemetry::Roles;
   using Mode = SdpPref::AlternateParseModes;
 
   Mode mode = Mode::Never;
@@ -64,7 +61,6 @@ auto HybridSdpParser::Parse(const std::string& aText)
   // Pass results on for comparison and return A if it was a success and B
   // otherwise.
   auto compare = [&](Results&& aResB) -> Results {
-    SdpTelemetry::RecordParse(aResB, mode, Role::Secondary);
     ParsingResultComparer::Compare(results, aResB, aText, mode);
     return std::move(successful(results) ? results : aResB);
   };
@@ -81,7 +77,6 @@ auto HybridSdpParser::Parse(const std::string& aText)
     }
   });
 
-  SdpTelemetry::RecordParse(results, mode, Role::Primary);
   return results;
 }
 
