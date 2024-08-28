@@ -157,7 +157,7 @@ fun Fragment.registerForActivityResult(
  *  Checks whether the current fragment is running on a tablet.
  */
 fun Fragment.isTablet(): Boolean {
-    return resources.getBoolean(R.bool.tablet)
+    return requireContext().isTablet()
 }
 
 /**
