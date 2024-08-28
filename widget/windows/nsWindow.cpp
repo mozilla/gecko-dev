@@ -908,14 +908,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       !sFirstTopLevelWindowCreated) {
     sFirstTopLevelWindowCreated = true;
     mWnd = ConsumePreXULSkeletonUIHandle();
-    auto skeletonUIError = GetPreXULSkeletonUIErrorReason();
-    if (skeletonUIError) {
-      nsAutoString errorString(
-          GetPreXULSkeletonUIErrorString(skeletonUIError.value()));
-      Telemetry::ScalarSet(
-          Telemetry::ScalarID::STARTUP_SKELETON_UI_DISABLED_REASON,
-          errorString);
-    }
     if (mWnd) {
       MOZ_ASSERT(style == kPreXULSkeletonUIWindowStyle,
                  "The skeleton UI window style should match the expected "

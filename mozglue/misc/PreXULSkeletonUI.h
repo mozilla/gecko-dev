@@ -101,61 +101,6 @@ enum class PreXULSkeletonUIError : uint32_t {
   Unknown,
 };
 
-inline const wchar_t* GetPreXULSkeletonUIErrorString(
-    PreXULSkeletonUIError error) {
-  switch (error) {
-    case PreXULSkeletonUIError::None:
-      return L"None";
-    case PreXULSkeletonUIError::Disabled:
-      return L"Disabled";
-    case PreXULSkeletonUIError::OOM:
-      return L"OOM";
-    case PreXULSkeletonUIError::Cmdline:
-      return L"Cmdline";
-    case PreXULSkeletonUIError::EnvVars:
-      return L"EnvVars";
-    case PreXULSkeletonUIError::FailedToOpenRegistryKey:
-      return L"FailedToOpenRegistryKey";
-    case PreXULSkeletonUIError::RegistryError:
-      return L"RegistryError";
-    case PreXULSkeletonUIError::FailedLoadingDynamicProcs:
-      return L"FailedLoadingDynamicProcs";
-    case PreXULSkeletonUIError::FailedGettingLock:
-      return L"FailedGettingLock";
-    case PreXULSkeletonUIError::FilesystemFailure:
-      return L"FilesystemFailure";
-    case PreXULSkeletonUIError::NoStartWithLastProfile:
-      return L"NoStartWithLastProfile";
-    case PreXULSkeletonUIError::FailedRegisteringWindowClass:
-      return L"FailedRegisteringWindowClass";
-    case PreXULSkeletonUIError::CorruptData:
-      return L"CorruptData";
-    case PreXULSkeletonUIError::BadWindowDimensions:
-      return L"BadWindowDimensions";
-    case PreXULSkeletonUIError::FailedGettingMonitorInfo:
-      return L"FailedGettingMonitorInfo";
-    case PreXULSkeletonUIError::EnabledKeyDoesNotExist:
-      return L"EnabledKeyDoesNotExist";
-    case PreXULSkeletonUIError::CreateWindowFailed:
-      return L"CreateWindowFailed";
-    case PreXULSkeletonUIError::FailedGettingDC:
-      return L"FailedGettingDC";
-    case PreXULSkeletonUIError::FailedBlitting:
-      return L"FailedBlitting";
-    case PreXULSkeletonUIError::FailedFillingBottomRect:
-      return L"FailedFillingBottomRect";
-    case PreXULSkeletonUIError::CrashedOnce:
-      return L"CrashedOnce";
-    case PreXULSkeletonUIError::BadUIDensity:
-      return L"BadUIDensity";
-    case PreXULSkeletonUIError::Unknown:
-      return L"Unknown";
-  }
-
-  MOZ_ASSERT_UNREACHABLE();
-  return L"Unknown";
-}
-
 enum class PreXULSkeletonUIProgress : uint32_t {
   Started,
   Completed,
@@ -166,7 +111,6 @@ MFBT_API void CreateAndStorePreXULSkeletonUI(HINSTANCE hInstance, int argc,
 MFBT_API void CleanupProcessRuntime();
 MFBT_API bool GetPreXULSkeletonUIWasShown();
 MFBT_API HWND ConsumePreXULSkeletonUIHandle();
-MFBT_API Maybe<PreXULSkeletonUIError> GetPreXULSkeletonUIErrorReason();
 MFBT_API bool WasPreXULSkeletonUIMaximized();
 MFBT_API Result<Ok, PreXULSkeletonUIError> PersistPreXULSkeletonUIValues(
     const SkeletonUISettings& settings);

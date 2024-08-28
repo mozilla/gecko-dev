@@ -2061,10 +2061,6 @@ HWND ConsumePreXULSkeletonUIHandle() {
   return result;
 }
 
-Maybe<PreXULSkeletonUIError> GetPreXULSkeletonUIErrorReason() {
-  return sErrorReason;
-}
-
 Result<Ok, PreXULSkeletonUIError> PersistPreXULSkeletonUIValues(
     const SkeletonUISettings& settings) {
   if (!sPreXULSkeletonUIEnabled) {
