@@ -55,6 +55,8 @@ Result<ResultConnection, QMResult> GetStorageConnection(
     const quota::OriginMetadata& aOriginMetadata,
     const int64_t aDirectoryLockId);
 
+// The assertion type must be the same as the assertion type used for defining
+// FileSystemDataManagerHashKey in FileSystemDataManager.cpp!
 class FileSystemDataManager
     : public SupportsCheckedUnsafePtr<CheckIf<ReleaseAssertEnabled>> {
  public:
