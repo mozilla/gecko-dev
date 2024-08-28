@@ -264,6 +264,10 @@ class nsRange final : public mozilla::dom::AbstractRange,
                                                   bool aFlushLayout = true);
   already_AddRefed<DOMRectList> GetClientRects(bool aClampToEdge = true,
                                                bool aFlushLayout = true);
+  // ChromeOnly
+  already_AddRefed<DOMRectList> GetAllowCrossShadowBoundaryClientRects(
+      bool aClampToEdge = true, bool aFlushLayout = true);
+
   void GetClientRectsAndTexts(mozilla::dom::ClientRectsAndTexts& aResult,
                               ErrorResult& aErr);
 
@@ -367,6 +371,10 @@ class nsRange final : public mozilla::dom::AbstractRange,
    * @brief Returns true if the range is part of exactly one |Selection|.
    */
   bool IsPartOfOneSelectionOnly() const { return mSelections.Length() == 1; };
+
+  already_AddRefed<DOMRectList> GetClientRectsInner(
+      AllowRangeCrossShadowBoundary = AllowRangeCrossShadowBoundary::No,
+      bool aClampToEdge = true, bool aFlushLayout = true);
 
  public:
   /**
