@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for cookie expire attribute with server-time</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="cookiesHelper.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<script type="application/javascript">
+
+async function testServerTime() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["network.cookie.cookieBehavior", 1]],
+  });
+
+  const currentTime = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const tests = [
+    // Pref on: This cookie is already expired.
+    // Pref off: This cookie is still expired.
+    { cookieName: "test1",
+      serverTime: "",
+      expireTime: currentTime - 24*60*60*1000,
+      expectedCookieWithPrefOn: "",
+      expectedCookieWithPrefOff: "" },
+
+    // Pref on: This cookie is not expired because the server time is in the past.
+    // Pref off: This cookie is expired.
+    { cookieName: "test2",
+      serverTime: currentTime - 3 * DAY,
+      expireTime: currentTime - DAY,
+      expectedCookieWithPrefOn: "test2=foo",
+      expectedCookieWithPrefOff: "" },
+
+    // Pref on: This cookie is expired because the server time is in the future.
+    // Pref off: This cookie is not expired.
+    { cookieName: "test3",
+      serverTime: currentTime + 3 * DAY,
+      expireTime: currentTime + DAY,
+      expectedCookieWithPrefOn: "" ,
+      expectedCookieWithPrefOff: "test3=foo" },
+  ]
+
+  for (const test of tests) {
+    await cleanupData();
+    is(document.cookie, "");
+
+    await SpecialPowers.pushPrefEnv({
+      set: [["network.cookie.useServerTime", true]],
+    });
+
+    await fetch(`server_time.sjs?${test.cookieName}&${test.serverTime}&${test.expireTime}&${Math.random()}`).then(a => a.text());
+    is(document.cookie, test.expectedCookieWithPrefOn);
+
+    await SpecialPowers.pushPrefEnv({
+      set: [["network.cookie.useServerTime", false]],
+    });
+
+    await fetch(`server_time.sjs?${test.cookieName}&${test.serverTime}&${test.expireTime}&${Math.random()}`).then(a => a.text());
+    is(document.cookie, test.expectedCookieWithPrefOff);
+  }
+
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+testServerTime();
+
+</script>
+</body>
+</html>
