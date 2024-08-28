@@ -737,9 +737,6 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
         .CASES((PR_CAPBSET_READ),  // libcap.so.2 loaded by libpulse.so.0
                                    // queries for capabilities
                Error(EINVAL))
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 
@@ -842,11 +839,7 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
       switch (sysno) {
 #ifdef __NR_open
         case __NR_open:
-#  if defined(MOZ_PROFILE_GENERATE)
-          return Allow();
-#  else
           return Trap(OpenTrap, mBroker);
-#  endif
         case __NR_access:
           return Trap(AccessTrap, mBroker);
         CASES_FOR_stat:
@@ -871,11 +864,7 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
           return Trap(ReadlinkTrap, mBroker);
 #endif
         case __NR_openat:
-#if defined(MOZ_PROFILE_GENERATE)
-          return Allow();
-#else
           return Trap(OpenAtTrap, mBroker);
-#endif
         case __NR_faccessat:
           return Trap(AccessAtTrap, mBroker);
         case __NR_faccessat2:
@@ -1008,10 +997,6 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
                                .Else(InvalidSyscall()))
             // Not much different from other forms of dup(), and commonly used.
             .Case(F_DUPFD_CLOEXEC, Allow())
-#if defined(MOZ_PROFILE_GENERATE)
-            // During PGO we bypass the broker and LLVM profile requires this
-            .Case(F_SETLKW, Allow())
-#endif
             .Default(SandboxPolicyBase::EvaluateSyscall(sysno));
       }
 
@@ -2088,9 +2073,6 @@ class SocketProcessSandboxPolicy final : public SandboxPolicyCommon {
                 PR_SET_DUMPABLE,  // Crash reporting
                 PR_SET_PTRACER),  // Debug-mode crash handling
                Allow())
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 
@@ -2190,9 +2172,6 @@ class UtilitySandboxPolicy : public SandboxPolicyCommon {
         .CASES((PR_CAPBSET_READ),  // libcap.so.2 loaded by libpulse.so.0
                                    // queries for capabilities
                Error(EINVAL))
-#if defined(MOZ_PROFILE_GENERATE)
-        .CASES((PR_GET_PDEATHSIG), Allow())
-#endif  // defined(MOZ_PROFILE_GENERATE)
         .Default(InvalidSyscall());
   }
 

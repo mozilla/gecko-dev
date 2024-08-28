@@ -185,39 +185,6 @@ int GetEffectiveGpuSandboxLevel() {
   return StaticPrefs::security_sandbox_gpu_level();
 }
 
-#if defined(MOZ_PROFILE_GENERATE)
-// It should only be allowed on instrumented builds, never on production
-// builds.
-#  if defined(XP_WIN)
-bool GetLlvmProfileDir(std::wstring& parentPath) {
-  bool rv = false;
-  if (const wchar_t* llvmProfileFileEnv = _wgetenv(L"LLVM_PROFILE_FILE")) {
-    std::wstring llvmProfileDir(llvmProfileFileEnv);
-    const size_t found = llvmProfileDir.find_last_of(L"/\\");
-    if (found != std::string::npos) {
-      parentPath = llvmProfileDir.substr(0, found);
-      parentPath.append(L"\\*");
-      rv = true;
-    }
-  }
-  return rv;
-}
-#  else   // defined(XP_WIN)
-bool GetLlvmProfileDir(std::string& parentPath) {
-  bool rv = false;
-  if (const char* llvmProfileFileEnv = getenv("LLVM_PROFILE_FILE")) {
-    std::string llvmProfileDir(llvmProfileFileEnv);
-    const size_t found = llvmProfileDir.find_last_of("/\\");
-    if (found != std::string::npos) {
-      parentPath = llvmProfileDir.substr(0, found);
-      rv = true;
-    }
-  }
-  return rv;
-}
-#  endif  // defined(XP_WIN)
-#endif    // defined(MOZ_PROFILE_GENERATE
-
 #if defined(XP_MACOSX)
 int ClampFlashSandboxLevel(const int aLevel) {
   const int minLevel = 0;
