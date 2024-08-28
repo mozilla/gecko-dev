@@ -557,14 +557,7 @@ void WindowsUIUtils::UpdateInTabletMode() {
 
   rv = winMediator->GetMostRecentBrowserWindow(getter_AddRefs(navWin));
   if (NS_FAILED(rv) || !navWin) {
-    // Fall back to the hidden window
-    nsCOMPtr<nsIAppShellService> appShell(
-        do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
-
-    rv = appShell->GetHiddenDOMWindow(getter_AddRefs(navWin));
-    if (NS_FAILED(rv) || !navWin) {
-      return;
-    }
+    return;
   }
 
   nsPIDOMWindowOuter* win = nsPIDOMWindowOuter::From(navWin);
