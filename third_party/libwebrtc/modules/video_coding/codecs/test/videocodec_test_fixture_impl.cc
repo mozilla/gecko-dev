@@ -62,7 +62,7 @@
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_writer.h"
 #include "test/video_codec_settings.h"
-#include "video/config/simulcast.h"
+#include "video/config/encoder_stream_factory.h"
 #include "video/config/video_encoder_config.h"
 
 namespace webrtc {
@@ -77,10 +77,16 @@ const int kMaxQp = 56;
 
 void ConfigureSimulcast(VideoCodec* codec_settings) {
   FieldTrialBasedConfig trials;
-  const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
-      /*min_layer=*/1, codec_settings->numberOfSimulcastStreams,
-      codec_settings->width, codec_settings->height,
-      /* is_screenshare = */ false, true, trials, webrtc::kVideoCodecVP8);
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = codec_settings->codecType;
+  encoder_config.number_of_streams = codec_settings->numberOfSimulcastStreams;
+  encoder_config.simulcast_layers.resize(
+      codec_settings->numberOfSimulcastStreams);
+  VideoEncoder::EncoderInfo encoder_info;
+  auto stream_factory =
+      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+  const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
+      trials, codec_settings->width, codec_settings->height, encoder_config);
 
   for (size_t i = 0; i < streams.size(); ++i) {
     SimulcastStream* ss = &codec_settings->simulcastStream[i];

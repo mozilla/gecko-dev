@@ -81,6 +81,7 @@
 #include "test/rtcp_packet_parser.h"
 #include "test/scoped_key_value_config.h"
 #include "test/time_controller/simulated_time_controller.h"
+#include "video/config/encoder_stream_factory.h"
 #include "video/config/simulcast.h"
 
 using ::testing::_;
@@ -9384,10 +9385,12 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
 
     std::vector<webrtc::VideoStream> expected_streams;
     if (num_configured_streams > 1 || conference_mode) {
-      expected_streams = GetSimulcastConfig(
-          /*min_layers=*/1, num_configured_streams, capture_width,
-          capture_height, screenshare && conference_mode, true, field_trials_,
-          webrtc::kVideoCodecVP8);
+      const webrtc::VideoEncoderConfig& encoder_config =
+          stream->GetEncoderConfig();
+      webrtc::VideoEncoder::EncoderInfo encoder_info;
+      auto factory = rtc::make_ref_counted<EncoderStreamFactory>(encoder_info);
+      expected_streams = factory->CreateEncoderStreams(
+          field_trials_, capture_width, capture_height, encoder_config);
       if (screenshare && conference_mode) {
         for (const webrtc::VideoStream& stream : expected_streams) {
           // Never scale screen content.

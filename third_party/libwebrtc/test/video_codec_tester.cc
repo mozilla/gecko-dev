@@ -54,7 +54,7 @@
 #include "test/testsupport/frame_reader.h"
 #include "test/testsupport/video_frame_writer.h"
 #include "third_party/libyuv/include/libyuv/compare.h"
-#include "video/config/simulcast.h"
+#include "video/config/encoder_stream_factory.h"
 
 namespace webrtc {
 namespace test {
@@ -1294,11 +1294,15 @@ void ConfigureSimulcast(VideoCodec* vc) {
   }
 
   ExplicitKeyValueConfig field_trials(field_trial::GetFieldTrialString());
-  const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
-      /*min_layer=*/1, num_spatial_layers, vc->width, vc->height,
-      /*is_screenshare=*/false, /*temporal_layers_supported=*/true,
-      field_trials, webrtc::kVideoCodecVP8);
-
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = vc->codecType;
+  encoder_config.number_of_streams = num_spatial_layers;
+  encoder_config.simulcast_layers.resize(num_spatial_layers);
+  VideoEncoder::EncoderInfo encoder_info;
+  auto stream_factory =
+      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+  const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
+      field_trials, vc->width, vc->height, encoder_config);
   vc->numberOfSimulcastStreams = streams.size();
   RTC_CHECK_LE(vc->numberOfSimulcastStreams, num_spatial_layers);
   if (vc->numberOfSimulcastStreams < num_spatial_layers) {
