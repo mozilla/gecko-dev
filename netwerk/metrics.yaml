@@ -338,20 +338,6 @@ networking:
     expires: 138
     denominator_metric: networking.set_cookie
 
-  set_cookie_expired_without_server_time:
-    type: rate
-    description: >
-      This counts the number of times a cookie is set already expires but it
-      would not if we considered the server time.
-    bugs:
-      - https://bugzilla.mozilla.org/1909980
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1909980#c7
-    notification_emails:
-      - baku@mozilla.com
-    expires: 132
-    denominator_metric: networking.set_cookie
-
   dns_lookup_time:
     type: timing_distribution
     time_unit: millisecond

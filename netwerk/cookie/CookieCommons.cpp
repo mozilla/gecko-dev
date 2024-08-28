@@ -17,13 +17,11 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/net/CookieJarSettings.h"
-#include "mozilla/Unused.h"
 #include "mozIThirdPartyUtil.h"
 #include "nsContentUtils.h"
 #include "nsICookiePermission.h"
 #include "nsICookieService.h"
 #include "nsIEffectiveTLDService.h"
-#include "nsIHttpChannel.h"
 #include "nsIRedirectHistoryEntry.h"
 #include "nsIWebProgressListener.h"
 #include "nsNetUtil.h"
@@ -417,8 +415,8 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   nsCString cookieString(aCookieString);
 
   aCookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
-                      EmptyCString(), false, isForeignAndNotAddon,
-                      mustBePartitioned, aDocument->IsInPrivateBrowsing());
+                      false, isForeignAndNotAddon, mustBePartitioned,
+                      aDocument->IsInPrivateBrowsing());
 
   if (!aCookieParser.ContainsCookie()) {
     return nullptr;
@@ -824,21 +822,6 @@ void CookieCommons::ComposeCookieString(nsTArray<RefPtr<Cookie>>& aCookieList,
       }
     }
   }
-}
-
-// static
-void CookieCommons::GetServerDateHeader(nsIChannel* aChannel,
-                                        nsACString& aServerDateHeader) {
-  if (!aChannel) {
-    return;
-  }
-
-  nsCOMPtr<nsIHttpChannel> channel = do_QueryInterface(aChannel);
-  if (NS_WARN_IF(!channel)) {
-    return;
-  }
-
-  Unused << channel->GetResponseHeader("Date"_ns, aServerDateHeader);
 }
 
 }  // namespace net

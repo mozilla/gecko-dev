@@ -690,8 +690,7 @@ function CookieDatabaseConnection(file, schema) {
       break;
     }
 
-    case 13:
-    case 14: {
+    case 13: {
       if (!exists) {
         this.db.executeSimpleSQL(
           "CREATE TABLE moz_cookies (                     \
@@ -889,7 +888,6 @@ CookieDatabaseConnection.prototype = {
         break;
 
       case 13:
-      case 14:
         this.stmtInsert.bindByName("name", cookie.name);
         this.stmtInsert.bindByName("value", cookie.value);
         this.stmtInsert.bindByName("host", cookie.host);
@@ -942,7 +940,6 @@ CookieDatabaseConnection.prototype = {
       case 11:
       case 12:
       case 13:
-      case 14:
         this.stmtDelete.bindByName("name", cookie.name);
         this.stmtDelete.bindByName("host", cookie.host);
         this.stmtDelete.bindByName("path", cookie.path);
@@ -988,7 +985,6 @@ CookieDatabaseConnection.prototype = {
       case 11:
       case 12:
       case 13:
-      case 14:
         this.stmtDelete.bindByName("name", cookie.name);
         this.stmtDelete.bindByName("host", cookie.host);
         this.stmtDelete.bindByName("path", cookie.path);

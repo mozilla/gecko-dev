@@ -41,7 +41,7 @@ conn.executeSimpleSQL("PRAGMA synchronous = OFF");
 conn.executeSimpleSQL("PRAGMA journal_mode = WAL");
 conn.executeSimpleSQL("PRAGMA wal_autocheckpoint = 16");
 
-let now = Math.round(Date.now() / 1000);
+let now = Date.now();
 conn.executeSimpleSQL(
   "INSERT INTO moz_cookies(" +
     "baseDomain, host, name, value, path, expiry, " +
@@ -59,7 +59,7 @@ conn.executeSimpleSQL(
 // Get sessionCookies to wait for the initialization in cookie thread
 Services.cookies.sessionCookies;
 
-Assert.ok(conn.schemaVersion >= 13);
+Assert.equal(conn.schemaVersion, 13);
 let stmt = conn.createStatement(
   "SELECT sql FROM sqlite_master " +
     "WHERE type = 'table' AND " +

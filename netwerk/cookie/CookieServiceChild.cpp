@@ -447,16 +447,13 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
         StoragePrincipalHelper::ePartitionedPrincipal);
   }
 
-  nsAutoCString dateHeader;
-  CookieCommons::GetServerDateHeader(aChannel, dateHeader);
-
   nsTArray<CookieStruct> cookiesToSend, partitionedCookiesToSend;
   bool moreCookies;
   do {
     CookieParser parser(crc, aHostURI);
     moreCookies =
         parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
-                     dateHeader, true, isForeignAndNotAddon, mustBePartitioned,
+                     true, isForeignAndNotAddon, mustBePartitioned,
                      storagePrincipalOriginAttributes.IsPrivateBrowsing());
     if (!parser.ContainsCookie()) {
       continue;
