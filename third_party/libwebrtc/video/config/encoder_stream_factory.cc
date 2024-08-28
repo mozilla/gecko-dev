@@ -337,8 +337,7 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     layers[0].min_bitrate_bps =
         rtc::saturated_cast<int>(experimental_min_bitrate->bps());
   }
-  // Update the active simulcast layers and configured bitrates.
-  bool is_highest_layer_max_bitrate_configured = false;
+
   const bool has_scale_resolution_down_by = absl::c_any_of(
       encoder_config.simulcast_layers, [](const webrtc::VideoStream& layer) {
         return layer.scale_resolution_down_by != -1.;
@@ -363,6 +362,8 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
           ? NormalizeSimulcastSize(trials, height,
                                    encoder_config.number_of_streams)
           : height;
+
+  // Update the active simulcast layers and configured bitrates.
   for (size_t i = 0; i < layers.size(); ++i) {
     layers[i].active = encoder_config.simulcast_layers[i].active;
     layers[i].scalability_mode =
@@ -443,12 +444,11 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     } else {
       layers[i].max_qp = GetDefaultMaxQp(encoder_config.codec_type);
     }
-
-    if (i == layers.size() - 1) {
-      is_highest_layer_max_bitrate_configured =
-          encoder_config.simulcast_layers[i].max_bitrate_bps > 0;
-    }
   }
+
+  bool is_highest_layer_max_bitrate_configured =
+      encoder_config.simulcast_layers[layers.size() - 1].max_bitrate_bps > 0;
+
   if (!is_screencast && !is_highest_layer_max_bitrate_configured &&
       encoder_config.max_bitrate_bps > 0) {
     // No application-configured maximum for the largest layer.
