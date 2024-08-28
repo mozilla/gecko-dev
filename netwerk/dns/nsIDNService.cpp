@@ -188,49 +188,18 @@ static bool isCyrillicLatinConfusable(char32_t aChar) {
   }
 }
 
-static bool isThaiLatinConfusable(char32_t aChar) {
-  switch (aChar) {
-// Some of the Thai characters are only confusable on Linux.
-#ifdef XP_LINUX
-    case 0x0E14:  // ด
-    case 0x0E17:  // ท
-    case 0x0E19:  // น
-    case 0x0E1B:  // ป
-    case 0x0E21:  // ม
-    case 0x0E25:  // ล
-    case 0x0E2B:  // ห
-#endif
-    case 0x0E1A:  // บ
-    case 0x0E1E:  // พ
-    case 0x0E1F:  // ฟ
-    case 0x0E23:  // ร
-    case 0x0E40:  // เ
-    case 0x0E41:  // แ
-    case 0x0E50:  // ๐
-      return true;
-    default:
-      return false;
-  }
-}
-
-static bool doesTLDScriptMatch(mozilla::Span<const char32_t>& aTLD,
-                               Script script) {
+static bool isCyrillicDomain(mozilla::Span<const char32_t>& aTLD) {
   mozilla::Span<const char32_t>::const_iterator current = aTLD.cbegin();
   mozilla::Span<const char32_t>::const_iterator end = aTLD.cend();
 
   while (current != end) {
     char32_t ch = *current++;
-    if (UnicodeProperties::GetScriptCode(ch) == script) {
+    if (UnicodeProperties::GetScriptCode(ch) == Script::CYRILLIC) {
       return true;
     }
   }
 
-  return false;
-}
-
-static bool isCyrillicDomain(mozilla::Span<const char32_t>& aTLD) {
-  return doesTLDScriptMatch(aTLD, Script::CYRILLIC) ||
-         TLDEqualsLiteral(aTLD, "bg") || TLDEqualsLiteral(aTLD, "by") ||
+  return TLDEqualsLiteral(aTLD, "bg") || TLDEqualsLiteral(aTLD, "by") ||
          TLDEqualsLiteral(aTLD, "kz") || TLDEqualsLiteral(aTLD, "pyc") ||
          TLDEqualsLiteral(aTLD, "ru") || TLDEqualsLiteral(aTLD, "su") ||
          TLDEqualsLiteral(aTLD, "ua") || TLDEqualsLiteral(aTLD, "uz");
@@ -329,7 +298,6 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
   char32_t savedNumberingSystem = 0;
   LookalikeStatus digitLookalikeStatus = LookalikeStatus::Safe;
   LookalikeStatus cyrillicStatus = LookalikeStatus::Safe;
-  LookalikeStatus thaiStatus = LookalikeStatus::Safe;
 // Simplified/Traditional Chinese check temporarily disabled -- bug 857481
 #if 0
   HanVariantType savedHanVariant = HVT_NotHan;
@@ -456,14 +424,6 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
                                                      : LookalikeStatus::Ignore;
     }
 
-    // Check if all the Thai letters in the label are confusables
-    if (thaiStatus != LookalikeStatus::Ignore && script == Script::THAI &&
-        !doesTLDScriptMatch(aTLD, Script::THAI) &&
-        !TLDEqualsLiteral(aTLD, "th")) {
-      thaiStatus = isThaiLatinConfusable(ch) ? LookalikeStatus::Block
-                                             : LookalikeStatus::Ignore;
-    }
-
     // Block these CJK ideographs if they are adjacent to non-CJK characters.
     // These characters can be used to spoof Latin characters/punctuation marks.
     if (isCJKIdeograph(ch)) {
@@ -563,8 +523,7 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
   }
   return digitLookalikeStatus != LookalikeStatus::Block &&
          (!StaticPrefs::network_idn_punycode_cyrillic_confusables() ||
-          cyrillicStatus != LookalikeStatus::Block) &&
-         thaiStatus != LookalikeStatus::Block;
+          cyrillicStatus != LookalikeStatus::Block);
 }
 
 // Scripts that we care about in illegalScriptCombo
