@@ -7,7 +7,7 @@ const PRODUCT_PAGE = "https://example.com/product/B09TJGHL5F";
 
 const ADS_JSON = `[{
 	"name": "Test product name ftw",
-	"url": "${PRODUCT_PAGE}",
+	"url": ${PRODUCT_PAGE},
 	"image_url": "https://i.fakespot.io/b6vx27xf3rgwr1a597q6qd3rutp6",
 	"price": "249.99",
 	"currency": "USD",
@@ -15,20 +15,7 @@ const ADS_JSON = `[{
 	"adjusted_rating": 4.6,
 	"analysis_url": "https://www.fakespot.com/product/test-product",
 	"sponsored": true,
-  "aid": "a2VlcCBvbiByb2NraW4gdGhlIGZyZWUgd2ViIQ=="
-}]`;
-
-const RECOMMENDATIONS_JSON = `[{
-	"name": "Test product name ftw",
-	"url": "${PRODUCT_TEST_URL_NOT_SPONSORED}",
-	"image_url": "https://i.fakespot.io/b6vx27xf3rgwr1a597q6qd3rutp6",
-	"price": "249.99",
-	"currency": "USD",
-	"grade": "A",
-	"adjusted_rating": 4.6,
-	"analysis_url": "https://www.fakespot.com/product/test-product",
-	"sponsored": false,
-  "aid": "z2VlcCBvbiByb2NraW4gdGhlIGZyZWUgd2ViIQ=="
+  "aid": "a2VlcCBvbiByb2NraW4gdGhlIGZyZWUgd2ViIQ==",
 }]`;
 
 // Verifies that, if the ads server returns an ad, but we have disabled
@@ -67,7 +54,7 @@ add_task(async function test_ads_exposure_disabled_not_recorded() {
             product,
             "requestRecommendations"
           );
-          productRequestAdsStub.resolves(JSON.parse(adResponse));
+          productRequestAdsStub.resolves(adResponse);
 
           let actor = content.windowGlobalChild.getActor("ShoppingSidebar");
           actor.productURI = productURI;
@@ -187,7 +174,7 @@ add_task(async function test_ads_exposure_enabled_with_ad_recorded() {
             product,
             "requestRecommendations"
           );
-          productRequestAdsStub.resolves(JSON.parse(adResponse));
+          productRequestAdsStub.resolves(adResponse);
 
           let actor = content.windowGlobalChild.getActor("ShoppingSidebar");
           actor.productURI = productURI;
@@ -199,75 +186,6 @@ add_task(async function test_ads_exposure_enabled_with_ad_recorded() {
             productRequestAdsStub.called,
             "product.requestRecommendations should have been called if ads exposure is enabled, even if ads are not"
           );
-        }
-      );
-    }
-  );
-
-  await Services.fog.testFlushAllChildren();
-
-  const events = Glean.shopping.adsExposure.testGetValue();
-  Assert.equal(
-    events.length,
-    1,
-    "Ads exposure should have been recorded if ads exposure was enabled and ads were returned"
-  );
-  Assert.equal(
-    events[0].category,
-    "shopping",
-    "Glean event should have category 'shopping'"
-  );
-  Assert.equal(
-    events[0].name,
-    "ads_exposure",
-    "Glean event should have name 'ads_exposure'"
-  );
-  await SpecialPowers.popPrefEnv();
-});
-
-// Verifies that ads exposure will be recorded for recommendations
-// that are not sponsored.
-add_task(async function test_not_sponsored_exposure() {
-  await Services.fog.testFlushAllChildren();
-  Services.fog.testResetFOG();
-
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.shopping.experience2023.ads.enabled", true],
-      ["browser.shopping.experience2023.ads.exposure", true],
-    ],
-  });
-
-  await BrowserTestUtils.withNewTab(
-    {
-      url: "about:shoppingsidebar",
-      gBrowser,
-    },
-    async browser => {
-      await SpecialPowers.spawn(
-        browser,
-        [PRODUCT_TEST_URL_NOT_SPONSORED, RECOMMENDATIONS_JSON],
-        async (prodPage, adResponse) => {
-          const { ShoppingProduct } = ChromeUtils.importESModule(
-            "chrome://global/content/shopping/ShoppingProduct.mjs"
-          );
-          const { sinon } = ChromeUtils.importESModule(
-            "resource://testing-common/Sinon.sys.mjs"
-          );
-
-          let productURI = Services.io.newURI(prodPage);
-          let product = new ShoppingProduct(productURI);
-          let productRequestAdsStub = sinon.stub(
-            product,
-            "requestRecommendations"
-          );
-          productRequestAdsStub.resolves(JSON.parse(adResponse));
-
-          let actor = content.windowGlobalChild.getActor("ShoppingSidebar");
-          actor.productURI = productURI;
-          actor.product = product;
-
-          actor.requestRecommendations(productURI);
         }
       );
     }

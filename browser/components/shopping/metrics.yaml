@@ -572,11 +572,6 @@ shopping:
       - fx-desktop-shopping-eng@mozilla.com
     send_in_pings:
       - events
-    extra_keys:
-      sponsored:
-        description: >
-          Whether the ad was sponsored or not.
-        type: boolean
 
   surface_ads_impression:
     type: event
@@ -594,11 +589,6 @@ shopping:
       - fx-desktop-shopping-eng@mozilla.com
     send_in_pings:
       - events
-    extra_keys:
-      sponsored:
-        description: >
-          Whether the ad was sponsored or not.
-        type: boolean
 
   surface_ads_placement:
     type: event
@@ -616,11 +606,6 @@ shopping:
       - fx-desktop-shopping-eng@mozilla.com
     send_in_pings:
       - events
-    extra_keys:
-      sponsored:
-        description: >
-          Whether the ad was sponsored or not.
-        type: boolean
 
   surface_no_ads_available:
     type: event

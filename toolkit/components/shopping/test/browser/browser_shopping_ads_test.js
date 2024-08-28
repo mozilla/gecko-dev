@@ -82,7 +82,6 @@ add_task(async function test_ad_attribution() {
     Assert.equal(adsPlacementEvents.length, 1, "should have recorded an event");
     Assert.equal(adsPlacementEvents[0].category, "shopping");
     Assert.equal(adsPlacementEvents[0].name, "surface_ads_placement");
-    Assert.equal(adsPlacementEvents[0].extra.sponsored, "true");
 
     let impressionEvent = recommendedAdsEventListener("AdImpression", sidebar);
 
@@ -101,7 +100,6 @@ add_task(async function test_ad_attribution() {
     );
     Assert.equal(adsImpressionEvents[0].category, "shopping");
     Assert.equal(adsImpressionEvents[0].name, "surface_ads_impression");
-    Assert.equal(adsImpressionEvents[0].extra.sponsored, "true");
 
     //
     // Test that impression event is fired after switching to a tab that was
@@ -231,92 +229,8 @@ add_task(async function test_ad_attribution() {
     Assert.equal(adsClickedEvents.length, 1, "should have recorded a click");
     Assert.equal(adsClickedEvents[0].category, "shopping");
     Assert.equal(adsClickedEvents[0].name, "surface_ads_clicked");
-    Assert.equal(adsClickedEvents[0].extra.sponsored, "true");
 
     gBrowser.removeTab(adTab);
     Services.fog.testResetFOG();
   });
-});
-
-add_task(async function test_non_sponsored_attribution() {
-  await BrowserTestUtils.withNewTab(
-    PRODUCT_TEST_URL_NOT_SPONSORED,
-    async browser => {
-      let sidebar = gBrowser
-        .getPanel(browser)
-        .querySelector("shopping-sidebar");
-
-      info("Waiting for sidebar to update.");
-      await promiseSidebarUpdated(sidebar, PRODUCT_TEST_URL_NOT_SPONSORED);
-      await recommendedAdVisible(sidebar);
-
-      // Test placement was recorded by telemetry
-      info("Verifying recommendation placement event.");
-      await Services.fog.testFlushAllChildren();
-      var adsPlacementEvents =
-        Glean.shopping.surfaceAdsPlacement.testGetValue();
-      Assert.equal(
-        adsPlacementEvents.length,
-        1,
-        "should have recorded an event"
-      );
-      Assert.equal(adsPlacementEvents[0].category, "shopping");
-      Assert.equal(adsPlacementEvents[0].name, "surface_ads_placement");
-      Assert.equal(adsPlacementEvents[0].extra?.sponsored, "false");
-
-      let impressionEvent = recommendedAdsEventListener(
-        "AdImpression",
-        sidebar
-      );
-
-      info("Waiting for ad impression event.");
-      await impressionEvent;
-      Assert.ok(true, "Got ad impression event");
-
-      // Test the impression was recorded by telemetry
-      await Services.fog.testFlushAllChildren();
-      var adsImpressionEvents =
-        Glean.shopping.surfaceAdsImpression.testGetValue();
-      Assert.equal(
-        adsImpressionEvents.length,
-        1,
-        "should have recorded an event"
-      );
-      Assert.equal(adsImpressionEvents[0].category, "shopping");
-      Assert.equal(adsImpressionEvents[0].name, "surface_ads_impression");
-      Assert.equal(adsImpressionEvents[0].extra.sponsored, "false");
-
-      // Test ad clicked event
-      let adOpenedTabPromise = BrowserTestUtils.waitForNewTab(
-        gBrowser,
-        PRODUCT_TEST_URL_NOT_SPONSORED,
-        true
-      );
-
-      let clickedEvent = recommendedAdsEventListener("AdClicked", sidebar);
-      await SpecialPowers.spawn(sidebar.querySelector("browser"), [], () => {
-        let shoppingContainer =
-          content.document.querySelector("shopping-container").wrappedJSObject;
-        let adEl = shoppingContainer.recommendedAdEl;
-        adEl.linkEl.click();
-      });
-
-      let adTab = await adOpenedTabPromise;
-
-      info("Waiting for ad clicked event.");
-      await clickedEvent;
-      Assert.ok(true, "Got ad clicked event");
-
-      // Test the click was recorded by telemetry
-      await Services.fog.testFlushAllChildren();
-      var adsClickedEvents = Glean.shopping.surfaceAdsClicked.testGetValue();
-      Assert.equal(adsClickedEvents.length, 1, "should have recorded a click");
-      Assert.equal(adsClickedEvents[0].category, "shopping");
-      Assert.equal(adsClickedEvents[0].name, "surface_ads_clicked");
-      Assert.equal(adsClickedEvents[0].extra.sponsored, "false");
-
-      gBrowser.removeTab(adTab);
-      Services.fog.testResetFOG();
-    }
-  );
 });

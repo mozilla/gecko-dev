@@ -72,7 +72,7 @@ class RecommendedAd extends MozLitElement {
     this.dispatchEvent(
       new CustomEvent("AdImpression", {
         bubbles: true,
-        detail: { aid: this.product.aid, sponsored: this.product.sponsored },
+        detail: { aid: this.product.aid },
       })
     );
 
@@ -87,7 +87,7 @@ class RecommendedAd extends MozLitElement {
       this.dispatchEvent(
         new CustomEvent("AdClicked", {
           bubbles: true,
-          detail: { aid: this.product.aid, sponsored: this.product.sponsored },
+          detail: { aid: this.product.aid },
         })
       );
     }
