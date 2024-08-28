@@ -1,6 +1,8 @@
 <html><body>
 <iframe id="frame" sandbox="allow-scripts allow-popups"></iframe>
 <script type="application/javascript">
+/* eslint-disable no-useless-concat */
+
 onmessage = function(e) {
   parent.postMessage(e.data, '*');
 }
@@ -8,11 +10,11 @@ onmessage = function(e) {
 var ifr = document.getElementById('frame');
 
 if (location.search == '?nested') {
-  var url = new URL(location);
+  let url = new URL(location);
   url.search = "";
   ifr.src = url.href;
 } else if (location.search == '?popup') {
-  var url = new URL(location);
+  let url = new URL(location);
   url.search = "?opener";
 
   ifr.srcdoc = "<html><script>" +

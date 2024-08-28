@@ -643,7 +643,6 @@ const rollouts = [
       "dom/tests/mochitest/**",
       "dom/vr/test/**",
       "dom/webauthn/tests/**",
-      "dom/websocket/tests/**",
       "dom/workers/test/**",
     ],
     rules: {

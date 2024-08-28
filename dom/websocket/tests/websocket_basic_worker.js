@@ -9,7 +9,7 @@ onmessage = function (event) {
     return;
   }
 
-  status = false;
+  let status = false;
   try {
     if (WebSocket instanceof Object) {
       status = true;
