@@ -557,14 +557,17 @@ CookieService::SetCookieStringFromHttp(nsIURI* aHostURI,
         StoragePrincipalHelper::ePartitionedPrincipal);
   }
 
+  nsAutoCString dateHeader;
+  CookieCommons::GetServerDateHeader(aChannel, dateHeader);
+
   // process each cookie in the header
   bool moreCookieToRead = true;
   while (moreCookieToRead) {
     CookieParser cookieParser(crc, aHostURI);
 
     moreCookieToRead = cookieParser.Parse(
-        baseDomain, requireHostMatch, cookieStatus, cookieHeader, true,
-        isForeignAndNotAddon, mustBePartitioned,
+        baseDomain, requireHostMatch, cookieStatus, cookieHeader, dateHeader,
+        true, isForeignAndNotAddon, mustBePartitioned,
         storagePrincipalOriginAttributes.IsPrivateBrowsing());
 
     if (!cookieParser.ContainsCookie()) {

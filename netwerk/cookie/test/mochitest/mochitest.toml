@@ -17,6 +17,9 @@ support-files = [
 
 ["test_script.html"]
 
+["test_server_time.html"]
+support-files = ["server_time.sjs"]
+
 ["test_sharedWorker.html"]
 
 ["test_worker.html"]
