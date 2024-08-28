@@ -16,6 +16,7 @@ from marionette_harness.runner.mixins.window_manager import WindowManagerMixin
 from telemetry_harness.ping_server import PingServer
 
 CANARY_CLIENT_ID = "c0ffeec0-ffee-c0ff-eec0-ffeec0ffeec0"
+CANARY_PROFILE_GROUP_ID = "decafdec-afde-cafd-ecaf-decafdecafde"
 UUID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 )
@@ -85,6 +86,9 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
 
         # Check for client ID that is used when Telemetry upload is disabled
         self.assertNotEqual(value, CANARY_CLIENT_ID, msg="UUID is CANARY CLIENT ID")
+        self.assertNotEqual(
+            value, CANARY_PROFILE_GROUP_ID, msg="UUID is CANARY PROFILE GROUP ID"
+        )
 
         self.assertIsNotNone(
             re.match(UUID_PATTERN, value),

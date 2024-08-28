@@ -75,7 +75,8 @@ class TestDeletionRequestPing(TelemetryTestCase):
         self.assertIn("clientId", main_ping)
         self.assertIsValidUUID(main_ping["clientId"])
         self.assertNotEqual(main_ping["clientId"], client_id)
-        self.assertEqual(main_ping["profileGroupId"], profile_group_id)
+        self.assertIsValidUUID(main_ping["profileGroupId"])
+        self.assertNotEqual(main_ping["profileGroupId"], profile_group_id)
 
         # Ensure we note in the ping that the user opted in.
         parent_scalars = main_ping["payload"]["processes"]["parent"]["scalars"]
@@ -87,3 +88,5 @@ class TestDeletionRequestPing(TelemetryTestCase):
         for ping in self.ping_server.pings:
             if "clientId" in ping:
                 self.assertIsValidUUID(ping["clientId"])
+            if "profileGroupId" in ping:
+                self.assertIsValidUUID(ping["profileGroupId"])

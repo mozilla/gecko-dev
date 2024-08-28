@@ -97,6 +97,13 @@ export var TelemetryUtils = {
   },
 
   /**
+   * A fixed valid profile group ID used when Telemetry upload is disabled.
+   */
+  get knownProfileGroupID() {
+    return "decafdec-afde-cafd-ecaf-decafdecafde";
+  },
+
+  /**
    * True if this is a content process.
    */
   get isContentProcess() {

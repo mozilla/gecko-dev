@@ -12,15 +12,19 @@ from telemetry_harness.ping_filters import (
 def test_deletion_request_ping(browser, helpers):
     """Test the "deletion-request" ping behaviour across sessions"""
     # Get the client_id after installing an addon
-    client_id = helpers.wait_for_ping(browser.install_addon, ANY_PING)["clientId"]
+    ping = helpers.wait_for_ping(browser.install_addon, ANY_PING)
+    client_id = ping["clientId"]
+    profile_group_id = ping["profileGroupId"]
 
     # Make sure it's a valid UUID
     helpers.assert_is_valid_uuid(client_id)
+    helpers.assert_is_valid_uuid(profile_group_id)
 
     # Trigger a "deletion-request" ping.
     ping = helpers.wait_for_ping(browser.disable_telemetry, DELETION_REQUEST_PING)
 
     assert "clientId" in ping
+    assert "profileGroupId" in ping
     assert "payload" in ping
     assert "environment" not in ping["payload"]
 
@@ -48,6 +52,11 @@ def test_deletion_request_ping(browser, helpers):
     helpers.assert_is_valid_uuid(new_client_id)
     assert new_client_id != client_id
 
+    assert "profileGroupId" in main_ping
+    new_profile_group_id = main_ping["profileGroupId"]
+    helpers.assert_is_valid_uuid(new_profile_group_id)
+    assert new_profile_group_id != profile_group_id
+
     # Ensure we note in the ping that the user opted in.
     parent_scalars = main_ping["payload"]["processes"]["parent"]["scalars"]
 
@@ -58,6 +67,8 @@ def test_deletion_request_ping(browser, helpers):
     for ping in browser.ping_server.pings:
         if "clientId" in ping:
             helpers.assert_is_valid_uuid(ping["clientId"])
+        if "profileGroupId" in ping:
+            helpers.assert_is_valid_uuid(ping["profileGroupId"])
 
 
 if __name__ == "__main__":

@@ -1288,6 +1288,7 @@ add_task(async function test_sendShutdownPing() {
   await TelemetryController.testShutdown();
   // After re-enabling FHR, wait for the new client ID
   gClientID = await ClientID.getClientID();
+  gProfileGroupID = await ClientID.getProfileGroupID();
 
   // Check that the "shutdown" ping was correctly saved to disk.
   await checkPendingShutdownPing();

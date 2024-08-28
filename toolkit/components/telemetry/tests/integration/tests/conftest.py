@@ -19,6 +19,7 @@ from six import reraise
 from telemetry_harness.ping_server import PingServer
 
 CANARY_CLIENT_ID = "c0ffeec0-ffee-c0ff-eec0-ffeec0ffeec0"
+CANARY_PROFILE_GROUP_ID = "decafdec-afde-cafd-ecaf-decafdecafde"
 SERVER_ROOT = "toolkit/components/telemetry/tests/marionette/harness/www"
 UUID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -295,6 +296,7 @@ class Helpers(object):
         assert value is not None
         assert value != ""
         assert value != CANARY_CLIENT_ID
+        assert value != CANARY_PROFILE_GROUP_ID
         assert re.match(UUID_PATTERN, value) is not None
 
     def wait_for_ping(self, action_func, ping_filter):

@@ -208,7 +208,11 @@ add_task(async function test_disableDataUpload() {
     firstClientId,
     "Client ID should be valid and random"
   );
-  Assert.ok(firstProfileGroupId, "Test ping needs a profile group ID");
+  Assert.notEqual(
+    TelemetryUtils.knownProfileGroupID,
+    firstProfileGroupId,
+    "Profile group ID should be valid and random"
+  );
 
   // The next step should trigger an event, watch for it.
   let disableObserved = TestUtils.topicObserved(
@@ -262,10 +266,10 @@ add_task(async function test_disableDataUpload() {
   );
   let secondProfileGroupId =
     TelemetryController.getCurrentPingData().profileGroupId;
-  Assert.equal(
+  Assert.notEqual(
     firstProfileGroupId,
     secondProfileGroupId,
-    "The profile group id must not have changed"
+    "The profile group id must have changed"
   );
   // Simulate a failure in sending the deletion-request ping by disabling the HTTP server.
   await PingServer.stop();
@@ -332,10 +336,10 @@ add_task(async function test_disableDataUpload() {
     ping.clientId,
     "Client ID should be different from the previous value"
   );
-  Assert.equal(
+  Assert.notEqual(
     firstProfileGroupId,
     ping.profileGroupId,
-    "The profile group ID should not change"
+    "The profile group ID should change"
   );
 
   // The "deletion-request" ping should come next, as it was pending.
@@ -347,9 +351,9 @@ add_task(async function test_disableDataUpload() {
     "Deletion must be requested for correct client id"
   );
   Assert.equal(
-    firstProfileGroupId,
+    secondProfileGroupId,
     ping.profileGroupId,
-    "The profile group ID should not change"
+    "Deletion must be requested for correct profile group id"
   );
 
   // Wait on ping activity to settle before moving on to the next test. If we were
