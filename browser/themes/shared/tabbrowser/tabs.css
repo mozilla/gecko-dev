@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@namespace html url("http://www.w3.org/1999/xhtml");
-
 :root {
   --tab-min-height: 36px;
   &[uidensity=compact] {
@@ -133,13 +131,9 @@
     visibility: hidden;
   }
 
-  &[pinned] {
-    flex-shrink: 0;
-
-    #tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > & {
-      position: absolute !important;
-      display: block;
-    }
+  #tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > &[pinned] {
+    position: absolute !important;
+    display: block;
   }
 
   #tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > &:is([selected], [multiselected]) {
@@ -163,7 +157,10 @@
 
 .tab-content {
   padding: 0 var(--inline-tab-padding);
-  min-width: 0;
+
+  &:not([pinned]) {
+    min-width: 0;
+  }
 
   /* We want the content to be centered for all vertical tabs in the collapsed state. */
   sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs &,
