@@ -233,7 +233,6 @@ rtc_library("rtp_rtcp") {
     "source/rtp_video_stream_receiver_frame_transformer_delegate.h",
     "source/source_tracker.cc",
     "source/source_tracker.h",
-    "source/time_util.h",
     "source/tmmbr_help.cc",
     "source/tmmbr_help.h",
     "source/ulpfec_generator.cc",
