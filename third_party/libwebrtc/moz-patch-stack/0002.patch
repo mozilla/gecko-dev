@@ -1,92 +1,110 @@
 From: Daniel Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 19:24:38 -0600
-Subject: (tmp-cherry-pick) Revert "Remove iOS Debug (simulator) from LKGR
- bots." (1ac162ee20)
+Date: Mon, 26 Aug 2024 16:49:41 -0600
+Subject: (tmp-cherry-pick) [M128] Revert "Update support for missing HIGH
+ profiles and 1080p" (bef5d63112)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit 4bded9601bfb38f2ef67574554c12370dca4708f.
+M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
 
-Reason for revert: Fixed with https://webrtc-review.googlesource.com/c/src/+/357640
+This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
+
+Reason for revert: chromium:354143228
 
 Original change's description:
-> Remove iOS Debug (simulator) from LKGR bots.
+> Update support for missing HIGH profiles and 1080p
 >
-> Temporarily skip while the bot gets fixed.
+> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
 >
-> Bug: chromium:353975341
-> Change-Id: Ib42c18e929547c7abc58f2878c79f00f87001cae
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357540
-> Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-> Auto-Submit: Mirko Bonadei <mbonadei@webrtc.org>
-> Reviewed-by: Artem Titov <titovartem@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42656}
+> Bug: webrtc:347724928
+> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
+> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42528}
 
-Bug: chromium:353975341
-Change-Id: I184c9e597a28fff3ae052a07d8e6f17cc2251188
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357661
+(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
+
+Bug: chromium:354143228, webrtc:347724928
+Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42675}
+No-Try: True
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Jeremy Leconte <jleconte@google.com>
-Reviewed-by: Artem Titov <titovartem@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42664}
+Reviewed-by: Åsa Persson <asapersson@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6613@{#1}
+Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- infra/config/config.star        | 4 +---
- infra/config/cr-buildbucket.cfg | 1 +
- infra/config/luci-notify.cfg    | 5 +++++
- infra/config/project.cfg        | 2 +-
- 4 files changed, 8 insertions(+), 4 deletions(-)
+ modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
+ .../test/videocodec_test_fixture_impl.cc      |  2 +-
+ 2 files changed, 11 insertions(+), 17 deletions(-)
 
-diff --git a/infra/config/config.star b/infra/config/config.star
-index 8a42399d9c..8955686887 100755
---- a/infra/config/config.star
-+++ b/infra/config/config.star
-@@ -52,9 +52,7 @@ def os_from_name(name):
- # Add names of builders to remove from LKGR finder to this list. This is
- # useful when a failure can be safely ignored while fixing it without
- # blocking the LKGR finder on it.
--skipped_lkgr_bots = [
--    "iOS Debug (simulator)",
--]
-+skipped_lkgr_bots = []
- 
- # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
- lucicfg.enable_experiment("crbug.com/1182002")
-diff --git a/infra/config/cr-buildbucket.cfg b/infra/config/cr-buildbucket.cfg
-index 9edb6a2cc6..456fe1fac0 100644
---- a/infra/config/cr-buildbucket.cfg
-+++ b/infra/config/cr-buildbucket.cfg
-@@ -1903,6 +1903,7 @@ buckets {
-         '          "Win64 Debug (Clang)",'
-         '          "Win64 Release (Clang)",'
-         '          "iOS API Framework Builder",'
-+        '          "iOS Debug (simulator)",'
-         '          "iOS64 Debug",'
-         '          "iOS64 Release"'
-         '        ]'
-diff --git a/infra/config/luci-notify.cfg b/infra/config/luci-notify.cfg
-index e2835fb848..53a6c5eb3b 100644
---- a/infra/config/luci-notify.cfg
-+++ b/infra/config/luci-notify.cfg
-@@ -943,6 +943,11 @@ notifiers {
-     name: "iOS Debug (simulator)"
-     repository: "https://webrtc.googlesource.com/src"
-   }
-+  tree_closers {
-+    tree_status_host: "webrtc-status.appspot.com"
-+    failed_step_regexp: "bot_update|compile|gclient runhooks|runhooks|update|extract build|cleanup_temp|taskkill|compile|gn"
-+    failed_step_regexp_exclude: ".*\\(experimental\\).*"
-+  }
+diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
+index b2deda5ea8..60142c88c1 100644
+--- a/modules/video_coding/codecs/h264/h264.cc
++++ b/modules/video_coding/codecs/h264/h264.cc
+@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
+   //
+   // We support both packetization modes 0 (mandatory) and 1 (optional,
+   // preferred).
+-  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "1", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
++          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
+                            "0", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "1", add_scalability_modes),
++                           H264Level::kLevel3_1, "1", add_scalability_modes),
+           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
+-                           H264Level::kLevel4_2, "0", add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
++                           H264Level::kLevel3_1, "0", add_scalability_modes),
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
+                            add_scalability_modes),
+-          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
++          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
+                            add_scalability_modes)};
  }
- notifiers {
-   notifications {
-diff --git a/infra/config/project.cfg b/infra/config/project.cfg
-index 8b377430f3..7ee089eda0 100644
---- a/infra/config/project.cfg
-+++ b/infra/config/project.cfg
-@@ -7,7 +7,7 @@
- name: "webrtc"
- access: "group:all"
- lucicfg {
--  version: "1.43.9"
-+  version: "1.43.8"
-   package_dir: "."
-   config_dir: "."
-   entry_point: "config.star"
+ 
+@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
+ 
+   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
+ 
++  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
++  // support decoding.
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
+   supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(
+-      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
+-  supportedCodecs.push_back(CreateH264Format(
+-      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
++      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
+ 
+   return supportedCodecs;
+ }
+diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+index 03a8beca23..40569597f3 100644
+--- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
++++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
+@@ -178,7 +178,7 @@ SdpVideoFormat CreateSdpVideoFormat(
+     CodecParameterMap codec_params = {
+         {cricket::kH264FmtpProfileLevelId,
+          *H264ProfileLevelIdToString(H264ProfileLevelId(
+-             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
++             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
+         {cricket::kH264FmtpPacketizationMode, packetization_mode},
+         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
+ 
