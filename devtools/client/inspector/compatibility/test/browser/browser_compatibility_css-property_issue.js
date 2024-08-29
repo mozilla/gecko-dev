@@ -68,7 +68,7 @@ const TEST_DATA_ALL = [
     property: "ruby-align",
     url: "https://developer.mozilla.org/docs/Web/CSS/ruby-align",
     deprecated: false,
-    experimental: true,
+    experimental: false,
   },
 ];
 

@@ -99,7 +99,7 @@ const TEST_DATA = [
         url: "https://developer.mozilla.org/docs/Web/CSS/ruby-align",
         specUrl: "https://drafts.csswg.org/css-ruby/#ruby-align-property",
         deprecated: false,
-        experimental: true,
+        experimental: false,
         unsupportedBrowsers: [FIREFOX_1],
       },
     ],
