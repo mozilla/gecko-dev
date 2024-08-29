@@ -37,7 +37,9 @@ import mozilla.components.concept.engine.translate.findLanguage
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
+import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
@@ -83,8 +85,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
     private val args by navArgs<MenuDialogFragmentArgs>()
     private val browsingModeManager get() = (activity as HomeActivity).browsingModeManager
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
-        super.onCreateDialog(savedInstanceState).apply {
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        Events.toolbarMenuVisible.record(NoExtras())
+
+        return super.onCreateDialog(savedInstanceState).apply {
             setOnShowListener {
                 val navigationBarColor = if (browsingModeManager.mode.isPrivate) {
                     ContextCompat.getColor(context, R.color.fx_mobile_private_layer_color_3)
@@ -106,6 +110,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 }
             }
         }
+    }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun onCreateView(
