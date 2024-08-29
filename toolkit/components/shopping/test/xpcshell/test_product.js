@@ -7,6 +7,9 @@
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
+const { ObliviousHTTP } = ChromeUtils.importESModule(
+  "resource://gre/modules/ObliviousHTTP.sys.mjs"
+);
 
 function BinaryHttpResponse(status, headerNames, headerValues, content) {
   this.status = status;
@@ -523,9 +526,9 @@ add_task(async function test_ohttp_headers() {
   enableOHTTP();
 
   let configURL = Services.prefs.getCharPref("toolkit.shopping.ohttpConfigURL");
-  let config = await ShoppingProduct.getOHTTPConfig(configURL);
+  let config = await ObliviousHTTP.getOHTTPConfig(configURL);
   Assert.ok(config, "Should have gotten a config.");
-  let ohttpDetails = await ShoppingProduct.ohttpRequest(
+  let ohttpDetails = await ObliviousHTTP.ohttpRequest(
     API_OHTTP_RELAY,
     config,
     ANALYSIS_API_MOCK,
@@ -564,9 +567,9 @@ add_task(async function test_ohttp_too_many_requests() {
   enableOHTTP();
 
   let configURL = Services.prefs.getCharPref("toolkit.shopping.ohttpConfigURL");
-  let config = await ShoppingProduct.getOHTTPConfig(configURL);
+  let config = await ObliviousHTTP.getOHTTPConfig(configURL);
   Assert.ok(config, "Should have gotten a config.");
-  let ohttpDetails = await ShoppingProduct.ohttpRequest(
+  let ohttpDetails = await ObliviousHTTP.ohttpRequest(
     API_OHTTP_RELAY,
     config,
     API_ERROR_TOO_MANY_REQUESTS,

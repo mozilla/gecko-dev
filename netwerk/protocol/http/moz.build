@@ -225,6 +225,7 @@ if CONFIG["MOZ_AUTH_EXTENSION"]:
 EXTRA_JS_MODULES += [
     "HPKEConfigManager.sys.mjs",
     "NetworkErrorLogging.sys.mjs",
+    "ObliviousHTTP.sys.mjs",
     "WellKnownOpportunisticUtils.sys.mjs",
 ]
 
