@@ -1,7 +1,7 @@
 Form Autofill Heuristics
 ========================
 
-Form Autofill Heuristics module is for detecting the field type based on `autocomplete attribute <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill>`_, `the regular expressions <http://searchfox.org/mozilla-central/source/browser/extensions/formautofill/content/heuristicsRegexp.js>`_ and the customized logic in each parser.
+Form Autofill Heuristics module is for detecting the field type based on `autocomplete attribute <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill>`_, `the regular expressions <https://searchfox.org/mozilla-central/source/toolkit/components/formautofill/shared/HeuristicsRegExp.sys.mjs>`_ and the customized logic in each parser.
 
 Debugging
 ---------
@@ -16,7 +16,7 @@ Dependent APIs
 Regular Expressions
 -------------------
 
-This section is about how the regular expression is applied during parsing fields. All regular expressions are in `heuristicsRegexp.js <https://searchfox.org/mozilla-central/source/browser/extensions/formautofill/content/heuristicsRegexp.js>`_.
+This section is about how the regular expression is applied during parsing fields. All regular expressions are in `HeuristicsRegexp.sys.mjs <https://searchfox.org/mozilla-central/source/toolkit/components/formautofill/shared/HeuristicsRegExp.sys.mjs>`_.
 
 Parser Implementations
 ----------------------
@@ -27,10 +27,22 @@ The parsers are for detecting the field type more accurately based on the near c
 
   * related type: ``tel``, ``tel-*``
 
+* _parseStreetAddressFields
+
+  * related type: ``street-address`, `address-line[1-3]``
+
 * _parseAddressFields
 
-  * related type: ``address-line[1-3]``
+  * related type: ``address-level[1-2]``
 
-* _parseCreditCardExpirationDateFields
+* _parseCreditCardExpiryFields
 
   * related type: ``cc-exp``, ``cc-exp-month``, ``cc-exp-year``
+
+* _parseCreditCardNameFields
+
+  * related type: ``cc-name``, ``given-name``, ``additional-name``, ``family-name``
+
+* _parseCreditCardNumberFields
+
+  * related type: ``cc-number``
