@@ -38,6 +38,17 @@
 
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
+
+      this._lastTabRemovedObserver = new window.MutationObserver(() => {
+        if (!this.tabs.length) {
+          this.remove();
+        }
+      });
+      this._lastTabRemovedObserver.observe(this, { childList: true });
+    }
+
+    disconnectedCallback() {
+      this._lastTabRemovedObserver.disconnect();
     }
 
     get color() {
@@ -99,8 +110,6 @@
       for (let tab of this.tabs) {
         gBrowser.tabContainer.insertBefore(tab, adjacentTab);
       }
-
-      this.remove();
     }
 
     on_click(event) {

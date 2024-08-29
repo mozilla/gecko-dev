@@ -2928,22 +2928,22 @@
       return t;
     },
 
-    addTabGroup(color, label = "", tabs = []) {
+    addTabGroup(color, label = "", tabs) {
+      if (!tabs.length) {
+        throw new Error("Cannot create tab group with zero tabs");
+      }
+
       let group = document.createXULElement("tab-group", { is: "tab-group" });
       group.id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       group.color = color;
       group.label = label;
       this.tabContainer.appendChild(group);
-      if (tabs.length) {
-        group.addTabs(tabs);
-      }
+      group.addTabs(tabs);
       return group;
     },
 
     removeTabGroup(group) {
       this.removeTabs(group.tabs);
-      // TODO: remove the call to `group.remove` once bug1908413 is closed
-      group.remove();
     },
 
     _determineURIToLoad(uriString, createLazyBrowser) {
