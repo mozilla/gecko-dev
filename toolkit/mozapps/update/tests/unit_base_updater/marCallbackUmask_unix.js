@@ -16,9 +16,9 @@ async function run_test() {
 
   // Our callback is `TestAUSHelper check-umask <umask from before updating>`.
   // Including the umask from before updating as an argument allows to re-use
-  // the callback log checking code below. The argument is also used as the log
+  // the callback log checking code below.  The argument is also used as the log
   // file name, so we prefix it with "umask" so that it doesn't clash with
-  // numericfile and directory names in the update data. In particular, "2"
+  // numericfile and directory names in the update data.  In particular, "2"
   // clashes with an existing directory name in the update data, leading to
   // failing tests.
   let umask = Services.sysinfo.getProperty("umask");
@@ -36,7 +36,7 @@ async function run_test() {
   await checkUpdateManager(STATE_NONE, false, STATE_SUCCEEDED, 0, 1);
 
   // This compares the callback arguments given, including the umask before
-  // updating, to the umask set when the app callback is launched. They should
+  // updating, to the umask set when the app callback is launched.  They should
   // be the same.
-  checkCallbackLog();
+  checkCallbackLog(getApplyDirFile(DIR_RESOURCES + "callback_app.log"));
 }
