@@ -403,18 +403,24 @@ private fun ToolsAndActionsMenuGroup(
 ) {
     MenuGroup {
         if (accessPoint == MenuAccessPoint.Browser) {
+            val labelId: Int
+            val iconId: Int
+            val menuItemState: MenuItemState
+
+            if (isDesktopMode) {
+                labelId = R.string.browser_menu_switch_to_mobile_site
+                iconId = R.drawable.mozac_ic_device_mobile_24
+                menuItemState = MenuItemState.ACTIVE
+            } else {
+                labelId = R.string.browser_menu_switch_to_desktop_site
+                iconId = R.drawable.mozac_ic_device_desktop_24
+                menuItemState = MenuItemState.ENABLED
+            }
+
             MenuItem(
-                label = if (isDesktopMode) {
-                    stringResource(id = R.string.browser_menu_switch_to_mobile_site)
-                } else {
-                    stringResource(id = R.string.browser_menu_switch_to_desktop_site)
-                },
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_desktop_24),
-                state = if (isDesktopMode) {
-                    MenuItemState.ACTIVE
-                } else {
-                    MenuItemState.ENABLED
-                },
+                label = stringResource(id = labelId),
+                beforeIconPainter = painterResource(id = iconId),
+                state = menuItemState,
                 onClick = onSwitchToDesktopSiteMenuClick,
             )
 
