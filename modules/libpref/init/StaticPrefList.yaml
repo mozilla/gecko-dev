@@ -2923,6 +2923,11 @@
   value: 8
   mirror: always
 
+- name: dom.interactive_widget_default_resizes_visual
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # How often to check for CPOW timeouts (ms). CPOWs are only timed
 # out by the hang monitor.
 - name: dom.ipc.cpow.timeout
