@@ -972,11 +972,6 @@ bool NativeLayerCA::ShouldSpecializeVideo(const MutexAutoLock& aProofOfLock) {
     return true;
   }
 
-  if (macIOSurface->GetPlaneCount() > 1) {
-    // Multi-planar surfaces require specialized video layers.
-    return true;
-  }
-
   // Beyond this point, we return true if-and-only-if we think we can achieve
   // the power-saving "detached mode" of the macOS compositor.
 
