@@ -1752,15 +1752,12 @@ BrowserGlue.prototype = {
 
   _earlyBlankFirstPaint(cmdLine) {
     let startTime = Cu.now();
-
-    let shouldCreateWindow = true;
-
     if (
       AppConstants.platform == "macosx" ||
       Services.startup.wasSilentlyStarted ||
       !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
     ) {
-      shouldCreateWindow = false;
+      return;
     }
 
     // Until bug 1450626 and bug 1488384 are fixed, skip the blank window when
@@ -1772,7 +1769,7 @@ BrowserGlue.prototype = {
         "default-theme@mozilla.org"
       ) != "default-theme@mozilla.org"
     ) {
-      shouldCreateWindow = false;
+      return;
     }
 
     let store = Services.xulStore;
@@ -1781,16 +1778,8 @@ BrowserGlue.prototype = {
     let width = getValue("width");
     let height = getValue("height");
 
-    // The clean profile case isn't handled yet.
+    // The clean profile case isn't handled yet. Return early for now.
     if (!width || !height) {
-      shouldCreateWindow = false;
-    }
-
-    if (cmdLine.findFlag("wait-for-jsdebugger", false) != -1) {
-      shouldCreateWindow = true;
-    }
-
-    if (!shouldCreateWindow) {
       return;
     }
 
