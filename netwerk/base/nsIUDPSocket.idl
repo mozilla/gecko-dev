@@ -255,13 +255,37 @@ interface nsIUDPSocket : nsISupports
                                        [const, optional] in NetAddrPtr iface);
 
     /**
-    * getFileDescriptor
-    *
-    * Get the file descriptor of the socket.
-    *
-    * @return The file descriptor.
-    */
+      * getFileDescriptor
+      *
+      * Get the file descriptor of the socket.
+      *
+      * @return The file descriptor.
+      */
     [noscript, notxpcom] int64_t getFileDescriptor();
+
+    /**
+     * addOutputBytes
+     *
+     * Add number of bytes written to the socket. Used when sending data through
+     * file descriptor optained from getFileDescriptor instead of nsIUDPSocket
+     * methods.
+     *
+     * @param aBytes
+     *        The number of bytes written.
+     */
+    [noscript, notxpcom] void addOutputBytes(in uint32_t aBytes);
+
+    /**
+     * addInputBytes
+     *
+     * Add number of bytes read from the socket. Used when reading data through
+     * file descriptor optained from getFileDescriptor instead of nsIUDPSocket
+     * methods.
+     *
+     * @param aBytes
+     *        The number of bytes read.
+     */
+    [noscript, notxpcom] void addInputBytes(in uint32_t aBytes);
 
     /**
      * multicastLoopback

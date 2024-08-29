@@ -429,6 +429,7 @@ nsresult Http3Session::ProcessInput(nsIUDPSocket* socket) {
     return rv.result;
   }
   mTotalBytesRead += rv.bytes_read;
+  socket->AddInputBytes(rv.bytes_read);
 
   return NS_OK;
 }
@@ -982,6 +983,7 @@ nsresult Http3Session::ProcessOutput(nsIUDPSocket* socket) {
   if (rv.bytes_written != 0) {
     mTotalBytesWritten += rv.bytes_written;
     mLastWriteTime = PR_IntervalNow();
+    socket->AddOutputBytes(rv.bytes_written);
   }
 
   return NS_OK;

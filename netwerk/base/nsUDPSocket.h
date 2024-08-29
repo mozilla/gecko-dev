@@ -34,8 +34,6 @@ class nsUDPSocket final : public nsASocketHandler, public nsIUDPSocket {
   uint64_t ByteCountSent() override { return mByteWriteCount; }
   uint64_t ByteCountReceived() override { return mByteReadCount; }
 
-  void AddOutputBytes(int32_t aBytes);
-
   nsUDPSocket();
 
  private:
