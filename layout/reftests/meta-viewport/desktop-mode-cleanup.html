@@ -1,46 +1,27 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-<style>
-html {
-  height: 100%;
-  width: 100%;
-}
-body {
-  height: 2000px;
-  width: 200%;
-  margin: 0px;
-  padding: 0px;
-}
-div {
-  width: 20px;
-  height: 100%;
-  top: 0px;
-  background-color: green;
-}
-</style>
-<div style="right: 0px;  position: fixed;"></div>
-<div style="right: 25px; position: absolute;"></div>
+<!-- This reftest isn't really a test; it's really just a helper to do
+     some cleanup after its neighbor "desktop-mode.html" has finished.
+ -->
 <script>
 async function go() {
   let win = SpecialPowers.wrap(window);
   let origVal = await SpecialPowers.spawnChrome([win.browsingContext.id],
                                                 id => {
-    // We enable 'forceDesktopViewport' (which is otherwise off-by-default)
-    // and we test our rendering under that condition.  It's important that we
-    // are followed by reftest "desktop-mode-cleanup.html" which will revert
-    // this change for us, so that forceDesktopViewport doesn't remain on for
-    // subsequent tests.
+    // Restore forceDesktopViewport to its default value (false), to clean up
+    // after the prior reftest, desktop-mode.html.
     let ctx = BrowsingContext.get(id);
     let origVal = ctx.forceDesktopViewport;
-    ctx.forceDesktopViewport = true;
+    ctx.forceDesktopViewport = false;
     return origVal;
   });
 
-  if (origVal) {
+  if (!origVal) {
     // UNEXPECTED: if we get here, then forceDesktopViewport was somehow
-    // true already (when it should be at its default 'false')! Either we've
-    // got the wrong assumption about the default value, or some earlier test
-    // enabled it and forgot to clean up after themselves.
+    // false (at its default value). We expect it to be 'true' when this
+    // reftest runs, because this reftest should be run immediately after
+    // 'desktop-mode.html' which sets forceDesktopViewport to true (and this
+    // reftest only exists to clean that up).
     //
     // NOTE: We could signal a test-failure in this circumstance,
     // by e.g. setting the background to red...
