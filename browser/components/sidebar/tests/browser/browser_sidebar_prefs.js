@@ -3,6 +3,7 @@
 
 "use strict";
 
+Services.prefs.clearUserPref("sidebar.main.tools");
 registerCleanupFunction(() =>
   Services.prefs.clearUserPref("sidebar.main.tools")
 );
@@ -141,6 +142,29 @@ add_task(async function test_conditional_tools() {
   is(sidebar.toolButtons.length, origCount, "Disabled tool removed");
 
   await BrowserTestUtils.closeWindow(win);
+});
+
+/**
+ * Check that tools pref changes happen for existing windows
+ */
+add_task(async function test_tool_pref_change() {
+  const sidebar = document.querySelector("sidebar-main");
+  await sidebar.updateComplete;
+
+  const origCount = sidebar.toolButtons.length;
+  is(origCount, 1, "Expected number of initial tools");
+
+  const origTools = Services.prefs.getStringPref("sidebar.main.tools");
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.main.tools", origTools.replace(",bookmarks", "")]],
+  });
+  is(sidebar.toolButtons.length, origCount - 1, "Removed tool");
+
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.main.tools", origTools]] });
+  is(sidebar.toolButtons.length, origCount, "Restored tool");
+
+  await SpecialPowers.pushPrefEnv({ clear: [["sidebar.main.tools"]] });
+  is(sidebar.toolButtons.length, origCount + 1, "Restored default tools");
 });
 
 /**
