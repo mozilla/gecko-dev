@@ -329,6 +329,10 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       vpxInfo.mDisplay = mCurrentConfig.mDisplay;
       VPXDecoder::ReadVPCCBox(vpxInfo, mCurrentConfig.mExtraData);
       mInfo = Some(vpxInfo);
+
+      mCurrentConfig.mTransferFunction = Some(vpxInfo.TransferFunction());
+      mCurrentConfig.mColorPrimaries = Some(vpxInfo.ColorPrimaries());
+      mCurrentConfig.mColorSpace = Some(vpxInfo.ColorSpace());
     }
   }
 
@@ -351,6 +355,7 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
     if (!VPXDecoder::GetStreamInfo(dataSpan, info, mCodec)) {
       return NS_ERROR_DOM_MEDIA_DECODE_ERR;
     }
+
     // For both VP8 and VP9, we only look for resolution changes
     // on keyframes. Other resolution changes are invalid.
     if (!info.mKeyFrame) {
@@ -362,6 +367,12 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       if (mInfo.ref().IsCompatible(info)) {
         return rv;
       }
+
+      // The VPX bitstream does not contain color primary or transfer function
+      // info, so copy over the old values (in case they are used).
+      info.mColorPrimaries = mInfo.ref().mColorPrimaries;
+      info.mTransferFunction = mInfo.ref().mTransferFunction;
+
       // We can't properly determine the image rect once we've had a resolution
       // change.
       mCurrentConfig.ResetImageRect();
@@ -407,11 +418,10 @@ class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
 
     mCurrentConfig.mColorDepth = gfx::ColorDepthForBitDepth(info.mBitDepth);
     mCurrentConfig.mColorSpace = Some(info.ColorSpace());
-    // VPX bitstream doesn't specify color primaries.
 
-    // We don't update the transfer function here, because VPX bitstream
-    // doesn't specify the transfer function. Instead, we keep the transfer
-    // function (if any) that was set in mCurrentConfig when we were created.
+    // VPX bitstream doesn't specify color primaries, transfer function, or
+    // level. Keep the values that were set upon class construction.
+    //
     // If a video changes colorspaces away from BT2020, we won't clear
     // mTransferFunction, in case the video changes back to BT2020 and we
     // need the value again.
