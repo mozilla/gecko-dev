@@ -436,11 +436,8 @@ def remove_dead_symbols(dso_flags):
     dso_flags.ldopts.append("-Wl,--gc-sections")
 
 
-add_old_configure_assignment("MOZ_LTO", lto.enabled)
 set_config("MOZ_LTO", lto.enabled)
 set_define("MOZ_LTO", lto.enabled)
 set_config("MOZ_LTO_CFLAGS", lto.cflags)
 set_config("MOZ_LTO_LDFLAGS", lto.ldflags)
 set_config("MOZ_LTO_RUST_CROSS", lto.rust_lto)
-add_old_configure_assignment("MOZ_LTO_CFLAGS", lto.cflags)
-add_old_configure_assignment("MOZ_LTO_LDFLAGS", lto.ldflags)

@@ -614,7 +614,6 @@ def toolkit(toolkit):
 
 
 set_config("MOZ_WIDGET_TOOLKIT", toolkit)
-add_old_configure_assignment("MOZ_WIDGET_TOOLKIT", toolkit)
 
 
 @depends(toolkit)

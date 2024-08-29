@@ -87,7 +87,6 @@ def compile_environment(compile_env):
 
 
 set_config("COMPILE_ENVIRONMENT", compile_environment)
-add_old_configure_assignment("COMPILE_ENVIRONMENT", compile_environment)
 
 option("--disable-tests", help="Do not build test libraries & programs")
 
@@ -141,6 +140,7 @@ set_define("MOZ_DEBUG", moz_debug)
 # down to old-configure.
 add_old_configure_assignment("MOZ_DEBUG", depends("--enable-debug")(lambda x: bool(x)))
 
+
 set_config(
     "MOZ_DIAGNOSTIC_ASSERT_ENABLED",
     True,
@@ -191,7 +191,6 @@ def developer_options(value):
         return True
 
 
-add_old_configure_assignment("DEVELOPER_OPTIONS", developer_options)
 set_config("DEVELOPER_OPTIONS", developer_options)
 
 
@@ -333,8 +332,6 @@ set_config("HOST_DLL_SUFFIX", host_library_name_info.dll.suffix)
 set_config("LIB_PREFIX", library_name_info.lib.prefix)
 set_config("LIB_SUFFIX", library_name_info.lib.suffix)
 set_config("OBJ_SUFFIX", library_name_info.obj.suffix)
-# Lots of compilation tests depend on this variable being present.
-add_old_configure_assignment("OBJ_SUFFIX", library_name_info.obj.suffix)
 set_config("IMPORT_LIB_SUFFIX", library_name_info.import_lib.suffix)
 set_define(
     "MOZ_DLL_PREFIX", depends(library_name_info.dll.prefix)(lambda s: '"%s"' % s)
@@ -575,9 +572,6 @@ awk = check_prog("AWK", ("gawk", "mawk", "nawk", "awk"), paths=prefer_mozillabui
 @depends(awk)
 def awk_for_old_configure(value):
     return value
-
-
-add_old_configure_assignment("AWK", awk_for_old_configure)
 
 
 # GNU make detection

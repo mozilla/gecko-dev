@@ -1518,7 +1518,6 @@ def js_library_name(symbolversion, js_standalone):
 
 
 set_config("JS_LIBRARY_NAME", js_library_name)
-add_old_configure_assignment("JS_LIBRARY_NAME", js_library_name)
 
 
 @depends(nspr_config.libs, nspr_pkg.libs, instruments)

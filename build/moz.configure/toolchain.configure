@@ -394,17 +394,6 @@ with only_when(target_is_ios):
 
     set_config("IPHONEOS_SDK_DIR", ios_sdk)
 
-# Windows console settings
-# ========================
-
-
-@dependable
-def win32_subsystem_version():
-    return "10.0"
-
-
-add_old_configure_assignment("WIN32_SUBSYSTEM_VERSION", win32_subsystem_version)
-
 
 # GC rooting and hazard analysis.
 # ==============================================================
@@ -451,7 +440,6 @@ def first_toolchain_prefix(toolchain_prefix, target):
 
 
 set_config("TOOLCHAIN_PREFIX", first_toolchain_prefix)
-add_old_configure_assignment("TOOLCHAIN_PREFIX", first_toolchain_prefix)
 
 
 # Compilers
@@ -2193,8 +2181,6 @@ def linker_ldflags_tmpl(host_or_target):
 
 
 linker_ldflags = linker_ldflags_tmpl(target)
-add_old_configure_assignment("LINKER_LDFLAGS", linker_ldflags)
-
 host_linker_ldflags = linker_ldflags_tmpl(host)
 
 
@@ -2211,7 +2197,6 @@ def gcc_use_gnu_ld(select_linker, target, c_compiler):
 
 # GCC_USE_GNU_LD=1 means the linker is command line compatible with GNU ld.
 set_config("GCC_USE_GNU_LD", gcc_use_gnu_ld)
-add_old_configure_assignment("GCC_USE_GNU_LD", gcc_use_gnu_ld)
 
 
 include("compile-checks.configure")
@@ -2318,7 +2303,6 @@ def debug_flags(env_debug_flags, enable_debug_flags, default_debug_flags):
 
 
 set_config("MOZ_DEBUG_FLAGS", debug_flags)
-add_old_configure_assignment("MOZ_DEBUG_FLAGS", debug_flags)
 
 
 @depends(c_compiler, host)
@@ -2658,7 +2642,6 @@ def asan_flags(c_compiler, target, compilation_flags, linker_flags, build_env):
         linker_flags.ldflags.extend([asan_flag, "-rdynamic"])
 
 
-add_old_configure_assignment("MOZ_ASAN", asan)
 set_define("MOZ_ASAN", True, when=asan)
 set_config("MOZ_ASAN", True, when=asan)
 
@@ -2682,7 +2665,6 @@ def msan_flags(c_compiler, compilation_flags, linker_flags):
         linker_flags.ldflags.extend(flags + ["-rdynamic"])
 
 
-add_old_configure_assignment("MOZ_MSAN", msan)
 set_define("MOZ_MSAN", True, when=msan)
 set_config("MOZ_MSAN", True, when=msan)
 
@@ -2706,7 +2688,6 @@ def tsan_flags(c_compiler, compilation_flags, linker_flags):
         linker_flags.ldflags.extend(["-fsanitize=thread", "-rdynamic"])
 
 
-add_old_configure_assignment("MOZ_TSAN", tsan)  # still used in js/src/old-configure.in
 set_define("MOZ_TSAN", True, when=tsan)
 set_config("MOZ_TSAN", True, when=tsan)
 
@@ -3281,8 +3262,6 @@ llvm_config = check_prog(
     paths=clang_search_path,
 )
 
-add_old_configure_assignment("LLVM_CONFIG", llvm_config)
-
 
 @template
 def llvm_tool(name):
@@ -3319,7 +3298,6 @@ llvm_objdump = check_prog(
     paths=clang_search_path,
 )
 
-add_old_configure_assignment("LLVM_OBJDUMP", llvm_objdump)
 
 # Force clang-cl compiler to treat input as C++
 # ==============================================================
@@ -3449,7 +3427,6 @@ set_define("AFLFUZZ", enable_aflfuzzer)
 
 set_config("FUZZING_INTERFACES", enable_fuzzing_interfaces)
 set_define("FUZZING_INTERFACES", enable_fuzzing_interfaces)
-add_old_configure_assignment("FUZZING_INTERFACES", enable_fuzzing_interfaces)
 
 set_config("FUZZING_JS_FUZZILLI", enable_js_fuzzilli)
 set_define("FUZZING_JS_FUZZILLI", enable_js_fuzzilli)
@@ -3505,9 +3482,6 @@ def sancov(libfuzzer_flags):
         for head in ("-fsanitize-coverage", "-fsanitize=fuzzer")
         for flag in libfuzzer_flags.use_flags
     )
-
-
-add_old_configure_assignment("SANCOV", sancov)
 
 
 set_config("HAVE_LIBFUZZER_FLAG_FUZZER_NO_LINK", libfuzzer_flags.no_link_flag_supported)

@@ -37,7 +37,6 @@ def os_ldflags(
     return flags
 
 
-add_old_configure_assignment("LDFLAGS", os_ldflags)
 set_config("OS_LDFLAGS", os_ldflags)
 
 

@@ -716,10 +716,6 @@ def add_thread_model_single(compilation_flags):
 
 
 # Please keep these last in this file.
-add_old_configure_assignment("CPPFLAGS", os_cppflags)
-add_old_configure_assignment("CFLAGS", os_cflags)
-add_old_configure_assignment("CXXFLAGS", os_cxxflags)
-
 set_config("HOST_CPPFLAGS", host_cppflags)
 set_config("HOST_CFLAGS", host_cflags)
 set_config("HOST_CXXFLAGS", host_cxxflags)

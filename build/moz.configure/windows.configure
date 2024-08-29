@@ -479,7 +479,6 @@ host_link = check_prog(
     paths=clang_search_path,
 )
 
-add_old_configure_assignment("LINKER", link)
 
 option(
     "--with-redist",
