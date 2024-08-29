@@ -929,7 +929,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 for child in children.iter().skip(1) {
                     let candidate = child.resolve_internal(leaf_to_output_fn)?;
 
-                    // Leave types must match for each child.
+                    // Leaf types must match for each child.
                     if !result.is_same_unit_as(&candidate) {
                         return Err(());
                     }
@@ -1137,6 +1137,13 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
     fn is_infinite_leaf(&self) -> Result<bool, ()> {
         Ok(match *self {
             Self::Leaf(ref l) => l.is_infinite()?,
+            _ => false,
+        })
+    }
+
+    fn is_nan_leaf(&self) -> Result<bool, ()> {
+        Ok(match *self {
+            Self::Leaf(ref l) => l.is_nan()?,
             _ => false,
         })
     }
@@ -1420,8 +1427,17 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     MinMaxOp::Max => cmp::Ordering::Greater,
                 };
 
+                if value_or_stop!(children[0].is_nan_leaf()) {
+                    replace_self_with!(&mut children[0]);
+                    return
+                }
+
                 let mut result = 0;
                 for i in 1..children.len() {
+                    if value_or_stop!(children[i].is_nan_leaf()) {
+                        replace_self_with!(&mut children[i]);
+                        return
+                    }
                     let o = match children[i]
                         .compare(&children[result], PositivePercentageBasis::Unknown)
                     {
