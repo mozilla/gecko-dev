@@ -189,6 +189,8 @@ skip-if = ["verify && debug && os == 'win'"]
 
 ["browser_markPageAsFollowedLink.js"]
 
+["browser_mobile_root_on_bookmark_menus.js"]
+
 ["browser_panelview_bookmarks_delete.js"]
 
 ["browser_paste_bookmarks.js"]

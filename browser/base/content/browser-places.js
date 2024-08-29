@@ -25,6 +25,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }, console.error);
   }
 );
+
+// Set by sync after syncing bookmarks successfully once.
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "SHOW_MOBILE_BOOKMARKS",
+  "browser.bookmarks.showMobileBookmarks",
+  false
+);
+
 ChromeUtils.defineESModuleGetters(this, {
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
   RecentlyClosedTabsAndWindowsMenuUtils:
@@ -1343,7 +1352,7 @@ var BookmarkingUI = {
 
   onPopupShowing: function BUI_onPopupShowing(event) {
     // Don't handle events for submenus.
-    if (event.target != event.currentTarget) {
+    if (event.target.id != "BMB_bookmarksPopup") {
       return;
     }
 
@@ -1374,7 +1383,8 @@ var BookmarkingUI = {
       return;
     }
 
-    this._initMobileBookmarks(document.getElementById("BMB_mobileBookmarks"));
+    document.getElementById("BMB_mobileBookmarks").hidden =
+      !SHOW_MOBILE_BOOKMARKS;
 
     this.updateLabel(
       "BMB_viewBookmarksSidebar",
@@ -1580,17 +1590,6 @@ var BookmarkingUI = {
     ) {
       PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
     }
-  },
-
-  // Set by sync after syncing bookmarks successfully once.
-  MOBILE_BOOKMARKS_PREF: "browser.bookmarks.showMobileBookmarks",
-
-  _shouldShowMobileBookmarks() {
-    return Services.prefs.getBoolPref(this.MOBILE_BOOKMARKS_PREF, false);
-  },
-
-  _initMobileBookmarks(mobileMenuItem) {
-    mobileMenuItem.hidden = !this._shouldShowMobileBookmarks();
   },
 
   _uninitView: function BUI__uninitView() {
@@ -1938,11 +1937,12 @@ var BookmarkingUI = {
 
   onMainMenuPopupShowing: function BUI_onMainMenuPopupShowing(event) {
     // Don't handle events for submenus.
-    if (event.target != event.currentTarget) {
+    if (event.target.id != "bookmarksMenuPopup") {
       return;
     }
 
-    this._initMobileBookmarks(document.getElementById("menu_mobileBookmarks"));
+    document.getElementById("menu_mobileBookmarks").hidden =
+      !SHOW_MOBILE_BOOKMARKS;
   },
 
   showSubView(anchor) {
