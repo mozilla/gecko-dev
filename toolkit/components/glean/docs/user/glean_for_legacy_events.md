@@ -42,11 +42,11 @@ which means that testing the Legacy Telemetry event or seeing its value in `abou
 [requires a full, compiled build][artifact-support-gifft].
 
 [new-metrics-yaml]: ./new_definitions_file.md#where-do-i-define-new-metrics-and-pings
-[glean-events-vs]: ./migration.md#events-use-glean-s-event
+[glean-events-vs]: ./migration.md#events---use-gleans-event
 [glean-event-doc]: https://mozilla.github.io/glean/book/reference/metrics/event.html
 [sample-event-defn]: https://mozilla.github.io/glean/book/reference/metrics/event.html#metric-parameters
 [gifft]: ./gifft.md
-[legacy-enum-name]: ./gifft.md#the-telemetry-mirror-property-in-metrics-yaml
+[legacy-enum-name]: ./gifft.md#the-telemetry_mirror-property-in-metricsyaml
 [glean-event-api]: https://mozilla.github.io/glean/book/reference/metrics/event.html#recordobject
 [glean-test-api]: https://mozilla.github.io/glean/book/reference/metrics/event.html#testing-api
 [artifact-support-gifft]: ./gifft.md#artifact-build-support
