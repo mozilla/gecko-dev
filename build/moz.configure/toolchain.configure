@@ -1698,9 +1698,7 @@ def compiler(
                 )
             return compiler
 
-    # Set CC/CXX/HOST_CC/HOST_CXX for old-configure, which needs the wrapper
-    # and the flags that were part of the user input for those variables to
-    # be provided.
+    # This excludes WASM_CC from the list.
     if var in ("CC", "CXX", "HOST_CC", "HOST_CXX"):
         # FIXME: we should return a plain list here.
         @depends_if(valid_compiler)
@@ -1709,41 +1707,11 @@ def compiler(
             return quote(*x.wrapper, x.compiler, *x.flags)
 
         set_config(var, value)
-    else:
-        add_old_configure_assignment(
-            var,
-            depends_if(valid_compiler)(
-                lambda x: list(x.wrapper) + [x.compiler] + list(x.flags)
-            ),
-        )
-
-    if host_or_target is target:
-        add_old_configure_assignment(
-            "ac_cv_prog_%s" % var,
-            depends_if(valid_compiler)(
-                lambda x: list(x.wrapper) + [x.compiler] + list(x.flags)
-            ),
-        )
-        # We check that it works in python configure already.
-        add_old_configure_assignment("ac_cv_prog_%s_works" % var.lower(), "yes")
-        add_old_configure_assignment(
-            "ac_cv_prog_%s_cross" % var.lower(),
-            depends(cross_compiling)(lambda x: "yes" if x else "no"),
-        )
-        gcc_like = depends(valid_compiler.type)(
-            lambda x: "yes" if x in ("gcc", "clang") else "no"
-        )
-        add_old_configure_assignment("ac_cv_prog_%s_g" % var.lower(), gcc_like)
-        if language == "C":
-            add_old_configure_assignment("ac_cv_prog_gcc", gcc_like)
-        if language == "C++":
-            add_old_configure_assignment("ac_cv_prog_gxx", gcc_like)
 
     # Set CC_TYPE/CC_VERSION/HOST_CC_TYPE/HOST_CC_VERSION to allow
     # old-configure to do some of its still existing checks.
     if language == "C":
         set_config("%s_TYPE" % var, valid_compiler.type)
-        add_old_configure_assignment("%s_TYPE" % var, valid_compiler.type)
         set_config(
             "%s_VERSION" % var, depends(valid_compiler.version)(lambda v: str(v))
         )
@@ -1774,7 +1742,6 @@ def compiler(
         )
 
         set_config(pp_var, preprocessor)
-        add_old_configure_assignment(pp_var, preprocessor)
 
     if language == "C":
         linker_var = {
