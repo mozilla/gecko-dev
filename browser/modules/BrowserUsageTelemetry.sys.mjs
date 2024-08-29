@@ -1073,6 +1073,15 @@ export let BrowserUsageTelemetry = {
   _recordUITelemetry() {
     this.widgetMap = this._buildWidgetPositions();
 
+    Glean.browserUi.toolbarWidgets.set(
+      this.widgetMap
+        .entries()
+        .map(([widgetId, position]) => {
+          return { widgetId: telemetryId(widgetId, false), position };
+        })
+        .toArray()
+    );
+
     for (let [widgetId, position] of this.widgetMap.entries()) {
       let key = `${telemetryId(widgetId, false)}_pinned_${position}`;
       Services.telemetry.keyedScalarSet(

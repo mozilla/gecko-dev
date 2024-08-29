@@ -349,3 +349,33 @@ browser.usage:
           e.g. "Browser:Reload", "key-newNavigatorTab", "PanelUI-Bookmarks".
     send_in_pings:
       - prototype-no-code-events
+
+browser.ui:
+  toolbar_widgets:
+    type: object
+    description: >
+      What widgets are in which toolbars.
+      Not dissimilar from Telemetry's `browser.ui.toolbar_widgets`,
+      but in a friendlier format.
+      See https://firefox-source-docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      for how widget ids and positions are determined.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913362
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913362
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+      - chutten@mozilla.com
+    expires: 137
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          position:
+            type: string
+          widgetId:
+            type: string
