@@ -544,7 +544,7 @@ add_task(async function test_ohttp_headers() {
   );
   Assert.equal(ohttpDetails.status, 200, "Request should return 200 OK.");
   Assert.ok(ohttpDetails.ok, "Request should succeed.");
-  let responseHeaders = ohttpDetails.headers;
+  let responseHeaders = Object.fromEntries(ohttpDetails.headers.entries());
   Assert.deepEqual(
     responseHeaders,
     { "content-type": "application/json" },

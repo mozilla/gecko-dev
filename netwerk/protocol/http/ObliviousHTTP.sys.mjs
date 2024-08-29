@@ -134,12 +134,12 @@ export class ObliviousHTTP {
           "nsIRequestObserver",
         ]),
         onStartRequest(request) {
-          this._headers = {};
+          this._headers = new Headers();
           try {
             request
               .QueryInterface(Ci.nsIHttpChannel)
               .visitResponseHeaders((header, value) => {
-                this._headers[header.toLowerCase()] = value;
+                this._headers.append(header, value);
               });
           } catch (error) {
             this._headers = null;
