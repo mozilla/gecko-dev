@@ -14523,7 +14523,7 @@
 # any effect.
 - name: privacy.trackingprotection.lower_network_priority
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # A subset of Resist Fingerprinting protections focused specifically on timers.
