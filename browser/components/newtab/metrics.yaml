@@ -135,6 +135,14 @@ newtab:
             * `other`
           (See `ONBOARDING_ALLOWED_PAGE_VALUES`).
         type: string
+      window_inner_height:
+        description: >
+          The height of the page window at time of load.
+        type: string
+      window_inner_width:
+        description: >
+          The width of the page window at time of load.
+        type: string
     send_in_pings:
       - newtab
 

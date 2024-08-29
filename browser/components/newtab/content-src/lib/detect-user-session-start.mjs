@@ -57,7 +57,11 @@ export class DetectUserSessionStart {
       this._store.dispatch(
         ac.AlsoToMain({
           type: at.SAVE_SESSION_PERF_DATA,
-          data: { visibility_event_rcvd_ts },
+          data: {
+            visibility_event_rcvd_ts,
+            window_inner_width: window.innerWidth,
+            window_inner_height: window.innerHeight,
+          },
         })
       );
     } catch (ex) {
