@@ -21,11 +21,16 @@ div {
 <div style="right: 0px;  position: fixed;"></div>
 <div style="right: 25px; position: absolute;"></div>
 <script>
-let win = SpecialPowers.wrap(window);
-SpecialPowers.spawnChrome([win.browsingContext.id], id => {
-  BrowsingContext.get(id).forceDesktopViewport = true;
-}).then(() => {
+async function go() {
+  let win = SpecialPowers.wrap(window);
+  await SpecialPowers.spawnChrome([win.browsingContext.id], id => {
+    let ctx = BrowsingContext.get(id);
+    ctx.forceDesktopViewport = true;
+  });
+
   document.documentElement.classList.remove('reftest-wait');
-});
+}
+
+go();
 </script>
 </html>
