@@ -81,6 +81,8 @@ object CustomAttributeProvider : JexlAttributeProvider {
                     .areNotificationsEnabledSafe(),
 
                 "search_widget_is_installed" to settings.searchWidgetInstalled,
+
+                "android_version" to android.os.Build.VERSION.SDK_INT,
             ),
         )
     }

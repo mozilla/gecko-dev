@@ -31,12 +31,14 @@ import:
                 action: "MAKE_DEFAULT_BROWSER"
                 trigger-if-all:
                   - USER_ESTABLISHED_INSTALL
+                  - ANDROID_API_BELOW_29
                 exclude-if-any:
                   - I_AM_DEFAULT_BROWSER
                 style: PERSISTENT
                 button-label: preferences_set_as_default_browser
             triggers:
               USER_ESTABLISHED_INSTALL: "number_of_app_launches >=4"
+              ANDROID_API_BELOW_29: "android_version < 29"
 
         # This message displays as a 'push' notification, asking the user to set Firefox as the default.
         # It is triggered three days after install.
