@@ -700,20 +700,12 @@ class NetworkModule extends RootBiDiModule {
         reasonPhrase,
         `Expected "reasonPhrase" to be a string, got ${reasonPhrase}`
       );
-
-      throw new lazy.error.UnsupportedOperationError(
-        `"reasonPhrase" not supported yet in network.continueResponse`
-      );
     }
 
     if (statusCode !== null) {
       lazy.assert.positiveInteger(
         statusCode,
         `Expected "statusCode" to be a positive integer, got ${statusCode}`
-      );
-
-      throw new lazy.error.UnsupportedOperationError(
-        `"statusCode" not supported yet in network.continueResponse`
       );
     }
 
@@ -749,6 +741,13 @@ class NetworkModule extends RootBiDiModule {
         const headerValue = this.#serializeSetCookieHeader(cookie);
         response.setResponseHeader("Set-Cookie", headerValue, { merge: true });
       }
+    }
+
+    if (statusCode !== null || reasonPhrase !== null) {
+      response.setResponseStatus({
+        status: statusCode,
+        statusText: reasonPhrase,
+      });
     }
 
     if (
