@@ -1607,15 +1607,6 @@ export class SearchEngine {
   }
 
   /**
-   * @returns {string}
-   *   URL to the main page of the search engine.
-   *   By default this is the pre path of the search URL.
-   */
-  get searchForm() {
-    return this.searchURLWithNoTerms.prePath;
-  }
-
-  /**
    * @returns {object}
    *   URL parsing properties used by _buildParseSubmissionMap.
    */

@@ -306,14 +306,52 @@
     }
 
     handleSearchCommand(aEvent, aEngine, aForceNewTab) {
+      let where = "current";
+      let params;
+      const newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
+
+      // Open ctrl/cmd clicks on one-off buttons in a new background tab.
       if (
         aEvent &&
-        aEvent.originalTarget.classList.contains("search-go-button") &&
-        aEvent.button == 2
+        aEvent.originalTarget.classList.contains("search-go-button")
       ) {
-        return;
+        if (aEvent.button == 2) {
+          return;
+        }
+        where = lazy.BrowserUtils.whereToOpenLink(aEvent, false, true);
+        if (
+          newTabPref &&
+          !aEvent.altKey &&
+          !aEvent.getModifierState("AltGraph") &&
+          where == "current" &&
+          !gBrowser.selectedTab.isEmpty
+        ) {
+          where = "tab";
+        }
+      } else if (aForceNewTab) {
+        where = "tab";
+        if (Services.prefs.getBoolPref("browser.tabs.loadInBackground")) {
+          where += "-background";
+        }
+      } else {
+        if (
+          (KeyboardEvent.isInstance(aEvent) &&
+            (aEvent.altKey || aEvent.getModifierState("AltGraph"))) ^
+            newTabPref &&
+          !gBrowser.selectedTab.isEmpty
+        ) {
+          where = "tab";
+        }
+        if (
+          MouseEvent.isInstance(aEvent) &&
+          (aEvent.button == 1 || aEvent.getModifierState("Accel"))
+        ) {
+          where = "tab";
+          params = {
+            inBackground: true,
+          };
+        }
       }
-      let { where, params } = this.whereToOpen(aEvent, aForceNewTab);
       this.handleSearchCommandWhere(aEvent, aEngine, where, params);
     }
 
@@ -409,98 +447,6 @@
         }
       }
       openTrustedLinkIn(submission.uri.spec, aWhere, params);
-    }
-
-    /**
-     * Returns information on where a search results page should be loaded: in the
-     * current tab or a new tab.
-     *
-     * @param {event} aEvent
-     *        The event that triggered the page load.
-     * @param {boolean} [aForceNewTab]
-     *        True to force the load in a new tab.
-     * @returns {object} An object { where, params }.  `where` is a string:
-     *          "current" or "tab".  `params` is an object further describing how
-     *          the page should be loaded.
-     */
-    whereToOpen(aEvent, aForceNewTab = false) {
-      let where = "current";
-      let params = {};
-      const newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
-
-      // Open ctrl/cmd clicks on one-off buttons in a new background tab.
-      if (aEvent?.originalTarget.classList.contains("search-go-button")) {
-        where = lazy.BrowserUtils.whereToOpenLink(aEvent, false, true);
-        if (
-          newTabPref &&
-          !aEvent.altKey &&
-          !aEvent.getModifierState("AltGraph") &&
-          where == "current" &&
-          !gBrowser.selectedTab.isEmpty
-        ) {
-          where = "tab";
-        }
-      } else if (aForceNewTab) {
-        where = "tab";
-        if (Services.prefs.getBoolPref("browser.tabs.loadInBackground")) {
-          params = {
-            inBackground: true,
-          };
-        }
-      } else {
-        if (
-          (KeyboardEvent.isInstance(aEvent) &&
-            (aEvent.altKey || aEvent.getModifierState("AltGraph"))) ^
-            newTabPref &&
-          !gBrowser.selectedTab.isEmpty
-        ) {
-          where = "tab";
-        }
-        if (
-          MouseEvent.isInstance(aEvent) &&
-          (aEvent.button == 1 || aEvent.getModifierState("Accel"))
-        ) {
-          where = "tab";
-          params = {
-            inBackground: true,
-          };
-        }
-      }
-
-      return { where, params };
-    }
-
-    /**
-     * Opens the search form of the provided engine or the current engine
-     * if no engine was provided. Uses whereToOpen to determine where it
-     * should be opened.
-     *
-     * @param {event} aEvent
-     *        The event causing the searchForm to be opened.
-     * @param {nsISearchEngine} [aEngine]
-     *        The search engine or undefined to use the current engine.
-     * @param {boolean} [forceNewTab]
-     *        True to force the load in a new tab.
-     */
-    openSearchForm(aEvent, aEngine, forceNewTab = false) {
-      let { where, params } = this.whereToOpen(aEvent, forceNewTab);
-
-      let engine = aEngine || this.currentEngine;
-      let searchForm = engine.wrappedJSObject.searchForm;
-
-      if (where === "tab" && !!params.inBackground) {
-        // Keep the focus in the search bar.
-        params.avoidBrowserFocus = true;
-      } else if (
-        where !== "window" &&
-        aEvent.keyCode === KeyEvent.DOM_VK_RETURN
-      ) {
-        // Move the focus to the selected browser when keyup the Enter.
-        params.avoidBrowserFocus = true;
-        this._needBrowserFocusAtEnterKeyUp = true;
-      }
-
-      openTrustedLinkIn(searchForm, where, params);
     }
 
     disconnectedCallback() {
@@ -861,10 +807,6 @@
             )
           )
         ) {
-          if (event.shiftKey) {
-            let engine = this.textbox.selectedButton?.engine;
-            this.openSearchForm(event, engine);
-          }
           return true;
         }
         // Otherwise, "call super": do what the autocomplete binding's
