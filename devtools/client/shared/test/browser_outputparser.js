@@ -315,6 +315,13 @@ function testParseCssProperty(doc, parser) {
         ")",
       ]
     ),
+
+    {
+      desc: "--a: (min-width:680px)",
+      name: "--a",
+      value: "(min-width:680px)",
+      expected: "(min-width:680px)",
+    },
   ];
 
   const target = doc.querySelector("div");

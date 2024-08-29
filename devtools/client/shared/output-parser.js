@@ -749,6 +749,9 @@ class OutputParser {
           this.#stack.push({
             isParenthesis: true,
             separatorIndexes: [],
+            // The parsed parts of the function that will be rendered on screen.
+            // This can hold both simple strings and DOMNodes.
+            parts: [],
           });
           this.#appendTextNode(
             text.substring(token.startOffset, token.endOffset)
