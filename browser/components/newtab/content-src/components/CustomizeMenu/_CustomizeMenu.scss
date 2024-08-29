@@ -4,18 +4,30 @@
 
   @media (height < 700px) {
     position: absolute;
-    top: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
   }
 
-  @media (height >=700px) {
+  @media (height >= 700px) {
     position: fixed;
-    top: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
     z-index: 1000;
   }
 }
 
+.layout-variant-b {
+  .personalizeButtonWrapper {
+    position: fixed;
+    inset-block-start: auto;
+    inset-block-end: var(--space-xlarge);
+  }
+}
+
+.layout-variant-b + .discoverystream-admin-toggle {
+  inset-block-start: auto;
+  inset-block-end: 50px;
+}
 
 .personalize-button {
   border: 0;

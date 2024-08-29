@@ -1584,6 +1584,60 @@ main section {
   fill: var(--newtab-wordmark-color);
 }
 
+.layout-variant-b.has-recommended-stories .search-wrapper {
+  margin-block-start: 16px;
+}
+.layout-variant-b.has-recommended-stories .logo-and-wordmark {
+  position: fixed;
+  inset-inline-start: 40px;
+  inset-block-start: 40px;
+}
+.layout-variant-b.has-recommended-stories.no-search .body-wrapper {
+  margin-block-start: 0;
+}
+@media (min-width: 866px) {
+  .layout-variant-b.has-recommended-stories.no-search .body-wrapper {
+    margin-block-start: 108px;
+  }
+}
+@media (min-width: 1698px) {
+  .layout-variant-b.has-recommended-stories.no-search .body-wrapper {
+    margin-block-start: 0;
+  }
+}
+.layout-variant-b.has-recommended-stories .search-inner-wrapper {
+  width: 350px;
+}
+@media (min-width: 866px) {
+  .layout-variant-b.has-recommended-stories .search-inner-wrapper {
+    width: 410px;
+  }
+}
+@media (min-width: 1122px) {
+  .layout-variant-b.has-recommended-stories .search-inner-wrapper {
+    width: 584px;
+  }
+}
+@media (min-width: 1506px) {
+  .layout-variant-b.has-recommended-stories .search-inner-wrapper {
+    width: 720px;
+  }
+}
+.layout-variant-b.has-recommended-stories .logo {
+  width: 52px;
+  height: 52px;
+  background-size: 52px;
+}
+.layout-variant-b.has-recommended-stories .wordmark {
+  display: none;
+  height: 52px;
+}
+@media (min-width: 866px) {
+  .layout-variant-b.has-recommended-stories .wordmark {
+    display: block;
+  }
+}
+
 @media (height <= 700px) {
   .search-wrapper {
     padding: 0 0 30px;
@@ -1875,17 +1929,28 @@ main section {
 @media (height < 700px) {
   .personalizeButtonWrapper {
     position: absolute;
-    top: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
   }
 }
 @media (height >= 700px) {
   .personalizeButtonWrapper {
     position: fixed;
-    top: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
     z-index: 1000;
   }
+}
+
+.layout-variant-b .personalizeButtonWrapper {
+  position: fixed;
+  inset-block-start: auto;
+  inset-block-end: var(--space-xlarge);
+}
+
+.layout-variant-b + .discoverystream-admin-toggle {
+  inset-block-start: auto;
+  inset-block-end: 50px;
 }
 
 .personalize-button {
@@ -2337,7 +2402,7 @@ main section {
     inset-block-start: 24px;
   }
 }
-.no-search.layout-variant-a .weather, .no-search.layout-variant-a .weather, .layout-variant-a .weather, .layout-variant-b .weather {
+.no-search.layout-variant-a .weather, .no-search.layout-variant-b .weather, .layout-variant-a .weather, .layout-variant-b .weather {
   position: absolute;
   inset-inline-start: var(--space-xlarge);
   inset-block-start: var(--space-xlarge);
@@ -2377,6 +2442,29 @@ main section {
 .layout-variant-a.has-weather.no-search .outer-wrapper,
 .layout-variant-b.has-weather.no-search .outer-wrapper {
   padding-top: 24px;
+}
+
+.no-search.layout-variant-b .weather,
+.layout-variant-b .weather {
+  position: absolute;
+  inset-inline-start: auto;
+  inset-inline-end: 40px;
+  inset-block-start: 40px;
+  margin-block-start: 0;
+}
+.no-search.layout-variant-b .weather .weatherSponsorText,
+.layout-variant-b .weather .weatherSponsorText {
+  float: inline-end;
+}
+.no-search.layout-variant-b .weather .weatherSponsorText span,
+.layout-variant-b .weather .weatherSponsorText span {
+  inset-inline-end: 0;
+}
+.no-search.layout-variant-b .weather .context-menu,
+.layout-variant-b .weather .context-menu {
+  inset-inline-end: 100%;
+  inset-inline-start: auto;
+  margin-inline-end: 5px;
 }
 
 .has-weather.has-search .outer-wrapper:not(.only-search) {

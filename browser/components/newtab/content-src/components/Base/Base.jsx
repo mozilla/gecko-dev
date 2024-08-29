@@ -438,6 +438,7 @@ export class BaseContent extends React.PureComponent {
 
     const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
     const layoutsVariantBEnabled = prefs["newtabLayouts.variant-b"];
+    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
 
     const activeWallpaper =
       prefs[`newtabWallpapers.wallpaper-${this.state.colorMode}`];
@@ -576,9 +577,9 @@ export class BaseContent extends React.PureComponent {
               </div>
             )}
             {/* Bug 1914055: Show logo regardless if search is enabled */}
-            {!prefs.showSearch &&
-              layoutsVariantAEnabled &&
-              !noSectionsEnabled && <Logo />}
+            {!prefs.showSearch && layoutsVariantAorB && !noSectionsEnabled && (
+              <Logo />
+            )}
             <div className={`body-wrapper${initialized ? " on" : ""}`}>
               {isDiscoveryStream ? (
                 <ErrorBoundary className="borderless-error">

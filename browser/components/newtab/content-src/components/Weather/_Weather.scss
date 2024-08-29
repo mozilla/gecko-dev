@@ -29,7 +29,7 @@
   // Bug 1914055 - Layout experiment: Position the weather widget absolutely
   // across all breakpoints to keep logo margins consistent
   .no-search.layout-variant-a &,
-  .no-search.layout-variant-a &,
+  .no-search.layout-variant-b &,
   .layout-variant-a &,
   .layout-variant-b & {
     position: absolute;
@@ -78,6 +78,32 @@
     padding-top: 24px;
   }
 }
+
+.no-search.layout-variant-b,
+.layout-variant-b {
+  .weather {
+    position: absolute;
+    inset-inline-start: auto;
+    inset-inline-end: 40px;
+    inset-block-start: 40px;
+    margin-block-start: 0;
+
+    .weatherSponsorText {
+      float: inline-end;
+
+      span {
+        inset-inline-end: 0;
+      }
+    }
+
+    .context-menu {
+      inset-inline-end: 100%;
+      inset-inline-start: auto;
+      margin-inline-end: 5px;
+    }
+  }
+}
+
 
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {

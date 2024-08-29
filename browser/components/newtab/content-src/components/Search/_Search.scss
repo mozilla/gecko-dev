@@ -68,7 +68,6 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
 
   }
 
-
   .search-handoff-button,
   input {
     background: var(--newtab-background-color-secondary) var(--newtab-search-icon) $search-icon-padding center no-repeat;
@@ -158,6 +157,64 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       .wordmark {
         fill: var(--newtab-wordmark-color);
       }
+    }
+  }
+}
+
+.layout-variant-b.has-recommended-stories {
+  .search-wrapper {
+    margin-block-start: 16px;
+  }
+
+  .logo-and-wordmark {
+    position: fixed;
+    inset-inline-start: 40px;
+    inset-block-start: 40px;
+  }
+
+  &.no-search {
+    .body-wrapper {
+      margin-block-start: 0;
+
+      @media (min-width: $break-point-large) {
+        // This is to handle the gap left by search being removed.
+        margin-block-start: 108px;
+      }
+
+      @media (min-width: $break-point-ultra-wide) {
+        margin-block-start: 0;
+      }
+    }
+  }
+
+  .search-inner-wrapper {
+    width: 350px;
+
+    @media (min-width: $break-point-large) {
+      width: 410px;
+    }
+
+    @media (min-width: $break-point-widest) {
+      width: 584px;
+    }
+
+    @media (min-width: $break-point-weather) {
+      width: 720px;
+    }
+  }
+
+  .logo {
+    width: 52px;
+    height: 52px;
+    background-size: 52px;
+  }
+
+  .wordmark {
+    display: none;
+    height: 52px;
+
+    @media (min-width: $break-point-large) {
+      display: block;
     }
   }
 }
