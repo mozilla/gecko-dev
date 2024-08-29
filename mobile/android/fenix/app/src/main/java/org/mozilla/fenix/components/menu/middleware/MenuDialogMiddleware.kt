@@ -69,7 +69,7 @@ import org.mozilla.fenix.utils.Settings
  * with the url of the custom tab.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "CyclomaticComplexMethod")
 class MenuDialogMiddleware(
     private val appStore: AppStore,
     private val addonManager: AddonManager,
@@ -116,7 +116,7 @@ class MenuDialogMiddleware(
             is MenuAction.RequestDesktopSite,
             is MenuAction.RequestMobileSite,
             -> requestSiteMode(
-                tabId = currentState.browserMenuState?.selectedTab?.id,
+                tabId = currentState.customTabSessionId ?: currentState.browserMenuState?.selectedTab?.id,
                 shouldRequestDesktopMode = !currentState.isDesktopMode,
             )
 

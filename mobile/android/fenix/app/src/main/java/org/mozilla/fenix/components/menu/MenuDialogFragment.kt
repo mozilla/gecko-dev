@@ -153,6 +153,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         ?.requestedTranslationPair?.toLanguage
                     val isExtensionsProcessDisabled = browserStore.state.extensionsProcessDisabled
 
+                    val customTab = args.customTabSessionId?.let {
+                        browserStore.state.findCustomTab(it)
+                    }
+
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
                     val store = remember {
@@ -163,10 +167,17 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 } else {
                                     null
                                 },
-                                isDesktopMode = if (args.accesspoint == MenuAccessPoint.Home) {
-                                    settings.openNextTabInDesktopMode
-                                } else {
-                                    selectedTab?.content?.desktopMode ?: false
+                                customTabSessionId = args.customTabSessionId,
+                                isDesktopMode = when (args.accesspoint) {
+                                    MenuAccessPoint.Home -> {
+                                        settings.openNextTabInDesktopMode
+                                    }
+                                    MenuAccessPoint.External -> {
+                                        customTab?.content?.desktopMode ?: false
+                                    }
+                                    else -> {
+                                        selectedTab?.content?.desktopMode ?: false
+                                    }
                                 },
                             ),
                             middleware = listOf(
@@ -221,6 +232,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ),
                         )
                     }
+                    val isDesktopMode by store.observeAsState(initialValue = false) { state ->
+                        state.isDesktopMode
+                    }
                     val recommendedAddons by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.recommendedAddons
                     }
@@ -253,6 +267,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     syncStore = syncStore,
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isPrivate = browsingModeManager.mode.isPrivate,
+                                    isDesktopMode = isDesktopMode,
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                 )
@@ -263,6 +278,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     syncStore = syncStore,
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isPrivate = browsingModeManager.mode.isPrivate,
+                                    isDesktopMode = isDesktopMode,
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                 )
@@ -384,11 +400,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         }
 
                         composable(route = CUSTOM_TAB_MENU_ROUTE) {
-                            val customTab = args.customTabSessionId?.let {
-                                browserStore.state.findCustomTab(it)
-                            }
-
                             CustomTabMenu(
+                                isDesktopMode = isDesktopMode,
                                 customTabMenuItems = customTab?.config?.menuItems,
                                 onCustomMenuItemClick = { intent: PendingIntent ->
                                     store.dispatch(
@@ -398,7 +411,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         ),
                                     )
                                 },
-                                onSwitchToDesktopSiteMenuClick = {},
+                                onSwitchToDesktopSiteMenuClick = {
+                                    if (isDesktopMode) {
+                                        store.dispatch(MenuAction.RequestMobileSite)
+                                    } else {
+                                        store.dispatch(MenuAction.RequestDesktopSite)
+                                    }
+                                },
                                 onFindInPageMenuClick = {
                                     store.dispatch(MenuAction.FindInPage)
                                 },

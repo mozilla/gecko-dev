@@ -521,7 +521,7 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
-    fun `WHEN menu button is clicked THEN handle menu navigation`() {
+    fun `GIVEN that the menu access point is not a custom tab WHEN menu button is clicked THEN handle menu navigation`() {
         val controller = createController()
         val accessPoint = MenuAccessPoint.Browser
 
@@ -531,6 +531,24 @@ class DefaultBrowserToolbarControllerTest {
             navController.navigate(
                 BrowserFragmentDirections.actionGlobalMenuDialogFragment(
                     accesspoint = accessPoint,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN that the menu access point is a custom tab WHEN menu button is clicked THEN handle menu navigation`() {
+        val controller = createController()
+        val accessPoint = MenuAccessPoint.External
+        val customTabSessionId = "1"
+
+        controller.handleMenuButtonClicked(accessPoint, customTabSessionId)
+
+        verify {
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalMenuDialogFragment(
+                    accesspoint = accessPoint,
+                    customTabSessionId = customTabSessionId,
                 ),
             )
         }

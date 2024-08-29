@@ -69,8 +69,10 @@ interface BrowserToolbarInteractor {
      * Opens the menu. Called when the user clicks the menu action button in the toolbar.
      *
      * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
+     * @param customTabSessionId The ID of the custom tab session if navigating from
+     * an external access point, and null otherwise.
      */
-    fun onMenuButtonClicked(accessPoint: MenuAccessPoint)
+    fun onMenuButtonClicked(accessPoint: MenuAccessPoint, customTabSessionId: String? = null)
 }
 
 /**
@@ -150,7 +152,7 @@ class DefaultBrowserToolbarInteractor(
         browserToolbarController.handleNewTabButtonLongClick()
     }
 
-    override fun onMenuButtonClicked(accessPoint: MenuAccessPoint) {
-        browserToolbarController.handleMenuButtonClicked(accessPoint)
+    override fun onMenuButtonClicked(accessPoint: MenuAccessPoint, customTabSessionId: String?) {
+        browserToolbarController.handleMenuButtonClicked(accessPoint, customTabSessionId)
     }
 }

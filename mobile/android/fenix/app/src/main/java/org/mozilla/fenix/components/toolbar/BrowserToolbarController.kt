@@ -98,7 +98,7 @@ interface BrowserToolbarController {
     /**
      * @see [BrowserToolbarInteractor.onMenuButtonClicked]
      */
-    fun handleMenuButtonClicked(accessPoint: MenuAccessPoint)
+    fun handleMenuButtonClicked(accessPoint: MenuAccessPoint, customTabSessionId: String? = null)
 }
 
 private const val MAX_DISPLAY_NUMBER_SHOPPING_CFR = 3
@@ -302,10 +302,11 @@ class DefaultBrowserToolbarController(
         NavigationBar.browserNewTabLongTapped.record(NoExtras())
     }
 
-    override fun handleMenuButtonClicked(accessPoint: MenuAccessPoint) {
+    override fun handleMenuButtonClicked(accessPoint: MenuAccessPoint, customTabSessionId: String?) {
         navController.navigate(
             BrowserFragmentDirections.actionGlobalMenuDialogFragment(
                 accesspoint = accessPoint,
+                customTabSessionId = customTabSessionId,
             ),
         )
     }

@@ -24,6 +24,7 @@ internal const val CUSTOM_TAB_MENU_ROUTE = "custom_tab_menu"
 /**
  * Wrapper column containing the main menu items.
  *
+ * @param isDesktopMode Whether or not the current site is in desktop mode.
  * @param customTabMenuItems Additional [CustomTabMenuItem]s to be displayed to the custom tab menu.
  * @param onCustomMenuItemClick Invoked when the user clicks on [CustomTabMenuItem]s.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
@@ -34,6 +35,7 @@ internal const val CUSTOM_TAB_MENU_ROUTE = "custom_tab_menu"
 @Suppress("LongParameterList")
 @Composable
 internal fun CustomTabMenu(
+    isDesktopMode: Boolean,
     customTabMenuItems: List<CustomTabMenuItem>?,
     onCustomMenuItemClick: (PendingIntent) -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
@@ -44,9 +46,24 @@ internal fun CustomTabMenu(
         header = {},
     ) {
         MenuGroup {
+            val labelId: Int
+            val iconId: Int
+            val menuItemState: MenuItemState
+
+            if (isDesktopMode) {
+                labelId = R.string.browser_menu_switch_to_mobile_site
+                iconId = R.drawable.mozac_ic_device_mobile_24
+                menuItemState = MenuItemState.ACTIVE
+            } else {
+                labelId = R.string.browser_menu_switch_to_desktop_site
+                iconId = R.drawable.mozac_ic_device_desktop_24
+                menuItemState = MenuItemState.ENABLED
+            }
+
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_switch_to_desktop_site),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_desktop_24),
+                label = stringResource(id = labelId),
+                beforeIconPainter = painterResource(id = iconId),
+                state = menuItemState,
                 onClick = onSwitchToDesktopSiteMenuClick,
             )
 
@@ -96,6 +113,7 @@ private fun CustomTabMenuPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                isDesktopMode = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},
@@ -115,6 +133,7 @@ private fun CustomTabMenuPrivatePreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                isDesktopMode = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},

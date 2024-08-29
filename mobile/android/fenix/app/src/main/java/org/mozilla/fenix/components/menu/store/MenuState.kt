@@ -12,12 +12,15 @@ import mozilla.components.lib.state.State
  * Value type that represents the state of the menu.
  *
  * @property browserMenuState The [BrowserMenuState] of the current browser session if any.
+ * @property customTabSessionId The ID of the custom tab session if navigating from
+ * an external access point, and null otherwise.
  * @property extensionMenuState The [ExtensionMenuState] to display.
  * @property isDesktopMode Whether or not the desktop mode is enabled for the currently visited
  * page.
  */
 data class MenuState(
     val browserMenuState: BrowserMenuState? = null,
+    val customTabSessionId: String? = null,
     val extensionMenuState: ExtensionMenuState = ExtensionMenuState(),
     val isDesktopMode: Boolean = false,
 ) : State

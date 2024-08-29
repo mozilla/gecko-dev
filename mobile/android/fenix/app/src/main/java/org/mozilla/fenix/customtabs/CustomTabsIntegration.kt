@@ -77,7 +77,12 @@ class CustomTabsIntegration(
         menuItemIndex = START_OF_MENU_ITEMS_INDEX,
         window = activity.window,
         customTabsToolbarListeners = CustomTabsToolbarListeners(
-            menuListener = { interactor.onMenuButtonClicked(accessPoint = MenuAccessPoint.External) },
+            menuListener = {
+                interactor.onMenuButtonClicked(
+                    accessPoint = MenuAccessPoint.External,
+                    customTabSessionId = sessionId,
+                )
+            },
             shareListener = { interactor.onBrowserToolbarMenuItemTapped(ToolbarMenu.Item.Share) },
             refreshListener = {
                 interactor.onBrowserToolbarMenuItemTapped(
