@@ -47,13 +47,8 @@ add_task(async function successfulIngest() {
     "newValue.count should be a number"
   );
 
-  let enabledCount = 0;
-  for (let [type, feature] of QuickSuggest.featuresByRustSuggestionType) {
-    if (feature.isEnabled && feature.isRustSuggestionTypeEnabled(type)) {
-      enabledCount++;
-    }
-  }
-
+  let enabledCount =
+    QuickSuggest.rustBackend._test_enabledSuggestionTypes.length;
   Assert.equal(
     newValue.count,
     oldValue.count + enabledCount,

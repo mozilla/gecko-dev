@@ -155,13 +155,12 @@ class _QuickSuggest {
   }
 
   /**
-   * @returns {Map}
-   *   A map from the name of each registered Rust suggestion type to the
-   *   feature that manages that type. This mapping is determined by each
-   *   feature's `rustSuggestionTypes`.
+   * @returns {Set}
+   *   The set of features that manage Rust suggestion types, as determined by
+   *   each feature's `rustSuggestionTypes`.
    */
-  get featuresByRustSuggestionType() {
-    return this.#featuresByRustSuggestionType;
+  get rustFeatures() {
+    return this.#rustFeatures;
   }
 
   get logger() {
@@ -191,6 +190,9 @@ class _QuickSuggest {
       }
       for (let type of feature.rustSuggestionTypes) {
         this.#featuresByRustSuggestionType.set(type, feature);
+      }
+      if (feature.rustSuggestionTypes.length) {
+        this.#rustFeatures.add(feature);
       }
 
       // Update the map from enabling preferences to features.
@@ -544,6 +546,9 @@ class _QuickSuggest {
 
   // Maps from Rust suggestion types to Suggest feature instances.
   #featuresByRustSuggestionType = new Map();
+
+  // Set of feature instances that manage Rust suggestion types.
+  #rustFeatures = new Set();
 
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
