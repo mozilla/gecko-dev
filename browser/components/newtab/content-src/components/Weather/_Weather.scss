@@ -606,12 +606,22 @@
 .has-weather.has-search.layout-variant-b,
 .layout-variant-a,
 .layout-variant-b  {
-  .weatherIconCol,
   .weatherCityRow,
   .weatherButtonContextMenuWrapper {
     display: none;
 
-    @media(min-width: $break-point-medium) {
+    @media(min-width: $break-point-large) {
+      display: flex;
+    }
+  }
+
+  // Edge case: Show weather icon, detailed view at a later breakpoint
+  // then the temperature and city name
+  .weatherIconCol,
+  .weatherDetailedSummaryRow {
+    display: none;
+
+    @media(min-width: $break-point-widest) {
       display: flex;
     }
   }
@@ -624,7 +634,7 @@
     min-width: auto;
     max-width: none;
 
-    @media(min-width: $break-point-large) {
+    @media(min-width: $break-point-widest) {
       min-width: 130px;
       max-width: 190px;
     }
@@ -633,7 +643,7 @@
   .weatherForecastRow {
     margin-block: var(--space-small);
 
-    @media(min-width: $break-point-medium) {
+    @media(min-width: $break-point-large) {
       margin-block: unset;
     }
   }
@@ -646,7 +656,7 @@
       white-space: nowrap;
       inset-block-start: var(--space-small);
 
-      @media(min-width: $break-point-medium) {
+      @media(min-width: $break-point-large) {
         inset-block-start: unset;
         position: relative;
       }

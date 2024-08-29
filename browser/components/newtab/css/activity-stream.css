@@ -2878,33 +2878,47 @@ main section {
   outline: 2px solid var(--focus-outline-color);
 }
 
-.has-weather.has-search.layout-variant-a .weatherIconCol,
 .has-weather.has-search.layout-variant-a .weatherCityRow,
 .has-weather.has-search.layout-variant-a .weatherButtonContextMenuWrapper,
-.has-weather.has-search.layout-variant-b .weatherIconCol,
 .has-weather.has-search.layout-variant-b .weatherCityRow,
 .has-weather.has-search.layout-variant-b .weatherButtonContextMenuWrapper,
-.layout-variant-a .weatherIconCol,
 .layout-variant-a .weatherCityRow,
 .layout-variant-a .weatherButtonContextMenuWrapper,
-.layout-variant-b .weatherIconCol,
 .layout-variant-b .weatherCityRow,
 .layout-variant-b .weatherButtonContextMenuWrapper {
   display: none;
 }
-@media (min-width: 610px) {
-  .has-weather.has-search.layout-variant-a .weatherIconCol,
-.has-weather.has-search.layout-variant-a .weatherCityRow,
+@media (min-width: 866px) {
+  .has-weather.has-search.layout-variant-a .weatherCityRow,
 .has-weather.has-search.layout-variant-a .weatherButtonContextMenuWrapper,
-.has-weather.has-search.layout-variant-b .weatherIconCol,
 .has-weather.has-search.layout-variant-b .weatherCityRow,
 .has-weather.has-search.layout-variant-b .weatherButtonContextMenuWrapper,
-.layout-variant-a .weatherIconCol,
 .layout-variant-a .weatherCityRow,
 .layout-variant-a .weatherButtonContextMenuWrapper,
-.layout-variant-b .weatherIconCol,
 .layout-variant-b .weatherCityRow,
 .layout-variant-b .weatherButtonContextMenuWrapper {
+    display: flex;
+  }
+}
+.has-weather.has-search.layout-variant-a .weatherIconCol,
+.has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
+.has-weather.has-search.layout-variant-b .weatherIconCol,
+.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
+.layout-variant-a .weatherIconCol,
+.layout-variant-a .weatherDetailedSummaryRow,
+.layout-variant-b .weatherIconCol,
+.layout-variant-b .weatherDetailedSummaryRow {
+  display: none;
+}
+@media (min-width: 1122px) {
+  .has-weather.has-search.layout-variant-a .weatherIconCol,
+.has-weather.has-search.layout-variant-a .weatherDetailedSummaryRow,
+.has-weather.has-search.layout-variant-b .weatherIconCol,
+.has-weather.has-search.layout-variant-b .weatherDetailedSummaryRow,
+.layout-variant-a .weatherIconCol,
+.layout-variant-a .weatherDetailedSummaryRow,
+.layout-variant-b .weatherIconCol,
+.layout-variant-b .weatherDetailedSummaryRow {
     display: flex;
   }
 }
@@ -2921,7 +2935,7 @@ main section {
   min-width: auto;
   max-width: none;
 }
-@media (min-width: 866px) {
+@media (min-width: 1122px) {
   .has-weather.has-search.layout-variant-a .weatherInfoLink,
 .has-weather.has-search.layout-variant-b .weatherInfoLink,
 .layout-variant-a .weatherInfoLink,
@@ -2936,7 +2950,7 @@ main section {
 .layout-variant-b .weatherForecastRow {
   margin-block: var(--space-small);
 }
-@media (min-width: 610px) {
+@media (min-width: 866px) {
   .has-weather.has-search.layout-variant-a .weatherForecastRow,
 .has-weather.has-search.layout-variant-b .weatherForecastRow,
 .layout-variant-a .weatherForecastRow,
@@ -2958,7 +2972,7 @@ main section {
   white-space: nowrap;
   inset-block-start: var(--space-small);
 }
-@media (min-width: 610px) {
+@media (min-width: 866px) {
   .has-weather.has-search.layout-variant-a .weatherSponsorText span,
 .has-weather.has-search.layout-variant-b .weatherSponsorText span,
 .layout-variant-a .weatherSponsorText span,
