@@ -42,7 +42,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * 4. If the migrator supports multiple profiles, override the sourceProfiles
  *    Here we default for single-profile migrator.
  * 5. Implement getResources(aProfile) (see below).
- * 6. For startup-only migrators, override |startupOnlyMigrator|.
+ * 6. For startup-only migrators, override ``startupOnlyMigrator``.
  * 7. Add the migrator to the MIGRATOR_MODULES structure in MigrationUtils.sys.mjs.
  */
 export class MigratorBase {
@@ -107,14 +107,14 @@ export class MigratorBase {
    * profiles.
    *
    * Each migration resource should provide:
-   * - a |type| getter, returning any of the migration resource types (see
+   * - a ``type`` getter, returning any of the migration resource types (see
    *   MigrationUtils.resourceTypes).
    *
-   * - a |migrate| method, taking two arguments,
+   * - a ``migrate`` method, taking two arguments,
    *   aCallback(bool success, object details), for migrating the data for
    *   this resource.  It may do its job synchronously or asynchronously.
    *   Either way, it must call aCallback(bool aSuccess, object details)
-   *   when it's done.  In the case of an exception thrown from |migrate|,
+   *   when it's done.  In the case of an exception thrown from ``migrate``,
    *   it's taken as if aCallback(false, {}) is called. The details
    *   argument is sometimes optional, but conditional on how the
    *   migration wizard wants to display the migration state for the
@@ -131,7 +131,7 @@ export class MigratorBase {
    *
    * Note that the importation of a particular migration type is reported as
    * successful if _any_ of its resources succeeded to import (that is, called,
-   * |aCallback(true, {})|).  However, completion-status for a particular migration
+   * ``aCallback(true, {})``).  However, completion-status for a particular migration
    * type is reported to the UI only once all of its migrators have called
    * aCallback.
    *

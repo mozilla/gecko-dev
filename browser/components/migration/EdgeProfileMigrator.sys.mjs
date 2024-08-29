@@ -573,7 +573,7 @@ export class EdgeProfileMigrator extends MigratorBase {
   /**
    * @returns {Array|null}
    *   Somewhat counterintuitively, this returns
-   *   |null| to indicate "There is only 1 (default) profile".
+   *   ``null`` to indicate "There is only 1 (default) profile".
    *   See MigrationUtils.sys.mjs for slightly more info on how sourceProfiles is used.
    */
   getSourceProfiles() {
