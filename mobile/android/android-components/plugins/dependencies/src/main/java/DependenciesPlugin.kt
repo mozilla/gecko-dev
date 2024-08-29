@@ -92,11 +92,8 @@ object Versions {
         const val test_uiautomator = "2.3.0"
     }
 
-    object Firebase {
-        const val messaging = "24.0.0"
-    }
-
     object Google {
+        const val firebase_messaging = "24.0.1"
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
         const val play_review = "2.0.1"
@@ -242,7 +239,7 @@ object ComponentsDependencies {
     const val thirdparty_disklrucache = "com.jakewharton:disklrucache:${Versions.disklrucache}"
     const val thirdparty_androidsvg = "com.caverock:androidsvg-aar:${Versions.androidsvg}"
 
-    const val firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.Firebase.messaging}"
+    const val firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.Google.firebase_messaging}"
 
     const val osslicenses_plugin = "com.google.android.gms:oss-licenses-plugin:${Versions.Google.osslicenses_plugin}"
     const val play_review = "com.google.android.play:review:${Versions.Google.play_review}"
