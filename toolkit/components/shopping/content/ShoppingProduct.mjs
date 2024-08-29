@@ -381,6 +381,9 @@ export class ShoppingProduct extends EventEmitter {
       },
       body: JSON.stringify(bodyObj),
       signal,
+      abortCallback() {
+        Glean?.shoppingProduct?.requestAborted.record();
+      },
     };
 
     let requestPromise;
@@ -510,6 +513,9 @@ export class ShoppingProduct extends EventEmitter {
    * @param {AbortSignal} options.signal
    *   If the consumer passes an AbortSignal object, aborting the signal
    *   will abort the request.
+   * @param {Function} options.abortCallback
+   *   Called if the abort signal is triggered before the request completes
+   *   fully.
    *
    * @returns {object}
    *   Returns an object with properties mimicking that of a normal fetch():
@@ -522,7 +528,7 @@ export class ShoppingProduct extends EventEmitter {
     obliviousHTTPRelay,
     config,
     requestURL,
-    { method, body, headers, signal } = {}
+    { method, body, headers, signal, abortCallback } = {}
   ) {
     let relayURI = Services.io.newURI(obliviousHTTPRelay);
     let requestURI = Services.io.newURI(requestURL);
@@ -552,7 +558,7 @@ export class ShoppingProduct extends EventEmitter {
       );
     }
     let abortHandler = () => {
-      Glean?.shoppingProduct?.requestAborted.record();
+      abortCallback?.();
       obliviousHttpChannel.cancel(Cr.NS_BINDING_ABORTED);
     };
     signal.addEventListener("abort", abortHandler);
@@ -659,6 +665,9 @@ export class ShoppingProduct extends EventEmitter {
         headers: {
           Accept: "image/jpeg",
           "Content-Type": "image/jpeg",
+        },
+        abortCallback() {
+          Glean?.shoppingProduct?.requestAborted.record();
         },
       };
 
