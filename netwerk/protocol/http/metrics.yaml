@@ -279,10 +279,15 @@ network:
     description: >
      Counts the status of succeeded and failed requests to aus5.mozilla.org
 
+  system_channel_addonversion_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of succeeded and failed requests to *.addons.mozilla.org
+
   system_channel_addon_status:
     <<: *system_channel_success_or_failure
     description: >
-     Counts the status of succeeded and failed requests to .addons.mozilla.org
+     Counts the status of succeeded and failed requests to addons.mozilla.org
 
   system_channel_remote_settings_status:
     <<: *system_channel_success_or_failure

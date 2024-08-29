@@ -10324,6 +10324,12 @@ void nsHttpChannel::ReportSystemChannelTelemetry(nsresult status) {
   }
 
   if (StringEndsWith(domain, ".addons.mozilla.org"_ns)) {
+    mozilla::glean::network::system_channel_addonversion_status.Get(label).Add(
+        1);
+    return;
+  }
+
+  if (domain == "addons.mozilla.org") {
     mozilla::glean::network::system_channel_addon_status.Get(label).Add(1);
     return;
   }
