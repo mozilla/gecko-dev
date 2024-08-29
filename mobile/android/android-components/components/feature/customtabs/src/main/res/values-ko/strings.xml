@@ -4,4 +4,6 @@
     <string name="mozac_feature_customtabs_share_link">링크 공유</string>
     <!-- Content description (not visible, for screen readers etc.): Description of the refresh button in the Custom Tabs toolbar -->
     <string name="mozac_feature_customtabs_refresh_button">새로 고침</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the menu button in the Custom Tabs toolbar. -->
+    <string name="mozac_feature_customtabs_menu_button">추가 옵션</string>
 </resources>
