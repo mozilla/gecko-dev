@@ -223,6 +223,7 @@ export class UserCharacteristicsPageService {
   }
 
   async populateAndCollectErrors(browser, data) {
+    // List of functions to populate Glean metrics
     const populateFuncs = [
       [this.populateIntlLocale, []],
       [this.populateZoomPrefs, []],
@@ -233,15 +234,18 @@ export class UserCharacteristicsPageService {
       [this.populateGamepads, [data.output.gamepads]],
       [this.populateClientInfo, []],
       [this.populateCPUInfo, []],
-      [this.populateScreenInfo, []],
+      [this.populateWindowInfo, []],
       [this.populateWebGlInfo, [browser.ownerGlobal, browser.ownerDocument]],
     ];
+    // Bind them to the class and run them in parallel.
+    // Timeout if any of them takes too long (5 minutes).
     const results = await Promise.allSettled(
       populateFuncs.map(([f, args]) =>
-        timeoutPromise(f(...args), 5 * 60 * 1000)
+        timeoutPromise(f.bind(this)(...args), 5 * 60 * 1000)
       )
     );
 
+    // data?.output?.errors is previous errors that happened in usercharacteristics.js
     const errors = JSON.parse(data?.output?.errors ?? "[]");
     for (const [i, [func]] of populateFuncs.entries()) {
       if (results[i].status == "rejected") {
@@ -256,7 +260,13 @@ export class UserCharacteristicsPageService {
     Glean.characteristics.jsErrors.set(JSON.stringify(errors));
   }
 
-  async populateScreenInfo() {
+  async collectGleanMetricsFromMap(data, operation = "set") {
+    for (const [key, value] of Object.entries(data)) {
+      Glean.characteristics[key][operation](value);
+    }
+  }
+
+  async populateWindowInfo() {
     // We use two different methods to get any loaded document.
     // First one is, DOMContentLoaded event. If the user loads
     // a new document after actor registration, we will get it.
@@ -280,21 +290,33 @@ export class UserCharacteristicsPageService {
       return;
     }
 
-    const { promise, resolve } = Promise.withResolvers();
+    const { promise: screenInfoPromise, resolve: screenInfoResolve } =
+      Promise.withResolvers();
+    const { promise: pointerInfoPromise, resolve: pointerInfoResolve } =
+      Promise.withResolvers();
 
     Services.obs.addObserver(function observe(_subject, topic, data) {
       Services.obs.removeObserver(observe, topic);
-      ChromeUtils.unregisterWindowActor("UserCharacteristicsScreenInfo");
-      resolve(data.split(","));
+      screenInfoResolve(JSON.parse(data));
     }, "user-characteristics-screen-info-done");
 
-    ChromeUtils.registerWindowActor("UserCharacteristicsScreenInfo", {
+    Services.obs.addObserver(function observe(_subject, topic, data) {
+      Services.obs.removeObserver(observe, topic);
+      pointerInfoResolve(JSON.parse(data));
+    }, "user-characteristics-pointer-info-done");
+
+    Services.obs.addObserver(function observe(_subject, topic, _data) {
+      Services.obs.removeObserver(observe, topic);
+      ChromeUtils.unregisterWindowActor("UserCharacteristicsWindowInfo");
+    }, "user-characteristics-window-info-done");
+
+    ChromeUtils.registerWindowActor("UserCharacteristicsWindowInfo", {
       parent: {
         esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
       },
       child: {
         esModuleURI:
-          "resource://gre/actors/UserCharacteristicsScreenInfoChild.sys.mjs",
+          "resource://gre/actors/UserCharacteristicsWindowInfoChild.sys.mjs",
         events: {
           DOMContentLoaded: {},
         },
@@ -306,25 +328,23 @@ export class UserCharacteristicsPageService {
         for (const tab of win.gBrowser.tabs) {
           const actor =
             tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
-              "UserCharacteristicsScreenInfo"
+              "UserCharacteristicsWindowInfo"
             );
 
           if (!actor) {
             continue;
           }
 
-          actor.sendAsyncMessage("ScreenInfo:PopulateFromDocument");
+          actor.sendAsyncMessage("WindowInfo:PopulateFromDocument");
         }
       }
     }
 
-    const result = await promise;
-    Glean.characteristics.outerHeight.set(result[0]);
-    Glean.characteristics.innerHeight.set(result[1]);
-    Glean.characteristics.outerWidth.set(result[2]);
-    Glean.characteristics.innerWidth.set(result[3]);
-    Glean.characteristics.availHeight.set(result[4]);
-    Glean.characteristics.availWidth.set(result[5]);
+    const screenResult = await screenInfoPromise;
+    this.collectGleanMetricsFromMap(screenResult);
+
+    const pointerResult = await pointerInfoPromise;
+    this.collectGleanMetricsFromMap(pointerResult);
   }
 
   async populateZoomPrefs() {

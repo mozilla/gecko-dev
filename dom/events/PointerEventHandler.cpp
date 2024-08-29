@@ -801,7 +801,6 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
       }
     }
   }
-  nsUserCharacteristics::StealPointerEvent(aMouseOrTouchEvent);
 }
 
 /* static */

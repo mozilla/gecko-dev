@@ -22,20 +22,34 @@ XPCOMUtils.defineLazyServiceGetter(
 
 class UserCharacteristicsParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
-    lazy.console.debug("Got ", aMessage.name);
+    lazy.console.debug("Actor Parent: Got ", aMessage.name);
     switch (aMessage.name) {
       case "UserCharacteristics::PageReady":
-        lazy.console.debug("Got pageReady");
+        lazy.console.debug("Actor Parent: Got pageReady");
         lazy.UserCharacteristicsPageService.pageLoaded(
           this.browsingContext,
           aMessage.data
         );
         break;
-      case "ScreenInfo:Populate":
+      case "ScreenInfo:Populated":
         Services.obs.notifyObservers(
           null,
           "user-characteristics-screen-info-done",
-          aMessage.data.join(",")
+          JSON.stringify(aMessage.data)
+        );
+        break;
+      case "PointerInfo:Populated":
+        Services.obs.notifyObservers(
+          null,
+          "user-characteristics-pointer-info-done",
+          JSON.stringify(aMessage.data)
+        );
+        break;
+      case "WindowInfo::Done":
+        Services.obs.notifyObservers(
+          null,
+          "user-characteristics-window-info-done",
+          aMessage.data
         );
         break;
     }
@@ -44,5 +58,5 @@ class UserCharacteristicsParent extends JSWindowActorParent {
 
 export {
   UserCharacteristicsParent,
-  UserCharacteristicsParent as UserCharacteristicsScreenInfoParent,
+  UserCharacteristicsParent as UserCharacteristicsWindowInfoParent,
 };

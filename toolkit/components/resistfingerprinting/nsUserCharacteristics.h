@@ -13,10 +13,6 @@ class nsUserCharacteristics {
  public:
   static void MaybeSubmitPing();
 
-  // Steals an event from PointerEventHandler. Currently only catches
-  // ePointerDown event.
-  static void StealPointerEvent(mozilla::WidgetGUIEvent* aEvent);
-
   /*
    * These APIs are public only for testing using the gtest
    * When PopulateDataAndEventuallySubmit is called with aTesting = true

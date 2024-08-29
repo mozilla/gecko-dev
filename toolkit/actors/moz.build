@@ -77,7 +77,7 @@ FINAL_TARGET_FILES.actors += [
     "UnselectedTabHoverParent.sys.mjs",
     "UserCharacteristicsChild.sys.mjs",
     "UserCharacteristicsParent.sys.mjs",
-    "UserCharacteristicsScreenInfoChild.sys.mjs",
+    "UserCharacteristicsWindowInfoChild.sys.mjs",
     "ViewSourceChild.sys.mjs",
     "ViewSourcePageChild.sys.mjs",
     "ViewSourcePageParent.sys.mjs",
