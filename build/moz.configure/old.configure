@@ -89,9 +89,7 @@ def old_configure_options(*options):
     def all_options():
         return list(options)
 
-    return depends(
-        host_for_sub_configure, target_for_sub_configure, all_options, *options
-    )
+    return depends(all_options, *options)
 
 
 @old_configure_options(
@@ -101,7 +99,7 @@ def old_configure_options(*options):
     "--x-includes",
     "--x-libraries",
 )
-def prepare_configure_options(host, target, all_options, *options):
+def prepare_configure_options(all_options, *options):
     # old-configure only supports the options listed in @old_configure_options
     # so we don't need to pass it every single option we've been passed. Only
     # the ones that are not supported by python configure need to.
@@ -109,7 +107,7 @@ def prepare_configure_options(host, target, all_options, *options):
         value.format(name)
         for name, value in zip(all_options, options)
         if value.origin != "default"
-    ] + [host, target]
+    ]
 
     return namespace(options=options, all_options=all_options)
 

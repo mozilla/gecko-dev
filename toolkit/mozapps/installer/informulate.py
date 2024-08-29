@@ -30,8 +30,8 @@ def main():
     mozinfo.find_and_update_from_json()
 
     important_substitutions = [
-        "target_alias",
-        "host_alias",
+        "target",
+        "host",
         "MOZ_UPDATE_CHANNEL",
         "MOZ_APP_VENDOR",
         "MOZ_APP_NAME",
@@ -81,8 +81,8 @@ def main():
                 "as": all_key_value_pairs["as"],
                 "cc": all_key_value_pairs["cc"],
                 "cxx": all_key_value_pairs["cxx"],
-                "host": s["host_alias"],
-                "target": s["target_alias"],
+                "host": s["host"],
+                "target": s["target"],
             },
             "source": {
                 "product": s["MOZ_APP_NAME"],

@@ -802,18 +802,8 @@ set_define(
     "WORDS_BIGENDIAN", True, when=depends(target.endianness)(lambda e: e == "big")
 )
 
-
-# Autoconf needs these set
-
-
-@depends(host)
-def host_for_sub_configure(host):
-    return "--host=%s" % host.sub_configure_alias
-
-
-@depends(target)
-def target_for_sub_configure(target):
-    return "--target=%s" % target.sub_configure_alias
+set_config("host", host.sub_configure_alias)
+set_config("target", target.sub_configure_alias)
 
 
 # These variables are for compatibility with the current moz.builds and

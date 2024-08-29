@@ -9,7 +9,6 @@ dnl ========================================================
 AC_PREREQ(2.13)
 AC_INIT(js/src/jsapi.h)
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
-AC_CANONICAL_SYSTEM
 
 dnl ========================================================
 dnl =
