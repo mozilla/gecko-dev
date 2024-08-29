@@ -67,6 +67,8 @@ export class SearchOneOffs {
 
     this.contextMenuPopup = this.querySelector(".search-one-offs-context-menu");
 
+    this.searchbar = this.document.getElementById("searchbar");
+
     this._engineInfo = null;
 
     /**
@@ -537,51 +539,6 @@ export class SearchOneOffs {
   }
 
   /**
-   * Returns information on where a search results page should be loaded: in the
-   * current tab or a new tab.
-   *
-   * @param {event} aEvent
-   *        The event that triggered the page load.
-   * @param {boolean} [aForceNewTab]
-   *        True to force the load in a new tab.
-   * @returns {object} An object { where, params }.  `where` is a string:
-   *          "current" or "tab".  `params` is an object further describing how
-   *          the page should be loaded.
-   */
-  _whereToOpen(aEvent, aForceNewTab = false) {
-    let where = "current";
-    let params;
-    // Open ctrl/cmd clicks on one-off buttons in a new background tab.
-    if (aForceNewTab) {
-      where = "tab";
-      if (Services.prefs.getBoolPref("browser.tabs.loadInBackground")) {
-        params = {
-          inBackground: true,
-        };
-      }
-    } else {
-      let newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
-      if (
-        (KeyboardEvent.isInstance(aEvent) && aEvent.altKey) ^ newTabPref &&
-        !this.window.gBrowser.selectedTab.isEmpty
-      ) {
-        where = "tab";
-      }
-      if (
-        MouseEvent.isInstance(aEvent) &&
-        (aEvent.button == 1 || aEvent.getModifierState("Accel"))
-      ) {
-        where = "tab";
-        params = {
-          inBackground: true,
-        };
-      }
-    }
-
-    return { where, params };
-  }
-
-  /**
    * Increments or decrements the index of the currently selected one-off.
    *
    * @param {boolean} aForward
@@ -939,7 +896,7 @@ export class SearchOneOffs {
    *        True if the search results page should be loaded in a new tab.
    */
   handleSearchCommand(event, engine, forceNewTab = false) {
-    let { where, params } = this._whereToOpen(event, forceNewTab);
+    let { where, params } = this.searchbar.whereToOpen(event, forceNewTab);
     this.popup.handleOneOffSearch(event, engine, where, params);
   }
 
@@ -976,6 +933,9 @@ export class SearchOneOffs {
     }
 
     if (!this.textbox.value) {
+      if (event.shiftKey) {
+        this.searchbar.openSearchForm(event, engine);
+      }
       return;
     }
     // Select the clicked button so that consumers can easily tell which
@@ -1014,13 +974,14 @@ export class SearchOneOffs {
     }
 
     if (target.classList.contains("search-one-offs-context-open-in-new-tab")) {
-      if (!this.textbox.value) {
-        return;
-      }
       // Select the context-clicked button so that consumers can easily
       // tell which button was acted on.
       this.selectedButton = target.closest("menupopup")._triggerButton;
-      this.handleSearchCommand(event, this.selectedButton.engine, true);
+      if (this.textbox.value) {
+        this.handleSearchCommand(event, this.selectedButton.engine, true);
+      } else {
+        this.searchbar.openSearchForm(event, this.selectedButton.engine, true);
+      }
     }
 
     const isPrivateButton = target.classList.contains(

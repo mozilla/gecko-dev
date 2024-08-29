@@ -69,11 +69,11 @@
         if (!engine) {
           return;
         }
-        // At this point, the click must have happened on the header.
-        if (!this.searchbar.value) {
-          return;
+        if (this.searchbar.value) {
+          this.oneOffButtons.handleSearchCommand(event, engine);
+        } else if (event.shiftKey) {
+          this._searchbar.openSearchForm(event, engine);
         }
-        this.oneOffButtons.handleSearchCommand(event, engine);
       });
 
       this._bundle = null;
