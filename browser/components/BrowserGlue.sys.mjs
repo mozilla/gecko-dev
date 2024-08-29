@@ -1752,34 +1752,44 @@ BrowserGlue.prototype = {
 
   _earlyBlankFirstPaint(cmdLine) {
     let startTime = Cu.now();
-    if (
-      AppConstants.platform == "macosx" ||
-      Services.startup.wasSilentlyStarted ||
-      !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
-    ) {
-      return;
-    }
 
-    // Until bug 1450626 and bug 1488384 are fixed, skip the blank window when
-    // using a non-default theme.
-    if (
-      !Services.startup.showedPreXULSkeletonUI &&
-      Services.prefs.getCharPref(
-        "extensions.activeThemeID",
-        "default-theme@mozilla.org"
-      ) != "default-theme@mozilla.org"
-    ) {
-      return;
-    }
+    let shouldCreateWindow = () => {
+      if (cmdLine.findFlag("wait-for-jsdebugger", false) != -1) {
+        return true;
+      }
 
-    let store = Services.xulStore;
-    let getValue = attr =>
-      store.getValue(AppConstants.BROWSER_CHROME_URL, "main-window", attr);
-    let width = getValue("width");
-    let height = getValue("height");
+      if (
+        AppConstants.platform == "macosx" ||
+        Services.startup.wasSilentlyStarted ||
+        !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
+      ) {
+        return false;
+      }
 
-    // The clean profile case isn't handled yet. Return early for now.
-    if (!width || !height) {
+      // Until bug 1450626 and bug 1488384 are fixed, skip the blank window when
+      // using a non-default theme.
+      if (
+        !Services.startup.showedPreXULSkeletonUI &&
+        Services.prefs.getCharPref(
+          "extensions.activeThemeID",
+          "default-theme@mozilla.org"
+        ) != "default-theme@mozilla.org"
+      ) {
+        return false;
+      }
+
+      let width = getValue("width");
+      let height = getValue("height");
+
+      // The clean profile case isn't handled yet. Return early for now.
+      if (!width || !height) {
+        return false;
+      }
+
+      return true;
+    };
+
+    if (!shouldCreateWindow()) {
       return;
     }
 
@@ -1815,6 +1825,8 @@ BrowserGlue.prototype = {
 
     // The sizemode="maximized" attribute needs to be set before first paint.
     let sizemode = getValue("sizemode");
+    let width = getValue("width") || 500;
+    let height = getValue("height") || 500;
     if (sizemode == "maximized") {
       docElt.setAttribute("sizemode", sizemode);
 
@@ -1848,6 +1860,14 @@ BrowserGlue.prototype = {
       "resource://gre/modules/TelemetryTimestamps.sys.mjs"
     );
     TelemetryTimestamps.add("blankWindowShown");
+
+    function getValue(attr) {
+      return Services.xulStore.getValue(
+        AppConstants.BROWSER_CHROME_URL,
+        "main-window",
+        attr
+      );
+    }
   },
 
   _firstWindowTelemetry(aWindow) {

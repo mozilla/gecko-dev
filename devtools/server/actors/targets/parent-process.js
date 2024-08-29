@@ -104,14 +104,11 @@ class ParentProcessTargetActor extends WindowGlobalTargetActor {
     // Default to any available top level window if there is no expected window
     // eg when running ./mach run --chrome chrome://browser/content/aboutTabCrashed.xhtml --jsdebugger
     if (!window) {
+      // If DevTools is started early enough, this window will be the
+      // early navigator:blank window created in BrowserGlue.sys.mjs
       window = Services.wm.getMostRecentWindow(null);
     }
 
-    // We really want _some_ window at least, so fallback to the hidden window if
-    // there's nothing else (such as during early startup).
-    if (!window) {
-      window = Services.appShell.hiddenDOMWindow;
-    }
     return window.docShell;
   }
 
