@@ -95,9 +95,6 @@ function figmaFormatTransform(token) {
     forcedColors: forcedColorsValue,
   };
 
-  if (obj.light === obj.dark && obj.forcedColors === "inherit") {
-    obj.forcedColors = obj.light;
-  }
   return obj;
 }
 

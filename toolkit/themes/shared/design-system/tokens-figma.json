@@ -417,7 +417,7 @@
   "text/color/deemphasized": {
     "light": "color-mix(in srgb, currentColor 69%, transparent)",
     "dark": "color-mix(in srgb, currentColor 69%, transparent)",
-    "forcedColors": "color-mix(in srgb, currentColor 69%, transparent)"
+    "forcedColors": "inherit"
   },
   "text/color/error": {
     "light": "#d7264cff",
