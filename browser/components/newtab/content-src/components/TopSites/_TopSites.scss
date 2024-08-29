@@ -22,6 +22,7 @@ $letter-fallback-color: $white;
   .layout-variant-b & {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    row-gap: var(--space-xlarge);
 
     @media (min-width: $break-point-large) {
       grid-template-columns: repeat(6, 1fr);
@@ -155,10 +156,6 @@ $letter-fallback-color: $white;
         width: var(--size-item-large);
         height: var(--size-item-large);
       }
-    }
-
-    .title {
-      font-size: var(--font-size-small);
     }
   }
 

@@ -740,6 +740,7 @@ main section {
 .layout-variant-a .top-sites-list, .layout-variant-b .top-sites-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  row-gap: var(--space-xlarge);
 }
 @media (min-width: 866px) {
   .layout-variant-a .top-sites-list, .layout-variant-b .top-sites-list {
@@ -868,9 +869,6 @@ main section {
 .layout-variant-a .top-site-outer .tile .icon-wrapper, .layout-variant-b .top-site-outer .tile .icon-wrapper {
   width: var(--size-item-large);
   height: var(--size-item-large);
-}
-.layout-variant-a .top-site-outer .title, .layout-variant-b .top-site-outer .title {
-  font-size: var(--font-size-small);
 }
 .top-site-outer .top-site-inner {
   position: relative;
