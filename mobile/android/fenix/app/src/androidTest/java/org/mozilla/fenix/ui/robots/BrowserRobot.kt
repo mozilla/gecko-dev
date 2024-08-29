@@ -1078,18 +1078,18 @@ class BrowserRobot {
         Log.i(TAG, "fillPdfForm: Trying to set the text of the PDF form text box to: $name")
         itemWithResId("pdfjs_internal_id_10R").setText(name)
         Log.i(TAG, "fillPdfForm: PDF form text box text was set to: $name")
+        Log.i(TAG, "fillPdfForm: Waiting for $waitingTime ms for $packageName window to be updated")
         mDevice.waitForWindowUpdate(packageName, waitingTime)
-        if (
-            !itemWithResId("pdfjs_internal_id_11R").exists() &&
-            mDevice
-                .executeShellCommand("dumpsys input_method | grep mInputShown")
-                .contains("mInputShown=true")
-        ) {
-            // Close the keyboard
-            Log.i(TAG, "fillPdfForm: Trying to close the keyboard using device back button")
-            mDevice.pressBack()
-            Log.i(TAG, "fillPdfForm: Closed the keyboard using device back button")
-        }
+        Log.i(TAG, "fillPdfForm: Waited for $waitingTime ms for $packageName window to be updated")
+
+        // Close the keyboard
+        Log.i(TAG, "fillPdfForm: Trying to close the keyboard using device back button")
+        mDevice.pressBack()
+        Log.i(TAG, "fillPdfForm: Closed the keyboard using device back button")
+        Log.i(TAG, "fillPdfForm: Waiting for $waitingTime ms for $packageName window to be updated")
+        mDevice.waitForWindowUpdate(packageName, waitingTime)
+        Log.i(TAG, "fillPdfForm: Waited for $waitingTime ms for $packageName window to be updated")
+
         // Click PDF form check box
         Log.i(TAG, "fillPdfForm: Trying to click the PDF form check box")
         itemWithResId("pdfjs_internal_id_11R").click()
