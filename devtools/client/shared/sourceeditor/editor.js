@@ -308,11 +308,11 @@ class Editor extends EventEmitter {
     // Remember the initial value of autoCloseBrackets.
     this.config.autoCloseBracketsSaved = this.config.autoCloseBrackets;
 
-    // If the tab behaviour is not explicitly set from the config, set a tab behavior.
+    // If the tab behaviour is not explicitly set to `false` from the config, set a tab behavior.
     // If something is selected, indent those lines. If nothing is selected and we're
     // indenting with tabs, insert one tab. Otherwise insert N
     // whitespaces where N == indentUnit option.
-    if (this.config.extraKeys.Tab == undefined) {
+    if (this.config.extraKeys.Tab !== false) {
       this.config.extraKeys.Tab = cm => {
         if (config.extraKeys?.Tab) {
           // If a consumer registers its own extraKeys.Tab, we execute it before doing

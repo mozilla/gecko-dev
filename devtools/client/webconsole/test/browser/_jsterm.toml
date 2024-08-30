@@ -257,6 +257,8 @@ fail-if = ["a11y_checks"] # Bug 1849028
 
 ["browser_jsterm_multiline.js"]
 
+["browser_jsterm_input_and_tab_key_pressed.js"]
+
 ["browser_jsterm_no_input_and_tab_key_pressed.js"]
 
 ["browser_jsterm_null_undefined.js"]
