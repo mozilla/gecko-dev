@@ -391,10 +391,10 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
     // GeckoChildProcessHost.cpp which sets the greomni/appomni flags.
     MOZ_ASSERT(XRE_IsParentProcess() || XRE_IsContentProcess());
 
-    // Note that the Omnijar::Init does not fail but returns NS_OK if the file
-    // is not found at all, as this is an expected possible way of running
-    // with an unpacked modules directory.
-    nsresult rv = mozilla::Omnijar::Init();
+    // Note that the Omnijar::FallibleInit does not fail but returns NS_OK if
+    // the file is not found at all, as this is an expected possible way of
+    // running with an unpacked modules directory.
+    nsresult rv = mozilla::Omnijar::FallibleInit();
     if (NS_FAILED(rv)) {
       XPCOM_INIT_FATAL("Omnijar::Init()", NS_ERROR_OMNIJAR_CORRUPT)
     }

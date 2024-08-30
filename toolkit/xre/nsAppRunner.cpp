@@ -6168,6 +6168,7 @@ nsresult XRE_InitCommandLine(int aArgc, char* aArgv[]) {
       return NS_ERROR_FAILURE;
     }
     mozilla::Omnijar::Init(greOmni, greOmni);
+    MOZ_RELEASE_ASSERT(IsPackagedBuild(), "Android builds are always packaged");
   }
 #endif
 

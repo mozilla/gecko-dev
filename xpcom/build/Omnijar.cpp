@@ -104,7 +104,7 @@ nsresult Omnijar::InitOne(nsIFile* aPath, Type aType) {
   return NS_OK;
 }
 
-nsresult Omnijar::Init(nsIFile* aGrePath, nsIFile* aAppPath) {
+nsresult Omnijar::FallibleInit(nsIFile* aGrePath, nsIFile* aAppPath) {
   // Even on error we do not want to come here again.
   sInitialized = true;
 
@@ -116,6 +116,14 @@ nsresult Omnijar::Init(nsIFile* aGrePath, nsIFile* aAppPath) {
   MOZ_TRY(rvAPP);
 
   return NS_OK;
+}
+
+void Omnijar::Init(nsIFile* aGrePath, nsIFile* aAppPath) {
+  nsresult rv = FallibleInit(aGrePath, aAppPath);
+  if (NS_FAILED(rv)) {
+    MOZ_CRASH_UNSAFE_PRINTF("Omnijar::Init failed: %s",
+                            mozilla::GetStaticErrorName(rv));
+  }
 }
 
 void Omnijar::CleanUp() {
@@ -225,6 +233,10 @@ void Omnijar::ChildProcessInit(int& aArgc, char** aArgv) {
       appOmni = nullptr;
     }
   }
+
+#if defined(MOZ_WIDGET_ANDROID)
+  MOZ_RELEASE_ASSERT(greOmni, "Android builds are always packaged");
+#endif
 
   // If we're unified, then only the -greomni flag is present
   // (reflecting the state of sPath in the parent process) but that
