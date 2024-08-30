@@ -102,11 +102,12 @@ def run_perftest(command_context, **kwargs):
     else:
         if script_info.script_type == ScriptType.xpcshell:
             kwargs["flavor"] = script_info.script_type.name
-        else:
+        elif script_info.script_type == ScriptType.alert:
+            kwargs["flavor"] = script_info.script_type.name
+        elif "flavor" not in kwargs:
             # we set the value only if not provided (so "mobile-browser"
             # can be picked)
-            if "flavor" not in kwargs:
-                kwargs["flavor"] = "desktop-browser"
+            kwargs["flavor"] = "desktop-browser"
 
     push_to_try = kwargs.pop("push_to_try", False)
     if push_to_try:
@@ -138,11 +139,12 @@ def run_perftest(command_context, **kwargs):
 
         for name, value in args.items():
             # ignore values that are set to default
+            new_val = value
             if original_parser.get_default(name) == value:
                 continue
             if name == "tests":
-                value = [relative(path) for path in value]
-            perftest_parameters[name] = value
+                new_val = [relative(path) for path in value]
+            perftest_parameters[name] = new_val
 
         parameters = {
             "try_task_config": {
@@ -198,12 +200,12 @@ def run_tests(command_context, **kwargs):
 
     from mozperftest.utils import temporary_env
 
-    if "raptor" in kwargs:
+    COVERAGE_RCFILE = str(Path(HERE, ".mpt-coveragerc"))
+    if kwargs.get("raptor", False):
         print("Running raptor unit tests through mozperftest")
+        COVERAGE_RCFILE = str(Path(HERE, ".raptor-coveragerc"))
 
-    with temporary_env(
-        COVERAGE_RCFILE=str(Path(HERE, ".coveragerc")), RUNNING_TESTS="YES"
-    ):
+    with temporary_env(COVERAGE_RCFILE=COVERAGE_RCFILE, RUNNING_TESTS="YES"):
         _run_tests(command_context, **kwargs)
 
 

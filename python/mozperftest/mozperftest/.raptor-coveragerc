@@ -1,0 +1,10 @@
+[run]
+omit =
+    testing/raptor/test/*
+include =
+    testing/raptor/*
+
+[report]
+sort = Cover
+show_missing = True
+fail_under = 91
