@@ -38,7 +38,7 @@ function commonDialogOnLoad() {
   let needIconifiedHeader =
     args.modalType == Ci.nsIPrompt.MODAL_TYPE_CONTENT ||
     ["promptUserAndPass", "promptPassword"].includes(args.promptType) ||
-    args.headerIconURL;
+    args.headerIconCSSValue;
   let root = document.documentElement;
   if (needIconifiedHeader) {
     root.setAttribute("neediconheader", "true");
