@@ -41,9 +41,22 @@ impl BlobTilePool {
     /// The returned buffer is zero-inizitalized.
     /// The length of the returned buffer is equal to the requested size,
     /// however the buffer may be allocated with a larger capacity to
-    /// confirm to the pool's corresponding bucket tile size.
+    /// conform to the pool's corresponding bucket tile size.
     pub fn get_buffer(&mut self, requested_size: usize) -> MutableTileBuffer {
-        assert!(requested_size <= self.largest_size_class);
+        if requested_size > self.largest_size_class {
+            // If the requested size is larger than the largest size class,
+            // simply return a MutableBuffer that isn't tracked/recycled by
+            // the pool.
+            // In Firefox this should only happen in pathological cases
+            // where the blob visible area ends up so large that the tile
+            // size is increased to avoid producing too many tiles.
+            // See wr_resource_updates_add_blob_image.
+            let mut buf = vec![0; requested_size];
+            return MutableTileBuffer {
+                ptr: buf.as_mut_ptr(),
+                strong_ref: Arc::new(buf),
+            };
+        }
 
         let (bucket_idx, cap) = self.bucket_and_size(requested_size);
         let bucket = &mut self.buckets[bucket_idx];
