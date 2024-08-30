@@ -952,13 +952,8 @@ var SidebarController = {
         ".sidebar-animation-screenshot"
       );
       screenshotOverlay.classList.remove("fadeOut");
-      // Remove all screenshots in the off chance multiples have been created
-      let screenshots = document.querySelectorAll(
-        ".sidebar-animation-screenshot"
-      );
-      for (const screenshot of screenshots) {
-        screenshot.remove();
-      }
+      let screenshot = document.querySelector(".sidebar-animation-screenshot");
+      screenshot.remove();
       this._mainResizeObserver.observe(this.sidebarMain);
     }
   },
