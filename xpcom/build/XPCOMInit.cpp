@@ -249,6 +249,12 @@ static void InitializeJS() {
   }
 }
 
+#define XPCOM_INIT_FATAL(message, res) \
+  if (XRE_IsParentProcess()) {         \
+    return res;                        \
+  }                                    \
+  MOZ_CRASH(message);
+
 // Note that on OSX, aBinDirectory will point to .app/Contents/Resources/browser
 EXPORT_XPCOM_API(nsresult)
 NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
@@ -256,7 +262,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
              bool aInitJSContext) {
   static bool sInitialized = false;
   if (sInitialized) {
-    return NS_ERROR_FAILURE;
+    XPCOM_INIT_FATAL("!sInitialized", NS_ERROR_FAILURE)
   }
 
   sInitialized = true;
@@ -316,7 +322,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
     base::Thread::Options options;
     options.message_loop_type = MessageLoop::TYPE_IO;
     if (NS_WARN_IF(!ioThread->StartWithOptions(options))) {
-      return NS_ERROR_FAILURE;
+      XPCOM_INIT_FATAL("StartWithOptions()", NS_ERROR_FAILURE)
     }
 
     sIOThread = ioThread.release();
@@ -325,7 +331,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   // Establish the main thread here.
   rv = nsThreadManager::get().Init();
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    XPCOM_INIT_FATAL("nsThreadManager::get().Init()", rv)
   }
 
   // Initialise the profiler
@@ -334,7 +340,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   // Set up the timer globals/timer thread
   rv = nsTimerImpl::Startup();
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    XPCOM_INIT_FATAL("nsTimerImpl::Startup()", rv)
   }
 
 #ifndef ANDROID
@@ -361,7 +367,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
     rv = nsDirectoryService::gService->RegisterProvider(
         aAppFileLocationProvider);
     if (NS_FAILED(rv)) {
-      return rv;
+      XPCOM_INIT_FATAL("nsDirectoryService::gService->RegisterProvider()", rv)
     }
   }
 
@@ -390,7 +396,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
     // with an unpacked modules directory.
     nsresult rv = mozilla::Omnijar::Init();
     if (NS_FAILED(rv)) {
-      return NS_ERROR_OMNIJAR_CORRUPT;
+      XPCOM_INIT_FATAL("Omnijar::Init()", NS_ERROR_OMNIJAR_CORRUPT)
     }
   }
 
@@ -403,18 +409,18 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
                                       NS_GET_IID(nsIFile),
                                       getter_AddRefs(binaryFile));
     if (NS_WARN_IF(!binaryFile)) {
-      return NS_ERROR_FAILURE;
+      XPCOM_INIT_FATAL("!binaryFile", NS_ERROR_FAILURE)
     }
 
     rv = binaryFile->AppendNative("nonexistent-executable"_ns);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      XPCOM_INIT_FATAL("binaryFile->AppendNative()", rv)
     }
 
     nsCString binaryPath;
     rv = binaryFile->GetNativePath(binaryPath);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      XPCOM_INIT_FATAL("binaryFile->GetNativePath", rv)
     }
 
     static char const* const argv = {strdup(binaryPath.get())};
@@ -431,7 +437,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
 
   // Global cycle collector initialization.
   if (!nsCycleCollector_init()) {
-    return NS_ERROR_UNEXPECTED;
+    XPCOM_INIT_FATAL("nsCycleCollector_init()", NS_ERROR_UNEXPECTED)
   }
 
   // And start it up for this thread too.
@@ -457,7 +463,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   rv = nsComponentManagerImpl::gComponentManager->Init();
   if (NS_FAILED(rv)) {
     NS_RELEASE(nsComponentManagerImpl::gComponentManager);
-    return rv;
+    XPCOM_INIT_FATAL("gComponentManager->Init()", rv)
   }
 
   if (aResult) {
@@ -515,6 +521,8 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
 
   return NS_OK;
 }
+
+#undef XPCOM_INIT_FATAL
 
 EXPORT_XPCOM_API(nsresult)
 NS_InitMinimalXPCOM() {
