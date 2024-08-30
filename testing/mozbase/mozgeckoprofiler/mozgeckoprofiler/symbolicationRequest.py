@@ -206,7 +206,10 @@ class SymbolicationRequest:
                     "version": requestVersion,
                 }
                 requestJson = json.dumps(requestObj).encode()
-                headers = {"Content-Type": "application/json"}
+                headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": "FirefoxCiProfileSymbolication (testing/mozbase/mozgeckoprofiler/mozgeckoprofiler/symbolicationRequest.py)",
+                }
                 requestHandle = Request(url, requestJson, headers)
                 try:
                     response = urlopen(requestHandle)
