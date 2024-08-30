@@ -78,20 +78,16 @@ export class ScreenshotsComponentParent extends JSWindowActorParent {
         await ScreenshotsUtils.copyScreenshotFromRegion(region, browser);
         ScreenshotsUtils.exit(browser);
         break;
-      case "Screenshots:DownloadScreenshot": {
+      case "Screenshots:DownloadScreenshot":
         ScreenshotsUtils.closePanel(browser);
         ({ title, region } = message.data);
-        let downloadSucceeded =
-          await ScreenshotsUtils.downloadScreenshotFromRegion(
-            title,
-            region,
-            browser
-          );
-        if (downloadSucceeded) {
-          ScreenshotsUtils.exit(browser);
-        }
+        await ScreenshotsUtils.downloadScreenshotFromRegion(
+          title,
+          region,
+          browser
+        );
+        ScreenshotsUtils.exit(browser);
         break;
-      }
       case "Screenshots:OverlaySelection":
         ScreenshotsUtils.setPerBrowserState(browser, {
           hasOverlaySelection: message.data.hasSelection,
@@ -997,6 +993,12 @@ export var ScreenshotsUtils = {
    * @param type The type of screenshot taken.
    */
   async takeScreenshot(browser, type) {
+    this.closePanel(browser);
+    this.closeOverlay(browser, {
+      doNotResetMethods: true,
+      highlightRegions: true,
+    });
+
     Services.focus.setFocus(browser, 0);
 
     let rect;
@@ -1008,13 +1010,6 @@ export var ScreenshotsUtils = {
       rect = await this.fetchVisibleBounds(browser);
       lastUsedMethod = "visible";
     }
-
-    // Wait to close overlay until after we fetched bounds
-    this.closePanel(browser);
-    this.closeOverlay(browser, {
-      doNotResetMethods: true,
-      highlightRegions: true,
-    });
 
     let canvas = await this.createCanvas(rect, browser);
     let url = canvas.toDataURL();
@@ -1207,27 +1202,24 @@ export var ScreenshotsUtils = {
    * @param title The title of the current page
    * @param region The bounds of the screenshot
    * @param browser The current browser
-   * @returns {Promise<boolean>} true if the download succeeds, otherwise false
    */
   async downloadScreenshotFromRegion(title, region, browser) {
     let canvas = await this.createCanvas(region, browser);
     let dataUrl = canvas.toDataURL();
 
-    return this.downloadScreenshot(title, dataUrl, browser, {
+    await this.downloadScreenshot(title, dataUrl, browser, {
       object: "overlay_download",
     });
   },
 
   /**
-   * Download the screenshot.
-   * This will return false if the download doesn't succeed for any reason and
-   * will return true if the screenshot is downloaded successfully.
-   *
+   * Download the screenshot
+   * This is called from the preview dialog
    * @param title The title of the current page or null and getFilename will get the title
    * @param dataUrl The image data
    * @param browser The current browser
    * @param data Telemetry data
-   * @returns {Promise<boolean>} true if the downnload succeeded, otherwise false
+   * @returns true if the download succeeds, otherwise false
    */
   async downloadScreenshot(title, dataUrl, browser, data) {
     // Guard against missing image data.
