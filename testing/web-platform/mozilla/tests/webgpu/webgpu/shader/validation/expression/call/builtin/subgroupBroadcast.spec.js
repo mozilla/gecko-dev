@@ -14,6 +14,44 @@ import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
+g.test('requires_subgroups').
+desc('Validates that the subgroups feature is required').
+params((u) => u.combine('enable', [false, true])).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn((t) => {
+  const wgsl = `
+${t.params.enable ? 'enable subgroups;' : ''}
+fn foo() {
+  _ = subgroupBroadcast(0, 0);
+}`;
+
+  t.expectCompileResult(t.params.enable, wgsl);
+});
+
+g.test('requires_subgroups_f16').
+desc('Validates that the subgroups feature is required').
+params((u) => u.combine('enable', [false, true])).
+beforeAllSubcases((t) => {
+  const features = ['shader-f16', 'subgroups'];
+  if (t.params.enable) {
+    features.push('subgroups-f16');
+  }
+  t.selectDeviceOrSkipTestCase(features);
+}).
+fn((t) => {
+  const wgsl = `
+enable f16;
+enable subgroups;
+${t.params.enable ? 'enable subgroups_f16;' : ''}
+fn foo() {
+  _ = subgroupBroadcast(0h, 0);
+}`;
+
+  t.expectCompileResult(t.params.enable, wgsl);
+});
+
 const kArgumentTypes = objectsToRecord(kAllScalarsAndVectors);
 
 const kStages = {
@@ -154,6 +192,58 @@ fn main() {
 
   const expect = isConvertible(type, Type.u32) || isConvertible(type, Type.i32);
   t.expectCompileResult(expect, wgsl);
+});
+
+const kIdCases = {
+  const_decl: {
+    code: 'const_decl',
+    valid: true
+  },
+  const_literal: {
+    code: '0',
+    valid: true
+  },
+  const_expr: {
+    code: 'const_decl + 2',
+    valid: true
+  },
+  let_decl: {
+    code: 'let_decl',
+    valid: false
+  },
+  override_decl: {
+    code: 'override_decl',
+    valid: false
+  },
+  var_func_decl: {
+    code: 'var_func_decl',
+    valid: false
+  },
+  var_priv_decl: {
+    code: 'var_priv_decl',
+    valid: false
+  }
+};
+
+g.test('id_constness').
+desc('Validates that id must be a const-expression').
+params((u) => u.combine('value', keysOf(kIdCases))).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn((t) => {
+  const wgsl = `
+enable subgroups;
+override override_decl : u32;
+var<private> var_priv_decl : u32;
+fn foo() {
+  var var_func_decl : u32;
+  let let_decl = var_func_decl;
+  const const_decl = 0u;
+  _ = subgroupBroadcast(0, ${kIdCases[t.params.value].code});
+}`;
+
+  t.expectCompileResult(kIdCases[t.params.value].valid, wgsl);
 });
 
 g.test('stage').

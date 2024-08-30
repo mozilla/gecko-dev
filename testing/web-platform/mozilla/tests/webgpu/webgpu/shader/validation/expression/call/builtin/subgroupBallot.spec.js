@@ -9,6 +9,22 @@ import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
+g.test('requires_subgroups').
+desc('Validates that the subgroups feature is required').
+params((u) => u.combine('enable', [false, true])).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn((t) => {
+  const wgsl = `
+${t.params.enable ? 'enable subgroups;' : ''}
+fn foo() {
+  _ = subgroupBallot(true);
+}`;
+
+  t.expectCompileResult(t.params.enable, wgsl);
+});
+
 const kStages = {
   constant: `
 enable subgroups;
@@ -36,6 +52,23 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const code = kStages[t.params.stage];
   t.expectCompileResult(t.params.stage === 'runtime', code);
+});
+
+g.test('must_use').
+desc('Tests that the builtin has the @must_use attribute').
+params((u) => u.combine('must_use', [true, false])).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn((t) => {
+  const wgsl = `
+enable subgroups;
+@compute @workgroup_size(16)
+fn main() {
+  ${t.params.must_use ? '_ = ' : ''}subgroupBallot(true);
+}`;
+
+  t.expectCompileResult(t.params.must_use, wgsl);
 });
 
 const kArgumentTypes = objectsToRecord(kAllScalarsAndVectors);
@@ -69,7 +102,7 @@ fn main() {
 });
 
 g.test('return_type').
-desc('Validates data parameter type').
+desc('Validates return type').
 params((u) =>
 u.combine('type', keysOf(kArgumentTypes)).filter((t) => {
   const type = kArgumentTypes[t.type];

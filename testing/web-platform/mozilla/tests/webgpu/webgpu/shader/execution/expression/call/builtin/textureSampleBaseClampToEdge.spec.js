@@ -61,6 +61,12 @@ combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
 combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
 combine('minFilter', ['nearest', 'linear'])
 ).
+beforeAllSubcases((t) =>
+t.skipIf(
+  t.params.textureType === 'texture_external' && typeof VideoFrame === 'undefined',
+  'VideoFrames are not supported'
+)
+).
 fn(async (t) => {
   const { textureType, samplePoints, addressModeU, addressModeV, minFilter } = t.params;
 

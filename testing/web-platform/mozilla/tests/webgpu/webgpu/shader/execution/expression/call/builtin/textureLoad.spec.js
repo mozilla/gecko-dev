@@ -471,6 +471,9 @@ combine('samplePoints', kSamplePointMethods).
 combine('C', ['i32', 'u32']).
 combine('L', ['i32', 'u32'])
 ).
+beforeAllSubcases((t) =>
+t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported')
+).
 fn(async (t) => {
   const { samplePoints, C, L } = t.params;
 
@@ -483,6 +486,7 @@ fn(async (t) => {
     size,
     usage: GPUTextureUsage.COPY_DST
   };
+
   const { texels, videoFrame } = createVideoFrameWithRandomDataAndGetTexels(descriptor.size);
   const texture = t.device.importExternalTexture({ source: videoFrame });
 

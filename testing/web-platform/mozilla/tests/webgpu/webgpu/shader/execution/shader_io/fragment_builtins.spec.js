@@ -1659,15 +1659,15 @@ enable subgroups;
 const width = ${t.params.size[0]};
 const height = ${t.params.size[1]};
 
-@group(0) @binding(0) var<storage, read_write> var for_layout : u32;
+@group(0) @binding(0) var<storage, read_write> for_layout : u32;
 
 @fragment
 fn fsMain(
-  _ = for_layout;
-
   @builtin(position) pos : vec4f,
   @builtin(subgroup_size) sg_size : u32,
 ) -> @location(0) vec4u {
+  _ = for_layout;
+
   let ballot = countOneBits(subgroupBallot(true));
   let ballotSize = ballot.x + ballot.y + ballot.z + ballot.w;
 

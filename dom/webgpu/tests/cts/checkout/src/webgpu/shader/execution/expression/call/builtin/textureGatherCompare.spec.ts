@@ -107,6 +107,7 @@ Parameters:
 
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
+      textureBuiltin: 'textureGatherCompare',
       sampler,
       descriptor,
       arrayIndex: { num: texture.depthOrArrayLayers, type: A },
@@ -284,6 +285,7 @@ Parameters:
 
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
+      textureBuiltin: 'textureGatherCompare',
       sampler,
       descriptor,
       offset,
