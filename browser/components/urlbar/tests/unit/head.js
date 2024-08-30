@@ -159,35 +159,6 @@ function promiseControllerNotification(
   });
 }
 
-/**
- * A basic test provider, returning all the provided matches.
- */
-class TestProvider extends UrlbarTestUtils.TestProvider {
-  isActive(context) {
-    Assert.ok(context, "context is passed-in");
-    return true;
-  }
-  getPriority(context) {
-    Assert.ok(context, "context is passed-in");
-    return 0;
-  }
-  async startQuery(context, add) {
-    Assert.ok(context, "context is passed-in");
-    Assert.equal(typeof add, "function", "add is a callback");
-    this._context = context;
-    for (const result of this.results) {
-      add(this, result);
-    }
-  }
-  cancelQuery(context) {
-    // If the query was created but didn't run, this._context will be undefined.
-    if (this._context) {
-      Assert.equal(this._context, context, "cancelQuery: context is the same");
-    }
-    this._onCancel?.();
-  }
-}
-
 function convertToUtf8(str) {
   return String.fromCharCode(...new TextEncoder().encode(str));
 }
@@ -205,7 +176,12 @@ function convertToUtf8(str) {
  * @returns {UrlbarProvider} The provider
  */
 function registerBasicTestProvider(results = [], onCancel, type, name) {
-  let provider = new TestProvider({ results, onCancel, type, name });
+  let provider = new UrlbarTestUtils.TestProvider({
+    results,
+    onCancel,
+    type,
+    name,
+  });
   UrlbarProvidersManager.registerProvider(provider);
   registerCleanupFunction(() =>
     UrlbarProvidersManager.unregisterProvider(provider)

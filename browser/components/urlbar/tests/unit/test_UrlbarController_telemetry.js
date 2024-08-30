@@ -24,7 +24,7 @@ let sixthHistogram;
 /**
  * A delayed test provider, allowing the query to be delayed for an amount of time.
  */
-class DelayedProvider extends TestProvider {
+class DelayedProvider extends UrlbarTestUtils.TestProvider {
   async startQuery(context, add) {
     Assert.ok(context, "context is passed-in");
     Assert.equal(typeof add, "function", "add is a callback");
@@ -76,7 +76,7 @@ add_task(async function test_n_autocomplete_cancel() {
   firstHistogram.clear();
   sixthHistogram.clear();
 
-  let provider = new TestProvider({
+  let provider = new UrlbarTestUtils.TestProvider({
     results: [],
   });
   UrlbarProvidersManager.registerProvider(provider);

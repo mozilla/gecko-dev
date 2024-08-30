@@ -20,25 +20,25 @@ ChromeUtils.defineESModuleGetters(this, {
  * A test provider that waits before returning results to simulate a slow DB
  * lookup.
  */
-class SlowHeuristicProvider extends TestProvider {
-  get type() {
-    return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
-  }
-
-  async startQuery(context, add) {
-    this._context = context;
-    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-    await new Promise(resolve => setTimeout(resolve, 300));
-    for (let result of this.results) {
-      add(this, result);
-    }
+class SlowHeuristicProvider extends UrlbarTestUtils.TestProvider {
+  constructor({ results }) {
+    const delayResultsPromise = new Promise(resolve =>
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      setTimeout(resolve, 300)
+    );
+    super({
+      name: "MyProvider",
+      type: UrlbarUtils.PROVIDER_TYPE.HEURISTIC,
+      results,
+      delayResultsPromise,
+    });
   }
 }
 
 /**
  * A fast provider that alerts the test when it has added its results.
  */
-class FastHeuristicProvider extends TestProvider {
+class FastHeuristicProvider extends UrlbarTestUtils.TestProvider {
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
   }
