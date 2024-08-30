@@ -373,9 +373,6 @@ void gfxWindowsPlatform::InitAcceleration() {
 
   DeviceManagerDx::Init();
 
-  // Content processes should have received content device data from parent.
-  MOZ_ASSERT_IF(XRE_IsContentProcess(), GetInitContentDeviceData());
-
   InitializeConfig();
   InitGPUProcessSupport();
   // Ensure devices initialization. SharedSurfaceANGLE and
