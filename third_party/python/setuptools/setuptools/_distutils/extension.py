@@ -26,7 +26,7 @@ class Extension:
       name : string
         the full name of the extension, including any packages -- ie.
         *not* a filename or pathname, but Python dotted name
-      sources : [string]
+      sources : [string | os.PathLike]
         list of source filenames, relative to the distribution root
         (where the setup script lives), in Unix form (slash-separated)
         for portability.  Source files may be C, C++, SWIG (.i),
@@ -105,12 +105,17 @@ class Extension:
         **kw,  # To catch unknown keywords
     ):
         if not isinstance(name, str):
-            raise AssertionError("'name' must be a string")
-        if not (isinstance(sources, list) and all(isinstance(v, str) for v in sources)):
-            raise AssertionError("'sources' must be a list of strings")
+            raise AssertionError("'name' must be a string")  # noqa: TRY004
+        if not (
+            isinstance(sources, list)
+            and all(isinstance(v, (str, os.PathLike)) for v in sources)
+        ):
+            raise AssertionError(
+                "'sources' must be a list of strings or PathLike objects."
+            )
 
         self.name = name
-        self.sources = sources
+        self.sources = list(map(os.fspath, sources))
         self.include_dirs = include_dirs or []
         self.define_macros = define_macros or []
         self.undef_macros = undef_macros or []
@@ -130,7 +135,7 @@ class Extension:
         if len(kw) > 0:
             options = [repr(option) for option in kw]
             options = ', '.join(sorted(options))
-            msg = "Unknown Extension options: %s" % options
+            msg = f"Unknown Extension options: {options}"
             warnings.warn(msg)
 
     def __repr__(self):
@@ -150,11 +155,11 @@ def read_setup_file(filename):  # noqa: C901
     #   <module> ... [<sourcefile> ...] [<cpparg> ...] [<library> ...]
     file = TextFile(
         filename,
-        strip_comments=1,
-        skip_blanks=1,
-        join_lines=1,
-        lstrip_ws=1,
-        rstrip_ws=1,
+        strip_comments=True,
+        skip_blanks=True,
+        join_lines=True,
+        lstrip_ws=True,
+        rstrip_ws=True,
     )
     try:
         extensions = []
@@ -167,7 +172,7 @@ def read_setup_file(filename):  # noqa: C901
                 continue
 
             if line[0] == line[-1] == "*":
-                file.warn("'%s' lines not handled yet" % line)
+                file.warn(f"'{line}' lines not handled yet")
                 continue
 
             line = expand_makefile_vars(line, vars)
@@ -233,7 +238,7 @@ def read_setup_file(filename):  # noqa: C901
                     # and append it to sources.  Hmmmm.
                     ext.extra_objects.append(word)
                 else:
-                    file.warn("unrecognized argument '%s'" % word)
+                    file.warn(f"unrecognized argument '{word}'")
 
             extensions.append(ext)
     finally:

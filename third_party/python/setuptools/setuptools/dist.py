@@ -1,5 +1,4 @@
-__all__ = ['Distribution']
-
+from __future__ import annotations
 
 import io
 import itertools
@@ -7,10 +6,25 @@ import numbers
 import os
 import re
 import sys
-from contextlib import suppress
 from glob import iglob
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, MutableMapping, Optional, Set, Tuple
+from typing import TYPE_CHECKING, MutableMapping
+
+from more_itertools import partition, unique_everseen
+from packaging.markers import InvalidMarker, Marker
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.version import Version
+
+from . import (
+    _entry_points,
+    _reqs,
+    command as _,  # noqa: F401 # imported for side-effects
+)
+from ._importlib import metadata
+from .config import pyprojecttoml, setupcfg
+from .discovery import ConfigDiscovery
+from .monkey import get_unpatched
+from .warnings import InformationOnly, SetuptoolsDeprecationWarning
 
 import distutils.cmd
 import distutils.command
@@ -22,22 +36,7 @@ from distutils.errors import DistutilsOptionError, DistutilsSetupError
 from distutils.fancy_getopt import translate_longopt
 from distutils.util import strtobool
 
-from .extern.more_itertools import partition, unique_everseen
-from .extern.ordered_set import OrderedSet
-from .extern.packaging.markers import InvalidMarker, Marker
-from .extern.packaging.specifiers import InvalidSpecifier, SpecifierSet
-from .extern.packaging.version import Version
-
-from . import _entry_points
-from . import _normalization
-from . import _reqs
-from . import command as _  # noqa  -- imported for side-effects
-from ._importlib import metadata
-from .config import setupcfg, pyprojecttoml
-from .discovery import ConfigDiscovery
-from .monkey import get_unpatched
-from .warnings import InformationOnly, SetuptoolsDeprecationWarning
-
+__all__ = ['Distribution']
 
 sequence = tuple, list
 
@@ -57,7 +56,7 @@ def assert_string_list(dist, attr, value):
     try:
         # verify that value is a list or tuple to exclude unordered
         # or single-use iterables
-        assert isinstance(value, (list, tuple))
+        assert isinstance(value, sequence)
         # verify that elements of value are strings
         assert ''.join(value) != value
     except (TypeError, ValueError, AttributeError, AssertionError) as e:
@@ -158,9 +157,7 @@ def check_specifier(dist, attr, value):
     try:
         SpecifierSet(value)
     except (InvalidSpecifier, AttributeError) as error:
-        tmpl = (
-            "{attr!r} must be a string " "containing valid version specifiers; {error}"
-        )
+        tmpl = "{attr!r} must be a string containing valid version specifiers; {error}"
         raise DistutilsSetupError(tmpl.format(attr=attr, error=error)) from error
 
 
@@ -170,11 +167,6 @@ def check_entry_points(dist, attr, value):
         _entry_points.load(value)
     except Exception as e:
         raise DistutilsSetupError(e) from e
-
-
-def check_test_suite(dist, attr, value):
-    if not isinstance(value, str):
-        raise DistutilsSetupError("test_suite must be a string")
 
 
 def check_package_data(dist, attr, value):
@@ -203,8 +195,10 @@ def check_packages(dist, attr, value):
 
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
     # Work around a mypy issue where type[T] can't be used as a base: https://github.com/python/mypy/issues/10962
-    _Distribution = distutils.core.Distribution
+    _Distribution: TypeAlias = distutils.core.Distribution
 else:
     _Distribution = get_unpatched(distutils.core.Distribution)
 
@@ -237,12 +231,6 @@ class Distribution(_Distribution):
         EasyInstall and requests one of your extras, the corresponding
         additional requirements will be installed if needed.
 
-     'test_suite' -- the name of a test suite to run for the 'test' command.
-        If the user runs 'python setup.py test', the package will be installed,
-        and the named test suite will be run.  The format is the same as
-        would be used on a 'unittest.py' command line.  That is, it is the
-        dotted name of an object to import and call to generate a test suite.
-
      'package_data' -- a dictionary mapping package names to lists of filenames
         or globs to use to find data files contained in the named packages.
         If the dictionary has filenames or globs listed under '""' (the empty
@@ -264,38 +252,26 @@ class Distribution(_Distribution):
     _DISTUTILS_UNSUPPORTED_METADATA = {
         'long_description_content_type': lambda: None,
         'project_urls': dict,
-        'provides_extras': OrderedSet,
+        'provides_extras': dict,  # behaves like an ordered set
         'license_file': lambda: None,
         'license_files': lambda: None,
         'install_requires': list,
         'extras_require': dict,
     }
 
-    _patched_dist = None
+    # Used by build_py, editable_wheel and install_lib commands for legacy namespaces
+    namespace_packages: list[str]  #: :meta private: DEPRECATED
 
-    def patch_missing_pkg_info(self, attrs):
-        # Fake up a replacement for the data that would normally come from
-        # PKG-INFO, but which might not yet be built if this is a fresh
-        # checkout.
-        #
-        if not attrs or 'name' not in attrs or 'version' not in attrs:
-            return
-        name = _normalization.safe_name(str(attrs['name'])).lower()
-        with suppress(metadata.PackageNotFoundError):
-            dist = metadata.distribution(name)
-            if dist is not None and not dist.read_text('PKG-INFO'):
-                dist._version = _normalization.safe_version(str(attrs['version']))
-                self._patched_dist = dist
-
-    def __init__(self, attrs: Optional[MutableMapping] = None) -> None:
+    def __init__(self, attrs: MutableMapping | None = None) -> None:
         have_package_data = hasattr(self, "package_data")
         if not have_package_data:
-            self.package_data: Dict[str, List[str]] = {}
+            self.package_data: dict[str, list[str]] = {}
         attrs = attrs or {}
-        self.dist_files: List[Tuple[str, str, str]] = []
+        self.dist_files: list[tuple[str, str, str]] = []
+        self.include_package_data: bool | None = None
+        self.exclude_package_data: dict[str, list[str]] | None = None
         # Filter-out setuptools' specific options.
         self.src_root = attrs.pop("src_root", None)
-        self.patch_missing_pkg_info(attrs)
         self.dependency_links = attrs.pop('dependency_links', [])
         self.setup_requires = attrs.pop('setup_requires', [])
         for ep in metadata.entry_points(group='distutils.setup_keywords'):
@@ -309,7 +285,7 @@ class Distribution(_Distribution):
         # Private API (setuptools-use only, not restricted to Distribution)
         # Stores files that are referenced by the configuration and need to be in the
         # sdist (e.g. `version = file: VERSION.txt`)
-        self._referenced_files: Set[str] = set()
+        self._referenced_files: set[str] = set()
 
         self.set_defaults = ConfigDiscovery(self)
 
@@ -374,7 +350,7 @@ class Distribution(_Distribution):
                 # Setuptools allows a weird "<name>:<env markers> syntax for extras
                 extra = extra.split(':')[0]
                 if extra:
-                    self.metadata.provides_extras.add(extra)
+                    self.metadata.provides_extras.setdefault(extra)
 
     def _normalize_requires(self):
         """Make sure requirement-related attributes exist and are normalized"""
@@ -387,10 +363,10 @@ class Distribution(_Distribution):
 
     def _finalize_license_files(self) -> None:
         """Compute names of all license files which should be included."""
-        license_files: Optional[List[str]] = self.metadata.license_files
-        patterns: List[str] = license_files if license_files else []
+        license_files: list[str] | None = self.metadata.license_files
+        patterns: list[str] = license_files if license_files else []
 
-        license_file: Optional[str] = self.metadata.license_file
+        license_file: str | None = self.metadata.license_file
         if license_file and license_file not in patterns:
             patterns.append(license_file)
 
@@ -409,8 +385,8 @@ class Distribution(_Distribution):
         """
         >>> list(Distribution._expand_patterns(['LICENSE']))
         ['LICENSE']
-        >>> list(Distribution._expand_patterns(['setup.cfg', 'LIC*']))
-        ['setup.cfg', 'LICENSE']
+        >>> list(Distribution._expand_patterns(['pyproject.toml', 'LIC*']))
+        ['pyproject.toml', 'LICENSE']
         """
         return (
             path
@@ -709,6 +685,12 @@ class Distribution(_Distribution):
         """Pluggable version of get_command_class()"""
         if command in self.cmdclass:
             return self.cmdclass[command]
+
+        # Special case bdist_wheel so it's never loaded from "wheel"
+        if command == 'bdist_wheel':
+            from .command.bdist_wheel import bdist_wheel
+
+            return bdist_wheel
 
         eps = metadata.entry_points(group='distutils.commands', name=command)
         for ep in eps:

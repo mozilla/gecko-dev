@@ -6,13 +6,14 @@ As defined in the wheel specification
 import os
 import shutil
 from contextlib import contextmanager
-from distutils import log
-from distutils.core import Command
 from pathlib import Path
 from typing import cast
 
 from .. import _normalization
 from .egg_info import egg_info as egg_info_cls
+
+from distutils import log
+from distutils.core import Command
 
 
 class dist_info(Command):
@@ -28,7 +29,7 @@ class dist_info(Command):
             'output-dir=',
             'o',
             "directory inside of which the .dist-info will be"
-            "created (default: top of the source tree)",
+            "created [default: top of the source tree]",
         ),
         ('tag-date', 'd', "Add date stamp (e.g. 20050528) to version number"),
         ('tag-build=', 'b', "Specify explicit tag to add to version number"),

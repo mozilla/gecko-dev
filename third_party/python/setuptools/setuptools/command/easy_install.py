@@ -10,74 +10,74 @@ __ https://setuptools.pypa.io/en/latest/deprecated/easy_install.html
 
 """
 
-from glob import glob
-from distutils.util import get_platform
-from distutils.util import convert_path, subst_vars
-from distutils.errors import (
-    DistutilsArgError,
-    DistutilsOptionError,
-    DistutilsError,
-    DistutilsPlatformError,
-)
-from distutils import log, dir_util
-from distutils.command.build_scripts import first_line_re
-from distutils.spawn import find_executable
-from distutils.command import install
-import sys
+from __future__ import annotations
+
+import configparser
+import contextlib
+import io
 import os
-from typing import Dict, List
-import zipimport
-import shutil
-import tempfile
-import zipfile
-import re
-import stat
 import random
+import re
+import shlex
+import shutil
+import site
+import stat
+import struct
+import subprocess
+import sys
+import sysconfig
+import tempfile
 import textwrap
 import warnings
-import site
-import struct
-import contextlib
-import subprocess
-import shlex
-import io
-import configparser
-import sysconfig
-
+import zipfile
+import zipimport
+from collections.abc import Iterable
+from glob import glob
 from sysconfig import get_path
+from typing import TYPE_CHECKING, Callable, TypeVar
 
-from setuptools import Command
-from setuptools.sandbox import run_setup
-from setuptools.command import setopt
-from setuptools.archive_util import unpack_archive
-from setuptools.package_index import (
-    PackageIndex,
-    parse_requirement_arg,
-    URL_SCHEME,
-)
-from setuptools.command import bdist_egg, egg_info
-from setuptools.warnings import SetuptoolsDeprecationWarning, SetuptoolsWarning
-from setuptools.wheel import Wheel
+from jaraco.text import yield_lines
+
+import pkg_resources
 from pkg_resources import (
+    DEVELOP_DIST,
+    Distribution,
+    DistributionNotFound,
+    EggMetadata,
+    Environment,
+    PathMetadata,
+    Requirement,
+    VersionConflict,
+    WorkingSet,
+    find_distributions,
+    get_distribution,
     normalize_path,
     resource_string,
-    get_distribution,
-    find_distributions,
-    Environment,
-    Requirement,
-    Distribution,
-    PathMetadata,
-    EggMetadata,
-    WorkingSet,
-    DistributionNotFound,
-    VersionConflict,
-    DEVELOP_DIST,
 )
-import pkg_resources
-from ..compat import py39, py311
-from .._path import ensure_directory
-from ..extern.jaraco.text import yield_lines
+from setuptools import Command
+from setuptools.archive_util import unpack_archive
+from setuptools.command import bdist_egg, egg_info, setopt
+from setuptools.package_index import URL_SCHEME, PackageIndex, parse_requirement_arg
+from setuptools.sandbox import run_setup
+from setuptools.warnings import SetuptoolsDeprecationWarning, SetuptoolsWarning
+from setuptools.wheel import Wheel
 
+from .._path import ensure_directory
+from ..compat import py39, py311
+
+from distutils import dir_util, log
+from distutils.command import install
+from distutils.command.build_scripts import first_line_re
+from distutils.errors import (
+    DistutilsArgError,
+    DistutilsError,
+    DistutilsOptionError,
+    DistutilsPlatformError,
+)
+from distutils.util import convert_path, get_platform, subst_vars
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 # Turn on PEP440Warnings
 warnings.filterwarnings("default", category=pkg_resources.PEP440Warning)
@@ -88,6 +88,8 @@ __all__ = [
     'extract_wininst_cfg',
     'get_exe_prefixes',
 ]
+
+_T = TypeVar("_T")
 
 
 def is_64bit():
@@ -101,9 +103,9 @@ def _to_bytes(s):
 def isascii(s):
     try:
         s.encode('ascii')
-        return True
     except UnicodeError:
         return False
+    return True
 
 
 def _one_liner(text):
@@ -170,7 +172,7 @@ class easy_install(Command):
 
         # the --user option seems to be an opt-in one,
         # so the default should be False.
-        self.user = 0
+        self.user = False
         self.zip_ok = self.local_snapshots_ok = None
         self.install_dir = self.script_dir = self.exclude_scripts = None
         self.index_url = None
@@ -236,7 +238,7 @@ class easy_install(Command):
         dist = get_distribution('setuptools')
         tmpl = 'setuptools {dist.version} from {dist.location} (Python {ver})'
         print(tmpl.format(**locals()))
-        raise SystemExit()
+        raise SystemExit
 
     def finalize_options(self):  # noqa: C901  # is too complex (25)  # FIXME
         self.version and self._render_version()
@@ -466,7 +468,7 @@ class easy_install(Command):
     def warn_deprecated_options(self):
         pass
 
-    def check_site_dir(self):  # noqa: C901  # is too complex (12)  # FIXME
+    def check_site_dir(self):  # is too complex (12)  # FIXME
         """Verify that self.install_dir is .pth-capable dir, if needed"""
 
         instdir = normalize_path(self.install_dir)
@@ -525,7 +527,7 @@ class easy_install(Command):
 
             %s
         """
-    ).lstrip()  # noqa
+    ).lstrip()
 
     __not_exists_id = textwrap.dedent(
         """
@@ -533,7 +535,7 @@ class easy_install(Command):
         choose a different installation directory (using the -d or --install-dir
         option).
         """
-    ).lstrip()  # noqa
+    ).lstrip()
 
     __access_msg = textwrap.dedent(
         """
@@ -551,7 +553,7 @@ class easy_install(Command):
 
         Please make the appropriate changes for your system and try again.
         """
-    ).lstrip()  # noqa
+    ).lstrip()
 
     def cant_write_to_target(self):
         msg = self.__cant_write_msg % (
@@ -938,7 +940,7 @@ class easy_install(Command):
         return Distribution.from_filename(egg_path, metadata=metadata)
 
     # FIXME: 'easy_install.install_egg' is too complex (11)
-    def install_egg(self, egg_path, tmpdir):  # noqa: C901
+    def install_egg(self, egg_path, tmpdir):
         destination = os.path.join(
             self.install_dir,
             os.path.basename(egg_path),
@@ -1046,7 +1048,7 @@ class easy_install(Command):
         prefixes = get_exe_prefixes(dist_filename)
         to_compile = []
         native_libs = []
-        top_level = {}
+        top_level = set()
 
         def process(src, dst):
             s = src.lower()
@@ -1058,10 +1060,10 @@ class easy_install(Command):
                     dl = dst.lower()
                     if dl.endswith('.pyd') or dl.endswith('.dll'):
                         parts[-1] = bdist_egg.strip_module(parts[-1])
-                        top_level[os.path.splitext(parts[0])[0]] = 1
+                        top_level.add([os.path.splitext(parts[0])[0]])
                         native_libs.append(src)
                     elif dl.endswith('.py') and old != 'SCRIPTS/':
-                        top_level[os.path.splitext(parts[0])[0]] = 1
+                        top_level.add([os.path.splitext(parts[0])[0]])
                         to_compile.append(dst)
                     return dst
             if not src.endswith('.pth'):
@@ -1130,7 +1132,7 @@ class easy_install(Command):
             pkg_resources.require("%(name)s==%(version)s")  # this exact version
             pkg_resources.require("%(name)s>=%(version)s")  # this version or higher
         """
-    ).lstrip()  # noqa
+    ).lstrip()
 
     __id_warning = textwrap.dedent(
         """
@@ -1138,7 +1140,7 @@ class easy_install(Command):
         this to work.  (e.g. by being the application's script directory, by being on
         PYTHONPATH, or by being added to sys.path by your code.)
         """
-    )  # noqa
+    )
 
     def installation_report(self, req, dist, what="Installed"):
         """Helpful installation message for display to package users"""
@@ -1165,7 +1167,7 @@ class easy_install(Command):
 
         See the setuptools documentation for the "develop" command for more info.
         """
-    ).lstrip()  # noqa
+    ).lstrip()
 
     def report_editable(self, spec, setup_script):
         dirname = os.path.dirname(setup_script)
@@ -1202,10 +1204,11 @@ class easy_install(Command):
 
             self.run_setup(setup_script, setup_base, args)
             all_eggs = Environment([dist_dir])
-            eggs = []
-            for key in all_eggs:
-                for dist in all_eggs[key]:
-                    eggs.append(self.install_egg(dist.location, setup_base))
+            eggs = [
+                self.install_egg(dist.location, setup_base)
+                for key in all_eggs
+                for dist in all_eggs[key]
+            ]
             if not eggs and not self.dry_run:
                 log.warn("No eggs found in %s (setup script problem?)", dist_dir)
             return eggs
@@ -1317,12 +1320,12 @@ class easy_install(Command):
             # try to make the byte compile messages quieter
             log.set_verbosity(self.verbose - 1)
 
-            byte_compile(to_compile, optimize=0, force=1, dry_run=self.dry_run)
+            byte_compile(to_compile, optimize=0, force=True, dry_run=self.dry_run)
             if self.optimize:
                 byte_compile(
                     to_compile,
                     optimize=self.optimize,
-                    force=1,
+                    force=True,
                     dry_run=self.dry_run,
                 )
         finally:
@@ -1483,14 +1486,14 @@ def get_site_dirs():
 def expand_paths(inputs):  # noqa: C901  # is too complex (11)  # FIXME
     """Yield sys.path directories that might contain "old-style" packages"""
 
-    seen = {}
+    seen = set()
 
     for dirname in inputs:
         dirname = normalize_path(dirname)
         if dirname in seen:
             continue
 
-        seen[dirname] = 1
+        seen.add(dirname)
         if not os.path.isdir(dirname):
             continue
 
@@ -1519,7 +1522,7 @@ def expand_paths(inputs):  # noqa: C901  # is too complex (11)  # FIXME
                 if line in seen:
                     continue
 
-                seen[line] = 1
+                seen.add(line)
                 if not os.path.isdir(line):
                     continue
 
@@ -1621,7 +1624,7 @@ class PthDistributions(Environment):
     def _load_raw(self):
         paths = []
         dirty = saw_import = False
-        seen = dict.fromkeys(self.sitedirs)
+        seen = set(self.sitedirs)
         f = open(self.filename, 'rt', encoding=py39.LOCALE_ENCODING)
         # ^-- Requires encoding="locale" instead of "utf-8" (python/cpython#77102).
         for line in f:
@@ -1642,7 +1645,7 @@ class PthDistributions(Environment):
                 dirty = True
                 paths.pop()
                 continue
-            seen[normalized_path] = 1
+            seen.add(normalized_path)
         f.close()
         # remove any trailing empty/blank line
         while paths and not paths[-1].strip():
@@ -1785,13 +1788,14 @@ def _first_line_re():
     return re.compile(first_line_re.pattern.decode())
 
 
-def auto_chmod(func, arg, exc):
+# Must match shutil._OnExcCallback
+def auto_chmod(func: Callable[..., _T], arg: str, exc: BaseException) -> _T:
+    """shutils onexc callback to automatically call chmod for certain functions."""
+    # Only retry for scenarios known to have an issue
     if func in [os.unlink, os.remove] and os.name == 'nt':
         chmod(arg, stat.S_IWRITE)
         return func(arg)
-    et, ev, _ = sys.exc_info()
-    # TODO: This code doesn't make sense. What is it trying to do?
-    raise (ev[0], ev[1] + (" %s %s" % (func, arg)))
+    raise exc
 
 
 def update_dist_caches(dist_path, fix_zipimporter_caches):
@@ -2017,7 +2021,9 @@ def is_python_script(script_text, filename):
 
 
 try:
-    from os import chmod as _chmod
+    from os import (
+        chmod as _chmod,  # pyright: ignore[reportAssignmentType] # Loosing type-safety w/ pyright, but that's ok
+    )
 except ImportError:
     # Jython compatibility
     def _chmod(*args: object, **kwargs: object) -> None:  # type: ignore[misc] # Mypy re-uses the imported definition anyway
@@ -2038,8 +2044,8 @@ class CommandSpec(list):
     those passed to Popen.
     """
 
-    options: List[str] = []
-    split_args: Dict[str, bool] = dict()
+    options: list[str] = []
+    split_args: dict[str, bool] = dict()
 
     @classmethod
     def best(cls):
@@ -2054,19 +2060,20 @@ class CommandSpec(list):
         return os.environ.get('__PYVENV_LAUNCHER__', _default)
 
     @classmethod
-    def from_param(cls, param):
+    def from_param(cls, param: Self | str | Iterable[str] | None) -> Self:
         """
         Construct a CommandSpec from a parameter to build_scripts, which may
         be None.
         """
         if isinstance(param, cls):
             return param
-        if isinstance(param, list):
+        if isinstance(param, str):
+            return cls.from_string(param)
+        if isinstance(param, Iterable):
             return cls(param)
         if param is None:
             return cls.from_environment()
-        # otherwise, assume it's a string.
-        return cls.from_string(param)
+        raise TypeError(f"Argument has an unsupported type {type(param)}")
 
     @classmethod
     def from_environment(cls):
@@ -2274,7 +2281,7 @@ class WindowsScriptWriter(ScriptWriter):
         to an executable on the system.
         """
         clean_header = new_header[2:-1].strip('"')
-        return sys.platform != 'win32' or find_executable(clean_header)
+        return sys.platform != 'win32' or shutil.which(clean_header)
 
 
 class WindowsExecutableLauncherWriter(WindowsScriptWriter):

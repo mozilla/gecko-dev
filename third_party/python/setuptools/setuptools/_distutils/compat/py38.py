@@ -14,6 +14,7 @@ if sys.version_info < (3, 9):
             return self[len(prefix) :]
         else:
             return self[:]
+
 else:
 
     def removesuffix(self, suffix):
@@ -21,3 +22,13 @@ else:
 
     def removeprefix(self, prefix):
         return self.removeprefix(prefix)
+
+
+def aix_platform(osname, version, release):
+    try:
+        import _aix_support  # type: ignore
+
+        return _aix_support.aix_platform()
+    except ImportError:
+        pass
+    return f"{osname}-{version}.{release}"

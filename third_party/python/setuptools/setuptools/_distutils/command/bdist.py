@@ -15,9 +15,10 @@ def show_formats():
     """Print list of available formats (arguments to "--format" option)."""
     from ..fancy_getopt import FancyGetopt
 
-    formats = []
-    for format in bdist.format_commands:
-        formats.append(("formats=" + format, None, bdist.format_commands[format][1]))
+    formats = [
+        ("formats=" + format, None, bdist.format_commands[format][1])
+        for format in bdist.format_commands
+    ]
     pretty_printer = FancyGetopt(formats)
     pretty_printer.print_help("List of available distribution formats:")
 
@@ -41,7 +42,7 @@ class bdist(Command):
             'plat-name=',
             'p',
             "platform name to embed in generated filenames "
-            "(default: %s)" % get_platform(),
+            f"[default: {get_platform()}]",
         ),
         ('formats=', None, "formats for distribution (comma-separated list)"),
         (
@@ -94,7 +95,7 @@ class bdist(Command):
         self.plat_name = None
         self.formats = None
         self.dist_dir = None
-        self.skip_build = 0
+        self.skip_build = False
         self.group = None
         self.owner = None
 
@@ -120,7 +121,7 @@ class bdist(Command):
             except KeyError:
                 raise DistutilsPlatformError(
                     "don't know how to create built distributions "
-                    "on platform %s" % os.name
+                    f"on platform {os.name}"
                 )
 
         if self.dist_dir is None:
@@ -133,7 +134,7 @@ class bdist(Command):
             try:
                 commands.append(self.format_commands[format][0])
             except KeyError:
-                raise DistutilsOptionError("invalid format '%s'" % format)
+                raise DistutilsOptionError(f"invalid format '{format}'")
 
         # Reinitialize and run each command.
         for i in range(len(self.formats)):
@@ -150,5 +151,5 @@ class bdist(Command):
             # If we're going to need to run this command again, tell it to
             # keep its temporary files around so subsequent runs go faster.
             if cmd_name in commands[i + 1 :]:
-                sub_cmd.keep_temp = 1
+                sub_cmd.keep_temp = True
             self.run_command(cmd_name)

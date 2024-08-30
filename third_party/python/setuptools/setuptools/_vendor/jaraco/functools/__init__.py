@@ -7,7 +7,7 @@ import time
 import types
 import warnings
 
-import setuptools.extern.more_itertools
+import more_itertools
 
 
 def compose(*funcs):
@@ -603,10 +603,10 @@ def splat(func):
     simple ``map``.
 
     >>> pairs = [(-1, 1), (0, 2)]
-    >>> setuptools.extern.more_itertools.consume(itertools.starmap(print, pairs))
+    >>> more_itertools.consume(itertools.starmap(print, pairs))
     -1 1
     0 2
-    >>> setuptools.extern.more_itertools.consume(map(splat(print), pairs))
+    >>> more_itertools.consume(map(splat(print), pairs))
     -1 1
     0 2
 

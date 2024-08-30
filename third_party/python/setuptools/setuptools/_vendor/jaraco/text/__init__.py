@@ -6,10 +6,10 @@ import functools
 try:
     from importlib.resources import files  # type: ignore
 except ImportError:  # pragma: nocover
-    from setuptools.extern.importlib_resources import files  # type: ignore
+    from importlib_resources import files  # type: ignore
 
-from setuptools.extern.jaraco.functools import compose, method_cache
-from setuptools.extern.jaraco.context import ExceptionTrap
+from jaraco.functools import compose, method_cache
+from jaraco.context import ExceptionTrap
 
 
 def substitution(old, new):
@@ -66,7 +66,7 @@ class FoldedCase(str):
     >>> s in ["Hello World"]
     True
 
-    You may test for set inclusion, but candidate and elements
+    Allows testing for set inclusion, but candidate and elements
     must both be folded.
 
     >>> FoldedCase("Hello World") in {s}
@@ -92,37 +92,40 @@ class FoldedCase(str):
 
     >>> FoldedCase('hello') > FoldedCase('Hello')
     False
+
+    >>> FoldedCase('ß') == FoldedCase('ss')
+    True
     """
 
     def __lt__(self, other):
-        return self.lower() < other.lower()
+        return self.casefold() < other.casefold()
 
     def __gt__(self, other):
-        return self.lower() > other.lower()
+        return self.casefold() > other.casefold()
 
     def __eq__(self, other):
-        return self.lower() == other.lower()
+        return self.casefold() == other.casefold()
 
     def __ne__(self, other):
-        return self.lower() != other.lower()
+        return self.casefold() != other.casefold()
 
     def __hash__(self):
-        return hash(self.lower())
+        return hash(self.casefold())
 
     def __contains__(self, other):
-        return super().lower().__contains__(other.lower())
+        return super().casefold().__contains__(other.casefold())
 
     def in_(self, other):
         "Does self appear in other?"
         return self in FoldedCase(other)
 
-    # cache lower since it's likely to be called frequently.
+    # cache casefold since it's likely to be called frequently.
     @method_cache
-    def lower(self):
-        return super().lower()
+    def casefold(self):
+        return super().casefold()
 
     def index(self, sub):
-        return self.lower().index(sub.lower())
+        return self.casefold().index(sub.casefold())
 
     def split(self, splitter=' ', maxsplit=0):
         pattern = re.compile(re.escape(splitter), re.I)
@@ -224,9 +227,12 @@ def unwrap(s):
     return '\n'.join(cleaned)
 
 
+lorem_ipsum: str = (
+    files(__name__).joinpath('Lorem ipsum.txt').read_text(encoding='utf-8')
+)
 
 
-class Splitter(object):
+class Splitter:
     """object that will split a string with the given arguments for each call
 
     >>> s = Splitter(',')
@@ -276,7 +282,7 @@ class WordSet(tuple):
     >>> WordSet.parse("myABCClass")
     ('my', 'ABC', 'Class')
 
-    The result is a WordSet, so you can get the form you need.
+    The result is a WordSet, providing access to other forms.
 
     >>> WordSet.parse("myABCClass").underscore_separated()
     'my_ABC_Class'
@@ -363,7 +369,7 @@ class WordSet(tuple):
         return self.trim_left(item).trim_right(item)
 
     def __getitem__(self, item):
-        result = super(WordSet, self).__getitem__(item)
+        result = super().__getitem__(item)
         if isinstance(item, slice):
             result = WordSet(result)
         return result
@@ -578,7 +584,7 @@ def join_continuation(lines):
     ['foobarbaz']
 
     Not sure why, but...
-    The character preceeding the backslash is also elided.
+    The character preceding the backslash is also elided.
 
     >>> list(join_continuation(['goo\\', 'dly']))
     ['godly']
@@ -597,3 +603,22 @@ def join_continuation(lines):
             except StopIteration:
                 return
         yield item
+
+
+def read_newlines(filename, limit=1024):
+    r"""
+    >>> tmp_path = getfixture('tmp_path')
+    >>> filename = tmp_path / 'out.txt'
+    >>> _ = filename.write_text('foo\n', newline='', encoding='utf-8')
+    >>> read_newlines(filename)
+    '\n'
+    >>> _ = filename.write_text('foo\r\n', newline='', encoding='utf-8')
+    >>> read_newlines(filename)
+    '\r\n'
+    >>> _ = filename.write_text('foo\r\nbar\nbing\r', newline='', encoding='utf-8')
+    >>> read_newlines(filename)
+    ('\r', '\n', '\r\n')
+    """
+    with open(filename, encoding='utf-8') as fp:
+        fp.read(limit)
+    return fp.newlines

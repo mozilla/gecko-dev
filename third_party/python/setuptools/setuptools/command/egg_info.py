@@ -2,34 +2,35 @@
 
 Create a distribution's .egg-info directory and contents"""
 
-from distutils.filelist import FileList as _FileList
-from distutils.errors import DistutilsInternalError
-from distutils.util import convert_path
-from distutils import log
-import distutils.errors
-import distutils.filelist
+import collections
 import functools
 import os
 import re
 import sys
 import time
-import collections
 
-from .._importlib import metadata
-from .. import _entry_points, _normalization
-from . import _requirestxt
+import packaging
+import packaging.requirements
+import packaging.version
 
-from setuptools import Command
-from setuptools.command.sdist import sdist
-from setuptools.command.sdist import walk_revctrl
-from setuptools.command.setopt import edit_config
-from setuptools.command import bdist_egg
 import setuptools.unicode_utils as unicode_utils
+from setuptools import Command
+from setuptools.command import bdist_egg
+from setuptools.command.sdist import sdist, walk_revctrl
+from setuptools.command.setopt import edit_config
 from setuptools.glob import glob
 
-from setuptools.extern import packaging
+from .. import _entry_points, _normalization
+from .._importlib import metadata
 from ..warnings import SetuptoolsDeprecationWarning
+from . import _requirestxt
 
+import distutils.errors
+import distutils.filelist
+from distutils import log
+from distutils.errors import DistutilsInternalError
+from distutils.filelist import FileList as _FileList
+from distutils.util import convert_path
 
 PY_MAJOR = '{}.{}'.format(*sys.version_info)
 
@@ -172,7 +173,7 @@ class egg_info(InfoCommon, Command):
             'egg-base=',
             'e',
             "directory containing .egg-info directories"
-            " (default: top of the source tree)",
+            " [default: top of the source tree]",
         ),
         ('tag-date', 'd', "Add date stamp (e.g. 20050528) to version number"),
         ('tag-build=', 'b', "Specify explicit tag to add to version number"),
@@ -249,17 +250,6 @@ class egg_info(InfoCommon, Command):
         # (e.g. sdist, bdist_wininst, etc.)
         #
         self.distribution.metadata.version = self.egg_version
-
-        # If we bootstrapped around the lack of a PKG-INFO, as might be the
-        # case in a fresh checkout, make sure that any special tags get added
-        # to the version info
-        #
-        pd = self.distribution._patched_dist
-        key = getattr(pd, "key", None) or getattr(pd, "name", None)
-        if pd is not None and key == self.egg_name.lower():
-            pd._version = self.egg_version
-            pd._parsed_version = packaging.version.Version(self.egg_version)
-            self.distribution._patched_dist = None
 
     def _get_egg_basename(self, py_version=PY_MAJOR, platform=None):
         """Compute filename of the output egg. Private API."""
@@ -363,16 +353,16 @@ class FileList(_FileList):
         }
         log_map = {
             'include': "warning: no files found matching '%s'",
-            'exclude': ("warning: no previously-included files found " "matching '%s'"),
+            'exclude': ("warning: no previously-included files found matching '%s'"),
             'global-include': (
-                "warning: no files found matching '%s' " "anywhere in distribution"
+                "warning: no files found matching '%s' anywhere in distribution"
             ),
             'global-exclude': (
                 "warning: no previously-included files matching "
                 "'%s' found anywhere in distribution"
             ),
             'recursive-include': (
-                "warning: no files found matching '%s' " "under directory '%s'"
+                "warning: no files found matching '%s' under directory '%s'"
             ),
             'recursive-exclude': (
                 "warning: no previously-included files matching "
@@ -534,10 +524,10 @@ class manifest_maker(sdist):
     template = "MANIFEST.in"
 
     def initialize_options(self):
-        self.use_defaults = 1
-        self.prune = 1
-        self.manifest_only = 1
-        self.force_manifest = 1
+        self.use_defaults = True
+        self.prune = True
+        self.manifest_only = True
+        self.force_manifest = True
         self.ignore_egg_info_dir = False
 
     def finalize_options(self):
@@ -615,16 +605,6 @@ class manifest_maker(sdist):
         for rf in referenced:
             log.debug("adding file referenced by config '%s'", rf)
         self.filelist.extend(referenced)
-
-    def prune_file_list(self):
-        build = self.get_finalized_command('build')
-        base_dir = self.distribution.get_fullname()
-        self.filelist.prune(build.build_base)
-        self.filelist.prune(base_dir)
-        sep = re.escape(os.sep)
-        self.filelist.exclude_pattern(
-            r'(^|' + sep + r')(RCS|CVS|\.svn)' + sep, is_regex=1
-        )
 
     def _safe_data_files(self, build_py):
         """
