@@ -55,7 +55,7 @@ extern "C" {
  */
 #ifdef HAVE___BUILTIN_FFS
 #define ffs __builtin_ffs
-#elif defined(_MSC_VER) && (_M_IX86 || _M_ARM || _M_AMD64 || _M_IA64)
+#elif defined(_MSC_VER) && (_M_IX86 || _M_ARM || _M_AMD64 || _M_ARM64 || _M_IA64)
 static inline
 int ffs(int i)
 {
