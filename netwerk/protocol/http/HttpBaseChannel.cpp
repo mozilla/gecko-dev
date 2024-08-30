@@ -3162,7 +3162,7 @@ nsresult HttpBaseChannel::ValidateMIMEType() {
 
 bool HttpBaseChannel::ShouldFilterOpaqueResponse(
     OpaqueResponseFilterFetch aFilterType) const {
-  MOZ_DIAGNOSTIC_ASSERT(ShouldBlockOpaqueResponse());
+  MOZ_ASSERT(ShouldBlockOpaqueResponse());
 
   if (!mLoadInfo || ConfiguredFilterFetchResponseBehaviour() != aFilterType) {
     return false;
