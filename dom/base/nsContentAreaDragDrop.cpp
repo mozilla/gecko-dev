@@ -830,12 +830,11 @@ nsresult DragDataProducer::GetDraggableSelectionData(
   *outImageOrLinkNode = nullptr;
   *outDragSelectedText = false;
 
-  if (!inSelection->AreNormalAndCrossShadowBoundaryRangesCollapsed()) {
+  if (!inSelection->IsCollapsed()) {
     if (inSelection->ContainsNode(*inRealTargetNode, false, IgnoreErrors())) {
       // track down the anchor node, if any, for the url
-      nsINode* selectionStart =
-          inSelection->GetMayCrossShadowBoundaryAnchorNode();
-      nsINode* selectionEnd = inSelection->GetMayCrossShadowBoundaryFocusNode();
+      nsINode* selectionStart = inSelection->GetAnchorNode();
+      nsINode* selectionEnd = inSelection->GetFocusNode();
 
       // look for a selection around a single node, like an image.
       // in this case, drag the image, rather than a serialization of the HTML

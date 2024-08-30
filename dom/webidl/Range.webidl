@@ -82,7 +82,6 @@ partial interface Range {
 // http://dvcs.w3.org/hg/csswg/raw-file/tip/cssom-view/Overview.html#extensions-to-the-range-interface
 partial interface Range {
   DOMRectList? getClientRects();
-  [ChromeOnly] DOMRectList? getAllowCrossShadowBoundaryClientRects();
   DOMRect getBoundingClientRect();
 };
 
