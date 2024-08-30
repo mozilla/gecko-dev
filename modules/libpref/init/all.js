@@ -565,7 +565,6 @@ pref("toolkit.telemetry.unified", true);
 
 // DAP related preferences
 pref("toolkit.telemetry.dap_enabled", false);
-pref("toolkit.telemetry.dap.logLevel", "Warn");
 // Verification tasks
 pref("toolkit.telemetry.dap_task1_enabled", false);
 pref("toolkit.telemetry.dap_task1_taskid", "");
@@ -574,14 +573,14 @@ pref("toolkit.telemetry.dap_visit_counting_enabled", false);
 // Note: format of patterns is "<proto>://<host>/<path>"
 // See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns
 pref("toolkit.telemetry.dap_visit_counting_experiment_list", "[]");
-// DAP protocol Leader endpoint. Operated by DivviUp/ISRG.
-// - HPKE key is base64url-encoded response of the /hpke_config path on server.
-pref("toolkit.telemetry.dap.leader.url", "https://dap-09-3.api.divviup.org");
-pref("toolkit.telemetry.dap.leader.hpke", "ACkAACAAAQABACDk8wgwe2-TqHyaL74uqjVWMcF1zi9pxiwQhu4aPwncYw");
-// DAP protocol Helper endpoint. Operated by Mozilla.
-// - HPKE key is base64url-encoded response of the /hpke_config path on server.
-pref("toolkit.telemetry.dap.helper.url", "https://dap.services.mozilla.com");
-pref("toolkit.telemetry.dap.helper.hpke", "ACkAACAAAQABACAucqWdIQRN6BxumPBRXIlg2JsxcznwWX7vyqzM3cjuQA");
+// Leader endpoint for the DAP protocol
+pref("toolkit.telemetry.dap_leader", "https://dap-09-3.api.divviup.org/");
+// Not used for anything. Just additional information.
+pref("toolkit.telemetry.dap_leader_owner", "ISRG");
+// Second DAP server. Only two are currently supported.
+pref("toolkit.telemetry.dap_helper", "https://dap.services.mozilla.com");
+pref("toolkit.telemetry.dap_helper_owner", "Mozilla");
+pref("toolkit.telemetry.dap.logLevel", "Warn");
 
 // Controls telemetry logs for the Translations feature throughout Firefox.
 pref("toolkit.telemetry.translations.logLevel", "Error");

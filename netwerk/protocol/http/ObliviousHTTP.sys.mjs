@@ -28,12 +28,6 @@ const StringInputStream = Components.Constructor(
   "setData"
 );
 
-const ArrayBufferInputStream = Components.Constructor(
-  "@mozilla.org/io/arraybuffer-input-stream;1",
-  "nsIArrayBufferInputStream",
-  "setData"
-);
-
 function readFromStream(stream, count) {
   let binaryStream = new BinaryInputStream(stream);
   let arrayBuffer = new ArrayBuffer(count);
@@ -72,9 +66,9 @@ export class ObliviousHTTP {
    *   The URL of the request we want to make over the relay.
    * @param {object} options
    * @param {string} options.method
-   *   The HTTP method to use for the inner request. Only GET, POST, and PUT are
-   *   supported right now.
-   * @param {string|ArrayBuffer} options.body
+   *   The HTTP method to use for the inner request. Only GET and POST
+   *   are supported right now.
+   * @param {string} options.body
    *   The body content to send over the request.
    * @param {object} options.headers
    *   The request headers to set. Each property of the object represents
@@ -105,36 +99,18 @@ export class ObliviousHTTP {
       .newChannel(relayURI, requestURI, config)
       .QueryInterface(Ci.nsIHttpChannel);
 
-    switch (method) {
-      case "POST":
-      case "PUT":
-        {
-          let uploadChannel = obliviousHttpChannel.QueryInterface(
-            Ci.nsIUploadChannel2
-          );
-          let bodyStream;
-          if (typeof body === "string") {
-            bodyStream = new StringInputStream(body, body.length);
-          } else if (body instanceof ArrayBuffer) {
-            bodyStream = new ArrayBufferInputStream(body, 0, body.byteLength);
-          } else {
-            throw new Error("ohttpRequest got unexpected body payload type.");
-          }
-          uploadChannel.explicitSetUploadStream(
-            bodyStream,
-            null,
-            -1,
-            method,
-            false
-          );
-        }
-        break;
-
-      case "GET":
-        break;
-
-      default:
-        throw new Error("Unknown HTTP method type");
+    if (method == "POST") {
+      let uploadChannel = obliviousHttpChannel.QueryInterface(
+        Ci.nsIUploadChannel2
+      );
+      let bodyStream = new StringInputStream(body, body.length);
+      uploadChannel.explicitSetUploadStream(
+        bodyStream,
+        null,
+        -1,
+        "POST",
+        false
+      );
     }
 
     for (let headerName of Object.keys(headers)) {
