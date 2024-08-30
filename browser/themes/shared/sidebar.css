@@ -102,10 +102,6 @@
   @media (-moz-bool-pref: "sidebar.revamp") {
     transition: background-color 0.5s ease-in-out;
     border-color: transparent;
-    /* #sidebar splitter requires z-index manipulation in order to be
-    interactive and allow box shadows for #sidebar-box and #appcontent
-    to be visible  */
-    z-index: 2;
 
     &:hover {
       background-color: var(--focus-outline-color);
