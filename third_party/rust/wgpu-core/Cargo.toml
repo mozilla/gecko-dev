@@ -103,6 +103,10 @@ fragile-send-sync-non-atomic-wasm = [
 gles = ["hal/gles"]
 glsl = ["naga/glsl-in"]
 metal = ["hal/metal"]
+observe_locks = [
+    "dep:ron",
+    "serde/serde_derive",
+]
 raw-window-handle = ["dep:raw-window-handle"]
 renderdoc = ["hal/renderdoc"]
 replay = [

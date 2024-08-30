@@ -174,6 +174,35 @@ optional = true
 [target."cfg(any(target_os=\"macos\", target_os=\"ios\"))".dependencies.metal]
 version = "0.29.0"
 
+[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.glutin]
+version = "0.31"
+features = [
+    "egl",
+    "wayland",
+    "x11",
+]
+default-features = false
+
+[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.glutin-winit]
+version = "0.4"
+features = [
+    "egl",
+    "wayland",
+    "x11",
+]
+default-features = false
+
+[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.rwh_05]
+version = "0.5"
+package = "raw-window-handle"
+
+[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.winit]
+version = "0.29"
+features = [
+    "android-native-activity",
+    "rwh_05",
+]
+
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.ash]
 version = "0.38.0"
 optional = true
@@ -203,9 +232,6 @@ optional = true
 version = "1"
 features = ["union"]
 optional = true
-
-[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies]
-glutin = "0.29.1"
 
 [target."cfg(target_os = \"android\")".dependencies.android_system_properties]
 version = "0.1.1"

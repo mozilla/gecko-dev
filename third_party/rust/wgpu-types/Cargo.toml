@@ -65,7 +65,9 @@ version = "0.3.70"
 features = [
     "ImageBitmap",
     "ImageData",
+    "HtmlImageElement",
     "HtmlVideoElement",
     "HtmlCanvasElement",
     "OffscreenCanvas",
+    "VideoFrame",
 ]
