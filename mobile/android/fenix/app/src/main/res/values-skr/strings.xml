@@ -834,6 +834,9 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">%s کنوں ٹیب</string>
 
+    <!-- The body for a "closed synced tabs" notification. -->
+    <string name="fxa_tabs_closed_text">حالیہ بند تھیاں ٹیبز ݙیکھو</string>
+
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">استثنيات</string>

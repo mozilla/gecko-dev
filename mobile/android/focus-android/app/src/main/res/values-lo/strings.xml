@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">ຊອກຫາຢູ່ໃນຈຸດສຸມ</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">ຊອກຫາຢູ່ໃນຈຸດສຸມ</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">ຊອກຫາຢູ່ໃນ Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">ຊອກຫາຢູ່ໃນ Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">ຊອກຫາໃນ Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">ຊອກຫາໃນ Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">ຊອກຫາໃນ Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">ຊອກຫາໃນ Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s ເຮັດໃຫ້ທ່ານສາມາດຄວບຄູມໄດ້.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ເຮັດໃຫ້ທ່ານສາມາດຄວບຄູມໄດ້.</p>
 <p>ໃຊ້ເປັນແບບບຣາວເຊີສ່ວນຕົວ:
   <ul>
     <li>ຄົ້ນຫາ ແລະ ທ່ອງເວັບພາຍໃນແອັບ</li>
@@ -611,7 +611,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">ດາວໂຫລດ Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">ດາວໂຫລດ Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -623,23 +623,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s ໃຫ້ທ່ານໃຊ້ພາຍໃຕ້ເງື່ອນໄຂຂອງ <a href="%2$s"> Mozilla Public License</a> ແລະ ສັນຍາອະນຸຍາດໂອເພ່ນຊອດອື່ນໆ.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ໃຫ້ທ່ານໃຊ້ພາຍໃຕ້ເງື່ອນໄຂຂອງ <a href="%2$s"> Mozilla Public License</a> ແລະ ສັນຍາອະນຸຍາດໂອເພ່ນຊອດອື່ນໆ.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[ທ່ານບໍ່ໄດ້ຮັບສິດ ຫຼື ສັນຍາອະນຸຍາດໃດໆ ໃນເຄື່ອງໝາຍການຄ້າຂອງມູລະນີທິ Mozilla ຫຼື ບຸກຄົນໃດໆ ລວມທັງຊື່ ຫຼື ໂລໂກ້ Mozilla, Firefox ຫຼື %1$s. ຂໍ້ມູນເພີ່ມຕື່ມສາມາດພົບໄດ້ທີ່<a href="%2$s">ນີ້</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[ທ່ານບໍ່ໄດ້ຮັບສິດ ຫຼື ສັນຍາອະນຸຍາດໃດໆ ໃນເຄື່ອງໝາຍການຄ້າຂອງມູລະນີທິ Mozilla ຫຼື ບຸກຄົນໃດໆ ລວມທັງຊື່ ຫຼື ໂລໂກ້ Mozilla, Firefox ຫຼື %1$s. ຂໍ້ມູນເພີ່ມຕື່ມສາມາດພົບໄດ້ທີ່<a href="%2$s">ນີ້</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[ໂຄດຕົ້ນສະບັບເພີມຕື່ມສຳລັບ %1$s ໃຊ້ໄດ້ພາຍໃຕ້<a href="%2$s">ສັນຍາອະນຸຍາດ</a>ເສລີ ແລະ ໂອເພ່ນຊອດອື່ນໆ.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ໂຄດຕົ້ນສະບັບເພີມຕື່ມສຳລັບ %1$s ໃຊ້ໄດ້ພາຍໃຕ້<a href="%2$s">ສັນຍາອະນຸຍາດ</a>ເສລີ ແລະ ໂອເພ່ນຊອດອື່ນໆ.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s ຍັງໃຊ້ລາຍການລະງັບທີ່ໃຫ້ບໍລິການໂດຍ Disconect, Inc. ເຊີ່ງເປັນງານແຍກ ແລະ ເປັນອິດສະຫຼະພາຍໃຕ້<a href="%2$s">GNU General Public License v3</a>, ແລະ ໃຊ້ໄດ້<a href="%3$s">ນີ້</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ຍັງໃຊ້ລາຍການລະງັບທີ່ໃຫ້ບໍລິການໂດຍ Disconect, Inc. ເຊີ່ງເປັນງານແຍກ ແລະ ເປັນອິດສະຫຼະພາຍໃຕ້<a href="%2$s">GNU General Public License v3</a>, ແລະ ໃຊ້ໄດ້<a href="%3$s">ນີ້</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">ຊື່ຜູ້ໃຊ້</string>
@@ -831,7 +831,7 @@
     <string name="preference_studies">ການສຶກສາ</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox ອາດຈະຕິດຕັ້ງແລະດໍາເນີນການສຶກສາເປັນບາງເວລາ.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox ອາດຈະຕິດຕັ້ງແລະດໍາເນີນການສຶກສາເປັນບາງເວລາ.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
@@ -927,7 +927,7 @@
     <string name="open_new_tab_snackbar">ສະລັບ</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">ເຂົ້າສູ່ໂມດເຕັມຫນ້າຈໍ</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ເຂົ້າສູ່ໂມດເຕັມຫນ້າຈໍ</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">ສະລັບໄປຫາແທັບໃຫມ່ທັນທີ</string>
@@ -1036,7 +1036,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s ພະຍາຍາມໃຊ້ການເຊື່ອມຕໍ່ HTTPS ທຸກຄັ້ງທີ່ເປັນໄປໄດ້ເພື່ອຄວາມປອດໄພຫຼາຍຂຶ້ນ.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ພະຍາຍາມໃຊ້ການເຊື່ອມຕໍ່ HTTPS ທຸກຄັ້ງທີ່ເປັນໄປໄດ້ເພື່ອຄວາມປອດໄພຫຼາຍຂຶ້ນ.
      <a href="%2$s">ສຶກສາເພີ່ມເຕີມ</a> <br/><br/>
      ປ່ຽນການຕັ້ງຄ່ານີ້ໃນການຕັ້ງຄ່າ > ຄວາມເປັນສ່ວນຕົວ & amp; ຄວາມປອດໄພ > ຄວາມປອດໄພ.]]></string>
 
@@ -1118,4 +1118,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">ເພີ່ມວິດເຈັດໃສ່ໜ້າຈໍຫຼັກແລ້ວ</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງແລ້ວໃຊ້ທ່າທາງກັບຄືນ</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງ ແລະ ກົດກັບຄືນ</string>
 </resources>
