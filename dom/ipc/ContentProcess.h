@@ -32,6 +32,8 @@ class ContentProcess : public mozilla::ipc::ProcessChild {
   virtual void CleanUp() override;
 
  private:
+  void InfallibleInit(int aArgc, char* aArgv[]);
+
   ContentChild mContent;
 #if defined(XP_WIN)
   // This object initializes and configures COM. This must happen prior to
