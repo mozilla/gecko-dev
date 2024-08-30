@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "glslopt"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["Jamie Nicol <jnicol@mozilla.com>"]
 description = "Optimizes GLSL shader code"
 readme = "README.md"
