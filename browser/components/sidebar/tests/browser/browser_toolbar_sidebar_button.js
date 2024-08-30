@@ -93,10 +93,14 @@ add_task(async function test_expanded_state_for_always_show() {
 
   info("Check default expanded state.");
   await checkExpandedState(false);
-
+  ok(
+    !toolbarButton.hasAttribute("checked"),
+    "The toolbar button is not checked."
+  );
   info("Toggle expanded state via toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkExpandedState(true);
+  ok(toolbarButton.hasAttribute("checked"), "The toolbar button is checked.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkExpandedState(false);
 
