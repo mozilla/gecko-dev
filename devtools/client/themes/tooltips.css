@@ -104,6 +104,11 @@ strong {
   min-inline-size: 60px;
   max-inline-size: min(500px, 100vw);
 
+  /* If only the "top" section is displayed, to avoid smaller text (e.g. `10px`) to look unbalanced */
+  .variable-value:not(:has(+ .variable-tooltip-section)) {
+    text-align: center;
+  }
+  /* If there are other sections, add some space below the value */
   .variable-value:has(+ .variable-tooltip-section) {
     padding-block-end: var(--block-padding);
   }
