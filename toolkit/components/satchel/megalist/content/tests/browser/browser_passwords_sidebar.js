@@ -25,17 +25,8 @@ const EXPECTED_PASSWORD_CARD_VALUES = [
   },
 ];
 
-const openPasswordsSidebar = async () => {
-  info("Open Passwords sidebar");
-  await SidebarController.show("viewMegalistSidebar");
-  const sidebar = document.getElementById("sidebar");
-  const passwordsSidebar =
-    sidebar.contentDocument.querySelector("megalist-alpha").shadowRoot;
-  return passwordsSidebar;
-};
-
-function checkPasswordCardFields(passwordsSidebar) {
-  const list = passwordsSidebar.querySelector(".passwords-list");
+function checkPasswordCardFields(megalist) {
+  const list = megalist.querySelector(".passwords-list");
   const cards = list.querySelectorAll("password-card");
 
   for (let i = 0; i < EXPECTED_PASSWORD_CARD_VALUES.length; i++) {
@@ -72,21 +63,11 @@ add_setup(async function () {
 
 add_task(async function test_passwords_sidebar() {
   await addMockPasswords();
-  const passwordsSidebar = await openPasswordsSidebar();
-
-  info("Check that records are rendered");
-  await BrowserTestUtils.waitForMutationCondition(
-    passwordsSidebar,
-    { childList: true, subtree: true },
-    () => {
-      const passwordsList = passwordsSidebar.querySelector(".passwords-list");
-      return passwordsList?.querySelectorAll("password-card").length === 3;
-    }
-  );
-  ok(true, "3 password cards are rendered.");
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
 
   info("Check correct initial login info is rendered.");
-  checkPasswordCardFields(passwordsSidebar);
+  checkPasswordCardFields(megalist);
 
   LoginTestUtils.clearData();
   info("Closing the sidebar");

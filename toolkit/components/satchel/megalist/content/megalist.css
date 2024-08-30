@@ -339,11 +339,6 @@ password-card {
   justify-content: space-between;
 }
 
-.toggle-buttons {
-  display: flex;
-  gap: var(--space-small);
-}
-
 .selected::part(button) {
   background-color: var(--button-background-color-active);
 }

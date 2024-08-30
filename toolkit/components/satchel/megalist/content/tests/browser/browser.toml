@@ -1,10 +1,12 @@
 [DEFAULT]
+skip-if = ["release_or_beta"]
+
 support-files = [
   "head.js",
 ]
 
+["browser_passwords_filter.js"]
+
 ["browser_passwords_sidebar.js"]
-skip-if = ["release_or_beta"] # bug 1908665
 
 ["browser_viewmodel.js"]
-skip-if = ["release_or_beta"]

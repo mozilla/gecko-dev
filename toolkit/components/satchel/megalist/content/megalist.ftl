@@ -135,6 +135,17 @@ passwords-origin-label = Website address
 passwords-username-label = Username
 passwords-password-label = Password
 
+passwords-radiogroup-label =
+  .aria-label = Filter passwords
+
+# Radiobutton label to display total number of passwords
+#   $total (number) - Total number of passwords
+passwords-radiobutton-all = All ({ $total })
+
+# Radiobutton label to display total number of alerts
+#   $total (number) - Total number of alerts
+passwords-radiobutton-alerts = Alerts ({ $total })
+
 ## Payments
 
 payments-command-create = Add Payment Method

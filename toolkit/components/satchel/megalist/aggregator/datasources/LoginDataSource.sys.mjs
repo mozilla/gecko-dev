@@ -537,7 +537,7 @@ export class LoginDataSource extends DataSourceBase {
         login.password.toUpperCase().includes(searchText)
     );
 
-    this.#header.value.total = stats.total;
+    this.#header.value.statsTotal = stats.total;
   }
 
   /**
@@ -561,8 +561,16 @@ export class LoginDataSource extends DataSourceBase {
       ? await lazy.LoginBreaches.getPotentialBreachesByLoginGUID(logins)
       : new Map();
 
-    let alertsAcc = 0;
-    logins.forEach(login => {
+    const breachedOrVulnerableLogins = logins.filter(
+      login =>
+        breachesMap.has(login.guid) ||
+        lazy.LoginBreaches.isVulnerablePassword(login)
+    );
+
+    const filteredLogins =
+      this.#sortId === "alerts" ? breachedOrVulnerableLogins : logins;
+
+    filteredLogins.forEach(login => {
       // Similar domains will be grouped together
       // www. will have least effect on the sorting
       const parts = login.displayOrigin.split(".");
@@ -578,10 +586,8 @@ export class LoginDataSource extends DataSourceBase {
       let alertValue;
       if (isLoginBreached) {
         alertValue = ALERT_VALUES.breached;
-        alertsAcc += 1;
       } else if (isLoginVulnerable) {
         alertValue = ALERT_VALUES.vulnerable;
-        alertsAcc += 1;
       } else {
         alertValue = ALERT_VALUES.none;
       }
@@ -607,7 +613,9 @@ export class LoginDataSource extends DataSourceBase {
       originLine.breached = isLoginBreached;
       passwordLine.vulnerable = isLoginVulnerable;
     });
-    this.#header.value.alerts = alertsAcc;
+
+    this.#header.value.total = logins.length;
+    this.#header.value.alerts = breachedOrVulnerableLogins.length;
     this.afterReloadingDataSource();
     this.doneReloadDataSource = true;
   }

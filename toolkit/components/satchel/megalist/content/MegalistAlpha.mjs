@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, classMap } from "chrome://global/content/vendor/lit.all.mjs";
+import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/PasswordCard.mjs";
 
 const DISPLAY_MODES = {
-  ALERTS: "alerts",
-  ALL: "all",
+  ALERTS: "SortByAlerts",
+  ALL: "SortByName",
 };
 
 export class MegalistAlpha extends MozLitElement {
@@ -60,19 +60,14 @@ export class MegalistAlpha extends MozLitElement {
     // TODO: implement me!
   }
 
-  #onShowAllButtonClick() {
-    this.displayMode = DISPLAY_MODES.ALL;
-    this.#sendCommand("SortByName");
+  #onRadioButtonChange(e) {
+    this.displayMode = e.target.value;
+    this.#sendCommand(this.displayMode);
   }
 
   #openMenu(e) {
     const panelList = this.shadowRoot.querySelector("panel-list");
     panelList.toggle(e);
-  }
-
-  #onSortByAlertsButtonClick() {
-    this.displayMode = DISPLAY_MODES.ALERTS;
-    this.#sendCommand("SortByAlerts");
   }
 
   #messageToViewModel(messageName, data) {
@@ -167,29 +162,35 @@ export class MegalistAlpha extends MozLitElement {
     </div>`;
   }
 
-  renderButton(title, selected, onClick) {
-    return html`<moz-button
-      class=${classMap({ selected })}
-      iconSrc=${selected ? "chrome://global/skin/icons/check.svg" : ""}
-      @click=${onClick}
-    >
-      ${title}
-    </moz-button>`;
-  }
-
-  renderToggleButtons() {
+  renderRadioButtons() {
     return html`
-      <div class="toggle-buttons">
-        ${this.renderButton(
-          `All (${this.header.value.total})`,
-          this.displayMode === DISPLAY_MODES.ALL,
-          this.#onShowAllButtonClick
-        )}
-        ${this.renderButton(
-          `Alerts (${this.header.value.alerts})`,
-          this.displayMode === DISPLAY_MODES.ALERTS,
-          this.#onSortByAlertsButtonClick
-        )}
+      <div data-l10n-id="passwords-radiogroup-label" role="radiogroup">
+        <input
+          @change=${this.#onRadioButtonChange}
+          checked
+          type="radio"
+          id="allLogins"
+          name="logins"
+          value=${DISPLAY_MODES.ALL}
+        />
+        <label
+          for="allLogins"
+          data-l10n-id="passwords-radiobutton-all"
+          data-l10n-args=${JSON.stringify({ total: this.header.value.total })}
+        ></label>
+
+        <input
+          @change=${this.#onRadioButtonChange}
+          type="radio"
+          id="alerts"
+          name="logins"
+          value=${DISPLAY_MODES.ALERTS}
+        />
+        <label
+          for="alerts"
+          data-l10n-id="passwords-radiobutton-alerts"
+          data-l10n-args=${JSON.stringify({ total: this.header.value.alerts })}
+        ></label>
       </div>
     `;
   }
@@ -248,7 +249,7 @@ export class MegalistAlpha extends MozLitElement {
     }
 
     return html`<div class="second-row">
-      ${this.renderToggleButtons()} ${this.renderMenu()}
+      ${this.renderRadioButtons()} ${this.renderMenu()}
     </div>`;
   }
 
