@@ -11,6 +11,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 ChromeUtils.defineESModuleGetters(lazy, {
   IndexedDB: "resource://gre/modules/IndexedDB.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
+  HPKEConfigManager: "resource://gre/modules/HPKEConfigManager.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -27,6 +29,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "gOhttpRelayUrl",
+  "toolkit.shopping.ohttpRelayURL"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "gOhttpGatewayKeyUrl",
+  "toolkit.shopping.ohttpConfigURL"
+);
+
 const MAX_CONVERSIONS = 2;
 const DAY_IN_MILLI = 1000 * 60 * 60 * 24;
 const CONVERSION_RESET_MILLI = 7 * DAY_IN_MILLI;
@@ -36,10 +49,16 @@ const DAP_TIMEOUT_MILLI = 30000;
  *
  */
 export class PrivateAttributionService {
-  constructor({ dapTelemetrySender, dateProvider, testForceEnabled } = {}) {
+  constructor({
+    dapTelemetrySender,
+    dateProvider,
+    testForceEnabled,
+    testDapOptions,
+  } = {}) {
     this._dapTelemetrySender = dapTelemetrySender;
     this._dateProvider = dateProvider ?? Date;
     this._testForceEnabled = testForceEnabled;
+    this._testDapOptions = testDapOptions;
 
     this.dbName = "PrivateAttribution";
     this.impressionStoreName = "impressions";
@@ -260,10 +279,35 @@ export class PrivateAttributionService {
     const measurement = new Array(size).fill(0);
     measurement[index] = value;
 
+    let options = {
+      timeout: DAP_TIMEOUT_MILLI,
+      ohttp_relay: lazy.gOhttpRelayUrl,
+      ...this._testDapOptions,
+    };
+
+    if (options.ohttp_relay) {
+      // Fetch the OHTTP-Gateway-HPKE key if not provided yet.
+      if (!options.ohttp_hpke) {
+        const controller = new AbortController();
+        lazy.setTimeout(() => controller.abort(), DAP_TIMEOUT_MILLI);
+
+        options.ohttp_hpke = await lazy.HPKEConfigManager.get(
+          lazy.gOhttpGatewayKeyUrl,
+          {
+            maxAge: DAY_IN_MILLI,
+            abortSignal: controller.signal,
+          }
+        );
+      }
+    } else if (!this._testForceEnabled) {
+      // Except for testing, do no allow PPA to bypass OHTTP.
+      throw new Error("PPA requires an OHTTP relay for submission");
+    }
+
     await this.dapTelemetrySender.sendDAPMeasurement(
       task,
       measurement,
-      DAP_TIMEOUT_MILLI
+      options
     );
   }
 

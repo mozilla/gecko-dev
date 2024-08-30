@@ -2323,6 +2323,36 @@ dapTelemetry:
       type: json
       description: A list of experiments with URLs for which we want to count visits.
 
+dapAggregators:
+  description: Aggregator server configuration to use for submitting DAP reports.
+  owner: tcampbell@mozilla.com
+  hasExposure: false
+  variables:
+    leader_url:
+      description: The URL of the DAP Leader server where reports are submitted.
+      type: string
+      setPref:
+        branch: default
+        pref: "toolkit.telemetry.dap.leader.url"
+    leader_hpke:
+      description: The base64-encode HPKE key to encrypt leader shares with.
+      type: string
+      setPref:
+        branch: default
+        pref: "toolkit.telemetry.dap.leader.hpke"
+    helper_url:
+      description: The URL of the DAP Helper server.
+      type: string
+      setPref:
+        branch: default
+        pref: "toolkit.telemetry.dap.helper.url"
+    helper_hpke:
+      description: The base64-encode HPKE key to encrypt helper shares with.
+      type: string
+      setPref:
+        branch: default
+        pref: "toolkit.telemetry.dap.helper.hpke"
+
 etpLevel2PBMPref:
   description: The pref that controls the ETP level 2 list in the private browsing mode
   owner: tihuang@mozilla.com

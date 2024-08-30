@@ -21,14 +21,8 @@ const BinaryInputStream = Components.Constructor(
   "setInputStream"
 );
 
-const BinaryOutputStream = Components.Constructor(
-  "@mozilla.org/binaryoutputstream;1",
-  "nsIBinaryOutputStream",
-  "setOutputStream"
-);
-
-const PREF_LEADER = "toolkit.telemetry.dap_leader";
-const PREF_HELPER = "toolkit.telemetry.dap_helper";
+const PREF_LEADER = "toolkit.telemetry.dap.leader.url";
+const PREF_HELPER = "toolkit.telemetry.dap.helper.url";
 const TASK_ID = "DSZGMFh26hBYXNaKvhL_N4AHA3P5lDn19on1vFPBxJM";
 const MAX_CONVERSIONS = 2;
 const DAY_IN_MILLI = 1000 * 60 * 60 * 24;
@@ -54,7 +48,7 @@ class MockDAPTelemetrySender {
     this.receivedMeasurements = [];
   }
 
-  async sendDAPMeasurement(task, measurement, timeout) {
+  async sendDAPMeasurement(task, measurement, { timeout }) {
     this.receivedMeasurements.push({
       task,
       measurement,
@@ -68,14 +62,6 @@ class MockServer {
     this.receivedReports = [];
 
     const server = new HttpServer();
-    server.registerPathHandler(
-      "/leader_endpoint/hpke_config",
-      this.hpkeConfigHandler
-    );
-    server.registerPathHandler(
-      "/helper_endpoint/hpke_config",
-      this.hpkeConfigHandler
-    );
 
     server.registerPrefixHandler(
       "/leader_endpoint/tasks/",
@@ -103,26 +89,6 @@ class MockServer {
     Services.prefs.setStringPref(PREF_HELPER, this.orig_helper);
 
     await this._server.stop();
-  }
-
-  hpkeConfigHandler(request, response) {
-    let config_bytes;
-    if (request.path.startsWith("/leader")) {
-      config_bytes = new Uint8Array([
-        0, 41, 47, 0, 32, 0, 1, 0, 1, 0, 32, 11, 33, 206, 33, 131, 56, 220, 82,
-        153, 110, 228, 200, 53, 98, 210, 38, 177, 197, 252, 198, 36, 201, 86,
-        121, 169, 238, 220, 34, 143, 112, 177, 10,
-      ]);
-    } else {
-      config_bytes = new Uint8Array([
-        0, 41, 42, 0, 32, 0, 1, 0, 1, 0, 32, 28, 62, 242, 195, 117, 7, 173, 149,
-        250, 15, 139, 178, 86, 241, 117, 143, 75, 26, 57, 60, 88, 130, 199, 175,
-        195, 9, 241, 130, 61, 47, 215, 101,
-      ]);
-    }
-    response.setHeader("Content-Type", "application/dap-hpke-config");
-    let bos = new BinaryOutputStream(response.bodyOutputStream);
-    bos.writeByteArray(config_bytes);
   }
 
   uploadHandler(request, response) {
@@ -166,6 +132,7 @@ add_task(async function testSuccessfulConversion() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source.test";
@@ -220,6 +187,7 @@ add_task(async function testImpressionsOnMultipleSites() {
     dapTelemetrySender: mockSender,
     dateProvider: mockDateProvider,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost1 = "source-multiple-1.test";
@@ -308,6 +276,7 @@ add_task(async function testConversionWithoutImpression() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-no-impression.test";
@@ -337,6 +306,7 @@ add_task(async function testSelectionByInteractionType() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-by-type.test";
@@ -388,6 +358,7 @@ add_task(async function testSelectionBySourceSite() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost1 = "source-by-site-1.test";
@@ -455,6 +426,7 @@ add_task(async function testSelectionByAdIdentifier() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-by-ad-id.test";
@@ -524,6 +496,7 @@ add_task(async function testExpiredImpressions() {
     dapTelemetrySender: mockSender,
     dateProvider: mockDateProvider,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-expired.test";
@@ -567,6 +540,7 @@ add_task(async function testConversionBudget() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-budget.test";
@@ -622,6 +596,7 @@ add_task(async function testHistogramSize() {
   const privateAttribution = new PrivateAttributionService({
     dapTelemetrySender: mockSender,
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
   });
 
   const sourceHost = "source-histogram.test";
@@ -658,12 +633,161 @@ add_task(async function testHistogramSize() {
 add_task(async function testWithRealDAPSender() {
   Services.fog.testResetFOG();
 
-  // Omit mocking DAP telemetry sender in this test to defend against mock sender getting out of sync
+  // Omit mocking DAP telemetry sender in this test to defend against mock
+  // sender getting out of sync
   const mockServer = new MockServer();
   mockServer.start();
 
   const privateAttribution = new PrivateAttributionService({
     testForceEnabled: true,
+    testDapOptions: { ohttp_relay: null },
+  });
+
+  const sourceHost = "source-telemetry.test";
+  const targetHost = "target-telemetry.test";
+  const adIdentifier = "ad_identifier_telemetry";
+  const adIndex = 4;
+
+  await privateAttribution.onAttributionEvent(
+    sourceHost,
+    "view",
+    adIndex,
+    adIdentifier,
+    targetHost
+  );
+
+  await privateAttribution.onAttributionConversion(
+    targetHost,
+    TASK_ID,
+    HISTOGRAM_SIZE,
+    LOOKBACK_DAYS,
+    "view",
+    [adIdentifier],
+    [sourceHost]
+  );
+
+  await mockServer.stop();
+
+  Assert.equal(mockServer.receivedReports.length, 1);
+
+  const expectedReport = {
+    contentType: "application/dap-report",
+    size: 1318,
+  };
+
+  const receivedReport = mockServer.receivedReports.pop();
+  Assert.deepEqual(receivedReport, expectedReport);
+});
+
+function BinaryHttpResponse(status, headerNames, headerValues, content) {
+  this.status = status;
+  this.headerNames = headerNames;
+  this.headerValues = headerValues;
+  this.content = content;
+}
+
+BinaryHttpResponse.prototype = {
+  QueryInterface: ChromeUtils.generateQI(["nsIBinaryHttpResponse"]),
+};
+
+class MockOHTTPBackend {
+  HOST;
+  #ohttpServer;
+
+  constructor() {
+    let ohttp = Cc["@mozilla.org/network/oblivious-http;1"].getService(
+      Ci.nsIObliviousHttp
+    );
+    this.#ohttpServer = ohttp.server();
+
+    let httpServer = new HttpServer(); // This is the OHTTP relay endpoint.
+    httpServer.registerPathHandler(
+      new URL(this.getRelayAddress()).pathname,
+      this.handle_relay_request.bind(this)
+    );
+    httpServer.start(-1);
+    this.HOST = `localhost:${httpServer.identity.primaryPort}`;
+    registerCleanupFunction(() => {
+      return new Promise(resolve => {
+        httpServer.stop(resolve);
+      });
+    });
+  }
+
+  getRelayAddress() {
+    return `http://${this.HOST}/relay/`;
+  }
+
+  getOHTTPConfig() {
+    return this.#ohttpServer.encodedConfig;
+  }
+
+  async handle_relay_request(request, response) {
+    let inputStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+      Ci.nsIBinaryInputStream
+    );
+    inputStream.setInputStream(request.bodyInputStream);
+    let requestBody = inputStream.readByteArray(inputStream.available());
+    let ohttpRequest = this.#ohttpServer.decapsulate(requestBody);
+    let bhttp = Cc["@mozilla.org/network/binary-http;1"].getService(
+      Ci.nsIBinaryHttp
+    );
+    let decodedRequest = bhttp.decodeRequest(ohttpRequest.request);
+    response.processAsync();
+    let real_destination =
+      decodedRequest.scheme +
+      "://" +
+      decodedRequest.authority +
+      decodedRequest.path;
+    let innerBody = new Uint8Array(decodedRequest.content);
+    let innerRequestHeaders = Object.fromEntries(
+      decodedRequest.headerNames.map((name, index) => {
+        return [name, decodedRequest.headerValues[index]];
+      })
+    );
+    let innerResponse = await fetch(real_destination, {
+      method: decodedRequest.method,
+      headers: innerRequestHeaders,
+      body: innerBody,
+    });
+    let bytes = new Uint8Array(await innerResponse.arrayBuffer());
+    let binaryResponse = new BinaryHttpResponse(
+      innerResponse.status,
+      ["Content-Type"],
+      ["application/octet-stream"],
+      bytes
+    );
+    let encResponse = ohttpRequest.encapsulate(
+      bhttp.encodeResponse(binaryResponse)
+    );
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.setHeader("Content-Type", "message/ohttp-res", false);
+
+    let bstream = Cc["@mozilla.org/binaryoutputstream;1"].createInstance(
+      Ci.nsIBinaryOutputStream
+    );
+    bstream.setOutputStream(response.bodyOutputStream);
+    bstream.writeByteArray(encResponse);
+    response.finish();
+  }
+}
+
+add_task(async function testWithRealDAPSenderAndOHTTP() {
+  Services.fog.testResetFOG();
+
+  const mockServer = new MockServer();
+  mockServer.start();
+
+  let ohttpBackend = new MockOHTTPBackend();
+
+  let testDapOptions = {
+    ohttp_relay: ohttpBackend.getRelayAddress(),
+    ohttp_hpke: ohttpBackend.getOHTTPConfig(),
+  };
+
+  const privateAttribution = new PrivateAttributionService({
+    testForceEnabled: true,
+    testDapOptions,
   });
 
   const sourceHost = "source-telemetry.test";
