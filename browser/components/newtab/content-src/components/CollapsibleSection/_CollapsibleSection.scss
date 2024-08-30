@@ -121,7 +121,7 @@
     .button-topic-selection {
       display: none;
 
-      @media(min-width: $break-point-large) {
+      @media(min-width: $break-point-layout-variant) {
         display: block;
       }
     }

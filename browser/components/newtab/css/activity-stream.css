@@ -539,7 +539,7 @@ main section {
     width: 346px;
   }
 }
-@media (min-width: 866px) {
+@media (min-width: 724px) {
   .layout-variant-a .ds-outer-wrapper-breakpoint-override main,
 .layout-variant-b .ds-outer-wrapper-breakpoint-override main {
     width: auto;
@@ -742,7 +742,7 @@ main section {
   grid-template-columns: repeat(3, 1fr);
   row-gap: var(--space-xlarge);
 }
-@media (min-width: 866px) {
+@media (min-width: 724px) {
   .layout-variant-a .top-sites-list, .layout-variant-b .top-sites-list {
     grid-template-columns: repeat(6, 1fr);
   }
@@ -3382,7 +3382,7 @@ main section {
 .layout-variant-a .collapsible-section .button-topic-selection, .layout-variant-b .collapsible-section .button-topic-selection {
   display: none;
 }
-@media (min-width: 866px) {
+@media (min-width: 724px) {
   .layout-variant-a .collapsible-section .button-topic-selection, .layout-variant-b .collapsible-section .button-topic-selection {
     display: block;
   }

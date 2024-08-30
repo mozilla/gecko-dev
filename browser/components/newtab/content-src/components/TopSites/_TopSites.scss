@@ -24,7 +24,7 @@ $letter-fallback-color: $white;
     grid-template-columns: repeat(3, 1fr);
     row-gap: var(--space-xlarge);
 
-    @media (min-width: $break-point-large) {
+    @media (min-width: $break-point-layout-variant) {
       grid-template-columns: repeat(6, 1fr);
     }
 

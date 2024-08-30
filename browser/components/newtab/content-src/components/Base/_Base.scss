@@ -115,7 +115,7 @@ main {
 
     }
 
-    @media (min-width: $break-point-large) {
+    @media (min-width: $break-point-layout-variant) {
       width: auto;
 
       .ds-card-grid {
@@ -125,6 +125,7 @@ main {
       .body-wrapper {
         width: 659px;
       }
+
     }
 
     @media (min-width: $break-point-widest) {
