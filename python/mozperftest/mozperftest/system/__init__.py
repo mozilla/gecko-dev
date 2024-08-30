@@ -56,4 +56,9 @@ def pick_system(env, flavor, mach_cmd):
             VersionProducer,
         ]
         return Layers(env, mach_cmd, layers)
+    if flavor == "alert":
+        # The alert flavor runs other test harnesses that
+        # do their own setups so there's no need to setup
+        # the system in mozperftest
+        return Layers(env, mach_cmd, [])
     raise NotImplementedError(flavor)
