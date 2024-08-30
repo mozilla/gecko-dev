@@ -66,6 +66,43 @@ add_task(async function test_toggle_vertical_tabs() {
 
   is(win.gBrowser.tabs.length, 2, "Tabstrip now has two tabs");
 
+  let tabRect = win.gBrowser.selectedTab.getBoundingClientRect();
+  let containerRect = win.gBrowser.tabContainer.getBoundingClientRect();
+
+  Assert.greater(
+    containerRect.bottom - tabRect.bottom,
+    500,
+    "Container should extend far beyond the last tab."
+  );
+
+  // Synthesize a double click 100px below the last tab
+  EventUtils.synthesizeMouseAtPoint(
+    containerRect.left + containerRect.width / 2,
+    tabRect.bottom + 100,
+    { clickCount: 1 },
+    win
+  );
+  EventUtils.synthesizeMouseAtPoint(
+    containerRect.left + containerRect.width / 2,
+    tabRect.bottom + 100,
+    { clickCount: 2 },
+    win
+  );
+
+  is(win.gBrowser.tabs.length, 3, "Tabstrip now has three tabs");
+
+  tabRect = win.gBrowser.selectedTab.getBoundingClientRect();
+
+  // Middle click should also open a new tab.
+  EventUtils.synthesizeMouseAtPoint(
+    containerRect.left + containerRect.width / 2,
+    tabRect.bottom + 100,
+    { button: 1 },
+    win
+  );
+
+  is(win.gBrowser.tabs.length, 4, "Tabstrip now has four tabs");
+
   // flip the pref to move the tabstrip horizontally
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", false]] });
 

@@ -814,10 +814,12 @@ tab-group {
 sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
   min-width: inherit;
   width: var(--collapsed-tab-width);
+  flex: none;
 }
 
 sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
   min-width: calc(100% - var(--space-medium));
+  flex: none;
 }
 
 #newtab-button-container {
@@ -852,7 +854,8 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
 
 #tabbrowser-tabs[orient="vertical"] {
   overflow: hidden;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-content: flex-start;
   grid-gap: var(--space-small);
 
