@@ -155,6 +155,9 @@ export class PdfJsTelemetry {
       case "info":
         Glean.pdfjsImageAltText.info.record(data);
         break;
+      case "ai_generation_check":
+        Glean.pdfjsImageAltText.aiGenerationCheck.record(data);
+        break;
       case "settings_displayed":
         Glean.pdfjsImageAltText.settingsDisplayed.record(data);
         break;

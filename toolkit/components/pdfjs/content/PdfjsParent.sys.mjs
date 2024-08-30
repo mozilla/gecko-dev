@@ -70,29 +70,7 @@ export class PdfjsParent extends JSWindowActorParent {
     this._boundToFindbar = null;
     this._findFailedString = null;
 
-    PdfJsTelemetry.report({
-      type: "editing",
-      data: {
-        type: "stamp",
-        action: "pdfjs.image.alt_text_edit",
-        data: {
-          ask_to_edit:
-            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
-            Services.prefs.getBoolPref(
-              "pdfjs.enableNewAltTextWhenAddingImage",
-              false
-            ),
-          ai_generation:
-            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
-            Services.prefs.getBoolPref("pdfjs.enableGuessAltText", false) &&
-            Services.prefs.getBoolPref(
-              "pdfjs.enableAltTextModelDownload",
-              false
-            ) &&
-            Services.prefs.getBoolPref("browser.ml.enable", false),
-        },
-      },
-    });
+    this._updatedPreference();
   }
 
   didDestroy() {
@@ -121,6 +99,8 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._loadAIEngine(aMsg);
       case "PDFJS:Parent:mlDelete":
         return this._mlDelete(aMsg);
+      case "PDFJS:Parent:updatedPreference":
+        return this._updatedPreference(aMsg);
     }
     return undefined;
   }
@@ -131,6 +111,32 @@ export class PdfjsParent extends JSWindowActorParent {
 
   get browser() {
     return this.browsingContext.top.embedderElement;
+  }
+
+  _updatedPreference() {
+    PdfJsTelemetry.report({
+      type: "editing",
+      data: {
+        type: "stamp",
+        action: "pdfjs.image.alt_text_edit",
+        data: {
+          ask_to_edit:
+            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
+            Services.prefs.getBoolPref(
+              "pdfjs.enableNewAltTextWhenAddingImage",
+              false
+            ),
+          ai_generation:
+            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
+            Services.prefs.getBoolPref("pdfjs.enableGuessAltText", false) &&
+            Services.prefs.getBoolPref(
+              "pdfjs.enableAltTextModelDownload",
+              false
+            ) &&
+            Services.prefs.getBoolPref("browser.ml.enable", false),
+        },
+      },
+    });
   }
 
   _setPreferences({ data }) {
