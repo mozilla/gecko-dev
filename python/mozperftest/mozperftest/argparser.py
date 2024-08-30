@@ -30,7 +30,6 @@ FLAVORS = (
     "webpagetest",
     "mochitest",
     "custom-script",
-    "alert",
 )
 
 

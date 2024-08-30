@@ -85,7 +85,6 @@ class ScriptType(Enum):
     browsertime = 2
     mochitest = 3
     custom = 4
-    alert = 5
 
 
 class HTMLScriptParser(HTMLParser):
@@ -109,8 +108,6 @@ class ScriptInfo(defaultdict):
                 self._parse_html_file()
             elif self.script.suffix == ".sh":
                 self._parse_shell_script()
-            elif str(path).isdigit():
-                self._parse_alert_test(int(path))
             else:
                 self._parse_js_file()
         except Exception as e:
@@ -118,15 +115,10 @@ class ScriptInfo(defaultdict):
 
         # If the fields found, don't match our known ones, then an error is raised
         for field, required in METADATA:
-            if not required or self.script_type == ScriptType.alert:
+            if not required:
                 continue
             if field not in self:
                 raise MissingFieldError(path, field)
-
-    def _parse_alert_test(self, alert_summary_id):
-        self.script = int(alert_summary_id)
-        self.script_content = ""
-        self.script_type = ScriptType.alert
 
     def _set_script_content(self):
         self["filename"] = str(self.script)
