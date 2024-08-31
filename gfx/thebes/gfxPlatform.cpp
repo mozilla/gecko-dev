@@ -171,13 +171,23 @@ using namespace mozilla::layers;
 using namespace mozilla::gl;
 using namespace mozilla::gfx;
 
+gfxPlatform* gPlatform = nullptr;
 static bool gEverInitialized = false;
-gfxPlatform* gfxPlatform::gPlatform = nullptr;
-
-Atomic<bool, ReleaseAcquire> gfxPlatform::gCMSInitialized;
-CMSMode gfxPlatform::gCMSMode = CMSMode::Off;
 
 const ContentDeviceData* gContentDeviceInitData = nullptr;
+Maybe<nsTArray<uint8_t>> gCMSOutputProfileData;
+
+Atomic<bool, MemoryOrdering::ReleaseAcquire> gfxPlatform::gCMSInitialized;
+CMSMode gfxPlatform::gCMSMode = CMSMode::Off;
+
+// These two may point to the same profile
+qcms_profile* gfxPlatform::gCMSOutputProfile = nullptr;
+qcms_profile* gfxPlatform::gCMSsRGBProfile = nullptr;
+
+qcms_transform* gfxPlatform::gCMSRGBTransform = nullptr;
+qcms_transform* gfxPlatform::gCMSInverseRGBTransform = nullptr;
+qcms_transform* gfxPlatform::gCMSRGBATransform = nullptr;
+qcms_transform* gfxPlatform::gCMSBGRATransform = nullptr;
 
 /// This override of the LogForwarder, initially used for the critical graphics
 /// errors, is sending the log to the crash annotations as well, but only
@@ -442,6 +452,16 @@ gfxPlatform::gfxPlatform()
 
   InitBackendPrefs(GetBackendPrefs());
   VRManager::ManagerInit();
+}
+
+gfxPlatform* gfxPlatform::GetPlatform() {
+  if (!gPlatform) {
+    MOZ_RELEASE_ASSERT(!XRE_IsContentProcess(),
+                       "Content Process should have called InitChild() before "
+                       "first GetPlatform()");
+    Init();
+  }
+  return gPlatform;
 }
 
 bool gfxPlatform::Initialized() { return !!gPlatform; }
@@ -792,11 +812,9 @@ void gfxPlatform::Init() {
   MOZ_RELEASE_ASSERT(!XRE_IsGPUProcess(), "GFX: Not allowed in GPU process.");
   MOZ_RELEASE_ASSERT(!XRE_IsRDDProcess(), "GFX: Not allowed in RDD process.");
   MOZ_RELEASE_ASSERT(NS_IsMainThread(), "GFX: Not in main thread.");
-  MOZ_RELEASE_ASSERT(!gEverInitialized);
-  if (XRE_IsContentProcess()) {
-    MOZ_RELEASE_ASSERT(gContentDeviceInitData,
-                       "Content Process should cal InitChild() before "
-                       "first GetPlatform()");
+
+  if (gEverInitialized) {
+    MOZ_CRASH("Already started???");
   }
   gEverInitialized = true;
 
@@ -957,7 +975,7 @@ void gfxPlatform::Init() {
 
   // Create the sRGB to output display profile transforms. They can be accessed
   // off the main thread so we want to avoid a race condition.
-  gPlatform->InitializeCMS();
+  InitializeCMS();
 
   SkGraphics::Init();
 #ifdef MOZ_ENABLE_FREETYPE
@@ -1169,16 +1187,6 @@ int32_t gfxPlatform::MaxAllocSize() {
                   StaticPrefs::gfx_max_alloc_size_AtStartup_DoNotUseDirectly());
 }
 
-void gfxPlatform::MaybeInitializeCMS() {
-  if (XRE_IsGPUProcess()) {
-    // Colors in the GPU process should already be managed, so we don't need to
-    // perform color management there.
-    gCMSInitialized = true;
-    return;
-  }
-  Unused << GetPlatform();
-}
-
 /* static */
 void gfxPlatform::InitMoz2DLogging() {
   auto fwd = new CrashStatsLogForwarder(
@@ -1254,7 +1262,7 @@ void gfxPlatform::Shutdown() {
   gfxFontMissingGlyphs::Shutdown();
 
   // Free the various non-null transforms and loaded profiles
-  gPlatform->ShutdownCMS();
+  ShutdownCMS();
 
   Preferences::UnregisterPrefixCallbacks(FontPrefChanged, kObservedPrefs);
 
@@ -2026,7 +2034,10 @@ bool gfxPlatform::OffMainThreadCompositingEnabled() {
   return UsesOffMainThreadCompositing();
 }
 
-void gfxPlatform::SetCMSModeOverride(CMSMode aMode) { gCMSMode = aMode; }
+void gfxPlatform::SetCMSModeOverride(CMSMode aMode) {
+  MOZ_ASSERT(gCMSInitialized);
+  gCMSMode = aMode;
+}
 
 int gfxPlatform::GetRenderingIntent() {
   // StaticPrefList.yaml is using 0 as the default for the rendering
@@ -2088,8 +2099,12 @@ nsTArray<uint8_t> gfxPlatform::GetPrefCMSOutputProfileData() {
   return result;
 }
 
+const mozilla::gfx::ContentDeviceData* gfxPlatform::GetInitContentDeviceData() {
+  return gContentDeviceInitData;
+}
+
 Maybe<nsTArray<uint8_t>>& gfxPlatform::GetCMSOutputProfileData() {
-  return mCMSOutputProfileData;
+  return gCMSOutputProfileData;
 }
 
 CMSMode GfxColorManagementMode() {
@@ -2101,10 +2116,26 @@ CMSMode GfxColorManagementMode() {
 }
 
 void gfxPlatform::InitializeCMS() {
-  gCMSInitialized = true;
+  if (gCMSInitialized) {
+    return;
+  }
+
+  if (XRE_IsGPUProcess()) {
+    // Colors in the GPU process should already be managed, so we don't need to
+    // perform color management there.
+    gCMSInitialized = true;
+    return;
+  }
+
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread(),
+                        "CMS should be initialized on the main thread");
+  if (MOZ_UNLIKELY(!NS_IsMainThread())) {
+    return;
+  }
+
   gCMSMode = GfxColorManagementMode();
 
-  mCMSsRGBProfile = qcms_profile_sRGB();
+  gCMSsRGBProfile = qcms_profile_sRGB();
 
   /* Determine if we're using the internal override to force sRGB as
      an output profile for reftests. See Bug 452125.
@@ -2115,52 +2146,53 @@ void gfxPlatform::InitializeCMS() {
    */
   if (StaticPrefs::gfx_color_management_force_srgb() ||
       StaticPrefs::gfx_color_management_native_srgb()) {
-    mCMSOutputProfile = mCMSsRGBProfile;
+    gCMSOutputProfile = gCMSsRGBProfile;
   }
 
-  if (!mCMSOutputProfile) {
-    nsTArray<uint8_t> outputProfileData = GetPlatformCMSOutputProfileData();
+  if (!gCMSOutputProfile) {
+    nsTArray<uint8_t> outputProfileData =
+        gfxPlatform::GetPlatform()->GetPlatformCMSOutputProfileData();
     if (!outputProfileData.IsEmpty()) {
-      mCMSOutputProfile = qcms_profile_from_memory_curves_only(
+      gCMSOutputProfile = qcms_profile_from_memory_curves_only(
           outputProfileData.Elements(), outputProfileData.Length());
     }
   }
 
   /* Determine if the profile looks bogus. If so, close the profile
    * and use sRGB instead. See bug 460629, */
-  if (mCMSOutputProfile && qcms_profile_is_bogus(mCMSOutputProfile)) {
-    NS_ASSERTION(mCMSOutputProfile != mCMSsRGBProfile,
+  if (gCMSOutputProfile && qcms_profile_is_bogus(gCMSOutputProfile)) {
+    NS_ASSERTION(gCMSOutputProfile != gCMSsRGBProfile,
                  "Builtin sRGB profile tagged as bogus!!!");
-    qcms_profile_release(mCMSOutputProfile);
-    mCMSOutputProfile = nullptr;
+    qcms_profile_release(gCMSOutputProfile);
+    gCMSOutputProfile = nullptr;
   }
 
-  if (!mCMSOutputProfile) {
-    mCMSOutputProfile = mCMSsRGBProfile;
+  if (!gCMSOutputProfile) {
+    gCMSOutputProfile = gCMSsRGBProfile;
   }
 
   /* Precache the LUT16 Interpolations for the output profile. See
      bug 444661 for details. */
-  qcms_profile_precache_output_transform(mCMSOutputProfile);
+  qcms_profile_precache_output_transform(gCMSOutputProfile);
 
   // Create the RGB transform.
-  mCMSRGBTransform =
-      qcms_transform_create(mCMSsRGBProfile, QCMS_DATA_RGB_8, mCMSOutputProfile,
+  gCMSRGBTransform =
+      qcms_transform_create(gCMSsRGBProfile, QCMS_DATA_RGB_8, gCMSOutputProfile,
                             QCMS_DATA_RGB_8, QCMS_INTENT_PERCEPTUAL);
 
   // And the inverse.
-  mCMSInverseRGBTransform =
-      qcms_transform_create(mCMSOutputProfile, QCMS_DATA_RGB_8, mCMSsRGBProfile,
+  gCMSInverseRGBTransform =
+      qcms_transform_create(gCMSOutputProfile, QCMS_DATA_RGB_8, gCMSsRGBProfile,
                             QCMS_DATA_RGB_8, QCMS_INTENT_PERCEPTUAL);
 
   // The RGBA transform.
-  mCMSRGBATransform = qcms_transform_create(mCMSsRGBProfile, QCMS_DATA_RGBA_8,
-                                            mCMSOutputProfile, QCMS_DATA_RGBA_8,
+  gCMSRGBATransform = qcms_transform_create(gCMSsRGBProfile, QCMS_DATA_RGBA_8,
+                                            gCMSOutputProfile, QCMS_DATA_RGBA_8,
                                             QCMS_INTENT_PERCEPTUAL);
 
   // And the BGRA one.
-  mCMSBGRATransform = qcms_transform_create(mCMSsRGBProfile, QCMS_DATA_BGRA_8,
-                                            mCMSOutputProfile, QCMS_DATA_BGRA_8,
+  gCMSBGRATransform = qcms_transform_create(gCMSsRGBProfile, QCMS_DATA_BGRA_8,
+                                            gCMSOutputProfile, QCMS_DATA_BGRA_8,
                                             QCMS_INTENT_PERCEPTUAL);
 
   // FIXME: We only enable iccv4 after we create the platform profile, to
@@ -2170,6 +2202,8 @@ void gfxPlatform::InitializeCMS() {
   if (StaticPrefs::gfx_color_management_enablev4()) {
     qcms_enable_iccv4();
   }
+
+  gCMSInitialized = true;
 }
 
 qcms_transform* gfxPlatform::GetCMSOSRGBATransform() {
@@ -2198,38 +2232,39 @@ qcms_data_type gfxPlatform::GetCMSOSRGBAType() {
 
 /* Shuts down various transforms and profiles for CMS. */
 void gfxPlatform::ShutdownCMS() {
-  if (mCMSRGBTransform) {
-    qcms_transform_release(mCMSRGBTransform);
-    mCMSRGBTransform = nullptr;
+  if (gCMSRGBTransform) {
+    qcms_transform_release(gCMSRGBTransform);
+    gCMSRGBTransform = nullptr;
   }
-  if (mCMSInverseRGBTransform) {
-    qcms_transform_release(mCMSInverseRGBTransform);
-    mCMSInverseRGBTransform = nullptr;
+  if (gCMSInverseRGBTransform) {
+    qcms_transform_release(gCMSInverseRGBTransform);
+    gCMSInverseRGBTransform = nullptr;
   }
-  if (mCMSRGBATransform) {
-    qcms_transform_release(mCMSRGBATransform);
-    mCMSRGBATransform = nullptr;
+  if (gCMSRGBATransform) {
+    qcms_transform_release(gCMSRGBATransform);
+    gCMSRGBATransform = nullptr;
   }
-  if (mCMSBGRATransform) {
-    qcms_transform_release(mCMSBGRATransform);
-    mCMSBGRATransform = nullptr;
+  if (gCMSBGRATransform) {
+    qcms_transform_release(gCMSBGRATransform);
+    gCMSBGRATransform = nullptr;
   }
-  if (mCMSOutputProfile) {
-    // handle the aliased case
-    if (mCMSsRGBProfile == mCMSOutputProfile) {
-      mCMSsRGBProfile = nullptr;
-    }
+  if (gCMSOutputProfile) {
+    qcms_profile_release(gCMSOutputProfile);
 
-    qcms_profile_release(mCMSOutputProfile);
-    mCMSOutputProfile = nullptr;
+    // handle the aliased case
+    if (gCMSsRGBProfile == gCMSOutputProfile) {
+      gCMSsRGBProfile = nullptr;
+    }
+    gCMSOutputProfile = nullptr;
   }
-  if (mCMSsRGBProfile) {
-    qcms_profile_release(mCMSsRGBProfile);
-    mCMSsRGBProfile = nullptr;
+  if (gCMSsRGBProfile) {
+    qcms_profile_release(gCMSsRGBProfile);
+    gCMSsRGBProfile = nullptr;
   }
 
   // Reset the state variables
   gCMSMode = CMSMode::Off;
+  gCMSInitialized = false;
 }
 
 uint32_t gfxPlatform::GetBidiNumeralOption() {
@@ -3981,7 +4016,8 @@ void gfxPlatform::ImportContentDeviceData(
   // We don't inherit Feature::OPENGL_COMPOSITING here, because platforms
   // will handle that (without imported data from the parent) in
   // InitOpenGLConfig.
-  mCMSOutputProfileData = Some(aData.cmsOutputProfileData().Clone());
+
+  gCMSOutputProfileData = Some(aData.cmsOutputProfileData().Clone());
 }
 
 void gfxPlatform::BuildContentDeviceData(
@@ -4026,9 +4062,8 @@ bool gfxPlatform::SupportsApzZooming() const {
 
 void gfxPlatform::InitOpenGLConfig() {
 #ifdef XP_WIN
-  // Don't enable by default on Windows, since it could show up in
-  // about:support even though it'll never get used. Only attempt if user
-  // enables the pref
+  // Don't enable by default on Windows, since it could show up in about:support
+  // even though it'll never get used. Only attempt if user enables the pref
   if (!Preferences::GetBool("layers.prefer-opengl")) {
     return;
   }
