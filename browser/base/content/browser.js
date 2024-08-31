@@ -1619,7 +1619,7 @@ var BrowserOnClick = {
 
     browsingContext.fixupAndLoadURIString(blockedInfo.uri, {
       triggeringPrincipal,
-      flags: Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
+      loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
     });
   },
 };

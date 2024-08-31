@@ -1929,20 +1929,20 @@
           browser = this.selectedBrowser;
           targetTabIndex = this.tabContainer.selectedIndex;
         }
-        let flags = LOAD_FLAGS_NONE;
+        let loadFlags = LOAD_FLAGS_NONE;
         if (allowThirdPartyFixup) {
-          flags |=
+          loadFlags |=
             LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP | LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
         }
         if (!allowInheritPrincipal) {
-          flags |= LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
+          loadFlags |= LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
         }
         if (fromExternal) {
-          flags |= LOAD_FLAGS_FROM_EXTERNAL;
+          loadFlags |= LOAD_FLAGS_FROM_EXTERNAL;
         }
         try {
           browser.fixupAndLoadURIString(aURIs[0], {
-            flags,
+            loadFlags,
             postData: postDatas && postDatas[0],
             triggeringPrincipal,
             csp,
@@ -3193,30 +3193,30 @@
           browser.userTypedValue = uriString;
         }
 
-        let flags = LOAD_FLAGS_NONE;
+        let loadFlags = LOAD_FLAGS_NONE;
         if (allowThirdPartyFixup) {
-          flags |=
+          loadFlags |=
             LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP | LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
         }
         if (fromExternal) {
-          flags |= LOAD_FLAGS_FROM_EXTERNAL;
+          loadFlags |= LOAD_FLAGS_FROM_EXTERNAL;
         } else if (!triggeringPrincipal.isSystemPrincipal) {
           // XXX this code must be reviewed and changed when bug 1616353
           // lands.
-          flags |= LOAD_FLAGS_FIRST_LOAD;
+          loadFlags |= LOAD_FLAGS_FIRST_LOAD;
         }
         if (!allowInheritPrincipal) {
-          flags |= LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
+          loadFlags |= LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
         }
         if (disableTRR) {
-          flags |= LOAD_FLAGS_DISABLE_TRR;
+          loadFlags |= LOAD_FLAGS_DISABLE_TRR;
         }
         if (forceAllowDataURI) {
-          flags |= LOAD_FLAGS_FORCE_ALLOW_DATA_URI;
+          loadFlags |= LOAD_FLAGS_FORCE_ALLOW_DATA_URI;
         }
         try {
           browser.fixupAndLoadURIString(uriString, {
-            flags,
+            loadFlags,
             triggeringPrincipal,
             referrerInfo,
             charset,

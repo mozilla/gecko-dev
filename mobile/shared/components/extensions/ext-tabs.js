@@ -261,7 +261,7 @@ this.tabs = class extends ExtensionAPIPersistent {
     function loadURIInTab(nativeTab, url) {
       const { browser } = nativeTab;
 
-      let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+      let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
       let { principal } = context;
       const isAboutUrl = url.startsWith("about:");
       if (
@@ -279,11 +279,11 @@ this.tabs = class extends ExtensionAPIPersistent {
       if (isAboutUrl) {
         // Make sure things like about:blank and other about: URIs never
         // inherit, and instead always get a NullPrincipal.
-        flags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
+        loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
       }
 
       browser.fixupAndLoadURIString(url, {
-        flags,
+        loadFlags,
         triggeringPrincipal: principal,
       });
     }

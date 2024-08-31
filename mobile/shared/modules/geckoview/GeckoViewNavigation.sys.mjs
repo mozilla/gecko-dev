@@ -260,7 +260,7 @@ export class GeckoViewNavigation extends GeckoViewModule {
         //
         // csp is only present if we have a referring document, null otherwise.
         this.browser.fixupAndLoadURIString(uri, {
-          flags: navFlags,
+          loadFlags: navFlags,
           referrerInfo,
           triggeringPrincipal,
           headers: additionalHeaders,

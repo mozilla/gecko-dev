@@ -216,30 +216,30 @@ function openInWindow(url, params, sourceWindow) {
 }
 
 function openInCurrentTab(targetBrowser, url, uriObj, params) {
-  let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+  let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
 
   if (params.allowThirdPartyFixup) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
   }
   // LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL isn't supported for javascript URIs,
   // i.e. it causes them not to load at all. Callers should strip
   // "javascript:" from pasted strings to prevent blank tabs
   if (!params.allowInheritPrincipal) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
   }
 
   if (params.allowPopups) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_POPUPS;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_POPUPS;
   }
   if (params.indicateErrorPageLoad) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_ERROR_LOAD_CHANGES_RV;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_ERROR_LOAD_CHANGES_RV;
   }
   if (params.forceAllowDataURI) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_FORCE_ALLOW_DATA_URI;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_FORCE_ALLOW_DATA_URI;
   }
   if (params.fromExternal) {
-    flags |= Ci.nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL;
+    loadFlags |= Ci.nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL;
   }
 
   let { URI_INHERITS_SECURITY_CONTEXT } = Ci.nsIProtocolHandler;
@@ -272,7 +272,7 @@ function openInCurrentTab(targetBrowser, url, uriObj, params) {
   targetBrowser.fixupAndLoadURIString(url, {
     triggeringPrincipal,
     csp,
-    flags,
+    loadFlags,
     referrerInfo,
     postData,
     userContextId,
