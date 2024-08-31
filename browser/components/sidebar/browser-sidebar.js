@@ -876,6 +876,13 @@ var SidebarController = {
     });
 
     let blob = await canvas.convertToBlob();
+    // Remove any existing screenshot overlays if needed
+    let existingScreenshotOverlay = document.querySelector(
+      ".sidebar-animation-screenshot"
+    );
+    if (existingScreenshotOverlay) {
+      existingScreenshotOverlay.remove();
+    }
     let screenshotOverlay = document.createElement("div");
     let img = document.createElement("img");
     screenshotOverlay.classList.add("sidebar-animation-screenshot");
