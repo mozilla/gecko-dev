@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Keresés a Focusban</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Keresés a Focusban</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Keresés a Klarban</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Keresés a Klarban</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Keresés a Focus Bétában</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Keresés a Focus Bétában</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Keresés a Focus Nightlyban</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Keresés a Focus Nightlyban</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>A %1$s az Ön kezébe adja az irányítást.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>A %1$s az Ön kezébe adja az irányítást.</p>
 <p>Használja privát böngészőként:
   <ul>
     <li>Keressen és böngésszen közvetlenül az appban</li>
@@ -204,21 +204,21 @@
     <string name="preference_state_off">Ki</string>
 
     <!-- Item in settings that will open a new preference screen for configuring the URL autocomplete behavior. -->
-    <string name="preference_subitem_autocomplete">Automatikus URL kiegészítés</string>
+    <string name="preference_subitem_autocomplete">Automatikus webcím-kiegészítés</string>
 
     <!-- Title of "switch" preference that enables/disables autocomplete for the default list -->
     <string name="preference_switch_autocomplete_topsites">Leggyakrabban felkeresett oldalak esetén</string>
 
     <!-- Summary for the toggle to enable autocomplete for the topsites list
     %s is a placeholder for the app name (e.g. Firefox Focus)-->
-    <string name="preference_autocomplete_topsite_summary2">Engedélyezés, hogy a %s 450 népszerű URL-t automatikusan kiegészítsen a címsávban.</string>
+    <string name="preference_autocomplete_topsite_summary2">Engedélyezés, hogy a %s 450 népszerű webcímet automatikusan kiegészítsen a címsávban.</string>
 
     <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
     <string name="preference_switch_autocomplete_user_list">Hozzáadott oldalak esetén</string>
 
     <!-- Summary for the toggle to enable autocomplete for the user-defined list
      %s is a placeholder for the app name (e.g. Firefox Focus)-->
-    <string name="preference_autocomplete_user_list_summary2">Engedélyezés, hogy a %s kiegészítse a kedvenc URL-jeit.</string>
+    <string name="preference_autocomplete_user_list_summary2">Engedélyezés, hogy a %s kiegészítse a kedvenc webcímeit.</string>
 
     <!-- Preference category: Manage (user-defined) sites -->
     <string name="preference_category_autocomplete_manage_sites">Oldalak kezelése</string>
@@ -227,19 +227,19 @@
     <string name="preference_autocomplete_subitem_manage_sites">Oldalak kezelése</string>
 
     <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
-    <string name="preference_autocomplete_action_add">+ Egyéni URL hozzáadása</string>
+    <string name="preference_autocomplete_action_add">+ Egyéni webcím hozzáadása</string>
 
     <!-- Explanation text above the list of custom autocomplete URLs. -->
     <string name="preference_autocomplete_explanation_text">Az automatikus kiegészítései:</string>
 
     <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
-    <string name="preference_autocomplete_action_add2">URL hozzáadása</string>
+    <string name="preference_autocomplete_action_add2">Webcím hozzáadása</string>
 
     <!-- Title of the screen for adding custom autocomplete URLs. -->
-    <string name="preference_autocomplete_title_add">Egyéni URL hozzáadása</string>
+    <string name="preference_autocomplete_title_add">Egyéni webcím hozzáadása</string>
 
     <!-- Label for the button to quick add custom autocomplete URLs. -->
-    <string name="custom_autocomplete_quick_add">Egyéni URL hozzáadása</string>
+    <string name="custom_autocomplete_quick_add">Egyéni webcím hozzáadása</string>
 
     <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
     <string name="add_custom_autocomplete_label">Hivatkozás hozzáadása az automatikus kiegészítéshez</string>
@@ -251,19 +251,19 @@
     <string name="preference_category_data_choices">Adatküldések</string>
 
     <!-- Title of the screen for removing custom autocomplete URLs. -->
-    <string name="preference_autocomplete_title_remove">Egyéni URL-ek eltávolítása</string>
+    <string name="preference_autocomplete_title_remove">Egyéni webcímek eltávolítása</string>
 
     <!-- A link to SUMO at autocomplete settings. -->
     <string name="preference_autocomplete_learn_more">További tudnivalók</string>
 
     <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
-    <string name="preference_autocomplete_custom_summary">Automatikusan kiegészített URL-ek hozzáadása és kezelése.</string>
+    <string name="preference_autocomplete_custom_summary">Automatikusan kiegészített webcímek hozzáadása és kezelése.</string>
 
     <!-- Label for the "custom autocomplete URL" input field -->
-    <string name="preference_autocomplete_add_title">Hozzáadandó URL-ek</string>
+    <string name="preference_autocomplete_add_title">Hozzáadandó webcímek</string>
 
     <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
-    <string name="preference_autocomplete_add_hint">Illessze be, vagy adja meg az URL-t</string>
+    <string name="preference_autocomplete_add_hint">Illessze be, vagy adja meg az webcímet</string>
 
     <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
     <string name="preference_autocomplete_add_example2">Példa: mozilla.org</string>
@@ -272,7 +272,7 @@
     <string name="preference_autocomplete_add_example">Példa: example.com</string>
 
     <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
-    <string name="preference_autocomplete_add_confirmation">Új egyéni URL hozzáadva.</string>
+    <string name="preference_autocomplete_add_confirmation">Új egyéni webcím hozzáadva.</string>
 
     <!-- Menu item to remove existing autocomplete URLs. -->
     <string name="preference_autocomplete_menu_remove">Eltávolítás</string>
@@ -281,7 +281,7 @@
     <string name="preference_autocomplete_action_remove_content_description">Eltávolítás</string>
 
     <!-- Error message shown if the entered custom autocomplete URL is not valid or empty. -->
-    <string name="preference_autocomplete_add_error">Ellenőrizze a megadott URL-t.</string>
+    <string name="preference_autocomplete_add_error">Ellenőrizze a megadott webcímet.</string>
 
     <string name="preference_language">Nyelv</string>
     <!-- This is shown when the user hasn't set a focus specific language, i.e. when Focus
@@ -612,7 +612,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox letöltése</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox letöltése</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -624,23 +624,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[A %1$s a <a href="%2$s">Mozilla Public License</a> és más nyílt forráskódú licencek feltételei szerint érhető el.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A %1$s a <a href="%2$s">Mozilla Public License</a> és más nyílt forráskódú licencek feltételei szerint érhető el.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nem kap semmiféle jogot vagy licencet a Mozilla Alapítvány vagy bármely más fél védjegyeihez, köztük a Mozilla, Firefox vagy %1$s nevekhez vagy logókhoz. További információkat <a href="%2$s">itt</a> találhat.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nem kap semmiféle jogot vagy licencet a Mozilla Alapítvány vagy bármely más fél védjegyeihez, köztük a Mozilla, Firefox vagy %1$s nevekhez vagy logókhoz. További információkat <a href="%2$s">itt</a> találhat.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[További %1$s forráskódok érhetők el különféle szabad szoftver vagy nyílt forráskódú <a href="%2$s">licencek</a> alatt.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[További %1$s forráskódok érhetők el különféle szabad szoftver vagy nyílt forráskódú <a href="%2$s">licencek</a> alatt.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[A %1$s a Disconnect, Inc. által biztosított blokkolási listákat használ, különálló munkaként, <a href="%2$s">GNU General Public Licence v3</a> alatt, ez <a href="%3$s">itt</a> érhető el.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A %1$s a Disconnect, Inc. által biztosított blokkolási listákat használ, különálló munkaként, <a href="%2$s">GNU General Public Licence v3</a> alatt, ez <a href="%3$s">itt</a> érhető el.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Felhasználónév</string>
@@ -656,7 +656,7 @@
 
     <!-- Content Description of Security Icon in toolbar -->
     <string name="site_security_icon_content_description">Webhely biztonsága</string>
-    <string name="preference_autocomplete_duplicate_url_error">Az URL már létezik</string>
+    <string name="preference_autocomplete_duplicate_url_error">A webcím már létezik</string>
 
     <!-- Label for the Find in page button -->
     <string name="find_in_page">Keresés az oldalon</string>
@@ -687,7 +687,7 @@
     <string name="preference_performance_request_desktop_site2">Asztali oldal</string>
 
     <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
-    <string name="custom_tab_copy_url_action">URL másolva</string>
+    <string name="custom_tab_copy_url_action">Webcím másolva</string>
 
     <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
     <string name="preference_advanced_summary">Fejlesztői eszközök</string>
@@ -832,7 +832,7 @@
     <string name="preference_studies">Tanulmányok</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">A Firefox időről időre tanulmányokat telepíthet és futtathat.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">A Firefox időről időre tanulmányokat telepíthet és futtathat.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">További tudnivalók</string>
@@ -912,7 +912,7 @@
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_autocomplete_url">URL-ek automatikus kiegészítése a leggyakrabban használt oldalaknál\nNyomja meg hosszan az URL-t a címsorban</string>
+    <string name="tip_autocomplete_url">Webcímek automatikus kiegészítése a leggyakrabban használt oldalaknál\nNyomja meg hosszan a webcímet a címsorban</string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
@@ -1036,7 +1036,7 @@
 
      <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[A %1$s a nagyobb biztonság érdekében megpróbál HTTPS kapcsolatot használni, amikor az lehetséges.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A %1$s a nagyobb biztonság érdekében megpróbál HTTPS kapcsolatot használni, amikor az lehetséges.
      <a href="%2$s">További tudnivalók</a> <br/><br/>
      Ezt a beállítást itt módosíthatja: Beállítások > Adatvédelem és biztonság > Biztonság.]]></string>
 

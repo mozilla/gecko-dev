@@ -1781,6 +1781,8 @@
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">Sospeitas de identificador de pegadas dixitais</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Activa a protección contra o rastrexo da identidade dixital para deter os que sexan sospeitosos.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">Identificador de pegada dixital coñecido</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,

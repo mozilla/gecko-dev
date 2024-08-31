@@ -214,6 +214,8 @@
     <string name="browser_menu_manage_extensions">Kiegészítők kezelése</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">További kiegészítők felfedezése</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Ideiglenesen letiltva</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Fiókinformáció</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -299,7 +301,7 @@
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Váltás az asztali oldalra</string>
     <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
-    <string name="browser_menu_switch_to_mobile_site">Váltás mobil verzióra</string>
+    <string name="browser_menu_switch_to_mobile_site">Váltás a mobilos verzióra</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Eszközök</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -333,6 +335,13 @@
     <!-- Browser menu label for the Delete browsing data on quit feature.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Kilépés ebből: %1$s</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Új: letisztultabb menü</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Találja meg gyorsabban amire szüksége van, a privát böngészéstől a mentési műveletekig.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -564,9 +573,13 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Mégse</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Kérés küldése</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Kérés küldése</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">A webhely hozzáadásának megkérdezése</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Támogatást kér ehhez az oldalhoz?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Támogatást kér ehhez az oldalhoz?</string>
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">A %1$s megkérése, hogy automatikusan utasítsa el a sütiket</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Kérés elküldve</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -575,6 +588,8 @@
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Támogatási kérés elküldve</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">A webhely jelenleg nem támogatott</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">A webhely nem támogatott</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Bekapcsolja a sütibanner-blokkolót ennél a webhelynél: %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
@@ -582,6 +597,8 @@
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
     <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">A %1$s nem tudja automatikusan elutasítani a sütikéréseket ezen az oldalon. Küldhet egy kérést, hogy támogassák ezt az oldalt a jövőben.</string>
 
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Ezen az oldalon jelenleg nem tudjuk automatikusan elutasítani a sütik felugró ablakait.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Kapcsolja ki, és a %1$s törli a sütiket, és újratölti a webhelyet. Ez kijelentkeztetheti, vagy kiürítheti a kosarait.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -668,7 +685,7 @@
     <string name="preferences_account_settings">Fiókbeállítások</string>
 
     <!-- Preference for enabling url autocomplete-->
-    <string name="preferences_enable_autocomplete_urls">Automatikus URL-kiegészítés</string>
+    <string name="preferences_enable_autocomplete_urls">Automatikus webcím-kiegészítés</string>
     <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
     <string name="preferences_show_sponsored_suggestions">Szponzorált javaslatok</string>
     <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
@@ -1202,6 +1219,8 @@
     <string name="bookmark_add_folder">Mappa hozzáadása</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Könyvjelző mentve.</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Mentve itt: „%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">SZERKESZTÉS</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1232,7 +1251,7 @@
     <!-- Bookmark sign in button message -->
     <string name="bookmark_sign_in_button">Jelentkezzen be a szinkronizált könyvjelzők megtekintéséhez</string>
     <!-- Bookmark URL editing field label -->
-    <string name="bookmark_url_label">URL</string>
+    <string name="bookmark_url_label">Webcím</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">MAPPA</string>
     <!-- Bookmark NAME editing field label -->
@@ -1244,7 +1263,7 @@
     <!-- Bookmark editing error missing title -->
     <string name="bookmark_empty_title_error">Címmel kell rendelkeznie</string>
     <!-- Bookmark editing error missing or improper URL -->
-    <string name="bookmark_invalid_url_error">Érvénytelen URL</string>
+    <string name="bookmark_invalid_url_error">Érvénytelen webcím</string>
 
     <!-- Bookmark screen message for empty bookmarks folder -->
     <string name="bookmarks_empty_message">Itt nincsenek könyvjelzők</string>
@@ -1557,7 +1576,7 @@
     <!-- Text displayed in a notification when the user enters full screen mode -->
     <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Belépés teljes képernyős módba</string>
     <!-- Message for copying the URL via long press on the toolbar -->
-    <string name="url_copied">URL másolva</string>
+    <string name="url_copied">Webcím másolva</string>
     <!-- Sample text for accessibility font size -->
     <string name="accessibility_text_size_sample_text_1">Ez egy mintaszöveg. Itt látható, hogy miként jelenik meg a szöveg, ha ezzel a beállítással növeli vagy csökkenti a méretét.</string>
     <!-- Summary for Accessibility Text Size Scaling Preference -->
@@ -1827,7 +1846,7 @@
     <string name="browser_toolbar_long_press_popup_paste">Beillesztés</string>
   
     <!-- Snackbar message shown after an URL has been copied to clipboard. -->
-    <string name="browser_toolbar_url_copied_to_clipboard_snackbar">URL a vágólapra másolva</string>
+    <string name="browser_toolbar_url_copied_to_clipboard_snackbar">Webcím a vágólapra másolva</string>
   
     <!-- Title text for the Add To Homescreen dialog -->
     <string name="add_to_homescreen_title">Kezdőképernyőhöz adás</string>

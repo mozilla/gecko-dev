@@ -222,6 +222,8 @@
     <string name="browser_menu_manage_extensions">管理扩展</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">探索更多扩展</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">已暂时禁用</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">账户信息</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -343,6 +345,10 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">退出 %1$s</string>
 
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">新功能：简约菜单</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">暂无扩展</string>
@@ -441,12 +447,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Firefox 隐私声明</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox 隐私声明</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">我们乐于为您护航</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">探究 Firefox 何以受亿万用户青睐</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">探究 Firefox 何以受亿万用户青睐</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">更多保障上网安全的选项</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -468,20 +474,20 @@
     <string name="juno_onboarding_sign_in_title_2">在设备间流转，数据照样密不透风</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">登录并同步，安全再升级。Firefox 会加密您的密码、书签等数据。</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">登录并同步，安全再升级。Firefox 会加密您的密码、书签等数据。</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Firefox 会在同步时加密您的密码、书签等数据。</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox 会在同步时加密您的密码、书签等数据。</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">登录</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">暂时不要</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">允许通知可让 Firefox 更好地为您保驾护航</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">允许通知可让 Firefox 更好地为您保驾护航</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">在设备间安全发送标签页，并探索 Firefox 中更多保护隐私的特色功能。</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">在设备间安全发送标签页，并探索 Firefox 中更多保护隐私的特色功能。</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">开启通知</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -489,14 +495,14 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">试试 Firefox 搜索微件</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">试试 Firefox 搜索微件</string>
 
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">将 Firefox 添加至主屏幕，随手就能打开隐私为先、可拦截跨站跟踪器的浏览器。</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">将 Firefox 添加至主屏幕，随手就能打开隐私为先、可拦截跨站跟踪器的浏览器。</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">添加 Firefox 微件</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">添加 Firefox 微件</string>
 
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">暂时不要</string>
@@ -539,9 +545,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">地址栏首选项</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">地址栏 - Firefox 建议</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">地址栏 - Firefox 建议</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">详细了解 Firefox 建议</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">详细了解 Firefox 建议</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">在 Google Play 上评分</string>
     <!-- Preference linking to about page for Fenix
@@ -578,9 +584,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">取消</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">发送请求</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">发送请求</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">需要技术支持？</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">需要技术支持？</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">请求已发送</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -588,15 +594,19 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">请求已发送</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">目前不支持该网站</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">目前不支持该网站</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">不支持此网站</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">要为 %1$s 开启 Cookie 横幅拦截器吗？</string>
 
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">要为 %1$s 关闭 Cookie 横幅拦截器吗？</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s 无法自动拒绝此站点上的 Cookie 请求。您可以请求将来对此站点的支持。</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s 无法自动拒绝此站点上的 Cookie 请求。您可以请求将来对此站点的支持。</string>
 
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">暂时无法自动拒绝此网站的 Cookie 弹窗。</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">关闭后，%1$s 将清除 Cookie 并重新加载此网站。这可能导致退出登录或清空购物车。</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -807,7 +817,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">扩展上新</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">探索百余件新鲜扩展，让 Firefox 用起来更得心应手。</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">探索百余件新鲜扩展，让 Firefox 用起来更得心应手。</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">发现更多扩展</string>
@@ -873,7 +883,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">收到标签页</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">收到来自其他 Firefox 设备的标签页通知。</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">收到来自其他 Firefox 设备的标签页通知。</string>
 
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">收到标签页</string>
@@ -1221,6 +1231,8 @@
     <string name="bookmark_add_folder">新建文件夹</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">书签已保存！</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">已保存到“%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">编辑</string>
 
@@ -1478,7 +1490,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">连接其他设备</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">请在至少另一台设备上的 Firefox 登录才能发送标签页。</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">请在至少另一台设备上的 Firefox 登录才能发送标签页。</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">明白了</string>
 
@@ -1519,10 +1531,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox 又快、又有隐私</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox 又快、又有隐私</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">将 Firefox 设为您的默认浏览器</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">将 Firefox 设为您的默认浏览器</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">试用隐私浏览功能</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1542,7 +1554,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">请填写这份简短的问卷，帮助 Firefox 变得更好。</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">请填写这份简短的问卷，帮助 Firefox 变得更好。</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">问卷调查</string>
     <!-- Preference for not taking the short survey. -->
@@ -1695,7 +1707,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">扫码</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[在计算机上使用 Firefox 打开 <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[在计算机上使用 Firefox 打开 <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">立即扫码</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1703,7 +1715,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">改用电子邮件</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[尚无账户？<u>立即创建</u>以在设备间同步 Firefox。]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[尚无账户？<u>立即创建</u>以在设备间同步 Firefox。]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s 将停止与您的账户的同步，但不会删除您在这台设备上的任何上网数据。</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2237,7 +2249,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">请启用标签页同步。</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">您其他设备上的 Firefox 没有打开任何标签页。</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">您其他设备上的 Firefox 没有打开任何标签页。</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">查看您其他设备上的标签页列表。</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2305,7 +2317,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">要一个月后自动关闭吗？</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox 可自动关闭您一个月内未查看的标签页。</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox 可自动关闭您一个月内未查看的标签页。</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">启用自动关闭标签页功能</string>
 
@@ -2314,7 +2326,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Firefox 建议</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox 建议</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google 搜索</string>
@@ -2325,7 +2337,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">切换默认浏览器</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">将网站、电子邮件及聊天工具中的链接设为在 Firefox 中自动打开。</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">将网站、电子邮件及聊天工具中的链接设为在 Firefox 中自动打开。</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">移除</string>
@@ -2349,7 +2361,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">由 %s 提供。</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Firefox 系列产品。%s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox 系列产品。%s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">详细了解</string>
 
@@ -2831,7 +2843,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">帮助我们改进 Firefox，只需占用您一分钟时间。</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">帮助我们改进 Firefox，只需占用您一分钟时间。</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">继续</string>
     <!-- Survey view -->
@@ -2864,16 +2876,16 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">未曾使用</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">您对 Firefox 主页使用体验的满意度如何？</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">您对 Firefox 主页使用体验的满意度如何？</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">请帮助 Firefox 的打印更出色。只需片刻</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">请帮助 Firefox 的打印更出色。只需片刻</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">您对在 Firefox 中打印的满意度如何？</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">您对在 Firefox 中打印的满意度如何？</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">您对 Firefox 主页使用体验的满意度如何？</string>
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">您对 Firefox 主页使用体验的满意度如何？</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Firefox 徽标</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox 徽标</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">问卷功能图标</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->

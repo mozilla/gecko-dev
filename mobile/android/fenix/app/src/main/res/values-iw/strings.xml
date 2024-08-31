@@ -216,6 +216,8 @@
     <string name="browser_menu_manage_extensions">ניהול הרחבות</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">גילוי הרחבות נוספות</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">מושבתות באופן זמני</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">מידע על החשבון</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -334,6 +336,12 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">יציאה מ־%1$s</string>
 
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">חדש: תפריט משופר</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">למצוא מה שצריך מהר יותר, מגלישה פרטית ועד פעולות שמירה.</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">אין כאן הרחבות</string>
@@ -429,12 +437,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">הצהרת הפרטיות של Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">הצהרת הפרטיות של Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">אנחנו אוהבים לשמור עליך</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">גלו מדוע מיליונים אוהבים את Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">גלו מדוע מיליונים אוהבים את Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">גלישה בטוחה עם אפשרויות נוספות</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -456,20 +464,20 @@
     <string name="juno_onboarding_sign_in_title_2">להישאר מוצפן במעבר בין מכשירים</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">כאשר החשבון שלך מחובר ומסונכרן, אתה מוגן יותר. Firefox מצפין את הססמאות והסימניות שלך ועוד.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">כאשר החשבון שלך מחובר ומסונכרן, אתה מוגן יותר. Firefox מצפין את הססמאות והסימניות שלך ועוד.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">‏Firefox מצפין את הססמאות, הסימניות ועוד כאשר החשבון מסונכרן.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">‏Firefox מצפין את הססמאות, הסימניות ועוד כאשר החשבון מסונכרן.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">כניסה</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">לא כעת</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">התרעות עוזרות לך להישאר בטוח יותר עם Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">התרעות עוזרות לך להישאר בטוח יותר עם Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">לשלוח לשוניות בין המכשירים שלך בצורה מאובטחת ולהיחשף ליכולות פרטיות נוספות ב־Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">לשלוח לשוניות בין המכשירים שלך בצורה מאובטחת ולהיחשף ליכולות פרטיות נוספות ב־Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">הפעלת התרעות</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -477,13 +485,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">נסו את ווידג’ט החיפוש של Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">נסו את ווידג’ט החיפוש של Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">עם Firefox במסך הבית שלך, תהיה לך גישה קלה לדפדפן ששם את הפרטיות בעדיפות ראשונה, ושחוסם רכיבי מעקב חוצי אתרים.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">עם Firefox במסך הבית שלך, תהיה לך גישה קלה לדפדפן ששם את הפרטיות בעדיפות ראשונה, ושחוסם רכיבי מעקב חוצי אתרים.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">הוספת ווידג’ט של Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">הוספת ווידג’ט של Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">לא כעת</string>
 
@@ -524,9 +532,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">העדפות שורת הכתובת</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">שורת הכתובת - Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">שורת הכתובת - Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">מידע נוסף על Firefox Suggest</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">מידע נוסף על Firefox Suggest</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">דירוג ב־Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -562,9 +570,13 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">ביטול</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">שליחת בקשה</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">שליחת בקשה</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">בקשה להוספת האתר</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">לבקש תמיכה עבור אתר זה?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">לבקש תמיכה עבור אתר זה?</string>
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">לבקש מ־%1$s לסרב אוטומטית לעוגיות</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">הבקשה נשלחה</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -573,13 +585,17 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">נשלחה בקשת תמיכה</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">האתר לא נתמך כרגע</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">האתר לא נתמך כרגע</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">האתר לא נתמך</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">להפעיל חוסם כרזות עוגיות לאתר %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">להשבית חוסם כרזות עוגיות לאתר %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">ל־%1$s אין אפשרות לדחות באופן אוטומטי בקשות עוגיות באתר הזה. אפשר לשלוח בקשה לתמוך באתר הזה בעתיד.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">ל־%1$s אין אפשרות לדחות באופן אוטומטי בקשות עוגיות באתר הזה. אפשר לשלוח בקשה לתמוך באתר הזה בעתיד.</string>
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">אין ביכולתנו כעת לסרב אוטומטית לחלונות קופצים באתר זה.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">כיבוי אפשרות זו תגרום לכך ש־%1$s ינקה עוגיות ויטען מחדש את אתר זה. פעולה זו עשויה לנתק את החשבון שלך מהאתר או לרוקן את עגלת הקניות שלך.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -791,7 +807,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">הרחבות חדשות זמינות כעת</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">יש לנו יותר מ־100 הרחבות חדשות המאפשרות לך להפוך את Firefox לשלך.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">יש לנו יותר מ־100 הרחבות חדשות המאפשרות לך להפוך את Firefox לשלך.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">עיון בהרחבות</string>
@@ -857,7 +873,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">לשוניות שהתקבלו</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">התרעות עבור לשוניות שהתקבלו ממכשירי Firefox אחרים.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">התרעות עבור לשוניות שהתקבלו ממכשירי Firefox אחרים.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">התקבלה לשונית</string>
     <!-- %s is the device name -->
@@ -1198,6 +1214,8 @@
     <string name="bookmark_add_folder">הוספת תיקייה</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">הסימנייה נשמרה!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">נשמר ב־״%s״</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">עריכה</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1441,7 +1459,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">חיבור מכשיר נוסף</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">כדי לשלוח לשונית, יש להתחבר ל־Firefox לפחות במכשיר אחד נוסף.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">כדי לשלוח לשונית, יש להתחבר ל־Firefox לפחות במכשיר אחד נוסף.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">הבנתי</string>
     <!-- Share error message -->
@@ -1480,10 +1498,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">‏Firefox הוא מהיר ופרטי</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">‏Firefox הוא מהיר ופרטי</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">הגדרת Firefox כדפדפן ברירת המחדל שלך</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">הגדרת Firefox כדפדפן ברירת המחדל שלך</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">נסו את הגלישה הפרטית</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1504,7 +1522,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">אנא עזרו לשפר את Firefox על־ידי השתתפות בסקר קצר.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">אנא עזרו לשפר את Firefox על־ידי השתתפות בסקר קצר.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">לקיחת סקר</string>
     <!-- Preference for not taking the short survey. -->
@@ -1651,7 +1669,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">סריקת הקוד</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[במחשב שלך יש לפתוח את Firefox ולעבור לכתובת <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[במחשב שלך יש לפתוח את Firefox ולעבור לכתובת <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">מוכן לסריקה</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1659,7 +1677,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">שימוש בדוא״ל במקום</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[אין לך חשבון? <u>באפשרותך ליצור אחד</u> כדי לסנכרן את Firefox בין מכשירים.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[אין לך חשבון? <u>באפשרותך ליצור אחד</u> כדי לסנכרן את Firefox בין מכשירים.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">‏‏%s יפסיק להסתנכרן עם החשבון שלך, אבל לא ימחק את נתוני הגלישה שלך ממכשיר זה.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2190,7 +2208,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">נא להפעיל סנכרון לשוניות.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">אין לך לשוניות פתוחות ב־Firefox בשאר המכשירים שלך.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">אין לך לשוניות פתוחות ב־Firefox בשאר המכשירים שלך.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">הצגת רשימת לשוניות משאר המכשירים שלך.</string>
 
@@ -2260,7 +2278,7 @@
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">לסגור באופן אוטומטי לאחר חודש אחד?</string>
 
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">‏Firefox יכול לסגור לשוניות שלא צפית בהן במהלך החודש האחרון.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">‏Firefox יכול לסגור לשוניות שלא צפית בהן במהלך החודש האחרון.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">הפעלת סגירה אוטומטית</string>
 
@@ -2269,7 +2287,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">הצעות של Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">הצעות של Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">חיפוש ב־Google</string>
@@ -2280,7 +2298,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">החלפת דפדפן ברירת המחדל שלך</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">הגדרת קישורים מאתרים, מהודעות דוא״ל ומהודעות לפתיחה אוטומטית ב־Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">הגדרת קישורים מאתרים, מהודעות דוא״ל ומהודעות לפתיחה אוטומטית ב־Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">הסרה</string>
@@ -2304,7 +2322,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">מופעל על־ידי %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">חלק ממשפחת Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">חלק ממשפחת Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">מידע נוסף</string>
 
@@ -2776,7 +2794,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">עזרו לנו לשפר את Firefox. זה ייקח רק דקה.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">עזרו לנו לשפר את Firefox. זה ייקח רק דקה.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">המשך</string>
     <!-- Survey view -->
@@ -2808,16 +2826,16 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">אין לי שימוש בזה</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">עד כמה הינך מרוצה מדף הבית שלך ב־Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">עד כמה הינך מרוצה מדף הבית שלך ב־Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">עזרו לשפר את יכולות ההדפסה ב־Firefox. זה ייקח רק שנייה</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">עזרו לשפר את יכולות ההדפסה ב־Firefox. זה ייקח רק שנייה</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">עד כמה הינך מרוצה מההדפסה ב־Firefox?</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">עד כמה הינך מרוצה מההדפסה ב־Firefox?</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">עד כמה הינך מרוצה מדף הבית שלך ב־Firefox?</string>
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">עד כמה הינך מרוצה מדף הבית שלך ב־Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">הסמל של Firefox</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">הסמל של Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">סמל של סקר על תכונות</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->

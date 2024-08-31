@@ -345,7 +345,7 @@
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_title">Neu: vereinfachtes Menü</string>
     <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-    <string name="menu_cfr_body">Finden Sie schneller, was Sie suchen, vom Privaten Surfen bis zu Speichern von Aktionen.</string>
+    <string name="menu_cfr_body">Finden Sie schneller, was Sie suchen, vom Privaten Surfen bis zum Speichern von Inhalten.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->

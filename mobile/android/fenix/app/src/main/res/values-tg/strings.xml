@@ -218,6 +218,8 @@
     <string name="browser_menu_manage_extensions">Идоракунии васеъшавиҳо</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Кашф кардани васеъшавиҳои бештар</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Муваққатан ғайрифаъол аст</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Маълумот дар бораи ҳисоби корбар</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -339,6 +341,13 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Аз «%1$s» баромадан</string>
 
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Нав: менюи беҳтаршуда</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Он чизеро, ки ба шумо лозим аст, аз тамошокунии хусусӣ то нигоҳдории амалҳо, зудтар пайдо кунед.</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">Дар ин ҷой ягон васеъшавӣ нест</string>
@@ -434,12 +443,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Огоҳномаи махфияти «Firefox»</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Огоҳномаи махфияти «Firefox»</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Мо нигоҳдории бехатарии шуморо дӯст медорем</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Бифаҳмед, ки чаро миллионҳо одамон браузери «Firefox»-ро дӯст медоранд</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Бифаҳмед, ки чаро миллионҳо одамон браузери «Firefox»-ро дӯст медоранд</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Тамошокунии бехатар бо интихобҳои бештар</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -461,20 +470,20 @@
     <string name="juno_onboarding_sign_in_title_2">Ҳангоми гузариш байни дастгоҳҳо интиқолро рамзгузорӣ намоед</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Вақте ки шумо ба низом ворид шуда, ҳамоҳанг месозед, шумо бехатартар мешавед. «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Вақте ки шумо ба низом ворид шуда, ҳамоҳанг месозед, шумо бехатартар мешавед. «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Дар раванди ҳамоҳангсозӣ браузери «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Дар раванди ҳамоҳангсозӣ браузери «Firefox» ниҳонвожаҳо, хатбаракҳо ва чизҳои дигари шуморо рамзгузорӣ мекунад.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Ворид шудан</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Ҳоло не</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Огоҳиҳо барои кори бехатартар бо «Firefox» ба шумо кумак мекунанд</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Огоҳиҳо барои кори бехатартар бо «Firefox» ба шумо кумак мекунанд</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Варақаҳоро байни дастгоҳҳои худ ба таври бехатар ирсол намоед ва хусусиятҳои дигари махфиятро дар «Firefox» кашф намоед.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Варақаҳоро байни дастгоҳҳои худ ба таври бехатар ирсол намоед ва хусусиятҳои дигари махфиятро дар «Firefox» кашф намоед.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Хомӯш кардани огоҳномаҳо</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -482,13 +491,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Виҷети ҷустуҷӯии «Firefox»-ро озмоед</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Виҷети ҷустуҷӯии «Firefox»-ро озмоед</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Бо нишони «Firefox» дар экрани асосии худ шумо ба браузери дорои низоми махфияте, ки васоити пайгирии байнисомонавиро манъ мекунад, ба осонӣ дастрасӣ пайдо мекунед.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Бо нишони «Firefox» дар экрани асосии худ шумо ба браузери дорои низоми махфияте, ки васоити пайгирии байнисомонавиро манъ мекунад, ба осонӣ дастрасӣ пайдо мекунед.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Илова кардани виҷети «Firefox»</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Илова кардани виҷети «Firefox»</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ҳоло не</string>
 
@@ -528,9 +537,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Хусусиятҳои навори нишонӣ</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Навори нишонӣ - «Firefox Suggest»</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Навори нишонӣ - «Firefox Suggest»</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Маълумоти бештар дар бораи «Firefox Suggest»</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Маълумоти бештар дар бораи «Firefox Suggest»</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Баҳодиҳӣ дар Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -568,9 +577,13 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Бекор кардан</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Фиристодани дархост</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Фиристодани дархост</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Дархост барои илова кардани сомона</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Барои ин сомона дастгириро дархост мекунед?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Барои ин сомона дастгириро дархост мекунед?</string>
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Дархост ба «%1$s» барои ба таври худкор рад кардани кукиҳо</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Дархост фиристода шуд</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -578,15 +591,19 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Дархости дастгирӣ фиристода шуд</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">Ин сомона дар айни замон дастгирӣ намешавад</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Ин сомона дар айни замон дастгирӣ намешавад</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">Сомона дастгирӣ намешавад</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Манъкунандаи баннери кукиро барои %1$s фаъол мекунед?</string>
 
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Манъкунандаи баннери кукиро барои %1$s хомӯш мекунед?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">«%1$s» наметавонад, ки дархостҳои кукиро барои ин сомона ба таври худкор рад кунад. Шумо метавонед барои дастгирӣ кардани ин сомона дар оянда дархостеро фиристонед.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">«%1$s» наметавонад, ки дархостҳои кукиро барои ин сомона ба таври худкор рад кунад. Шумо метавонед барои дастгирӣ кардани ин сомона дар оянда дархостеро фиристонед.</string>
 
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Дар айни ҳол, мо дар ин сомона равзанаҳои зоҳиршавандаи кукиҳоро ба таври худкор рад карда наметавонем.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Хомӯш кунед ва «%1$s» кукиҳоро тоза намуда, ин сомонаро аз нав бор мекунад. Ин амал метавонад шуморо аз сомона хориҷ кунад ва сабадҳои харидории шуморо холӣ намояд.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -795,7 +812,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Акнун васеъшавиҳои нав дастрасанд</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Зиёда аз 100+ васеъшавии навро тафтиш кунед, ки ба шумо барои шахсисозии «Firefox» имкон медиҳанд.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Зиёда аз 100+ васеъшавии навро тафтиш кунед, ки ба шумо барои шахсисозии «Firefox» имкон медиҳанд.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Васеъшавиҳоро озмоед</string>
@@ -862,7 +879,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Варақаҳо аз дастгоҳҳои дигар</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Огоҳномаҳо дар бораи варақаҳое, ки аз дигар дастгоҳҳои Firefox гирифта шудаанд.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Огоҳномаҳо дар бораи варақаҳое, ки аз дигар дастгоҳҳои Firefox гирифта шудаанд.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Варақаи қабулшуда</string>
     <!-- %s is the device name -->
@@ -1204,6 +1221,8 @@
     <string name="bookmark_add_folder">Илова кардани ҷузвдон</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Хатбарак нигоҳ дошта шуд!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Дар «%s» нигоҳ дошта шуд</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ТАҲРИР КАРДАН</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1447,7 +1466,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Пайваст кардани дастгоҳи дигар</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Барои фиристодани варақа, ақаллан дар дастгоҳи дигар ба Firefox ворид шавед.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Барои фиристодани варақа, ақаллан дар дастгоҳи дигар ба Firefox ворид шавед.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Фаҳмо</string>
 
@@ -1489,10 +1508,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">«Firefox» тезкор ва хусусӣ мебошад</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">«Firefox» тезкор ва хусусӣ мебошад</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Гузоштани «Firefox» ҳамчун браузери пешфарз</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Гузоштани «Firefox» ҳамчун браузери пешфарз</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Тамошокунии хусусиро озмоед</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1514,7 +1533,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Лутфан, барои беҳтар кардани браузери «Firefox» тавассути ин саволнома кумак расонед.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Лутфан, барои беҳтар кардани браузери «Firefox» тавассути ин саволнома кумак расонед.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Иштирок дар саволнома</string>
     <!-- Preference for not taking the short survey. -->
@@ -1663,7 +1682,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Рамзро скан кунед</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Дар компютери худ Firefox-ро кушоед ва ба <b>https://firefox.com/pair</b> гузаред]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Дар компютери худ Firefox-ро кушоед ва ба <b>https://firefox.com/pair</b> гузаред]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Барои аксбардорӣ омода аст</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1671,7 +1690,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Ба ҷояш почтаи электрониро истифода баред</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Ҳисоб надоред? Барои ҳамоҳангсозӣ кардани Firefox байни дастгоҳҳо, <u>ҳисоберо эҷод намоед</u>.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Ҳисоб надоред? Барои ҳамоҳангсозӣ кардани Firefox байни дастгоҳҳо, <u>ҳисоберо эҷод намоед</u>.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s ҳамоҳангсозиро бо ҳисоби шумо қатъ мекунад, аммо ягон маълумоти тамошокунии шуморо дар ин дастгоҳ нест намекунад.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2202,7 +2221,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Лутфан ҳамоҳангсозии варақаҳоро фаъол кунед.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Шумо дар дастгоҳҳои дигари худ дар Firefox ягон варақаи кушодашуда надоред.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Шумо дар дастгоҳҳои дигари худ дар Firefox ягон варақаи кушодашуда надоред.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Дидани рӯйхати варақаҳо аз дастгоҳҳои дигар.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2270,7 +2289,7 @@
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Пас аз як моҳ ба таври худкор пӯшида шавад?</string>
 
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox метавонад варақаҳоеро, ки шумо дар давоми як моҳи охир надидаед, пӯшонад.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox метавонад варақаҳоеро, ки шумо дар давоми як моҳи охир надидаед, пӯшонад.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">ФАЪОЛ КАРДАНИ ПӮШИШИ ХУДКОР</string>
 
@@ -2279,7 +2298,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Пешниҳоди Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Пешниҳоди Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Ҷустуҷӯ дар «Google»</string>
@@ -2290,7 +2309,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Гузоштан ба браузери пешфарзи худ</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Пайвандҳоеро, танзим кунед, то ки онҳо аз сомонаҳо, почтаи электронӣ ва паёмҳо дар браузери «Firefox» ба таври худкор кушода шаванд.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Пайвандҳоеро, танзим кунед, то ки онҳо аз сомонаҳо, почтаи электронӣ ва паёмҳо дар браузери «Firefox» ба таври худкор кушода шаванд.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Тоза кардан</string>
@@ -2314,7 +2333,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Аз ҷониби «%s» таъмин карда шудааст.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Қисми оилаи Firefox.%s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Қисми оилаи Firefox.%s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Маълумоти бештар</string>
 
@@ -2788,7 +2807,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Ба мо барои беҳтар кардани браузери «Firefox» кумак расонед. Ин танҳо як дақиқа мегирад.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Ба мо барои беҳтар кардани браузери «Firefox» кумак расонед. Ин танҳо як дақиқа мегирад.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Идома додан</string>
     <!-- Survey view -->
@@ -2822,18 +2841,18 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ман онро истифода намебарам</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Ба беҳтар кардани чоп дар «Firefox» кумак кунед. Ин танҳо як сония мегирад</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ба беҳтар кардани чоп дар «Firefox» кумак кунед. Ин танҳо як сония мегирад</string>
 
 
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Шумо аз вазифаи чоп дар «Firefox» то чӣ андоза қаноатмандед?</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Шумо аз вазифаи чоп дар «Firefox» то чӣ андоза қаноатмандед?</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Шумо аз саҳифаи асосии браузери «Firefox» то чӣ андоза қаноатмандед?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Ангораи браузери «Firefox»</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Ангораи браузери «Firefox»</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Нишонаи хусусияти саволнома</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->

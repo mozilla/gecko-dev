@@ -94,6 +94,8 @@
     <string name="mozac_feature_addons_settings_allow_in_private_browsing">ອະນຸຍາດໃຫ້ຢູ່ໃນໂຫມດການທ່ອງເວັບແບບສ່ວນຕົວ</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_run_in_private_browsing">ດໍາເນີນການໃນໂຫມດການທ່ອງເວັບແບບສ່ວນຕົວ</string>
+    <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+    <string name="mozac_feature_addons_not_allowed_in_private_browsing">ບໍ່ອະນຸຍາດໃຫ້ໃຊ້ໃນໜ້າຕ່າງສ່ວນຕົວ</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">ເປີດໃຊ້ງານແລ້ວ</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
@@ -140,6 +142,10 @@
     <string name="mozac_feature_addons_addons">Add-ons</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">ຕົວຈັດການ Add-ons</string>
+    <!-- Button to re-enable the extensions in the "crash" notification -->
+    <string name="mozac_feature_extensions_manager_notification_restart_button">ຣີສະຕາດສ່ວນຂະຫຍາຍໃໝ່</string>
+    <!-- Button in the extensions manager that opens AMO in a tab -->
+    <string name="mozac_feature_addons_find_more_extensions_button_text">ຊອກຫາສ່ວນຂະຫຍາຍເພີ່ມເຕີມ</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
     <string name="mozac_feature_addons_updater_notification_allow_button">ອະນຸຍາດ</string>
     <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated-->
@@ -204,4 +210,8 @@
     <string name="mozac_feature_addons_updater_dialog_status">ສະຖານະ:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%1$s ໄດ້ຖືກເພີ່ມເຂົ້າໃນ %2$s</string>
+    <!-- Confirmation button text for the dialog when add-on installation is completed. -->
+    <string name="mozac_feature_addons_installed_dialog_okay_button_2">ຕົກລົງ</string>
+    <!-- "Learn more" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
     </resources>

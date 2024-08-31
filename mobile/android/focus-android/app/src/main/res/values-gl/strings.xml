@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Busca en Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Busca en Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Buscar en Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Buscar en Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Buscar en Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Buscar en Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Buscar en Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Buscar en Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s dálle o control.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s dálle o control.</p>
 <p>Úseo como navegador privado:
   <ul>
     <li>Buscar e navegar directamente na aplicación</li>
@@ -609,7 +609,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Descargar o Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Descargar o Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -621,23 +621,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s está dispoñible para vostede baixo os termos da <a href="%2$s">Licenza pública de Mozilla</a> e outras licenzas de código aberto.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s está dispoñible para vostede baixo os termos da <a href="%2$s">Licenza pública de Mozilla</a> e outras licenzas de código aberto.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Non se lle concede ningún dereito ou licenza sobre as marcas comerciais da Fundación Mozilla ou de ningunha parte, incluídos os nomes ou logotipos de Mozilla, Firefox ou %1$s. Pódese atopar información adicional <a href="%2$s">aquí</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Non se lle concede ningún dereito ou licenza sobre as marcas comerciais da Fundación Mozilla ou de ningunha parte, incluídos os nomes ou logotipos de Mozilla, Firefox ou %1$s. Pódese atopar información adicional <a href="%2$s">aquí</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[O código fonte adicional para %1$s está dispoñible baixo outras <a href="%2$s">licenzas</a> gratuítas e de código aberto.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[O código fonte adicional para %1$s está dispoñible baixo outras <a href="%2$s">licenzas</a> gratuítas e de código aberto.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s tamén usa as listas de bloqueo proporcionadas por Disconnect, Inc. como traballos separados e independentes baixo a <a href="%2$s">GNU General Public License v3</a>, e dispoñible <a href="%3$s">aquí</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s tamén usa as listas de bloqueo proporcionadas por Disconnect, Inc. como traballos separados e independentes baixo a <a href="%2$s">GNU General Public License v3</a>, e dispoñible <a href="%3$s">aquí</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Nome de usuario</string>
@@ -828,7 +828,7 @@
     <string name="preference_studies">Estudos</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox pode instalar e executar estudos de vez en cando.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox pode instalar e executar estudos de vez en cando.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Máis información</string>
@@ -924,7 +924,7 @@
     <string name="open_new_tab_snackbar">Trocar</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Entrado no modo de pantalla completa</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Entrado no modo de pantalla completa</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Cambiar a unha ligazón nunha nova lapela inmediatamente</string>
@@ -1026,7 +1026,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s tenta utilizar unha conexión HTTPS sempre que sexa posible para máis seguridade.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s tenta utilizar unha conexión HTTPS sempre que sexa posible para máis seguridade.
      <a href="%2$s">Máis información</a> <br/><br/>
      Cambie esta configuración en Configuración > Privacidade e &amp; Seguridade > Seguridade.]]></string>
 
@@ -1095,4 +1095,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Engadiuse o widget á pantalla de inicio</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Para saír da pantalla completa, arrastra desde arriba e usa o xesto de retroceso</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Para saír da pantalla completa, arrastra dende arriba e preme a tecla de retroceso</string>
 </resources>
