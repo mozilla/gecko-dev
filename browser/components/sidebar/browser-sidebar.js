@@ -980,6 +980,7 @@ var SidebarController = {
         break;
       }
     }
+    this.updateToolbarButton();
   },
 
   /**
@@ -1016,7 +1017,6 @@ var SidebarController = {
       "expanded",
       this._sidebarMain.expanded
     );
-    this.updateToolbarButton();
   },
 
   _loadSidebarExtension(commandID) {
