@@ -138,12 +138,10 @@ export const DAPVisitCounter = new (class {
       };
 
       send_promises.push(
-        DAPTelemetrySender.sendDAPMeasurement(
-          task,
-          measurement,
+        DAPTelemetrySender.sendDAPMeasurement(task, measurement, {
           timeout,
-          reason
-        )
+          reason,
+        })
       );
     }
 

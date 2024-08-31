@@ -5,6 +5,17 @@
 let knownConfigs = new Map();
 
 export class HPKEConfigManager {
+  /**
+   * Decodes a base64url-encoded key string.
+   * @param {string} aBase64Key
+   * @returns {Uint8Array}
+   */
+  static decodeKey(aBase64Key) {
+    return new Uint8Array(
+      ChromeUtils.base64URLDecode(aBase64Key, { padding: "ignore" })
+    );
+  }
+
   static async get(aURL, aOptions = {}) {
     // If we're in a child, forward to the parent.
     let { remoteType } = Services.appinfo;
