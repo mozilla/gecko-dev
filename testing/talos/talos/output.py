@@ -160,16 +160,6 @@ class Output(object):
                     if "mainthreadio" in name:
                         continue
 
-                    # responsiveness has it's own metric, not the mean
-                    # TODO: consider doing this for all counters
-                    if "responsiveness" == name:
-                        subtest = {
-                            "name": name,
-                            "value": filter.responsiveness_Metric(vals),
-                        }
-                        counter_subtests.append(subtest)
-                        continue
-
                     subtest = {
                         "name": name,
                         "value": 0.0,
@@ -333,9 +323,7 @@ class Output(object):
         return 100
 
     def construct_results(self, vals, testname):
-        if "responsiveness" in testname:
-            return filter.responsiveness_Metric([val for (val, page) in vals])
-        elif testname.startswith("v8_7"):
+        if testname.startswith("v8_7"):
             return self.v8_Metric(vals)
         elif testname.startswith("kraken"):
             return self.JS_Metric(vals)

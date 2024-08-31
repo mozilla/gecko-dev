@@ -310,11 +310,6 @@ SOURCES += [
     "ScreenManager.cpp",
 ]
 
-if CONFIG["MOZ_INSTRUMENT_EVENT_LOOP"]:
-    EXPORTS.mozilla += [
-        "WidgetTraceEvent.h",
-    ]
-
 EXPORTS.ipc = [
     "nsGUIEventIPC.h",
 ]

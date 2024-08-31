@@ -50,7 +50,6 @@ class mock_test(PageloaderTest):
         "xperf_counters",
         "timeout",
         "shutdown",
-        "responsiveness",
         "profile_path",
         "xperf_providers",
         "xperf_user_providers",
@@ -364,7 +363,6 @@ class Test_get_config(object):
         assert test_config["filters"] is not None
         assert test_config["tpmozafterpaint"] is True
         # assert test_config['mainthread'] is False
-        # assert test_config['responsiveness'] is False
         # assert test_config['unit'] == 'ms'
 
     def test_ts_paint_webext_has_expected_attributes(self):
@@ -385,7 +383,6 @@ class Test_get_config(object):
         assert test_config["filters"] is not None
         assert test_config["tpmozafterpaint"] is True
         # assert test_config['mainthread'] is False
-        # assert test_config['responsiveness'] is False
         # assert test_config['unit'] == 'ms'
         # TODO: this isn't overriden
         # assert test_config['webextensions'] != '${talos}/webextensions/dummy/dummy-signed.xpi'
@@ -409,7 +406,6 @@ class Test_get_config(object):
         assert test_config["filters"] is not None
         assert test_config["tpmozafterpaint"] is True
         # assert test_config['mainthread'] is False
-        # assert test_config['responsiveness'] is False
         # assert test_config['unit'] == 'ms'
         assert test_config["profile"] == "simple"
 
@@ -984,7 +980,6 @@ class Test_get_config(object):
         assert test_config["win_counters"] == ["% Processor Time"]
         assert test_config["linux_counters"] == ["XRes"]
         assert test_config["mac_counters"] == []
-        assert test_config["responsiveness"] is True
         assert test_config["gecko_profile_interval"] == 2
         assert test_config["gecko_profile_entries"] == 4000000
         assert test_config["filters"] is not None
@@ -1007,7 +1002,6 @@ class Test_get_config(object):
         assert test_config["win_counters"] == ["% Processor Time"]
         assert test_config["linux_counters"] == ["XRes"]
         assert test_config["mac_counters"] == []
-        assert test_config["responsiveness"] is True
         assert test_config["gecko_profile_interval"] == 2
         assert test_config["gecko_profile_entries"] == 4000000
         assert test_config["filters"] is not None

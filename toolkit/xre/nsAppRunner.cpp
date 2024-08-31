@@ -51,10 +51,6 @@
 #endif
 #include "ProfileReset.h"
 
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-#  include "EventTracer.h"
-#endif
-
 #ifdef XP_MACOSX
 #  include "nsVersionComparator.h"
 #  include "MacLaunchHelper.h"
@@ -5749,13 +5745,6 @@ nsresult XREMain::XRE_mainRun() {
       mNativeApp->Enable();
     }
 
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-    if (PR_GetEnv("MOZ_INSTRUMENT_EVENT_LOOP")) {
-      bool logToConsole = true;
-      mozilla::InitEventTracing(logToConsole);
-    }
-#endif /* MOZ_INSTRUMENT_EVENT_LOOP */
-
     // Send Telemetry about Gecko version and buildid
     mozilla::glean::gecko::version.Set(nsDependentCString(gAppData->version));
     mozilla::glean::gecko::build_id.Set(nsDependentCString(gAppData->buildID));
@@ -6060,10 +6049,6 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 
 #ifdef MOZ_X11
   XRE_CleanupX11ErrorHandler();
-#endif
-
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-  mozilla::ShutdownEventTracing();
 #endif
 
   gAbsoluteArgv0Path.Truncate();

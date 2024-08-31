@@ -177,7 +177,6 @@ class ts_paint(TsBase):
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     tpmozafterpaint = True
     mainthread = False
-    responsiveness = False
     unit = "ms"
 
 
@@ -350,7 +349,6 @@ class PageloaderTest(Test):
         "tpscrolltest",
         "xperf_counters",
         "timeout",
-        "responsiveness",
         "profile_path",
         "xperf_providers",
         "xperf_user_providers",
@@ -1059,7 +1057,6 @@ class tp5o(PageloaderTest):
     win_counters = ["% Processor Time"]
     linux_counters = ["XRes"]
     mac_counters = []
-    responsiveness = True
     gecko_profile_interval = 2
     filters = filter.ignore_first.prepare(5) + filter.median.prepare()
     timeout = 1800

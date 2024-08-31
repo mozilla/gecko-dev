@@ -46,10 +46,6 @@
 #include "nsDocShell.h"
 #include "nsDocShellLoadState.h"
 
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-#  include "EventTracer.h"
-#endif
-
 using namespace mozilla;
 using mozilla::dom::BrowsingContext;
 using mozilla::intl::LocaleService;
@@ -833,21 +829,5 @@ nsAppShellService::Observe(nsISupports* aSubject, const char* aTopic,
     NS_ERROR("Unexpected observer topic!");
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAppShellService::StartEventLoopLagTracking(bool* aResult) {
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-  *aResult = mozilla::InitEventTracing(true);
-#endif
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAppShellService::StopEventLoopLagTracking() {
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-  mozilla::ShutdownEventTracing();
-#endif
   return NS_OK;
 }

@@ -15,7 +15,6 @@
 
 #include "mozilla/AvailableMemoryWatcher.h"
 #include "CustomCocoaEvents.h"
-#include "mozilla/WidgetTraceEvent.h"
 #include "nsAppShell.h"
 #include "gfxPlatform.h"
 #include "nsCOMPtr.h"
@@ -176,12 +175,6 @@ void OnUncaughtException(NSException* aException) {
 
 - (void)sendEvent:(NSEvent*)anEvent {
   mozilla::BackgroundHangMonitor().NotifyActivity();
-
-  if ([anEvent type] == NSEventTypeApplicationDefined &&
-      [anEvent subtype] == kEventSubtypeTrace) {
-    mozilla::SignalTracerThread();
-    return;
-  }
   [super sendEvent:anEvent];
 }
 

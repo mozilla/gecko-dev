@@ -12,7 +12,5 @@
 
 // Empty event, just used for prodding the event loop into responding.
 const short kEventSubtypeNone = 0;
-// Tracer event, used for timing the event loop responsiveness.
-const short kEventSubtypeTrace = 1;
 
 #endif /* WIDGET_COCOA_CUSTOMCOCOAEVENTS_H_ */

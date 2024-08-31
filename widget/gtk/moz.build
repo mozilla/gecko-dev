@@ -95,7 +95,6 @@ UNIFIED_SOURCES += [
     "TaskbarProgress.cpp",
     "WakeLockListener.cpp",
     "WidgetStyleCache.cpp",
-    "WidgetTraceEvent.cpp",
     "WidgetUtilsGtk.cpp",
     "WindowSurfaceProvider.cpp",
 ]

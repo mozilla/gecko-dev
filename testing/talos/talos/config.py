@@ -29,7 +29,6 @@ DEFAULTS = dict(
     basetest=dict(
         cycles=1,
         profile_path="${talos}/base_profile",
-        responsiveness=False,
         gecko_profile=False,
         gecko_profile_interval=1,
         gecko_profile_entries=100000,

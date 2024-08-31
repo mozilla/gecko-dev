@@ -99,13 +99,6 @@ class TTest(object):
             for c in test_config.get("xperf_counters", []):
                 global_counters[c] = []
 
-        if test_config.get("responsiveness") and platform.system() != "Darwin":
-            # ignore osx for now as per bug 1245793
-            setup.env["MOZ_INSTRUMENT_EVENT_LOOP"] = "1"
-            setup.env["MOZ_INSTRUMENT_EVENT_LOOP_THRESHOLD"] = "20"
-            setup.env["MOZ_INSTRUMENT_EVENT_LOOP_INTERVAL"] = "10"
-            global_counters["responsiveness"] = []
-
         setup.env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
 
         # instantiate an object to hold test results

@@ -42,9 +42,6 @@ EXPORTS.mozilla += [
     "SafeMode.h",
 ]
 
-if CONFIG["MOZ_INSTRUMENT_EVENT_LOOP"]:
-    EXPORTS += ["EventTracer.h"]
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXPORTS.mozilla += [
         "AssembleCmdLine.h",
@@ -156,11 +153,6 @@ SOURCES += [
     "nsEmbedFunctions.cpp",
     "ProfileReset.cpp",
 ]
-
-if CONFIG["MOZ_INSTRUMENT_EVENT_LOOP"]:
-    UNIFIED_SOURCES += [
-        "EventTracer.cpp",
-    ]
 
 if CONFIG["MOZ_UPDATER"]:
     if CONFIG["MOZ_WIDGET_TOOLKIT"] != "android":

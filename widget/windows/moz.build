@@ -106,7 +106,6 @@ UNIFIED_SOURCES += [
     "TaskbarPreviewButton.cpp",
     "TaskbarTabPreview.cpp",
     "TaskbarWindowPreview.cpp",
-    "WidgetTraceEvent.cpp",
     "WinCompositorWindowThread.cpp",
     "WindowHook.cpp",
     "WindowsConsole.cpp",

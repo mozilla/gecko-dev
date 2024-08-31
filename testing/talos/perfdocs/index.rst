@@ -410,28 +410,6 @@ every 20 seconds. This metric is collected on linux only.
 Cpu usage tracked during tp5 test runs. This metric is sampled every 20
 seconds. This metric is collected on windows only.
 
-Responsiveness
---------------
-
-contact: :jimm, :overholt
-
-Measures the delay for the event loop to process a `tracer
-event <https://wiki.mozilla.org/Performance/Snappy#Current_Infrastructure>`__.
-For more details, see `bug
-631571 <https://bugzilla.mozilla.org/show_bug.cgi?id=631571>`__.
-
-The score on this benchmark is proportional to the sum of squares of all
-event delays that exceed a 20ms threshold. Lower is better.
-
-We collect 8000+ data points from the browser during the test and apply
-`this
-formula <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/output.py#l95>`__
-to the results:
-
-.. code-block:: python
-
-   return sum([float(x)*float(x) / 1000000.0 for x in val_list])
-
 tpaint
 ======
 

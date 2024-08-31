@@ -742,24 +742,6 @@ def pdf_printing(toolkit):
 set_config("MOZ_PDF_PRINTING", pdf_printing)
 set_define("MOZ_PDF_PRINTING", pdf_printing)
 
-
-# Event loop instrumentation
-# ==============================================================
-option(env="MOZ_INSTRUMENT_EVENT_LOOP", help="Force-enable event loop instrumentation")
-
-
-@depends("MOZ_INSTRUMENT_EVENT_LOOP", toolkit)
-def instrument_event_loop(value, toolkit):
-    if value or (
-        toolkit in ("windows", "gtk", "cocoa", "android") and value.origin == "default"
-    ):
-        return True
-
-
-set_config("MOZ_INSTRUMENT_EVENT_LOOP", instrument_event_loop)
-set_define("MOZ_INSTRUMENT_EVENT_LOOP", instrument_event_loop)
-
-
 # Fontconfig Freetype
 # ==============================================================
 option(env="USE_FC_FREETYPE", help="Force-enable the use of fontconfig freetype")

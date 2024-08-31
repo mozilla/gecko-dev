@@ -115,14 +115,4 @@ interface nsIAppShellService : nsISupports
    * Whether the hidden window has been lazily created.
    */
   readonly attribute boolean hasHiddenWindow;
-
-  /**
-   * Start/stop tracking lags in the event loop.
-   * If the event loop gets unresponsive, a "event-loop-lag" notification
-   * is sent. Note that calling `startEventLoopLagTracking` when tracking
-   * is already enabled has no effect.
-   * @return true if tracking succeeded.
-   */
-  boolean startEventLoopLagTracking();
-  void stopEventLoopLagTracking();
 };

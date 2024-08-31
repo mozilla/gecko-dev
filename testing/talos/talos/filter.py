@@ -256,9 +256,3 @@ def v8_subtest(series, name):
 
     # pylint --py3k W1619
     return reference[name] / geometric_mean(series)
-
-
-@register_filter
-@define_filter
-def responsiveness_Metric(val_list):
-    return sum([float(x) * float(x) / 1000000.0 for x in val_list])
