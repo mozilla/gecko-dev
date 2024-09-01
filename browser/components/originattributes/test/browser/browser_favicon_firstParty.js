@@ -12,12 +12,6 @@ const { PlacesTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PlacesTestUtils.sys.mjs"
 );
 
-let EventUtils = {};
-Services.scriptloader.loadSubScript(
-  "chrome://mochikit/content/tests/SimpleTest/EventUtils.js",
-  EventUtils
-);
-
 const FIRST_PARTY_ONE = "example.com";
 const FIRST_PARTY_TWO = "example.org";
 const THIRD_PARTY = "example.net";

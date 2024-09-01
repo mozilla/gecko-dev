@@ -6,12 +6,6 @@ if (SpecialPowers.useRemoteSubframes) {
   requestLongerTimeout(2);
 }
 
-let EventUtils = {};
-Services.scriptloader.loadSubScript(
-  "chrome://mochikit/content/tests/SimpleTest/EventUtils.js",
-  EventUtils
-);
-
 ChromeUtils.defineESModuleGetters(this, {
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
 });

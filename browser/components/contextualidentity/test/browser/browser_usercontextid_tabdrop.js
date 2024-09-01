@@ -1,11 +1,5 @@
 "use strict";
 
-let EventUtils = {};
-Services.scriptloader.loadSubScript(
-  "chrome://mochikit/content/tests/SimpleTest/EventUtils.js",
-  EventUtils
-);
-
 /**
  * Dragging an URL to a tab without userContextId set.
  */
