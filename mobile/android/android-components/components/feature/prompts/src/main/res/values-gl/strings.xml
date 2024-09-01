@@ -119,8 +119,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Suxerir contrasinais fortes</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Suxerir contrasinais fortes</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Usa un contrasinal seguro</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Usar un contrasinal forte: %1$s</string>
@@ -130,7 +128,7 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Obteña acceso rápido aos seus contrasinais gardándoos na súa conta.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Gardarase na túa conta para uso futuro.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Gardarase na súa conta para o uso futuro.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar contrasinal</string>
@@ -205,7 +203,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Use %1$s como provedor de inicio de sesión</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Iniciar sesión en %1$s cunha conta de %2$s está suxeito á súa <a href="%3$s">Política de privacidade</a> e ás súas <a href="%4$s">Condicións de servizo </a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Iniciar sesión en %1$s cunha conta de %2$s está suxeito á súa <a href="%3$s">Política de privacidade</a> e ás súas <a href="%4$s">Condicións de servizo </a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Continuar</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

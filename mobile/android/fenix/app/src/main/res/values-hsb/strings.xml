@@ -217,6 +217,8 @@
     <string name="browser_menu_manage_extensions">Rozšěrjenja rjadować</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Dalše rozšěrjenja namakać</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Na chwilu znjemóžnjene</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Kontowe informacije</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -429,12 +431,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Zdźělenka priwatnosće Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Zdźělenka priwatnosće Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Škitamy was rady</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Wuslědźće, čehodla miliony ludźi Firefox lubuja</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Wuslědźće, čehodla miliony ludźi Firefox lubuja</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Wěste přehladowanje z wjace wuběrami</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -456,20 +458,20 @@
     <string name="juno_onboarding_sign_in_title_2">Wostańće zaklučowany, hdyž wjacore graty wužiwaće</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Hdyž sće so přizjewił a sće synchronizował, sće wěsćiši. Firefox waše hesła, zapołožki a wjace zaklučuje.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Hdyž sće so přizjewił a sće synchronizował, sće wěsćiši. Firefox waše hesła, zapołožki a wjace zaklučuje.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Firefox waše hesła, zapołožki a wjace zaklučuje, hdyž sće synchronizowany.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox waše hesła, zapołožki a wjace zaklučuje, hdyž sće synchronizowany.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Přizjewić</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Nic nětko</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Zdźělenki wam pomhaja, z Firefox wěsćiši wostać</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Zdźělenki wam pomhaja, z Firefox wěsćiši wostać</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Rozsyłajće rajtarki mjez swojimi gratami a wotkryjće druhe funkcije priwatnosće w Firefox. </string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Rozsyłajće rajtarki mjez swojimi gratami a wotkryjće druhe funkcije priwatnosće w Firefox. </string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Zdźělenki zmóžnić</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -477,13 +479,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Wupruwujće pytanski asistent Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Wupruwujće pytanski asistent Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Z Firefox na swojej startowej wobrazowce maće lochki přistup k wobhladowakej, za kotryž priwatnosć je na prěnim městnje, kotryž sydła přesahowace přesćěhowaki blokuje.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Z Firefox na swojej startowej wobrazowce maće lochki přistup k wobhladowakej, za kotryž priwatnosć je na prěnim městnje, kotryž sydła přesahowace přesćěhowaki blokuje.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Asistent Firefox přidać</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Asistent Firefox přidać</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Nic nětko</string>
 
@@ -524,9 +526,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Nastajenja adresoweho pola</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Adresowe polo – Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Adresowe polo – Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Zhońće wjace wo Firefox Suggest</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Zhońće wjace wo Firefox Suggest</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Na Google Play pohódnoćić</string>
     <!-- Preference linking to about page for Fenix
@@ -564,9 +566,11 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Přetorhnyć</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Naprašowanje pósłać</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Naprašowanje pósłać</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Prašeć so, hač so ma sydło přidać</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Wo podpěru za tute sydło prosyć?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Wo podpěru za tute sydło prosyć?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Naprašowanje pósłane</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -574,13 +578,15 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Próstwa wo podpěru pósłana</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">Sydło so tuchwilu njepodpěruje</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Sydło so tuchwilu njepodpěruje</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">Sydło so njepodpěruje</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Blokowak plackowych chorhojow za %1$s zmóžnić?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Blokowak plackowych chorhojow za %1$s znjemóžnić?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s njemóže plackowe naprašowanja na tutym sydle awtomatisce wotpokazać. Móžeće próstwu wo podpěru tutoho sydła w přichodźe pósłać.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s njemóže plackowe naprašowanja na tutym sydle awtomatisce wotpokazać. Móžeće próstwu wo podpěru tutoho sydła w přichodźe pósłać.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Při znjemóžnjenju %1$s placki zhaša a tute sydło znowa začita. To móže was wotzjewić abo nakupowanske koše wuprózdnić.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -789,7 +795,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Nowe rozšěrjenja nětko k dispoziciji</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Wupruwujće přez 100 nowych rozšěrjenjow, z kotrymiž móžeće Firefox swojim přećach přiměrić.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Wupruwujće přez 100 nowych rozšěrjenjow, z kotrymiž móžeće Firefox swojim přećach přiměrić.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Wuslědźće rozšěrjenja</string>
@@ -856,7 +862,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Přijate rajtarki</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Zdźělenki za rajtarki su so z druhich gratow Firefox přijali.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Zdźělenki za rajtarki su so z druhich gratow Firefox přijali.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Rajtark přijaty</string>
     <!-- %s is the device name -->
@@ -1200,6 +1206,8 @@
     <string name="bookmark_add_folder">Rjadowak přidać</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Zapołožka je so składowała!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Do “%s” składowane</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">WOBDŹĚŁAĆ</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1443,7 +1451,7 @@
     <string name="sync_connect_device">Dalši grat zwjazać</string>
 
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Zo byšće rajtark pósłał, přizjewće so pola Firefox na znajmjeńša jednym dalšim graće.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Zo byšće rajtark pósłał, přizjewće so pola Firefox na znajmjeńša jednym dalšim graće.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Sym zrozumił</string>
     <!-- Share error message -->
@@ -1483,10 +1491,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox je spěšny a priwatny</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox je spěšny a priwatny</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Firefox k wašemu standardnemu wobhladowakej činić</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Firefox k wašemu standardnemu wobhladowakej činić</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Wupruwujće priwatny modus</string>
 
@@ -1508,7 +1516,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Prošu wobdźělće so na krótkim naprašowanju, zo byšće pomhał, Firefox polěpšować.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Prošu wobdźělće so na krótkim naprašowanju, zo byšće pomhał, Firefox polěpšować.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Woprašowanje wupjelnić</string>
     <!-- Preference for not taking the short survey. -->
@@ -1653,7 +1661,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Kod skenować</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Wočińće Firefox na swojim ličaku a dźiće k <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Wočińće Firefox na swojim ličaku a dźiće k <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Hotowy za skenowanje</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1661,7 +1669,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">E-mejl město toho wužiwać</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Žane konto? <u>Załožće tajke</u>, zo byšće Firefox mjez gratami synchronizował.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Žane konto? <u>Załožće tajke</u>, zo byšće Firefox mjez gratami synchronizował.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s přestanje z wašim kontom synchronizować, ale njezhaša přehladowanske daty na tutym graće.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2193,7 +2201,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Prošu zmóžńće synchronizowanje rajtarkow.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Nimaće žane wočinjene rajtarki w Firefox na swojich druhich gratach.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Nimaće žane wočinjene rajtarki w Firefox na swojich druhich gratach.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Wobhladajće sej lisćinu rajtarkow ze swojich gratow.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2261,7 +2269,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Po jednym měsacu awtomatisce začinić?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox móže rajtarki začinić, kotrež njejsće sej zańdźeny měsac wobhladał.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox móže rajtarki začinić, kotrež njejsće sej zańdźeny měsac wobhladał.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">AWTOMATISKE ZAČINJENJE ZMÓŽNIĆ</string>
 
@@ -2270,7 +2278,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Namjety Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Namjety Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Pytanje z Google</string>
@@ -2281,7 +2289,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Waš standardny wobhladowak změnić</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Nastajće wotkazy z websydłow, mejlkow a powěsćow, zo bychu so awtomatisce we Firefox wočinili.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Nastajće wotkazy z websydłow, mejlkow a powěsćow, zo bychu so awtomatisce we Firefox wočinili.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Wotstronić</string>
@@ -2305,7 +2313,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Spěchowany wot %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Dźěl swójby Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Dźěl swójby Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Dalše informacije</string>
 
@@ -2780,7 +2788,7 @@ To budźe jenož pomhać, kwalitu pohódnoćenjow posudźić, nic kwalitu produk
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Pomhajće nam, Firefox polěpšować. Traje jenož jednu mjeńšinu.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Pomhajće nam, Firefox polěpšować. Traje jenož jednu mjeńšinu.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Dale</string>
     <!-- Survey view -->
@@ -2812,16 +2820,16 @@ To budźe jenož pomhać, kwalitu pohódnoćenjow posudźić, nic kwalitu produk
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">To njewužiwam</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Kak spokojny sće ze swojej startowej stronu Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Kak spokojny sće ze swojej startowej stronu Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Pomhajće ćišćenje w Firefox polěpšić. Traje jenož sekundu</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Pomhajće ćišćenje w Firefox polěpšić. Traje jenož sekundu</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Kak spokojny sće z ćišćenjom w Firefox?</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Kak spokojny sće z ćišćenjom w Firefox?</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Kak spokojny sće ze swojej startowej stronu Firefox?</string>
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Kak spokojny sće ze swojej startowej stronu Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Logo Firefox</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Symbol funkcije naprašowanja</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->

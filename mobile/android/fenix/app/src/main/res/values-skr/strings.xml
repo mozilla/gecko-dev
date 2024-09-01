@@ -558,6 +558,8 @@
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">سائٹ فی الحال سہارا تھئی کائنی</string>
 
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">سائٹ سہارا تھئی کائنی</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">کوکی بینر بلاکر کوں %1$s کِیتے چالو کروں؟</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
@@ -605,6 +607,8 @@
     <string name="preferences_category_account">کھاتہ</string>
     <!-- Preference for changing where the toolbar is positioned -->
     <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">ٹول بار</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">پتہ بار مقام</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">تھیم</string>
     <!-- Preference for customizing the home screen -->
@@ -845,6 +849,11 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">%s کنوں ٹیب</string>
 
+    <!-- Close Synced Tabs -->
+    <!-- The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
+    <string name="fxa_tabs_closed_notification_title">%1$s ٹیباں بند تھیاں: %2$d</string>
     <!-- The body for a "closed synced tabs" notification. -->
     <string name="fxa_tabs_closed_text">حالیہ بند تھیاں ٹیبز ݙیکھو</string>
 
@@ -1177,6 +1186,8 @@
     <string name="bookmark_add_folder">فولڈر بݨاؤ</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">نشانی محفوظ!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">“%s” وچ محفوظ تھیا</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">تندیلی کرو</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1243,6 +1254,9 @@
     <string name="bookmark_close_button_content_description">نشانیاں بند کرو</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">نشانیاں ڳولو</string>
+
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">%s کیتے آئٹم مینیو</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2779,6 +2793,10 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">میں ایں کوں کائنی ورتیندا</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">تساں آپݨے Firefox مکھ پنے نال چوکھے مطمئن ہو؟</string>
+    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">تساں Firefox وچ چھاپݨ نال چوکھے مطمئن ہو؟</string>
+    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">تساں آپݨے Firefox مکھ پنے نال چوکھے مطمئن ہو؟</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox لوگو</string>
@@ -2800,6 +2818,18 @@
     <string name="debug_drawer_logins_add_login_button">ایں ڈومین کیتے ہک جعلی لاگ ان شامل کرو</string>
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">ورتݨ ناں %s نال لاگ ان مٹاؤ</string>
+
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">CFR آلات</string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">CFRs ری سیٹ کرو</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک اشارہ ورتو</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک دباؤ</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

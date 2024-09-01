@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Suggereix una contrasenya segura</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Suggereix una contrasenya segura</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Useu una contrasenya segura</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Useu una contrasenya segura: %1$s</string>
@@ -127,7 +125,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Voleu utilitzar una contrasenya segura?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Protegiu els comptes amb una contrasenya segura generada aleatòriament. Si la deseu en el compte, podreu accedir-hi ràpidament.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protegiu els comptes amb una contrasenya segura generada aleatòriament. Si la deseu en el compte, podreu accedir-hi ràpidament.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protegiu els vostres comptes amb una contrasenya segura generada aleatòriament. Es desarà al vostre compte per a usar-la més endavant.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utilitza la contrasenya</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -202,7 +203,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usa %1$s com a proveïdor d\'inici de sessió</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[L\'inici de sessió a %1$s amb un compte de %2$s està subjecte a la seva <a href="%3$s">Política de privadesa</a> i a les <a href="%4$s">Condicions del servei </a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L\'inici de sessió a %1$s amb un compte de %2$s està subjecte a la seva <a href="%3$s">Política de privadesa</a> i a les <a href="%4$s">Condicions del servei </a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Continua</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

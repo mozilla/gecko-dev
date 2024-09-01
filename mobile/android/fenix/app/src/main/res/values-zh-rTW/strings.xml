@@ -346,7 +346,7 @@
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_title">新功能：流線型選單</string>
     <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-    <string name="menu_cfr_body">不論是隱私瀏覽模式還是儲存動作，讓您更快能找到想要的功能。</string>
+    <string name="menu_cfr_body">不論是隱私瀏覽模式還是儲存動作，讓您更快找到想要的功能。</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->

@@ -138,10 +138,16 @@
     <string name="mozac_feature_addons_install_addon_dialog_cancel">ຍົກເລີກ</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">ກວດຄືນ: %1$s</string>
+    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+    <string name="mozac_feature_addons_rating_content_description_2">ຄະແນນ: %1$.02f ຈາກທັງໝົດ 5</string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">Add-ons</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">ຕົວຈັດການ Add-ons</string>
+    <!-- The title of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_title_text">ສ່ວນຂະຫຍາຍຖືກປິດໃຊ້ງານຊົ່ວຄາວ</string>
+    <!-- The content of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_content_text">ໜຶ່ງ ຫຼື ຫຼາຍສ່ວນຂະຫຍາຍຢຸດເຮັດວຽກ, ເຮັດໃຫ້ລະບົບຂອງທ່ານບໍ່ສະຖຽນ.</string>
     <!-- Button to re-enable the extensions in the "crash" notification -->
     <string name="mozac_feature_extensions_manager_notification_restart_button">ຣີສະຕາດສ່ວນຂະຫຍາຍໃໝ່</string>
     <!-- Button in the extensions manager that opens AMO in a tab -->
@@ -156,6 +162,8 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d ຕ້ອງການສິດໃຫມ່</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">ຕ້ອງການສິດໃຫມ່</string>
+    <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_addons_updater_notification_channel_2">ການປັບປຸງສ່ວນຂະຫຍາຍ</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">ຮອງຮັບໂຕກວດ Add-on</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->

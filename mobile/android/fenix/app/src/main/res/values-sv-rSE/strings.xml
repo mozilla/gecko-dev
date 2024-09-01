@@ -346,7 +346,7 @@
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_title">Nytt: effektiviserad meny</string>
     <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-    <string name="menu_cfr_body">Hitta det du behöver snabbare, från privat surfning till sparade åtgärder.</string>
+    <string name="menu_cfr_body">Hitta det du behöver snabbare, från privat surfning till åtgärder för att spara innehåll.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->

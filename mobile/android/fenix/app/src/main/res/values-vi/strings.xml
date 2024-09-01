@@ -216,6 +216,8 @@
     <string name="browser_menu_manage_extensions">Quản lý tiện ích</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Khám phá tiện tích khác</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Tạm thời bị vô hiệu hóa</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Thông tin tài khoản</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -334,6 +336,12 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Thoát %1$s</string>
 
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Mới: thanh menu được sắp xếp hợp lý</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Tìm thấy những gì bạn cần nhanh hơn, từ duyệt web riêng tư đến hành động lưu.</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">Không có tiện ích ở đây</string>
@@ -429,12 +437,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Thông báo về quyền riêng tư Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Thông báo về quyền riêng tư Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Chúng tôi thích giữ an toàn cho bạn</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Tìm hiểu lý do tại sao hàng triệu người thích Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Tìm hiểu lý do tại sao hàng triệu người thích Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Duyệt web an toàn với nhiều lựa chọn hơn</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -457,20 +465,20 @@
     <string name="juno_onboarding_sign_in_title_2">Luôn mã hóa khi bạn chuyển đổi giữa nhiều thiết bị</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Khi bạn đăng nhập và đồng bộ hóa, bạn sẽ an toàn hơn. Firefox mã hóa mật khẩu, dấu trang của bạn và hơn thế nữa.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Khi bạn đăng nhập và đồng bộ hóa, bạn sẽ an toàn hơn. Firefox mã hóa mật khẩu, dấu trang của bạn và hơn thế nữa.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Firefox mã hóa mật khẩu, dấu trang và nhiều nội dung khác khi bạn đồng bộ hóa.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox mã hóa mật khẩu, dấu trang và nhiều nội dung khác khi bạn đồng bộ hóa.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Đăng nhập</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Không phải bây giờ</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Thông báo giúp bạn an toàn hơn với Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Thông báo giúp bạn an toàn hơn với Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Gửi các thẻ giữa các thiết bị của bạn một cách an toàn và khám phá các tính năng bảo mật khác trong Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Gửi các thẻ giữa các thiết bị của bạn một cách an toàn và khám phá các tính năng bảo mật khác trong Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Bật thông báo</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -478,13 +486,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Hãy thử tiện ích Firefox tìm kiếm</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Hãy thử tiện ích Firefox tìm kiếm</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Với Firefox trên màn hình chính, bạn sẽ dễ dàng truy cập vào trình duyệt ưu tiên quyền riêng tư để chặn các trình theo dõi trên nhiều trang web.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Với Firefox trên màn hình chính, bạn sẽ dễ dàng truy cập vào trình duyệt ưu tiên quyền riêng tư để chặn các trình theo dõi trên nhiều trang web.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Thêm tiện ích Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Thêm tiện ích Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Không phải bây giờ</string>
 
@@ -525,9 +533,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Tùy chọn thanh địa chỉ</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Thanh địa chỉ - Đề xuất của Firefox</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Thanh địa chỉ - Đề xuất của Firefox</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Tìm hiểu thêm về đề xuất của Firefox</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Tìm hiểu thêm về đề xuất của Firefox</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Đánh giá trên Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -564,9 +572,13 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Hủy bỏ</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Gửi yêu cầu</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Gửi yêu cầu</string>
+    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Yêu cầu thêm trang web</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Yêu cầu hỗ trợ cho trang web này?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Yêu cầu hỗ trợ cho trang web này?</string>
+    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Yêu cầu %1$s tự động từ chối cookie</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Đã gửi yêu cầu</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -574,14 +586,18 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Đã gửi yêu cầu hỗ trợ</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site">Trang web hiện tại không được hỗ trợ</string>
+    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Trang web hiện tại không được hỗ trợ</string>
+    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
+    <string name="reduce_cookie_banner_unsupported_site_1">Trang web không được hỗ trợ</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Bật trình chặn biểu ngữ cookie cho %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Tắt trình chặn biểu ngữ cookie cho %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s không thể tự động từ chối yêu cầu cookie trên trang web này. Bạn có thể gửi yêu cầu hỗ trợ trang web này trong tương lai.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s không thể tự động từ chối yêu cầu cookie trên trang web này. Bạn có thể gửi yêu cầu hỗ trợ trang web này trong tương lai.</string>
 
+    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Chúng tôi không thể tự động từ chối cửa sổ bật lên cookie trên trang web này bây giờ.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Tắt và %1$s sẽ xóa cookie và tải lại trang web này. Điều này có thể khiến bạn bị đăng xuất hoặc bị xóa sạch giỏ hàng.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -789,7 +805,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Tiện ích mới đã có sẵn</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Xem hơn 100 tiện ích mở rộng mới cho phép bạn biến Firefox thành của riêng mình.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Xem hơn 100 tiện ích mở rộng mới cho phép bạn biến Firefox thành của riêng mình.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Khám phá tiện ích</string>
@@ -855,7 +871,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Các thẻ đã nhận</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Thông báo các thẻ nhận được từ các thiết bị Firefox khác.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Thông báo các thẻ nhận được từ các thiết bị Firefox khác.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Thẻ đã nhận</string>
 
@@ -1193,6 +1209,8 @@
     <string name="bookmark_add_folder">Thêm thư mục</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Đã lưu dấu trang!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Đã lưu trong “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">CHỈNH SỬA</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1434,7 +1452,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Kết nối thiết bị khác</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Để gửi một thẻ, đăng nhập vào Firefox trên ít nhất một thiết bị khác.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Để gửi một thẻ, đăng nhập vào Firefox trên ít nhất một thiết bị khác.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Đã hiểu</string>
     <!-- Share error message -->
@@ -1473,10 +1491,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox nhanh và riêng tư</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox nhanh và riêng tư</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Đặt Firefox thành trình duyệt mặc định của bạn</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Đặt Firefox thành trình duyệt mặc định của bạn</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Thử duyệt web riêng tư</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1496,7 +1514,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Vui lòng giúp cải thiện Firefox bằng cách tham gia cuộc khảo sát ngắn.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Vui lòng giúp cải thiện Firefox bằng cách tham gia cuộc khảo sát ngắn.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Thực hiện khảo sát</string>
     <!-- Preference for not taking the short survey. -->
@@ -1640,7 +1658,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Quét mã</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Trên máy tính của bạn, hãy mở Firefox và truy cập <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Trên máy tính của bạn, hãy mở Firefox và truy cập <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Sẵn sàng để quét</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1648,7 +1666,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Sử dụng email thay thế</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Không có tài khoản? <u>Tạo ngay tài khoản mới</u> để đồng bộ hóa Firefox giữa các thiết bị.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Không có tài khoản? <u>Tạo ngay tài khoản mới</u> để đồng bộ hóa Firefox giữa các thiết bị.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s sẽ ngừng đồng bộ hóa với tài khoản của bạn, nhưng sẽ không xóa bất kỳ dữ liệu duyệt web nào của bạn trên thiết bị này.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2177,7 +2195,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Vui lòng bật đồng bộ hóa thẻ.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Bạn không có bất kỳ thẻ nào mở trong Firefox trên các thiết bị khác của bạn.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Bạn không có bất kỳ thẻ nào mở trong Firefox trên các thiết bị khác của bạn.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Xem danh sách các thẻ từ các thiết bị khác của bạn.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2245,7 +2263,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Tự động đóng sau một tháng?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox có thể đóng các thẻ bạn không xem trong tháng qua.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox có thể đóng các thẻ bạn không xem trong tháng qua.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">BẬT TỰ ĐỘNG ĐÓNG</string>
 
@@ -2254,7 +2272,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Đề xuất của Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Đề xuất của Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Tìm kiếm trên Google</string>
@@ -2265,7 +2283,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Đặt làm trình duyệt mặc định của bạn</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Đặt các liên kết từ trang web, email và tin nhắn để tự động mở trong Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Đặt các liên kết từ trang web, email và tin nhắn để tự động mở trong Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Xóa</string>
@@ -2289,7 +2307,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Được cung cấp bởi %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Một phần của gia đình Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Một phần của gia đình Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Tìm hiểu thêm</string>
 
@@ -2762,7 +2780,7 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Giúp chúng tôi cải thiện Firefox. Chỉ mất một phút thôi.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Giúp chúng tôi cải thiện Firefox. Chỉ mất một phút thôi.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Tiếp tục</string>
     <!-- Survey view -->
@@ -2794,16 +2812,16 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Tôi không sử dụng nó</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Giúp việc in ấn trong Firefox tốt hơn. Chỉ mất một giây</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Giúp việc in ấn trong Firefox tốt hơn. Chỉ mất một giây</string>
     <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Bạn hài lòng như thế nào với việc in ấn trong Firefox?</string>
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Bạn hài lòng như thế nào với việc in ấn trong Firefox?</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Logo Firefox</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Biểu tượng tính năng khảo sát</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->

@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Proponer in ferm pled-clav</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Proponer in ferm pled-clav</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Utilisescha in ferm pled-clav</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Utilisar in ferm pled-clav: %1$s</string>
@@ -127,7 +125,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Utilisar in ferm pled-clav?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Protegia tes contos cun utilisar in ferm pled-clav generà a moda casuala. Acceda svelt a tes pleds-clav cun als memorisar en tes conto.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protegia tes contos cun utilisar in ferm pled-clav generà a moda casuala. Acceda svelt a tes pleds-clav cun als memorisar en tes conto.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protegia tes contos cun utilisar in ferm pled-clav generà casualmain. El vegn memorisà en tes conto per al duvrar en l’avegnir.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utilisar quest pled-clav</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -200,7 +201,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Utilisar %1$s sco purschider d\'annunzia</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[L\'annunzia tar %1$s cun in conto da %2$s è suttamessa a las <a href="%3$s">Directivas per la protecziun da datas</a> e las <a href="%4$s">Cundiziuns d\'utilisaziun</a> correspundentas]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L\'annunzia tar %1$s cun in conto da %2$s è suttamessa a las <a href="%3$s">Directivas per la protecziun da datas</a> e las <a href="%4$s">Cundiziuns d\'utilisaziun</a> correspundentas]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Cuntinuar</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
