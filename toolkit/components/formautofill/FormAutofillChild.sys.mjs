@@ -39,7 +39,6 @@ export class FormAutofillChild extends JSWindowActorChild {
     this.log = lazy.FormAutofill.defineLogGetter(this, "FormAutofillChild");
     this.debug("init");
 
-    this._nextHandleElements = [];
     this._hasDOMContentLoadedHandler = false;
 
     this._hasRegisteredPageHide = new Set();
@@ -58,92 +57,59 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   /**
-   * Identifies and marks each autofill field
+   * Identifies elements that are in the associated form of the passed element.
+   *
+   * @param {Element} element the element to be identified
    */
-  identifyAutofillFields() {
-    if (
-      lazy.DELEGATE_AUTOCOMPLETE ||
-      !lazy.FormAutofillContent.savedFieldNames
-    ) {
-      this.debug("identifyAutofillFields: savedFieldNames are not known yet");
+  identifyAutofillFields(element) {
+    this.debug(
+      `identifyAutofillFields: ${element.ownerDocument.location?.hostname}`
+    );
 
-      // Init can be asynchronous because we don't need anything from the parent
-      // at this point.
-      this.sendAsyncMessage("FormAutofill:InitStorage");
+    const { handler, newFieldsIdentified } =
+      this._fieldDetailsManager.identifyAutofillFields(element);
+
+    // Bail out if there is nothing changed since last time we identified this element
+    // or there is no interested fields.
+    if (!newFieldsIdentified || !handler.fieldDetails.length) {
+      return;
     }
 
-    for (const element of this._nextHandleElements) {
-      this.debug(
-        `identifyAutofillFields: ${element.ownerDocument.location?.hostname}`
-      );
+    // Bug 1905040. This is only a temporarily workaround for now to skip marking address fields
+    // autocompletable whenever we detect an address field. We only mark address field when
+    // it is a valid address section (This is done in the parent)
+    const fields = new Set(
+      handler.fieldDetails
+        .map(f => f.fieldName)
+        .filter(fieldName => lazy.FormAutofillUtils.isAddressField(fieldName))
+    );
+    const validAddressSection =
+      fields.size >= lazy.FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
 
-      const { handler, newFieldsIdentified } =
-        this._fieldDetailsManager.identifyAutofillFields(element);
-
-      // Bail out if there is nothing changed since last time we identified this element
-      // or there is no interested fields.
-      if (!newFieldsIdentified || !handler.fieldDetails.length) {
+    for (const fieldDetail of handler.fieldDetails) {
+      if (
+        !validAddressSection &&
+        lazy.FormAutofillUtils.isAddressField(fieldDetail.fieldName)
+      ) {
         continue;
       }
-
-      const fieldDetails = handler.fieldDetails;
-      // Inform the autocomplete controller these fields are autofillable.
-
-      // Bug 1905040. This is only a temporarily workaround for now to skip marking address fields
-      // autocompletable whenever we detect an address field. We only mark address field when
-      // it is a valid address section (This is done in the parent)
-      const fields = new Set(
-        fieldDetails
-          .map(f => f.fieldName)
-          .filter(fieldName => lazy.FormAutofillUtils.isAddressField(fieldName))
-      );
-      const validAddressSection =
-        fields.size >= lazy.FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
-
-      for (const fieldDetail of fieldDetails) {
-        if (
-          !validAddressSection &&
-          lazy.FormAutofillUtils.isAddressField(fieldDetail.fieldName)
-        ) {
-          continue;
-        }
-        this.#markAsAutofillField(fieldDetail.element);
-      }
-
-      // Notify the parent when we detect autofillable fields.
-      this.sendAsyncMessage(
-        "FormAutofill:FieldsDetected",
-        fieldDetails.map(detail => detail.toVanillaObject())
-      );
-
-      this.manager
-        .getActor("FormHandler")
-        .registerFormSubmissionInterest(this, {
-          includesFormRemoval: lazy.FormAutofill.captureOnFormRemoval,
-          includesPageNavigation: lazy.FormAutofill.captureOnPageNavigation,
-        });
-
-      // TODO (Bug 1901486): Integrate pagehide to FormHandler.
-      if (!this._hasRegisteredPageHide.has(handler)) {
-        this.registerPageHide(handler);
-        this._hasRegisteredPageHide.add(true);
-      }
+      // Inform the autocomplete controller these fields are autofillable
+      this.#markAsAutofillField(fieldDetail);
     }
 
-    if (
-      this._nextHandleElements.includes(lazy.FormAutofillContent.focusedInput)
-    ) {
-      this.#showCreditCardPopupIfEmpty(lazy.FormAutofillContent.focusedInput);
+    this.manager.getActor("FormHandler").registerFormSubmissionInterest(this, {
+      includesFormRemoval: lazy.FormAutofill.captureOnFormRemoval,
+      includesPageNavigation: lazy.FormAutofill.captureOnPageNavigation,
+    });
+
+    // TODO (Bug 1901486): Integrate pagehide to FormHandler.
+    if (!this._hasRegisteredPageHide.has(handler)) {
+      this.registerPageHide(handler);
+      this._hasRegisteredPageHide.add(true);
     }
-
-    this._nextHandleElements = [];
-
-    // This is for testing purpose only which sends a notification to indicate that the
-    // form has been identified, and ready to open popup.
-    this.sendAsyncMessage("FormAutofill:FieldsIdentified");
   }
 
-  #showCreditCardPopupIfEmpty(element) {
+  showCreditCardPopupIfEmpty(element) {
     if (element.value?.length !== 0) {
       this.debug(`Not opening popup because field is not empty.`);
       return;
@@ -226,15 +192,19 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   shouldIgnoreFormAutofillEvent(event) {
-    let nodePrincipal = event.target.nodePrincipal;
+    if (!event.isTrusted) {
+      return true;
+    }
+
+    const nodePrincipal = event.target.nodePrincipal;
     return nodePrincipal.isSystemPrincipal || nodePrincipal.schemeIs("about");
   }
 
   handleEvent(evt) {
-    if (!evt.isTrusted) {
-      return;
-    }
-    if (this.shouldIgnoreFormAutofillEvent(evt)) {
+    if (
+      !lazy.FormAutofill.isAutofillEnabled ||
+      this.shouldIgnoreFormAutofillEvent(evt)
+    ) {
       return;
     }
 
@@ -246,17 +216,13 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     switch (evt.type) {
       case "focusin": {
-        if (lazy.FormAutofill.isAutofillEnabled) {
-          this.onFocusIn(evt);
-        }
+        this.onFocusIn(evt.target);
         break;
       }
       case "form-submission-detected": {
-        if (lazy.FormAutofill.isAutofillEnabled) {
-          const formElement = evt.detail.form;
-          const formSubmissionReason = evt.detail.reason;
-          this.onFormSubmission(formElement, formSubmissionReason);
-        }
+        const formElement = evt.detail.form;
+        const formSubmissionReason = evt.detail.reason;
+        this.onFormSubmission(formElement, formSubmissionReason);
         break;
       }
 
@@ -266,15 +232,11 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
   }
 
-  onFocusIn(evt) {
-    const element = evt.target;
+  onFocusIn(element) {
     if (!lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element)) {
       return;
     }
 
-    this.#showCreditCardPopupIfEmpty(element);
-
-    this._nextHandleElements.push(element);
     const doc = element.ownerDocument;
     if (doc.readyState === "loading") {
       // For auto-focused input, we might receive focus event before document becomes ready.
@@ -283,14 +245,36 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasDOMContentLoadedHandler = true;
         doc.addEventListener(
           "DOMContentLoaded",
-          () => this.identifyAutofillFields(),
+          () => {
+            const element = lazy.FormAutofillContent.focusedInput;
+            this.onFocusIn(element);
+          },
           { once: true }
         );
       }
       return;
     }
 
-    this.identifyAutofillFields();
+    if (
+      lazy.DELEGATE_AUTOCOMPLETE ||
+      !lazy.FormAutofillContent.savedFieldNames
+    ) {
+      this.debug("identifyAutofillFields: savedFieldNames are not known yet");
+
+      // Init can be asynchronous because we don't need anything from the parent
+      // at this point.
+      this.sendAsyncMessage("FormAutofill:InitStorage");
+    }
+
+    this.identifyAutofillFields(element);
+
+    if (element == lazy.FormAutofillContent.focusedInput) {
+      this.showCreditCardPopupIfEmpty(element);
+    }
+
+    // This is for testing purpose only which sends a notification to indicate that the
+    // form has been identified, and ready to open popup.
+    this.sendAsyncMessage("FormAutofill:FieldsIdentified");
   }
 
   /**
@@ -451,7 +435,9 @@ export class FormAutofillChild extends JSWindowActorChild {
     return result;
   }
 
-  #markAsAutofillField(element) {
+  #markAsAutofillField(fieldDetail) {
+    const element = fieldDetail.element;
+
     // Since Form Autofill popup is only for input element, any non-Input
     // element should be excluded here.
     if (!HTMLInputElement.isInstance(element)) {
