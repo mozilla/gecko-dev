@@ -64,6 +64,12 @@ class PointerEvent : public MouseEvent {
   // event for fingerprinting resistance.
   bool ShouldResistFingerprinting() const;
 
+  // When the instance is a trusted `pointermove` event but the widget event
+  // does not have proper coalesced events (typically, the event is synthesized
+  // for tests or instantiated in the main process), this fills mCoalescedEvents
+  // with this instance.
+  void EnsureFillingCoalescedEvents(WidgetPointerEvent& aWidgetEvent);
+
   nsTArray<RefPtr<PointerEvent>> mCoalescedEvents;
   nsTArray<RefPtr<PointerEvent>> mPredictedEvents;
 
