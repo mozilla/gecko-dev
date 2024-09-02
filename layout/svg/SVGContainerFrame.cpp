@@ -217,7 +217,7 @@ void SVGDisplayContainerFrame::PaintSVG(gfxContext& aContext,
 
   gfxMatrix matrix = aTransform;
   if (auto* svg = SVGElement::FromNode(GetContent())) {
-    matrix = svg->PrependLocalTransformsTo(matrix, eChildToUserSpace);
+    matrix = svg->ChildToUserSpaceTransform() * matrix;
     if (matrix.IsSingular()) {
       return;
     }
@@ -250,7 +250,7 @@ nsIFrame* SVGDisplayContainerFrame::GetFrameForPoint(const gfxPoint& aPoint) {
   // for its children (e.g. take account of any 'viewBox' attribute):
   gfxPoint point = aPoint;
   if (const auto* svg = SVGElement::FromNode(GetContent())) {
-    gfxMatrix m = svg->PrependLocalTransformsTo({}, eChildToUserSpace);
+    gfxMatrix m = svg->ChildToUserSpaceTransform();
     if (!m.IsIdentity()) {
       if (!m.Invert()) {
         return nullptr;
@@ -399,7 +399,7 @@ SVGBBox SVGDisplayContainerFrame::GetBBoxContribution(
     }
     gfxMatrix transform = gfx::ThebesMatrix(aToBBoxUserspace);
     if (svg) {
-      transform = svg->PrependLocalTransformsTo({}, eChildToUserSpace) *
+      transform = svg->ChildToUserSpaceTransform() *
                   SVGUtils::GetTransformMatrixInUserSpace(kid) * transform;
     }
     // We need to include zero width/height vertical/horizontal lines, so we
@@ -414,13 +414,10 @@ SVGBBox SVGDisplayContainerFrame::GetBBoxContribution(
 gfxMatrix SVGDisplayContainerFrame::GetCanvasTM() {
   if (!mCanvasTM) {
     NS_ASSERTION(GetParent(), "null parent");
-
     auto* parent = static_cast<SVGContainerFrame*>(GetParent());
     auto* content = static_cast<SVGElement*>(GetContent());
-
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
-
-    mCanvasTM = MakeUnique<gfxMatrix>(tm);
+    mCanvasTM = MakeUnique<gfxMatrix>(content->ChildToUserSpaceTransform() *
+                                      parent->GetCanvasTM());
   }
 
   return *mCanvasTM;
