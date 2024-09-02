@@ -556,11 +556,11 @@ let testCases = [
 
   // ฟรฟร.com (made of two Thai characters. similar to wsws.com in
   // some fonts)
-  ["xn--w3calb.com", "\u0e1f\u0e23\u0e1f\u0e23.com", kUnsafe, "DISABLED"],
+  ["xn--w3calb.com", "\u0e1f\u0e23\u0e1f\u0e23.com", kUnsafe],
   // พรบ.com
-  ["xn--r3chp.com", "\u0e1e\u0e23\u0e1a.com", kUnsafe, "DISABLED"],
+  ["xn--r3chp.com", "\u0e1e\u0e23\u0e1a.com", kUnsafe],
   // ฟรบ.com
-  ["xn--r3cjm.com", "\u0e1f\u0e23\u0e1a.com", kUnsafe, "DISABLED"],
+  ["xn--r3cjm.com", "\u0e1f\u0e23\u0e1a.com", kUnsafe],
 
   // Lao characters that look like w, s, o, and u.
   // ພຣບ.com
@@ -954,11 +954,11 @@ let testCases = [
   ["xn--rmdcmef.xn--7idjb0f4ck",     "\u1090\u1091\u1095\u1096\u1097.\u1019\u103c\u1014\u103a\u1019\u102c", kSafe],
 // Thai:
 // #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
-  ["xn--o3cedqz2c.com", "\u0e17\u0e19\u0e1a\u0e1e\u0e23\u0e2b.com", kUnsafe, "DISABLED"],
+  ["xn--o3cedqz2c.com", "\u0e17\u0e19\u0e1a\u0e1e\u0e23\u0e2b.com", kUnsafe, "linux"],
   ["xn--o3cedqz2c.th", "\u0e17\u0e19\u0e1a\u0e1e\u0e23\u0e2b.th", kSafe],
   ["xn--o3cedqz2c.xn--o3cw4h",     "\u0e17\u0e19\u0e1a\u0e1e\u0e23\u0e2b.\u0e44\u0e17\u0e22", kSafe],
 // #else
-  ["xn--r3ch7hsc.com", "\u0e1e\u0e1a\u0e40\u0e50.com", kUnsafe, "DISABLED"],
+  ["xn--r3ch7hsc.com", "\u0e1e\u0e1a\u0e40\u0e50.com", kUnsafe],
   ["xn--r3ch7hsc.th", "\u0e1e\u0e1a\u0e40\u0e50.th", kSafe],
   ["xn--r3ch7hsc.xn--o3cw4h", "\u0e1e\u0e1a\u0e40\u0e50.\u0e44\u0e17\u0e22", kSafe],
 // #endif
