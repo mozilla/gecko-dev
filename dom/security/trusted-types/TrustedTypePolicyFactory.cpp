@@ -13,6 +13,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 namespace mozilla::dom {
@@ -33,9 +34,6 @@ static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
   const nsAString& sample =
       Substring(aPolicyName, /* aStartPos */ 0,
                 /* aLength */ kCreatePolicyCSPViolationMaxSampleLength);
-
-  // According to https://github.com/w3c/webappsec-csp/issues/442 column- and
-  // line-numbers are expected to be 1-origin.
 
   return {aPolicyIndex,
           CSPViolationData::Resource{
