@@ -70,7 +70,7 @@ already_AddRefed<T> TrustedTypePolicy::CreateTrustedType(
     policyValue = EmptyString();
   }
 
-  RefPtr<T> trustedObject = MakeRefPtr<T>(std::move(policyValue));
+  RefPtr<T> trustedObject = new T(std::move(policyValue));
 
   // TODO: add special handling for `TrustedScript` when default policy support
   // is added.

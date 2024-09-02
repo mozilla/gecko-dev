@@ -266,7 +266,7 @@ partial interface Element {
   [CEReactions, Pure, SetterThrows]
   attribute [LegacyNullToEmptyString] DOMString outerHTML;
   [CEReactions, Throws]
-  undefined insertAdjacentHTML(DOMString position, DOMString text);
+  undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) text);
 };
 
 // https://dom.spec.whatwg.org/#dictdef-shadowrootinit

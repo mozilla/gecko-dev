@@ -45,12 +45,14 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MappedDeclarationsBuilder.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/PointerLockManager.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/PresShellForwards.h"
 #include "mozilla/ReflowOutput.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/RelativeTo.h"
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/ScrollTypes.h"
@@ -60,6 +62,7 @@
 #include "mozilla/StaticAnalysisFunctions.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_full_screen_api.h"
+#include "mozilla/StaticString.h"
 #include "mozilla/TextControlElement.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
@@ -104,6 +107,8 @@
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/dom/TrustedHTML.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/UnbindContext.h"
 #include "mozilla/dom/WindowBinding.h"
 #include "mozilla/dom/XULCommandEvent.h"
@@ -4040,8 +4045,163 @@ void Element::SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError) {
 
 enum nsAdjacentPosition { eBeforeBegin, eAfterBegin, eBeforeEnd, eAfterEnd };
 
-void Element::InsertAdjacentHTML(const nsAString& aPosition,
-                                 const nsAString& aText, ErrorResult& aError) {
+// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
+static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
+                                            const nsAString& aSinkGroup) {
+  uint32_t numPolicies = 0;
+  if (aCSP) {
+    aCSP->GetPolicyCount(&numPolicies);
+  }
+  for (uint32_t i = 0; i < numPolicies; ++i) {
+    const nsCSPPolicy* policy = aCSP->GetPolicy(i);
+
+    if (policy->AreTrustedTypesForSinkGroupRequired(aSinkGroup)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+namespace {
+enum class SinkTypeMismatch { Blocked, Allowed };
+}
+
+// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
+static SinkTypeMismatch ShouldSinkTypeMismatchViolationBeBlockedByCSP(
+    nsIContentSecurityPolicy* aCSP, const nsAString& aSinkGroup) {
+  SinkTypeMismatch result = SinkTypeMismatch::Allowed;
+
+  uint32_t numPolicies = 0;
+  if (aCSP) {
+    aCSP->GetPolicyCount(&numPolicies);
+  }
+
+  for (uint32_t i = 0; i < numPolicies; ++i) {
+    const auto* policy = aCSP->GetPolicy(i);
+
+    if (!policy->AreTrustedTypesForSinkGroupRequired(aSinkGroup)) {
+      continue;
+    }
+
+    // TODO: report violation,
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1907928.
+
+    if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
+      result = SinkTypeMismatch::Blocked;
+    }
+  }
+
+  return result;
+}
+
+// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-process-value-with-a-default-policy
+// specialized for `TrustedHTML`.
+static void ProcessValueWithADefaultPolicy(RefPtr<TrustedHTML>& aResult,
+                                           ErrorResult& aError) {
+  // TODO: implement default-policy support,
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1903717.
+
+  aResult = nullptr;
+}
+
+// https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
+// specialized for TrustedHTML.
+// @param aCSP May be null.
+static void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
+                                           nsIContentSecurityPolicy* aCSP,
+                                           const nsAString& aSink,
+                                           const nsAString& aSinkGroup,
+                                           nsAString& aResult,
+                                           ErrorResult& aError) {
+  if (!StaticPrefs::dom_security_trusted_types_enabled()) {
+    // A `TrustedHTML` string might've been created before the pref was set to
+    //  `false`.
+    aResult = aInput.IsString() ? aInput.GetAsString()
+                                : aInput.GetAsTrustedHTML().mData;
+    return;
+  }
+
+  if (aInput.IsTrustedHTML()) {
+    aResult = aInput.GetAsTrustedHTML().mData;
+    return;
+  }
+
+  if (!DoesSinkTypeRequireTrustedTypes(aCSP, aSinkGroup)) {
+    aResult = aInput.GetAsString();
+    return;
+  }
+
+  RefPtr<TrustedHTML> convertedInput;
+  ProcessValueWithADefaultPolicy(convertedInput, aError);
+
+  if (aError.Failed()) {
+    return;
+  }
+
+  if (!convertedInput) {
+    if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(aCSP, aSinkGroup) ==
+        SinkTypeMismatch::Allowed) {
+      aResult = aInput.GetAsString();
+      return;
+    }
+
+    aError.ThrowTypeError("Sink type mismatch violation blocked by CSP"_ns);
+    return;
+  }
+
+  aResult = convertedInput->mData;
+}
+
+// https://html.spec.whatwg.org/#the-insertadjacenthtml()-method
+struct InsertAdjacentHTMLConstants {
+  // https://github.com/w3c/trusted-types/issues/542
+  static constexpr nsLiteralString kSinkGroup =
+      kValidRequireTrustedTypesForDirectiveValue;
+
+  static constexpr nsLiteralString kSink = u"Element insertAdjacentHTML"_ns;
+};
+
+// The global object's CSP may differ from the owner-document's one.
+// E.g. when a document is created via
+// `document.implementation.createHTMLDocument("")` is not connected to a
+// browsing context.
+static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
+    const Document& aOwnerDoc, ErrorResult& aError) {
+  nsIGlobalObject* globalObject = aOwnerDoc.GetScopeObject();
+  if (!globalObject) {
+    aError.ThrowTypeError("No global object");
+    return nullptr;
+  }
+
+  nsPIDOMWindowInner* piDOMWindowInner = globalObject->GetAsInnerWindow();
+  if (!piDOMWindowInner) {
+    aError.ThrowTypeError("No inner window");
+    return nullptr;
+  }
+
+  return piDOMWindowInner->GetCsp();
+}
+
+void Element::InsertAdjacentHTML(
+    const nsAString& aPosition, const TrustedHTMLOrString& aTrustedHTMLOrString,
+    ErrorResult& aError) {
+  nsIContentSecurityPolicy* csp =
+      GetCspFromScopeObjectsInnerWindow(*OwnerDoc(), aError);
+  if (aError.Failed()) {
+    return;
+  }
+
+  nsAutoString compliantString;
+
+  GetTrustedTypesCompliantString(
+      aTrustedHTMLOrString, csp, InsertAdjacentHTMLConstants::kSink,
+      InsertAdjacentHTMLConstants::kSinkGroup, compliantString, aError);
+
+  if (aError.Failed()) {
+    return;
+  }
+
   nsAdjacentPosition position;
   if (aPosition.LowerCaseEqualsLiteral("beforebegin")) {
     position = eBeforeBegin;
@@ -4092,7 +4252,7 @@ void Element::InsertAdjacentHTML(const nsAString& aPosition,
       contextLocal = nsGkAtoms::body;
     }
     aError = nsContentUtils::ParseFragmentHTML(
-        aText, destination, contextLocal, contextNs,
+        compliantString, destination, contextLocal, contextNs,
         doc->GetCompatibilityMode() == eCompatibility_NavQuirks, true);
     // HTML5 parser has notified, but not fired mutation events.
     nsContentUtils::FireMutationEventsForDirectParsing(doc, destination,
@@ -4102,7 +4262,7 @@ void Element::InsertAdjacentHTML(const nsAString& aPosition,
 
   // couldn't parse directly
   RefPtr<DocumentFragment> fragment = nsContentUtils::CreateContextualFragment(
-      destination, aText, true, aError);
+      destination, compliantString, true, aError);
   if (aError.Failed()) {
     return;
   }

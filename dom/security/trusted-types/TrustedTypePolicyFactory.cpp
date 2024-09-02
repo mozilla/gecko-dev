@@ -160,14 +160,16 @@ already_AddRefed<TrustedHTML> TrustedTypePolicyFactory::EmptyHTML() {
   // multiple emptyHML objects. Both, the JS- and the C++-objects.
   dom::PreserveWrapper(this);
 
-  return MakeRefPtr<TrustedHTML>(EmptyString()).forget();
+  RefPtr<TrustedHTML> result = new TrustedHTML(EmptyString());
+  return result.forget();
 }
 
 already_AddRefed<TrustedScript> TrustedTypePolicyFactory::EmptyScript() {
   // See the explanation in `EmptyHTML()`.
   dom::PreserveWrapper(this);
 
-  return MakeRefPtr<TrustedScript>(EmptyString()).forget();
+  RefPtr<TrustedScript> result = new TrustedScript(EmptyString());
+  return result.forget();
 }
 
 }  // namespace mozilla::dom
