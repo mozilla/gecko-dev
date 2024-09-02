@@ -22,11 +22,13 @@
 <script>
 async function getViewportMetrics() {
   return SpecialPowers.spawn(parent, [], () => {
-    return [ content.window.innerHeight, content.window.visualViewport.height ];
+    return [ content.window.innerHeight,
+             content.window.visualViewport.height,
+             content.window.visualViewport.width ];
   });
 }
 
-let initial_window_height, initial_visual_viewport_height;
+let initial_window_height, initial_visual_viewport_width, initial_visual_viewport_height;
 
 // setup a meta viewport tag in the top document.
 add_setup(async () => {
@@ -72,7 +74,13 @@ add_setup(async () => {
       await new Promise(resolve => resolve());
     });
   });
-  [ initial_window_height, initial_visual_viewport_height ] = await getViewportMetrics();
+  [ initial_window_height,
+    initial_visual_viewport_height, initial_visual_viewport_width ] = await getViewportMetrics();
+  ok(initial_visual_viewport_width < initial_visual_viewport_height,
+     `the visual viewport height (${initial_visual_viewport_height}) is less ` +
+     `than the visual viewport width (${initial_visual_viewport_width}), ` +
+     `it hightly suspects the virtual keyboard persists there, thus ` +
+     `we can't run this interactive-widget tests properly`);
 });
 
 async function setupInteractiveWidget(aValue) {
