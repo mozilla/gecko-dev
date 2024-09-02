@@ -439,11 +439,13 @@ uint16_t SVGPatternFrame::GetEnumValue(uint32_t aIndex, nsIContent* aDefault) {
                     .GetAnimValue();
 }
 
-SVGPatternFrame* SVGPatternFrame::GetPatternTransformFrame(
-    SVGPatternFrame* aDefault) {
-  if (!StyleDisplay()->mTransform.IsNone()) {
-    return this;
-  }
+SVGAnimatedTransformList* SVGPatternFrame::GetPatternTransformList(
+    nsIContent* aDefault) {
+  SVGAnimatedTransformList* thisTransformList =
+      static_cast<SVGPatternElement*>(GetContent())->GetAnimatedTransformList();
+
+  if (thisTransformList && thisTransformList->IsExplicitlySet())
+    return thisTransformList;
 
   // Before we recurse, make sure we'll break reference loops and over long
   // reference chains:
@@ -452,18 +454,23 @@ SVGPatternFrame* SVGPatternFrame::GetPatternTransformFrame(
                                         &sRefChainLengthCounter);
   if (MOZ_UNLIKELY(!refChainGuard.Reference())) {
     // Break reference chain
-    return aDefault;
+    return static_cast<SVGPatternElement*>(aDefault)->mPatternTransform.get();
   }
 
-  if (SVGPatternFrame* next = GetReferencedPattern()) {
-    return next->GetPatternTransformFrame(aDefault);
-  }
-  return aDefault;
+  SVGPatternFrame* next = GetReferencedPattern();
+  return next ? next->GetPatternTransformList(aDefault)
+              : static_cast<SVGPatternElement*>(aDefault)
+                    ->mPatternTransform.get();
 }
 
 gfxMatrix SVGPatternFrame::GetPatternTransform() {
-  return SVGUtils::GetTransformMatrixInUserSpace(
-      GetPatternTransformFrame(this));
+  SVGAnimatedTransformList* animTransformList =
+      GetPatternTransformList(GetContent());
+  if (!animTransformList) {
+    return SVGUtils::GetTransformMatrixInUserSpace(this);
+  }
+
+  return animTransformList->GetAnimValue().GetConsolidationMatrix();
 }
 
 const SVGAnimatedViewBox& SVGPatternFrame::GetViewBox(nsIContent* aDefault) {

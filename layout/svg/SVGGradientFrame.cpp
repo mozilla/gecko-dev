@@ -108,11 +108,15 @@ uint16_t SVGGradientFrame::GetSpreadMethod() {
   return GetEnumValue(dom::SVGGradientElement::SPREADMETHOD);
 }
 
-SVGGradientFrame* SVGGradientFrame::GetGradientTransformFrame(
-    SVGGradientFrame* aDefault) {
-  if (!StyleDisplay()->mTransform.IsNone()) {
-    return this;
-  }
+const SVGAnimatedTransformList* SVGGradientFrame::GetGradientTransformList(
+    nsIContent* aDefault) {
+  SVGAnimatedTransformList* thisTransformList =
+      static_cast<dom::SVGGradientElement*>(GetContent())
+          ->GetAnimatedTransformList();
+
+  if (thisTransformList && thisTransformList->IsExplicitlySet())
+    return thisTransformList;
+
   // Before we recurse, make sure we'll break reference loops and over long
   // reference chains:
   static int16_t sRefChainLengthCounter = AutoReferenceChainGuard::noChain;
@@ -120,18 +124,21 @@ SVGGradientFrame* SVGGradientFrame::GetGradientTransformFrame(
                                         &sRefChainLengthCounter);
   if (MOZ_UNLIKELY(!refChainGuard.Reference())) {
     // Break reference chain
-    return aDefault;
+    return static_cast<const dom::SVGGradientElement*>(aDefault)
+        ->mGradientTransform.get();
   }
 
-  if (SVGGradientFrame* next = GetReferencedGradient()) {
-    return next->GetGradientTransformFrame(aDefault);
-  }
-  return aDefault;
+  SVGGradientFrame* next = GetReferencedGradient();
+
+  return next ? next->GetGradientTransformList(aDefault)
+              : static_cast<const dom::SVGGradientElement*>(aDefault)
+                    ->mGradientTransform.get();
 }
 
 gfxMatrix SVGGradientFrame::GetGradientTransform(
     nsIFrame* aSource, const gfxRect* aOverrideBounds) {
   gfxMatrix bboxMatrix;
+
   uint16_t gradientUnits = GetGradientUnits();
   if (gradientUnits != SVG_UNIT_TYPE_USERSPACEONUSE) {
     NS_ASSERTION(gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
@@ -147,8 +154,16 @@ gfxMatrix SVGGradientFrame::GetGradientTransform(
         gfxMatrix(bbox.Width(), 0, 0, bbox.Height(), bbox.X(), bbox.Y());
   }
 
-  return bboxMatrix.PreMultiply(
-      SVGUtils::GetTransformMatrixInUserSpace(GetGradientTransformFrame(this)));
+  const SVGAnimatedTransformList* animTransformList =
+      GetGradientTransformList(GetContent());
+  if (!animTransformList) {
+    return bboxMatrix.PreMultiply(
+        SVGUtils::GetTransformMatrixInUserSpace(this));
+  }
+
+  gfxMatrix gradientTransform =
+      animTransformList->GetAnimValue().GetConsolidationMatrix();
+  return bboxMatrix.PreMultiply(gradientTransform);
 }
 
 dom::SVGLinearGradientElement* SVGGradientFrame::GetLinearGradientWithLength(
@@ -279,6 +294,7 @@ already_AddRefed<gfxPattern> SVGGradientFrame::GetPaintServerPattern(
   // above since this call can be expensive when "gradientUnits" is set to
   // "objectBoundingBox" (since that requiring a GetBBox() call).
   gfxMatrix patternMatrix = GetGradientTransform(aSource, aOverrideBounds);
+
   if (patternMatrix.IsSingular()) {
     return nullptr;
   }

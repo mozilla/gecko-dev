@@ -9,7 +9,6 @@
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGViewportElement.h"
-#include "mozilla/SVGImageContext.h"
 
 nsresult NS_NewSVGSVGElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,

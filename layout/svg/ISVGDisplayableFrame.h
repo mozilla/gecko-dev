@@ -125,7 +125,7 @@ class ISVGDisplayableFrame : public nsQueryFrame {
    * SVG defines an element's bbox to be the element's fill bounds in the
    * userspace established by that element. By allowing callers to pass in the
    * transform from the userspace established by this element to the userspace
-   * established by an ancestor, this method allows callers to obtain this
+   * established by an an ancestor, this method allows callers to obtain this
    * element's fill bounds in the userspace established by that ancestor
    * instead. In that case, since we return the bounds in a different userspace
    * (the ancestor's), the bounds we return are not this element's bbox, but

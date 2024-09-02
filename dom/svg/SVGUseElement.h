@@ -64,7 +64,9 @@ class SVGUseElement final : public SVGUseElementBase,
   NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
   // SVGElement specializations:
-  gfxMatrix ChildToUserSpaceTransform() const override;
+  gfxMatrix PrependLocalTransformsTo(
+      const gfxMatrix& aMatrix,
+      SVGTransformTypes aWhich = eAllTransforms) const override;
   bool HasValidDimensions() const override;
 
   // nsIContent interface
