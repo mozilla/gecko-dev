@@ -34,22 +34,6 @@
   min-height: 0;
 }
 
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "sidebar.revamp") {
-  #tabbrowser-tabbox {
-    border-top: 0.5px solid var(--chrome-content-separator-color);
-    border-inline-start: 0.5px solid var(--chrome-content-separator-color);
-    box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
-    position: relative;
-
-    /* stylelint-disable-next-line media-query-no-invalid */
-    @media not (-moz-bool-pref: "sidebar.position_start") {
-      border-inline-end: 0.5px solid var(--chrome-content-separator-color);
-      border-inline-start: none;
-    }
-  }
-}
-
 /* We set large flex on both containers to allow the devtools toolbox to
  * set a flex value itself. We don't want the toolbox to actually take up free
  * space, but we do want it to collapse when the window shrinks, and with
