@@ -1884,6 +1884,7 @@ class OutputParser {
         }
         swatch.addEventListener("mousedown", this.#onColorSwatchMouseDown);
         container.appendChild(swatch);
+        container.classList.add("color-swatch-container");
       }
 
       let colorUnit = options.defaultColorUnit;

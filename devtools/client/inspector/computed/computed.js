@@ -1498,7 +1498,8 @@ class PropertyView {
     // new window. At some point we should fix this by stopping using the
     // templater.
     return this.#tree.outputParser.parseCssProperty(this.name, value, {
-      colorSwatchClass: "computed-colorswatch",
+      colorSwatchClass:
+        "computed-colorswatch inspector-swatch inspector-colorswatch",
       colorClass: "computed-color",
       urlClass: "theme-link",
       fontFamilyClass: "computed-font-family",

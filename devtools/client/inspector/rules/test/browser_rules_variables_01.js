@@ -27,7 +27,7 @@ add_task(async function () {
   await assertVariableTooltipForProperty(view, "div", "color", {
     header:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">' +
         '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">chartreuse</span>' +
@@ -47,7 +47,7 @@ add_task(async function () {
     index: 1,
     header:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="color-swatch-container">' +
         '<span class="inspector-swatch inspector-colorswatch" style="background-color:seagreen" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">seagreen</span>' +
@@ -59,7 +59,7 @@ add_task(async function () {
   await assertVariableTooltipForProperty(view, "div", "outline-color", {
     header:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">' +
         '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">' +
@@ -70,7 +70,7 @@ add_task(async function () {
       '</span>',
     computed:
       // prettier-ignore
-      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">` +
+      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:chartreuse" ` +
@@ -94,7 +94,7 @@ add_task(async function () {
     computed:
       // prettier-ignore
       `light-dark(` +
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:chartreuse" ` +
@@ -104,7 +104,7 @@ add_task(async function () {
           `</span>` +
           `<span class="ruleview-color">chartreuse</span>` +
         `</span>, ` +
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="inspector-unmatched">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="color-swatch-container inspector-unmatched">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:seagreen" ` +

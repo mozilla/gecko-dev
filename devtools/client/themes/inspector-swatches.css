@@ -9,9 +9,10 @@
 .inspector-grid,
 .inspector-shapeswatch,
 .inspector-swatch {
+  --swatch-size: 1em;
   cursor: pointer;
-  width: 1em;
-  height: 1em;
+  width: var(--swatch-size);
+  height: var(--swatch-size);
   vertical-align: middle;
 
   /* align the swatch with its value */
@@ -80,17 +81,32 @@
 /* Round swatches using the .inspector-swatch class (color, bezier, filter and angle) */
 
 .inspector-swatch {
-  background-size: 1em;
+  background-size: var(--swatch-size);
   border-radius: 50%;
 }
 
+/* Create a stacking context for the color swatch so its before pseudo element can be
+   display below it (see next rule) */
+.color-swatch-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* We want to display a checker below the current swatch color that would be visible
+  if the swatch color isn't opaque */
 .inspector-colorswatch::before {
   content: '';
   background-color: #eee;
-  --background-gradient: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+  --checker-color: #ccc;
+  --background-gradient: linear-gradient(
+    45deg,
+    var(--checker-color) 25%,
+    transparent 25% 75%,
+    var(--checker-color) 75%
+  );
   background-image: var(--background-gradient), var(--background-gradient);
-  background-size: 12px 12px;
-  background-position: 0 0, 6px 6px;
+  background-size: var(--swatch-size) var(--swatch-size);
+  background-position: 0 0, calc(var(--swatch-size) / 2) calc(var(--swatch-size) / 2);
   position: absolute;
   border-radius: 50%;
   inset: 0;

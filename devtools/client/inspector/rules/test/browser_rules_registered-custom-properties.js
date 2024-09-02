@@ -167,7 +167,7 @@ add_task(async function () {
     // The variable value is the initial value since the variable does not inherit
     header:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:tomato" ' +
@@ -181,7 +181,7 @@ add_task(async function () {
       inherits: "false",
       "initial-value":
         // prettier-ignore
-        '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato">' +
+        '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato" class="color-swatch-container">' +
           '<span ' +
             'class="inspector-swatch inspector-colorswatch" ' +
             'style="background-color:tomato" ' +
@@ -196,7 +196,7 @@ add_task(async function () {
     // The variable value is the value set in the main selector, since the variable does inherit
     header:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="#FF0000">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="#FF0000" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:#FF0000" ' +
@@ -207,7 +207,7 @@ add_task(async function () {
       '</span>',
     computed:
       // prettier-ignore
-      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="rgb(255, 0, 0)">' +
+      '<span xmlns="http://www.w3.org/1999/xhtml" data-color="rgb(255, 0, 0)" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:rgb(255, 0, 0)" ' +
@@ -221,7 +221,7 @@ add_task(async function () {
       inherits: "true",
       "initial-value":
         // prettier-ignore
-        '<span xmlns="http://www.w3.org/1999/xhtml" data-color="gold">' +
+        '<span xmlns="http://www.w3.org/1999/xhtml" data-color="gold" class="color-swatch-container">' +
           '<span ' +
             'class="inspector-swatch inspector-colorswatch" ' +
             'style="background-color:gold" ' +
@@ -240,7 +240,7 @@ add_task(async function () {
     {
       header:
         // prettier-ignore
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:purple" ` +
@@ -254,7 +254,7 @@ add_task(async function () {
         inherits: "true",
         "initial-value":
           // prettier-ignore
-          `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
+          `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
             `<span ` +
               `class="inspector-swatch inspector-colorswatch" ` +
               `style="background-color:purple" ` +
@@ -341,7 +341,7 @@ add_task(async function () {
   await assertVariableTooltipForProperty(view, "h1", "caret-color", {
     header:
       // prettier-ignore
-      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid">` +
+      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:orchid" ` +
@@ -355,7 +355,7 @@ add_task(async function () {
       inherits: "false",
       "initial-value":
         // prettier-ignore
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:orchid" ` +
@@ -402,7 +402,7 @@ add_task(async function () {
   await assertVariableTooltipForProperty(view, "h1", "caret-color", {
     header:
       // prettier-ignore
-      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
+      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:purple" ` +
@@ -416,7 +416,7 @@ add_task(async function () {
       inherits: "true",
       "initial-value":
         // prettier-ignore
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:purple" ` +
@@ -494,7 +494,7 @@ add_task(async function () {
   await assertVariableTooltipForProperty(view, "h1", "outline", {
     header:
       // prettier-ignore
-      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua">` +
+      `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:aqua" ` +
@@ -508,7 +508,7 @@ add_task(async function () {
       inherits: "true",
       "initial-value":
         // prettier-ignore
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:aqua" ` +

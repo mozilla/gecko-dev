@@ -188,8 +188,7 @@ body {
   color: var(--theme-contrast-color);
 }
 
-.inspector-swatch,
-.computed-colorswatch {
+.inspector-swatch {
   box-shadow: 0 0 0 1px #818181;
 }
 
