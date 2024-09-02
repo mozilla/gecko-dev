@@ -12073,6 +12073,13 @@
   value: 0 # accept all cookies
   mirror: always
 
+# Maximum client-side cookie life-time cap. Measured in seconds, set to 0 to
+# disable.
+- name: network.cookie.maxageCap
+  type: uint32_t
+  value: 34560000
+  mirror: always
+
 # The cookieBehavior to be used in Private Browsing mode.
 - name: network.cookie.cookieBehavior.pbmode
   type: RelaxedAtomicInt32
@@ -14719,13 +14726,6 @@
 - name: privacy.restrict3rdpartystorage.expiration_visited
   type: uint32_t
   value: 2592000   # 30 days (in seconds)
-  mirror: always
-
-# Maximum client-side cookie life-time cap. Measured in seconds, set to 0 to
-# disable.
-- name: privacy.documentCookies.maxage
-  type: uint32_t
-  value: 0
   mirror: always
 
 - name: privacy.window.maxInnerWidth

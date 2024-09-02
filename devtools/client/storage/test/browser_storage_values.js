@@ -230,7 +230,7 @@ const testCases = [
 
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.documentCookies.maxage", 0]],
+    set: [["network.cookie.maxageCap", 0]],
   });
 
   await openTabAndSetupStorage(
