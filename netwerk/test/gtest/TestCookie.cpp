@@ -39,37 +39,6 @@ static NS_DEFINE_CID(kPrefServiceCID, NS_PREFSERVICE_CID);
 static const char kCookiesPermissions[] = "network.cookie.cookieBehavior";
 static const char kCookiesMaxPerHost[] = "network.cookie.maxPerHost";
 
-#define OFFSET_ONE_WEEK int64_t(604800) * PR_USEC_PER_SEC
-#define OFFSET_ONE_DAY int64_t(86400) * PR_USEC_PER_SEC
-
-// Set server time or expiry time
-void SetTime(PRTime offsetTime, nsAutoCString& serverString,
-             nsAutoCString& cookieString, bool expiry) {
-  char timeStringPreset[40];
-  PRTime CurrentTime = PR_Now();
-  PRTime SetCookieTime = CurrentTime + offsetTime;
-  PRTime SetExpiryTime;
-  if (expiry) {
-    SetExpiryTime = SetCookieTime - OFFSET_ONE_DAY;
-  } else {
-    SetExpiryTime = SetCookieTime + OFFSET_ONE_DAY;
-  }
-
-  // Set server time string
-  PRExplodedTime explodedTime;
-  PR_ExplodeTime(SetCookieTime, PR_GMTParameters, &explodedTime);
-  PR_FormatTimeUSEnglish(timeStringPreset, 40, "%c GMT", &explodedTime);
-  serverString.Assign(timeStringPreset);
-
-  // Set cookie string
-  PR_ExplodeTime(SetExpiryTime, PR_GMTParameters, &explodedTime);
-  PR_FormatTimeUSEnglish(timeStringPreset, 40, "%c GMT", &explodedTime);
-  cookieString.ReplaceLiteral(
-      0, strlen("test=expiry; expires=") + strlen(timeStringPreset) + 1,
-      "test=expiry; expires=");
-  cookieString.Append(timeStringPreset);
-}
-
 void SetACookieInternal(nsICookieService* aCookieService, const char* aSpec,
                         const char* aCookieString, bool aAllowed) {
   nsCOMPtr<nsIURI> uri;
