@@ -8,9 +8,6 @@
 #define DOM_SVG_SVGVIEWPORTELEMENT_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/SVGImageContext.h"
-#include "mozilla/UniquePtr.h"
-#include "mozilla/dom/FromParser.h"
 #include "nsIContentInlines.h"
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedLength.h"
@@ -45,9 +42,7 @@ class SVGViewportElement : public SVGGraphicsElement {
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
   // SVGElement specializations:
-  gfxMatrix PrependLocalTransformsTo(
-      const gfxMatrix& aMatrix,
-      SVGTransformTypes aWhich = eAllTransforms) const override;
+  gfxMatrix ChildToUserSpaceTransform() const override;
 
   bool HasValidDimensions() const override;
 
