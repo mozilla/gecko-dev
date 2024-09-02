@@ -100,9 +100,18 @@ mozilla::ipc::IPCResult DataChannelParent::RecvNotifyListeners(
     return IPC_OK();
   }
 
+  nsAutoCString remoteType;
+  nsresult rv = GetRemoteType(remoteType);
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to get remote type");
+  }
+
   nsCOMPtr<nsILoadInfo> loadInfo;
-  MOZ_ALWAYS_SUCCEEDS(mozilla::ipc::LoadInfoArgsToLoadInfo(
-      aDataChannelInfo.loadInfo(), NOT_REMOTE_TYPE, getter_AddRefs(loadInfo)));
+  rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
+      aDataChannelInfo.loadInfo(), remoteType, getter_AddRefs(loadInfo));
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL(this, "Failed to deserialize LoadInfo");
+  }
 
   // Re-create a data channel in the parent process to notify
   // data-channel-opened observers.
