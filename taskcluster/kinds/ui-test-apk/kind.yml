@@ -118,7 +118,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -152,7 +152,7 @@ tasks:
         run-on-projects: [trunk]
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -182,7 +182,7 @@ tasks:
         run-on-projects: [release]
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -211,7 +211,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -242,7 +242,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -272,7 +272,7 @@ tasks:
         run-on-projects: [release]
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -302,7 +302,7 @@ tasks:
         run-on-projects: [trunk]
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -332,7 +332,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -360,7 +360,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -388,7 +388,7 @@ tasks:
             skip-unless-backstop: null
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -416,7 +416,7 @@ tasks:
         optimization: {"test": ["android", "fenix"]}
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
