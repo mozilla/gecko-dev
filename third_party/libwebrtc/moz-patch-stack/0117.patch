@@ -1,0 +1,24 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 2 Sep 2024 14:52:00 -0500
+Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e636be94bc1b52d129ee2e9f9bf4c66115ad286a
+---
+ .gn | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/.gn b/.gn
+index f03f815cfb..1ca8a69fd7 100644
+--- a/.gn
++++ b/.gn
+@@ -41,7 +41,9 @@ no_check_targets = [
+ exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
+                         [ "//build_overrides/build.gni" ]
+ 
+-export_compile_commands = [ "*" ]
++# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
++# available yet.
++#export_compile_commands = [ "*" ]
+ 
+ default_args = {
+   # Webrtc does not support component builds because we are not using the
