@@ -22,12 +22,7 @@
     <browser id="sidebar" autoscroll="false" disablehistory="true" disablefullscreen="true" tooltip="aHTMLTooltip"/>
   </vbox>
   <splitter id="sidebar-splitter" class="chromeclass-extrachrome sidebar-splitter" resizebefore="sibling" resizeafter="none" hidden="true"/>
-  <vbox id="appcontent" flex="1">
-    <!-- gNotificationBox will be added here lazily. -->
-    <tabbox id="tabbrowser-tabbox"
-            flex="1" tabcontainer="tabbrowser-tabs">
-      <tabpanels id="tabbrowser-tabpanels"
-                  flex="1" selectedIndex="0"/>
-    </tabbox>
-  </vbox>
+  <tabbox id="tabbrowser-tabbox" flex="1" tabcontainer="tabbrowser-tabs">
+    <tabpanels id="tabbrowser-tabpanels" flex="1" selectedIndex="0"/>
+  </tabbox>
 </hbox>

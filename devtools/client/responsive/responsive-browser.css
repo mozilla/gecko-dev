@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#appcontent[devtoolstheme="light"] {
-  --rdm-browser-container-background: #F5F5F6;
-  --rdm-browser-box-shadow: 0 4px 4px 0 rgba(155, 155, 155, 0.26);
-}
+:root {
+  /* This should map to --theme-toolbar-background. */
+  --rdm-background-color: #F5F5F6;
+  --rdm-shadow-color: rgba(155, 155, 155, 0.26);
 
-#appcontent[devtoolstheme="dark"] {
-  --rdm-browser-container-background: #18181a; /* This should map to --theme-toolbar-background. */
-  --rdm-browser-box-shadow: 0 4px 4px 0 rgba(105, 105, 105, 0.26);
+  &[devtoolstheme="dark"] {
+    --rdm-background-color: #18181a;
+    --rdm-shadow-color: rgba(105, 105, 105, 0.26);
+  }
 }
 
 .browserContainer.responsive-mode {
-  background-color: var(--rdm-browser-container-background);
+  background-color: var(--rdm-background-color);
   --rdm-toolbar-height: 30px;
   --rdm-toolbar-accomodate-ua-height: 60px;
 }
@@ -87,10 +88,10 @@ html[dir="rtl"] .browserContainer.responsive-mode.left-aligned > .browserStack {
 
 .browserContainer.responsive-mode > .browserStack > browser {
   border: 1px solid var(--devtools-splitter-color);
-  box-shadow: var(--rdm-browser-box-shadow);
+  box-shadow: 0 4px 4px 0 var(--rdm-shadow-color);
+
   transform-origin: 50% 0;
   transform: scale(var(--rdm-zoom), var(--rdm-zoom));
-
   box-sizing: content-box; /* This is important to ensure that the pane has the
                               precise number of pixels defined by --rdm-width
                               and --rdm-height. */

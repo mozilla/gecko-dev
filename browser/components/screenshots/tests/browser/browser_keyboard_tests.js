@@ -366,7 +366,7 @@ add_task(async function test_createRegionWithKeyboard() {
       } else {
         const sidebar = document.querySelector("sidebar-main");
         const sidebarWidth = sidebar.offsetWidth;
-        // Add 1 to account for #appcontent border
+        // Add 1 to account for chrome-content-separator
         window100X =
           (100 + window.mozInnerScreenX + sidebarWidth + 1) *
           window.devicePixelRatio;
@@ -458,7 +458,7 @@ add_task(async function test_createRegionWithKeyboardWithShift() {
       } else {
         const sidebar = document.querySelector("sidebar-main");
         const sidebarWidth = sidebar.offsetWidth;
-        // Add 1 to account for #appcontent border
+        // Add 1 to account for chrome-content-separator
         window100X =
           (100 + window.mozInnerScreenX + sidebarWidth + 1) *
           window.devicePixelRatio;
