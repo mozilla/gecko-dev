@@ -38,11 +38,12 @@ function doTest() {
   i2.contentDocument.adoptNode(pre);
   i2.contentDocument.body.appendChild(pre);
   ok(eventCounter == 2, "DOMNodeInserted should have been dispatched in the new document");
+
+  SimpleTest.finish();
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(doTest);
-addLoadEvent(SimpleTest.finish);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, doTest));
 
 </script>
 </pre>

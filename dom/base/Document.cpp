@@ -7908,6 +7908,14 @@ void Document::SetScopeObject(nsIGlobalObject* aGlobal) {
 #ifdef DEBUG
         AssertDocGroupMatchesKey();
 #endif
+
+        // Update data document's mMutationEventsEnabled early on so that
+        // we can avoid extra IsURIInPrefList calls.
+        if (mMutationEventsEnabled.isNothing()) {
+          mMutationEventsEnabled.emplace(
+              window->GetExtantDoc()->MutationEventsEnabled());
+        }
+
         return;
       }
 
@@ -19593,6 +19601,17 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(GlobalObject& aGlobal,
   }
 
   return doc.forget();
+}
+
+bool Document::MutationEventsEnabled() {
+  if (StaticPrefs::dom_mutation_events_enabled()) {
+    return true;
+  }
+  if (mMutationEventsEnabled.isNothing()) {
+    mMutationEventsEnabled.emplace(
+        NodePrincipal()->IsURIInPrefList("dom.mutation_events.forceEnable"));
+  }
+  return mMutationEventsEnabled.value();
 }
 
 }  // namespace mozilla::dom

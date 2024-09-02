@@ -40,7 +40,7 @@ function boom()
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(boom);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, boom));
 
 </script>
 </pre>

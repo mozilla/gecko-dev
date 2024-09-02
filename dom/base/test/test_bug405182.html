@@ -34,12 +34,12 @@ function do_test()
     ns.appendChild(nt);
     dE.appendChild(ns);
     ok(true, "Test is successful if we get here without crashing");
-    SimpleTest.finish();
   }
+  SimpleTest.finish();
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(do_test);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, do_test));
 
 </script>
 </pre>

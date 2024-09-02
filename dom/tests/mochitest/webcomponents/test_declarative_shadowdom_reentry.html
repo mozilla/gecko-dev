@@ -13,13 +13,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1870055
 SimpleTest.waitForExplicitFinish();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const node = document.createElement('div');
-  document.documentElement.appendChild(node);
-  document.addEventListener('DOMSubtreeModified', (e) => {
-    node.setHTMLUnsafe('b');
-    is(node.textContent, 'b', 'Re-entry into setHTMLUnsafe is valid');
-    SimpleTest.finish();
-  }, { once: true });
-  node.setHTMLUnsafe('a');
+  SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, () => {
+    const node = document.createElement('div');
+    document.documentElement.appendChild(node);
+    document.addEventListener('DOMSubtreeModified', (e) => {
+      node.setHTMLUnsafe('b');
+      is(node.textContent, 'b', 'Re-entry into setHTMLUnsafe is valid');
+      SimpleTest.finish();
+    }, { once: true });
+    node.setHTMLUnsafe('a');
+  });
 });
 </script>

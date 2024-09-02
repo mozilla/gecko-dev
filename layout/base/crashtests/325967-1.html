@@ -24,6 +24,6 @@ function init()
 
 </head>
 
-<body onload="init()"><div id="ww"><input type="text" value="inputtext" id="inp">moretext</div></body>
+<body onload="SpecialPowers.pushPrefEnv({'set': [['dom.mutation_events.enabled', true]]}, init)"><div id="ww"><input type="text" value="inputtext" id="inp">moretext</div></body>
 
 </html>

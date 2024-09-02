@@ -3656,6 +3656,10 @@ class Document : public nsINode,
   bool FireMutationEvents() const { return mFireMutationEvents; }
   void SetFireMutationEvents(bool aFire) { mFireMutationEvents = aFire; }
 
+  // Even if mutation events are disabled by default,
+  // dom.mutation_events.forceEnable can be used to enable them per site.
+  bool MutationEventsEnabled();
+
   // This should be called when this document receives events which are likely
   // to be user interaction with the document, rather than the byproduct of
   // interaction with the browser (i.e. a keypress to scroll the view port,
@@ -4923,6 +4927,8 @@ class Document : public nsINode,
   bool mForceLoadAtTop : 1;
 
   bool mFireMutationEvents : 1;
+
+  Maybe<bool> mMutationEventsEnabled;
 
   // The fingerprinting protections overrides for this document. The value will
   // override the default enabled fingerprinting protections for this document.

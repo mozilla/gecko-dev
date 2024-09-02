@@ -17,7 +17,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1127588
 
 SimpleTest.waitForExplicitFinish();
 
-window.onload = function () {
+window.onload = function() {
+  SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test);
+}
+
+function test() {
   let insertedEventCount = 0;
   let insertedListener = function() {
     insertedEventCount++;

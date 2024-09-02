@@ -5205,6 +5205,10 @@ bool nsContentUtils::HasNonEmptyAttr(const nsIContent* aContent,
 bool nsContentUtils::WantMutationEvents(nsINode* aNode, uint32_t aType,
                                         nsINode* aTargetForSubtreeModified) {
   Document* doc = aNode->OwnerDoc();
+  if (!doc->MutationEventsEnabled()) {
+    return false;
+  }
+
   if (!doc->FireMutationEvents()) {
     return false;
   }
@@ -11283,13 +11287,13 @@ bool nsContentUtils::IsURIInList(nsIURI* aURI, const nsCString& aList) {
     return false;
   }
 
-  nsAutoCString scheme;
-  aURI->GetScheme(scheme);
-  if (!scheme.EqualsLiteral("http") && !scheme.EqualsLiteral("https")) {
+  if (aList.IsEmpty()) {
     return false;
   }
 
-  if (aList.IsEmpty()) {
+  nsAutoCString scheme;
+  aURI->GetScheme(scheme);
+  if (!scheme.EqualsLiteral("http") && !scheme.EqualsLiteral("https")) {
     return false;
   }
 

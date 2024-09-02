@@ -35,9 +35,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=364092
     test1.addEventListener("DOMAttrModified", mutationHandler, true);
     test1.removeAttributeNode(attrNode);
     test1.removeEventListener("DOMAttrModified", mutationHandler, true);
+    SimpleTest.finish();
   }
 
-   runTest();
+   SimpleTest.waitForExplicitFinish();
+   SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, runTest);
 </script>
 </pre>
 

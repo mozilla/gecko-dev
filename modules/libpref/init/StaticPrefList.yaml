@@ -3246,6 +3246,12 @@
   value: true
   mirror: always
 
+# Whether to dispatch mutation events.
+- name: dom.mutation_events.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Limit of location change caused by content scripts in a time span per
 # BrowsingContext. This includes calls to History and Location APIs.
 - name: dom.navigation.locationChangeRateLimit.count

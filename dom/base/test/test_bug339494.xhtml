@@ -18,7 +18,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=339494
 <script class="testbody" type="text/javascript">
 
 /** Test for Bug 339494 **/
-
+function test() {
   var d = document.getElementById("d");
 
   d.setAttribute("hhh", "testvalue");
@@ -50,6 +50,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=339494
     isnot(s.getAttribute("ggg"), "testvalue", "Value check 4");
     is(s.getAttribute("ggg"), "othervalue", "Value check 5");
   }
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test);
 
 </script>
 </pre>

@@ -1363,7 +1363,8 @@ function run_tests() {
   SimpleTest.finish();
 }
 
-window.addEventListener("load", run_tests);
+window.addEventListener("load",
+  () => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, run_tests));
 
 ]]>
 </script>

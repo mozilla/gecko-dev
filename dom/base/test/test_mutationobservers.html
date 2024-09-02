@@ -9,7 +9,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=641821
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
-<body onload="runTest()">
+<body onload="SpecialPowers.pushPrefEnv({'set': [['dom.mutation_events.enabled', true]]}, runTest)">
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=641821">Mozilla Bug 641821</a>
 <p id="display"></p>
 <div id="content" style="display: none">
