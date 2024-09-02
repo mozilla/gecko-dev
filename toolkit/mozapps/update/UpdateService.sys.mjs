@@ -4340,70 +4340,8 @@ export class UpdateManager {
    * @constructor
    */
   constructor() {
-    // Load the active-update.xml file to see if there is an active update.
-    let activeUpdates = this._loadXMLFileIntoArray(FILE_ACTIVE_UPDATE_XML);
-    if (activeUpdates.length) {
-      // Set the active update directly on the var used to cache the value.
-      this._readyUpdate = activeUpdates[0];
-      if (activeUpdates.length >= 2) {
-        this._downloadingUpdate = activeUpdates[1];
-      }
-      let status = readStatusFile(getReadyUpdateDir());
-      LOG(`UpdateManager:UpdateManager - status = "${status}"`);
-      if (status == STATE_DOWNLOADING) {
-        // The first update we read out of activeUpdates may not be the ready
-        // update, it may be the downloading update.
-        if (this._downloadingUpdate) {
-          // If the first update we read is a downloading update, it's
-          // unexpected to have read another active update. That would seem to
-          // indicate that we were downloading two updates at once, which we don't
-          // do.
-          LOG(
-            "UpdateManager:UpdateManager - Warning: Found and discarded a " +
-              "second downloading update."
-          );
-        }
-        this._downloadingUpdate = this._readyUpdate;
-        this._readyUpdate = null;
-      } else if (status == STATE_SUCCEEDED && this._readyUpdate) {
-        this.#updateInstalledAtStartup = this._readyUpdate;
-        // Bug 1889785 - When deciding whether or not to show a What's New Page, we
-        // rely on both `Services.appinfo.platformVersion` and this value. But Balrog
-        // doesn't guarantee that the value that it sends will match appinfo.
-        // We synchronize the values here so they are consistent.
-        this.#updateInstalledAtStartup.platformVersion =
-          Services.appinfo.platformVersion;
-        this.saveUpdates();
-      }
-    }
-
-    LOG(
-      "UpdateManager:UpdateManager - Initialized downloadingUpdate to " +
-        this._downloadingUpdate
-    );
-    if (this._downloadingUpdate) {
-      LOG(
-        "UpdateManager:UpdateManager - Initialized downloadingUpdate state to " +
-          this._downloadingUpdate.state
-      );
-    }
-    LOG(
-      "UpdateManager:UpdateManager - Initialized readyUpdate to " +
-        this._readyUpdate
-    );
-    if (this._readyUpdate) {
-      LOG(
-        "UpdateManager:UpdateManager - Initialized readyUpdate state to " +
-          this._readyUpdate.state
-      );
-    }
-    LOG(
-      "UpdateManager:UpdateManager - Initialized updateInstalledAtStartup to " +
-        this.#updateInstalledAtStartup
-    );
-
     this.internal = {
-      reload: skipFiles => this.#reload(skipFiles),
+      reload: async skipFiles => this.#reload(skipFiles),
       getHistory: () => this.#getHistory(),
       addUpdateToHistory: update => this.#addUpdateToHistory(update),
       refreshUpdateStatus: async () => this.#refreshUpdateStatus(),
@@ -4428,24 +4366,23 @@ export class UpdateManager {
   /**
    * See `nsIUpdateManagerInternal.reload` in nsIUpdateService.idl
    */
-  #reload(skipFiles) {
-    if (!Cu.isInAutomation) {
-      return;
-    }
+  async #reload(skipFiles) {
     LOG("UpdateManager:#reload - Reloading update data.");
     if (this._updatesXMLSaver) {
       this._updatesXMLSaver.disarm();
     }
 
     let updates = [];
-    this._updatesDirty = true;
+    this._updatesDirty = skipFiles;
     this._readyUpdate = null;
     this._downloadingUpdate = null;
     this.#updateInstalledAtStartup = null;
     transitionState(Ci.nsIApplicationUpdateService.STATE_IDLE);
     if (!skipFiles) {
+      // Load the active-update.xml file to see if there is an active update.
       let activeUpdates = this._loadXMLFileIntoArray(FILE_ACTIVE_UPDATE_XML);
       if (activeUpdates.length) {
+        // Set the active update directly on the var used to cache the value.
         this._readyUpdate = activeUpdates[0];
         if (activeUpdates.length >= 2) {
           this._downloadingUpdate = activeUpdates[1];
@@ -4469,6 +4406,10 @@ export class UpdateManager {
         }
         if (status == STATE_SUCCEEDED && this._readyUpdate) {
           this.#updateInstalledAtStartup = this._readyUpdate;
+          // Bug 1889785 - When deciding whether or not to show a What's New Page, we
+          // rely on both `Services.appinfo.platformVersion` and this value. But Balrog
+          // doesn't guarantee that the value that it sends will match appinfo.
+          // We synchronize the values here so they are consistent.
           this.#updateInstalledAtStartup.platformVersion =
             Services.appinfo.platformVersion;
           this.saveUpdates();

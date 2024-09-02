@@ -836,14 +836,14 @@ interface nsIUpdateSyncManager : nsISupports
 interface nsIUpdateManagerInternal : nsISupports
 {
   /**
-   * ** Test-only Method **
-   *
-   * Reloads the update manager's data. This will only work in testing.
+   * Reloads the update manager's data.
    * @param skipFiles
    *        If `true`, don't reload data from the XMLs, just clear out existing
    *        data.
+   *
+   * @returns Promise<undefined>
    */
-  void reload(in boolean skipFiles);
+  Promise reload(in boolean skipFiles);
 
   /**
    * These are identical to the functions with the same name in
