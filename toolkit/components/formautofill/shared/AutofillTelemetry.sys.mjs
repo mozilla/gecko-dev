@@ -109,6 +109,10 @@ class AutofillTelemetryBase {
         true
       )
     );
+
+    try {
+      this.recordIframeLayoutDetection(flowId, fieldDetails);
+    } catch {}
   }
 
   recordPopupShown(flowId, fieldDetails) {
@@ -255,6 +259,44 @@ class AutofillTelemetryBase {
     for (let record of records) {
       histogram.add(this.HISTOGRAM_PROFILE_NUM_USES_KEY, record.timesUsed);
     }
+  }
+
+  recordIframeLayoutDetection(flowId, fieldDetails) {
+    const fieldsInMainFrame = [];
+    const fieldsInIframe = [];
+    const fieldsInSandboxedIframe = [];
+    const fieldsInCrossOrignIframe = [];
+
+    const iframes = new Set();
+    for (const fieldDetail of fieldDetails) {
+      const bc = BrowsingContext.get(fieldDetail.browsingContextId);
+      if (bc.top == bc) {
+        fieldsInMainFrame.push(fieldDetail);
+        continue;
+      }
+
+      iframes.add(bc);
+      fieldsInIframe.push(fieldDetail);
+      if (bc.sandboxFlags != 0) {
+        fieldsInSandboxedIframe.push(fieldDetail);
+      }
+
+      if (!FormAutofillUtils.isBCSameOriginWithTop(bc)) {
+        fieldsInCrossOrignIframe.push(fieldDetail);
+      }
+    }
+
+    const extra = {
+      category: this.EVENT_CATEGORY,
+      flow_id: flowId,
+      iframe_count: iframes.size,
+      main_frame: fieldsInMainFrame.map(f => f.fieldName).toString(),
+      iframe: fieldsInIframe.map(f => f.fieldName).toString(),
+      cross_origin: fieldsInCrossOrignIframe.map(f => f.fieldName).toString(),
+      sandboxed: fieldsInSandboxedIframe.map(f => f.fieldName).toString(),
+    };
+
+    Glean.formautofill.iframeLayoutDetection.record(extra);
   }
 }
 

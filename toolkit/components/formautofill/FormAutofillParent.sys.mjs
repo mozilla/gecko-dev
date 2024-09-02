@@ -367,27 +367,6 @@ export class FormAutofillParent extends JSWindowActorParent {
     return undefined;
   }
 
-  /**
-   * This function is used to determine the frames that can also be autofilled
-   * when users trigger autofill on the focusd frame.
-   *
-   * Currently we also autofill for frames that
-   * 1. is top-level.
-   * 2. is same origin with the top-level.
-   * 3. is same origin with the frame that triggers autofill.
-   *
-   * @param {BrowsingContext} browsingContext
-   *        frame to be checked whether we can also autofill
-   */
-  isBCSameOriginWithTop(browsingContext) {
-    return (
-      browsingContext.top == browsingContext ||
-      browsingContext.currentWindowGlobal.documentPrincipal.equals(
-        browsingContext.top.currentWindowGlobal.documentPrincipal
-      )
-    );
-  }
-
   // For a third-party frame, we only autofill when the frame is same origin
   // with the frame that triggers autofill.
   isBCSameOrigin(browsingContext) {
@@ -1026,7 +1005,7 @@ export class FormAutofillParent extends JSWindowActorParent {
       // Autofill only applies to frame that is either same origin with the triggered
       // frame or it is same origin with the top.
       const isSameOrigin = this.isBCSameOrigin(bc);
-      if (!isSameOrigin && !this.isBCSameOriginWithTop(bc)) {
+      if (!isSameOrigin && !FormAutofillUtils.isBCSameOriginWithTop(bc)) {
         continue;
       }
 

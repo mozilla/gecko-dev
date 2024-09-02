@@ -1344,6 +1344,9 @@ async function triggerCapture(browser, submitButtonSelector, fillSelectors) {
  *        The profile to autofill. This is required only when running autofill test
  * @param {Array} patterns.expectedResult
  *        The expected result of this heuristic test. See below for detailed explanation
+ * @param {Function} patterns.onTestComplete
+ *        Function that is executed when the test is complete. This can be used by the test
+ *        to verify the status after running the test.
  *
  * @param {string} patterns.autofillTrigger
  *        The selector to find the element to trigger the autocomplete popup.
@@ -1543,6 +1546,10 @@ async function add_heuristic_tests(
         await removeAllRecords();
       }
     });
+
+    if (testPattern.onTestComplete) {
+      await testPattern.onTestComplete();
+    }
 
     if (testPattern.profile) {
       await removeAllRecords();
