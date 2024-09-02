@@ -10,7 +10,6 @@
 #include "sqlite3.h"
 
 #include "nsTArray.h"
-#include "MainThreadUtils.h"
 
 #include "mozStorageBindingParamsArray.h"
 #include "mozStorageConnection.h"
@@ -19,8 +18,7 @@
 
 struct sqlite3_stmt;
 
-namespace mozilla {
-namespace storage {
+namespace mozilla::storage {
 
 class StatementData {
  public:
@@ -41,13 +39,6 @@ class StatementData {
     MOZ_ASSERT(mStatementOwner, "Must have a statement owner!");
   }
   StatementData() : mStatement(nullptr), mQueryStatusRecorded(false) {}
-  ~StatementData() {
-    // We need to ensure that mParamsArray is released on the main thread,
-    // as the binding arguments may be XPConnect values, which are safe
-    // to release only on the main thread.
-    NS_ReleaseOnMainThread("StatementData::mParamsArray",
-                           mParamsArray.forget());
-  }
 
   /**
    * Return the sqlite statement, fetching it from the storage statement.  In
@@ -127,7 +118,13 @@ class StatementData {
 
  private:
   sqlite3_stmt* mStatement;
+
+  /**
+   * It's safe to release this on any thread, as it holds `BindingParams` that
+   * can only contain thread-safe derivates of `Variant_base`.
+   */
   RefPtr<BindingParamsArray> mParamsArray;
+
   bool mQueryStatusRecorded;
 
   /**
@@ -137,7 +134,6 @@ class StatementData {
   nsCOMPtr<StorageBaseStatementInternal> mStatementOwner;
 };
 
-}  // namespace storage
-}  // namespace mozilla
+}  // namespace mozilla::storage
 
 #endif  // mozStorageStatementData_h
