@@ -499,13 +499,6 @@ static gfx::Matrix GetCTMInternal(SVGElement* aElement, CTMType aCTMType,
 
     if (auto* f = e->GetPrimaryFrame()) {
       ret = SVGUtils::GetTransformMatrixInUserSpace(f);
-    } else {
-      // FIXME: Ideally we should also return the correct matrix
-      // for display:none, but currently transform related code relies
-      // heavily on the present of a frame.
-      // For now we just fall back to |PrependLocalTransformsTo| which
-      // doesn't account for CSS transform.
-      ret = e->PrependLocalTransformsTo({}, eUserSpaceToParent);
     }
 
     if (shouldIncludeChildToUserSpace) {

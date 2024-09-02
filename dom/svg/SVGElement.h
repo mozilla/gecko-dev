@@ -143,14 +143,6 @@ class SVGElement : public SVGElementBase  // nsIContent
    * space established by this element's parent element for this element, are
    * included.
    *
-   * If aWhich is eUserSpaceToParent, then only the transforms from this
-   * element's userspace to the coordinate space established by its parent is
-   * included. This includes any transforms introduced by the 'transform'
-   * attribute, transform animations and animateMotion, but not any offsets
-   * due to e.g. 'x'/'y' attributes, or any transform due to a 'viewBox'
-   * attribute. (SVG userspace is defined to be the coordinate space in which
-   * coordinates on an element apply.)
-   *
    * If aWhich is eChildToUserSpace, then only the transforms from the
    * coordinate space established by this element for its childre to this
    * elements userspace are included. This includes any offsets due to e.g.
