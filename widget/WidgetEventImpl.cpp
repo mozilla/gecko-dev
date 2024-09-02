@@ -965,7 +965,11 @@ void WidgetMouseEvent::AssertContextMenuEventButtonConsistency() const {
     return;
   }
 
-  if (mContextMenuTrigger == eNormal) {
+  if (mInputSource == dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
+    NS_WARNING_ASSERTION(mButton == MouseButton::ePrimary,
+                         "eContextMenu events by touch trigger should use "
+                         "primary mouse button / touch contact");
+  } else if (mContextMenuTrigger == eNormal) {
     NS_WARNING_ASSERTION(mButton == MouseButton::eSecondary,
                          "eContextMenu events with eNormal trigger should use "
                          "secondary mouse button");

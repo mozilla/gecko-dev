@@ -56,6 +56,12 @@ async function test() {
   // Check that the "contextmenu" event targets the correct element.
   is(contextmenuEvent.target, target, "contextmenu event targeted the correct element");
 
+  // button and buttons should be touch contact.
+  is(contextmenuEvent.button, 0,
+     "The button property of contextmenu event should be touch contact");
+  is(contextmenuEvent.buttons, 1,
+     "The buttons property of contextmenu event should be touch contact");
+
   // Clean up by firing a touch-end to clear the APZ gesture state.
   await new Promise(resolve => {
     synthesizeNativeTouch(target, 10, 10, SpecialPowers.DOMWindowUtils.TOUCH_REMOVE,
