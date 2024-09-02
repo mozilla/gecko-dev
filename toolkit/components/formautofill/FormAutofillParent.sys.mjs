@@ -965,6 +965,40 @@ export class FormAutofillParent extends JSWindowActorParent {
   #FIELDS_FILLED_WHEN_SAME_ORIGIN = ["cc-number"];
 
   /**
+   * Determines if the field should be autofilled based on its origin.
+   *
+   * @param {BorwsingContext} bc
+   *        The browsing context the field is in.
+   * @param {object} fieldDetail
+   *        The Field detail of the field to be autofilled.
+   *
+   * @returns {boolean}
+   *        Returns true if the field should be autofilled, false otherwise.
+   */
+  shouldAutofill(bc, fieldDetail) {
+    const isSameOrigin = this.isBCSameOrigin(bc);
+
+    // Autofill always applies to frames that are the same origin as the triggered frame.
+    if (isSameOrigin) {
+      return true;
+    }
+
+    // Relaxed autofill rule is controlled by a preference.
+    if (!FormAutofill.autofillSameOriginWithTop) {
+      return false;
+    }
+
+    // Relaxed autofill restrictions: for fields other than the credit card number,
+    // if the field is in a top-level frame or in a first-party origin iframe,
+    // autofill is allowed.
+    if (this.#FIELDS_FILLED_WHEN_SAME_ORIGIN.includes(fieldDetail.fieldName)) {
+      return false;
+    }
+
+    return FormAutofillUtils.isBCSameOriginWithTop(bc);
+  }
+
+  /**
    * Trigger the autofill-related action in child processes that are within
    * this section.
    *
@@ -1002,21 +1036,10 @@ export class FormAutofillParent extends JSWindowActorParent {
     for (const [bcId, fieldDetails] of entries) {
       const bc = BrowsingContext.get(bcId);
 
-      // Autofill only applies to frame that is either same origin with the triggered
-      // frame or it is same origin with the top.
-      const isSameOrigin = this.isBCSameOrigin(bc);
-      if (!isSameOrigin && !FormAutofillUtils.isBCSameOriginWithTop(bc)) {
-        continue;
-      }
-
       // For sensitive fields, we ONLY fill them when they are same-origin with
       // the triggered frame.
       const ids = fieldDetails
-        .filter(
-          detail =>
-            isSameOrigin ||
-            !this.#FIELDS_FILLED_WHEN_SAME_ORIGIN.includes(detail.fieldName)
-        )
+        .filter(detail => this.shouldAutofill(bc, detail))
         .map(detail => detail.elementId);
 
       try {

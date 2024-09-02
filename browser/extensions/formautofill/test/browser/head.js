@@ -104,6 +104,7 @@ const EMPTY_URL = "https://example.org" + HTTP_TEST_PATH + "empty.html";
 
 const TOP_LEVEL_HOST = "https://example.com";
 const TOP_LEVEL_URL = TOP_LEVEL_HOST + HTTP_TEST_PATH;
+const SAME_SITE_URL = "https://test1.example.com" + HTTP_TEST_PATH;
 const CROSS_ORIGIN_URL = "https://example.net" + HTTP_TEST_PATH;
 const CROSS_ORIGIN_2_URL = "https://example.org" + HTTP_TEST_PATH;
 
@@ -137,6 +138,17 @@ const SAME_ORIGIN_CC_EXP =
   TOP_LEVEL_URL + "../fixtures/autocomplete_cc_exp_embeded.html";
 const SAME_ORIGIN_CC_TYPE =
   TOP_LEVEL_URL + "../fixtures/autocomplete_cc_type_embeded.html";
+
+const SAME_SITE_ALL_FIELDS =
+  SAME_SITE_URL + "../fixtures/autocomplete_cc_mandatory_embeded.html";
+const SAME_SITE_CC_NUMBER =
+  SAME_SITE_URL + "../fixtures/autocomplete_cc_number_embeded.html";
+const SAME_SITE_CC_NAME =
+  SAME_SITE_URL + "../fixtures/autocomplete_cc_name_embeded.html";
+const SAME_SITE_CC_EXP =
+  SAME_SITE_URL + "../fixtures/autocomplete_cc_exp_embeded.html";
+const SAME_SITE_CC_TYPE =
+  SAME_SITE_URL + "../fixtures/autocomplete_cc_type_embeded.html";
 
 const CROSS_ORIGIN_ALL_FIELDS =
   CROSS_ORIGIN_URL + "../fixtures/autocomplete_cc_mandatory_embeded.html";
@@ -1340,6 +1352,8 @@ async function triggerCapture(browser, submitButtonSelector, fillSelectors) {
  *        The path of the test document
  * @param {string} patterns.fixureData
  *        Test document by string. Use either fixurePath or fixtureData.
+ * @param {Array} patterns.prefs
+ *        Array of preferences to be set before running the test.
  * @param {object} patterns.profile
  *        The profile to autofill. This is required only when running autofill test
  * @param {Array} patterns.expectedResult

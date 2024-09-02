@@ -195,4 +195,91 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  /**
+   * Test cases when relaxed restriction is applied
+   */
+  {
+    description:
+      "Do not fill cc-number in a main-frame when the autofill is triggered in a third-party-origin iframe even when the relaxed restriction is applied",
+    fixtureData: `
+      <p><label>Card Number: <input id="cc-number" autocomplete="cc-number"></label></p>
+      <iframe src=\"${CROSS_ORIGIN_CC_NAME}\"></iframe>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
+    ],
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-name",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: "" },
+          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Do not fill cc-number in a first-party-origin iframe when autofill is triggered in a third-party iframe even when the relaxed restriction is applied",
+    fixtureData: `
+      <iframe src=\"${SAME_ORIGIN_CC_NUMBER}\"></iframe>
+      <iframe src=\"${CROSS_ORIGIN_CC_NAME}\"></iframe>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
+    ],
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-name",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: "" },
+          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Do not fill cc-number in a third-party-origin iframe when the autofill is triggered in cross-origin third-party-origin iframe even when the relaxed restriction is applied",
+    fixtureData: `
+      <iframe src=\"${CROSS_ORIGIN_CC_NUMBER}\"></iframe>
+      <iframe src=\"${CROSS_ORIGIN_2_CC_NAME}\"></iframe>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
+    ],
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-name",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: "" },
+          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Do not fill cc-number in a third-party-origin iframe when the autofill is triggered in the main-iframe even when the relaxed restriction is applied",
+    fixtureData: `
+      <iframe src=\"${CROSS_ORIGIN_CC_NUMBER}\"></iframe>
+      <p><label>Card Name: <input id="cc-name" autocomplete="cc-name"></label></p>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
+    ],
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-name",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: "" },
+          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+        ],
+      },
+    ],
+  },
 ]);

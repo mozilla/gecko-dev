@@ -60,7 +60,7 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: TEST_PROFILE["cc-number"] },
-          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+          { fieldName: "cc-name", autofill: "" },
           { fieldName: "cc-exp", autofill: "" },
           { fieldName: "cc-type", autofill: "" },
         ],
@@ -82,11 +82,8 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: TEST_PROFILE["cc-number"] },
-          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
-          {
-            fieldName: "cc-exp",
-            autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,
-          },
+          { fieldName: "cc-name", autofill: "" },
+          { fieldName: "cc-exp", autofill: "" },
           { fieldName: "cc-type", autofill: "" },
         ],
       },
@@ -107,7 +104,7 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: TEST_PROFILE["cc-number"] },
-          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+          { fieldName: "cc-name", autofill: "" },
           { fieldName: "cc-exp", autofill: "" },
           { fieldName: "cc-type", autofill: "" },
         ],
@@ -123,6 +120,31 @@ add_autofill_heuristic_tests([
       <iframe src=\"${SAME_ORIGIN_CC_EXP}\"></iframe>
       <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
     `,
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-number",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: TEST_PROFILE["cc-number"] },
+          { fieldName: "cc-name", autofill: "" },
+          { fieldName: "cc-exp", autofill: "" },
+          { fieldName: "cc-type", autofill: "" },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Relaxed restriction applied - Trigger autofill in a sandboxed third-party-origin iframe, do not autofill into other iframes",
+    fixtureData: `
+      <iframe sandbox src=\"${CROSS_ORIGIN_CC_NUMBER}\"></iframe>
+      <p><label>Card Name: <input id="cc-name" autocomplete="cc-name"></label></p>
+      <iframe src=\"${SAME_ORIGIN_CC_EXP}\"></iframe>
+      <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
+    ],
     profile: TEST_PROFILE,
     autofillTrigger: "#cc-number",
     expectedResult: [
