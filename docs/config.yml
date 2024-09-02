@@ -141,4 +141,4 @@ allowed_errors:
     - "security/nss/releases/nss_3_90\\.rst.* ERROR: Content block expected for the \"container\" directive"
     - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
 
-max_num_warnings: 844
+max_num_warnings: 837

@@ -119,7 +119,12 @@ class _SphinxManager(object):
             dirs = {os.path.dirname(f[0]) for f in finder.find("**")}
 
             test_dirs = {"test", "tests"}
-            excludes = {d for d in dirs if set(PurePath(d).parts) & test_dirs}
+            # Exclude directories whose path components match any in 'test_dirs'.
+            excludes = {
+                os.path.join(full, d)
+                for d in dirs
+                if set(PurePath(d).parts) & test_dirs
+            }
 
             args = list(base_args)
             args.append(full)
