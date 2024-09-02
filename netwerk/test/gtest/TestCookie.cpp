@@ -450,15 +450,16 @@ TEST(TestCookie, TestCookieMain)
   // the following cookie includes a tab in the name
   SetACookie(cookieService, "http://pathwithtab.net/", "test\ttabs=tab");
   GetACookie(cookieService, "http://pathwithtab.net/", cookie);
-  EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
+  EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test\ttabs=tab"));
   // the following cookie includes a tab in the value - allowed
   SetACookie(cookieService, "http://pathwithtab.net/", "test=tab\ttest");
   GetACookie(cookieService, "http://pathwithtab.net/", cookie);
-  EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test=tab\ttest"));
+  EXPECT_TRUE(
+      CheckResult(cookie.get(), MUST_EQUAL, "test\ttabs=tab; test=tab\ttest"));
   SetACookie(cookieService, "http://pathwithtab.net/",
              "test=tab\ttest; max-age=-1");
   GetACookie(cookieService, "http://pathwithtab.net/", cookie);
-  EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
+  EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test\ttabs=tab"));
 
   // *** expiry & deletion tests
   // XXX add server time str parsing tests here
