@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,6 +31,7 @@ import org.mozilla.fenix.theme.Theme
 @Composable
 internal fun SubmenuHeader(
     header: String,
+    backButtonContentDescription: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -40,6 +42,11 @@ internal fun SubmenuHeader(
     ) {
         IconButton(
             onClick = { onClick() },
+            modifier = Modifier.semantics {
+                if (backButtonContentDescription != null) {
+                    this.contentDescription = backButtonContentDescription
+                }
+            },
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_back_24),
