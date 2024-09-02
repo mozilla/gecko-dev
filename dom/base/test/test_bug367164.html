@@ -18,27 +18,32 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=367164
 <script class="testbody" type="text/javascript">
 
 /** Test for Bug 367164 **/
+function test() {
+  var span = document.createElement("span");
 
-var span = document.createElement("span");
+  var ins1 = false;
+  var ins2 = false;
+  var rem1 = false;
+  var rem2 = false;
 
-var ins1 = false;
-var ins2 = false;
-var rem1 = false;
-var rem2 = false;
+  span.addEventListener("DOMNodeInserted", function() { ins1 = true; }, true);
+  span.addEventListener("DOMNodeInserted", function() { ins2 = true; });
+  span.addEventListener("DOMNodeRemoved", function() { rem1 = true; }, true);
+  span.addEventListener("DOMNodeRemoved", function() { rem2 = true; });
 
-span.addEventListener("DOMNodeInserted", function() { ins1 = true; }, true);
-span.addEventListener("DOMNodeInserted", function() { ins2 = true; });
-span.addEventListener("DOMNodeRemoved", function() { rem1 = true; }, true);
-span.addEventListener("DOMNodeRemoved", function() { rem2 = true; });
+  $("content").appendChild(span);
+  $("content").removeChild(span);
 
-$("content").appendChild(span);
-$("content").removeChild(span);
+  is(ins1, true, "Capturing DOMNodeInserted listener");
+  is(ins2, true, "Bubbling DOMNodeInserted listener");
+  is(rem1, true, "Capturing DOMNodeRemoved listener");
+  is(rem2, true, "Bubbling DOMNodeRemoved listener");
+  SimpleTest.finish();
+}
 
-is(ins1, true, "Capturing DOMNodeInserted listener");
-is(ins2, true, "Bubbling DOMNodeInserted listener");
-is(rem1, true, "Capturing DOMNodeRemoved listener");
-is(rem2, true, "Bubbling DOMNodeRemoved listener");
-  
+SimpleTest.waitForExplicitFinish();
+SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test);
+
 </script>
 
 </pre>

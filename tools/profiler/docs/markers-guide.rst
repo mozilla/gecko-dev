@@ -222,7 +222,7 @@ when the object is constructed, and later recording the marker when the object i
 of its C++ scope.
 This is especially useful if there are multiple scope exit points.
 
-``AUTO_PROFILER_MARKER_TEXT`` is `the only one implemented <https://searchfox.org/mozilla-central/search?q=id%3AAUTO_PROFILER_MARKER_TEXT`_ at this time.
+``AUTO_PROFILER_MARKER_TEXT`` is `the only one implemented <https://searchfox.org/mozilla-central/search?q=id%3AAUTO_PROFILER_MARKER_TEXT>`_ at this time.
 
 .. code-block:: cpp
 

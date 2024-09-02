@@ -84,6 +84,10 @@ let addressTestCases = [
     description: "Focus on an `organization` field",
     options: {},
     matchingProfiles,
+    filledCategories: [
+      ["address", "name", "tel"],
+      ["address", "name", "tel"],
+    ],
     allFieldNames,
     searchString: "",
     fieldDetail: { fieldName: "organization" },
@@ -122,6 +126,11 @@ let addressTestCases = [
     description: "Focus on an `tel` field",
     options: {},
     matchingProfiles,
+    filledCategories: [
+      ["address", "name", "tel", "organization"],
+      ["address", "name", "tel", "organization"],
+      ["address", "tel"],
+    ],
     allFieldNames,
     searchString: "",
     fieldDetail: { fieldName: "tel" },
@@ -172,6 +181,11 @@ let addressTestCases = [
     description: "Focus on an `street-address` field",
     options: {},
     matchingProfiles,
+    filledCategories: [
+      ["address", "name", "tel", "organization"],
+      ["address", "name", "tel", "organization"],
+      ["address", "tel"],
+    ],
     allFieldNames,
     searchString: "",
     fieldDetail: { fieldName: "street-address" },
@@ -222,6 +236,11 @@ let addressTestCases = [
     description: "Focus on an `address-line1` field",
     options: {},
     matchingProfiles,
+    filledCategories: [
+      ["address", "name", "tel", "organization"],
+      ["address", "name", "tel", "organization"],
+      ["address", "tel"],
+    ],
     allFieldNames,
     searchString: "",
     fieldDetail: { fieldName: "address-line1" },
@@ -465,6 +484,7 @@ add_task(async function test_all_patterns() {
         testCase.fieldDetail,
         testCase.allFieldNames,
         testCase.matchingProfiles,
+        testCase.filledCategories,
         testCase.options
       );
       let expectedValue = testCase.expected;

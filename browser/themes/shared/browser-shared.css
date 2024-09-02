@@ -192,9 +192,6 @@ body {
 #navigator-toolbox {
   appearance: none;
 
-  /* Toolbar / content area border */
-  border-bottom: 0.01px solid var(--chrome-content-separator-color);
-
   background-color: var(--toolbox-non-lwt-bgcolor);
   color: var(--toolbox-non-lwt-textcolor);
 
@@ -204,11 +201,6 @@ body {
   &:-moz-window-inactive {
     background-color: var(--toolbox-non-lwt-bgcolor-inactive);
     color: var(--toolbox-non-lwt-textcolor-inactive);
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.revamp") {
-    border-bottom: none;
   }
 
   &[fullscreenShouldAnimate] {
@@ -315,6 +307,23 @@ body {
     :root[gtktiledwindow=true] &[type="post-tabs"] {
       display: none;
     }
+  }
+}
+
+/* Chrome/content separation */
+
+#navigator-toolbox {
+  /* This reserves space for the tabbox shadow */
+  border-bottom: 0.5px solid var(--toolbar-bgcolor);
+}
+
+#tabbrowser-tabbox {
+  position: relative;
+  box-shadow: 0 0 0 0.5px var(--chrome-content-separator-color);
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    box-shadow: 0 0 0 0.5px var(--chrome-content-separator-color), 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
   }
 }
 

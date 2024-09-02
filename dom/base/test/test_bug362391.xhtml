@@ -64,9 +64,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=362391
         expected = "null";
         document.getElementById("test4")
           .removeAttribute("attr");
+        SimpleTest.finish();
       }
 
-      test();
+      SimpleTest.waitForExplicitFinish();
+      SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test);
 </script>
 </pre>
 

@@ -120,10 +120,24 @@ redirects:
     tools/lint: code-quality/lint
     tools/lint/coding-style: code-quality/coding-style
     tools/static-analysis/index.html: code-quality/static-analysis.html
-    xpcom/xpcom: xpcom
 
 fatal warnings:
     - "WARNING: '([^']*)' reference target not found:((?!.rst).)*$"
     - "WARNING: Include file '([^']*)' not found or reading it failed"
 
-max_num_warnings: 844
+# A regexp of errors we currently allow so that we can fail on new errors,
+# but resolve these at a later date. Please do not add new items to this list
+# unless they are part of the existing known issues.
+allowed_errors:
+    # Bug 1915552 - Various python errors around unexpected indentation.
+    - "mozbuild\\.vendor\\.moz_yaml\\.VALID_SOURCE_HOSTS.* ERROR: Unexpected indentation"
+    - "python/mozbuild/mozbuild/frontend/context\\.py.* ERROR: Unexpected indentation"
+    - "python/mozbuild/mozbuild/backend/configenvironment\\.py.* ERROR: Unexpected indentation"
+    - "python/mozbuild/mozbuild/vendor/rewrite_mozbuild\\.py.* ERROR: Unexpected indentation"
+    - "python/mozbuild/mozpack/errors\\.py.* ERROR: Unexpected indentation"
+    - "python/mozbuild/mozpack/mozjar\\.py.* ERROR: Unexpected indentation"
+    # Bug 1915274 - General issues in nss docs.
+    - "security/nss/releases/nss_3_90\\.rst.* ERROR: Content block expected for the \"container\" directive"
+    - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
+
+max_num_warnings: 837

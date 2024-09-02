@@ -31,10 +31,14 @@ struct CSPViolationData {
     Self,
     WasmEval,
     TrustedTypesPolicy,
+    TrustedTypesSink,
   };
 
   using Resource = mozilla::Variant<nsCOMPtr<nsIURI>, BlockedContentSource>;
 
+  // According to https://github.com/w3c/webappsec-csp/issues/442 column- and
+  // line-numbers are expected to be 1-origin.
+  //
   // @param aSample Will be truncated if necessary.
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
                    const CSPDirective aEffectiveDirective,

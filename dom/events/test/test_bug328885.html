@@ -126,7 +126,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=328885
 
   SimpleTest.waitForExplicitFinish();
   SimpleTest.requestFlakyTimeout("untriaged");
-  addLoadEvent(doTest);
+ addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, doTest));
 
 </script>
 </pre>

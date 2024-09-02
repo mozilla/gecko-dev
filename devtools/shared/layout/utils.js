@@ -35,22 +35,6 @@ exports.setIgnoreLayoutChanges = (...args) =>
   this.setIgnoreLayoutChanges(...args);
 
 /**
- * Returns the `DOMWindowUtils` for the window given.
- *
- * @param {DOMWindow} win
- * @returns {DOMWindowUtils}
- */
-const utilsCache = new WeakMap();
-function utilsFor(win) {
-  // XXXbz Given that we now have a direct getter for the DOMWindowUtils, is
-  // this weakmap cache path any faster than just calling the getter?
-  if (!utilsCache.has(win)) {
-    utilsCache.set(win, win.windowUtils);
-  }
-  return utilsCache.get(win);
-}
-
-/**
  * Check a window is part of the boundary window given.
  *
  * @param {DOMWindow} boundaryWindow
@@ -594,7 +578,7 @@ exports.getDisplayPixelRatio = getDisplayPixelRatio;
  */
 function getWindowDimensions(window) {
   // First we'll try without flushing layout, because it's way faster.
-  const windowUtils = utilsFor(window);
+  const { windowUtils } = window;
   let { width, height } = windowUtils.getRootBounds();
 
   if (!width || !height) {
@@ -620,7 +604,7 @@ exports.getWindowDimensions = getWindowDimensions;
  * number of pixels for the viewport's size.
  */
 function getViewportDimensions(window) {
-  const windowUtils = utilsFor(window);
+  const { windowUtils } = window;
 
   const scrollbarHeight = {};
   const scrollbarWidth = {};
@@ -668,7 +652,7 @@ function loadSheet(window, url, type = "agent") {
     type = "agent";
   }
 
-  const windowUtils = utilsFor(window);
+  const { windowUtils } = window;
   try {
     windowUtils.loadSheetUsingURIString(url, windowUtils[SHEET_TYPE[type]]);
   } catch (e) {
@@ -690,7 +674,7 @@ function removeSheet(window, url, type = "agent") {
     type = "agent";
   }
 
-  const windowUtils = utilsFor(window);
+  const { windowUtils } = window;
   try {
     windowUtils.removeSheetUsingURIString(url, windowUtils[SHEET_TYPE[type]]);
   } catch (e) {

@@ -728,15 +728,6 @@ skip-if = [
 ]
 run-sequentially = "http3server"
 
-["test_http3_large_post_telemetry.js"]
-disabled = "bug 1771744 - telemetry probe expired"
-# skip-if =
-#   asan
-#   tsan
-#   os == 'win'
-#   os == 'android'
-#   socketprocess_networking
-
 ["test_http3_perf.js"]
 skip-if = [
   "os == 'android'",
@@ -1073,6 +1064,8 @@ run-sequentially = "tlsserver uses fixed port"
 ["test_schema_12_migration.js"]
 
 ["test_schema_13_db.js"]
+
+["test_schema_14_migration.js"]
 
 ["test_schema_2_migration.js"]
 

@@ -17,6 +17,12 @@
   border-bottom: 1px solid var(--theme-splitter-color);
 }
 
+.conditional-breakpoint-panel:focus-within {
+  outline: var(--theme-focus-outline);
+  outline-offset: -2px;
+  box-shadow: var(--theme-outline-box-shadow);
+}
+
 .conditional-breakpoint-panel .prompt {
   font-size: 1.8em;
   color: var(--theme-graphs-orange);

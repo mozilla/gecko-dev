@@ -18,6 +18,7 @@ const ADDRESS_VALUES = {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["extensions.formautofill.loglevel", "Debug"],
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "on"],
       ["extensions.formautofill.heuristics.captureOnPageNavigation", true],

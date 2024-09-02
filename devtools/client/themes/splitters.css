@@ -8,6 +8,11 @@
 /* Splitters */
 
 :root {
+  --devtools-splitter-color: #e0e0e2;
+  &[devtoolstheme="dark"]  {
+    --devtools-splitter-color: #38383d;
+  }
+
   /* Draggable splitter element size */
   --devtools-splitter-element-size: 1px;
   --devtools-emphasized-splitter-element-size: 2px;
@@ -32,15 +37,6 @@
   --devtools-vertical-splitter-min-width: calc(var(--devtools-splitter-inline-start-width) +
                                                var(--devtools-splitter-inline-end-width) +
                                                var(--devtools-splitter-element-size));
-}
-
-#appcontent[devtoolstheme="light"] {
-  /* These variables are used in browser.xhtml but inside the toolbox they are overridden by --theme-splitter-color */
-  --devtools-splitter-color: #e0e0e2;
-}
-
-#appcontent[devtoolstheme="dark"] {
-  --devtools-splitter-color: #38383d;
 }
 
 splitter.devtools-horizontal-splitter,

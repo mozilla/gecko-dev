@@ -90,11 +90,11 @@ function doTest() {
   subtree.normalize();
   is(subtreeModifiedCount, 1,
      "Calling normalize() should have dispatched a DOMSubtreeModified event");
+  SimpleTest.finish();
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(doTest);
-addLoadEvent(SimpleTest.finish);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, doTest));
 
 </script>
 </pre>

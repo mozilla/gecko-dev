@@ -403,8 +403,7 @@ strong {
   width: 21px;
   height: 21px;
   margin-left: 4px;
-  background: linear-gradient(-45deg,
-    var(--theme-tooltip-background) 50%, transparent 50%);
+  background: var(--theme-tooltip-background);
   border: 0 none;
   pointer-events: all;
   box-sizing: border-box;

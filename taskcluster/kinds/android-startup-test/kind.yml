@@ -43,7 +43,7 @@ tasks:
             signing: signing-apk-fenix-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -67,7 +67,7 @@ tasks:
             signing-android-test: signing-apk-fenix-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -92,7 +92,7 @@ tasks:
             signing-android-test: signing-apk-fenix-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -117,7 +117,7 @@ tasks:
             signing-android-test: signing-apk-fenix-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/fenix/firebase
+                - name: project/gecko/level-any/firefox-android/fenix/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -142,7 +142,7 @@ tasks:
             signed-apk-android-test: signing-apk-focus-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -167,7 +167,7 @@ tasks:
             signed-apk-android-test: signing-apk-focus-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -192,7 +192,7 @@ tasks:
             signed-apk-android-test: signing-apk-focus-android-test-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true
@@ -217,7 +217,7 @@ tasks:
             signing: signing-apk-focus-nightly
         run:
             secrets:
-                - name: project/mobile/firefox-android/focus-android/firebase
+                - name: project/gecko/level-any/firefox-android/focus-android/firebase
                   key: firebaseToken
                   path: .firebase_token.json
                   json: true

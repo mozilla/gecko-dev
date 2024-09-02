@@ -50,11 +50,11 @@ function test() {
   testElementType("option");
   testElementType("optgroup");
   testElementType("button");
+  SimpleTest.finish();
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(test);
-addLoadEvent(SimpleTest.finish);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test));
 </script>
 </pre>
 </body>

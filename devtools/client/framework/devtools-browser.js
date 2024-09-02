@@ -136,9 +136,9 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
   },
 
   /**
-   * This function makes sure that the "devtoolstheme" attribute is set on the browser
-   * window to make it possible to change colors on elements in the browser (like the
-   * splitter between the toolbox and web content).
+   * This function makes sure that the "devtoolstheme" attribute is set on the
+   * browser window to make it possible to change colors on elements in the
+   * browser (like the splitter between the toolbox and web content).
    */
   updateDevtoolsThemeAttribute(win) {
     // Set an attribute on root element of each window to make it possible
@@ -147,13 +147,7 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     if (devtoolsTheme != "dark") {
       devtoolsTheme = "light";
     }
-
-    // Style the splitter between the toolbox and page content.  This used to
-    // set the attribute on the browser's root node but that regressed tpaint:
-    // bug 1331449.
-    win.document
-      .getElementById("appcontent")
-      .setAttribute("devtoolstheme", devtoolsTheme);
+    win.document.documentElement.setAttribute("devtoolstheme", devtoolsTheme);
   },
 
   observe(subject, topic, prefName) {

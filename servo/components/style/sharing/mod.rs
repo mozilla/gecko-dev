@@ -677,6 +677,11 @@ impl<E: TElement> StyleSharingCache<E> {
             return;
         }
 
+        if element.smil_override().is_some() {
+            debug!("Failing to insert to the cache: SMIL");
+            return;
+        }
+
         debug!(
             "Inserting into cache: {:?} with parent {:?}",
             element, parent
@@ -811,6 +816,11 @@ impl<E: TElement> StyleSharingCache<E> {
 
         if target.element.has_animations(shared_context) || candidate.element.has_animations(shared_context) {
             trace!("Miss: Has Animations");
+            return None;
+        }
+
+        if target.element.smil_override().is_some() {
+            trace!("Miss: SMIL");
             return None;
         }
 

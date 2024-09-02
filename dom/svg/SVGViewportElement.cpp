@@ -237,43 +237,23 @@ float SVGViewportElement::GetLength(uint8_t aCtxType) const {
 // SVGElement methods
 
 /* virtual */
-gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
-    const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
-  // 'transform' attribute (or an override from a fragment identifier):
-  if (aWhich == eUserSpaceToParent) {
-    return aMatrix;
-  }
-
-  gfxMatrix childToUser;
-
+gfxMatrix SVGViewportElement::ChildToUserSpaceTransform() const {
+  auto viewBox = GetViewBoxTransform();
   if (IsInner()) {
     float x, y;
     const_cast<SVGViewportElement*>(this)->GetAnimatedLengthValues(&x, &y,
                                                                    nullptr);
-    childToUser = ThebesMatrix(GetViewBoxTransform().PostTranslate(x, y));
-  } else if (IsRootSVGSVGElement()) {
+    return ThebesMatrix(viewBox.PostTranslate(x, y));
+  }
+  if (IsRootSVGSVGElement()) {
     const auto* svg = static_cast<const SVGSVGElement*>(this);
     const SVGPoint& translate = svg->GetCurrentTranslate();
     float scale = svg->CurrentScale();
-    childToUser =
-        ThebesMatrix(GetViewBoxTransform()
-                         .PostScale(scale, scale)
-                         .PostTranslate(translate.GetX(), translate.GetY()));
-  } else {
-    // outer-<svg>, but inline in some other content:
-    childToUser = ThebesMatrix(GetViewBoxTransform());
+    return ThebesMatrix(viewBox.PostScale(scale, scale)
+                            .PostTranslate(translate.GetX(), translate.GetY()));
   }
-
-  MOZ_ASSERT(aWhich == eAllTransforms || aWhich == eChildToUserSpace,
-             "Unknown TransformTypes");
-  // The following may look broken because pre-multiplying our eChildToUserSpace
-  // transform with another matrix without including our eUserSpaceToParent
-  // transform between the two wouldn't make sense.  We don't expect that to
-  // ever happen though.  We get here either when the identity matrix has been
-  // passed because our caller just wants our eChildToUserSpace transform, or
-  // when our eUserSpaceToParent transform has already been multiplied into the
-  // matrix that our caller passes (such as when we're called from PaintSVG).
-  return childToUser * aMatrix;
+  // outer-<svg>, but inline in some other content:
+  return ThebesMatrix(viewBox);
 }
 
 /* virtual */

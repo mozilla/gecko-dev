@@ -42,6 +42,9 @@ internal fun ToolsSubmenu(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_tools),
+                backButtonContentDescription = stringResource(
+                    id = R.string.browser_menu_back_button_content_description,
+                ),
                 onClick = onBackButtonClick,
             )
         },

@@ -70,6 +70,7 @@ import mozilla.components.feature.prompts.dialog.Prompter
 import mozilla.components.feature.prompts.dialog.SaveLoginDialogFragment
 import mozilla.components.feature.prompts.dialog.TextPromptDialogFragment
 import mozilla.components.feature.prompts.dialog.TimePickerDialogFragment
+import mozilla.components.feature.prompts.dialog.emitGeneratedPasswordShownFact
 import mozilla.components.feature.prompts.ext.executeIfWindowedPrompt
 import mozilla.components.feature.prompts.facts.emitCreditCardSaveShownFact
 import mozilla.components.feature.prompts.facts.emitPromptConfirmedFact
@@ -843,6 +844,8 @@ class PromptFeature private constructor(
                     dismissDialogRequest(promptRequest, session)
                     return
                 }
+
+                emitGeneratedPasswordShownFact()
 
                 PasswordGeneratorDialogFragment.newInstance(
                     sessionId = session.id,

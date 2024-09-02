@@ -6,7 +6,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
-    add_task(t => {
+    function test() {
       let root = document.createElement("div");
       root.innerHTML = "<div id='a'>text<div id='b'>text2</div></div>";
       const a = root.firstChild;
@@ -66,7 +66,11 @@
       is(events[2].relatedNode, b);
       is(events[3].target, dfChild2);
       is(events[3].relatedNode, b);
-    });
+      SimpleTest.finish();
+    };
+
+    SimpleTest.waitForExplicitFinish();
+    addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, test));
   </script>
 </head>
 <body>

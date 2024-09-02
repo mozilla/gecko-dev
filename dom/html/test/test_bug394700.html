@@ -35,11 +35,11 @@ function testSelectedIndex()
   var selectElement = document.getElementsByTagName("select")[0];
   is(selectElement.selectedIndex, -1, "Wrong selected index!");
   is(selectElement.length, 0, "Select shouldn't have any options!");
+  SimpleTest.finish();
 }
 
 SimpleTest.waitForExplicitFinish();
-addLoadEvent(testSelectedIndex);
-addLoadEvent(SimpleTest.finish);
+addLoadEvent(() => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, testSelectedIndex));
 
 
 </script>

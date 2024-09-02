@@ -69,6 +69,7 @@ class InlinePreviewRow extends PureComponent {
           React.createElement(InlinePreview, {
             line,
             key: `${line}-${preview.name}`,
+            type: preview.type,
             variable: preview.name,
             value: preview.value,
             openElementInInspector,

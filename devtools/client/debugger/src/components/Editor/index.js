@@ -876,7 +876,7 @@ class Editor extends PureComponent {
         React.Fragment,
         null,
         React.createElement(Breakpoints, { editor }),
-        isPaused &&
+        (isPaused || isTraceSelected) &&
           selectedSource.isOriginal &&
           !selectedSource.isPrettyPrinted &&
           !mapScopesEnabled
@@ -929,7 +929,7 @@ class Editor extends PureComponent {
       React.createElement(Breakpoints, {
         editor,
       }),
-      isPaused &&
+      (isPaused || isTraceSelected) &&
         selectedSource.isOriginal &&
         !selectedSource.isPrettyPrinted &&
         !mapScopesEnabled

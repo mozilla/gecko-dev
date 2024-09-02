@@ -7,6 +7,7 @@
 #ifndef DOM_SECURITY_TRUSTED_TYPES_TRUSTEDTYPEUTILS_H_
 #define DOM_SECURITY_TRUSTED_TYPES_TRUSTEDTYPEUTILS_H_
 
+#include "mozilla/Assertions.h"
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/TrustedTypesBinding.h"
 #include "nsCycleCollectionParticipant.h"
@@ -18,8 +19,6 @@
    public:                                                             \
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(_class)         \
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(_class)                      \
-                                                                       \
-    explicit _class(const nsAString& aData) : mData{aData} {}          \
                                                                        \
     /* Required for Web IDL binding. */                                \
     bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, \
@@ -33,9 +32,18 @@
       aResult.SetKnownLiveString(mData);                               \
     }                                                                  \
                                                                        \
+    /* This is always unforged data, because it's only instantiated    \
+       from the befriended `TrustedType*` classes. */                  \
     const nsString mData;                                              \
                                                                        \
    private:                                                            \
+    friend mozilla::dom::TrustedTypePolicy;                            \
+    friend mozilla::dom::TrustedTypePolicyFactory;                     \
+                                                                       \
+    explicit _class(const nsAString& aData) : mData{aData} {           \
+      MOZ_ASSERT(!aData.IsVoid());                                     \
+    }                                                                  \
+                                                                       \
     /* Required because the class is cycle-colleceted. */              \
     ~_class() = default;                                               \
   };

@@ -167,7 +167,7 @@ export const ADDRESS_SCHEMA_VERSION = 1;
 // Please talk to the sync team before changing this!
 export const CREDIT_CARD_SCHEMA_VERSION = 3;
 
-const VALID_ADDRESS_FIELDS = [
+export const VALID_ADDRESS_FIELDS = [
   "name",
   "organization",
   "street-address",
@@ -187,7 +187,7 @@ const VALID_ADDRESS_COMPUTED_FIELDS = [
   ...AddressRecord.TEL_COMPONENTS,
 ];
 
-const VALID_CREDIT_CARD_FIELDS = [
+export const VALID_CREDIT_CARD_FIELDS = [
   "billingAddressGUID",
   "cc-name",
   "cc-number",

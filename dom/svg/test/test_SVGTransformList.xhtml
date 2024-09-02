@@ -452,7 +452,8 @@ function testMutationEvents(g) {
   eventChecker.finish();
 }
 
-window.addEventListener("load", main);
+window.addEventListener("load",
+  () => SpecialPowers.pushPrefEnv({"set": [["dom.mutation_events.enabled", true]]}, main));
 
 ]]>
 </script>

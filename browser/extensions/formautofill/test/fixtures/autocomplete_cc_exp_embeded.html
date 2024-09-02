@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<script>
+  const params = new URLSearchParams(document.location.search);
+  const formId = params.get('formId');
+  if (formId) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.querySelector('form');
+      form.id = formId;
+    });
+  }
+</script>
+<body>
+  <form id="form">
+    <p><label>Expiration Date: <input id="cc-exp" autocomplete="cc-exp"></label></p>
+  </form>
+</body>
+</html>

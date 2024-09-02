@@ -130,6 +130,9 @@ static void BlockedContentSourceToString(
     case CSPViolationData::BlockedContentSource::TrustedTypesPolicy:
       aString.AssignLiteral("trusted-types-policy");
       break;
+    case CSPViolationData::BlockedContentSource::TrustedTypesSink:
+      aString.AssignLiteral("trusted-types-sink");
+      break;
   }
 }
 
@@ -785,16 +788,14 @@ void nsCSPContext::LogViolationDetailsUnchecked(
 }
 
 NS_IMETHODIMP nsCSPContext::LogTrustedTypesViolationDetailsUnchecked(
-    CSPViolationData&& aCSPViolationData,
+    CSPViolationData&& aCSPViolationData, const nsAString& aObserverSubject,
     nsICSPEventListener* aCSPEventListener) {
   EnsureIPCPoliciesRead();
-
-  nsLiteralString observerSubject(TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC);
 
   // Trusted types don't support the "report-sample" keyword
   // (https://github.com/w3c/trusted-types/issues/531#issuecomment-2194166146).
   LogViolationDetailsUnchecked(aCSPEventListener, std::move(aCSPViolationData),
-                               observerSubject, ForceReportSample::Yes);
+                               aObserverSubject, ForceReportSample::Yes);
   return NS_OK;
 }
 
@@ -1612,6 +1613,16 @@ class CSPReportSenderRunnable final : public Runnable {
             mReportOnlyFlag ? "CSPROTrustedTypesPolicyViolation"
                             : "CSPTrustedTypesPolicyViolation",
             params, mCSPViolationData.mSourceFile, mCSPViolationData.mSample,
+            mCSPViolationData.mLineNumber, mCSPViolationData.mColumnNumber,
+            nsIScriptError::errorFlag);
+        break;
+      }
+
+      case CSPViolationData::BlockedContentSource::TrustedTypesSink: {
+        mCSPContext->logToConsole(
+            mReportOnlyFlag ? "CSPROTrustedTypesSinkViolation"
+                            : "CSPTrustedTypesSinkViolation",
+            {}, mCSPViolationData.mSourceFile, mCSPViolationData.mSample,
             mCSPViolationData.mLineNumber, mCSPViolationData.mColumnNumber,
             nsIScriptError::errorFlag);
         break;

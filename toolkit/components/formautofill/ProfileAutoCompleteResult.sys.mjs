@@ -23,6 +23,7 @@ class ProfileAutoCompleteResult {
     focusedFieldDetail,
     allFieldNames,
     matchingProfiles,
+    fillCategories,
     { resultCode = null, isSecure = true, isInputAutofilled = false }
   ) {
     // nsISupports
@@ -55,6 +56,8 @@ class ProfileAutoCompleteResult {
       }, new Set()),
     ].filter(field => allFieldNames.includes(field));
 
+    this._fillCategories = fillCategories;
+
     // Force return success code if the focused field is auto-filled in order
     // to show clear form button popup.
     if (isInputAutofilled) {
@@ -73,7 +76,8 @@ class ProfileAutoCompleteResult {
     this._popupLabels = this._generateLabels(
       this._focusedFieldName,
       this._allFieldNames,
-      this._matchingProfiles
+      this._matchingProfiles,
+      this._fillCategories
     );
   }
 
@@ -111,7 +115,12 @@ class ProfileAutoCompleteResult {
     return "";
   }
 
-  _generateLabels(_focusedFieldName, _allFieldNames, _profiles) {}
+  _generateLabels(
+    _focusedFieldName,
+    _allFieldNames,
+    _profiles,
+    _fillCategories
+  ) {}
 
   /**
    * Get the value of the result at the given index.
@@ -327,7 +336,7 @@ export class AddressResult extends ProfileAutoCompleteResult {
     return ""; // Nothing matched.
   }
 
-  _generateLabels(focusedFieldName, allFieldNames, profiles) {
+  _generateLabels(focusedFieldName, allFieldNames, profiles, fillCategories) {
     const manageLabel = lazy.l10n.formatValueSync(
       "autofill-manage-addresses-label"
     );
@@ -349,51 +358,50 @@ export class AddressResult extends ProfileAutoCompleteResult {
       return labels;
     }
 
-    let focusedCategory =
+    const focusedCategory =
       lazy.FormAutofillUtils.getCategoryFromFieldName(focusedFieldName);
 
-    // Skip results without a primary label.
-    let labels = profiles
-      .filter(profile => {
-        return !!profile[focusedFieldName];
-      })
-      .map(profile => {
-        let primaryLabel = profile[focusedFieldName];
-        if (
-          focusedFieldName == "street-address" &&
-          profile["-moz-street-address-one-line"]
-        ) {
-          primaryLabel = profile["-moz-street-address-one-line"];
-        }
+    const labels = [];
+    for (let idx = 0; idx < profiles.length; idx++) {
+      const profile = profiles[idx];
 
-        let profileFields = allFieldNames.filter(
-          fieldName => !!profile[fieldName]
-        );
+      let primary = profile[focusedFieldName];
+      // Skip results without a primary label.
+      if (!primary) {
+        continue;
+      }
 
-        let categories =
-          lazy.FormAutofillUtils.getCategoriesFromFieldNames(profileFields);
-        let status = this.getStatusNote(categories, focusedCategory);
-        let secondary = this._getSecondaryLabel(
-          focusedFieldName,
-          allFieldNames,
-          profile
-        );
-        const ariaLabel = [primaryLabel, secondary, status]
-          .filter(chunk => !!chunk) // Exclude empty chunks.
-          .join(" ");
-        return {
-          primary: primaryLabel,
-          secondary,
-          status,
-          ariaLabel,
-        };
+      if (
+        focusedFieldName == "street-address" &&
+        profile["-moz-street-address-one-line"]
+      ) {
+        primary = profile["-moz-street-address-one-line"];
+      }
+
+      const status = this.getStatusNote(fillCategories[idx], focusedCategory);
+      const secondary = this._getSecondaryLabel(
+        focusedFieldName,
+        allFieldNames,
+        profile
+      );
+      // Exclude empty chunks.
+      const ariaLabel = [primary, secondary, status]
+        .filter(chunk => !!chunk)
+        .join(" ");
+
+      labels.push({
+        primary,
+        secondary,
+        status,
+        ariaLabel,
       });
+    }
 
-    let allCategories =
+    const allCategories =
       lazy.FormAutofillUtils.getCategoriesFromFieldNames(allFieldNames);
 
-    if (allCategories && allCategories.length) {
-      let statusItem = {
+    if (allCategories?.length) {
+      const statusItem = {
         primary: "",
         secondary: "",
         status: this.getStatusNote(allCategories, focusedCategory),
@@ -496,7 +504,7 @@ export class CreditCardResult extends ProfileAutoCompleteResult {
     return ""; // Nothing matched.
   }
 
-  _generateLabels(focusedFieldName, allFieldNames, profiles) {
+  _generateLabels(focusedFieldName, allFieldNames, profiles, _fillCategories) {
     if (!this._isSecure) {
       let brandName =
         lazy.FormAutofillUtils.brandBundle.GetStringFromName("brandShortName");

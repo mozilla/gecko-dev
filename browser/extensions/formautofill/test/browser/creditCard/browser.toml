@@ -96,12 +96,6 @@ skip-if = [
 ["browser_creditCard_heuristics.js"]
 skip-if = ["apple_silicon && !debug"] # Bug 1714221
 
-["browser_creditCard_heuristics_autofill_name.js"]
-skip-if = ["apple_silicon && !debug"] # Bug 1714221
-
-["browser_creditCard_heuristics_cc_type.js"]
-skip-if = ["apple_silicon && !debug"] # Bug 1714221
-
 ["browser_creditCard_osAuth.js"]
 skip-if = ["os == 'linux'"]
 

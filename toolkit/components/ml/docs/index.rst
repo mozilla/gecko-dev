@@ -115,7 +115,7 @@ set to `1`, then set in `about:config` these two values:
 The inference engine will then look for models in the Hugging Face model hub.
 
 
-To run against a Hugging Face model, visit `https://huggingface.co/models?library=transformers.js`_ and select on
+To run against a Hugging Face model, visit `this page <https://huggingface.co/models?library=transformers.js>`_ and select on
 the top left corner `tasks`. You can pick a task and then choose a model.
 
 For example, models for the `summarization` tasks compatible with our inference engine are listed `here <https://huggingface.co/models?pipeline_tag=summarization&library=transformers.js&sort=trending>`_.

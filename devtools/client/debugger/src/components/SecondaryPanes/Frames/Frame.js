@@ -26,7 +26,6 @@ FrameTitle.propTypes = {
   frame: PropTypes.object.isRequired,
   options: PropTypes.object.isRequired,
   l10n: PropTypes.object.isRequired,
-  showFrameContextMenu: PropTypes.func.isRequired,
 };
 
 function getFrameLocation(frame, shouldDisplayOriginalLocation) {

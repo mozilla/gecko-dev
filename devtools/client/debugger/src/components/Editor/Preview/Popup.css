@@ -10,17 +10,91 @@
   box-shadow: 1px 1px 3px var(--popup-shadow-color);
 }
 
+/* Popover is used when previewing objects */
 .popover .preview-popup {
-  padding: 5px 10px;
   max-width: 450px;
   min-width: 200px;
+
+  &.preview-type-pause {
+    padding: 5px 10px;
+  }
+
+  /* Because of tracer header, we can't put a padding on the popup */
+  /* Nor can we put a margin on the .tree or .objectBox which causes overflows */
+  &.preview-type-tracer {
+    padding-bottom: 5px;
+    .tree {
+      padding: 0 5px;
+    }
+  }
 }
 
+/* Tooltip is used when previewing primitives */
 .tooltip .preview-popup {
   max-width: inherit;
-  padding: 5px;
   min-height: inherit;
   max-height: 200px;
+
+  &.preview-type-pause {
+    padding: 5px;
+  }
+
+  &.preview-type-tracer {
+    padding-bottom: 5px;
+
+    .preview-tracer-header {
+      margin-bottom: 5px;
+    }
+    .objectBox {
+      padding: 0 5px;
+    }
+  }
+}
+
+.preview-tracer-header {
+  --icon-url: url("chrome://devtools/content/debugger/images/trace.svg");
+  --icon-color: var(--theme-inline-preview-label-trace-color);
+  color: var(--theme-inline-preview-label-trace-color);
+  background-color: var(--theme-inline-preview-label-trace-background);
+  border-block-end: 1px solid oklch(from var(--theme-inline-preview-label-trace-color) l c h / 0.25);
+
+  /* Make sure the header is always visible */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  /* Add a bit more padding on the end to balance the icon, especially when have a small primitive value in preview */
+  padding-inline-end: 10px !important;
+}
+
+.preview-tracer-warning {
+  --icon-url: url("chrome://devtools/skin/images/info.svg");
+  --icon-color: currentColor;
+  background-color: var(--theme-body-alternate-emphasized-background);
+  border-bottom: 1px solid var(--theme-splitter-color);
+  margin-bottom: 5px;
+}
+
+.preview-tracer-header, .preview-tracer-warning {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  align-items: center;
+
+  &::before {
+    flex-shrink: 0;
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+
+    background-image: var(--icon-url);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    -moz-context-properties: fill;
+    fill: var(--icon-color);
+  }
 }
 
 .preview-popup .tree {
@@ -78,35 +152,6 @@
 .tooltip .gap {
   height: 4px;
   padding-top: 0px;
-}
-
-.add-to-expression-bar {
-  border: 1px solid var(--theme-splitter-color);
-  border-top: none;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  font-size: 14px;
-  line-height: 30px;
-  background: var(--theme-toolbar-background);
-  color: var(--theme-text-color-inactive);
-  padding: 0 4px;
-}
-
-.add-to-expression-bar .prompt {
-  width: 1em;
-}
-
-.add-to-expression-bar .expression-to-save-label {
-  width: calc(100% - 4em);
-}
-
-.add-to-expression-bar .expression-to-save-button {
-  font-size: 14px;
-  color: var(--theme-comment);
 }
 
 /* Exception popup */

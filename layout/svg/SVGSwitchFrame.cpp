@@ -229,9 +229,9 @@ SVGBBox SVGSwitchFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
     nsIContent* content = kid->GetContent();
     gfxMatrix transform = ThebesMatrix(aToBBoxUserspace);
     if (content->IsSVGElement()) {
-      transform = static_cast<SVGElement*>(content)->PrependLocalTransformsTo(
-                      {}, eChildToUserSpace) *
-                  SVGUtils::GetTransformMatrixInUserSpace(kid) * transform;
+      transform =
+          static_cast<SVGElement*>(content)->ChildToUserSpaceTransform() *
+          SVGUtils::GetTransformMatrixInUserSpace(kid) * transform;
     }
     return svgKid->GetBBoxContribution(ToMatrix(transform), aFlags);
   }
@@ -241,7 +241,6 @@ SVGBBox SVGSwitchFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
 nsIFrame* SVGSwitchFrame::GetActiveChildFrame() {
   auto* activeChild =
       static_cast<dom::SVGSwitchElement*>(GetContent())->GetActiveChild();
-
   return activeChild ? activeChild->GetPrimaryFrame() : nullptr;
 }
 

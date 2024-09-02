@@ -7,6 +7,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -866,10 +867,6 @@ void nsCSPParser::sandboxFlagList(nsCSPDirective* aDir) {
   aDir->addSrcs(srcs);
   mPolicy->addDirective(aDir);
 }
-
-// https://w3c.github.io/trusted-types/dist/spec/#integration-with-content-security-policy
-static constexpr nsLiteralString kValidRequireTrustedTypesForDirectiveValue =
-    u"'script'"_ns;
 
 static bool IsValidRequireTrustedTypesForDirectiveValue(
     const nsAString& aToken) {

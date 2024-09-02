@@ -20,7 +20,7 @@ function onLoad() {
 }
 </script>
 </head>
-<body onload="onLoad()">
+<body onload="SpecialPowers.pushPrefEnv({'set': [['dom.mutation_events.enabled', true]]}, onLoad)">
 <table></table>
 <style></style>
 <spacer contenteditable>

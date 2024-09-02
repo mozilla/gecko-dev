@@ -278,3 +278,48 @@ formautofill:
       - autofill@lists.mozilla.org
       - passwords-dev@mozilla.org
     expires: 136
+
+  iframe_layout_detection:
+    type: event
+    description: >
+      Record the number of iframe in a form and what fields are in an iframe when
+      a form is detected
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906292
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906292
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - autofill@lists.mozilla.org
+    expires: never
+    extra_keys:
+      category:
+        description: Autofill category. Either "creditcard" or "address"
+        type: string
+      flow_id:
+        description: Flow id of an interaction session with a credit card form
+        type: string
+      iframe_count:
+        description: >
+          Number of iframe is detected in the form
+        type: quantity
+      main_frame:
+        description: >
+          String that contains a comma-separated list of fields located in the main
+          frame, such as "cc-number, cc-type".
+        type: string
+      iframe:
+        description: >
+          String that contains a comma-separated list of fields located in an iframe.
+        type: string
+      cross_origin:
+        description: >
+          String that contains a comma-separated list of fields located in a
+          cross-origin iframe.
+        type: string
+      sandboxed:
+        description: >
+          String that contains a comma-separated list of fields located in a sandbox
+          iframe.
+        type: string

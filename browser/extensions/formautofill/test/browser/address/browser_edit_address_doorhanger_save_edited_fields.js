@@ -84,6 +84,7 @@ add_task(async function test_save_edited_fields() {
       async function (browser) {
         info(`Test ${TEST.description}`);
 
+        info(`Wait for save doorhanger shown`);
         const onSavePopupShown = waitForPopupShown();
         await focusUpdateSubmitForm(browser, {
           focusSelector: "#given-name",
@@ -91,10 +92,12 @@ add_task(async function test_save_edited_fields() {
         });
         await onSavePopupShown;
 
+        info(`Wait for edit doorhanger shown`);
         const onEditPopupShown = waitForPopupShown();
         await clickAddressDoorhangerButton(EDIT_ADDRESS_BUTTON);
         await onEditPopupShown;
 
+        info(`Fill edit doorhanger`);
         fillEditDoorhanger(TEST.editedFields);
         await clickAddressDoorhangerButton(MAIN_BUTTON);
       }

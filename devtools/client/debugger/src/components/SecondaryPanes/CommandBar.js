@@ -93,7 +93,6 @@ class CommandBar extends Component {
       isPaused: PropTypes.bool.isRequired,
       isWaitingOnBreak: PropTypes.bool.isRequired,
       javascriptEnabled: PropTypes.bool.isRequired,
-      trace: PropTypes.func.isRequired,
       resume: PropTypes.func.isRequired,
       skipPausing: PropTypes.bool.isRequired,
       stepIn: PropTypes.func.isRequired,
@@ -105,9 +104,6 @@ class CommandBar extends Component {
       toggleSkipPausing: PropTypes.any.isRequired,
       toggleSourceMapsEnabled: PropTypes.func.isRequired,
       topFrameSelected: PropTypes.bool.isRequired,
-      logMethod: PropTypes.string.isRequired,
-      logValues: PropTypes.bool.isRequired,
-      traceOnNextInteraction: PropTypes.bool.isRequired,
       setHideOrShowIgnoredSources: PropTypes.func.isRequired,
       toggleSourceMapIgnoreList: PropTypes.func.isRequired,
     };

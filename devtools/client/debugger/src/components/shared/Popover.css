@@ -26,7 +26,3 @@
 .popover:not(.orientation-right) .preview-popup {
   margin-left: var(--left-offset);
 }
-
-.popover .add-to-expression-bar {
-  margin-left: var(--left-offset);
-}

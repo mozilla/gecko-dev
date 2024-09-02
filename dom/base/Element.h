@@ -139,6 +139,7 @@ class PopoverData;
 class Promise;
 class Sanitizer;
 class ShadowRoot;
+class TrustedHTMLOrString;
 class UnrestrictedDoubleOrKeyframeAnimationOptions;
 template <typename T>
 class Optional;
@@ -1573,7 +1574,8 @@ class Element : public FragmentOrElement {
                             ErrorResult& aError);
   void GetOuterHTML(nsAString& aOuterHTML);
   void SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError);
-  void InsertAdjacentHTML(const nsAString& aPosition, const nsAString& aText,
+  void InsertAdjacentHTML(const nsAString& aPosition,
+                          const TrustedHTMLOrString& aTrustedHTMLOrString,
                           ErrorResult& aError);
 
   void SetHTML(const nsAString& aInnerHTML, const SetHTMLOptions& aOptions,

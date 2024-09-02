@@ -45,7 +45,7 @@ add_task(async function () {
   const tree = await waitForElementWithSelector(dbg, "#tracer-tab-panel .tree");
 
   info("Wait for the expected traces to appear in the call tree");
-  const traces = await waitFor(() => {
+  let traces = await waitFor(() => {
     const elements = tree.querySelectorAll(".trace-line");
     if (elements.length == 3) {
       return elements;
@@ -59,6 +59,7 @@ add_task(async function () {
   info("Select the trace for the call to `foo`");
   EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
 
+  // Naive sanity checks for inlines previews
   const inlinePreviews = [
     {
       identifier: "x:",
@@ -89,6 +90,29 @@ add_task(async function () {
     index++;
   }
 
+  // Naive sanity checks for popup previews on hovering
+  {
+    const { element: popupEl, tokenEl } = await tryHovering(
+      dbg,
+      1,
+      14,
+      "previewPopup"
+    );
+    is(popupEl.querySelector(".objectBox")?.textContent, "1");
+    await closePreviewForToken(dbg, tokenEl, "previewPopup");
+  }
+
+  {
+    const { element: popupEl, tokenEl } = await tryHovering(
+      dbg,
+      1,
+      17,
+      "previewPopup"
+    );
+    is(popupEl.querySelector(".objectBox")?.textContent, "2");
+    await closePreviewForToken(dbg, tokenEl, "previewPopup");
+  }
+
   // Trigger a click in the content page to verify we do trace DOM events
   BrowserTestUtils.synthesizeMouseAtCenter(
     "button",
@@ -100,6 +124,11 @@ add_task(async function () {
     tree.querySelector(".tracer-dom-event")
   );
   is(clickTrace.textContent, "DOM | click");
+  is(
+    tree.querySelectorAll(".trace-line").length,
+    5,
+    "The click event adds two elements in the tree. The DOM Event and its top frame"
+  );
 
   await BrowserTestUtils.synthesizeKey("x", {}, gBrowser.selectedBrowser);
   const keyTrace = await waitFor(() => {
@@ -111,9 +140,47 @@ add_task(async function () {
   });
   is(keyTrace.textContent, "DOM | keypress");
 
-  // Assert the final content of the tree before stopping
-  const finalTreeSize = 7;
-  is(tree.querySelectorAll(".trace-line").length, finalTreeSize);
+  is(
+    tree.querySelectorAll(".trace-line").length,
+    7,
+    "The key event adds two elements in the tree. The DOM Event and its top frame"
+  );
+
+  info("Trigger a DOM Mutation");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    content.eval(`
+      window.doMutation = () => {
+        const div = document.createElement("div");
+        document.body.appendChild(div);
+        //# sourceURL=foo.js
+      };
+      `);
+    content.wrappedJSObject.doMutation();
+  });
+
+  // Wait for the `eval` and the `doMutation` calls to be rendered
+  traces = await waitFor(() => {
+    const elements = tree.querySelectorAll(".trace-line");
+    if (elements.length == 9) {
+      return elements;
+    }
+    return false;
+  });
+
+  const doMutationTrace = traces[traces.length - 1];
+  is(doMutationTrace.textContent, "λ window.doMutation eval:2:32");
+
+  // Expand the call to doMutation in order to show the DOM Mutation in the tree
+  doMutationTrace.querySelector(".arrow").click();
+
+  const mutationTrace = await waitFor(() =>
+    tree.querySelector(".tracer-dom-mutation")
+  );
+  is(mutationTrace.textContent, "DOM Mutation | add");
+
+  // Click on the mutation trace to open its source
+  mutationTrace.click();
+  await waitForSelectedSource(dbg, "foo.js");
 
   // Test Disabling tracing
   info("Disable the tracing");

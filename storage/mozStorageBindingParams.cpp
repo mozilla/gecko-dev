@@ -130,8 +130,9 @@ already_AddRefed<mozIStorageError> BindingParams::bind(
       // object with the right message.  Note that we special case
       // SQLITE_MISMATCH, but otherwise get the message from SQLite.
       const char* msg = "Could not covert nsIVariant to SQLite type.";
-      if (rc != SQLITE_MISMATCH)
+      if (rc != SQLITE_MISMATCH) {
         msg = ::sqlite3_errmsg(::sqlite3_db_handle(aStatement));
+      }
 
       nsCOMPtr<mozIStorageError> err(new Error(rc, msg));
       return err.forget();
@@ -143,10 +144,6 @@ already_AddRefed<mozIStorageError> BindingParams::bind(
 
 already_AddRefed<mozIStorageError> AsyncBindingParams::bind(
     sqlite3_stmt* aStatement) {
-  // We should bind by index using the super-class if there is nothing in our
-  // hashtable.
-  if (!mNamedParameters.Count()) return BindingParams::bind(aStatement);
-
   nsCOMPtr<mozIStorageError> err;
 
   for (const auto& entry : mNamedParameters) {
@@ -162,29 +159,19 @@ already_AddRefed<mozIStorageError> AsyncBindingParams::bind(
       nsAutoCString errMsg(key);
       errMsg.AppendLiteral(" is not a valid named parameter.");
       err = new Error(SQLITE_RANGE, errMsg.get());
-      break;
+      return err.forget();
     }
 
-    // XPCVariant's AddRef and Release are not thread-safe and so we must not
-    // do anything that would invoke them here on the async thread.  As such we
-    // can't cram aValue into mParameters using ReplaceObjectAt so that
-    // we can freeload off of the BindingParams::Bind implementation.
-    int rc = variantToSQLiteT(BindingColumnData(aStatement, oneIdx - 1),
-                              entry.GetWeak());
-    if (rc != SQLITE_OK) {
-      // We had an error while trying to bind.  Now we need to create an error
-      // object with the right message.  Note that we special case
-      // SQLITE_MISMATCH, but otherwise get the message from SQLite.
-      const char* msg = "Could not covert nsIVariant to SQLite type.";
-      if (rc != SQLITE_MISMATCH) {
-        msg = ::sqlite3_errmsg(::sqlite3_db_handle(aStatement));
-      }
-      err = new Error(rc, msg);
-      break;
+    if (mParameters.Length() <= static_cast<uint32_t>(oneIdx - 1)) {
+      mParameters.SetLength(oneIdx - 1);
+      mParameters.AppendElement(entry.GetWeak());
+    } else {
+      mParameters.ReplaceElementAt(oneIdx - 1, entry.GetWeak());
     }
   }
 
-  return err.forget();
+  // Now bind using the super class.
+  return BindingParams::bind(aStatement);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -208,8 +195,7 @@ AsyncBindingParams::BindByName(const nsACString& aName, nsIVariant* aValue) {
 
   RefPtr<Variant_base> variant = convertVariantToStorageVariant(aValue);
   if (!variant) return NS_ERROR_UNEXPECTED;
-
-  mNamedParameters.InsertOrUpdate(aName, nsCOMPtr<nsIVariant>{variant});
+  mNamedParameters.InsertOrUpdate(aName, std::move(variant));
   return NS_OK;
 }
 

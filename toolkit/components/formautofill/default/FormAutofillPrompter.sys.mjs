@@ -1300,7 +1300,17 @@ export let FormAutofillPrompter = {
     flowId,
     { oldRecord, newRecord }
   ) {
+    if (!browser) {
+      return;
+    }
+
     const showUpdateDoorhanger = !!Object.keys(oldRecord).length;
+
+    lazy.log.debug(
+      `Show the ${
+        showUpdateDoorhanger ? "update" : "save"
+      } credit card doorhanger`
+    );
 
     const { ownerGlobal: win } = browser;
     win.MozXULElement.insertFTLIfNeeded(
@@ -1352,6 +1362,10 @@ export let FormAutofillPrompter = {
     flowId,
     { oldRecord, newRecord }
   ) {
+    if (!browser) {
+      return;
+    }
+
     const showUpdateDoorhanger = !!Object.keys(oldRecord).length;
 
     lazy.log.debug(

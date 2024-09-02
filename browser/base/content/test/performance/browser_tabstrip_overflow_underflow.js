@@ -82,7 +82,8 @@ add_task(async function () {
         condition: r =>
           // In the content area
           r.y1 >=
-          document.getElementById("appcontent").getBoundingClientRect().top,
+          document.getElementById("tabbrowser-tabbox").getBoundingClientRect()
+            .top,
       },
     ],
   };

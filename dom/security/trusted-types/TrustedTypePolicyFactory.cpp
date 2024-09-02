@@ -8,11 +8,13 @@
 
 #include <utility>
 
+#include "nsLiteralString.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
+#include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 namespace mozilla::dom {
@@ -33,9 +35,6 @@ static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
   const nsAString& sample =
       Substring(aPolicyName, /* aStartPos */ 0,
                 /* aLength */ kCreatePolicyCSPViolationMaxSampleLength);
-
-  // According to https://github.com/w3c/webappsec-csp/issues/442 column- and
-  // line-numbers are expected to be 1-origin.
 
   return {aPolicyIndex,
           CSPViolationData::Resource{
@@ -79,7 +78,10 @@ auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
               CreateCSPViolationData(aJSContext, i, aPolicyName)};
 
           csp->LogTrustedTypesViolationDetailsUnchecked(
-              std::move(cspViolationData), cspEventListener);
+              std::move(cspViolationData),
+              NS_LITERAL_STRING_FROM_CSTRING(
+                  TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC),
+              cspEventListener);
 
           if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
             result = PolicyCreation::Blocked;
@@ -160,14 +162,16 @@ already_AddRefed<TrustedHTML> TrustedTypePolicyFactory::EmptyHTML() {
   // multiple emptyHML objects. Both, the JS- and the C++-objects.
   dom::PreserveWrapper(this);
 
-  return MakeRefPtr<TrustedHTML>(EmptyString()).forget();
+  RefPtr<TrustedHTML> result = new TrustedHTML(EmptyString());
+  return result.forget();
 }
 
 already_AddRefed<TrustedScript> TrustedTypePolicyFactory::EmptyScript() {
   // See the explanation in `EmptyHTML()`.
   dom::PreserveWrapper(this);
 
-  return MakeRefPtr<TrustedScript>(EmptyString()).forget();
+  RefPtr<TrustedScript> result = new TrustedScript(EmptyString());
+  return result.forget();
 }
 
 }  // namespace mozilla::dom

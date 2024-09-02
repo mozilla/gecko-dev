@@ -46,14 +46,14 @@ class SourceFooter extends PureComponent {
   static get propTypes() {
     return {
       canPrettyPrint: PropTypes.bool.isRequired,
-      prettyPrintMessage: PropTypes.string.isRequired,
+      prettyPrintMessage: PropTypes.string,
       endPanelCollapsed: PropTypes.bool.isRequired,
       horizontal: PropTypes.bool.isRequired,
       jumpToMappedLocation: PropTypes.func.isRequired,
       mappedSource: PropTypes.object,
       selectedSource: PropTypes.object,
       selectedLocation: PropTypes.object,
-      isSelectedSourceBlackBoxed: PropTypes.bool.isRequired,
+      isSelectedSourceBlackBoxed: PropTypes.bool,
       sourceLoaded: PropTypes.bool.isRequired,
       toggleBlackBox: PropTypes.func.isRequired,
       togglePaneCollapse: PropTypes.func.isRequired,
@@ -277,6 +277,7 @@ class SourceFooter extends PureComponent {
       MenuButton,
       {
         menuId: "debugger-source-map-button",
+        key: "debugger-source-map-button",
         toolboxDoc,
         className: classnames("devtools-button", "debugger-source-map-button", {
           error: !!this.props.sourceMapError,

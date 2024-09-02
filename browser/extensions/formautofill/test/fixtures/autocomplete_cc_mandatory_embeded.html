@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<script>
+  const params = new URLSearchParams(document.location.search);
+  const formId = params.get('formId');
+  if (formId) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.querySelector('form');
+      form.id = formId;
+    });
+  }
+</script>
+<body>
+  <form id="form">
+    <p><label>Card Number: <input id="cc-number" autocomplete="cc-number"></label></p>
+    <p><label>Name: <input id="cc-name" autocomplete="cc-name"></label></p>
+    <p><label>Expiration Data: <input id="cc-exp" autocomplete="cc-exp"></label></p>
+    <input id="submit" type="submit">
+  </form>
+</body>
+</html>

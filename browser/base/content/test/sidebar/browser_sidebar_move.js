@@ -7,14 +7,14 @@ const EXPECTED_START_ORDINALS = [
   ["sidebar-main", 1],
   ["sidebar-box", 2],
   ["sidebar-splitter", 3],
-  ["appcontent", 4],
+  ["tabbrowser-tabbox", 4],
 ];
 
 const EXPECTED_END_ORDINALS = [
   ["sidebar-main", 5],
   ["sidebar-box", 4],
   ["sidebar-splitter", 3],
-  ["appcontent", 2],
+  ["tabbrowser-tabbox", 2],
 ];
 
 function getBrowserChildrenWithOrdinals() {

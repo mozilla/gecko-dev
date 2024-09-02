@@ -55,6 +55,7 @@ class SearchModifiers extends Component {
 
     return button(
       {
+        key: `search-modifier-button-${value}`,
         className: `${className} ${modifiers?.[value] ? "active" : ""}`,
         onMouseDown: () => {
           modifiers[value] = !modifiers[value];

@@ -58,7 +58,7 @@ class SearchInFileBar extends Component {
       editor: PropTypes.object,
       modifiers: PropTypes.object.isRequired,
       searchInFileEnabled: PropTypes.bool.isRequired,
-      selectedSourceTextContent: PropTypes.bool.isRequired,
+      selectedSourceTextContent: PropTypes.object,
       selectedSource: PropTypes.object.isRequired,
       setActiveSearch: PropTypes.func.isRequired,
       querySearchWorker: PropTypes.func.isRequired,

@@ -366,9 +366,8 @@ add_task(async function test_createRegionWithKeyboard() {
       } else {
         const sidebar = document.querySelector("sidebar-main");
         const sidebarWidth = sidebar.offsetWidth;
-        // Add 1 to account for #appcontent border
         window100X =
-          (100 + window.mozInnerScreenX + sidebarWidth + 1) *
+          (100 + window.mozInnerScreenX + sidebarWidth) *
           window.devicePixelRatio;
       }
       const contentTop =
@@ -458,9 +457,8 @@ add_task(async function test_createRegionWithKeyboardWithShift() {
       } else {
         const sidebar = document.querySelector("sidebar-main");
         const sidebarWidth = sidebar.offsetWidth;
-        // Add 1 to account for #appcontent border
         window100X =
-          (100 + window.mozInnerScreenX + sidebarWidth + 1) *
+          (100 + window.mozInnerScreenX + sidebarWidth) *
           window.devicePixelRatio;
       }
       const contentTop =
