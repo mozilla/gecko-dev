@@ -446,11 +446,28 @@ body {
 
   /* Bookmarks toolbar empty message */
 
-  /* If the toolbar is not initialized set a zero width, but retain height. */
   &[collapsed=false]:not([initialized]) > #personal-toolbar-empty {
     visibility: hidden;
-    width: 0;
-    overflow-x: hidden;
+  }
+
+  /*
+   * Make the empty bookmarks toolbar message take up no horizontal space.
+   * This avoids two issues:
+   * 1) drag/drop of urls/bookmarks to the toolbar not working, because they
+   *    land on the personal-toolbar-empty element.
+   * 2) buttons in the toolbar moving horizontally while the window opens,
+   *    because the element is first shown at full width and then completely
+   *    hidden.
+   * TODO(emilio): The comment above was never quite true (the message did take
+   * horizontal space, see bug 1812636). Figure out how much of this rule is
+   * really needed.
+   */
+  &[collapsed=false] > #personal-toolbar-empty[nowidth] > #personal-toolbar-empty-description {
+    margin-inline: 0;
+    min-width: 0;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
   }
 
   /* Bookmarks toolbar in customize mode */
@@ -461,10 +478,6 @@ body {
     /* Avoid the toolbar having no height when there's no items in it */
     min-height: 22px;
   }
-}
-
-#personal-toolbar-empty-description {
-  white-space: nowrap;
 }
 
 #personal-bookmarks {

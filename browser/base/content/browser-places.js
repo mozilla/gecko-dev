@@ -1108,13 +1108,12 @@ var PlacesToolbarHelper = {
     );
 
     if (toolbar.id == "PersonalToolbar") {
+      if (!toolbar.hasAttribute("initialized")) {
+        toolbar.setAttribute("initialized", "true");
+      }
       // We just created a new view, thus we must check again the empty toolbar
       // message, regardless of "initialized".
-      BookmarkingUI.updateEmptyToolbarMessage()
-        .finally(() => {
-          toolbar.toggleAttribute("initialized", true);
-        })
-        .catch(console.error);
+      BookmarkingUI.updateEmptyToolbarMessage().catch(console.error);
     }
   },
 
@@ -1531,7 +1530,8 @@ var BookmarkingUI = {
    * We hide it in customize mode, unless there's nothing on the toolbar.
    */
   async updateEmptyToolbarMessage() {
-    let { initialHiddenState, checkHasBookmarks } = (() => {
+    let checkNumBookmarksOnToolbar = false;
+    let hasVisibleChildren = (() => {
       // Do we have visible kids?
       if (
         this.toolbar.querySelector(
@@ -1541,29 +1541,25 @@ var BookmarkingUI = {
            :scope > toolbaritem:not([hidden], #personal-bookmarks)`
         )
       ) {
-        return { initialHiddenState: true, checkHasBookmarks: false };
+        return true;
       }
-
-      if (this._isCustomizing) {
-        return { initialHiddenState: true, checkHasBookmarks: false };
+      if (!this.toolbar.hasAttribute("initialized") && !this._isCustomizing) {
+        // If the bookmarks are here but it's early in startup, show the
+        // message. It'll get made visibility: hidden early in startup anyway -
+        // it's just to ensure the toolbar has height.
+        return false;
       }
-
-      // If bookmarks have been moved out of the toolbar, we show the message.
+      // Hmm, apparently not. Check for bookmarks or customize mode:
       let bookmarksToolbarItemsPlacement =
         CustomizableUI.getPlacementOfWidget("personal-bookmarks");
       let bookmarksItemInToolbar =
         bookmarksToolbarItemsPlacement?.area == CustomizableUI.AREA_BOOKMARKS;
       if (!bookmarksItemInToolbar) {
-        return { initialHiddenState: false, checkHasBookmarks: false };
+        return false;
       }
-
-      if (!this.toolbar.hasAttribute("initialized")) {
-        // If the toolbar has not been initialized yet, unhide the message, it
-        // will be made 0-width and visibility: hidden anyway, to keep the
-        // toolbar height stable.
-        return { initialHiddenState: false, checkHasBookmarks: true };
+      if (this._isCustomizing) {
+        return true;
       }
-
       // Check visible bookmark nodes.
       if (
         this.toolbar.querySelector(
@@ -1571,16 +1567,19 @@ var BookmarkingUI = {
            #PlacesToolbarItems > toolbarbutton`
         )
       ) {
-        return { initialHiddenState: true, checkHasBookmarks: false };
+        return true;
       }
-      return { initialHiddenState: true, checkHasBookmarks: true };
+      checkNumBookmarksOnToolbar = true;
+      return false;
     })();
 
-    let emptyMsg = document.getElementById("personal-toolbar-empty");
-    emptyMsg.hidden = initialHiddenState;
-    if (checkHasBookmarks) {
-      emptyMsg.hidden = !(await PlacesToolbarHelper.getIsEmpty());
+    if (checkNumBookmarksOnToolbar) {
+      hasVisibleChildren = !(await PlacesToolbarHelper.getIsEmpty());
     }
+
+    let emptyMsg = document.getElementById("personal-toolbar-empty");
+    emptyMsg.hidden = hasVisibleChildren;
+    emptyMsg.toggleAttribute("nowidth", !hasVisibleChildren);
   },
 
   openLibraryIfLinkClicked(event) {
