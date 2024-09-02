@@ -29,7 +29,7 @@ async function getViewportMetrics() {
 let initial_window_height, initial_visual_viewport_height;
 
 // setup a meta viewport tag in the top document.
-add_task(async () => {
+add_setup(async () => {
   await SpecialPowers.spawn(parent, [], async () => {
     const initial_scale = content.window.visualViewport.scale;
 
