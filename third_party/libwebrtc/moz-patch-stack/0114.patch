@@ -1,0 +1,82 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Tue, 27 Aug 2024 10:01:00 +0000
+Subject: Bug 1914835 - With ScreenCaptureKit embed the mouse cursor directly.
+ r=webrtc-reviewers,ng
+
+The MouseCursorMonitor on macOS is rather expensive, as for every pulled frame
+it compares all pixels of the cursors used for the current and last frames.
+Getting to the pixels may also incur a conversion.
+
+Note that this comparison happens even if the backend reports it had embedded
+the cursor already, as the embedding only affects composing the monitored cursor
+into a captured frame.
+
+Differential Revision: https://phabricator.services.mozilla.com/D220092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ca7b371646d8aa40b2c3faf54570fcd1331a677
+---
+ .../desktop_capture/mac/screen_capturer_sck.h   |  3 +++
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 ++++++++++++++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 2c5241d33e..105cbf0783 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -18,6 +18,9 @@
+ 
+ namespace webrtc {
+ 
++// Returns true if the ScreenCaptureKit capturer is available.
++bool ScreenCapturerSckAvailable();
++
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 2dad8b356b..a16a74d451 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -24,6 +24,8 @@
+ 
+ using webrtc::DesktopFrameIOSurface;
+ 
++#define SCK_AVAILABLE @available(macOS 14.0, *)
++
+ namespace webrtc {
+ class ScreenCapturerSck;
+ }  // namespace webrtc
+@@ -48,6 +50,14 @@ API_AVAILABLE(macos(14.0))
+ 
+ namespace webrtc {
+ 
++bool ScreenCapturerSckAvailable() {
++  bool sonomaOrHigher = false;
++  if (SCK_AVAILABLE) {
++    sonomaOrHigher = true;
++  }
++  return sonomaOrHigher;
++}
++
+ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
+  public:
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+@@ -353,11 +363,10 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+ }
+ 
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+-  if (@available(macOS 14.0, *)) {
++  if (SCK_AVAILABLE) {
+     return std::make_unique<ScreenCapturerSck>(options);
+-  } else {
+-    return nullptr;
+   }
++  return nullptr;
+ }
+ 
+ }  // namespace webrtc
+@@ -418,3 +427,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+ }
+ 
+ @end
++
++#undef SCK_AVAILABLE
