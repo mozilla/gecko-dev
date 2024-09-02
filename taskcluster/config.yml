@@ -101,6 +101,8 @@ treeherder:
         'M-wmfme-cf': 'Mochitests confirm failure with Windows Media Foundation media engine enabled'
         'M-mda-gpu': 'Mochitests Media on GPU worker'
         'M-mda-gpu-cf': 'Mochitests confirm failure Media on GPU worker'
+        'M-cm6': 'Mochitests for devtools with codemirror 6 enabled'
+        'M-cm6-cf': 'Mochitests for devtools confirm failure with codemirror 6 enabled'
         'M-f': 'Mochitest failures'
         'M-f-swr': 'Mochitest failures software webrender'
         'M-f-cf': 'Mochitest failures w/confirm failure'

@@ -194,6 +194,21 @@ conditioned_profile:
     replace:
         chunks: 8
 
+cm6:
+    description: "{description} with codemirror 6 enabled"
+    component: "DevTools::Framework"
+    expiration: "2025-03-01"
+    suffix: "cm6"
+    mozinfo: "cm6"
+    replace:
+        tier: 3
+    when:
+        $eval: '"mochitest-devtools-chrome" == task["try-name"]'
+    merge:
+        mozharness:
+            extra-options:
+                - "--setpref=devtools.debugger.features.codemirror-next=true"
+
 socketprocess:
     description: "{description} with socket process enabled"
     component: "Core::Networking"

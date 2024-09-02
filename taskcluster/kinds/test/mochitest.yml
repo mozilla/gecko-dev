@@ -474,6 +474,7 @@ mochitest-devtools-chrome:
         - a11y-checks
         - socketprocess_networking
         - http3
+        - cm6
     run-on-projects:
         by-variant:
             a11y-checks:
@@ -489,6 +490,10 @@ mochitest-devtools-chrome:
                     .*asan.*: []
                     .*ccov.*: []
                     linux.*64.*(-shippable)?-qr/debug: ['autoland', 'mozilla-central']
+                    default: []
+            cm6:
+                by-test-platform:
+                    linux.*64(-shippable)?-qr/opt: ['trunk']
                     default: []
             default:
                 by-test-platform:
