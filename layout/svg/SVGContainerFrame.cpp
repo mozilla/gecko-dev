@@ -274,19 +274,7 @@ nsIFrame* SVGDisplayContainerFrame::GetFrameForPoint(const gfxPoint& aPoint) {
         continue;
       }
     }
-    // GetFrameForPoint() expects a point in its frame's SVG user space, so
-    // we need to convert to that space:
-    gfxPoint p = point;
-    if (const auto* svg = SVGElement::FromNode(content)) {
-      gfxMatrix m = svg->PrependLocalTransformsTo({}, eUserSpaceToParent);
-      if (!m.IsIdentity()) {
-        if (!m.Invert()) {
-          continue;
-        }
-        p = m.TransformPoint(p);
-      }
-    }
-    result = SVGFrame->GetFrameForPoint(p);
+    result = SVGFrame->GetFrameForPoint(point);
     if (result) {
       break;
     }

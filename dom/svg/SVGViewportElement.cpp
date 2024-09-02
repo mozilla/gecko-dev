@@ -239,11 +239,6 @@ float SVGViewportElement::GetLength(uint8_t aCtxType) const {
 /* virtual */
 gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
     const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
-  // 'transform' attribute (or an override from a fragment identifier):
-  if (aWhich == eUserSpaceToParent) {
-    return aMatrix;
-  }
-
   gfxMatrix childToUser;
 
   if (IsInner()) {
@@ -266,13 +261,6 @@ gfxMatrix SVGViewportElement::PrependLocalTransformsTo(
 
   MOZ_ASSERT(aWhich == eAllTransforms || aWhich == eChildToUserSpace,
              "Unknown TransformTypes");
-  // The following may look broken because pre-multiplying our eChildToUserSpace
-  // transform with another matrix without including our eUserSpaceToParent
-  // transform between the two wouldn't make sense.  We don't expect that to
-  // ever happen though.  We get here either when the identity matrix has been
-  // passed because our caller just wants our eChildToUserSpace transform, or
-  // when our eUserSpaceToParent transform has already been multiplied into the
-  // matrix that our caller passes (such as when we're called from PaintSVG).
   return childToUser * aMatrix;
 }
 
