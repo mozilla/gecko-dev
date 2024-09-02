@@ -128,9 +128,9 @@ add_task(async function test_bug538331() {
 
     await reloadUpdateManagerData(false);
 
-    let noOverrideArgs = Cc["@mozilla.org/browser/clh;1"].getService(
-      Ci.nsIBrowserHandler
-    ).defaultArgs;
+    let noOverrideArgs = Cc["@mozilla.org/browser/clh;1"]
+      .getService(Ci.nsIBrowserHandler)
+      .getFirstWindowArgs();
 
     let overrideArgs = "";
     if (testCase.prefURL) {
@@ -149,9 +149,9 @@ add_task(async function test_bug538331() {
       Services.prefs.setCharPref(PREF_MSTONE, "PreviousMilestone");
     }
 
-    let defaultArgs = Cc["@mozilla.org/browser/clh;1"].getService(
-      Ci.nsIBrowserHandler
-    ).defaultArgs;
+    let defaultArgs = Cc["@mozilla.org/browser/clh;1"]
+      .getService(Ci.nsIBrowserHandler)
+      .getFirstWindowArgs();
     is(defaultArgs, overrideArgs, "correct value returned by defaultArgs");
 
     if (testCase.noMstoneChange === undefined || !testCase.noMstoneChange) {

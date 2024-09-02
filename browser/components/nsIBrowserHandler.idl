@@ -11,6 +11,7 @@ interface nsIBrowserHandler : nsISupports
 {
   attribute AUTF8String startPage;
   attribute AUTF8String defaultArgs;
+  AUTF8String getFirstWindowArgs();
   attribute boolean kiosk;
   attribute boolean majorUpgrade;
   attribute boolean firstRunProfile;
