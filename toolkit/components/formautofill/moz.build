@@ -16,6 +16,7 @@ EXTRA_JS_MODULES.shared += [
     "shared/AddressMetaDataLoader.sys.mjs",
     "shared/AddressParser.sys.mjs",
     "shared/AddressRecord.sys.mjs",
+    "shared/AutofillFormFactory.sys.mjs",
     "shared/AutofillTelemetry.sys.mjs",
     "shared/CreditCardRecord.sys.mjs",
     "shared/CreditCardRuleset.sys.mjs",

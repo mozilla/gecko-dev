@@ -33,6 +33,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * Handles content's interactions for the frame.
  */
 export class FormAutofillChild extends JSWindowActorChild {
+  // Flag to indicate whethere there is an ongoing autofilling process.
+  #autofillInProgress = false;
+
   constructor() {
     super();
 
@@ -59,9 +62,16 @@ export class FormAutofillChild extends JSWindowActorChild {
   /**
    * Identifies elements that are in the associated form of the passed element.
    *
-   * @param {Element} element the element to be identified
+   * @param {Element} element
+   *        The element to be identified.
+   * @param {boolean} triggerByFocus
+   *        True to send a message to the parent when new fields are detected.
+   *
+   * @returns {FormAutofillHandler}
+   *        The autofill handler instance for the form that is associated with the
+   *        passed element.
    */
-  identifyAutofillFields(element) {
+  identifyAutofillFields(element, triggerByFocus = true) {
     this.debug(
       `identifyAutofillFields: ${element.ownerDocument.location?.hostname}`
     );
@@ -72,19 +82,27 @@ export class FormAutofillChild extends JSWindowActorChild {
     // Bail out if there is nothing changed since last time we identified this element
     // or there is no interested fields.
     if (!newFieldsIdentified || !handler.fieldDetails.length) {
-      return;
+      // This is for testing purposes only. It sends a notification to indicate that the
+      // form has been identified and is ready to open the popup.
+      // If new fields are detected, the message will be sent to the parent
+      // once the parent finishes collecting information from sub-frames if they exist.
+      if (triggerByFocus) {
+        this.sendAsyncMessage("FormAutofill:FieldsIdentified");
+        this.showCreditCardPopupIfEmpty(element);
+      }
+      return handler;
     }
 
     // Bug 1905040. This is only a temporarily workaround for now to skip marking address fields
     // autocompletable whenever we detect an address field. We only mark address field when
     // it is a valid address section (This is done in the parent)
-    const fields = new Set(
+    const addressFields = new Set(
       handler.fieldDetails
         .map(f => f.fieldName)
         .filter(fieldName => lazy.FormAutofillUtils.isAddressField(fieldName))
     );
     const validAddressSection =
-      fields.size >= lazy.FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
+      addressFields.size >= lazy.FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
 
     for (const fieldDetail of handler.fieldDetails) {
       if (
@@ -107,9 +125,27 @@ export class FormAutofillChild extends JSWindowActorChild {
       this.registerPageHide(handler);
       this._hasRegisteredPageHide.add(true);
     }
+
+    if (triggerByFocus) {
+      // Notify the parent about the newly identified fields because
+      // the autofill section information is maintained on the parent side.
+      const fields = handler.getFieldsInfoIncludeIframe();
+      this.sendQuery(
+        "FormAutofill:OnFieldsDetected",
+        fields.map(field => field.toVanillaObject())
+      ).then(() => {
+        this.showCreditCardPopupIfEmpty(element);
+      });
+    }
+
+    return handler;
   }
 
   showCreditCardPopupIfEmpty(element) {
+    if (element != lazy.FormAutofillContent.focusedInput) {
+      return;
+    }
+
     if (element.value?.length !== 0) {
       this.debug(`Not opening popup because field is not empty.`);
       return;
@@ -183,7 +219,7 @@ export class FormAutofillChild extends JSWindowActorChild {
           this.debug("Credit card subframe is pagehiding", handler.form);
 
           const reason = lazy.FORM_SUBMISSION_REASON.IFRAME_PAGEHIDE;
-          this.formSubmitted(handler.form, reason, handler);
+          this.formSubmitted(handler.form.rootElement, reason, handler);
           this._hasRegisteredPageHide.delete(handler);
         },
         { once: true }
@@ -233,7 +269,13 @@ export class FormAutofillChild extends JSWindowActorChild {
   }
 
   onFocusIn(element) {
-    if (!lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element)) {
+    // When autofilling, we focus on the element before setting the autofill value
+    // (See FormAutofillHandler.fillFieldValue). We ignore the focus event for this
+    // case to avoid showing popup while autofilling.
+    if (
+      !lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element) ||
+      this.#autofillInProgress
+    ) {
       return;
     }
 
@@ -267,14 +309,6 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     this.identifyAutofillFields(element);
-
-    if (element == lazy.FormAutofillContent.focusedInput) {
-      this.showCreditCardPopupIfEmpty(element);
-    }
-
-    // This is for testing purpose only which sends a notification to indicate that the
-    // form has been identified, and ready to open popup.
-    this.sendAsyncMessage("FormAutofill:FieldsIdentified");
   }
 
   /**
@@ -308,15 +342,15 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     switch (message.name) {
       case "FormAutofill:FillFields": {
-        const { focusedElementId, ids, profile } = message.data;
-        const result = await this.fillFields(focusedElementId, ids, profile);
+        const { focusedId, ids, profile } = message.data;
+        const result = this.fillFields(focusedId, ids, profile);
 
         // Return the autofilled result to the parent. The result
         // is used by both tests and telemetry.
         return result;
       }
       case "FormAutofill:ClearFilledFields": {
-        const ids = message.data;
+        const { ids } = message.data;
         const handler = this.#getHandlerByElementId(ids[0]);
         handler?.clearFilledFields(ids);
         break;
@@ -324,14 +358,24 @@ export class FormAutofillChild extends JSWindowActorChild {
       case "FormAutofill:PreviewFields": {
         const { ids, profile } = message.data;
         const handler = this.#getHandlerByElementId(ids[0]);
-        handler?.previewFields(ids, profile);
+
+        if (profile) {
+          handler?.previewFields(ids, profile);
+        } else {
+          handler?.clearPreviewedFields(ids);
+        }
         break;
       }
-      case "FormAutofill:ClearPreviewedFields": {
-        const { ids } = message.data;
-        const handler = this.#getHandlerByElementId(ids[0]);
-        handler?.clearPreviewedFields(ids);
-        break;
+      case "FormAutofill:IdentifyFields": {
+        const { focusedBCId } = message.data ?? {};
+        return this.identifyFields(focusedBCId).map(fieldDetail =>
+          fieldDetail.toVanillaObject()
+        );
+      }
+      case "FormAutofill:GetFilledInfo": {
+        const { rootElementId } = message.data;
+        const handler = this.#getHandlerByElementId(rootElementId);
+        return handler?.collectFormFilledData();
       }
     }
     return true;
@@ -362,7 +406,11 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     // The `domWin` truthiness test is used by unit tests to bypass this check.
     const domWin = formElement.ownerGlobal;
-    if (domWin && lazy.PrivateBrowsingUtils.isContentWindowPrivate(domWin)) {
+    if (!domWin) {
+      return;
+    }
+
+    if (lazy.PrivateBrowsingUtils.isContentWindowPrivate(domWin)) {
       this.debug("Ignoring submission in a private window");
       return;
     }
@@ -418,12 +466,13 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
   }
 
-  async fillFields(focusedElementId, elementIds, profile) {
+  async fillFields(focusedId, elementIds, profile) {
+    this.#autofillInProgress = true;
     let result = new Map();
     try {
       Services.obs.notifyObservers(null, "autofill-fill-starting");
       const handler = this.#getHandlerByElementId(elementIds[0]);
-      await handler.fillFields(focusedElementId, elementIds, profile);
+      handler.fillFields(focusedId, elementIds, profile);
 
       // Return the autofilled result to the parent. The result
       // is used by both tests and telemetry.
@@ -432,7 +481,42 @@ export class FormAutofillChild extends JSWindowActorChild {
       Services.obs.notifyObservers(null, "autofill-fill-complete");
     } catch {}
 
+    this.#autofillInProgress = false;
     return result;
+  }
+
+  /**
+   * This function is called by the parent when a field is detected in another
+   * frame. The parent uses this function to collect field information from frames
+   * that are part of the same form as the detected field.
+   *
+   * @param {string} focusedBCId
+   *        The browsing context ID of the top-level iframe
+   *        that contains the detected field.
+   *        Note that this value is set only when the current frame is the top-level.
+   *
+   * @returns {Array}
+   *        Array of FieldDetail objects of identified fields (including iframes).
+   */
+  identifyFields(focusedBCId) {
+    const isTop = this.browsingContext == this.browsingContext.top;
+
+    let element;
+    if (isTop) {
+      // Find the focused iframe
+      element = BrowsingContext.get(focusedBCId).embedderElement;
+    } else {
+      // Ignore form as long as the frame is not the top-level, which means
+      // we can just pick any of the eligible elements to identify.
+      element = this.document.querySelector("input, select, iframe");
+    }
+
+    if (!element) {
+      return [];
+    }
+
+    const handler = this.identifyAutofillFields(element, false);
+    return handler.getFieldsInfoIncludeIframe();
   }
 
   #markAsAutofillField(fieldDetail) {
@@ -530,17 +614,32 @@ export class FormAutofillChild extends JSWindowActorChild {
     const isInputAutofilled =
       input.autofillState == lazy.FormAutofillUtils.FIELD_STATES.AUTO_FILLED;
 
-    const AutocompleteResult = lazy.FormAutofillUtils.isAddressField(
-      fieldDetail.fieldName
-    )
-      ? lazy.AddressResult
-      : lazy.CreditCardResult;
+    let AutocompleteResult;
+
+    // TODO: This should be calculated in the parent
+    // The field categories will be filled if the corresponding profile is
+    // used for autofill. We don't display this information for credit
+    // cards, so this is only calculated for address fields.
+    let fillCategories;
+    if (lazy.FormAutofillUtils.isAddressField(fieldDetail.fieldName)) {
+      AutocompleteResult = lazy.AddressResult;
+      fillCategories = adaptedRecords.map(profile => {
+        const fields = Object.keys(profile).filter(fieldName => {
+          const detail = handler.getFieldDetailByName(fieldName);
+          return detail ? handler.isFieldAutofillable(detail, profile) : false;
+        });
+        return lazy.FormAutofillUtils.getCategoriesFromFieldNames(fields);
+      });
+    } else {
+      AutocompleteResult = lazy.CreditCardResult;
+    }
 
     const acResult = new AutocompleteResult(
       searchString,
       fieldDetail,
       records.allFieldNames,
       adaptedRecords,
+      fillCategories,
       { isSecure, isInputAutofilled }
     );
 

@@ -247,20 +247,45 @@ ChromeUtils.defineLazyGetter(lazy, "gFormAutofillStorage", () => {
 });
 
 export class FormAutofillParent extends JSWindowActorParent {
-  // An array of section that are found in this form
-  sectionsByRootId = {};
-
   constructor() {
     super();
     FormAutofillStatus.init();
+
+    // This object maintains data that should be shared among all
+    // FormAutofillParent actors in the same DOM tree.
+    this._topLevelCache = {
+      sectionsByRootId: new Map(),
+      filledResult: new Map(),
+      lastSubmitSectionRecord: new Map(),
+    };
   }
 
-  static addMessageObserver(observer) {
-    gMessageObservers.add(observer);
+  get topLevelCache() {
+    let actor;
+    try {
+      actor =
+        this.browsingContext.top == this.browsingContext
+          ? this
+          : FormAutofillParent.getActor(this.browsingContext.top);
+    } catch {}
+    actor ||= this;
+    return actor._topLevelCache;
   }
 
-  static removeMessageObserver(observer) {
-    gMessageObservers.delete(observer);
+  set filledResult(result) {
+    this.topLevelCache.filledResult = result;
+  }
+
+  get filledResult() {
+    return this.topLevelCache.filledResult;
+  }
+
+  get sectionsByRootId() {
+    return this.topLevelCache.sectionsByRootId;
+  }
+
+  get lastSubmitSectionRecord() {
+    return this.topLevelCache.lastSubmitSectionRecord;
   }
 
   /**
@@ -284,18 +309,19 @@ export class FormAutofillParent extends JSWindowActorParent {
       case "FormAutofill:OnFormSubmit": {
         const { rootElementId, formFilledData } = data;
         this.notifyMessageObservers("onFormSubmitted", data);
-        await this._onFormSubmit(rootElementId, formFilledData);
+        this.onFormSubmit(rootElementId, formFilledData);
         break;
       }
       case "FormAutofill:UpdateWarningMessage":
         this.notifyMessageObservers("updateWarningNote", data);
         break;
 
-      case "FormAutofill:FieldsDetected":
-        this.onFormDetected(data);
-        break;
       case "FormAutofill:FieldsIdentified":
         this.notifyMessageObservers("fieldsIdentified", data);
+        break;
+
+      case "FormAutofill:OnFieldsDetected":
+        await this.onFieldsDetected(data);
         break;
       case "FormAutofill:FieldFilledModified": {
         this.onFieldFilledModified(data);
@@ -341,41 +367,277 @@ export class FormAutofillParent extends JSWindowActorParent {
     return undefined;
   }
 
+  /**
+   * This function is used to determine the frames that can also be autofilled
+   * when users trigger autofill on the focusd frame.
+   *
+   * Currently we also autofill for frames that
+   * 1. is top-level.
+   * 2. is same origin with the top-level.
+   * 3. is same origin with the frame that triggers autofill.
+   *
+   * @param {BrowsingContext} browsingContext
+   *        frame to be checked whether we can also autofill
+   */
+  isBCSameOriginWithTop(browsingContext) {
+    return (
+      browsingContext.top == browsingContext ||
+      browsingContext.currentWindowGlobal.documentPrincipal.equals(
+        browsingContext.top.currentWindowGlobal.documentPrincipal
+      )
+    );
+  }
+
+  // For a third-party frame, we only autofill when the frame is same origin
+  // with the frame that triggers autofill.
+  isBCSameOrigin(browsingContext) {
+    return this.manager.documentPrincipal.equals(
+      browsingContext.currentWindowGlobal.documentPrincipal
+    );
+  }
+
+  static getActor(browsingContext) {
+    return browsingContext.currentWindowGlobal?.getActor("FormAutofill");
+  }
+
   get formOrigin() {
     return lazy.LoginHelper.getLoginOrigin(
       this.manager.documentPrincipal?.originNoSuffix
     );
   }
 
-  onFormDetected(fields) {
-    if (!fields?.length) {
+  /**
+   * Recursively identifies autofillable fields within each sub-frame of the
+   * given browsing context.
+   *
+   * This function iterates through all sub-frames and uses the provided
+   * browsing context to locate and identify fields that are eligible for
+   * autofill. It handles both the top-level context and any nested
+   * iframes, aggregating all identified fields into a single array.
+   *
+   * @param {BrowsingContext} browsingContext
+   *        The browsing context where autofill fields are to be identified.
+   * @param {string} focusedBCId
+   *        The browsing context ID of the <iframe> within the top-level context
+   *        that contains the currently focused field. Null if this call is
+   *        triggered from the top-level.
+   * @param {Array} alreadyIdentifiedFields
+   *        An array of previously identified fields for the current actor.
+   *        This serves as a cache to avoid redundant field identification.
+   *
+   * @returns {Promise<Array>}
+   *        A promise that resolves to an array containing two elements:
+   *        1. An array of FieldDetail objects representing detected fields.
+   *        2. The root element ID.
+   */
+  async identifyAllSubTreeFields(
+    browsingContext,
+    focusedBCId,
+    alreadyIdentifiedFields
+  ) {
+    let identifiedFieldsIncludeIframe = [];
+    try {
+      const actor = FormAutofillParent.getActor(browsingContext);
+      if (actor == this) {
+        identifiedFieldsIncludeIframe = alreadyIdentifiedFields;
+      } else {
+        const msg = "FormAutofill:IdentifyFields";
+        identifiedFieldsIncludeIframe = await actor.sendQuery(msg, {
+          focusedBCId,
+        });
+      }
+    } catch (e) {
+      console.error("There was an error identifying fields: ", e.message);
+    }
+
+    if (!identifiedFieldsIncludeIframe.length) {
+      return [[], null];
+    }
+
+    const rootElementId = identifiedFieldsIncludeIframe[0].rootElementId;
+
+    const subTreeDetails = [];
+    for (const field of identifiedFieldsIncludeIframe) {
+      if (field.localName != "iframe") {
+        subTreeDetails.push(field);
+        continue;
+      }
+
+      const iframeBC = BrowsingContext.get(field.browsingContextId);
+      const [fields] = await this.identifyAllSubTreeFields(
+        iframeBC,
+        focusedBCId,
+        alreadyIdentifiedFields
+      );
+      subTreeDetails.push(...fields);
+    }
+    return [subTreeDetails, rootElementId];
+  }
+
+  /**
+   * When a field is detected, identify fields in other frames, if they exist.
+   * To ensure that the identified fields across frames still follow the document
+   * order, we traverse from the top-level window and recursively identify fields
+   * in subframes.
+   *
+   * @param {Array} fieldsIncludeIframe
+   *        Array of FieldDetail objects of detected fields (include iframes).
+   */
+  async onFieldsDetected(fieldsIncludeIframe) {
+    // If the detected fields are not in the top-level, identify the <iframe> in
+    // the top-level that contains the detected fields. This is necessary to determine
+    // the root element of this form. For non-top-level frames, the focused <iframe>
+    // is not needed because, in the case of iframes, the root element is always
+    // the frame itself (we disregard <form> elements within <iframes>).
+    let focusedBCId;
+    const topBC = this.browsingContext.top;
+    if (this.browsingContext != topBC) {
+      let bc = this.browsingContext;
+      while (bc.parent != topBC) {
+        bc = bc.parent;
+      }
+      focusedBCId = bc.id;
+    }
+
+    const [fieldDetails, rootElementId] = await this.identifyAllSubTreeFields(
+      topBC,
+      focusedBCId,
+      fieldsIncludeIframe
+    );
+
+    // At this point we have identified all the fields that are under the same root element.
+    // We can run section classification heuristic now.
+    const sections = lazy.FormAutofillSection.classifySections(fieldDetails);
+    this.sectionsByRootId.set(rootElementId, sections);
+
+    // `onFieldsDetected` is not called when a form is detected, but also called
+    // when the elements in a form are changed. When the elements in a form are
+    // changed, we treat the "updated" section as a new detected section.
+    sections.forEach(section => section.onDetected());
+
+    // This is for testing purpose only which sends a notification to indicate that the
+    // form has been identified, and ready to open popup.
+    this.notifyMessageObservers("fieldsIdentified");
+  }
+
+  /**
+   * Called when a form is submitted
+   *
+   * @param {string} rootElementId
+   *        The id of the root element. If the form
+   * @param {object} formFilledData
+   *        An object keyed by element id, and the value is an object that
+   *        includes the following properties:
+   *          - filledState: The autofill state of the element.
+   *          - filledValue: The value of the element.
+   *        See `collectFormFilledData` in FormAutofillHandler.
+   */
+  async onFormSubmit(rootElementId, formFilledData) {
+    const sections = this.sectionsByRootId.values().find(sections => {
+      const details = sections.flatMap(s => s.fieldDetails).flat();
+      return details.some(detail => detail.rootElementId == rootElementId);
+    });
+
+    if (!sections) {
       return;
     }
 
-    const sections = lazy.FormAutofillSection.classifySections(fields);
+    const address = [];
+    const creditCard = [];
 
-    // This function is not only called when a form is detected,
-    // but also called when the elements in a form are changed, which means we would
-    // treat the "updated" section as a new detected section.
-    sections.forEach(section => section.onDetected());
-
-    const rootElementId = fields[0].rootElementId;
-    this.sectionsByRootId[rootElementId] = sections;
-  }
-
-  notifyMessageObservers(callbackName, data) {
-    for (let observer of gMessageObservers) {
-      try {
-        if (callbackName in observer) {
-          observer[callbackName](
-            data,
-            this.manager.browsingContext.topChromeWindow
-          );
+    // Collect all the filled result from the child
+    for (const section of sections) {
+      const filledResult = new Map();
+      const autofillFields = section.getAutofillFields();
+      const detailsByBC =
+        lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(
+          autofillFields
+        );
+      for (const [bcId, fieldDetails] of Object.entries(detailsByBC)) {
+        try {
+          let result;
+          if (this.manager.browsingContext.id == bcId) {
+            // We already have the data for the frame that sends the event.
+            result = formFilledData;
+          } else {
+            const actor = FormAutofillParent.getActor(
+              BrowsingContext.get(bcId)
+            );
+            result = await actor.sendQuery("FormAutofill:GetFilledInfo", {
+              rootElementId: fieldDetails[0].rootElementId,
+            });
+          }
+          result.forEach((value, key) => filledResult.set(key, value));
+        } catch (e) {
+          console.error("There was an error submitting: ", e.message);
+          return;
         }
-      } catch (ex) {
-        console.error(ex);
       }
+
+      const secRecord = section.createRecord(filledResult);
+      if (!secRecord) {
+        continue;
+      }
+
+      if (section instanceof lazy.FormAutofillAddressSection) {
+        address.push(secRecord);
+      } else if (section instanceof lazy.FormAutofillCreditCardSection) {
+        creditCard.push(secRecord);
+      } else {
+        throw new Error("Unknown section type");
+      }
+
+      const record = secRecord.record;
+
+      // When fields in a form are located in separate <iframe> elements,
+      // it's possible that upon form submission, each <iframe> triggers its own
+      // form submission event. This can cause the capture doorhanger for the
+      // same form to be shown multiple times. To avoid displaying duplicate
+      // doorhangers, we ignore processing submissions if the result is the
+      // same as the previous one.
+      const last = this.lastSubmitSectionRecord.get(section) ?? {};
+      if (Object.entries(record).every(([k, v]) => last[k] == v)) {
+        continue;
+      }
+      // record will be normalized later, so we store a copy in the cache
+      this.lastSubmitSectionRecord.set(section, { ...record });
+
+      // Used for telemetry
+      section.onSubmitted(filledResult);
     }
+
+    const browser = this.manager?.browsingContext.top.embedderElement;
+    if (!browser) {
+      return;
+    }
+
+    // Transmit the telemetry immediately in the meantime form submitted, and handle
+    // these pending doorhangers later.
+    await Promise.all(
+      [
+        await Promise.all(
+          address.map(addrRecord => this._onAddressSubmit(addrRecord, browser))
+        ),
+        await Promise.all(
+          creditCard.map(ccRecord =>
+            this._onCreditCardSubmit(ccRecord, browser)
+          )
+        ),
+      ]
+        .map(pendingDoorhangers => {
+          return pendingDoorhangers.filter(
+            pendingDoorhanger =>
+              !!pendingDoorhanger && typeof pendingDoorhanger == "function"
+          );
+        })
+        .map(pendingDoorhangers =>
+          (async () => {
+            for (const showDoorhanger of pendingDoorhangers) {
+              await showDoorhanger();
+            }
+          })()
+        )
+    );
   }
 
   /**
@@ -587,67 +849,6 @@ export class FormAutofillParent extends JSWindowActorParent {
     };
   }
 
-  async _onFormSubmit(rootElementId, formFilledData) {
-    const browser = this.manager.browsingContext.top.embedderElement;
-    if (!browser) {
-      return;
-    }
-
-    const sections = this.sectionsByRootId[rootElementId];
-    if (!sections) {
-      return;
-    }
-
-    const address = [];
-    const creditCard = [];
-
-    for (const section of sections) {
-      const secRecord = section.createRecord(formFilledData);
-      if (!secRecord) {
-        continue;
-      }
-
-      if (section instanceof lazy.FormAutofillAddressSection) {
-        address.push(secRecord);
-      } else if (section instanceof lazy.FormAutofillCreditCardSection) {
-        creditCard.push(secRecord);
-      } else {
-        throw new Error("Unknown section type");
-      }
-
-      // Used for telemetry
-      section.onSubmitted(formFilledData);
-    }
-
-    // Transmit the telemetry immediately in the meantime form submitted, and handle these pending
-    // doorhangers at a later.
-    await Promise.all(
-      [
-        await Promise.all(
-          address.map(addrRecord => this._onAddressSubmit(addrRecord, browser))
-        ),
-        await Promise.all(
-          creditCard.map(ccRecord =>
-            this._onCreditCardSubmit(ccRecord, browser)
-          )
-        ),
-      ]
-        .map(pendingDoorhangers => {
-          return pendingDoorhangers.filter(
-            pendingDoorhanger =>
-              !!pendingDoorhanger && typeof pendingDoorhanger == "function"
-          );
-        })
-        .map(pendingDoorhangers =>
-          (async () => {
-            for (const showDoorhanger of pendingDoorhangers) {
-              await showDoorhanger();
-            }
-          })()
-        )
-    );
-  }
-
   _shouldShowSaveAddressPrompt(record) {
     if (!FormAutofill.isAutofillAddressesCaptureEnabled) {
       return false;
@@ -780,39 +981,121 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
   }
 
-  clearForm(elementId) {
-    const section = this.getSectionByElementId(elementId);
+  // Credit card number will only be filled when it is same-origin with the frame that
+  // triggers the autofilling.
+  #FIELDS_FILLED_WHEN_SAME_ORIGIN = ["cc-number"];
 
-    section.onCleared(elementId);
+  /**
+   * Trigger the autofill-related action in child processes that are within
+   * this section.
+   *
+   * @param {string} message
+   *        The message to be sent to the child processes to trigger the corresponding
+   *        action.
+   * @param {string} focusedId
+   *        The ID of the element that initially triggers the autofill action.
+   * @param {object} section
+   *        The section that contains fields to be autofilled.
+   * @param {object} profile
+   *        The profile data used for autofilling the fields.
+   */
+  async #triggerAutofillActionInChildren(message, focusedId, section, profile) {
+    const autofillFields = section.getAutofillFields();
+    const detailsByBC =
+      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(
+        autofillFields
+      );
 
-    const ids = section.fieldDetails.map(detail => detail.elementId);
-    this.sendAsyncMessage("FormAutofill:ClearFilledFields", ids);
+    const result = new Map();
+    const entries = Object.entries(detailsByBC);
+
+    // Since we focus on the element when setting its autofill value, we need to ensure
+    // the frame that contains the focused input is the last one that runs autofill. Doing
+    // this guarantees the focused element remains the focused one after autofilling.
+    const index = entries.findIndex(e =>
+      e[1].some(f => f.elementId == focusedId)
+    );
+    if (index != -1) {
+      const entry = entries.splice(index, 1)[0];
+      entries.push(entry);
+    }
+
+    for (const [bcId, fieldDetails] of entries) {
+      const bc = BrowsingContext.get(bcId);
+
+      // Autofill only applies to frame that is either same origin with the triggered
+      // frame or it is same origin with the top.
+      const isSameOrigin = this.isBCSameOrigin(bc);
+      if (!isSameOrigin && !this.isBCSameOriginWithTop(bc)) {
+        continue;
+      }
+
+      // For sensitive fields, we ONLY fill them when they are same-origin with
+      // the triggered frame.
+      const ids = fieldDetails
+        .filter(
+          detail =>
+            isSameOrigin ||
+            !this.#FIELDS_FILLED_WHEN_SAME_ORIGIN.includes(detail.fieldName)
+        )
+        .map(detail => detail.elementId);
+
+      try {
+        const actor = FormAutofillParent.getActor(bc);
+        const ret = await actor.sendQuery(message, {
+          focusedId: bc == this.manager.browsingContext ? focusedId : null,
+          ids,
+          profile,
+        });
+        if (ret instanceof Map) {
+          ret.forEach((value, key) => result.set(key, value));
+        }
+      } catch (e) {
+        console.error("There was an error autofilling: ", e.message);
+      }
+    }
+
+    return result;
   }
 
+  /**
+   * Previews autofill results for the section containing the triggered element
+   * using the selected user profile.
+   *
+   * @param {string} elementId
+   *        The id of the element that triggers the autofill preview
+   * @param {object} profile
+   *        The user-selected profile data to be used for the autofill preview
+   */
   async previewFields(elementId, profile) {
     const section = this.getSectionByElementId(elementId);
+
     if (!(await section.preparePreviewProfile(profile))) {
       lazy.log.debug("profile cannot be previewed");
-      return false;
+      return;
     }
 
-    const ids = section.fieldDetails.map(detail => detail.elementId);
-
-    try {
-      if (profile) {
-        await this.sendQuery("FormAutofill:PreviewFields", { ids, profile });
-      } else {
-        await this.sendQuery("FormAutofill:ClearPreviewedFields", { ids });
-      }
-    } catch (e) {
-      console.error("There was an error previewing: ", e.message);
-    }
+    const msg = "FormAutofill:PreviewFields";
+    await this.#triggerAutofillActionInChildren(
+      msg,
+      elementId,
+      section,
+      profile
+    );
 
     // For testing only
     Services.obs.notifyObservers(null, "formautofill-preview-complete");
-    return true;
   }
 
+  /**
+   * Autofill results for the section containing the triggered element.
+   * using the selected user profile.
+   *
+   * @param {string} elementId
+   *        The id of the element that triggers the autofill.
+   * @param {object} profile
+   *        The user-selected profile data to be used for the autofill
+   */
   async autofillFields(elementId, profile) {
     const section = this.getSectionByElementId(elementId);
     if (!(await section.prepareFillingProfile(profile))) {
@@ -820,28 +1103,45 @@ export class FormAutofillParent extends JSWindowActorParent {
       return;
     }
 
-    const ids = section.fieldDetails.map(detail => detail.elementId);
+    const msg = "FormAutofill:FillFields";
+    const result = await this.#triggerAutofillActionInChildren(
+      msg,
+      elementId,
+      section,
+      profile
+    );
 
-    let filledResult = new Map();
-    try {
-      filledResult = await this.sendQuery("FormAutofill:FillFields", {
-        focusedElementId: elementId,
-        ids,
-        profile,
-      });
+    result.forEach((value, key) => this.filledResult.set(key, value));
+    section.onFilled(result);
 
-      this.filledResult = this.filledResult ?? new Map();
-      filledResult.forEach((value, key) => this.filledResult.set(key, value));
-
-      section.onFilled(filledResult);
-    } catch (e) {
-      console.error("There was an error autofilling: ", e.message);
-    }
-
-    // eslint-disable-next-line consistent-return
-    return filledResult;
+    // For testing only
+    Services.obs.notifyObservers(null, "formautofill-autofill-complete");
   }
 
+  /**
+   * Clears autofill results for the section containing the triggered element.
+   *
+   * @param {string} elementId
+   *        The id of the element that triggers the clear action.
+   */
+  async clearForm(elementId) {
+    const section = this.getSectionByElementId(elementId);
+
+    section.onCleared(elementId);
+
+    const msg = "FormAutofill:ClearFilledFields";
+    await this.#triggerAutofillActionInChildren(msg, elementId, section);
+
+    // For testing only
+    Services.obs.notifyObservers(null, "formautofill-clear-form-complete");
+  }
+
+  /**
+   * Called when a autofilled fields is modified by the user.
+   *
+   * @param {string} elementId
+   *        The id of the element that users modify its value after autofilling.
+   */
   onFieldFilledModified(elementId) {
     if (!this.filledResult?.get(elementId)) {
       return;
@@ -857,9 +1157,12 @@ export class FormAutofillParent extends JSWindowActorParent {
     // Restore <select> fields to their initial state once we know
     // that the user intends to manually clear the filled form.
     const fieldDetails = section.fieldDetails;
-    const selects = fieldDetails.filter(field => field.tagName == "SELECT");
+    const selects = fieldDetails.filter(field => field.localName == "select");
     if (selects.length) {
-      const inputs = fieldDetails.filter(field => field.tagName == "INPUT");
+      const inputs = fieldDetails.filter(
+        field =>
+          this.filledResult.has(field.elementId) && field.localName == "input"
+      );
       if (
         inputs.every(
           field =>
@@ -868,13 +1171,13 @@ export class FormAutofillParent extends JSWindowActorParent {
         )
       ) {
         const ids = selects.map(field => field.elementId);
-        this.sendAsyncMessage("FormAutofill:ClearFilledFields", ids);
+        this.sendAsyncMessage("FormAutofill:ClearFilledFields", { ids });
       }
     }
   }
 
   getSectionByElementId(elementId) {
-    for (const sections of Object.values(this.sectionsByRootId)) {
+    for (const sections of this.sectionsByRootId.values()) {
       const section = sections.find(s =>
         s.getFieldDetailByElementId(elementId)
       );
@@ -885,8 +1188,26 @@ export class FormAutofillParent extends JSWindowActorParent {
     return null;
   }
 
-  // For testing
-  getSections() {
-    return Object.values(this.sectionsByRootId).flat();
+  static addMessageObserver(observer) {
+    gMessageObservers.add(observer);
+  }
+
+  static removeMessageObserver(observer) {
+    gMessageObservers.delete(observer);
+  }
+
+  notifyMessageObservers(callbackName, data) {
+    for (let observer of gMessageObservers) {
+      try {
+        if (callbackName in observer) {
+          observer[callbackName](
+            data,
+            this.manager.browsingContext.topChromeWindow
+          );
+        }
+      } catch (ex) {
+        console.error(ex);
+      }
+    }
   }
 }

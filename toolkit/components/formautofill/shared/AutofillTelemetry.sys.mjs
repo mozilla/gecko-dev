@@ -122,7 +122,9 @@ class AutofillTelemetryBase {
     const extra = this.#initFormEventExtra("unavailable");
 
     for (const fieldDetail of fieldDetails) {
-      let { filledState, value } = data.get(fieldDetail.elementId);
+      // It is possible that we don't autofill a field because it is cross-origin.
+      // When that happens, the data will not include that element.
+      let { filledState, filledValue } = data.get(fieldDetail.elementId) ?? {};
       switch (filledState) {
         case FIELD_STATES.AUTO_FILLED:
           filledState = "filled";
@@ -130,7 +132,7 @@ class AutofillTelemetryBase {
         case FIELD_STATES.NORMAL:
         default:
           filledState =
-            fieldDetail.tagName == "SELECT" || value.length
+            fieldDetail.localName == "select" || filledValue?.length
               ? "user_filled"
               : "not_filled";
           break;
@@ -152,7 +154,7 @@ class AutofillTelemetryBase {
     const extra = this.#initFormEventExtra("unavailable");
 
     for (const fieldDetail of fieldDetails) {
-      let { filledState, value } = data.get(fieldDetail.elementId);
+      let { filledState, filledValue } = data.get(fieldDetail.elementId);
       switch (filledState) {
         case FIELD_STATES.AUTO_FILLED:
           filledState = "autofilled";
@@ -160,7 +162,7 @@ class AutofillTelemetryBase {
         case FIELD_STATES.NORMAL:
         default:
           filledState =
-            fieldDetail.tagName == "SELECT" || value.length
+            fieldDetail.localName == "select" || filledValue.length
               ? "user_filled"
               : "not_filled";
           break;
