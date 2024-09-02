@@ -3,11 +3,10 @@ Dynamic Result Types
 
 This document discusses a special category of address bar results called dynamic
 result types. Dynamic result types allow you to easily add new types of results
-to the address bar and are especially useful for extensions.
+to the address bar.
 
 The intended audience for this document is developers who need to add new kinds
-of address bar results, either internally in the address bar codebase or through
-extensions.
+of address bar results.
 
 .. contents::
    :depth: 2
@@ -34,14 +33,6 @@ so that your card is drawn correctly; you may need to update the keyboard
 selection behavior if your card contains elements that can be independently
 selected such as different days of the week; and so on.
 
-If you're implementing your weather card in an extension, as you might in an
-add-on experiment, then you'd need to land your new result type in
-mozilla-central so your extension can use it. Your new result type would ship
-with Firefox even though the vast majority of users would never see it, and your
-fellow address bar hackers would have to work around your code even though it
-would remain inactive most of the time, at least until your experiment
-graduated.
-
 Dynamic Result Types
 --------------------
 
@@ -49,52 +40,27 @@ Dynamic Result Types
 types. Instead of adding a new built-in type along with all that entails, you
 add a new provider subclass and register a template that describes how the view
 should draw your result type and indicates which elements are selectable. The
-address bar takes care of everything else. (Or if you're implementing an
-extension, you add a few event handlers instead of a provider subclass, although
-we have a shim_ that abstracts away the differences between internal and
-extension address bar code.)
+address bar takes care of everything else.
 
 Dynamic result types are essentially an abstraction layer: Support for them as a
 general category of results is built into the address bar, and each
 implementation of a specific dynamic result type fills in the details.
 
-In addition, dynamic result types can be added at runtime. This is important for
-extensions that implement new types of results like the weather forecast example
-above.
-
-.. _shim: https://github.com/0c0w3/dynamic-result-type-extension/blob/master/src/shim.js
+In addition, dynamic result types can be added at runtime.
 
 Getting Started
 ---------------
 
 To get a feel for how dynamic result types are implemented, you can look at the
-`example dynamic result type extension <exampleExtension_>`__. The extension
-uses the recommended shim_ that makes writing address bar extension code very
-similar to writing internal address bar code, and it's therefore a useful
-example even if you intend to add a new dynamic result type internally in the
-address bar codebase in mozilla-central.
+:searchfox:`UrlbarProviderCalculator <browser/components/urlbar/UrlbarProviderCalculator.sys.mjs>`.
 
 The next section describes the specific steps you need to take to add a new
 dynamic result type.
 
-.. _exampleExtension: https://github.com/0c0w3/dynamic-result-type-extension/blob/master/src/background.js
-
 Implementation Steps
 --------------------
 
-This section describes how to add a new dynamic result type in either of the
-following cases:
-
-* You want to add a new dynamic result type in an extension using the
-  recommended shim_.
-* You want to add a new dynamic result type internal to the address bar codebase
-  in mozilla-central.
-
-The steps are mostly the same in both cases and are described next.
-
-If you want to add a new dynamic result type in an extension but don't want to
-use the shim, then skip ahead to `Appendix B: Using the WebExtensions API
-Directly`_.
+This section describes how to add a new dynamic result type.
 
 1. Register the dynamic result type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,9 +89,7 @@ Next, add the view template for the new type:
 
 ``viewTemplate`` is an object called a view template. It describes in a
 declarative manner the DOM that should be created in the view for all results of
-the new type. For providers created in extensions, it also declares the
-stylesheet that should be applied to results in the view. See `View Templates`_
-for a description of this object.
+the new type.
 
 3. Add the provider
 ~~~~~~~~~~~~~~~~~~~
@@ -160,9 +124,6 @@ For help on implementing providers in general, see the address bar's
 
 If you are creating the provider in the internal address bar implementation in
 mozilla-central, then don't forget to register it in ``UrlbarProvidersManager``.
-
-If you are creating the provider in an extension, then it's registered
-automatically, and there's nothing else you need to do.
 
 __ https://firefox-source-docs.mozilla.org/browser/urlbar/overview.html#urlbarprovider
 
@@ -220,11 +181,6 @@ mozilla-central, then add styling `urlbar-dynamic-results.css`_.
 
 .. _urlbar-dynamic-results.css: https://searchfox.org/mozilla-central/source/browser/themes/shared/urlbar-dynamic-results.css
 
-If you are creating the provider in an extension, then bundle a CSS file in your
-extension and declare it in the top-level ``stylesheet`` property of your view
-template, as described in `View Templates`_. Additionally, if any of your rules
-override built-in rules, then you'll need to declare them as ``!important``.
-
 The rest of this section will discuss the CSS rules you need to use to style
 your results.
 
@@ -275,11 +231,6 @@ A **view template** is a plain JS object that declaratively describes how to
 build the DOM for a dynamic result type. When a result of a particular dynamic
 result type is shown in the view, the type's view template is used to construct
 the part of the view that represents the type in general.
-
-The need for view templates arises from the fact that extensions run in a
-separate process from the chrome process and can't directly access the chrome
-DOM, where the address bar view lives. Since extensions are a primary use case
-for dynamic result types, this is an important constraint on their design.
 
 Properties
 ~~~~~~~~~~
@@ -332,18 +283,6 @@ structure may include the following properties:
 ``{array} [classList]``
   An optional list of classes. Each class will be added to the element created
   for the object by calling ``element.classList.add()``.
-
-``{string} [stylesheet]``
-  For dynamic result types created in extensions, this property should be set on
-  the root object in the view template structure, and its value should be a
-  stylesheet URL. The stylesheet will be loaded in all browser windows so that
-  the dynamic result type view may be styled. The specified URL will be resolved
-  against the extension's base URI. We recommend specifying a URL relative to
-  your extension's base directory.
-
-  For dynamic result types created internally in the address bar codebase, this
-  value should not be specified and instead styling should be added to
-  `urlbar-dynamic-results.css`_.
 
 Example
 ~~~~~~~
@@ -648,9 +587,6 @@ payload property in the following example:
       }
     );
 
-``UrlbarUtils.HIGHLIGHT`` is defined in the extensions shim_ and is described
-below.
-
 Your view template must create an element corresponding to the payload
 property. That is, it must include an object where the value of the ``name``
 property is the name of the payload property, like this:
@@ -693,16 +629,7 @@ Appendix A: Examples
 This section lists some example and real-world consumers of dynamic result
 types.
 
-`Example Extension`__
-  This extension demonstrates a simple use of dynamic result types.
-
-`Weather Quick Suggest Extension`__
-  A real-world Firefox extension experiment that shows weather forecasts and
-  alerts when the user performs relevant searches in the address bar.
-
 `Tab-to-Search Provider`__
   This is a built-in provider in mozilla-central that uses dynamic result types.
 
-__ https://github.com/0c0w3/dynamic-result-type-extension
-__ https://github.com/mozilla-extensions/firefox-quick-suggest-weather/blob/master/src/background.js
 __ https://searchfox.org/mozilla-central/source/browser/components/urlbar/UrlbarProviderTabToSearch.sys.mjs
