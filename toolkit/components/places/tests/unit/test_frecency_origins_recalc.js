@@ -26,15 +26,17 @@ add_task(async function test() {
     1,
     "Frecency should be calculated"
   );
-  Assert.equal(
-    await PlacesTestUtils.getDatabaseValue(
-      "moz_origins",
-      "recalc_alt_frecency",
-      {
-        host,
-      }
-    ),
-    1,
+  // There are multiple async queries running as a consequence of adding a visit
+  // we can't be sure all of them started yet, so we must await for the value.
+  await TestUtils.waitForCondition(
+    async () =>
+      (await PlacesTestUtils.getDatabaseValue(
+        "moz_origins",
+        "recalc_alt_frecency",
+        {
+          host,
+        }
+      )) == 1,
     "Alt frecency should be calculated"
   );
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
