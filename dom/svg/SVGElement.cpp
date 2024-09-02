@@ -1334,38 +1334,43 @@ void SVGElement::UpdateMappedDeclarationBlock() {
   const bool lengthAffectsStyle =
       SVGGeometryProperty::ElementMapsLengthsToStyle(this);
   bool sawTransform = false;
-
   uint32_t i = 0;
   while (BorrowedAttrInfo info = GetAttrInfoAt(i++)) {
     const nsAttrName* attrName = info.mName;
-    if (!attrName->IsAtom() || !IsAttributeMapped(attrName->Atom())) {
+    if (!attrName->IsAtom()) {
       continue;
     }
 
-    if (attrName->Atom() == nsGkAtoms::lang &&
+    nsAtom* nameAtom = attrName->Atom();
+    if (!IsAttributeMapped(nameAtom)) {
+      continue;
+    }
+
+    if (nameAtom == nsGkAtoms::lang &&
         HasAttr(kNameSpaceID_XML, nsGkAtoms::lang)) {
       // xml:lang has precedence, and will get set via Gecko_GetXMLLangValue().
       continue;
     }
 
     if (lengthAffectsStyle) {
-      auto const* length = GetAnimatedLength(attrName->Atom());
+      auto const* length = GetAnimatedLength(nameAtom);
 
       if (length && length->HasBaseVal()) {
         // This is an element with geometry property set via SVG attribute,
         // and the attribute is already successfully parsed. We want to go
         // through the optimized path to tell the style system the result
         // directly, rather than let it parse the same thing again.
-        mappedAttrParser.TellStyleAlreadyParsedResult(attrName->Atom(),
-                                                      *length);
+        mappedAttrParser.TellStyleAlreadyParsedResult(nameAtom, *length);
         continue;
       }
     }
 
-    if (attrName->Atom() == nsGkAtoms::transform) {
+    if (nameAtom == nsGkAtoms::transform ||
+        nameAtom == nsGkAtoms::patternTransform ||
+        nameAtom == nsGkAtoms::gradientTransform) {
       sawTransform = true;
       const auto* transform = GetAnimatedTransformList();
-      MOZ_ASSERT(GetTransformListAttrName() == nsGkAtoms::transform);
+      MOZ_ASSERT(GetTransformListAttrName() == nameAtom);
       MOZ_ASSERT(transform);
       // We want to go through the optimized path to tell the style system the
       // result directly, rather than let it parse the same thing again.
@@ -1373,7 +1378,7 @@ void SVGElement::UpdateMappedDeclarationBlock() {
       continue;
     }
 
-    if (attrName->Atom() == nsGkAtoms::d) {
+    if (nameAtom == nsGkAtoms::d) {
       const auto* path = GetAnimPathSegList();
       // Note: Only SVGPathElement has d attribute.
       MOZ_ASSERT(
@@ -1399,7 +1404,7 @@ void SVGElement::UpdateMappedDeclarationBlock() {
 
     nsAutoString value;
     info.mValue->ToString(value);
-    mappedAttrParser.ParseMappedAttrValue(attrName->Atom(), value);
+    mappedAttrParser.ParseMappedAttrValue(nameAtom, value);
   }
 
   // We need to map the SVG view's transform if we haven't mapped it already.
@@ -2082,21 +2087,15 @@ void SVGElement::DidChangeTransformList(
 void SVGElement::DidAnimateTransformList(int32_t aModType) {
   MOZ_ASSERT(GetTransformListAttrName(),
              "Animating non-existent transform data?");
-
-  nsAtom* transformAttr = GetTransformListAttrName();
-  if (transformAttr == nsGkAtoms::transform) {
-    const auto* animTransformList = GetAnimatedTransformList();
-    const auto* animateMotion = GetAnimateMotionTransform();
-    if (animateMotion ||
-        (animTransformList && animTransformList->IsAnimating())) {
-      SMILOverrideStyle()->SetSMILValue(eCSSProperty_transform,
-                                        animTransformList, animateMotion);
-    } else {
-      SMILOverrideStyle()->ClearSMILValue(eCSSProperty_transform);
-    }
-    return;
+  const auto* animTransformList = GetAnimatedTransformList();
+  const auto* animateMotion = GetAnimateMotionTransform();
+  if (animateMotion ||
+      (animTransformList && animTransformList->IsAnimating())) {
+    SMILOverrideStyle()->SetSMILValue(eCSSProperty_transform, animTransformList,
+                                      animateMotion);
+  } else {
+    SMILOverrideStyle()->ClearSMILValue(eCSSProperty_transform);
   }
-  DidAnimateAttribute(kNameSpaceID_None, transformAttr);
 }
 
 SVGElement::StringAttributesInfo SVGElement::GetStringInfo() {

@@ -80,7 +80,7 @@ class SVGPatternFrame final : public SVGPaintServerFrame {
   uint16_t GetEnumValue(uint32_t aIndex) {
     return GetEnumValue(aIndex, mContent);
   }
-  SVGAnimatedTransformList* GetPatternTransformList(nsIContent* aDefault);
+  SVGPatternFrame* GetPatternTransformFrame(SVGPatternFrame* aDefault);
   gfxMatrix GetPatternTransform();
   const SVGAnimatedViewBox& GetViewBox(nsIContent* aDefault);
   const SVGAnimatedViewBox& GetViewBox() { return GetViewBox(mContent); }
