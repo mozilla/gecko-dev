@@ -350,34 +350,6 @@ const TESTCASES = [
   },
   {
     description:
-      "Address form without matching options in select for address-level1 and country",
-    document: `<form>
-               <input autocomplete="given-name">
-               <select autocomplete="address-level1">
-                 <option id="option-address-level1-dummy1" value="">Dummy</option>
-                 <option id="option-address-level1-dummy2" value="">Dummy 2</option>
-               </select>
-               <select autocomplete="country">
-                 <option id="option-country-dummy1" value="">Dummy</option>
-                 <option id="option-country-dummy2" value="">Dummy 2</option>
-               </select>
-               </form>`,
-    profileData: [{ ...DEFAULT_ADDRESS_RECORD }],
-    expectedResult: [
-      {
-        guid: "123",
-        "street-address": "2 Harrison St\nline2\nline3",
-        "-moz-street-address-one-line": "2 Harrison St line2 line3",
-        "address-line1": "2 Harrison St",
-        "address-line2": "line2",
-        "address-line3": "line3",
-        tel: "+19876543210",
-        "tel-national": "9876543210",
-      },
-    ],
-  },
-  {
-    description:
       "Change the tel value of a profile to tel-national for a field without pattern and maxlength.",
     document: `<form>
                <input id="telephone">
@@ -1311,9 +1283,11 @@ for (let testcase of TESTCASES) {
           let expectedOption = doc.getElementById(expectedOptionElement[field]);
           Assert.notEqual(expectedOption, null);
 
-          let value = testcase.profileData[i][field];
-          let cache = handler.matchingSelectOption.get(select);
-          let targetOption = cache[value] && cache[value].deref();
+          let targetOption =
+            handler.matchSelectOptions(
+              { element: select, fieldName: field },
+              testcase.profileData[i]
+            ) ?? null;
           Assert.notEqual(targetOption, null);
 
           Assert.equal(targetOption, expectedOption);

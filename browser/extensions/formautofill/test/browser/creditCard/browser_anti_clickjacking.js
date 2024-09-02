@@ -46,7 +46,7 @@ add_task(async function test_active_delay() {
   // gets opened and listen for it in this test before we check if the item
   // is disabled.
   await SpecialPowers.pushPrefEnv({
-    set: [["security.notification_enable_delay", 1000]],
+    set: [["security.notification_enable_delay", 2000]],
   });
 
   await disableOSAuthForThisTest();
@@ -86,17 +86,19 @@ add_task(async function test_active_delay() {
       info(`Popup was disabled for ${delta} ms`);
       Assert.greaterOrEqual(
         delta,
-        1000,
-        "Popup was disabled for at least 1000 ms"
+        2000,
+        "Popup was disabled for at least 2000 ms"
       );
 
       // Check the clicking on the menu works now
+      const promise = TestUtils.topicObserved("formautofill-autofill-complete");
       firstItem.click();
       is(
         browser.autoCompletePopup.selectedIndex,
         0,
         "First item selected after clicking on enabled item"
       );
+      await promise;
 
       // Clean up
       await closePopup(browser);
@@ -106,7 +108,7 @@ add_task(async function test_active_delay() {
 
 add_task(async function test_no_delay() {
   await SpecialPowers.pushPrefEnv({
-    set: [["security.notification_enable_delay", 1000]],
+    set: [["security.notification_enable_delay", 2000]],
   });
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: ADDRESS_URL },

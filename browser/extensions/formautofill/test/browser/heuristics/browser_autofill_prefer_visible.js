@@ -132,7 +132,6 @@ add_heuristic_tests(
             },
             {
               fieldName: "address-level1",
-              autofill: "--",
               reason: "autocomplete",
             },
             {

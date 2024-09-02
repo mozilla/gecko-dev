@@ -493,9 +493,10 @@ function initPopupListener() {
 }
 
 async function triggerPopupAndHoverItem(fieldSelector, selectIndex) {
+  const promise = expectPopup();
   await focusAndWaitForFieldsIdentified(fieldSelector);
   synthesizeKey("KEY_ArrowDown");
-  await expectPopup();
+  await await promise;
   for (let i = 0; i <= selectIndex; i++) {
     synthesizeKey("KEY_ArrowDown");
   }

@@ -8,13 +8,14 @@ const TEST_PROFILE = {
   "cc-number": "4111111111111111",
   // "cc-type" should be remove from proile after fixing Bug 1834768.
   "cc-type": "visa",
-  "cc-exp-month": 4,
+  "cc-exp-month": "04",
   "cc-exp-year": new Date().getFullYear(),
 };
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["extensions.formautofill.loglevel", "Debug"],
       ["extensions.formautofill.creditCards.supported", "on"],
       ["extensions.formautofill.creditCards.enabled", true],
     ],
@@ -85,6 +86,7 @@ add_autofill_heuristic_tests([
       <input id="name" placeholder="given-name">
     </form>`,
     profile: TEST_PROFILE,
+    autofillTrigger: "#cc-number",
     expectedResult: [
       {
         fields: [
@@ -96,7 +98,7 @@ add_autofill_heuristic_tests([
           {
             fieldName: "cc-exp",
             reason: "autocomplete",
-            autofill: TEST_PROFILE["cc-exp"],
+            autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,
           },
           {
             fieldName: "cc-name",
@@ -184,6 +186,7 @@ add_autofill_heuristic_tests([
       <input id="country" placeholder="country">
     </form>`,
     profile: TEST_PROFILE,
+    autofillTrigger: "#cc-number",
     expectedResult: [
       {
         fields: [
