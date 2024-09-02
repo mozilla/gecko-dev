@@ -92,6 +92,12 @@ BASE_LINK = "http://gecko-docs.mozilla.org-l1.s3-website.us-west-2.amazonaws.com
     "--dump-trees", default=None, help="Dump the Sphinx trees to specified file."
 )
 @CommandArgument(
+    "--disable-fatal-errors",
+    dest="disable_fatal_errors",
+    action="store_true",
+    help="Disable fatal errors.",
+)
+@CommandArgument(
     "--fatal-warnings",
     dest="enable_fatal_warnings",
     action="store_true",
@@ -122,6 +128,7 @@ def build_docs(
     write_url=None,
     linkcheck=None,
     dump_trees=None,
+    disable_fatal_errors=False,
     enable_fatal_warnings=False,
     check_num_warnings=False,
     verbose=None,
@@ -198,15 +205,23 @@ def build_docs(
         print("\nGenerated documentation:\n%s" % savedir)
     msg = ""
 
+    with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
+        docs_config = yaml.safe_load(fh)
+
+    if not disable_fatal_errors:
+        fatal_errors = _check_sphinx_errors(warnings, docs_config)
+        if fatal_errors:
+            msg += f"Error: Got fatal errors:\n{''.join(fatal_errors)}"
     if enable_fatal_warnings:
-        fatal_warnings = _check_sphinx_fatal_warnings(warnings)
+        fatal_warnings = _check_sphinx_fatal_warnings(warnings, docs_config)
         if fatal_warnings:
             msg += f"Error: Got fatal warnings:\n{''.join(fatal_warnings)}"
     if check_num_warnings:
-        [num_new, num_actual] = _check_sphinx_num_warnings(warnings)
+        [num_new, num_actual] = _check_sphinx_num_warnings(warnings, docs_config)
         print("Logged %s warnings\n" % num_actual)
         if num_new:
             msg += f"Error: {num_new} new warnings have been introduced compared to the limit in docs/config.yml"
+
     if msg:
         return dieWithTestFailure(msg)
 
@@ -329,10 +344,8 @@ def _run_sphinx(docdir, savedir, config=None, fmt="html", jobs=None, verbose=Non
             print(ex)
 
 
-def _check_sphinx_fatal_warnings(warnings):
-    with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
-        fatal_warnings_src = yaml.safe_load(fh)["fatal warnings"]
-    fatal_warnings_regex = [re.compile(item) for item in fatal_warnings_src]
+def _check_sphinx_fatal_warnings(warnings, docs_config):
+    fatal_warnings_regex = [re.compile(item) for item in docs_config["fatal warnings"]]
     fatal_warnings = []
     for warning in warnings:
         if any(item.search(warning) for item in fatal_warnings_regex):
@@ -340,11 +353,20 @@ def _check_sphinx_fatal_warnings(warnings):
     return fatal_warnings
 
 
-def _check_sphinx_num_warnings(warnings):
+def _check_sphinx_errors(warnings, docs_config):
+    allowed_errors_regex = [re.compile(item) for item in docs_config["allowed_errors"]]
+    errors = []
+    for warning in warnings:
+        if "ERROR" in warning:
+            if not (any(item.search(warning) for item in allowed_errors_regex)):
+                errors.append(warning)
+    return errors
+
+
+def _check_sphinx_num_warnings(warnings, docs_config):
     # warnings file contains other strings as well
     num_warnings = len([w for w in warnings if "WARNING" in w])
-    with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
-        max_num = yaml.safe_load(fh)["max_num_warnings"]
+    max_num = docs_config["max_num_warnings"]
     if num_warnings > max_num:
         return [num_warnings - max_num, num_warnings]
     return [0, num_warnings]
