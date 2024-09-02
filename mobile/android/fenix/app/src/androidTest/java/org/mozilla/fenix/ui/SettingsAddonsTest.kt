@@ -160,7 +160,7 @@ class SettingsAddonsTest : TestSetup() {
             closeAddonInstallCompletePrompt()
         }.goBack {
         }.openTopSiteTabWithTitle("Top Articles") {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyUrl("getpocket.com/explore")
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyTrackersBlockedByUblock()
