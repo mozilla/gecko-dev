@@ -604,12 +604,29 @@ void SVGUseElement::UnlinkSource() {
 // SVGElement methods
 
 /* virtual */
-gfxMatrix SVGUseElement::ChildToUserSpaceTransform() const {
+gfxMatrix SVGUseElement::PrependLocalTransformsTo(
+    const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
+  if (aWhich == eUserSpaceToParent) {
+    return aMatrix;
+  }
+
+  // our 'x' and 'y' attributes:
   float x, y;
   if (!SVGGeometryProperty::ResolveAll<SVGT::X, SVGT::Y>(this, &x, &y)) {
     const_cast<SVGUseElement*>(this)->GetAnimatedLengthValues(&x, &y, nullptr);
   }
-  return gfxMatrix::Translation(x, y);
+
+  gfxMatrix childToUser = gfxMatrix::Translation(x, y);
+  MOZ_ASSERT(aWhich == eChildToUserSpace || aWhich == eAllTransforms,
+             "Unknown TransformTypes");
+  // The following may look broken because pre-multiplying our eChildToUserSpace
+  // transform with another matrix without including our eUserSpaceToParent
+  // transform between the two wouldn't make sense.  We don't expect that to
+  // ever happen though.  We get here either when the identity matrix has been
+  // passed because our caller just wants our eChildToUserSpace transform, or
+  // when our eUserSpaceToParent transform has already been multiplied into the
+  // matrix that our caller passes (such as when we're called from PaintSVG).
+  return childToUser * aMatrix;
 }
 
 /* virtual */

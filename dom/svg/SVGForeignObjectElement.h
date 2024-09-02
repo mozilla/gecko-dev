@@ -32,7 +32,9 @@ class SVGForeignObjectElement final : public SVGGraphicsElement {
 
  public:
   // SVGElement specializations:
-  gfxMatrix ChildToUserSpaceTransform() const override;
+  gfxMatrix PrependLocalTransformsTo(
+      const gfxMatrix& aMatrix,
+      SVGTransformTypes aWhich = eAllTransforms) const override;
   bool HasValidDimensions() const override;
 
   // nsIContent interface

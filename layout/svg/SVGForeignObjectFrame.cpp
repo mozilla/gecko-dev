@@ -366,10 +366,13 @@ SVGBBox SVGForeignObjectFrame::GetBBoxContribution(
 gfxMatrix SVGForeignObjectFrame::GetCanvasTM() {
   if (!mCanvasTM) {
     NS_ASSERTION(GetParent(), "null parent");
+
     auto* parent = static_cast<SVGContainerFrame*>(GetParent());
     auto* content = static_cast<SVGForeignObjectElement*>(GetContent());
-    mCanvasTM = MakeUnique<gfxMatrix>(content->ChildToUserSpaceTransform() *
-                                      parent->GetCanvasTM());
+
+    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
+
+    mCanvasTM = MakeUnique<gfxMatrix>(tm);
   }
   return *mCanvasTM;
 }

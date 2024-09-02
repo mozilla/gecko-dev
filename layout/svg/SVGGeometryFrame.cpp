@@ -530,7 +530,8 @@ gfxMatrix SVGGeometryFrame::GetCanvasTM() {
 
   auto* parent = static_cast<SVGContainerFrame*>(GetParent());
   auto* content = static_cast<SVGGraphicsElement*>(GetContent());
-  return content->ChildToUserSpaceTransform() * parent->GetCanvasTM();
+
+  return content->PrependLocalTransformsTo(parent->GetCanvasTM());
 }
 
 void SVGGeometryFrame::Render(gfxContext* aContext, uint32_t aRenderComponents,

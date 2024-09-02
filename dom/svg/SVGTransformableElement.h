@@ -33,9 +33,16 @@ class SVGTransformableElement : public SVGElement {
   // WebIDL
   already_AddRefed<DOMSVGAnimatedTransformList> Transform();
 
+  // nsIContent interface
+  nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
+                                      int32_t aModType) const override;
+
   // SVGElement overrides
   bool IsEventAttributeNameInternal(nsAtom* aName) override;
 
+  gfxMatrix PrependLocalTransformsTo(
+      const gfxMatrix& aMatrix,
+      SVGTransformTypes aWhich = eAllTransforms) const override;
   const gfx::Matrix* GetAnimateMotionTransform() const override;
   void SetAnimateMotionTransform(const gfx::Matrix* aMatrix) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;

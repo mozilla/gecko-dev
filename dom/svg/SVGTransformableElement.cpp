@@ -32,12 +32,59 @@ bool SVGTransformableElement::IsAttributeMapped(
          SVGElement::IsAttributeMapped(aAttribute);
 }
 
+nsChangeHint SVGTransformableElement::GetAttributeChangeHint(
+    const nsAtom* aAttribute, int32_t aModType) const {
+  nsChangeHint retval =
+      SVGElement::GetAttributeChangeHint(aAttribute, aModType);
+  if (aAttribute == nsGkAtoms::transform ||
+      aAttribute == nsGkAtoms::mozAnimateMotionDummyAttr) {
+    nsIFrame* frame = GetPrimaryFrame();
+    retval |= nsChangeHint_InvalidateRenderingObservers;
+    if (!frame || frame->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
+      return retval;
+    }
+
+    bool isAdditionOrRemoval = false;
+    if (aModType == MutationEvent_Binding::ADDITION ||
+        aModType == MutationEvent_Binding::REMOVAL) {
+      isAdditionOrRemoval = true;
+    } else {
+      MOZ_ASSERT(aModType == MutationEvent_Binding::MODIFICATION,
+                 "Unknown modification type.");
+      if (!mTransforms || !mTransforms->HasTransform()) {
+        // New value is empty, treat as removal.
+        // FIXME: Should we just rely on CreatedOrRemovedOnLastChange?
+        isAdditionOrRemoval = true;
+      } else if (mTransforms->CreatedOrRemovedOnLastChange()) {
+        // Old value was empty, treat as addition.
+        isAdditionOrRemoval = true;
+      }
+    }
+
+    if (isAdditionOrRemoval) {
+      retval |= nsChangeHint_ComprehensiveAddOrRemoveTransform;
+    } else {
+      // We just assume the old and new transforms are different.
+      retval |= nsChangeHint_UpdatePostTransformOverflow |
+                nsChangeHint_UpdateTransformLayer;
+    }
+  }
+  return retval;
+}
+
 bool SVGTransformableElement::IsEventAttributeNameInternal(nsAtom* aName) {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_SVGGraphic);
 }
 
 //----------------------------------------------------------------------
 // SVGElement overrides
+
+gfxMatrix SVGTransformableElement::PrependLocalTransformsTo(
+    const gfxMatrix& aMatrix, SVGTransformTypes aWhich) const {
+  // We don't have any eUserSpaceToParent transforms. (Sub-classes that do
+  // must override this function and handle that themselves.)
+  return aMatrix;
+}
 
 const gfx::Matrix* SVGTransformableElement::GetAnimateMotionTransform() const {
   return mAnimateMotionTransform.get();
