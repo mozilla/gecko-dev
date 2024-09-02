@@ -28,12 +28,12 @@ add_task(async function () {
   const swatches = [];
   swatches.push(
     getRuleViewProperty(view, "div", "animation").valueSpan.querySelector(
-      ".ruleview-bezierswatch"
+      ".inspector-bezierswatch"
     )
   );
   swatches.push(
     getRuleViewProperty(view, "div", "transition").valueSpan.querySelector(
-      ".ruleview-bezierswatch"
+      ".inspector-bezierswatch"
     )
   );
   swatches.push(
@@ -41,14 +41,14 @@ add_task(async function () {
       view,
       ".test",
       "animation-timing-function"
-    ).valueSpan.querySelector(".ruleview-bezierswatch")
+    ).valueSpan.querySelector(".inspector-bezierswatch")
   );
   swatches.push(
     getRuleViewProperty(
       view,
       ".test",
       "transition-timing-function"
-    ).valueSpan.querySelector(".ruleview-bezierswatch")
+    ).valueSpan.querySelector(".inspector-bezierswatch")
   );
 
   for (const swatch of swatches) {

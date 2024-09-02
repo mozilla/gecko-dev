@@ -60,7 +60,7 @@ add_task(async function () {
     view,
     "span",
     "color"
-  ).valueSpan.querySelector(".ruleview-variable");
+  ).valueSpan.querySelector(".inspector-variable");
   is(setColor.textContent, "--test-color", "--test-color is set correctly");
   is(
     setColor.dataset.variable,

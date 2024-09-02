@@ -25,14 +25,14 @@ add_task(async function () {
   await selectNode("div", inspector);
 
   info("Test the CSS variable which normal element is referring to");
-  checkCSSVariableOutput(view, "div", "color", "ruleview-variable", "lime");
+  checkCSSVariableOutput(view, "div", "color", "inspector-variable", "lime");
 
   info("Test the CSS variable which pseudo element is referring to");
   checkCSSVariableOutput(
     view,
     "div::before",
     "color",
-    "ruleview-variable",
+    "inspector-variable",
     "lime"
   );
 });

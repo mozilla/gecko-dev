@@ -29,7 +29,7 @@ add_task(async function () {
   info("Select a node with a shape value");
   await selectNode("#shape", inspector);
   const container = getRuleViewProperty(view, "#shape", "clip-path").valueSpan;
-  const shapesToggle = container.querySelector(".ruleview-shapeswatch");
+  const shapesToggle = container.querySelector(".inspector-shapeswatch");
 
   info("Toggling ON the CSS shapes highlighter with transform mode on.");
   let onHighlighterShown = highlighters.once("shapes-highlighter-shown");

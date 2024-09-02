@@ -18,7 +18,7 @@ add_task(async function () {
 
   info("Get the background property from the rule-view");
   const property = getRuleViewProperty(view, "body", "background");
-  const swatch = property.valueSpan.querySelector(".ruleview-colorswatch");
+  const swatch = property.valueSpan.querySelector(".inspector-colorswatch");
   ok(swatch, "Color swatch is displayed for the background property");
 
   info("Open the eyedropper from the colorpicker tooltip");

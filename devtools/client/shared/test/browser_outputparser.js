@@ -621,9 +621,9 @@ function testParseShape(doc, parser) {
   for (const { desc, definition, property = "clip-path", spanCount } of tests) {
     info(desc);
     const frag = parser.parseCssProperty(property, definition, {
-      shapeClass: "ruleview-shape",
+      shapeClass: "inspector-shape",
     });
-    const spans = frag.querySelectorAll(".ruleview-shape-point");
+    const spans = frag.querySelectorAll(".inspector-shape-point");
     is(spans.length, spanCount, desc + " span count");
     is(frag.textContent, definition, desc + " text content");
   }

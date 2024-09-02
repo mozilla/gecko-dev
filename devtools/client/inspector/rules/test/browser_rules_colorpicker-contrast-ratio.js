@@ -131,7 +131,7 @@ async function checkColorPickerConstrastData({
   ok(cPickerPanel, "The XUL panel for the color picker exists");
 
   const colorSwatch = ruleViewPropertyEl.valueSpan.querySelectorAll(
-    ".ruleview-colorswatch"
+    ".inspector-colorswatch"
   )[swatchIndex];
 
   const onColorPickerReady = cPicker.once("ready");

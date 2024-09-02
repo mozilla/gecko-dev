@@ -32,7 +32,7 @@ add_task(async function () {
     "clip-path"
   ).valueSpan;
   let clipPathShapeToggle = clipPathContainer.querySelector(
-    ".ruleview-shapeswatch"
+    ".inspector-shapeswatch"
   );
   let shapeOutsideContainer = getRuleViewProperty(
     view,
@@ -40,7 +40,7 @@ add_task(async function () {
     "shape-outside"
   ).valueSpan;
   let shapeOutsideToggle = shapeOutsideContainer.querySelector(
-    ".ruleview-shapeswatch"
+    ".inspector-shapeswatch"
   );
 
   info(
@@ -87,7 +87,7 @@ add_task(async function () {
     "clip-path"
   ).valueSpan;
   clipPathShapeToggle = clipPathContainer.querySelector(
-    ".ruleview-shapeswatch"
+    ".inspector-shapeswatch"
   );
   shapeOutsideContainer = getRuleViewProperty(
     view,
@@ -95,7 +95,7 @@ add_task(async function () {
     "shape-outside"
   ).valueSpan;
   shapeOutsideToggle = shapeOutsideContainer.querySelector(
-    ".ruleview-shapeswatch"
+    ".inspector-shapeswatch"
   );
   is(
     clipPathShapeToggle.getAttribute("aria-pressed"),

@@ -161,7 +161,7 @@ var openColorPickerAndSelectColor = async function (
 ) {
   const ruleEditor = getRuleViewRuleEditor(view, ruleIndex);
   const propEditor = ruleEditor.rule.textProps[propIndex].editor;
-  const swatch = propEditor.valueSpan.querySelector(".ruleview-colorswatch");
+  const swatch = propEditor.valueSpan.querySelector(".inspector-colorswatch");
   const cPicker = view.tooltips.getTooltip("colorPicker");
 
   info("Opening the colorpicker by clicking the color swatch");
@@ -204,7 +204,7 @@ var openCubicBezierAndChangeCoords = async function (
 ) {
   const ruleEditor = getRuleViewRuleEditor(view, ruleIndex);
   const propEditor = ruleEditor.rule.textProps[propIndex].editor;
-  const swatch = propEditor.valueSpan.querySelector(".ruleview-bezierswatch");
+  const swatch = propEditor.valueSpan.querySelector(".inspector-bezierswatch");
   const bezierTooltip = view.tooltips.getTooltip("cubicBezier");
 
   info("Opening the cubicBezier by clicking the swatch");

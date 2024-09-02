@@ -25,7 +25,7 @@ add_task(async function () {
     view,
     "body",
     "color"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   const bgImageSpan = getRuleViewProperty(
     view,

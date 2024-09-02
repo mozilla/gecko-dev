@@ -30,7 +30,7 @@ async function testBasic(inspector, view) {
     view,
     "#a",
     "font-size"
-  ).valueSpan.querySelector(".ruleview-unmatched");
+  ).valueSpan.querySelector(".inspector-unmatched");
   const setVarParent = unsetVar.nextElementSibling;
   const setVar = getVarFromParent(setVarParent);
   is(
@@ -71,7 +71,7 @@ async function testNestedCssFunctions(inspector, view) {
     view,
     "#b",
     "color"
-  ).valueSpan.querySelector(".ruleview-unmatched");
+  ).valueSpan.querySelector(".inspector-unmatched");
   const unsetVar = getVarFromParent(unsetVarParent);
   const setVar = unsetVarParent.previousElementSibling;
   is(
@@ -113,7 +113,7 @@ async function testBorderShorthandAndInheritance(inspector, view) {
     view,
     "#c",
     "border"
-  ).valueSpan.querySelector(".ruleview-unmatched");
+  ).valueSpan.querySelector(".inspector-unmatched");
   const setVarMParent = unsetVarL.nextElementSibling;
 
   // var(x) is the next sibling of the parent of M
@@ -213,7 +213,7 @@ async function testSingleLevelVariable(inspector, view) {
     view,
     "#d",
     "font-size"
-  ).valueSpan.querySelector(".ruleview-unmatched");
+  ).valueSpan.querySelector(".inspector-unmatched");
 
   is(
     unsetVar.textContent,
@@ -238,7 +238,7 @@ async function testDoubleLevelVariable(inspector, view) {
     view,
     "#e",
     "color"
-  ).valueSpan.querySelectorAll(".ruleview-unmatched");
+  ).valueSpan.querySelectorAll(".inspector-unmatched");
 
   is(allUnsetVars.length, 2, "The number of unset variables is mismatched.");
 
@@ -279,7 +279,7 @@ async function testTripleLevelVariable(inspector, view) {
     view,
     "#f",
     "border-style"
-  ).valueSpan.querySelectorAll(".ruleview-unmatched");
+  ).valueSpan.querySelectorAll(".inspector-unmatched");
 
   is(allUnsetVars.length, 3, "The number of unset variables is mismatched.");
 

@@ -30,7 +30,7 @@ async function testColorChangeIsntRevertedWhenOtherTooltipIsShown(ruleView) {
     ruleView,
     "body",
     "background"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   info("Open the color picker tooltip and change the color");
   const picker = ruleView.tooltips.getTooltip("colorPicker");
@@ -58,7 +58,7 @@ async function testColorChangeIsntRevertedWhenOtherTooltipIsShown(ruleView) {
   const previewTooltip = await assertShowPreviewTooltip(ruleView, url);
 
   info("Image tooltip is shown, verify that the swatch is still correct");
-  swatch = value.querySelector(".ruleview-colorswatch");
+  swatch = value.querySelector(".inspector-colorswatch");
   is(swatch.style.backgroundColor, "black", "The swatch's color is correct");
   is(swatch.nextSibling.textContent, "black", "The color name is correct");
 

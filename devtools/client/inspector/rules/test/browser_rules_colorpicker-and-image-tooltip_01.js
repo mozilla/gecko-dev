@@ -26,7 +26,7 @@ add_task(async function () {
   });
 
   const value = property.valueSpan;
-  const swatch = value.querySelectorAll(".ruleview-colorswatch")[0];
+  const swatch = value.querySelectorAll(".inspector-colorswatch")[0];
   const url = value.querySelector(".theme-link");
   await testImageTooltipAfterColorChange(swatch, url, view);
 });

@@ -17,7 +17,7 @@ add_task(async function () {
 async function testPressingEscapeRevertsChanges(view) {
   const prop = getTextProperty(view, 1, { filter: "blur(2px) contrast(2)" });
   const propEditor = prop.editor;
-  const swatch = propEditor.valueSpan.querySelector(".ruleview-filterswatch");
+  const swatch = propEditor.valueSpan.querySelector(".inspector-filterswatch");
 
   await clickOnFilterSwatch(swatch, view);
   await setValueInFilterWidget("blur(2px)", view);

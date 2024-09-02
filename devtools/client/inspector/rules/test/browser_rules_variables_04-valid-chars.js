@@ -27,7 +27,7 @@ async function testNumber(inspector, view) {
     view,
     "#a",
     "font-size"
-  ).valueSpan.querySelector(".ruleview-variable");
+  ).valueSpan.querySelector(".inspector-variable");
 
   is(
     upperCaseVarEl.dataset.variable,
@@ -48,7 +48,7 @@ async function testDash(inspector, view) {
     view,
     "#b",
     "color"
-  ).valueSpan.querySelector(".ruleview-variable");
+  ).valueSpan.querySelector(".inspector-variable");
 
   is(
     upperCaseVarEl.dataset.variable,

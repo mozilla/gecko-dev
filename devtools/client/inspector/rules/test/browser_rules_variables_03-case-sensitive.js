@@ -16,12 +16,12 @@ add_task(async function () {
     view,
     "div",
     "color"
-  ).valueSpan.querySelector(".ruleview-variable");
+  ).valueSpan.querySelector(".inspector-variable");
   const lowerCaseVarEl = getRuleViewProperty(
     view,
     "div",
     "background"
-  ).valueSpan.querySelector(".ruleview-variable");
+  ).valueSpan.querySelector(".inspector-variable");
 
   is(upperCaseVarEl.textContent, "--COLOR", "upper case variable is matched");
   is(

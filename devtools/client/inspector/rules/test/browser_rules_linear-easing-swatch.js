@@ -482,6 +482,6 @@ async function checkRuleView(
  */
 function getRuleViewLinearEasingSwatch(view, selector, property) {
   return getRuleViewProperty(view, selector, property).valueSpan.querySelector(
-    ".ruleview-lineareasingswatch"
+    ".inspector-lineareasingswatch"
   );
 }

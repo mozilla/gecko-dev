@@ -53,7 +53,7 @@ async function highlightFromRuleView(config) {
   await setup({ selector, property, ...config });
 
   const container = getRuleViewProperty(view, selector, property).valueSpan;
-  const shapesToggle = container.querySelector(".ruleview-shapeswatch");
+  const shapesToggle = container.querySelector(".inspector-shapeswatch");
 
   const highlighterFront =
     inspector.inspectorFront.getKnownHighlighter(HIGHLIGHTER_TYPE);
@@ -67,7 +67,7 @@ async function highlightFromRuleView(config) {
 
   info("Hover over point 0 in rule view");
   const pointSpan = container.querySelector(
-    ".ruleview-shape-point[data-point='0']"
+    ".inspector-shape-point[data-point='0']"
   );
   let onHighlighterShown = highlighters.once("shapes-highlighter-shown");
   EventUtils.synthesizeMouseAtCenter(
@@ -138,7 +138,7 @@ async function highlightFromHighlighter(config) {
     "Point in rule view is marked when same point in shapes highlighter is hovered"
   );
   const pointSpan = container.querySelector(
-    ".ruleview-shape-point[data-point='0']"
+    ".inspector-shape-point[data-point='0']"
   );
   ok(pointSpan.classList.contains("active"), "Span for point 0 is active");
 

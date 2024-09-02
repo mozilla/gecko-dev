@@ -43,7 +43,7 @@ async function basicTest(view, name, result) {
     view,
     "#testid",
     "color"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
   const onColorPickerReady = cPicker.once("ready");
   swatch.click();
   await onColorPickerReady;

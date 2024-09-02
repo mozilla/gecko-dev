@@ -27,7 +27,7 @@ add_task(async function () {
   // Find the color swatch in the rule-view.
   let ruleView = inspector.getPanel("ruleview").view;
   let ruleViewDocument = ruleView.styleDocument;
-  let swatchEl = ruleViewDocument.querySelector(".ruleview-colorswatch");
+  let swatchEl = ruleViewDocument.querySelector(".inspector-colorswatch");
 
   info("Open the color picker");
   let cPicker = ruleView.tooltips.getTooltip("colorPicker");
@@ -57,7 +57,7 @@ add_task(async function () {
 
   ruleView = inspector.getPanel("ruleview").view;
   ruleViewDocument = ruleView.styleDocument;
-  swatchEl = ruleViewDocument.querySelector(".ruleview-colorswatch");
+  swatchEl = ruleViewDocument.querySelector(".inspector-colorswatch");
 
   info("Open the color picker in HTML document");
   cPicker = ruleView.tooltips.getTooltip("colorPicker");

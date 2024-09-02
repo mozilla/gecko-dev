@@ -66,7 +66,7 @@ async function runTest(inspector, view, isWindowHost) {
 
   info("Get the background-color property from the rule-view");
   const property = getRuleViewProperty(view, "#div2", "background-color");
-  const swatch = property.valueSpan.querySelector(".ruleview-colorswatch");
+  const swatch = property.valueSpan.querySelector(".inspector-colorswatch");
   ok(swatch, "Color swatch is displayed for the bg-color property");
 
   info("Open the eyedropper from the colorpicker tooltip");

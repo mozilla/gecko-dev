@@ -38,7 +38,7 @@ add_task(async function () {
     "display"
   ).valueSpan;
   const overriddenGridToggle =
-    overriddenContainer.querySelector(".ruleview-grid");
+    overriddenContainer.querySelector(".inspector-grid");
 
   info("Checking the initial state of the CSS grid toggle in the rule-view.");
   ok(

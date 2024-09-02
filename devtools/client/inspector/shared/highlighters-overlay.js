@@ -1587,7 +1587,7 @@ class HighlightersOverlay {
    */
   _isRuleViewShapeSwatch(node) {
     return (
-      this.isRuleView(node) && node.classList.contains("ruleview-shapeswatch")
+      this.isRuleView(node) && node.classList.contains("inspector-shapeswatch")
     );
   }
 

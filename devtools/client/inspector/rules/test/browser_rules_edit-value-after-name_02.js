@@ -36,7 +36,7 @@ add_task(async function () {
   const propEditor = prop.editor;
 
   const swatchSpan = propEditor.valueSpan.querySelectorAll(
-    ".ruleview-colorswatch"
+    ".inspector-colorswatch"
   )[2];
 
   info("Focus the background name span");

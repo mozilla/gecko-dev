@@ -168,7 +168,7 @@ async function checkColorCyclingWithColorPicker(inspector, view) {
   );
 
   info("Opening the color picker");
-  const swatchElement = valueSpan.querySelector(".ruleview-colorswatch");
+  const swatchElement = valueSpan.querySelector(".inspector-colorswatch");
   const picker = view.tooltips.getTooltip("colorPicker");
   const onColorPickerReady = picker.once("ready");
   swatchElement.click();
@@ -197,7 +197,7 @@ async function runSwatchShiftClickTests(view, valueSpan, tests) {
 }
 
 async function checkSwatchShiftClick(view, valueSpan, expectedValue, comment) {
-  const swatchNode = valueSpan.querySelector(".ruleview-colorswatch");
+  const swatchNode = valueSpan.querySelector(".inspector-colorswatch");
   const colorNode = valueSpan.querySelector(".ruleview-color");
 
   info(

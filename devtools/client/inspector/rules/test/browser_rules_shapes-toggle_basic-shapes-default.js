@@ -52,7 +52,7 @@ add_task(async function () {
       selector,
       "clip-path"
     ).valueSpan;
-    const shapesToggle = container.querySelector(".ruleview-shapeswatch");
+    const shapesToggle = container.querySelector(".inspector-shapeswatch");
 
     if (expectShapesToogle) {
       ok(

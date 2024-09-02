@@ -185,7 +185,7 @@ body {
   color: var(--theme-contrast-color);
 }
 
-.ruleview-swatch,
+.inspector-swatch,
 .computed-colorswatch {
   box-shadow: 0 0 0 1px #c4c4c4;
 }

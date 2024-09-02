@@ -46,7 +46,7 @@ add_task(async function () {
       view,
       "element",
       "color"
-    ).valueSpan.querySelector(".ruleview-colorswatch");
+    ).valueSpan.querySelector(".inspector-colorswatch");
     const cPicker = view.tooltips.getTooltip("colorPicker");
     const onColorPickerReady = cPicker.once("ready");
     swatch.click();

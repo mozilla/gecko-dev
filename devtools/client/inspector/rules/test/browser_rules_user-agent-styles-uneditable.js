@@ -50,7 +50,7 @@ async function userAgentStylesUneditable(inspector, view) {
     ok(!rule.editor.closeBrace._editable, "closeBrace is not editable");
 
     const colorswatch = rule.editor.element.querySelector(
-      ".ruleview-colorswatch"
+      ".inspector-colorswatch"
     );
     if (colorswatch) {
       ok(

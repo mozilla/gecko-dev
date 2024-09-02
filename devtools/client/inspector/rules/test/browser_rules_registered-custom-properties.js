@@ -169,7 +169,7 @@ add_task(async function () {
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato">' +
         '<span ' +
-          'class="ruleview-swatch ruleview-colorswatch" ' +
+          'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:tomato" ' +
           'tabindex="0" ' +
           'role="button">' +
@@ -183,7 +183,7 @@ add_task(async function () {
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato">' +
           '<span ' +
-            'class="ruleview-swatch ruleview-colorswatch" ' +
+            'class="inspector-swatch inspector-colorswatch" ' +
             'style="background-color:tomato" ' +
             'tabindex="0" ' +
             'role="button">' +
@@ -198,7 +198,7 @@ add_task(async function () {
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="#FF0000">' +
         '<span ' +
-          'class="ruleview-swatch ruleview-colorswatch" ' +
+          'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:#FF0000" ' +
           'tabindex="0" ' +
           'role="button">' +
@@ -209,7 +209,7 @@ add_task(async function () {
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="rgb(255, 0, 0)">' +
         '<span ' +
-          'class="ruleview-swatch ruleview-colorswatch" ' +
+          'class="inspector-swatch inspector-colorswatch" ' +
           'style="background-color:rgb(255, 0, 0)" ' +
           'tabindex="0" ' +
           'role="button">' +
@@ -223,7 +223,7 @@ add_task(async function () {
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="gold">' +
           '<span ' +
-            'class="ruleview-swatch ruleview-colorswatch" ' +
+            'class="inspector-swatch inspector-colorswatch" ' +
             'style="background-color:gold" ' +
             'tabindex="0" ' +
             'role="button">' +
@@ -242,7 +242,7 @@ add_task(async function () {
         // prettier-ignore
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:purple" ` +
             `tabindex="0" ` +
             `role="button">` +
@@ -256,7 +256,7 @@ add_task(async function () {
           // prettier-ignore
           `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
             `<span ` +
-              `class="ruleview-swatch ruleview-colorswatch" ` +
+              `class="inspector-swatch inspector-colorswatch" ` +
               `style="background-color:purple" ` +
               `tabindex="0" ` +
               `role="button">` +
@@ -343,7 +343,7 @@ add_task(async function () {
       // prettier-ignore
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid">` +
         `<span ` +
-          `class="ruleview-swatch ruleview-colorswatch" ` +
+          `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:orchid" ` +
           `tabindex="0" ` +
           `role="button">` +
@@ -357,7 +357,7 @@ add_task(async function () {
         // prettier-ignore
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:orchid" ` +
             `tabindex="0" ` +
             `role="button">` +
@@ -404,7 +404,7 @@ add_task(async function () {
       // prettier-ignore
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
         `<span ` +
-          `class="ruleview-swatch ruleview-colorswatch" ` +
+          `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:purple" ` +
           `tabindex="0" ` +
           `role="button">` +
@@ -418,7 +418,7 @@ add_task(async function () {
         // prettier-ignore
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:purple" ` +
             `tabindex="0" ` +
             `role="button">` +
@@ -454,7 +454,7 @@ add_task(async function () {
   );
   is(
     getRuleViewProperty(view, "h1", "outline").valueSpan.querySelector(
-      ".ruleview-unmatched"
+      ".inspector-unmatched"
     ).textContent,
     "--constructed",
     "The --constructed variable is set as unmatched since it's not defined nor registered"
@@ -496,7 +496,7 @@ add_task(async function () {
       // prettier-ignore
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua">` +
         `<span ` +
-          `class="ruleview-swatch ruleview-colorswatch" ` +
+          `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:aqua" ` +
           `tabindex="0" ` +
           `role="button">` +
@@ -510,7 +510,7 @@ add_task(async function () {
         // prettier-ignore
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:aqua" ` +
             `tabindex="0" ` +
             `role="button">` +

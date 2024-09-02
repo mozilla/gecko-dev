@@ -33,7 +33,7 @@ async function testCopyToClipboard(inspector, view) {
     view,
     "div",
     "color"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   const menu = view.contextMenu._openMenu({ target: element });
   const allMenuItems = buildContextMenuItems(menu);
@@ -87,7 +87,7 @@ async function testColorPickerEdit(inspector, view) {
     view,
     "div",
     "color"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   info("Opening the color picker");
   const picker = view.tooltips.getTooltip("colorPicker");

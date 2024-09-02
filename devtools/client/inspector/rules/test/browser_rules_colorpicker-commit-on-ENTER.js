@@ -23,7 +23,7 @@ add_task(async function () {
     view,
     "body",
     "border"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
   await testPressingEnterCommitsChanges(swatch, view);
 });
 

@@ -210,7 +210,7 @@
   .ruleview-used,
   .ruleview-invalid-at-computed-value-time-warning,
 ),
-.ruleview-overridden .ruleview-grid {
+.ruleview-overridden .inspector-grid {
   display: none;
 }
 
@@ -366,8 +366,8 @@
   visibility: hidden;
 }
 
-.ruleview-rule.uneditable .ruleview-swatch,
-.ruleview-rule[uneditable=true] .ruleview-swatch {
+.ruleview-rule.uneditable .inspector-swatch,
+.ruleview-rule[uneditable=true] .inspector-swatch {
   cursor: default;
 }
 
@@ -628,13 +628,13 @@
 
 /**
  * Hide swatches (tool icons) from properties that are overwritten by higher specificity * rules.
- * .ruleview-swatch is a base class for many tool swatches (shapes, color, bezier curves)
- * .ruleview-flex and .ruleview-grid are custom
+ * .inspector-swatch is a base class for many tool swatches (shapes, color, bezier curves)
+ * .inspector-flex and .inspector-grid are custom
  */
-.ruleview-overridden .ruleview-flex,
-.ruleview-overridden .ruleview-grid,
-.ruleview-overridden .ruleview-shapeswatch,
-.ruleview-overridden .ruleview-swatch {
+.ruleview-overridden .inspector-flex,
+.ruleview-overridden .inspector-grid,
+.ruleview-overridden .inspector-shapeswatch,
+.ruleview-overridden .inspector-swatch {
   display: none;
 }
 
@@ -697,7 +697,7 @@
   }
 
   &.ruleview-selector.unmatched,
-  & .ruleview-unmatched,
+  & .inspector-unmatched,
   .ruleview-property:is(.unused, .ruleview-overridden) & :is(.ruleview-propertyname, .ruleview-propertyvalue) {
     color: var(--rule-highlight-unmatched-unused-color);
   }
@@ -759,7 +759,7 @@
     only with colors, so let's add a line-through line */
 :is(
   .ruleview-selector.unmatched,
-  .ruleview-unmatched,
+  .inspector-unmatched,
   .ruleview-invalid-at-computed-value-time
 ):not(
   /* don't show the strike through when the element is hovered so it's more legible */

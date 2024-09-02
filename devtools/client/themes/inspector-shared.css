@@ -11,11 +11,11 @@
   font-style: italic;
 }
 
-.ruleview-unmatched {
+.inspector-unmatched {
   color: var(--theme-text-color-alt);
 }
 
-.ruleview-unmatched:not(
+.inspector-unmatched:not(
   /* don't show the strike through when the element is hovered so it's more legible */
   :hover
 ) {

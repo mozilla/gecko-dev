@@ -23,7 +23,7 @@ add_task(async function () {
     view,
     "body",
     "transition"
-  ).valueSpan.querySelector(".ruleview-bezierswatch");
+  ).valueSpan.querySelector(".inspector-bezierswatch");
 
   await testPressingEnterCommitsChanges(swatch, view);
 });

@@ -21,14 +21,14 @@ add_task(async function () {
     view,
     "div",
     "color"
-  ).valueSpan.querySelector(".ruleview-unmatched");
+  ).valueSpan.querySelector(".inspector-unmatched");
   is(unsetColor.textContent, " red", "red is unmatched in color");
 
   await assertVariableTooltipForProperty(view, "div", "color", {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">' +
-        '<span class="ruleview-swatch ruleview-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">chartreuse</span>' +
       '</span>',
@@ -48,7 +48,7 @@ add_task(async function () {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen">' +
-        '<span class="ruleview-swatch ruleview-colorswatch" style="background-color:seagreen" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:seagreen" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">seagreen</span>' +
       '</span>',
@@ -60,11 +60,11 @@ add_task(async function () {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">' +
-        '<span class="ruleview-swatch ruleview-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
         '</span>' +
         '<span class="ruleview-color">' +
           'var(' +
-            '<span data-variable="chartreuse" class="ruleview-variable">--color</span>' +
+            '<span data-variable="chartreuse" class="inspector-variable">--color</span>' +
           ')' +
         '</span>' +
       '</span>',
@@ -72,7 +72,7 @@ add_task(async function () {
       // prettier-ignore
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">` +
         `<span ` +
-          `class="ruleview-swatch ruleview-colorswatch" ` +
+          `class="inspector-swatch inspector-colorswatch" ` +
           `style="background-color:chartreuse" ` +
           `tabindex="0" ` +
           `role="button">` +
@@ -86,7 +86,7 @@ add_task(async function () {
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml">' +
         'var(' +
-          '<span data-variable="light-dark(var(--color), var(--bg))" class="ruleview-variable" data-variable-computed="light-dark(chartreuse, seagreen)">' +
+          '<span data-variable="light-dark(var(--color), var(--bg))" class="inspector-variable" data-variable-computed="light-dark(chartreuse, seagreen)">' +
             '--theme-color' +
           '</span>' +
         ')' +
@@ -96,7 +96,7 @@ add_task(async function () {
       `light-dark(` +
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:chartreuse" ` +
             `tabindex="0" ` +
             `role="button" ` +
@@ -104,9 +104,9 @@ add_task(async function () {
           `</span>` +
           `<span class="ruleview-color">chartreuse</span>` +
         `</span>, ` +
-        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="ruleview-unmatched">` +
+        `<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="inspector-unmatched">` +
           `<span ` +
-            `class="ruleview-swatch ruleview-colorswatch" ` +
+            `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:seagreen" ` +
             `tabindex="0" ` +
             `role="button" ` +
@@ -122,7 +122,7 @@ add_task(async function () {
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml">' +
         'var(' +
-          '<span data-variable="" class="ruleview-variable">' +
+          '<span data-variable="" class="inspector-variable">' +
             '--empty' +
           '</span>' +
         ')' +

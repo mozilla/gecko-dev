@@ -118,7 +118,7 @@ function getNodeInfo(node, elementStyle) {
       sheetHref: rule.domRule.href,
       textProperty: declaration,
     };
-  } else if (declaration && classList.contains("ruleview-shape-point")) {
+  } else if (declaration && classList.contains("inspector-shape-point")) {
     type = VIEW_NODE_SHAPE_POINT_TYPE;
     value = {
       property: getPropertyNameAndValue(node).name,
@@ -144,7 +144,7 @@ function getNodeInfo(node, elementStyle) {
   } else if (node.classList.contains("ruleview-selector-warnings")) {
     type = VIEW_NODE_CSS_SELECTOR_WARNINGS;
     value = node.getAttribute("data-selector-warning-kind").split(",");
-  } else if (declaration && classList.contains("ruleview-shapeswatch")) {
+  } else if (declaration && classList.contains("inspector-shapeswatch")) {
     type = VIEW_NODE_SHAPE_SWATCH;
     value = {
       enabled: declaration.enabled,
@@ -153,8 +153,8 @@ function getNodeInfo(node, elementStyle) {
     };
   } else if (
     declaration &&
-    (classList.contains("ruleview-variable") ||
-      classList.contains("ruleview-unmatched"))
+    (classList.contains("inspector-variable") ||
+      classList.contains("inspector-unmatched"))
   ) {
     type = VIEW_NODE_VARIABLE_TYPE;
     value = {
@@ -268,7 +268,7 @@ function getShapeToggleActive(node) {
       node.classList.contains("ruleview-computed") ||
       node.classList.contains("ruleview-property")
     ) {
-      return node.querySelector(`.ruleview-shapeswatch[aria-pressed="true"]`);
+      return node.querySelector(`.inspector-shapeswatch[aria-pressed="true"]`);
     }
 
     node = node.parentNode;

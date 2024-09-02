@@ -45,7 +45,7 @@ add_task(async function () {
   const ruleEl = getRuleViewProperty(view, "button", "color");
   ok(ruleEl, "The color declaration was found");
 
-  const swatchEl = ruleEl.valueSpan.querySelector(".ruleview-colorswatch");
+  const swatchEl = ruleEl.valueSpan.querySelector(".inspector-colorswatch");
   const colorEl = ruleEl.valueSpan.querySelector(".ruleview-color");
   is(colorEl.textContent, "tomato", "The right color value was found");
 

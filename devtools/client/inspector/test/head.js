@@ -1050,19 +1050,19 @@ async function assertVariableTooltipForProperty(
         view,
         ruleSelector,
         propertyName
-      ).valueSpan.querySelectorAll(".ruleview-variable,.ruleview-unmatched")[
+      ).valueSpan.querySelectorAll(".inspector-variable,.inspector-unmatched")[
         index
       ]
   );
 
   if (isMatched) {
     ok(
-      !variableEl.classList.contains("ruleview-unmatched"),
+      !variableEl.classList.contains("inspector-unmatched"),
       `CSS variable #${index} for ${propertyName} in ${ruleSelector} is matched`
     );
   } else {
     ok(
-      variableEl.classList.contains("ruleview-unmatched"),
+      variableEl.classList.contains("inspector-unmatched"),
       `CSS variable #${index} for ${propertyName} in ${ruleSelector} is unmatched`
     );
   }
@@ -1212,7 +1212,7 @@ async function toggleShapesHighlighter(
   );
   const highlighters = view.highlighters;
   const container = getRuleViewProperty(view, selector, property).valueSpan;
-  const shapesToggle = container.querySelector(".ruleview-shapeswatch");
+  const shapesToggle = container.querySelector(".inspector-shapeswatch");
 
   const metaKey = options.transformMode;
   const ctrlKey = options.transformMode;

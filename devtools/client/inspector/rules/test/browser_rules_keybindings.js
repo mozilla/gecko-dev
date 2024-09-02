@@ -66,7 +66,7 @@ add_task(async function () {
       view,
       "h1",
       "background-color"
-    )?.valueSpan?.querySelector(".ruleview-colorswatch")
+    )?.valueSpan?.querySelector(".inspector-colorswatch")
   );
 
   is(

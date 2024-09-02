@@ -59,7 +59,7 @@ async function testPickerDimension(ruleView) {
   info("Testing color-picker tooltip dimensions");
 
   const { valueSpan } = getRuleViewProperty(ruleView, "div", "background");
-  const swatch = valueSpan.querySelector(".ruleview-colorswatch");
+  const swatch = valueSpan.querySelector(".inspector-colorswatch");
   const cPicker = ruleView.tooltips.getTooltip("colorPicker");
 
   const onReady = cPicker.once("ready");

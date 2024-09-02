@@ -147,7 +147,7 @@ function assertColorSpans(view, ruleSelector, propertyName, expectedColors) {
       `Expected color ${i} for ${ruleSelector} ${propertyName}`
     );
     is(
-      !colorSpan.classList.contains("ruleview-unmatched"),
+      !colorSpan.classList.contains("inspector-unmatched"),
       expectedColorData.matched,
       `Color ${i} for ${ruleSelector} ${propertyName} is ${
         expectedColorData.matched ? "matched" : "unmatched"

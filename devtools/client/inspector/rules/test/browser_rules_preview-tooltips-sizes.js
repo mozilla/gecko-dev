@@ -45,8 +45,9 @@ add_task(async function () {
 
   // Retrieve the element for `--test-var` on which the CSS variable tooltip will appear.
   const colorPropertySpan = colorPropertyElement.valueSpan;
-  const colorVariableElement =
-    colorPropertySpan.querySelector(".ruleview-variable");
+  const colorVariableElement = colorPropertySpan.querySelector(
+    ".inspector-variable"
+  );
   ok(!!colorVariableElement, "Found the variable element");
 
   // Retrieve the element for the background url on which the image preview will appear.

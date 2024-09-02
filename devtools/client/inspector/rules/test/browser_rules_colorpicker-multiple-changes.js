@@ -40,7 +40,7 @@ async function testSimpleMultipleColorChanges(inspector, ruleView) {
     ruleView,
     "p",
     "color"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   info("Opening the color picker");
   const picker = ruleView.tooltips.getTooltip("colorPicker");
@@ -77,7 +77,7 @@ async function testComplexMultipleColorChanges(inspector, ruleView) {
     ruleView,
     "body",
     "background"
-  ).valueSpan.querySelector(".ruleview-colorswatch");
+  ).valueSpan.querySelector(".inspector-colorswatch");
 
   info("Opening the color picker");
   const picker = ruleView.tooltips.getTooltip("colorPicker");
