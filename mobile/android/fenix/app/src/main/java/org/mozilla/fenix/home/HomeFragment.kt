@@ -626,8 +626,6 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        Divider()
-
                         if (!activity.isMicrosurveyPromptDismissed.value &&
                             !context.settings().shouldShowNavigationBarCFR
                         ) {
@@ -638,6 +636,8 @@ class HomeFragment : Fragment() {
                                     if (isToolbarAtBottom) {
                                         updateToolbarViewUIForMicrosurveyPrompt()
                                     }
+
+                                    Divider()
 
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
@@ -827,8 +827,6 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        Divider()
-
                         val activity = requireActivity() as HomeActivity
                         val shouldShowNavBarCFR =
                             context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
@@ -841,6 +839,8 @@ class HomeFragment : Fragment() {
                                     if (isToolbarAtTheBottom) {
                                         updateToolbarViewUIForMicrosurveyPrompt()
                                     }
+
+                                    Divider()
 
                                     MicrosurveyRequestPrompt(
                                         microsurvey = it,
