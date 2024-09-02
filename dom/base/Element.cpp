@@ -13,8 +13,10 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
 
+#include <cstddef>
 #include <inttypes.h>
 #include <initializer_list>
+#include <utility>
 #include "DOMMatrix.h"
 #include "ExpandedPrincipal.h"
 #include "PresShellInlines.h"
@@ -59,6 +61,7 @@
 #include "mozilla/ServoStyleConsts.h"
 #include "mozilla/ServoStyleConstsInlines.h"
 #include "mozilla/SizeOfState.h"
+#include "mozilla/SourceLocation.h"
 #include "mozilla/StaticAnalysisFunctions.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_full_screen_api.h"
@@ -75,6 +78,7 @@
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/CustomElementRegistry.h"
+#include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "mozilla/dom/Document.h"
@@ -100,6 +104,7 @@
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/MutationObservers.h"
 #include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/PointerEventHandler.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Sanitizer.h"
@@ -146,6 +151,7 @@
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsGridContainerFrame.h"
+#include "nsIContentSecurityPolicy.h"
 #include "nsIAutoCompletePopup.h"
 #include "nsIBrowser.h"
 #include "nsIContentInlines.h"
@@ -173,6 +179,7 @@
 #include "nsIURI.h"
 #include "nsLayoutUtils.h"
 #include "nsLineBox.h"
+#include "nsLiteralString.h"
 #include "nsNameSpaceManager.h"
 #include "nsNodeInfoManager.h"
 #include "nsPIDOMWindow.h"
@@ -4063,14 +4070,18 @@ static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
   return false;
 }
 
-namespace {
-enum class SinkTypeMismatch { Blocked, Allowed };
-}
+namespace SinkTypeMismatch {
+enum class Value { Blocked, Allowed };
+
+static constexpr size_t kTrimmedSourceLength = 40;
+static constexpr nsLiteralString kSampleSeparator = u"|"_ns;
+}  // namespace SinkTypeMismatch
 
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
-static SinkTypeMismatch ShouldSinkTypeMismatchViolationBeBlockedByCSP(
-    nsIContentSecurityPolicy* aCSP, const nsAString& aSinkGroup) {
-  SinkTypeMismatch result = SinkTypeMismatch::Allowed;
+static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
+    nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsAString& aSource) {
+  SinkTypeMismatch::Value result = SinkTypeMismatch::Value::Allowed;
 
   uint32_t numPolicies = 0;
   if (aCSP) {
@@ -4084,11 +4095,36 @@ static SinkTypeMismatch ShouldSinkTypeMismatchViolationBeBlockedByCSP(
       continue;
     }
 
-    // TODO: report violation,
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1907928.
+    auto caller = JSCallingLocation::Get();
+
+    const nsDependentSubstring trimmedSource = Substring(
+        aSource, /* aStartPos */ 0, SinkTypeMismatch::kTrimmedSourceLength);
+    const nsString sample =
+        aSink + SinkTypeMismatch::kSampleSeparator + trimmedSource;
+
+    CSPViolationData cspViolationData{
+        i,
+        CSPViolationData::Resource{
+            CSPViolationData::BlockedContentSource::TrustedTypesSink},
+        nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE,
+        caller.FileName(),
+        caller.mLine,
+        caller.mColumn,
+        /* aElement */ nullptr,
+        sample};
+
+    // For Workers, a pointer to an object needs to be passed
+    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1901492).
+    nsICSPEventListener* cspEventListener = nullptr;
+
+    aCSP->LogTrustedTypesViolationDetailsUnchecked(
+        std::move(cspViolationData),
+        NS_LITERAL_STRING_FROM_CSTRING(
+            REQUIRE_TRUSTED_TYPES_FOR_SCRIPT_OBSERVER_TOPIC),
+        cspEventListener);
 
     if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
-      result = SinkTypeMismatch::Blocked;
+      result = SinkTypeMismatch::Value::Blocked;
     }
   }
 
@@ -4140,8 +4176,9 @@ static void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
   }
 
   if (!convertedInput) {
-    if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(aCSP, aSinkGroup) ==
-        SinkTypeMismatch::Allowed) {
+    if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(aCSP, aSink, aSinkGroup,
+                                                      aInput.GetAsString()) ==
+        SinkTypeMismatch::Value::Allowed) {
       aResult = aInput.GetAsString();
       return;
     }

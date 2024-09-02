@@ -178,7 +178,12 @@ void CSP_GetLocalizedStr(const char* aName, const nsTArray<nsString>& aParams,
   if (!keyStringBundle) {
     return;
   }
-  keyStringBundle->FormatStringFromName(aName, aParams, outResult);
+
+  if (aParams.IsEmpty()) {
+    keyStringBundle->GetStringFromName(aName, outResult);
+  } else {
+    keyStringBundle->FormatStringFromName(aName, aParams, outResult);
+  }
 }
 
 void CSP_LogStrMessage(const nsAString& aMsg) {

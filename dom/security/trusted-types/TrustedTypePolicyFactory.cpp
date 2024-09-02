@@ -8,6 +8,7 @@
 
 #include <utility>
 
+#include "nsLiteralString.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
@@ -77,7 +78,10 @@ auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
               CreateCSPViolationData(aJSContext, i, aPolicyName)};
 
           csp->LogTrustedTypesViolationDetailsUnchecked(
-              std::move(cspViolationData), cspEventListener);
+              std::move(cspViolationData),
+              NS_LITERAL_STRING_FROM_CSTRING(
+                  TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC),
+              cspEventListener);
 
           if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
             result = PolicyCreation::Blocked;
