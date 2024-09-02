@@ -4,7 +4,6 @@
 
 /* CSS Variables specific to this panel that aren't defined by the themes */
 :root {
-  --rule-highlight-background-color: var(--theme-highlight-yellow);
   --rule-highlight-propertyname: var(--blue-60);
   --rule-highlight-propertyvalue: var(--magenta-70);
   --rule-highlight-unmatched-unused-color: var(--grey-55);
@@ -23,7 +22,6 @@
 }
 
 :root.theme-dark {
-  --rule-highlight-background-color: #521C76;
   --rule-highlight-propertyname: var(--theme-highlight-blue);
   --rule-highlight-propertyvalue: var(--theme-highlight-red);
   --rule-highlight-unmatched-unused-color: var(--grey-40);
@@ -681,7 +679,7 @@
    * So here we'll use a bottom box-shadow (not a border to avoid impacting the layout)
    * which will match the style we have in Debugger for search results.
    */
-  background-color: var(--rule-highlight-background-color);
+  background-color: var(--inspector-highlight-background-color);
   /* Put the box-shadow inside the element so it's still visible when sibling elements are highlighted  */
   box-shadow: inset 0px -1px 0px 0px var(--theme-contrast-border);
 

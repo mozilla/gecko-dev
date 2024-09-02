@@ -6,6 +6,13 @@
 
 @import url("./inspector-swatches.css");
 
+:root {
+  --inspector-highlight-background-color: light-dark(
+    var(--theme-highlight-yellow),
+    #521C76
+  );
+}
+
 .empty-css-variable {
   color: var(--theme-text-color-alt);
   font-style: italic;
