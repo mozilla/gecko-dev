@@ -169,5 +169,3 @@ This is where much of the business logic of the app lives. Whenever called by an
 - Interact with some third party manager. Typically these will update their own internal state and then emit changes to an observer, which will be used to update our Store
 
 Controllers can become very complex, and should be unit tested thoroughly whenever their methods do more than delegate simple calls to other objects.
-
--------

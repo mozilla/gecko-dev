@@ -90,5 +90,3 @@ Here's a [state diagram of the MVI architecture](https://staltz.com/img/mvi-unid
 We will experiment with writing new components using MVI unidirectional principles. We will need to take care when passing data between components that we do not override a more authoritative source of truth.
 
 Because all changes can be represented by a single, merged and serialized Observable or Flowable, we should be able to use this for debugging. All ViewStates, Changes, and Actions/Intents will be easily loggable to observe the causes of state issues.
-
----

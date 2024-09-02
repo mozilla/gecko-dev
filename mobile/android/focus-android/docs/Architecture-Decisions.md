@@ -88,5 +88,3 @@ Focus will support Android versions 5 and higher (API 21+). This decisions is pr
 * At the point of writing this ADR we will cover 73.4% of the Android market with that decision [(*)](https://developer.android.com/about/dashboards/index.html).
 
 * Android 4.4 (KitKat) still covers 17.1%. Those users can't install and use Focus. While UI features can be backported, the extended WebView APIs can not. Only a GeckoView based version of Focus would be able to support Android 4.4 or lower.
-
----
