@@ -56,9 +56,14 @@ add_task(async () => {
   });
 
   SimpleTest.registerCleanupFunction(async () => {
-    await SpecialPowers.spawn(parent, [], () => {
+    await SpecialPowers.spawn(parent, [], async () => {
       const meta = content.document.querySelector("#interactive-widget");
-      meta.remove();
+      meta.setAttribute("content", "");
+      // Flush the change above.
+      content.document.documentElement.getBoundingClientRect();
+      // A dummy Promise to make sure that SpecialPowers.spawn's Promise will
+      // never be resolved until this script has run in the parent context.
+      await new Promise(resolve => resolve());
     });
   });
   [ initial_window_height, initial_visual_viewport_height ] = await getViewportMetrics();
