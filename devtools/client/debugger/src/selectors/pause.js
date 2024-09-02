@@ -238,11 +238,6 @@ export function getSelectedFrameId(state, thread) {
 
 export function isTopFrameSelected(state, thread) {
   const selectedFrameId = getSelectedFrameId(state, thread);
-  // Consider that the top frame is selected when none is specified,
-  // which happens when a JS Tracer frame is selected.
-  if (!selectedFrameId) {
-    return true;
-  }
   const topFrame = getTopFrame(state, thread);
   return selectedFrameId == topFrame?.id;
 }

@@ -6,7 +6,6 @@ import {
   getAllTraces,
   getTraceFrames,
   getIsCurrentlyTracing,
-  getCurrentThread,
 } from "../selectors/index";
 import { selectSourceBySourceActorID } from "./sources/select.js";
 const {
@@ -45,13 +44,9 @@ export function addTraces(traces) {
 
 export function selectTrace(traceIndex) {
   return async function ({ dispatch, getState }) {
-    // For now, the tracer only consider the top level thread
-    const thread = getCurrentThread(getState());
-
     dispatch({
       type: "SELECT_TRACE",
       traceIndex,
-      thread,
     });
     const traces = getAllTraces(getState());
     const trace = traces[traceIndex];

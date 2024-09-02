@@ -18,7 +18,6 @@ import {
   getCurrentThreadFrames,
   getCurrentThread,
   getShouldSelectOriginalLocation,
-  getSelectedTraceIndex,
 } from "../../../selectors/index";
 
 const NUM_FRAMES_SHOWN = 7;
@@ -44,7 +43,6 @@ class Frames extends Component {
       selectFrame: PropTypes.func.isRequired,
       selectLocation: PropTypes.func,
       selectedFrame: PropTypes.object,
-      isTracerFrameSelected: PropTypes.bool.isRequired,
       showFrameContextMenu: PropTypes.func,
       shouldDisplayOriginalLocation: PropTypes.bool,
     };
@@ -54,7 +52,6 @@ class Frames extends Component {
     const {
       frames,
       selectedFrame,
-      isTracerFrameSelected,
       frameworkGroupingOn,
       shouldDisplayOriginalLocation,
     } = this.props;
@@ -62,7 +59,6 @@ class Frames extends Component {
     return (
       frames !== nextProps.frames ||
       selectedFrame !== nextProps.selectedFrame ||
-      isTracerFrameSelected !== nextProps.isTracerFrameSelected ||
       showAllFrames !== nextState.showAllFrames ||
       frameworkGroupingOn !== nextProps.frameworkGroupingOn ||
       shouldDisplayOriginalLocation !== nextProps.shouldDisplayOriginalLocation
@@ -97,7 +93,6 @@ class Frames extends Component {
       selectFrame,
       selectLocation,
       selectedFrame,
-      isTracerFrameSelected,
       displayFullUrl,
       getFrameTitle,
       disableContextMenu,
@@ -124,7 +119,6 @@ class Frames extends Component {
               selectFrame,
               selectLocation,
               selectedFrame,
-              isTracerFrameSelected,
               shouldDisplayOriginalLocation,
               key: String(frameOrGroup.id),
               displayFullUrl,
@@ -138,7 +132,6 @@ class Frames extends Component {
               selectFrame,
               selectLocation,
               selectedFrame,
-              isTracerFrameSelected,
               key: frameOrGroup[0].id,
               displayFullUrl,
               getFrameTitle,
@@ -210,7 +203,6 @@ const mapStateToProps = state => ({
   frames: getCurrentThreadFrames(state),
   frameworkGroupingOn: getFrameworkGroupingState(state),
   selectedFrame: getSelectedFrame(state, getCurrentThread(state)),
-  isTracerFrameSelected: getSelectedTraceIndex(state) != null,
   shouldDisplayOriginalLocation: getShouldSelectOriginalLocation(state),
   disableFrameTruncate: false,
   disableContextMenu: false,

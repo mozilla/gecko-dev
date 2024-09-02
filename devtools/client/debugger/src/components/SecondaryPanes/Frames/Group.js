@@ -66,7 +66,6 @@ export default class Group extends Component {
       selectFrame: PropTypes.func.isRequired,
       selectLocation: PropTypes.func,
       selectedFrame: PropTypes.object,
-      isTracerFrameSelected: PropTypes.bool.isRequired,
       showFrameContextMenu: PropTypes.func.isRequired,
     };
   }
@@ -92,7 +91,6 @@ export default class Group extends Component {
       selectFrame,
       selectLocation,
       selectedFrame,
-      isTracerFrameSelected,
       displayFullUrl,
       getFrameTitle,
       disableContextMenu,
@@ -117,7 +115,6 @@ export default class Group extends Component {
           hideLocation: true,
           key: frame.id,
           selectedFrame,
-          isTracerFrameSelected,
           selectFrame,
           selectLocation,
           shouldMapDisplayName: false,
