@@ -237,17 +237,19 @@ void nsMathMLmoFrame::ProcessOperatorData() {
 
     // see if the accent attribute is there
     mContent->AsElement()->GetAttr(nsGkAtoms::accent_, value);
-    if (value.EqualsLiteral("true"))
+    if (value.LowerCaseEqualsLiteral("true")) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENT;
-    else if (value.EqualsLiteral("false"))
+    } else if (value.LowerCaseEqualsLiteral("false")) {
       mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENT;
+    }
 
     // see if the movablelimits attribute is there
     mContent->AsElement()->GetAttr(nsGkAtoms::movablelimits_, value);
-    if (value.EqualsLiteral("true"))
+    if (value.LowerCaseEqualsLiteral("true")) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_MOVABLELIMITS;
-    else if (value.EqualsLiteral("false"))
+    } else if (value.LowerCaseEqualsLiteral("false")) {
       mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_MOVABLELIMITS;
+    }
 
     // ---------------------------------------------------------------------
     // we will be called again to re-sync the rest of our state next time...
@@ -444,36 +446,39 @@ void nsMathMLmoFrame::ProcessOperatorData() {
   // don't process them here
 
   mContent->AsElement()->GetAttr(nsGkAtoms::stretchy_, value);
-  if (value.EqualsLiteral("false")) {
+  if (value.LowerCaseEqualsLiteral("false")) {
     mFlags &= ~NS_MATHML_OPERATOR_STRETCHY;
-  } else if (value.EqualsLiteral("true")) {
+  } else if (value.LowerCaseEqualsLiteral("true")) {
     mFlags |= NS_MATHML_OPERATOR_STRETCHY;
   }
   if (NS_MATHML_OPERATOR_IS_FENCE(mFlags)) {
     mContent->AsElement()->GetAttr(nsGkAtoms::fence_, value);
-    if (value.EqualsLiteral("false"))
+    if (value.LowerCaseEqualsLiteral("false")) {
       mFlags &= ~NS_MATHML_OPERATOR_FENCE;
-    else
+    } else {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_FENCE;
+    }
   }
   mContent->AsElement()->GetAttr(nsGkAtoms::largeop_, value);
-  if (value.EqualsLiteral("false")) {
+  if (value.LowerCaseEqualsLiteral("false")) {
     mFlags &= ~NS_MATHML_OPERATOR_LARGEOP;
-  } else if (value.EqualsLiteral("true")) {
+  } else if (value.LowerCaseEqualsLiteral("true")) {
     mFlags |= NS_MATHML_OPERATOR_LARGEOP;
   }
   if (NS_MATHML_OPERATOR_IS_SEPARATOR(mFlags)) {
     mContent->AsElement()->GetAttr(nsGkAtoms::separator_, value);
-    if (value.EqualsLiteral("false"))
+    if (value.LowerCaseEqualsLiteral("false")) {
       mFlags &= ~NS_MATHML_OPERATOR_SEPARATOR;
-    else
+    } else {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_SEPARATOR;
+    }
   }
   mContent->AsElement()->GetAttr(nsGkAtoms::symmetric_, value);
-  if (value.EqualsLiteral("false"))
+  if (value.LowerCaseEqualsLiteral("false")) {
     mFlags &= ~NS_MATHML_OPERATOR_SYMMETRIC;
-  else if (value.EqualsLiteral("true"))
+  } else if (value.LowerCaseEqualsLiteral("true")) {
     mFlags |= NS_MATHML_OPERATOR_SYMMETRIC;
+  }
 
   // minsize
   //
