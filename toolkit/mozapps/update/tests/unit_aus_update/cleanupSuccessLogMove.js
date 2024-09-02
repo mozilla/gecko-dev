@@ -83,7 +83,7 @@ async function run_test() {
   Assert.ok(dir.exists(), MSG_SHOULD_EXIST);
 
   // Simulate the browser restarting by rerunning update initialization.
-  reloadUpdateManagerData();
+  await reloadUpdateManagerData();
   await testPostUpdateProcessing();
 
   Assert.equal(
@@ -92,5 +92,5 @@ async function run_test() {
     "updateInstalledAtStartup should be cleared on next browser start"
   );
 
-  doTestFinish();
+  await doTestFinish();
 }

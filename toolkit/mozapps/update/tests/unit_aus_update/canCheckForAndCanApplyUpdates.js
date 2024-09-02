@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-function run_test() {
+async function run_test() {
   setupTestCommon();
 
   // Verify write access to the custom app dir
@@ -58,5 +58,5 @@ function run_test() {
     );
   }
 
-  doTestFinish();
+  await doTestFinish();
 }

@@ -22,5 +22,5 @@ async function run_test() {
   debugDump("testing url force param when there is already a param: " + url);
   setUpdateURL(url);
   await waitForUpdateCheck(false, { url: url + "&force=1" });
-  doTestFinish();
+  await doTestFinish();
 }

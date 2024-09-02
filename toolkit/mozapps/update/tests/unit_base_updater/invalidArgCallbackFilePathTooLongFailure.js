@@ -35,5 +35,5 @@ async function run_test() {
     INVALID_CALLBACK_PATH_ERROR,
     1
   );
-  waitForFilesInUse();
+  await waitForFilesInUse();
 }

@@ -137,7 +137,7 @@ async function waitForElevationDialog() {
   let updates = getLocalUpdateString(updateProps, patches);
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates), true);
   writeStatusFile(STATE_PENDING_ELEVATE);
-  reloadUpdateManagerData();
+  await reloadUpdateManagerData();
   await testPostUpdateProcessing();
 
   return elevationDialogLoadedPromise;

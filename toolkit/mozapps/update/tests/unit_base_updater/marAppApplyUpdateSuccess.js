@@ -43,5 +43,5 @@ async function run_test() {
   log = getUpdateDirFile(FILE_BACKUP_UPDATE_LOG);
   Assert.ok(!log.exists(), MSG_SHOULD_NOT_EXIST + getMsgPath(log.path));
 
-  waitForFilesInUse();
+  await waitForFilesInUse();
 }

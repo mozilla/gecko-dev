@@ -31,5 +31,5 @@ async function run_test() {
     MAR_CHANNEL_MISMATCH_ERROR,
     1
   );
-  waitForFilesInUse();
+  await waitForFilesInUse();
 }
