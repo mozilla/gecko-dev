@@ -66,6 +66,11 @@ already_AddRefed<SVGAnimatedRect> SVGPatternElement::ViewBox() {
   return mViewBox.ToSVGAnimatedRect(this);
 }
 
+bool SVGPatternElement::IsAttributeMapped(const nsAtom* aAttribute) const {
+  return aAttribute == nsGkAtoms::patternTransform ||
+         SVGPatternElementBase::IsAttributeMapped(aAttribute);
+}
+
 already_AddRefed<DOMSVGAnimatedPreserveAspectRatio>
 SVGPatternElement::PreserveAspectRatio() {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(this);

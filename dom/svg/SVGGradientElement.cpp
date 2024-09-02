@@ -208,6 +208,11 @@ already_AddRefed<DOMSVGAnimatedLength> SVGRadialGradientElement::Fr() {
   return mLengthAttributes[ATTR_FR].ToDOMAnimatedLength(this);
 }
 
+bool SVGGradientElement::IsAttributeMapped(const nsAtom* aAttribute) const {
+  return aAttribute == nsGkAtoms::gradientTransform ||
+         SVGElement::IsAttributeMapped(aAttribute);
+}
+
 //----------------------------------------------------------------------
 // SVGElement methods
 

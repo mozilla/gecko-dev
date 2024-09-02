@@ -45,11 +45,12 @@ class SVGGradientElement : public SVGGradientElementBase {
   // nsIContent
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override = 0;
 
-  virtual SVGAnimatedTransformList* GetAnimatedTransformList(
+  SVGAnimatedTransformList* GetAnimatedTransformList(
       uint32_t aFlags = 0) override;
   nsStaticAtom* GetTransformListAttrName() const override {
     return nsGkAtoms::gradientTransform;
   }
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
   // WebIDL
   already_AddRefed<DOMSVGAnimatedEnumeration> GradientUnits();
