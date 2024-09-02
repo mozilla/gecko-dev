@@ -57,5 +57,5 @@ async function run_test() {
   let versionFile = getUpdateDirFile(FILE_UPDATE_VERSION);
   Assert.ok(!versionFile.exists(), MSG_SHOULD_NOT_EXIST);
 
-  await doTestFinish();
+  doTestFinish();
 }

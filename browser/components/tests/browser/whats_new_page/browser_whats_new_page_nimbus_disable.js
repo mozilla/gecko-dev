@@ -93,7 +93,7 @@ add_task(async function nimbus_whats_new_page_disable() {
   fos.close();
 
   updatesFile.remove(false);
-  await Cc["@mozilla.org/updates/update-manager;1"]
+  Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(false);
 });

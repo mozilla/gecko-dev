@@ -836,14 +836,14 @@ interface nsIUpdateSyncManager : nsISupports
 interface nsIUpdateManagerInternal : nsISupports
 {
   /**
-   * Reloads the update manager's data.
+   * ** Test-only Method **
+   *
+   * Reloads the update manager's data. This will only work in testing.
    * @param skipFiles
    *        If `true`, don't reload data from the XMLs, just clear out existing
    *        data.
-   *
-   * @returns Promise<undefined>
    */
-  Promise reload(in boolean skipFiles);
+  void reload(in boolean skipFiles);
 
   /**
    * These are identical to the functions with the same name in
@@ -894,18 +894,16 @@ interface nsIUpdateManager : nsISupports
   Promise getDownloadingUpdate();
 
   /**
-   * Returns a Promise that resolves with the update that Firefox installed at the
-   * launch of the current session. If no update was installed, null will be returned
-   * @returns Promise<nsIUpdate>
+   * If Firefox installed an update at the launch of the current session, this
+   * will contain that update. If not, this will be `null`.
    */
-  Promise updateInstalledAtStartup();
+  readonly attribute nsIUpdate updateInstalledAtStartup;
 
   /**
-   * Returns a Promise that resolves with the most recent update that has been installed,
-   * the value will be null if it does not exist
-   * @returns Promise<nsIUpdate>
+   * Returns the most recent update that has been installed,
+   * null if it does not exist.
    */
-  Promise lastUpdateInstalled();
+  readonly attribute nsIUpdate lastUpdateInstalled;
 
   /**
    * Adds the specified update to the update history. The update history is
@@ -932,10 +930,8 @@ interface nsIUpdateManager : nsISupports
   /**
    * The user agreed to proceed with an elevated update and we are now
    * permitted to show an elevation prompt.
-   *
-   * @returns Promise<undefined>
    */
-  Promise elevationOptedIn();
+  void elevationOptedIn();
 
   /**
    * These functions clean up and remove an active update without applying

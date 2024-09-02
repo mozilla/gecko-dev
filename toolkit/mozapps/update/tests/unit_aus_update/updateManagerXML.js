@@ -557,7 +557,7 @@ async function run_test() {
   ];
   checkIllegalProperties(patch, attrNames);
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates1), false);
-  await reloadUpdateManagerData(false);
+  reloadUpdateManagerData(false);
   const updateHistory = await gUpdateManager.getHistory();
   Assert.equal(
     updateHistory.length,

@@ -246,5 +246,5 @@ async function run_test() {
     "the pending ping contents" + MSG_SHOULD_EQUAL
   );
 
-  await doTestFinish();
+  doTestFinish();
 }

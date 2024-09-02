@@ -197,8 +197,8 @@ async function initUpdateServiceStub() {
  *         be reset. If false (the default), the update xml files will be read
  *         to populate the update metadata.
  */
-async function reloadUpdateManagerData(skipFiles = false) {
-  await gUpdateManager.internal.reload(skipFiles);
+function reloadUpdateManagerData(skipFiles = false) {
+  gUpdateManager.internal.reload(skipFiles);
 }
 
 const observer = {

@@ -270,11 +270,7 @@ function openBrowserWindow(
   let args;
   if (!urlOrUrlList) {
     // Just pass in the defaultArgs directly. We'll use system principal on the other end.
-    if (isStartup) {
-      args = [gBrowserContentHandler.getFirstWindowArgs()];
-    } else {
-      args = [gBrowserContentHandler.getNewWindowArgs()];
-    }
+    args = [gBrowserContentHandler.getArgs(isStartup)];
   } else if (Array.isArray(urlOrUrlList)) {
     // There isn't an explicit way to pass a principal here, so we load multiple URLs
     // with system principal when we get to actually loading them.
@@ -426,43 +422,6 @@ async function doSearch(searchTerm, cmdLine) {
     lazy.gSystemPrincipal,
     win.gBrowser.selectedBrowser.csp
   ).catch(console.error);
-}
-
-function spinForLastUpdateInstalled() {
-  return spinResolve(lazy.UpdateManager.lastUpdateInstalled());
-}
-
-function spinForUpdateInstalledAtStartup() {
-  return spinResolve(lazy.UpdateManager.updateInstalledAtStartup());
-}
-
-function spinResolve(promise) {
-  if (!(promise instanceof Promise)) {
-    return promise;
-  }
-  let done = false;
-  let result = null;
-  let error = null;
-  promise
-    .catch(e => {
-      error = e;
-    })
-    .then(r => {
-      result = r;
-      done = true;
-    });
-
-  Services.tm.spinEventLoopUntil(
-    "BrowserContentHandler.sys.mjs:BCH_spinResolve",
-    () => done
-  );
-  if (!done) {
-    throw new Error("Forcefully exited event loop.");
-  } else if (error) {
-    throw error;
-  } else {
-    return result;
-  }
 }
 
 export function nsBrowserContentHandler() {
@@ -732,49 +691,10 @@ nsBrowserContentHandler.prototype = {
   /* nsIBrowserHandler */
 
   get defaultArgs() {
-    return this.getNewWindowArgs();
+    return this.getArgs();
   },
 
-  // This function is expected to be called in non-startup cases,
-  // a WNP will not be retrieved within this function, but it will retrieve
-  // any new profile override page(s) or regular startup page(s).
-  // For the startup version of this function, please use getFirstWindowArgs().
-  // See Bug 1642039 for more information.
-  getNewWindowArgs(skipStartPage = false) {
-    var page = lazy.LaterRun.getURL();
-    if (page == "about:blank") {
-      page = "";
-    }
-    var startPage = "";
-    var prefb = Services.prefs;
-    try {
-      var choice = prefb.getIntPref("browser.startup.page");
-      if (choice == 1 || choice == 3) {
-        startPage = lazy.HomePage.get();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    if (startPage == "about:blank") {
-      startPage = "";
-    }
-
-    if (!skipStartPage && startPage) {
-      if (page) {
-        page += "|" + startPage;
-      } else {
-        page = startPage;
-      }
-    }
-    return page || "about:blank";
-  },
-
-  // This function is expected to be called very early during Firefox startup,
-  // It will retrieve a WNP if avaliable, before calling getNewWindowsArg()
-  // to retrieve any other startup pages that needs to be displayed.
-  // See Bug 1642039 for more information.
-  getFirstWindowArgs() {
+  getArgs(isStartup = false) {
     var prefb = Services.prefs;
 
     if (!gFirstWindow) {
@@ -832,17 +752,7 @@ nsBrowserContentHandler.prototype = {
             overridePage = Services.urlFormatter.formatURLPref(
               "startup.homepage_override_url"
             );
-
-            /*
-            The update manager loads its data asynchronously, off of the main thread.
-            However, making this function asynchronous would be very difficult and
-            wouldn't provide any benefit. This code is part of the sequence of operations
-            that must run before the first tab and its contents can be displayed.
-            The user has to wait for this to complete regardless of the method or thread of execution,
-            and the browser will be practically unusable until it finishes.
-            Therefore, asynchronous execution does not offer any real advantages in this context.
-            */
-            let update = spinForLastUpdateInstalled();
+            let update = lazy.UpdateManager.lastUpdateInstalled;
 
             // Make sure the update is newer than the last WNP version
             // and the update is not newer than the current Firefox version.
@@ -946,32 +856,20 @@ nsBrowserContentHandler.prototype = {
 
             // Send the update ping to signal that the update was successful.
             // Only do this if the update is installed right now.
-            // The following code is ran asynchronously, but we won't await on it
-            // since the user may be still waiting for the browser to start up at this point.
-            lazy.UpdateManager.updateInstalledAtStartup().then(
-              async updateInstalledAtStartup => {
-                if (updateInstalledAtStartup) {
-                  await lazy.UpdatePing.handleUpdateSuccess(
-                    old_mstone,
-                    old_buildId
-                  );
-                }
-              }
-            );
+            if (lazy.UpdateManager.updateInstalledAtStartup) {
+              lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
+            }
 
             overridePage = overridePage.replace("%OLD_VERSION%", old_mstone);
             break;
           }
-          case OVERRIDE_NEW_BUILD_ID: {
-            let updateInstalledAtStartup = spinForUpdateInstalledAtStartup();
-            if (updateInstalledAtStartup) {
+          case OVERRIDE_NEW_BUILD_ID:
+            if (lazy.UpdateManager.updateInstalledAtStartup) {
               // Send the update ping to signal that the update was successful.
-              // This is asynchronous, but we are just going to kick it off because we can't easily `await` on it here.
               lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
               lazy.LaterRun.enable(lazy.LaterRun.ENABLE_REASON_UPDATE_APPLIED);
             }
             break;
-          }
         }
       }
     } catch (ex) {}
@@ -982,7 +880,7 @@ nsBrowserContentHandler.prototype = {
     }
 
     // Allow showing a one-time startup override if we're not showing one
-    if (overridePage == "" && prefb.prefHasUserValue(ONCE_PREF)) {
+    if (isStartup && overridePage == "" && prefb.prefHasUserValue(ONCE_PREF)) {
       try {
         // Show if we haven't passed the expiration or there's no expiration
         const { expire, url } = JSON.parse(
@@ -1037,16 +935,23 @@ nsBrowserContentHandler.prototype = {
       }
     }
 
-    let skipStartPage =
-      override == OVERRIDE_NEW_PROFILE &&
-      prefb.getBoolPref("browser.startup.firstrunSkipsHomepage");
-
-    var startPage = this.getNewWindowArgs(skipStartPage && !willRestoreSession);
+    var startPage = "";
+    try {
+      var choice = prefb.getIntPref("browser.startup.page");
+      if (choice == 1 || choice == 3) {
+        startPage = lazy.HomePage.get();
+      }
+    } catch (e) {
+      console.error(e);
+    }
 
     if (startPage == "about:blank") {
       startPage = "";
     }
 
+    let skipStartPage =
+      override == OVERRIDE_NEW_PROFILE &&
+      prefb.getBoolPref("browser.startup.firstrunSkipsHomepage");
     // Only show the startPage if we're not restoring an update session and are
     // not set to skip the start page on this profile
     if (overridePage && startPage && !willRestoreSession && !skipStartPage) {

@@ -185,58 +185,54 @@ class TestNoWindowUpdateRestart(MarionetteTestCase):
         self.assertIn(update_status, ["succeeded", "failed"])
 
     def resetUpdate(self):
-        self.marionette.execute_async_script(
+        self.marionette.execute_script(
             """
-            let [resolve] = arguments;
+            let UM = Cc["@mozilla.org/updates/update-manager;1"].getService(Ci.nsIUpdateManager);
+            UM.internal.reload(true);
 
-            (async () => {
-                let UM = Cc["@mozilla.org/updates/update-manager;1"].getService(Ci.nsIUpdateManager);
-                await UM.internal.reload(true);
+            let { UpdateListener } = ChromeUtils.importESModule(
+                "resource://gre/modules/UpdateListener.sys.mjs"
+            );
+            UpdateListener.reset();
 
-                let { UpdateListener } = ChromeUtils.importESModule(
-                    "resource://gre/modules/UpdateListener.sys.mjs"
-                );
-                UpdateListener.reset();
+            let { AppMenuNotifications } = ChromeUtils.importESModule(
+                "resource://gre/modules/AppMenuNotifications.sys.mjs"
+            );
+            AppMenuNotifications.removeNotification(/.*/);
 
-                let { AppMenuNotifications } = ChromeUtils.importESModule(
-                    "resource://gre/modules/AppMenuNotifications.sys.mjs"
-                );
-                AppMenuNotifications.removeNotification(/.*/);
+            // Remove old update files so that they don't interfere with tests.
+            let rootUpdateDir = Services.dirsvc.get("UpdRootD", Ci.nsIFile);
+            let updateDir = rootUpdateDir.clone();
+            updateDir.append("updates");
+            let patchDir = updateDir.clone();
+            patchDir.append("0");
 
-                // Remove old update files so that they don't interfere with tests.
-                let rootUpdateDir = Services.dirsvc.get("UpdRootD", Ci.nsIFile);
-                let updateDir = rootUpdateDir.clone();
-                updateDir.append("updates");
-                let patchDir = updateDir.clone();
-                patchDir.append("0");
+            let filesToRemove = [];
+            let addFileToRemove = (dir, filename) => {
+                let file = dir.clone();
+                file.append(filename);
+                filesToRemove.push(file);
+            };
 
-                let filesToRemove = [];
-                let addFileToRemove = (dir, filename) => {
-                    let file = dir.clone();
-                    file.append(filename);
-                    filesToRemove.push(file);
-                };
+            addFileToRemove(rootUpdateDir, "active-update.xml");
+            addFileToRemove(rootUpdateDir, "updates.xml");
+            addFileToRemove(patchDir, "update.status");
+            addFileToRemove(patchDir, "update.version");
+            addFileToRemove(patchDir, "update.mar");
+            addFileToRemove(patchDir, "updater.ini");
+            addFileToRemove(updateDir, "backup-update.log");
+            addFileToRemove(updateDir, "last-update.log");
+            addFileToRemove(patchDir, "update.log");
 
-                addFileToRemove(rootUpdateDir, "active-update.xml");
-                addFileToRemove(rootUpdateDir, "updates.xml");
-                addFileToRemove(patchDir, "update.status");
-                addFileToRemove(patchDir, "update.version");
-                addFileToRemove(patchDir, "update.mar");
-                addFileToRemove(patchDir, "updater.ini");
-                addFileToRemove(updateDir, "backup-update.log");
-                addFileToRemove(updateDir, "last-update.log");
-                addFileToRemove(patchDir, "update.log");
-
-                for (const file of filesToRemove) {
-                    try {
-                        if (file.exists()) {
-                            file.remove(false);
-                        }
-                    } catch (e) {
-                        console.warn("Unable to remove file. Path: '" + file.path + "', Exception: " + e);
+            for (const file of filesToRemove) {
+                try {
+                    if (file.exists()) {
+                        file.remove(false);
                     }
+                } catch (e) {
+                    console.warn("Unable to remove file. Path: '" + file.path + "', Exception: " + e);
                 }
-            })().then(resolve);
+            }
         """
         )
 

@@ -58,9 +58,9 @@ add_task(async function test_reasons_overflow() {
   }
 });
 
-add_task(async () => {
+add_task(() => {
   // `setupTestCommon()` calls `do_test_pending()`; this calls
   // `do_test_finish()`.  The `add_task` schedules this to run after all the
   // other tests have completed.
-  await doTestFinish();
+  doTestFinish();
 });

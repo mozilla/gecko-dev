@@ -42,11 +42,11 @@ add_task(async function test_updatePing() {
   registerCleanupFunction(async () => {
     let activeUpdateFile = getActiveUpdateFile();
     activeUpdateFile.remove(false);
-    await reloadUpdateManagerData(true);
+    reloadUpdateManagerData(true);
   });
   writeFile(XML_UPDATE, getActiveUpdateFile());
   writeSuccessUpdateStatusFile();
-  await reloadUpdateManagerData(false);
+  reloadUpdateManagerData(false);
 
   // Start monitoring the ping archive.
   let archiveChecker = new TelemetryArchiveTesting.Checker();
@@ -55,9 +55,7 @@ add_task(async function test_updatePing() {
   // Manually call the BrowserContentHandler: this automatically gets called when
   // the browser is started and an update was applied successfully in order to
   // display the "update" info page.
-  Cc["@mozilla.org/browser/clh;1"]
-    .getService(Ci.nsIBrowserHandler)
-    .getFirstWindowArgs();
+  Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler).defaultArgs;
 
   // We cannot control when the ping will be generated/archived after we trigger
   // an update, so let's make sure to have one before moving on with validation.
@@ -134,8 +132,8 @@ function getActiveUpdateFile() {
  *         be reset. If false (the default), the update xml files will be read
  *         to populate the update metadata.
  */
-async function reloadUpdateManagerData(skipFiles = false) {
-  await Cc["@mozilla.org/updates/update-manager;1"]
+function reloadUpdateManagerData(skipFiles = false) {
+  Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(skipFiles);
 }

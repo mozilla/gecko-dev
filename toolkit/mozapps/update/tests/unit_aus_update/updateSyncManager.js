@@ -101,5 +101,5 @@ add_task(async function () {
     });
   }
 
-  await doTestFinish();
+  doTestFinish();
 });

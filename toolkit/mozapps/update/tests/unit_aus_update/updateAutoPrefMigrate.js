@@ -70,5 +70,5 @@ async function run_test() {
   await UpdateUtils.setAppUpdateAutoEnabled(false);
   await verifyPref(false);
 
-  await doTestFinish();
+  doTestFinish();
 }

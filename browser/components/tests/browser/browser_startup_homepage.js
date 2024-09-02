@@ -18,7 +18,7 @@ async function checkArgs(message, expect, prefs = {}) {
   Assert.equal(
     Cc["@mozilla.org/browser/clh;1"]
       .getService(Ci.nsIBrowserHandler)
-      .getFirstWindowArgs(),
+      .wrappedJSObject.getArgs(true),
     expect,
     message
   );

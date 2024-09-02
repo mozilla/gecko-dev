@@ -58,5 +58,5 @@ async function run_test() {
   let statusFile = getUpdateDirFile(FILE_UPDATE_STATUS);
   Assert.ok(!statusFile.exists(), MSG_SHOULD_NOT_EXIST);
 
-  await doTestFinish();
+  doTestFinish();
 }

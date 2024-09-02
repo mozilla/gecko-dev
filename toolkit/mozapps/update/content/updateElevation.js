@@ -89,7 +89,7 @@ const gUpdateElevationDialog = {
     }
     window.close();
   },
-  async onRestartNow() {
+  onRestartNow() {
     // disable the "finish" (Restart) and "extra1" (Later) buttons
     // because the Software Update wizard is still up at the point,
     // and will remain up until we return and we close the
@@ -108,7 +108,7 @@ const gUpdateElevationDialog = {
     let um = Cc["@mozilla.org/updates/update-manager;1"].getService(
       Ci.nsIUpdateManager
     );
-    await um.elevationOptedIn();
+    um.elevationOptedIn();
 
     // Notify all windows that an application quit has been requested.
     let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(

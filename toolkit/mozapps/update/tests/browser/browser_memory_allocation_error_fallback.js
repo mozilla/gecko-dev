@@ -50,32 +50,32 @@ async function memAllocErrorFallback(errorCode) {
   ]);
 }
 
-async function cleanup() {
-  await reloadUpdateManagerData(true);
+function cleanup() {
+  reloadUpdateManagerData(true);
   removeUpdateFiles(true);
 }
 
 add_task(async function memAllocErrorFallback_READ_STRINGS_MEM_ERROR() {
   await memAllocErrorFallback(READ_STRINGS_MEM_ERROR);
-  await cleanup();
+  cleanup();
 });
 
 add_task(async function memAllocErrorFallback_ARCHIVE_READER_MEM_ERROR() {
   await memAllocErrorFallback(ARCHIVE_READER_MEM_ERROR);
-  await cleanup();
+  cleanup();
 });
 
 add_task(async function memAllocErrorFallback_BSPATCH_MEM_ERROR() {
   await memAllocErrorFallback(BSPATCH_MEM_ERROR);
-  await cleanup();
+  cleanup();
 });
 
 add_task(async function memAllocErrorFallback_UPDATER_MEM_ERROR() {
   await memAllocErrorFallback(UPDATER_MEM_ERROR);
-  await cleanup();
+  cleanup();
 });
 
 add_task(async function memAllocErrorFallback_UPDATER_QUOTED_PATH_MEM_ERROR() {
   await memAllocErrorFallback(UPDATER_QUOTED_PATH_MEM_ERROR);
-  await cleanup();
+  cleanup();
 });

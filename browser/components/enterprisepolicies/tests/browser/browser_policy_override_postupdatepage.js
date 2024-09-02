@@ -36,12 +36,12 @@ add_task(async function test_override_postupdate_page() {
   registerCleanupFunction(async () => {
     let activeUpdateFile = getActiveUpdateFile();
     activeUpdateFile.remove(false);
-    await reloadUpdateManagerData(true);
+    reloadUpdateManagerData(true);
   });
 
   writeFile(XML_UPDATE, getActiveUpdateFile());
   writeSuccessUpdateStatusFile();
-  await reloadUpdateManagerData(false);
+  reloadUpdateManagerData(false);
 
   is(
     getPostUpdatePage(),
@@ -65,9 +65,8 @@ add_task(async function test_override_postupdate_page() {
 
 function getPostUpdatePage() {
   Services.prefs.setCharPref(PREF_MSTONE, "PreviousMilestone");
-  return Cc["@mozilla.org/browser/clh;1"]
-    .getService(Ci.nsIBrowserHandler)
-    .getFirstWindowArgs();
+  return Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler)
+    .defaultArgs;
 }
 
 /**
@@ -100,8 +99,8 @@ function getActiveUpdateFile() {
  *   be reset. If false (the default), the update xml files will be read
  *   to populate the update metadata.
  */
-async function reloadUpdateManagerData(skipFiles = false) {
-  await Cc["@mozilla.org/updates/update-manager;1"]
+function reloadUpdateManagerData(skipFiles = false) {
+  Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(skipFiles);
 }

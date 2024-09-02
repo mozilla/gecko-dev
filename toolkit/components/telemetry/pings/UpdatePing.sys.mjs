@@ -53,7 +53,7 @@ export var UpdatePing = {
    * @param {String} aPreviousVersion The browser version we updated from.
    * @param {String} aPreviousBuildId The browser build id we updated from.
    */
-  async handleUpdateSuccess(aPreviousVersion, aPreviousBuildId) {
+  handleUpdateSuccess(aPreviousVersion, aPreviousBuildId) {
     if (!this._enabled) {
       return;
     }
@@ -70,9 +70,7 @@ export var UpdatePing = {
     let updateManager = Cc["@mozilla.org/updates/update-manager;1"].getService(
       Ci.nsIUpdateManager
     );
-    let update = updateManager
-      ? await updateManager.updateInstalledAtStartup()
-      : null;
+    let update = updateManager ? updateManager.updateInstalledAtStartup : null;
 
     const payload = {
       reason: "success",

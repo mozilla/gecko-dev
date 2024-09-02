@@ -107,5 +107,5 @@ async function run_test() {
     expectedPostTransitionValue: true,
   });
 
-  await doTestFinish();
+  doTestFinish();
 }

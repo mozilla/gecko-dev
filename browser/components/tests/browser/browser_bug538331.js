@@ -100,7 +100,7 @@ add_task(async function test_bug538331() {
   registerCleanupFunction(async () => {
     let activeUpdateFile = getActiveUpdateFile();
     activeUpdateFile.remove(false);
-    await reloadUpdateManagerData(true);
+    reloadUpdateManagerData(true);
   });
 
   // Clear any pre-existing override in defaultArgs that are hanging around.
@@ -126,11 +126,11 @@ add_task(async function test_bug538331() {
     }
     writeSuccessUpdateStatusFile();
 
-    await reloadUpdateManagerData(false);
+    reloadUpdateManagerData(false);
 
-    let noOverrideArgs = Cc["@mozilla.org/browser/clh;1"]
-      .getService(Ci.nsIBrowserHandler)
-      .getFirstWindowArgs();
+    let noOverrideArgs = Cc["@mozilla.org/browser/clh;1"].getService(
+      Ci.nsIBrowserHandler
+    ).defaultArgs;
 
     let overrideArgs = "";
     if (testCase.prefURL) {
@@ -149,9 +149,9 @@ add_task(async function test_bug538331() {
       Services.prefs.setCharPref(PREF_MSTONE, "PreviousMilestone");
     }
 
-    let defaultArgs = Cc["@mozilla.org/browser/clh;1"]
-      .getService(Ci.nsIBrowserHandler)
-      .getFirstWindowArgs();
+    let defaultArgs = Cc["@mozilla.org/browser/clh;1"].getService(
+      Ci.nsIBrowserHandler
+    ).defaultArgs;
     is(defaultArgs, overrideArgs, "correct value returned by defaultArgs");
 
     if (testCase.noMstoneChange === undefined || !testCase.noMstoneChange) {
@@ -194,8 +194,8 @@ function getActiveUpdateFile() {
  *         be reset. If false (the default), the update xml files will be read
  *         to populate the update metadata.
  */
-async function reloadUpdateManagerData(skipFiles = false) {
-  await Cc["@mozilla.org/updates/update-manager;1"]
+function reloadUpdateManagerData(skipFiles = false) {
+  Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(skipFiles);
 }

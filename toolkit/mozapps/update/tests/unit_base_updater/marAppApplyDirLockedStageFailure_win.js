@@ -25,5 +25,5 @@ async function run_test() {
   checkUpdateLogContains(ERR_UPDATE_IN_PROGRESS);
   await waitForUpdateXMLFiles(true, false);
   await checkUpdateManager(STATE_AFTER_STAGE, true, STATE_AFTER_STAGE, 0, 0);
-  await waitForFilesInUse();
+  waitForFilesInUse();
 }

@@ -121,9 +121,7 @@ export class UpdateServiceStub {
     const aus = Cc["@mozilla.org/updates/update-service;1"].getService(
       Ci.nsIApplicationUpdateService
     );
-    await Cc["@mozilla.org/updates/update-manager;1"]
-      .getService(Ci.nsIUpdateManager)
-      .internal.reload(false);
+    Cc["@mozilla.org/updates/update-manager;1"].getService(Ci.nsIUpdateManager);
     Cc["@mozilla.org/updates/update-checker;1"].getService(Ci.nsIUpdateChecker);
 
     // Run update service initialization

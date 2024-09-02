@@ -41,5 +41,5 @@ async function run_test() {
     UPDATE_SETTINGS_FILE_CHANNEL,
     1
   );
-  await waitForFilesInUse();
+  waitForFilesInUse();
 }

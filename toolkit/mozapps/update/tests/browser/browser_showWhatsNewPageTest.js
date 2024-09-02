@@ -176,12 +176,12 @@ async function WnpTest({
       `platformBuildID=${Services.appinfo.platformBuildID}`
   );
 
-  await reloadUpdateManagerData(false);
+  reloadUpdateManagerData(false);
 
   if (expectedPostUpdatePage) {
-    const postUpdatePage = Cc["@mozilla.org/browser/clh;1"]
-      .getService(Ci.nsIBrowserHandler)
-      .getFirstWindowArgs();
+    const postUpdatePage = Cc["@mozilla.org/browser/clh;1"].getService(
+      Ci.nsIBrowserHandler
+    ).defaultArgs;
     is(
       postUpdatePage,
       expectedPostUpdatePage,

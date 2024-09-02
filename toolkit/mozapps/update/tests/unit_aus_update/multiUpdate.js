@@ -352,7 +352,7 @@ async function multi_update_test(appUpdateAuto) {
 
   // Reset the updater to its initial state to test that the complete/partial
   // MAR behavior is correct
-  await reloadUpdateManagerData(true);
+  reloadUpdateManagerData(true);
 
   // Second parameter forces a complete MAR download.
   prepareToDownloadVersion(FIRST_UPDATE_VERSION, true);
@@ -393,9 +393,9 @@ add_task(async function all_multi_update_tests() {
   await multi_update_test(true);
 
   // Reset the update system so we can start again from scratch.
-  await reloadUpdateManagerData(true);
+  reloadUpdateManagerData(true);
 
   await multi_update_test(false);
 
-  await doTestFinish();
+  doTestFinish();
 });
