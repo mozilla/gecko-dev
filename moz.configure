@@ -889,6 +889,13 @@ pkg_check_modules("MOZ_ZLIB", "zlib >= 1.2.3", when="--with-system-zlib")
 
 set_config("MOZ_SYSTEM_ZLIB", True, when="--with-system-zlib")
 
+option(
+    env="USE_LIBZ_RS",
+    help="Use libz-rs-sys instead of zlib",
+    when=toolkit & ~with_system_zlib_option,
+)
+
+set_config("USE_LIBZ_RS", True, when="USE_LIBZ_RS")
 
 with only_when(cross_compiling):
     option(
