@@ -1042,6 +1042,11 @@ void nsCSPRequireTrustedTypesForDirectiveValue::toString(
   aOutStr.Append(mValue);
 }
 
+bool nsCSPRequireTrustedTypesForDirectiveValue::
+    isRequiresTrustedTypesForSinkGroup(const nsAString& aSinkGroup) const {
+  return mValue == aSinkGroup;
+}
+
 /* =============== nsCSPTrustedTypesDirectivePolicyName =============== */
 
 nsCSPTrustedTypesDirectivePolicyName::nsCSPTrustedTypesDirectivePolicyName(
@@ -1372,6 +1377,15 @@ bool nsCSPDirective::ShouldCreateViolationForNewTrustedTypesPolicy(
   }
 
   return false;
+}
+
+bool nsCSPDirective::AreTrustedTypesForSinkGroupRequired(
+    const nsAString& aSinkGroup) const {
+  MOZ_ASSERT(mDirective ==
+             nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE);
+
+  return mSrcs.Length() == 1 &&
+         mSrcs[0]->isRequiresTrustedTypesForSinkGroup(aSinkGroup);
 }
 
 void nsCSPDirective::toString(nsAString& outStr) const {
@@ -1850,6 +1864,18 @@ bool nsCSPPolicy::ShouldCreateViolationForNewTrustedTypesPolicy(
     if (directive->equals(nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
       return directive->ShouldCreateViolationForNewTrustedTypesPolicy(
           aPolicyName, aCreatedPolicyNames);
+    }
+  }
+
+  return false;
+}
+
+bool nsCSPPolicy::AreTrustedTypesForSinkGroupRequired(
+    const nsAString& aSinkGroup) const {
+  for (const auto* directive : mDirectives) {
+    if (directive->equals(
+            nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
+      return directive->AreTrustedTypesForSinkGroupRequired(aSinkGroup);
     }
   }
 

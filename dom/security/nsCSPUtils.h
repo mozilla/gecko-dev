@@ -228,6 +228,10 @@ class nsCSPBaseSrc {
   virtual bool isNonce() const { return false; }
   virtual bool isKeyword(CSPKeyword aKeyword) const { return false; }
   virtual bool isTrustedTypesDirectivePolicyName() const { return false; }
+  virtual bool isRequiresTrustedTypesForSinkGroup(
+      const nsAString& aSinkGroup) const {
+    return false;
+  }
 };
 
 /* =============== nsCSPSchemeSrc ============ */
@@ -413,6 +417,9 @@ class nsCSPRequireTrustedTypesForDirectiveValue : public nsCSPBaseSrc {
   bool visit(nsCSPSrcVisitor* aVisitor) const override;
   void toString(nsAString& aOutStr) const override;
 
+  bool isRequiresTrustedTypesForSinkGroup(
+      const nsAString& aSinkGroup) const override;
+
  private:
   const nsString mValue;
 };
@@ -473,6 +480,10 @@ class nsCSPDirective {
   bool ShouldCreateViolationForNewTrustedTypesPolicy(
       const nsAString& aPolicyName,
       const nsTArray<nsString>& aCreatedPolicyNames) const;
+
+  // Implements step 2.1 to 2.4 of
+  // <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types>.
+  bool AreTrustedTypesForSinkGroupRequired(const nsAString& aSinkGroup) const;
 
   virtual void toString(nsAString& outStr) const;
   void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
@@ -736,6 +747,12 @@ class nsCSPPolicy {
   bool ShouldCreateViolationForNewTrustedTypesPolicy(
       const nsAString& aPolicyName,
       const nsTArray<nsString>& aCreatedPolicyNames) const;
+
+  /**
+   * Implements step 2.1 to 2.4 of
+   * <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types>.
+   */
+  bool AreTrustedTypesForSinkGroupRequired(const nsAString& aSinkGroup) const;
 
  private:
   nsCSPDirective* matchingOrDefaultDirective(CSPDirective aDirective) const;
