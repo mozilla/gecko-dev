@@ -30,6 +30,12 @@ let initial_window_height, initial_visual_viewport_height;
 
 // setup a meta viewport tag in the top document.
 add_setup(async () => {
+  // Try to close the software keyboard to invoke `documentElement.focus()`.
+  document.documentElement.focus();
+  await SimpleTest.promiseWaitForCondition(
+    () => document.activeElement == document.documentElement,
+    "Waiting for focus");
+
   await SpecialPowers.spawn(parent, [], async () => {
     const initial_scale = content.window.visualViewport.scale;
 
