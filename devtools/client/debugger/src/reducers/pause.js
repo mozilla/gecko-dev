@@ -58,6 +58,7 @@ const createInitialPauseState = () => ({
   previousLocation: null,
   expandedScopes: new Set(),
   lastExpandedScopes: [],
+  shouldBreakpointsPaneOpenOnPause: false,
 });
 
 export function getThreadPauseState(state, thread) {

@@ -88,7 +88,7 @@ class SecondaryPanes extends Component {
       mapScopesEnabled: PropTypes.bool.isRequired,
       pauseReason: PropTypes.string.isRequired,
       shouldBreakpointsPaneOpenOnPause: PropTypes.bool.isRequired,
-      thread: PropTypes.string.isRequired,
+      thread: PropTypes.string,
       renderWhyPauseDelay: PropTypes.number.isRequired,
       selectedFrame: PropTypes.object,
       skipPausing: PropTypes.bool.isRequired,
@@ -184,6 +184,7 @@ class SecondaryPanes extends Component {
     return {
       header: L10N.getStr("scopes.header"),
       className: "scopes-pane",
+      id: "scopes-pane",
       component: React.createElement(Scopes, null),
       opened: prefs.scopesVisible,
       buttons: this.getScopesButtons(),

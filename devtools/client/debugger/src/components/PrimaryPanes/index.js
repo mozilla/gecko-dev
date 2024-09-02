@@ -43,7 +43,6 @@ class PrimaryPanes extends Component {
 
   static get propTypes() {
     return {
-      projectRootName: PropTypes.string.isRequired,
       selectedTab: PropTypes.oneOf(tabs).isRequired,
       setPrimaryPaneTab: PropTypes.func.isRequired,
       setActiveSearch: PropTypes.func.isRequired,

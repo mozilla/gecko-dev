@@ -34,6 +34,7 @@ exports[`SourceFooter Component default case should render 1`] = `
       <MenuButton
         className="devtools-button debugger-source-map-button disabled not-mapped"
         icon={true}
+        key="debugger-source-map-button"
         menuId="debugger-source-map-button"
         menuOffset={-5}
         menuPosition="bottom"
@@ -90,6 +91,7 @@ exports[`SourceFooter Component move cursor should render new cursor position 1`
       <MenuButton
         className="devtools-button debugger-source-map-button disabled not-mapped"
         icon={true}
+        key="debugger-source-map-button"
         menuId="debugger-source-map-button"
         menuOffset={-5}
         menuPosition="bottom"

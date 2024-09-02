@@ -360,7 +360,7 @@ const mapStateToProps = state => {
   let originalFrameScopes;
   let generatedFrameScopes;
   let isLoading;
-  let mapScopesEnabled;
+  let mapScopesEnabled = false;
 
   if (
     selectedSource?.isOriginal &&

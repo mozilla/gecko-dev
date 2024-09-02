@@ -26,11 +26,11 @@ class SourceTreeItemContents extends Component {
   static get propTypes() {
     return {
       autoExpand: PropTypes.bool.isRequired,
-      depth: PropTypes.bool.isRequired,
+      depth: PropTypes.number.isRequired,
       expanded: PropTypes.bool.isRequired,
       focusItem: PropTypes.func.isRequired,
       focused: PropTypes.bool.isRequired,
-      hasMatchingGeneratedSource: PropTypes.bool.isRequired,
+      hasMatchingGeneratedSource: PropTypes.bool,
       item: PropTypes.object.isRequired,
       selectSourceItem: PropTypes.func.isRequired,
       setExpanded: PropTypes.func.isRequired,

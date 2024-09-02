@@ -76,10 +76,9 @@ export class Outline extends Component {
     return {
       alphabetizeOutline: PropTypes.bool.isRequired,
       cursorPosition: PropTypes.object,
-      flashLineRange: PropTypes.func.isRequired,
       onAlphabetizeClick: PropTypes.func.isRequired,
       selectLocation: PropTypes.func.isRequired,
-      selectedLocation: PropTypes.object.isRequired,
+      selectedLocation: PropTypes.object,
       getFunctionSymbols: PropTypes.func.isRequired,
       getClassSymbols: PropTypes.func.isRequired,
       selectedSourceTextContent: PropTypes.object,

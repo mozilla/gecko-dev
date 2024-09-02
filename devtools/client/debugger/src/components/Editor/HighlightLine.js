@@ -59,7 +59,7 @@ export class HighlightLine extends Component {
       selectedFrame: PropTypes.object,
       selectedLocation: PropTypes.object.isRequired,
       selectedSourceTextContent: PropTypes.object.isRequired,
-      shouldHighlightSelectedLocation: PropTypes.func.isRequired,
+      shouldHighlightSelectedLocation: PropTypes.bool.isRequired,
       editor: PropTypes.object,
     };
   }

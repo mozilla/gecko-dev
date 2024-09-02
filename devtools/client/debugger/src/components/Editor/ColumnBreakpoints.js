@@ -41,7 +41,7 @@ breakpointButton.appendChild(svg);
 class ColumnBreakpoints extends Component {
   static get propTypes() {
     return {
-      columnBreakpoints: PropTypes.array.isRequired,
+      columnBreakpoints: PropTypes.array,
       editor: PropTypes.object.isRequired,
       selectedSource: PropTypes.object,
       addBreakpoint: PropTypes.func,
