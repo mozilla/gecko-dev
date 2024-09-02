@@ -1990,7 +1990,7 @@
   {
     "testIdPattern": "[launcher.spec] Launcher specs Puppeteer Puppeteer.launch can launch multiple instances without node warnings",
     "platforms": ["darwin", "linux", "win32"],
-    "parameters": ["firefox"],
+    "parameters": ["firefox", "cdp"],
     "expectations": ["PASS", "FAIL"],
     "comment": "Frequent intermittent https://bugzilla.mozilla.org/show_bug.cgi?id=1908031"
   },
