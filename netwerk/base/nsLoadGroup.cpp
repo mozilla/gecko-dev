@@ -993,7 +993,6 @@ void nsLoadGroup::TelemetryReportChannel(nsITimedChannel* aTimedChannel,
     HTTP_REQUEST_HISTOGRAMS(SUB)
   }
 
-#ifndef ANDROID
   if ((useHttp3 || supportHttp3) && cacheReadStart.IsNull() &&
       cacheReadEnd.IsNull()) {
     nsCString key = (useHttp3) ? ((aDefaultRequest) ? "uses_http3_page"_ns
@@ -1002,34 +1001,34 @@ void nsLoadGroup::TelemetryReportChannel(nsITimedChannel* aTimedChannel,
                                                     : "supports_http3_sub"_ns);
 
     if (!secureConnectionStart.IsNull() && !connectEnd.IsNull()) {
-      mozilla::glean::network::http3_tls_handshake.Get(key)
-          .AccumulateRawDuration(connectEnd - secureConnectionStart);
+      Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_TLS_HANDSHAKE, key,
+                                     secureConnectionStart, connectEnd);
     }
 
     if (supportHttp3 && !connectStart.IsNull() && !connectEnd.IsNull()) {
-      mozilla::glean::network::sup_http3_tcp_connection.Get(key)
-          .AccumulateRawDuration(connectEnd - connectStart);
+      Telemetry::AccumulateTimeDelta(Telemetry::SUP_HTTP3_TCP_CONNECTION, key,
+                                     connectStart, connectEnd);
     }
 
     if (!requestStart.IsNull() && !responseEnd.IsNull()) {
-      mozilla::glean::network::http3_open_to_first_sent.Get(key)
-          .AccumulateRawDuration(requestStart - asyncOpen);
+      Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_OPEN_TO_FIRST_SENT, key,
+                                     asyncOpen, requestStart);
 
-      mozilla::glean::network::http3_first_sent_to_last_received.Get(key)
-          .AccumulateRawDuration(responseEnd - requestStart);
+      Telemetry::AccumulateTimeDelta(
+          Telemetry::HTTP3_FIRST_SENT_TO_LAST_RECEIVED, key, requestStart,
+          responseEnd);
 
       if (!responseStart.IsNull()) {
-        mozilla::glean::network::http3_open_to_first_received.Get(key)
-            .AccumulateRawDuration(responseStart - asyncOpen);
+        Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_OPEN_TO_FIRST_RECEIVED,
+                                       key, asyncOpen, responseStart);
       }
 
       if (!responseEnd.IsNull()) {
-        mozilla::glean::network::http3_complete_load.Get(key)
-            .AccumulateRawDuration(responseEnd - asyncOpen);
+        Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_COMPLETE_LOAD, key,
+                                       asyncOpen, responseEnd);
       }
     }
   }
-#endif
 
   bool hasHTTPSRR = false;
   if (httpChannel && NS_SUCCEEDED(httpChannel->GetHasHTTPSRR(&hasHTTPSRR)) &&
