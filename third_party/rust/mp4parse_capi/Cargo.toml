@@ -9,6 +9,9 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+bench = []
+
 [package]
 edition = "2018"
 name = "mp4parse_capi"
@@ -20,15 +23,56 @@ authors = [
     "Jon Bauman <jbauman@mozilla.com>",
     "Bryce Seager van Dyk <bvandyk@mozilla.com>",
 ]
+build = false
 exclude = [
     "*.mp4",
     "*.avif",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Parser for ISO base media file format (mp4)"
 documentation = "https://docs.rs/mp4parse_capi/"
 readme = "README.md"
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/mp4parse-rust"
+
+[lib]
+name = "mp4parse_capi"
+path = "src/lib.rs"
+
+[[example]]
+name = "dump"
+path = "examples/dump.rs"
+
+[[test]]
+name = "test_avis"
+path = "tests/test_avis.rs"
+
+[[test]]
+name = "test_chunk_out_of_range"
+path = "tests/test_chunk_out_of_range.rs"
+
+[[test]]
+name = "test_encryption"
+path = "tests/test_encryption.rs"
+
+[[test]]
+name = "test_fragment"
+path = "tests/test_fragment.rs"
+
+[[test]]
+name = "test_rotation"
+path = "tests/test_rotation.rs"
+
+[[test]]
+name = "test_sample_table"
+path = "tests/test_sample_table.rs"
+
+[[test]]
+name = "test_workaround_stsc"
+path = "tests/test_workaround_stsc.rs"
 
 [dependencies]
 byteorder = "1.2.1"

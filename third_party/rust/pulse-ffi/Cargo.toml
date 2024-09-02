@@ -9,12 +9,27 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 name = "pulse-ffi"
 version = "0.1.0"
 authors = ["Dan Glastonbury <dglastonbury@mozilla.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "FFI for libpulse.so supporting static linking and dynamic loading."
+readme = false
 license = "ISC"
+
+[lib]
+name = "pulse_ffi"
+path = "src/lib.rs"
 
 [dependencies]
 libc = "^0.2.20"

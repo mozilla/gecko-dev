@@ -9,12 +9,27 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 name = "payload-support"
 version = "0.1.0"
 authors = ["Sync Team <sync-team@mozilla.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+readme = false
 license = "MPL-2.0"
+
+[lib]
+name = "payload_support"
+path = "src/lib.rs"
 
 [dependencies]
 serde = "1"

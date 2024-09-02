@@ -9,11 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "chardetng"
 version = "0.1.9"
 authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A character encoding detector for legacy Web content"
 homepage = "https://docs.rs/chardetng/"
 documentation = "https://docs.rs/chardetng/"
@@ -32,6 +42,10 @@ categories = [
 ]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/hsivonen/chardetng"
+
+[lib]
+name = "chardetng"
+path = "src/lib.rs"
 
 [dependencies]
 encoding_rs = "0.8.17"

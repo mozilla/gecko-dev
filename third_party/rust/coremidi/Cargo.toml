@@ -9,11 +9,20 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "coremidi"
 version = "0.6.0"
 authors = ["Christian Perez-Llamas"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "CoreMIDI library for Rust"
 homepage = "https://github.com/chris-zen/coremidi"
 documentation = "https://chris-zen.github.io/coremidi/coremidi/"
@@ -27,6 +36,38 @@ keywords = [
 ]
 license = "MIT"
 repository = "https://github.com/chris-zen/coremidi"
+
+[lib]
+name = "coremidi"
+path = "src/lib.rs"
+
+[[example]]
+name = "endpoints"
+path = "examples/endpoints.rs"
+
+[[example]]
+name = "notifications"
+path = "examples/notifications.rs"
+
+[[example]]
+name = "properties"
+path = "examples/properties.rs"
+
+[[example]]
+name = "receive"
+path = "examples/receive.rs"
+
+[[example]]
+name = "send"
+path = "examples/send.rs"
+
+[[example]]
+name = "virtual-destination"
+path = "examples/virtual-destination.rs"
+
+[[example]]
+name = "virtual-source"
+path = "examples/virtual-source.rs"
 
 [dependencies]
 core-foundation = "0.9.1"

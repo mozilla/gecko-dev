@@ -9,12 +9,20 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+
 [package]
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-transport"
 version = "0.8.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
 readme = "../README.md"
@@ -34,20 +42,45 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
 [lib]
+name = "neqo_transport"
+path = "src/lib.rs"
 bench = false
 
+[[test]]
+name = "conn_vectors"
+path = "tests/conn_vectors.rs"
+
+[[test]]
+name = "connection"
+path = "tests/connection.rs"
+
+[[test]]
+name = "network"
+path = "tests/network.rs"
+
+[[test]]
+name = "retry"
+path = "tests/retry.rs"
+
+[[test]]
+name = "server"
+path = "tests/server.rs"
+
 [[bench]]
-name = "transfer"
+name = "range_tracker"
+path = "benches/range_tracker.rs"
 harness = false
 required-features = ["bench"]
 
 [[bench]]
 name = "rx_stream_orderer"
+path = "benches/rx_stream_orderer.rs"
 harness = false
 required-features = ["bench"]
 
 [[bench]]
-name = "range_tracker"
+name = "transfer"
+path = "benches/transfer.rs"
 harness = false
 required-features = ["bench"]
 

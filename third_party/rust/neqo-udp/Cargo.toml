@@ -9,12 +9,22 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-udp"
 version = "0.8.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
 readme = "../README.md"
@@ -37,6 +47,8 @@ repository = "https://github.com/mozilla/neqo/"
 ignored = ["log"]
 
 [lib]
+name = "neqo_udp"
+path = "src/lib.rs"
 bench = false
 
 [dependencies.log]

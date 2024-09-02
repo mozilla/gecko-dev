@@ -9,6 +9,11 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "audioipc2-client"
@@ -17,8 +22,18 @@ authors = [
     "Matthew Gregan <kinetik@flim.org>",
     "Dan Glastonbury <dan.glastonbury@gmail.com>",
 ]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Cubeb Backend for talking to remote cubeb server."
+readme = false
 license = "ISC"
+
+[lib]
+name = "audioipc2_client"
+path = "src/lib.rs"
 
 [dependencies]
 cubeb-backend = "0.13"

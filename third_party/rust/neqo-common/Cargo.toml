@@ -9,12 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-common"
 version = "0.8.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
 readme = "../README.md"
@@ -34,7 +43,13 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
 [lib]
+name = "neqo_common"
+path = "src/lib.rs"
 bench = false
+
+[[test]]
+name = "log"
+path = "tests/log.rs"
 
 [dependencies.enum-map]
 version = "2.7"

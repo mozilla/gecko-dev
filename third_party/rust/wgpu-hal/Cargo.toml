@@ -9,12 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-hal"
 version = "22.0.0"
 authors = ["gfx-rs developers"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "WebGPU hardware abstraction layer"
 homepage = "https://wgpu.rs/"
 readme = "README.md"
@@ -43,45 +52,71 @@ targets = [
 ]
 
 [lib]
+name = "wgpu_hal"
+path = "src/lib.rs"
 
 [[example]]
 name = "halmark"
+path = "examples/halmark/main.rs"
 
 [[example]]
 name = "raw-gles"
+path = "examples/raw-gles.rs"
 required-features = ["gles"]
 
-[dependencies]
-arrayvec = "0.7"
-bitflags = "2.6"
-log = "0.4"
-once_cell = "1.19.0"
-parking_lot = ">=0.11, <0.13"
-raw-window-handle = "0.6"
-rustc-hash = "1.1.0"
-thiserror = "1.0.63"
+[[example]]
+name = "ray-traced-triangle"
+path = "examples/ray-traced-triangle/main.rs"
+
+[dependencies.arrayvec]
+version = "0.7"
+
+[dependencies.bitflags]
+version = "2.6"
 
 [dependencies.glow]
 version = "0.14.0"
 optional = true
 
+[dependencies.log]
+version = "0.4"
+
 [dependencies.naga]
 version = "22.0.0"
 path = "../naga"
 
+[dependencies.once_cell]
+version = "1.19.0"
+
+[dependencies.parking_lot]
+version = ">=0.11, <0.13"
+
 [dependencies.profiling]
 version = "1"
 default-features = false
+
+[dependencies.raw-window-handle]
+version = "0.6"
+
+[dependencies.rustc-hash]
+version = "1.1.0"
+
+[dependencies.thiserror]
+version = "1.0.63"
 
 [dependencies.wgt]
 version = "22.0.0"
 path = "../wgpu-types"
 package = "wgpu-types"
 
-[dev-dependencies]
-cfg-if = "1"
-env_logger = "0.11"
-glam = "0.28"
+[dev-dependencies.cfg-if]
+version = "1"
+
+[dev-dependencies.env_logger]
+version = "0.11"
+
+[dev-dependencies.glam]
+version = "0.28"
 
 [dev-dependencies.naga]
 version = "22.0.0"
@@ -92,8 +127,8 @@ features = ["wgsl-in"]
 version = "0.29"
 features = ["android-native-activity"]
 
-[build-dependencies]
-cfg_aliases = "0.1"
+[build-dependencies.cfg_aliases]
+version = "0.1"
 
 [features]
 device_lost_panic = []
@@ -150,11 +185,13 @@ vulkan = [
     "dep:android_system_properties",
 ]
 
-[target."cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))".dependencies]
-js-sys = "0.3.70"
-wasm-bindgen = "0.2.87"
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.js-sys]
+version = "0.3.70"
 
-[target."cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))".dependencies.web-sys]
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen]
+version = "0.2.87"
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.web-sys]
 version = "0.3.70"
 features = [
     "Window",
@@ -163,18 +200,20 @@ features = [
     "OffscreenCanvas",
 ]
 
-[target."cfg(any(target_os=\"macos\", target_os=\"ios\"))".dependencies]
-core-graphics-types = "0.1"
-objc = "0.2.5"
-
-[target."cfg(any(target_os=\"macos\", target_os=\"ios\"))".dependencies.block]
+[target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.block]
 version = "0.1"
 optional = true
 
-[target."cfg(any(target_os=\"macos\", target_os=\"ios\"))".dependencies.metal]
+[target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.core-graphics-types]
+version = "0.1"
+
+[target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.metal]
 version = "0.29.0"
 
-[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.glutin]
+[target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.objc]
+version = "0.2.5"
+
+[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.glutin]
 version = "0.31"
 features = [
     "egl",
@@ -183,7 +222,7 @@ features = [
 ]
 default-features = false
 
-[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.glutin-winit]
+[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.glutin-winit]
 version = "0.4"
 features = [
     "egl",
@@ -192,68 +231,68 @@ features = [
 ]
 default-features = false
 
-[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.rwh_05]
+[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.rwh_05]
 version = "0.5"
 package = "raw-window-handle"
 
-[target."cfg(not(any(target_arch = \"wasm32\", windows, target_os = \"ios\")))".dev-dependencies.winit]
+[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.winit]
 version = "0.29"
 features = [
     "android-native-activity",
     "rwh_05",
 ]
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.ash]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.ash]
 version = "0.38.0"
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.gpu-alloc]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.gpu-alloc]
 version = "0.6"
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.gpu-descriptor]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.gpu-descriptor]
 version = "0.3"
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.khronos-egl]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.khronos-egl]
 version = "6"
 features = ["dynamic"]
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.libloading]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.libloading]
 version = "0.8"
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.renderdoc-sys]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.renderdoc-sys]
 version = "1.1.0"
 optional = true
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.smallvec]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.smallvec]
 version = "1"
 features = ["union"]
 optional = true
 
-[target."cfg(target_os = \"android\")".dependencies.android_system_properties]
+[target.'cfg(target_os = "android")'.dependencies.android_system_properties]
 version = "0.1.1"
 optional = true
 
-[target."cfg(target_os = \"android\")".dependencies.ndk-sys]
+[target.'cfg(target_os = "android")'.dependencies.ndk-sys]
 version = "0.5.0"
 optional = true
 
-[target."cfg(target_os = \"emscripten\")".dependencies.khronos-egl]
+[target.'cfg(target_os = "emscripten")'.dependencies.khronos-egl]
 version = "6"
 features = [
     "static",
     "no-pkg-config",
 ]
 
-[target."cfg(target_os = \"emscripten\")".dependencies.libloading]
+[target.'cfg(target_os = "emscripten")'.dependencies.libloading]
 version = "0.8"
 optional = true
 
-[target."cfg(unix)".dependencies]
-libc = "0.2"
+[target."cfg(unix)".dependencies.libc]
+version = "0.2"
 
 [target."cfg(windows)".dependencies.bit-set]
 version = "0.8"

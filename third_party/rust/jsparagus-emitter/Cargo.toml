@@ -9,12 +9,27 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "jsparagus-emitter"
 version = "0.1.0"
 authors = ["khyperia <github@khyperia.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+readme = false
 license = "MIT/Apache-2.0"
+
+[lib]
+name = "jsparagus_emitter"
+path = "src/lib.rs"
 
 [dependencies]
 bumpalo = "3.4.0"

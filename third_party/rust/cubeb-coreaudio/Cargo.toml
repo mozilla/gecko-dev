@@ -9,6 +9,11 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 name = "cubeb-coreaudio"
 version = "0.1.0"
@@ -16,14 +21,21 @@ authors = [
     "Chun-Min Chang <chun.m.chang@gmail.com>",
     "Paul Adenot <paul@paul.cx>",
 ]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 readme = "README.md"
 license = "ISC"
 
 [lib]
+name = "cubeb_coreaudio"
 crate-type = [
     "staticlib",
     "rlib",
 ]
+path = "src/lib.rs"
 
 [dependencies]
 atomic = "0.4"

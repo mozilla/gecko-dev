@@ -9,17 +9,31 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 name = "sync15"
 version = "0.1.0"
 authors = ["Sync Team <sync-team@mozilla.com>"]
+build = "build.rs"
 exclude = [
     "/android",
     "/ios",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 readme = "README.md"
 license = "MPL-2.0"
+
+[lib]
+name = "sync15"
+path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0"
@@ -30,7 +44,6 @@ serde_derive = "1"
 serde_json = "1"
 serde_path_to_error = "0.1"
 thiserror = "1.0"
-uniffi = "0.27.1"
 
 [dependencies.base16]
 version = "0.2"
@@ -61,6 +74,9 @@ features = ["derive"]
 [dependencies.sync-guid]
 path = "../support/guid"
 features = ["random"]
+
+[dependencies.uniffi]
+version = "0.27.1"
 
 [dependencies.url]
 version = "2.1"

@@ -9,6 +9,9 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+
 [package]
 edition = "2018"
 name = "mp4parse"
@@ -20,11 +23,16 @@ authors = [
     "Jon Bauman <jbauman@mozilla.com>",
     "Bryce Seager van Dyk <bvandyk@mozilla.com>",
 ]
+build = false
 exclude = [
     "*.mp4",
     "*.avif",
     "av1-avif/*",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Parser for ISO base media file format (mp4)"
 documentation = "https://docs.rs/mp4parse/"
 readme = "README.md"
@@ -33,10 +41,21 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/mp4parse-rust"
 
 [lib]
+name = "mp4parse"
+path = "src/lib.rs"
 bench = false
+
+[[test]]
+name = "overflow"
+path = "tests/overflow.rs"
+
+[[test]]
+name = "public"
+path = "tests/public.rs"
 
 [[bench]]
 name = "avif_benchmark"
+path = "benches/avif_benchmark.rs"
 harness = false
 
 [dependencies]

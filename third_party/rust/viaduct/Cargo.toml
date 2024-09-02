@@ -9,20 +9,32 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 name = "viaduct"
 version = "0.1.0"
 authors = ["Thom Chiovoloni <tchiovoloni@mozilla.com>"]
+build = false
 exclude = [
     "/android",
     "/ios",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 readme = "README.md"
 license = "MPL-2.0"
 
 [lib]
+name = "viaduct"
 crate-type = ["lib"]
+path = "src/lib.rs"
 
 [dependencies]
 ffi-support = "0.4"

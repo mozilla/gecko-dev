@@ -9,10 +9,18 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+bench = []
+
 [package]
 name = "midir"
 version = "0.7.0"
 authors = ["Patrick Reisert"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A cross-platform, realtime MIDI processing library, inspired by RtMidi."
 readme = "README.md"
 keywords = [
@@ -27,6 +35,38 @@ categories = [
 ]
 license = "MIT"
 repository = "https://github.com/Boddlnagg/midir"
+
+[lib]
+name = "midir"
+path = "src/lib.rs"
+
+[[example]]
+name = "test_forward"
+path = "examples/test_forward.rs"
+
+[[example]]
+name = "test_list_ports"
+path = "examples/test_list_ports.rs"
+
+[[example]]
+name = "test_play"
+path = "examples/test_play.rs"
+
+[[example]]
+name = "test_read_input"
+path = "examples/test_read_input.rs"
+
+[[example]]
+name = "test_reuse"
+path = "examples/test_reuse.rs"
+
+[[example]]
+name = "test_sysex"
+path = "examples/test_sysex.rs"
+
+[[test]]
+name = "virtual"
+path = "tests/virtual.rs"
 
 [dependencies]
 memalloc = "0.1.0"
@@ -56,11 +96,11 @@ jack = [
     "bitflags",
 ]
 
-[target."cfg(target_arch = \"wasm32\")".dependencies]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 
-[target."cfg(target_arch = \"wasm32\")".dependencies.web-sys]
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "0.3"
 features = [
     "Event",
@@ -77,14 +117,14 @@ features = [
     "MidiPortType",
 ]
 
-[target."cfg(target_arch = \"wasm32\")".dev-dependencies]
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.2"
 
-[target."cfg(target_os = \"linux\")".dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
 alsa = "0.8"
 libc = "0.2.21"
 
-[target."cfg(target_os = \"macos\")".dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 coremidi = "0.6.0"
 
 [target."cfg(windows)".dependencies.winapi]

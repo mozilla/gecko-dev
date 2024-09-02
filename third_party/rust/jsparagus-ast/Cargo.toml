@@ -9,12 +9,27 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "jsparagus-ast"
 version = "0.1.0"
 authors = ["khyperia <khyperia@live.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+readme = false
 license = "MIT/Apache-2.0"
+
+[lib]
+name = "jsparagus_ast"
+path = "src/lib.rs"
 
 [dependencies]
 indexmap = "2.0"

@@ -9,12 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-http3"
 version = "0.8.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Neqo, the Mozilla implementation of QUIC in Rust."
 homepage = "https://github.com/mozilla/neqo/"
 readme = "../README.md"
@@ -34,7 +43,25 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
 [lib]
+name = "neqo_http3"
+path = "src/lib.rs"
 bench = false
+
+[[test]]
+name = "httpconn"
+path = "tests/httpconn.rs"
+
+[[test]]
+name = "priority"
+path = "tests/priority.rs"
+
+[[test]]
+name = "send_message"
+path = "tests/send_message.rs"
+
+[[test]]
+name = "webtransport"
+path = "tests/webtransport.rs"
 
 [dependencies.enumset]
 version = "1.1"

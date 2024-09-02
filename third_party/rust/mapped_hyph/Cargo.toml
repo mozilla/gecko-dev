@@ -9,17 +9,41 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+example = []
+
 [package]
 edition = "2018"
 name = "mapped_hyph"
 version = "0.4.3"
 authors = ["Jonathan Kew <jfkthame@gmail.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Hyphenation using precompiled memory-mapped tables"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 
+[lib]
+name = "mapped_hyph"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hyf_compile"
+path = "src/bin/hyf_compile.rs"
+
+[[bin]]
+name = "mapped_hyph"
+path = "src/main.rs"
+
+[[test]]
+name = "test"
+path = "tests/test.rs"
+
 [[bench]]
 name = "bench"
+path = "benches/bench.rs"
 harness = false
 
 [dependencies]

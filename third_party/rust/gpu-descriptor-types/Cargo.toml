@@ -9,14 +9,25 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "gpu-descriptor-types"
 version = "0.2.0"
 authors = ["Zakarum <zakarumych@ya.ru>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Core types of gpu-descriptor crate"
 homepage = "https://github.com/zakarumych/gpu-descriptor"
 documentation = "https://docs.rs/gpu-descriptor-types"
+readme = false
 keywords = [
     "gpu",
     "vulkan",
@@ -25,6 +36,10 @@ keywords = [
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/zakarumych/gpu-descriptor"
+
+[lib]
+name = "gpu_descriptor_types"
+path = "src/lib.rs"
 
 [dependencies.bitflags]
 version = "2.4"

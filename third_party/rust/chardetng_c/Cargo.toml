@@ -9,11 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "chardetng_c"
 version = "0.1.2"
 authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "C bindings for chardetng"
 homepage = "https://docs.rs/chardetng_c/"
 documentation = "https://docs.rs/chardetng_c/"
@@ -32,6 +42,10 @@ categories = [
 ]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/hsivonen/chardetng-c"
+
+[lib]
+name = "chardetng_c"
+path = "src/lib.rs"
 
 [dependencies]
 chardetng = "0.1.1"

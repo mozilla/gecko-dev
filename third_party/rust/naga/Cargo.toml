@@ -9,19 +9,27 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76"
 name = "naga"
 version = "22.0.0"
 authors = ["gfx-rs developers"]
+build = "build.rs"
 exclude = [
     "bin/**/*",
     "tests/**/*",
     "Cargo.lock",
     "target/**/*",
 ]
+autobins = false
+autoexamples = false
 autotests = false
+autobenches = false
 description = "Shader translation infrastructure"
 readme = "README.md"
 keywords = [
@@ -37,23 +45,30 @@ resolver = "2"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+name = "naga"
+path = "src/lib.rs"
+
 [[test]]
 name = "naga-test"
 path = "tests/root.rs"
 
 [dependencies]
-arrayvec = "0.7"
-bit-set = "0.8"
-bitflags = "2.6"
-indexmap = "2"
 log = "0.4"
-rustc-hash = "1.1.0"
-thiserror = "1.0.63"
 
 [dependencies.arbitrary]
 version = "1.3"
 features = ["derive"]
 optional = true
+
+[dependencies.arrayvec]
+version = "0.7"
+
+[dependencies.bit-set]
+version = "0.8"
+
+[dependencies.bitflags]
+version = "2.6"
 
 [dependencies.codespan-reporting]
 version = "0.11.0"
@@ -62,6 +77,9 @@ version = "0.11.0"
 version = "0.2.1"
 optional = true
 
+[dependencies.indexmap]
+version = "2"
+
 [dependencies.petgraph]
 version = "0.6"
 optional = true
@@ -69,6 +87,9 @@ optional = true
 [dependencies.pp-rs]
 version = "0.2.1"
 optional = true
+
+[dependencies.rustc-hash]
+version = "1.1.0"
 
 [dependencies.serde]
 version = "1.0.208"
@@ -82,14 +103,19 @@ optional = true
 [dependencies.termcolor]
 version = "1.4.1"
 
+[dependencies.thiserror]
+version = "1.0.63"
+
 [dependencies.unicode-xid]
 version = "0.2.5"
 optional = true
 
 [dev-dependencies]
 diff = "0.1"
-env_logger = "0.11"
 ron = "0.8.0"
+
+[dev-dependencies.env_logger]
+version = "0.11"
 
 [dev-dependencies.hlsl-snapshots]
 path = "./hlsl-snapshots"
@@ -107,8 +133,8 @@ features = ["derive"]
 version = "0.3"
 features = ["deserialize"]
 
-[build-dependencies]
-cfg_aliases = "0.1"
+[build-dependencies.cfg_aliases]
+version = "0.1"
 
 [features]
 arbitrary = [

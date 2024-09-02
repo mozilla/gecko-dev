@@ -9,6 +9,10 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+
 [package]
 edition = "2018"
 name = "audioipc2"
@@ -17,11 +21,22 @@ authors = [
     "Matthew Gregan <kinetik@flim.org>",
     "Dan Glastonbury <dan.glastonbury@gmail.com>",
 ]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Remote Cubeb IPC"
+readme = false
 license = "ISC"
+
+[lib]
+name = "audioipc2"
+path = "src/lib.rs"
 
 [[bench]]
 name = "serialization"
+path = "benches/serialization.rs"
 harness = false
 
 [dependencies]
@@ -59,10 +74,10 @@ features = ["html_reports"]
 [build-dependencies]
 cc = "1.0"
 
-[target."cfg(target_os = \"android\")".dependencies]
+[target.'cfg(target_os = "android")'.dependencies]
 ashmem = "0.1.2"
 
-[target."cfg(target_os = \"linux\")".dependencies.audio_thread_priority]
+[target.'cfg(target_os = "linux")'.dependencies.audio_thread_priority]
 version = "0.32"
 default-features = false
 

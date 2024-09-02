@@ -9,6 +9,11 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 name = "remote_settings"
@@ -17,24 +22,36 @@ authors = [
     "The Android Mobile Team <firefox-android-team@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
 ]
+build = "build.rs"
 exclude = [
     "/android",
     "/ios",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A Remote Settings client intended for application layer platforms."
+readme = false
 license = "MPL-2.0"
+
+[lib]
+name = "remote_settings"
+path = "src/lib.rs"
 
 [dependencies]
 log = "0.4"
 parking_lot = "0.12"
 serde_json = "1"
 thiserror = "1.0"
-uniffi = "0.27.1"
 url = "2.1"
 
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[dependencies.uniffi]
+version = "0.27.1"
 
 [dependencies.viaduct]
 path = "../viaduct"

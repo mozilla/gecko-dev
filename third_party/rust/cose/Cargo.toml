@@ -9,6 +9,10 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+test = []
+bench = []
+
 [package]
 name = "cose"
 version = "0.1.4"
@@ -17,6 +21,10 @@ authors = [
     "David Keeler <dkeeler@mozilla.com>",
 ]
 build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Library to use COSE (https://tools.ietf.org/html/rfc8152) in Rust"
 readme = "README.md"
 keywords = [
@@ -29,6 +37,10 @@ repository = "https://github.com/franziskuskiefer/cose-rust"
 [lib]
 name = "cose"
 path = "src/cose.rs"
+
+[[example]]
+name = "sign_verify"
+path = "examples/sign_verify/main.rs"
 
 [dependencies]
 moz_cbor = "0.1.0"

@@ -9,14 +9,25 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-types"
 version = "22.0.0"
 authors = ["gfx-rs developers"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "WebGPU types"
 homepage = "https://wgpu.rs/"
+readme = false
 keywords = ["graphics"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/gfx-rs/wgpu"
@@ -35,21 +46,23 @@ targets = [
 ]
 
 [lib]
+name = "wgpu_types"
+path = "src/lib.rs"
 
-[dependencies]
-bitflags = "2.6"
+[dependencies.bitflags]
+version = "2.6"
 
 [dependencies.serde]
 version = "1"
 features = ["derive"]
 optional = true
 
-[dev-dependencies]
-serde_json = "1.0.125"
-
 [dev-dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[dev-dependencies.serde_json]
+version = "1.0.125"
 
 [features]
 counters = []
@@ -57,10 +70,10 @@ fragile-send-sync-non-atomic-wasm = []
 serde = ["dep:serde"]
 strict_asserts = []
 
-[target."cfg(target_arch = \"wasm32\")".dependencies]
-js-sys = "0.3.70"
+[target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
+version = "0.3.70"
 
-[target."cfg(target_arch = \"wasm32\")".dependencies.web-sys]
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "0.3.70"
 features = [
     "ImageBitmap",

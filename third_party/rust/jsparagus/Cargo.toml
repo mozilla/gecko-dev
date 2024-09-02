@@ -9,12 +9,21 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2018"
 name = "jsparagus"
 version = "0.1.0"
 authors = ["The jsparagus Project Developers"]
+build = false
 publish = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A JavaScript parser"
 readme = "README.md"
 license = "MIT/Apache-2.0"
@@ -24,6 +33,8 @@ repository = "https://github.com/mozilla-spidermonkey/jsparagus"
 debug = 2
 
 [lib]
+name = "jsparagus"
+path = "src/lib.rs"
 
 [[bin]]
 name = "smoosh_tools"
