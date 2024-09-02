@@ -262,6 +262,9 @@ var SidebarController = {
   },
 
   async init() {
+    // Initialize with side effects
+    this.SidebarManager;
+
     this._box = document.getElementById("sidebar-box");
     this._splitter = document.getElementById("sidebar-splitter");
     this._reversePositionButton = document.getElementById(
@@ -1549,6 +1552,10 @@ var SidebarController = {
     verticalTabs.toggleAttribute("visible", this.sidebarVerticalTabsEnabled);
   },
 };
+
+ChromeUtils.defineESModuleGetters(SidebarController, {
+  SidebarManager: "resource:///modules/SidebarManager.sys.mjs",
+});
 
 // Add getters related to the position here, since we will want them
 // available for both startDelayedLoad and init.

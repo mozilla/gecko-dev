@@ -3561,6 +3561,21 @@ chatbot:
         sub-pref and values objects indicating the desired branch and value
         defaulting to clearing the user branch value.
 
+sidebar:
+  description: Sidebar feature configuration
+  owner: elee@mozilla.com
+  hasExposure: false
+  variables:
+    main.tools:
+      type: string
+      description: sidebar.main.tools pref value to set on user branch
+    revamp:
+      type: boolean
+      description: sidebar.revamp pref value to set on user branch
+    verticalTabs:
+      type: boolean
+      description: sidebar.verticalTabs pref value to set on user branch
+
 fxms_bmb_button:
   description: A feature for the Firefox Messaging System Bookmarks Bar button surface
   owner: omc@mozilla.com

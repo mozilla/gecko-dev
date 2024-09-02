@@ -26,6 +26,8 @@ run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_sidebar_max_width.js"]
 
+["browser_sidebar_nimbus.js"]
+
 ["browser_sidebar_panel_header.js"]
 
 ["browser_sidebar_panel_switcher.js"]
