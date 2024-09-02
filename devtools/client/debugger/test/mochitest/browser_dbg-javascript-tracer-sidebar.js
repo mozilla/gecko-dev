@@ -42,11 +42,14 @@ add_task(async function () {
   invokeInTab("main");
 
   info("Wait for the call tree to appear in the tracer panel");
-  const tree = await waitForElementWithSelector(dbg, "#tracer-tab-panel .tree");
+  const tracerTree = await waitForElementWithSelector(
+    dbg,
+    "#tracer-tab-panel .tree"
+  );
 
   info("Wait for the expected traces to appear in the call tree");
   let traces = await waitFor(() => {
-    const elements = tree.querySelectorAll(".trace-line");
+    const elements = tracerTree.querySelectorAll(".trace-line");
     if (elements.length == 3) {
       return elements;
     }
@@ -58,6 +61,9 @@ add_task(async function () {
 
   info("Select the trace for the call to `foo`");
   EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
+
+  let focusedTrace = tracerTree.querySelector(".tree-node.focused .trace-line");
+  is(focusedTrace, traces[1], "The clicked trace is now focused");
 
   // Naive sanity checks for inlines previews
   const inlinePreviews = [
@@ -113,6 +119,53 @@ add_task(async function () {
     await closePreviewForToken(dbg, tokenEl, "previewPopup");
   }
 
+  let focusedPausedFrame = findElementWithSelector(
+    dbg,
+    ".frames .frame.selected"
+  );
+  ok(!focusedPausedFrame, "Before pausing, there is no selected paused frame");
+
+  info("Trigger a breakpoint");
+  const onResumed = SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [],
+    async function () {
+      content.eval("debugger;");
+    }
+  );
+  await waitForPaused(dbg);
+  await waitForSelectedLocation(dbg, 1, 0);
+
+  focusedPausedFrame = findElementWithSelector(dbg, ".frames .frame.selected");
+  ok(
+    !!focusedPausedFrame,
+    "When paused, a frame is selected in the call stack panel"
+  );
+
+  focusedTrace = tracerTree.querySelector(".tree-node.focused .trace-line");
+  is(focusedTrace, null, "When pausing, there is no trace selected anymore");
+
+  info("Re select the tracer frame while being paused");
+  EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
+
+  await waitForSelectedLocation(dbg, 1, 12);
+  focusedPausedFrame = findElementWithSelector(dbg, ".frames .frame.selected");
+  ok(
+    !focusedPausedFrame,
+    "While paused, if we select a tracer frame, the paused frame is no longer highlighted in the call stack panel"
+  );
+  const highlightedPausedFrame = findElementWithSelector(
+    dbg,
+    ".frames .frame.semi-selected"
+  );
+  ok(
+    !!highlightedPausedFrame,
+    "But it is still semi-highlighted with a grey background"
+  );
+
+  await resume(dbg);
+  await onResumed;
+
   // Trigger a click in the content page to verify we do trace DOM events
   BrowserTestUtils.synthesizeMouseAtCenter(
     "button",
@@ -121,18 +174,18 @@ add_task(async function () {
   );
 
   const clickTrace = await waitFor(() =>
-    tree.querySelector(".tracer-dom-event")
+    tracerTree.querySelector(".tracer-dom-event")
   );
   is(clickTrace.textContent, "DOM | click");
   is(
-    tree.querySelectorAll(".trace-line").length,
-    5,
+    tracerTree.querySelectorAll(".trace-line").length,
+    6,
     "The click event adds two elements in the tree. The DOM Event and its top frame"
   );
 
   await BrowserTestUtils.synthesizeKey("x", {}, gBrowser.selectedBrowser);
   const keyTrace = await waitFor(() => {
-    const elts = tree.querySelectorAll(".tracer-dom-event");
+    const elts = tracerTree.querySelectorAll(".tracer-dom-event");
     if (elts.length == 2) {
       return elts[1];
     }
@@ -141,8 +194,8 @@ add_task(async function () {
   is(keyTrace.textContent, "DOM | keypress");
 
   is(
-    tree.querySelectorAll(".trace-line").length,
-    7,
+    tracerTree.querySelectorAll(".trace-line").length,
+    8,
     "The key event adds two elements in the tree. The DOM Event and its top frame"
   );
 
@@ -160,8 +213,13 @@ add_task(async function () {
 
   // Wait for the `eval` and the `doMutation` calls to be rendered
   traces = await waitFor(() => {
-    const elements = tree.querySelectorAll(".trace-line");
-    if (elements.length == 9) {
+    // Scroll to bottom to ensure rendering the last elements (otherwise they are not because of VirtualizedTree)
+    tracerTree.scrollTop = tracerTree.scrollHeight;
+    const elements = tracerTree.querySelectorAll(".trace-line");
+    // Wait for the expected element to be rendered
+    if (
+      elements[elements.length - 1].textContent.includes("window.doMutation")
+    ) {
       return elements;
     }
     return false;
@@ -174,7 +232,7 @@ add_task(async function () {
   doMutationTrace.querySelector(".arrow").click();
 
   const mutationTrace = await waitFor(() =>
-    tree.querySelector(".tracer-dom-mutation")
+    tracerTree.querySelector(".tracer-dom-mutation")
   );
   is(mutationTrace.textContent, "DOM Mutation | add");
 
