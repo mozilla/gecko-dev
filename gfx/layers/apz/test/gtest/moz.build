@@ -20,7 +20,6 @@ UNIFIED_SOURCES += [
     "TestPanning.cpp",
     "TestPinching.cpp",
     "TestPointerEventsConsumable.cpp",
-    "TestRecentEventsBuffer.cpp",
     "TestScrollbarDragging.cpp",
     "TestScrollHandoff.cpp",
     "TestSnapping.cpp",
@@ -36,7 +35,6 @@ LOCAL_INCLUDES += [
     "/gfx/2d",
     "/gfx/cairo/cairo/src",
     "/gfx/layers",
-    "/gfx/layers/apz/src",
 ]
 
 FINAL_LIBRARY = "xul-gtest"

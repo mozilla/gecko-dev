@@ -24,8 +24,6 @@ class RecentEventsBuffer {
  public:
   explicit RecentEventsBuffer(TimeDuration maxAge);
 
-  explicit RecentEventsBuffer(TimeDuration maxAge, size_t minSize);
-
   void push(Event event);
   void clear();
 
@@ -49,19 +47,13 @@ class RecentEventsBuffer {
   const_reference back() const { return mBuffer.back(); }
 
  private:
-  size_t mMinSize;
   TimeDuration mMaxAge;
   std::deque<Event> mBuffer;
 };
 
 template <typename Event>
 RecentEventsBuffer<Event>::RecentEventsBuffer(TimeDuration maxAge)
-    : mMinSize(0), mMaxAge(maxAge), mBuffer() {}
-
-template <typename Event>
-RecentEventsBuffer<Event>::RecentEventsBuffer(TimeDuration maxAge,
-                                              size_t minSize)
-    : mMinSize(minSize), mMaxAge(maxAge), mBuffer() {}
+    : mMaxAge(maxAge), mBuffer() {}
 
 template <typename Event>
 void RecentEventsBuffer<Event>::push(Event event) {
@@ -72,7 +64,7 @@ void RecentEventsBuffer<Event>::push(Event event) {
 
   // Flush all events older than the given lifetime
   TimeStamp bound = event.mTimeStamp - mMaxAge;
-  while (mBuffer.size() > mMinSize) {
+  while (!mBuffer.empty()) {
     if (mBuffer.front().mTimeStamp >= bound) {
       break;
     }

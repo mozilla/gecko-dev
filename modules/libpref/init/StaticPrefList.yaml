@@ -809,11 +809,6 @@
   value: 0.1f
   mirror: always
 
-- name: apz.touch_scroll.buffer_max_age
-  type: int32_t
-  value: 200  # milliseconds
-  mirror: once
-
 - name: apz.touch_start_tolerance
   type: AtomicFloat
   value: 0.1f
