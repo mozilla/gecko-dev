@@ -166,9 +166,9 @@
 #include "js/StructuredClone.h"
 #include "js/SweepingAPI.h"
 #include "js/Transcoding.h"  // JS::TranscodeBuffer, JS::TranscodeRange, JS::IsTranscodeFailureResult
-#include "js/Warnings.h"    // JS::SetWarningReporter
+#include "js/Warnings.h"      // JS::SetWarningReporter
 #include "js/WasmFeatures.h"  // JS_FOR_WASM_FEATURES
-#include "js/WasmModule.h"  // JS::WasmModule
+#include "js/WasmModule.h"    // JS::WasmModule
 #include "js/Wrapper.h"
 #include "proxy/DeadObjectProxy.h"  // js::IsDeadProxyObject
 #include "shell/jsoptparse.h"
