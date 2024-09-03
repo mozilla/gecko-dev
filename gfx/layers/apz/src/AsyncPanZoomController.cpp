@@ -565,7 +565,8 @@ bool AsyncPanZoomController::IsZero(ParentLayerCoord aCoord) const {
     return true;
   }
 
-  return FuzzyEqualsAdditive((aCoord / zoom), CSSCoord(), COORDINATE_EPSILON);
+  return FuzzyEqualsAdditive(ToCSSPixels(aCoord), CSSCoord(),
+                             COORDINATE_EPSILON);
 }
 
 bool AsyncPanZoomController::FuzzyGreater(ParentLayerCoord aCoord1,
@@ -578,7 +579,7 @@ bool AsyncPanZoomController::FuzzyGreater(ParentLayerCoord aCoord1,
     return false;
   }
 
-  return (aCoord1 - aCoord2) / zoom > COORDINATE_EPSILON;
+  return ToCSSPixels(aCoord1 - aCoord2) > COORDINATE_EPSILON;
 }
 
 class StateChangeNotificationBlocker final {
