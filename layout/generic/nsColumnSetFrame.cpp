@@ -411,17 +411,17 @@ static void MoveChildTo(nsIFrame* aChild, LogicalPoint aOrigin, WritingMode aWM,
   nsContainerFrame::PlaceFrameView(aChild);
 }
 
-nscoord nsColumnSetFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsColumnSetFrame::IntrinsicISize(const IntrinsicSizeInput& input,
                                          IntrinsicISizeType aType) {
-  return aType == IntrinsicISizeType::MinISize ? MinISize(aContext)
-                                               : PrefISize(aContext);
+  return aType == IntrinsicISizeType::MinISize ? MinISize(input)
+                                               : PrefISize(input);
 }
 
-nscoord nsColumnSetFrame::MinISize(gfxContext* aContext) {
+nscoord nsColumnSetFrame::MinISize(const IntrinsicSizeInput& aInput) {
   nscoord iSize = 0;
 
   if (mFrames.FirstChild()) {
-    iSize = mFrames.FirstChild()->GetMinISize(aContext);
+    iSize = mFrames.FirstChild()->GetMinISize(aInput);
   }
   const nsStyleColumn* colStyle = StyleColumn();
   if (colStyle->mColumnWidth.IsLength()) {
@@ -446,7 +446,7 @@ nscoord nsColumnSetFrame::MinISize(gfxContext* aContext) {
   return iSize;
 }
 
-nscoord nsColumnSetFrame::PrefISize(gfxContext* aContext) {
+nscoord nsColumnSetFrame::PrefISize(const IntrinsicSizeInput& aInput) {
   // Our preferred width is our desired column width, if specified, otherwise
   // the child's preferred width, times the number of columns, plus the width
   // of any required column gaps
@@ -458,7 +458,7 @@ nscoord nsColumnSetFrame::PrefISize(gfxContext* aContext) {
     colISize =
         ColumnUtils::ClampUsedColumnWidth(colStyle->mColumnWidth.AsLength());
   } else if (mFrames.FirstChild()) {
-    colISize = mFrames.FirstChild()->GetPrefISize(aContext);
+    colISize = mFrames.FirstChild()->GetPrefISize(aInput);
   } else {
     colISize = 0;
   }

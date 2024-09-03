@@ -238,15 +238,16 @@ ComputedStyle* nsTableWrapperFrame::GetParentComputedStyle(
   return (*aProviderFrame = InnerTableFrame())->Style();
 }
 
-nscoord nsTableWrapperFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsTableWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                             IntrinsicISizeType aType) {
-  nscoord iSize =
-      nsLayoutUtils::IntrinsicForContainer(aContext, InnerTableFrame(), aType);
+  nscoord iSize = nsLayoutUtils::IntrinsicForContainer(
+      aInput.mContext, InnerTableFrame(), aType);
   if (mCaptionFrames.NotEmpty()) {
     // The table wrapper's intrinsic inline size should be as least as large as
     // caption's min inline size.
     const nscoord capMinISize = nsLayoutUtils::IntrinsicForContainer(
-        aContext, mCaptionFrames.FirstChild(), IntrinsicISizeType::MinISize);
+        aInput.mContext, mCaptionFrames.FirstChild(),
+        IntrinsicISizeType::MinISize);
     iSize = std::max(iSize, capMinISize);
   }
   return iSize;

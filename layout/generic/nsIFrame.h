@@ -416,6 +416,17 @@ struct FrameBidiData {
   mozilla::intl::BidiEmbeddingLevel precedingControl;
 };
 
+// A struct aggregates necessary data to compute the intrinsic sizes for a
+// frame, used as an input for GetMinISize(), GetPrefISize(), IntrinsicISize(),
+// and others.
+struct MOZ_STACK_CLASS IntrinsicSizeInput final {
+  gfxContext* const mContext;
+
+  explicit IntrinsicSizeInput(gfxContext* aContext) : mContext(aContext) {
+    MOZ_ASSERT(mContext);
+  }
+};
+
 }  // namespace mozilla
 
 /// Generic destructor for frame properties. Calls delete.
@@ -2581,8 +2592,8 @@ class nsIFrame : public nsQueryFrame {
    *
    * This method must not return a negative value.
    */
-  nscoord GetMinISize(gfxContext* aContext) {
-    return IntrinsicISize(aContext, mozilla::IntrinsicISizeType::MinISize);
+  nscoord GetMinISize(const mozilla::IntrinsicSizeInput& aInput) {
+    return IntrinsicISize(aInput, mozilla::IntrinsicISizeType::MinISize);
   }
 
   /**
@@ -2591,8 +2602,8 @@ class nsIFrame : public nsQueryFrame {
    *
    * Otherwise, all the comments for |GetMinISize| above apply.
    */
-  nscoord GetPrefISize(gfxContext* aContext) {
-    return IntrinsicISize(aContext, mozilla::IntrinsicISizeType::PrefISize);
+  nscoord GetPrefISize(const mozilla::IntrinsicSizeInput& aInput) {
+    return IntrinsicISize(aInput, mozilla::IntrinsicISizeType::PrefISize);
   }
 
   /**
@@ -2601,7 +2612,7 @@ class nsIFrame : public nsQueryFrame {
    *
    * All the comments for GetMinISize() and GetPrefISize() apply.
    */
-  virtual nscoord IntrinsicISize(gfxContext* aContext,
+  virtual nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
                                  mozilla::IntrinsicISizeType aType) {
     return 0;
   }
@@ -2895,7 +2906,8 @@ class nsIFrame : public nsQueryFrame {
    * Utility function for ComputeAutoSize implementations.  Return
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */
-  nscoord ShrinkISizeToFit(gfxContext* aRenderingContext, nscoord aISizeInCB,
+  nscoord ShrinkISizeToFit(const mozilla::IntrinsicSizeInput& aInput,
+                           nscoord aISizeInCB,
                            mozilla::ComputeSizeFlags aFlags);
 
   /**

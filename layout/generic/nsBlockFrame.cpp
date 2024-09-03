@@ -807,30 +807,30 @@ bool nsBlockFrame::TextIndentAppliesTo(const LineIterator& aLine) const {
   return isFirstLineOrAfterHardBreak != textIndent.hanging;
 }
 
-nscoord nsBlockFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsBlockFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                      IntrinsicISizeType aType) {
   nsIFrame* firstCont = FirstContinuation();
   if (firstCont != this) {
-    return firstCont->IntrinsicISize(aContext, aType);
+    return firstCont->IntrinsicISize(aInput, aType);
   }
 
   CheckIntrinsicCacheAgainstShrinkWrapState();
 
   if (aType == IntrinsicISizeType::MinISize) {
     if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-      mCachedMinISize = MinISize(aContext);
+      mCachedMinISize = MinISize(aInput);
     }
     return mCachedMinISize;
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = PrefISize(aContext);
+    mCachedPrefISize = PrefISize(aInput);
   }
   return mCachedPrefISize;
 }
 
 /* virtual */
-nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
+nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -872,7 +872,7 @@ nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
       if (line->IsBlock()) {
         data.ForceBreak();
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -883,7 +883,7 @@ nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlineMinISize(aContext, &data);
+          kid->AddInlineMinISize(aInput.mContext, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
           }
@@ -903,7 +903,7 @@ nscoord nsBlockFrame::MinISize(gfxContext* aContext) {
 }
 
 /* virtual */
-nscoord nsBlockFrame::PrefISize(gfxContext* aContext) {
+nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -949,7 +949,7 @@ nscoord nsBlockFrame::PrefISize(gfxContext* aContext) {
         }
         data.ForceBreak(clearType);
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -965,7 +965,7 @@ nscoord nsBlockFrame::PrefISize(gfxContext* aContext) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlinePrefISize(aContext, &data);
+          kid->AddInlinePrefISize(aInput.mContext, &data);
         }
       }
 #ifdef DEBUG
