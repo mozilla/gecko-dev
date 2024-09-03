@@ -130,116 +130,109 @@
   --grey-90-a10: rgba(12, 12, 13, 0.1);
   --grey-90-a20: rgba(12, 12, 13, 0.2);
   --grey-90-a30: rgba(12, 12, 13, 0.3);
-}
 
-:root.theme-light {
-  --theme-body-background: white;
-  --theme-body-emphasized-background: var(--grey-10);
-  --theme-body-alternate-emphasized-background: #f0f9fe;
-  --theme-sidebar-background: white;
+  --theme-body-background: light-dark(white, #232327);
+  --theme-body-emphasized-background: light-dark(var(--grey-10), var(--grey-70));
+  --theme-body-alternate-emphasized-background: light-dark(#f0f9fe, #353b48);
+  --theme-sidebar-background: light-dark(white, #18181a);
 
   /* Toolbar */
-  --theme-tab-toolbar-background: var(--grey-10);
-  --theme-toolbar-background: var(--grey-10);
-  --theme-toolbar-color: var(--grey-90);
-  --theme-toolbar-selected-color: var(--blue-60);
-  --theme-toolbar-highlighted-color: var(--green-60);
-  --theme-toolbar-background-hover: rgba(221, 225, 228, 0.66);
-  --theme-toolbar-background-alt: #f5f5f5;
-  --theme-toolbar-background-highlighted: #b9dcff;
-  --theme-toolbar-error-background: var(--red-05);
-  --theme-toolbar-hover: var(--grey-20);
-  --theme-toolbar-hover-active: var(--grey-20);
-  --theme-toolbar-separator: var(--grey-90-a10);
+  --theme-tab-toolbar-background: light-dark(var(--grey-10), var(--grey-90));
+  --theme-toolbar-background: light-dark(var(--grey-10), #18181a);
+  --theme-toolbar-color: light-dark(var(--grey-90), var(--grey-40));
+  --theme-toolbar-selected-color: light-dark(var(--blue-60), white);
+  --theme-toolbar-highlighted-color: light-dark(var(--green-60), var(--green-50));
+  --theme-toolbar-background-hover: light-dark(rgba(221, 225, 228, 0.66), #232327);
+  --theme-toolbar-background-alt: light-dark(#f5f5f5, var(--grey-85));
+  --theme-toolbar-background-highlighted: light-dark(#b9dcff, var(--blue-60));
+  --theme-toolbar-error-background: light-dark(var(--red-05), var(--red-70));
+  --theme-toolbar-hover: light-dark(var(--grey-20), #232327);
+  --theme-toolbar-hover-active: light-dark(var(--grey-20), #252526);
+  --theme-toolbar-separator: light-dark(var(--grey-90-a10), var(--grey-10-a20));
 
   /* Toolbar buttons */
-  --toolbarbutton-background: var(--grey-10);
-  --toolbarbutton-hover-background: var(--grey-20);
-  --toolbarbutton-focus-background: var(--grey-20);
-  --toolbarbutton-focus-color: var(--grey-70);
-  --toolbarbutton-checked-background: var(--blue-55);
+  --toolbarbutton-background: light-dark(var(--grey-10), var(--grey-70));
+  --toolbarbutton-hover-background: light-dark(var(--grey-20), var(--grey-70));
+  --toolbarbutton-focus-background: light-dark(var(--grey-20), var(--grey-60));
+  --toolbarbutton-focus-color: light-dark(var(--grey-70), var(--grey-30));
+  --toolbarbutton-checked-background: light-dark(var(--blue-55), #204e8a);
   --toolbarbutton-checked-focus-background: var(--blue-60);
   --toolbarbutton-checked-color: #ffffff;
 
   /* Buttons */
-  --theme-button-background: rgba(12, 12, 13, 0.05);
-  --theme-button-active-background: rgba(12, 12, 13, 0.1);
+  --theme-button-background: light-dark(rgba(12, 12, 13, 0.05), rgba(249, 249, 250, 0.1));
+  --theme-button-active-background: light-dark(rgba(12, 12, 13, 0.1), rgba(249, 249, 250, 0.15));
 
   /* Accordion headers */
-  --theme-accordion-header-background: var(--theme-toolbar-background);
-  --theme-accordion-header-hover: var(--theme-toolbar-hover);
+  --theme-accordion-header-background: light-dark(var(--theme-toolbar-background), #232327);
+  --theme-accordion-header-hover: light-dark(var(--theme-toolbar-hover), #2a2a2e);
 
   /* Selection */
-  --theme-selection-background: var(--blue-55);
-  --theme-selection-background-hover: #f0f9fe;
-  --theme-selection-focus-background: var(--toolbarbutton-hover-background);
+  --theme-selection-background: light-dark(var(--blue-55), #204e8a);
+  --theme-selection-background-hover: light-dark(#f0f9fe, #353b48);
+  --theme-selection-focus-background: light-dark(var(--toolbarbutton-hover-background), var(--grey-60));
   --theme-selection-color: #ffffff;
 
   /* Border color that splits the toolbars/panels/headers. */
-  --theme-splitter-color: var(--grey-25);
-  --theme-emphasized-splitter-color: var(--grey-30);
-  --theme-emphasized-splitter-color-hover: var(--grey-40);
+  --theme-splitter-color: light-dark(var(--grey-25), var(--grey-70));
+  --theme-emphasized-splitter-color: light-dark(var(--grey-30), var(--grey-60));
+  --theme-emphasized-splitter-color-hover: light-dark(var(--grey-40), var(--grey-50));
 
   /* Icon colors */
-  --theme-icon-color: rgba(12, 12, 13, 0.8);
-  --theme-icon-dimmed-color: rgba(135, 135, 137, 0.9);
-  --theme-icon-checked-color: var(--blue-60);
-  --theme-icon-error-color: var(--red-60);
-  --theme-icon-warning-color: var(--yellow-65);
+  --theme-icon-color: light-dark(rgba(12, 12, 13, 0.8), rgba(249, 249, 250, 0.7));
+  --theme-icon-dimmed-color: light-dark(rgba(135, 135, 137, 0.9), rgba(147, 147, 149, 0.9));
+  --theme-icon-checked-color: light-dark(var(--blue-60), var(--blue-30));
+  --theme-icon-error-color: light-dark(var(--red-60), var(--red-40));
+  --theme-icon-warning-color: light-dark(var(--yellow-65), var(--yellow-60));
 
   /* Text color */
-  --theme-comment: var(--grey-55);
-  --theme-body-color: var(--grey-70);
-  --theme-link-color: var(--blue-60);
-  --theme-internal-link-color: var(--blue-70);
-  --theme-text-color-alt: var(--grey-50);
-  --theme-text-color-inactive: var(--grey-40);
-  --theme-text-color-error: var(--red-60);
-  --theme-text-color-strong: var(--grey-90);
-  --theme-stack-trace-text: var(--red-70);
+  --theme-comment: light-dark(var(--grey-55), var(--grey-45));
+  --theme-body-color: light-dark(var(--grey-70), var(--grey-40));
+  --theme-link-color: light-dark(var(--blue-60), #75bfff);
+  --theme-internal-link-color: light-dark(var(--blue-70), var(--blue-40));
+  --theme-text-color-alt: light-dark(var(--grey-50), var(--grey-45));
+  --theme-text-color-inactive: light-dark(var(--grey-40), var(--grey-50));
+  --theme-text-color-error: light-dark(var(--red-60), var(--grey-10));
+  --theme-text-color-strong: light-dark(var(--grey-90), var(--grey-30));
+  --theme-stack-trace-text: light-dark(var(--red-70), var(--red-20));
 
-  --theme-highlight-green: var(--green-70);
-  --theme-highlight-blue: var(--blue-55);
-  --theme-highlight-purple: var(--blue-70);
-  --theme-highlight-red: var(--magenta-65);
+  --theme-highlight-green: light-dark(var(--green-70), #86de74);
+  --theme-highlight-blue: light-dark(var(--blue-55), #75bfff);
+  --theme-highlight-purple: light-dark(var(--blue-70), #b98eff);
+  --theme-highlight-red: light-dark(var(--magenta-65), #ff7de9);
   --theme-highlight-yellow: #fff89e;
 
   /* These theme-highlight color variables have not been photonized. */
-  --theme-highlight-bluegrey: #0072ab;
-  --theme-highlight-lightorange: #d97e00;
-  --theme-highlight-orange: #f13c00;
-  --theme-highlight-pink: #b82ee5;
-  --theme-highlight-gray: #dde1e4;
+  --theme-highlight-bluegrey: light-dark(#0072ab, #5e88b0);
+  --theme-highlight-lightorange: light-dark(#d97e00, #d99b28);
+  --theme-highlight-orange: light-dark(#f13c00, #d96629);
+  --theme-highlight-pink: light-dark(#b82ee5, #df80ff);
+  --theme-highlight-gray: light-dark(#dde1e4, #e9f4fe);
 
   /* Colors that were used in Graphs in the old performance tools, which was removed.
    * They're also used on other panels and should be renamed (See Bug 1767617) */
-  --theme-graphs-purple: #b693eb;
-  --theme-graphs-yellow: #efc052;
-  --theme-graphs-orange: #d97e00;
-  --theme-graphs-grey: #cccccc;
+  --theme-graphs-purple: light-dark(#b693eb, #df80ff);
+  --theme-graphs-yellow: light-dark(#efc052, #d99b28);
+  --theme-graphs-orange: light-dark(#d97e00, #d96629);
+  --theme-graphs-grey: light-dark(#cccccc, #757873);
   --theme-graphs-full-red: #f00;
 
   /* Common popup styles(used by HTMLTooltip and autocomplete) */
-  --theme-popup-background: Field;
-  --theme-popup-color: FieldText;
-  --theme-popup-border-color: ThreeDShadow;
-  --theme-popup-dimmed: hsla(0, 0%, 80%, 0.3);
+  --theme-popup-background: light-dark(Field, var(--grey-60));
+  --theme-popup-color: light-dark(FieldText, rgb(249, 249, 250));
+  --theme-popup-border-color: light-dark(ThreeDShadow, #27272b);
+  --theme-popup-dimmed: light-dark(hsla(0, 0%, 80%, 0.3), rgba(249, 249, 250, 0.1));
 
   /* Styling for devtool buttons */
   --theme-toolbarbutton-background: none;
-  --theme-toolbarbutton-color: var(--grey-70);
+  --theme-toolbarbutton-color: light-dark(var(--grey-70), var(--grey-40));
   --theme-toolbarbutton-hover-background: color-mix(in srgb, currentColor 14%, transparent);
-  --theme-toolbarbutton-checked-background: color-mix(
-      in srgb,
-      var(--theme-toolbarbutton-checked-color) 5%,
-      transparent);
-  --theme-toolbarbutton-checked-color: var(--blue-60);
+  --theme-toolbarbutton-checked-background: color-mix(in srgb,var(--theme-toolbarbutton-checked-color) 5%,transparent);
+  --theme-toolbarbutton-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-hover-background);
   --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-color);
-  --theme-toolbarbutton-active-background: color-mix(
-      in srgb,
-      var(--theme-toolbarbutton-checked-color) 20%,
-      transparent);
+  --theme-toolbarbutton-active-background: color-mix(in srgb,var(--theme-toolbarbutton-checked-color) 20%,transparent);
+
 
   /* Used for select elements */
   /* Note: we don't use the pair of system properties Field/FieldText here (like
@@ -247,145 +240,33 @@
    * border, which is more stylish. The downsides is that we don't adjust with
    * the OS' dark mode setting. Hopefully this trade-off is OK.
    */
-  --theme-select-background: var(--grey-20);
-  --theme-select-color: #0c0c0d;
-  --theme-select-hover-border-color: var(--grey-30);
+  --theme-select-background: light-dark(var(--grey-20), var(--grey-60));
+  --theme-select-color: light-dark(#0c0c0d, #fff);
+  --theme-select-hover-border-color: light-dark(var(--grey-30), var(--grey-50));
 
   /* Warning colors */
-  --theme-warning-background: hsl(54, 100%, 92%);
-  --theme-warning-border: rgba(215, 182, 0, 0.28); /* Yellow 60 + opacity */
-  --theme-warning-color: var(--yellow-80);
+  --theme-warning-background: light-dark(hsl(54, 100%, 92%), hsl(42, 37%, 19%));
+  --theme-warning-border: light-dark(
+      /* Yellow 60 + opacity */
+      rgba(215, 182, 0, 0.28) ,
+      hsl(60, 30%, 26%)
+    );
+  --theme-warning-color: light-dark(var(--yellow-80), hsl(43, 94%, 81%));
 
-  /* Flashing colors used to highlight updates */
-  --theme-contrast-background: #fff699; /* = Yellow 50-a40 on white */
-  --theme-contrast-background-alpha: rgba(255, 233, 0, 0.4); /* Yellow 50-a40 */
-  --theme-contrast-color: black;
+/* Flashing colors used to highlight updates */
+  --theme-contrast-background: light-dark(
+    /* = Yellow 50-a40 on white */
+    #fff699,
+    /* = Yellow 50-a20 on body background */
+    #4f4b1f
+  );
+  --theme-contrast-background-alpha: light-dark(
+    /* Yellow 50-a40 */
+    rgba(255, 233, 0, 0.4),
+    /* Yellow 50-a15 */
+    rgba(255, 233, 0, 0.15)
+  );
+  --theme-contrast-color: light-dark(black, white);
   /* This is used for search/filter results underline and need to have a 3:1 contrast against the background */
-  --theme-contrast-border: var(--yellow-70);
-}
-
-:root.theme-dark {
-  --theme-body-background: #232327;
-  --theme-body-emphasized-background: var(--grey-70);
-  --theme-body-alternate-emphasized-background: #353b48;
-  --theme-sidebar-background: #18181a;
-
-  /* Toolbar */
-  --theme-tab-toolbar-background: var(--grey-90);
-  --theme-toolbar-background: #18181a;
-  --theme-toolbar-color: var(--grey-40);
-  --theme-toolbar-selected-color: white;
-  --theme-toolbar-highlighted-color: var(--green-50);
-  --theme-toolbar-background-hover: #232327;
-  --theme-toolbar-background-alt: var(--grey-85);
-  --theme-toolbar-background-highlighted: var(--blue-60);
-  --theme-toolbar-error-background: var(--red-70);
-  --theme-toolbar-hover: #232327;
-  --theme-toolbar-hover-active: #252526;
-  --theme-toolbar-separator: var(--grey-10-a20);
-
-  /* Toolbar buttons */
-  --toolbarbutton-background: var(--grey-70);
-  --toolbarbutton-hover-background: var(--grey-70);
-  --toolbarbutton-focus-background: var(--grey-60);
-  --toolbarbutton-focus-color: var(--grey-30);
-  --toolbarbutton-checked-background: #204e8a;
-  --toolbarbutton-checked-focus-background: var(--blue-60);
-  --toolbarbutton-checked-color: #ffffff;
-
-  /* Buttons */
-  --theme-button-background: rgba(249, 249, 250, 0.1);
-  --theme-button-active-background: rgba(249, 249, 250, 0.15);
-
-  /* Accordion headers */
-  --theme-accordion-header-background: #232327;
-  --theme-accordion-header-hover: #2a2a2e;
-
-  /* Selection */
-  --theme-selection-background: #204e8a;
-  --theme-selection-background-hover: #353b48;
-  --theme-selection-focus-background: var(--grey-60);
-  --theme-selection-color: #ffffff;
-
-  /* Border color that splits the toolbars/panels/headers. */
-  --theme-splitter-color: var(--grey-70);
-  --theme-emphasized-splitter-color: var(--grey-60);
-  --theme-emphasized-splitter-color-hover: var(--grey-50);
-
-  /* Icon colors */
-  --theme-icon-color: rgba(249, 249, 250, 0.7);
-  --theme-icon-dimmed-color: rgba(147, 147, 149, 0.9);
-  --theme-icon-checked-color: var(--blue-30);
-  --theme-icon-error-color: var(--red-40);
-  --theme-icon-warning-color: var(--yellow-60);
-
-  /* Text color */
-  --theme-comment: var(--grey-45);
-  --theme-body-color: var(--grey-40);
-  --theme-link-color: #75bfff;
-  --theme-internal-link-color: var(--blue-40);
-  --theme-text-color-alt: var(--grey-45);
-  --theme-text-color-inactive: var(--grey-50);
-  --theme-text-color-error: var(--grey-10);
-  --theme-text-color-strong: var(--grey-30);
-  --theme-stack-trace-text: var(--red-20);
-
-  --theme-highlight-green: #86de74;
-  --theme-highlight-blue: #75bfff;
-  --theme-highlight-purple: #b98eff;
-  --theme-highlight-red: #ff7de9;
-  --theme-highlight-yellow: #fff89e;
-
-  /* These theme-highlight color variables have not been photonized. */
-  --theme-highlight-bluegrey: #5e88b0;
-  --theme-highlight-lightorange: #d99b28;
-  --theme-highlight-orange: #d96629;
-  --theme-highlight-pink: #df80ff;
-  --theme-highlight-gray: #e9f4fe;
-
-    /* Colors that were used in Graphs in the old performance tools, which was removed.
-   * They're also used on other panels and should be renamed (See Bug 1767617) */
-  --theme-graphs-purple: #df80ff;
-  --theme-graphs-yellow: #d99b28;
-  --theme-graphs-orange: #d96629;
-  --theme-graphs-grey: #757873;
-  --theme-graphs-full-red: #f00;
-
-  /* Common popup styles(used by HTMLTooltip and autocomplete) */
-  --theme-popup-background: var(--grey-60);
-  --theme-popup-color: rgb(249, 249, 250);
-  --theme-popup-border-color: #27272b;
-  --theme-popup-dimmed: rgba(249, 249, 250, 0.1);
-
-  /* Styling for devtool buttons */
-  --theme-toolbarbutton-background: none;
-  --theme-toolbarbutton-color: var(--grey-40);
-  --theme-toolbarbutton-hover-background: color-mix(in srgb, currentColor 14%, transparent);
-  --theme-toolbarbutton-checked-background: color-mix(
-      in srgb,
-      var(--theme-toolbarbutton-checked-color) 5%,
-      transparent);
-  --theme-toolbarbutton-checked-color: var(--blue-30);
-  --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-hover-background);
-  --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-color);
-  --theme-toolbarbutton-active-background: color-mix(
-      in srgb,
-      var(--theme-toolbarbutton-checked-color) 25%,
-      transparent);
-
-  /* Used for select elements */
-  --theme-select-background: var(--grey-60);
-  --theme-select-color: #fff;
-  --theme-select-hover-border-color: var(--grey-50);
-
-  /* Warning colors */
-  --theme-warning-background: hsl(42, 37%, 19%);
-  --theme-warning-border: hsl(60, 30%, 26%);
-  --theme-warning-color: hsl(43, 94%, 81%);
-
-  /* Flashing colors used to highlight updates */
-  --theme-contrast-background: #4f4b1f; /* = Yellow 50-a20 on body background */
-  --theme-contrast-background-alpha: rgba(255, 233, 0, 0.15); /* Yellow 50-a15 */
-  --theme-contrast-color: white;
-  --theme-contrast-border: var(--yellow-65);
+  --theme-contrast-border: light-dark(var(--yellow-70), var(--yellow-65));
 }
