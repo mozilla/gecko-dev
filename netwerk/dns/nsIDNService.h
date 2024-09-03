@@ -12,6 +12,7 @@
 #include "mozilla/intl/UnicodeScriptCodes.h"
 #include "mozilla/net/IDNBlocklistUtils.h"
 #include "mozilla/Span.h"
+#include "nsTHashSet.h"
 
 class nsIPrefBranch;
 
@@ -34,6 +35,13 @@ class nsIDNService final : public nsIIDNService {
 
  protected:
   virtual ~nsIDNService();
+
+ private:
+  void InitCJKSlashConfusables();
+  void InitCJKIdeographs();
+  void InitDigitConfusables();
+  void InitCyrillicLatinConfusables();
+  void InitThaiLatinConfusables();
 
  public:
   /**
@@ -79,7 +87,17 @@ class nsIDNService final : public nsIIDNService {
   bool illegalScriptCombo(mozilla::intl::Script script,
                           mozilla::net::ScriptCombo& savedScript);
 
+  bool isCJKSlashConfusable(char32_t aChar);
+  bool isCJKIdeograph(char32_t aChar);
+
   nsTArray<mozilla::net::BlocklistRange> mIDNBlocklist;
+
+  // Confusables that we would like to check for IDN spoofing detection.
+  nsTHashSet<char32_t> mCJKSlashConfusables;
+  nsTHashSet<char32_t> mCJKIdeographs;
+  nsTHashSet<char32_t> mDigitConfusables;
+  nsTHashSet<char32_t> mCyrillicLatinConfusables;
+  nsTHashSet<char32_t> mThaiLatinConfusables;
 };
 
 extern "C" MOZ_EXPORT bool mozilla_net_is_label_safe(const char32_t* aLabel,
