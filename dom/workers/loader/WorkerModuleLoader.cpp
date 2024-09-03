@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "js/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/loader/ModuleLoadRequest.h"
 #include "mozilla/dom/RequestBinding.h"
 #include "mozilla/dom/WorkerLoadContext.h"
@@ -176,12 +177,30 @@ nsresult WorkerModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
 nsresult WorkerModuleLoader::CompileFetchedModule(
     JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleScript) {
-  RefPtr<JS::Stencil> stencil;
+  switch (aRequest->mModuleType) {
+    case JS::ModuleType::Unknown:
+      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+                                JSMSG_BAD_MODULE_TYPE);
+      return NS_ERROR_FAILURE;
+    case JS::ModuleType::JavaScript:
+      return CompileJavaScriptModule(aCx, aOptions, aRequest, aModuleScript);
+    case JS::ModuleType::JSON:
+      return CompileJsonModule(aCx, aOptions, aRequest, aModuleScript);
+  }
+
+  MOZ_CRASH("Unhandled module type");
+}
+
+nsresult WorkerModuleLoader::CompileJavaScriptModule(
+    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+    JS::MutableHandle<JSObject*> aModuleScript) {
   MOZ_ASSERT(aRequest->IsTextSource());
   MaybeSourceText maybeSource;
   nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
                                           aRequest->mLoadContext.get());
   NS_ENSURE_SUCCESS(rv, rv);
+
+  RefPtr<JS::Stencil> stencil;
 
   auto compile = [&](auto& source) {
     return JS::CompileModuleScriptToStencil(aCx, aOptions, source);
@@ -199,6 +218,28 @@ nsresult WorkerModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
+  return NS_OK;
+}
+
+nsresult WorkerModuleLoader::CompileJsonModule(
+    JSContext* aCx, JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+    JS::MutableHandle<JSObject*> aModuleScript) {
+  MOZ_ASSERT(aRequest->IsTextSource());
+  MaybeSourceText maybeSource;
+  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
+                                          aRequest->mLoadContext.get());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  auto compile = [&](auto& source) {
+    return JS::CompileJsonModule(aCx, aOptions, source);
+  };
+
+  auto* jsonModule = maybeSource.mapNonEmpty(compile);
+  if (!jsonModule) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aModuleScript.set(jsonModule);
   return NS_OK;
 }
 

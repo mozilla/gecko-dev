@@ -82,6 +82,14 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
       JS::CompileOptions& aOptions, JS::loader::ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
+  nsresult CompileJavaScriptModule(JSContext* aCx, JS::CompileOptions& aOptions,
+                                   ModuleLoadRequest* aRequest,
+                                   JS::MutableHandle<JSObject*> aModuleScript);
+
+  nsresult CompileJsonModule(JSContext* aCx, JS::CompileOptions& aOptions,
+                             ModuleLoadRequest* aRequest,
+                             JS::MutableHandle<JSObject*> aModuleScript);
+
   void OnModuleLoadComplete(JS::loader::ModuleLoadRequest* aRequest) override;
 
   nsresult GetResolveFailureMessage(JS::loader::ResolveError aError,
