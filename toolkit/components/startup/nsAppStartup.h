@@ -49,12 +49,11 @@ class nsAppStartup final : public nsIAppStartup,
 
   nsCOMPtr<nsIAppShell> mAppShell;
 
-  int32_t mConsiderQuitStopper;  // if > 0, Quit(eConsiderQuit) fails
-  bool mRunning;                 // Have we started the main event loop?
-  bool mShuttingDown;            // Quit method reentrancy check
-  bool mStartingUp;              // Have we passed final-ui-startup?
-  bool mAttemptingQuit;          // Quit(eAttemptQuit) still trying
-  bool mInterrupted;  // Was startup interrupted by an interactive prompt?
+  int32_t mConsiderQuitStopper;     // if > 0, Quit(eConsiderQuit) fails
+  bool mRunning;                    // Have we started the main event loop?
+  bool mShuttingDown;               // Quit method reentrancy check
+  bool mStartingUp;                 // Have we passed final-ui-startup?
+  bool mAttemptingQuit;             // Quit(eAttemptQuit) still trying
   bool mIsSafeModeNecessary;        // Whether safe mode is necessary
   bool mStartupCrashTrackingEnded;  // Whether startup crash tracking has
                                     // already ended

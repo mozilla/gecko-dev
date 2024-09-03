@@ -81,7 +81,6 @@ function fakeIdleNotification(topic) {
 }
 
 function setupTestData() {
-  Services.startup.interrupted = true;
   let h2 = Telemetry.getHistogramById("TELEMETRY_TEST_COUNT");
   h2.add();
 
@@ -332,7 +331,6 @@ function checkPayload(payload, reason, successfulPings) {
   checkPayloadInfo(payload.info, reason);
 
   Assert.ok(payload.simpleMeasurements.totalTime >= 0);
-  Assert.equal(payload.simpleMeasurements.startupInterrupted, 1);
   Assert.equal(payload.simpleMeasurements.shutdownDuration, SHUTDOWN_TIME);
 
   let activeTicks = payload.simpleMeasurements.activeTicks;

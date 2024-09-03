@@ -247,9 +247,4 @@ interface nsIAppStartup : nsISupports
      * Properties may not be available depending on platform or application
      */
     [implicit_jscontext] jsval getStartupInfo();
-
-    /**
-     * True if startup was interrupted by an interactive prompt.
-     */
-    attribute boolean interrupted;
 };

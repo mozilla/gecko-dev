@@ -159,7 +159,6 @@ nsAppStartup::nsAppStartup()
       mShuttingDown(false),
       mStartingUp(true),
       mAttemptingQuit(false),
-      mInterrupted(false),
       mIsSafeModeNecessary(false),
       mStartupCrashTrackingEnded(false) {
   char* mozAppSilentStart = PR_GetEnv("MOZ_APP_SILENT_START");
@@ -685,18 +684,6 @@ nsAppStartup::GetShowedPreXULSkeletonUI(bool* aResult) {
 #else
   *aResult = false;
 #endif
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAppStartup::SetInterrupted(bool aInterrupted) {
-  mInterrupted = aInterrupted;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAppStartup::GetInterrupted(bool* aInterrupted) {
-  *aInterrupted = mInterrupted;
   return NS_OK;
 }
 

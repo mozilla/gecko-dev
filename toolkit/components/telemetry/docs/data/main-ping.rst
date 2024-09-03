@@ -152,10 +152,6 @@ As of Firefox 61 this section is no longer present.
 
 Only available in the extended set of measures. For more see :ref:`uitelemetry`.
 
-startupInterrupted
-~~~~~~~~~~~~~~~~~~
-A boolean set to true if startup was interrupted by an interactive prompt.
-
 js
 ~~
 This section contains a series of counters from the JavaScript engine.

@@ -413,8 +413,6 @@ var Impl = {
       }
     }
 
-    ret.startupInterrupted = Number(Services.startup.interrupted);
-
     if (Utils.isContentProcess) {
       return ret;
     }
