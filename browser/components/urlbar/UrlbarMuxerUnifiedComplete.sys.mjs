@@ -684,13 +684,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
   // error or increase the complexity threshold.
   // eslint-disable-next-line complexity
   _canAddResult(result, state) {
-    // The first Suggest result is always shown unless a weather result is also
-    // present or it's a navigational suggestion that duplicates the heuristic.
+    // QuickSuggest results are shown unless a weather result is also present
+    // or they are navigational suggestions that duplicate the heuristic.
     if (result.providerName == lazy.UrlbarProviderQuickSuggest.name) {
-      if (
-        state.weatherResult ||
-        (state.quickSuggestResult && state.quickSuggestResult != result)
-      ) {
+      if (state.weatherResult) {
         return false;
       }
 
@@ -1132,7 +1129,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     }
 
     if (result.providerName == lazy.UrlbarProviderQuickSuggest.name) {
-      state.quickSuggestResult ??= result;
+      state.quickSuggestResult = result;
     }
 
     if (result.providerName == lazy.UrlbarProviderWeather.name) {
