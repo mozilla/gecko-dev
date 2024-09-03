@@ -6013,18 +6013,18 @@ void nsIFrame::MarkSubtreeDirty() {
 }
 
 /* virtual */
-void nsIFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsIFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                  InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, this, IntrinsicISizeType::MinISize);
+      aInput.mContext, this, IntrinsicISizeType::MinISize);
   aData->DefaultAddInlineMinISize(this, isize);
 }
 
 /* virtual */
-void nsIFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void nsIFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                   nsIFrame::InlinePrefISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, this, IntrinsicISizeType::PrefISize);
+      aInput.mContext, this, IntrinsicISizeType::PrefISize);
   aData->DefaultAddInlinePrefISize(isize);
 }
 
@@ -6740,20 +6740,20 @@ nscoord nsIFrame::ShrinkISizeToFit(const IntrinsicSizeInput& aInput,
   return result;
 }
 
-nscoord nsIFrame::IntrinsicISizeFromInline(gfxContext* aContext,
+nscoord nsIFrame::IntrinsicISizeFromInline(const IntrinsicSizeInput& aInput,
                                            IntrinsicISizeType aType) {
   MOZ_ASSERT(!IsContainerForFontSizeInflation(),
              "Should not be a container for font size inflation!");
 
   if (aType == IntrinsicISizeType::MinISize) {
     InlineMinISizeData data;
-    AddInlineMinISize(aContext, &data);
+    AddInlineMinISize(aInput, &data);
     data.ForceBreak();
     return data.mPrevLines;
   }
 
   InlinePrefISizeData data;
-  AddInlinePrefISize(aContext, &data);
+  AddInlinePrefISize(aInput, &data);
   data.ForceBreak();
   return data.mPrevLines;
 }
