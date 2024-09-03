@@ -47,6 +47,31 @@ function verifyTabState(state) {
   }
 }
 
+async function openRelatedTab(openerTab) {
+  let openerIndex = gBrowser.tabs.indexOf(openerTab);
+  gBrowser.selectTabAtIndex(openerIndex);
+  let newTabPromise = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    "http://example.com/#linkclick",
+    true
+  );
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "#link_to_example_com",
+    { button: 1 },
+    gBrowser.selectedBrowser
+  );
+  let openTab = await newTabPromise;
+  is(
+    openTab.linkedBrowser.currentURI.spec,
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    "http://example.com/#linkclick",
+    "Middle click should open site to correct url."
+  );
+  is(openTab.openerTab, openerTab, "opener tab is set");
+  return openTab;
+}
+
 const bulkLoad = [
   "http://mochi.test:8888/#5",
   "http://mochi.test:8888/#6",
@@ -85,7 +110,11 @@ const sessData = {
 // eslint-disable-next-line @microsoft/sdl/no-insecure-url
 const urlbarURL = "http://example.com/#urlbar";
 
-async function doTest(aInsertRelatedAfterCurrent, aInsertAfterCurrent) {
+async function doTest(
+  aInsertRelatedAfterCurrent,
+  aInsertAfterCurrent,
+  aInsertAfterCurrentExceptPinned
+) {
   const kDescription =
     "(aInsertRelatedAfterCurrent=" +
     aInsertRelatedAfterCurrent +
@@ -99,6 +128,10 @@ async function doTest(aInsertRelatedAfterCurrent, aInsertAfterCurrent) {
       ["browser.tabs.loadBookmarksInBackground", false],
       ["browser.tabs.insertRelatedAfterCurrent", aInsertRelatedAfterCurrent],
       ["browser.tabs.insertAfterCurrent", aInsertAfterCurrent],
+      [
+        "browser.tabs.insertAfterCurrentExceptPinned",
+        aInsertAfterCurrentExceptPinned,
+      ],
     ],
   });
 
@@ -215,6 +248,28 @@ async function doTest(aInsertRelatedAfterCurrent, aInsertAfterCurrent) {
     kDescription + "openerTab should be selected after closing related tab"
   );
 
+  let pinnedTab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    pageURL
+  );
+  gBrowser.pinTab(pinnedTab);
+  let pinnedIndex = gBrowser.tabs.indexOf(pinnedTab);
+  gBrowser.selectTabAtIndex(pinnedIndex);
+
+  unrelatedTab = await BrowserTestUtils.openNewForegroundTab(gBrowser, pageURL);
+
+  let relatedIndex =
+    (aInsertRelatedAfterCurrent || aInsertAfterCurrent) &&
+    !aInsertAfterCurrentExceptPinned
+      ? pinnedIndex + 1
+      : gBrowser.tabs.length;
+  let relatedTab = await openRelatedTab(pinnedTab);
+  is(
+    relatedTab._tPos,
+    relatedIndex,
+    "related tab should be opened at the end of the tabbar " + relatedTab._tPos
+  );
+
   // Flush before messing with browser state.
   for (let tab of gBrowser.tabs) {
     await TabStateFlusher.flush(tab.linkedBrowser);
@@ -272,17 +327,33 @@ async function doTest(aInsertRelatedAfterCurrent, aInsertAfterCurrent) {
 
 add_task(async function test_settings_insertRelatedAfter() {
   // Firefox default settings.
-  await doTest(true, false);
+  await doTest(true, false, false);
 });
 
 add_task(async function test_settings_insertAfter() {
-  await doTest(true, true);
+  await doTest(true, true, false);
 });
 
 add_task(async function test_settings_always_insertAfter() {
-  await doTest(false, true);
+  await doTest(false, true, false);
 });
 
 add_task(async function test_settings_always_insertAtEnd() {
-  await doTest(false, false);
+  await doTest(false, false, false);
+});
+
+add_task(async function test_settings_always_insertAtEnd() {
+  await doTest(true, false, true);
+});
+
+add_task(async function test_settings_always_insertAtEnd() {
+  await doTest(true, true, true);
+});
+
+add_task(async function test_settings_always_insertAtEnd() {
+  await doTest(false, true, true);
+});
+
+add_task(async function test_settings_always_insertAtEnd() {
+  await doTest(false, false, true);
 });
