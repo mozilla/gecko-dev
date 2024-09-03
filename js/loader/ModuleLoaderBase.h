@@ -109,6 +109,58 @@ class ScriptLoaderInterface : public nsISupports {
   virtual void MaybeTriggerBytecodeEncoding() {}
 };
 
+class ModuleMapKey : public PLDHashEntryHdr {
+ public:
+  using KeyType = const ModuleMapKey&;
+  using KeyTypePointer = const ModuleMapKey*;
+
+  ModuleMapKey(const nsIURI* aUri, const ModuleType aModuleType)
+      : mUri(const_cast<nsIURI*>(aUri)), mModuleType(aModuleType) {
+    MOZ_COUNT_CTOR(ModuleMapKey);
+    MOZ_ASSERT(aUri);
+  }
+  explicit ModuleMapKey(KeyTypePointer aOther)
+      : mUri(std::move(aOther->mUri)), mModuleType(aOther->mModuleType) {
+    MOZ_COUNT_CTOR(ModuleMapKey);
+    MOZ_ASSERT(mUri);
+  }
+  ModuleMapKey(ModuleMapKey&& aOther)
+      : mUri(std::move(aOther.mUri)), mModuleType(aOther.mModuleType) {
+    MOZ_COUNT_CTOR(ModuleMapKey);
+    MOZ_ASSERT(mUri);
+  }
+  MOZ_COUNTED_DTOR(ModuleMapKey)
+
+  bool KeyEquals(KeyTypePointer aKey) const {
+    if (mModuleType != aKey->mModuleType) {
+      return false;
+    }
+
+    bool eq;
+    if (NS_SUCCEEDED(mUri->Equals(aKey->mUri, &eq))) {
+      return eq;
+    }
+
+    return false;
+  }
+
+  static KeyTypePointer KeyToPointer(KeyType key) { return &key; }
+
+  static PLDHashNumber HashKey(KeyTypePointer aKey) {
+    MOZ_ASSERT(aKey->mUri);
+    nsAutoCString spec;
+    // This is based on `nsURIHashKey`, and it ignores GetSpec() failures, so
+    // do the same here.
+    (void)aKey->mUri->GetSpec(spec);
+    return mozilla::HashGeneric(mozilla::HashString(spec), aKey->mModuleType);
+  }
+
+  enum { ALLOW_MEMMOVE = true };
+
+  const nsCOMPtr<nsIURI> mUri;
+  const ModuleType mModuleType;
+};
+
 /*
  * [DOMDOC] Module Loading
  *
@@ -188,8 +240,8 @@ class ModuleLoaderBase : public nsISupports {
   };
 
   // Module map
-  nsRefPtrHashtable<nsURIHashKey, LoadingRequest> mFetchingModules;
-  nsRefPtrHashtable<nsURIHashKey, ModuleScript> mFetchedModules;
+  nsRefPtrHashtable<ModuleMapKey, LoadingRequest> mFetchingModules;
+  nsRefPtrHashtable<ModuleMapKey, ModuleScript> mFetchedModules;
 
   // List of dynamic imports that are currently being loaded.
   ScriptLoadRequestList mDynamicImportRequests;
