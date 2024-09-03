@@ -149,7 +149,8 @@ JSObject* ModuleLoaderBase::HostResolveImportedModule(
 
     // Let resolved module script be moduleMap[url]. (This entry must exist for
     // us to have gotten to this point.)
-    ModuleScript* ms = loader->GetFetchedModule(uri);
+    ModuleScript* ms =
+        loader->GetFetchedModule(ModuleMapKey(uri, ModuleType::JavaScript));
     MOZ_ASSERT(ms, "Resolved module not found in module map");
     MOZ_ASSERT(!ms->HasParseError());
     MOZ_ASSERT(ms->ModuleRecord());
@@ -452,8 +453,9 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
 
   // If we're restarting the request, the module should already be in the
   // "fetching" map.
-  MOZ_ASSERT_IF(aRestart == RestartRequest::Yes,
-                IsModuleFetching(aRequest->mURI));
+  MOZ_ASSERT_IF(
+      aRestart == RestartRequest::Yes,
+      IsModuleFetching(ModuleMapKey(aRequest->mURI, ModuleType::JavaScript)));
 
   // Check with the derived class whether we should load this module.
   nsresult rv = NS_OK;
@@ -465,7 +467,9 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
   // and if so wait for it rather than starting a new fetch.
   ModuleLoadRequest* request = aRequest->AsModuleRequest();
 
-  if (aRestart == RestartRequest::No && ModuleMapContainsURL(request->mURI)) {
+  if (aRestart == RestartRequest::No &&
+      ModuleMapContainsURL(
+          ModuleMapKey(request->mURI, ModuleType::JavaScript))) {
     LOG(("ScriptLoadRequest (%p): Waiting for module fetch", aRequest));
     WaitForModuleFetch(request);
     return NS_OK;
@@ -483,16 +487,16 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
   return NS_OK;
 }
 
-bool ModuleLoaderBase::ModuleMapContainsURL(nsIURI* aURL) const {
-  return IsModuleFetching(aURL) || IsModuleFetched(aURL);
+bool ModuleLoaderBase::ModuleMapContainsURL(const ModuleMapKey& key) const {
+  return IsModuleFetching(key) || IsModuleFetched(key);
 }
 
-bool ModuleLoaderBase::IsModuleFetching(nsIURI* aURL) const {
-  return mFetchingModules.Contains(ModuleMapKey(aURL, ModuleType::JavaScript));
+bool ModuleLoaderBase::IsModuleFetching(const ModuleMapKey& key) const {
+  return mFetchingModules.Contains(key);
 }
 
-bool ModuleLoaderBase::IsModuleFetched(nsIURI* aURL) const {
-  return mFetchedModules.Contains(ModuleMapKey(aURL, ModuleType::JavaScript));
+bool ModuleLoaderBase::IsModuleFetched(const ModuleMapKey& key) const {
+  return mFetchedModules.Contains(key);
 }
 
 nsresult ModuleLoaderBase::GetFetchedModuleURLs(nsTArray<nsCString>& aURLs) {
@@ -515,7 +519,7 @@ void ModuleLoaderBase::SetModuleFetchStarted(ModuleLoadRequest* aRequest) {
   ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
 
   MOZ_ASSERT(aRequest->IsFetching() || aRequest->IsPendingFetchingError());
-  MOZ_ASSERT(!ModuleMapContainsURL(aRequest->mURI));
+  MOZ_ASSERT(!ModuleMapContainsURL(moduleMapKey));
 
   RefPtr<LoadingRequest> loadingRequest = new LoadingRequest();
   loadingRequest->mRequest = aRequest;
@@ -589,9 +593,8 @@ void ModuleLoaderBase::ResumeWaitingRequest(ModuleLoadRequest* aRequest,
 }
 
 void ModuleLoaderBase::WaitForModuleFetch(ModuleLoadRequest* aRequest) {
-  nsIURI* uri = aRequest->mURI;
-  MOZ_ASSERT(ModuleMapContainsURL(uri));
-  ModuleMapKey moduleMapKey(uri, ModuleType::JavaScript);
+  ModuleMapKey moduleMapKey(aRequest->mURI, ModuleType::JavaScript);
+  MOZ_ASSERT(ModuleMapContainsURL(moduleMapKey));
 
   if (auto entry = mFetchingModules.Lookup(moduleMapKey)) {
     RefPtr<LoadingRequest> loadingRequest = entry.Data();
@@ -605,14 +608,14 @@ void ModuleLoaderBase::WaitForModuleFetch(ModuleLoadRequest* aRequest) {
   ResumeWaitingRequest(aRequest, bool(ms));
 }
 
-ModuleScript* ModuleLoaderBase::GetFetchedModule(nsIURI* aURL) const {
+ModuleScript* ModuleLoaderBase::GetFetchedModule(
+    const ModuleMapKey& moduleMapKey) const {
   if (LOG_ENABLED()) {
     nsAutoCString url;
-    aURL->GetAsciiSpec(url);
+    moduleMapKey.mUri->GetAsciiSpec(url);
     LOG(("GetFetchedModule %s", url.get()));
   }
 
-  ModuleMapKey moduleMapKey(aURL, ModuleType::JavaScript);
   bool found;
   ModuleScript* ms = mFetchedModules.GetWeak(moduleMapKey, &found);
   MOZ_ASSERT(found);
