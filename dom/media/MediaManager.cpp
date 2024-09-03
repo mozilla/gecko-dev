@@ -2153,15 +2153,9 @@ MediaManager::MaybeRequestPermissionAndEnumerateRawDevices(
   }
 
   if (!deviceAccessPromise) {
-    // No device access request needed. We can proceed directly, but we still
-    // need to update camera availability, because the camera engine is always
-    // created together with the WebRTC backend, which is done because
-    // devicechange events must work before prompting in cases where persistent
-    // permission has already been given. Making a request to camera access not
-    // allowing a permission request does exactly what we need in this case.
-    ipc::PBackgroundChild* backgroundChild =
-        ipc::BackgroundChild::GetOrCreateForCurrentThread();
-    deviceAccessPromise = backgroundChild->SendRequestCameraAccess(false);
+    // No device access request needed. Proceed directly.
+    deviceAccessPromise =
+        NativePromise::CreateAndResolve(CamerasAccessStatus::Granted, __func__);
   }
 
   return deviceAccessPromise->Then(
@@ -2196,8 +2190,7 @@ MediaManager::MaybeRequestPermissionAndEnumerateRawDevices(
               "rejected");
         }
 
-        if (aParams.VideoInputType() == MediaSourceEnum::Camera &&
-            aParams.mFlags.contains(EnumerationFlag::AllowPermissionRequest)) {
+        if (aParams.mFlags.contains(EnumerationFlag::AllowPermissionRequest)) {
           MOZ_ASSERT(aValue.ResolveValue() == CamerasAccessStatus::Granted);
           EnsureNoPlaceholdersInDeviceCache();
         }
