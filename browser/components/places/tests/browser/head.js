@@ -540,28 +540,31 @@ async function createAndRemoveDefaultFolder() {
 }
 
 async function showLibraryColumn(library, columnName) {
+  await SimpleTest.promiseFocus(library);
+
   const viewMenu = library.document.getElementById("viewMenu");
-  const viewMenuPopup = library.document.getElementById("viewMenuPopup");
-  const onViewMenuPopup = new Promise(resolve => {
-    viewMenuPopup.addEventListener("popupshown", () => resolve(), {
-      once: true,
-    });
+  info("await viewMenuPopup");
+  await new Promise(resolve => {
+    library.document
+      .getElementById("viewMenuPopup")
+      .addEventListener("popupshown", resolve, {
+        once: true,
+      });
+    viewMenu.click();
   });
-  EventUtils.synthesizeMouseAtCenter(viewMenu, {}, library);
-  await onViewMenuPopup;
 
   const viewColumns = library.document.getElementById("viewColumns");
-  const viewColumnsPopup = viewColumns.querySelector("menupopup");
-  const onViewColumnsPopup = new Promise(resolve => {
-    viewColumnsPopup.addEventListener("popupshown", () => resolve(), {
-      once: true,
-    });
+  info("await viewColumnsPopup");
+  await new Promise(resolve => {
+    viewColumns
+      .querySelector("menupopup")
+      .addEventListener("popupshown", () => resolve(), {
+        once: true,
+      });
+    viewColumns.click();
   });
-  EventUtils.synthesizeMouseAtCenter(viewColumns, {}, library);
-  await onViewColumnsPopup;
 
-  const columnMenu = library.document.getElementById(`menucol_${columnName}`);
-  EventUtils.synthesizeMouseAtCenter(columnMenu, {}, library);
+  library.document.getElementById(`menucol_${columnName}`).click();
 }
 
 registerCleanupFunction(async () => {
