@@ -1500,8 +1500,12 @@
             android:id="@+id/automaticTranslationOptionsPreferenceFragment"
             android:name="org.mozilla.fenix.translations.preferences.automatic.AutomaticTranslationOptionsPreferenceFragment">
             <argument
-                android:name="selectedTranslationOptionPreference"
-                app:argType="org.mozilla.fenix.translations.preferences.automatic.AutomaticTranslationItemPreference" />
+                android:name="selectedLanguageCode"
+                app:argType="string" />
+            <argument
+                android:name="selectedLanguageDisplayName"
+                app:argType="string"
+                app:nullable="true"/>
         </fragment>
         <fragment
             android:id="@+id/neverTranslateSitePreferenceFragment"

@@ -4,9 +4,6 @@
 
 package org.mozilla.fenix.translations.preferences.automatic
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-import kotlinx.parcelize.RawValue
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageSetting
 import org.mozilla.fenix.R
@@ -17,11 +14,10 @@ import org.mozilla.fenix.R
  * @property language The text that will appear in the list.
  * @property automaticTranslationOptionPreference The option that the user selected.
  */
-@Parcelize
 data class AutomaticTranslationItemPreference(
-    val language: @RawValue Language,
+    val language: Language,
     val automaticTranslationOptionPreference: AutomaticTranslationOptionPreference,
-) : Parcelable
+)
 
 /**
  * AutomaticTranslationOption for a language.
@@ -29,11 +25,10 @@ data class AutomaticTranslationItemPreference(
  * @property titleId The string id title of the option.
  * @property summaryId The string id summary of the option.
  */
-@Parcelize
 sealed class AutomaticTranslationOptionPreference(
     open val titleId: Int,
     open val summaryId: List<Int>,
-) : Parcelable {
+) {
 
     /**
      * The app will offer to translate sites in the selected language.

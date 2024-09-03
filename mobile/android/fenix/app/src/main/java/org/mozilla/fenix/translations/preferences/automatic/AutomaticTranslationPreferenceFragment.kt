@@ -66,7 +66,8 @@ class AutomaticTranslationPreferenceFragment : Fragment() {
                         findNavController().navigate(
                             AutomaticTranslationPreferenceFragmentDirections
                                 .actionAutomaticTranslationPreferenceToAutomaticTranslationOptionsPreference(
-                                    it,
+                                    it.language.code,
+                                    it.language.localizedDisplayName,
                                 ),
                         )
                     },
