@@ -214,6 +214,10 @@ class TimeUnit final {
   template <class RoundingPolicy = TruncatePolicy>
   TimeUnit ToBase(int64_t aTargetBase, double& aOutError) const {
     aOutError = 0.0;
+    if (mTicks.value() == INT64_MAX || mTicks.value() == INT64_MIN) {
+      // -ve or +ve infinity
+      return TimeUnit(mTicks, aTargetBase);
+    }
     CheckedInt<int64_t> ticks = mTicks * aTargetBase;
     if (ticks.isValid()) {
       imaxdiv_t rv = imaxdiv(ticks.value(), mBase);
