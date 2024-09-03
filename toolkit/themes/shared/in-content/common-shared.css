@@ -8,10 +8,7 @@
 @namespace html "http://www.w3.org/1999/xhtml";
 @namespace xul "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-/* TODO(bug 1845150): Remove notification-message from the host selectors in
- * this file */
-
-:host(:is(.anonymous-content-host, notification-message)),
+:host(.anonymous-content-host),
 :root {
   --in-content-page-color: rgb(21, 20, 26);
   --in-content-page-background: var(--background-color-canvas);
@@ -102,7 +99,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :host(:is(.anonymous-content-host, notification-message)),
+  :host(.anonymous-content-host),
   :root {
     /* Keep these in sync with:
      *
@@ -157,7 +154,7 @@
 }
 
 @media (forced-colors) {
-  :host(:is(.anonymous-content-host, notification-message)),
+  :host(.anonymous-content-host),
   :root {
     --in-content-page-color: CanvasText;
 
