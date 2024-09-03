@@ -28,3 +28,5 @@ EXTRA_JS_MODULES.aboutwelcome += [
 XPCSHELL_TESTS_MANIFESTS += [
     "tests/xpcshell/xpcshell.toml",
 ]
+
+SPHINX_TREES["docs"] = "docs"

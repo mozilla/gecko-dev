@@ -78,7 +78,7 @@ You can also run the entire test harness in rr:
 The trace will contain many processes, so to debug the correct one, you'll want to use rr ps or rr replay -p firefox etc.
 
 Working with multiple processes
-------------------------------
+-------------------------------
 
 rr should work out of the box with multi-process Firefox. Once you have a recording you can use rr ps to show all the process that were recorded and rr replay -p <pid> to attach to a particular process.
 

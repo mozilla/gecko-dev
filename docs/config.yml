@@ -144,4 +144,4 @@ allowed_errors:
     - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
     - "security/nss/getting_started\\.rst.* CRITICAL: Unexpected section title"
 
-max_num_warnings: 837
+max_num_warnings: 794
