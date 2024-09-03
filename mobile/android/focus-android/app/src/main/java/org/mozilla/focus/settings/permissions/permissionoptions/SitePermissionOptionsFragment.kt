@@ -8,7 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.utils.ext.getParcelableCompat
@@ -107,14 +107,14 @@ class SitePermissionOptionsFragment : BaseComposeFragment() {
         isAndroidPermissionGranted: Boolean,
     ) {
         val state = remember {
-            mutableStateOf(sitePermissionOptionSelected.prefKeyId)
+            mutableIntStateOf(sitePermissionOptionSelected.prefKeyId)
         }
         val optionsListItems = ArrayList<SitePermissionOptionListItem>()
         sitePermissionOptionsList.forEach { sitePermissionOption ->
             val sitePermissionOptionListItem = SitePermissionOptionListItem(
                 sitePermissionOption = sitePermissionOption,
                 onClick = {
-                    state.value = sitePermissionOption.prefKeyId
+                    state.intValue = sitePermissionOption.prefKeyId
                     defaultSitePermissionOptionsScreenInteractor.handleSitePermissionOptionSelected(
                         sitePermissionOption,
                     )

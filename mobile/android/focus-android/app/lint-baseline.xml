@@ -1042,28 +1042,6 @@
     </issue>
 
     <issue
-        id="AutoboxingStateCreation"
-        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
-        errorLine1="            mutableStateOf(sitePermissionOptionSelected.prefKeyId)"
-        errorLine2="            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragment.kt"
-            line="110"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="AutoboxingStateCreation"
-        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
-        errorLine1="            mutableStateOf(AutoplayOption.BlockAudioOnly().prefKeyId)"
-        errorLine2="            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
-            line="64"
-            column="13"/>
-    </issue>
-
-    <issue
         id="Overdraw"
         message="Possible overdraw: Root element paints background `@color/settings_background` with a theme that also paints a background (inferred theme is `@style/Theme.App.Starting`)"
         errorLine1="    android:background=&quot;@color/settings_background&quot;"
