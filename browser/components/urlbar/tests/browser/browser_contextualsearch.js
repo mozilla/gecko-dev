@@ -85,11 +85,16 @@ add_task(async function test_selectContextualSearchResult_already_installed() {
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Contextual",
+    entry: "other",
+  });
   Assert.equal(
     gBrowser.selectedBrowser.currentURI.spec,
     expectedUrl,
     "Selecting the contextual search result opens the search URL"
   );
+  window.document.querySelector("#searchmode-switcher-close").click();
 });
 
 add_task(async function test_selectContextualSearchResult_not_installed() {
@@ -115,6 +120,11 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
     value: query,
   });
 
+  Assert.ok(
+    !Services.search.getEngineByName("Foo"),
+    "Engine is not currently installed."
+  );
+
   info("Focus and select the contextual search result");
   let onLoad = BrowserTestUtils.browserLoaded(
     gBrowser.selectedBrowser,
@@ -125,11 +135,25 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Foo",
+    entry: "other",
+  });
   Assert.equal(
     gBrowser.selectedBrowser.currentURI.spec,
     EXPECTED_URL,
     "Selecting the contextual search result opens the search URL"
   );
 
+  let engine = Services.search.getEngineByName("Foo");
+  Assert.ok(engine != null, "Engine was installed.");
+  Assert.equal(
+    engine.wrappedJSObject.getAttr("auto-installed"),
+    true,
+    "Engine was marks as auto installed."
+  );
+  await Services.search.removeEngine(engine);
+
+  window.document.querySelector("#searchmode-switcher-close").click();
   ActionsProviderContextualSearch.resetForTesting();
 });

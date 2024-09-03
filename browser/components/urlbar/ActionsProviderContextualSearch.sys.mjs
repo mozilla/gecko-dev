@@ -90,27 +90,46 @@ class ProviderContextualSearch extends ActionsProvider {
     return engines[0] ?? browser?.engines?.[0];
   }
 
-  async pickAction(queryContext, controller, element) {
-    // If we have an engine to add, first create a new OpenSearchEngine, then
-    // get and open a url to execute a search for the term in the url bar.
+  async pickAction(queryContext, controller, _element) {
     let engine = await this.fetchEngine(controller);
+    let enterSeachMode = true;
 
-    if (engine.uri) {
+    if (engine.uri && !queryContext.private) {
+      engine = await this.#installEngine(engine, controller);
+    } else if (engine.uri) {
       let engineData = await lazy.loadAndParseOpenSearchEngine(
         Services.io.newURI(engine.uri)
       );
       engine = new lazy.OpenSearchEngine({ engineData });
-      engine._setIcon(engine.icon, false);
+      enterSeachMode = false;
     }
-
-    const [url] = UrlbarUtils.getSearchQueryUrl(
+    this.#performSearch(
       engine,
-      queryContext.searchString
+      queryContext.searchString,
+      controller.input,
+      enterSeachMode
     );
-    element.ownerGlobal.gBrowser.fixupAndLoadURIString(url, {
+  }
+
+  async #installEngine(engineDetails, controller) {
+    let engine = await Services.search.addOpenSearchEngine(
+      engineDetails.uri,
+      engineDetails.icon,
+      controller.input.browsingContext
+    );
+    engine.setAttr("auto-installed", true);
+    return engine;
+  }
+
+  async #performSearch(engine, search, input, enterSearchMode) {
+    const [url] = UrlbarUtils.getSearchQueryUrl(engine, search);
+    if (enterSearchMode) {
+      input.search(search, { searchEngine: engine });
+    }
+    input.window.gBrowser.fixupAndLoadURIString(url, {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
-    element.ownerGlobal.gBrowser.selectedBrowser.focus();
+    input.window.gBrowser.selectedBrowser.focus();
   }
 
   resetForTesting() {

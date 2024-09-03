@@ -145,8 +145,7 @@ add_task(async function detect_searchmode_changes() {
   });
 
   info("Press the close button and escape search mode");
-  EventUtils.synthesizeKey("KEY_Escape");
-  EventUtils.synthesizeKey("KEY_Escape");
+  window.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(window, null);
 
   await BrowserTestUtils.waitForCondition(() => {
@@ -227,10 +226,8 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
 
   await UrlbarTestUtils.assertSearchMode(window, searchMode);
 
-  info("Escape Search mode");
-  EventUtils.synthesizeKey("KEY_Escape");
-  EventUtils.synthesizeKey("KEY_Escape");
-
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(window, null);
 }
 

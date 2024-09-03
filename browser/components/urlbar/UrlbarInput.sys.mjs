@@ -392,6 +392,11 @@ export class UrlbarInput {
     dontShowSearchTerms = false,
     isSameDocument = false
   ) {
+    // We only need to update the searchModeUI on tab switch conditionally
+    // as we only persist searchMode with ScotchBonnet enabled.
+    if (dueToTabSwitch && lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      this._updateSearchModeUI(this.searchMode);
+    }
     if (!this.window.gBrowser.userTypedValue) {
       this.window.gBrowser.selectedBrowser.searchTerms = "";
       if (
@@ -546,7 +551,7 @@ export class UrlbarInput {
     // proxystate above because search mode depends on it.
     if (dueToTabSwitch && !valid) {
       this.restoreSearchModeState();
-    } else if (valid) {
+    } else if (valid && this.#shouldExitSearchMode(uri)) {
       this.searchMode = null;
     }
 
@@ -865,7 +870,9 @@ export class UrlbarInput {
   handleRevert(dontShowSearchTerms = false) {
     this.window.gBrowser.userTypedValue = null;
     // Nullify search mode before setURI so it won't try to restore it.
-    this.searchMode = null;
+    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      this.searchMode = null;
+    }
     this.setURI(null, true, false, dontShowSearchTerms);
     if (this.value && this.focused) {
       this.select();
@@ -2361,6 +2368,20 @@ export class UrlbarInput {
     return val;
   }
 
+  #shouldExitSearchMode(uri) {
+    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      return true;
+    }
+
+    if (this.searchMode?.engineName) {
+      let engine = Services.search.getEngineByName(this.searchMode.engineName);
+      // If the host we are navigating to matches the host of the current
+      // searchModes engine host then persist searchMode.
+      return uri.host != engine.searchUrlDomain;
+    }
+    return true;
+  }
+
   /**
    * Extracts a input value from a UrlbarResult, used when filling the input
    * field on selecting a result.
@@ -3572,6 +3593,8 @@ export class UrlbarInput {
       this.value = "";
       this.setPageProxyState("invalid", true);
     }
+
+    this.searchModeSwitcher.onSearchModeChanged();
   }
 
   /**
