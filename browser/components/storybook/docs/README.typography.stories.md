@@ -179,7 +179,7 @@ Note that there currently isn't a hierarchy of multiple headings on the chrome s
 ## Design tokens
 Type setting relies on design tokens for font size and font weight.
 
-#### Font size
+### Font size
 <table class="sb-preview-design-tokens">
   <thead>
     <tr>
@@ -248,7 +248,7 @@ Type setting relies on design tokens for font size and font weight.
 </table>
 
 
-#### Font weight
+### Font weight
 <table class="sb-preview-design-tokens">
   <thead>
     <tr>

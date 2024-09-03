@@ -3,7 +3,7 @@ This guide will help you add custom lint rules to your application so you can ca
 
 If you get into trouble, _ask for help!_ These APIs can be confusing to get started with and it will save the team time if we share knowledge!
 
-### Comparison of systems
+## Comparison of systems
 We have a few common lint systems for Mozilla Android apps:
 - **detekt:** (probably) the go-to for analyzing Kotlin code
 - **ktlint:** similar to detekt but use it instead if you don't want your lint rule to be suppressed, ever

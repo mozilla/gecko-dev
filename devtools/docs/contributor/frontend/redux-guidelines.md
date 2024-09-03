@@ -1,4 +1,4 @@
-### Getting data from the store
+# Getting data from the store
 
 To get data from the store, use `connect()`.
 

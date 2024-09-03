@@ -2,13 +2,13 @@
 * RFC PR: [#112](https://github.com/mozilla-mobile/shared-docs/pull/112)
 ---
 
-## Summary
+# Summary
 
 The wallpapers feature was introduced on Android and iOS in v98 during Q1 2022. Due to late scope changes, a networking solution was quickly put together for delivering wallpapers from a remote source. As part of a larger set of improvements planned for Q3 2022, it is intended to revisit this implementation to create a more scalable version.
 
 ---
 
-## Motivation
+# Motivation
 
 The original version of the networking solution consisted of adding wallpaper image files to deeply nested directories which defined the properties of the wallpaper. For example, an Android wallpaper might be found at:
 ```
@@ -29,7 +29,7 @@ In general, we would like to achieve the following goals:
 
 ---
 
-## Guide-level explanation
+# Guide-level explanation
 
 Instead of relying on an (undocumented) convention for file paths, wallpaper metadata will be contained in a top-level JSON schema. Using a well-known format will help discoverability, and JSON's flexibility should allow for simpler long-term maintenance. It can also provide a more direct path to any required automation. This schema could define things like:
 
@@ -74,11 +74,11 @@ Additionally, including thumbnails will allow clients to keep download size rela
 
 ---
 
-## Drawbacks
+# Drawbacks
 
 - JSON becomes tied to app versions. Adding or changing fields could mean that older versions of the app are no longer able to parse the schema.
 
-## Rationale and alternatives
+# Rationale and alternatives
 
 - Generally, JSON is still parsable even if new fields are added, and old versions of the app wouldn't know what to do with new fields anyway. Updating the types of fields would lead more directly to problems. In those cases it would always be possible to add a new field instead, but this could create quite a lot of noise in the definition. Even if clients fail to fetch the latest metadata, it's quite possible users have downloaded the subset of wallpapers they are interested in already.
 - Alternatively, we could introduce versioned schema that could be easily tied to client-side upgrades. For example, a list of JSON files like: `json/v1.json`, `json/v2.json`, etc.

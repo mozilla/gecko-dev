@@ -16,7 +16,7 @@ We welcome all types of contributions, including, but not limited to:
 
 Have another idea for how you can contribute? Let us know!
 
-### Communication
+## Communication
 For each our projects, we communicate with the project's:
 - Issues tracker
 - Mailing list

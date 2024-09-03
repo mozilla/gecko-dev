@@ -1,6 +1,6 @@
 # Substituting local GeckoView
 
-### 1. Manually publish local GeckoView to local Maven
+## 1. Manually publish local GeckoView to local Maven
 
 Publish our local GeckoView to our local maven:
 ```sh
@@ -17,7 +17,7 @@ You need to copy the version in the logs or run:
 ```
 (ex. `115.0.20230511122045-SNAPSHOT`)
 
-### 2. Modify Fenix to consume local GV
+## 2. Modify Fenix to consume local GV
 Update the build.gradle and Gecko.kt file in Fenix (see the diffs below). Remember to update the GV version with the version you found in step 2!
 
 *fenix/build.gradle*
@@ -70,7 +70,7 @@ index bed3fb0161..2d3a19a96e 100644
 
 ```
 
-### 3. Build fenix with local GV
+## 3. Build fenix with local GV
 Now sync your gradle changes and build!
 
 An easy way to confirm you are using a local GV is switching your Android Studio project tool window to "Project" and looking in the root directory called "External Libraries" for "GeckoView". You should see something like `Gradle: org.mozilla.geckoview-default-omni:115.0.20230511122045-SNAPSHOT@aar`

@@ -50,7 +50,7 @@ Overview
 
 ## Detailed informations about the tasks performed
 
-#### Full-functional & UI testing
+### Full-functional & UI testing
 - Duration: 2 days
 - Frequency:
   - Upon Geckoview release (Beta 1)
@@ -59,7 +59,7 @@ Overview
   - Set of tests that cover all functionalities
   - 2 runs: 1 tablet, and 1 for phone
 
-#### Smoke & sanity testing
+### Smoke & sanity testing
 - Duration: 1 day
 - Frequency:
   - Release & Beta: Fenix release schedule
@@ -67,7 +67,7 @@ Overview
 - Description:
   - Small suite of tests focused on all major functionalities
 
-#### Feature testing
+### Feature testing
 - Duration: based on feature complexity
 - Frequency: when a new feature is implemented
 - Description:
@@ -75,14 +75,14 @@ Overview
   - Feature bug verification (also duplicates, if it is the case)
   - Exploratory testing around the new implementation and different areas that might be affected
 
-#### Bug verification (qa label & uplifts)
+### Bug verification (qa label & uplifts)
 - Duration: based on bug complexity
 - Frequency: daily/when qa label is added to fixed bugs
 - Description:
   - Different devices covered
   - Verify the steps provided in the description on an affected build, in order to reproduce the bug (if it wasn't earlier) and on the build that contains the patch, to confirm the fix.
 
-#### Localization testing
+### Localization testing
 - Duration
   - Beta: 9hrs
   - Release: 6hrs
@@ -91,13 +91,13 @@ Overview
   - Suite of tests based on the most important languages and pseudo locale tests.
   - Additionally, the number of languages listed ( Fenix settings) are verified to be the same number as in Pontoon.
 
-#### Search testing
+### Search testing
 - Duration: 1 day
 - Frequency: Upon Geckoview release
 - Description
   - Set of tests that cover the interaction of users with URL bar, search engines & search codes (VPN).
 
-#### Accessibility testing
+### Accessibility testing
 - Duration
   - TalkBack: 1,5 day
   - Scanner app: 1 day
@@ -107,14 +107,14 @@ Overview
   - TalkBack: check for issues when interacting with the app and the description of actions that are being performed
   - Scanner: Menus, snackbars, others are being scanned in order to find suggestions for text contrast and touch target size
 
-#### Bug triage
+### Bug triage
 - Duration: based on issue complexity
 - Frequency:
   - Daily/depending on the impact logged by the users
 - Description:
   - Issue investigation based on the information provided by the user
 
-#### Exploratory testing
+### Exploratory testing
 - Duration: based on area tested
 - Frequency (performed with):
   - Smoke & sanity testing

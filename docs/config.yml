@@ -124,6 +124,9 @@ redirects:
 fatal warnings:
     - "WARNING: '([^']*)' reference target not found:((?!.rst).)*$"
     - "WARNING: Include file '([^']*)' not found or reading it failed"
+    - "WARNING: Non-consecutive header level"
+    - "WARNING: Document headings start at"
+    - "WARNING: Parsing of expression failed"
 
 # A regexp of errors we currently allow so that we can fail on new errors,
 # but resolve these at a later date. Please do not add new items to this list

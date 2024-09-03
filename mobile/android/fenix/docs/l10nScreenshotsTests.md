@@ -1,15 +1,15 @@
 # l10n Screenshots Test
 
-### Screenshtos Tests
+## Screenshtos Tests
 We are using [`screengrab`](https://docs.fastlane.tools/getting-started/android/screenshots/) which works with fastlane to automate the process of capturing screenshots.
 All the l10n screenshots are generated through the ui tests. These particular tests run as part of the screenshots package (`app/src/androidTest/mozilla/fenix/ui/screenshots`)
 
-### Run tests locally from Android Studio
+## Run tests locally from Android Studio
 Navigate to `app/src/androidTest/mozilla/fenix/ui/screenshots`, once in that directory, run the full test suite or a specific test by clicking on the `>` button.
 
 By running them manually you can check whether the test works or not but screenshots will not be saved.
 
-### Run tests locally from command line
+## Run tests locally from command line
 1. Install the gem:
 `sudo gem install screengrab`
 

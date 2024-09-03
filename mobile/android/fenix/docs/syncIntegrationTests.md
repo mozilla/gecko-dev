@@ -1,10 +1,10 @@
 # Sync Integration Tests
 
-### Sync Integration Tests
+## Sync Integration Tests
 The aim of these tests is to check that the synchronization is working between Fenix and Desktop. The intention is to add tests for History, Bookmarks, Tabs and Logins.
 At this moment only tests for History and Bookmarks are defined.
 
-### Steps to Run
+## Steps to Run
 To run these tests you will need Python 2 and pipenv installed. Once you have these, make sure you're in the `syncintegration` directory and run the following:
 
 `$ pipenv install`
@@ -17,7 +17,7 @@ The process for example for History item Desktop -> Fenix, would be:
 - Android sim is launched (Pixel 3 API28), Fenix app starts and same user is signed in, then we go to History list and verify that the item is there.
 
 
-### Results
+## Results
 Due to the set up necessary these tests do not run as part of the regular CI, via Taskcluster.
 The idea is to have them running on Jenkins periodically (TBD how often).
 Once they finish there is a slack notificattion received informing about the result (so far that is configured for #firefox-ios-alerts)

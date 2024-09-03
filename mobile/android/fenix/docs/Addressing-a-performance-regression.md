@@ -10,18 +10,18 @@ Simulates a COLD MAIN (app icon launch) launch to report FullyDrawn, e.g when th
 * COLD VIEW Nav start:
 An app link launch to load a page. It measures until "navigation starts" which is an internal Gecko event that indicates we're starting to load a page.
 
-### What to do after a performance regression is reported.
+## What to do after a performance regression is reported.
 
 Weekly after, the performance team runs the tests, if there is any regression, they will open a ticket, providing the dates between when was the last non-regressing and regressing version (an [example](https://github.com/mozilla-mobile/fenix/issues/25253) ticket). **These dates are important** for us to discover which commit introduced the regression. As we would like to identify which commit is the offending one, we need to bitset the commit range from non-regressing to regressing version. Fortunately for us, the performance team has a tool that can help us with that it’s called [backfil](https://github.com/mozilla-mobile/perf-tools/blob/main/backfill.py).
 
 The tool can take a commit range start/end, build all the APKs, run the performance tests and provide the same data that it’s plotted [here](https://earthangel-b40313e5.influxcloud.net/d/s3AT6t7nk/fenix-startup-nightly-via-backfill-py?orgId=1). With it we can identify the offending commit.
 
-### Install the required dependencies.
+## Install the required dependencies.
 
 * Pull the [perf-tools](https://github.com/mozilla-mobile/perf-tools) repository, and on it follow the [configuration instructions](https://github.com/mozilla-mobile/perf-tools#configuration).
 * Make you can run `adb` on the terminal, as the performance tools we use it through the scripts.
 
-### Finding the regressing commit.
+## Finding the regressing commit.
 
 Now that you have all the dependencies installed, we will need to find the commit hash, where there the regression was reported and when the regression was not present, as [backfill](https://github.com/mozilla-mobile/perf-tools/blob/main/backfill.py), need them as parameters.
 
@@ -55,7 +55,7 @@ https://github.com/mozilla-mobile/fenix/compare/98455c01eeba7c63775f18817cd079f5
 
 With it we can see each commit that could introduced the regression.
 
-### Using backfill.py
+## Using backfill.py
 
 With the info that we found above, execute `backfill.py`
 
