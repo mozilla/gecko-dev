@@ -30,7 +30,7 @@ export default {
     actions: {
       handles: ["click"],
     },
-    status: "in-development",
+    status: "stable",
     fluent: `
 moz-button-labelled =
   .label = Button
