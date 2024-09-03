@@ -13,6 +13,17 @@
 "use strict";
 
 add_task(async function test_getSecurityInfo() {
+  // Certificate transparency telemetry is disabled by default in non-Nightly
+  // builds. Setting this pref (which enables gathering certificate
+  // transparency telemetry) ensures that there is a consistent environment
+  // when checking certificate transparency results. This is important, because
+  // when this patch goes from nightly to e.g. beta (and beyond), this test
+  // would otherwise fail because the certificate telemetry result is not what
+  // is expected, due to the difference in defaults across channels.
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.pki.certificate_transparency.mode", 1]],
+  });
+
   const extension = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: [
@@ -68,7 +79,7 @@ add_task(async function test_getSecurityInfo() {
         browser.test.assertDeepEq({
           state: "secure",
           isExtendedValidation: false,
-          certificateTransparencyStatus: "not_applicable",
+          certificateTransparencyStatus: "policy_not_enough_scts",
           hsts: false,
           hpkp: false,
           usedEch: false,
@@ -89,6 +100,10 @@ add_task(async function test_getSecurityInfo() {
   await extension.awaitFinish("success");
 
   await extension.unload();
+
+  // Un-do setting the certificate transparency telemetry collection pref (see
+  // the beginning of this function).
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_getSecurityInfo_without_permission() {
