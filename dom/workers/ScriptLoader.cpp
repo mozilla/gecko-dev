@@ -1060,10 +1060,18 @@ nsresult WorkerScriptLoader::LoadScript(
   // For each debugger script, a non-debugger script load of the same script
   // should have occured prior that processed the headers.
   if (!IsDebuggerScript()) {
+    JS::ModuleType moduleType = request->IsModuleRequest()
+                                    ? request->AsModuleRequest()->mModuleType
+                                    : JS::ModuleType::JavaScript;
+
+    bool requiresStrictMimeCheck =
+        GetContentPolicyType(request) ==
+            nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS ||
+        request->IsModuleRequest();
+
     headerProcessor = MakeRefPtr<ScriptResponseHeaderProcessor>(
         mWorkerRef, loadContext->IsTopLevel() && !IsDynamicImport(request),
-        GetContentPolicyType(request) ==
-            nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS);
+        requiresStrictMimeCheck, moduleType);
   }
 
   nsCOMPtr<nsIStreamLoader> loader;

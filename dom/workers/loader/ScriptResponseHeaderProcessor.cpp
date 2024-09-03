@@ -38,16 +38,25 @@ nsresult ScriptResponseHeaderProcessor::ProcessCrossOriginEmbedderPolicyHeader(
 
 // Enforce strict MIME type checks for worker-imported scripts
 // https://github.com/whatwg/html/pull/4001
-nsresult ScriptResponseHeaderProcessor::EnsureJavaScriptMimeType(
+nsresult ScriptResponseHeaderProcessor::EnsureExpectedModuleType(
     nsIRequest* aRequest) {
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
   MOZ_ASSERT(channel);
   nsAutoCString mimeType;
   channel->GetContentType(mimeType);
-  if (!nsContentUtils::IsJavascriptMIMEType(NS_ConvertUTF8toUTF16(mimeType))) {
-    return NS_ERROR_DOM_NETWORK_ERR;
+  NS_ConvertUTF8toUTF16 typeString(mimeType);
+
+  if (mModuleType == JS::ModuleType::JavaScript &&
+      nsContentUtils::IsJavascriptMIMEType(typeString)) {
+    return NS_OK;
   }
-  return NS_OK;
+
+  if (mModuleType == JS::ModuleType::JSON &&
+      nsContentUtils::IsJsonMimeType(typeString)) {
+    return NS_OK;
+  }
+
+  return NS_ERROR_DOM_NETWORK_ERR;
 }
 
 nsresult ScriptResponseHeaderProcessor::ProcessCrossOriginEmbedderPolicyHeader(
