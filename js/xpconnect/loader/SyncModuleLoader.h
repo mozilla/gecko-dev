@@ -55,11 +55,12 @@ class SyncModuleLoader : public JS::loader::ModuleLoaderBase {
   ~SyncModuleLoader();
 
   already_AddRefed<ModuleLoadRequest> CreateStaticImport(
-      nsIURI* aURI, ModuleLoadRequest* aParent) override;
+      nsIURI* aURI, JS::ModuleType aModuleType,
+      ModuleLoadRequest* aParent) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
-      JS::Handle<JSString*> aSpecifier,
+      JSContext* aCx, nsIURI* aURI, JS::ModuleType aModuleType,
+      LoadedScript* aMaybeActiveScript, JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
 
   void OnDynamicImportStarted(ModuleLoadRequest* aRequest) override;

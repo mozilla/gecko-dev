@@ -332,8 +332,8 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 
   // Create a new top-level load request.
   nsCOMPtr<nsIURI> uri = result.unwrap();
-  RefPtr<ModuleLoadRequest> request =
-      loader->CreateDynamicImport(aCx, uri, script, specifierString, aPromise);
+  RefPtr<ModuleLoadRequest> request = loader->CreateDynamicImport(
+      aCx, uri, JS::ModuleType::JavaScript, script, specifierString, aPromise);
 
   if (!request) {
     // Throws TypeError if CreateDynamicImport returns nullptr.
@@ -917,8 +917,8 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
 
 void ModuleLoaderBase::StartFetchingModuleAndDependencies(
     ModuleLoadRequest* aParent, const ModuleMapKey& aRequestedModule) {
-  RefPtr<ModuleLoadRequest> childRequest =
-      CreateStaticImport(aRequestedModule.mUri, aParent);
+  RefPtr<ModuleLoadRequest> childRequest = CreateStaticImport(
+      aRequestedModule.mUri, aRequestedModule.mModuleType, aParent);
 
   aParent->mImports.AppendElement(childRequest);
 
