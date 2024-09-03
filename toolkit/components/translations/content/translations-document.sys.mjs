@@ -1479,6 +1479,10 @@ function isNodeInViewport(node) {
  * @returns {void}
  */
 function updateElement(translationsDocument, element) {
+  if (element.tagName === "OPTION" && !element.hasAttribute("value")) {
+    // This is an implicit option value. Make it explicit before translating it.
+    element.setAttribute("value", element.value);
+  }
   // This text should have the same layout as the target, but it's not completely
   // guaranteed since the content page could change at any time, and the translation process is async.
   //

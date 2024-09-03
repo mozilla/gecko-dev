@@ -1115,6 +1115,37 @@ add_task(async function test_tables() {
   cleanup();
 });
 
+add_task(async function test_option_values() {
+  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+      <select>
+          <option>Red</option>
+          <option>Orange</option>
+          <option>Yellow</option>
+          <option value="Green">Green</option>
+          <option value="Blue">Blue</option>
+          <option value="Purple">Purple</option>
+      </select>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Option values are not changed",
+    /* html */ `
+      <select>
+          <option value="Red">RED</option>
+          <option value="Orange">ORANGE</option>
+          <option value="Yellow">YELLOW</option>
+          <option value="Green">GREEN</option>
+          <option value="Blue">BLUE</option>
+          <option value="Purple">PURPLE</option>
+      </select>
+    `
+  );
+
+  cleanup();
+});
+
 add_task(async function test_basic_attributes() {
   const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
     <label title="Titles are user visible">Enter information:</label>
