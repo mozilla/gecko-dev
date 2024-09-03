@@ -50,6 +50,24 @@
   --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
   --toolbar-color: var(--toolbar-non-lwt-textcolor);
 
+  /* Override some toolbar colors when not under prefers-contrast. Note that
+   * for the browser window these might be overridden by
+   * browser-custom-colors.css.
+   *
+   * For the light theme we use .05 alpha, to increase the contrast of the
+   * text. For the dark theme, we use a darker background, which works because
+   * the toolbar background applies some white unconditionally.
+   */
+  @media not (prefers-contrast) {
+    --toolbar-field-border-color: transparent;
+    --toolbar-field-background-color: light-dark(rgba(0, 0, 0, .05), rgba(0, 0, 0, .3));
+    --toolbar-field-color: inherit;
+
+    @media (prefers-color-scheme: light) {
+      --toolbar-non-lwt-bgcolor: white;
+    }
+  }
+
   &[lwtheme] {
     --toolbar-bgcolor: rgba(255,255,255,.4);
     --toolbar-color: var(--lwt-text-color, inherit);

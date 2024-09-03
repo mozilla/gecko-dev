@@ -9,13 +9,6 @@
   --sidebar-text-color: -moz-sidebartext;
   --sidebar-border-color: -moz-sidebarborder;
 
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media ((-moz-bool-pref: "browser.theme.macos.native-theme") and (-moz-platform: macOS) and (not (prefers-contrast)) and (prefers-color-scheme: light)) {
-    &:not([lwtheme]) {
-      --toolbar-non-lwt-bgcolor: white;
-    }
-  }
-
   background-color: transparent;
   height: 100%;
 }
