@@ -548,6 +548,7 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
       case JSOp::StrictEq:
       case JSOp::StrictNe:
       case JSOp::BindName:
+      case JSOp::GetBoundName:
       case JSOp::Add:
       case JSOp::Sub:
       case JSOp::Mul:

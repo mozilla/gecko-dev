@@ -37,8 +37,6 @@ namespace jit {
   _(SetElemSuper)                                           \
   _(StrictSetPropSuper)                                     \
   _(StrictSetElemSuper)                                     \
-  /* Compound assignment */                                 \
-  _(GetBoundName)                                           \
   /* Generators / Async (bug 1317690) */                    \
   _(IsGenClosing)                                           \
   _(Resume)                                                 \
