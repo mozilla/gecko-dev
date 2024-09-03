@@ -1758,6 +1758,13 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
     return NS_OK;
   }
 
+  // Don't off-thread compile JSON modules.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1912112
+  if (aRequest->IsModuleRequest() &&
+      aRequest->AsModuleRequest()->mModuleType == JS::ModuleType::JSON) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIGlobalObject> globalObject = GetGlobalForRequest(aRequest);
   if (!globalObject) {
     return NS_ERROR_FAILURE;
