@@ -99,6 +99,12 @@
   color: white;
 }
 
+.frames [role="list"] [role="listitem"].inactive,
+.frames [role="list"] [role="listitem"].inactive.async-label {
+  background-color: light-dark(var(--theme-toolbar-background-alt), var(--theme-body-alternate-emphasized-background));
+}
+
+
 .frames [role="list"] [role="listitem"].selected i.annotation-logo svg path {
   fill: white;
 }
