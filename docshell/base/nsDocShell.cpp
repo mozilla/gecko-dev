@@ -10049,14 +10049,6 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
                    contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_FRAME,
                "DoURILoad thinks this is a frame and InternalLoad does not");
 
-    if (auto* iframe = HTMLIFrameElement::FromNodeOrNull(
-            mBrowsingContext->GetEmbedderElement())) {
-      // Per spec, reload doesn't cacel lazy loading iframes.
-      if (!(aLoadState->LoadType() & LOAD_RELOAD_NORMAL)) {
-        iframe->CancelLazyLoading(true /* aClearLazyLoadState */);
-      }
-    }
-
     if (StaticPrefs::dom_block_external_protocol_in_iframes()) {
       // Only allow URLs able to return data in iframes.
       if (nsContentUtils::IsExternalProtocol(aLoadState->URI())) {
