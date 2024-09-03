@@ -21913,8 +21913,8 @@ void CodeGenerator::visitMapObjectGetBigInt(LMapObjectGetBigInt* ins) {
 }
 
 void CodeGenerator::visitMapObjectGetValue(LMapObjectGetValue* ins) {
-  Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins, LMapObjectGetValue::InputIndex);
+  Register mapObj = ToRegister(ins->map());
+  ValueOperand input = ToValue(ins, LMapObjectGetValue::ValueIndex);
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());

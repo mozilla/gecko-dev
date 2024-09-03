@@ -4036,14 +4036,6 @@
     hash: WordSized
   num_temps: 4
 
-- name: MapObjectGetValue
-  result_type: BoxedValue
-  operands:
-    mapObject: WordSized
-    input: BoxedValue
-    hash: WordSized
-  num_temps: 4
-
 - name: MapObjectGetValueVMCall
   result_type: BoxedValue
   call_instruction: true

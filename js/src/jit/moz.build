@@ -284,7 +284,7 @@ GeneratedFile(
     "LIROpsGenerated.h",
     script="GenerateLIRFiles.py",
     entry_point="generate_lir_header",
-    inputs=["LIROps.yaml"],
+    inputs=["LIROps.yaml", "MIROps.yaml"],
 )
 
 # Generate jit/CacheIROpsGenerated.h from jit/CacheIROps.yaml

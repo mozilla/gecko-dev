@@ -163,6 +163,21 @@
 #   - attribute not specified (default): no code generated
 #   - true: canConsumeFloat32 returns true
 #
+# generate_lir
+# ===================
+# Controls whether to generate direct 1-1 mapping LIR instruction for the MIR op
+# Possible values:
+#   - attribute not specified (default): no code generated
+#   - true: generates corresponding LIR classes in LIROpsGenerated.h
+#
+# lir_temps
+# ===================
+# Specifies the number of temporary virtual registers, LDefinitions, used by
+# the corresponding LIR op in case generate_lir is true.
+# Possible values:
+#   - attribute not specified (default): number of temps is set to 0
+#   - number: sets number of temps max 15
+#
 
 # TODO(no-TI): try to remove this instruction.
 - name: Start
@@ -3220,6 +3235,8 @@
   movable: true
   congruent_to: if_operands_equal
   alias_set: custom
+  generate_lir: true
+  lir_temps: 4
 
 - name: MapObjectGetValueVMCall
   operands:

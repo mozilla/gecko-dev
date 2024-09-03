@@ -219,7 +219,13 @@ def gen_lir_class(
     return code
 
 
-def generate_lir_header(c_out, yaml_path):
+def mir_type_to_lir_type(mir_type):
+    if mir_type == "Value":
+        return "BoxedValue"
+    return "WordSized"
+
+
+def generate_lir_header(c_out, yaml_path, mir_yaml_path):
     data = load_yaml(yaml_path)
 
     # LIR_OPCODE_LIST opcode.
@@ -271,6 +277,56 @@ def generate_lir_header(c_out, yaml_path):
             )
 
         ops.append("_({})".format(name))
+
+    # Generate LIR instructions for MIR instructions with 'generate_lir': true
+    mir_data = load_yaml(mir_yaml_path)
+
+    for op in mir_data:
+        name = op["name"]
+
+        generate_lir = op.get("generate_lir", False)
+        assert isinstance(generate_lir, bool)
+
+        if generate_lir:
+            result_type = op.get("result_type", None)
+            assert result_type is None or str
+
+            if result_type:
+                result_type = mir_type_to_lir_type(result_type)
+                assert result_types[result_type]
+
+            operands_raw = op.get("operands", None)
+            assert operands_raw is None or isinstance(operands_raw, dict)
+
+            operands = None
+            if operands_raw:
+                operands = {}
+                for operand in operands_raw:
+                    operands[operand] = mir_type_to_lir_type(operands_raw[operand])
+
+            arguments = None
+
+            num_temps = op.get("lir_temps", 0)
+            assert num_temps is None or int
+
+            call_instruction = op.get("possibly_calls", None)
+            assert call_instruction is None or True
+
+            mir_op = None
+
+            lir_op_classes.append(
+                gen_lir_class(
+                    name,
+                    result_type,
+                    operands,
+                    arguments,
+                    num_temps,
+                    call_instruction,
+                    mir_op,
+                )
+            )
+
+            ops.append("_({})".format(name))
 
     contents = "#define LIR_OPCODE_LIST(_)\\\n"
     contents += "\\\n".join(ops)
