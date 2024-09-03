@@ -144,6 +144,11 @@ class CamerasParent final : public PCamerasParent,
   // VideoInputFeedBack
   void OnDeviceChange() override;
 
+  // Creates a new DeviceInfo or returns an existing DeviceInfo for given
+  // capture engine. Returns a nullptr in case capture engine failed to be
+  // initialized. Video capture thread only.
+  std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo> GetDeviceInfo(
+      int aEngine);
   VideoEngine* EnsureInitialized(int aEngine);
 
   // Stops any ongoing capturing and releases resources. Called on

@@ -65,7 +65,7 @@ class VideoEngine {
    *   @see bug 1305212 https://bugzilla.mozilla.org/show_bug.cgi?id=1305212
    */
   std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo>
-  GetOrCreateVideoCaptureDeviceInfo();
+  GetOrCreateVideoCaptureDeviceInfo(webrtc::VideoInputFeedBack* callBack);
 
   /**
    * Destroys existing DeviceInfo.

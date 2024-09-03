@@ -405,13 +405,23 @@ void CamerasParent::CloseEngines() {
     Unused << ReleaseCapture(capEngine, streamNum);
   }
 
-  if (VideoEngine* engine = mEngines->ElementAt(CameraEngine); engine) {
-    auto device_info = engine->GetOrCreateVideoCaptureDeviceInfo();
-    MOZ_ASSERT(device_info);
-    if (device_info) {
-      device_info->DeRegisterVideoInputFeedBack(this);
-    }
+  auto device_info = GetDeviceInfo(CameraEngine);
+  MOZ_ASSERT(device_info);
+  if (device_info) {
+    device_info->DeRegisterVideoInputFeedBack(this);
   }
+}
+
+std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo>
+CamerasParent::GetDeviceInfo(int aEngine) {
+  MOZ_ASSERT(mVideoCaptureThread->IsOnCurrentThread());
+  LOG_VERBOSE("CamerasParent(%p)::%s", this, __func__);
+
+  auto* engine = EnsureInitialized(aEngine);
+  if (!engine) {
+    return nullptr;
+  }
+  return engine->GetOrCreateVideoCaptureDeviceInfo(this);
 }
 
 VideoEngine* CamerasParent::EnsureInitialized(int aEngine) {
@@ -449,14 +459,6 @@ VideoEngine* CamerasParent::EnsureInitialized(int aEngine) {
     return nullptr;
   }
 
-  if (capEngine == CameraEngine) {
-    auto device_info = engine->GetOrCreateVideoCaptureDeviceInfo();
-    MOZ_ASSERT(device_info);
-    if (device_info) {
-      device_info->RegisterVideoInputFeedBack(this);
-    }
-  }
-
   return mEngines->ElementAt(capEngine) = std::move(engine);
 }
 
@@ -474,19 +476,16 @@ ipc::IPCResult CamerasParent::RecvNumberOfCaptureDevices(
   LOG("CaptureEngine=%d", aCapEngine);
 
   using Promise = MozPromise<int, bool, true>;
-  InvokeAsync(
-      mVideoCaptureThread, __func__,
-      [this, self = RefPtr(this), aCapEngine] {
-        int num = -1;
-        if (auto* engine = EnsureInitialized(aCapEngine)) {
-          if (auto devInfo = engine->GetOrCreateVideoCaptureDeviceInfo()) {
-            num = static_cast<int>(devInfo->NumberOfDevices());
-          }
-        }
+  InvokeAsync(mVideoCaptureThread, __func__,
+              [this, self = RefPtr(this), aCapEngine] {
+                int num = -1;
+                if (auto devInfo = GetDeviceInfo(aCapEngine)) {
+                  num = static_cast<int>(devInfo->NumberOfDevices());
+                }
 
-        return Promise::CreateAndResolve(
-            num, "CamerasParent::RecvNumberOfCaptureDevices");
-      })
+                return Promise::CreateAndResolve(
+                    num, "CamerasParent::RecvNumberOfCaptureDevices");
+              })
       ->Then(
           mPBackgroundEventTarget, __func__,
           [this, self = RefPtr(this)](Promise::ResolveOrRejectValue&& aValue) {
@@ -558,10 +557,8 @@ ipc::IPCResult CamerasParent::RecvNumberOfCapabilities(
       mVideoCaptureThread, __func__,
       [this, self = RefPtr(this), id = nsCString(aUniqueId), aCapEngine]() {
         int num = -1;
-        if (auto* engine = EnsureInitialized(aCapEngine)) {
-          if (auto devInfo = engine->GetOrCreateVideoCaptureDeviceInfo()) {
-            num = devInfo->NumberOfCapabilities(id.get());
-          }
+        if (auto devInfo = GetDeviceInfo(aCapEngine)) {
+          num = devInfo->NumberOfCapabilities(id.get());
         }
         return Promise::CreateAndResolve(
             num, "CamerasParent::RecvNumberOfCapabilities");
@@ -599,36 +596,34 @@ ipc::IPCResult CamerasParent::RecvGetCaptureCapability(
       aIndex);
 
   using Promise = MozPromise<webrtc::VideoCaptureCapability, int, true>;
-  InvokeAsync(
-      mVideoCaptureThread, __func__,
-      [this, self = RefPtr(this), id = nsCString(aUniqueId), aCapEngine,
-       aIndex] {
-        webrtc::VideoCaptureCapability webrtcCaps;
-        int error = -1;
-        if (auto* engine = EnsureInitialized(aCapEngine)) {
-          if (auto devInfo = engine->GetOrCreateVideoCaptureDeviceInfo()) {
-            error = devInfo->GetCapability(id.get(), aIndex, webrtcCaps);
-          }
-        }
+  InvokeAsync(mVideoCaptureThread, __func__,
+              [this, self = RefPtr(this), id = nsCString(aUniqueId), aCapEngine,
+               aIndex] {
+                webrtc::VideoCaptureCapability webrtcCaps;
+                int error = -1;
+                if (auto devInfo = GetDeviceInfo(aCapEngine)) {
+                  error = devInfo->GetCapability(id.get(), aIndex, webrtcCaps);
+                }
 
-        if (!error && aCapEngine == CameraEngine) {
-          auto iter = mAllCandidateCapabilities.find(id);
-          if (iter == mAllCandidateCapabilities.end()) {
-            std::map<uint32_t, webrtc::VideoCaptureCapability>
-                candidateCapabilities;
-            candidateCapabilities.emplace(aIndex, webrtcCaps);
-            mAllCandidateCapabilities.emplace(id, candidateCapabilities);
-          } else {
-            (iter->second).emplace(aIndex, webrtcCaps);
-          }
-        }
-        if (error) {
-          return Promise::CreateAndReject(
-              error, "CamerasParent::RecvGetCaptureCapability");
-        }
-        return Promise::CreateAndResolve(
-            webrtcCaps, "CamerasParent::RecvGetCaptureCapability");
-      })
+                if (!error && aCapEngine == CameraEngine) {
+                  auto iter = mAllCandidateCapabilities.find(id);
+                  if (iter == mAllCandidateCapabilities.end()) {
+                    std::map<uint32_t, webrtc::VideoCaptureCapability>
+                        candidateCapabilities;
+                    candidateCapabilities.emplace(aIndex, webrtcCaps);
+                    mAllCandidateCapabilities.emplace(id,
+                                                      candidateCapabilities);
+                  } else {
+                    (iter->second).emplace(aIndex, webrtcCaps);
+                  }
+                }
+                if (error) {
+                  return Promise::CreateAndReject(
+                      error, "CamerasParent::RecvGetCaptureCapability");
+                }
+                return Promise::CreateAndResolve(
+                    webrtcCaps, "CamerasParent::RecvGetCaptureCapability");
+              })
       ->Then(
           mPBackgroundEventTarget, __func__,
           [this, self = RefPtr(this)](Promise::ResolveOrRejectValue&& aValue) {
@@ -664,33 +659,32 @@ ipc::IPCResult CamerasParent::RecvGetCaptureDevice(
 
   using Data = std::tuple<nsCString, nsCString, pid_t, bool, int>;
   using Promise = MozPromise<Data, bool, true>;
-  InvokeAsync(
-      mVideoCaptureThread, __func__,
-      [this, self = RefPtr(this), aCapEngine, aDeviceIndex] {
-        char deviceName[MediaEngineSource::kMaxDeviceNameLength];
-        char deviceUniqueId[MediaEngineSource::kMaxUniqueIdLength];
-        nsCString name;
-        nsCString uniqueId;
-        pid_t devicePid = 0;
-        bool placeholder = false;
-        int error = -1;
-        if (auto* engine = EnsureInitialized(aCapEngine)) {
-          if (auto devInfo = engine->GetOrCreateVideoCaptureDeviceInfo()) {
-            error = devInfo->GetDeviceName(
-                aDeviceIndex, deviceName, sizeof(deviceName), deviceUniqueId,
-                sizeof(deviceUniqueId), nullptr, 0, &devicePid, &placeholder);
-          }
-        }
-        if (error == 0) {
-          name.Assign(deviceName);
-          uniqueId.Assign(deviceUniqueId);
-        }
+  InvokeAsync(mVideoCaptureThread, __func__,
+              [this, self = RefPtr(this), aCapEngine, aDeviceIndex] {
+                char deviceName[MediaEngineSource::kMaxDeviceNameLength];
+                char deviceUniqueId[MediaEngineSource::kMaxUniqueIdLength];
+                nsCString name;
+                nsCString uniqueId;
+                pid_t devicePid = 0;
+                bool placeholder = false;
+                int error = -1;
+                if (auto devInfo = GetDeviceInfo(aCapEngine)) {
+                  error = devInfo->GetDeviceName(
+                      aDeviceIndex, deviceName, sizeof(deviceName),
+                      deviceUniqueId, sizeof(deviceUniqueId), nullptr, 0,
+                      &devicePid, &placeholder);
+                }
 
-        return Promise::CreateAndResolve(
-            std::make_tuple(std::move(name), std::move(uniqueId), devicePid,
-                            placeholder, error),
-            "CamerasParent::RecvGetCaptureDevice");
-      })
+                if (error == 0) {
+                  name.Assign(deviceName);
+                  uniqueId.Assign(deviceUniqueId);
+                }
+
+                return Promise::CreateAndResolve(
+                    std::make_tuple(std::move(name), std::move(uniqueId),
+                                    devicePid, placeholder, error),
+                    "CamerasParent::RecvGetCaptureDevice");
+              })
       ->Then(
           mPBackgroundEventTarget, __func__,
           [this, self = RefPtr(this)](Promise::ResolveOrRejectValue&& aValue) {

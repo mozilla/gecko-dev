@@ -113,7 +113,8 @@ int VideoEngine::ReleaseVideoCapture(const int32_t aId) {
 }
 
 std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo>
-VideoEngine::GetOrCreateVideoCaptureDeviceInfo() {
+VideoEngine::GetOrCreateVideoCaptureDeviceInfo(
+    webrtc::VideoInputFeedBack* callBack) {
   LOG(("%s", __PRETTY_FUNCTION__));
   webrtc::Timestamp currentTime = webrtc::Timestamp::Micros(0);
 
@@ -155,6 +156,10 @@ VideoEngine::GetOrCreateVideoCaptureDeviceInfo() {
 #endif
 
   mDeviceInfo = mVideoCaptureFactory->CreateDeviceInfo(mId, mCaptureDevType);
+
+  if (mDeviceInfo && mCaptureDevType == CaptureDeviceType::Camera) {
+    mDeviceInfo->RegisterVideoInputFeedBack(callBack);
+  }
 
   LOG(("EXIT %s", __PRETTY_FUNCTION__));
   return mDeviceInfo;
