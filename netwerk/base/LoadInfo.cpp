@@ -693,7 +693,8 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mHasInjectedCookieForCookieBannerHandling(
           rhs.mHasInjectedCookieForCookieBannerHandling),
       mWasSchemelessInput(rhs.mWasSchemelessInput),
-      mHttpsUpgradeTelemetry(rhs.mHttpsUpgradeTelemetry) {
+      mHttpsUpgradeTelemetry(rhs.mHttpsUpgradeTelemetry),
+      mIsNewWindowTarget(rhs.mIsNewWindowTarget) {
 }
 
 LoadInfo::LoadInfo(
@@ -742,7 +743,8 @@ LoadInfo::LoadInfo(
     bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
     nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
     bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput,
-    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry)
+    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry,
+    bool aIsNewWindowTarget)
     : mLoadingPrincipal(aLoadingPrincipal),
       mTriggeringPrincipal(aTriggeringPrincipal),
       mPrincipalToInherit(aPrincipalToInherit),
@@ -823,7 +825,8 @@ LoadInfo::LoadInfo(
       mHasInjectedCookieForCookieBannerHandling(
           aHasInjectedCookieForCookieBannerHandling),
       mWasSchemelessInput(aWasSchemelessInput),
-      mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry) {
+      mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry),
+      mIsNewWindowTarget(aIsNewWindowTarget) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
   MOZ_ASSERT(mLoadingPrincipal ||
              aContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT);
@@ -2458,6 +2461,18 @@ NS_IMETHODIMP
 LoadInfo::SetHttpsUpgradeTelemetry(
     nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry) {
   mHttpsUpgradeTelemetry = aHttpsUpgradeTelemetry;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetIsNewWindowTarget(bool* aIsNewWindowTarget) {
+  *aIsNewWindowTarget = mIsNewWindowTarget;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetIsNewWindowTarget(bool aIsNewWindowTarget) {
+  mIsNewWindowTarget = aIsNewWindowTarget;
   return NS_OK;
 }
 

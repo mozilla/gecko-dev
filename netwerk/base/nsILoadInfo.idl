@@ -1590,4 +1590,9 @@ interface nsILoadInfo : nsISupports
    */
   [infallible] attribute nsILoadInfo_HTTPSUpgradeTelemetryType httpsUpgradeTelemetry;
 
+  /**
+   * Is this the first load in a new pop-up window/tab?
+   */
+  [infallible] attribute boolean isNewWindowTarget;
+
 };

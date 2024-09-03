@@ -597,7 +597,7 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetStoragePermission(), overriddenFingerprintingSettingsArg,
       aLoadInfo->GetIsMetaRefresh(), aLoadInfo->GetLoadingEmbedderPolicy(),
       aLoadInfo->GetIsOriginTrialCoepCredentiallessEnabledForTopLevel(),
-      unstrippedURI, interceptionInfoArg);
+      unstrippedURI, interceptionInfoArg, aLoadInfo->GetIsNewWindowTarget());
 
   return NS_OK;
 }
@@ -890,7 +890,8 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.originTrialCoepCredentiallessEnabledForTopLevel(),
       loadInfoArgs.unstrippedURI(), interceptionInfo,
       loadInfoArgs.hasInjectedCookieForCookieBannerHandling(),
-      loadInfoArgs.wasSchemelessInput(), loadInfoArgs.httpsUpgradeTelemetry());
+      loadInfoArgs.wasSchemelessInput(), loadInfoArgs.httpsUpgradeTelemetry(),
+      loadInfoArgs.isNewWindowTarget());
 
   if (loadInfoArgs.isFromProcessingFrameAttributes()) {
     loadInfo->SetIsFromProcessingFrameAttributes();
