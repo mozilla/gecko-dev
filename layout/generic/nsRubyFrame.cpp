@@ -54,7 +54,9 @@ nsresult nsRubyFrame::GetFrameName(nsAString& aResult) const {
 void nsRubyFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                     InlineMinISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
-    const IntrinsicSizeInput input(aInput.mContext);
+    // Ruby frames shouldn't have percentage block sizes that require a
+    // percentage basis for resolution.
+    const IntrinsicSizeInput input(aInput.mContext, Nothing());
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
       e.GetBaseContainer()->AddInlineMinISize(input, data);
@@ -67,7 +69,9 @@ void nsRubyFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
 void nsRubyFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                      InlinePrefISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
-    const IntrinsicSizeInput input(aInput.mContext);
+    // Ruby frames shouldn't have percentage block sizes that require a
+    // percentage basis for resolution.
+    const IntrinsicSizeInput input(aInput.mContext, Nothing());
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
       e.GetBaseContainer()->AddInlinePrefISize(input, data);
