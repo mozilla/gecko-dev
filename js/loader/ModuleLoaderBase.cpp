@@ -816,6 +816,8 @@ ResolveResult ModuleLoaderBase::ResolveModuleSpecifier(
 
 nsresult ModuleLoaderBase::ResolveRequestedModules(
     ModuleLoadRequest* aRequest, nsTArray<ModuleMapKey>* aRequestedModulesOut) {
+  MOZ_ASSERT_IF(aRequestedModulesOut, aRequestedModulesOut->IsEmpty());
+
   ModuleScript* ms = aRequest->mModuleScript;
 
   AutoJSAPI jsapi;
@@ -825,6 +827,11 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
 
   JSContext* cx = jsapi.cx();
   JS::Rooted<JSObject*> moduleRecord(cx, ms->ModuleRecord());
+
+  if (!JS::IsCyclicModule(moduleRecord)) {
+    return NS_OK;
+  }
+
   uint32_t length = JS::GetRequestedModulesCount(cx, moduleRecord);
 
   for (uint32_t i = 0; i < length; i++) {
