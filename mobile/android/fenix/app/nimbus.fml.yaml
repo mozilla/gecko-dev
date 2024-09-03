@@ -205,13 +205,6 @@ features:
             "feature-setting-global-rules-sub-frames": 1,
           }
         }
-  unified-search:
-    description: A feature allowing user to easily search for specified results directly in the search bar.
-    variables:
-      enabled:
-        description: If true, the feature shows up in the search bar.
-        type: Boolean
-        default: true
 
   growth-data:
     description: A feature measuring campaign growth data
