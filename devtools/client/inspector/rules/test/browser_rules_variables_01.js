@@ -28,7 +28,7 @@ add_task(async function () {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">' +
-        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse">' +
         '</span>' +
         '<span class="ruleview-color">chartreuse</span>' +
       '</span>',
@@ -48,7 +48,7 @@ add_task(async function () {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="seagreen" class="color-swatch-container">' +
-        '<span class="inspector-swatch inspector-colorswatch" style="background-color:seagreen" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:seagreen">' +
         '</span>' +
         '<span class="ruleview-color">seagreen</span>' +
       '</span>',
@@ -60,7 +60,7 @@ add_task(async function () {
     header:
       // prettier-ignore
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">' +
-        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse" tabindex="0" role="button">' +
+        '<span class="inspector-swatch inspector-colorswatch" style="background-color:chartreuse">' +
         '</span>' +
         '<span class="ruleview-color">' +
           'var(' +
@@ -73,9 +73,7 @@ add_task(async function () {
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="chartreuse" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
-          `style="background-color:chartreuse" ` +
-          `tabindex="0" ` +
-          `role="button">` +
+          `style="background-color:chartreuse">` +
         `</span>` +
         `<span class="ruleview-color">chartreuse</span>` +
       `</span>`,
@@ -98,8 +96,6 @@ add_task(async function () {
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:chartreuse" ` +
-            `tabindex="0" ` +
-            `role="button" ` +
             `data-color-function="light-dark">` +
           `</span>` +
           `<span class="ruleview-color">chartreuse</span>` +
@@ -108,8 +104,6 @@ add_task(async function () {
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
             `style="background-color:seagreen" ` +
-            `tabindex="0" ` +
-            `role="button" ` +
             `data-color-function="light-dark">` +
           `</span>` +
           `<span class="ruleview-color">seagreen</span>` +

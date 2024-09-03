@@ -69,7 +69,10 @@ function setVariableTooltip(
 
   const outputParser = new OutputParser(doc, cssProperties);
   const parse = value =>
-    outputParser.parseCssProperty(variableName, value, outputParserOptions);
+    outputParser.parseCssProperty(variableName, value, {
+      ...outputParserOptions,
+      colorSwatchReadOnly: true,
+    });
 
   const valueEl = doc.createElementNS(XHTML_NS, "section");
   valueEl.classList.add("variable-value");

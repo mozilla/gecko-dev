@@ -1870,7 +1870,7 @@ class OutputParser {
 
         // Color swatches next to values trigger the color editor everywhere aside from
         // the Computed panel where values are read-only.
-        if (!options.colorSwatchClass.startsWith("computed-")) {
+        if (!options.colorSwatchReadOnly) {
           attributes = { ...attributes, tabindex: "0", role: "button" };
         }
 
@@ -2243,6 +2243,8 @@ class OutputParser {
    * @param {String} overrides.colorClass: The class to use for the color value that
    *        follows the swatch.
    * @param {String} overrides.colorSwatchClass: The class to use for color swatches.
+   * @param {Boolean} overrides.colorSwatchReadOnly: Whether the resulting color swatch
+   *        should be read-only or not. Defaults to false.
    * @param {Boolean} overrides.filterSwatch: A special case for parsing a "filter" property,
    *        causing the parser to skip the call to #wrapFilter. Used only for previewing
    *        with the filter swatch.
@@ -2277,6 +2279,7 @@ class OutputParser {
       bezierSwatchClass: null,
       colorClass: null,
       colorSwatchClass: null,
+      colorSwatchReadOnly: false,
       filterSwatch: false,
       flexClass: null,
       gridClass: null,

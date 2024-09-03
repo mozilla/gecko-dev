@@ -10,7 +10,6 @@
 .inspector-shapeswatch,
 .inspector-swatch {
   --swatch-size: 1em;
-  cursor: pointer;
   width: var(--swatch-size);
   height: var(--swatch-size);
   vertical-align: middle;
@@ -20,6 +19,11 @@
   margin-inline-end: 5px;
   display: inline-block;
   position: relative;
+
+  /* Set pointer cursor when swatch is interactive */
+  &:is(button, [role="button"]) {
+    cursor: pointer;
+  }
 }
 
 /* Icon swatches not using the .inspector-swatch class (flex, grid, shape) */

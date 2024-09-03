@@ -252,6 +252,4 @@
 
 .computed-property-value .inspector-colorswatch {
   --swatch-size: 0.9em;
-  /* The shared class sets a pointer cursor that we don't want in the computed panel */
-  cursor: initial;
 }

@@ -322,6 +322,36 @@ function testParseCssProperty(doc, parser) {
       value: "(min-width:680px)",
       expected: "(min-width:680px)",
     },
+
+    {
+      desc: "Interactive color swatch",
+      name: "color",
+      value: "gold",
+      expected:
+        // prettier-ignore
+        `<span data-color="gold" class="color-swatch-container">` +
+          `<span class="test-class" style="background-color:gold" tabindex="0" role="button"></span>` +
+          `<span>gold</span>` +
+        `</span>`,
+      parserExtraOptions: {
+        colorSwatchReadOnly: false,
+      },
+    },
+
+    {
+      desc: "Read-only color swatch",
+      name: "color",
+      value: "gold",
+      expected:
+        // prettier-ignore
+        `<span data-color="gold" class="color-swatch-container">` +
+          `<span class="test-class" style="background-color:gold"></span>` +
+          `<span>gold</span>` +
+        `</span>`,
+      parserExtraOptions: {
+        colorSwatchReadOnly: true,
+      },
+    },
   ];
 
   const target = doc.querySelector("div");
@@ -332,6 +362,7 @@ function testParseCssProperty(doc, parser) {
 
     const frag = parser.parseCssProperty(test.name, test.value, {
       colorSwatchClass: COLOR_TEST_CLASS,
+      ...(test.parserExtraOptions || {}),
     });
 
     target.appendChild(frag);

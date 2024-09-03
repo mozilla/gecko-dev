@@ -170,9 +170,7 @@ add_task(async function () {
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
-          'style="background-color:tomato" ' +
-          'tabindex="0" ' +
-          'role="button">' +
+          'style="background-color:tomato">' +
         '</span>' +
         `<span class="ruleview-color">${CSS_NO_INHERIT_INITIAL_VALUE}</span>` +
       '</span>',
@@ -184,9 +182,7 @@ add_task(async function () {
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="tomato" class="color-swatch-container">' +
           '<span ' +
             'class="inspector-swatch inspector-colorswatch" ' +
-            'style="background-color:tomato" ' +
-            'tabindex="0" ' +
-            'role="button">' +
+            'style="background-color:tomato">' +
           '</span>' +
           `<span class="ruleview-color">${CSS_NO_INHERIT_INITIAL_VALUE}</span>` +
         '</span>',
@@ -199,9 +195,7 @@ add_task(async function () {
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="#FF0000" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
-          'style="background-color:#FF0000" ' +
-          'tabindex="0" ' +
-          'role="button">' +
+          'style="background-color:#FF0000">' +
         '</span>' +
         `<span class="ruleview-color">${CSS_INHERIT_MAIN_VALUE}</span>` +
       '</span>',
@@ -210,9 +204,7 @@ add_task(async function () {
       '<span xmlns="http://www.w3.org/1999/xhtml" data-color="rgb(255, 0, 0)" class="color-swatch-container">' +
         '<span ' +
           'class="inspector-swatch inspector-colorswatch" ' +
-          'style="background-color:rgb(255, 0, 0)" ' +
-          'tabindex="0" ' +
-          'role="button">' +
+          'style="background-color:rgb(255, 0, 0)">' +
         '</span>' +
         `<span class="ruleview-color">rgb(255, 0, 0)</span>` +
       '</span>',
@@ -224,9 +216,7 @@ add_task(async function () {
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="gold" class="color-swatch-container">' +
           '<span ' +
             'class="inspector-swatch inspector-colorswatch" ' +
-            'style="background-color:gold" ' +
-            'tabindex="0" ' +
-            'role="button">' +
+            'style="background-color:gold">' +
           '</span>' +
           `<span class="ruleview-color">${CSS_INHERIT_INITIAL_VALUE}</span>` +
         '</span>',
@@ -243,9 +233,7 @@ add_task(async function () {
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
-            `style="background-color:purple" ` +
-            `tabindex="0" ` +
-            `role="button">` +
+            `style="background-color:purple">` +
           `</span>` +
           `<span class="ruleview-color">${CSS_NOT_DEFINED_INITIAL_VALUE}</span>` +
         `</span>`,
@@ -257,9 +245,7 @@ add_task(async function () {
           `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
             `<span ` +
               `class="inspector-swatch inspector-colorswatch" ` +
-              `style="background-color:purple" ` +
-              `tabindex="0" ` +
-              `role="button">` +
+              `style="background-color:purple">` +
             `</span>` +
             `<span class="ruleview-color">${CSS_NOT_DEFINED_INITIAL_VALUE}</span>` +
           `</span>`,
@@ -344,9 +330,7 @@ add_task(async function () {
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
-          `style="background-color:orchid" ` +
-          `tabindex="0" ` +
-          `role="button">` +
+          `style="background-color:orchid">` +
         `</span>` +
         `<span class="ruleview-color">orchid</span>` +
       `</span>`,
@@ -358,9 +342,7 @@ add_task(async function () {
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="orchid" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
-            `style="background-color:orchid" ` +
-            `tabindex="0" ` +
-            `role="button">` +
+            `style="background-color:orchid">` +
           `</span>` +
           `<span class="ruleview-color">orchid</span>` +
         `</span>`,
@@ -405,9 +387,7 @@ add_task(async function () {
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
-          `style="background-color:purple" ` +
-          `tabindex="0" ` +
-          `role="button">` +
+          `style="background-color:purple">` +
         `</span>` +
         `<span class="ruleview-color">purple</span>` +
       `</span>`,
@@ -419,9 +399,7 @@ add_task(async function () {
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="purple" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
-            `style="background-color:purple" ` +
-            `tabindex="0" ` +
-            `role="button">` +
+            `style="background-color:purple">` +
           `</span>` +
           `<span class="ruleview-color">purple</span>` +
         `</span>`,
@@ -497,9 +475,7 @@ add_task(async function () {
       `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua" class="color-swatch-container">` +
         `<span ` +
           `class="inspector-swatch inspector-colorswatch" ` +
-          `style="background-color:aqua" ` +
-          `tabindex="0" ` +
-          `role="button">` +
+          `style="background-color:aqua">` +
         `</span>` +
         `<span class="ruleview-color">aqua</span>` +
       `</span>`,
@@ -511,9 +487,7 @@ add_task(async function () {
         `<span xmlns="http://www.w3.org/1999/xhtml" data-color="aqua" class="color-swatch-container">` +
           `<span ` +
             `class="inspector-swatch inspector-colorswatch" ` +
-            `style="background-color:aqua" ` +
-            `tabindex="0" ` +
-            `role="button">` +
+            `style="background-color:aqua">` +
           `</span>` +
           `<span class="ruleview-color">aqua</span>` +
         `</span>`,

@@ -282,7 +282,7 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="white" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white">' +
           '</span>' +
           '<span class="ruleview-color">white</span>' +
         '</span>',
@@ -292,7 +292,7 @@ add_task(async function () {
       startingStyle:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="black" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black">' +
           '</span>' +
           '<span class="ruleview-color">black</span>' +
         '</span>',
@@ -311,7 +311,7 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="black" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black">' +
           '</span>' +
           '<span class="ruleview-color">black</span>' +
         '</span>',
@@ -337,14 +337,14 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="white" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white">' +
           '</span>' +
           '<span class="ruleview-color">white</span>' +
         '</span>',
       computed:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="white" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white">' +
           '</span>' +
           '<span class="ruleview-color">white</span>' +
         '</span>',
@@ -361,7 +361,7 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="white" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white">' +
           '</span>' +
           '<span class="ruleview-color">white</span>' +
         '</span>',
@@ -382,14 +382,14 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="white" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:white">' +
           '</span>' +
           '<span class="ruleview-color">white</span>' +
         '</span>',
       computed:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="rgb(255, 255, 255)" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:rgb(255, 255, 255)" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:rgb(255, 255, 255)">' +
           '</span>' +
           '<span class="ruleview-color">rgb(255, 255, 255)</span>' +
         '</span>',
@@ -397,7 +397,7 @@ add_task(async function () {
       startingStyle:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="black" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black">' +
           '</span>' +
           '<span class="ruleview-color">black</span>' +
         '</span>',
@@ -410,9 +410,7 @@ add_task(async function () {
           `<span xmlns="http://www.w3.org/1999/xhtml" data-color="blue" class="color-swatch-container">` +
             `<span ` +
               `class="inspector-swatch inspector-colorswatch" ` +
-              `style="background-color:blue" ` +
-              `tabindex="0" ` +
-              `role="button">` +
+              `style="background-color:blue">` +
             `</span>` +
             `<span class="ruleview-color">blue</span>` +
           `</span>`,
@@ -429,7 +427,7 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="black" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:black">' +
           '</span>' +
           '<span class="ruleview-color">black</span>' +
         '</span>',
@@ -446,9 +444,7 @@ add_task(async function () {
           `<span xmlns="http://www.w3.org/1999/xhtml" data-color="blue" class="color-swatch-container">` +
             `<span ` +
               `class="inspector-swatch inspector-colorswatch" ` +
-              `style="background-color:blue" ` +
-              `tabindex="0" ` +
-              `role="button">` +
+              `style="background-color:blue">` +
             `</span>` +
             `<span class="ruleview-color">blue</span>` +
           `</span>`,
@@ -466,7 +462,7 @@ add_task(async function () {
       header:
         // prettier-ignore
         '<span xmlns="http://www.w3.org/1999/xhtml" data-color="lavender" class="color-swatch-container">' +
-          '<span class="inspector-swatch inspector-colorswatch" style="background-color:lavender" tabindex="0" role="button">' +
+          '<span class="inspector-swatch inspector-colorswatch" style="background-color:lavender">' +
           '</span>' +
           '<span class="ruleview-color">lavender</span>' +
         '</span>',
@@ -479,7 +475,7 @@ add_task(async function () {
         "initial-value":
           // prettier-ignore
           '<span xmlns="http://www.w3.org/1999/xhtml" data-color="lavender" class="color-swatch-container">' +
-            '<span class="inspector-swatch inspector-colorswatch" style="background-color:lavender" tabindex="0" role="button">' +
+            '<span class="inspector-swatch inspector-colorswatch" style="background-color:lavender">' +
             '</span>' +
             '<span class="ruleview-color">lavender</span>' +
           '</span>',
