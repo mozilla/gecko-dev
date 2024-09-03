@@ -395,8 +395,7 @@ void MediaSource::EndOfStream(
   SetReadyState(MediaSourceReadyState::Ended);
   mSourceBuffers->Ended();
   if (!aError.WasPassed()) {
-    DurationChange(mSourceBuffers->GetHighestBufferedEndTime().ToBase(1000000),
-                   aRv);
+    DurationChangeOnEndOfStream();
     // Notify reader that all data is now available.
     mDecoder->Ended(true);
     return;
@@ -590,30 +589,37 @@ void MediaSource::QueueAsyncSimpleEvent(const char* aName) {
   mAbstractMainThread->Dispatch(event.forget());
 }
 
-void MediaSource::DurationChange(const media::TimeUnit& aNewDuration,
-                                 ErrorResult& aRv) {
+void MediaSource::DurationChangeOnEndOfStream() {
   MOZ_ASSERT(NS_IsMainThread());
-  MSE_DEBUG("DurationChange(aNewDuration=%s)", aNewDuration.ToString().get());
+  MOZ_ASSERT(mReadyState == MediaSourceReadyState::Ended);
+  // https://w3c.github.io/media-source/#dfn-end-of-stream
+  // 3.1 Run the duration change algorithm with new duration set to the
+  // largest track buffer ranges end time across all the track buffers across
+  // all SourceBuffer objects in sourceBuffers.
 
+  // https://w3c.github.io/media-source/#duration-change-algorithm
   // 1. If the current value of duration is equal to new duration, then return.
-  if (mDecoder->GetDuration() == aNewDuration.ToSeconds()) {
-    return;
-  }
-
   // 2. If new duration is less than the highest starting presentation timestamp
   // of any buffered coded frames for all SourceBuffer objects in sourceBuffers,
   // then throw an InvalidStateError exception and abort these steps.
-  if (aNewDuration < mSourceBuffers->HighestStartTime()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
-  }
-
   // 3. Let highest end time be the largest track buffer ranges end time across
   // all the track buffers across all SourceBuffer objects in sourceBuffers.
-  media::TimeUnit highestEndTime = mSourceBuffers->HighestEndTime();
   // 4. If new duration is less than highest end time, then
   //    4.1 Update new duration to equal highest end time.
-  media::TimeUnit newDuration = std::max(aNewDuration, highestEndTime);
+  media::TimeUnit highestEndTime = mSourceBuffers->HighestEndTime();
+  // Highest track buffer ranges end time == highest end time when Ended, so
+  // new duration == highest end time and steps 2 and 4 are no-ops.
+  MOZ_ASSERT(highestEndTime == mSourceBuffers->GetHighestBufferedEndTime());
+  MOZ_ASSERT(highestEndTime >= mSourceBuffers->HighestStartTime());
+  // Truncate to microsecond resolution for consistency with the
+  // SourceBuffer.buffered getter.  Do this before comparison because
+  // mDecoder->GetDuration() may have been similarly truncated.
+  media::TimeUnit newDuration = highestEndTime.ToBase(USECS_PER_S);
+  MSE_DEBUG("DurationChangeOnEndOfStream(newDuration=%s)",
+            newDuration.ToString().get());
+  if (mDecoder->GetDuration() == newDuration.ToSeconds()) {
+    return;
+  }
 
   // 5. Update the media duration to new duration and run the HTMLMediaElement
   // duration change algorithm.

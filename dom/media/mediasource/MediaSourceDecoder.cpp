@@ -243,7 +243,9 @@ void MediaSourceDecoder::SetMediaSourceDuration(const TimeUnit& aDuration) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!IsShutdown());
   if (aDuration.IsPositiveOrZero()) {
-    SetExplicitDuration(ToMicrosecondResolution(aDuration.ToSeconds()));
+    // Truncate to microsecond resolution for consistency with the
+    // SourceBuffer.buffered getter.
+    SetExplicitDuration(aDuration.ToBase(USECS_PER_S).ToSeconds());
   } else {
     SetExplicitDuration(PositiveInfinity<double>());
   }
