@@ -357,7 +357,7 @@ def _check_sphinx_errors(warnings, docs_config):
     allowed_errors_regex = [re.compile(item) for item in docs_config["allowed_errors"]]
     errors = []
     for warning in warnings:
-        if "ERROR" in warning:
+        if warning in ["ERROR", "CRITICAL"]:
             if not (any(item.search(warning) for item in allowed_errors_regex)):
                 errors.append(warning)
     return errors

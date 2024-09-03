@@ -139,5 +139,6 @@ allowed_errors:
     # Bug 1915274 - General issues in nss docs.
     - "security/nss/releases/nss_3_90\\.rst.* ERROR: Content block expected for the \"container\" directive"
     - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
+    - "security/nss/getting_started\\.rst.* CRITICAL: Unexpected section title"
 
 max_num_warnings: 837
