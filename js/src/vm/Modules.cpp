@@ -31,6 +31,7 @@
 #include "vm/JSAtomUtils.h"             // AtomizeString
 #include "vm/JSContext.h"               // CHECK_THREAD, JSContext
 #include "vm/JSObject.h"                // JSObject
+#include "vm/JSONParser.h"              // JSONParser
 #include "vm/List.h"                    // ListObject
 #include "vm/Runtime.h"                 // JSRuntime
 
@@ -159,10 +160,16 @@ JS_PUBLIC_API JSObject* JS::CompileJsonModule(
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
-  JS::RootedValue jsonValue(cx);
   auto charRange =
       mozilla::Range<const char16_t>(srcBuf.get(), srcBuf.length());
-  if (!js::ParseJSONWithReviver(cx, charRange, NullHandleValue, &jsonValue)) {
+  Rooted<JSONParser<char16_t>> parser(
+      cx, cx, charRange, JSONParser<char16_t>::ParseType::JSONParse);
+
+  parser.reportLineNumbersFromParsedData(true);
+  parser.setFilename(options.filename());
+
+  JS::RootedValue jsonValue(cx);
+  if (!parser.parse(&jsonValue)) {
     return nullptr;
   }
 
