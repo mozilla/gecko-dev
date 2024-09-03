@@ -40,18 +40,21 @@ add_task(async function () {
   bp = findBreakpoint(dbg, "simple2.js", 5);
   is(bp.options.condition, "12", "Hit 'Enter' doesn't add a new line");
 
-  info("Hit 'Alt+Enter' when the cursor is in the conditional statement");
+  info("Hit 'Shift+Enter' when the cursor is in the conditional statement");
   rightClickElement(dbg, "gutter", 5);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, `${selectors.editConditionItem}`);
   await waitForConditionalPanelFocus(dbg);
+  // Move one char left to put the cursor between 1 and 2
   pressKey(dbg, "Left");
-  pressKey(dbg, "AltEnter");
+  // Insert a new line
+  pressKey(dbg, "ShiftEnter");
+  // And validate
   pressKey(dbg, "Enter");
   await waitForCondition(dbg, "1\n2");
 
   bp = findBreakpoint(dbg, "simple2.js", 5);
-  is(bp.options.condition, "1\n2", "Hit 'Alt+Enter' adds a new line");
+  is(bp.options.condition, "1\n2", "Hit 'Shift+Enter' adds a new line");
 
   clickElement(dbg, "gutter", 5);
   await waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");

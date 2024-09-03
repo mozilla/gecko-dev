@@ -24,12 +24,6 @@ import {
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
-function addNewLine(doc) {
-  const cursor = doc.getCursor();
-  const pos = { line: cursor.line, ch: cursor.ch };
-  doc.replaceRange("\n", pos);
-}
-
 export class ConditionalPanel extends PureComponent {
   cbPanel;
   input;
@@ -70,12 +64,8 @@ export class ConditionalPanel extends PureComponent {
   };
 
   onKey = e => {
-    if (e.key === "Enter") {
-      if (this.codeMirror && e.altKey) {
-        addNewLine(this.codeMirror.doc);
-      } else {
-        this.saveAndClose();
-      }
+    if (e.key === "Enter" && !e.shiftKey) {
+      this.saveAndClose();
     } else if (e.key === "Escape") {
       this.props.closeConditionalPanel();
     }
