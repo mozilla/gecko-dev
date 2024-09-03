@@ -2947,13 +2947,6 @@
     "kind": "boolean",
     "description": "Whether a HTTP transaction was routed via Alt-Svc or not."
   },
-  "HTTP_TRANSACTION_USE_ALTSVC_OE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "Whether a HTTP transaction routed via Alt-Svc was scheme=http"
-  },
   "HTTP_ALTSVC_ENTRIES_PER_HEADER": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
@@ -3664,16 +3657,6 @@
     "n_values": 48,
     "description": "HTTP: Protocol Version Used on Response from nsHttp.h"
   },
-  "HTTP_09_INFO": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 4,
-    "description": "HTTP 09 Response Breakdown: lowbit subresource, high bit nonstd port",
-    "bug_numbers": [1262572],
-    "alert_emails": ["necko@mozilla.com"]
-  },
   "SPDY_PARALLEL_STREAMS": {
     "record_in_processes": ["main", "socket"],
     "products": ["firefox", "fennec"],
@@ -3756,14 +3739,6 @@
     "high": 99,
     "n_buckets": 20,
     "description": "SPDY: SYN Reply Header Ratio (lower better)"
-  },
-  "SPDY_NPN_CONNECT": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "SPDY: NPN Negotiated"
   },
   "SPDY_KBREAD_PER_CONN2": {
     "record_in_processes": ["main", "socket"],

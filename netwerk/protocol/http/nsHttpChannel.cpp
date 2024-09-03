@@ -3047,19 +3047,6 @@ void nsHttpChannel::UpdateCacheDisposition(bool aSuccessfulReval,
     }
     AccumulateCacheHitTelemetry(cacheDisposition, this);
     mCacheDisposition = cacheDisposition;
-
-    if (mResponseHead->Version() == HttpVersion::v0_9) {
-      // DefaultPortTopLevel = 0, DefaultPortSubResource = 1,
-      // NonDefaultPortTopLevel = 2, NonDefaultPortSubResource = 3
-      uint32_t v09Info = 0;
-      if (!(mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)) {
-        v09Info += 1;
-      }
-      if (mConnectionInfo->OriginPort() != mConnectionInfo->DefaultPort()) {
-        v09Info += 2;
-      }
-      Telemetry::Accumulate(Telemetry::HTTP_09_INFO, v09Info);
-    }
   }
 
   ReportHttpResponseVersion(mResponseHead->Version());
@@ -6969,7 +6956,6 @@ nsresult nsHttpChannel::BeginConnect() {
     mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo,
                                originAttributes);
     Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, true);
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC_OE, !isHttps);
   } else if (mConnectionInfo) {
     LOG(("nsHttpChannel %p Using channel supplied connection info", this));
     Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);

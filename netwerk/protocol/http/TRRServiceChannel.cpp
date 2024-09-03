@@ -426,7 +426,6 @@ nsresult TRRServiceChannel::BeginConnect() {
     mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo,
                                OriginAttributes());
     Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, true);
-    Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC_OE, !isHttps);
   } else if (mConnectionInfo) {
     LOG(("TRRServiceChannel %p Using channel supplied connection info", this));
   } else {
