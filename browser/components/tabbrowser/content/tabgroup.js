@@ -52,7 +52,7 @@
     }
 
     get color() {
-      return this.style.getProperty("--tab-group-color");
+      return this.style.getPropertyValue("--tab-group-color");
     }
 
     set color(val) {

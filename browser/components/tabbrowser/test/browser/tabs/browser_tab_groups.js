@@ -220,3 +220,54 @@ add_task(async function test_tabGroupDeletesWhenLastTabClosed() {
 
   Assert.equal(group.parent, null, "group is removed from tabbrowser");
 });
+
+add_task(async function test_tabGroupMoveToNewWindow() {
+  let tabUri = "https://example.com/tab-group-test";
+  let groupedTab = BrowserTestUtils.addTab(gBrowser, tabUri);
+  let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
+
+  let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+  fgWindow.gBrowser.adoptTabGroup(group, 0);
+
+  // TODO add a DOM event that fires when tab group is removed and listen for that here
+  await BrowserTestUtils.waitForCondition(() => {
+    return group.parentElement === null;
+  });
+
+  Assert.equal(
+    gBrowser.tabGroups.length,
+    0,
+    "Tab group no longer exists in original window"
+  );
+  Assert.equal(
+    fgWindow.gBrowser.tabGroups.length,
+    1,
+    "A tab group exists in the new window"
+  );
+
+  let newGroup = fgWindow.gBrowser.tabGroups[0];
+
+  Assert.equal(
+    newGroup.color,
+    "blue",
+    "New group has same color as original group"
+  );
+  Assert.equal(
+    newGroup.label,
+    "test",
+    "New group has same label as original group"
+  );
+  Assert.equal(
+    newGroup.tabs.length,
+    1,
+    "New group has same number of tabs as original group"
+  );
+  Assert.equal(
+    newGroup.tabs[0].linkedBrowser.currentURI.spec,
+    tabUri,
+    "New tab has same URI as old tab"
+  );
+
+  fgWindow.gBrowser.removeTabGroup(group);
+  await BrowserTestUtils.closeWindow(fgWindow);
+});

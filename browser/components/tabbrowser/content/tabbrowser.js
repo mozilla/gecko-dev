@@ -2929,7 +2929,7 @@
     },
 
     addTabGroup(color, label = "", tabs) {
-      if (!tabs.length) {
+      if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
       }
 
@@ -2944,6 +2944,19 @@
 
     removeTabGroup(group) {
       this.removeTabs(group.tabs);
+    },
+
+    adoptTabGroup(group, index) {
+      if (group.ownerDocument == document) {
+        return;
+      }
+
+      let newTabs = [];
+      for (let tab of group.tabs) {
+        newTabs.push(this.adoptTab(tab, index));
+      }
+
+      this.addTabGroup(group.color, group.label, newTabs);
     },
 
     _determineURIToLoad(uriString, createLazyBrowser) {
