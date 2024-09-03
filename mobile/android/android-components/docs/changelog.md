@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 131.0 (In Development)
+# 132.0 (In Development)
+
+# 131.0
 * **All components**
   * ⚠️Increased `compileSdkVersion` to 35 (Android 15)
 
