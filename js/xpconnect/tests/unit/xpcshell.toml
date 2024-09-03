@@ -303,9 +303,6 @@ skip-if = [
 prefs = [
   "javascript.options.experimental.json_parse_with_source=true",
 ]
-skip-if = [
-  "!nightly_build",
-]
 
 ["test_loadedESModules.js"]
 

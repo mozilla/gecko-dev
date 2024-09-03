@@ -8073,13 +8073,11 @@
     set_spidermonkey_pref: startup
 #endif  // NIGHTLY_BUILD
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
 -   name: javascript.options.experimental.json_parse_with_source
     type: bool
-    value: false
+    value: true
     mirror: always
     set_spidermonkey_pref: always
-#endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 - name: javascript.options.wasm_caching
   type: bool

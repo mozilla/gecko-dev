@@ -329,7 +329,6 @@ class MOZ_STACK_CLASS JSONFullParseHandler
   void reportError(const char* msg, uint32_t line, uint32_t column);
 };
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
 template <typename CharT>
 class MOZ_STACK_CLASS JSONReviveHandler : public JSONFullParseHandler<CharT> {
   using CharPtr = mozilla::RangedPtr<const CharT>;
@@ -421,7 +420,6 @@ class MOZ_STACK_CLASS JSONReviveHandler : public JSONFullParseHandler<CharT> {
  public:
   ParseRecordObject parseRecord;
 };
-#endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 template <typename CharT>
 class MOZ_STACK_CLASS JSONSyntaxParseHandler {
@@ -618,7 +616,6 @@ class MOZ_STACK_CLASS JSONParser
   void trace(JSTracer* trc);
 };
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
 template <typename CharT>
 class MOZ_STACK_CLASS JSONReviveParser
     : JSONPerHandlerParser<CharT, JSONReviveHandler<CharT>> {
@@ -659,7 +656,6 @@ class MOZ_STACK_CLASS JSONReviveParser
 
   void trace(JSTracer* trc);
 };
-#endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 template <typename CharT, typename Wrapper>
 class MutableWrappedPtrOperations<JSONParser<CharT>, Wrapper>

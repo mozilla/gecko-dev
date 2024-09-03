@@ -261,7 +261,6 @@ skip-if = ["!debug"]
 ["test_isRemoteProxy.html"]
 
 ["test_json_parse_with_source_worker.html"]
-skip-if = ["!nightly_build"]
 
 ["test_nukeContentWindow.html"]
 

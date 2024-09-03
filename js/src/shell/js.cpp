@@ -12738,15 +12738,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     JS::Prefs::setAtStartup_experimental_regexp_escape(true);
   }
 #endif
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
   if (op.getBoolOption("enable-json-parse-with-source")) {
     JS::Prefs::set_experimental_json_parse_with_source(true);
   }
-#else
-  if (op.getBoolOption("enable-json-parse-with-source")) {
-    fprintf(stderr, "JSON.parse with source is not enabled on this build.\n");
-  }
-#endif
 
   if (op.getBoolOption("disable-weak-refs")) {
     JS::Prefs::setAtStartup_weakrefs(false);

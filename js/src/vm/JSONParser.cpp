@@ -1069,12 +1069,10 @@ template class js::JSONPerHandlerParser<Latin1Char,
 template class js::JSONPerHandlerParser<char16_t,
                                         js::JSONFullParseHandler<char16_t>>;
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
 template class js::JSONPerHandlerParser<Latin1Char,
                                         js::JSONReviveHandler<Latin1Char>>;
 template class js::JSONPerHandlerParser<char16_t,
                                         js::JSONReviveHandler<char16_t>>;
-#endif
 
 template class js::JSONPerHandlerParser<Latin1Char,
                                         js::JSONSyntaxParseHandler<Latin1Char>>;
@@ -1107,7 +1105,6 @@ void JSONParser<CharT>::trace(JSTracer* trc) {
 template class js::JSONParser<Latin1Char>;
 template class js::JSONParser<char16_t>;
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::objectOpen(Vector<StackEntry, 10>& stack,
                                                  PropertyVector** properties) {
@@ -1247,7 +1244,6 @@ void JSONReviveParser<CharT>::trace(JSTracer* trc) {
 
 template class js::JSONReviveParser<Latin1Char>;
 template class js::JSONReviveParser<char16_t>;
-#endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 template <typename CharT>
 inline bool JSONSyntaxParseHandler<CharT>::objectOpen(

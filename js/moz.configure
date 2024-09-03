@@ -192,18 +192,6 @@ set_config("ENABLE_EXPLICIT_RESOURCE_MANAGEMENT", enable_explicit_resource_manag
 set_define("ENABLE_EXPLICIT_RESOURCE_MANAGEMENT", enable_explicit_resource_management)
 
 
-# Enable JSON.parse with source
-# ===================================================
-@depends(milestone.is_nightly)
-def enable_json_parse_with_source(is_nightly):
-    if is_nightly:
-        return True
-
-
-set_config("ENABLE_JSON_PARSE_WITH_SOURCE", enable_json_parse_with_source)
-set_define("ENABLE_JSON_PARSE_WITH_SOURCE", enable_json_parse_with_source)
-
-
 # Portable Baseline Intepreter
 # =======================================================
 option(

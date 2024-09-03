@@ -2269,14 +2269,12 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   }
 #endif
 
-#ifdef ENABLE_JSON_PARSE_WITH_SOURCE
   if (key == JSProto_JSON &&
       !JS::Prefs::experimental_json_parse_with_source() &&
       (id == NameToId(cx->names().isRawJSON) ||
        id == NameToId(cx->names().rawJSON))) {
     return true;
   }
-#endif
 
   if (key == JSProto_Math && !JS::Prefs::experimental_float16array() &&
       (id == NameToId(cx->names().f16round))) {
