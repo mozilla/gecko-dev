@@ -106,7 +106,7 @@
     /* compiler predicate */ AnyCompilerAvailable(cx),                  \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ false,                                     \
+    /* flag fuzz enable   */ true,                                      \
     /* preference name    */ gc)                                        \
   FEATURE(                                                              \
     /* capitalized name   */ JSStringBuiltins,                          \
@@ -115,7 +115,7 @@
     /* compiler predicate */ AnyCompilerAvailable(cx),                  \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ false,                                     \
+    /* flag fuzz enable   */ true,                                      \
     /* preference name    */ js_string_builtins)                        \
   FEATURE(                                                              \
     /* capitalized name   */ RelaxedSimd,                               \
@@ -205,7 +205,7 @@
     /* compiler predicate */ IonAvailable(cx),                          \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ false,                                     \
+    /* flag fuzz enable   */ true,                                      \
     /* preference name    */ branch_hinting)
 
 // clang-format on
