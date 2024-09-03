@@ -103,7 +103,10 @@ add_task(async function test_search_icon() {
   await SpecialPowers.spawn(tab, [expectedIconURL], async function (iconURL) {
     let computedStyle = content.window.getComputedStyle(content.document.body);
     await ContentTaskUtils.waitForCondition(
-      () => computedStyle.getPropertyValue("--newtab-search-icon") != "null",
+      () =>
+        computedStyle
+          .getPropertyValue("--newtab-search-icon")
+          .startsWith("url"),
       "Search Icon should get set."
     );
 
