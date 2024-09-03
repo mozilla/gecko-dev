@@ -74,7 +74,8 @@ CrashGenerationServer::CrashGenerationServer(
     exit_callback_(exit_callback),
     exit_context_(exit_context),
     generate_dumps_(generate_dumps),
-    started_(false)
+    started_(false),
+    reserved_fds_{-1, -1}
 {
   if (dump_path)
     dump_dir_ = *dump_path;
@@ -165,6 +166,8 @@ CrashGenerationServer::CreateReportChannel(int* server_fd, int* client_fd)
 void
 CrashGenerationServer::Run()
 {
+  ReserveFileDescriptors();
+
   struct pollfd pollfds[2];
   memset(&pollfds, 0, sizeof(pollfds));
 
@@ -271,6 +274,11 @@ CrashGenerationServer::ClientEvent(short revents)
   if (!MakeMinidumpFilename(minidump_filename))
     return true;
 
+  // We won't re-reserve the file descriptors past this point. If we crash more
+  // than once we'll just accept that we might run out of file descriptors, but
+  // we don't want to make the situation worse by trying  to grab them again.
+  ReleaseFileDescriptors();
+
 #if defined(MOZ_OXIDIZED_BREAKPAD)
   ExceptionHandler::CrashContext* breakpad_cc =
       reinterpret_cast<ExceptionHandler::CrashContext*>(crash_context);
@@ -373,6 +381,25 @@ CrashGenerationServer::MakeMinidumpFilename(string& outFilename)
 
   outFilename = path;
   return true;
+}
+
+void
+CrashGenerationServer::ReserveFileDescriptors() {
+  for (size_t i = 0; i < CrashGenerationServer::RESERVED_FDS_NUM; i++) {
+    assert(reserved_fds_[i] < 0);
+    reserved_fds_[i] =
+      static_cast<int>(syscall(__NR_memfd_create, "mozreserved", 0));
+  }
+}
+
+void
+CrashGenerationServer::ReleaseFileDescriptors() {
+  for (size_t i = 0; i < CrashGenerationServer::RESERVED_FDS_NUM; i++) {
+    if (reserved_fds_[i] > 0) {
+      close(reserved_fds_[i]);
+      reserved_fds_[i] = -1;
+    }
+  }
 }
 
 // static
