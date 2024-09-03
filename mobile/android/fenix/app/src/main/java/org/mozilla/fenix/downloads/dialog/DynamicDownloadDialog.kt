@@ -14,6 +14,8 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.settings
 
 /**
  * [DynamicDownloadDialog] is used to show a view in the current tab to the user, triggered when
@@ -42,9 +44,9 @@ class DynamicDownloadDialog(
                 (layoutParams as CoordinatorLayout.LayoutParams).apply {
                     behavior =
                         DynamicDownloadDialogBehavior<View>(
-                            context,
-                            null,
-                            bottomToolbarHeight.toFloat(),
+                            binding.root,
+                            context.settings(),
+                            context.components.appStore,
                         )
                 }
             }

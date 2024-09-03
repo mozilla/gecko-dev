@@ -5,15 +5,25 @@
 package org.mozilla.fenix.downloads.dialog
 
 import android.animation.ValueAnimator
-import android.content.Context
-import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
+import androidx.core.view.children
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
+import org.mozilla.fenix.R
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.utils.Settings
 import kotlin.math.max
 import kotlin.math.min
 
@@ -27,12 +37,19 @@ import kotlin.math.min
  */
 
 private const val SNAP_ANIMATION_DURATION = 150L
+private val BOTTOM_TOOLBAR_ANCHOR_IDS = listOf(
+    R.id.toolbar_navbar_container,
+    R.id.toolbar,
+)
+private val TOP_TOOLBAR_ANCHOR_IDS = listOf(
+    R.id.toolbar_navbar_container,
+)
 
 class DynamicDownloadDialogBehavior<V : View>(
-    context: Context?,
-    attrs: AttributeSet?,
-    private val bottomToolbarHeight: Float = 0f,
-) : CoordinatorLayout.Behavior<V>(context, attrs) {
+    private val dynamicDownload: V,
+    settings: Settings,
+    appStore: AppStore,
+) : CoordinatorLayout.Behavior<V>(dynamicDownload.context, null) {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var expanded: Boolean = true
@@ -52,6 +69,26 @@ class DynamicDownloadDialogBehavior<V : View>(
      */
     @VisibleForTesting
     internal var engineView: EngineView? = null
+
+    @VisibleForTesting
+    internal var anchor: View? = null
+    private val anchorHeight: Int
+        get() = anchor?.height ?: 0
+    private val possibleAnchors = when (settings.toolbarPosition) {
+        ToolbarPosition.BOTTOM -> BOTTOM_TOOLBAR_ANCHOR_IDS
+        ToolbarPosition.TOP -> TOP_TOOLBAR_ANCHOR_IDS
+    }
+
+    init {
+        MainScope().launch {
+            appStore.flow(dynamicDownload.findViewTreeLifecycleOwner())
+                .map { it.orientation }
+                .distinctUntilChanged()
+                .collect {
+                    dynamicDownload.translationY = -anchorHeight.toFloat()
+                }
+        }
+    }
 
     /**
      * Depending on how user's touch was consumed by EngineView / current website,
@@ -100,13 +137,13 @@ class DynamicDownloadDialogBehavior<V : View>(
     ) {
         if (shouldSnapAfterScroll || type == ViewCompat.TYPE_NON_TOUCH) {
             if (expanded) {
-                if (child.translationY >= bottomToolbarHeight / 2) {
+                if (child.translationY >= anchorHeight / 2) {
                     animateSnap(child, SnapDirection.DOWN)
                 } else {
                     animateSnap(child, SnapDirection.UP)
                 }
             } else {
-                if (child.translationY < (bottomToolbarHeight + child.height.toFloat() / 2)) {
+                if (child.translationY < (anchorHeight + child.height.toFloat() / 2)) {
                     animateSnap(child, SnapDirection.UP)
                 } else {
                     animateSnap(child, SnapDirection.DOWN)
@@ -129,7 +166,7 @@ class DynamicDownloadDialogBehavior<V : View>(
             child.translationY = max(
                 0f,
                 min(
-                    child.height.toFloat() + bottomToolbarHeight,
+                    child.height.toFloat() + anchorHeight,
                     child.translationY + dy,
                 ),
             )
@@ -142,10 +179,12 @@ class DynamicDownloadDialogBehavior<V : View>(
         dependency: View,
     ): Boolean {
         engineView = parent.findViewInHierarchy { it is EngineView } as? EngineView
-        return super.layoutDependsOn(parent, child, dependency)
+        anchor = findAnchorInParent(parent)
+        return anchor != null
     }
 
     fun forceExpand(view: View) {
+        anchor = findAnchorInParent(view.parent as ViewGroup)
         animateSnap(view, SnapDirection.UP)
     }
 
@@ -156,9 +195,9 @@ class DynamicDownloadDialogBehavior<V : View>(
         setFloatValues(
             child.translationY,
             if (direction == SnapDirection.UP) {
-                -bottomToolbarHeight
+                -anchorHeight.toFloat()
             } else {
-                child.height.toFloat() + bottomToolbarHeight
+                child.height.toFloat() + anchorHeight
             },
         )
         start()
@@ -169,4 +208,8 @@ class DynamicDownloadDialogBehavior<V : View>(
         UP,
         DOWN,
     }
+
+    private fun findAnchorInParent(root: ViewGroup) =
+        possibleAnchors.intersect(root.children.map { it.id }.toSet()).firstOrNull()
+            ?.let { root.findViewById<View>(it) }
 }

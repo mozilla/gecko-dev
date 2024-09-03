@@ -6,6 +6,8 @@ package org.mozilla.fenix.downloads.dialog
 
 import android.animation.ValueAnimator
 import android.view.View
+import android.view.ViewGroup
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import io.mockk.Runs
 import io.mockk.every
@@ -17,17 +19,34 @@ import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.InputResultDetail
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.R
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
 class DynamicDownloadDialogBehaviorTest {
+    private val downloadDialog: View = mockk()
+    private val settings: Settings = mockk()
+    private val appStore: AppStore = mockk()
+    private lateinit var behavior: DynamicDownloadDialogBehavior<View>
+
+    @Before
+    fun setup() {
+        every { downloadDialog.context } returns testContext
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+        behavior = spyk(DynamicDownloadDialogBehavior(downloadDialog, settings, appStore))
+    }
 
     @Test
     fun `Starting a nested scroll should cancel an ongoing snap animation`() {
-        val behavior = spyk(DynamicDownloadDialogBehavior<View>(testContext, attrs = null))
         every { behavior.shouldScroll } returns true
 
         val animator: ValueAnimator = mockk(relaxed = true)
@@ -49,8 +68,6 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `Behavior should not accept nested scrolls on the horizontal axis`() {
-        val behavior = DynamicDownloadDialogBehavior<View>(testContext, attrs = null)
-
         val acceptsNestedScroll = behavior.onStartNestedScroll(
             coordinatorLayout = mockk(),
             child = mockk(),
@@ -65,14 +82,10 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `Behavior will snap the dialog up if it is more than 50 percent visible`() {
-        val behavior = spyk(
-            DynamicDownloadDialogBehavior<View>(
-                testContext,
-                attrs = null,
-                bottomToolbarHeight = 10f,
-            ),
-        )
         every { behavior.shouldScroll } returns true
+        behavior.anchor = mockk<View> {
+            every { height } returns 10
+        }
 
         val animator: ValueAnimator = mockk(relaxed = true)
         behavior.snapAnimator = animator
@@ -111,14 +124,10 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `Behavior will snap the dialog down if translationY is at least equal to half the toolbarHeight`() {
-        val behavior = spyk(
-            DynamicDownloadDialogBehavior<View>(
-                testContext,
-                attrs = null,
-                bottomToolbarHeight = 10f,
-            ),
-        )
         every { behavior.shouldScroll } returns true
+        behavior.anchor = mockk<View> {
+            every { height } returns 10
+        }
 
         val animator: ValueAnimator = mockk(relaxed = true)
         behavior.snapAnimator = animator
@@ -157,8 +166,10 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `Behavior will apply translation to the dialog for nested scroll`() {
-        val behavior = spyk(DynamicDownloadDialogBehavior<View>(testContext, attrs = null))
         every { behavior.shouldScroll } returns true
+        behavior.anchor = mockk<View> {
+            every { height } returns 10
+        }
 
         val child = mockk<View> {
             every { height } returns 100
@@ -181,8 +192,9 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `Behavior will animateSnap UP when forceExpand is called`() {
-        val behavior = spyk(DynamicDownloadDialogBehavior<View>(testContext, attrs = null))
-        val dynamicDialogView: View = mockk(relaxed = true)
+        val dynamicDialogView: View = mockk(relaxed = true) {
+            every { parent } returns mockk<ViewGroup>(relaxed = true)
+        }
         every { behavior.shouldScroll } returns true
 
         behavior.forceExpand(dynamicDialogView)
@@ -196,20 +208,14 @@ class DynamicDownloadDialogBehaviorTest {
     }
 
     @Test
-    fun `GIVEN a null InputResultDetail from the EngineView WHEN shouldScroll is called THEN it returns false`() {
-        val behavior = DynamicDownloadDialogBehavior<View>(testContext, null, 10f)
-
+    fun `GIVEN an EngineView is not available WHEN shouldScroll is called THEN it returns false`() {
         behavior.engineView = null
-        assertFalse(behavior.shouldScroll)
 
-        behavior.engineView = mockk()
-        every { behavior.engineView?.getInputResultDetail() } returns null
         assertFalse(behavior.shouldScroll)
     }
 
     @Test
     fun `GIVEN an InputResultDetail with the right values WHEN shouldScroll is called THEN it returns true`() {
-        val behavior = DynamicDownloadDialogBehavior<View>(testContext, null, 10f)
         val engineView: EngineView = mockk()
         behavior.engineView = engineView
         val validInputResultDetail: InputResultDetail = mockk()
@@ -230,7 +236,6 @@ class DynamicDownloadDialogBehaviorTest {
 
     @Test
     fun `GIVEN a gesture that doesn't scroll the toolbar WHEN startNestedScroll THEN toolbar is expanded and nested scroll not accepted`() {
-        val behavior = spyk(DynamicDownloadDialogBehavior<View>(testContext, null, 10f))
         val engineView: EngineView = mockk()
         behavior.engineView = engineView
         val inputResultDetail: InputResultDetail = mockk()
@@ -254,5 +259,137 @@ class DynamicDownloadDialogBehaviorTest {
         verify { behavior.forceExpand(childView) }
         verify { animator.cancel() }
         assertFalse(acceptsNestedScroll)
+    }
+
+    @Test
+    fun `GIVEN toolbar at top WHEN the layout is updated THEN the anchor is correctly inferred`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = R.id.toolbar_navbar_container
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+
+        assertNull(behavior.anchor)
+
+        val result = behavior.layoutDependsOn(rootLayout, mockk(), mockk())
+
+        assertTrue(result)
+        assertSame(anchor, behavior.anchor)
+    }
+
+    @Test
+    fun `GIVEN toolbar at top WHEN the layout is updated THEN a bottom anchor might be missing`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = R.id.toolbar
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+
+        assertNull(behavior.anchor)
+
+        val result = behavior.layoutDependsOn(rootLayout, mockk(), mockk())
+
+        assertFalse(result)
+        assertNull(behavior.anchor)
+    }
+
+    @Test
+    fun `GIVEN toolbar at bottom WHEN the layout is updated THEN the anchor is correctly inferred`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = listOf(R.id.toolbar_navbar_container, R.id.toolbar).random()
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+
+        assertNull(behavior.anchor)
+
+        val result = behavior.layoutDependsOn(rootLayout, mockk(), mockk())
+
+        assertTrue(result)
+        assertSame(anchor, behavior.anchor)
+    }
+
+    @Test
+    fun `GIVEN toolbar at top WHEN the dynamic download dialog is expanded THEN the anchor is correctly inferred`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = R.id.toolbar_navbar_container
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+        val dynamicDialogView: View = mockk(relaxed = true) {
+            every { parent } returns rootLayout
+        }
+
+        assertNull(behavior.anchor)
+
+        behavior.forceExpand(dynamicDialogView)
+
+        assertSame(anchor, behavior.anchor)
+    }
+
+    @Test
+    fun `GIVEN toolbar at top WHEN the dynamic download dialog is expanded THEN a bottom anchor might be missing`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = R.id.toolbar
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+        val dynamicDialogView: View = mockk(relaxed = true) {
+            every { parent } returns rootLayout
+        }
+
+        assertNull(behavior.anchor)
+
+        behavior.forceExpand(dynamicDialogView)
+
+        assertNull(behavior.anchor)
+    }
+
+    @Test
+    fun `GIVEN toolbar at bottom WHEN the dynamic download dialog is expanded THEN the anchor is correctly inferred`() {
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        val anchor = View(testContext).apply {
+            id = listOf(R.id.toolbar_navbar_container, R.id.toolbar).random()
+        }
+        val rootLayout = CoordinatorLayout(testContext).apply {
+            addView(View(testContext))
+            addView(anchor)
+            addView(View(testContext))
+        }
+        val dynamicDialogView: View = mockk(relaxed = true) {
+            every { parent } returns rootLayout
+        }
+
+        assertNull(behavior.anchor)
+
+        behavior.forceExpand(dynamicDialogView)
+
+        assertSame(anchor, behavior.anchor)
     }
 }
