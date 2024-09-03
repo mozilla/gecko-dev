@@ -215,7 +215,7 @@ export class Downloader {
         Ci.nsIZipReader
       );
 
-      let tmpZipFile = await IOUtils.getFile(tmpZipFilePath);
+      const tmpZipFile = await IOUtils.getFile(tmpZipFilePath);
       zipReader.open(tmpZipFile);
 
       for (const entryName of zipReader.findEntries("*.meta.json")) {
@@ -264,9 +264,6 @@ export class Downloader {
         ex
       );
       return false;
-    } finally {
-      // 6. Temp file cleanup
-      await IOUtils.remove(tmpZipFilePath, { ignoreAbsent: true });
     }
 
     return allSuccess;

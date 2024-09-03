@@ -829,14 +829,6 @@ add_task(async function test_cacheAll_happy_path() {
     "Attachments cacheAll succesfully downloaded a bundle and saved all attachments"
   );
 
-  // verify no temp zip file is left behind
-  const tempFiles = await IOUtils.getChildren(PathUtils.tempDir);
-  Assert.equal(
-    tempFiles.find(x => x.endsWith(".zip")),
-    undefined,
-    "No zip file is left behind."
-  );
-
   // verify accuracy of attachments downloaded
   Assert.equal(
     downloader.cache["1"].record.title,
@@ -907,14 +899,6 @@ add_task(async function test_cacheAll_failed_unzip() {
     allSuccess,
     false,
     "Attachments cacheAll request failed to extract a bundle and returned false"
-  );
-
-  // verify no temp zip file is left behind
-  const tempFiles = await IOUtils.getChildren(PathUtils.tempDir);
-  Assert.equal(
-    tempFiles.find(x => x.endsWith(".zip")),
-    undefined,
-    "No zip file is left behind."
   );
 });
 
