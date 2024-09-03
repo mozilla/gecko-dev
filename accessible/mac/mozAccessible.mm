@@ -123,6 +123,10 @@ using namespace mozilla::a11y;
   if (state == states::BUSY) {
     [self moxPostNotification:@"AXElementBusyChanged"];
   }
+
+  if (state == states::EXPANDED) {
+    [self moxPostNotification:@"AXExpandedChanged"];
+  }
 }
 
 - (BOOL)providesLabelNotTitle {

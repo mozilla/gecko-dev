@@ -600,6 +600,8 @@ class Accessible {
 
   bool IsHTMLRadioButton() const { return mType == eHTMLRadioButtonType; }
 
+  bool IsHTMLSpinner() const { return mType == eHTMLSpinnerType; }
+
   bool IsHTMLTable() const { return mType == eHTMLTableType; }
   bool IsHTMLTableCell() const { return mType == eHTMLTableCellType; }
   bool IsHTMLTableRow() const { return mType == eHTMLTableRowType; }

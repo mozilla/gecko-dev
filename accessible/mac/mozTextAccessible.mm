@@ -106,7 +106,7 @@ inline NSString* ToNSString(id aValue) {
 }
 
 - (NSString*)moxRole {
-  if ([self stateWithMask:states::MULTI_LINE]) {
+  if (mRole == roles::ENTRY && [self stateWithMask:states::MULTI_LINE]) {
     return NSAccessibilityTextAreaRole;
   }
 

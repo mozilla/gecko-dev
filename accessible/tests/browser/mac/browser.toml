@@ -36,6 +36,8 @@ https_first_disabled = true
 
 ["browser_bounds.js"]
 
+["browser_combobox.js"]
+
 ["browser_details_summary.js"]
 
 ["browser_focus.js"]
