@@ -31,6 +31,7 @@ const gConfig = (function () {
       "signon.firefoxRelay.manage_url"
     ),
     relayFeaturePref: "signon.firefoxRelay.feature",
+    showToAllBrowsersPref: "signon.firefoxRelay.showToAllBrowsers",
     termsOfServiceUrl: Services.urlFormatter.formatURLPref(
       "signon.firefoxRelay.terms_of_service_url"
     ),
@@ -48,10 +49,14 @@ ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () =>
     "resource://gre/modules/FxAccounts.sys.mjs"
   ).getFxAccountsSingleton()
 );
+ChromeUtils.defineLazyGetter(lazy, "fxAccountsCommon", () =>
+  ChromeUtils.importESModule("resource://gre/modules/FxAccountsCommon.sys.mjs")
+);
 ChromeUtils.defineLazyGetter(lazy, "strings", function () {
   return new Localization([
     "branding/brand.ftl",
     "browser/firefoxRelay.ftl",
+    "preview/firefoxRelayToAllBrowsers.ftl",
     "toolkit/branding/brandings.ftl",
   ]);
 });
@@ -200,6 +205,33 @@ async function formatMessages(...ids) {
   });
 }
 
+function getPostpone(postponeStrings, feature) {
+  return {
+    label: postponeStrings.label,
+    accessKey: postponeStrings.accesskey,
+    dismiss: true,
+    callback() {
+      lazy.log.info(
+        "user decided not to decide about Firefox Relay integration"
+      );
+      feature.markAsOffered();
+      FirefoxRelayTelemetry.recordRelayOptInPanelEvent("postponed", gFlowId);
+    },
+  };
+}
+
+function getDisableIntegration(disableStrings, feature) {
+  return {
+    label: disableStrings.label,
+    accessKey: disableStrings.accesskey,
+    dismiss: true,
+    callback() {
+      lazy.log.info("user opted out from Firefox Relay integration");
+      feature.markAsDisabled();
+      FirefoxRelayTelemetry.recordRelayOptInPanelEvent("disabled", gFlowId);
+    },
+  };
+}
 async function showReusableMasksAsync(browser, origin, error) {
   const [reusableMasks, status] = await getReusableMasksAsync(browser, origin);
   if (!reusableMasks) {
@@ -393,8 +425,9 @@ class RelayOffered {
     if (
       !hasInput &&
       isSignup(scenarioName) &&
-      (await hasFirefoxAccountAsync()) &&
-      !Services.prefs.prefIsLocked("signon.firefoxRelay.feature")
+      !Services.prefs.prefIsLocked(gConfig.relayFeaturePref) &&
+      ((await hasFirefoxAccountAsync()) ||
+        Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false))
     ) {
       const [title, subtitle] = await formatMessages(
         "firefox-relay-opt-in-title-1",
@@ -450,10 +483,132 @@ class RelayOffered {
 
   async offerRelayIntegration(feature, browser, origin) {
     const fxaUser = await lazy.fxAccounts.getSignedInUser();
-
     if (!fxaUser) {
-      return null;
+      return this.offerRelayIntegrationToSignedOutUser(
+        feature,
+        browser,
+        origin
+      );
     }
+    return this.offerRelayIntegrationToFxAUser(
+      feature,
+      browser,
+      origin,
+      fxaUser
+    );
+  }
+
+  async offerRelayIntegrationToSignedOutUser(feature, browser, origin) {
+    const { PopupNotifications } = browser.ownerGlobal.wrappedJSObject;
+    let fillUsername;
+    const fillUsernamePromise = new Promise(
+      resolve => (fillUsername = resolve)
+    );
+    const [enableStrings, disableStrings, postponeStrings] =
+      await formatMessages(
+        "firefox-relay-and-fxa-opt-in-confirmation-enable-button",
+        "firefox-relay-and-fxa-opt-in-confirmation-disable",
+        "firefox-relay-and-fxa-opt-in-confirmation-postpone"
+      );
+    const enableIntegration = {
+      label: enableStrings.label,
+      accessKey: enableStrings.accesskey,
+      dismiss: true,
+      callback: async () => {
+        lazy.log.info(
+          "user opted in to Mozilla account and Firefox Relay integration"
+        );
+        // Capture the flowId here since async operations might take some time to resolve
+        // and by then gFlowId might have another value
+        const flowId = gFlowId;
+
+        // Capture the selected tab panel ID so we can come back to it after the user finishes FXA sign-in
+        const tabPanelId = browser.ownerGlobal.gBrowser.selectedTab.linkedPanel;
+
+        // TODO: add some visual treatment to the tab and/or the form field to indicate to the user
+        // that they need to complete sign-in to receive a mask
+
+        // Add an observer for ONVERIFIED_NOTIFICATION
+        // to detect when user verifies their email during FXA sign-in
+        // TODO: handle existing FXA users who don't have to verify email, but simply have to complete the login
+        const obs = async (_subject, _topic) => {
+          // Remove the observer to prevent it from running again
+          Services.obs.removeObserver(
+            obs,
+            lazy.fxAccountsCommon.ONVERIFIED_NOTIFICATION
+          );
+
+          // Go back to the tab with the form that started the FXA sign-in flow
+          const tabToFocus = Array.from(browser.ownerGlobal.gBrowser.tabs).find(
+            tab => tab.linkedPanel === tabPanelId
+          );
+          if (!tabToFocus) {
+            // If the tab has been closed, return
+            // TODO: figure out the real UX here?
+            return;
+          }
+          browser.ownerGlobal.gBrowser.selectedTab = tabToFocus;
+
+          // Create the relay user, mark feature enabled, fill in the username field with a mask
+          if (await this.notifyServerTermsAcceptedAsync(browser)) {
+            feature.markAsEnabled();
+            FirefoxRelayTelemetry.recordRelayOptInPanelEvent("enabled", flowId);
+            fillUsername(await generateUsernameAsync(browser, origin));
+          }
+        };
+        Services.obs.addObserver(
+          obs,
+          lazy.fxAccountsCommon.ONVERIFIED_NOTIFICATION
+        );
+
+        // Open tab to sign up for FxA and Relay
+        const fxaUrl =
+          await lazy.fxAccounts.constructor.config.promiseConnectAccountURI(
+            "relay_integration",
+            {
+              service: "relay",
+            }
+          );
+        browser.ownerGlobal.openWebLinkIn(fxaUrl, "tab");
+      },
+    };
+    const postpone = getPostpone(postponeStrings, feature);
+    const disableIntegration = getDisableIntegration(disableStrings, feature);
+    let notification;
+    feature.markAsOffered();
+    notification = PopupNotifications.show(
+      browser,
+      "fxa-and-relay-integration-offer",
+      "", // content is provided after popup shown
+      "password-notification-icon",
+      enableIntegration,
+      [postpone, disableIntegration],
+      {
+        autofocus: true,
+        removeOnDismissal: true,
+        learnMoreURL: gConfig.learnMoreURL,
+        eventCallback: event => {
+          const document = notification.owner.panel.ownerDocument;
+          switch (event) {
+            case "shown":
+              customizeNotificationHeader(notification);
+              document.getElementById("firefox-relay-offer-tos-url").href =
+                gConfig.termsOfServiceUrl;
+              document.getElementById("firefox-relay-offer-privacy-url").href =
+                gConfig.privacyPolicyUrl;
+              FirefoxRelayTelemetry.recordRelayOptInPanelEvent(
+                "shown",
+                gFlowId
+              );
+              break;
+          }
+        },
+      }
+    );
+    return fillUsernamePromise;
+  }
+
+  async offerRelayIntegrationToFxAUser(feature, browser, origin, fxaUser) {
     const { PopupNotifications } = browser.ownerGlobal.wrappedJSObject;
     let fillUsername;
     const fillUsernamePromise = new Promise(
@@ -481,28 +636,8 @@ class RelayOffered {
         }
       },
     };
-    const postpone = {
-      label: postponeStrings.label,
-      accessKey: postponeStrings.accesskey,
-      dismiss: true,
-      callback() {
-        lazy.log.info(
-          "user decided not to decide about Firefox Relay integration"
-        );
-        feature.markAsOffered();
-        FirefoxRelayTelemetry.recordRelayOptInPanelEvent("postponed", gFlowId);
-      },
-    };
-    const disableIntegration = {
-      label: disableStrings.label,
-      accessKey: disableStrings.accesskey,
-      dismiss: true,
-      callback() {
-        lazy.log.info("user opted out from Firefox Relay integration");
-        feature.markAsDisabled();
-        FirefoxRelayTelemetry.recordRelayOptInPanelEvent("disabled", gFlowId);
-      },
-    };
+    const postpone = getPostpone(postponeStrings, feature);
+    const disableIntegration = getDisableIntegration(disableStrings, feature);
     let notification;
     feature.markAsOffered();
     notification = PopupNotifications.show(
@@ -517,26 +652,22 @@ class RelayOffered {
         removeOnDismissal: true,
         learnMoreURL: gConfig.learnMoreURL,
         eventCallback: event => {
+          const document = notification.owner.panel.ownerDocument;
           switch (event) {
             case "shown":
               customizeNotificationHeader(notification);
-              const document = notification.owner.panel.ownerDocument;
-              const tosLink = document.getElementById(
-                "firefox-relay-offer-tos-url"
-              );
-              tosLink.href = gConfig.termsOfServiceUrl;
-              const privacyLink = document.getElementById(
-                "firefox-relay-offer-privacy-url"
-              );
-              privacyLink.href = gConfig.privacyPolicyUrl;
-              const content = document.querySelector(
-                `popupnotification[id=${notification.id}-notification] popupnotificationcontent`
-              );
-              const line3 = content.querySelector(
-                "[id=firefox-relay-offer-what-relay-provides]"
-              );
+              document.getElementById("firefox-relay-offer-tos-url").href =
+                gConfig.termsOfServiceUrl;
+              document.getElementById("firefox-relay-offer-privacy-url").href =
+                gConfig.privacyPolicyUrl;
               document.l10n.setAttributes(
-                line3,
+                document
+                  .querySelector(
+                    `popupnotification[id=${notification.id}-notification] popupnotificationcontent`
+                  )
+                  .querySelector(
+                    "[id=firefox-relay-offer-what-relay-provides]"
+                  ),
                 "firefox-relay-offer-what-relay-provides",
                 {
                   useremail: fxaUser.email,
@@ -561,7 +692,8 @@ class RelayEnabled {
     if (
       !hasInput &&
       isSignup(scenarioName) &&
-      (await hasFirefoxAccountAsync())
+      ((await hasFirefoxAccountAsync()) ||
+        Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false))
     ) {
       const [title] = await formatMessages("firefox-relay-use-mask-title");
       yield new ParentAutocompleteOption(
