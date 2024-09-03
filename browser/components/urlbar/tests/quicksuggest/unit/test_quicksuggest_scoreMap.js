@@ -572,9 +572,7 @@ async function doTest({
     let stub = sandbox
       .stub(feature, "makeResult")
       .callsFake((queryContext, suggestion, searchString) => {
-        if (suggestion.url == expectedResult.payload.originalUrl) {
-          actualScore = suggestion.score;
-        }
+        actualScore = suggestion.score;
         return stub.wrappedMethod.call(
           feature,
           queryContext,

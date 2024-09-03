@@ -8,14 +8,10 @@
 async function doExposureTest({
   prefs,
   query,
-  expectedResultTypes,
-  shouldBeShown,
-  trigger = doBlur,
+  trigger,
+  assert,
+  select = defaultSelect,
 }) {
-  expectedResultTypes = expectedResultTypes
-    .map(t => suggestResultType(t))
-    .sort();
-
   const cleanupQuickSuggest = await ensureQuickSuggestInit();
   await SpecialPowers.pushPrefEnv({
     set: prefs,
@@ -23,40 +19,29 @@ async function doExposureTest({
 
   await doTest(async () => {
     await openPopup(query);
-
-    for (let type of expectedResultTypes) {
-      let result = await getResultByType(type);
-      Assert.equal(
-        !!result,
-        shouldBeShown,
-        "The result should be in the view iff it should be shown"
-      );
-    }
+    await select(query);
 
     await trigger();
-
-    let results = expectedResultTypes.join(",");
-    assertExposureTelemetry(results ? [{ results }] : []);
+    await assert();
   });
 
   await SpecialPowers.popPrefEnv();
   await cleanupQuickSuggest();
 }
 
-async function getResultByType(type) {
+async function defaultSelect(query) {
+  await selectRowByURL(`https://example.com/${query}`);
+}
+
+async function getResultByType(provider) {
   for (let i = 0; i < UrlbarTestUtils.getResultCount(window); i++) {
     const detail = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
     const telemetryType = UrlbarUtils.searchEngagementTelemetryType(
       detail.result
     );
-    if (telemetryType === type) {
+    if (telemetryType === provider) {
       return detail.result;
     }
   }
   return null;
-}
-
-function suggestResultType(typeWithoutSource) {
-  let source = UrlbarPrefs.get("quickSuggestRustEnabled") ? "rust" : "rs";
-  return `${source}_${typeWithoutSource}`;
 }

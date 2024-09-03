@@ -101,8 +101,6 @@ const REMOTE_SETTINGS_RESULTS = [
   }),
 ];
 
-let gMaxRichResultsSuggestionsCount;
-
 function expectedSponsoredPriorityResult() {
   return {
     ...QuickSuggestTestUtils.ampResult(),
@@ -141,21 +139,6 @@ function expectedHttpsResult() {
 }
 
 add_setup(async function init() {
-  // Add a bunch of suggestions that all have the same keyword so we can verify
-  // the provider respects its `maxRichResults` cap when adding results.
-  let maxResults = UrlbarPrefs.get("maxRichResults");
-  Assert.greater(maxResults, 0, "This test expects maxRichResults to be > 0");
-  gMaxRichResultsSuggestionsCount = 2 * maxResults;
-  for (let i = 0; i < gMaxRichResultsSuggestionsCount; i++) {
-    REMOTE_SETTINGS_RESULTS.push(
-      QuickSuggestTestUtils.ampRemoteSettings({
-        keywords: ["maxrichresults"],
-        title: "maxRichResults " + i,
-        url: "https://example.com/maxRichResults/" + i,
-      })
-    );
-  }
-
   // Install a default test engine.
   let engine = await addTestSuggestionsEngine();
   await Services.search.setDefault(
@@ -665,65 +648,6 @@ add_tasks_with_rust(async function generalBeforeSuggestions_others() {
   UrlbarPrefs.clear("suggest.searches");
   UrlbarPrefs.clear("showSearchSuggestionsFirst");
   await PlacesUtils.history.clear();
-});
-
-// The provider should not add more than `maxRichResults` results.
-add_tasks_with_rust(async function maxRichResults() {
-  UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
-  await QuickSuggestTestUtils.forceSync();
-
-  let searchString = "maxrichresults";
-  let suggestions = await QuickSuggest.backend.query(searchString);
-  Assert.equal(
-    suggestions.length,
-    gMaxRichResultsSuggestionsCount,
-    "The backend should return all matching suggestions"
-  );
-
-  let context = createContext(searchString, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-
-  // Spy on `muxer.sort()` so we can verify the provider limited the number of
-  // results it added to the query.
-  let muxerName = context.muxer || "UnifiedComplete";
-  let muxer = UrlbarProvidersManager.muxers.get(muxerName);
-  Assert.ok(!!muxer, "Muxer should exist");
-
-  let sandbox = sinon.createSandbox();
-  let spy = sandbox.spy(muxer, "sort");
-
-  // Use `check_results()` to do the query.
-  await check_results({
-    context,
-    matches: [
-      QuickSuggestTestUtils.ampResult({
-        keyword: "maxrichresults",
-        title: "maxRichResults 0",
-        url: "https://example.com/maxRichResults/0",
-      }),
-    ],
-  });
-
-  // Check the `sort()` calls.
-  let calls = spy.getCalls();
-  Assert.greater(
-    calls.length,
-    0,
-    "muxer.sort() should have been called at least once"
-  );
-
-  for (let c of calls) {
-    let unsortedResults = c.args[1];
-    Assert.lessOrEqual(
-      unsortedResults.length,
-      UrlbarPrefs.get("maxRichResults"),
-      "Provider should have added no more than maxRichResults results"
-    );
-  }
-
-  sandbox.restore();
 });
 
 add_tasks_with_rust(async function dedupeAgainstURL_samePrefix() {

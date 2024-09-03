@@ -236,8 +236,8 @@ async function doSuggestTest({ trigger, assert }) {
   const cleanupQuickSuggest = await ensureQuickSuggestInit();
 
   await doTest(async () => {
-    await openPopup("wikipedia");
-    await selectRowByURL("https://example.com/wikipedia");
+    await openPopup("nonsponsored");
+    await selectRowByURL("https://example.com/nonsponsored");
 
     await trigger();
     await assert();
