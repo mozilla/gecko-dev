@@ -9,17 +9,31 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
+bin = []
+example = []
+test = []
+bench = []
+
 [package]
 edition = "2021"
 rust-version = "1.75"
 name = "zlib-rs"
 version = "0.2.1"
+build = false
 publish = true
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A memory-safe zlib implementation written in rust"
 homepage = "https://github.com/memorysafety/zlib-rs"
 readme = "README.md"
 license = "Zlib"
 repository = "https://github.com/memorysafety/zlib-rs"
+
+[lib]
+name = "zlib_rs"
+path = "src/lib.rs"
 
 [dependencies.arbitrary]
 version = "1.0"
