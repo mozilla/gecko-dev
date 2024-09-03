@@ -13,7 +13,7 @@ use rusqlite::{
     types::{FromSql, ToSql},
     Connection, OpenFlags, OptionalExtension,
 };
-use sql_support::{open_database::open_database_with_flags, ConnExt};
+use sql_support::{open_database::open_database_with_flags, repeat_sql_vars, ConnExt};
 
 use crate::{
     config::{SuggestGlobalConfig, SuggestProviderConfig},
@@ -24,8 +24,9 @@ use crate::{
     provider::SuggestionProvider,
     rs::{
         DownloadedAmoSuggestion, DownloadedAmpSuggestion, DownloadedAmpWikipediaSuggestion,
-        DownloadedFakespotSuggestion, DownloadedMdnSuggestion, DownloadedPocketSuggestion,
-        DownloadedWeatherData, DownloadedWikipediaSuggestion, Record, SuggestRecordId,
+        DownloadedExposureSuggestion, DownloadedFakespotSuggestion, DownloadedMdnSuggestion,
+        DownloadedPocketSuggestion, DownloadedWeatherData, DownloadedWikipediaSuggestion, Record,
+        SuggestRecordId,
     },
     schema::{clear_database, SuggestConnectionInitializer},
     suggestion::{cook_raw_suggestion_url, AmpSuggestionType, Suggestion},
@@ -805,6 +806,83 @@ impl<'a> SuggestDao<'a> {
         )
     }
 
+    /// Fetches exposure suggestions
+    pub fn fetch_exposure_suggestions(&self, query: &SuggestionQuery) -> Result<Vec<Suggestion>> {
+        // A single exposure suggestion can be spread across multiple remote
+        // settings records, for example if it has very many keywords. On ingest
+        // we will insert one row in `exposure_custom_details` and one row in
+        // `suggestions` per record, but that's only an implementation detail.
+        // Logically, and for consumers, there's only ever at most one exposure
+        // suggestion with a given exposure suggestion type.
+        //
+        // Why do insertions this way? It's how other suggestions work, and it
+        // lets us perform relational operations on suggestions, records, and
+        // keywords. For example, when a record is deleted we can look up its ID
+        // in `suggestions`, join the keywords table on the suggestion ID, and
+        // delete the keywords that were added by that record.
+
+        let Some(suggestion_types) = query
+            .provider_constraints
+            .as_ref()
+            .and_then(|c| c.exposure_suggestion_types.as_ref())
+        else {
+            return Ok(vec![]);
+        };
+
+        let keyword = query.keyword.to_lowercase();
+        let params = rusqlite::params_from_iter(
+            std::iter::once(&SuggestionProvider::Exposure as &dyn ToSql)
+                .chain(std::iter::once(&keyword as &dyn ToSql))
+                .chain(suggestion_types.iter().map(|t| t as &dyn ToSql)),
+        );
+        self.conn.query_rows_and_then_cached(
+            &format!(
+                r#"
+                    SELECT DISTINCT
+                      d.type
+                    FROM
+                      suggestions s
+                    JOIN
+                      exposure_custom_details d
+                      ON d.suggestion_id = s.id
+                    JOIN
+                      keywords k
+                      ON k.suggestion_id = s.id
+                    WHERE
+                      s.provider = ?
+                      AND k.keyword = ?
+                      AND d.type IN ({})
+                    ORDER BY
+                      d.type
+                    "#,
+                repeat_sql_vars(suggestion_types.len())
+            ),
+            params,
+            |row| -> Result<Suggestion> {
+                Ok(Suggestion::Exposure {
+                    suggestion_type: row.get("type")?,
+                    score: 1.0,
+                })
+            },
+        )
+    }
+
+    pub fn is_exposure_suggestion_ingested(&self, record_id: &SuggestRecordId) -> Result<bool> {
+        Ok(self.conn.exists(
+            r#"
+            SELECT
+              id
+            FROM
+              suggestions
+            WHERE
+              record_id = :record_id
+            "#,
+            named_params! {
+                ":record_id": record_id.as_str(),
+            },
+        )?)
+    }
+
     /// Inserts all suggestions from a downloaded AMO attachment into
     /// the database.
     pub fn insert_amo_suggestions(
@@ -1055,6 +1133,39 @@ impl<'a> SuggestDao<'a> {
             SuggestionProvider::Weather,
             &SuggestProviderConfig::from(data),
         )?;
+        Ok(())
+    }
+
+    /// Inserts exposure suggestion records data into the database.
+    pub fn insert_exposure_suggestions(
+        &mut self,
+        record_id: &SuggestRecordId,
+        suggestion_type: &str,
+        suggestions: &[DownloadedExposureSuggestion],
+    ) -> Result<()> {
+        // `suggestion.keywords()` can yield duplicates for exposure
+        // suggestions, so ignore failures on insert in the uniqueness
+        // constraint on `(suggestion_id, keyword)`.
+        let mut keyword_insert = KeywordInsertStatement::new_with_or_ignore(self.conn)?;
+        let mut suggestion_insert = SuggestionInsertStatement::new(self.conn)?;
+        let mut exposure_insert = ExposureInsertStatement::new(self.conn)?;
+        for suggestion in suggestions {
+            self.scope.err_if_interrupted()?;
+            let suggestion_id = suggestion_insert.execute(
+                record_id,
+                "", // title, not used by exposure suggestions
+                "", // url, not used by exposure suggestions
+                DEFAULT_SUGGESTION_SCORE,
+                SuggestionProvider::Exposure,
+            )?;
+            exposure_insert.execute(suggestion_id, suggestion_type)?;
+
+            // Exposure suggestions don't use `rank` but `(suggestion_id, rank)`
+            // must be unique since there's an index on that tuple.
+            for (rank, keyword) in suggestion.keywords().enumerate() {
+                keyword_insert.execute(suggestion_id, &keyword, None, rank)?;
+            }
+        }
         Ok(())
     }
 
@@ -1498,12 +1609,47 @@ impl<'conn> FakespotInsertStatement<'conn> {
     }
 }
 
+struct ExposureInsertStatement<'conn>(rusqlite::Statement<'conn>);
+
+impl<'conn> ExposureInsertStatement<'conn> {
+    fn new(conn: &'conn Connection) -> Result<Self> {
+        Ok(Self(conn.prepare(
+            "INSERT INTO exposure_custom_details(
+                 suggestion_id,
+                 type
+             )
+             VALUES(?, ?)
+             ",
+        )?))
+    }
+
+    fn execute(&mut self, suggestion_id: i64, suggestion_type: &str) -> Result<()> {
+        self.0
+            .execute((suggestion_id, suggestion_type))
+            .with_context("exposure insert")?;
+        Ok(())
+    }
+}
+
 struct KeywordInsertStatement<'conn>(rusqlite::Statement<'conn>);
 
 impl<'conn> KeywordInsertStatement<'conn> {
     fn new(conn: &'conn Connection) -> Result<Self> {
         Ok(Self(conn.prepare(
             "INSERT INTO keywords(
+                 suggestion_id,
+                 keyword,
+                 full_keyword_id,
+                 rank
+             )
+             VALUES(?, ?, ?, ?)
+             ",
+        )?))
+    }
+
+    fn new_with_or_ignore(conn: &'conn Connection) -> Result<Self> {
+        Ok(Self(conn.prepare(
+            "INSERT OR IGNORE INTO keywords(
                  suggestion_id,
                  keyword,
                  full_keyword_id,

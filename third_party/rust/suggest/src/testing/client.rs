@@ -12,6 +12,7 @@ use crate::{
     db::SuggestDao,
     error::Error,
     rs::{Client, Collection, Record, SuggestRecordId, SuggestRecordType},
+    testing::JsonExt,
     Result,
 };
 
@@ -71,6 +72,17 @@ impl MockRemoteSettingsClient {
         self
     }
 
+    pub fn with_full_record(
+        mut self,
+        record_type: &str,
+        record_id: &str,
+        inline_data: Option<JsonValue>,
+        items: Option<JsonValue>,
+    ) -> Self {
+        self.add_full_record(record_type, record_id, inline_data, items);
+        self
+    }
+
     // Non-Consuming Builder API, this is best for updating an existing client
 
     /// Add a record to the mock data
@@ -83,25 +95,7 @@ impl MockRemoteSettingsClient {
         record_id: &str,
         items: JsonValue,
     ) -> &mut Self {
-        let location = format!("{record_type}-{record_id}.json");
-        self.records.push(Record {
-            id: SuggestRecordId::new(record_id.to_string()),
-            collection: record_type_for_str(record_type).collection(),
-            last_modified: self.last_modified_timestamp,
-            attachment: Some(Attachment {
-                filename: location.clone(),
-                mimetype: "application/json".into(),
-                hash: "".into(),
-                size: 0,
-                location: location.clone(),
-            }),
-            payload: serde_json::from_value(json!({"type": record_type})).unwrap(),
-        });
-        self.attachments.insert(
-            location,
-            serde_json::to_vec(&items).expect("error serializing attachment data"),
-        );
-        self
+        self.add_full_record(record_type, record_id, None, Some(items))
     }
 
     /// Add a record for an icon to the mock data
@@ -133,14 +127,7 @@ impl MockRemoteSettingsClient {
         record_type: &str,
         record_id: &str,
     ) -> &mut Self {
-        self.records.push(Record {
-            id: SuggestRecordId::new(record_id.to_string()),
-            collection: record_type_for_str(record_type).collection(),
-            last_modified: self.last_modified_timestamp,
-            attachment: None,
-            payload: serde_json::from_value(json!({"type": record_type})).unwrap(),
-        });
-        self
+        self.add_full_record(record_type, record_id, None, None)
     }
 
     /// Add a record to the mock data, with data stored inline rather than in an attachment
@@ -153,17 +140,44 @@ impl MockRemoteSettingsClient {
         record_id: &str,
         inline_data: JsonValue,
     ) -> &mut Self {
+        self.add_full_record(record_type, record_id, Some(inline_data), None)
+    }
+
+    /// Add a record with optional extra fields stored inline and attachment
+    /// items
+    pub fn add_full_record(
+        &mut self,
+        record_type: &str,
+        record_id: &str,
+        inline_data: Option<JsonValue>,
+        items: Option<JsonValue>,
+    ) -> &mut Self {
+        let location = format!("{record_type}-{record_id}.json");
         self.records.push(Record {
             id: SuggestRecordId::new(record_id.to_string()),
             collection: record_type_for_str(record_type).collection(),
             last_modified: self.last_modified_timestamp,
-            payload: serde_json::from_value(json!({
-                "type": record_type,
-                record_type: inline_data,
-            }))
+            payload: serde_json::from_value(
+                json!({
+                    "type": record_type,
+                })
+                .merge(inline_data.unwrap_or(json!({}))),
+            )
             .unwrap(),
-            attachment: None,
+            attachment: items.as_ref().map(|_| Attachment {
+                filename: location.clone(),
+                mimetype: "application/json".into(),
+                hash: "".into(),
+                size: 0,
+                location: location.clone(),
+            }),
         });
+        if let Some(i) = items {
+            self.attachments.insert(
+                location,
+                serde_json::to_vec(&i).expect("error serializing attachment data"),
+            );
+        }
         self
     }
 

@@ -35,6 +35,7 @@ enum SuggestionProvider {
     "Weather",
     "AmpMobile",
     "Fakespot",
+    "Exposure",
 };
 
 [Enum]
@@ -107,16 +108,22 @@ interface Suggestion {
         string? icon_mimetype,
         f64 score
     );
+    Exposure(
+        string suggestion_type,
+        f64 score
+    );
 };
 
 dictionary SuggestionQuery {
     string keyword;
     sequence<SuggestionProvider> providers;
+    SuggestionProviderConstraints? provider_constraints = null;
     i32? limit = null;
 };
 
 dictionary SuggestIngestionConstraints {
     sequence<SuggestionProvider>? providers = null;
+    SuggestionProviderConstraints? provider_constraints = null;
     // Only ingest if the table `suggestions` is empty.
     //
     // This is indented to handle periodic updates.  Consumers can schedule an ingest with
@@ -125,6 +132,15 @@ dictionary SuggestIngestionConstraints {
     // there is a schema upgrade that causes the database to be thrown away, then the
     // `empty_only=true` ingestion that runs on startup will repopulate it.
     boolean empty_only = false;
+};
+
+// Some providers manage multiple suggestion subtypes. Queries, ingests, and
+// other operations on those providers must be constrained to a desired subtype.
+dictionary SuggestionProviderConstraints {
+    // `Exposure` provider - For each desired exposure suggestion type, this
+    // should contain the value of the `suggestion_type` field of its remote
+    // settings record(s).
+    sequence<string>? exposure_suggestion_types = null;
 };
 
 dictionary SuggestIngestionMetrics {

@@ -40,7 +40,7 @@ impl BenchmarkWithInput for QueryBenchmark {
         InputType(SuggestionQuery {
             providers: vec![self.provider],
             keyword: self.query.to_string(),
-            limit: None,
+            ..SuggestionQuery::default()
         })
     }
 

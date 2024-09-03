@@ -92,6 +92,10 @@ pub enum Suggestion {
         icon_mimetype: Option<String>,
         score: f64,
     },
+    Exposure {
+        suggestion_type: String,
+        score: f64,
+    },
 }
 
 impl PartialOrd for Suggestion {
@@ -102,22 +106,9 @@ impl PartialOrd for Suggestion {
 
 impl Ord for Suggestion {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let a_score = match self {
-            Suggestion::Amp { score, .. }
-            | Suggestion::Pocket { score, .. }
-            | Suggestion::Amo { score, .. } => score,
-            Suggestion::Fakespot { score, .. } => score,
-            _ => &DEFAULT_SUGGESTION_SCORE,
-        };
-        let b_score = match other {
-            Suggestion::Amp { score, .. }
-            | Suggestion::Pocket { score, .. }
-            | Suggestion::Amo { score, .. } => score,
-            Suggestion::Fakespot { score, .. } => score,
-            _ => &DEFAULT_SUGGESTION_SCORE,
-        };
-        b_score
-            .partial_cmp(a_score)
+        other
+            .score()
+            .partial_cmp(&self.score())
             .unwrap_or(std::cmp::Ordering::Equal)
     }
 }
@@ -160,9 +151,9 @@ impl Suggestion {
             | Self::Wikipedia { title, .. }
             | Self::Amo { title, .. }
             | Self::Yelp { title, .. }
-            | Self::Mdn { title, .. } => title,
-            Self::Weather { .. } => "weather",
-            Self::Fakespot { title, .. } => title,
+            | Self::Mdn { title, .. }
+            | Self::Fakespot { title, .. } => title,
+            _ => "untitled",
         }
     }
 
@@ -173,6 +164,20 @@ impl Suggestion {
             | Self::Yelp { icon, .. }
             | Self::Fakespot { icon, .. } => icon.as_deref(),
             _ => None,
+        }
+    }
+
+    pub fn score(&self) -> f64 {
+        match self {
+            Self::Amp { score, .. }
+            | Self::Pocket { score, .. }
+            | Self::Amo { score, .. }
+            | Self::Yelp { score, .. }
+            | Self::Mdn { score, .. }
+            | Self::Weather { score, .. }
+            | Self::Fakespot { score, .. }
+            | Self::Exposure { score, .. } => *score,
+            Self::Wikipedia { .. } => DEFAULT_SUGGESTION_SCORE,
         }
     }
 }

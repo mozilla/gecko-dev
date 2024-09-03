@@ -38,22 +38,6 @@ use serde::{Deserialize, Deserializer};
 
 use crate::{db::SuggestDao, error::Error, provider::SuggestionProvider, Result};
 
-/// A list of default record types to download if nothing is specified.
-/// This defaults to all record types available as-of Fx128.
-/// Consumers should specify provider types in `SuggestIngestionConstraints` if they want a
-/// different set.
-pub(crate) const DEFAULT_RECORDS_TYPES: [SuggestRecordType; 9] = [
-    SuggestRecordType::Icon,
-    SuggestRecordType::AmpWikipedia,
-    SuggestRecordType::Amo,
-    SuggestRecordType::Pocket,
-    SuggestRecordType::Yelp,
-    SuggestRecordType::Mdn,
-    SuggestRecordType::Weather,
-    SuggestRecordType::GlobalConfig,
-    SuggestRecordType::AmpMobile,
-];
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Collection {
     Quicksuggest,
@@ -194,8 +178,8 @@ impl Record {
 
 /// A record in the Suggest Remote Settings collection.
 ///
-/// Except for the type, Suggest records don't carry additional fields. All
-/// suggestions are stored in each record's attachment.
+/// Most Suggest records don't carry inline fields except for `type`.
+/// Suggestions themselves are typically stored in each record's attachment.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub(crate) enum SuggestRecord {
@@ -219,6 +203,8 @@ pub(crate) enum SuggestRecord {
     AmpMobile,
     #[serde(rename = "fakespot-suggestions")]
     Fakespot,
+    #[serde(rename = "exposure-suggestions")]
+    Exposure(DownloadedExposureRecord),
 }
 
 /// Enum for the different record types that can be consumed.
@@ -236,6 +222,7 @@ pub enum SuggestRecordType {
     GlobalConfig,
     AmpMobile,
     Fakespot,
+    Exposure,
 }
 
 impl From<&SuggestRecord> for SuggestRecordType {
@@ -251,6 +238,7 @@ impl From<&SuggestRecord> for SuggestRecordType {
             SuggestRecord::GlobalConfig(_) => Self::GlobalConfig,
             SuggestRecord::AmpMobile => Self::AmpMobile,
             SuggestRecord::Fakespot => Self::Fakespot,
+            SuggestRecord::Exposure(_) => Self::Exposure,
         }
     }
 }
@@ -278,6 +266,7 @@ impl SuggestRecordType {
             Self::GlobalConfig,
             Self::AmpMobile,
             Self::Fakespot,
+            Self::Exposure,
         ]
     }
 
@@ -293,6 +282,7 @@ impl SuggestRecordType {
             Self::GlobalConfig => "configuration",
             Self::AmpMobile => "amp-mobile-suggestions",
             Self::Fakespot => "fakespot-suggestions",
+            Self::Exposure => "exposure-suggestions",
         }
     }
 
@@ -558,6 +548,86 @@ pub(crate) struct DownloadedFakespotSuggestion {
     pub url: String,
 }
 
+/// An exposure suggestion record's inline data
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct DownloadedExposureRecord {
+    pub suggestion_type: String,
+}
+
+/// An exposure suggestion to ingest from an attachment
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct DownloadedExposureSuggestion {
+    keywords: Vec<FullOrPrefixKeywords<String>>,
+}
+
+impl DownloadedExposureSuggestion {
+    /// Iterate over all keywords for this suggestion. Iteration may contain
+    /// duplicate keywords depending on the structure of the data, so do not
+    /// assume keywords are unique. Duplicates are not filtered out because
+    /// doing so would require O(number of keywords) space, and the number of
+    /// keywords can be very large. If you are inserting into the store, rely on
+    /// uniqueness constraints and use `INSERT OR IGNORE`.
+    pub fn keywords(&self) -> impl Iterator<Item = String> + '_ {
+        self.keywords.iter().flat_map(|e| e.keywords())
+    }
+}
+
+/// A single full keyword or a `(prefix, suffixes)` tuple representing multiple
+/// prefix keywords. Prefix keywords are enumerated by appending to `prefix`
+/// each possible prefix of each suffix, including the full suffix. The prefix
+/// is also enumerated by itself. Examples:
+///
+/// `FullOrPrefixKeywords::Full("some full keyword")`
+/// => "some full keyword"
+///
+/// `FullOrPrefixKeywords::Prefix(("sug", vec!["gest", "arplum"]))`
+/// => "sug"
+///    "sugg"
+///    "sugge"
+///    "sugges"
+///    "suggest"
+///    "suga"
+///    "sugar"
+///    "sugarp"
+///    "sugarpl"
+///    "sugarplu"
+///    "sugarplum"
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+enum FullOrPrefixKeywords<T> {
+    Full(T),
+    Prefix((T, Vec<T>)),
+}
+
+impl<T> From<T> for FullOrPrefixKeywords<T> {
+    fn from(full_keyword: T) -> Self {
+        Self::Full(full_keyword)
+    }
+}
+
+impl<T> From<(T, Vec<T>)> for FullOrPrefixKeywords<T> {
+    fn from(prefix_suffixes: (T, Vec<T>)) -> Self {
+        Self::Prefix(prefix_suffixes)
+    }
+}
+
+impl FullOrPrefixKeywords<String> {
+    pub fn keywords(&self) -> Box<dyn Iterator<Item = String> + '_> {
+        match self {
+            FullOrPrefixKeywords::Full(kw) => Box::new(std::iter::once(kw.to_owned())),
+            FullOrPrefixKeywords::Prefix((prefix, suffixes)) => Box::new(
+                std::iter::once(prefix.to_owned()).chain(suffixes.iter().flat_map(|suffix| {
+                    let mut kw = prefix.clone();
+                    suffix.chars().map(move |c| {
+                        kw.push(c);
+                        kw.clone()
+                    })
+                })),
+            ),
+        }
+    }
+}
+
 /// Weather data to ingest from a weather record
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct DownloadedWeatherData {
@@ -703,6 +773,126 @@ mod test {
                     keyword: "foo bar",
                     full_keyword: None,
                 },
+            ],
+        );
+    }
+
+    fn full_or_prefix_keywords_to_owned(
+        kws: Vec<FullOrPrefixKeywords<&str>>,
+    ) -> Vec<FullOrPrefixKeywords<String>> {
+        kws.iter()
+            .map(|val| match val {
+                FullOrPrefixKeywords::Full(s) => FullOrPrefixKeywords::Full(s.to_string()),
+                FullOrPrefixKeywords::Prefix((prefix, suffixes)) => FullOrPrefixKeywords::Prefix((
+                    prefix.to_string(),
+                    suffixes.iter().map(|s| s.to_string()).collect(),
+                )),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_exposure_keywords() {
+        let suggestion = DownloadedExposureSuggestion {
+            keywords: full_or_prefix_keywords_to_owned(vec![
+                "no suffixes".into(),
+                ("empty suffixes", vec![]).into(),
+                ("empty string suffix", vec![""]).into(),
+                ("choco", vec!["", "bo", "late"]).into(),
+                "duplicate 1".into(),
+                "duplicate 1".into(),
+                ("dup", vec!["licate 1", "licate 2"]).into(),
+                ("dup", vec!["lo", "licate 2", "licate 3"]).into(),
+                ("duplic", vec!["ate 3", "ar", "ate 4"]).into(),
+                ("du", vec!["plicate 4", "plicate 5", "nk"]).into(),
+            ]),
+        };
+
+        assert_eq!(
+            Vec::from_iter(suggestion.keywords()),
+            vec![
+                "no suffixes",
+                "empty suffixes",
+                "empty string suffix",
+                "choco",
+                "chocob",
+                "chocobo",
+                "chocol",
+                "chocola",
+                "chocolat",
+                "chocolate",
+                "duplicate 1",
+                "duplicate 1",
+                "dup",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 1",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 2",
+                "dup",
+                "dupl",
+                "duplo",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 2",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 3",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 3",
+                "duplica",
+                "duplicar",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 4",
+                "du",
+                "dup",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 4",
+                "dup",
+                "dupl",
+                "dupli",
+                "duplic",
+                "duplica",
+                "duplicat",
+                "duplicate",
+                "duplicate ",
+                "duplicate 5",
+                "dun",
+                "dunk",
             ],
         );
     }
