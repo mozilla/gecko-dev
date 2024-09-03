@@ -98,10 +98,10 @@ BASE_LINK = "http://gecko-docs.mozilla.org-l1.s3-website.us-west-2.amazonaws.com
     help="Disable fatal errors.",
 )
 @CommandArgument(
-    "--fatal-warnings",
-    dest="enable_fatal_warnings",
+    "--disable-fatal-warnings",
+    dest="disable_fatal_warnings",
     action="store_true",
-    help="Enable fatal warnings.",
+    help="Disable fatal warnings.",
 )
 @CommandArgument(
     "--check-num-warnings",
@@ -129,7 +129,7 @@ def build_docs(
     linkcheck=None,
     dump_trees=None,
     disable_fatal_errors=False,
-    enable_fatal_warnings=False,
+    disable_fatal_warnings=False,
     check_num_warnings=False,
     verbose=None,
     no_autodoc=False,
@@ -212,7 +212,7 @@ def build_docs(
         fatal_errors = _check_sphinx_errors(warnings, docs_config)
         if fatal_errors:
             msg += f"Error: Got fatal errors:\n{''.join(fatal_errors)}"
-    if enable_fatal_warnings:
+    if not disable_fatal_warnings:
         fatal_warnings = _check_sphinx_fatal_warnings(warnings, docs_config)
         if fatal_warnings:
             msg += f"Error: Got fatal warnings:\n{''.join(fatal_warnings)}"
