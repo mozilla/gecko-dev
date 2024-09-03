@@ -26,7 +26,6 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.ext.application
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.home.HomeFragment.Companion.AMAZON_SPONSORED_TITLE
 import org.mozilla.fenix.home.HomeFragment.Companion.EBAY_SPONSORED_TITLE
 import org.mozilla.fenix.utils.Settings
@@ -37,14 +36,12 @@ class HomeFragmentTest {
     private lateinit var context: Context
     private lateinit var core: Core
     private lateinit var homeFragment: HomeFragment
-    private lateinit var activity: HomeActivity
 
     @Before
     fun setup() {
         settings = mockk(relaxed = true)
         context = mockk(relaxed = true)
         core = mockk(relaxed = true)
-        activity = mockk(relaxed = true)
 
         val fenixApplication: FenixApplication = mockk(relaxed = true)
 
@@ -56,7 +53,6 @@ class HomeFragmentTest {
         every { context.components.core } answers { core }
         every { homeFragment.binding } returns mockk(relaxed = true)
         every { homeFragment.viewLifecycleOwner } returns mockk(relaxed = true)
-        every { homeFragment.activity } returns activity
     }
 
     @Test
@@ -153,34 +149,5 @@ class HomeFragmentTest {
         homeFragment.initializeMicrosurveyFeature(isMicrosurveyEnabled = false)
 
         assertNull(homeFragment.messagingFeatureMicrosurvey.get())
-    }
-
-    @Test
-    fun `GIVEN the conditions to show a prompt are met WHEN showSetAsDefaultBrowserPrompt is called THEN setAsDefaultPromptCalled is called`() {
-        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns true
-        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 0
-        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns 0L
-        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
-
-        homeFragment.showSetAsDefaultBrowserPrompt()
-
-        verify { settings.setAsDefaultPromptCalled() }
-        verify { activity.openSetDefaultBrowserOption() }
-    }
-
-    @Test
-    fun `GIVEN the conditions to show a prompt are not met WHEN showSetAsDefaultBrowserPrompt is called THEN setAsDefaultPromptCalled is not called`() {
-        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns false
-        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 0
-        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns System.currentTimeMillis()
-        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
-
-        if (settings.shouldShowSetAsDefaultPrompt) {
-            homeFragment.showSetAsDefaultBrowserPrompt()
-        }
-
-        // Because we should not be showing the default browser prompt in this case
-        // showSetAsDefaultBrowserPrompt() is never be called.
-        verify(exactly = 0) { homeFragment.showSetAsDefaultBrowserPrompt() }
     }
 }
