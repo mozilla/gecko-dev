@@ -247,6 +247,84 @@ network:
       - vgosu@mozilla.com
     expires: never
 
+  http3_tls_handshake: &http3_tls_handshake
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      In the HTTP channel (keys: uses_http3_page, uses_http3_sub, supports_http3_page, supports_http3_sub), time from secure connection start (after TCP SYN) to ready for HTTP
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675500
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907418
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675500
+    notification_emails:
+      - necko@mozilla.com
+    labels:
+      - uses_http3_page
+      - uses_http3_sub
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: HTTP3_TLS_HANDSHAKE
+    expires: never
+
+  sup_http3_tcp_connection:
+    <<: *http3_tls_handshake
+    description: >
+      In the HTTP channel (keys: supports_http3_page, supports_http3_sub), time from TCP SYN to ready for HTTP
+    labels:
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: SUP_HTTP3_TCP_CONNECTION
+    expires: never
+
+  http3_open_to_first_sent:
+    <<: *http3_tls_handshake
+    description: >
+      In the HTTP channel (keys: uses_http3_page, uses_http3_sub, supports_http3_page, supports_http3_sub), time from open to first byte of request
+    labels:
+      - uses_http3_page
+      - uses_http3_sub
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: HTTP3_OPEN_TO_FIRST_SENT
+    expires: never
+
+  http3_first_sent_to_last_received:
+    <<: *http3_tls_handshake
+    description: >
+      In the HTTP channel (keys: uses_http3_page, uses_http3_sub, supports_http3_page, supports_http3_sub), time from first byte of request sent to last byte of response received
+    labels:
+      - uses_http3_page
+      - uses_http3_sub
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: HTTP3_FIRST_SENT_TO_LAST_RECEIVED
+    expires: never
+
+  http3_open_to_first_received:
+    <<: *http3_tls_handshake
+    description: >
+      In the HTTP channel (keys: uses_http3_page, uses_http3_sub, supports_http3_page, supports_http3_sub), time from open to first byte of reply received
+    labels:
+      - uses_http3_page
+      - uses_http3_sub
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: HTTP3_OPEN_TO_FIRST_RECEIVED
+    expires: never
+
+  http3_complete_load:
+    <<: *http3_tls_handshake
+    description: >
+      In the HTTP channel (keys: uses_http3_page, uses_http3_sub, supports_http3_page, supports_http3_sub), overall load time
+    labels:
+      - uses_http3_page
+      - uses_http3_sub
+      - supports_http3_page
+      - supports_http3_sub
+    telemetry_mirror: HTTP3_COMPLETE_LOAD
+    expires: never
+
   system_channel_success_or_failure: &system_channel_success_or_failure
     type: labeled_counter
     description: >
