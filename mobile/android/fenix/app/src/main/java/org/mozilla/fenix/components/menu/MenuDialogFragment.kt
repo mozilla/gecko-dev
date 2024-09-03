@@ -12,6 +12,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,6 +69,11 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.contentGrowth
+import org.mozilla.fenix.utils.enterMenu
+import org.mozilla.fenix.utils.enterSubmenu
+import org.mozilla.fenix.utils.exitMenu
+import org.mozilla.fenix.utils.exitSubmenu
 
 // EXPANDED_MIN_RATIO is used for BottomSheetBehavior.halfExpandedRatio().
 // That value needs to be less than the PEEK_HEIGHT.
@@ -259,7 +266,45 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             MenuAccessPoint.External -> CUSTOM_TAB_MENU_ROUTE
                         },
                     ) {
-                        composable(route = MAIN_MENU_ROUTE) {
+                        composable(
+                            route = MAIN_MENU_ROUTE,
+                            enterTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            popEnterTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            exitTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                            popExitTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                        ) {
                             if (settings.shouldShowMenuCFR) {
                                 MainMenuWithCFR(
                                     accessPoint = args.accesspoint,
@@ -285,7 +330,45 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
                         }
 
-                        composable(route = TOOLS_MENU_ROUTE) {
+                        composable(
+                            route = TOOLS_MENU_ROUTE,
+                            enterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            popEnterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            exitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                            popExitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                        ) {
                             val appLinksRedirect = if (selectedTab?.content?.url != null) {
                                 appLinksUseCases.appLinkRedirect(selectedTab.content.url)
                             } else {
@@ -336,7 +419,45 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             )
                         }
 
-                        composable(route = SAVE_MENU_ROUTE) {
+                        composable(
+                            route = SAVE_MENU_ROUTE,
+                            enterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            popEnterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            exitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                            popExitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                        ) {
                             SaveSubmenu(
                                 isBookmarked = isBookmarked,
                                 isPinned = isPinned,
@@ -374,7 +495,45 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             )
                         }
 
-                        composable(route = EXTENSIONS_MENU_ROUTE) {
+                        composable(
+                            route = EXTENSIONS_MENU_ROUTE,
+                            enterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            popEnterTransition = {
+                                (
+                                    enterSubmenu().togetherWith(
+                                        exitMenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).targetContentEnter
+                            },
+                            exitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                            popExitTransition = {
+                                (
+                                    enterMenu().togetherWith(
+                                        exitSubmenu(),
+                                    ) using SizeTransform { initialSize, targetSize ->
+                                        contentGrowth(initialSize, targetSize)
+                                    }
+                                    ).initialContentExit
+                            },
+                        ) {
                             ExtensionsSubmenu(
                                 recommendedAddons = recommendedAddons,
                                 showExtensionsOnboarding = true,
