@@ -285,6 +285,16 @@ JS_PUBLIC_API void JS::GetRequestedModuleSourcePos(
   *columnNumber = module.requestedModules()[index].columnNumber();
 }
 
+JS_PUBLIC_API JS::ModuleType JS::GetRequestedModuleType(
+    JSContext* cx, Handle<JSObject*> moduleRecord, uint32_t index) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  cx->check(moduleRecord);
+
+  auto& module = moduleRecord->as<ModuleObject>();
+  return module.requestedModules()[index].moduleRequest()->moduleType();
+}
+
 JS_PUBLIC_API JSScript* JS::GetModuleScript(JS::HandleObject moduleRecord) {
   AssertHeapIsIdle();
 
@@ -328,8 +338,9 @@ JS_PUBLIC_API JSObject* JS::GetModuleEnvironment(JSContext* cx,
   return moduleObj->as<ModuleObject>().environment();
 }
 
-JS_PUBLIC_API JSObject* JS::CreateModuleRequest(
-    JSContext* cx, Handle<JSString*> specifierArg) {
+JS_PUBLIC_API JSObject* JS::CreateModuleRequest(JSContext* cx,
+                                                Handle<JSString*> specifierArg,
+                                                JS::ModuleType moduleType) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
@@ -338,9 +349,7 @@ JS_PUBLIC_API JSObject* JS::CreateModuleRequest(
     return nullptr;
   }
 
-  Rooted<ImportAttributeVector> attributes(cx);
-
-  return ModuleRequestObject::create(cx, specifierAtom, attributes);
+  return ModuleRequestObject::create(cx, specifierAtom, moduleType);
 }
 
 JS_PUBLIC_API JSString* JS::GetModuleRequestSpecifier(
@@ -350,6 +359,15 @@ JS_PUBLIC_API JSString* JS::GetModuleRequestSpecifier(
   cx->check(moduleRequestArg);
 
   return moduleRequestArg->as<ModuleRequestObject>().specifier();
+}
+
+JS_PUBLIC_API JS::ModuleType JS::GetModuleRequestType(
+    JSContext* cx, Handle<JSObject*> moduleRequestArg) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  cx->check(moduleRequestArg);
+
+  return moduleRequestArg->as<ModuleRequestObject>().moduleType();
 }
 
 JS_PUBLIC_API void JS::ClearModuleEnvironment(JSObject* moduleObj) {
