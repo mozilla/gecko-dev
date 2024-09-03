@@ -476,8 +476,9 @@ class ModuleLoaderBase : public nsISupports {
   JS::Value FindFirstParseError(ModuleLoadRequest* aRequest);
   static nsresult InitDebuggerDataForModuleGraph(JSContext* aCx,
                                                  ModuleLoadRequest* aRequest);
-  nsresult ResolveRequestedModules(ModuleLoadRequest* aRequest,
-                                   nsCOMArray<nsIURI>* aUrlsOut);
+  nsresult ResolveRequestedModules(
+      ModuleLoadRequest* aRequest,
+      nsTArray<ModuleMapKey>* aRequestedModulesOut);
 
   void SetModuleFetchFinishedAndResumeWaitingRequests(
       ModuleLoadRequest* aRequest, nsresult aResult);
@@ -487,7 +488,7 @@ class ModuleLoaderBase : public nsISupports {
   void StartFetchingModuleDependencies(ModuleLoadRequest* aRequest);
 
   void StartFetchingModuleAndDependencies(ModuleLoadRequest* aParent,
-                                          nsIURI* aURI);
+                                          const ModuleMapKey& aRequestedModule);
 
   void InstantiateAndEvaluateDynamicImport(ModuleLoadRequest* aRequest);
 

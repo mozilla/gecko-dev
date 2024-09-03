@@ -807,7 +807,7 @@ ResolveResult ModuleLoaderBase::ResolveModuleSpecifier(
 }
 
 nsresult ModuleLoaderBase::ResolveRequestedModules(
-    ModuleLoadRequest* aRequest, nsCOMArray<nsIURI>* aUrlsOut) {
+    ModuleLoadRequest* aRequest, nsTArray<ModuleMapKey>* aRequestedModulesOut) {
   ModuleScript* ms = aRequest->mModuleScript;
 
   AutoJSAPI jsapi;
@@ -850,8 +850,9 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
     }
 
     nsCOMPtr<nsIURI> uri = result.unwrap();
-    if (aUrlsOut) {
-      aUrlsOut->AppendElement(uri.forget());
+    if (aRequestedModulesOut) {
+      aRequestedModulesOut->AppendElement(
+          ModuleMapKey(uri, JS::ModuleType::JavaScript));
     }
   }
 
@@ -876,50 +877,47 @@ void ModuleLoaderBase::StartFetchingModuleDependencies(
 
   aRequest->mState = ModuleLoadRequest::State::LoadingImports;
 
-  nsCOMArray<nsIURI> urls;
-  nsresult rv = ResolveRequestedModules(aRequest, &urls);
+  nsTArray<ModuleMapKey> requestedModules;
+  nsresult rv = ResolveRequestedModules(aRequest, &requestedModules);
   if (NS_FAILED(rv)) {
     aRequest->mModuleScript = nullptr;
     aRequest->ModuleErrored();
     return;
   }
 
-  // Remove already visited URLs from the list. Put unvisited URLs into the
-  // visited set.
-  int32_t i = 0;
-  while (i < urls.Count()) {
-    nsIURI* url = urls[i];
-    ModuleMapKey moduleMapKey(url, ModuleType::JavaScript);
-
-    if (visitedSet->Contains(moduleMapKey)) {
-      urls.RemoveObjectAt(i);
+  // Remove already visited requested modules from the list. Put unvisited
+  // requested modules into the visited set.
+  size_t i = 0;
+  while (i < requestedModules.Length()) {
+    if (visitedSet->Contains(requestedModules[i])) {
+      requestedModules.RemoveElementAt(i);
     } else {
-      visitedSet->PutEntry(moduleMapKey);
+      visitedSet->PutEntry(requestedModules[i]);
       i++;
     }
   }
 
-  if (urls.Count() == 0) {
+  if (requestedModules.Length() == 0) {
     // There are no descendants to load so this request is ready.
     aRequest->DependenciesLoaded();
     return;
   }
 
   MOZ_ASSERT(aRequest->mAwaitingImports == 0);
-  aRequest->mAwaitingImports = urls.Count();
+  aRequest->mAwaitingImports = requestedModules.Length();
 
-  // For each url in urls, fetch a module script graph given url, module
-  // script's CORS setting, and module script's settings object.
-  for (auto* url : urls) {
-    StartFetchingModuleAndDependencies(aRequest, url);
+  // For each requested module in `requestedModules`, fetch a module script
+  // graph given url, module script's CORS setting, and module script's
+  // settings object.
+  for (const ModuleMapKey& requestedModule : requestedModules) {
+    StartFetchingModuleAndDependencies(aRequest, requestedModule);
   }
 }
 
 void ModuleLoaderBase::StartFetchingModuleAndDependencies(
-    ModuleLoadRequest* aParent, nsIURI* aURI) {
-  MOZ_ASSERT(aURI);
-
-  RefPtr<ModuleLoadRequest> childRequest = CreateStaticImport(aURI, aParent);
+    ModuleLoadRequest* aParent, const ModuleMapKey& aRequestedModule) {
+  RefPtr<ModuleLoadRequest> childRequest =
+      CreateStaticImport(aRequestedModule.mUri, aParent);
 
   aParent->mImports.AppendElement(childRequest);
 
@@ -928,7 +926,7 @@ void ModuleLoaderBase::StartFetchingModuleAndDependencies(
     aParent->mURI->GetAsciiSpec(url1);
 
     nsAutoCString url2;
-    aURI->GetAsciiSpec(url2);
+    aRequestedModule.mUri->GetAsciiSpec(url2);
 
     LOG(("ScriptLoadRequest (%p): Start fetching dependency %p", aParent,
          childRequest.get()));
