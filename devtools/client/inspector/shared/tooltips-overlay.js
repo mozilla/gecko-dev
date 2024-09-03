@@ -22,7 +22,7 @@ const {
 
 loader.lazyRequireGetter(
   this,
-  "getColor",
+  "getCssVariableColor",
   "resource://devtools/client/shared/theme.js",
   true
 );
@@ -530,7 +530,10 @@ TooltipsOverlay.prototype = {
     font = font.replace("!important", "");
     font = font.trim();
 
-    const fillStyle = getColor("body-color");
+    const fillStyle = getCssVariableColor(
+      "--theme-body-color",
+      this.view.inspector.panelWin
+    );
     const { data, size: maxDim } = await nodeFront.getFontFamilyDataURL(
       font,
       fillStyle

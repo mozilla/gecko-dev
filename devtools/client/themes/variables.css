@@ -2,11 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * IMPORTANT NOTE
- * This file is parsed in js (see client/shared/theme.js)
- * so the formatting should be consistent (i.e. no '}' inside a rule).
+/* The following properties values are consumed by the client for drawing in canvas
+ * (for the Netmonitor waterfall ticks, the Font preview, …).
+ * Since they're defined in :root with light-dark(), we need to register them so we'll get
+ * the actual final (rgb) color, and not the declaration with subtituted variables
  */
+@property --theme-highlight-blue {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --theme-highlight-red {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --theme-body-color {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
 
 :root {
   /* Text sizes */

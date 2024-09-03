@@ -61,7 +61,11 @@ async function testRuleView(ruleView, nodeFront) {
     "Tooltip contains a data-uri image as expected"
   );
 
-  let dataURL = await getFontFamilyDataURL(valueSpan.textContent, nodeFront);
+  let dataURL = await getFontFamilyDataURL(
+    ruleView.inspector.panelWin,
+    valueSpan.textContent,
+    nodeFront
+  );
   is(
     images[0].getAttribute("src"),
     dataURL,
@@ -84,7 +88,11 @@ async function testRuleView(ruleView, nodeFront) {
     "Tooltip contains a data-uri image as expected"
   );
 
-  dataURL = await getFontFamilyDataURL(fontFamilySpan.textContent, nodeFront);
+  dataURL = await getFontFamilyDataURL(
+    ruleView.inspector.panelWin,
+    fontFamilySpan.textContent,
+    nodeFront
+  );
   is(
     images[0].getAttribute("src"),
     dataURL,
@@ -114,7 +122,11 @@ async function testComputedView(computedView, nodeFront) {
     "Tooltip contains a data-uri image as expected"
   );
 
-  const dataURL = await getFontFamilyDataURL(valueSpan.textContent, nodeFront);
+  const dataURL = await getFontFamilyDataURL(
+    computedView.inspector.panelWin,
+    valueSpan.textContent,
+    nodeFront
+  );
   is(
     images[0].getAttribute("src"),
     dataURL,
@@ -155,7 +167,11 @@ async function testExpandedComputedViewProperty(computedView, nodeFront) {
     "Tooltip contains a data-uri image as expected"
   );
 
-  const dataURL = await getFontFamilyDataURL(valueSpan.textContent, nodeFront);
+  const dataURL = await getFontFamilyDataURL(
+    computedView.inspector.panelWin,
+    valueSpan.textContent,
+    nodeFront
+  );
   is(
     images[0].getAttribute("src"),
     dataURL,

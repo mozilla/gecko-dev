@@ -62,7 +62,11 @@ async function testRuleView(ruleView, nodeFront) {
     "Tooltip contains a data-uri image as expected"
   );
 
-  const dataURL = await getFontFamilyDataURL(valueSpan.textContent, nodeFront);
+  const dataURL = await getFontFamilyDataURL(
+    ruleView.inspector.panelWin,
+    valueSpan.textContent,
+    nodeFront
+  );
   is(
     images[0].getAttribute("src"),
     dataURL,

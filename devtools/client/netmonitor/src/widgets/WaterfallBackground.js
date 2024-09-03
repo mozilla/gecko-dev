@@ -4,7 +4,9 @@
 
 "use strict";
 
-const { getColor } = require("resource://devtools/client/shared/theme.js");
+const {
+  getCssVariableColor,
+} = require("resource://devtools/client/shared/theme.js");
 const { colorUtils } = require("resource://devtools/shared/css/color.js");
 const {
   REQUESTS_WATERFALL,
@@ -123,12 +125,12 @@ class WaterfallBackground {
       REQUESTS_WATERFALL;
     drawTimestamp(
       state.timingMarkers.firstDocumentDOMContentLoadedTimestamp,
-      this.getThemeColorAsRgba(DOMCONTENTLOADED_TICKS_COLOR, state.theme)
+      this.getThemeColorAsRgba(DOMCONTENTLOADED_TICKS_COLOR)
     );
 
     drawTimestamp(
       state.timingMarkers.firstDocumentLoadTimestamp,
-      this.getThemeColorAsRgba(LOAD_TICKS_COLOR, state.theme)
+      this.getThemeColorAsRgba(LOAD_TICKS_COLOR)
     );
 
     // Flush the image data and cache the waterfall background.
@@ -146,14 +148,15 @@ class WaterfallBackground {
    * Retrieve a color defined for the provided theme as a rgba array. The alpha channel is
    * forced to the waterfall constant TICKS_COLOR_OPACITY.
    *
-   * @param {String} colorName
-   *        The name of the theme color
-   * @param {String} theme
-   *        The name of the theme
+   * @param {String} colorVariableName
+   *        The name of the variable defining the color
    * @return {Array} RGBA array for the color.
    */
-  getThemeColorAsRgba(colorName, theme) {
-    const colorStr = getColor(colorName, theme);
+  getThemeColorAsRgba(colorVariableName) {
+    const colorStr = getCssVariableColor(
+      colorVariableName,
+      document.ownerGlobal
+    );
     const color = new colorUtils.CssColor(colorStr);
     const { r, g, b } = color.getRGBATuple();
     return [r, g, b, REQUESTS_WATERFALL.TICKS_COLOR_OPACITY];

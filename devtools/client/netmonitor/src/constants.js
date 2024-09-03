@@ -457,8 +457,8 @@ const REQUESTS_WATERFALL = {
   BACKGROUND_TICKS_OPACITY_MIN: 32,
   BACKGROUND_TICKS_OPACITY_ADD: 32,
   // Colors for timing markers (theme colors, see variables.css)
-  DOMCONTENTLOADED_TICKS_COLOR: "highlight-blue",
-  LOAD_TICKS_COLOR: "highlight-red",
+  DOMCONTENTLOADED_TICKS_COLOR: "--theme-highlight-blue",
+  LOAD_TICKS_COLOR: "--theme-highlight-red",
   // Opacity for the timing markers
   TICKS_COLOR_OPACITY: 192,
   HEADER_TICKS_MULTIPLE: 5, // ms

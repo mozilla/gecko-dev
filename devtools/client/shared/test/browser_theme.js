@@ -6,17 +6,20 @@
 // Tests that theme utilities work
 
 const {
-  getColor,
+  getCssVariableColor,
   getTheme,
   setTheme,
 } = require("resource://devtools/client/shared/theme.js");
 const { PrefObserver } = require("resource://devtools/client/shared/prefs.js");
 
 add_task(async function () {
+  const tab = await addTab("data:text/html;charset=utf-8,Test page");
+  const toolbox = await gDevTools.showToolboxForTab(tab);
+
   testGetTheme();
   testSetTheme();
-  testGetColor();
-  testColorExistence();
+  await testGetCssVariableColor(toolbox.win);
+  await testColorExistence(toolbox.win);
 });
 
 function testGetTheme() {
@@ -69,42 +72,64 @@ function testSetTheme() {
   prefObserver.destroy();
 }
 
-function testGetColor() {
-  const BLUE_DARK = "#75bfff";
-  const BLUE_LIGHT = "#0074e8";
+async function setDarkTheme(win) {
+  setTheme("dark");
+  await waitFor(() =>
+    InspectorUtils.isUsedColorSchemeDark(win.document.documentElement)
+  );
+}
+
+async function setLightTheme(win) {
+  setTheme("light");
+  await waitFor(
+    () => !InspectorUtils.isUsedColorSchemeDark(win.document.documentElement)
+  );
+}
+
+async function testGetCssVariableColor(toolboxWin) {
+  // getCssVariableColor return the computed color, which are in the rgb() format, so we
+  // need to computed them from the original hex values.
+  // --theme-highlight-blue: light-dark(var(--blue-55), #75bfff);
+  // --blue-55: #0074e8;
+  const LIGHT_RGB = InspectorUtils.colorToRGBA("#0074e8");
+  const DARK_RGB = InspectorUtils.colorToRGBA("#75bfff");
+  const BLUE_LIGHT = `rgb(${LIGHT_RGB.r}, ${LIGHT_RGB.g}, ${LIGHT_RGB.b})`;
+  const BLUE_DARK = `rgb(${DARK_RGB.r}, ${DARK_RGB.g}, ${DARK_RGB.b})`;
+
+  // Sanity check
+  ok(InspectorUtils.isValidCSSColor(BLUE_LIGHT), `BLUE_LIGHT is a valid color`);
+  ok(InspectorUtils.isValidCSSColor(BLUE_DARK), `BLUE_DARK is a valid color`);
+
   const originalTheme = getTheme();
 
-  setTheme("dark");
+  await setLightTheme(toolboxWin);
   is(
-    getColor("highlight-blue"),
-    BLUE_DARK,
-    "correctly gets color for enabled theme."
-  );
-  setTheme("light");
-  is(
-    getColor("highlight-blue"),
+    getCssVariableColor("--theme-highlight-blue", toolboxWin),
     BLUE_LIGHT,
     "correctly gets color for enabled theme."
   );
-  setTheme("metal");
+
+  await setDarkTheme(toolboxWin);
   is(
-    getColor("highlight-blue"),
+    getCssVariableColor("--theme-highlight-blue", toolboxWin),
+    BLUE_DARK,
+    "correctly gets color for enabled theme."
+  );
+
+  setTheme("metal");
+  // wait until we're no longer in dark mode
+  await waitFor(
+    () =>
+      !InspectorUtils.isUsedColorSchemeDark(toolboxWin.document.documentElement)
+  );
+  is(
+    getCssVariableColor("--theme-highlight-blue", toolboxWin),
     BLUE_LIGHT,
     "correctly uses light for default theme if enabled theme not found"
   );
 
   is(
-    getColor("highlight-blue", "dark"),
-    BLUE_DARK,
-    "if provided and found, uses the provided theme."
-  );
-  is(
-    getColor("highlight-blue", "metal"),
-    BLUE_LIGHT,
-    "if provided and not found, defaults to light theme."
-  );
-  is(
-    getColor("somecomponents"),
+    getCssVariableColor("--theme-somecomponents", toolboxWin),
     null,
     "if a type cannot be found, should return null."
   );
@@ -112,34 +137,52 @@ function testGetColor() {
   setTheme(originalTheme);
 }
 
-function testColorExistence() {
+async function testColorExistence(win) {
   const vars = [
-    "body-background",
-    "sidebar-background",
-    "contrast-background",
-    "tab-toolbar-background",
-    "toolbar-background",
-    "selection-background",
-    "selection-color",
-    "selection-background-hover",
-    "splitter-color",
-    "comment",
-    "body-color",
-    "text-color-alt",
-    "text-color-inactive",
-    "text-color-strong",
-    "highlight-green",
-    "highlight-blue",
-    "highlight-bluegrey",
-    "highlight-purple",
-    "highlight-lightorange",
-    "highlight-orange",
-    "highlight-red",
-    "highlight-pink",
+    "--theme-body-background",
+    "--theme-sidebar-background",
+    "--theme-contrast-background",
+    "--theme-tab-toolbar-background",
+    "--theme-toolbar-background",
+    "--theme-selection-background",
+    "--theme-selection-color",
+    "--theme-selection-background-hover",
+    "--theme-splitter-color",
+    "--theme-comment",
+    "--theme-body-color",
+    "--theme-text-color-alt",
+    "--theme-text-color-inactive",
+    "--theme-text-color-strong",
+    "--theme-highlight-green",
+    "--theme-highlight-blue",
+    "--theme-highlight-bluegrey",
+    "--theme-highlight-purple",
+    "--theme-highlight-lightorange",
+    "--theme-highlight-orange",
+    "--theme-highlight-red",
+    "--theme-highlight-pink",
   ];
 
-  for (const type of vars) {
-    ok(getColor(type, "light"), `${type} is a valid color in light theme`);
-    ok(getColor(type, "dark"), `${type} is a valid color in dark theme`);
+  const originalTheme = getTheme();
+  await setLightTheme(win);
+  for (const variableName of vars) {
+    const color = getCssVariableColor(variableName, win);
+    ok(color, `${variableName} exists in light theme`);
+    ok(
+      InspectorUtils.isValidCSSColor(color),
+      `${variableName} is a valid color in light theme`
+    );
   }
+
+  await setDarkTheme(win);
+  for (const variableName of vars) {
+    const color = getCssVariableColor(variableName, win);
+    ok(color, `${variableName} exists in dark theme`);
+    ok(
+      InspectorUtils.isValidCSSColor(color),
+      `${variableName} is a valid color in dark theme`
+    );
+  }
+
+  setTheme(originalTheme);
 }
