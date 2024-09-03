@@ -167,6 +167,7 @@
 #include "js/SweepingAPI.h"
 #include "js/Transcoding.h"  // JS::TranscodeBuffer, JS::TranscodeRange, JS::IsTranscodeFailureResult
 #include "js/Warnings.h"    // JS::SetWarningReporter
+#include "js/WasmFeatures.h"  // JS_FOR_WASM_FEATURES
 #include "js/WasmModule.h"  // JS::WasmModule
 #include "js/Wrapper.h"
 #include "proxy/DeadObjectProxy.h"  // js::IsDeadProxyObject
@@ -11907,10 +11908,27 @@ static bool SetJSPrefToValue(const char* name, size_t nameLen,
   return false;
 }
 
+static bool IsJSPrefAvailable(const char* pref) {
+  if (!fuzzingSafe) {
+    // All prefs in fuzzing unsafe mode are enabled.
+    return true;
+  }
+#define WASM_FEATURE(NAME, LOWER_NAME, COMPILE_PRED, COMPILER_PRED, FLAG_PRED, \
+                     FLAG_FORCE_ON, FLAG_FUZZ_ON, PREF)                        \
+  if constexpr (!FLAG_FUZZ_ON) {                                               \
+    if (strcmp("wasm_" #PREF, pref) == 0) {                                    \
+      return false;                                                            \
+    }                                                                          \
+  }
+  JS_FOR_WASM_FEATURES(WASM_FEATURE)
+#undef WASM_FEATURE
+  return true;
+}
+
 static bool SetJSPref(const char* pref) {
   const char* assign = strchr(pref, '=');
   if (!assign) {
-    if (!SetJSPrefToTrueForBool(pref)) {
+    if (IsJSPrefAvailable(pref) && !SetJSPrefToTrueForBool(pref)) {
       return false;
     }
     return true;
@@ -11919,7 +11937,7 @@ static bool SetJSPref(const char* pref) {
   size_t nameLen = assign - pref;
   const char* valStart = assign + 1;  // Skip '='.
 
-  if (!SetJSPrefToValue(pref, nameLen, valStart)) {
+  if (IsJSPrefAvailable(pref) && !SetJSPrefToValue(pref, nameLen, valStart)) {
     return false;
   }
   return true;
@@ -11927,6 +11945,9 @@ static bool SetJSPref(const char* pref) {
 
 static void ListJSPrefs() {
   auto printPref = [](const char* name, auto defaultVal) {
+    if (!IsJSPrefAvailable(name)) {
+      return;
+    }
     using T = decltype(defaultVal);
     if constexpr (std::is_same_v<T, bool>) {
       fprintf(stderr, "%s=%s\n", name, defaultVal ? "true" : "false");
