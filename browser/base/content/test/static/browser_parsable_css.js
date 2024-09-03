@@ -135,6 +135,16 @@ let propNameAllowlist = [
   { propName: "--panel-border-color", isFromDevTools: true },
   { propName: "--panel-shadow", isFromDevTools: true },
   { propName: "--panel-shadow-margin", isFromDevTools: true },
+
+  // These variable are used in JS in WaterfallBackground.js
+  {
+    propName: "--timing-marker-dom-content-loaded-color",
+    isFromDevTools: true,
+  },
+  {
+    propName: "--timing-marker-load-color",
+    isFromDevTools: true,
+  },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and

@@ -10,6 +10,19 @@
   --status-code-color-3xx: transparent;
   --status-code-color-4xx: var(--theme-highlight-pink);
   --status-code-color-5xx: var(--theme-highlight-red);
+
+  /* Colors for timing markers */
+  --timing-marker-color-opacity: 0.75;
+  --timing-marker-dom-content-loaded-color:
+    rgb(
+      from var(--theme-highlight-blue) r g b /
+      var(--timing-marker-color-opacity)
+    );
+  --timing-marker-load-color:
+    rgb(
+      from var(--theme-highlight-red) r g b /
+      var(--timing-marker-color-opacity)
+    );
 }
 
 :root.theme-dark {
