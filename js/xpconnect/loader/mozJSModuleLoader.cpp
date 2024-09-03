@@ -2099,7 +2099,8 @@ nsresult mozJSModuleLoader::ImportESModule(
       ModuleLoadRequest::NewVisitedSetForTopLevelImport(uri);
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      uri, dom::ReferrerPolicy::No_referrer, options, dom::SRIMetadata(),
+      uri, JS::ModuleType::JavaScript, dom::ReferrerPolicy::No_referrer,
+      options, dom::SRIMetadata(),
       /* aReferrer = */ nullptr, context,
       /* aIsTopLevel = */ true,
       /* aIsDynamicImport = */ false, mModuleLoader, visitedSet, nullptr);
