@@ -1093,11 +1093,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -1119,17 +1114,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -1155,17 +1140,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -1191,11 +1166,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -1215,11 +1185,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -1243,11 +1208,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -1269,17 +1229,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2319,11 +2269,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2345,17 +2290,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2381,17 +2316,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2417,11 +2342,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2441,11 +2361,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -2469,11 +2384,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2495,17 +2405,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2577,11 +2477,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2603,17 +2498,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2639,17 +2524,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -2675,11 +2550,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2699,11 +2569,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -2727,11 +2592,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -2753,17 +2613,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3093,11 +2943,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3119,17 +2964,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3155,17 +2990,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3191,11 +3016,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3215,11 +3035,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -3243,11 +3058,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3269,17 +3079,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3352,11 +3152,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3378,17 +3173,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3414,17 +3199,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3450,11 +3225,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3474,11 +3244,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -3502,11 +3267,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3528,17 +3288,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3611,11 +3361,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3637,17 +3382,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3673,17 +3408,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3709,11 +3434,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3733,11 +3453,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -3761,11 +3476,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3787,17 +3497,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3870,11 +3570,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3896,17 +3591,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3932,17 +3617,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -3968,11 +3643,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -3992,11 +3662,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -4020,11 +3685,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4046,17 +3706,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4129,11 +3779,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4155,17 +3800,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4191,17 +3826,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4227,11 +3852,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4251,11 +3871,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -4279,11 +3894,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4305,17 +3915,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4388,11 +3988,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4414,17 +4009,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4450,17 +4035,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4486,11 +4061,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4510,11 +4080,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -4538,11 +4103,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4564,17 +4124,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4647,11 +4197,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4673,17 +4218,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4709,17 +4244,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4745,11 +4270,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4769,11 +4289,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -4797,11 +4312,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4823,17 +4333,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4906,11 +4406,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -4932,17 +4427,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -4968,17 +4453,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5004,11 +4479,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5028,11 +4498,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -5056,11 +4521,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5082,17 +4542,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5165,11 +4615,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5191,17 +4636,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5227,17 +4662,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5263,11 +4688,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5287,11 +4707,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -5315,11 +4730,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5341,17 +4751,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5424,11 +4824,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5450,17 +4845,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5486,17 +4871,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5522,11 +4897,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5546,11 +4916,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -5574,11 +4939,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5600,17 +4960,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5683,11 +5033,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5709,17 +5054,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5745,17 +5080,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5781,11 +5106,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5805,11 +5125,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -5833,11 +5148,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5859,17 +5169,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -5942,11 +5242,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -5968,17 +5263,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -6004,17 +5289,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -6040,11 +5315,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -6064,11 +5334,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -6092,11 +5357,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -6118,17 +5378,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -6201,11 +5451,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -6227,17 +5472,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -6263,17 +5498,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
@@ -6299,11 +5524,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -6323,11 +5543,6 @@ For the sample commands found below, note that the capitalization used is import
       * - **talos-webgl**
         - ❌
         - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
         - ❌
         - ❌
       * - **talos-webgl-swr**
@@ -6351,11 +5566,6 @@ For the sample commands found below, note that the capitalization used is import
         - ❌
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-swr**
         - ❌
         - ❌
@@ -6377,17 +5587,7 @@ For the sample commands found below, note that the capitalization used is import
         - ✅
         - ❌
         - ❌
-      * - **talos-webgl-gli**
-        - ✅
-        - ✅
-        - ❌
-        - ❌
       * - **talos-webgl-profiling**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
-      * - **talos-webgl-profiling-gli**
         - ❌
         - ❌
         - ❌
