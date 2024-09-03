@@ -851,7 +851,8 @@ class AsyncPanZoomController {
   /**
    * Gets the relevant point in the event, in external screen coordinates.
    */
-  ExternalPoint GetFirstExternalTouchPoint(const MultiTouchInput& aEvent);
+  static ExternalPoint GetFirstExternalTouchPoint(
+      const MultiTouchInput& aEvent);
 
   /**
    * Gets the amount by which this APZC is overscrolled along both axes.
@@ -1109,6 +1110,12 @@ class AsyncPanZoomController {
   // RecentEventsBuffer is not threadsafe. Should only be accessed on the
   // controller thread.
   RecentEventsBuffer<PinchGestureInput> mPinchEventBuffer;
+
+  // Stores the touch events that occured within a given timeframe. Ussed to
+  // determine the direction of a touch scroll, which determines which axis
+  // should be locked if STICKY axis locking is used. Should only by accessed
+  // on the controller thread.
+  RecentEventsBuffer<MultiTouchInput> mTouchScrollEventBuffer;
 
   // Most up-to-date constraints on zooming. These should always be reasonable
   // values; for example, allowing a min zoom of 0.0 can cause very bad things

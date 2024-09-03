@@ -68,7 +68,7 @@ class APZCAxisLockTester : public APZCTreeManagerTester {
     };
     CreateScrollData(treeShape, layerVisibleRect);
     SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
-                              CSSRect(0, 0, 500, 500));
+                              CSSRect(0, 0, 1000, 1000));
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
 
@@ -636,6 +636,118 @@ TEST_P(APZCAxisLockCompatTester, TestPanGestureStart) {
 
   EXPECT_EQ(currentOffset.x, 0);
   EXPECT_EQ(currentOffset.y, 10);
+}
+
+TEST_F(APZCAxisLockTester, TouchScrollWithStickyAxisLocking) {
+  SCOPED_GFX_PREF_INT("apz.axis_lock.mode", 2);
+  SCOPED_GFX_PREF_FLOAT("apz.axis_lock.breakout_angle", 0.392699);
+  SCOPED_GFX_PREF_FLOAT("apz.axis_lock.lock_angle", 0.523599);
+
+  SetupBasicTest();
+
+  apzc = ApzcOf(root);
+
+  // Scroll somewhere into the middle of the scroll range, so that we have
+  // lots of space to scroll in both directions.
+  apzc->GetFrameMetrics().SetVisualScrollOffset(CSSPoint(250, 250));
+
+  UpdateHitTestingTree();
+
+  // Trigger a touch scroll that will cause us to lock onto the
+  // y-axis.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID);
+  Unused << TouchDown(apzc, ScreenIntPoint(50, 50), mcc->Time());
+  mcc->AdvanceByMillis(10);
+
+  Unused << TouchMove(apzc, ScreenIntPoint(50, 60), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  Unused << TouchMove(apzc, ScreenIntPoint(50, 70), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  apzc->AssertStateIsPanningLockedY();
+
+  ParentLayerPoint currentOffset = apzc->GetCurrentAsyncScrollOffset(
+      AsyncTransformConsumer::eForEventHandling);
+  ParentLayerPoint lastOffset = currentOffset;
+
+  // A touch scroll in the reverse direction with slight movement
+  // on the x-axis should not cause us to break the y-axis lock.
+  Unused << TouchMove(apzc, ScreenIntPoint(55, 60), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  // We should have scrolled only on the y-axis.
+  currentOffset = apzc->GetCurrentAsyncScrollOffset(
+      AsyncTransformConsumer::eForEventHandling);
+  EXPECT_GT(currentOffset.y, lastOffset.y);
+  EXPECT_EQ(currentOffset.x, lastOffset.x);
+  lastOffset = currentOffset;
+  apzc->AssertStateIsPanningLockedY();
+
+  Unused << TouchMove(apzc, ScreenIntPoint(60, 50), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  // We should continue to scroll only on the y-axis.
+  currentOffset = apzc->GetCurrentAsyncScrollOffset(
+      AsyncTransformConsumer::eForEventHandling);
+  EXPECT_GT(currentOffset.y, lastOffset.y);
+  EXPECT_EQ(currentOffset.x, lastOffset.x);
+  apzc->AssertStateIsPanningLockedY();
+  lastOffset = currentOffset;
+
+  Unused << TouchMove(apzc, ScreenIntPoint(60, 40), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  currentOffset = apzc->GetCurrentAsyncScrollOffset(
+      AsyncTransformConsumer::eForEventHandling);
+  EXPECT_GT(currentOffset.y, lastOffset.y);
+  EXPECT_EQ(currentOffset.x, lastOffset.x);
+  apzc->AssertStateIsPanningLockedY();
+  lastOffset = currentOffset;
+
+  Unused << TouchUp(apzc, ScreenIntPoint(65, 40), mcc->Time());
+}
+
+// TODO(bug 1915260): Make this test pass.
+TEST_F(APZCAxisLockTester, TouchScrollWithStickyAxisLockingBug1915260) {
+  GTEST_SKIP() << "TODO(bug 1915260): Make this test pass.";
+
+  SCOPED_GFX_PREF_INT("apz.axis_lock.mode", 2);
+  SCOPED_GFX_PREF_FLOAT("apz.axis_lock.breakout_angle", 0.392699);
+  SCOPED_GFX_PREF_FLOAT("apz.axis_lock.lock_angle", 0.523599);
+
+  SetupBasicTest();
+
+  apzc = ApzcOf(root);
+
+  // Scroll somewhere into the middle of the scroll range, so that we have
+  // lots of space to scroll in both directions.
+  apzc->GetFrameMetrics().SetVisualScrollOffset(CSSPoint(250, 250));
+
+  // Trigger a touch scroll that will cause us to lock onto the
+  // y-axis.
+  QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID);
+  Unused << TouchDown(apzc, ScreenIntPoint(50, 50), mcc->Time());
+  mcc->AdvanceByMillis(10);
+
+  Unused << TouchMove(apzc, ScreenIntPoint(50, 60), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  Unused << TouchMove(apzc, ScreenIntPoint(50, 70), mcc->Time());
+  mcc->AdvanceByMillis(200);
+
+  apzc->AssertStateIsPanningLockedY();
+
+  // Assuming the last event in the historical touch scroll buffer
+  // we use to determine touch scroll direction is (50,60), this
+  // touch-move event will exceed the breakout threshold and will
+  // be considered to be a horizontal scroll, thus breaking the
+  // lock onto the y-axis.
+  Unused << TouchMove(apzc, ScreenIntPoint(60, 60), mcc->Time());
+  mcc->AdvanceByMillis(100);
+  apzc->AssertStateIsPanningLockedY();
+
+  Unused << TouchUp(apzc, ScreenIntPoint(65, 45), mcc->Time());
 }
 
 // All APZCAxisLockCompatTester tests should be run for each apz.axis_lock.mode.

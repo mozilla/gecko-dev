@@ -769,6 +769,10 @@ AsyncPanZoomController::AsyncPanZoomController(
       mPinchLocked(false),
       mPinchEventBuffer(TimeDuration::FromMilliseconds(
           StaticPrefs::apz_pinch_lock_buffer_max_age_AtStartup())),
+      mTouchScrollEventBuffer(
+          TimeDuration::FromMilliseconds(
+              StaticPrefs::apz_touch_scroll_buffer_max_age_AtStartup()),
+          2),
       mZoomConstraints(false, false,
                        mScrollMetadata.GetMetrics().GetDevPixelsPerCSSPixel() *
                            ViewportMinScale() / ParentLayerToScreenScale(1),
@@ -1327,6 +1331,7 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(
       }
       mLastTouch.mTimeStamp = mTouchStartTime = aEvent.mTimeStamp;
       SetState(TOUCHING);
+      mTouchScrollEventBuffer.push(aEvent);
       break;
     }
     case TOUCHING:
@@ -1384,6 +1389,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(
       nsEventStatus result;
       const MultiTouchInput& firstEvent =
           splitEvent ? splitEvent->first : aEvent;
+      mTouchScrollEventBuffer.push(firstEvent);
 
       MOZ_ASSERT(GetCurrentTouchBlock());
       if (GetCurrentTouchBlock()->TouchActionAllowsPanningXY()) {
@@ -3173,6 +3179,7 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(
 }
 
 void AsyncPanZoomController::OnTouchEndOrCancel() {
+  mTouchScrollEventBuffer.clear();
   if (RefPtr<GeckoContentController> controller = GetGeckoContentController()) {
     MOZ_ASSERT(GetCurrentTouchBlock());
     controller->NotifyAPZStateChange(
@@ -3521,10 +3528,11 @@ void AsyncPanZoomController::HandlePanningUpdate(
     float breakThreshold =
         StaticPrefs::apz_axis_lock_breakout_threshold() * GetDPI();
 
-    if (fabs(aPanDistance.x) > breakThreshold ||
-        fabs(aPanDistance.y) > breakThreshold) {
-      switch (mState) {
-        case PANNING_LOCKED_X:
+    switch (mState) {
+      case PANNING_LOCKED_X:
+        // If the pan distance in the y-axis is beyond the breakout threshold,
+        // we may need to break the current axis lock.
+        if (fabs(aPanDistance.y) > breakThreshold) {
           if (!apz::IsCloseToHorizontal(
                   angle, StaticPrefs::apz_axis_lock_breakout_angle())) {
             mY.SetAxisLocked(false);
@@ -3538,9 +3546,13 @@ void AsyncPanZoomController::HandlePanningUpdate(
               SetState(PANNING);
             }
           }
-          break;
+        }
+        break;
 
-        case PANNING_LOCKED_Y:
+      case PANNING_LOCKED_Y:
+        // If the pan distance in the x-axis is beyond the breakout threshold,
+        // we may need to break the current axis lock.
+        if (fabs(aPanDistance.x) > breakThreshold) {
           if (!apz::IsCloseToVertical(
                   angle, StaticPrefs::apz_axis_lock_breakout_angle())) {
             mX.SetAxisLocked(false);
@@ -3554,15 +3566,15 @@ void AsyncPanZoomController::HandlePanningUpdate(
               SetState(PANNING);
             }
           }
-          break;
+        }
+        break;
 
-        case PANNING:
-          HandlePanning(angle);
-          break;
+      case PANNING:
+        HandlePanning(angle);
+        break;
 
-        default:
-          break;
-      }
+      default:
+        break;
     }
   }
 }
@@ -4215,8 +4227,18 @@ void AsyncPanZoomController::EndTouch(TimeStamp aTimestamp,
 }
 
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
+  mTouchScrollEventBuffer.push(aEvent);
   ExternalPoint extPoint = GetFirstExternalTouchPoint(aEvent);
-  ScreenPoint panVector = PanVector(extPoint);
+  ExternalPoint refPoint;
+  if (mTouchScrollEventBuffer.size() > 1) {
+    refPoint = GetFirstExternalTouchPoint(mTouchScrollEventBuffer.front());
+  } else {
+    refPoint = mStartTouch;
+  }
+
+  ScreenPoint panVector = ViewAs<ScreenPixel>(
+      extPoint - refPoint, PixelCastJustification::ExternalIsScreen);
+
   HandlePanningUpdate(panVector);
 
   ParentLayerPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
