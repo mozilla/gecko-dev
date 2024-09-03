@@ -40,6 +40,11 @@ pub trait PseudoElement: Sized + ToCss {
     fn valid_after_slotted(&self) -> bool {
         false
     }
+
+    /// The count we contribute to the specificity from this pseudo-element.
+    fn specificity_count(&self) -> u32 {
+        1
+    }
 }
 
 /// A trait that represents a pseudo-class.

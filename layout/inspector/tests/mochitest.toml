@@ -7,6 +7,7 @@ prefs = [
   "layout.css.starting-style-at-rules.enabled=true",
   "layout.css.transition-behavior.enabled=true",
   "dom.customHighlightAPI.enabled=true",
+  "dom.viewTransitions.enabled=true",
 ]
 support-files = [
   "bug1202095.css",

@@ -90,8 +90,20 @@ class Atom:
     def is_tree_pseudo_element(self):
         return self.value.startswith(":-moz-tree-")
 
+    def is_named_view_transition_pseudo(self) -> bool:
+        return (
+            self.pseudo_ident == "viewTransitionGroup"
+            or self.pseudo_ident == "viewTransitionImagePair"
+            or self.pseudo_ident == "viewTransitionOld"
+            or self.pseudo_ident == "viewTransitionNew"
+        )
+
     def is_simple_pseudo_element(self) -> bool:
-        return not (self.is_tree_pseudo_element() or self.pseudo_ident == "highlight")
+        return not (
+            self.is_tree_pseudo_element()
+            or self.pseudo_ident == "highlight"
+            or self.is_named_view_transition_pseudo()
+        )
 
 
 def collect_atoms(objdir):

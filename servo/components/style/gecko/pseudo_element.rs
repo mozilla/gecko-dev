@@ -47,6 +47,11 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
     fn accepts_state_pseudo_classes(&self) -> bool {
         self.supports_user_action_state()
     }
+
+    #[inline]
+    fn specificity_count(&self) -> u32 {
+        self.specificity_count()
+    }
 }
 
 impl PseudoElement {
@@ -164,6 +169,24 @@ impl PseudoElement {
     pub fn is_target_text(&self) -> bool {
         *self == PseudoElement::TargetText
     }
+
+    /// The count we contribute to the specificity from this pseudo-element.
+    pub fn specificity_count(&self) -> u32 {
+        match *self {
+            Self::ViewTransitionGroup(ref name) |
+            Self::ViewTransitionImagePair(ref name) |
+            Self::ViewTransitionOld(ref name) |
+            Self::ViewTransitionNew(ref name) => {
+                // The specificity of a named view transition pseudo-element selector with a
+                // `<custom-ident>` argument is equivalent to a type selector.
+                // The specificity of a named view transition pseudo-element selector with a `*`
+                // argument is zero.
+                (name.0 != atom!("*")) as u32
+            },
+            _ => 1,
+        }
+    }
+
     /// Whether this pseudo-element supports user action selectors.
     pub fn supports_user_action_state(&self) -> bool {
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE) != 0
@@ -177,6 +200,11 @@ impl PseudoElement {
             Self::SliderFill | Self::SliderTrack | Self::SliderThumb => {
                 pref!("layout.css.modern-range-pseudos.enabled")
             },
+            Self::ViewTransition |
+            Self::ViewTransitionGroup(..) |
+            Self::ViewTransitionImagePair(..) |
+            Self::ViewTransitionOld(..) |
+            Self::ViewTransitionNew(..) => pref!("dom.viewTransitions.enabled"),
             // If it's not explicitly enabled in UA sheets or chrome, then we're enabled for
             // content.
             _ => (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) == 0,

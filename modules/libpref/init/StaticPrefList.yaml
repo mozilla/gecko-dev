@@ -4458,6 +4458,7 @@
   type: RelaxedAtomicBool
   value: false
   mirror: always
+  rust: true
 
 # Is support for WebVR APIs enabled?
 # Disabled everywhere, but not removed.

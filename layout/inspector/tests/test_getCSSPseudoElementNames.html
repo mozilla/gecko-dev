@@ -9,7 +9,7 @@
   <script type="application/javascript">
     const InspectorUtils = SpecialPowers.InspectorUtils;
 
-    // NOTE(emilio): When this changes, make sure to update _pseudoIsRelevant in devtools/server/actors/styles.js
+    // NOTE(emilio): When this changes, make sure to update _pseudoIsRelevant in devtools/server/actors/page-style.js
     let expected = new Set([
       "::after",
       "::before",
@@ -23,6 +23,11 @@
       "::placeholder",
       "::selection",
       "::target-text",
+      "::view-transition",
+      "::view-transition-group",
+      "::view-transition-image-pair",
+      "::view-transition-old",
+      "::view-transition-new",
       "::-moz-color-swatch",
       "::-moz-focus-inner",
       "::-moz-meter-bar",

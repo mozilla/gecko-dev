@@ -690,6 +690,7 @@ class PageStyleActor extends Actor {
           continue;
         }
 
+        // FIXME: Bug 1909173. Need to handle view transitions peudo-elements.
         if (readPseudo === "::highlight") {
           InspectorUtils.getRegisteredCssHighlights(
             this.inspector.targetActor.window.document,
@@ -801,6 +802,14 @@ class PageStyleActor extends Actor {
       case "::slider-thumb":
       case "::slider-track":
         return node.nodeName == "INPUT" && node.type == "range";
+      case "::view-transition":
+      case "::view-transition-group":
+      case "::view-transition-image-pair":
+      case "::view-transition-old":
+      case "::view-transition-new":
+        // FIXME: Bug 1909173. Need to handle view transitions peudo-elements
+        // for DevTools. For now we skip them.
+        return false;
       default:
         console.error("Unhandled pseudo-element " + pseudo);
         return false;

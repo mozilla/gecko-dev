@@ -286,9 +286,10 @@ where
                 flags.insert(SelectorFlags::HAS_PART);
                 specificity.element_selectors += 1
             },
-            Component::PseudoElement(..) => {
+            Component::PseudoElement(ref pseudo) => {
+                use crate::parser::PseudoElement;
                 flags.insert(SelectorFlags::HAS_PSEUDO);
-                specificity.element_selectors += 1
+                specificity.element_selectors += pseudo.specificity_count();
             },
             Component::LocalName(..) => {
                 flags.insert(SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
