@@ -8042,6 +8042,20 @@ bool nsContentUtils::IsJavascriptMIMEType(const nsACString& aMIMEType) {
   return false;
 }
 
+bool nsContentUtils::IsJsonMimeType(const nsAString& aMimeType) {
+  // Table ordered from most to least likely JSON MIME types.
+  static constexpr std::string_view jsonTypes[] = {"application/json",
+                                                   "text/json"};
+
+  for (std::string_view type : jsonTypes) {
+    if (aMimeType.LowerCaseEqualsASCII(type.data(), type.length())) {
+      return true;
+    }
+  }
+
+  return StringEndsWith(aMimeType, u"+json"_ns);
+}
+
 bool nsContentUtils::PrefetchPreloadEnabled(nsIDocShell* aDocShell) {
   //
   // SECURITY CHECK: disable prefetching and preloading from mailnews!

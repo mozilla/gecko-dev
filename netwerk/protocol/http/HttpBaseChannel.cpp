@@ -2945,6 +2945,12 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
     return NS_OK;
   }
 
+  if (nsContentUtils::IsJsonMimeType(typeString)) {
+    AccumulateCategorical(
+        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_json);
+    return NS_OK;
+  }
+
   switch (aLoadInfo->InternalContentPolicyType()) {
     case nsIContentPolicy::TYPE_SCRIPT:
     case nsIContentPolicy::TYPE_INTERNAL_SCRIPT:
@@ -3139,7 +3145,8 @@ void WarnWrongMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
   nsAutoCString contentType;
   aResponseHead->ContentType(contentType);
   NS_ConvertUTF8toUTF16 typeString(contentType);
-  if (!nsContentUtils::IsJavascriptMIMEType(typeString)) {
+  if (!nsContentUtils::IsJavascriptMIMEType(typeString) &&
+      !nsContentUtils::IsJsonMimeType(typeString)) {
     ReportMimeTypeMismatch(aChannel, "WarnScriptWithWrongMimeType", aURI,
                            contentType, Report::Warning);
   }
