@@ -15,7 +15,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InsecurePasswordUtils: "resource://gre/modules/InsecurePasswordUtils.sys.mjs",
   FormAutofill: "resource://autofill/FormAutofill.sys.mjs",
   FormAutofillContent: "resource://autofill/FormAutofillContent.sys.mjs",
+  FormAutofillHandler:
+    "resource://gre/modules/shared/FormAutofillHandler.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
+  FormLikeFactory: "resource://gre/modules/FormLikeFactory.sys.mjs",
   FormScenarios: "resource://gre/modules/FormScenarios.sys.mjs",
   FormStateManager: "resource://gre/modules/shared/FormStateManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -377,6 +380,10 @@ export class FormAutofillChild extends JSWindowActorChild {
         const handler = this.#getHandlerByElementId(rootElementId);
         return handler?.collectFormFilledData();
       }
+      case "FormAutofill:InspectFields": {
+        const fieldDetails = this.inspectFields();
+        return fieldDetails.map(field => field.toVanillaObject());
+      }
     }
     return true;
   }
@@ -483,6 +490,34 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     this.#autofillInProgress = false;
     return result;
+  }
+
+  /**
+   * Returns all the identified fields for this document.
+   * This function is only used by about:autofill extension.
+   */
+  inspectFields() {
+    const elements = Array.from(
+      this.document.querySelectorAll("input, select")
+    );
+
+    const roots = new Set();
+    const fieldDetails = [];
+    for (const element of elements) {
+      const formLike = lazy.FormLikeFactory.createFromField(element);
+      if (roots.has(formLike.rootElement)) {
+        continue;
+      }
+      roots.add(formLike.rootElement);
+      const handler = new lazy.FormAutofillHandler(formLike);
+      const fields = handler.collectFormFields();
+      fieldDetails.push(...fields);
+    }
+
+    // For inspection, we want to return the field according to their order
+    return elements
+      .map(element => fieldDetails.find(field => field.element == element))
+      .filter(field => !!field);
   }
 
   /**

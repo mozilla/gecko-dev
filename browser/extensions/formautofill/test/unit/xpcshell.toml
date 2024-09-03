@@ -84,6 +84,8 @@ skip-if = [
   "apple_silicon", # bug 1729554
 ]
 
+["test_inspectFields.js"]
+
 ["test_isAddressAutofillAvailable.js"]
 
 ["test_isCJKName.js"]
