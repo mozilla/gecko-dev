@@ -694,13 +694,15 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv) == (module != nullptr));
 
     if (module) {
-      JS::RootedValue privateValue(cx);
       JS::RootedScript moduleScript(cx, JS::GetModuleScript(module));
-      JS::InstantiateOptions instantiateOptions(options);
-      if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
-                                   privateValue, nullptr, introductionScript,
-                                   nullptr)) {
-        return NS_ERROR_OUT_OF_MEMORY;
+      if (moduleScript) {
+        JS::RootedValue privateValue(cx);
+        JS::InstantiateOptions instantiateOptions(options);
+        if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
+                                     privateValue, nullptr, introductionScript,
+                                     nullptr)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
       }
     }
 
@@ -1242,7 +1244,9 @@ nsresult ModuleLoaderBase::InitDebuggerDataForModuleGraph(
 
   // The script is now ready to be exposed to the debugger.
   JS::Rooted<JSScript*> script(aCx, JS::GetModuleScript(module));
-  JS::ExposeScriptToDebugger(aCx, script);
+  if (script) {
+    JS::ExposeScriptToDebugger(aCx, script);
+  }
 
   moduleScript->SetDebuggerDataInitialized();
   return NS_OK;
