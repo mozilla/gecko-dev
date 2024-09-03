@@ -265,11 +265,17 @@ already_AddRefed<AbortSignal> AbortSignal::Any(
     GlobalObject& aGlobal,
     const Sequence<OwningNonNull<AbortSignal>>& aSignals) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  mozilla::Span span{aSignals.Elements(), aSignals.Length()};
+  return Any(global, span);
+}
 
+already_AddRefed<AbortSignal> AbortSignal::Any(
+    nsIGlobalObject* aGlobal,
+    const Span<const OwningNonNull<AbortSignal>>& aSignals) {
   // Step 1. Let resultSignal be a new object implementing AbortSignal using
   // realm
   RefPtr<AbortSignal> resultSignal =
-      new AbortSignal(global, false, JS::UndefinedHandleValue);
+      new AbortSignal(aGlobal, false, JS::UndefinedHandleValue);
 
   // Step 2. For each signal of signals: if signal is aborted, then set
   // resultSignal's abort reason to signal's abort reason and return
@@ -360,11 +366,6 @@ void AbortSignal::SignalAbort(JS::Handle<JS::Value> aReason) {
   }
   // clear dependent signals so that they might be garbage collected
   mDependentSignals.Clear();
-}
-
-void AbortSignal::RunAbortAlgorithm() {
-  JS::Rooted<JS::Value> reason(RootingCx(), Signal()->RawReason());
-  SignalAbort(reason);
 }
 
 bool AbortSignal::Dependent() const { return mDependent; }
