@@ -16489,7 +16489,7 @@
 
 - name: webgl.drawing_buffer_color_space
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: webgl.debug.incomplete-tex-color
