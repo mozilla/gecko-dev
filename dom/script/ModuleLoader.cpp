@@ -282,12 +282,15 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
     nsIURI* aURI, ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions, const SRIMetadata& aIntegrity,
     nsIURI* aReferrer, ScriptLoader* aLoader, ScriptLoadContext* aContext) {
+  RefPtr<VisitedURLSet> visitedSet =
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
+          aURI, JS::ModuleType::JavaScript);
+
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       aURI, JS::ModuleType::JavaScript, aReferrerPolicy, aFetchOptions,
       aIntegrity, aReferrer, aContext, true,
       /* is top level */ false, /* is dynamic import */
-      aLoader->GetModuleLoader(),
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI), nullptr);
+      aLoader->GetModuleLoader(), visitedSet, nullptr);
 
   request->NoCacheEntryFound();
   return request.forget();
@@ -361,11 +364,15 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
   context->mIsInline = false;
   context->mScriptMode = ScriptLoadContext::ScriptMode::eAsync;
 
-  RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
-      aURI, JS::ModuleType::JavaScript, referrerPolicy, options, SRIMetadata(),
-      baseURL, context, true,
-      /* is top level */ true, /* is dynamic import */
-      this, ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI), nullptr);
+  RefPtr<VisitedURLSet> visitedSet =
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
+          aURI, JS::ModuleType::JavaScript);
+
+  RefPtr<ModuleLoadRequest> request =
+      new ModuleLoadRequest(aURI, JS::ModuleType::JavaScript, referrerPolicy,
+                            options, SRIMetadata(), baseURL, context, true,
+                            /* is top level */ true, /* is dynamic import */
+                            this, visitedSet, nullptr);
 
   request->SetDynamicImport(aMaybeActiveScript, aSpecifier, aPromise);
   request->NoCacheEntryFound();

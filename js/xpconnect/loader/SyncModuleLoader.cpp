@@ -76,12 +76,15 @@ already_AddRefed<ModuleLoadRequest> SyncModuleLoader::CreateDynamicImport(
     JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
     JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) {
   RefPtr<SyncLoadContext> context = new SyncLoadContext();
+  RefPtr<VisitedURLSet> visitedSet =
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
+          aURI, JS::ModuleType::JavaScript);
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       aURI, JS::ModuleType::JavaScript, aMaybeActiveScript->ReferrerPolicy(),
       aMaybeActiveScript->GetFetchOptions(), dom::SRIMetadata(),
       aMaybeActiveScript->BaseURL(), context,
       /* aIsTopLevel = */ true, /* aIsDynamicImport =  */ true, this,
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(aURI), nullptr);
+      visitedSet, nullptr);
 
   request->SetDynamicImport(aMaybeActiveScript, aSpecifier, aPromise);
   request->NoCacheEntryFound();

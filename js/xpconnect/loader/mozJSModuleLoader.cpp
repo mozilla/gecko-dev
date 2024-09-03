@@ -2096,7 +2096,8 @@ nsresult mozJSModuleLoader::ImportESModule(
   context->mSkipCheck = aSkipCheck;
 
   RefPtr<VisitedURLSet> visitedSet =
-      ModuleLoadRequest::NewVisitedSetForTopLevelImport(uri);
+      ModuleLoadRequest::NewVisitedSetForTopLevelImport(
+          uri, JS::ModuleType::JavaScript);
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       uri, JS::ModuleType::JavaScript, dom::ReferrerPolicy::No_referrer,
