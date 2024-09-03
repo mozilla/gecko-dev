@@ -45,12 +45,21 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
 
     #[inline]
     fn accepts_state_pseudo_classes(&self) -> bool {
-        self.supports_user_action_state()
+        // Note: if the pseudo element is a descendants of a pseudo element, `only-child` should be
+        // allowed after it.
+        self.supports_user_action_state() || self.is_in_pseudo_element_tree()
     }
 
     #[inline]
     fn specificity_count(&self) -> u32 {
         self.specificity_count()
+    }
+
+    #[inline]
+    fn is_in_pseudo_element_tree(&self) -> bool {
+        // All the named view transition pseudo-elements are the descendants of a pseudo-element
+        // root.
+        self.is_named_view_transition()
     }
 }
 
@@ -168,6 +177,17 @@ impl PseudoElement {
     #[inline]
     pub fn is_target_text(&self) -> bool {
         *self == PseudoElement::TargetText
+    }
+
+    /// Whether this pseudo-element is a named view transition pseudo-element.
+    pub fn is_named_view_transition(&self) -> bool {
+        matches!(
+            *self,
+            Self::ViewTransitionGroup(..) |
+                Self::ViewTransitionImagePair(..) |
+                Self::ViewTransitionOld(..) |
+                Self::ViewTransitionNew(..)
+        )
     }
 
     /// The count we contribute to the specificity from this pseudo-element.
