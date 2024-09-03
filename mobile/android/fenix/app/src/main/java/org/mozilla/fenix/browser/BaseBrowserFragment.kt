@@ -849,7 +849,6 @@ abstract class BaseBrowserFragment :
             getCurrentTab()?.id,
             store,
             context,
-            bottomToolbarHeight,
         )
 
         shareDownloadsFeature.set(
@@ -1368,7 +1367,6 @@ abstract class BaseBrowserFragment :
         sessionId: String?,
         store: BrowserStore,
         context: Context,
-        bottomToolbarHeight: Int,
     ) {
         val savedDownloadState =
             sharedViewModel.downloadDialogState[sessionId]
@@ -1401,7 +1399,6 @@ abstract class BaseBrowserFragment :
                 showCannotOpenFileError(binding.dynamicSnackbarContainer, context, it)
             },
             binding = binding.viewDynamicDownloadDialog,
-            bottomToolbarHeight = bottomToolbarHeight,
             onDismiss = onDismiss,
         ).show()
 
@@ -1533,7 +1530,6 @@ abstract class BaseBrowserFragment :
                                             getCurrentTab()?.id,
                                             context.components.core.store,
                                             context,
-                                            context.settings().getBottomToolbarHeight(context),
                                         )
                                     },
                                 )
@@ -1791,7 +1787,6 @@ abstract class BaseBrowserFragment :
                                             getCurrentTab()?.id,
                                             context.components.core.store,
                                             context,
-                                            context.settings().getBottomToolbarHeight(context),
                                         )
                                     },
                                 )
@@ -1948,8 +1943,7 @@ abstract class BaseBrowserFragment :
                 browserToolbarView.expand()
 
                 val context = requireContext()
-                val bottomToolbarHeight = context.settings().getBottomToolbarHeight(context)
-                resumeDownloadDialogState(selectedTab.id, context.components.core.store, context, bottomToolbarHeight)
+                resumeDownloadDialogState(selectedTab.id, context.components.core.store, context)
                 it.announceForAccessibility(selectedTab.toDisplayTitle())
             }
         } else {

@@ -99,7 +99,7 @@ class BrowserFragmentTest {
         every { browserFragment.requireContext() } returns context
         every { browserFragment.initializeUI(any(), any()) } returns mockk()
         every { browserFragment.fullScreenChanged(any()) } returns Unit
-        every { browserFragment.resumeDownloadDialogState(any(), any(), any(), any()) } returns Unit
+        every { browserFragment.resumeDownloadDialogState(any(), any(), any()) } returns Unit
 
         testTab = createTab(url = "https://mozilla.org")
         store = BrowserStore()
@@ -172,7 +172,7 @@ class BrowserFragmentTest {
         val newSelectedTab = createTab("https://firefox.com")
         addAndSelectTab(newSelectedTab)
         verify(exactly = 1) {
-            browserFragment.resumeDownloadDialogState(newSelectedTab.id, store, context, any())
+            browserFragment.resumeDownloadDialogState(newSelectedTab.id, store, context)
         }
     }
 

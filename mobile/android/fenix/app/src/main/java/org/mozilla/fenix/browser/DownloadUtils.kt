@@ -9,7 +9,6 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
 import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
-import org.mozilla.fenix.ext.settings
 
 internal fun BaseBrowserFragment.handleOnDownloadFinished(
     downloadState: DownloadState,
@@ -45,7 +44,6 @@ internal fun BaseBrowserFragment.handleOnDownloadFinished(
                 tryAgain = tryAgain,
                 onCannotOpenFile = onCannotOpenFile,
                 binding = binding.viewDynamicDownloadDialog,
-                bottomToolbarHeight = safeContext.settings().getBottomToolbarHeight(safeContext),
             ) { sharedViewModel.downloadDialogState.remove(downloadState.sessionId) }
 
             dynamicDownloadDialog.show()

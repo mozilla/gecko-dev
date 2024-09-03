@@ -30,7 +30,6 @@ class DynamicDownloadDialog(
     private val tryAgain: (String) -> Unit,
     private val onCannotOpenFile: (DownloadState) -> Unit,
     private val binding: DownloadDialogLayoutBinding,
-    private val bottomToolbarHeight: Int,
     private val onDismiss: () -> Unit,
 ) {
     init {

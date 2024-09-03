@@ -336,7 +336,6 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                     tryAgain = tryAgain,
                     onCannotOpenFile = onCannotOpenFile,
                     binding = provideDownloadDialogLayoutBinding(),
-                    bottomToolbarHeight = 0,
                 ) {}
                 dynamicDownloadDialog.show()
             }
