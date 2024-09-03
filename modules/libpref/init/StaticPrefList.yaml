@@ -16487,7 +16487,7 @@
   value: true
   mirror: always
 
-- name: webgl.colorspaces.prototype
+- name: webgl.drawing_buffer_color_space
   type: RelaxedAtomicBool
   value: false
   mirror: always
