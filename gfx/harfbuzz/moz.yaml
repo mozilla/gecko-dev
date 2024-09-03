@@ -60,6 +60,10 @@ vendoring:
     - "src/test*"
     - src/hb-ucdn
 
+  patches:
+    # See discussion in https://github.com/harfbuzz/harfbuzz/pull/4836
+    - 0001-Fix-warnings-with-fstrict-flex-arrays-2.patch
+
 updatebot:
   maintainer-phab: jfkthame
   maintainer-bz: jfkthame@gmail.com
