@@ -143,7 +143,7 @@ add_task(async function toolbarButtons() {
       () => {
         return (
           bookmarksToolbar.getAttribute("collapsed") != "true" &&
-          bookmarksToolbar.getAttribute("initialized") == "true"
+          bookmarksToolbar.hasAttribute("initialized")
         );
       }
     );
