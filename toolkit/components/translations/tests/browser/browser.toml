@@ -14,6 +14,7 @@ support-files = [
   "translations-tester-shadow-dom-mutation-es.html",
   "translations-tester-shadow-dom-mutation-es-2.html",
   "translations-tester-shadow-dom-slot-es.html",
+  "translations-text-cleaning.html",
 ]
 
 ["browser_about_translations_debounce.js"]
@@ -56,5 +57,7 @@ skip-if = ["os == 'linux'"]  # Bug 1821461
 ["browser_translations_shadow_dom.js"]
 
 ["browser_translations_shadow_dom_mutation.js"]
+
+["browser_translations_text_cleaning.js"]
 
 ["browser_translations_translation_document.js"]
