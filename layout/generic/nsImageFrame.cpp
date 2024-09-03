@@ -1469,8 +1469,6 @@ nscoord nsImageFrame::GetContinuationOffset() const {
 
 nscoord nsImageFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                      IntrinsicISizeType aType) {
-  // XXX The caller doesn't account for constraints of the block-size,
-  // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();
   return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
 }
