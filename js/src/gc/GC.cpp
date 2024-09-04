@@ -382,8 +382,6 @@ void GCRuntime::freeEmptyChunks(const AutoLockGC& lock) {
 }
 
 inline void GCRuntime::prepareToFreeChunk(TenuredChunkInfo& info) {
-  MOZ_ASSERT(numArenasFreeCommitted >= info.numArenasFreeCommitted);
-  numArenasFreeCommitted -= info.numArenasFreeCommitted;
   stats().count(gcstats::COUNT_DESTROY_CHUNK);
 #ifdef DEBUG
   /*
@@ -436,7 +434,6 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       rootsHash(256),
       nextCellUniqueId_(LargestTaggedNullCellPointer +
                         1),  // Ensure disjoint from null tagged pointers.
-      numArenasFreeCommitted(0),
       verifyPreData(nullptr),
       lastGCStartTime_(TimeStamp::Now()),
       lastGCEndTime_(TimeStamp::Now()),

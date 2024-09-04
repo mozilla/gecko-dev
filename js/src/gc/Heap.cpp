@@ -349,7 +349,6 @@ void TenuredChunk::releaseArena(GCRuntime* gc, Arena* arena,
   freeCommittedArenas[arenaIndex(arena)] = true;
   ++info.numArenasFreeCommitted;
   ++info.numArenasFree;
-  gc->updateOnArenaFree();
 
   verify();
 

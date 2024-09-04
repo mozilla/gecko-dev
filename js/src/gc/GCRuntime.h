@@ -543,9 +543,6 @@ class GCRuntime {
   double computeHeapGrowthFactor(size_t lastBytes);
   size_t computeTriggerBytes(double growthFactor, size_t lastBytes);
 
-  inline void updateOnFreeArenaAlloc(const TenuredChunkInfo& info);
-  void updateOnArenaFree() { ++numArenasFreeCommitted; }
-
   ChunkPool& fullChunks(const AutoLockGC& lock) { return fullChunks_.ref(); }
   ChunkPool& availableChunks(const AutoLockGC& lock) {
     return availableChunks_.ref();
@@ -1106,10 +1103,6 @@ class GCRuntime {
   // An incrementing id used to assign unique ids to cells that require one.
   MainThreadData<uint64_t> nextCellUniqueId_;
 
-  /*
-   * Number of the committed arenas in all GC chunks including empty chunks.
-   */
-  mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> numArenasFreeCommitted;
   MainThreadData<VerifyPreTracer*> verifyPreData;
 
   MainThreadData<mozilla::TimeStamp> lastGCStartTime_;

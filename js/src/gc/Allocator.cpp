@@ -551,15 +551,9 @@ void TenuredChunk::commitOnePage(GCRuntime* gc) {
     freeCommittedArenas[arenaIndex] = true;
     arenas[arenaIndex].setAsNotAllocated();
     ++info.numArenasFreeCommitted;
-    gc->updateOnArenaFree();
   }
 
   verify();
-}
-
-inline void GCRuntime::updateOnFreeArenaAlloc(const TenuredChunkInfo& info) {
-  MOZ_ASSERT(info.numArenasFreeCommitted <= numArenasFreeCommitted);
-  --numArenasFreeCommitted;
 }
 
 Arena* TenuredChunk::fetchNextFreeArena(GCRuntime* gc) {
@@ -572,7 +566,6 @@ Arena* TenuredChunk::fetchNextFreeArena(GCRuntime* gc) {
   freeCommittedArenas[index] = false;
   --info.numArenasFreeCommitted;
   --info.numArenasFree;
-  gc->updateOnFreeArenaAlloc(info);
 
   return &arenas[index];
 }
