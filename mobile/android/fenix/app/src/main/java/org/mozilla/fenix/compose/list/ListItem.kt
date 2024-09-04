@@ -379,12 +379,223 @@ fun RadioButtonListItem(
 }
 
 /**
+ * Selectable list item used to display a label and a [Favicon] with an optional description text and
+ * an optional [IconButton] at the end.
+ *
+ * @param label The label in the list item.
+ * @param url Website [url] for which the favicon will be shown.
+ * @param isSelected The selected state of the item.
+ * @param modifier [Modifier] to be applied to the layout.
+ * @param description An optional description text below the label.
+ * @param faviconPainter Optional painter to use when fetching a new favicon is unnecessary.
+ * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
+ * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
+ * at the end.
+ * @param iconPainter [Painter] used to display an [IconButton] after the list item.
+ * @param iconDescription Content description of the icon.
+ * @param onIconClick Called when the user clicks on the icon.
+ */
+@Composable
+fun SelectableFaviconListItem(
+    label: String,
+    url: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    faviconPainter: Painter? = null,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    showDivider: Boolean = false,
+    iconPainter: Painter? = null,
+    iconDescription: String? = null,
+    onIconClick: (() -> Unit)? = null,
+) {
+    ListItem(
+        label = label,
+        modifier = modifier,
+        description = description,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        beforeListAction = {
+            SelectableItemIcon(
+                isSelected = isSelected,
+                icon = {
+                    if (faviconPainter != null) {
+                        Image(
+                            painter = faviconPainter,
+                            contentDescription = null,
+                            modifier = Modifier.size(ICON_SIZE),
+                        )
+                    } else {
+                        Favicon(
+                            url = url,
+                            size = ICON_SIZE,
+                        )
+                    }
+                },
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+        },
+        afterListAction = {
+            if (iconPainter == null || onIconClick == null) {
+                return@ListItem
+            }
+
+            if (showDivider) {
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Divider(
+                    modifier = Modifier
+                        .padding(vertical = DIVIDER_VERTICAL_PADDING)
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = FirefoxTheme.colors.borderSecondary,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            IconButton(
+                onClick = onIconClick,
+                modifier = Modifier.size(ICON_SIZE),
+            ) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = iconDescription,
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+    )
+}
+
+/**
+ * List item used to display a label and an icon at the beginning with an optional description
+ * text and an optional [IconButton] or [Icon] at the end.
+ *
+ * @param label The label in the list item.
+ * @param isSelected The selected state of the item.
+ * @param modifier [Modifier] to be applied to the layout.
+ * @param labelTextColor [Color] to be applied to the label.
+ * @param descriptionTextColor [Color] to be applied to the description.
+ * @param maxLabelLines An optional maximum number of lines for the label text to span.
+ * @param description An optional description text below the label.
+ * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
+ * be clickable.
+ * @param minHeight An optional minimum height for the list item.
+ * @param onClick Called when the user clicks on the item.
+ * @param onLongClick Called when the user long clicks on the item.
+ * @param beforeIconPainter [Painter] used to display an [Icon] before the list item.
+ * @param beforeIconDescription Content description of the icon.
+ * @param beforeIconTint Tint applied to [beforeIconPainter].
+ * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
+ * at the end.
+ * @param afterIconPainter [Painter] used to display an icon after the list item.
+ * @param afterIconDescription Content description of the icon.
+ * @param afterIconTint Tint applied to [afterIconPainter].
+ * @param onAfterIconClick Called when the user clicks on the icon. An [IconButton] will be
+ * displayed if this is provided. Otherwise, an [Icon] will be displayed.
+ */
+@Composable
+fun SelectableIconListItem(
+    label: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    labelTextColor: Color = FirefoxTheme.colors.textPrimary,
+    descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
+    maxLabelLines: Int = 1,
+    description: String? = null,
+    enabled: Boolean = true,
+    minHeight: Dp = LIST_ITEM_HEIGHT,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    beforeIconPainter: Painter,
+    beforeIconDescription: String? = null,
+    beforeIconTint: Color = FirefoxTheme.colors.iconPrimary,
+    showDivider: Boolean = false,
+    afterIconPainter: Painter? = null,
+    afterIconDescription: String? = null,
+    afterIconTint: Color = FirefoxTheme.colors.iconPrimary,
+    onAfterIconClick: (() -> Unit)? = null,
+) {
+    ListItem(
+        label = label,
+        modifier = modifier,
+        labelTextColor = labelTextColor,
+        descriptionTextColor = descriptionTextColor,
+        maxLabelLines = maxLabelLines,
+        description = description,
+        enabled = enabled,
+        minHeight = minHeight,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        beforeListAction = {
+            SelectableItemIcon(
+                isSelected = isSelected,
+                icon = {
+                    Icon(
+                        painter = beforeIconPainter,
+                        contentDescription = beforeIconDescription,
+                        tint = if (enabled) beforeIconTint else FirefoxTheme.colors.iconDisabled,
+                    )
+                },
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+        },
+        afterListAction = {
+            if (afterIconPainter == null) {
+                return@ListItem
+            }
+
+            val tint = if (enabled) afterIconTint else FirefoxTheme.colors.iconDisabled
+
+            if (showDivider) {
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Divider(
+                    modifier = Modifier
+                        .padding(vertical = DIVIDER_VERTICAL_PADDING)
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = FirefoxTheme.colors.borderSecondary,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            if (onAfterIconClick == null) {
+                Icon(
+                    painter = afterIconPainter,
+                    contentDescription = afterIconDescription,
+                    tint = tint,
+                )
+            } else {
+                IconButton(
+                    onClick = onAfterIconClick,
+                    modifier = Modifier.size(ICON_SIZE),
+                    enabled = enabled,
+                ) {
+                    Icon(
+                        painter = afterIconPainter,
+                        contentDescription = afterIconDescription,
+                        tint = tint,
+                    )
+                }
+            }
+        },
+    )
+}
+
+/**
  * List item used to display a selectable item with an icon, label description and an action
  * composable at the end.
  *
  * @param label The label in the list item.
  * @param description The description text below the label.
- * @param icon The icon to be displayed at the beginning of the list item.
+ * @param icon The icon resource to be displayed at the beginning of the list item.
  * @param isSelected The selected state of the item.
  * @param afterListAction Composable for adding UI to the end of the list item.
  * @param modifier [Modifier] to be applied to the composable.
@@ -404,7 +615,13 @@ fun SelectableListItem(
         modifier = modifier,
         beforeListAction = {
             SelectableItemIcon(
-                icon = icon,
+                icon = {
+                    Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = null,
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+                },
                 isSelected = isSelected,
             )
 
@@ -417,13 +634,13 @@ fun SelectableListItem(
 /**
  * Icon composable that displays a checkmark icon when the item is selected.
  *
- * @param icon The icon to be displayed.
  * @param isSelected The selected state of the item.
+ * @param icon Composable to display an icon when the item is not selected.
  */
 @Composable
 private fun SelectableItemIcon(
-    @DrawableRes icon: Int,
     isSelected: Boolean,
+    icon: @Composable () -> Unit,
 ) {
     if (isSelected) {
         Box(
@@ -443,11 +660,7 @@ private fun SelectableItemIcon(
             )
         }
     } else {
-        Icon(
-            painter = painterResource(id = icon),
-            contentDescription = null,
-            tint = FirefoxTheme.colors.iconPrimary,
-        )
+        icon()
     }
 }
 
@@ -711,6 +924,167 @@ private fun RadioButtonListItemPreview() {
                     selected = (text == selectedOption),
                 )
             }
+        }
+    }
+}
+
+@Composable
+@LightDarkPreview
+private fun SelectableFaviconListItemPreview() {
+    FirefoxTheme {
+        Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            SelectableFaviconListItem(
+                label = "Favicon + right icon",
+                url = "",
+                isSelected = false,
+                description = "Description text",
+                onClick = { },
+                onLongClick = { },
+                iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                onIconClick = { },
+            )
+
+            SelectableFaviconListItem(
+                label = "Selected favicon + right icon",
+                url = "",
+                isSelected = true,
+                description = "Description text",
+                onClick = { },
+                onLongClick = { },
+                iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                onIconClick = { },
+            )
+
+            SelectableFaviconListItem(
+                label = "Favicon + right icon + show divider",
+                url = "",
+                isSelected = false,
+                description = "Description text",
+                onClick = { },
+                onLongClick = { },
+                showDivider = true,
+                iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                onIconClick = { },
+            )
+
+            SelectableFaviconListItem(
+                label = "Selected favicon + right icon + show divider",
+                url = "",
+                isSelected = true,
+                description = "Description text",
+                onClick = { },
+                onLongClick = { },
+                showDivider = true,
+                iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                onIconClick = { },
+            )
+
+            SelectableFaviconListItem(
+                label = "Favicon + painter",
+                url = "",
+                isSelected = false,
+                description = "Description text",
+                faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
+                onClick = { },
+                onLongClick = { },
+            )
+
+            SelectableFaviconListItem(
+                label = "Selected favicon + painter",
+                url = "",
+                isSelected = true,
+                description = "Description text",
+                faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
+                onClick = { },
+                onLongClick = { },
+            )
+        }
+    }
+}
+
+@Composable
+@Preview(name = "SelectableIconListItem", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Suppress("LongMethod")
+private fun SelectableIconListItemPreview() {
+    FirefoxTheme {
+        Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            SelectableIconListItem(
+                label = "Left icon list item",
+                isSelected = false,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+            )
+
+            SelectableIconListItem(
+                label = "Selected left icon list item",
+                isSelected = true,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+            )
+
+            SelectableIconListItem(
+                label = "Left icon list item",
+                isSelected = false,
+                labelTextColor = FirefoxTheme.colors.textAccent,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                beforeIconTint = FirefoxTheme.colors.iconAccentViolet,
+            )
+
+            SelectableIconListItem(
+                label = "Selected left icon list item",
+                isSelected = true,
+                labelTextColor = FirefoxTheme.colors.textAccent,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                beforeIconTint = FirefoxTheme.colors.iconAccentViolet,
+            )
+
+            SelectableIconListItem(
+                label = "Left icon list item + right icon",
+                isSelected = false,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                afterIconPainter = painterResource(R.drawable.mozac_ic_chevron_right_24),
+                afterIconDescription = null,
+            )
+
+            SelectableIconListItem(
+                label = "Selected left icon list item + right icon",
+                isSelected = true,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                afterIconPainter = painterResource(R.drawable.mozac_ic_chevron_right_24),
+                afterIconDescription = null,
+            )
+
+            SelectableIconListItem(
+                label = "Left icon list item + right icon (disabled)",
+                isSelected = false,
+                enabled = false,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                afterIconPainter = painterResource(R.drawable.mozac_ic_chevron_right_24),
+                afterIconDescription = null,
+            )
+
+            SelectableIconListItem(
+                label = "Selected left icon list item + right icon (disabled)",
+                isSelected = true,
+                enabled = false,
+                onClick = {},
+                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                beforeIconDescription = "click me",
+                afterIconPainter = painterResource(R.drawable.mozac_ic_chevron_right_24),
+                afterIconDescription = null,
+            )
         }
     }
 }
