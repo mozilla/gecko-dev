@@ -7,8 +7,8 @@
 
 [Exposed=Window, Pref="dom.viewTransitions.enabled"]
 interface ViewTransition {
-  readonly attribute Promise<undefined> updateCallbackDone;
-  readonly attribute Promise<undefined> ready;
-  readonly attribute Promise<undefined> finished;
+  [Throws] readonly attribute Promise<undefined> updateCallbackDone;
+  [Throws] readonly attribute Promise<undefined> ready;
+  [Throws] readonly attribute Promise<undefined> finished;
   undefined skipTransition();
 };

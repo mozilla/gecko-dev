@@ -3818,8 +3818,13 @@ class Document : public nsINode,
   MOZ_CAN_RUN_SCRIPT void
   DetermineProximityToViewportAndNotifyResizeObservers();
 
-  ViewTransition* StartViewTransition(
+  already_AddRefed<ViewTransition> StartViewTransition(
       const Optional<OwningNonNull<ViewTransitionUpdateCallback>>&);
+  ViewTransition* GetActiveViewTransition() const {
+    return mActiveViewTransition;
+  }
+  void ClearActiveViewTransition();
+  void PerformPendingViewTransitionOperations();
 
   // Getter for PermissionDelegateHandler. Performs lazy initialization.
   PermissionDelegateHandler* GetPermissionDelegateHandler();
@@ -5358,6 +5363,9 @@ class Document : public nsINode,
   RefPtr<ChromeObserver> mChromeObserver;
 
   RefPtr<HTMLAllCollection> mAll;
+
+  // https://drafts.csswg.org/css-view-transitions-1/#document-active-view-transition
+  RefPtr<ViewTransition> mActiveViewTransition;
 
   nsTHashSet<RefPtr<WorkerDocumentListener>> mWorkerListeners;
 
