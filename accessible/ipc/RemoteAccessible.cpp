@@ -83,6 +83,7 @@ void RemoteAccessible::SetChildDoc(DocAccessibleParent* aChildDoc) {
   MOZ_ASSERT(aChildDoc);
   MOZ_ASSERT(mChildren.Length() == 0);
   mChildren.AppendElement(aChildDoc);
+  aChildDoc->mIndexInParent = 0;
 }
 
 void RemoteAccessible::ClearChildDoc(DocAccessibleParent* aChildDoc) {
@@ -93,6 +94,7 @@ void RemoteAccessible::ClearChildDoc(DocAccessibleParent* aChildDoc) {
   // ClearChildDoc() even though mChildren.Length() == 1.
   MOZ_ASSERT(mChildren.Length() <= 1);
   mChildren.RemoveElement(aChildDoc);
+  aChildDoc->mIndexInParent = -1;
 }
 
 uint32_t RemoteAccessible::EmbeddedChildCount() {

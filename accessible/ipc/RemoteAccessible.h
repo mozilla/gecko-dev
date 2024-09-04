@@ -41,6 +41,7 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
 
   void AddChildAt(uint32_t aIdx, RemoteAccessible* aChild) {
     mChildren.InsertElementAt(aIdx, aChild);
+    UpdateChildIndexCache(static_cast<int32_t>(aIdx));
     if (IsHyperText()) {
       InvalidateCachedHyperTextOffsets();
     }
@@ -106,15 +107,8 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
     return RemotePrevSibling();
   }
 
-  // XXX evaluate if this is fast enough.
-  virtual int32_t IndexInParent() const override {
-    RemoteAccessible* parent = RemoteParent();
-    if (!parent) {
-      return -1;
-    }
-    return parent->mChildren.IndexOf(
-        static_cast<const RemoteAccessible*>(this));
-  }
+  virtual int32_t IndexInParent() const override { return mIndexInParent; }
+
   virtual uint32_t EmbeddedChildCount() override;
   virtual int32_t IndexOfEmbeddedChild(Accessible* aChild) override;
   virtual Accessible* EmbeddedChildAt(uint32_t aChildIdx) override;
@@ -129,6 +123,9 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
    */
   void RemoveChild(RemoteAccessible* aChild) {
     mChildren.RemoveElement(aChild);
+    MOZ_ASSERT(aChild->mIndexInParent != -1);
+    UpdateChildIndexCache(aChild->mIndexInParent);
+    aChild->mIndexInParent = -1;
     if (IsHyperText()) {
       InvalidateCachedHyperTextOffsets();
     }
@@ -479,6 +476,17 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
   virtual nsTArray<int32_t>& GetCachedHyperTextOffsets() override;
 
  private:
+  /**
+   * Update mIndexInParent on each child starting at aStartIdx up to the last
+   * child. This should be called when a child is added or removed.
+   */
+  void UpdateChildIndexCache(int32_t aStartIdx) {
+    int32_t count = static_cast<int32_t>(mChildren.Length());
+    for (int32_t idx = aStartIdx; idx < count; ++idx) {
+      mChildren[idx]->mIndexInParent = idx;
+    }
+  }
+
   RemoteAccessible* mParent;
 
   friend DocAccessibleParent;
@@ -494,6 +502,7 @@ class RemoteAccessible : public Accessible, public HyperTextAccessibleBase {
   DocAccessibleParent* mDoc;
   uintptr_t mWrapper;
   uint64_t mID;
+  int32_t mIndexInParent = -1;
 
  protected:
   virtual const Accessible* Acc() const override { return this; }
