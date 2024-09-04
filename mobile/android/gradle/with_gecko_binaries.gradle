@@ -51,9 +51,9 @@ ext.configureLibraryVariantWithJNIWrappers = { variant, module ->
             // Configure the classpath at evaluation-time, not at
             // configuration-time: see above comment.
             doFirst {
-                classpath variant.javaCompileProvider.get().classpath
+                classpath variant.javaCompileProvider.get().classpath.files
             }
-    
+
             mainClass = 'org.mozilla.gecko.annotationProcessors.AnnotationProcessor'
             args module
             args bundleJar
