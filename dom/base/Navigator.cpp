@@ -1981,13 +1981,11 @@ nsresult Navigator::GetPlatform(nsAString& aPlatform, Document* aCallerDoc,
                                 bool aUsePrefOverriddenValue) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (aUsePrefOverriddenValue) {
-    // If fingerprinting resistance is on, we will spoof this value. See
-    // nsRFPService.h for details about spoofed values.
-    if (ShouldResistFingerprinting(aCallerDoc, RFPTarget::NavigatorPlatform)) {
-      aPlatform.AssignLiteral(SPOOFED_PLATFORM);
-      return NS_OK;
-    }
+  // navigator.platform is the same for default and spoofed values. The
+  // "general.platform.override" pref should override the default platform,
+  // but the spoofed platform should override the pref.
+  if (aUsePrefOverriddenValue &&
+      !ShouldResistFingerprinting(aCallerDoc, RFPTarget::NavigatorPlatform)) {
     nsAutoString override;
     nsresult rv =
         mozilla::Preferences::GetString("general.platform.override", override);
@@ -2003,17 +2001,10 @@ nsresult Navigator::GetPlatform(nsAString& aPlatform, Document* aCallerDoc,
 #elif defined(XP_MACOSX)
   // Always return "MacIntel", even on ARM64 macOS like Safari does.
   aPlatform.AssignLiteral("MacIntel");
+#elif defined(ANDROID)
+  aPlatform.AssignLiteral("Linux armv81");
 #else
-  nsresult rv;
-  nsCOMPtr<nsIHttpProtocolHandler> service(
-      do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoCString plat;
-  rv = service->GetOscpu(plat);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  CopyASCIItoUTF16(plat, aPlatform);
+  aPlatform.AssignLiteral("Linux x86_64");
 #endif
 
   return NS_OK;

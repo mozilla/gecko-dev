@@ -40,14 +40,6 @@ const DEFAULT_PLATFORM = {
   other: "Linux x86_64",
 };
 
-const SPOOFED_PLATFORM = {
-  linux: "Linux x86_64",
-  win: "Win32",
-  macosx: "MacIntel",
-  android: "Linux armv81",
-  other: "Linux x86_64",
-};
-
 // If comparison with the WindowsOscpu value fails in the future, it's time to
 // evaluate if exposing a new Windows version to the Web is appropriate. See
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1693295
@@ -478,7 +470,7 @@ add_task(async function setupResistFingerprinting() {
     hardwareConcurrency: SPOOFED_HW_CONCURRENCY,
     mimeTypesLength: 2,
     oscpu: SPOOFED_OSCPU[AppConstants.platform],
-    platform: SPOOFED_PLATFORM[AppConstants.platform],
+    platform: DEFAULT_PLATFORM[AppConstants.platform],
     pluginsLength: 5,
     userAgentNavigator: spoofedUserAgentNavigator,
     userAgentHeader: spoofedUserAgentHeader,
