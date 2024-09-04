@@ -476,10 +476,6 @@ menupopup[emptyplacesresult] > .hide-if-empty-places-result {
   }
 }
 
-panelview[id^=PanelUI-webext-] {
-  overflow: hidden;
-}
-
 .cui-widget-panel {
   --arrowpanel-padding: var(--panel-subview-body-padding);
 }
