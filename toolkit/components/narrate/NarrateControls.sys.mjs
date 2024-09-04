@@ -111,7 +111,12 @@ export function NarrateControls(win, languagePromise) {
   narrateControl.appendChild(narrateSkipNext);
 
   win.document.addEventListener("keydown", function (event) {
-    if (win.document.hasFocus() && event.key === "n") {
+    if (
+      win.document.hasFocus() &&
+      event.key === "n" &&
+      !event.metaKey &&
+      !event.shiftKey
+    ) {
       narrateStartStop.click();
     }
     //Arrow key direction also hardcoded for RTL in order to be
