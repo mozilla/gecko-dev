@@ -33,6 +33,9 @@ const { formAutofillStorage } = ChromeUtils.importESModule(
 const { Sanitizer } = ChromeUtils.importESModule(
   "resource:///modules/Sanitizer.sys.mjs"
 );
+const { NewTabUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/NewTabUtils.sys.mjs"
+);
 
 ExtensionTestUtils.init(this);
 AddonTestUtils.init(this);
@@ -566,4 +569,15 @@ add_task(async function test_cookies_removed() {
       Services.cookies.removeAll();
     }, "Saw regeneration on all cookie removal.");
   }
+});
+
+/**
+ * Tests that backup regeneration occurs when newtab links are blocked.
+ */
+add_task(async function test_newtab_link_blocked() {
+  NewTabUtils.init();
+
+  await expectRegeneration(async () => {
+    NewTabUtils.activityStreamLinks.blockURL("https://example.com");
+  }, "Saw regeneration on the blocking of a newtab link");
 });
