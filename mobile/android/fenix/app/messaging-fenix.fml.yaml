@@ -48,6 +48,7 @@ import:
               # See https://experimenter.info/mobile-behavioral-targeting for more info
               RECENTLY_PRINTED:  "'print_tapped'|eventLastSeen('Hours') <= 24"
               SECOND_HOMEPAGE_VIEW: "'home_screen_displayed'|eventSum('Years', 4, 0) >= 2"
+              PERFORMED_A_SEARCH_AGAIN_RECENTLY: "'performed_search'|eventSum('Years', 4, 0) >= 2 && 'performed_search'|eventLastSeen('Minutes') < 1"
 
               # Has the user signed in the last 4 years
               FXA_SIGNED_IN: "'sync_auth.sign_in'|eventLastSeen('Years', 0) <= 4"
