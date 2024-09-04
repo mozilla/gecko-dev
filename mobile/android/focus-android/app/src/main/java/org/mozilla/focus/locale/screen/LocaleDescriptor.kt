@@ -38,7 +38,7 @@ class LocaleDescriptor(private val localeTag: String) : Comparable<LocaleDescrip
         languageCodeAndNameMap["ia"] = "Interlingua"
         languageCodeAndNameMap["ixl"] = "Ixil"
         languageCodeAndNameMap["jv"] = "Basa Jawa"
-        languageCodeAndNameMap["meh"] = "Tu´un savi ñuu Yasi'í Yuku Iti"
+        languageCodeAndNameMap["meh"] = "Tu'un Savi Yucuhiti"
         languageCodeAndNameMap["mix"] = "Tu'un savi"
         languageCodeAndNameMap["nv"] = "Navajo"
         languageCodeAndNameMap["oc"] = "occitan"

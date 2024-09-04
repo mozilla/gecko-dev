@@ -117,7 +117,7 @@ object LocaleUtils {
         "mr" to "मराठी",
         "ms" to "Bahasa Melayu ملايو‎",
         "my" to "ဗမာစာ",
-        "meh" to "Tu´un savi ñuu Yasi'í Yuku Iti",
+        "meh" to "Tu'un Savi Yucuhiti",
         "nb-NO" to "Bokmål",
         "ne-NP" to "नेपाली",
         "nl" to "Nederlands",
