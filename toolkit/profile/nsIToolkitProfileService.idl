@@ -53,16 +53,6 @@ interface nsIToolkitProfileService : nsISupports
     readonly attribute nsIToolkitProfile currentProfile;
 
     /**
-     * The single named profile in a profile group.
-     *
-     * If the current named profile has a StoreID, this is the current profile.
-     * If the current profile is unnamed and has a StoreID, this will be the
-     * named profile with the same StoreID.
-     * If the current profile has no StoreID, this will be null.
-     */
-    readonly attribute nsIToolkitProfile groupProfile;
-
-    /**
      * The default profile for this build.
      * On startup this is the profile selected unless overridden by command line
      * arguments or environment variables. Setting this will change the profile

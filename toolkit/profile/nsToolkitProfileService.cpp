@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -305,9 +304,16 @@ nsToolkitProfile::SetRootDir(nsIFile* aRootDir) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIFile> localDir;
-  rv = nsToolkitProfileService::gService->GetLocalDirFromRootDir(
-      aRootDir, getter_AddRefs(localDir));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (isRelative) {
+    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = localDir->SetRelativeDescriptor(
+        nsToolkitProfileService::gService->mTempData, newPath);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    localDir = aRootDir;
+  }
 
   // Update the database entry for the current profile.
   nsINIParser* db = &nsToolkitProfileService::gService->mProfileDB;
@@ -343,22 +349,17 @@ nsToolkitProfile::SetStoreID(const nsACString& aStoreID) {
 #ifdef MOZ_SELECTABLE_PROFILES
   NS_ASSERTION(nsToolkitProfileService::gService, "Where did my service go?");
 
+  // If the new value is the same as the old value, there's nothing to do.
   if (mStoreID.Equals(aStoreID)) {
     return NS_OK;
   }
 
+  // Update the database with the new value, or delete the storeID altogether
+  // if the new value is null.
   nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
   if (!aStoreID.IsVoid()) {
     rv = nsToolkitProfileService::gService->mProfileDB.SetString(
         mSection.get(), "StoreID", PromiseFlatCString(aStoreID).get());
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = prefs->SetCharPref("toolkit.profiles.storeID", aStoreID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsToolkitProfileService::gService->mGroupProfile = this;
   } else {
     rv = nsToolkitProfileService::gService->mProfileDB.DeleteString(
         mSection.get(), "StoreID");
@@ -376,12 +377,9 @@ nsToolkitProfile::SetStoreID(const nsACString& aStoreID) {
     if (rv == NS_ERROR_FAILURE) {
       rv = NS_OK;
     }
-
-    rv = prefs->ClearUserPref("toolkit.profiles.storeID");
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsToolkitProfileService::gService->mGroupProfile = nullptr;
   }
+  NS_ENSURE_SUCCESS(rv, rv);
+
   mStoreID = aStoreID;
 
   return NS_OK;
@@ -670,32 +668,6 @@ void nsToolkitProfileService::CompleteStartup() {
             NS_ConvertUTF8toUTF16(mStartupFileVersion));
   ScalarSet(mozilla::Telemetry::ScalarID::STARTUP_PROFILE_COUNT,
             static_cast<uint32_t>(mProfiles.length()));
-
-  // If we started into an unmanaged profile in a profile group, set the group
-  // profile to be the managed profile belonging to the group.
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (!mCurrent) {
-    nsCString storeID;
-    rv = prefs->GetCharPref("toolkit.profiles.storeID", storeID);
-    if (NS_SUCCEEDED(rv) && !storeID.IsEmpty()) {
-      nsCOMPtr<nsIToolkitProfile> profile;
-      rv = GetProfileByStoreID(storeID, getter_AddRefs(profile));
-      if (NS_SUCCEEDED(rv)) {
-        mGroupProfile = profile;
-      }
-    }
-  } else {
-    // Otherwise, if the current profile has a storeID, then it must be the
-    // profile for some group.
-    nsCString storeID;
-    rv = mCurrent->GetStoreID(storeID);
-    if (NS_SUCCEEDED(rv) && !storeID.IsVoid()) {
-      mGroupProfile = mCurrent;
-      rv = prefs->SetCharPref("toolkit.profiles.storeID", storeID);
-      NS_ENSURE_SUCCESS_VOID(rv);
-    }
-  }
 
   if (mMaybeLockProfile) {
     nsCOMPtr<nsIToolkitShellService> shell =
@@ -1159,9 +1131,14 @@ nsresult nsToolkitProfileService::Init() {
     if (NS_FAILED(rv)) continue;
 
     nsCOMPtr<nsIFile> localDir;
-    rv = nsToolkitProfileService::gService->GetLocalDirFromRootDir(
-        rootDir, getter_AddRefs(localDir));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (isRelative) {
+      rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = localDir->SetRelativeDescriptor(mTempData, filePath);
+    } else {
+      localDir = rootDir;
+    }
 
     nsCString storeID;
     bool showProfileSelector = false;
@@ -1289,12 +1266,6 @@ nsToolkitProfileService::ProfileEnumerator::GetNext(nsISupports** aResult) {
 NS_IMETHODIMP
 nsToolkitProfileService::GetCurrentProfile(nsIToolkitProfile** aResult) {
   NS_IF_ADDREF(*aResult = mCurrent);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsToolkitProfileService::GetGroupProfile(nsIToolkitProfile** aResult) {
-  NS_IF_ADDREF(*aResult = mGroupProfile);
   return NS_OK;
 }
 
@@ -1478,31 +1449,6 @@ nsToolkitProfileService::SelectStartupProfile(
 
 static void SaltProfileName(nsACString& aName);
 
-nsresult EnsureDirExists(nsIFile* aPath) {
-  bool exists;
-  nsresult rv = aPath->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!exists) {
-    rv = aPath->Create(nsIFile::DIRECTORY_TYPE, 0700);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return NS_OK;
-  }
-
-  bool isDir;
-  rv = aPath->IsDirectory(&isDir);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!isDir) {
-    return NS_ERROR_FILE_NOT_DIRECTORY;
-  }
-
-  rv = aPath->SetPermissions(0700);
-#ifndef ANDROID
-  // If the profile is on the sdcard, this will fail but its non-fatal
-  NS_ENSURE_SUCCESS(rv, rv);
-#endif
-  return NS_OK;
-}
-
 /**
  * Selects or creates a profile to use based on the profiles database, any
  * environment variables and any command line arguments. Will not create
@@ -1543,9 +1489,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
   if (lf) {
     nsCOMPtr<nsIFile> localDir = GetFileFromEnv("XRE_PROFILE_LOCAL_PATH");
     if (!localDir) {
-      rv = nsToolkitProfileService::gService->GetLocalDirFromRootDir(
-          lf, getter_AddRefs(localDir));
-      NS_ENSURE_SUCCESS(rv, rv);
+      localDir = lf;
     }
 
     // Clear out flags that we handled (or should have handled!) last startup.
@@ -1623,27 +1567,37 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Make sure that the profile path exists and it's a directory.
-    rv = EnsureDirExists(lf);
-    if (NS_FAILED(rv)) {
-      PR_fprintf(PR_STDERR,
-                 "Error: argument --profile requires a path to a directory\n");
-      return NS_ERROR_FAILURE;
+    bool exists;
+    rv = lf->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!exists) {
+      rv = lf->Create(nsIFile::DIRECTORY_TYPE, 0700);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      bool isDir;
+      rv = lf->IsDirectory(&isDir);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!isDir) {
+        PR_fprintf(
+            PR_STDERR,
+            "Error: argument --profile requires a path to a directory\n");
+        return NS_ERROR_FAILURE;
+      }
     }
 
     mStartupReason = u"argument-profile"_ns;
 
     GetProfileByDir(lf, nullptr, getter_AddRefs(mCurrent));
     NS_ADDREF(*aRootDir = lf);
-
-    nsCOMPtr<nsIFile> localDir;
-    rv = nsToolkitProfileService::gService->GetLocalDirFromRootDir(
-        lf, getter_AddRefs(localDir));
-    NS_ENSURE_SUCCESS(rv, rv);
+    // If the root dir matched a profile then use its local dir, otherwise use
+    // the root dir as the local dir.
+    if (mCurrent) {
+      mCurrent->GetLocalDir(aLocalDir);
+    } else {
+      lf.forget(aLocalDir);
+    }
 
     NS_IF_ADDREF(*aProfile = mCurrent);
-
-    localDir.forget(aLocalDir);
-
     return NS_OK;
   }
 
@@ -2072,23 +2026,6 @@ nsToolkitProfileService::GetProfileByName(const nsACString& aName,
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
-nsToolkitProfileService::GetProfileByStoreID(const nsACString& aStoreID,
-                                             nsIToolkitProfile** aResult) {
-  if (aStoreID.IsVoid()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  for (RefPtr<nsToolkitProfile> profile : mProfiles) {
-    if (profile->mStoreID.Equals(aStoreID)) {
-      NS_ADDREF(*aResult = profile);
-      return NS_OK;
-    }
-  }
-
-  return NS_ERROR_FAILURE;
-}
-
 /**
  * Finds a profile from the database that uses the given root and local
  * directories.
@@ -2185,22 +2122,58 @@ nsToolkitProfileService::CreateProfile(nsIFile* aRootDir,
   }
 
   nsCOMPtr<nsIFile> localDir;
-  rv = nsToolkitProfileService::gService->GetLocalDirFromRootDir(
-      rootDir, getter_AddRefs(localDir));
+
+  bool isRelative;
+  rv = mAppData->Contains(rootDir, &isRelative);
+  if (NS_SUCCEEDED(rv) && isRelative) {
+    nsAutoCString path;
+    rv = rootDir->GetRelativeDescriptor(mAppData, path);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = localDir->SetRelativeDescriptor(mTempData, path);
+  } else {
+    localDir = rootDir;
+  }
+
+  bool exists;
+  rv = rootDir->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = EnsureDirExists(rootDir);
+  if (exists) {
+    rv = rootDir->IsDirectory(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!exists) return NS_ERROR_FILE_NOT_DIRECTORY;
+  } else {
+    nsCOMPtr<nsIFile> profileDirParent;
+    nsAutoString profileDirName;
+
+    rv = rootDir->GetParent(getter_AddRefs(profileDirParent));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = rootDir->GetLeafName(profileDirName);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // let's ensure that the profile directory exists.
+    rv = rootDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = rootDir->SetPermissions(0700);
+#ifndef ANDROID
+    // If the profile is on the sdcard, this will fail but its non-fatal
+    NS_ENSURE_SUCCESS(rv, rv);
+#endif
+  }
+
+  rv = localDir->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIFile> profileDirParent;
-  nsAutoString profileDirName;
-  rv = rootDir->GetParent(getter_AddRefs(profileDirParent));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = rootDir->GetLeafName(profileDirName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = EnsureDirExists(localDir);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!exists) {
+    rv = localDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   // We created a new profile dir. Let's store a creation timestamp.
   // Note that this code path does not apply if the profile dir was
@@ -2393,32 +2366,6 @@ nsToolkitProfileService::Flush() {
   rv = UpdateFileStats(mProfileDBFile, &mProfileDBExists,
                        &mProfileDBModifiedTime, &mProfileDBFileSize);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-nsresult nsToolkitProfileService::GetLocalDirFromRootDir(nsIFile* aRootDir,
-                                                         nsIFile** aResult) {
-  NS_ASSERTION(nsToolkitProfileService::gService, "Where did my service go?");
-  nsCString path;
-  bool isRelative;
-  nsresult rv = nsToolkitProfileService::gService->GetProfileDescriptor(
-      aRootDir, path, &isRelative);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIFile> localDir;
-  if (isRelative) {
-    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = localDir->SetRelativeDescriptor(
-        nsToolkitProfileService::gService->mTempData, path);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    localDir = aRootDir;
-  }
-
-  localDir.forget(aResult);
 
   return NS_OK;
 }
