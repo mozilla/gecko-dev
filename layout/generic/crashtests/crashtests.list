@@ -815,4 +815,5 @@ asserts(0-14) load 1816574.html # Bug 1913247
 load 1821603.html
 load 1822118.html
 load 1825434.html
+load 1915006.html
 asserts(0-85) load 1881375-1.html # bug 1890687 - assertions about fragmentation invariants, failing many times because the test runs in a loop

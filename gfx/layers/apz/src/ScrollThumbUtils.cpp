@@ -253,10 +253,18 @@ void AsyncScrollThumbTransformer::ApplyTransformForAxis(const Axis& aAxis) {
   // If the page is overscrolled, additionally squish the thumb in accordance
   // with the overscroll amount.
   if (overscroll != 0) {
-    float overscrollScale =
-        1.0f - (std::abs(overscroll.value) /
-                aAxis.GetRectLength(mMetrics.GetCompositionBounds()));
-    MOZ_ASSERT(overscrollScale > 0.0f && overscrollScale <= 1.0f);
+    ParentLayerCoord compBoundsLength =
+        aAxis.GetRectLength(mMetrics.GetCompositionBounds());
+
+    // It's possible for the overscroll amount to be larger than the length
+    // of the composition bounds, if an overscroll animation was started with
+    // a very large velocity.
+    float overscrollProportion =
+        std::min(std::abs(overscroll.value), compBoundsLength.value) /
+        compBoundsLength.value;
+
+    float overscrollScale = 1.0f - overscrollProportion;
+    MOZ_ASSERT(overscrollScale >= 0.0f && overscrollScale <= 1.0f);
     // If we're overscrolled at the top, keep the top of the thumb in place
     // as we squish it. If we're overscrolled at the bottom, keep the bottom of
     // the thumb in place.
