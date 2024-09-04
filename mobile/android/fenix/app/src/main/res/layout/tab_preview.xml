@@ -12,7 +12,7 @@
         android:background="?layer2" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/toolbar_wrapper_two"
+        android:id="@+id/fakeToolbarTwo"
         android:layout_width="match_parent"
         android:layout_height="@dimen/browser_toolbar_height"
         android:layout_gravity="bottom"
