@@ -586,10 +586,10 @@ fn send_something_paced_with_modifier(
                 .dgram()
                 .expect("send_something: should have something to send")
         }
-        Output::Datagram(d) => modifier(d).unwrap(),
+        Output::Datagram(d) => d,
         Output::None => panic!("send_something: got Output::None"),
     };
-    (dgram, now)
+    (modifier(dgram).unwrap(), now)
 }
 
 fn send_something_paced(
@@ -614,6 +614,18 @@ fn send_something(sender: &mut Connection, now: Instant) -> Datagram {
     send_something_with_modifier(sender, now, Some)
 }
 
+/// Send something on a stream from `sender` through a modifier to `receiver`.
+/// Return any ACK that might result.
+fn send_with_modifier_and_receive(
+    sender: &mut Connection,
+    receiver: &mut Connection,
+    now: Instant,
+    modifier: fn(Datagram) -> Option<Datagram>,
+) -> Option<Datagram> {
+    let dgram = send_something_with_modifier(sender, now, modifier);
+    receiver.process(Some(&dgram), now).dgram()
+}
+
 /// Send something on a stream from `sender` to `receiver`.
 /// Return any ACK that might result.
 fn send_and_receive(
@@ -621,8 +633,7 @@ fn send_and_receive(
     receiver: &mut Connection,
     now: Instant,
 ) -> Option<Datagram> {
-    let dgram = send_something(sender, now);
-    receiver.process(Some(&dgram), now).dgram()
+    send_with_modifier_and_receive(sender, receiver, now, Some)
 }
 
 fn get_tokens(client: &mut Connection) -> Vec<ResumptionToken> {

@@ -76,6 +76,11 @@ impl State {
             None
         }
     }
+
+    #[must_use]
+    pub const fn closing(&self) -> bool {
+        matches!(self, Self::Closing { .. } | Self::Draining { .. })
+    }
 }
 
 // Implement `PartialOrd` so that we can enforce monotonic state progression.

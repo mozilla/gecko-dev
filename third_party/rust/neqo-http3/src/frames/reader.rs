@@ -14,23 +14,25 @@ use neqo_common::{
 };
 use neqo_transport::{Connection, StreamId};
 
+use super::hframe::HFrameType;
 use crate::{Error, RecvStream, Res};
 
 const MAX_READ_SIZE: usize = 4096;
 
 pub trait FrameDecoder<T> {
-    fn is_known_type(frame_type: u64) -> bool;
+    fn is_known_type(frame_type: HFrameType) -> bool;
+
     /// # Errors
     ///
     /// Returns `HttpFrameUnexpected` if frames is not alowed, i.e. is a `H3_RESERVED_FRAME_TYPES`.
-    fn frame_type_allowed(_frame_type: u64) -> Res<()> {
+    fn frame_type_allowed(_frame_type: HFrameType) -> Res<()> {
         Ok(())
     }
 
     /// # Errors
     ///
     /// If a frame cannot be properly decoded.
-    fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<T>>;
+    fn decode(frame_type: HFrameType, frame_len: u64, data: Option<&[u8]>) -> Res<Option<T>>;
 }
 
 pub trait StreamReader {
@@ -95,7 +97,7 @@ enum FrameReaderState {
 #[derive(Debug)]
 pub struct FrameReader {
     state: FrameReaderState,
-    frame_type: u64,
+    frame_type: HFrameType,
     frame_len: u64,
 }
 
@@ -112,13 +114,13 @@ impl FrameReader {
             state: FrameReaderState::GetType {
                 decoder: IncrementalDecoderUint::default(),
             },
-            frame_type: 0,
+            frame_type: HFrameType(u64::MAX),
             frame_len: 0,
         }
     }
 
     #[must_use]
-    pub fn new_with_type(frame_type: u64) -> Self {
+    pub fn new_with_type(frame_type: HFrameType) -> Self {
         Self {
             state: FrameReaderState::GetLength {
                 decoder: IncrementalDecoderUint::default(),
@@ -202,13 +204,13 @@ impl FrameReader {
             FrameReaderState::GetType { decoder } => {
                 if let Some(v) = decoder.consume(&mut input) {
                     qtrace!("FrameReader::receive: read frame type {}", v);
-                    self.frame_type_decoded::<T>(v)?;
+                    self.frame_type_decoded::<T>(HFrameType(v))?;
                 }
             }
             FrameReaderState::GetLength { decoder } => {
                 if let Some(len) = decoder.consume(&mut input) {
                     qtrace!(
-                        "FrameReader::receive: frame type {} length {}",
+                        "FrameReader::receive: frame type {:?} length {}",
                         self.frame_type,
                         len
                     );
@@ -218,7 +220,7 @@ impl FrameReader {
             FrameReaderState::GetData { decoder } => {
                 if let Some(data) = decoder.consume(&mut input) {
                     qtrace!(
-                        "received frame {}: {}",
+                        "received frame {:?}: {}",
                         self.frame_type,
                         hex_with_len(&data[..])
                     );
@@ -236,7 +238,7 @@ impl FrameReader {
 }
 
 impl FrameReader {
-    fn frame_type_decoded<T: FrameDecoder<T>>(&mut self, frame_type: u64) -> Res<()> {
+    fn frame_type_decoded<T: FrameDecoder<T>>(&mut self, frame_type: HFrameType) -> Res<()> {
         T::frame_type_allowed(frame_type)?;
         self.frame_type = frame_type;
         self.state = FrameReaderState::GetLength {

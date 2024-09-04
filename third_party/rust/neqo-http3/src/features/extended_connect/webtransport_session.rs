@@ -70,7 +70,7 @@ impl WebTransportSession {
                     message_type: MessageType::Response,
                     stream_type: Http3StreamType::ExtendedConnect,
                     stream_id: session_id,
-                    header_frame_type_read: false,
+                    first_frame_type: None,
                 },
                 qpack_decoder,
                 Box::new(stream_event_listener.clone()),

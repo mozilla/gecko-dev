@@ -6,9 +6,12 @@
 
 use std::{
     cell::RefCell,
-    fmt,
-    path::{Path, PathBuf},
+    fmt::{self, Display},
+    fs::OpenOptions,
+    io::BufWriter,
+    path::PathBuf,
     rc::Rc,
+    time::SystemTime,
 };
 
 use qlog::{
@@ -29,21 +32,53 @@ pub struct NeqoQlogShared {
 }
 
 impl NeqoQlog {
+    /// Create an enabled `NeqoQlog` configuration backed by a file.
+    ///
+    /// # Errors
+    ///
+    /// Will return `qlog::Error` if it cannot write to the new file.
+    pub fn enabled_with_file(
+        mut qlog_path: PathBuf,
+        role: Role,
+        title: Option<String>,
+        description: Option<String>,
+        file_prefix: impl Display,
+    ) -> Result<Self, qlog::Error> {
+        qlog_path.push(format!("{file_prefix}.sqlog"));
+
+        let file = OpenOptions::new()
+            .write(true)
+            // As a server, the original DCID is chosen by the client. Using
+            // create_new() prevents attackers from overwriting existing logs.
+            .create_new(true)
+            .open(&qlog_path)
+            .map_err(qlog::Error::IoError)?;
+
+        let streamer = QlogStreamer::new(
+            qlog::QLOG_VERSION.to_string(),
+            title,
+            description,
+            None,
+            std::time::Instant::now(),
+            new_trace(role),
+            qlog::events::EventImportance::Base,
+            Box::new(BufWriter::new(file)),
+        );
+        Self::enabled(streamer, qlog_path)
+    }
+
     /// Create an enabled `NeqoQlog` configuration.
     ///
     /// # Errors
     ///
-    /// Will return `qlog::Error` if cannot write to the new log.
-    pub fn enabled(
-        mut streamer: QlogStreamer,
-        qlog_path: impl AsRef<Path>,
-    ) -> Result<Self, qlog::Error> {
+    /// Will return `qlog::Error` if it cannot write to the new log.
+    pub fn enabled(mut streamer: QlogStreamer, qlog_path: PathBuf) -> Result<Self, qlog::Error> {
         streamer.start_log()?;
 
         Ok(Self {
             inner: Rc::new(RefCell::new(Some(NeqoQlogShared {
+                qlog_path,
                 streamer,
-                qlog_path: qlog_path.as_ref().to_owned(),
             }))),
         })
     }
@@ -138,13 +173,10 @@ pub fn new_trace(role: Role) -> qlog::TraceSeq {
         common_fields: Some(CommonFields {
             group_id: None,
             protocol_type: None,
-            reference_time: {
-                // It is better to allow this than deal with a conversion from i64 to f64.
-                // We can't do the obvious two-step conversion with f64::from(i32::try_from(...)),
-                // because that overflows earlier than is ideal.  This should be fine for a while.
-                #[allow(clippy::cast_precision_loss)]
-                Some(time::OffsetDateTime::now_utc().unix_timestamp() as f64)
-            },
+            reference_time: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .map(|d| d.as_secs_f64() * 1_000.0)
+                .ok(),
             time_format: Some("relative".to_string()),
         }),
     }

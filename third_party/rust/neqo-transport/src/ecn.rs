@@ -12,6 +12,7 @@ use neqo_common::{qdebug, qinfo, qwarn, IpTosEcn};
 use crate::{
     packet::{PacketNumber, PacketType},
     recovery::SentPacket,
+    Stats,
 };
 
 /// The number of packets to use for testing a path for ECN capability.
@@ -25,7 +26,7 @@ const ECN_TEST_COUNT_INITIAL_PHASE: usize = 3;
 
 /// The state information related to testing a path for ECN capability.
 /// See RFC9000, Appendix A.4.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum EcnValidationState {
     /// The path is currently being tested for ECN capability, with the number of probes sent so
     /// far on the path during the ECN validation.
@@ -50,7 +51,32 @@ impl Default for EcnValidationState {
     }
 }
 
+impl EcnValidationState {
+    fn set(&mut self, new: Self, stats: &mut Stats) {
+        let old = std::mem::replace(self, new);
+
+        match old {
+            Self::Testing { .. } | Self::Unknown => {}
+            Self::Failed => debug_assert!(false, "Failed is a terminal state"),
+            Self::Capable => stats.ecn_paths_capable -= 1,
+        }
+        match new {
+            Self::Testing { .. } | Self::Unknown => {}
+            Self::Failed => stats.ecn_paths_not_capable += 1,
+            Self::Capable => stats.ecn_paths_capable += 1,
+        }
+    }
+}
+
 /// The counts for different ECN marks.
+///
+/// Note: [`EcnCount`] is used both for outgoing UDP datagrams, returned by
+/// remote through QUIC ACKs and for incoming UDP datagrams, read from IP TOS
+/// header. In the former case, given that QUIC ACKs only carry
+/// [`IpTosEcn::Ect0`], [`IpTosEcn::Ect1`] and [`IpTosEcn::Ce`], but never
+/// [`IpTosEcn::NotEct`], the [`IpTosEcn::NotEct`] value will always be 0.
+///
+/// See also <https://www.rfc-editor.org/rfc/rfc9000.html#section-19.3.2>.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct EcnCount(EnumMap<IpTosEcn, u64>);
 
@@ -126,15 +152,20 @@ impl EcnInfo {
     /// Exit ECN validation if the number of packets sent exceeds `ECN_TEST_COUNT`.
     /// We do not implement the part of the RFC that says to exit ECN validation if the time since
     /// the start of ECN validation exceeds 3 * PTO, since this seems to happen much too quickly.
-    pub fn on_packet_sent(&mut self) {
+    pub fn on_packet_sent(&mut self, stats: &mut Stats) {
         if let EcnValidationState::Testing { probes_sent, .. } = &mut self.state {
             *probes_sent += 1;
             qdebug!("ECN probing: sent {} probes", probes_sent);
             if *probes_sent == ECN_TEST_COUNT {
                 qdebug!("ECN probing concluded with {} probes sent", probes_sent);
-                self.state = EcnValidationState::Unknown;
+                self.state.set(EcnValidationState::Unknown, stats);
             }
         }
+    }
+
+    /// Disable ECN.
+    pub fn disable_ecn(&mut self, stats: &mut Stats) {
+        self.state.set(EcnValidationState::Failed, stats);
     }
 
     /// Process ECN counts from an ACK frame.
@@ -144,16 +175,17 @@ impl EcnInfo {
         &mut self,
         acked_packets: &[SentPacket],
         ack_ecn: Option<EcnCount>,
+        stats: &mut Stats,
     ) -> bool {
         let prev_baseline = self.baseline;
 
-        self.validate_ack_ecn_and_update(acked_packets, ack_ecn);
+        self.validate_ack_ecn_and_update(acked_packets, ack_ecn, stats);
 
         matches!(self.state, EcnValidationState::Capable)
             && (self.baseline - prev_baseline)[IpTosEcn::Ce] > 0
     }
 
-    pub fn on_packets_lost(&mut self, lost_packets: &[SentPacket]) {
+    pub fn on_packets_lost(&mut self, lost_packets: &[SentPacket], stats: &mut Stats) {
         if let EcnValidationState::Testing {
             probes_sent,
             initial_probes_lost: probes_lost,
@@ -170,7 +202,7 @@ impl EcnInfo {
                     "ECN validation failed, all {} initial marked packets were lost",
                     probes_lost
                 );
-                self.state = EcnValidationState::Failed;
+                self.disable_ecn(stats);
             }
         }
     }
@@ -180,6 +212,7 @@ impl EcnInfo {
         &mut self,
         acked_packets: &[SentPacket],
         ack_ecn: Option<EcnCount>,
+        stats: &mut Stats,
     ) {
         // RFC 9000, Appendix A.4:
         //
@@ -212,7 +245,7 @@ impl EcnInfo {
         // > corresponding ECN counts are not present in the ACK frame.
         let Some(ack_ecn) = ack_ecn else {
             qwarn!("ECN validation failed, no ECN counts in ACK frame");
-            self.state = EcnValidationState::Failed;
+            self.disable_ecn(stats);
             return;
         };
 
@@ -229,7 +262,7 @@ impl EcnInfo {
             .unwrap();
         if newly_acked_sent_with_ect0 == 0 {
             qwarn!("ECN validation failed, no ECT(0) packets were newly acked");
-            self.state = EcnValidationState::Failed;
+            self.disable_ecn(stats);
             return;
         }
         let ecn_diff = ack_ecn - self.baseline;
@@ -240,15 +273,16 @@ impl EcnInfo {
                 sum_inc,
                 newly_acked_sent_with_ect0
             );
-            self.state = EcnValidationState::Failed;
+            self.disable_ecn(stats);
         } else if ecn_diff[IpTosEcn::Ect1] > 0 {
             qwarn!("ECN validation failed, ACK counted ECT(1) marks that were never sent");
-            self.state = EcnValidationState::Failed;
+            self.disable_ecn(stats);
         } else if self.state != EcnValidationState::Capable {
             qinfo!("ECN validation succeeded, path is capable");
-            self.state = EcnValidationState::Capable;
+            self.state.set(EcnValidationState::Capable, stats);
         }
         self.baseline = ack_ecn;
+        stats.ecn_tx = ack_ecn;
         self.largest_acked = largest_acked;
     }
 

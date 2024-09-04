@@ -318,7 +318,7 @@ impl Http3ServerHandler {
     fn handle_stream_readable(&mut self, conn: &mut Connection, stream_id: StreamId) -> Res<()> {
         match self.base_handler.handle_stream_readable(conn, stream_id)? {
             ReceiveOutput::NewStream(NewStreamType::Push(_)) => Err(Error::HttpStreamCreation),
-            ReceiveOutput::NewStream(NewStreamType::Http) => {
+            ReceiveOutput::NewStream(NewStreamType::Http(first_frame_type)) => {
                 self.base_handler.add_streams(
                     stream_id,
                     Box::new(SendMessage::new(
@@ -333,7 +333,7 @@ impl Http3ServerHandler {
                             message_type: MessageType::Request,
                             stream_type: Http3StreamType::Http,
                             stream_id,
-                            header_frame_type_read: true,
+                            first_frame_type: Some(first_frame_type),
                         },
                         Rc::clone(&self.base_handler.qpack_decoder),
                         Box::new(self.events.clone()),

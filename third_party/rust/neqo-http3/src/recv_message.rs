@@ -11,7 +11,7 @@ use neqo_qpack::decoder::QPackDecoder;
 use neqo_transport::{Connection, StreamId};
 
 use crate::{
-    frames::{FrameReader, HFrame, StreamReaderConnectionWrapper, H3_FRAME_TYPE_HEADERS},
+    frames::{hframe::HFrameType, FrameReader, HFrame, StreamReaderConnectionWrapper},
     headers_checks::{headers_valid, is_interim},
     priority::PriorityHandler,
     push_controller::PushController,
@@ -24,7 +24,7 @@ pub struct RecvMessageInfo {
     pub message_type: MessageType,
     pub stream_type: Http3StreamType,
     pub stream_id: StreamId,
-    pub header_frame_type_read: bool,
+    pub first_frame_type: Option<u64>,
 }
 
 /*
@@ -94,11 +94,11 @@ impl RecvMessage {
     ) -> Self {
         Self {
             state: RecvMessageState::WaitingForResponseHeaders {
-                frame_reader: if message_info.header_frame_type_read {
-                    FrameReader::new_with_type(H3_FRAME_TYPE_HEADERS)
-                } else {
-                    FrameReader::new()
-                },
+                frame_reader: message_info
+                    .first_frame_type
+                    .map_or_else(FrameReader::new, |frame_type| {
+                        FrameReader::new_with_type(HFrameType(frame_type))
+                    }),
             },
             message_type: message_info.message_type,
             stream_type: message_info.stream_type,

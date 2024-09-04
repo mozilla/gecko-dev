@@ -7,7 +7,9 @@
 #![allow(clippy::future_not_send)]
 
 use std::{
+    borrow::Cow,
     cell::RefCell,
+    cmp::min,
     fmt::{self, Display},
     fs, io,
     net::{SocketAddr, ToSocketAddrs},
@@ -28,10 +30,11 @@ use neqo_crypto::{
     constants::{TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256},
     init_db, AntiReplay, Cipher,
 };
-use neqo_transport::{Output, RandomConnectionIdGenerator, Version};
+use neqo_http3::{Http3OrWebTransportStream, StreamId};
+use neqo_transport::{server::ConnectionRef, Output, RandomConnectionIdGenerator, Version};
 use tokio::time::Sleep;
 
-use crate::SharedArgs;
+use crate::{SharedArgs, STREAM_IO_BUFFER_SIZE};
 
 const ANTI_REPLAY_WINDOW: Duration = Duration::from_secs(10);
 
@@ -118,7 +121,7 @@ pub struct Args {
     ech: bool,
 }
 
-#[cfg(feature = "bench")]
+#[cfg(any(test, feature = "bench"))]
 impl Default for Args {
     fn default() -> Self {
         use std::str::FromStr;
@@ -174,6 +177,11 @@ impl Args {
         } else {
             Instant::now()
         }
+    }
+
+    #[cfg(any(test, feature = "bench"))]
+    pub fn set_qlog_dir(&mut self, dir: PathBuf) {
+        self.shared.qlog_dir = Some(dir);
     }
 }
 
@@ -389,4 +397,90 @@ pub async fn server(mut args: Args) -> Res<()> {
     ServerRunner::new(Box::new(move || args.now()), server, sockets)
         .run()
         .await
+}
+
+#[derive(Debug)]
+struct ResponseData {
+    data: Cow<'static, [u8]>,
+    offset: usize,
+    remaining: usize,
+}
+
+impl From<&[u8]> for ResponseData {
+    fn from(data: &[u8]) -> Self {
+        Self::from(data.to_vec())
+    }
+}
+
+impl From<Vec<u8>> for ResponseData {
+    fn from(data: Vec<u8>) -> Self {
+        let remaining = data.len();
+        Self {
+            data: Cow::Owned(data),
+            offset: 0,
+            remaining,
+        }
+    }
+}
+
+impl From<&str> for ResponseData {
+    fn from(data: &str) -> Self {
+        Self::from(data.as_bytes())
+    }
+}
+
+impl ResponseData {
+    const fn zeroes(total: usize) -> Self {
+        const MESSAGE: &[u8] = &[0; STREAM_IO_BUFFER_SIZE];
+        Self {
+            data: Cow::Borrowed(MESSAGE),
+            offset: 0,
+            remaining: total,
+        }
+    }
+
+    fn slice(&self) -> &[u8] {
+        let end = min(self.data.len(), self.offset + self.remaining);
+        &self.data[self.offset..end]
+    }
+
+    fn send_h3(&mut self, stream: &Http3OrWebTransportStream) {
+        while self.remaining > 0 {
+            match stream.send_data(self.slice()) {
+                Ok(0) => {
+                    return;
+                }
+                Ok(sent) => {
+                    self.remaining -= sent;
+                    self.offset = (self.offset + sent) % self.data.len();
+                }
+                Err(e) => {
+                    qwarn!("Error writing to stream {}: {:?}", stream, e);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn send_h09(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
+        while self.remaining > 0 {
+            match conn
+                .borrow_mut()
+                .stream_send(stream_id, self.slice())
+                .unwrap()
+            {
+                0 => {
+                    return;
+                }
+                sent => {
+                    self.remaining -= sent;
+                    self.offset = (self.offset + sent) % self.data.len();
+                }
+            }
+        }
+    }
+
+    const fn done(&self) -> bool {
+        self.remaining == 0
+    }
 }

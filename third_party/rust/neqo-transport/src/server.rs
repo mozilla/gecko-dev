@@ -10,7 +10,6 @@ use std::{
     cell::RefCell,
     cmp::min,
     collections::HashSet,
-    fs::OpenOptions,
     ops::{Deref, DerefMut},
     path::PathBuf,
     rc::Rc,
@@ -18,14 +17,12 @@ use std::{
 };
 
 use neqo_common::{
-    self as common, event::Provider, hex, qdebug, qerror, qinfo, qlog::NeqoQlog, qtrace, qwarn,
-    Datagram, Role,
+    event::Provider, hex, qdebug, qerror, qinfo, qlog::NeqoQlog, qtrace, qwarn, Datagram, Role,
 };
 use neqo_crypto::{
     encode_ech_config, AntiReplay, Cipher, PrivateKey, PublicKey, ZeroRttCheckResult,
     ZeroRttChecker,
 };
-use qlog::streamer::QlogStreamer;
 
 pub use crate::addr_valid::ValidateAddress;
 use crate::{
@@ -258,49 +255,17 @@ impl Server {
         self.qlog_dir
             .as_ref()
             .map_or_else(NeqoQlog::disabled, |qlog_dir| {
-                let mut qlog_path = qlog_dir.clone();
-
-                qlog_path.push(format!("{odcid}.qlog"));
-
-                // The original DCID is chosen by the client. Using create_new()
-                // prevents attackers from overwriting existing logs.
-                match OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(&qlog_path)
-                {
-                    Ok(f) => {
-                        qinfo!("Qlog output to {}", qlog_path.display());
-
-                        let streamer = QlogStreamer::new(
-                            qlog::QLOG_VERSION.to_string(),
-                            Some("Neqo server qlog".to_string()),
-                            Some("Neqo server qlog".to_string()),
-                            None,
-                            std::time::Instant::now(),
-                            common::qlog::new_trace(Role::Server),
-                            qlog::events::EventImportance::Base,
-                            Box::new(f),
-                        );
-                        let n_qlog = NeqoQlog::enabled(streamer, qlog_path);
-                        match n_qlog {
-                            Ok(nql) => nql,
-                            Err(e) => {
-                                // Keep going but w/o qlogging
-                                qerror!("NeqoQlog error: {}", e);
-                                NeqoQlog::disabled()
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        qerror!(
-                            "Could not open file {} for qlog output: {}",
-                            qlog_path.display(),
-                            e
-                        );
-                        NeqoQlog::disabled()
-                    }
-                }
+                NeqoQlog::enabled_with_file(
+                    qlog_dir.clone(),
+                    Role::Server,
+                    Some("Neqo server qlog".to_string()),
+                    Some("Neqo server qlog".to_string()),
+                    odcid,
+                )
+                .unwrap_or_else(|e| {
+                    qerror!("failed to create NeqoQlog: {}", e);
+                    NeqoQlog::disabled()
+                })
             })
     }
 

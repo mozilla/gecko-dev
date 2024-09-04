@@ -6,6 +6,7 @@
 
 use neqo_common::{Decoder, Encoder};
 
+use super::hframe::HFrameType;
 use crate::{frames::reader::FrameDecoder, Error, Res};
 
 pub type WebTransportFrameType = u64;
@@ -29,10 +30,10 @@ impl WebTransportFrame {
 }
 
 impl FrameDecoder<Self> for WebTransportFrame {
-    fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<Self>> {
+    fn decode(frame_type: HFrameType, frame_len: u64, data: Option<&[u8]>) -> Res<Option<Self>> {
         if let Some(payload) = data {
             let mut dec = Decoder::from(payload);
-            if frame_type == WT_FRAME_CLOSE_SESSION {
+            if frame_type == HFrameType(WT_FRAME_CLOSE_SESSION) {
                 if frame_len > WT_FRAME_CLOSE_MAX_MESSAGE_SIZE + 4 {
                     return Err(Error::HttpMessageError);
                 }
@@ -50,7 +51,7 @@ impl FrameDecoder<Self> for WebTransportFrame {
         }
     }
 
-    fn is_known_type(frame_type: u64) -> bool {
-        frame_type == WT_FRAME_CLOSE_SESSION
+    fn is_known_type(frame_type: HFrameType) -> bool {
+        frame_type == HFrameType(WT_FRAME_CLOSE_SESSION)
     }
 }

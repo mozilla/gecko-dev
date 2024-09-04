@@ -11,9 +11,7 @@ use std::{
 };
 
 #[cfg(windows)]
-use winapi::shared::minwindef::UINT;
-#[cfg(windows)]
-use winapi::um::timeapi::{timeBeginPeriod, timeEndPeriod};
+use windows::Win32::Media::{timeBeginPeriod, timeEndPeriod};
 
 /// A quantized `Duration`.  This currently just produces 16 discrete values
 /// corresponding to whole milliseconds.  Future implementations might choose
@@ -26,8 +24,8 @@ impl Period {
     const MIN: Self = Self(1);
 
     #[cfg(windows)]
-    fn as_uint(self) -> UINT {
-        UINT::from(self.0)
+    fn as_u32(self) -> u32 {
+        u32::from(self.0)
     }
 
     #[cfg(target_os = "macos")]
@@ -299,7 +297,7 @@ impl Time {
     #[cfg(target_os = "windows")]
     fn start(&self) {
         if let Some(p) = self.active {
-            _ = unsafe { timeBeginPeriod(p.as_uint()) };
+            _ = unsafe { timeBeginPeriod(p.as_u32()) };
         }
     }
 
@@ -310,7 +308,7 @@ impl Time {
     #[cfg(windows)]
     fn stop(&self) {
         if let Some(p) = self.active {
-            _ = unsafe { timeEndPeriod(p.as_uint()) };
+            _ = unsafe { timeEndPeriod(p.as_u32()) };
         }
     }
 

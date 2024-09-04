@@ -599,7 +599,7 @@ fn datagram_fill() {
         let path = p.borrow();
         // Minimum overhead is connection ID length, 1 byte short header, 1 byte packet number,
         // 1 byte for the DATAGRAM frame type, and 16 bytes for the AEAD.
-        path.plpmtu() - path.remote_cid().len() - 19
+        path.plpmtu() - path.remote_cid().unwrap().len() - 19
     };
     assert!(space >= 64); // Unlikely, but this test depends on the datagram being this large.
 

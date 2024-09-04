@@ -28,6 +28,7 @@ use crate::{
     connection::tests::send_something_paced,
     frame::FRAME_TYPE_NEW_CONNECTION_ID,
     packet::PacketBuilder,
+    path::MAX_PATH_PROBES,
     pmtud::Pmtud,
     tparams::{self, PreferredAddress, TransportParameter},
     CloseReason, ConnectionId, ConnectionIdDecoder, ConnectionIdGenerator, ConnectionIdRef,
@@ -236,7 +237,8 @@ fn migrate_immediate_fail() {
     let probe = client.process_output(now).dgram().unwrap();
     assert_v4_path(&probe, true); // Contains PATH_CHALLENGE.
 
-    for _ in 0..2 {
+    // -1 because first PATH_CHALLENGE already sent above
+    for _ in 0..MAX_PATH_PROBES * 2 - 1 {
         let cb = client.process_output(now).callback();
         assert_ne!(cb, Duration::new(0, 0));
         now += cb;
@@ -311,7 +313,8 @@ fn migrate_same_fail() {
     let probe = client.process_output(now).dgram().unwrap();
     assert_v6_path(&probe, true); // Contains PATH_CHALLENGE.
 
-    for _ in 0..2 {
+    // -1 because first PATH_CHALLENGE already sent above
+    for _ in 0..MAX_PATH_PROBES * 2 - 1 {
         let cb = client.process_output(now).callback();
         assert_ne!(cb, Duration::new(0, 0));
         now += cb;
@@ -946,7 +949,6 @@ impl crate::connection::test_internal::FrameWriter for GarbageWriter {
 /// Test the case that we run out of connection ID and receive an invalid frame
 /// from a new path.
 #[test]
-#[should_panic(expected = "attempting to close with a temporary path")]
 fn error_on_new_path_with_no_connection_id() {
     let mut client = default_client();
     let mut server = default_server();
@@ -967,5 +969,23 @@ fn error_on_new_path_with_no_connection_id() {
 
     // See issue #1697. We had a crash when the client had a temporary path and
     // process_output is called.
+    let closing_frames = client.stats().frame_tx.connection_close;
     mem::drop(client.process_output(now()));
+    assert!(matches!(
+        client.state(),
+        State::Closing {
+            error: CloseReason::Transport(Error::UnknownFrameType),
+            ..
+        }
+    ));
+    // Wait until the connection is closed.
+    let mut now = now();
+    now += client.process(None, now).callback();
+    _ = client.process_output(now);
+    // No closing frames should be sent, and the connection should be closed.
+    assert_eq!(client.stats().frame_tx.connection_close, closing_frames);
+    assert!(matches!(
+        client.state(),
+        State::Closed(CloseReason::Transport(Error::UnknownFrameType))
+    ));
 }

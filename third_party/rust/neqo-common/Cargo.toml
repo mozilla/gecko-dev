@@ -17,7 +17,7 @@ bench = []
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-common"
-version = "0.8.2"
+version = "0.9.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
 autobins = false
@@ -73,11 +73,6 @@ default-features = false
 version = "0.13"
 default-features = false
 
-[dependencies.time]
-version = "0.3"
-features = ["formatting"]
-default-features = false
-
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
 
@@ -85,9 +80,10 @@ path = "../test-fixture"
 build-fuzzing-corpus = ["hex"]
 ci = []
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3"
-features = ["timeapi"]
+[target."cfg(windows)".dependencies.windows]
+version = "0.58"
+features = ["Win32_Media"]
+default-features = false
 
 [lints.clippy]
 multiple_crate_versions = "allow"

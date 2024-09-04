@@ -40,6 +40,7 @@ scoped_ptr!(
 );
 
 /// `AntiReplay` is used by servers when processing 0-RTT handshakes.
+///
 /// It limits the exposure of servers to replay attack by rejecting 0-RTT
 /// if it appears to be a replay.  There is a false-positive rate that can be
 /// managed by tuning the parameters used to create the context.

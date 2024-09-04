@@ -9,6 +9,7 @@ use std::{io, net::SocketAddr};
 use neqo_common::Datagram;
 
 /// Ideally this would live in [`neqo-udp`]. [`neqo-udp`] is used in Firefox.
+///
 /// Firefox uses `cargo vet`. [`tokio`] the dependency of [`neqo-udp`] is not
 /// audited as `safe-to-deploy`. `cargo vet` will require `safe-to-deploy` for
 /// [`tokio`] even when behind a feature flag.

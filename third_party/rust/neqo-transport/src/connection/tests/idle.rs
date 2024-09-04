@@ -287,7 +287,7 @@ fn idle_caching() {
     let mut client = default_client();
     let mut server = default_server();
     let start = now();
-    let mut builder = PacketBuilder::short(Encoder::new(), false, []);
+    let mut builder = PacketBuilder::short(Encoder::new(), false, None::<&[u8]>);
 
     // Perform the first round trip, but drop the Initial from the server.
     // The client then caches the Handshake packet.
@@ -297,18 +297,15 @@ fn idle_caching() {
     client.process_input(&handshake.unwrap(), start);
 
     // Perform an exchange and keep the connection alive.
-    // Only allow a packet containing a PING to pass.
     let middle = start + AT_LEAST_PTO;
-    mem::drop(client.process_output(middle));
+    // This is the RTX of the client Initial.
     let dgram = client.process_output(middle).dgram();
 
     // Get the server to send its first probe and throw that away.
     mem::drop(server.process_output(middle).dgram());
-    // Now let the server process the client PING.  This causes the server
+    // Now let the server process the RTX'ed client Initial.  This causes the server
     // to send CRYPTO frames again, so manually extract and discard those.
-    let ping_before_s = server.stats().frame_rx.ping;
     server.process_input(&dgram.unwrap(), middle);
-    assert_eq!(server.stats().frame_rx.ping, ping_before_s + 1);
     let mut tokens = Vec::new();
     server.crypto.streams.write_frame(
         PacketNumberSpace::Initial,
@@ -330,10 +327,10 @@ fn idle_caching() {
     // Now only allow the Initial packet from the server through;
     // it shouldn't contain a CRYPTO frame.
     let (initial, _) = split_datagram(&dgram.unwrap());
-    let ping_before_c = client.stats().frame_rx.ping;
+    let crypto_before_c = client.stats().frame_rx.crypto;
     let ack_before = client.stats().frame_rx.ack;
     client.process_input(&initial, middle);
-    assert_eq!(client.stats().frame_rx.ping, ping_before_c + 1);
+    assert_eq!(client.stats().frame_rx.crypto, crypto_before_c);
     assert_eq!(client.stats().frame_rx.ack, ack_before + 1);
 
     let end = start + default_timeout() + (AT_LEAST_PTO / 2);

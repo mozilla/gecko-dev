@@ -533,7 +533,9 @@ impl Http3Connection {
                 Ok(ReceiveOutput::ControlFrames(rest))
             }
             ReceiveOutput::NewStream(
-                NewStreamType::Push(_) | NewStreamType::Http | NewStreamType::WebTransportStream(_),
+                NewStreamType::Push(_)
+                | NewStreamType::Http(_)
+                | NewStreamType::WebTransportStream(_),
             ) => Ok(output),
             ReceiveOutput::NewStream(_) => {
                 unreachable!("NewStream should have been handled already")
@@ -723,7 +725,7 @@ impl Http3Connection {
                     )),
                 );
             }
-            NewStreamType::Http => {
+            NewStreamType::Http(_) => {
                 qinfo!([self], "A new http stream {}.", stream_id);
             }
             NewStreamType::WebTransportStream(session_id) => {
@@ -755,9 +757,9 @@ impl Http3Connection {
             NewStreamType::Control | NewStreamType::Decoder | NewStreamType::Encoder => {
                 self.stream_receive(conn, stream_id)
             }
-            NewStreamType::Push(_) | NewStreamType::Http | NewStreamType::WebTransportStream(_) => {
-                Ok(ReceiveOutput::NewStream(stream_type))
-            }
+            NewStreamType::Push(_)
+            | NewStreamType::Http(_)
+            | NewStreamType::WebTransportStream(_) => Ok(ReceiveOutput::NewStream(stream_type)),
             NewStreamType::Unknown => Ok(ReceiveOutput::NoOutput),
         }
     }
@@ -919,7 +921,7 @@ impl Http3Connection {
                     message_type: MessageType::Response,
                     stream_type,
                     stream_id,
-                    header_frame_type_read: false,
+                    first_frame_type: None,
                 },
                 Rc::clone(&self.qpack_decoder),
                 recv_events,

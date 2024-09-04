@@ -12,19 +12,31 @@ use neqo_transport::StreamId;
 
 use crate::{frames::reader::FrameDecoder, settings::HSettings, Error, Priority, Res};
 
-pub type HFrameType = u64;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HFrameType(pub u64);
 
-pub const H3_FRAME_TYPE_DATA: HFrameType = 0x0;
-pub const H3_FRAME_TYPE_HEADERS: HFrameType = 0x1;
-pub const H3_FRAME_TYPE_CANCEL_PUSH: HFrameType = 0x3;
-pub const H3_FRAME_TYPE_SETTINGS: HFrameType = 0x4;
-pub const H3_FRAME_TYPE_PUSH_PROMISE: HFrameType = 0x5;
-pub const H3_FRAME_TYPE_GOAWAY: HFrameType = 0x7;
-pub const H3_FRAME_TYPE_MAX_PUSH_ID: HFrameType = 0xd;
-pub const H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST: HFrameType = 0xf0700;
-pub const H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH: HFrameType = 0xf0701;
+pub const H3_FRAME_TYPE_DATA: HFrameType = HFrameType(0x0);
+pub const H3_FRAME_TYPE_HEADERS: HFrameType = HFrameType(0x1);
+pub const H3_FRAME_TYPE_CANCEL_PUSH: HFrameType = HFrameType(0x3);
+pub const H3_FRAME_TYPE_SETTINGS: HFrameType = HFrameType(0x4);
+pub const H3_FRAME_TYPE_PUSH_PROMISE: HFrameType = HFrameType(0x5);
+pub const H3_FRAME_TYPE_GOAWAY: HFrameType = HFrameType(0x7);
+pub const H3_FRAME_TYPE_MAX_PUSH_ID: HFrameType = HFrameType(0xd);
+pub const H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST: HFrameType = HFrameType(0xf0700);
+pub const H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH: HFrameType = HFrameType(0xf0701);
 
-pub const H3_RESERVED_FRAME_TYPES: &[HFrameType] = &[0x2, 0x6, 0x8, 0x9];
+pub const H3_RESERVED_FRAME_TYPES: &[HFrameType] = &[
+    HFrameType(0x2),
+    HFrameType(0x6),
+    HFrameType(0x8),
+    HFrameType(0x9),
+];
+
+impl From<HFrameType> for u64 {
+    fn from(t: HFrameType) -> Self {
+        t.0
+    }
+}
 
 // data for DATA frame is not read into HFrame::Data.
 #[derive(PartialEq, Eq, Debug)]
@@ -74,7 +86,9 @@ impl HFrame {
             Self::MaxPushId { .. } => H3_FRAME_TYPE_MAX_PUSH_ID,
             Self::PriorityUpdateRequest { .. } => H3_FRAME_TYPE_PRIORITY_UPDATE_REQUEST,
             Self::PriorityUpdatePush { .. } => H3_FRAME_TYPE_PRIORITY_UPDATE_PUSH,
-            Self::Grease => Decoder::from(&random::<7>()).decode_uint(7).unwrap() * 0x1f + 0x21,
+            Self::Grease => {
+                HFrameType(Decoder::from(&random::<7>()).decode_uint(7).unwrap() * 0x1f + 0x21)
+            }
         }
     }
 
@@ -143,14 +157,14 @@ impl HFrame {
 }
 
 impl FrameDecoder<Self> for HFrame {
-    fn frame_type_allowed(frame_type: u64) -> Res<()> {
+    fn frame_type_allowed(frame_type: HFrameType) -> Res<()> {
         if H3_RESERVED_FRAME_TYPES.contains(&frame_type) {
             return Err(Error::HttpFrameUnexpected);
         }
         Ok(())
     }
 
-    fn decode(frame_type: u64, frame_len: u64, data: Option<&[u8]>) -> Res<Option<Self>> {
+    fn decode(frame_type: HFrameType, frame_len: u64, data: Option<&[u8]>) -> Res<Option<Self>> {
         if frame_type == H3_FRAME_TYPE_DATA {
             Ok(Some(Self::Data { len: frame_len }))
         } else if let Some(payload) = data {
@@ -207,7 +221,7 @@ impl FrameDecoder<Self> for HFrame {
         }
     }
 
-    fn is_known_type(frame_type: u64) -> bool {
+    fn is_known_type(frame_type: HFrameType) -> bool {
         matches!(
             frame_type,
             H3_FRAME_TYPE_DATA

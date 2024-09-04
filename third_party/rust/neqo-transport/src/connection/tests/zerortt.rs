@@ -4,9 +4,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
-use neqo_common::event::Provider;
+use neqo_common::{event::Provider, qdebug};
 use neqo_crypto::{AllowZeroRtt, AntiReplay};
 use test_fixture::{assertions, now};
 
@@ -257,4 +257,66 @@ fn zero_rtt_update_flow_control() {
     // And the new limit applies.
     assert!(client.stream_send_atomic(uni_stream, MESSAGE).unwrap());
     assert!(client.stream_send_atomic(bidi_stream, MESSAGE).unwrap());
+}
+
+#[test]
+fn zero_rtt_loss_accepted() {
+    // This test requires a wider anti-replay window than other tests
+    // because the dropped 0-RTT packets add a bunch of delay.
+    const WINDOW: Duration = Duration::from_secs(20);
+    for i in 0..5 {
+        let mut client = default_client();
+        let mut server = default_server();
+        connect(&mut client, &mut server);
+
+        let mut now = now();
+        let earlier = now;
+
+        let token = exchange_ticket(&mut client, &mut server, now);
+
+        now += WINDOW;
+        let mut client = default_client();
+        client.enable_resumption(now, token).unwrap();
+        let mut server = resumed_server(&client);
+        let anti_replay = AntiReplay::new(earlier, WINDOW, 1, 3).unwrap();
+        server
+            .server_enable_0rtt(&anti_replay, AllowZeroRtt {})
+            .unwrap();
+
+        // Make CI/0-RTT
+        let client_stream_id = client.stream_create(StreamType::UniDi).unwrap();
+        client.stream_send(client_stream_id, &[1, 2, 3]).unwrap();
+        let mut ci = client.process_output(now);
+        assert!(ci.as_dgram_ref().is_some());
+        assertions::assert_coalesced_0rtt(&ci.as_dgram_ref().unwrap()[..]);
+
+        // Drop CI/0-RTT a number of times
+        qdebug!("Drop CI/0-RTT {i} extra times");
+        for _ in 0..i {
+            now += client.process_output(now).callback();
+            ci = client.process_output(now);
+            assert!(ci.as_dgram_ref().is_some());
+        }
+
+        // Process CI/0-RTT
+        let si = server.process(ci.as_dgram_ref(), now);
+        assert!(si.as_dgram_ref().is_some());
+
+        let server_stream_id = server
+            .events()
+            .find_map(|evt| match evt {
+                ConnectionEvent::NewStream { stream_id } => Some(stream_id),
+                _ => None,
+            })
+            .expect("should have received a new stream event");
+        assert_eq!(client_stream_id, server_stream_id.as_u64());
+
+        // 0-RTT should be accepted
+        client.process_input(si.as_dgram_ref().unwrap(), now);
+        let recvd_0rtt_reject = |e| e == ConnectionEvent::ZeroRttRejected;
+        assert!(
+            !client.events().any(recvd_0rtt_reject),
+            "rejected 0-RTT after {i} extra dropped packets"
+        );
+    }
 }

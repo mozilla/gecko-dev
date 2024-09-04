@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Instant};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Instant};
 
 use neqo_common::{event::Provider, hex, qdebug, qerror, qinfo, qwarn, Datagram};
 use neqo_crypto::{generate_ech_keys, random, AllowZeroRtt, AntiReplay};
@@ -15,12 +15,13 @@ use neqo_transport::{
 };
 use regex::Regex;
 
-use super::{qns_read_response, Args};
+use super::{qns_read_response, Args, ResponseData};
+use crate::STREAM_IO_BUFFER_SIZE;
 
 #[derive(Default)]
 struct HttpStreamState {
     writable: bool,
-    data_to_send: Option<(Vec<u8>, usize)>,
+    data_to_send: Option<ResponseData>,
 }
 
 pub struct HttpServer {
@@ -29,6 +30,7 @@ pub struct HttpServer {
     read_state: HashMap<StreamId, Vec<u8>>,
     is_qns_test: bool,
     regex: Regex,
+    read_buffer: Vec<u8>,
 }
 
 impl HttpServer {
@@ -72,6 +74,7 @@ impl HttpServer {
             } else {
                 Regex::new(r"GET +/(\d+)(?:\r)?\n").unwrap()
             },
+            read_buffer: vec![0; STREAM_IO_BUFFER_SIZE],
         })
     }
 
@@ -87,11 +90,63 @@ impl HttpServer {
         }
     }
 
-    fn write(&mut self, stream_id: StreamId, data: Option<Vec<u8>>, conn: &ConnectionRef) {
-        let resp = data.unwrap_or_else(|| Vec::from(&b"404 That request was nonsense\r\n"[..]));
+    fn stream_readable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
+        if !stream_id.is_client_initiated() || !stream_id.is_bidi() {
+            qdebug!("Stream {} not client-initiated bidi, ignoring", stream_id);
+            return;
+        }
+        let (sz, fin) = conn
+            .borrow_mut()
+            .stream_recv(stream_id, &mut self.read_buffer)
+            .expect("Read should succeed");
+
+        if sz == 0 {
+            if !fin {
+                qdebug!("size 0 but !fin");
+            }
+            return;
+        }
+        let read_buffer = &self.read_buffer[..sz];
+
+        let buf = self.read_state.remove(&stream_id).map_or(
+            Cow::Borrowed(read_buffer),
+            |mut existing| {
+                existing.extend_from_slice(read_buffer);
+                Cow::Owned(existing)
+            },
+        );
+
+        let Ok(msg) = std::str::from_utf8(&buf[..]) else {
+            self.save_partial(stream_id, buf.to_vec(), conn);
+            return;
+        };
+
+        let m = self.regex.captures(msg);
+        let Some(path) = m.and_then(|m| m.get(1)) else {
+            self.save_partial(stream_id, buf.to_vec(), conn);
+            return;
+        };
+
+        let resp: ResponseData = {
+            let path = path.as_str();
+            qdebug!("Path = '{path}'");
+            if self.is_qns_test {
+                match qns_read_response(path) {
+                    Ok(data) => data.into(),
+                    Err(e) => {
+                        qerror!("Failed to read {path}: {e}");
+                        b"404".to_vec().into()
+                    }
+                }
+            } else {
+                let count = path.parse().unwrap();
+                ResponseData::zeroes(count)
+            }
+        };
+
         if let Some(stream_state) = self.write_state.get_mut(&stream_id) {
             match stream_state.data_to_send {
-                None => stream_state.data_to_send = Some((resp, 0)),
+                None => stream_state.data_to_send = Some(resp),
                 Some(_) => {
                     qdebug!("Data already set, doing nothing");
                 }
@@ -104,90 +159,26 @@ impl HttpServer {
                 stream_id,
                 HttpStreamState {
                     writable: false,
-                    data_to_send: Some((resp, 0)),
+                    data_to_send: Some(resp),
                 },
             );
         }
     }
 
-    fn stream_readable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
-        if !stream_id.is_client_initiated() || !stream_id.is_bidi() {
-            qdebug!("Stream {} not client-initiated bidi, ignoring", stream_id);
-            return;
-        }
-        let mut data = vec![0; 4000];
-        let (sz, fin) = conn
-            .borrow_mut()
-            .stream_recv(stream_id, &mut data)
-            .expect("Read should succeed");
-
-        if sz == 0 {
-            if !fin {
-                qdebug!("size 0 but !fin");
-            }
-            return;
-        }
-
-        data.truncate(sz);
-        let buf = if let Some(mut existing) = self.read_state.remove(&stream_id) {
-            existing.append(&mut data);
-            existing
-        } else {
-            data
-        };
-
-        let Ok(msg) = std::str::from_utf8(&buf[..]) else {
-            self.save_partial(stream_id, buf, conn);
-            return;
-        };
-
-        let m = self.regex.captures(msg);
-        let Some(path) = m.and_then(|m| m.get(1)) else {
-            self.save_partial(stream_id, buf, conn);
-            return;
-        };
-
-        let resp = {
-            let path = path.as_str();
-            qdebug!("Path = '{path}'");
-            if self.is_qns_test {
-                match qns_read_response(path) {
-                    Ok(data) => Some(data),
-                    Err(e) => {
-                        qerror!("Failed to read {path}: {e}");
-                        Some(b"404".to_vec())
-                    }
-                }
-            } else {
-                let count = path.parse().unwrap();
-                Some(vec![b'a'; count])
-            }
-        };
-        self.write(stream_id, resp, conn);
-    }
-
     fn stream_writable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
-        match self.write_state.get_mut(&stream_id) {
-            None => {
-                qwarn!("Unknown stream {stream_id}, ignoring event");
-            }
-            Some(stream_state) => {
-                stream_state.writable = true;
-                if let Some((data, ref mut offset)) = &mut stream_state.data_to_send {
-                    let sent = conn
-                        .borrow_mut()
-                        .stream_send(stream_id, &data[*offset..])
-                        .unwrap();
-                    qdebug!("Wrote {}", sent);
-                    *offset += sent;
-                    if *offset == data.len() {
-                        qinfo!("Sent {sent} on {stream_id}, closing");
-                        conn.borrow_mut().stream_close_send(stream_id).unwrap();
-                        self.write_state.remove(&stream_id);
-                    } else {
-                        stream_state.writable = false;
-                    }
-                }
+        let Some(stream_state) = self.write_state.get_mut(&stream_id) else {
+            qwarn!("Unknown stream {stream_id}, ignoring event");
+            return;
+        };
+
+        stream_state.writable = true;
+        if let Some(resp) = &mut stream_state.data_to_send {
+            resp.send_h09(stream_id, conn);
+            if resp.done() {
+                conn.borrow_mut().stream_close_send(stream_id).unwrap();
+                self.write_state.remove(&stream_id);
+            } else {
+                stream_state.writable = false;
             }
         }
     }

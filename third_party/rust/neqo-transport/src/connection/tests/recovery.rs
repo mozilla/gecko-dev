@@ -264,6 +264,7 @@ fn pto_handshake_complete() {
     // We'll use that packet to force the server to acknowledge 1-RTT.
     let stream_id = client.stream_create(StreamType::UniDi).unwrap();
     client.stream_close_send(stream_id).unwrap();
+    now += HALF_RTT * 6;
     let pkt3 = client.process(None, now).dgram();
     assert_handshake(pkt3.as_ref().unwrap());
     let (pkt3_hs, pkt3_1rtt) = split_datagram(&pkt3.unwrap());
@@ -581,6 +582,9 @@ fn loss_time_past_largest_acked() {
     assert!(s_pto < RTT);
     let s_hs2 = server.process(None, now + s_pto).dgram();
     assert!(s_hs2.is_some());
+    let s_pto = server.process(None, now).callback();
+    assert_ne!(s_pto, Duration::from_secs(0));
+    assert!(s_pto < RTT);
     let s_hs3 = server.process(None, now + s_pto).dgram();
     assert!(s_hs3.is_some());
 
@@ -623,7 +627,9 @@ fn loss_time_past_largest_acked() {
 
     // Now the client should start its loss recovery timer based on the ACK.
     now += RTT / 2;
-    let c_ack = client.process(Some(&s_hs_ack), now).dgram();
+    let _c_ack = client.process(Some(&s_hs_ack), now).dgram();
+    // This ACK triggers an immediate ACK, due to an ACK loss during handshake.
+    let c_ack = client.process(None, now).dgram();
     assert!(c_ack.is_none());
     // The client should now have the loss recovery timer active.
     let lr_time = client.process(None, now).callback();

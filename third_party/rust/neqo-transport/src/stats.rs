@@ -16,7 +16,7 @@ use std::{
 
 use neqo_common::qwarn;
 
-use crate::packet::PacketNumber;
+use crate::{ecn::EcnCount, packet::PacketNumber};
 
 pub const MAX_PTO_COUNTS: usize = 16;
 
@@ -166,6 +166,25 @@ pub struct Stats {
     pub incoming_datagram_dropped: usize,
 
     pub datagram_tx: DatagramStats,
+
+    /// Number of paths known to be ECN capable.
+    pub ecn_paths_capable: usize,
+    /// Number of paths known to be ECN incapable.
+    pub ecn_paths_not_capable: usize,
+    /// ECN counts for outgoing UDP datagrams, returned by remote through QUIC ACKs.
+    ///
+    /// Note: Given that QUIC ACKs only carry [`Ect0`], [`Ect1`] and [`Ce`], but
+    /// never [`NotEct`], the [`NotEct`] value will always be 0.
+    ///
+    /// See also <https://www.rfc-editor.org/rfc/rfc9000.html#section-19.3.2>.
+    ///
+    /// [`Ect0`]: neqo_common::tos::IpTosEcn::Ect0
+    /// [`Ect1`]: neqo_common::tos::IpTosEcn::Ect1
+    /// [`Ce`]: neqo_common::tos::IpTosEcn::Ce
+    /// [`NotEct`]: neqo_common::tos::IpTosEcn::NotEct
+    pub ecn_tx: EcnCount,
+    /// ECN counts for incoming UDP datagrams, read from IP TOS header.
+    pub ecn_rx: EcnCount,
 }
 
 impl Stats {
@@ -222,7 +241,12 @@ impl Debug for Stats {
         writeln!(f, "  frames rx:")?;
         self.frame_rx.fmt(f)?;
         writeln!(f, "  frames tx:")?;
-        self.frame_tx.fmt(f)
+        self.frame_tx.fmt(f)?;
+        writeln!(
+            f,
+            "  ecn: {:?} for tx {:?} for rx {} capable paths {} not capable paths",
+            self.ecn_tx, self.ecn_rx, self.ecn_paths_capable, self.ecn_paths_not_capable
+        )
     }
 }
 

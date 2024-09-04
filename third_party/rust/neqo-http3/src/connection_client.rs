@@ -1094,7 +1094,7 @@ impl Http3Client {
             ReceiveOutput::NewStream(NewStreamType::Push(push_id)) => {
                 self.handle_new_push_stream(stream_id, push_id)
             }
-            ReceiveOutput::NewStream(NewStreamType::Http) => Err(Error::HttpStreamCreation),
+            ReceiveOutput::NewStream(NewStreamType::Http(_)) => Err(Error::HttpStreamCreation),
             ReceiveOutput::NewStream(NewStreamType::WebTransportStream(session_id)) => {
                 self.base_handler.webtransport_create_stream_remote(
                     StreamId::from(session_id),
@@ -1162,7 +1162,7 @@ impl Http3Client {
                     message_type: MessageType::Response,
                     stream_type: Http3StreamType::Push,
                     stream_id,
-                    header_frame_type_read: false,
+                    first_frame_type: None,
                 },
                 Rc::clone(&self.base_handler.qpack_decoder),
                 Box::new(RecvPushEvents::new(push_id, Rc::clone(&self.push_handler))),
