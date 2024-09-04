@@ -948,8 +948,10 @@ export class BackupService extends EventTarget {
     this.#postRecoveryResolver = resolve;
     this.#backupWriteAbortController = new AbortController();
     this.#regenerationDebouncer = new lazy.DeferredTask(async () => {
-      await this.deleteLastBackup();
-      await this.createBackupOnIdleDispatch();
+      if (!this.#backupWriteAbortController.signal.aborted) {
+        await this.deleteLastBackup();
+        await this.createBackupOnIdleDispatch();
+      }
     }, BackupService.REGENERATION_DEBOUNCE_RATE_MS);
   }
 
@@ -3164,6 +3166,7 @@ export class BackupService extends EventTarget {
 
     Services.obs.addObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.addObserver(this.#observer, "formautofill-storage-changed");
+    Services.obs.addObserver(this.#observer, "sanitizer-sanitization-complete");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3196,6 +3199,9 @@ export class BackupService extends EventTarget {
     Services.obs.removeObserver(this.#observer, "formautofill-storage-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
+
+    this.#regenerationDebouncer.disarm();
+    this.#backupWriteAbortController.abort();
   }
 
   /**
@@ -3219,7 +3225,6 @@ export class BackupService extends EventTarget {
       }
       case "quit-application-granted": {
         this.uninitBackupScheduler();
-        this.#backupWriteAbortController.abort();
         break;
       }
       case "passwordmgr-storage-changed": {
@@ -3236,6 +3241,10 @@ export class BackupService extends EventTarget {
         ) {
           this.#debounceRegeneration();
         }
+        break;
+      }
+      case "sanitizer-sanitization-complete": {
+        this.#debounceRegeneration();
         break;
       }
     }
