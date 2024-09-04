@@ -116,17 +116,6 @@ and then are merged by the sheriffs in mozilla-central.
 
 URL: https://hg.mozilla.org/integration/autoland/
 
-L10n repos
-----------
-
-Mainly useful for localizers working on localizing Firefox. Code for all
-l10n projects lives here and is organized into separate repos that (in
-most cases) have the locale's two character ISO code. To get the repo
-that you need look for the repo you're interested in on the following
-page.
-
-URL: https://hg.mozilla.org/l10n-central/
-
 Unified Repositories
 --------------------
 

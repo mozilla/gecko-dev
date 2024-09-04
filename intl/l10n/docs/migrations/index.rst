@@ -51,4 +51,4 @@ write the migration recipes:
  - Eemeli Aro (:eemeli)
 
 .. _Fluent: http://projectfluent.org/
-.. _Fluent Migration: https://hg.mozilla.org/l10n/fluent-migration/
+.. _Fluent Migration: https://github.com/mozilla/fluent-migrate

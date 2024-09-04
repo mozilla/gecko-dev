@@ -14,8 +14,7 @@ of Mozilla software into over 100 locales.
 
 The exact process of localization management differs from project to project, but
 in the case of Gecko applications, the localization is primarily done via a web localization
-system called `Pontoon`_ and stored in HG repositories under
-`hg.mozilla.org/l10n-central`_.
+system called `Pontoon`_ and stored in the `firefox-l10n`_ GitHub repository.
 
 Developers are expected to keep their code localizable using localization
 and internationalization systems, and also serve as localizers into the `en-US` locale
@@ -23,7 +22,7 @@ which is used as the `source` locale.
 
 In between the developers and localizers, there's a sophisticated ecosystem of tools,
 tests, automation, validators and other checks on one hand, and management, release,
-community and quality processes facilitated by the `L10n Drivers Team`_, on the other.
+community and quality processes facilitated by the `Localization Team`_, on the other.
 
 Content vs. UI
 ==============
@@ -51,7 +50,7 @@ content to be used in the new piece of UI.
 2) UX mockup + copy review
 --------------------------
 
-The UX mockup with copy is the first step that should be reviewed by the L10n Drivers Team.
+The UX mockup with copy is the first step that should be reviewed by the Localization Team.
 Their aim is to identify potential cultural and localization challenges that may arise
 later and ensure that the UI is ready for localization on a linguistic, cultural,
 and technical level.
@@ -74,40 +73,47 @@ translation will be used in the given location, and will correspond to the
 source translation. If that contract is to be changed, the developer will be expected
 to update it. More on that in part `6) String Updates`.
 
-The next review comes from either L10n Drivers, or experienced front end engineers
+The next review comes from either the Localization Team, or experienced front end engineers
 familiar with the internationalization and localization systems, making sure that
 the patches properly use the right APIs and the code is ready to be landed
 into `mozilla-central`.
 
 .. _exposure-in-gecko-strings:
 
-4) Exposure in `gecko-strings`
-------------------------------
+4) Exposure in `firefox-l10n-source` and `gecko-strings`
+--------------------------------------------------------
 
-Once the patch lands in `mozilla-central`, L10n Drivers will take a final look at
-the localizability of the introduced strings. In case of issues, developers might
-be asked to land a follow up, or the patch could be backed out with the help of sheriffs.
+Once the patch lands in `mozilla-central`, strings won't be exposed to localization
+until they are merged into `firefox-l10n-source`_, a unified repository that includes
+strings for all shipping versions of Firefox (nightly, beta, release, ESR, etc.).
 
-Every few days, strings are exported into a repository called `gecko-strings-quarantine`,
-a unified repository that includes strings for all shipping versions of Firefox
-(nightly, beta, release). This repository is used as a buffer to avoid exposing potential
-issues to over 100 locales.
+Twice a day, automation in this repository extracts new strings from `gecko-dev`_
+into a separate `update` branch. This branch acts as a buffer to avoid exposing
+potential issues to over 100 locales. The Localization Team will take a final look at the
+localizability of the introduced strings. In case of issues, developers might be
+asked to land a follow up, or the patch could be backed out with the help of sheriffs.
 
-As a last step, strings are pushed into `gecko-strings`, another unified repository that
-is exposed to localization tools, like Pontoon, and build automation.
+As a last step, strings are merged into the `main` branch which is exposed to our
+web localization tool Pontoon.
+
+During the current transition from Mercurial to GitHub a parallel legacy process
+(called `cross-channel`) happens for source strings in two unified Mercurial repositories:
+`gecko-strings-quarantine` (pre-review) and `gecko-strings` (post-review). These strings
+mirror those in `firefox-l10n-source` and are currently used to compare outputs of the
+GitHub workflows to ensure parity. `Cross-channel` will be phased out in the future.
 
 5) Localization
 ---------------
 
-From that moment localizers will work on providing translations for the new feature
-either while the new strings are only in Nightly or after they are merged to Beta.
-The goal is to have as much of the UI ready in as many locales as early as possible,
-but the process is continuous and we're capable of releasing Firefox with incomplete
-translations falling back on a backup locale in case of a missing string.
+Once strings are exposed to Pontoon, localizers will work on providing translations
+for the new feature either while the new strings are only in Nightly or after they are
+merged to Beta. The goal is to have as much of the UI ready in as many locales as
+early as possible, but the process is continuous and we're capable of releasing
+Firefox with incomplete translations falling back on a backup locale in case of
+a missing string.
 
-While Nightly products use the latest version of localization available in repositories,
-the L10n Drivers team is responsible for reviewing and signing off versions of each
-localization shipping in Beta and Release versions of Gecko products.
+When translation completes in Pontoon, the final localized strings are stored in
+`firefox-l10n`_.
 
 6) String updates
 -----------------
@@ -138,8 +144,8 @@ The new ID will be recognized by the l10n tooling as untranslated, and the old o
 as obsolete. This will give the localizers an opportunity to find and update the
 translation, while the old string will be removed from the build process.
 
-There is a gray area between the two severity levels. In case of doubt, don’t hesitate
-to request feedback of review from L10n Drivers to avoid issues once the strings land.
+There is a gray area between the two severity levels. In case of doubt, don't hesitate
+to request feedback of review from the Localization Team to avoid issues once the strings land.
 
 Selecting L10n Identifier
 =========================
@@ -148,7 +154,7 @@ Choosing an identifier for a localization message is tricky. It may seem similar
 to picking a variable name, but in reality, it's much closer to designing a public
 API.
 
-An l10n identifier, once defined, is then getting associated to a translated
+An l10n identifier, once defined, gets associated to a translated
 message in every one of 100+ locales and it becomes very costly to attempt to
 migrate that string in all locales to a different identifier.
 
@@ -174,9 +180,8 @@ Fluent
 Fluent is a modern localization system designed by Mozilla to address the challenges
 and limitations of older systems.
 
-It's well suited for modern web development cycle, provides a number of localization
-features including good internationalization model and strong bidirectionality support.
-
+It's well suited for the modern web development cycle, providing a number of localization
+features including a good internationalization model and strong bidirectionality support.
 
 To learn more about Fluent, follow the `Fluent for Firefox Developers`_ guide.
 
@@ -191,6 +196,8 @@ The system provides external positional arguments which can be placed into the s
 Adding new StringBundle messages should only be done after serious consideration.
 
 .. _Pontoon: https://pontoon.mozilla.org/
-.. _hg.mozilla.org/l10n-central: https://hg.mozilla.org/l10n-central/
-.. _L10n Drivers Team: https://wiki.mozilla.org/L10n:Mozilla_Team
+.. _firefox-l10n: https://github.com/mozilla-l10n/firefox-l10n
+.. _Localization Team: https://mozilla-l10n.github.io/introduction/team.html
+.. _firefox-l10n-source: https://github.com/mozilla-l10n/firefox-l10n-source
+.. _gecko-dev: https://github.com/mozilla/gecko-dev
 .. _Fluent For Firefox Developers: ./fluent/tutorial.html

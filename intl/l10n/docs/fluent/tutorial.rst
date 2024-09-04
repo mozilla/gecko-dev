@@ -371,7 +371,7 @@ Plural Rules
 
 The most common localization feature is the ability to provide different variants
 of the same string depending on plural categories. Fluent ties into the Unicode CLDR
-standard called `Plural Rules`_.
+standard called `Plural Rules <http://cldr.unicode.org/index/cldr-spec/plural-rules>`__.
 
 In order to allow localizers to use it, all the developer has to do is to pass
 an external argument number:
@@ -560,7 +560,7 @@ on the class.
 
 
 Synchronous contexts should be always avoided as they require synchronous I/O. If you think your use case
-requires a synchronous localization context, please consult Gecko, Performance and L10n Drivers teams.
+requires a synchronous localization context, please consult Gecko, Performance and Localization teams.
 
 
 Designing Localizable APIs
@@ -803,4 +803,3 @@ and resources that the :js:`Localization` class uses.
 .. _Unicode: https://www.unicode.org/
 .. _Fluent Syntax Guide: https://projectfluent.org/fluent/guide/
 .. _Pontoon: https://pontoon.mozilla.org/
-.. _Plural Rules: http://cldr.unicode.org/index/cldr-spec/plural-rules
