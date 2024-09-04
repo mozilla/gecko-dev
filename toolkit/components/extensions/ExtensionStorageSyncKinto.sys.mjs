@@ -15,7 +15,6 @@ const KINTO_PROD_SERVER_URL =
   "https://webextensions.settings.services.mozilla.com/v1";
 const KINTO_DEFAULT_SERVER_URL = KINTO_PROD_SERVER_URL;
 
-const STORAGE_SYNC_ENABLED_PREF = "webextensions.storage.sync.enabled";
 const STORAGE_SYNC_SERVER_URL_PREF = "webextensions.storage.sync.serverURL";
 const STORAGE_SYNC_SCOPE = "sync:addon_storage";
 const STORAGE_SYNC_CRYPTO_COLLECTION_NAME = "storage-sync-crypto";
@@ -63,12 +62,6 @@ ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
   ).getFxAccountsSingleton();
 });
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "prefPermitsStorageSync",
-  STORAGE_SYNC_ENABLED_PREF,
-  true
-);
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "prefStorageSyncServerURL",
@@ -1203,11 +1196,6 @@ export class ExtensionStorageSyncKinto {
    * @returns {Promise<Collection>}
    */
   getCollection(extension, context) {
-    if (lazy.prefPermitsStorageSync !== true) {
-      return Promise.reject({
-        message: `Please set ${STORAGE_SYNC_ENABLED_PREF} to true in about:config`,
-      });
-    }
     this.registerInUse(extension, context);
     return openCollection(extension);
   }

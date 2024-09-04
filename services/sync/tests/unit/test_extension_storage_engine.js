@@ -13,10 +13,6 @@ const { ExtensionStorageEngineBridge, ExtensionStorageEngineKinto } =
     "resource://services-sync/engines/extension-storage.sys.mjs"
   );
 
-const { BridgeWrapperXPCOM } = ChromeUtils.importESModule(
-  "resource://services-sync/bridged_engine.sys.mjs"
-);
-
 Services.prefs.setStringPref("webextensions.storage.sync.log.level", "debug");
 
 add_task(async function test_switching_between_kinto_and_bridged() {
@@ -107,6 +103,7 @@ add_task(async function test_enable() {
 
 add_task(async function test_notifyPendingChanges() {
   let engine = new ExtensionStorageEngineBridge(Service);
+  await engine.initialize();
 
   let extension = { id: "ext-1" };
   let expectedChange = {
@@ -117,55 +114,42 @@ add_task(async function test_notifyPendingChanges() {
   let lastSync = 0;
   let syncID = Utils.makeGUID();
   let error = null;
-  engine.component = {
-    QueryInterface: ChromeUtils.generateQI([
-      "mozIBridgedSyncEngine",
-      "mozIExtensionStorageArea",
-      "mozISyncedExtensionStorageArea",
-    ]),
-    ensureCurrentSyncId(id, callback) {
+  engine._rustStore = {
+    getSyncedChanges() {
+      if (error) {
+        throw new Error(error.message);
+      } else {
+        return [
+          { extId: extension.id, changes: JSON.stringify(expectedChange) },
+        ];
+      }
+    },
+  };
+
+  engine._bridge = {
+    ensureCurrentSyncId(id) {
       if (syncID != id) {
         syncID = id;
         lastSync = 0;
       }
-      callback.handleSuccess(id);
+      return id;
     },
-    resetSyncId(callback) {
-      callback.handleSuccess(syncID);
+    resetSyncId() {
+      return syncID;
     },
-    syncStarted(callback) {
-      callback.handleSuccess();
+    syncStarted() {},
+    lastSync() {
+      return lastSync;
     },
-    getLastSync(callback) {
-      callback.handleSuccess(lastSync);
-    },
-    setLastSync(lastSyncMillis, callback) {
+    setLastSync(lastSyncMillis) {
       lastSync = lastSyncMillis;
-      callback.handleSuccess();
     },
-    apply(callback) {
-      callback.handleSuccess([]);
+    apply() {
+      return [];
     },
-    fetchPendingSyncChanges(callback) {
-      if (error) {
-        callback.handleError(Cr.NS_ERROR_FAILURE, error.message);
-      } else {
-        callback.onChanged(extension.id, JSON.stringify(expectedChange));
-        callback.handleSuccess();
-      }
-    },
-    setUploaded(modified, ids, callback) {
-      callback.handleSuccess();
-    },
-    syncFinished(callback) {
-      callback.handleSuccess();
-    },
-    takeMigrationInfo(callback) {
-      callback.handleSuccess(null);
-    },
+    setUploaded(_modified, _ids) {},
+    syncFinished() {},
   };
-
-  engine._bridge = new BridgeWrapperXPCOM(engine.component);
 
   let server = await serverForFoo(engine);
 

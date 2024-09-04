@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+const STORAGE_VERSION = 1; // This needs to be kept in-sync with the rust storage version
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import {
   BridgedEngine,
-  BridgeWrapperXPCOM,
   LogAdapter,
 } from "resource://services-sync/bridged_engine.sys.mjs";
 import { SyncEngine, Tracker } from "resource://services-sync/engines.sys.mjs";
@@ -15,21 +15,15 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   MULTI_DEVICE_THRESHOLD: "resource://services-sync/constants.sys.mjs",
-  Observers: "resource://services-common/observers.sys.mjs",
   SCORE_INCREMENT_MEDIUM: "resource://services-sync/constants.sys.mjs",
   Svc: "resource://services-sync/util.sys.mjs",
   extensionStorageSync: "resource://gre/modules/ExtensionStorageSync.sys.mjs",
+  storageSyncService:
+    "resource://gre/modules/ExtensionStorageComponents.sys.mjs",
 
   extensionStorageSyncKinto:
     "resource://gre/modules/ExtensionStorageSyncKinto.sys.mjs",
 });
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "StorageSyncService",
-  "@mozilla.org/extensions/storage/sync;1",
-  "nsIInterfaceRequestor"
-);
 
 const PREF_FORCE_ENABLE = "engine.extension-storage.force";
 
@@ -69,11 +63,7 @@ function setEngineEnabled(enabled) {
 
 // A "bridged engine" to our webext-storage component.
 export function ExtensionStorageEngineBridge(service) {
-  this.component = lazy.StorageSyncService.getInterface(
-    Ci.mozIBridgedSyncEngine
-  );
   BridgedEngine.call(this, "Extension-Storage", service);
-  this._bridge = new BridgeWrapperXPCOM(this.component);
 
   let app_services_logger = Cc["@mozilla.org/appservices/logger;1"].getService(
     Ci.mozIAppServicesLogger
@@ -88,78 +78,44 @@ ExtensionStorageEngineBridge.prototype = {
   // Used to override the engine name in telemetry, so that we can distinguish .
   overrideTelemetryName: "rust-webext-storage",
 
-  _notifyPendingChanges() {
-    return new Promise(resolve => {
-      this.component
-        .QueryInterface(Ci.mozISyncedExtensionStorageArea)
-        .fetchPendingSyncChanges({
-          QueryInterface: ChromeUtils.generateQI([
-            "mozIExtensionStorageListener",
-            "mozIExtensionStorageCallback",
-          ]),
-          onChanged: (extId, json) => {
-            try {
-              lazy.extensionStorageSync.notifyListeners(
-                extId,
-                JSON.parse(json)
-              );
-            } catch (ex) {
-              this._log.warn(
-                `Error notifying change listeners for ${extId}`,
-                ex
-              );
-            }
-          },
-          handleSuccess: resolve,
-          handleError: (code, message) => {
-            this._log.warn(
-              "Error fetching pending synced changes",
-              message,
-              code
-            );
-            resolve();
-          },
-        });
-    });
+  async initialize() {
+    await SyncEngine.prototype.initialize.call(this);
+    this._rustStore = await lazy.storageSyncService.getStorageAreaInstance();
+    this._bridge = await this._rustStore.bridgedEngine();
+
+    // Uniffi currently only supports async methods, so we'll need to hardcode
+    // these values for now (which is fine for now as these hardly ever change)
+    this._bridge.storageVersion = STORAGE_VERSION;
+    this._bridge.allowSkippedRecord = true;
+    this._bridge.getSyncId = async () => {
+      let syncID = await this._bridge.syncId();
+      return syncID;
+    };
+
+    this._log.info("Got a bridged engine!");
+    this._tracker.modified = true;
   },
 
-  _takeMigrationInfo() {
-    return new Promise(resolve => {
-      this.component
-        .QueryInterface(Ci.mozIExtensionStorageArea)
-        .takeMigrationInfo({
-          QueryInterface: ChromeUtils.generateQI([
-            "mozIExtensionStorageCallback",
-          ]),
-          handleSuccess: result => {
-            resolve(result ? JSON.parse(result) : null);
-          },
-          handleError: (code, message) => {
-            this._log.warn("Error fetching migration info", message, code);
-            // `takeMigrationInfo` doesn't actually perform the migration,
-            // just reads (and clears) any data stored in the DB from the
-            // previous migration.
-            //
-            // Any errors here are very likely occurring a good while
-            // after the migration ran, so we just warn and pretend
-            // nothing was there.
-            resolve(null);
-          },
-        });
-    });
-  },
+  async _notifyPendingChanges() {
+    try {
+      let changeSets = await this._rustStore.getSyncedChanges();
 
-  async _syncStartup() {
-    let result = await super._syncStartup();
-    let info = await this._takeMigrationInfo();
-    if (info) {
-      lazy.Observers.notify(
-        "weave:telemetry:migration",
-        info,
-        "webext-storage"
-      );
+      changeSets.forEach(changeSet => {
+        try {
+          lazy.extensionStorageSync.notifyListeners(
+            changeSet.extId,
+            JSON.parse(changeSet.changes)
+          );
+        } catch (ex) {
+          this._log.warn(
+            `Error notifying change listeners for ${changeSet.extId}`,
+            ex
+          );
+        }
+      });
+    } catch (ex) {
+      this._log.warn("Error fetching pending synced changes", ex);
     }
-    return result;
   },
 
   async _processIncoming() {

@@ -4,8 +4,6 @@
 
 "use strict";
 
-/* exported withSyncContext */
-
 const { ExtensionCommon } = ChromeUtils.importESModule(
   "resource://gre/modules/ExtensionCommon.sys.mjs"
 );
@@ -42,25 +40,5 @@ async function withContext(f) {
     await f(context);
   } finally {
     await context.unload();
-  }
-}
-
-/**
- * Like withContext(), but also turn on the "storage.sync" pref for
- * the duration of the function.
- * Calls to this function can be replaced with calls to withContext
- * once the pref becomes on by default.
- *
- * @param {Function} f    the function to call
- */
-async function withSyncContext(f) {
-  const STORAGE_SYNC_PREF = "webextensions.storage.sync.enabled";
-  let prefs = Services.prefs;
-
-  try {
-    prefs.setBoolPref(STORAGE_SYNC_PREF, true);
-    await withContext(f);
-  } finally {
-    prefs.clearUserPref(STORAGE_SYNC_PREF);
   }
 }
