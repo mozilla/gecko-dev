@@ -123,8 +123,7 @@ bool PropOpEmitter::skipObjAndRhs() {
 }
 
 bool PropOpEmitter::emitDelete(TaggedParserAtomIndex prop) {
-  MOZ_ASSERT_IF(!isSuper(), state_ == State::Obj);
-  MOZ_ASSERT_IF(isSuper(), state_ == State::Start);
+  MOZ_ASSERT(state_ == State::Obj);
   MOZ_ASSERT(isDelete());
 
   if (!prepareAtomIndex(prop)) {
