@@ -1009,7 +1009,7 @@ nsresult Http3Session::ProcessOutputAndEvents(nsIUDPSocket* socket) {
   if (NS_FAILED(rv)) {
     return rv;
   }
-  return ProcessEvents();
+  return NS_OK;
 }
 
 void Http3Session::SetupTimer(uint64_t aTimeout) {
@@ -1606,6 +1606,11 @@ nsresult Http3Session::SendData(nsIUDPSocket* socket) {
   if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
     rv = NS_OK;
   }
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  rv = ProcessEvents();
 
   // Let the connection know we sent some app data successfully.
   if (stream && NS_SUCCEEDED(rv)) {
