@@ -471,34 +471,19 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void assertObjectDoesNotEmulateUndefined(Register input, Register temp,
                                            const MInstruction* mir);
 
-  // Enumerates the fuses that a code generation can depend on. These will
-  // be mapped to an actual fuse by validateAndRegisterFuseDependencies.
-  enum class FuseDependencyKind {
-    HasSeenObjectEmulateUndefinedFuse,
-  };
-
-  // The set of fuses this code generation depends on.
-  mozilla::EnumSet<FuseDependencyKind> fuseDependencies;
-
   // Register a dependency on the HasSeenObjectEmulateUndefined fuse.
-  void addHasSeenObjectEmulateUndefinedFuseDependency() {
-    fuseDependencies += FuseDependencyKind::HasSeenObjectEmulateUndefinedFuse;
-  }
+  bool addHasSeenObjectEmulateUndefinedFuseDependency();
 
-  // Called during linking on main-thread: Ensures that the fuses are still
-  // intact, and registers a script dependency on a specific fuse before
-  // finishing compilation.
-  void validateAndRegisterFuseDependencies(JSContext* cx, HandleScript script,
-                                           bool* isValid);
-
-  // Return true if the fuse is intact, andd if the fuse is intact note the
+  // Return true if the fuse is intact, and if the fuse is intact note the
   // dependency
   bool hasSeenObjectEmulateUndefinedFuseIntactAndDependencyNoted() {
     bool intact = gen->outerInfo().hasSeenObjectEmulateUndefinedFuseIntact();
     if (intact) {
-      addHasSeenObjectEmulateUndefinedFuseDependency();
+      bool tryToAdd = addHasSeenObjectEmulateUndefinedFuseDependency();
+      // If we oom, just pretend that the fuse is popped.
+      return tryToAdd;
     }
-    return intact;
+    return false;
   }
 };
 

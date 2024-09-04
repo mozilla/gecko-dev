@@ -16728,42 +16728,35 @@ static bool AddInlinedCompilations(JSContext* cx, HandleScript script,
   return true;
 }
 
-void CodeGenerator::validateAndRegisterFuseDependencies(JSContext* cx,
-                                                        HandleScript script,
-                                                        bool* isValid) {
-  // No need to validate as we will toss this compilation anyhow.
-  if (!*isValid) {
-    return;
+struct EmulatesUndefinedDependency final : public CompilationDependency {
+  CompileRuntime* runtime;
+  explicit EmulatesUndefinedDependency(CompileRuntime* runtime)
+      : CompilationDependency(CompilationDependency::Type::EmulatesUndefined),
+        runtime(runtime) {};
+
+  virtual bool operator==(CompilationDependency& dep) {
+    // Since the emulates undefined fuse is runtime wide, they are all equal
+    return dep.type == type;
   }
 
-  for (auto dependency : fuseDependencies) {
-    switch (dependency) {
-      case FuseDependencyKind::HasSeenObjectEmulateUndefinedFuse: {
-        auto& hasSeenObjectEmulateUndefinedFuse =
-            cx->runtime()->hasSeenObjectEmulateUndefinedFuse.ref();
-
-        if (!hasSeenObjectEmulateUndefinedFuse.intact()) {
-          JitSpew(JitSpew_Codegen,
-                  "tossing compilation; hasSeenObjectEmulateUndefinedFuse fuse "
-                  "dependency no longer valid\n");
-          *isValid = false;
-          return;
-        }
-
-        if (!hasSeenObjectEmulateUndefinedFuse.addFuseDependency(cx, script)) {
-          JitSpew(JitSpew_Codegen,
-                  "tossing compilation; failed to register "
-                  "hasSeenObjectEmulateUndefinedFuse script dependency\n");
-          *isValid = false;
-          return;
-        }
-        break;
-      }
-
-      default:
-        MOZ_CRASH("Unknown Dependency Kind");
-    }
+  virtual bool checkDependency() {
+    return runtime->hasSeenObjectEmulateUndefinedFuseIntact();
   }
+
+  virtual bool registerDependency(JSContext* cx, HandleScript script) {
+    return cx->runtime()
+        ->hasSeenObjectEmulateUndefinedFuse.ref()
+        .addFuseDependency(cx, script);
+  }
+
+  virtual UniquePtr<CompilationDependency> clone() {
+    return MakeUnique<EmulatesUndefinedDependency>(runtime);
+  }
+};
+
+bool CodeGenerator::addHasSeenObjectEmulateUndefinedFuseDependency() {
+  EmulatesUndefinedDependency dep(gen->runtime);
+  return mirGen().tracker.addDependency(dep);
 }
 
 bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
@@ -16804,22 +16797,12 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     return false;
   }
 
-  // Validate fuse dependencies here; if a fuse has popped since we registered a
-  // dependency then we need to toss this compilation as it assumes things which
-  // are not valid.
-  //
-  // Eagerly register a fuse dependency here too; this way if we OOM we can
-  // instead simply remove the compilation and move on with our lives.
-  validateAndRegisterFuseDependencies(cx, script, &isValid);
-
   // This compilation is no longer valid; don't proceed, but return true as this
   // isn't an error case either.
   if (!isValid) {
     return true;
   }
 
-  // Check the compilation dependency tracker -- this should eventually obviate
-  // the above
   CompilationDependencyTracker& tracker = mirGen().tracker;
   if (!tracker.checkDependencies()) {
     return true;
