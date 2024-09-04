@@ -116,7 +116,7 @@ class DownloadFragment : Fragment(), UserInteractionHandler, MenuProvider {
     private fun observeModeChanges() {
         viewLifecycleOwner.lifecycleScope.launch {
             downloadStore.flow()
-                .distinctUntilChangedBy { it.mode::class }
+                .distinctUntilChangedBy { it.mode }
                 .map { it.mode }
                 .collect { mode ->
                     invalidateOptionsMenu()
