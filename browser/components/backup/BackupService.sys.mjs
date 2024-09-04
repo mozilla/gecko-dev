@@ -3159,6 +3159,7 @@ export class BackupService extends EventTarget {
       this.#placesObserver
     );
 
+    Services.obs.addObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3185,6 +3186,7 @@ export class BackupService extends EventTarget {
       this.#placesObserver
     );
 
+    Services.obs.removeObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
   }
@@ -3199,8 +3201,10 @@ export class BackupService extends EventTarget {
    *   quit-application-granted topic.
    * @param {string} topic
    *   The topic that the notification belongs to.
+   * @param {string} data
+   *   Optional data that was included with the notification.
    */
-  onObserve(_subject, topic) {
+  onObserve(_subject, topic, data) {
     switch (topic) {
       case "idle": {
         this.onIdle();
@@ -3209,6 +3213,12 @@ export class BackupService extends EventTarget {
       case "quit-application-granted": {
         this.uninitBackupScheduler();
         this.#backupWriteAbortController.abort();
+        break;
+      }
+      case "passwordmgr-storage-changed": {
+        if (data == "removeLogin" || data == "removeAllLogins") {
+          this.#debounceRegeneration();
+        }
         break;
       }
     }

@@ -22,6 +22,12 @@ const { DownloadHistory } = ChromeUtils.importESModule(
   "resource://gre/modules/DownloadHistory.sys.mjs"
 );
 
+const nsLoginInfo = new Components.Constructor(
+  "@mozilla.org/login-manager/loginInfo;1",
+  Ci.nsILoginInfo,
+  "init"
+);
+
 /**
  * This suite of tests ensures that the current backup will be deleted, and
  * a new one generated when certain user actions occur.
@@ -269,4 +275,55 @@ add_task(async function test_all_downloads_removed() {
       transition: PlacesUtils.history.TRANSITIONS.DOWNLOAD,
     });
   }, "Saw regeneration on all downloads removed.");
+});
+
+/**
+ * Tests that backup regeneration occurs when removing a password.
+ */
+add_task(async function test_password_removed() {
+  let login = new nsLoginInfo(
+    "https://example.com",
+    "https://example.com",
+    null,
+    "notifyu1",
+    "notifyp1",
+    "user",
+    "pass"
+  );
+  await Services.logins.addLoginAsync(login);
+
+  await expectRegeneration(async () => {
+    Services.logins.removeLogin(login);
+  }, "Saw regeneration on password removed.");
+});
+
+/**
+ * Tests that backup regeneration occurs when all passwords are removed.
+ */
+add_task(async function test_all_passwords_removed() {
+  let login1 = new nsLoginInfo(
+    "https://example.com",
+    "https://example.com",
+    null,
+    "notifyu1",
+    "notifyp1",
+    "user",
+    "pass"
+  );
+  let login2 = new nsLoginInfo(
+    "https://example.com",
+    "https://example.com",
+    null,
+    "",
+    "notifyp1",
+    "",
+    "pass"
+  );
+
+  await Services.logins.addLoginAsync(login1);
+  await Services.logins.addLoginAsync(login2);
+
+  await expectRegeneration(async () => {
+    Services.logins.removeAllLogins();
+  }, "Saw regeneration on all passwords removed.");
 });
