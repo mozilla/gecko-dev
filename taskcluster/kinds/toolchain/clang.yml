@@ -281,7 +281,6 @@ macosx64-clang-18-raw:
     description: "Clang 18 toolchain build"
     treeherder:
         symbol: TM(clang-18-raw)
-    worker-type: b-linux-large-gcp
     worker:
         max-run-time: 3600
     run:
@@ -350,7 +349,6 @@ macosx64-aarch64-clang-18-raw:
     description: "Clang 18 toolchain build"
     treeherder:
         symbol: TM(clang-18-aarch64-raw)
-    worker-type: b-linux-large-gcp
     worker:
         max-run-time: 3600
     run:
@@ -764,7 +762,6 @@ macosx64-clang-trunk-raw:
         cached_task: false
     treeherder:
         symbol: TM(clang-trunk-raw)
-    worker-type: b-linux-large-gcp
     worker:
         max-run-time: 3600
     run:
@@ -835,7 +832,6 @@ macosx64-aarch64-clang-trunk-raw:
         cached_task: false
     treeherder:
         symbol: TM(clang-trunk-aarch64-raw)
-    worker-type: b-linux-large-gcp
     worker:
         max-run-time: 3600
     run:
