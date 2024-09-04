@@ -15,6 +15,9 @@ add_task(async function testTracingFunctionReturn() {
       encodeURIComponent(`<script>${jsCode}</script><body></body>`)
   );
 
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-function-return");
 
   info("Enable tracing with function returns, but without values");

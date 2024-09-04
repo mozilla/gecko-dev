@@ -16,6 +16,9 @@ add_task(async function testTracingOnNextInteraction() {
       encodeURIComponent(`<script>${jsCode}</script><body></body>`)
   );
 
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-next-interaction");
 
   await toggleJsTracer(dbg.toolbox);

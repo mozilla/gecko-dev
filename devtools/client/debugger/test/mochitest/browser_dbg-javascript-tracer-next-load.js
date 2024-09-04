@@ -9,16 +9,15 @@
 add_task(async function testTracingOnNextLoad() {
   await pushPref("devtools.debugger.features.javascript-tracing", true);
 
-  await pushPref(
-    "devtools.debugger.features.javascript-tracing-log-method",
-    "console"
-  );
   // Cover tracing function argument values
   const jsCode = `function foo() {}; function bar() {}; foo(); dump("plop\\n")`;
   const dbg = await initDebuggerWithAbsoluteURL(
     "data:text/html," +
       encodeURIComponent(`<script>${jsCode}</script><body></body>`)
   );
+
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
 
   let traceButton = dbg.toolbox.doc.getElementById("command-button-jstracer");
 

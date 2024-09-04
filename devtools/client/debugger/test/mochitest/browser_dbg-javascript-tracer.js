@@ -12,6 +12,9 @@ add_task(async function () {
 
   const dbg = await initDebugger("doc-scripts.html");
 
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+
   // Add an iframe before starting the tracer to later check for key event on it
   const preExistingIframeBrowsingContext = await SpecialPowers.spawn(
     gBrowser.selectedBrowser,

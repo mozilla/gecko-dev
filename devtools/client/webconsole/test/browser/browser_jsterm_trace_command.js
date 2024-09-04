@@ -21,6 +21,9 @@ const TEST_URI = `data:text/html;charset=utf-8,<!DOCTYPE html>
 add_task(async function testBasicRecord() {
   await pushPref("devtools.debugger.features.javascript-tracing", true);
 
+  // The console output is no longer the default one
+  await pushPref("devtools.debugger.javascript-tracing-log-method", "console");
+
   const hud = await openNewTabAndConsole(TEST_URI);
   ok(hud, "web console opened");
 

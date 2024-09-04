@@ -14,6 +14,9 @@ add_task(async function testTracingValues() {
     "data:text/html," + encodeURIComponent(`<script>${jsCode}</script>`)
   );
 
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 
   await toggleJsTracer(dbg.toolbox);

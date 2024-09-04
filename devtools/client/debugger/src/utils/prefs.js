@@ -44,7 +44,7 @@ if (isNode()) {
   pref("devtools.debugger.skip-pausing", false);
   pref("devtools.debugger.log-actions", true);
   pref("devtools.debugger.log-event-breakpoints", false);
-  pref("devtools.debugger.javascript-tracing-log-method", "console");
+  pref("devtools.debugger.javascript-tracing-log-method", "debugger-sidebar");
   pref("devtools.debugger.javascript-tracing-values", false);
   pref("devtools.debugger.javascript-tracing-on-next-interaction", false);
   pref("devtools.debugger.javascript-tracing-on-next-load", false);

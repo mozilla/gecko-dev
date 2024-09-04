@@ -13,6 +13,9 @@ add_task(async function testTracingWorker() {
 
   const dbg = await initDebugger("doc-scripts.html");
 
+  // This test covers the Web Console, whereas it is no longer the default output
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-console");
+
   info("Instantiate a worker");
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     content.worker = new content.Worker("simple-worker.js");
