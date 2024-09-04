@@ -53,28 +53,9 @@ add_setup(async function () {
 });
 
 add_task(async function nonEmptySearch() {
-  searchBar.focus();
-  searchBar.value = SEARCH_WORD;
+  await openPopup(SEARCH_WORD);
 
-  let shownPromise = promiseEvent(searchPopup, "popupshown");
-  let builtPromise = promiseEvent(oneOffInstance, "rebuild");
-  info("Opening search panel");
-  EventUtils.synthesizeMouseAtCenter(searchIcon, {}, win);
-  await Promise.all([shownPromise, builtPromise]);
-
-  // Get the one-off button for the test engine.
-  let oneOffButton;
-  for (let node of oneOffButtons.children) {
-    if (node.engine && node.engine.name == TEST_ENGINE_NAME) {
-      oneOffButton = node;
-      break;
-    }
-  }
-  Assert.notEqual(
-    oneOffButton,
-    undefined,
-    "One-off for test engine should exist"
-  );
+  let oneOffButton = findOneOff(TEST_ENGINE_NAME);
 
   let promise = BrowserTestUtils.browserLoaded(
     win.gBrowser.selectedBrowser,
@@ -87,29 +68,8 @@ add_task(async function nonEmptySearch() {
 });
 
 add_task(async function emptySearch() {
-  searchBar.focus();
-  searchBar.value = "";
-
-  let shownPromise = promiseEvent(searchPopup, "popupshown");
-  let builtPromise = promiseEvent(oneOffInstance, "rebuild");
-  info("Opening search panel");
-  EventUtils.synthesizeMouseAtCenter(searchIcon, {}, win);
-  await Promise.all([shownPromise, builtPromise]);
-
-  // Get the one-off button for the test engine.
-  let oneOffButton;
-  for (let node of oneOffButtons.children) {
-    if (node.engine && node.engine.name == TEST_ENGINE_NAME) {
-      oneOffButton = node;
-      break;
-    }
-  }
-  Assert.notEqual(
-    oneOffButton,
-    undefined,
-    "One-off for test engine should exist"
-  );
-
+  await openPopup("");
+  let oneOffButton = findOneOff(TEST_ENGINE_NAME);
   EventUtils.synthesizeMouseAtCenter(oneOffButton, {}, win);
 
   await TestUtils.waitForTick();
@@ -119,3 +79,44 @@ add_task(async function emptySearch() {
     "Focus stays in the searchbar"
   );
 });
+
+add_task(async function emptySearchShift() {
+  await openPopup("");
+  let oneOffButton = findOneOff(TEST_ENGINE_NAME);
+
+  let promise = BrowserTestUtils.browserLoaded(
+    win.gBrowser.selectedBrowser,
+    false,
+    `http://mochi.test:8888/`
+  );
+  EventUtils.synthesizeMouseAtCenter(oneOffButton, { shiftKey: true }, win);
+  await promise;
+  info("Opened search form page");
+});
+
+function findOneOff(engineName) {
+  let oneOffChildren = [...oneOffButtons.children];
+  let oneOffButton = oneOffChildren.find(
+    node => node.engine?.name == engineName
+  );
+  Assert.notEqual(
+    oneOffButton,
+    undefined,
+    `One-off for ${engineName} should exist`
+  );
+  return oneOffButton;
+}
+
+async function openPopup(searchBarValue) {
+  searchBar.focus();
+  searchBar.value = searchBarValue;
+  if (searchBar.textbox.popupOpen) {
+    info("searchPanel is already open");
+    return;
+  }
+  let shownPromise = promiseEvent(searchPopup, "popupshown");
+  let builtPromise = promiseEvent(oneOffInstance, "rebuild");
+  info("Opening search panel");
+  EventUtils.synthesizeMouseAtCenter(searchIcon, {}, win);
+  await Promise.all([shownPromise, builtPromise]);
+}
