@@ -793,12 +793,16 @@ def main():
             assertions,
             target,
             targets,
-            is_final_stage=(stages == 2),
+            is_final_stage=(stages == 2 and not pgo),
             profile="gen" if pgo else None,
         )
 
     if stages >= 3 and skip_stages < 3:
         stage3_dir = build_dir + "/stage3"
+        if pgo:
+            profiles_dir = build_dir + "/profiles"
+            mkdir_p(profiles_dir)
+            os.environ["LLVM_PROFILE_FILE"] = profiles_dir + "/%m.profraw"
         stage3_inst_dir = stage3_dir + "/" + package_name
         final_stage_dir = stage3_dir
         if skip_stages < 2:
@@ -820,14 +824,16 @@ def main():
             assertions,
             target,
             targets,
-            (stages == 3),
+            is_final_stage=(stages == 3 and not pgo),
         )
         if pgo:
-            llvm_profdata = stage2_inst_dir + "/bin/llvm-profdata%s" % exe_ext
+            del os.environ["LLVM_PROFILE_FILE"]
+            if skip_stages < 1:
+                llvm_profdata = stage1_inst_dir + "/bin/llvm-profdata%s" % exe_ext
+            else:
+                llvm_profdata = get_tool(config, "llvm-profdata")
             merge_cmd = [llvm_profdata, "merge", "-o", "merged.profdata"]
-            profraw_files = glob.glob(
-                os.path.join(stage2_dir, "build", "profiles", "*.profraw")
-            )
+            profraw_files = glob.glob(os.path.join(profiles_dir, "*.profraw"))
             run_in(stage3_dir, merge_cmd + profraw_files)
             if stages == 3:
                 mkdir_p(upload_dir)
@@ -863,7 +869,7 @@ def main():
             assertions,
             target,
             targets,
-            (stages == 4),
+            is_final_stage=(stages == 4),
             profile=profile,
         )
 
