@@ -1355,6 +1355,8 @@ uint32_t GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock) {
       return markingThreadCount;
     case JSGC_SYSTEM_PAGE_SIZE_KB:
       return SystemPageSize() / 1024;
+    case JSGC_HIGH_FREQUENCY_MODE:
+      return schedulingState.inHighFrequencyGCMode();
     default:
       return tunables.getParameter(key);
   }
@@ -4395,7 +4397,7 @@ MOZ_NEVER_INLINE GCRuntime::IncrementalResult GCRuntime::gcCycle(
   TimeStamp now = TimeStamp::Now();
   if (firstSlice) {
     schedulingState.updateHighFrequencyModeOnGCStart(
-        gcOptions(), now, lastGCStartTime_, tunables);
+        gcOptions(), lastGCStartTime_, now, tunables);
     lastGCStartTime_ = now;
   }
   schedulingState.updateHighFrequencyModeOnSliceStart(gcOptions(), reason);

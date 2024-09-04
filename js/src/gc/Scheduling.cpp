@@ -299,12 +299,11 @@ void GCSchedulingState::updateHighFrequencyModeOnGCStart(
     JS::GCOptions options, const mozilla::TimeStamp& lastGCTime,
     const mozilla::TimeStamp& currentTime,
     const GCSchedulingTunables& tunables) {
-  MOZ_ASSERT(!lastGCTime.IsNull());
-
   // Set high frequency mode based on the time between collections.
-  inHighFrequencyGCMode_ =
-      js::SupportDifferentialTesting() && options == JS::GCOptions::Normal &&
-      lastGCTime + tunables.highFrequencyThreshold() > currentTime;
+  TimeDuration timeSinceLastGC = currentTime - lastGCTime;
+  inHighFrequencyGCMode_ = !js::SupportDifferentialTesting() &&
+                           options == JS::GCOptions::Normal &&
+                           timeSinceLastGC < tunables.highFrequencyThreshold();
 }
 
 void GCSchedulingState::updateHighFrequencyModeOnSliceStart(
