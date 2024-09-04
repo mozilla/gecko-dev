@@ -996,9 +996,6 @@ pref("javascript.options.mem.gc_urgent_threshold_mb", 16);
 // JSGC_MIN_EMPTY_CHUNK_COUNT
 pref("javascript.options.mem.gc_min_empty_chunk_count", 1);
 
-// JSGC_MAX_EMPTY_CHUNK_COUNT
-pref("javascript.options.mem.gc_max_empty_chunk_count", 30);
-
 // JSGC_HELPER_THREAD_RATIO
 pref("javascript.options.mem.gc_helper_thread_ratio", 50);
 

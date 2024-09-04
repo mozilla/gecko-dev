@@ -521,9 +521,6 @@ namespace TuningDefaults {
 /* JSGC_MIN_EMPTY_CHUNK_COUNT */
 static const uint32_t MinEmptyChunkCount = 1;
 
-/* JSGC_MAX_EMPTY_CHUNK_COUNT */
-static const uint32_t MaxEmptyChunkCount = 30;
-
 /* JSGC_SLICE_TIME_BUDGET_MS */
 static const int64_t DefaultTimeBudgetMS = 0;  // Unlimited by default.
 

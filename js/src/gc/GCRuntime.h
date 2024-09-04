@@ -564,9 +564,6 @@ class GCRuntime {
   uint32_t minEmptyChunkCount(const AutoLockGC& lock) const {
     return minEmptyChunkCount_;
   }
-  uint32_t maxEmptyChunkCount(const AutoLockGC& lock) const {
-    return maxEmptyChunkCount_;
-  }
 #ifdef DEBUG
   void verifyAllChunks();
 #endif
@@ -709,7 +706,6 @@ class GCRuntime {
   void freeEmptyChunks(const AutoLockGC& lock);
   void prepareToFreeChunk(TenuredChunkInfo& info);
   void setMinEmptyChunkCount(uint32_t value, const AutoLockGC& lock);
-  void setMaxEmptyChunkCount(uint32_t value, const AutoLockGC& lock);
 
   friend class BackgroundAllocTask;
   bool wantBackgroundAllocation(const AutoLockGC& lock) const;
@@ -1088,7 +1084,6 @@ class GCRuntime {
 
   /*
    * JSGC_MIN_EMPTY_CHUNK_COUNT
-   * JSGC_MAX_EMPTY_CHUNK_COUNT
    *
    * Controls the number of empty chunks reserved for future allocation.
    *
@@ -1096,7 +1091,6 @@ class GCRuntime {
    * background decommit task.
    */
   GCLockData<uint32_t> minEmptyChunkCount_;
-  GCLockData<uint32_t> maxEmptyChunkCount_;
 
   MainThreadData<RootedValueMap> rootsHash;
 

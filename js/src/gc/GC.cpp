@@ -330,18 +330,6 @@ void GCRuntime::verifyAllChunks() {
 
 void GCRuntime::setMinEmptyChunkCount(uint32_t value, const AutoLockGC& lock) {
   minEmptyChunkCount_ = value;
-  if (minEmptyChunkCount_ > maxEmptyChunkCount_) {
-    maxEmptyChunkCount_ = minEmptyChunkCount_;
-  }
-  MOZ_ASSERT(maxEmptyChunkCount_ >= minEmptyChunkCount_);
-}
-
-void GCRuntime::setMaxEmptyChunkCount(uint32_t value, const AutoLockGC& lock) {
-  maxEmptyChunkCount_ = value;
-  if (minEmptyChunkCount_ > maxEmptyChunkCount_) {
-    minEmptyChunkCount_ = maxEmptyChunkCount_;
-  }
-  MOZ_ASSERT(maxEmptyChunkCount_ >= minEmptyChunkCount_);
 }
 
 inline bool GCRuntime::tooManyEmptyChunks(const AutoLockGC& lock) {
@@ -350,7 +338,6 @@ inline bool GCRuntime::tooManyEmptyChunks(const AutoLockGC& lock) {
 
 ChunkPool GCRuntime::expireEmptyChunkPool(const AutoLockGC& lock) {
   MOZ_ASSERT(emptyChunks(lock).verify());
-  MOZ_ASSERT(minEmptyChunkCount(lock) <= maxEmptyChunkCount(lock));
 
   ChunkPool expired;
   while (tooManyEmptyChunks(lock)) {
@@ -361,7 +348,6 @@ ChunkPool GCRuntime::expireEmptyChunkPool(const AutoLockGC& lock) {
 
   MOZ_ASSERT(expired.verify());
   MOZ_ASSERT(emptyChunks(lock).verify());
-  MOZ_ASSERT(emptyChunks(lock).count() <= maxEmptyChunkCount(lock));
   MOZ_ASSERT(emptyChunks(lock).count() <= minEmptyChunkCount(lock));
   return expired;
 }
@@ -430,7 +416,6 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       markingThreadCount(1),
       createBudgetCallback(nullptr),
       minEmptyChunkCount_(TuningDefaults::MinEmptyChunkCount),
-      maxEmptyChunkCount_(TuningDefaults::MaxEmptyChunkCount),
       rootsHash(256),
       nextCellUniqueId_(LargestTaggedNullCellPointer +
                         1),  // Ensure disjoint from null tagged pointers.
@@ -1157,9 +1142,6 @@ bool GCRuntime::setParameter(JSGCParamKey key, uint32_t value,
     case JSGC_MIN_EMPTY_CHUNK_COUNT:
       setMinEmptyChunkCount(value, lock);
       break;
-    case JSGC_MAX_EMPTY_CHUNK_COUNT:
-      setMaxEmptyChunkCount(value, lock);
-      break;
     default:
       if (IsGCThreadParameter(key)) {
         return setThreadParameter(key, value, lock);
@@ -1252,9 +1234,6 @@ void GCRuntime::resetParameter(JSGCParamKey key, AutoLockGC& lock) {
     case JSGC_MIN_EMPTY_CHUNK_COUNT:
       setMinEmptyChunkCount(TuningDefaults::MinEmptyChunkCount, lock);
       break;
-    case JSGC_MAX_EMPTY_CHUNK_COUNT:
-      setMaxEmptyChunkCount(TuningDefaults::MaxEmptyChunkCount, lock);
-      break;
     default:
       if (IsGCThreadParameter(key)) {
         resetThreadParameter(key, lock);
@@ -1324,8 +1303,6 @@ uint32_t GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock) {
       return uint32_t(defaultTimeBudgetMS_);
     case JSGC_MIN_EMPTY_CHUNK_COUNT:
       return minEmptyChunkCount(lock);
-    case JSGC_MAX_EMPTY_CHUNK_COUNT:
-      return maxEmptyChunkCount(lock);
     case JSGC_COMPACTING_ENABLED:
       return compactingEnabled;
     case JSGC_NURSERY_ENABLED:

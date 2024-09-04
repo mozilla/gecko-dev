@@ -364,7 +364,6 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
       PREF("gc_urgent_threshold_mb", JSGC_URGENT_THRESHOLD_MB),
       PREF("gc_incremental_slice_ms", JSGC_SLICE_TIME_BUDGET_MS),
       PREF("gc_min_empty_chunk_count", JSGC_MIN_EMPTY_CHUNK_COUNT),
-      PREF("gc_max_empty_chunk_count", JSGC_MAX_EMPTY_CHUNK_COUNT),
       PREF("gc_compacting", JSGC_COMPACTING_ENABLED),
       PREF("gc_parallel_marking", JSGC_PARALLEL_MARKING_ENABLED),
       PREF("gc_parallel_marking_threshold_mb",
@@ -449,7 +448,6 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
       case JSGC_LARGE_HEAP_INCREMENTAL_LIMIT:
       case JSGC_URGENT_THRESHOLD_MB:
       case JSGC_MIN_EMPTY_CHUNK_COUNT:
-      case JSGC_MAX_EMPTY_CHUNK_COUNT:
       case JSGC_HEAP_GROWTH_FACTOR:
       case JSGC_PARALLEL_MARKING_THRESHOLD_MB:
       case JSGC_MAX_MARKING_THREADS:

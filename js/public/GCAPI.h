@@ -263,14 +263,6 @@ typedef enum JSGCParamKey {
   JSGC_MIN_EMPTY_CHUNK_COUNT = 21,
 
   /**
-   * We never keep more than this many unused chunks in the free chunk pool.
-   *
-   * Pref: javascript.options.mem.gc_max_empty_chunk_count
-   * Default: MaxEmptyChunkCount
-   */
-  JSGC_MAX_EMPTY_CHUNK_COUNT = 22,
-
-  /**
    * Whether compacting GC is enabled.
    *
    * Pref: javascript.options.mem.gc_compacting

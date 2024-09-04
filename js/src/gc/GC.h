@@ -65,7 +65,6 @@ class TenuredChunk;
   _("smallHeapIncrementalLimit", JSGC_SMALL_HEAP_INCREMENTAL_LIMIT, true)   \
   _("largeHeapIncrementalLimit", JSGC_LARGE_HEAP_INCREMENTAL_LIMIT, true)   \
   _("minEmptyChunkCount", JSGC_MIN_EMPTY_CHUNK_COUNT, true)                 \
-  _("maxEmptyChunkCount", JSGC_MAX_EMPTY_CHUNK_COUNT, true)                 \
   _("compactingEnabled", JSGC_COMPACTING_ENABLED, true)                     \
   _("nurseryEnabled", JSGC_NURSERY_ENABLED, true)                           \
   _("parallelMarkingEnabled", JSGC_PARALLEL_MARKING_ENABLED, true)          \

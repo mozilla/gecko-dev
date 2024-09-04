@@ -47,7 +47,6 @@ testChangeParam("allocationThreshold");
 testChangeParam("smallHeapIncrementalLimit");
 testChangeParam("largeHeapIncrementalLimit");
 testChangeParam("minEmptyChunkCount");
-testChangeParam("maxEmptyChunkCount");
 testChangeParam("compactingEnabled");
 testChangeParam("parallelMarkingEnabled");
 testChangeParam("parallelMarkingThresholdMB");

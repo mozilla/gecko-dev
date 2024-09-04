@@ -1999,11 +1999,6 @@ void nsJSContext::EnsureStatics() {
 
   Preferences::RegisterCallbackAndCall(
       SetMemoryPrefChangedCallbackInt,
-      "javascript.options.mem.gc_max_empty_chunk_count",
-      (void*)JSGC_MAX_EMPTY_CHUNK_COUNT);
-
-  Preferences::RegisterCallbackAndCall(
-      SetMemoryPrefChangedCallbackInt,
       "javascript.options.mem.gc_helper_thread_ratio",
       (void*)JSGC_HELPER_THREAD_RATIO);
 
