@@ -406,6 +406,11 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     mNeedToUpdateResizeObservers = true;
   }
 
+  void EnsureViewTransitionOperationsHappen() {
+    EnsureTimerStarted();
+    mNeedToUpdateViewTransitions = true;
+  }
+
   void EnsureAnimationUpdate() {
     EnsureTimerStarted();
     mNeedToUpdateAnimations = true;
@@ -442,6 +447,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     eRootNeedsMoreTicksForUserInput = 1 << 9,
     eNeedsToUpdateAnimations = 1 << 10,
     eNeedsToRunFrameRequestCallbacks = 1 << 11,
+    eNeedsToUpdateViewTransitions = 1 << 12,
   };
 
   void AddForceNotifyContentfulPaintPresContext(nsPresContext* aPresContext);
@@ -495,6 +501,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
                                 mozilla::TimeStamp aNowTime);
   void UpdateIntersectionObservations(mozilla::TimeStamp aNowTime);
   void UpdateRelevancyOfContentVisibilityAutoFrames();
+  void PerformPendingViewTransitionOperations();
   MOZ_CAN_RUN_SCRIPT void
   DetermineProximityToViewportAndNotifyResizeObservers();
   void MaybeIncreaseMeasuredTicksSinceLoading();
@@ -638,9 +645,12 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // all our documents.
   bool mNeedToUpdateIntersectionObservations : 1;
 
-  // True if we need to flush in order to update intersection observations in
-  // all our documents.
+  // True if we need to flush in order to update resize observations in all
+  // our documents.
   bool mNeedToUpdateResizeObservers : 1;
+
+  // True if we may need to perform pending view transition operations.
+  bool mNeedToUpdateViewTransitions : 1;
 
   // True if we may need to run any frame callback.
   bool mNeedToRunFrameRequestCallbacks : 1;
