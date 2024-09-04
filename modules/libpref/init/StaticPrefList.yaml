@@ -12408,22 +12408,6 @@
   value: false
   mirror: always
 
-# Hard code the User-Agent string's CPU architecture. This pref can be removed
-# after we're confident there are no webcompat problems.
-#
-# Enable for:
-# * Android (any architecture)
-# * Linux (any architecture)
-# * Other Unix-like platforms except macOS (any architecture)
-- name: network.http.useragent.freezeCpu
-  type: bool
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
-  value: true
-#else
-  value: false
-#endif
-  mirror: always
-
 # Whether or not we use Windows for SSO to Microsoft sites.
 - name: network.http.windows-sso.enabled
   type: RelaxedAtomicBool

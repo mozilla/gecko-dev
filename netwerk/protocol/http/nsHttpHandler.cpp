@@ -1047,35 +1047,10 @@ void nsHttpHandler::InitUserAgentComponents() {
 
 #elif defined(XP_MACOSX)
   mOscpu.AssignLiteral("Intel Mac OS X 10.15");
-#elif defined(XP_UNIX)
-  if (mozilla::StaticPrefs::network_http_useragent_freezeCpu()) {
-#  ifdef ANDROID
-    mOscpu.AssignLiteral("Linux armv81");
-#  else
-    mOscpu.AssignLiteral("Linux x86_64");
-#  endif
-  } else {
-    struct utsname name {};
-    int ret = uname(&name);
-    if (ret >= 0) {
-      nsAutoCString buf;
-      buf = (char*)name.sysname;
-      buf += ' ';
-
-#  ifdef AIX
-      // AIX uname returns machine specific info in the uname.machine
-      // field and does not return the cpu type like other platforms.
-      // We use the AIX version and release numbers instead.
-      buf += (char*)name.version;
-      buf += '.';
-      buf += (char*)name.release;
-#  else
-      buf += (char*)name.machine;
-#  endif
-
-      mOscpu.Assign(buf);
-    }
-  }
+#elif defined(ANDROID)
+  mOscpu.AssignLiteral("Linux armv81");
+#else
+  mOscpu.AssignLiteral("Linux x86_64");
 #endif
 
   mUserAgentIsDirty = true;
