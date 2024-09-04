@@ -11,7 +11,6 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::StylesheetGuards;
 use crate::values::computed::{NonNegativeLength, Zoom};
-use crate::values::specified::color::ColorSchemeFlags;
 use fxhash::FxHashMap;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -23,7 +22,6 @@ pub struct RuleCacheConditions {
     font_size: Option<NonNegativeLength>,
     line_height: Option<NonNegativeLength>,
     writing_mode: Option<WritingMode>,
-    color_scheme: Option<ColorSchemeFlags>,
 }
 
 impl RuleCacheConditions {
@@ -37,12 +35,6 @@ impl RuleCacheConditions {
     pub fn set_line_height_dependency(&mut self, line_height: NonNegativeLength) {
         debug_assert!(self.line_height.map_or(true, |l| l == line_height));
         self.line_height = Some(line_height);
-    }
-
-    /// Sets the style as depending in the color-scheme property value.
-    pub fn set_color_scheme_dependency(&mut self, color_scheme: ColorSchemeFlags) {
-        debug_assert!(self.color_scheme.map_or(true, |cs| cs == color_scheme));
-        self.color_scheme = Some(color_scheme);
     }
 
     /// Sets the style as uncacheable.
@@ -66,7 +58,6 @@ impl RuleCacheConditions {
 struct CachedConditions {
     font_size: Option<NonNegativeLength>,
     line_height: Option<NonNegativeLength>,
-    color_scheme: Option<ColorSchemeFlags>,
     writing_mode: Option<WritingMode>,
     zoom: Zoom,
 }
@@ -90,12 +81,6 @@ impl CachedConditions {
                     .device
                     .calc_line_height(&style.get_font(), style.writing_mode, None);
             if new_line_height != lh {
-                return false;
-            }
-        }
-
-        if let Some(cs) = self.color_scheme {
-            if style.get_inherited_ui().clone_color_scheme().bits != cs {
                 return false;
             }
         }
@@ -223,7 +208,6 @@ impl RuleCache {
             writing_mode: conditions.writing_mode,
             font_size: conditions.font_size,
             line_height: conditions.line_height,
-            color_scheme: conditions.color_scheme,
             zoom: style.effective_zoom,
         };
         self.map
