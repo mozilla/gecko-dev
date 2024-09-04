@@ -659,10 +659,11 @@ bool AddDisposableResource(JSContext* cx,
                            JS::Handle<JS::Value> val, UsingHint hint,
                            JS::Handle<mozilla::Maybe<JS::Value>> methodVal);
 
-bool AddDisposableResourceToCapability(
-    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability,
-    JS::Handle<JS::Value> val, JS::Handle<JS::Value> method,
-    JS::Handle<JS::Value> needsClosure, UsingHint hint);
+bool AddDisposableResourceToCapability(JSContext* cx, JS::Handle<JSObject*> env,
+                                       JS::Handle<JS::Value> val,
+                                       JS::Handle<JS::Value> method,
+                                       JS::Handle<JS::Value> needsClosure,
+                                       UsingHint hint);
 #endif
 
 ArrayObject* ArrayFromArgumentsObject(JSContext* cx,

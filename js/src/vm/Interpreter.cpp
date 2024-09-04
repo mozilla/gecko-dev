@@ -1925,10 +1925,19 @@ bool js::AddDisposableResource(
 // 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
 // Step 3
-bool js::AddDisposableResourceToCapability(
-    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability,
-    JS::Handle<JS::Value> val, JS::Handle<JS::Value> method,
-    JS::Handle<JS::Value> needsClosure, UsingHint hint) {
+bool js::AddDisposableResourceToCapability(JSContext* cx,
+                                           JS::Handle<JSObject*> env,
+                                           JS::Handle<JS::Value> val,
+                                           JS::Handle<JS::Value> method,
+                                           JS::Handle<JS::Value> needsClosure,
+                                           UsingHint hint) {
+  JS::Rooted<ArrayObject*> disposeCapability(
+      cx,
+      env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(cx));
+  if (!disposeCapability) {
+    return false;
+  }
+
   JS::Rooted<JS::Value> disposeMethod(cx);
 
   bool needsClosureBool = needsClosure.toBoolean();
@@ -2325,18 +2334,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       POP_COPY_TO(val);
 
       UsingHint hint = UsingHint(GET_UINT8(REGS.pc));
-      JS::Rooted<ArrayObject*> disposableCapability(cx);
 
-      disposableCapability =
-          env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(
-              cx);
-
-      if (!disposableCapability) {
-        goto error;
-      }
-
-      if (!AddDisposableResourceToCapability(cx, disposableCapability, val,
-                                             method, needsClosure, hint)) {
+      if (!AddDisposableResourceToCapability(cx, env, val, method, needsClosure,
+                                             hint)) {
         goto error;
       }
     }

@@ -105,14 +105,6 @@ bool BaselineFrame::pushVarEnvironment(JSContext* cx, Handle<Scope*> scope) {
   return js::PushVarEnvironmentObject(cx, scope, this);
 }
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-ArrayObject* BaselineFrame::getOrCreateDisposeCapability(JSContext* cx) {
-  JSObject* env = environmentChain();
-  return env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(
-      cx);
-}
-#endif
-
 void BaselineFrame::setInterpreterFields(JSScript* script, jsbytecode* pc) {
   uint32_t pcOffset = script->pcToOffset(pc);
   interpreterScript_ = script;

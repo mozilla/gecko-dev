@@ -4882,31 +4882,25 @@ bool BaselineCodeGen<Handler>::emit_LeaveWith() {
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_AddDisposable() {
   frame.syncStack(0);
-
-  AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
-  MOZ_ASSERT(!regs.has(FramePointer));
   prepareVMCall();
 
-  Register needsClosure = regs.takeAny();
-  Register method = regs.takeAny();
-  Register value = regs.takeAny();
-  Register baselineFrame = regs.takeAny();
-  Register hint = regs.takeAny();
+  pushUint8BytecodeOperandArg(R0.scratchReg());
 
-  masm.loadBaselineFramePtr(FramePointer, baselineFrame);
-  masm.loadValue(frame.addressOfStackValue(-1), ValueOperand(needsClosure));
-  masm.loadValue(frame.addressOfStackValue(-2), ValueOperand(method));
-  masm.loadValue(frame.addressOfStackValue(-3), ValueOperand(value));
+  masm.loadValue(frame.addressOfStackValue(-1), R0);
+  pushArg(R0);
 
-  pushUint8BytecodeOperandArg(hint);
-  pushArg(needsClosure);
-  pushArg(method);
-  pushArg(value);
-  pushArg(baselineFrame);
+  masm.loadValue(frame.addressOfStackValue(-2), R1);
+  pushArg(R1);
 
-  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>,
+  masm.loadValue(frame.addressOfStackValue(-3), R2);
+  pushArg(R2);
+
+  masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
+  pushArg(R0.scratchReg());
+
+  using Fn = bool (*)(JSContext*, JS::Handle<JSObject*>, JS::Handle<JS::Value>,
                       JS::Handle<JS::Value>, JS::Handle<JS::Value>, UsingHint);
-  if (!callVM<Fn, jit::AddDisposableResource>()) {
+  if (!callVM<Fn, js::AddDisposableResourceToCapability>()) {
     return false;
   }
   frame.popn(3);
@@ -4932,19 +4926,17 @@ bool BaselineCodeGen<Handler>::emit_CreateSuppressedError() {
   frame.popRegsAndSync(2);
   prepareVMCall();
 
-  masm.loadBaselineFramePtr(FramePointer, R2.scratchReg());
-
-  using Fn = bool (*)(JSContext*, BaselineFrame*, JS::Handle<JS::Value>,
-                      JS::Handle<JS::Value>, JS::MutableHandle<JS::Value>);
-
   pushArg(R1);  // suppressed
   pushArg(R0);  // error
-  pushArg(R2.scratchReg());
 
-  if (!callVM<Fn, jit::CreateSuppressedError>()) {
+  using Fn = ErrorObject* (*)(JSContext*, JS::Handle<JS::Value>,
+                              JS::Handle<JS::Value>);
+
+  if (!callVM<Fn, js::CreateSuppressedError>()) {
     return false;
   }
 
+  masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
   frame.push(R0);
   return true;
 }
