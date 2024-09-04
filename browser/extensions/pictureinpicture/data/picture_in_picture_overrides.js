@@ -63,7 +63,7 @@ let AVAILABLE_PIP_OVERRIDES;
 
     arte: {
       "https://*.arte.tv/*": {
-        videoWrapperScriptPath: "video-wrappers/arte.js",
+        videoWrapperScriptPath: "video-wrappers/videojsWrapper.js",
       },
     },
 
