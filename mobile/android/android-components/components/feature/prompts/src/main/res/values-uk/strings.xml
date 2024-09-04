@@ -117,9 +117,13 @@
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Запропонувати надійний пароль</string>
+    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_2">Використовуйте надійний пароль</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Використати надійний пароль: %1$s</string>
 
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">Використати надійний пароль?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Захистіть свої облікові записи за допомогою надійного, випадково згенерованого пароля. Отримайте швидкий доступ до своїх паролів, зберігши їх у своєму обліковому записі.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
@@ -195,7 +199,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Використовувати %1$s як постачальника авторизації</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Вхід до %1$s з використанням облікового запису %2$s регулюється <a href="%3$s">Політикою приватності</a> та <a href="%4$s">Умовами надання послуг</a> постачальника послуг авторизації]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Вхід до %1$s з використанням облікового запису %2$s регулюється <a href="%3$s">Політикою приватності</a> та <a href="%4$s">Умовами надання послуг</a> постачальника послуг авторизації]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Продовжити</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
