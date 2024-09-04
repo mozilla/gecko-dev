@@ -329,7 +329,7 @@
 
 -   name: android.touch_resampling.enabled
     type: RelaxedAtomicBool
-    value: true
+    value: false
     mirror: always
 
 #endif
