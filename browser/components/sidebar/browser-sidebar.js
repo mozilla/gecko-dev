@@ -261,7 +261,7 @@ var SidebarController = {
     return this._toolbarButton;
   },
 
-  init() {
+  async init() {
     // Initialize with side effects
     this.SidebarManager;
 
@@ -318,6 +318,9 @@ var SidebarController = {
         this._mainResizeObserverAdded = true;
       }
 
+      if (this.sidebarVerticalTabsEnabled) {
+        this.toggleTabstrip();
+      }
       let newTabButton = document.getElementById("vertical-tabs-newtab-button");
       if (!this._verticalNewTabListenerAdded) {
         newTabButton.addEventListener("command", event => {
@@ -340,8 +343,6 @@ var SidebarController = {
         this._switcherListenersAdded = true;
       }
     }
-    // Potentially update the sidebar for current tabs orientation
-    this.toggleTabstrip();
 
     // sets the sidebar to the left or right, based on a pref
     this.setPosition();
@@ -351,10 +352,6 @@ var SidebarController = {
     if (!this._localesObserverAdded) {
       Services.obs.addObserver(this, "intl:app-locales-changed");
       this._localesObserverAdded = true;
-    }
-    if (!this._tabstripOrientationObserverAdded) {
-      Services.obs.addObserver(this, "tabstrip-orientation-change");
-      this._tabstripOrientationObserverAdded = true;
     }
 
     this._initDeferred.resolve();
@@ -374,8 +371,6 @@ var SidebarController = {
     }
 
     Services.obs.removeObserver(this, "intl:app-locales-changed");
-    Services.obs.removeObserver(this, "tabstrip-orientation-change");
-    delete this._tabstripOrientationObserverAdded;
 
     if (this._observer) {
       this._observer.disconnect();
@@ -411,11 +406,6 @@ var SidebarController = {
         if (this.revampComponentsLoaded) {
           this.sidebarMain.requestUpdate();
         }
-        break;
-      }
-      case "tabstrip-orientation-change": {
-        this.promiseInitialized.then(() => this.toggleTabstrip());
-        break;
       }
     }
   },
@@ -602,8 +592,7 @@ var SidebarController = {
     if (!this._sidebars.get(this.lastOpenedId)) {
       this.lastOpenedId = this.DEFAULT_SIDEBAR_ID;
     }
-    this._inited = false;
-    this.init();
+    await this.init();
   },
 
   /**
@@ -1527,33 +1516,40 @@ var SidebarController = {
   },
 
   toggleTabstrip() {
-    let toVerticalTabs = CustomizableUI.verticalTabsEnabled;
-    let arrowScrollbox = document.getElementById("tabbrowser-arrowscrollbox");
-    let currentScrollOrientation = arrowScrollbox.getAttribute("orient");
-
-    if (
-      (!toVerticalTabs && currentScrollOrientation !== "vertical") ||
-      (toVerticalTabs && currentScrollOrientation === "vertical")
-    ) {
-      // Nothing to update
-      return;
-    }
-
     let tabStrip = document.getElementById("tabbrowser-tabs");
-    if (toVerticalTabs) {
+    let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
+    let verticalTabs = document.getElementById("vertical-tabs");
+
+    let tabsToolbarWidgets = CustomizableUI.getWidgetIdsInArea("TabsToolbar");
+    let tabstripPlacement = tabsToolbarWidgets.findIndex(
+      item => item == "tabbrowser-tabs"
+    );
+
+    if (this.sidebarVerticalTabsEnabled) {
       this.toggleExpanded(this._sidebarMain.expanded);
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
+      verticalTabs.append(tabStrip);
     } else {
       arrowScrollbox.setAttribute("orient", "horizontal");
       tabStrip.removeAttribute("expanded");
       tabStrip.setAttribute("orient", "horizontal");
-    }
 
-    let verticalToolbar = document.getElementById(
-      CustomizableUI.AREA_VERTICAL_TABSTRIP
-    );
-    verticalToolbar.toggleAttribute("visible", toVerticalTabs);
+      // make sure we put the tabstrip back in its original position in the TabsToolbar
+      if (tabstripPlacement < tabsToolbarWidgets.length) {
+        document
+          .getElementById("TabsToolbar-customization-target")
+          .insertBefore(
+            tabStrip,
+            document.getElementById(tabsToolbarWidgets[tabstripPlacement + 1])
+          );
+      } else {
+        document
+          .getElementById("TabsToolbar-customization-target")
+          .append(tabStrip);
+      }
+    }
+    verticalTabs.toggleAttribute("visible", this.sidebarVerticalTabsEnabled);
   },
 };
 
@@ -1606,5 +1602,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarVerticalTabsEnabled",
   "sidebar.verticalTabs",
-  false
+  false,
+  () => {
+    if (!SidebarController.uninitializing) {
+      SidebarController.toggleTabstrip();
+    }
+  }
 );
