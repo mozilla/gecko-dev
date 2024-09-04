@@ -25,7 +25,7 @@ case "$CONFIGS" in
   echo echo 10.12 >> $ORIGPWD/bin/sw_vers
   chmod +x $ORIGPWD/bin/sw_vers
   # these variables are used in build-clang.py
-  export CROSS_SYSROOT=$(ls -d $MOZ_FETCHES_DIR/MacOSX1*.sdk)
+  export OSX_SYSROOT=$(ls -d $MOZ_FETCHES_DIR/MacOSX1*.sdk)
   export PATH=$PATH:$ORIGPWD/bin
   ;;
 *win64*)
@@ -38,9 +38,6 @@ case "$CONFIGS" in
     # LLVM_ENABLE_DIA_SDK is set if the directory "$ENV{VSINSTALLDIR}DIA SDK"
     # exists.
     export VSINSTALLDIR="${VSPATH}/"
-
-    export PATH="$(cd $MOZ_FETCHES_DIR/cmake && pwd)/bin:${PATH}"
-    export PATH="$(cd $MOZ_FETCHES_DIR/ninja && pwd)/bin:${PATH}"
     ;;
   *)
     export VSINSTALLDIR="$MOZ_FETCHES_DIR/vs"
@@ -54,6 +51,13 @@ case "$CONFIGS" in
   exit 1
   ;;
 esac
+
+if test -d "$MOZ_FETCHES_DIR/cmake"; then
+    export PATH="$(cd $MOZ_FETCHES_DIR/cmake && pwd)/bin:${PATH}"
+fi
+if test -d "$MOZ_FETCHES_DIR/ninja"; then
+    export PATH="$(cd $MOZ_FETCHES_DIR/ninja && pwd)/bin:${PATH}"
+fi
 
 # gets a bit too verbose here
 set +x

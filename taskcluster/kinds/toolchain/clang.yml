@@ -277,6 +277,60 @@ linux64-clang-18:
             - win64-compiler-rt-18
             - win64-aarch64-compiler-rt-18
 
+macosx64-clang-18-stage1:
+    description: "Clang 18 toolchain build"
+    treeherder:
+        symbol: TM(clang-18-stage1)
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/1stage.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/1stage.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-18
+        toolchain:
+            - linux64-clang-18-stage1
+            - macosx64-sdk-toolchain
+
+macosx64-clang-18-profile:
+    description: "Clang 18 toolchain build"
+    treeherder:
+        symbol: TM(clang-18-profile)
+    worker-type: b-osx-1015
+    worker:
+        max-run-time: 14400
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
+    fetches:
+        fetch:
+            - clang-18
+            - macosx64-cmake
+            - macosx64-ninja
+        toolchain:
+            - macosx64-clang-18-stage1
+            - macosx64-x64-compiler-rt-18
+            - macosx64-sdk-toolchain
+
 macosx64-clang-18-raw:
     description: "Clang 18 toolchain build"
     treeherder:
@@ -301,7 +355,7 @@ macosx64-clang-18-raw:
             - clang-18
         toolchain:
             - linux64-clang-18-stage1
-            - linux64-clang-18-profile
+            - macosx64-clang-18-profile
             - macosx64-sdk-toolchain
             - macosx64-x64-compiler-rt-18
 
@@ -345,6 +399,64 @@ macosx64-clang-18:
             - win64-compiler-rt-18
             - win64-aarch64-compiler-rt-18
 
+macosx64-aarch64-clang-18-stage1:
+    description: "Clang 18 toolchain build"
+    treeherder:
+        symbol: TM(clang-18-aarch64-stage1)
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/1stage.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/1stage.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-18
+        toolchain:
+            - linux64-clang-18-stage1
+            - macosx64-sdk-toolchain
+
+macosx64-aarch64-clang-18-profile:
+    description: "Clang 18 toolchain build"
+    treeherder:
+        symbol: TM(clang-18-aarch64-profile)
+    worker-type: b-osx-arm64
+    worker:
+        max-run-time: 7200
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
+    fetches:
+        fetch:
+            - clang-18
+            - macosx64-cmake
+            - macosx64-ninja
+        toolchain:
+            - macosx64-clang-18-stage1
+            - macosx64-aarch64-compiler-rt-18
+            - macosx64-sdk-toolchain
+
 macosx64-aarch64-clang-18-raw:
     description: "Clang 18 toolchain build"
     treeherder:
@@ -371,9 +483,9 @@ macosx64-aarch64-clang-18-raw:
             - clang-18
         toolchain:
             - linux64-clang-18-stage1
-            - linux64-clang-18-profile
-            - macosx64-sdk-toolchain
+            - macosx64-aarch64-clang-18-profile
             - macosx64-aarch64-compiler-rt-18
+            - macosx64-sdk-toolchain
 
 macosx64-aarch64-clang-18:
     description: "Clang 18 toolchain repack with MacOS Compiler RT libs"
@@ -756,6 +868,64 @@ linux64-clang-trunk:
             - win64-compiler-rt-trunk
             - win64-aarch64-compiler-rt-trunk
 
+macosx64-clang-trunk-stage1:
+    description: "Clang trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TM(clang-trunk-stage1)
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/1stage.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/1stage.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-trunk
+        toolchain:
+            - linux64-clang-trunk-stage1
+            - macosx64-sdk-toolchain
+
+macosx64-clang-trunk-profile:
+    description: "Clang trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TM(clang-trunk-profile)
+    worker-type: b-osx-1015
+    worker:
+        max-run-time: 14400
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
+    fetches:
+        fetch:
+            - clang-trunk
+            - macosx64-cmake
+            - macosx64-ninja
+        toolchain:
+            - macosx64-clang-trunk-stage1
+            - macosx64-x64-compiler-rt-trunk
+            - macosx64-sdk-toolchain
+
 macosx64-clang-trunk-raw:
     description: "Clang trunk toolchain build"
     attributes:
@@ -782,7 +952,7 @@ macosx64-clang-trunk-raw:
             - clang-trunk
         toolchain:
             - linux64-clang-trunk-stage1
-            - linux64-clang-trunk-profile
+            - macosx64-clang-trunk-profile
             - macosx64-sdk-toolchain
             - macosx64-x64-compiler-rt-trunk
 
@@ -826,6 +996,68 @@ macosx64-clang-trunk:
             - win64-compiler-rt-trunk
             - win64-aarch64-compiler-rt-trunk
 
+macosx64-aarch64-clang-trunk-stage1:
+    description: "Clang trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TM(clang-trunk-aarch64-stg1)
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/1stage.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/1stage.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-trunk
+        toolchain:
+            - linux64-clang-trunk-stage1
+            - macosx64-sdk-toolchain
+
+macosx64-aarch64-clang-trunk-profile:
+    description: "Clang trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TM(clang-trunk-aarch64-prof)
+    worker-type: b-osx-arm64
+    worker:
+        max-run-time: 7200
+    run:
+        using: toolchain-script
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        resources:
+            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/macosx64-aarch64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-stage-1.json'
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
+    fetches:
+        fetch:
+            - clang-trunk
+            - macosx64-cmake
+            - macosx64-ninja
+        toolchain:
+            - macosx64-clang-trunk-stage1
+            - macosx64-aarch64-compiler-rt-trunk
+            - macosx64-sdk-toolchain
+
 macosx64-aarch64-clang-trunk-raw:
     description: "Clang trunk toolchain build"
     attributes:
@@ -854,9 +1086,9 @@ macosx64-aarch64-clang-trunk-raw:
             - clang-trunk
         toolchain:
             - linux64-clang-trunk-stage1
-            - linux64-clang-trunk-profile
-            - macosx64-sdk-toolchain
+            - macosx64-aarch64-clang-trunk-profile
             - macosx64-aarch64-compiler-rt-trunk
+            - macosx64-sdk-toolchain
 
 macosx64-aarch64-clang-trunk:
     description: "Clang trunk toolchain repack with MacOS Compiler RT libs"
