@@ -12,8 +12,6 @@ skip-if = ["os == 'android'"]
 
 ["test_interactions_expiration.js"]
 
-["test_notifications.js"]
-
 ["test_notifications_pageRemoved_allVisits.js"]
 
 ["test_notifications_pageRemoved_fromStore.js"]
