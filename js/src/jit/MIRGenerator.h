@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "jit/CompilationDependencyTracker.h"
 #include "jit/CompileInfo.h"
 #include "jit/CompileWrappers.h"
 #include "jit/JitAllocPolicy.h"
@@ -175,6 +176,7 @@ class MIRGenerator final {
 
  public:
   GraphSpewer& graphSpewer() { return gs_; }
+  CompilationDependencyTracker tracker;
 };
 
 }  // namespace jit

@@ -16848,6 +16848,20 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     return true;
   }
 
+  // Check the compilation dependency tracker -- this should eventually obviate
+  // the above
+  CompilationDependencyTracker& tracker = mirGen().tracker;
+  if (!tracker.checkDependencies()) {
+    return true;
+  }
+
+  for (auto& dep : tracker.dependencies) {
+    if (!dep->registerDependency(cx, script)) {
+      return false;  // Should we make sure we only return false on OOM and then
+                     // eat the OOM here?
+    }
+  }
+
   uint32_t argumentSlots = (gen->outerInfo().nargs() + 1) * sizeof(Value);
 
   size_t numNurseryObjects = snapshot->nurseryObjects().length();

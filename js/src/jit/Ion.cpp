@@ -1712,6 +1712,9 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
     return AbortReason::Alloc;
   }
 
+  auto clearDependencies =
+      mozilla::MakeScopeExit([mirGen]() { mirGen->tracker.reset(); });
+
   MOZ_ASSERT(!script->baselineScript()->hasPendingIonCompileTask());
   MOZ_ASSERT(!script->hasIonScript());
   MOZ_ASSERT(script->canIonCompile());
@@ -1751,6 +1754,7 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
     // The allocator and associated data will be destroyed after being
     // processed in the finishedOffThreadCompilations list.
     (void)alloc.release();
+    clearDependencies.release();
 
     return AbortReason::NoAbort;
   }
