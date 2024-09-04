@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; skip-if: !wasmGcEnabled() || getBuildConfiguration("simulator")
+// |jit-test| slow; allow-oom; skip-if: !wasmGcEnabled() || getBuildConfiguration("simulator")
 
 //////////////////////////////////////////////////////////////////////////////
 //
