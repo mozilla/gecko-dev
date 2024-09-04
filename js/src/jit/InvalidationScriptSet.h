@@ -28,6 +28,9 @@ void InvalidateAndClearScriptSet(JSContext* cx, WeakScriptCache& scripts,
                                  const char* reason);
 bool AddScriptToSet(WeakScriptCache& scripts, Handle<JSScript*> script);
 
+// Remove a script from a script set if found.
+void RemoveFromScriptSet(WeakScriptCache& scripts, JSScript* script);
+
 }  // namespace js::jit
 
 #endif /* jit_InvalidationScriptSet_h */
