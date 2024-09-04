@@ -21,6 +21,12 @@ ChromeUtils.defineLazyGetter(lazy, "weaveXPCService", function () {
   ).wrappedJSObject;
 });
 
+ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
+  ).getFxAccountsSingleton();
+});
+
 // from MDN...
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -116,9 +122,23 @@ let SyncedTabsInternal = {
       if (extraParams.removeDeviceDupes) {
         client.tabs = this._filterRecentTabsDupes(client.tabs);
       }
+
+      // We have the client obj but we need the FxA device obj so we use the clients
+      // engine to get us the FxA device
+      let device =
+        lazy.fxAccounts.device.recentDeviceList &&
+        lazy.fxAccounts.device.recentDeviceList.find(
+          d =>
+            d.id ===
+            lazy.Weave.Service.clientsEngine.getClientFxaDeviceId(client.id)
+        );
+
       for (let tab of client.tabs) {
         tab.device = client.name;
         tab.deviceType = client.clientType;
+        // Surface broadcasted commmands for things like close remote tab
+        tab.fxaDeviceId = device.id;
+        tab.availableCommands = device.availableCommands;
       }
       tabs = [...tabs, ...client.tabs.reverse()];
     }

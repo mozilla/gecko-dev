@@ -29,6 +29,7 @@ class SyncedTabsInSidebar extends SidebarPage {
   constructor() {
     super();
     this.onSearchQuery = this.onSearchQuery.bind(this);
+    this.onSecondaryAction = this.onSecondaryAction.bind(this);
   }
 
   connectedCallback() {
@@ -45,7 +46,7 @@ class SyncedTabsInSidebar extends SidebarPage {
   }
 
   handleContextMenuEvent(e) {
-    this.triggerNode = this.findTriggerNode(e, "fxview-tab-row");
+    this.triggerNode = this.findTriggerNode(e, "sidebar-tab-row");
     if (!this.triggerNode) {
       e.preventDefault();
     }
@@ -63,6 +64,18 @@ class SyncedTabsInSidebar extends SidebarPage {
         super.handleCommandEvent(e);
         break;
     }
+  }
+
+  onSecondaryAction(e) {
+    const { url, fxaDeviceId, secondaryActionClass } = e.originalTarget;
+
+    if (secondaryActionClass === "dismiss-button") {
+      // Set new pending close tab
+      this.controller.requestCloseRemoteTab(fxaDeviceId, url);
+    } else if (secondaryActionClass === "undo-button") {
+      this.controller.removePendingTabToClose(fxaDeviceId, url);
+    }
+    this.requestUpdate();
   }
 
   /**
@@ -130,12 +143,13 @@ class SyncedTabsInSidebar extends SidebarPage {
       icon
       class=${deviceType}
     >
-      <fxview-tab-list
+      <sidebar-tab-list
         compactRows
-        .tabItems=${ifDefined(tabItems)}
+        .tabItems=${tabItems}
         .updatesPaused=${false}
         .searchQuery=${this.controller.searchQuery}
         @fxview-tab-list-primary-action=${navigateToLink}
+        @fxview-tab-list-secondary-action=${this.onSecondaryAction}
       />
     </moz-card>`;
   }
@@ -185,15 +199,53 @@ class SyncedTabsInSidebar extends SidebarPage {
    */
   deviceListTemplate() {
     return Object.values(this.controller.getRenderInfo()).map(
-      ({ name: deviceName, deviceType, tabItems, tabs }) => {
+      ({ name: deviceName, deviceType, tabItems, canClose, tabs }) => {
         if (tabItems.length) {
-          return this.deviceTemplate(deviceName, deviceType, tabItems);
+          return this.deviceTemplate(
+            deviceName,
+            deviceType,
+            this.getTabItems(tabItems, deviceName, canClose)
+          );
         } else if (tabs.length) {
           return this.noSearchResultsTemplate(deviceName, deviceType);
         }
         return this.noDeviceTabsTemplate(deviceName, deviceType);
       }
     );
+  }
+
+  getTabItems(items, deviceName, canClose) {
+    return items
+      .map(item => {
+        if (!canClose) {
+          return item;
+        }
+
+        // Default show the close/dismiss button
+        let secondaryActionClass = "dismiss-button";
+        let secondaryL10nId = "synced-tabs-context-close-tab-title";
+        let secondaryL10nArgs = JSON.stringify({ deviceName });
+
+        // If this item has been requested to be closed, show
+        // the undo instead
+        if (item.url === this.controller.lastClosedURL) {
+          secondaryActionClass = "undo-button";
+          secondaryL10nId = "text-action-undo";
+          secondaryL10nArgs = null;
+        }
+
+        return {
+          ...item,
+          secondaryActionClass,
+          secondaryL10nId,
+          secondaryL10nArgs,
+        };
+      })
+      .filter(
+        item =>
+          !this.controller.isURLQueuedToClose(item.fxaDeviceId, item.url) ||
+          item.url === this.controller.lastClosedURL
+      );
   }
 
   render() {

@@ -6,6 +6,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
+  SyncedTabsManagement: "resource://services-sync/SyncedTabs.sys.mjs",
+  COMMAND_CLOSETAB: "resource://gre/modules/FxAccountsCommon.sys.mjs",
 });
 
 import { SyncedTabsErrorHandler } from "resource:///modules/firefox-view-synced-tabs-error-handler.sys.mjs";
@@ -69,6 +71,11 @@ export class SyncedTabsController {
     this.observe = this.observe.bind(this);
     this.host = host;
     this.host.addController(this);
+    // Track tabs requested close per device but not-yet-sent,
+    // it'll be in the form of {fxaDeviceId: Set(urls)}
+    this._pendingCloseTabs = new Map();
+    // The last closed URL, for undo purposes
+    this.lastClosedURL = null;
   }
 
   hostConnected() {
@@ -134,6 +141,10 @@ export class SyncedTabsController {
       await this.updateStates(errorState);
     }
     if (topic == SYNCED_TABS_CHANGED) {
+      // Usually this means we performed a sync, so clear the
+      // "in-queue" things as those most likely got flushed
+      this._pendingCloseTabs = new Map();
+      this.lastClosedURL = null;
       await this.getSyncedTabData();
     }
   }
@@ -232,6 +243,7 @@ export class SyncedTabsController {
         renderInfo[tab.client] = {
           name: tab.device,
           deviceType: tab.deviceType,
+          canClose: !!tab.availableCommands[lazy.COMMAND_CLOSETAB],
           tabs: [],
         };
       }
@@ -294,6 +306,7 @@ export class SyncedTabsController {
       title: tab.title,
       time: tab.lastUsed * 1000,
       url: tab.url,
+      fxaDeviceId: tab.fxaDeviceId,
       primaryL10nId: "firefoxview-tabs-list-tab-button",
       primaryL10nArgs: JSON.stringify({ targetURI: tab.url }),
       secondaryL10nId: this.contextMenu
@@ -329,5 +342,33 @@ export class SyncedTabsController {
     });
 
     this.updateTabsList(tabs);
+  }
+
+  // Wrappers and helpful methods for SyncedTabManagement
+  // so FxView and Sidebar don't need to import
+  requestCloseRemoteTab(fxaDeviceId, url) {
+    if (!this._pendingCloseTabs.has(fxaDeviceId)) {
+      this._pendingCloseTabs.set(fxaDeviceId, new Set());
+    }
+    this._pendingCloseTabs.get(fxaDeviceId).add(url);
+    this.lastClosedURL = url;
+    lazy.SyncedTabsManagement.enqueueTabToClose(fxaDeviceId, url);
+  }
+
+  removePendingTabToClose(fxaDeviceId, url) {
+    const urls = this._pendingCloseTabs.get(fxaDeviceId);
+    if (urls) {
+      urls.delete(url);
+      if (!urls.size) {
+        this._pendingCloseTabs.delete(fxaDeviceId);
+      }
+    }
+    this.lastClosedURL = null;
+    lazy.SyncedTabsManagement.removePendingTabToClose(fxaDeviceId, url);
+  }
+
+  isURLQueuedToClose(fxaDeviceId, url) {
+    const urls = this._pendingCloseTabs.get(fxaDeviceId);
+    return urls && urls.has(url);
   }
 }

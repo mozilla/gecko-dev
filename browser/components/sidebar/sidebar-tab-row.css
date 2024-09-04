@@ -7,5 +7,6 @@
 
   :host(:hover) & {
     visibility: visible;
+    justify-self: end;
   }
 }
