@@ -63,6 +63,7 @@ class HomeActivityTestRule(
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
+        isSetAsDefaultBrowserPromptEnabled: Boolean = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -80,6 +81,7 @@ class HomeActivityTestRule(
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
+        this.isSetAsDefaultBrowserPromptEnabled = isSetAsDefaultBrowserPromptEnabled
     }
 
     /**
@@ -141,6 +143,7 @@ class HomeActivityTestRule(
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,
             isMicrosurveyEnabled = false,
+            isSetAsDefaultBrowserPromptEnabled = false,
         )
     }
 }
@@ -183,6 +186,7 @@ class HomeActivityIntentTestRule internal constructor(
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
         isNavigationToolbarEnabled: Boolean = false,
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
+        isSetAsDefaultBrowserPromptEnabled: Boolean = settings.setAsDefaultBrowserPromptForExistingUsersEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -200,6 +204,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
         this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
+        this.isSetAsDefaultBrowserPromptEnabled = isSetAsDefaultBrowserPromptEnabled
     }
 
     private val longTapUserPreference = getLongPressTimeout()
@@ -272,6 +277,7 @@ class HomeActivityIntentTestRule internal constructor(
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings)
         isNavigationToolbarEnabled = settings.navigationToolbarEnabled
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled
+        isSetAsDefaultBrowserPromptEnabled = settings.setAsDefaultBrowserPromptForExistingUsersEnabled
     }
 
     companion object {
@@ -301,6 +307,7 @@ class HomeActivityIntentTestRule internal constructor(
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,
             isMicrosurveyEnabled = false,
+            isSetAsDefaultBrowserPromptEnabled = false,
         )
     }
 }
