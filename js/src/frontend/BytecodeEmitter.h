@@ -55,6 +55,7 @@ namespace frontend {
 class BytecodeOffset;
 class CallOrNewEmitter;
 class ClassEmitter;
+class DestructuringLHSRef;
 class ElemOpEmitter;
 class EmitterScope;
 class ErrorReporter;
@@ -787,16 +788,16 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   // If the lhs expression is object property |OBJ.prop|, it emits |OBJ|.
   // If it's object element |OBJ[ELEM]|, it emits |OBJ| and |ELEM|.
   // If there's nothing to evaluate for the reference, it emits nothing.
-  // |emitted| parameter receives the number of values pushed onto the stack.
   [[nodiscard]] bool emitDestructuringLHSRef(ParseNode* target,
-                                             size_t* emitted);
+                                             DestructuringFlavor flav,
+                                             DestructuringLHSRef& lref);
 
   // emitSetOrInitializeDestructuring assumes the lhs expression's reference
   // and the to-be-destructured value has been pushed on the stack.  It emits
   // code to destructure a single lhs expression (either a name or a compound
   // []/{} expression).
-  [[nodiscard]] bool emitSetOrInitializeDestructuring(ParseNode* target,
-                                                      DestructuringFlavor flav);
+  [[nodiscard]] bool emitSetOrInitializeDestructuring(
+      ParseNode* target, DestructuringFlavor flav, DestructuringLHSRef& lref);
 
   // emitDestructuringObjRestExclusionSet emits the property exclusion set
   // for the rest-property in an object pattern.

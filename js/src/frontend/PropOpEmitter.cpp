@@ -112,16 +112,6 @@ bool PropOpEmitter::prepareForRhs() {
   return true;
 }
 
-bool PropOpEmitter::skipObjAndRhs() {
-  MOZ_ASSERT(state_ == State::Start);
-  MOZ_ASSERT(isSimpleAssignment() || isPropInit());
-
-#ifdef DEBUG
-  state_ = State::Rhs;
-#endif
-  return true;
-}
-
 bool PropOpEmitter::emitDelete(TaggedParserAtomIndex prop) {
   MOZ_ASSERT(state_ == State::Obj);
   MOZ_ASSERT(isDelete());

@@ -174,6 +174,8 @@ class MOZ_STACK_CLASS NameOpEmitter {
   [[nodiscard]] bool prepareForRhs();
   [[nodiscard]] bool emitAssignment();
   [[nodiscard]] bool emitIncDec(ValueUsage valueUsage);
+
+  size_t numReferenceSlots() const { return emittedBindOp(); }
 };
 
 } /* namespace frontend */

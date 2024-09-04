@@ -138,16 +138,6 @@ bool ElemOpEmitter::prepareForRhs() {
   return true;
 }
 
-bool ElemOpEmitter::skipObjAndKeyAndRhs() {
-  MOZ_ASSERT(state_ == State::Start);
-  MOZ_ASSERT(isSimpleAssignment() || isPropInit());
-
-#ifdef DEBUG
-  state_ = State::Rhs;
-#endif
-  return true;
-}
-
 bool ElemOpEmitter::emitDelete() {
   MOZ_ASSERT(state_ == State::Key);
   MOZ_ASSERT(isDelete());
