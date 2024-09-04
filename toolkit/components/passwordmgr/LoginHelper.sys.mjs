@@ -10,7 +10,7 @@
  * of nsILoginManager and nsILoginManagerStorage.
  */
 
-import { Logic } from "resource://gre/modules/LoginManager.shared.mjs";
+import { Logic } from "resource://gre/modules/LoginManager.shared.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -440,9 +440,6 @@ export const LoginHelper = {
     );
     this.generationAvailable = Services.prefs.getBoolPref(
       "signon.generation.available"
-    );
-    this.generationConfidenceThreshold = parseFloat(
-      Services.prefs.getStringPref("signon.generation.confidenceThreshold")
     );
     this.generationEnabled = Services.prefs.getBoolPref(
       "signon.generation.enabled"

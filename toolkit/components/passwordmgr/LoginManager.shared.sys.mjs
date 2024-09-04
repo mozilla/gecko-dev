@@ -6,6 +6,10 @@
  * Code that we can share across Firefox Desktop, Firefox Android and Firefox iOS.
  */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { NewPasswordModel } from "resource://gre/modules/shared/NewPasswordModel.sys.mjs";
+import { LoginFormFactory } from "resource://gre/modules/shared/LoginFormFactory.sys.mjs";
+
 class Logic {
   static inputTypeIsCompatibleWithUsername(input) {
     const fieldType = input.getAttribute("type")?.toLowerCase() || input.type;
@@ -167,6 +171,94 @@ class Logic {
 
     return true;
   }
+
+  static #cachedNewPasswordScore = new WeakMap();
+
+  static isProbablyANewPasswordField(inputElement) {
+    const autocompleteInfo = inputElement.getAutocompleteInfo();
+    if (autocompleteInfo.fieldName === "new-password") {
+      return true;
+    }
+
+    if (Logic.newPasswordFieldFathomThreshold == -1) {
+      // Fathom is disabled
+      return false;
+    }
+
+    let score = this.#cachedNewPasswordScore.get(inputElement);
+    if (score) {
+      return score >= Logic.newPasswordFieldFathomThreshold;
+    }
+
+    const { rules, type } = NewPasswordModel;
+    const results = rules.against(inputElement);
+    score = results.get(inputElement).scoreFor(type);
+    this.#cachedNewPasswordScore.set(inputElement, score);
+    return score >= Logic.newPasswordFieldFathomThreshold;
+  }
+
+  static findConfirmationField(passwordField) {
+    const form = LoginFormFactory.createFromField(passwordField);
+    let confirmPasswordInput = null;
+    const MAX_CONFIRM_PASSWORD_DISTANCE = 3;
+
+    const startIndex = form.elements.indexOf(passwordField);
+    if (startIndex === -1) {
+      throw new Error(
+        "Password field is not in the form's elements collection"
+      );
+    }
+
+    // Get a list of input fields to search in.
+    // Pre-filter type=hidden fields; they don't count against the distance threshold
+    const afterFields = form.elements
+      .slice(startIndex + 1)
+      .filter(elem => elem.type !== "hidden");
+
+    const acFieldName = passwordField.getAutocompleteInfo()?.fieldName;
+
+    // Match same autocomplete values first
+    if (acFieldName === "new-password") {
+      const matchIndex = afterFields.findIndex(
+        elem =>
+          Logic.isPasswordFieldType(elem) &&
+          elem.getAutocompleteInfo().fieldName === acFieldName &&
+          !elem.disabled &&
+          !elem.readOnly
+      );
+      if (matchIndex >= 0 && matchIndex < MAX_CONFIRM_PASSWORD_DISTANCE) {
+        confirmPasswordInput = afterFields[matchIndex];
+      }
+    }
+
+    if (!confirmPasswordInput) {
+      for (
+        let idx = 0;
+        idx < Math.min(MAX_CONFIRM_PASSWORD_DISTANCE, afterFields.length);
+        idx++
+      ) {
+        if (
+          Logic.isPasswordFieldType(afterFields[idx]) &&
+          !afterFields[idx].disabled &&
+          !afterFields[idx].readOnly
+        ) {
+          confirmPasswordInput = afterFields[idx];
+          break;
+        }
+      }
+    }
+
+    return confirmPasswordInput;
+  }
 }
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  Logic,
+  "newPasswordFieldFathomThreshold",
+  "signon.generation.confidenceThreshold",
+  null,
+  null,
+  pref => parseFloat(pref)
+);
 
 export { Logic };

@@ -41,6 +41,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 import { CreditCard } from "resource://gre/modules/CreditCard.sys.mjs";
+import { Logic } from "resource://gre/modules/LoginManager.shared.sys.mjs";
 
 const lazy = {};
 
@@ -56,7 +57,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   LoginRecipesContent: "resource://gre/modules/LoginRecipes.sys.mjs",
   LoginManagerTelemetry: "resource://gre/modules/LoginManagerTelemetry.sys.mjs",
-  NewPasswordModel: "resource://gre/modules/shared/NewPasswordModel.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -953,22 +953,8 @@ export class LoginFormState {
   }
 
   fillConfirmFieldWithGeneratedPassword(passwordField) {
-    // Fill a nearby password input if it looks like a confirm-password field
-    let form = lazy.LoginFormFactory.createFromField(passwordField);
-    let confirmPasswordInput = null;
-    // The confirm-password field shouldn't be more than 3 form elements away from the password field we filled
-    let MAX_CONFIRM_PASSWORD_DISTANCE = 3;
-
-    let startIndex = form.elements.indexOf(passwordField);
-    if (startIndex == -1) {
-      throw new Error(
-        "Password field is not in the form's elements collection"
-      );
-    }
-
-    // If we've already filled another field with a generated password,
-    // this might be the confirm-password field, so don't try and find another
-    let previousGeneratedPasswordField = form.elements.some(
+    const form = lazy.LoginFormFactory.createFromField(passwordField);
+    const previousGeneratedPasswordField = form.elements.some(
       inp => inp !== passwordField && this.generatedPasswordFields.has(inp)
     );
     if (previousGeneratedPasswordField) {
@@ -976,43 +962,8 @@ export class LoginFormState {
       return;
     }
 
-    // Get a list of input fields to search in.
-    // Pre-filter type=hidden fields; they don't count against the distance threshold
-    let afterFields = form.elements
-      .slice(startIndex + 1)
-      .filter(elem => elem.type !== "hidden");
+    const confirmPasswordInput = Logic.findConfirmationField(passwordField);
 
-    let acFieldName = passwordField.getAutocompleteInfo()?.fieldName;
-
-    // Match same autocomplete values first
-    if (acFieldName == "new-password") {
-      let matchIndex = afterFields.findIndex(
-        elem =>
-          lazy.LoginHelper.isPasswordFieldType(elem) &&
-          elem.getAutocompleteInfo().fieldName == acFieldName &&
-          !elem.disabled &&
-          !elem.readOnly
-      );
-      if (matchIndex >= 0 && matchIndex < MAX_CONFIRM_PASSWORD_DISTANCE) {
-        confirmPasswordInput = afterFields[matchIndex];
-      }
-    }
-    if (!confirmPasswordInput) {
-      for (
-        let idx = 0;
-        idx < Math.min(MAX_CONFIRM_PASSWORD_DISTANCE, afterFields.length);
-        idx++
-      ) {
-        if (
-          lazy.LoginHelper.isPasswordFieldType(afterFields[idx]) &&
-          !afterFields[idx].disabled &&
-          !afterFields[idx].readOnly
-        ) {
-          confirmPasswordInput = afterFields[idx];
-          break;
-        }
-      }
-    }
     if (confirmPasswordInput && !confirmPasswordInput.value) {
       this._treatAsGeneratedPasswordField(confirmPasswordInput);
       confirmPasswordInput.setUserInput(passwordField.value);
@@ -3158,9 +3109,7 @@ export class LoginManagerChild extends JSWindowActorChild {
       forcePasswordGeneration = this.isPasswordGenerationForcedOn(input);
       // Run the Fathom model only if the password field does not have the
       // autocomplete="new-password" attribute.
-      isProbablyANewPasswordField =
-        autocompleteInfo.fieldName == "new-password" ||
-        this.isProbablyANewPasswordField(input);
+      isProbablyANewPasswordField = Logic.isProbablyANewPasswordField(input);
     }
 
     const scenarioName = lazy.FormScenarios.detect({ input }).signUpForm
@@ -3282,27 +3231,6 @@ export class LoginManagerChild extends JSWindowActorChild {
 
   isLoginManagerField(input) {
     return input.hasBeenTypePassword || this.#interestedInputs.includes(input);
-  }
-
-  #cachedNewPasswordScore = new WeakMap();
-
-  isProbablyANewPasswordField(inputElement) {
-    const threshold = lazy.LoginHelper.generationConfidenceThreshold;
-    if (threshold == -1) {
-      // Fathom is disabled
-      return false;
-    }
-
-    let score = this.#cachedNewPasswordScore.get(inputElement);
-    if (score) {
-      return score >= threshold;
-    }
-
-    const { rules, type } = lazy.NewPasswordModel;
-    const results = rules.against(inputElement);
-    score = results.get(inputElement).scoreFor(type);
-    this.#cachedNewPasswordScore.set(inputElement, score);
-    return score >= threshold;
   }
 
   /**
