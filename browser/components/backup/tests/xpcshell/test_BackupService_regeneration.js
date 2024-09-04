@@ -415,3 +415,27 @@ add_task(async function test_payment_method_removed() {
     await formAutofillStorage.creditCards.remove(guid);
   }, "Saw regeneration on payment method removal.");
 });
+
+/**
+ * Tests that backup regeneration occurs when removing an address.
+ */
+add_task(async function test_address_removed() {
+  await formAutofillStorage.initialize();
+  let guid = await formAutofillStorage.addresses.add({
+    "given-name": "John",
+    "additional-name": "R.",
+    "family-name": "Smith",
+    organization: "World Wide Web Consortium",
+    "street-address": "32 Vassar Street\\\nMIT Room 32-G524",
+    "address-level2": "Cambridge",
+    "address-level1": "MA",
+    "postal-code": "02139",
+    country: "US",
+    tel: "+15195555555",
+    email: "user@example.com",
+  });
+
+  await expectRegeneration(async () => {
+    await formAutofillStorage.addresses.remove(guid);
+  }, "Saw regeneration on address removal.");
+});
