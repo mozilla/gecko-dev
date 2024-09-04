@@ -605,6 +605,46 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Focuses the urlbar in the window the message was displayed in"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "shouldHideDialog": {
+                  "type": "boolean",
+                  "description": "Whether or not the bookmarks dialog should be visible"
+                }
+              }
+            },
+            "type": {
+              "type": "string",
+              "enum": ["BOOKMARK_CURRENT_TAB"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Bookmarks the tab that was selected when the message was displayed"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "visibility": {
+                "type": "string",
+                "description": "The visibility of the bookmarks toolbar",
+                "enum": ["always", "never", "newtab"]
+              }
+            },
+            "type": {
+              "type": "string",
+              "enum": ["SET_BOOKMARKS_TOOLBAR_VISIBILITY"]
+            }
+          },
+          "required": ["data", "type"],
+          "additionalProperties": false,
+          "description": "Sets the visibility of the bookmarks toolbar"
         }
       ]
     }
