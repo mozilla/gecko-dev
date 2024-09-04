@@ -206,8 +206,9 @@ nsresult SetIconInfo(const RefPtr<Database>& aDB, IconData& aIcon,
 
   nsCOMPtr<mozIStorageStatement> insertStmt = aDB->GetStatement(
       "INSERT INTO moz_icons "
-      "(icon_url, fixed_icon_url_hash, width, root, expire_ms, data) "
-      "VALUES (:url, hash(fixup_url(:url)), :width, :root, :expire, :data) ");
+      "(icon_url, fixed_icon_url_hash, width, root, expire_ms, data, flags) "
+      "VALUES (:url, hash(fixup_url(:url)), :width, :root, :expire, :data, "
+      ":flags) ");
   NS_ENSURE_STATE(insertStmt);
   // ReplaceFaviconData may replace data for an already existing icon, and in
   // that case it won't have the page uri at hand, thus it can't tell if the
@@ -216,7 +217,8 @@ nsresult SetIconInfo(const RefPtr<Database>& aDB, IconData& aIcon,
       "UPDATE moz_icons SET width = :width, "
       "expire_ms = :expire, "
       "data = :data, "
-      "root = (root  OR :root) "
+      "root = (root  OR :root), "
+      "flags = :flags "
       "WHERE id = :id ");
   NS_ENSURE_STATE(updateStmt);
 
@@ -249,6 +251,8 @@ nsresult SetIconInfo(const RefPtr<Database>& aDB, IconData& aIcon,
       rv = updateStmt->BindBlobByName("data"_ns, TO_INTBUFFER(payload.data),
                                       payload.data.Length());
       NS_ENSURE_SUCCESS(rv, rv);
+      rv = updateStmt->BindInt32ByName("flags"_ns, aIcon.flags);
+      NS_ENSURE_SUCCESS(rv, rv);
       rv = updateStmt->Execute();
       NS_ENSURE_SUCCESS(rv, rv);
       // Set the new payload id.
@@ -267,6 +271,8 @@ nsresult SetIconInfo(const RefPtr<Database>& aDB, IconData& aIcon,
       NS_ENSURE_SUCCESS(rv, rv);
       rv = insertStmt->BindBlobByName("data"_ns, TO_INTBUFFER(payload.data),
                                       payload.data.Length());
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = insertStmt->BindInt32ByName("flags"_ns, aIcon.flags);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = insertStmt->Execute();
       NS_ENSURE_SUCCESS(rv, rv);

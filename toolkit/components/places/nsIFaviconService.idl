@@ -19,6 +19,9 @@ interface nsIFaviconService : nsISupports
   // The favicon is being loaded from a non-private browsing window
   const unsigned long FAVICON_LOAD_NON_PRIVATE = 2;
 
+  // Defines values for icon flags.
+  const unsigned short ICONDATA_FLAGS_RICH = 1 << 0;
+
   /**
    * The limit in bytes of the size of favicons in memory and passed via the
    * favicon protocol.
@@ -172,7 +175,8 @@ interface nsIFaviconService : nsISupports
     in nsIURI aFaviconURI,
     in nsIURI aDataURL,
     [optional] in PRTime aExpiration,
-    [optional] in PlacesCompletionCallback aCallback
+    [optional] in PlacesCompletionCallback aCallback,
+    [optional] in boolean isRichIcon
   );
 
   /**

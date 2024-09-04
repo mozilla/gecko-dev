@@ -113,6 +113,7 @@ export class LinkHandlerParent extends JSWindowActorParent {
       iconURL,
       canStoreIcon,
       beforePageShow,
+      isRichIcon,
     }
   ) {
     let tab = gBrowser.getTabForBrowser(browser);
@@ -148,7 +149,9 @@ export class LinkHandlerParent extends JSWindowActorParent {
           Services.io.newURI(pageURL),
           Services.io.newURI(originalURL),
           iconURI,
-          expiration && lazy.PlacesUtils.toPRTime(expiration)
+          expiration && lazy.PlacesUtils.toPRTime(expiration),
+          null,
+          isRichIcon
         );
       } catch (ex) {
         console.error(ex);

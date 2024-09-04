@@ -74,7 +74,8 @@ struct IconData {
       : expiration(0),
         fetchMode(FETCH_NEVER),
         status(ICON_STATUS_UNKNOWN),
-        rootIcon(0) {}
+        rootIcon(0),
+        flags(0) {}
 
   nsCString spec;
   nsCString host;
@@ -83,6 +84,8 @@ struct IconData {
   uint16_t status;  // This is a bitset, see ICON_STATUS_* defines above.
   uint8_t rootIcon;
   CopyableTArray<IconPayload> payloads;
+  uint16_t flags;  // This is a bitset, see ICONDATA_FLAGS_* defines
+                   // in toolkit/components/places/nsIFaviconService.idl.
 };
 
 /**

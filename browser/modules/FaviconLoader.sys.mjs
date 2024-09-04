@@ -549,6 +549,7 @@ class IconLoader {
         canStoreIcon:
           iconInfo.beforePageShow && iconInfo.iconUri.schemeIs("data"),
         beforePageShow: iconInfo.beforePageShow,
+        isRichIcon: iconInfo.isRichIcon,
       });
       return;
     }
@@ -571,6 +572,7 @@ class IconLoader {
         iconURL: dataURL,
         canStoreIcon,
         beforePageShow: iconInfo.beforePageShow,
+        isRichIcon: iconInfo.isRichIcon,
       });
     } catch (e) {
       if (e.result != Cr.NS_BINDING_ABORTED) {

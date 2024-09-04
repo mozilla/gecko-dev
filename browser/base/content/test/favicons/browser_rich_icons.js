@@ -48,3 +48,35 @@ add_task(async function test_maskIcons() {
 
   BrowserTestUtils.removeTab(tab);
 });
+
+add_task(async function test_richIconInfo_rich() {
+  const URL = ROOT + "file_rich_icon.html";
+  const EXPECTED_RICH_ICON = ROOT + "rich_moz_2.png";
+
+  let richIconPromise = waitForFaviconMessage(false, EXPECTED_RICH_ICON);
+
+  const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL);
+  let richIcon = await richIconPromise;
+
+  is(richIcon.iconURL, EXPECTED_RICH_ICON, "should load rich icon");
+
+  ok(richIcon.isRichIcon, "isRichIcon flag should be passed for rich icons");
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_richIconInfo_notRich() {
+  const URL = ROOT + "file_rich_icon.html";
+  const EXPECTED_ICON = ROOT + "moz.png";
+
+  let iconPromise = waitForFaviconMessage(true, EXPECTED_ICON);
+
+  const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL);
+  let icon = await iconPromise;
+
+  is(icon.iconURL, EXPECTED_ICON, "should load icon");
+
+  ok(!icon.isRichIcon, "isRichIcon flag should be passed as false");
+
+  BrowserTestUtils.removeTab(tab);
+});

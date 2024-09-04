@@ -215,7 +215,8 @@ void nsFaviconService::ClearImageCache(nsIURI* aImageURI) {
 NS_IMETHODIMP
 nsFaviconService::SetFaviconForPage(
     nsIURI* aPageURI, nsIURI* aFaviconURI, nsIURI* aDataURL,
-    PRTime aExpiration = 0, PlacesCompletionCallback* aCallback = nullptr) {
+    PRTime aExpiration = 0, PlacesCompletionCallback* aCallback = nullptr,
+    bool isRichIcon = false) {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG(aPageURI);
   NS_ENSURE_ARG(aFaviconURI);
@@ -331,6 +332,9 @@ nsFaviconService::SetFaviconForPage(
   icon.expiration = aExpiration;
   icon.status = ICON_STATUS_CACHED;
   icon.fetchMode = FETCH_NEVER;
+  if (isRichIcon) {
+    icon.flags |= ICONDATA_FLAGS_RICH;
+  }
   rv = faviconURI->GetSpec(icon.spec);
   NS_ENSURE_SUCCESS(rv, rv);
   // URIs can arguably lack a host.

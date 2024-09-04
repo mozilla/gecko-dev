@@ -167,7 +167,13 @@ export var PlacesTestUtils = Object.freeze({
    * @param {Number} [optional] expiration
    * @return {Promise} waits for finishing setting
    */
-  setFaviconForPage(pageURI, faviconURI, faviconDataURL, expiration = 0) {
+  setFaviconForPage(
+    pageURI,
+    faviconURI,
+    faviconDataURL,
+    expiration = 0,
+    isRichIcon = false
+  ) {
     return new Promise((resolve, reject) => {
       lazy.PlacesUtils.favicons.setFaviconForPage(
         pageURI instanceof Ci.nsIURI ? pageURI : Services.io.newURI(pageURI),
@@ -188,7 +194,8 @@ export var PlacesTestUtils = Object.freeze({
               )
             );
           }
-        }
+        },
+        isRichIcon
       );
     });
   },

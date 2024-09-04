@@ -36,11 +36,13 @@ function waitForFaviconMessage(isTabIcon = undefined, expectedURL = undefined) {
           iconURL: data.originalURL,
           dataURL: data.iconURL,
           canUseForTab: data.canUseForTab,
+          isRichIcon: data.isRichIcon,
         });
       } else {
         reject({
           iconURL: data.originalURL,
           canUseForTab: data.canUseForTab,
+          isRichIcon: data.isRichIcon,
         });
       }
     };
