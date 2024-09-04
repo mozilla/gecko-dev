@@ -11,6 +11,59 @@
         android:layout_height="match_parent"
         android:background="?layer2" />
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar_wrapper_two"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/browser_toolbar_height"
+        android:layout_gravity="bottom"
+        android:elevation="5dp"
+        android:background="?bottomBarBackground"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/url_view_wrapper"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/home_search_background"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginVertical="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/fake_share_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toStartOf="@id/fake_reload_button"
+            app:layout_constraintTop_toTopOf="@id/url_view_wrapper"
+            app:layout_constraintBottom_toBottomOf="@id/url_view_wrapper"
+            app:srcCompat="@drawable/mozac_ic_share_android_24"
+            app:tint="?attr/textPrimary"
+            android:padding="8dp"
+            android:elevation="10dp"
+            />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/fake_reload_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_marginStart="8dp"
+            app:layout_constraintEnd_toEndOf="@id/url_view_wrapper"
+            app:layout_constraintTop_toTopOf="@id/url_view_wrapper"
+            app:layout_constraintBottom_toBottomOf="@id/url_view_wrapper"
+            app:srcCompat="@drawable/mozac_ic_arrow_clockwise_24"
+            app:tint="?attr/textPrimary"
+            android:padding="8dp"
+            android:elevation="10dp"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
     <LinearLayout
         android:id="@+id/fakeToolbar"
         android:layout_width="match_parent"
@@ -19,7 +72,9 @@
         android:background="?bottomBarBackground"
         android:elevation="5dp"
         android:foregroundGravity="bottom"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="visible"
+        >
 
         <View
             android:id="@+id/toolbar_wrapper"

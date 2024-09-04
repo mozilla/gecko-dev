@@ -61,21 +61,23 @@ class TabPreview @JvmOverloads constructor(
     }
 
     private fun initializeView() {
+        val isNavBarVisible = context.shouldAddNavigationBar()
         val isToolbarAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP
+
+        binding.fakeToolbar.isVisible = !isNavBarVisible
+        binding.toolbarWrapperTwo.isVisible = isNavBarVisible
+
         if (isToolbarAtTop) {
-            binding.fakeToolbar.updateLayoutParams<LayoutParams> {
+            val toolbarBinding = if (isNavBarVisible) binding.toolbarWrapperTwo else binding.fakeToolbar
+
+            toolbarBinding.updateLayoutParams<LayoutParams> {
                 gravity = Gravity.TOP
             }
-
-            binding.fakeToolbar.background = AppCompatResources.getDrawable(
+            toolbarBinding.background = AppCompatResources.getDrawable(
                 context,
                 ThemeManager.resolveAttribute(R.attr.bottomBarBackgroundTop, context),
             )
         }
-
-        val isNavBarVisible = context.shouldAddNavigationBar()
-        binding.tabButton.isVisible = !isNavBarVisible
-        binding.menuButton.isVisible = !isNavBarVisible
 
         if (isNavBarVisible) {
             val browserStore = context.components.core.store
