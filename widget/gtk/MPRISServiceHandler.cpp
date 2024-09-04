@@ -846,6 +846,11 @@ GVariant* MPRISServiceHandler::GetMetadataAsGVariant() const {
                           g_variant_new_string(static_cast<const gchar*>(
                               mMPRISMetadata.mArtUrl.get())));
   }
+  if (!mMPRISMetadata.mUrl.IsEmpty()) {
+    g_variant_builder_add(&builder, "{sv}", "xesam:url",
+                          g_variant_new_string(static_cast<const gchar*>(
+                              mMPRISMetadata.mUrl.get())));
+  }
   if (mPositionState.isSome()) {
     CheckedInt64 length =
         CheckedInt64((int64_t)mPositionState.value().mDuration) * 1000000;

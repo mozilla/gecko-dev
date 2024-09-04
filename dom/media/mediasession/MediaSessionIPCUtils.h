@@ -50,6 +50,7 @@ struct ParamTraits<mozilla::dom::MediaMetadataBase> {
     WriteParam(aWriter, aParam.mTitle);
     WriteParam(aWriter, aParam.mArtist);
     WriteParam(aWriter, aParam.mAlbum);
+    WriteParam(aWriter, aParam.mUrl);
     WriteParam(aWriter, aParam.mArtwork);
   }
 
@@ -57,6 +58,7 @@ struct ParamTraits<mozilla::dom::MediaMetadataBase> {
     if (!ReadParam(aReader, &(aResult->mTitle)) ||
         !ReadParam(aReader, &(aResult->mArtist)) ||
         !ReadParam(aReader, &(aResult->mAlbum)) ||
+        !ReadParam(aReader, &(aResult->mUrl)) ||
         !ReadParam(aReader, &(aResult->mArtwork))) {
       return false;
     }

@@ -230,6 +230,7 @@ class MediaStatusManager : public IMediaInfoUpdater {
  private:
   nsString GetDefaultFaviconURL() const;
   nsString GetDefaultTitle() const;
+  nsCString GetUrl() const;
   MediaMetadataBase CreateDefaultMetadata() const;
   bool IsInPrivateBrowsing() const;
   void FillMissingTitleAndArtworkIfNeeded(MediaMetadataBase& aMetadata) const;

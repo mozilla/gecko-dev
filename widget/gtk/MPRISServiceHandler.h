@@ -124,6 +124,7 @@ class MPRISServiceHandler final : public dom::MediaControlKeySource {
       mTitle = aMetadata.mTitle;
       mArtist = aMetadata.mArtist;
       mAlbum = aMetadata.mAlbum;
+      mUrl = aMetadata.mUrl;
       mArtwork = aMetadata.mArtwork;
     }
     void Clear() {

@@ -33,6 +33,7 @@ class MediaMetadataBase {
   nsString mTitle;
   nsString mArtist;
   nsString mAlbum;
+  nsCString mUrl;
   CopyableTArray<MediaImage> mArtwork;
 };
 

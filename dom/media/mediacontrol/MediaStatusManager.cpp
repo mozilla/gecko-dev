@@ -199,6 +199,7 @@ bool MediaStatusManager::IsSessionOwningAudioFocus(
 MediaMetadataBase MediaStatusManager::CreateDefaultMetadata() const {
   MediaMetadataBase metadata;
   metadata.mTitle = GetDefaultTitle();
+  metadata.mUrl = GetUrl();
   metadata.mArtwork.AppendElement()->mSrc = GetDefaultFaviconURL();
 
   LOG("Default media metadata, title=%s, album src=%s",
@@ -234,6 +235,32 @@ nsString MediaStatusManager::GetDefaultTitle() const {
     globalParent->GetDocumentTitle(documentTitle);
   }
   return documentTitle.IsEmpty() ? defaultTitle : documentTitle;
+}
+
+nsCString MediaStatusManager::GetUrl() const {
+  nsCString defaultUrl;
+
+  RefPtr<CanonicalBrowsingContext> bc =
+      CanonicalBrowsingContext::Get(mTopLevelBrowsingContextId);
+  if (!bc) {
+    return defaultUrl;
+  }
+
+  RefPtr<WindowGlobalParent> globalParent = bc->GetCurrentWindowGlobal();
+  if (!globalParent) {
+    return defaultUrl;
+  }
+
+  if (IsInPrivateBrowsing()) {
+    return defaultUrl;
+  }
+
+  nsIURI* documentURI = globalParent->GetDocumentURI();
+  if (!documentURI) {
+    return defaultUrl;
+  }
+
+  return documentURI->GetSpecOrDefault();
 }
 
 nsString MediaStatusManager::GetDefaultFaviconURL() const {
@@ -446,6 +473,7 @@ MediaMetadataBase MediaStatusManager::GetCurrentMediaMetadata() const {
     }
     MediaMetadataBase& metadata = *(info.mMetadata);
     FillMissingTitleAndArtworkIfNeeded(metadata);
+    metadata.mUrl = GetUrl();
     return metadata;
   }
   return CreateDefaultMetadata();
