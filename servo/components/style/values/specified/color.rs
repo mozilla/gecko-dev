@@ -141,6 +141,9 @@ impl LightDark {
     fn compute(&self, cx: &Context) -> ComputedColor {
         let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
         let dark = cx.device().is_dark_color_scheme(&style_color_scheme);
+        if cx.for_non_inherited_property {
+            cx.rule_cache_conditions.borrow_mut().set_color_scheme_dependency(style_color_scheme.bits);
+        }
         let used = if dark { &self.dark } else { &self.light };
         used.to_computed_value(cx)
     }
@@ -421,6 +424,9 @@ impl SystemColor {
         // TODO: We should avoid cloning here most likely, though it's cheap-ish.
         let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
         let color = cx.device().system_nscolor(*self, &style_color_scheme);
+        if cx.for_non_inherited_property {
+            cx.rule_cache_conditions.borrow_mut().set_color_scheme_dependency(style_color_scheme.bits);
+        }
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
         }
@@ -930,7 +936,7 @@ bitflags! {
 pub struct ColorScheme {
     #[ignore_malloc_size_of = "Arc"]
     idents: crate::ArcSlice<CustomIdent>,
-    bits: ColorSchemeFlags,
+    pub bits: ColorSchemeFlags,
 }
 
 impl ColorScheme {
