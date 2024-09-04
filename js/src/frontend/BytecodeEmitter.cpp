@@ -3833,6 +3833,7 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
 
   for (ParseNode* member : pattern->contents()) {
     ParseNode* subpattern;
+    bool hasKeyOnStack = false;
     if (member->isKind(ParseNodeKind::MutateProto) ||
         member->isKind(ParseNodeKind::Spread)) {
       subpattern = member->as<UnaryNode>().kid();
@@ -3843,6 +3844,16 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
       MOZ_ASSERT(member->isKind(ParseNodeKind::PropertyDefinition) ||
                  member->isKind(ParseNodeKind::Shorthand));
       subpattern = member->as<BinaryNode>().right();
+
+      // Computed property names are evaluated before the subpattern.
+      ParseNode* key = member->as<BinaryNode>().left();
+      if (key->isKind(ParseNodeKind::ComputedName)) {
+        if (!emitComputedPropertyName(&key->as<UnaryNode>())) {
+          //        [stack] ... SET? RHS KEY
+          return false;
+        }
+        hasKeyOnStack = true;
+      }
     }
 
     ParseNode* lhs = subpattern;
@@ -3857,13 +3868,13 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
 
     // Spec requires LHS reference to be evaluated first.
     if (!emitDestructuringLHSRef(lhs, &emitted)) {
-      //            [stack] ... SET? RHS LREF*
+      //            [stack] ... SET? RHS KEY? LREF*
       return false;
     }
 
     // Duplicate the value being destructured to use as a reference base.
-    if (!emitDupAt(emitted)) {
-      //            [stack] ... SET? RHS LREF* RHS
+    if (!emitDupAt(emitted + hasKeyOnStack)) {
+      //            [stack] ... SET? RHS KEY? LREF* RHS
       return false;
     }
 
@@ -3939,8 +3950,9 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
           // Otherwise this is a computed property name. BigInt keys are parsed
           // as (synthetic) computed property names, too.
           MOZ_ASSERT(key->isKind(ParseNodeKind::ComputedName));
+          MOZ_ASSERT(hasKeyOnStack);
 
-          if (!emitComputedPropertyName(&key->as<UnaryNode>())) {
+          if (!emit2(JSOp::Pick, emitted + 1)) {
             //      [stack] ... SET? RHS LREF* RHS KEY
             return false;
           }
