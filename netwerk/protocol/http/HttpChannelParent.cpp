@@ -478,7 +478,8 @@ bool HttpChannelParent::DoAsyncOpen(
        " browserid=%" PRIx64 "]\n",
        this, aURI->GetSpecOrDefault().get(), aChannelId, aBrowserId));
 
-  PROFILER_MARKER("Receive AsyncOpen in Parent", NETWORK, {}, ChannelMarker,
+  PROFILER_MARKER("Receive AsyncOpen in Parent", NETWORK,
+                  MarkerThreadId::MainThread(), ChannelMarker,
                   aURI->GetSpecOrDefault(), aChannelId);
 
   nsresult rv;
