@@ -54,7 +54,7 @@ extern crate xpcom;
 extern crate audio_thread_priority;
 
 #[cfg(not(target_os = "android"))]
-extern crate webext_storage;
+extern crate webext_storage_bridge;
 
 #[cfg(not(target_os = "android"))]
 extern crate tabs;
@@ -64,7 +64,6 @@ mod reexport_appservices_uniffi_scaffolding {
     tabs::uniffi_reexport_scaffolding!();
     relevancy::uniffi_reexport_scaffolding!();
     suggest::uniffi_reexport_scaffolding!();
-    webext_storage::uniffi_reexport_scaffolding!();
 }
 
 #[cfg(not(target_os = "android"))]

@@ -19,9 +19,13 @@ add_task(async function setup() {
 });
 
 add_task(async function test_contentscript_storage_sync() {
-  await test_contentscript_storage("sync");
+  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
+    test_contentscript_storage("sync")
+  );
 });
 
 add_task(async function test_contentscript_storage_no_bytes_in_use() {
-  await test_contentscript_storage_area_with_bytes_in_use("sync", false);
+  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
+    test_contentscript_storage_area_with_bytes_in_use("sync", false)
+  );
 });

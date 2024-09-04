@@ -60,9 +60,9 @@ git = "https://github.com/mozilla-spidermonkey/jsparagus"
 rev = "61f399c53a641ebd3077c1f39f054f6d396a633c"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/mozilla/application-services?rev=b94438a80dc0e6b9fbd521ac99b032dd1e95608b"]
+[source."git+https://github.com/mozilla/application-services?rev=dbeaef2eb28e9da7cc2f96e26296513cc4e07c07"]
 git = "https://github.com/mozilla/application-services"
-rev = "b94438a80dc0e6b9fbd521ac99b032dd1e95608b"
+rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/mozilla/audioipc?rev=e6f44a2bd1e57d11dfc737632a9e849077632330"]
