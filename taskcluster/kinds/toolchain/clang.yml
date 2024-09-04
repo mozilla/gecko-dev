@@ -304,9 +304,9 @@ macosx64-clang-18-profile:
     description: "Clang 18 toolchain build"
     treeherder:
         symbol: TM(clang-18-profile)
-    worker-type: b-osx-1015
+    worker-type: b-osx-arm64
     worker:
-        max-run-time: 14400
+        max-run-time: 7200
     run:
         using: toolchain-script
         script: build-clang.sh
@@ -899,9 +899,9 @@ macosx64-clang-trunk-profile:
         cached_task: false
     treeherder:
         symbol: TM(clang-trunk-profile)
-    worker-type: b-osx-1015
+    worker-type: b-osx-arm64
     worker:
-        max-run-time: 14400
+        max-run-time: 7200
     run:
         using: toolchain-script
         script: build-clang.sh
