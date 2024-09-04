@@ -42,7 +42,7 @@ macosx64-minidump-stackwalk:
 
 macosx64-aarch64-minidump-stackwalk:
     treeherder:
-        symbol: TM(stackwalk-arm64)
+        symbol: TMA64(stackwalk)
     run:
         arguments: ['aarch64-apple-darwin']
     fetches:

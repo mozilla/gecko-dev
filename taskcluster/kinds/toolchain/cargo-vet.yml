@@ -40,7 +40,7 @@ macosx64-cargo-vet:
 
 macosx64-aarch64-cargo-vet:
     treeherder:
-        symbol: TM(cargo-vet-arm64)
+        symbol: TMA64(cargo-vet)
     run:
         arguments: ['aarch64-apple-darwin']
     fetches:

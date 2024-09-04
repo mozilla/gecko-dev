@@ -41,7 +41,7 @@ macosx64-dump_syms:
 
 macosx64-aarch64-dump_syms:
     treeherder:
-        symbol: TM(dump_syms-arm64)
+        symbol: TMA64(dump_syms)
     run:
         arguments: ['aarch64-apple-darwin']
     fetches:

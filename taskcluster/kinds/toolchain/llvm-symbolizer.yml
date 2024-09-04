@@ -85,7 +85,7 @@ macosx64-llvm-symbolizer-18:
 macosx64-aarch64-llvm-symbolizer-18:
     description: "llvm-symbolizer for macOS aarch64"
     treeherder:
-        symbol: TM(llvm-sym-aarch64-18)
+        symbol: TMA64(llvm-symbolizer-18)
     run:
         arguments:
             - aarch64-apple-darwin
@@ -213,7 +213,7 @@ macosx64-aarch64-llvm-symbolizer-trunk:
     attributes:
         cached_task: false
     treeherder:
-        symbol: TM(llvm-sym-aarch64-trunk)
+        symbol: TMA64(llvm-symbolizer-trunk)
     run:
         arguments:
             - aarch64-apple-darwin

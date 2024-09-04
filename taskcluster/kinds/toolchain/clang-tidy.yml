@@ -65,7 +65,7 @@ macosx64-aarch64-clang-tidy:
     index:
         job-name: macosx64-aarch64-clang-tidy
     treeherder:
-        symbol: TM(clang-tidy-aarch64)
+        symbol: TMA64(clang-tidy)
     worker-type: b-linux-large-gcp
     run:
         script: build-clang.sh
@@ -109,7 +109,7 @@ win64-aarch64-clang-tidy:
     index:
         job-name: win64-aarch64-clang-tidy
     treeherder:
-        symbol: TW64(clang-tidy-aarch64)
+        symbol: TWA64(clang-tidy)
     worker:
         max-run-time: 7200
     run:

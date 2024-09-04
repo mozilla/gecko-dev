@@ -19,7 +19,7 @@ sysroot-i686-linux-gnu:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8>'}
     treeherder:
-        symbol: TL(sysroot32)
+        symbol: TL32(sysroot)
     dependencies:
         gcc-8: packages-deb8-32-gcc-8
     run:
@@ -35,7 +35,7 @@ sysroot-x86_64-linux-gnu:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8>'}
     treeherder:
-        symbol: TL(sysroot64)
+        symbol: TL(sysroot)
     dependencies:
         gcc-8: packages-deb8-gcc-8
     run:
@@ -51,7 +51,7 @@ sysroot-x86_64-linux-gnu-x11:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8> <gtk3>'}
     treeherder:
-        symbol: TL(sysroot64-x11)
+        symbol: TL(sysroot-x11)
     dependencies:
         gcc-8: packages-deb8-gcc-8
         gtk3: packages-deb8-gtk3
@@ -132,7 +132,7 @@ sysroot-aarch64-linux-gnu:
     attributes:
         local-toolchain: true
     treeherder:
-        symbol: TL(sysroot-aarch64)
+        symbol: TLA64(sysroot)
     run:
         toolchain-artifact: public/build/sysroot-aarch64-linux-gnu.tar.zst
         arguments:
@@ -144,7 +144,7 @@ linux32-toolchain-sysroot:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8>'}
     treeherder:
-        symbol: TL(sysroot32-toolchain)
+        symbol: TL32(sysroot-toolchain)
     dependencies:
         gcc-8: packages-deb8-32-gcc-8
     run:
@@ -166,7 +166,7 @@ linux64-toolchain-sysroot:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8>'}
     treeherder:
-        symbol: TL(sysroot64-toolchain)
+        symbol: TL(sysroot-toolchain)
     dependencies:
         gcc-8: packages-deb8-gcc-8
     run:

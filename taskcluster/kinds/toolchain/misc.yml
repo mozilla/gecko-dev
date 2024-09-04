@@ -500,7 +500,7 @@ win64-aarch64-vs2022:
     attributes:
         local-toolchain: true
     treeherder:
-        symbol: TW64(msvc2022-aarch64)
+        symbol: TWA64(msvc2022)
     worker:
         env:
             MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
@@ -604,7 +604,7 @@ win64-libxml2:
 win64-aarch64-libxml2:
     description: "libxml2 toolchain build"
     treeherder:
-        symbol: TW64(libxml2-aarch64)
+        symbol: TWA64(libxml2)
     run:
         script: build-libxml2.sh
         arguments: ['aarch64-pc-windows-msvc']

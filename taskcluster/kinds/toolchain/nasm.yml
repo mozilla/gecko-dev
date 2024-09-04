@@ -45,7 +45,7 @@ macosx64-aarch64-nasm:
     attributes:
         local-toolchain: true
     treeherder:
-        symbol: TM(nasm-aarch64)
+        symbol: TMA64(nasm)
     run:
         script: build-nasm.sh
         arguments: ['macosx64-aarch64']

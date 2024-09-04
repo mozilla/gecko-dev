@@ -40,7 +40,7 @@ macosx64-fix-stacks:
 
 macosx64-aarch64-fix-stacks:
     treeherder:
-        symbol: TM(fix-stacks-arm64)
+        symbol: TMA64(fix-stacks)
     run:
         arguments: ['aarch64-apple-darwin']
     fetches:

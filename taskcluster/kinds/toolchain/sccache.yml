@@ -53,7 +53,7 @@ macosx64-sccache:
 
 macosx64-aarch64-sccache:
     treeherder:
-        symbol: TM(sccache-aarch64)
+        symbol: TMA64(sccache)
     worker:
         max-run-time: 1800
     run:
