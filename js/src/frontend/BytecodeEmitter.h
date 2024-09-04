@@ -55,7 +55,6 @@ namespace frontend {
 class BytecodeOffset;
 class CallOrNewEmitter;
 class ClassEmitter;
-class DestructuringLHSRef;
 class ElemOpEmitter;
 class EmitterScope;
 class ErrorReporter;
@@ -752,6 +751,9 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
 
   [[nodiscard]] bool emitComputedPropertyName(UnaryNode* computedPropName);
 
+  [[nodiscard]] bool emitObjAndKey(ParseNode* exprOrSuper, ParseNode* key,
+                                   ElemOpEmitter& eoe);
+
   // Emit bytecode to put operands for a JSOp::GetElem/CallElem/SetElem/DelElem
   // opcode onto the stack in the right order. In the case of SetElem, the
   // value to be assigned must already be pushed.
@@ -759,7 +761,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   [[nodiscard]] bool emitElemOperands(PropertyByValue* elem,
                                       EmitElemOption opts);
 
-  [[nodiscard]] bool emitElemObjAndKey(PropertyByValue* elem,
+  [[nodiscard]] bool emitElemObjAndKey(PropertyByValue* elem, bool isSuper,
                                        ElemOpEmitter& eoe);
   [[nodiscard]] bool emitElemOpBase(JSOp op);
 
@@ -788,16 +790,16 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   // If the lhs expression is object property |OBJ.prop|, it emits |OBJ|.
   // If it's object element |OBJ[ELEM]|, it emits |OBJ| and |ELEM|.
   // If there's nothing to evaluate for the reference, it emits nothing.
+  // |emitted| parameter receives the number of values pushed onto the stack.
   [[nodiscard]] bool emitDestructuringLHSRef(ParseNode* target,
-                                             DestructuringFlavor flav,
-                                             DestructuringLHSRef& lref);
+                                             size_t* emitted);
 
   // emitSetOrInitializeDestructuring assumes the lhs expression's reference
   // and the to-be-destructured value has been pushed on the stack.  It emits
   // code to destructure a single lhs expression (either a name or a compound
   // []/{} expression).
-  [[nodiscard]] bool emitSetOrInitializeDestructuring(
-      ParseNode* target, DestructuringFlavor flav, DestructuringLHSRef& lref);
+  [[nodiscard]] bool emitSetOrInitializeDestructuring(ParseNode* target,
+                                                      DestructuringFlavor flav);
 
   // emitDestructuringObjRestExclusionSet emits the property exclusion set
   // for the rest-property in an object pattern.

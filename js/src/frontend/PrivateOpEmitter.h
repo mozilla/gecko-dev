@@ -114,7 +114,8 @@ class MOZ_STACK_CLASS PrivateOpEmitter {
 #ifdef DEBUG
   // The state of this emitter.
   //
-  // +-------+  emitReference  +-----------+
+  //            emitReference
+  // +-------+  skipReference  +-----------+
   // | Start |---------------->| Reference |
   // +-------+                 +-----+-----+
   //                                 |
@@ -143,7 +144,7 @@ class MOZ_STACK_CLASS PrivateOpEmitter {
     // The initial state.
     Start,
 
-    // After calling emitReference.
+    // After calling emitReference or skipReference.
     Reference,
 
     // After calling emitGet.
@@ -215,12 +216,13 @@ class MOZ_STACK_CLASS PrivateOpEmitter {
   [[nodiscard]] bool emitBrandCheck();
 
   [[nodiscard]] bool emitReference();
+  [[nodiscard]] bool skipReference();
   [[nodiscard]] bool emitGet();
   [[nodiscard]] bool emitGetForCallOrNew();
   [[nodiscard]] bool emitAssignment();
   [[nodiscard]] bool emitIncDec(ValueUsage valueUsage);
 
-  size_t numReferenceSlots() const { return 2; }
+  [[nodiscard]] size_t numReferenceSlots() { return 2; }
 };
 
 } /* namespace frontend */

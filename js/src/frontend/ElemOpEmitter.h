@@ -142,36 +142,38 @@ class MOZ_STACK_CLASS ElemOpEmitter {
 #ifdef DEBUG
   // The state of this emitter.
   //
-  //
-  // +-------+   prepareForObj +-----+ prepareForKey +-----+
-  // | Start |---------------->| Obj |-------------->| Key |-+
-  // +-------+                 +-----+               +-----+ |
-  //                                                         |
-  // +-------------------------------------------------------+
-  // |
-  // | [Get]
-  // | [Call]
-  // |   emitGet +-----+
-  // +---------->| Get |
-  // |           +-----+
-  // |
-  // | [Delete]
-  // |   emitDelete +--------+
-  // +------------->| Delete |
-  // |              +--------+
-  // |
-  // | [PostIncrement]
-  // | [PreIncrement]
-  // | [PostDecrement]
-  // | [PreDecrement]
-  // |   emitIncDec +--------+
-  // +------------->| IncDec |
-  // |              +--------+
-  // |
-  // | [SimpleAssignment]
-  // | [PropInit]
-  // |                        prepareForRhs    +-----+
-  // +--------------------->+----------------->| Rhs |-+
+  //             skipObjAndKeyAndRhs
+  //           +------------------------------------------------+
+  //           |                                                |
+  // +-------+ | prepareForObj +-----+ prepareForKey +-----+    |
+  // | Start |-+-------------->| Obj |-------------->| Key |-+  |
+  // +-------+                 +-----+               +-----+ |  |
+  //                                                         |  |
+  // +-------------------------------------------------------+  |
+  // |                                                          |
+  // | [Get]                                                    |
+  // | [Call]                                                   |
+  // |   emitGet +-----+                                        |
+  // +---------->| Get |                                        |
+  // |           +-----+                                        |
+  // |                                                          |
+  // | [Delete]                                                 |
+  // |   emitDelete +--------+                                  |
+  // +------------->| Delete |                                  |
+  // |              +--------+                                  |
+  // |                                                          |
+  // | [PostIncrement]                                          |
+  // | [PreIncrement]                                           |
+  // | [PostDecrement]                                          |
+  // | [PreDecrement]                                           |
+  // |   emitIncDec +--------+                                  |
+  // +------------->| IncDec |                                  |
+  // |              +--------+                                  |
+  // |                                      +-------------------+
+  // | [SimpleAssignment]                   |
+  // | [PropInit]                           |
+  // |                        prepareForRhs v  +-----+
+  // +--------------------->+-------------->+->| Rhs |-+
   // |                      ^                  +-----+ |
   // |                      |                          |
   // |                      |            +-------------+
@@ -198,7 +200,7 @@ class MOZ_STACK_CLASS ElemOpEmitter {
     // After calling emitIncDec.
     IncDec,
 
-    // After calling prepareForRhs.
+    // After calling prepareForRhs or skipObjAndKeyAndRhs.
     Rhs,
 
     // After calling emitAssignment.
@@ -250,14 +252,13 @@ class MOZ_STACK_CLASS ElemOpEmitter {
   [[nodiscard]] bool emitGet();
 
   [[nodiscard]] bool prepareForRhs();
+  [[nodiscard]] bool skipObjAndKeyAndRhs();
 
   [[nodiscard]] bool emitDelete();
 
   [[nodiscard]] bool emitAssignment();
 
   [[nodiscard]] bool emitIncDec(ValueUsage valueUsage);
-
-  size_t numReferenceSlots() const { return 2 + isSuper(); }
 };
 
 } /* namespace frontend */

@@ -128,37 +128,39 @@ class MOZ_STACK_CLASS PropOpEmitter {
 #ifdef DEBUG
   // The state of this emitter.
   //
-  //
-  // +-------+   prepareForObj +-----+
-  // | Start |---------------->| Obj |-+
-  // +-------+                 +-----+ |
-  //                                   |
-  // +---------------------------------+
-  // |
-  // |
-  // | [Get]
-  // | [Call]
-  // |   emitGet +-----+
-  // +---------->| Get |
-  // |           +-----+
-  // |
-  // | [Delete]
-  // |   emitDelete +--------+
-  // +------------->| Delete |
-  // |              +--------+
-  // |
-  // | [PostIncrement]
-  // | [PreIncrement]
-  // | [PostDecrement]
-  // | [PreDecrement]
-  // |   emitIncDec +--------+
-  // +------------->| IncDec |
-  // |              +--------+
-  // |
-  // | [SimpleAssignment]
-  // | [PropInit]
-  // |                        prepareForRhs    +-----+
-  // +--------------------->+----------------->| Rhs |-+
+  //             skipObjAndRhs
+  //           +----------------------------+
+  //           |                            |
+  // +-------+ | prepareForObj +-----+      |
+  // | Start |-+-------------->| Obj |-+    |
+  // +-------+                 +-----+ |    |
+  //                                   |    |
+  // +---------------------------------+    |
+  // |                                      |
+  // |                                      |
+  // | [Get]                                |
+  // | [Call]                               |
+  // |   emitGet +-----+                    |
+  // +---------->| Get |                    |
+  // |           +-----+                    |
+  // |                                      |
+  // | [Delete]                             |
+  // |   emitDelete +--------+              |
+  // +------------->| Delete |              |
+  // |              +--------+              |
+  // |                                      |
+  // | [PostIncrement]                      |
+  // | [PreIncrement]                       |
+  // | [PostDecrement]                      |
+  // | [PreDecrement]                       |
+  // |   emitIncDec +--------+              |
+  // +------------->| IncDec |              |
+  // |              +--------+              |
+  // |                                      |
+  // | [SimpleAssignment]                   |
+  // | [PropInit]                           |
+  // |                        prepareForRhs |  +-----+
+  // +--------------------->+-------------->+->| Rhs |-+
   // |                      ^                  +-----+ |
   // |                      |                          |
   // |                      |                +---------+
@@ -182,7 +184,7 @@ class MOZ_STACK_CLASS PropOpEmitter {
     // After calling emitIncDec.
     IncDec,
 
-    // After calling prepareForRhs.
+    // After calling prepareForRhs or skipObjAndRhs.
     Rhs,
 
     // After calling emitAssignment.
@@ -235,6 +237,7 @@ class MOZ_STACK_CLASS PropOpEmitter {
   [[nodiscard]] bool emitGet(TaggedParserAtomIndex prop);
 
   [[nodiscard]] bool prepareForRhs();
+  [[nodiscard]] bool skipObjAndRhs();
 
   [[nodiscard]] bool emitDelete(TaggedParserAtomIndex prop);
 
@@ -243,8 +246,6 @@ class MOZ_STACK_CLASS PropOpEmitter {
 
   [[nodiscard]] bool emitIncDec(TaggedParserAtomIndex prop,
                                 ValueUsage valueUsage);
-
-  size_t numReferenceSlots() const { return 1 + isSuper(); }
 };
 
 } /* namespace frontend */

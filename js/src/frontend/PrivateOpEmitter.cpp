@@ -100,6 +100,19 @@ bool PrivateOpEmitter::emitReference() {
   return true;
 }
 
+bool PrivateOpEmitter::skipReference() {
+  MOZ_ASSERT(state_ == State::Start);
+
+  if (!init()) {
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::Reference;
+#endif
+  return true;
+}
+
 bool PrivateOpEmitter::emitGet() {
   MOZ_ASSERT(state_ == State::Reference);
 
