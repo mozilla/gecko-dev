@@ -258,8 +258,24 @@ add_task(async function test_new_tab_keep_settings() {
   is(
     panel.querySelector("#extension-new-tab-notification-description")
       .textContent,
-    "An extension,  New Tab Add-on, changed the page you see when you open a new tab.Learn more",
+    "An extension,  New Tab Add-on, changed the page you see when you open a new tab.",
     "The description includes the add-on name"
+  );
+
+  ok(
+    BrowserTestUtils.isVisible(
+      panel.querySelector(".popup-notification-learnmore-link")
+    ),
+    "Expect the popupnotification learnmore link to be visible"
+  );
+
+  is(
+    panel
+      .querySelector(".popup-notification-learnmore-link")
+      .getAttribute("href"),
+    Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      "extension-home",
+    "learnmore link should have the expected url set"
   );
 
   // Click the Keep Changes button.
