@@ -9271,6 +9271,8 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // XXXbz mTiming should know what channel it's for, so we don't
   // need this hackery.
   const bool isJavaScript = SchemeIsJavascript(aLoadState->URI());
+  const bool isExternalProtocol =
+      nsContentUtils::IsExternalProtocol(aLoadState->URI());
   const bool isDownload = !aLoadState->FileName().IsVoid();
   const bool toBeReset = !isJavaScript && MaybeInitTiming();
 
@@ -9281,6 +9283,9 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   }
   // Check if the page doesn't want to be unloaded. The javascript:
   // protocol handler deals with this for javascript: URLs.
+  // NOTE(emilio): As of this writing, other browsers fire beforeunload for
+  // external protocols, so keep doing that even though they don't return data
+  // and thus we won't really unload this...
   if (!isJavaScript && !isDownload &&
       !aLoadState->NotifiedBeforeUnloadListeners() && mDocumentViewer) {
     // Check if request is exempted from HTTPSOnlyMode and if https-first is
@@ -9380,7 +9385,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // In the case where they do result in data, the javascript: URL channel takes
   // care of stopping current network activity. Similarly, downloads don't
   // unload this document...
-  if (!isJavaScript && !isDownload) {
+  if (!isJavaScript && !isDownload && !isExternalProtocol) {
     // Stop any current network activity.
     // Also stop content if this is a zombie doc. otherwise
     // the onload will be delayed by other loads initiated in the
