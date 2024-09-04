@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Test to ensure events get untransformed properly for OOP iframes</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/paint_listener.js"></script>
@@ -10,78 +11,93 @@
   <script src="apz_test_native_event_utils.js"></script>
   <script>
 
-// Copied from helper_fission_transforms.html, except for the
-// synthesis function.
+    // Copied from helper_fission_transforms.html, except for the
+    // synthesis function.
 
-fission_subtest_init();
+    async function test() {
+      const iframe = document.querySelector("iframe");
+      await setupCrossOriginIFrame(iframe, "helper_fission_plain.html");
 
-FissionTestHelper.startTestPromise
-  .then(waitUntilApzStable)
-  .then(loadOOPIFrame("testframe", "helper_fission_empty.html"))
-  .then(waitUntilApzStable)
-  .then(test)
-  .then(FissionTestHelper.subtestDone, FissionTestHelper.subtestFailed);
+      let readyPromise = new Promise(resolve => {
+        window.addEventListener("message", event => {
+          if (event.data === "listenerready") {
+            resolve();
+          }
+        });
+      }, { once: true });
 
-let code_for_oopif_to_run = function() {
-  document.addEventListener("click", function(e) {
-    dump(`OOPIF got click at ${e.clientX},${e.clientY}\n`);
-    let result = { x: e.clientX, y: e.clientY };
-    FissionTestHelper.fireEventInEmbedder("OOPIF:ClickData", result);
-  }, {once: true});
-  dump("OOPIF registered click listener\n");
-  return true;
-};
+      let result = await SpecialPowers.spawn(iframe, [], async () => {
+        content.document.addEventListener("click", (e) => {
+          let data = JSON.stringify({
+            type: "clicked",
+            coords: {
+              offsetX: e.clientX,
+              offsetY: e.clientY
+            }
+          });
+          content.window.parent.postMessage(data, "*");
+        });
 
-function failsafe() {
-  // Catch and fail faster on the case where the click ends up not going to
-  // the iframe like it should. Otherwise the test hangs until timeout which
-  // is more painful.
-  document.addEventListener("click", function(e) {
-    dump(`${location.href} got click at ${e.clientX},${e.clientY}\n`);
-    ok(false, "The OOPIF hosting page should not have gotten the click");
-    setTimeout(FissionTestHelper.subtestDone, 0);
-  }, {once: true});
-}
+        content.window.parent.postMessage("listenerready", "*");
 
-async function test() {
-  let iframeElement = document.getElementById("testframe");
+        return true;
+      });
+      ok(result, "Successfully installed event listener in OOP iframe");
 
-  let iframeResponse = await FissionTestHelper.sendToOopif(iframeElement, `(${code_for_oopif_to_run})()`)
-  dump("OOPIF response: " + JSON.stringify(iframeResponse) + "\n");
-  ok(iframeResponse, "code_for_oopif_to_run successfully installed");
+      await readyPromise;
 
-  iframePromise = promiseOneEvent(window, "OOPIF:ClickData", null);
-  await synthesizeNativeTap(document.body, 400, 400, function() {
-    dump("Finished synthesizing click, waiting for OOPIF message...\n");
-  });
-  iframeResponse = await iframePromise;
-  dump("OOPIF response: " + JSON.stringify(iframeResponse.data) + "\n");
+      let childMessagePromise = new Promise(resolve => {
+        window.addEventListener("message", event => {
 
-  let expected_coord = 200 / Math.sqrt(2); // because the iframe is rotated 45 deg
-  ok(Math.abs(iframeResponse.data.x - expected_coord) < 3,
-     `x-coord ${iframeResponse.data.x} landed near expected value ${expected_coord}`);
-  ok(Math.abs(iframeResponse.data.y - expected_coord) < 3,
-     `y-coord ${iframeResponse.data.y} landed near expected value ${expected_coord}`);
-}
+          let data = JSON.parse(event.data);
+          if ("type" in data && data.type == "clicked") {
+            let coordinates = {
+              offsetX: data.coords.offsetX,
+              offsetY: data.coords.offsetY
+            };
+            resolve(coordinates);
+          }
+        });
+      });
+
+      await synthesizeNativeTap(document.body, 400, 400, function () {
+        dump("Finished synthesizing click, waiting for OOPIF message...\n");
+      });
+
+      let clickCoordsInChild = await childMessagePromise;
+
+      let expected_coord = 200 / Math.sqrt(2); // because the iframe is rotated 45 deg
+      ok(Math.abs(clickCoordsInChild.offsetX - expected_coord) < 3,
+        `x-coord ${clickCoordsInChild.offsetX} landed near expected value ${expected_coord}`);
+      ok(Math.abs(clickCoordsInChild.offsetY - expected_coord) < 3,
+        `y-coord ${clickCoordsInChild.offsetY} landed near expected value ${expected_coord}`);
+    }
+
+    waitUntilApzStable()
+      .then(test)
+      .then(subtestDone, subtestFailed);
 
   </script>
   <style>
-    body, html {
-        margin: 0;
+    body,
+    html {
+      margin: 0;
     }
+
     div {
-        transform-origin: top left;
-        transform: translateX(400px) scale(2) rotate(45deg);
-        width: 500px;
+      transform-origin: top left;
+      transform: translateX(400px) scale(2) rotate(45deg);
+      width: 500px;
     }
+
     iframe {
-        width: 400px;
-        height: 300px;
-        border: solid 1px black;
+      width: 400px;
+      height: 300px;
+      border: solid 1px black;
     }
   </style>
 </head>
-<body onload="failsafe()">
-<div><iframe id="testframe"></iframe></div>
+<body>
+  <div><iframe id="testframe"></iframe></div>
 </body>
 </html>

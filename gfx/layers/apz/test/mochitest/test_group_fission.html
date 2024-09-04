@@ -5,6 +5,7 @@
   <title>Various tests that spawn in out-of-process iframes.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="apz_test_utils.js"></script>
+  <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
   <script type="application/javascript">
 
@@ -14,6 +15,16 @@
     var subtests = [
       { "file": "helper_fission_transforms.html", "prefs": prefs },
     ];
+
+    if (getPlatform() != "android") {
+      subtests.push(
+        { // Fails on try runs for Android
+          // https://bugzilla.mozilla.org/show_bug.cgi?id=1914368
+          "file": "helper_fission_tap.html",
+          "prefs": [["apz.max_tap_time", 10000]],
+        }
+      );
+    }
 
     if (isApzEnabled()) {
       // This has a lot of subtests, and Android emulators are slow.

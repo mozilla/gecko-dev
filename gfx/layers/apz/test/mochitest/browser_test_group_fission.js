@@ -39,10 +39,6 @@ add_task(async function test_main() {
     { file: "helper_fission_animation_styling_in_oopif.html" },
     { file: "helper_fission_force_empty_hit_region.html" },
     { file: "helper_fission_touch.html" },
-    {
-      file: "helper_fission_tap.html",
-      prefs: [["apz.max_tap_time", 10000]],
-    },
     { file: "helper_fission_inactivescroller_under_oopif.html" },
     {
       file: "helper_fission_tap_on_zoomed.html",
