@@ -17,7 +17,6 @@
 #include "NSSErrorsService.h"
 #include "TLSTransportLayer.h"
 #include "mozilla/ChaosMode.h"
-#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
 #include "mozpkix/pkixnss.h"
@@ -83,8 +82,8 @@ nsHttpConnection::~nsHttpConnection() {
 
     MOZ_ASSERT(ci);
     if (ci->GetIsTrrServiceChannel()) {
-      mozilla::glean::networking::trr_request_count_per_conn.Get("h1"_ns).Add(
-          static_cast<int32_t>(mHttp1xTransactionCount));
+      Telemetry::Accumulate(Telemetry::DNS_TRR_REQUEST_PER_CONN,
+                            mHttp1xTransactionCount);
     }
   }
 

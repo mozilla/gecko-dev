@@ -27,7 +27,6 @@
 #include "Http2StreamTunnel.h"
 #include "LoadContextInfo.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -241,8 +240,7 @@ Http2Session::~Http2Session() {
   Shutdown(NS_OK);
 
   if (mTrrStreams) {
-    mozilla::glean::networking::trr_request_count_per_conn.Get("h2"_ns).Add(
-        static_cast<int32_t>(mTrrStreams));
+    Telemetry::Accumulate(Telemetry::DNS_TRR_REQUEST_PER_CONN, mTrrStreams);
   }
   Telemetry::Accumulate(Telemetry::SPDY_PARALLEL_STREAMS, mConcurrentHighWater);
   Telemetry::Accumulate(Telemetry::SPDY_REQUEST_PER_CONN_3, mCntActivated);
