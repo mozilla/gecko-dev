@@ -863,14 +863,16 @@ nsresult HTMLEditor::FocusedElementOrDocumentBecomesNotEditable(
   // the editing state change.  Note that if the window of the HTMLEditor has
   // already lost focus, we don't need to do that and we should not touch the
   // other windows.
-  if (const RefPtr<nsPresContext> presContext = aDocument.GetPresContext()) {
-    const RefPtr<Element> focusedElementInDocument =
-        Element::FromNodeOrNull(aDocument.GetUnretargetedFocusedContent());
-    MOZ_ASSERT_IF(focusedElementInDocument,
-                  focusedElementInDocument->GetPresContext(
-                      Element::PresContextFor::eForComposedDoc));
-    IMEStateManager::MaybeOnEditableStateDisabled(*presContext,
-                                                  focusedElementInDocument);
+  if (aHTMLEditor->OurWindowHasFocus()) {
+    if (RefPtr<nsPresContext> presContext = aHTMLEditor->GetPresContext()) {
+      RefPtr<Element> focusedElement =
+          nsFocusManager::GetFocusedElementStatic();
+      MOZ_ASSERT_IF(focusedElement,
+                    focusedElement->GetPresContext(
+                        Element::PresContextFor::eForComposedDoc));
+      IMEStateManager::MaybeOnEditableStateDisabled(*presContext,
+                                                    focusedElement);
+    }
   }
 
   return rv;
