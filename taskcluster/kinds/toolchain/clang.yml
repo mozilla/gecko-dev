@@ -552,10 +552,10 @@ win64-clang-18-stage1:
             - vs-toolchain
             - win64-libxml2
 
-win64-clang-18-raw:
+win64-clang-18-profile:
     description: "Clang-cl 18 toolchain build"
     treeherder:
-        symbol: TW64(clang-18-raw)
+        symbol: TW64(clang-18-profile)
     worker-type: b-win2022
     worker:
         max-run-time: 9000
@@ -565,15 +565,13 @@ win64-clang-18-raw:
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
             - 'build/build-clang/skip-stage-1-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
-            - 'build/build-clang/llvm-config.json'
+            - 'build/build-clang/profile.json'
         resources:
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
             - 'build/build-clang/skip-stage-1-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
-            - 'build/build-clang/llvm-config.json'
-        toolchain-artifact: public/build/clang.tar.zst
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
     fetches:
         fetch:
             - clang-18
@@ -581,6 +579,35 @@ win64-clang-18-raw:
         toolchain:
             - win64-clang-18-stage1
             - win64-cmake
+            - win64-compiler-rt-18
+            - vs-toolchain
+            - win64-libxml2
+
+win64-clang-18-raw:
+    description: "Clang-cl 18 toolchain build"
+    treeherder:
+        symbol: TW64(clang-18-raw)
+    run:
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/llvm-config.json'
+        resources:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/clang-18.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/llvm-config.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-18
+        toolchain:
+            - linux64-clang-18-stage1
+            - win64-clang-18-profile
             - win64-compiler-rt-18
             - vs-toolchain
             - win64-libxml2
@@ -1157,12 +1184,12 @@ win64-clang-trunk-stage1:
             - vs-toolchain
             - win64-libxml2
 
-win64-clang-trunk-raw:
+win64-clang-trunk-profile:
     description: "Clang-cl trunk toolchain build"
     attributes:
         cached_task: false
     treeherder:
-        symbol: TW64(clang-trunk-raw)
+        symbol: TW64(clang-trunk-profile)
     worker-type: b-win2022
     worker:
         max-run-time: 9000
@@ -1172,13 +1199,13 @@ win64-clang-trunk-raw:
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
             - 'build/build-clang/skip-stage-1-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/profile.json'
         resources:
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
             - 'build/build-clang/skip-stage-1-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
-        toolchain-artifact: public/build/clang.tar.zst
+            - 'build/build-clang/profile.json'
+        toolchain-artifact: public/build/merged.profdata
     fetches:
         fetch:
             - clang-trunk
@@ -1186,6 +1213,35 @@ win64-clang-trunk-raw:
         toolchain:
             - win64-clang-trunk-stage1
             - win64-cmake
+            - win64-compiler-rt-trunk
+            - vs-toolchain
+            - win64-libxml2
+
+win64-clang-trunk-raw:
+    description: "Clang-cl trunk toolchain build"
+    attributes:
+        cached_task: false
+    treeherder:
+        symbol: TW64(clang-trunk-raw)
+    run:
+        script: build-clang.sh
+        arguments:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+        resources:
+            - 'build/build-clang/win64.json'
+            - 'build/build-clang/clang-trunk.json'
+            - 'build/build-clang/skip-3-stages-win64.json'
+            - 'build/build-clang/4stages-pgo.json'
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        fetch:
+            - clang-trunk
+        toolchain:
+            - linux64-clang-trunk-stage1
+            - win64-clang-trunk-profile
             - win64-compiler-rt-trunk
             - vs-toolchain
             - win64-libxml2
