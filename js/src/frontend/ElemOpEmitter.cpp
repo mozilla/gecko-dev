@@ -146,10 +146,6 @@ bool ElemOpEmitter::emitDelete() {
   MOZ_ASSERT(isDelete());
 
   if (isSuper()) {
-    if (!bce_->emit1(JSOp::ToPropertyKey)) {
-      //            [stack] THIS KEY
-      return false;
-    }
     if (!bce_->emitSuperBase()) {
       //            [stack] THIS KEY SUPERBASE
       return false;
