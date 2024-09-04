@@ -68,6 +68,43 @@ async function addTestHistory(uriString, timestamp = Date.now()) {
   });
 }
 
+let gCookieCounter = 0;
+
+const COOKIE_HOST = "example.com";
+const COOKIE_PATH = "/";
+const COOKIE_ORIGIN_ATTRIBUTES = Object.freeze({});
+
+/**
+ * Adds a new non-session cookie to the cookie database with the host set
+ * as COOKIE_HOST, the path as COOKIE_PATH, with the origin attributes of
+ * COOKIE_ORIGIN_ATTRIBUTES and a generated name and value.
+ *
+ * @param {boolean} isSessionCookie
+ *   True if the cookie should be a session cookie.
+ * @returns {string}
+ *   The name of the cookie that was generated.
+ */
+function addTestCookie(isSessionCookie) {
+  gCookieCounter++;
+  let name = `Cookie name: ${gCookieCounter}`;
+
+  Services.cookies.add(
+    COOKIE_HOST,
+    COOKIE_PATH,
+    name,
+    `Cookie value: ${gCookieCounter}`,
+    false,
+    false,
+    isSessionCookie,
+    Date.now() / 1000 + 1,
+    COOKIE_ORIGIN_ATTRIBUTES,
+    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SCHEME_HTTP
+  );
+
+  return name;
+}
+
 /**
  * A helper function that sets up a BackupService to be instrumented to detect
  * a backup regeneration, and then runs an async taskFn to ensure that the
@@ -474,4 +511,59 @@ add_task(async function test_permission_removed() {
   await expectRegeneration(async () => {
     Services.perms.removeFromPrincipal(principal, PERMISSION_TYPE);
   }, "Saw regeneration on permission removal.");
+});
+
+/**
+ * Tests that backup regeneration occurs when persistent and session cookies are
+ * removed.
+ */
+add_task(async function test_cookies_removed() {
+  for (let isSessionCookie of [false, true]) {
+    Services.cookies.removeAll();
+
+    // First, let's remove a single cookie by host, path, name and origin
+    // attrbutes.
+    let name = addTestCookie(isSessionCookie);
+
+    if (isSessionCookie) {
+      Assert.equal(
+        Services.cookies.sessionCookies.length,
+        1,
+        "Make sure we actually added a session cookie."
+      );
+    } else {
+      Assert.equal(
+        Services.cookies.sessionCookies.length,
+        0,
+        "Make sure we actually added a persistent cookie."
+      );
+    }
+
+    await expectRegeneration(async () => {
+      Services.cookies.remove(
+        COOKIE_HOST,
+        name,
+        COOKIE_PATH,
+        COOKIE_ORIGIN_ATTRIBUTES
+      );
+    }, "Saw regeneration on single cookie removal.");
+
+    // Now remove all cookies for a particular host.
+    addTestCookie(isSessionCookie);
+    addTestCookie(isSessionCookie);
+
+    await expectRegeneration(async () => {
+      Services.cookies.removeCookiesFromExactHost(COOKIE_HOST, "{}");
+    }, "Saw regeneration on cookie removal by host.");
+
+    // Now remove all cookies.
+    const COOKIES_TO_ADD = 10;
+    for (let i = 0; i < COOKIES_TO_ADD; ++i) {
+      addTestCookie(isSessionCookie);
+    }
+
+    await expectRegeneration(async () => {
+      Services.cookies.removeAll();
+    }, "Saw regeneration on all cookie removal.");
+  }
 });
