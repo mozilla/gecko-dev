@@ -44,12 +44,6 @@ case "$CONFIGS" in
     ;;
   esac
   ;;
-*linux64*|*android*)
-  ;;
-*)
-  echo Cannot figure out build configuration for $CONFIGS
-  exit 1
-  ;;
 esac
 
 if test -d "$MOZ_FETCHES_DIR/cmake"; then

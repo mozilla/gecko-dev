@@ -34,9 +34,11 @@ linux64-clang-tidy:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/clang-tidy-linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
         resources:
-            - 'build/build-clang/clang-tidy-linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
     fetches:
         toolchain:
             - linux64-clang-18
@@ -51,10 +53,12 @@ macosx64-clang-tidy:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/macosx64.json'
         resources:
-            - 'build/build-clang/clang-tidy-macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/macosx64.json'
     fetches:
         toolchain:
@@ -70,12 +74,12 @@ macosx64-aarch64-clang-tidy:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/clang-tidy-macosx64.json'
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/macosx64-aarch64.json'
         resources:
-            - 'build/build-clang/clang-tidy-macosx64.json'
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/macosx64-aarch64.json'
     fetches:
         toolchain:
@@ -93,10 +97,12 @@ win64-clang-tidy:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/win64.json'
         resources:
-            - 'build/build-clang/clang-tidy-win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/win64.json'
     fetches:
         toolchain:
@@ -115,12 +121,12 @@ win64-aarch64-clang-tidy:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/clang-tidy-win64.json'
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/win64-aarch64.json'
         resources:
-            - 'build/build-clang/clang-tidy-win64.json'
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
             - 'build/build-clang/win64-aarch64.json'
     fetches:
         toolchain:
@@ -139,9 +145,13 @@ linux64-clang-tidy-external:
         toolchain-artifact: project/civet/clang-tidy.tar.zst
         script: build-clang-tidy-external.sh
         arguments:
-            - 'build/build-clang/clang-tidy-external-linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
+            - 'build/build-clang/clang-tidy-external.json'
         resources:
-            - 'build/build-clang/clang-tidy-external-linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
+            - 'build/build-clang/clang-tidy.json'
+            - 'build/build-clang/clang-tidy-external.json'
     run-on-projects: []
     fetches:
         fetch:

@@ -1,7 +1,0 @@
-{
-    "stages": "4",
-    "targets": "X86;ARM;AArch64;WebAssembly",
-    "pgo": true,
-    "ranlib": "{MOZ_FETCHES_DIR}/clang/bin/llvm-ranlib",
-    "ar": "{MOZ_FETCHES_DIR}/clang/bin/llvm-ar"
-}

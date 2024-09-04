@@ -18,11 +18,11 @@ linux64-clang-8.0-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-8.0.json'
             - 'build/build-clang/2stages.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-8.0.json'
             - 'build/build-clang/2stages.json'
         toolchain-artifact: public/build/clang.tar.zst
@@ -56,13 +56,13 @@ linux64-clang-14-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-14.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-14.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -96,13 +96,15 @@ macosx64-clang-14-raw:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-14.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-14.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -170,13 +172,13 @@ linux64-clang-18-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-alias:
             by-project:
                 toolchains: null
@@ -196,14 +198,12 @@ linux64-clang-18-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -221,15 +221,13 @@ linux64-clang-18-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -285,13 +283,15 @@ macosx64-clang-18-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -311,14 +311,14 @@ macosx64-clang-18-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -340,15 +340,15 @@ macosx64-clang-18-raw:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -407,15 +407,15 @@ macosx64-aarch64-clang-18-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -435,16 +435,14 @@ macosx64-aarch64-clang-18-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -466,17 +464,15 @@ macosx64-aarch64-clang-18-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -532,13 +528,15 @@ win64-clang-18-stage1:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-alias:
             by-project:
                 toolchains: null
@@ -562,14 +560,14 @@ win64-clang-18-profile:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/profile.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -590,16 +588,16 @@ win64-clang-18-raw:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
             - 'build/build-clang/llvm-config.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
             - 'build/build-clang/llvm-config.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
@@ -659,17 +657,15 @@ win64-aarch64-clang-18-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64-aarch64.json'
             - 'build/build-clang/clang-18.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -784,13 +780,13 @@ linux64-clang-trunk-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-system-clang.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-alias:
             by-project:
                 toolchains: linux64-clang-toolchain
@@ -812,14 +808,12 @@ linux64-clang-trunk-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -839,15 +833,13 @@ linux64-clang-trunk-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/linux64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -905,13 +897,15 @@ macosx64-clang-trunk-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -933,14 +927,14 @@ macosx64-clang-trunk-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -964,15 +958,15 @@ macosx64-clang-trunk-raw:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -1033,15 +1027,15 @@ macosx64-aarch64-clang-trunk-stage1:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -1063,16 +1057,14 @@ macosx64-aarch64-clang-trunk-profile:
         using: toolchain-script
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -1096,17 +1088,15 @@ macosx64-aarch64-clang-trunk-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/macosx64.json'
+            - 'build/build-clang/use-clang-artifact.json'
             - 'build/build-clang/macosx64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -1164,13 +1154,15 @@ win64-clang-trunk-stage1:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/1stage.json'
+            - 'build/build-clang/stage-1.json'
         toolchain-alias:
             by-project:
                 toolchains: win64-clang-toolchain
@@ -1196,14 +1188,14 @@ win64-clang-trunk-profile:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/profile.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-stage-1-win64.json'
             - 'build/build-clang/profile.json'
         toolchain-artifact: public/build/merged.profdata
     fetches:
@@ -1226,15 +1218,15 @@ win64-clang-trunk-raw:
     run:
         script: build-clang.sh
         arguments:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:
@@ -1295,17 +1287,15 @@ win64-aarch64-clang-trunk-raw:
     run:
         script: build-clang.sh
         arguments:
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         resources:
-            - 'build/build-clang/win64.json'
+            - 'build/build-clang/use-clang-cl-artifact.json'
             - 'build/build-clang/win64-aarch64.json'
             - 'build/build-clang/clang-trunk.json'
-            - 'build/build-clang/skip-3-stages-win64.json'
-            - 'build/build-clang/4stages-pgo.json'
+            - 'build/build-clang/stage-4-pgo.json'
         toolchain-artifact: public/build/clang.tar.zst
     fetches:
         fetch:

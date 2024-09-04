@@ -1,7 +1,0 @@
-{
-    "skip_stages": "3",
-    "cc": "{MOZ_FETCHES_DIR}/clang/bin/clang-cl",
-    "cxx": "{MOZ_FETCHES_DIR}/clang/bin/clang-cl",
-    "ml": "{MOZ_FETCHES_DIR}/clang/bin/clang-cl",
-    "lib": "{MOZ_FETCHES_DIR}/clang/bin/llvm-lib"
-}
