@@ -82,3 +82,31 @@ import:
                       ordering: 4
                     - text: likert_scale_option_6
                       ordering: 5
+
+        # This message displays as a microsurvey prompt after the user taps on the `Print` menu.
+        - channel: nightly
+          value:
+            messages:
+              microsurvey-printing-example-nightly:
+                title: microsurvey_prompt_printing_title
+                text: microsurvey_survey_printing_title
+                surface: microsurvey
+                trigger-if-all:
+                  - RECENTLY_PRINTED
+                style: MICROSURVEY
+                microsurvey-config:
+                  utm-content: "homepage"
+                  icon: ic_print
+                  answers:
+                    - text: likert_scale_option_1
+                      ordering: 0
+                    - text: likert_scale_option_2
+                      ordering: 1
+                    - text: likert_scale_option_3
+                      ordering: 2
+                    - text: likert_scale_option_4
+                      ordering: 3
+                    - text: likert_scale_option_5
+                      ordering: 4
+                    - text: likert_scale_option_6
+                      ordering: 5
