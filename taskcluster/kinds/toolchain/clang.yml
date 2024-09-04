@@ -451,7 +451,7 @@ macosx64-aarch64-clang-18-profile:
             - macosx64-cmake
             - macosx64-ninja
         toolchain:
-            - macosx64-clang-18-stage1
+            - macosx64-aarch64-clang-18-stage1
             - macosx64-aarch64-compiler-rt-18
             - macosx64-sdk-toolchain
 
@@ -1073,7 +1073,7 @@ macosx64-aarch64-clang-trunk-profile:
             - macosx64-cmake
             - macosx64-ninja
         toolchain:
-            - macosx64-clang-trunk-stage1
+            - macosx64-aarch64-clang-trunk-stage1
             - macosx64-aarch64-compiler-rt-trunk
             - macosx64-sdk-toolchain
 
