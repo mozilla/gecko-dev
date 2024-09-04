@@ -177,7 +177,12 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * This is a singleton; it contains mostly convenience
    * functions to obtain platform-specific objects.
    */
-  static gfxPlatform* GetPlatform();
+  static gfxPlatform* GetPlatform() {
+    if (MOZ_UNLIKELY(!gPlatform)) {
+      Init();
+    }
+    return gPlatform;
+  }
 
   /**
    * Returns whether or not graphics has been initialized yet. This is
@@ -493,6 +498,13 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   void UpdateCanUseHardwareVideoDecoding();
 
+  inline static void EnsureCMSInitialized() {
+    if (MOZ_UNLIKELY(!gCMSInitialized)) {
+      MaybeInitializeCMS();
+      MOZ_ASSERT(gCMSInitialized);
+    }
+  }
+
   /**
    * Are we going to try color management?
    */
@@ -528,48 +540,42 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * Return the output device ICC profile.
    */
   static qcms_profile* GetCMSOutputProfile() {
-    EnsureCMSInitialized();
-    return gCMSOutputProfile;
+    return GetPlatform()->mCMSOutputProfile;
   }
 
   /**
    * Return the sRGB ICC profile.
    */
   static qcms_profile* GetCMSsRGBProfile() {
-    EnsureCMSInitialized();
-    return gCMSsRGBProfile;
+    return GetPlatform()->mCMSsRGBProfile;
   }
 
   /**
    * Return sRGB -> output device transform.
    */
   static qcms_transform* GetCMSRGBTransform() {
-    EnsureCMSInitialized();
-    return gCMSRGBTransform;
+    return GetPlatform()->mCMSRGBTransform;
   }
 
   /**
    * Return output -> sRGB device transform.
    */
   static qcms_transform* GetCMSInverseRGBTransform() {
-    MOZ_ASSERT(gCMSInitialized);
-    return gCMSInverseRGBTransform;
+    return GetPlatform()->mCMSInverseRGBTransform;
   }
 
   /**
    * Return sRGBA -> output device transform.
    */
   static qcms_transform* GetCMSRGBATransform() {
-    MOZ_ASSERT(gCMSInitialized);
-    return gCMSRGBATransform;
+    return GetPlatform()->mCMSRGBATransform;
   }
 
   /**
    * Return sBGRA -> output device transform.
    */
   static qcms_transform* GetCMSBGRATransform() {
-    MOZ_ASSERT(gCMSInitialized);
-    return gCMSBGRATransform;
+    return GetPlatform()->mCMSBGRATransform;
   }
 
   /**
@@ -855,16 +861,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
  protected:
   /**
-   * If inside a child process and currently being initialized by the
-   * SetXPCOMProcessAttributes message, this can be used by subclasses to
-   * retrieve the ContentDeviceData passed by the message
-   *
-   * If not currently being initialized, will return nullptr. In this case,
-   * child should send a sync message to ask parent for color profile
-   */
-  const mozilla::gfx::ContentDeviceData* GetInitContentDeviceData();
-
-  /**
    * If inside a child process and have ever received a
    * SetXPCOMProcessAttributes message, this contains the cmsOutputProfileData
    * from that message.
@@ -935,27 +931,10 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   static void InitOpenGLConfig();
 
-  static mozilla::Atomic<bool, mozilla::MemoryOrdering::ReleaseAcquire>
-      gCMSInitialized;
-  static CMSMode gCMSMode;
+  static gfxPlatform* gPlatform;
 
-  // These two may point to the same profile
-  static qcms_profile* gCMSOutputProfile;
-  static qcms_profile* gCMSsRGBProfile;
-
-  static qcms_transform* gCMSRGBTransform;
-  static qcms_transform* gCMSInverseRGBTransform;
-  static qcms_transform* gCMSRGBATransform;
-  static qcms_transform* gCMSBGRATransform;
-
-  inline static void EnsureCMSInitialized() {
-    if (MOZ_UNLIKELY(!gCMSInitialized)) {
-      InitializeCMS();
-    }
-  }
-
-  static void InitializeCMS();
-  static void ShutdownCMS();
+  void InitializeCMS();
+  void ShutdownCMS();
 
   /**
    * This uses nsIScreenManager to determine the primary screen color depth
@@ -973,6 +952,23 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   static bool IsDXNV12Blocked();
   static bool IsDXP010Blocked();
   static bool IsDXP016Blocked();
+
+  static void MaybeInitializeCMS();
+
+  // We need these to be static because we might call them in the GPU process,
+  // even if we don't do color management there.
+  static mozilla::Atomic<bool, mozilla::ReleaseAcquire> gCMSInitialized;
+  static CMSMode gCMSMode;
+
+  // These two may point to the same profile
+  qcms_profile* mCMSOutputProfile = nullptr;
+  qcms_profile* mCMSsRGBProfile = nullptr;
+
+  qcms_transform* mCMSRGBTransform = nullptr;
+  qcms_transform* mCMSInverseRGBTransform = nullptr;
+  qcms_transform* mCMSRGBATransform = nullptr;
+  qcms_transform* mCMSBGRATransform = nullptr;
+  mozilla::Maybe<nsTArray<uint8_t>> mCMSOutputProfileData;
 
   RefPtr<gfxASurface> mScreenReferenceSurface;
   RefPtr<mozilla::layers::MemoryPressureObserver> mMemoryPressureObserver;
