@@ -5,17 +5,29 @@
 use anyhow::Result;
 use rusqlite::Transaction;
 use std::sync::{Arc, Weak};
-use sync15::bso::IncomingBso;
-use sync15::engine::ApplyResults;
+use sync15::bso::{IncomingBso, OutgoingBso};
+use sync15::engine::{ApplyResults, BridgedEngine as Sync15BridgedEngine};
 use sync_guid::Guid as SyncGuid;
 
 use crate::db::{delete_meta, get_meta, put_meta, ThreadSafeStorageDb};
 use crate::schema;
 use crate::sync::incoming::{apply_actions, get_incoming, plan_incoming, stage_incoming};
 use crate::sync::outgoing::{get_outgoing, record_uploaded, stage_outgoing};
+use crate::WebExtStorageStore;
 
 const LAST_SYNC_META_KEY: &str = "last_sync_time";
 const SYNC_ID_META_KEY: &str = "sync_id";
+
+impl WebExtStorageStore {
+    // Returns a bridged sync engine for this store.
+    pub fn bridged_engine(self: Arc<Self>) -> Arc<WebExtStorageBridgedEngine> {
+        let engine = Box::new(BridgedEngine::new(&self.db));
+        let bridged_engine = WebExtStorageBridgedEngine {
+            bridge_impl: engine,
+        };
+        Arc::new(bridged_engine)
+    }
+}
 
 /// A bridged engine implements all the methods needed to make the
 /// `storage.sync` store work with Desktop's Sync implementation.
@@ -54,7 +66,7 @@ impl BridgedEngine {
     }
 }
 
-impl sync15::engine::BridgedEngine for BridgedEngine {
+impl Sync15BridgedEngine for BridgedEngine {
     fn last_sync(&self) -> Result<i64> {
         let shared_db = self.thread_safe_storage_db()?;
         let db = shared_db.lock();
@@ -179,6 +191,88 @@ impl sync15::engine::BridgedEngine for BridgedEngine {
         )?;
         tx.commit()?;
         Ok(())
+    }
+}
+
+pub struct WebExtStorageBridgedEngine {
+    bridge_impl: Box<dyn Sync15BridgedEngine>,
+}
+
+impl WebExtStorageBridgedEngine {
+    pub fn new(bridge_impl: Box<dyn Sync15BridgedEngine>) -> Self {
+        Self { bridge_impl }
+    }
+
+    pub fn last_sync(&self) -> Result<i64> {
+        self.bridge_impl.last_sync()
+    }
+
+    pub fn set_last_sync(&self, last_sync: i64) -> Result<()> {
+        self.bridge_impl.set_last_sync(last_sync)
+    }
+
+    pub fn sync_id(&self) -> Result<Option<String>> {
+        self.bridge_impl.sync_id()
+    }
+
+    pub fn reset_sync_id(&self) -> Result<String> {
+        self.bridge_impl.reset_sync_id()
+    }
+
+    pub fn ensure_current_sync_id(&self, sync_id: &str) -> Result<String> {
+        self.bridge_impl.ensure_current_sync_id(sync_id)
+    }
+
+    pub fn prepare_for_sync(&self, client_data: &str) -> Result<()> {
+        self.bridge_impl.prepare_for_sync(client_data)
+    }
+
+    pub fn store_incoming(&self, incoming: Vec<String>) -> Result<()> {
+        self.bridge_impl
+            .store_incoming(self.convert_incoming_bsos(incoming)?)
+    }
+
+    pub fn apply(&self) -> Result<Vec<String>> {
+        let apply_results = self.bridge_impl.apply()?;
+        self.convert_outgoing_bsos(apply_results.records)
+    }
+
+    pub fn set_uploaded(&self, server_modified_millis: i64, guids: Vec<SyncGuid>) -> Result<()> {
+        self.bridge_impl
+            .set_uploaded(server_modified_millis, &guids)
+    }
+
+    pub fn sync_started(&self) -> Result<()> {
+        self.bridge_impl.sync_started()
+    }
+
+    pub fn sync_finished(&self) -> Result<()> {
+        self.bridge_impl.sync_finished()
+    }
+
+    pub fn reset(&self) -> Result<()> {
+        self.bridge_impl.reset()
+    }
+
+    pub fn wipe(&self) -> Result<()> {
+        self.bridge_impl.wipe()
+    }
+
+    fn convert_incoming_bsos(&self, incoming: Vec<String>) -> Result<Vec<IncomingBso>> {
+        let mut bsos = Vec::with_capacity(incoming.len());
+        for inc in incoming {
+            bsos.push(serde_json::from_str::<IncomingBso>(&inc)?);
+        }
+        Ok(bsos)
+    }
+
+    // Encode OutgoingBso's into JSON for UniFFI
+    fn convert_outgoing_bsos(&self, outgoing: Vec<OutgoingBso>) -> Result<Vec<String>> {
+        let mut bsos = Vec::with_capacity(outgoing.len());
+        for e in outgoing {
+            bsos.push(serde_json::to_string(&e)?);
+        }
+        Ok(bsos)
     }
 }
 
