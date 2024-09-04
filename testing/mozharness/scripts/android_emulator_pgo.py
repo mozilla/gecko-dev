@@ -247,15 +247,6 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
 
             driver.quit(in_app=True)
 
-            # Bug 1914354: Remove polling of the profile data which is no longer
-            # needed when using the quit() command from Marionette.
-            for i in range(50):
-                if not adbdevice.process_exist(app):
-                    break
-                time.sleep(2)
-            else:
-                raise Exception("Android App (%s) never quit" % app)
-
             # Pull all the profraw files and en-US.log
             adbdevice.pull(outputdir, "/builds/worker/workspace/")
         except ADBTimeoutError:
