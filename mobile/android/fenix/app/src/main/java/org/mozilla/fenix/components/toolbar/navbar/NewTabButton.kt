@@ -13,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,6 +21,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.LongPressIconButton
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.databinding.NewTabButtonBinding
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -49,8 +49,12 @@ fun NewTabButton(
     menu: TabCounterMenu? = null,
     onLongPress: () -> Unit = {},
 ) {
-    IconButton(
+    // IconButton by default have ripple indication, we want to disable it for performance
+    // TODO revert to IconButton after https://bugzilla.mozilla.org/show_bug.cgi?id=1911369
+    LongPressIconButton(
         onClick = onClick, // This ensures the 48dp touch target for clicks.
+        onLongClick = {},
+        indication = null,
     ) {
         AndroidView(
             factory = { context ->
