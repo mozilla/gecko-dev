@@ -1,0 +1,272 @@
+/* Any copyright is dedicated to the Public Domain.
+https://creativecommons.org/publicdomain/zero/1.0/ */
+
+"use strict";
+
+const { setTimeout } = ChromeUtils.importESModule(
+  "resource://gre/modules/Timer.sys.mjs"
+);
+const { NetUtil } = ChromeUtils.importESModule(
+  "resource://gre/modules/NetUtil.sys.mjs"
+);
+const { PlacesTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PlacesTestUtils.sys.mjs"
+);
+const { PlacesUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/PlacesUtils.sys.mjs"
+);
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+const { DownloadHistory } = ChromeUtils.importESModule(
+  "resource://gre/modules/DownloadHistory.sys.mjs"
+);
+
+/**
+ * This suite of tests ensures that the current backup will be deleted, and
+ * a new one generated when certain user actions occur.
+ */
+
+/**
+ * Adds a history visit to the Places database.
+ *
+ * @param {string} uriString
+ *   A string representation of the URI to add a visit for.
+ * @param {number} [timestamp=Date.now()]
+ *   The timestamp for the visit to be used. By default, this is the current
+ *   date and time.
+ * @returns {Promise<undefined>}
+ */
+async function addTestHistory(uriString, timestamp = Date.now()) {
+  let uri = NetUtil.newURI(uriString);
+  await PlacesTestUtils.addVisits({
+    uri,
+    transition: Ci.nsINavHistoryService.TRANSITION_TYPED,
+    visitDate: timestamp * 1000,
+  });
+}
+
+/**
+ * A helper function that sets up a BackupService to be instrumented to detect
+ * a backup regeneration, and then runs an async taskFn to ensure that the
+ * regeneration occurs.
+ *
+ * @param {Function} taskFn
+ *   The async function to run after the BackupService has been set up. It is
+ *   not passed any arguments.
+ * @param {string} msg
+ *   The message to write in the assertion when the regeneration occurs.
+ */
+async function expectRegeneration(taskFn, msg) {
+  let sandbox = sinon.createSandbox();
+  // Override the default REGENERATION_DEBOUNCE_RATE_MS to 0 so that we don't
+  // have to wait long for the debouncer to fire. We need to do this before
+  // we construct the BackupService that we'll use for the test.
+  sandbox.stub(BackupService, "REGENERATION_DEBOUNCE_RATE_MS").get(() => 0);
+
+  let bs = new BackupService();
+
+  // Now we set up some stubs on the BackupService to detect calls to
+  // deleteLastBackup and createbackupOnIdleDispatch, which are both called
+  // on regeneration.
+  let deleteDeferred = Promise.withResolvers();
+  sandbox.stub(bs, "deleteLastBackup").callsFake(() => {
+    Assert.ok(true, "Saw deleteLastBackup call");
+    deleteDeferred.resolve();
+    return Promise.resolve();
+  });
+
+  let createBackupDeferred = Promise.withResolvers();
+  sandbox.stub(bs, "createBackupOnIdleDispatch").callsFake(() => {
+    Assert.ok(true, "Saw createBackupOnIdleDispatch call");
+    createBackupDeferred.resolve();
+    return Promise.resolve();
+  });
+
+  bs.initBackupScheduler();
+
+  await taskFn();
+
+  let regenerationPromises = [
+    deleteDeferred.promise,
+    createBackupDeferred.promise,
+  ];
+
+  // We'll wait for 1 second before considering the regeneration a bust.
+  let timeoutPromise = new Promise((resolve, reject) =>
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    setTimeout(() => {
+      reject();
+    }, 1000)
+  );
+
+  try {
+    await Promise.race([Promise.all(regenerationPromises), timeoutPromise]);
+    Assert.ok(true, msg);
+  } catch (e) {
+    Assert.ok(false, "Timed out waiting for regeneration.");
+  }
+
+  bs.uninitBackupScheduler();
+  sandbox.restore();
+}
+
+/**
+ * A helper function that sets up a BackupService to be instrumented to detect
+ * a backup regeneration, and then runs an async taskFn to ensure that the
+ * regeneration DOES NOT occur.
+ *
+ * @param {Function} taskFn
+ *   The async function to run after the BackupService has been set up. It is
+ *   not passed any arguments.
+ * @param {string} msg
+ *   The message to write in the assertion when the regeneration does not occur
+ *   within the timeout.
+ */
+async function expectNoRegeneration(taskFn, msg) {
+  let sandbox = sinon.createSandbox();
+  // Override the default REGENERATION_DEBOUNCE_RATE_MS to 0 so that we don't
+  // have to wait long for the debouncer to fire. We need to do this before
+  // we construct the BackupService that we'll use for the test.
+  sandbox.stub(BackupService, "REGENERATION_DEBOUNCE_RATE_MS").get(() => 0);
+
+  let bs = new BackupService();
+
+  // Now we set up some stubs on the BackupService to detect calls to
+  // deleteLastBackup and createbackupOnIdleDispatch, which are both called
+  // on regeneration. We share the same Promise here because in either of these
+  // being called, this test is a failure.
+  let regenerationPromise = Promise.withResolvers();
+  sandbox.stub(bs, "deleteLastBackup").callsFake(() => {
+    Assert.ok(false, "Unexpectedly saw deleteLastBackup call");
+    regenerationPromise.reject();
+    return Promise.resolve();
+  });
+
+  sandbox.stub(bs, "createBackupOnIdleDispatch").callsFake(() => {
+    Assert.ok(false, "Unexpectedly saw createBackupOnIdleDispatch call");
+    regenerationPromise.reject();
+    return Promise.resolve();
+  });
+
+  bs.initBackupScheduler();
+
+  await taskFn();
+
+  // We'll wait for 1 second, and if we don't see the regeneration attempt,
+  // we'll assume it's not coming.
+  let timeoutPromise = new Promise(resolve =>
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    setTimeout(() => {
+      Assert.ok(true, "Saw no regeneration within 1 second.");
+      resolve();
+    }, 1000)
+  );
+
+  try {
+    await Promise.race([regenerationPromise.promise, timeoutPromise]);
+    Assert.ok(true, msg);
+  } catch (e) {
+    Assert.ok(false, "Saw an unexpected regeneration.");
+  }
+
+  bs.uninitBackupScheduler();
+  sandbox.restore();
+}
+
+/**
+ * Tests that backup regeneration occurs on the page-removed PlacesObserver
+ * event that indicates manual user deletion of a page from history.
+ */
+add_task(async function test_page_removed_reason_deleted() {
+  const PAGE_URI = "https://test.com";
+  await addTestHistory(PAGE_URI);
+  await expectRegeneration(async () => {
+    await PlacesUtils.history.remove(PAGE_URI);
+  }, "Saw regeneration on page-removed via user deletion.");
+});
+
+/**
+ * Tests that backup regeneration does not occur on the page-removed
+ * PlacesObserver event that indicates automatic deletion of a page from
+ * history.
+ */
+add_task(async function test_page_removed_reason_expired() {
+  const PAGE_URI = "https://test.com";
+  await addTestHistory(
+    PAGE_URI,
+    0 /* Timestamp at 0 is wayyyyy in the past, in the 1960's - it's the UNIX epoch start date */
+  );
+  await expectNoRegeneration(async () => {
+    // This is how the Places tests force expiration, so we'll do it the same
+    // way.
+    let promise = TestUtils.topicObserved(
+      PlacesUtils.TOPIC_EXPIRATION_FINISHED
+    );
+    let expire = Cc["@mozilla.org/places/expiration;1"].getService(
+      Ci.nsIObserver
+    );
+    expire.observe(null, "places-debug-start-expiration", -1);
+    await promise;
+  }, "Saw no regeneration on page-removed via expiration.");
+});
+
+/**
+ * Tests that backup regeneration occurs on the history-cleared PlacesObserver
+ * event that indicates clearing of all user history.
+ */
+add_task(async function test_history_cleared() {
+  const PAGE_URI = "https://test.com";
+  await addTestHistory(PAGE_URI);
+  await expectRegeneration(async () => {
+    await PlacesUtils.history.clear();
+  }, "Saw regeneration on history-cleared.");
+});
+
+/**
+ * Tests that backup regeneration occurs when removing a download from history.
+ */
+add_task(async function test_download_removed() {
+  const FAKE_FILE_PATH = PathUtils.join(PathUtils.tempDir, "somefile.zip");
+  let download = {
+    source: {
+      url: "https://test.com/somefile",
+      isPrivate: false,
+    },
+    target: { path: FAKE_FILE_PATH },
+  };
+  await DownloadHistory.addDownloadToHistory(download);
+
+  await expectRegeneration(async () => {
+    await PlacesUtils.history.remove(download.source.url);
+  }, "Saw regeneration on download removal.");
+});
+
+/**
+ * Tests that backup regeneration occurs when clearing all downloads.
+ */
+add_task(async function test_all_downloads_removed() {
+  const FAKE_FILE_PATH = PathUtils.join(PathUtils.tempDir, "somefile.zip");
+  let download1 = {
+    source: {
+      url: "https://test.com/somefile",
+      isPrivate: false,
+    },
+    target: { path: FAKE_FILE_PATH },
+  };
+  let download2 = {
+    source: {
+      url: "https://test.com/somefile2",
+      isPrivate: false,
+    },
+    target: { path: FAKE_FILE_PATH },
+  };
+  await DownloadHistory.addDownloadToHistory(download1);
+  await DownloadHistory.addDownloadToHistory(download2);
+
+  await expectRegeneration(async () => {
+    await PlacesUtils.history.removeVisitsByFilter({
+      transition: PlacesUtils.history.TRANSITIONS.DOWNLOAD,
+    });
+  }, "Saw regeneration on all downloads removed.");
+});

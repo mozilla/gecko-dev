@@ -36,6 +36,8 @@ support-files = [
 
 ["test_BackupService_recoverFromSnapshotFolder.js"]
 
+["test_BackupService_regeneration.js"]
+
 ["test_BackupService_renderTemplate.js"]
 
 ["test_BackupService_resolveArchiveDestFolderPath.js"]
