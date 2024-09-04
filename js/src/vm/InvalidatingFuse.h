@@ -8,7 +8,9 @@
 #define vm_InvalidatingFuse_h
 
 #include "gc/Barrier.h"
+#include "jit/InvalidationScriptSet.h"
 #include "js/SweepingAPI.h"
+
 #include "vm/GuardFuse.h"
 class JSScript;
 
@@ -51,10 +53,7 @@ class DependentScriptSet {
   void invalidateForFuse(JSContext* cx, InvalidatingFuse* fuse);
 
  private:
-  using WeakScriptSet = GCHashSet<WeakHeapPtr<JSScript*>,
-                                  StableCellHasher<WeakHeapPtr<JSScript*>>,
-                                  js::SystemAllocPolicy>;
-  JS::WeakCache<WeakScriptSet> weakScripts;
+  js::jit::WeakScriptCache weakScripts;
 };
 
 class DependentScriptGroup {
