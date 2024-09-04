@@ -986,6 +986,8 @@ pref("browser.tabs.tooltipsShowPidAndActiveness", false);
 pref("browser.tabs.hoverPreview.enabled", true);
 pref("browser.tabs.hoverPreview.showThumbnails", true);
 
+pref("browser.tabs.groups.enabled", false);
+
 pref("browser.tabs.firefox-view.logLevel", "Warn");
 
 // allow_eval_* is enabled on Firefox Desktop only at this
