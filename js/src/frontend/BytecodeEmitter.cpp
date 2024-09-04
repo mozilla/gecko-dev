@@ -1766,41 +1766,36 @@ bool BytecodeEmitter::emitElemObjAndKey(PropertyByValue* elem,
   ParseNode* exprOrSuper = &elem->expression();
   ParseNode* key = &elem->key();
 
-  if (elem->isSuper()) {
-    if (!eoe.prepareForObj()) {
-      //            [stack]
-      return false;
-    }
-    UnaryNode* base = &exprOrSuper->as<UnaryNode>();
-    if (!emitGetThisForSuperBase(base)) {
-      //            [stack] THIS
-      return false;
-    }
-    if (!eoe.prepareForKey()) {
-      //            [stack] THIS
-      return false;
-    }
-    if (!emitTree(key)) {
-      //            [stack] THIS KEY
-      return false;
-    }
-
-    return true;
-  }
-
   if (!eoe.prepareForObj()) {
     //              [stack]
     return false;
   }
-  if (!emitTree(exprOrSuper)) {
-    //              [stack] OBJ
-    return false;
+
+  if (elem->isSuper()) {
+    auto* base = &exprOrSuper->as<UnaryNode>();
+    if (!emitGetThisForSuperBase(base)) {
+      //            [stack] THIS
+      return false;
+    }
+  } else {
+    if (!emitTree(exprOrSuper)) {
+      //            [stack] OBJ
+      return false;
+    }
   }
+
   if (!eoe.prepareForKey()) {
+    //              [stack] # if Super
+    //              [stack] THIS? THIS
+    //              [stack] # otherwise
     //              [stack] OBJ? OBJ
     return false;
   }
+
   if (!emitTree(key)) {
+    //              [stack] # if Super
+    //              [stack] THIS? THIS KEY
+    //              [stack] # otherwise
     //              [stack] OBJ? OBJ KEY
     return false;
   }
