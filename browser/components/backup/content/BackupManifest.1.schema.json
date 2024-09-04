@@ -53,6 +53,10 @@
         "legacyClientID": {
           "type": "string",
           "description": "The legacy telemetry client ID for the profile that the backup was created on."
+        },
+        "profileGroupID": {
+          "type": "string",
+          "description": "The ID for the profile group that the backup was created on. Optional."
         }
       },
       "required": [

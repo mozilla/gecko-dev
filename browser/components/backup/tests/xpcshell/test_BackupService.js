@@ -102,6 +102,7 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   );
 
   const EXPECTED_CLIENT_ID = await ClientID.getClientID();
+  const EXPECTED_PROFILE_GROUP_ID = await ClientID.getProfileGroupID();
 
   let fake1ManifestEntry = { fake1: "hello from 1" };
   sandbox
@@ -271,6 +272,11 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     manifest.meta.legacyClientID,
     EXPECTED_CLIENT_ID,
     "The client ID was stored properly."
+  );
+  Assert.equal(
+    manifest.meta.profileGroupID,
+    EXPECTED_PROFILE_GROUP_ID,
+    "The profile group ID was stored properly."
   );
   Assert.equal(
     manifest.meta.profileName,

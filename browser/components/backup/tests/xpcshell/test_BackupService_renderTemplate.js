@@ -118,6 +118,7 @@ add_task(async function test_hostile_metadata() {
     osName: "<script>alert('test');</script>",
     osVersion: "<script>alert('test');</script>",
     legacyClientID: "<script>alert('test');</script>",
+    profileGroupID: "<script>alert('test');</script>",
     accountID: "<script>alert('test');</script>",
     accountEmail: "<script>alert('test');</script>",
   });

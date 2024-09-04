@@ -2307,6 +2307,7 @@ export class BackupService extends EventTarget {
       osName: Services.sysinfo.getProperty("name"),
       osVersion: Services.sysinfo.getProperty("version"),
       legacyClientID: await lazy.ClientID.getClientID(),
+      profileGroupID: await lazy.ClientID.getProfileGroupID(),
     };
 
     let fxaState = lazy.UIState.get();
