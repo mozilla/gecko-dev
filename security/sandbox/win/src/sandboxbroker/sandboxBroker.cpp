@@ -263,9 +263,25 @@ static void AddDeveloperRepoDirToPolicy(sandbox::TargetPolicy* aPolicy) {
   std::replace(repoPath.begin(), repoPath.end(), '/', '\\');
   repoPath.append(WSTRING("\\*"));
 
-  aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                   sandbox::TargetPolicy::FILES_ALLOW_READONLY,
-                   repoPath.c_str());
+  auto result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                                 sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                                 repoPath.c_str());
+  if (result != sandbox::SBOX_ALL_OK) {
+    NS_ERROR("Failed to add rule for developer repo dir.");
+    LOG_E("Failed (ResultCode %d) to add read access to developer repo dir",
+          result);
+  }
+
+  // The following is required if the process is using a USER_RESTRICTED or
+  // lower access token level.
+  result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                            sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                            L"\\??\\MountPointManager");
+  if (result != sandbox::SBOX_ALL_OK) {
+    NS_ERROR("Failed to add rule for MountPointManager.");
+    LOG_E("Failed (ResultCode %d) to add read access to MountPointManager",
+          result);
+  }
 }
 
 #undef WSTRING
