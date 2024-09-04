@@ -404,12 +404,12 @@ wasi-sdk:
         revision: 935fe1acd2fcd7ea4aed2d5ee4527482862b6344
 
 win64-ninja:
-    description: ninja 1.9.0
+    description: ninja 1.12.1
     fetch:
         type: static-url
-        url: https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip
-        sha256: 2d70010633ddaacc3af4ffbd21e22fae90d158674a09e132e06424ba3ab036e9
-        size: 254497
+        url: https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip
+        sha256: f550fec705b6d6ff58f2db3c374c2277a37691678d6aba463adcbb129108467a
+        size: 275425
         artifact-name: ninja.tar.zst
         add-prefix: ninja/bin/
 
