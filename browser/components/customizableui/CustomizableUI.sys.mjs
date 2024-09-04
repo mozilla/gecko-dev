@@ -30,6 +30,10 @@ const kDefaultThemeID = "default-theme@mozilla.org";
 const kSpecialWidgetPfx = "customizableui-special-";
 
 const kPrefCustomizationState = "browser.uiCustomization.state";
+const kPrefCustomizationHorizontalTabstrip =
+  "browser.uiCustomization.horizontalTabstrip";
+const kPrefCustomizationHorizontalTabsBackup =
+  "browser.uiCustomization.horizontalTabsBackup";
 const kPrefCustomizationAutoAdd = "browser.uiCustomization.autoAdd";
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 const kPrefDrawInTitlebar = "browser.tabs.inTitlebar";
@@ -175,6 +179,12 @@ var gUIStateBeforeReset = {
   autoTouchMode: null,
 };
 
+/*
+ * The current tab orientation: initially null until initialization,
+ * true for vertical, false for horizontal
+ */
+var gCurrentVerticalTabs = null;
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "gDebuggingEnabled",
@@ -230,6 +240,26 @@ XPCOMUtils.defineLazyPreferenceGetter(
       );
     }
   }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "verticalTabsPref",
+  "sidebar.verticalTabs",
+  false,
+  (pref, oldVal, newVal) => {
+    lazy.log.debug(
+      `sidebar.verticalTabs change handler, calling updateTabStripOrientation with value: ${newVal}, gCurrentVerticalTabs: ${gCurrentVerticalTabs}`
+    );
+    CustomizableUIInternal.updateTabStripOrientation();
+  }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "horizontalPlacementsPref",
+  kPrefCustomizationHorizontalTabstrip,
+  ""
 );
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -306,6 +336,11 @@ var CustomizableUIInternal = {
         type: CustomizableUI.TYPE_TOOLBAR,
         overflowable: true,
         defaultPlacements: navbarPlacements,
+        verticalTabsDefaultPlacements: [
+          "firefox-view-button",
+          "new-tab-button",
+          "alltabs-button",
+        ],
         defaultCollapsed: false,
       },
       true
@@ -333,10 +368,23 @@ var CustomizableUIInternal = {
           "new-tab-button",
           "alltabs-button",
         ],
+        verticalTabsDefaultPlacements: [],
         defaultCollapsed: null,
       },
       true
     );
+
+    this.registerArea(
+      CustomizableUI.AREA_VERTICAL_TABSTRIP,
+      {
+        type: "toolbar",
+        defaultPlacements: [],
+        verticalTabsDefaultPlacements: ["tabbrowser-tabs"],
+        defaultCollapsed: null,
+      },
+      true
+    );
+
     this.registerArea(
       CustomizableUI.AREA_BOOKMARKS,
       {
@@ -346,12 +394,20 @@ var CustomizableUIInternal = {
       },
       true
     );
+    lazy.log.debug(`All the areas registered: ${[...gAreas.keys()]}`);
+
+    // At initialization, if we find vertical tabs enabled but not sidebar.revamp
+    // we'll enable revamp rather than disable vertical tabs.
+    this.reconcileSidebarPrefs(kPrefSidebarVerticalTabsEnabled);
+
+    this.initializeForTabsOrientation(CustomizableUI.verticalTabsEnabled);
 
     SearchWidgetTracker.init();
 
     Services.obs.addObserver(this, "browser-set-toolbar-visibility");
 
     Services.prefs.addObserver(kPrefSidebarVerticalTabsEnabled, this);
+    Services.prefs.addObserver(kPrefSidebarRevampEnabled, this);
   },
 
   onEnabled(addon) {
@@ -811,7 +867,17 @@ var CustomizableUIInternal = {
     let futurePlacedWidgets = gFuturePlacements.get(aArea);
     let savedPlacements =
       gSavedState && gSavedState.placements && gSavedState.placements[aArea];
-    let defaultPlacements = gAreas.get(aArea).get("defaultPlacements");
+    let defaultPlacements;
+    if (
+      CustomizableUI.verticalTabsEnabled &&
+      gAreas.get(aArea).has("verticalTabsDefaultPlacements")
+    ) {
+      defaultPlacements = gAreas
+        .get(aArea)
+        .get("verticalTabsDefaultPlacements");
+    } else {
+      defaultPlacements = gAreas.get(aArea).get("defaultPlacements");
+    }
     if (
       !savedPlacements ||
       !savedPlacements.length ||
@@ -982,6 +1048,9 @@ var CustomizableUIInternal = {
         props.get("type") == CustomizableUI.TYPE_TOOLBAR &&
         !gPlacements.has(aName)
       ) {
+        lazy.log.debug(
+          `registerArea ${aName}, no gPlacements yet, nothing to restore`
+        );
         // Guarantee this area exists in gFuturePlacements, to avoid checking it in
         // various places elsewhere.
         if (!gFuturePlacements.has(aName)) {
@@ -1121,6 +1190,9 @@ var CustomizableUIInternal = {
         this.getCustomizationTarget(aToolbar)
       );
     } finally {
+      lazy.log.debug(
+        `registerToolbarNode for ${area}, tabstripAreasReady? ${this.tabstripAreasReady}`
+      );
       this.endBatchUpdate();
     }
   },
@@ -1798,6 +1870,10 @@ var CustomizableUIInternal = {
   },
 
   isSpecialWidget(aId) {
+    if (aId === null) {
+      lazy.log.debug("isSpecialWidget was passed null");
+      return false;
+    }
     aId = this._getSpecialIdForNode(aId);
     return (
       aId.startsWith(kSpecialWidgetPfx) ||
@@ -2647,6 +2723,22 @@ var CustomizableUIInternal = {
     );
   },
 
+  getSavedHorizontalSnapshotState() {
+    let state = null;
+    let prefValue = lazy.horizontalPlacementsPref;
+    if (prefValue) {
+      try {
+        state = JSON.parse(prefValue);
+      } catch (e) {
+        lazy.log.warn(
+          `Failed to parse value of ${kPrefCustomizationHorizontalTabstrip}`,
+          e
+        );
+      }
+    }
+    return state;
+  },
+
   // Note that this does not populate gPlacements, which is done lazily.
   // The panel area is an exception here.
   loadSavedState() {
@@ -2714,6 +2806,16 @@ var CustomizableUIInternal = {
       if (!restored) {
         lazy.log.debug("Restoring " + aArea + " from default state");
         let defaults = gAreas.get(aArea).get("defaultPlacements");
+        if (
+          CustomizableUI.verticalTabsEnabled &&
+          gAreas.get(aArea).has("verticalTabsDefaultPlacements")
+        ) {
+          lazy.log.debug(
+            "Using verticalTabsDefaultPlacements to restore " + aArea
+          );
+          defaults = gAreas.get(aArea).get("verticalTabsDefaultPlacements");
+        }
+
         if (defaults) {
           for (let id of defaults) {
             this.addWidgetToArea(id, aArea, null, true);
@@ -2749,30 +2851,114 @@ var CustomizableUIInternal = {
     }
   },
 
+  restoreSavedHorizontalTabStripState(
+    savedPlacements = this.getSavedHorizontalSnapshotState(),
+    isInitializing = false
+  ) {
+    const tabstripAreaId = CustomizableUI.AREA_TABSTRIP;
+    lazy.log.debug(
+      `restoreSavedHorizontalTabStripState, ${kPrefCustomizationHorizontalTabstrip} contained:`,
+      savedPlacements
+    );
+    // If there's no saved state, or it doesn't pass the sniff test, use
+    // default placements instead
+    if (
+      !(
+        Array.isArray(savedPlacements) &&
+        savedPlacements.includes("tabbrowser-tabs")
+      )
+    ) {
+      savedPlacements = gAreas.get(tabstripAreaId).get("defaultPlacements");
+      lazy.log.debug(`Using defaultPlacements for ${tabstripAreaId}`);
+    }
+
+    lazy.log.debug(
+      `Replacing existing placements: ${gPlacements.get(
+        tabstripAreaId
+      )}, with ${savedPlacements}.`
+    );
+
+    // Restore the tabstrip to either saved or default placements
+    this.beginBatchUpdate();
+    for (let [index, widgetId] of savedPlacements.entries()) {
+      this.addWidgetToArea(widgetId, tabstripAreaId, index, isInitializing);
+    }
+
+    // Wipe the pref now that state is restored
+    Services.prefs.clearUserPref(kPrefCustomizationHorizontalTabstrip);
+
+    // The vertical tabstrip area is supposed to be empty when we switch back to horizontal
+    if (gPlacements.get(CustomizableUI.AREA_VERTICAL_TABSTRIP)?.length) {
+      lazy.log.warn(
+        `Widgets remain in ${CustomizableUI.AREA_VERTICAL_TABSTRIP}:`,
+        gPlacements.get(CustomizableUI.AREA_VERTICAL_TABSTRIP)
+      );
+    }
+
+    this.endBatchUpdate();
+  },
+
+  saveHorizontalTabStripState(placements = []) {
+    if (!placements.length) {
+      placements = this.getAreaPlacementsForSaving(
+        CustomizableUI.AREA_TABSTRIP
+      );
+    }
+    let serialized = JSON.stringify(placements, this.serializerHelper);
+    lazy.log.debug("Saving horizontal tabstrip state.", serialized);
+    Services.prefs.setCharPref(
+      kPrefCustomizationHorizontalTabstrip,
+      serialized
+    );
+  },
+
+  getAreaPlacementsForSaving(area) {
+    // An early call to saveState can occur before all the lazy-area building is complete
+    let placements;
+    if (this.isAreaLazy(area) && gFuturePlacements.has(area)) {
+      placements = [...gFuturePlacements.get(area)];
+    } else if (gPlacements.has(area)) {
+      placements = gPlacements.get(area);
+    }
+
+    // Merge in previously saved areas if not present in gPlacements/gFuturePlacements.
+    // This way, state is still persisted for e.g. temporarily disabled
+    // add-ons - see bug 989338.
+    if (!placements && gSavedState && gSavedState.placements?.[area]) {
+      placements = gSavedState.placements[area];
+    }
+    lazy.log.debug(
+      `getAreaPlacementsForSaving for area: ${area}, gPlacements for area: ${gPlacements.get(
+        area
+      )}, returning: ${placements}`
+    );
+    return placements;
+  },
+
   saveState() {
     if (gInBatchStack || !gDirty) {
       return;
     }
     // Clone because we want to modify this map:
+    let placements = new Map();
+    // Because of Bug 989338 and the risk of having area ids that aren't yet registered,
+    // we collect the areas from both gPlacements and gSavedState rather than gAreas.
+    let allAreaIds = new Set([...gPlacements.keys()]);
+    if (gSavedState?.placements) {
+      for (let area of Object.keys(gSavedState.placements)) {
+        allAreaIds.add(area);
+      }
+    }
+    for (let area of allAreaIds) {
+      placements.set(area, this.getAreaPlacementsForSaving(area));
+    }
     let state = {
-      placements: new Map(gPlacements),
+      placements,
       seen: gSeenWidgets,
       dirtyAreaCache: gDirtyAreaCache,
       currentVersion: kVersion,
       newElementCount: gNewElementCount,
     };
-
-    // Merge in previously saved areas if not present in gPlacements.
-    // This way, state is still persisted for e.g. temporarily disabled
-    // add-ons - see bug 989338.
-    if (gSavedState && gSavedState.placements) {
-      for (let area of Object.keys(gSavedState.placements)) {
-        if (!state.placements.has(area)) {
-          let placements = gSavedState.placements[area];
-          state.placements.set(area, placements);
-        }
-      }
-    }
 
     lazy.log.debug("Saving state.");
     let serialized = JSON.stringify(state, this.serializerHelper);
@@ -3041,7 +3227,7 @@ var CustomizableUIInternal = {
 
   // Returns true if the area will eventually lazily restore (but hasn't yet).
   isAreaLazy(aArea) {
-    if (gPlacements.has(aArea)) {
+    if (gPlacements.has(aArea) || !gAreas.has(aArea)) {
       return false;
     }
     return gAreas.get(aArea).get("type") == CustomizableUI.TYPE_TOOLBAR;
@@ -3320,6 +3506,10 @@ var CustomizableUIInternal = {
 
   reset() {
     gResetting = true;
+    // CUI reset also implies resetting verticalTabs back to false.
+    // We do this before the rest of the reset so widgets are reset to their non-vertical
+    // positions.
+    Services.prefs.setBoolPref("sidebar.verticalTabs", false);
     this._resetUIState();
 
     // Rebuild each registered area (across windows) to reflect the state that
@@ -3651,6 +3841,9 @@ var CustomizableUIInternal = {
   },
 
   get inDefaultState() {
+    if (CustomizableUI.verticalTabsEnabled) {
+      return false;
+    }
     for (let [areaId, props] of gAreas) {
       let defaultPlacements = props
         .get("defaultPlacements")
@@ -3811,22 +4004,250 @@ var CustomizableUIInternal = {
       CustomizableUI.setToolbarVisibility(toolbar, visibility == "true");
     }
 
-    if (
-      aTopic === "nsPref:changed" &&
-      aData === kPrefSidebarVerticalTabsEnabled
-    ) {
-      let sidebarRevampEnabled = Services.prefs.getBoolPref(
-        kPrefSidebarRevampEnabled,
-        false
+    if (aTopic === "nsPref:changed") {
+      this.reconcileSidebarPrefs(aData);
+    }
+  },
+
+  initializeForTabsOrientation(toVertical) {
+    lazy.log.debug(
+      `initializeForTabsOrientation, toVertical: ${toVertical}, gCurrentVerticalTabs: ${gCurrentVerticalTabs}`
+    );
+    if (!toVertical) {
+      const savedPlacements = this.getSavedHorizontalSnapshotState();
+      lazy.log.debug(
+        "initializeForTabsOrientation, savedPlacements",
+        savedPlacements
       );
-      let verticalTabsEnabled = Services.prefs.getBoolPref(
-        kPrefSidebarVerticalTabsEnabled,
-        false
+      if (savedPlacements) {
+        // We're startup up with horizontal tabs, but there are saved placements for the
+        // horizontal tab strip, so its possible the verticalTabs pref was updated outside
+        // of normal use. Make sure to restore those tabstrip widget placements
+        this.restoreSavedHorizontalTabStripState(savedPlacements, true);
+      } else {
+        // This is the default state and normal initialization will do everything necessary
+      }
+      gCurrentVerticalTabs = false;
+      return;
+    }
+
+    // If the UI was already customized and saved, the earlier call to loadSavedState will
+    // have populated gSavedState from the pref. If not, we need to move the tabs into the
+    // vertical tabs area in the gSavedState. Then, the normal build-areas lifecycle
+    // can populate the needed toolbar placements and elements.
+    lazy.log.debug(
+      "initializeForTabsOrientation, toVertical=true, gSavedState",
+      gSavedState
+    );
+
+    // If there are saved placement customizations, we need to manually move widgets
+    // around before we restore this state
+    let savedPlacements = gSavedState?.placements || {};
+    if (!savedPlacements[CustomizableUI.AREA_VERTICAL_TABSTRIP]?.length) {
+      savedPlacements[CustomizableUI.AREA_VERTICAL_TABSTRIP] =
+        gAreas
+          .get(CustomizableUI.AREA_VERTICAL_TABSTRIP)
+          .get("verticalTabsDefaultPlacements") || [];
+      lazy.log.debug(
+        "initializeForTabsOrientation, using defaults for AREA_VERTICAL_TABSTRIP",
+        savedPlacements[CustomizableUI.AREA_VERTICAL_TABSTRIP]
       );
-      if (verticalTabsEnabled && !sidebarRevampEnabled) {
-        Services.prefs.setBoolPref(kPrefSidebarRevampEnabled, true);
+    }
+    let tabstripPlacements =
+      savedPlacements[CustomizableUI.AREA_TABSTRIP] || [];
+    // also pick up any widgets already in gFuturePlacements so we can wipe that
+    if (gFuturePlacements.has(CustomizableUI.AREA_TABSTRIP)) {
+      for (let id of gFuturePlacements.get(CustomizableUI.AREA_TABSTRIP)) {
+        if (!tabstripPlacements.includes(id)) {
+          tabstripPlacements.push(id);
+        }
+      }
+      gFuturePlacements.delete(CustomizableUI.AREA_TABSTRIP);
+    }
+    // Take a copy we can save and restore to, ensuring there's a sane default
+    let savedTabstripPlacements = tabstripPlacements.length
+      ? [...tabstripPlacements]
+      : gAreas.get(CustomizableUI.AREA_TABSTRIP).get("defaultPlacements");
+
+    // now we can remove the saved placements so they don't get picked back up again later in startup
+    delete savedPlacements[CustomizableUI.AREA_TABSTRIP];
+
+    let widgetsMoved = [];
+    for (let widgetId of tabstripPlacements) {
+      if (widgetId == "tabbrowser-tabs") {
+        lazy.log.debug(
+          `Moving saved tabbrowser-tabs to AREA_VERTICAL_TABSTRIP`
+        );
+        this.addWidgetToArea(
+          widgetId,
+          CustomizableUI.AREA_VERTICAL_TABSTRIP,
+          null,
+          true
+        );
+        continue;
+      }
+      // if this is a extension, those are handled in a toolbarvisibilitychange handler in browser-addons.js
+      if (CustomizableUI.isWebExtensionWidget(widgetId)) {
+        lazy.log.debug(`Skipping a webextension saved placement ${widgetId}`);
+        continue;
+      }
+      // Everything else gets moved to the nav-bar area while tabs are vertical
+      lazy.log.debug(`Moving saved placement ${widgetId} to nav-bar`);
+      this.addWidgetToArea(widgetId, CustomizableUI.AREA_NAVBAR, null, true);
+      widgetsMoved.push(widgetId);
+    }
+    lazy.log.debug(
+      "initializeForTabsOrientation, widgets moved:",
+      widgetsMoved
+    );
+    if (widgetsMoved.length) {
+      // We've updated the areas, so we don't need to do this again post-initialization
+      gCurrentVerticalTabs = true;
+    }
+
+    // If we've ended up with a non-default CUI state and vertical tabs enabled, ensure
+    // there's a sane snapshot to revert to
+    if (!lazy.horizontalPlacementsPref) {
+      lazy.log.debug(
+        `verticalTabsEnabled but ${kPrefCustomizationHorizontalTabstrip} is empty`
+      );
+      CustomizableUIInternal.saveHorizontalTabStripState(
+        savedTabstripPlacements
+      );
+    }
+  },
+
+  reconcileSidebarPrefs(prefChanged) {
+    let sidebarRevampEnabled = Services.prefs.getBoolPref(
+      kPrefSidebarRevampEnabled,
+      false
+    );
+    let verticalTabsEnabled = Services.prefs.getBoolPref(
+      kPrefSidebarVerticalTabsEnabled,
+      false
+    );
+    lazy.log.debug(
+      `reconcileSidebarPrefs, kPrefSidebarRevampEnabled: {sidebarRevampEnabled}, kPrefSidebarVerticalTabsEnabled: ${verticalTabsEnabled}`
+    );
+    switch (prefChanged) {
+      case kPrefSidebarVerticalTabsEnabled: {
+        // We need to also enable sidebar.revamp if vertical tabs gets enabled
+        if (verticalTabsEnabled && !sidebarRevampEnabled) {
+          Services.prefs.setBoolPref(kPrefSidebarRevampEnabled, true);
+        }
+        break;
+      }
+      case kPrefSidebarRevampEnabled: {
+        // We need to also disable vertical tabs if sidebar.revamp is no longer enabled
+        if (!sidebarRevampEnabled && verticalTabsEnabled) {
+          lazy.log.debug(
+            `{kPrefSidebarRevampEnabled} disabled, so also disabling ${kPrefSidebarVerticalTabsEnabled}`
+          );
+          Services.prefs.setBoolPref(kPrefSidebarVerticalTabsEnabled, false);
+        }
+        break;
       }
     }
+  },
+
+  get tabstripAreasReady() {
+    return (
+      gBuildAreas.get(CustomizableUI.AREA_TABSTRIP)?.size &&
+      gBuildAreas.get(CustomizableUI.AREA_VERTICAL_TABSTRIP)?.size
+    );
+  },
+
+  updateTabStripOrientation() {
+    if (!this.tabstripAreasReady) {
+      lazy.log.debug("tabstrip build areas not yet ready");
+      return;
+    }
+    let toVertical = CustomizableUI.verticalTabsEnabled;
+    if (toVertical === gCurrentVerticalTabs) {
+      lazy.log.debug("early return as the value hasn't changed");
+      return;
+    }
+    lazy.log.debug(
+      `verticalTabs changed, from ${gCurrentVerticalTabs}, to ${toVertical}`
+    );
+
+    if (toVertical && gCurrentVerticalTabs !== null) {
+      // Stash current placements as a state we can restore to when going back to horizontal tabs
+      lazy.log.debug(
+        "Switching to vertical tabs post-initialization, so capturing tabstrip placements snapshot"
+      );
+      CustomizableUIInternal.saveHorizontalTabStripState();
+    }
+    gCurrentVerticalTabs = toVertical;
+
+    function changeWidgetRemovability(widgetId, removable) {
+      let widget = CustomizableUI.getWidget(widgetId);
+      for (let { node } of widget.instances) {
+        if (node) {
+          node.setAttribute("removable", removable.toString());
+        }
+      }
+    }
+
+    // Normally these aren't removable, but for this operation only we need to move them
+    changeWidgetRemovability("tabbrowser-tabs", true);
+    changeWidgetRemovability("alltabs-button", true);
+
+    if (toVertical) {
+      lazy.log.debug(
+        `Switching to verticalTabs=true in updateTabStripOrientation`
+      );
+      gDirty = true;
+
+      if (
+        !Services.prefs.getCharPref(kPrefCustomizationHorizontalTabsBackup, "")
+      ) {
+        // Before we switch for the first time, take a back up just in case we need an escape hatch
+        Services.prefs.setCharPref(
+          kPrefCustomizationHorizontalTabsBackup,
+          Services.prefs.getCharPref(kPrefCustomizationState, "")
+        );
+      }
+
+      CustomizableUI.beginBatchUpdate();
+      // Remove non-default widgets to the nav-bar
+      for (let id of CustomizableUI.getWidgetIdsInArea("TabsToolbar")) {
+        if (id == "tabbrowser-tabs") {
+          CustomizableUI.addWidgetToArea(
+            id,
+            CustomizableUI.AREA_VERTICAL_TABSTRIP
+          );
+          continue;
+        }
+        if (!CustomizableUI.isWidgetRemovable(id)) {
+          continue;
+        }
+        // if this is a extension, those are handled in a toolbarvisibilitychange handler in browser-addons.js
+        if (CustomizableUI.isWebExtensionWidget(id)) {
+          continue;
+        }
+        // Everything else gets moved to the nav-bar area while tabs are vertical
+        CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR);
+      }
+      CustomizableUI.endBatchUpdate();
+    } else {
+      // We're switching to vertical in this session; pull saved state from pref and update placements
+      this.restoreSavedHorizontalTabStripState();
+    }
+    // Give the sidebar a chance to adjust before we show/hide the toolbars
+    lazy.log.debug("CustomizableUI notifying tabstrip-orientation-change");
+    Services.obs.notifyObservers(null, "tabstrip-orientation-change", {
+      isVertical: toVertical,
+    });
+
+    lazy.log.debug("Reverting widgets to be non-removable");
+    changeWidgetRemovability("tabbrowser-tabs", false);
+    changeWidgetRemovability("alltabs-button", false);
+
+    this.setToolbarVisibility(
+      CustomizableUI.AREA_VERTICAL_TABSTRIP,
+      toVertical
+    );
   },
 };
 Object.freeze(CustomizableUIInternal);
@@ -3844,6 +4265,12 @@ export var CustomizableUI = {
    * Constant reference to the ID of the tabstrip toolbar.
    */
   AREA_TABSTRIP: "TabsToolbar",
+
+  /**
+   * Constant reference to the ID of the vertical tabstrip toolbar.
+   */
+  AREA_VERTICAL_TABSTRIP: "vertical-tabs",
+
   /**
    * Constant reference to the ID of the bookmarks toolbar.
    */
@@ -3918,6 +4345,10 @@ export var CustomizableUI = {
         yield window;
       }
     },
+  },
+
+  get verticalTabsEnabled() {
+    return lazy.verticalTabsPref;
   },
 
   /**
@@ -4437,7 +4868,7 @@ export var CustomizableUI = {
       throw new Error("Unknown customization area: " + aArea);
     }
     if (!gPlacements.has(aArea)) {
-      throw new Error("Area not yet restored");
+      throw new Error(`Area ${aArea} not yet restored`);
     }
 
     // We need to clone this, as we don't want to let consumers muck with placements
@@ -4751,6 +5182,9 @@ export var CustomizableUI = {
    * @return true if the widget was provided by an extension, false otherwise.
    */
   isWebExtensionWidget(aWidgetId) {
+    if (typeof aWidgetId !== "string") {
+      return false;
+    }
     let widget = CustomizableUI.getWidget(aWidgetId);
     return widget?.webExtension || aWidgetId.endsWith("-browser-action");
   },
@@ -5563,6 +5997,7 @@ class OverflowableToolbar {
     if (!this.#initialized) {
       Services.obs.removeObserver(this, "browser-delayed-startup-finished");
       Services.prefs.removeObserver(kPrefSidebarVerticalTabsEnabled, this);
+      Services.prefs.removeObserver(kPrefSidebarRevampEnabled, this);
       return;
     }
 

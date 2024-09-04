@@ -40,6 +40,10 @@ run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_toolbar_sidebar_button.js"]
 
+["browser_verticalTabs_widget_placements.js"]
+
 ["browser_vertical_tabs.js"]
+
+["browser_vertical_tabs_cui_reset.js"]
 
 ["browser_view_sidebar_menu.js"]
