@@ -497,6 +497,11 @@ typedef enum JSGCParamKey {
    */
   JSGC_NURSERY_ENABLED = 55,
 
+  /*
+   * Whether we are in high frequency GC mode, where the time between
+   * collections is less than that specified by JSGC_HIGH_FREQUENCY_TIME_LIMIT.
+   */
+  JSGC_HIGH_FREQUENCY_MODE = 56,
 } JSGCParamKey;
 
 /*
