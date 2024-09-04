@@ -4460,14 +4460,6 @@
   mirror: always
   rust: true
 
-# Timeout for view transitions.
-# TODO(emilio): Figure out the right time-out, Blink uses between 4 and 15
-# seconds.
-- name: dom.viewTransitions.timeout-ms
-  type: uint32_t
-  value: 10000
-  mirror: always
-
 # Is support for WebVR APIs enabled?
 # Disabled everywhere, but not removed.
 - name: dom.vr.enabled
