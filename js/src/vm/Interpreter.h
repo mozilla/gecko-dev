@@ -662,8 +662,7 @@ bool AddDisposableResource(JSContext* cx,
 bool AddDisposableResourceToCapability(JSContext* cx, JS::Handle<JSObject*> env,
                                        JS::Handle<JS::Value> val,
                                        JS::Handle<JS::Value> method,
-                                       JS::Handle<JS::Value> needsClosure,
-                                       UsingHint hint);
+                                       bool needsClosure, UsingHint hint);
 #endif
 
 ArrayObject* ArrayFromArgumentsObject(JSContext* cx,

@@ -4884,22 +4884,22 @@ bool BaselineCodeGen<Handler>::emit_AddDisposable() {
   frame.syncStack(0);
   prepareVMCall();
 
-  pushUint8BytecodeOperandArg(R0.scratchReg());
+  pushUint8BytecodeOperandArg(R0.scratchReg());  // hint
 
-  masm.loadValue(frame.addressOfStackValue(-1), R0);
-  pushArg(R0);
+  masm.unboxBoolean(frame.addressOfStackValue(-1), R0.scratchReg());
+  pushArg(R0.scratchReg());  // needsClosure
 
   masm.loadValue(frame.addressOfStackValue(-2), R1);
-  pushArg(R1);
+  pushArg(R1);  // method
 
   masm.loadValue(frame.addressOfStackValue(-3), R2);
-  pushArg(R2);
+  pushArg(R2);  // object
 
   masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
   pushArg(R0.scratchReg());
 
   using Fn = bool (*)(JSContext*, JS::Handle<JSObject*>, JS::Handle<JS::Value>,
-                      JS::Handle<JS::Value>, JS::Handle<JS::Value>, UsingHint);
+                      JS::Handle<JS::Value>, bool, UsingHint);
   if (!callVM<Fn, js::AddDisposableResourceToCapability>()) {
     return false;
   }

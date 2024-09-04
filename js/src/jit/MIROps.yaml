@@ -3559,3 +3559,26 @@
 - name: FuzzilliHashStore
   gen_boilerplate: false
 #endif
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+- name: AddDisposableResource
+  operands:
+    environment: Object
+    resource: Value
+    method: Value
+    needsClosure: Boolean
+  arguments:
+    hint: uint8_t
+
+- name: TakeDisposeCapability
+  operands:
+    environment: Object
+  result_type: Value
+
+- name: CreateSuppressedError
+  operands:
+    error: Value
+    suppressed: Value
+  result_type: Object
+  alias_set: none
+#endif

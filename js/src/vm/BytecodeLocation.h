@@ -16,6 +16,9 @@
 #include "vm/FunctionPrefixKind.h"  // FunctionPrefixKind
 #include "vm/GeneratorResumeKind.h"
 #include "vm/TypeofEqOperand.h"  // TypeofEqOperand
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "vm/UsingHint.h"
+#endif
 
 namespace js {
 
@@ -303,6 +306,13 @@ class BytecodeLocation {
     MOZ_ASSERT(is(JSOp::CloseIter));
     return CompletionKind(GET_UINT8(rawBytecode_));
   }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  UsingHint getUsingHint() const {
+    MOZ_ASSERT(is(JSOp::AddDisposable));
+    return UsingHint(GET_UINT8(rawBytecode_));
+  }
+#endif
 
   uint32_t getNewArrayLength() const {
     MOZ_ASSERT(is(JSOp::NewArray));

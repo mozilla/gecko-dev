@@ -23,6 +23,9 @@
 #include "vm/Interpreter.h"
 #include "vm/Opcodes.h"
 #include "vm/TypeofEqOperand.h"  // TypeofEqOperand
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "vm/UsingHint.h"
+#endif
 
 #include "gc/ObjectKind-inl.h"
 #include "vm/BytecodeIterator-inl.h"
@@ -1070,6 +1073,44 @@ bool WarpBuilder::build_StrictEq(BytecodeLocation loc) {
 bool WarpBuilder::build_StrictNe(BytecodeLocation loc) {
   return buildCompareOp(loc);
 }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+bool WarpBuilder::build_AddDisposable(BytecodeLocation loc) {
+  MOZ_ASSERT(usesEnvironmentChain());
+
+  UsingHint hint = loc.getUsingHint();
+  MDefinition* needsClosure = current->pop();
+  MDefinition* method = current->pop();
+  MDefinition* obj = current->pop();
+  MDefinition* env = current->environmentChain();
+
+  MAddDisposableResource* ins = MAddDisposableResource::New(
+      alloc(), env, obj, method, needsClosure, uint8_t(hint));
+  current->add(ins);
+  return resumeAfter(ins, loc);
+}
+
+bool WarpBuilder::build_TakeDisposeCapability(BytecodeLocation loc) {
+  MOZ_ASSERT(usesEnvironmentChain());
+  MDefinition* env = current->environmentChain();
+
+  MTakeDisposeCapability* ins = MTakeDisposeCapability::New(alloc(), env);
+  current->add(ins);
+  current->push(ins);
+  return resumeAfter(ins, loc);
+}
+
+bool WarpBuilder::build_CreateSuppressedError(BytecodeLocation loc) {
+  MDefinition* suppressed = current->pop();
+  MDefinition* error = current->pop();
+
+  MCreateSuppressedError* ins =
+      MCreateSuppressedError::New(alloc(), error, suppressed);
+  current->add(ins);
+  current->push(ins);
+  return true;
+}
+#endif
 
 // Returns true iff the MTest added for |op| has a true-target corresponding
 // with the join point in the bytecode.

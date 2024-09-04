@@ -1929,8 +1929,7 @@ bool js::AddDisposableResourceToCapability(JSContext* cx,
                                            JS::Handle<JSObject*> env,
                                            JS::Handle<JS::Value> val,
                                            JS::Handle<JS::Value> method,
-                                           JS::Handle<JS::Value> needsClosure,
-                                           UsingHint hint) {
+                                           bool needsClosure, UsingHint hint) {
   JS::Rooted<ArrayObject*> disposeCapability(
       cx,
       env->as<DisposableEnvironmentObject>().getOrCreateDisposeCapability(cx));
@@ -1940,8 +1939,7 @@ bool js::AddDisposableResourceToCapability(JSContext* cx,
 
   JS::Rooted<JS::Value> disposeMethod(cx);
 
-  bool needsClosureBool = needsClosure.toBoolean();
-  if (needsClosureBool) {
+  if (needsClosure) {
     JS::Handle<PropertyName*> funName = cx->names().empty_;
     JSFunction* asyncWrapper =
         NewNativeFunction(cx, SyncDisposalClosure, 0, funName,
@@ -2335,8 +2333,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
       UsingHint hint = UsingHint(GET_UINT8(REGS.pc));
 
-      if (!AddDisposableResourceToCapability(cx, env, val, method, needsClosure,
-                                             hint)) {
+      if (!AddDisposableResourceToCapability(cx, env, val, method,
+                                             needsClosure.toBoolean(), hint)) {
         goto error;
       }
     }
