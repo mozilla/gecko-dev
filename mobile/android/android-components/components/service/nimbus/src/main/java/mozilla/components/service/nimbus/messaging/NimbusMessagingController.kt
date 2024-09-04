@@ -14,9 +14,8 @@ import mozilla.components.service.nimbus.GleanMetrics.Messaging as GleanMessagin
 /**
  * Bookkeeping for message actions in terms of Glean messages and the messaging store.
  *
- * @param messagingStorage a NimbusMessagingStorage instance
- * @param deepLinkScheme the deepLinkScheme for the app
- * @param now will be used to get the current time
+ * @param messagingStorage a NimbusMessagingStorage instance.
+ * @param deepLinkScheme the deepLinkScheme for the app.
  */
 open class NimbusMessagingController(
     private val messagingStorage: NimbusMessagingStorage,
@@ -122,7 +121,7 @@ open class NimbusMessagingController(
         )
     }
 
-    private fun sendMicrosurveyCompletedTelemetry(messageId: String, answer: String?) {
+    private fun sendMicrosurveyCompletedTelemetry(messageId: String, answer: String) {
         Microsurvey.submitButtonTapped.record(
             Microsurvey.SubmitButtonTappedExtra(
                 surveyId = messageId,
