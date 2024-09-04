@@ -16,7 +16,6 @@ types.addDictType("tracer.start.options", {
   traceOnNextInteraction: "boolean",
   traceOnNextLoad: "boolean",
   traceDOMMutations: "nullable:array:string",
-  useNativeTracing: "boolean",
 });
 
 const tracerSpec = generateActorSpec({

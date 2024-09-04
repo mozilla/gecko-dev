@@ -907,7 +907,6 @@ WebConsoleCommandsManager.register({
       traceFunctionReturn: !!args.returns,
       traceValues: !!args.values,
       traceOnNextInteraction: args["on-next-interaction"] || null,
-      useNativeTracing: args["use-native-tracing"] || null,
       traceDOMMutations,
       maxDepth: args["max-depth"] || null,
       maxRecords: args["max-records"] || null,

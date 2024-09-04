@@ -155,24 +155,24 @@ class TracerActor extends Actor {
     this.logMethod = options.logMethod || TRACER_LOG_METHODS.STDOUT;
 
     let ListenerClass = null;
+    // Currently only the profiler output is supported with the native tracer.
+    let useNativeTracing = false;
     switch (this.logMethod) {
       case TRACER_LOG_METHODS.STDOUT:
         ListenerClass = StdoutTracingListener;
-        // Currently only the profiler output is supported with the native tracer.
-        options.useNativeTracing = false;
         break;
       case TRACER_LOG_METHODS.CONSOLE:
       case TRACER_LOG_METHODS.DEBUGGER_SIDEBAR:
         // Console and debugger sidebar are both using JSTRACE_STATE/JSTRACE_TRACE resources
         // to receive tracing data.
         ListenerClass = ResourcesTracingListener;
-        options.useNativeTracing = false;
         break;
       case TRACER_LOG_METHODS.PROFILER:
         ListenerClass = ProfilerTracingListener;
         // Recording function returns is mandatory when recording profiler output.
         // Otherwise frames are not closed and mixed up in the profiler frontend.
         options.traceFunctionReturn = true;
+        useNativeTracing = true;
         break;
     }
     this.tracingListener = new ListenerClass({
@@ -198,7 +198,7 @@ class TracerActor extends Actor {
         // Notify about frame exit / function call returning
         traceFunctionReturn: !!options.traceFunctionReturn,
         // Use the native tracing implementation
-        useNativeTracing: !!options.useNativeTracing,
+        useNativeTracing,
         // Ignore frames beyond the given depth
         maxDepth: options.maxDepth,
         // Stop the tracing after a number of top level frames
