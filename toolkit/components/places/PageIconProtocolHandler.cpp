@@ -21,6 +21,7 @@
 #include "nsIURIMutator.h"
 #include "nsNetUtil.h"
 #include "SimpleChannel.h"
+#include "mozilla/glean/GleanMetrics.h"
 
 #define PAGE_ICON_SCHEME "page-icon"
 
@@ -35,7 +36,22 @@ struct FaviconMetadata {
   nsCOMPtr<nsIInputStream> mStream;
   nsCString mContentType;
   int64_t mContentLength = 0;
+  uint16_t mWidth = 0;
 };
+
+void RecordIconSizeTelemetry(nsIURI* uri, const FaviconMetadata& metadata) {
+  uint16_t preferredSize = INT16_MAX;
+  auto* faviconService = nsFaviconService::GetFaviconService();
+
+  if (!MOZ_UNLIKELY(!faviconService)) {
+    faviconService->PreferredSizeFromURI(uri, &preferredSize);
+    if (metadata.mWidth < preferredSize) {
+      mozilla::glean::page_icon::small_icon_count.Add(1);
+    } else {
+      mozilla::glean::page_icon::fit_icon_count.Add(1);
+    }
+  }
+}
 
 StaticRefPtr<PageIconProtocolHandler> PageIconProtocolHandler::sSingleton;
 
@@ -169,6 +185,7 @@ NS_IMETHODIMP FaviconDataCallback::OnComplete(nsIURI* aURI, uint32_t aDataLen,
   metadata.mStream = inputStream;
   metadata.mContentType = aMimeType;
   metadata.mContentLength = aDataLen;
+  metadata.mWidth = aWidth;
   mPromiseHolder.Resolve(std::move(metadata), __func__);
 
   return NS_OK;
@@ -248,7 +265,8 @@ nsresult PageIconProtocolHandler::NewChannelInternal(nsIURI* aURI,
   GetFaviconData(aURI, aLoadInfo)
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
-          [pipeOut, channel](const FaviconMetadata& aMetadata) {
+          [pipeOut, channel,
+           uri = nsCOMPtr{aURI}](const FaviconMetadata& aMetadata) {
             channel->SetContentType(aMetadata.mContentType);
             channel->SetContentLength(aMetadata.mContentLength);
 
@@ -262,7 +280,13 @@ nsresult PageIconProtocolHandler::NewChannelInternal(nsIURI* aURI,
               return;
             }
 
-            NS_AsyncCopy(aMetadata.mStream, pipeOut, target);
+            rv = NS_AsyncCopy(aMetadata.mStream, pipeOut, target);
+
+            if (NS_WARN_IF(NS_FAILED(rv))) {
+              return;
+            }
+
+            RecordIconSizeTelemetry(uri, aMetadata);
           },
           [uri = nsCOMPtr{aURI}, loadInfo = nsCOMPtr{aLoadInfo}, pipeOut,
            channel](nsresult aRv) {
@@ -348,7 +372,9 @@ RefPtr<RemoteStreamPromise> PageIconProtocolHandler::NewStream(
   GetFaviconData(uri, loadInfo)
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
-          [outerPromise](const FaviconMetadata& aMetadata) {
+          [outerPromise,
+           childURI = nsCOMPtr{aChildURI}](const FaviconMetadata& aMetadata) {
+            RecordIconSizeTelemetry(childURI, aMetadata);
             RemoteStreamInfo info(aMetadata.mStream, aMetadata.mContentType,
                                   aMetadata.mContentLength);
             outerPromise->Resolve(std::move(info), __func__);

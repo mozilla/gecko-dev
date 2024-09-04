@@ -23,6 +23,19 @@ const PAGE_ICON_TEST_URLS = [
   "page-icon:foo://bar/baz",
 ];
 
+const TELEMETRY_TEST_DATA = [
+  {
+    page: "http://example.com/#size=32",
+    expectedSmallIconCount: 1,
+    expectedFitIconCount: 0,
+  },
+  {
+    page: "http://example.com/#size=1",
+    expectedSmallIconCount: 0,
+    expectedFitIconCount: 1,
+  },
+];
+
 XPCShellContentUtils.init(this);
 
 const HTML = String.raw`<!DOCTYPE html>
@@ -86,6 +99,11 @@ add_task(async function setup() {
     PlacesUtils.favicons.defaultFavicon.spec
   );
   gFavicon = await fetchIconForSpec(ICON_DATAURL);
+
+  // FOG needs a profile directory to put its data in.
+  do_get_profile();
+
+  Services.fog.initializeFOG();
 });
 
 add_task(async function known_url() {
@@ -144,6 +162,39 @@ add_task(async function page_with_ref() {
     Assert.equal(contentType, gFavicon.contentType);
     Assert.deepEqual(data, gFavicon.data, "Got the favicon data");
     await PlacesUtils.history.remove(url);
+  }
+});
+
+add_task(async function test_icon_telemetry() {
+  for (let {
+    page,
+    expectedSmallIconCount,
+    expectedFitIconCount,
+  } of TELEMETRY_TEST_DATA) {
+    Services.fog.testResetFOG();
+
+    let telemetryTestURI = NetUtil.newURI(page);
+
+    await PlacesTestUtils.addVisits(telemetryTestURI);
+
+    await PlacesTestUtils.setFaviconForPage(
+      telemetryTestURI,
+      NetUtil.newURI("http://example.com/favicon.png"),
+      ICON_DATAURL // The icon has a size of 1x1.
+    );
+
+    await fetchIconForSpec("page-icon:" + telemetryTestURI.spec);
+
+    Assert.equal(
+      Glean.pageIcon.smallIconCount.testGetValue() ?? 0,
+      expectedSmallIconCount
+    );
+    Assert.equal(
+      Glean.pageIcon.fitIconCount.testGetValue() ?? 0,
+      expectedFitIconCount
+    );
+
+    await PlacesUtils.history.clear();
   }
 });
 
@@ -223,6 +274,72 @@ add_task(async function page_privileged_about_content_process() {
       await imgPromise;
     }
   });
+
+  await contentPage.close();
+});
+
+add_task(async function test_icon_telemetry_new_stream() {
+  // about:certificate loads in the privileged about content process.
+  let contentPage = await XPCShellContentUtils.loadContentPage(
+    "about:certificate",
+    {
+      remote: true,
+    }
+  );
+  Assert.equal(
+    contentPage.browsingContext.currentRemoteType,
+    "privilegedabout"
+  );
+
+  for (let {
+    page,
+    expectedSmallIconCount,
+    expectedFitIconCount,
+  } of TELEMETRY_TEST_DATA) {
+    Services.fog.testResetFOG();
+
+    const URI = NetUtil.newURI(page);
+
+    await PlacesTestUtils.addVisits(URI);
+    await PlacesTestUtils.setFaviconForPage(
+      URI,
+      NetUtil.newURI("http://example.com/favicon/ico"),
+      ICON_DATAURL
+    );
+
+    const PAGE_ICON_TEST_URI = "page-icon:" + URI.spec;
+
+    await contentPage.spawn([PAGE_ICON_TEST_URI], async url => {
+      // We expect the URL to load correctly in this process type.
+      let img = content.document.createElement("img");
+      img.src = url;
+      let imgPromise = new Promise((resolve, reject) => {
+        img.addEventListener("error", () => {
+          Assert.ok(false, "Did not expect an error. ");
+          reject();
+        });
+        img.addEventListener("load", () => {
+          Assert.ok(true, "Got expected load event.");
+          resolve();
+        });
+      });
+      content.document.body.appendChild(img);
+      await imgPromise;
+    });
+
+    Assert.equal(
+      Glean.pageIcon.smallIconCount.testGetValue() ?? 0,
+      expectedSmallIconCount,
+      "small icon count should match expected value"
+    );
+    Assert.equal(
+      Glean.pageIcon.fitIconCount.testGetValue() ?? 0,
+      expectedFitIconCount,
+      "fit icon count should match expected value"
+    );
+
+    await PlacesUtils.history.clear();
+  }
 
   await contentPage.close();
 });

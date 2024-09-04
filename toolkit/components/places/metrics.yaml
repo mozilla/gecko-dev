@@ -27,3 +27,32 @@ places:
       - mbonardo@mozilla.com
       - fx-search-telemetry@mozilla.com
     expires: never
+page_icon:
+  small_icon_count:
+    type: counter
+    description: >
+      Number of times the page-icon protocol serves an icon smaller than requested.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911375
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911375
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+  fit_icon_count:
+    type: counter
+    description: >
+      Number of times the page-icon protocol serves an icon equal to or larger than requested.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911375
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911375
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
