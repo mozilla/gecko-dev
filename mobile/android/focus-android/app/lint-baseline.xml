@@ -2,10 +2,7 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!-- This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<issues format="6" by="lint 8.4.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.4.0)" variant="all" version="8.4.0">
+<issues format="6" by="lint 8.6.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.6.0)" variant="all" version="8.6.0">
 
     <issue
         id="ScopedStorage"
@@ -102,7 +99,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="67"
+            line="64"
             column="9"/>
     </issue>
 
@@ -564,7 +561,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="110"
+            line="107"
             column="13"/>
     </issue>
 
@@ -575,7 +572,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="135"
+            line="132"
             column="13"/>
     </issue>
 
@@ -696,7 +693,7 @@
         errorLine2="                             ~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="61"
+            line="58"
             column="30"/>
     </issue>
 
@@ -2305,7 +2302,7 @@
     <issue
         id="UnusedResources"
         message="The resource `R.string.text_selection_search_action_klar` appears to be unused"
-        errorLine1="    &lt;string name=&quot;text_selection_search_action_klar&quot;>Search in Klar&lt;/string>"
+        errorLine1="    &lt;string name=&quot;text_selection_search_action_klar&quot; tools:ignore=&quot;BrandUsage&quot;>Search in Klar&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
@@ -2316,7 +2313,7 @@
     <issue
         id="UnusedResources"
         message="The resource `R.string.text_selection_search_action_focus_beta` appears to be unused"
-        errorLine1="    &lt;string name=&quot;text_selection_search_action_focus_beta&quot;>Search in Focus Beta&lt;/string>"
+        errorLine1="    &lt;string name=&quot;text_selection_search_action_focus_beta&quot; tools:ignore=&quot;BrandUsage&quot;>Search in Focus Beta&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
@@ -2327,7 +2324,7 @@
     <issue
         id="UnusedResources"
         message="The resource `R.string.text_selection_search_action_focus_nightly` appears to be unused"
-        errorLine1="    &lt;string name=&quot;text_selection_search_action_focus_nightly&quot;>Search in Focus Nightly&lt;/string>"
+        errorLine1="    &lt;string name=&quot;text_selection_search_action_focus_nightly&quot; tools:ignore=&quot;BrandUsage&quot;>Search in Focus Nightly&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"

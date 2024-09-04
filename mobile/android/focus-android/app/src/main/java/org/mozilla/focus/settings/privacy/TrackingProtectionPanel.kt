@@ -157,7 +157,7 @@ class TrackingProtectionPanel(
     }
 
     private fun updateTrackersBlocked() {
-        binding.trackersCount.text = blockedTrackersCount.toString()
+        binding.trackersCount.text = String.format("%,d", blockedTrackersCount)
         binding.trackersCountNote.text =
             context.getString(R.string.trackers_count_note, context.installedDate)
     }

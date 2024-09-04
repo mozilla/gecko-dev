@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -121,7 +122,12 @@ class BrowserToolbarView(
                 setDisplayToolbarColors()
 
                 if (!isCustomTabSession) {
-                    display.setUrlBackground(getDrawable(R.drawable.search_url_background))
+                    display.setUrlBackground(
+                        AppCompatResources.getDrawable(
+                            this@with,
+                            R.drawable.search_url_background,
+                        ),
+                    )
                 }
 
                 display.onUrlClicked = {

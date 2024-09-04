@@ -6,7 +6,6 @@ package mozilla.components.feature.tabs.toolbar
 
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -101,7 +100,6 @@ open class TabCounterToolbarButton(
      *
      * @property count the updated tab count
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     fun updateCount(count: Int) {
         reference.get()?.setCountWithAnimation(count)
     }
