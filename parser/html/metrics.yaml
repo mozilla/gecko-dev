@@ -1,0 +1,24 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: HTML Parser'
+
+parsing:
+  svg_unusual_pcdata:
+    type: rate
+    description: |
+      The rate of svg elements that have child elements during parsing, where their HTML counterpart would not have children.
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913382
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D219290#7592177
+    expires: 136

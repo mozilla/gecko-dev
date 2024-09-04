@@ -13,6 +13,7 @@
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/ShadowRootBinding.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Likely.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -1139,6 +1140,8 @@ void nsHtml5TreeBuilder::markMalformedIfScript(nsIContentHandle* aElement) {
 
 void nsHtml5TreeBuilder::start(bool fragment) {
   mCurrentHtmlScriptCannotDocumentWriteOrBlock = false;
+  mozilla::glean::parsing::svg_unusual_pcdata.AddToDenominator(1);
+
 #ifdef DEBUG
   mActive = true;
 #endif
@@ -1206,6 +1209,19 @@ void nsHtml5TreeBuilder::elementPushed(int32_t aNamespace, nsAtom* aName,
    * table elements shouldn't be used as surrogate parents for user experience
    * reasons.
    */
+
+  if (isInSVGOddPCData) {
+    // We are seeing an element that has children, which could not have child
+    // elements in HTML, i.e., is parsed as PCDATA in SVG but CDATA in HTML.
+    mozilla::glean::parsing::svg_unusual_pcdata.AddToNumerator(1);
+  }
+  if ((aName == nsGkAtoms::style) || (aName == nsGkAtoms::xmp) ||
+      (aName == nsGkAtoms::iframe) || (aName == nsGkAtoms::noembed) ||
+      (aName == nsGkAtoms::noframes) || (aName == nsGkAtoms::noscript) ||
+      (aName == nsGkAtoms::script)) {
+    isInSVGOddPCData++;
+  }
+
   if (aNamespace != kNameSpaceID_XHTML) {
     return;
   }
@@ -1254,6 +1270,14 @@ void nsHtml5TreeBuilder::elementPopped(int32_t aNamespace, nsAtom* aName,
   NS_ASSERTION(aElement, "No element!");
   if (aNamespace == kNameSpaceID_MathML) {
     return;
+  }
+  if (aNamespace == kNameSpaceID_SVG) {
+    if ((aName == nsGkAtoms::style) || (aName == nsGkAtoms::xmp) ||
+        (aName == nsGkAtoms::iframe) || (aName == nsGkAtoms::noembed) ||
+        (aName == nsGkAtoms::noframes) || (aName == nsGkAtoms::noscript) ||
+        (aName == nsGkAtoms::script)) {
+      isInSVGOddPCData--;
+    }
   }
   // we now have only SVG and HTML
   if (aName == nsGkAtoms::script) {

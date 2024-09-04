@@ -23,6 +23,7 @@ int32_t mHandlesUsed;
 nsTArray<mozilla::UniquePtr<nsIContent*[]>> mOldHandles;
 nsHtml5TreeOpStage* mSpeculativeLoadStage;
 nsresult mBroken;
+int32_t isInSVGOddPCData = 0;
 // Controls whether the current HTML script goes through the more complex
 // path that accommodates the possibility of the script becoming a
 // parser-blocking script and the possibility of the script inserting
