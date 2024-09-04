@@ -379,7 +379,11 @@ def get_tool(config, key):
     if key in config:
         f = config[key].format(**os.environ)
         if os.path.isabs(f):
-            if not os.path.exists(f):
+            path, f = os.path.split(f)
+            # Searches for .exes on windows too, even if the extension is
+            # not given. which(absolute_path) doesn't do that until python 3.12.
+            f = which(f, path=path)
+            if not f:
                 raise ValueError("%s must point to an existing path" % key)
             return f
 
