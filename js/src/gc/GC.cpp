@@ -2029,15 +2029,21 @@ bool GCRuntime::checkEagerAllocTrigger(const HeapSize& size,
 }
 
 bool GCRuntime::shouldDecommit() const {
-  // If we're doing a shrinking GC we always decommit to release as much memory
-  // as possible.
-  if (cleanUpEverything) {
-    return true;
+  switch (gcOptions()) {
+    case JS::GCOptions::Normal:
+      // If we are allocating heavily enough to trigger "high frequency" GC then
+      // skip decommit so that we do not compete with the mutator.
+      return !schedulingState.inHighFrequencyGCMode();
+    case JS::GCOptions::Shrink:
+      // If we're doing a shrinking GC we always decommit to release as much
+      // memory as possible.
+      return true;
+    case JS::GCOptions::Shutdown:
+      // There's no point decommitting as we are about to free everything.
+      return false;
   }
 
-  // If we are allocating heavily enough to trigger "high frequency" GC then
-  // skip decommit so that we do not compete with the mutator.
-  return !schedulingState.inHighFrequencyGCMode();
+  MOZ_CRASH("Unexpected GCOptions value");
 }
 
 void GCRuntime::startDecommit() {
