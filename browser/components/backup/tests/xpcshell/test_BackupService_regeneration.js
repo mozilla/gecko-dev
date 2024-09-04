@@ -21,6 +21,16 @@ const { TestUtils } = ChromeUtils.importESModule(
 const { DownloadHistory } = ChromeUtils.importESModule(
   "resource://gre/modules/DownloadHistory.sys.mjs"
 );
+const { AddonTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/AddonTestUtils.sys.mjs"
+);
+const { ExtensionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
+);
+
+ExtensionTestUtils.init(this);
+AddonTestUtils.init(this);
+AddonTestUtils.createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1");
 
 const nsLoginInfo = new Components.Constructor(
   "@mozilla.org/login-manager/loginInfo;1",
@@ -361,4 +371,27 @@ add_task(async function test_all_bookmarks_removed() {
   await expectRegeneration(async () => {
     await PlacesUtils.bookmarks.eraseEverything();
   }, "Saw regeneration on all bookmarks removed.");
+});
+
+/**
+ * Tests that backup regeneration occurs when an addon is uninstalled.
+ */
+add_task(async function test_addon_uninstalled() {
+  await AddonTestUtils.promiseStartupManager();
+
+  let testExtension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      name: "Some test extension",
+      browser_specific_settings: {
+        gecko: { id: "test-backup-regeneration@ext-0" },
+      },
+    },
+    useAddonManager: "temporary",
+  });
+
+  await testExtension.startup();
+
+  await expectRegeneration(async () => {
+    await testExtension.unload();
+  }, "Saw regeneration on test extension uninstall.");
 });

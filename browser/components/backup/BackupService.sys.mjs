@@ -50,6 +50,7 @@ ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   ArchiveDecryptor: "resource:///modules/backup/ArchiveEncryption.sys.mjs",
   ArchiveEncryptionState:
     "resource:///modules/backup/ArchiveEncryptionState.sys.mjs",
@@ -3159,6 +3160,8 @@ export class BackupService extends EventTarget {
       this.#placesObserver
     );
 
+    lazy.AddonManager.addAddonListener(this);
+
     Services.obs.addObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
@@ -3185,6 +3188,8 @@ export class BackupService extends EventTarget {
       ["history-cleared", "page-removed", "bookmark-removed"],
       this.#placesObserver
     );
+
+    lazy.AddonManager.removeAddonListener(this);
 
     Services.obs.removeObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
@@ -3331,6 +3336,18 @@ export class BackupService extends EventTarget {
         }
       }
     }
+  }
+
+  /**
+   * This method is the only method of the AddonListener interface that
+   * BackupService implements and is called by AddonManager when an addon
+   * is uninstalled.
+   *
+   * @param {AddonInternal} _addon
+   *   The addon being uninstalled.
+   */
+  onUninstalled(_addon) {
+    this.#debounceRegeneration();
   }
 
   /**
