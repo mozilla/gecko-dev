@@ -37,10 +37,7 @@ add_task(async function () {
     return Array.from(gBrowser.tabs).every(tab => tab._fullyOpen);
   });
 
-  ok(
-    arrowScrollbox.hasAttribute("overflowing"),
-    "Tab strip should be overflowing"
-  );
+  ok(arrowScrollbox.overflowing, "Tab strip should be overflowing");
 
   let upButton = arrowScrollbox._scrollButtonUp;
   let downButton = arrowScrollbox._scrollButtonDown;

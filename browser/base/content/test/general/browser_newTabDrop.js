@@ -188,9 +188,7 @@ async function drop(dragData, expectedURLs) {
   let dragSrcElement = document.getElementById("back-button");
   ok(dragSrcElement, "Back button exists");
   let newTabButton = document.getElementById(
-    gBrowser.tabContainer.hasAttribute("overflow")
-      ? "new-tab-button"
-      : "tabs-newtab-button"
+    gBrowser.tabContainer.overflowing ? "new-tab-button" : "tabs-newtab-button"
   );
   ok(newTabButton, "New Tab button exists");
 

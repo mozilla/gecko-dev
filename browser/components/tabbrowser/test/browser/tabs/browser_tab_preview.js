@@ -688,7 +688,7 @@ add_task(async function wheelTests() {
   );
 
   let scrollOverflowEvent = BrowserTestUtils.waitForEvent(
-    document.getElementById("tabbrowser-arrowscrollbox"),
+    gBrowser.tabContainer.arrowScrollbox,
     "overflow"
   );
   BrowserTestUtils.overflowTabs(registerCleanupFunction, window, {

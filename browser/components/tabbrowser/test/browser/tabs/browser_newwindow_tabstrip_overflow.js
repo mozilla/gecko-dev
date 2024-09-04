@@ -15,13 +15,10 @@ registerCleanupFunction(() => {
 
 add_task(async function withoutLWT() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  ok(!win.gBrowser.tabContainer.overflowing, "tab container not overflowing");
   ok(
     !win.gBrowser.tabContainer.hasAttribute("overflow"),
-    "tab container not overflowing"
-  );
-  ok(
-    !win.gBrowser.tabContainer.arrowScrollbox.hasAttribute("overflowing"),
-    "arrow scrollbox not overflowing"
+    "tab container doesn't have overflow attribute"
   );
   await BrowserTestUtils.closeWindow(win);
 });
@@ -29,13 +26,10 @@ add_task(async function withoutLWT() {
 add_task(async function withLWT() {
   await selectTheme("firefox-compact-light@mozilla.org");
   let win = await BrowserTestUtils.openNewBrowserWindow();
+  ok(!win.gBrowser.tabContainer.overflowing, "tab container not overflowing");
   ok(
     !win.gBrowser.tabContainer.hasAttribute("overflow"),
-    "tab container not overflowing"
-  );
-  ok(
-    !win.gBrowser.tabContainer.arrowScrollbox.hasAttribute("overflowing"),
-    "arrow scrollbox not overflowing"
+    "tab container doesn't have overflow attribute"
   );
   await BrowserTestUtils.closeWindow(win);
 });

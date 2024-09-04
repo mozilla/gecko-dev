@@ -509,28 +509,10 @@ add_task(async function test_show_hide_tab() {
   });
 });
 
-// Checks that right-clicking on a tab in the tabs panel (the one that appears
-// when there are many tabs, or when browser.tabs.tabmanager.enabled = true)
+// Checks that right-clicking on a tab in the all-tabs panel
 // results in an event that is associated with the expected tab.
 add_task(async function test_show_hide_tab_via_tab_panel() {
   gTabsPanel.init();
-  const tabContainer = document.getElementById("tabbrowser-tabs");
-  let shouldAddOverflow = !tabContainer.hasAttribute("overflow");
-  const revertTabContainerAttribute = () => {
-    if (shouldAddOverflow) {
-      // Revert attribute if it was changed.
-      tabContainer.removeAttribute("overflow");
-      // The function is going to be called twice, but let's run the logic once.
-      shouldAddOverflow = false;
-    }
-  };
-  if (shouldAddOverflow) {
-    // Ensure the visibility of the "all tabs menu" button (#alltabs-button).
-    tabContainer.setAttribute("overflow", "true");
-    // Register cleanup function in case the test fails before we reach the end.
-    registerCleanupFunction(revertTabContainerAttribute);
-  }
-
   const allTabsView = document.getElementById("allTabsMenu-allTabsView");
 
   await testShowHideTabMenu({
@@ -570,8 +552,6 @@ add_task(async function test_show_hide_tab_via_tab_panel() {
       await allTabsPopupHiddenPromise;
     },
   });
-
-  revertTabContainerAttribute();
 });
 
 add_task(async function test_show_hide_tools_menu() {

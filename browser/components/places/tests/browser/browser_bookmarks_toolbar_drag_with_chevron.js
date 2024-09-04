@@ -142,9 +142,7 @@ async function testForDndFromChevron(chevronMenu) {
   );
 
   let destElement = document.getElementById(
-    gBrowser.tabContainer.hasAttribute("overflow")
-      ? "new-tab-button"
-      : "tabs-newtab-button"
+    gBrowser.tabContainer.overflowing ? "new-tab-button" : "tabs-newtab-button"
   );
   let onNewTabByDnD = BrowserTestUtils.waitForNewTab(
     gBrowser,

@@ -26,7 +26,7 @@ add_task(async function wheel_switches_tabs_overflow() {
   let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
   let tabs = [];
 
-  while (!arrowScrollbox.hasAttribute("overflowing")) {
+  while (!arrowScrollbox.overflowing) {
     tabs.push(
       await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank")
     );

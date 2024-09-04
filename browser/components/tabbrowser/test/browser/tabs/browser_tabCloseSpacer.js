@@ -22,10 +22,7 @@ add_task(async function () {
     arrowScrollbox.addEventListener("scrollend", resolve, { once: true });
   });
 
-  ok(
-    gBrowser.tabContainer.hasAttribute("overflow"),
-    "Tab strip should be overflowing"
-  );
+  ok(gBrowser.tabContainer.overflowing, "Tab strip should be overflowing");
   isnot(downButton.clientWidth, 0, "down button has some width");
   is(closingTabsSpacer.clientWidth, 0, "spacer has no width");
 
@@ -59,7 +56,7 @@ add_task(async function () {
     await new Promise(r => requestAnimationFrame(r));
   }
 
-  ok(!gBrowser.tabContainer.hasAttribute("overflow"), "not overflowing");
+  ok(!gBrowser.tabContainer.overflowing, "not overflowing");
   ok(
     gBrowser.tabContainer.hasAttribute("using-closing-tabs-spacer"),
     "using spacer"

@@ -42,8 +42,19 @@
 
     init() {
       this.startupTime = Services.startup.getStartupInfo().start.getTime();
+
       this.arrowScrollbox = this.querySelector("arrowscrollbox");
       this.arrowScrollbox.addEventListener("wheel", this, true);
+      this.arrowScrollbox.addEventListener("underflow", this);
+      this.arrowScrollbox.addEventListener("overflow", this);
+      // Override arrowscrollbox.js method, since our scrollbox's children are
+      // inherited from the scrollbox binding parent (this).
+      this.arrowScrollbox._getScrollableElements = () => {
+        return this.allTabs.filter(this.arrowScrollbox._canScrollToElement);
+      };
+      this.arrowScrollbox._canScrollToElement = tab => {
+        return !tab._pinnedUnscrollable && !tab.hidden;
+      };
 
       this.baseConnect();
 
@@ -68,8 +79,7 @@
       this._visibleTabs = null;
       this._previewPanel = null;
 
-      var tab = this.allTabs[0];
-      tab.label = this.emptyTabTitle;
+      this.allTabs[0].label = this.emptyTabTitle;
 
       // Hide the secondary text for locales where it is unsupported due to size constraints.
       const language = Services.locale.appLocaleAsBCP47;
@@ -116,7 +126,6 @@
 
       CustomizableUI.addListener(this);
       this._updateNewTabVisibility();
-      this._initializeArrowScrollbox();
 
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
@@ -658,7 +667,7 @@
       // buttons, even if we aren't dragging a tab, but then
       // return to avoid drawing the drop indicator
       var pixelsToScroll = 0;
-      if (this.hasAttribute("overflow")) {
+      if (this.overflowing) {
         switch (event.originalTarget) {
           case arrowScrollbox._scrollButtonUp:
             pixelsToScroll = arrowScrollbox.scrollIncrement * -1;
@@ -1138,6 +1147,53 @@
       }
     }
 
+    on_overflow(event) {
+      // Ignore overflow events:
+      // - from nested scrollable elements
+      // - for vertical orientation
+      if (
+        event.target != this.arrowScrollbox ||
+        event.originalTarget.getAttribute("orient") == "vertical"
+      ) {
+        return;
+      }
+
+      this.toggleAttribute("overflow", true);
+      this._positionPinnedTabs();
+      this._updateCloseButtons();
+      this._handleTabSelect(true);
+
+      document
+        .getElementById("tab-preview-panel")
+        ?.setAttribute("rolluponmousewheel", true);
+    }
+
+    on_underflow(event) {
+      // Ignore underflow events:
+      // - from nested scrollable elements
+      // - corresponding to an overflow event that we ignored
+      if (event.target != this.arrowScrollbox || !this.overflowing) {
+        return;
+      }
+
+      this.removeAttribute("overflow");
+
+      if (this._lastTabClosedByMouse) {
+        this._expandSpacerBy(this._scrollButtonWidth);
+      }
+
+      for (let tab of gBrowser._removingTabs) {
+        gBrowser.removeTab(tab);
+      }
+
+      this._positionPinnedTabs();
+      this._updateCloseButtons();
+
+      document
+        .getElementById("tab-preview-panel")
+        ?.removeAttribute("rolluponmousewheel");
+    }
+
     get emptyTabTitle() {
       // Normal tab title is used also in the permanent private browsing mode.
       const l10nId =
@@ -1198,6 +1254,10 @@
       return !this.verticalMode && RTL_UI;
     }
 
+    get overflowing() {
+      return this.hasAttribute("overflow");
+    }
+
     _getVisibleTabs() {
       if (!this._visibleTabs) {
         this._visibleTabs = Array.prototype.filter.call(
@@ -1226,10 +1286,9 @@
         throw new Error("Shouldn't call this without arrowscrollbox");
       }
 
-      let { arrowScrollbox } = this;
       if (node == null) {
         // We have a container for non-tab elements at the end of the scrollbox.
-        node = arrowScrollbox.lastChild;
+        node = this.arrowScrollbox.lastChild;
       }
 
       return node.before(tab);
@@ -1250,67 +1309,6 @@
       if (!gSharedTabWarning.willShowSharedTabWarning(aNewTab)) {
         super._selectNewTab(aNewTab, aFallbackDir, aWrap);
       }
-    }
-
-    _initializeArrowScrollbox() {
-      let arrowScrollbox = this.arrowScrollbox;
-      let previewElement = document.getElementById("tab-preview-panel");
-      arrowScrollbox.addEventListener(
-        "underflow",
-        event => {
-          // Ignore underflow events:
-          // - from nested scrollable elements
-          // - corresponding to an overflow event that we ignored
-          if (
-            event.target != arrowScrollbox ||
-            !this.hasAttribute("overflow")
-          ) {
-            return;
-          }
-
-          this.removeAttribute("overflow");
-          previewElement?.removeAttribute("rolluponmousewheel");
-
-          if (this._lastTabClosedByMouse) {
-            this._expandSpacerBy(this._scrollButtonWidth);
-          }
-
-          for (let tab of gBrowser._removingTabs) {
-            gBrowser.removeTab(tab);
-          }
-
-          this._positionPinnedTabs();
-          this._updateCloseButtons();
-        },
-        true
-      );
-
-      arrowScrollbox.addEventListener("overflow", event => {
-        // Ignore overflow events:
-        // - from nested scrollable elements
-        // - for vertical orientation
-        if (
-          event.target != arrowScrollbox ||
-          event.originalTarget.getAttribute("orient") == "vertical"
-        ) {
-          return;
-        }
-
-        this.toggleAttribute("overflow", true);
-        previewElement?.setAttribute("rolluponmousewheel", true);
-        this._positionPinnedTabs();
-        this._updateCloseButtons();
-        this._handleTabSelect(true);
-      });
-
-      // Override arrowscrollbox.js method, since our scrollbox's children are
-      // inherited from the scrollbox binding parent (this).
-      arrowScrollbox._getScrollableElements = () => {
-        return this.allTabs.filter(arrowScrollbox._canScrollToElement);
-      };
-      arrowScrollbox._canScrollToElement = tab => {
-        return !tab._pinnedUnscrollable && !tab.hidden;
-      };
     }
 
     observe(aSubject, aTopic) {
@@ -1381,8 +1379,8 @@
     }
 
     _updateCloseButtons() {
-      // If we're overflowing, tabs are at their minimum widths.
-      if (this.hasAttribute("overflow")) {
+      if (this.overflowing) {
+        // Tabs are at their minimum widths.
         this.setAttribute("closebuttons", "activetab");
         return;
       }
@@ -1400,7 +1398,7 @@
 
           // The scrollbox may have started overflowing since we checked
           // overflow earlier, so check again.
-          if (this.hasAttribute("overflow")) {
+          if (this.overflowing) {
             this.setAttribute("closebuttons", "activetab");
             return;
           }
@@ -1430,7 +1428,7 @@
 
     _handleTabSelect(aInstant) {
       let selectedTab = this.selectedItem;
-      if (this.hasAttribute("overflow")) {
+      if (this.overflowing) {
         this.arrowScrollbox.ensureElementIsVisible(selectedTab, aInstant);
       }
 
@@ -1458,7 +1456,7 @@
         this.arrowScrollbox._scrollButtonDown
       ).width;
 
-      if (this.hasAttribute("overflow")) {
+      if (this.overflowing) {
         // Don't need to do anything if we're in overflow mode and aren't scrolled
         // all the way to the right, or if we're closing the last tab.
         if (isEndTab || !this.arrowScrollbox.hasAttribute("scrolledtoend")) {
@@ -1591,9 +1589,7 @@
       let tabs = this._getVisibleTabs();
       let numPinned = gBrowser._numPinnedTabs;
       let absPositionHorizontalTabs =
-        this.hasAttribute("overflow") &&
-        tabs.length > numPinned &&
-        numPinned > 0;
+        this.overflowing && tabs.length > numPinned && numPinned > 0;
 
       this.toggleAttribute("haspinnedtabs", !!numPinned);
       this.toggleAttribute("positionpinnedtabs", absPositionHorizontalTabs);
@@ -2026,7 +2022,7 @@
     }
 
     _notifyBackgroundTab(aTab) {
-      if (aTab.pinned || aTab.hidden || !this.hasAttribute("overflow")) {
+      if (aTab.pinned || aTab.hidden || !this.overflowing) {
         return;
       }
 

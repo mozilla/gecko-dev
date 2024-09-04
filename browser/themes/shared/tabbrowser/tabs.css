@@ -989,7 +989,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow]) ~ #new-tab-button,
 #tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
-#tabbrowser-tabs[overflow] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
+#tabbrowser-arrowscrollbox[overflowing] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #tabbrowser-tabs:not([hasadjacentnewtabbutton]) > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #TabsToolbar[customizing] #tabs-newtab-button {
   display: none;
