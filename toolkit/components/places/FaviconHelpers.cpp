@@ -391,14 +391,21 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
   MOZ_ASSERT(!aPageSpec.IsEmpty(), "Page spec must not be empty.");
   MOZ_ASSERT(!NS_IsMainThread());
 
+  const uint16_t THRESHOLD_WIDTH = 64;
+
   // This selects both associated and root domain icons, ordered by width,
   // where an associated icon has priority over a root domain icon.
-  // Regardless, note that while this way we are far more efficient, we lost
-  // associations with root domain icons, so it's possible we'll return one
-  // for a specific size when an associated icon for that size doesn't exist.
-  nsCOMPtr<mozIStorageStatement> stmt = aDB->GetStatement(
+  // If the preferred width is less than or equal to 64px, non-rich icons are
+  // prioritized over rich icons by ordering first by `isRich ASC`, then by
+  // width. If the preferred width is greater than 64px, the sorting prioritizes
+  // width, with no preference for rich or non-rich icons. Regardless, note that
+  // while this way we are far more efficient, we lost associations with root
+  // domain icons, so it's possible we'll return one for a specific size when an
+  // associated icon for that size doesn't exist.
+
+  nsCString query = nsPrintfCString(
       "/* do not warn (bug no: not worth having a compound index) */ "
-      "SELECT width, icon_url, root "
+      "SELECT width, icon_url, root, (flags & %d) as isRich "
       "FROM moz_icons i "
       "JOIN moz_icons_to_pages ON i.id = icon_id "
       "JOIN moz_pages_w_icons p ON p.id = page_id "
@@ -406,10 +413,17 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
       "OR (:hash_idx AND page_url_hash = hash(substr(:url, 0, :hash_idx)) "
       "AND page_url = substr(:url, 0, :hash_idx)) "
       "UNION ALL "
-      "SELECT width, icon_url, root "
+      "SELECT width, icon_url, root, (flags & %d) as isRich "
       "FROM moz_icons i "
       "WHERE fixed_icon_url_hash = hash(fixup_url(:host) || '/favicon.ico') "
-      "ORDER BY width DESC, root ASC");
+      "ORDER BY %s width DESC, root ASC",
+      nsIFaviconService::ICONDATA_FLAGS_RICH,
+      nsIFaviconService::ICONDATA_FLAGS_RICH,
+      // Prefer non-rich icons for small sizes (<= 64px).
+      aPreferredWidth <= THRESHOLD_WIDTH ? "isRich ASC, " : "");
+
+  nsCOMPtr<mozIStorageStatement> stmt = aDB->GetStatement(query);
+
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoper(stmt);
 
@@ -423,6 +437,7 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
 
   // Return the biggest icon close to the preferred width. It may be bigger
   // or smaller if the preferred width isn't found.
+  // Non-rich icons are prioritized over rich ones for preferred widths <= 64px.
   bool hasResult;
   int32_t lastWidth = 0;
   while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {

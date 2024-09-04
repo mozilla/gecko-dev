@@ -6,6 +6,9 @@ const FAVICON_DATA = readFileData(do_get_file("favicon-normal32.png"));
 const FAVICON_MIMETYPE = "image/png";
 const ICON32_URL = "http://places.test/favicon-normal32.png";
 
+const FAVICON16_DATA = readFileData(do_get_file("favicon-normal16.png"));
+const ICON16_URL = "http://places.test/favicon-normal16.png";
+
 add_task(async function test_normal() {
   Assert.equal(FAVICON_DATA.length, 344);
   let pageURI = NetUtil.newURI("http://example.com/normal");
@@ -118,6 +121,84 @@ add_task(async function test_fallback() {
         Assert.equal(aMimeType, "image/png");
         resolve();
       }
+    );
+  });
+});
+
+add_task(async function test_richIconPrioritizationBelowThreshold() {
+  const PAGE_URL = "https://example.com/test_prioritization_below_threshold";
+
+  await PlacesTestUtils.addVisits(PAGE_URL);
+
+  let dataURL = await fileDataToDataURL(FAVICON16_DATA, "image/png");
+  await PlacesTestUtils.setFaviconForPage(
+    PAGE_URL,
+    ICON16_URL,
+    dataURL,
+    0,
+    false // Non-rich
+  );
+
+  let richDataURL = await fileDataToDataURL(FAVICON_DATA, "image/png");
+  await PlacesTestUtils.setFaviconForPage(
+    PAGE_URL,
+    ICON32_URL,
+    richDataURL,
+    0,
+    true // Rich
+  );
+
+  // Non-rich icons should be prioritized for preferred width <= 64px.
+  await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      NetUtil.newURI(PAGE_URL),
+      (aURI, aDataLen, aData, aMimeType) => {
+        Assert.equal(aURI.spec, ICON16_URL);
+        Assert.equal(aDataLen, FAVICON16_DATA.length);
+        Assert.deepEqual(aData, FAVICON16_DATA);
+        Assert.equal(aMimeType, FAVICON_MIMETYPE);
+        resolve();
+      },
+      48
+    );
+  });
+});
+
+add_task(async function test_richIconPrioritizationAboveThreshold() {
+  const PAGE_URL = "https://example.com/test_prioritization_above_threshold";
+
+  await PlacesTestUtils.addVisits(PAGE_URL);
+
+  let dataURL = await fileDataToDataURL(FAVICON16_DATA, "image/png");
+  await PlacesTestUtils.setFaviconForPage(
+    PAGE_URL,
+    ICON16_URL,
+    dataURL,
+    0,
+    false // Non-rich
+  );
+
+  let richDataURL = await fileDataToDataURL(FAVICON_DATA, "image/png");
+  await PlacesTestUtils.setFaviconForPage(
+    PAGE_URL,
+    ICON32_URL,
+    richDataURL,
+    0,
+    true // Rich
+  );
+
+  // Non-rich icons should not be prioritized for preferred width > 64px.
+  await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      NetUtil.newURI(PAGE_URL),
+      (aURI, aDataLen, aData, aMimeType) => {
+        Assert.equal(aURI.spec, ICON32_URL);
+        Assert.equal(aDataLen, FAVICON_DATA.length);
+        Assert.deepEqual(aData, FAVICON_DATA);
+        Assert.equal(aMimeType, FAVICON_MIMETYPE);
+        resolve();
+      },
+      72
     );
   });
 });

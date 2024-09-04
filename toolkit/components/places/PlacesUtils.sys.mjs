@@ -1712,7 +1712,7 @@ export var PlacesUtils = {
                       JOIN moz_icons_to_pages ON icon_id = i.id
                       JOIN moz_pages_w_icons pi ON page_id = pi.id
                       WHERE pi.page_url_hash = hash(h.url) AND pi.page_url = h.url
-                      ORDER BY width DESC LIMIT 1) AS iconUri,
+                      ORDER BY (flags & ${Ci.nsIFaviconService.ICONDATA_FLAGS_RICH}) ASC, width DESC LIMIT 1) AS iconUri,
               (SELECT tags FROM tagged WHERE place_id = h.id) AS tags,
               (SELECT a.content FROM moz_annos a
                JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id
