@@ -52,10 +52,14 @@ export class PreferencesBackupResource extends BackupResource {
     let prefsDestFile = await IOUtils.getFile(prefsDestPath);
     await Services.prefs.backupPrefFile(prefsDestFile);
 
-    return null;
+    // During recovery, we need to recompute verification hashes for any
+    // custom engines, but only for engines that were originally passing
+    // verification. We'll store the profile path at backup time in our
+    // ManifestEntry so that we can do that verification check at recover-time.
+    return { profilePath };
   }
 
-  async recover(_manifestEntry, recoveryPath, destProfilePath) {
+  async recover(manifestEntry, recoveryPath, destProfilePath) {
     const SEARCH_PREF_FILENAME = "search.json.mozlz4";
     const RECOVERY_SEARCH_PREF_PATH = PathUtils.join(
       recoveryPath,
@@ -69,28 +73,58 @@ export class PreferencesBackupResource extends BackupResource {
         decompress: true,
       });
 
-      searchPrefs.engines = searchPrefs.engines.map(engine => {
-        if (engine._metaData.loadPathHash) {
-          let loadPath = engine._loadPath;
-          engine._metaData.loadPathHash = lazy.SearchUtils.getVerificationHash(
-            loadPath,
-            destProfilePath
-          );
+      // ... but we only want to do this for engines that had valid verification
+      // hashes for the original profile path.
+      const ORIGINAL_PROFILE_PATH = manifestEntry.profilePath;
+
+      if (ORIGINAL_PROFILE_PATH) {
+        searchPrefs.engines = searchPrefs.engines.map(engine => {
+          if (engine._metaData.loadPathHash) {
+            let loadPath = engine._loadPath;
+            if (
+              engine._metaData.loadPathHash ==
+              lazy.SearchUtils.getVerificationHash(
+                loadPath,
+                ORIGINAL_PROFILE_PATH
+              )
+            ) {
+              engine._metaData.loadPathHash =
+                lazy.SearchUtils.getVerificationHash(loadPath, destProfilePath);
+            }
+          }
+          return engine;
+        });
+
+        if (
+          searchPrefs.metaData.defaultEngineIdHash &&
+          searchPrefs.metaData.defaultEngineIdHash ==
+            lazy.SearchUtils.getVerificationHash(
+              searchPrefs.metaData.defaultEngineId,
+              ORIGINAL_PROFILE_PATH
+            )
+        ) {
+          searchPrefs.metaData.defaultEngineIdHash =
+            lazy.SearchUtils.getVerificationHash(
+              searchPrefs.metaData.defaultEngineId,
+              destProfilePath
+            );
         }
-        return engine;
-      });
 
-      searchPrefs.metaData.defaultEngineIdHash =
-        lazy.SearchUtils.getVerificationHash(
-          searchPrefs.metaData.defaultEngineId,
-          destProfilePath
-        );
-
-      searchPrefs.metaData.privateDefaultEngineIdHash =
-        lazy.SearchUtils.getVerificationHash(
-          searchPrefs.metaData.privateDefaultEngineId,
-          destProfilePath
-        );
+        if (
+          searchPrefs.metaData.privateDefaultEngineIdHash &&
+          searchPrefs.metaData.privateDefaultEngineIdHash ==
+            lazy.SearchUtils.getVerificationHash(
+              searchPrefs.metaData.privateDefaultEngineId,
+              ORIGINAL_PROFILE_PATH
+            )
+        ) {
+          searchPrefs.metaData.privateDefaultEngineIdHash =
+            lazy.SearchUtils.getVerificationHash(
+              searchPrefs.metaData.privateDefaultEngineId,
+              destProfilePath
+            );
+        }
+      }
 
       await IOUtils.writeJSON(
         PathUtils.join(destProfilePath, SEARCH_PREF_FILENAME),
