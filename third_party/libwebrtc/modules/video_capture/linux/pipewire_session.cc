@@ -415,6 +415,8 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
 }
 
 void PipeWireSession::Finish(VideoCaptureOptions::Status status) {
+  status_ = status;
+
   webrtc::MutexLock lock(&callback_lock_);
 
   if (callback_) {
