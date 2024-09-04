@@ -27,6 +27,7 @@ add_task(async function test_inspectFields() {
        </select>
      </form>
      <input id="email" autocomplete="email">
+     <input id="unknown" autocomplete="unknown">
     `
   );
   const fac = new FormAutofillChild();

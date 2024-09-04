@@ -510,7 +510,10 @@ export class FormAutofillChild extends JSWindowActorChild {
       }
       roots.add(formLike.rootElement);
       const handler = new lazy.FormAutofillHandler(formLike);
-      const fields = handler.collectFormFields();
+
+      // Fields that cannot be recognized will still be reported with this API.
+      const ignoreUnknown = false;
+      const fields = handler.collectFormFields(ignoreUnknown);
       fieldDetails.push(...fields);
     }
 
