@@ -79,3 +79,8 @@ support-files = [
   "file_framing_xfo_object.html",
   "file_framing_xfo_embed_object.sjs",
 ]
+
+["browser_test_onion_referrer.js"]
+support-files = [
+  "file_referrer_echoer.sjs",
+]

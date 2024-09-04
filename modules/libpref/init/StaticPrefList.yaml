@@ -12252,7 +12252,7 @@
 # false=allow onion referer, true=hide onion referer (use empty referer).
 - name: network.http.referer.hideOnionSource
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Include an origin header on non-GET and non-HEAD requests regardless of CORS.

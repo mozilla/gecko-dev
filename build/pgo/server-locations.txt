@@ -87,6 +87,7 @@ http://sub1.test2.example.org:8000   privileged
 http://sub2.test1.example.org:8000   privileged
 http://sub2.test2.example.org:8000   privileged
 http://example.com:80                privileged
+http://example.onion:80              privileged
 http://www.example.com:80            privileged
 http://test1.example.com:80          privileged
 http://test2.example.com:80          privileged
