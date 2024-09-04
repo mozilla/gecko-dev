@@ -406,7 +406,7 @@ export class NetworkRequest {
     // `onBeforeRequestSent` might be too early for the NavigationManager.
     // If there is no ongoing navigation, create one ourselves.
     // TODO: Bug 1835704 to detect navigations earlier and avoid this.
-    if (!navigation || navigation.finished) {
+    if (!navigation || navigation.state !== "started") {
       navigation = lazy.notifyNavigationStarted({
         contextDetails: { context: browsingContext },
         url: this.serializedURL,

@@ -36,7 +36,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 /**
  * @typedef {object} NavigationInfo
- * @property {boolean} finished - Whether the navigation is finished or not.
+ * @property {'registered'|'started'|'finished'} state - The navigation state.
  * @property {string} navigationId - The UUID for the navigation.
  * @property {string} navigable - The UUID for the navigable.
  * @property {string} url - The target url for the navigation.
@@ -71,7 +71,6 @@ class NavigationRegistry extends EventEmitter {
   #contextListener;
   #managers;
   #navigations;
-  #preRegisteredNavigationIds;
   #promptListener;
 
   constructor() {
@@ -82,10 +81,6 @@ class NavigationRegistry extends EventEmitter {
 
     // Maps navigable id to NavigationInfo.
     this.#navigations = new Map();
-
-    // Maps navigable id to navigation id. Only used to pre-register navigation
-    // ids before the actual event is detected.
-    this.#preRegisteredNavigationIds = new Map();
 
     this.#contextListener = new lazy.BrowsingContextListener();
     this.#contextListener.on("discarded", this.#onContextDiscarded);
@@ -175,7 +170,7 @@ class NavigationRegistry extends EventEmitter {
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
-    const navigation = { finished: true, navigationId, url };
+    const navigation = { state: "finished", navigationId, url };
     this.#navigations.set(navigableId, navigation);
 
     // Hash change navigations are immediately done, fire a single event.
@@ -206,7 +201,7 @@ class NavigationRegistry extends EventEmitter {
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
-    const navigation = { finished: true, navigationId, url };
+    const navigation = { state: "finished", navigationId, url };
     this.#navigations.set(navigableId, navigation);
 
     // Same document navigations are immediately done, fire a single event.
@@ -249,7 +244,7 @@ class NavigationRegistry extends EventEmitter {
       return null;
     }
 
-    if (navigation.finished) {
+    if (navigation.state === "finished") {
       lazy.logger.trace(
         `[${navigableId}] Navigation already marked as finished, navigationId: ${navigation.navigationId}`
       );
@@ -260,7 +255,7 @@ class NavigationRegistry extends EventEmitter {
       lazy.truncate`[${navigableId}] Navigation failed for url: ${url} (${navigation.navigationId})`
     );
 
-    navigation.finished = true;
+    navigation.state = "finished";
 
     this.emit("navigation-failed", {
       contextId: context.id,
@@ -296,7 +291,7 @@ class NavigationRegistry extends EventEmitter {
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
     let navigation = this.#navigations.get(navigableId);
-    if (navigation && !navigation.finished) {
+    if (navigation && navigation.state === "started") {
       // Bug 1908952. As soon as we have support for the "url" field in case of beforeunload
       // prompt being open, we can remove "!navigation.url" check.
       if (!navigation.url || navigation.url === url) {
@@ -327,7 +322,7 @@ class NavigationRegistry extends EventEmitter {
     }
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
-    navigation = { finished: false, navigationId, url };
+    navigation = { state: "started", navigationId, url };
     this.#navigations.set(navigableId, navigation);
 
     lazy.logger.trace(
@@ -365,7 +360,7 @@ class NavigationRegistry extends EventEmitter {
       return null;
     }
 
-    if (navigation.finished) {
+    if (navigation.state === "finished") {
       lazy.logger.trace(
         `[${navigableId}] Navigation already marked as finished, navigationId: ${navigation.navigationId}`
       );
@@ -376,7 +371,7 @@ class NavigationRegistry extends EventEmitter {
       lazy.truncate`[${navigableId}] Navigation finished for url: ${url} (${navigation.navigationId})`
     );
 
-    navigation.finished = true;
+    navigation.state = "finished";
 
     this.emit("navigation-stopped", {
       navigationId: navigation.navigationId,
@@ -402,8 +397,27 @@ class NavigationRegistry extends EventEmitter {
     const context = this.#getContextFromContextDetails(contextDetails);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
 
+    let navigation = this.#navigations.get(navigableId);
+    if (navigation && navigation.state === "started") {
+      lazy.logger.trace(
+        `[${navigableId}] We're going to fail the navigation for url: ${navigation.url} (${navigation.navigationId}), ` +
+          "since it was interrupted by a new navigation."
+      );
+
+      // If there is already a navigation in progress but with a different url,
+      // it means that this navigation was interrupted by a new navigation.
+      // Note: ideally we should monitor this using NS_BINDING_ABORTED,
+      // but due to intermittent issues, when monitoring this in content processes,
+      // we can't reliable use it.
+      notifyNavigationFailed({
+        contextDetails,
+        errorName: "A new navigation interrupted an unfinished navigation",
+        url: navigation.url,
+      });
+    }
+
     const navigationId = lazy.generateUUID();
-    this.#preRegisteredNavigationIds.set(navigableId, navigationId);
+    this.#navigations.set(navigableId, { state: "registered", navigationId });
 
     return navigationId;
   }
@@ -419,17 +433,11 @@ class NavigationRegistry extends EventEmitter {
   }
 
   #getOrCreateNavigationId(navigableId) {
-    let navigationId;
-    if (this.#preRegisteredNavigationIds.has(navigableId)) {
-      navigationId = this.#preRegisteredNavigationIds.get(
-        navigableId,
-        navigationId
-      );
-      this.#preRegisteredNavigationIds.delete(navigableId);
-    } else {
-      navigationId = lazy.generateUUID();
+    const navigation = this.#navigations.get(navigableId);
+    if (navigation !== undefined && navigation.state === "registered") {
+      return navigation.navigationId;
     }
-    return navigationId;
+    return lazy.generateUUID();
   }
 
   #onContextDiscarded = async (eventName, data = {}) => {
