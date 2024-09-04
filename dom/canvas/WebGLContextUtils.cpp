@@ -63,7 +63,7 @@ TexTarget TexImageTargetToTexTarget(TexImageTarget texImageTarget) {
 // This version is fallible and will return nullptr if unrecognized.
 const char* GetEnumName(const GLenum val, const char* const defaultRet) {
   switch (val) {
-    case 0: // AKA NONE, POINTS
+    case 0:  // AKA NONE, POINTS
       return "0";
 
 #define XX(x)        \
