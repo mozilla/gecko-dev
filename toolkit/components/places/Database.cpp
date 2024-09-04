@@ -1328,6 +1328,13 @@ nsresult Database::InitSchema(bool* aDatabaseMigrated) {
 
       // Firefox 125 uses schema version 77
 
+      if (currentSchemaVersion < 78) {
+        rv = MigrateV78Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 132 uses schema version 78
+
       // Schema Upgrades must add migration code here.
       // >>> IMPORTANT! <<<
       // NEVER MIX UP SYNC AND ASYNC EXECUTION IN MIGRATORS, YOU MAY LOCK THE
@@ -2115,6 +2122,20 @@ nsresult Database::MigrateV77Up() {
   nsresult rv = mMainConn->ExecuteSimpleSQL(
       "UPDATE moz_origins SET recalc_frecency = 1"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+nsresult Database::MigrateV78Up() {
+  // Add flags to moz_icons.
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement("SELECT flags FROM moz_icons"_ns,
+                                           getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(
+        "ALTER TABLE moz_icons "
+        "ADD COLUMN flags INTEGER NOT NULL DEFAULT 0"_ns);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   return NS_OK;
 }
 

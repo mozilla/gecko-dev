@@ -243,6 +243,7 @@
       "root INTEGER NOT NULL DEFAULT 0, "      \
       "color INTEGER, "                        \
       "expire_ms INTEGER NOT NULL DEFAULT 0, " \
+      "flags INTEGER NOT NULL DEFAULT 0, "     \
       "data BLOB "                             \
       ") ")
 
