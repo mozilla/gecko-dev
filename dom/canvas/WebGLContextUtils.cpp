@@ -63,18 +63,20 @@ TexTarget TexImageTargetToTexTarget(TexImageTarget texImageTarget) {
 // This version is fallible and will return nullptr if unrecognized.
 const char* GetEnumName(const GLenum val, const char* const defaultRet) {
   switch (val) {
-    case 0:
+    case 0: // AKA NONE, POINTS
       return "0";
+
 #define XX(x)        \
   case LOCAL_GL_##x: \
     return #x;
-      // XX(NONE)
+
       XX(ACTIVE_UNIFORM_BLOCKS)
       XX(ALPHA)
       XX(ALREADY_SIGNALED)
       XX(ANY_SAMPLES_PASSED)
       XX(ANY_SAMPLES_PASSED_CONSERVATIVE)
       XX(BLUE)
+      XX(BYTE)
       XX(COLOR)
       XX(COLOR_ATTACHMENT0)
       XX(COLOR_ATTACHMENT1)
@@ -286,6 +288,7 @@ const char* GetEnumName(const GLenum val, const char* const defaultRet) {
       XX(SAMPLER_CUBE)
       XX(SAMPLER_CUBE_SHADOW)
       XX(SEPARATE_ATTRIBS)
+      XX(SHORT)
       XX(SIGNALED)
       XX(SIGNED_NORMALIZED)
       XX(SRGB)
@@ -385,6 +388,7 @@ const char* GetEnumName(const GLenum val, const char* const defaultRet) {
       XX(VERTEX_ATTRIB_ARRAY_DIVISOR)
       XX(VERTEX_ATTRIB_ARRAY_INTEGER)
       XX(WAIT_FAILED)
+
 #undef XX
   }
 
