@@ -30,23 +30,52 @@ bool js::Nursery::isInside(const SharedMem<T>& p) const {
   return isInside(p.unwrap(/*safe - used for value in comparison above*/));
 }
 
+inline void js::Nursery::addMallocedBufferBytes(size_t nbytes) {
+  MOZ_ASSERT(nbytes > 0);
+  toSpace.mallocedBufferBytes += nbytes;
+  if (MOZ_UNLIKELY(toSpace.mallocedBufferBytes > capacity() * 8)) {
+    requestMinorGC(JS::GCReason::NURSERY_MALLOC_BUFFERS);
+  }
+}
+
 inline bool js::Nursery::addStringBuffer(JSLinearString* s) {
   MOZ_ASSERT(IsInsideNursery(s));
   MOZ_ASSERT(isEnabled());
   MOZ_ASSERT(s->hasStringBuffer());
-  return stringBuffers_.emplaceBack(s, s->stringBuffer());
+
+  auto* buffer = s->stringBuffer();
+  if (!stringBuffers_.emplaceBack(s, buffer)) {
+    return false;
+  }
+
+  // Note: update mallocedBufferBytes only if the buffer has a refcount of 1, to
+  // avoid double counting when the same buffer is used by multiple nursery
+  // strings.
+  if (!buffer->HasMultipleReferences()) {
+    addMallocedBufferBytes(buffer->AllocationSize());
+  }
+  return true;
 }
 
 inline bool js::Nursery::addExtensibleStringBuffer(
     JSLinearString* s, mozilla::StringBuffer* buffer) {
   MOZ_ASSERT(IsInsideNursery(s));
   MOZ_ASSERT(isEnabled());
-  return extensibleStringBuffers_.putNew(s, buffer);
+  if (!extensibleStringBuffers_.putNew(s, buffer)) {
+    return false;
+  }
+  MOZ_ASSERT(!buffer->HasMultipleReferences());
+  addMallocedBufferBytes(buffer->AllocationSize());
+  return true;
 }
 
 inline void js::Nursery::removeExtensibleStringBuffer(JSLinearString* s) {
   MOZ_ASSERT(gc::IsInsideNursery(s));
   extensibleStringBuffers_.remove(s);
+
+  size_t nbytes = s->stringBuffer()->AllocationSize();
+  MOZ_ASSERT(toSpace.mallocedBufferBytes >= nbytes);
+  toSpace.mallocedBufferBytes -= nbytes;
 }
 
 inline bool js::Nursery::shouldTenure(gc::Cell* cell) {

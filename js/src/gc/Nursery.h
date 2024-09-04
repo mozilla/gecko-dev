@@ -424,6 +424,8 @@ class Nursery {
            (maxChunkCount() - currentChunk() - 1) * gc::ChunkSize;
   }
 
+  inline void addMallocedBufferBytes(size_t nbytes);
+
   // Calculate the promotion rate of the most recent minor GC.
   // The valid_for_tenuring parameter is used to return whether this
   // promotion rate is accurate enough (the nursery was full enough) to be

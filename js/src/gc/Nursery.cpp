@@ -1764,11 +1764,7 @@ bool js::Nursery::registerMallocedBuffer(void* buffer, size_t nbytes) {
     return false;
   }
 
-  toSpace.mallocedBufferBytes += nbytes;
-  if (MOZ_UNLIKELY(toSpace.mallocedBufferBytes > capacity() * 8)) {
-    requestMinorGC(JS::GCReason::NURSERY_MALLOC_BUFFERS);
-  }
-
+  addMallocedBufferBytes(nbytes);
   return true;
 }
 
@@ -1948,6 +1944,10 @@ void js::Nursery::sweepStringsWithBuffer() {
   stringBuffers_.mutableEraseIf([&](StringAndBuffer& entry) {
     if (JSLinearString* dst = sweep(entry.first, entry.second)) {
       entry.first = dst;
+      // See comment in Nursery::addStringBuffer.
+      if (!entry.second->HasMultipleReferences()) {
+        addMallocedBufferBytes(entry.second->AllocationSize());
+      }
       return false;
     }
     return true;
@@ -1963,6 +1963,9 @@ void js::Nursery::sweepStringsWithBuffer() {
       if (!extensibleStringBuffers_.putNew(dst, e.front().value())) {
         oomUnsafe.crash("sweepStringsWithBuffer");
       }
+      // Ensure mallocedBufferBytes includes the buffer size for
+      // removeExtensibleStringBuffer.
+      addMallocedBufferBytes(e.front().value()->AllocationSize());
     }
   }
 }
