@@ -44,6 +44,6 @@ win64-gn:
         script: build-gn-win64.sh
     fetches:
         fetch:
-            - ninja
+            - win64-ninja
         toolchain:
             - vs-toolchain

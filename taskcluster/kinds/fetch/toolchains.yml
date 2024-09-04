@@ -403,7 +403,7 @@ wasi-sdk:
         repo: https://github.com/WebAssembly/wasi-sdk
         revision: 935fe1acd2fcd7ea4aed2d5ee4527482862b6344
 
-ninja:
+win64-ninja:
     description: ninja 1.9.0
     fetch:
         type: static-url
