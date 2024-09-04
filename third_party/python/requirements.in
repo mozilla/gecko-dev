@@ -58,6 +58,7 @@ taskcluster-urls==13.0.1
 toml==0.10.2
 tomlkit==0.12.3
 tqdm==4.62.3
+typing-extensions==4.12.2
 urllib3==1.26.17
 voluptuous==0.12.1
 wheel==0.43.0
