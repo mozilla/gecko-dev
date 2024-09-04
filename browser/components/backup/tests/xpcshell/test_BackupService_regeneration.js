@@ -455,3 +455,23 @@ add_task(async function test_sanitization() {
     await Sanitizer.sanitize(["siteSettings"]);
   }, "Saw regeneration on sanitization of site settings.");
 });
+
+/**
+ * Tests that backup regeneration occurs after a permission is removed.
+ */
+add_task(async function test_permission_removed() {
+  let principal =
+    Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+      "https://test-permission-site.com"
+    );
+  const PERMISSION_TYPE = "desktop-notification";
+  Services.perms.addFromPrincipal(
+    principal,
+    PERMISSION_TYPE,
+    Services.perms.ALLOW_ACTION
+  );
+
+  await expectRegeneration(async () => {
+    Services.perms.removeFromPrincipal(principal, PERMISSION_TYPE);
+  }, "Saw regeneration on permission removal.");
+});

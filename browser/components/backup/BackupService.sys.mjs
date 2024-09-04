@@ -3167,6 +3167,7 @@ export class BackupService extends EventTarget {
     Services.obs.addObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.addObserver(this.#observer, "formautofill-storage-changed");
     Services.obs.addObserver(this.#observer, "sanitizer-sanitization-complete");
+    Services.obs.addObserver(this.#observer, "perm-changed");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3197,6 +3198,7 @@ export class BackupService extends EventTarget {
 
     Services.obs.removeObserver(this.#observer, "passwordmgr-storage-changed");
     Services.obs.removeObserver(this.#observer, "formautofill-storage-changed");
+    Services.obs.removeObserver(this.#observer, "perm-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
 
@@ -3245,6 +3247,12 @@ export class BackupService extends EventTarget {
       }
       case "sanitizer-sanitization-complete": {
         this.#debounceRegeneration();
+        break;
+      }
+      case "perm-changed": {
+        if (data == "deleted") {
+          this.#debounceRegeneration();
+        }
         break;
       }
     }
