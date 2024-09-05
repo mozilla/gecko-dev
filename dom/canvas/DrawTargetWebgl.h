@@ -619,6 +619,8 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
                 bool aTransformed = true, bool aClipped = true,
                 bool aAccelOnly = false, bool aForceUpdate = false,
                 const StrokeOptions* aStrokeOptions = nullptr);
+  Maybe<SurfacePattern> LinearGradientToSurface(const RectDouble& aBounds,
+                                                const Pattern& aPattern);
 
   ColorPattern GetClearPattern() const;
 

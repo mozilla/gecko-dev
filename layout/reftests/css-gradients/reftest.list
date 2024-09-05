@@ -1,5 +1,5 @@
 fuzzy(0-4,0-89700) == linear-1a.html linear-1-ref.html
-fuzzy(0-2,0-23918) == linear-keywords-1a.html linear-keywords-1-ref.html
+fuzzy(0-2,0-27600) == linear-keywords-1a.html linear-keywords-1-ref.html
 == linear-diagonal-1a.html linear-diagonal-1-ref.html
 == linear-diagonal-2a.html linear-diagonal-2-ref.html
 == linear-diagonal-3a.html linear-diagonal-3-ref.html
