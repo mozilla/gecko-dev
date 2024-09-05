@@ -99,6 +99,18 @@ T* CellAllocator::NewObject(JSContext* cx, gc::AllocKind kind, gc::Heap heap,
   return new (mozilla::KnownNotNull, cell) T();
 }
 
+template <typename T, AllowGC allowGC, typename... Args>
+/* static */
+T* CellAllocator::NewTenuredCell(JSContext* cx, Args&&... args) {
+  gc::AllocKind kind = gc::MapTypeToAllocKind<T>::kind;
+  MOZ_ASSERT(Arena::thingSize(kind) == sizeof(T));
+  void* cell = AllocTenuredCell<allowGC>(cx, kind);
+  if (MOZ_UNLIKELY(!cell)) {
+    return nullptr;
+  }
+  return new (mozilla::KnownNotNull, cell) T(std::forward<Args>(args)...);
+}
+
 template <JS::TraceKind traceKind, AllowGC allowGC>
 /* static */
 void* CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
@@ -147,18 +159,6 @@ MOZ_ALWAYS_INLINE gc::Heap CellAllocator::CheckedHeap(gc::Heap heap) {
   }
 
   return heap;
-}
-
-template <typename T, AllowGC allowGC, typename... Args>
-/* static */
-T* CellAllocator::NewTenuredCell(JSContext* cx, Args&&... args) {
-  gc::AllocKind kind = gc::MapTypeToAllocKind<T>::kind;
-  MOZ_ASSERT(Arena::thingSize(kind) == sizeof(T));
-  void* cell = AllocTenuredCell<allowGC>(cx, kind);
-  if (MOZ_UNLIKELY(!cell)) {
-    return nullptr;
-  }
-  return new (mozilla::KnownNotNull, cell) T(std::forward<Args>(args)...);
 }
 
 }  // namespace gc
