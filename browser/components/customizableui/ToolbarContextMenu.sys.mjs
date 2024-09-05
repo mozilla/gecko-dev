@@ -110,7 +110,8 @@ export var ToolbarContextMenu = {
           parent.classList.contains("customization-target") ||
           parent.getAttribute("overflowfortoolbar") || // Needs to work in the overflow list as well.
           parent.localName == "toolbarpaletteitem" ||
-          parent.localName == "toolbar"
+          parent.localName == "toolbar" ||
+          parent.id == "vertical-tabs"
         ) {
           break;
         }
@@ -126,36 +127,48 @@ export var ToolbarContextMenu = {
       }
     }
 
-    MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
-    let firstMenuItem = aInsertPoint || popup.firstElementChild;
-    let toolbarNodes = gNavToolbox.querySelectorAll("toolbar");
-    for (let toolbar of toolbarNodes) {
-      if (!toolbar.hasAttribute("toolbarname")) {
-        continue;
-      }
+    let showTabStripItems = toolbarItem?.id == "tabbrowser-tabs";
+    let isVerticalTabStripMenu =
+      showTabStripItems && toolbarItem.parentElement.id == "vertical-tabs";
 
-      if (toolbar.id == "PersonalToolbar") {
-        let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(toolbar);
-        popup.insertBefore(menu, firstMenuItem);
-      } else {
-        let menuItem = document.createXULElement("menuitem");
-        menuItem.setAttribute("id", "toggle_" + toolbar.id);
-        menuItem.setAttribute("toolbarId", toolbar.id);
-        menuItem.setAttribute("type", "checkbox");
-        menuItem.setAttribute("label", toolbar.getAttribute("toolbarname"));
-        let hidingAttribute =
-          toolbar.getAttribute("type") == "menubar" ? "autohide" : "collapsed";
-        menuItem.setAttribute(
-          "checked",
-          toolbar.getAttribute(hidingAttribute) != "true"
-        );
-        menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
-        if (popup.id != "toolbar-context-menu") {
-          menuItem.setAttribute("key", toolbar.getAttribute("key"));
+    aInsertPoint.hidden = isVerticalTabStripMenu;
+    document.getElementById("toolbar-context-customize").hidden =
+      isVerticalTabStripMenu;
+
+    if (!isVerticalTabStripMenu) {
+      MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
+      let firstMenuItem = aInsertPoint || popup.firstElementChild;
+      let toolbarNodes = gNavToolbox.querySelectorAll("toolbar");
+      for (let toolbar of toolbarNodes) {
+        if (!toolbar.hasAttribute("toolbarname")) {
+          continue;
         }
 
-        popup.insertBefore(menuItem, firstMenuItem);
-        menuItem.addEventListener("command", onViewToolbarCommand);
+        if (toolbar.id == "PersonalToolbar") {
+          let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(toolbar);
+          popup.insertBefore(menu, firstMenuItem);
+        } else {
+          let menuItem = document.createXULElement("menuitem");
+          menuItem.setAttribute("id", "toggle_" + toolbar.id);
+          menuItem.setAttribute("toolbarId", toolbar.id);
+          menuItem.setAttribute("type", "checkbox");
+          menuItem.setAttribute("label", toolbar.getAttribute("toolbarname"));
+          let hidingAttribute =
+            toolbar.getAttribute("type") == "menubar"
+              ? "autohide"
+              : "collapsed";
+          menuItem.setAttribute(
+            "checked",
+            toolbar.getAttribute(hidingAttribute) != "true"
+          );
+          menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
+          if (popup.id != "toolbar-context-menu") {
+            menuItem.setAttribute("key", toolbar.getAttribute("key"));
+          }
+
+          popup.insertBefore(menuItem, firstMenuItem);
+          menuItem.addEventListener("command", onViewToolbarCommand);
+        }
       }
     }
 
@@ -171,7 +184,6 @@ export var ToolbarContextMenu = {
       return;
     }
 
-    let showTabStripItems = toolbarItem?.id == "tabbrowser-tabs";
     for (let node of popup.querySelectorAll(
       'menuitem[contexttype="toolbaritem"]'
     )) {

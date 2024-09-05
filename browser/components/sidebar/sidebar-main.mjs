@@ -93,7 +93,10 @@ export default class SidebarMain extends MozLitElement {
       event.explicitOriginalTarget.flattenedTreeParentNode;
     if (
       this.contextMenuTarget.getAttribute("extensionId") ||
-      this.contextMenuTarget.className.includes("tab")
+      this.contextMenuTarget.className.includes("tab") ||
+      document
+        .getElementById("vertical-tabs")
+        .contains(this.contextMenuTarget.flattenedTreeParentNode)
     ) {
       this.updateExtensionContextMenuItems();
       return;
