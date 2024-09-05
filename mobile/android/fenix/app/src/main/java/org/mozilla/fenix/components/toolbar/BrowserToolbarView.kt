@@ -31,6 +31,7 @@ import mozilla.components.ui.widgets.behavior.EngineViewScrollingBehavior
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.customtabs.CustomTabToolbarIntegration
 import org.mozilla.fenix.customtabs.CustomTabToolbarMenu
 import org.mozilla.fenix.ext.bookmarkStorage
@@ -271,6 +272,8 @@ class BrowserToolbarView(
      * This will intrinsically check and disable the dynamic behavior if
      *  - this is disabled in app settings
      *  - toolbar is placed at the bottom and tab shows a PWA or TWA
+     *  - toolbar is shown together with the navbar in a container that will handle scrolling
+     *  for both Views at the same time.
      *
      *  Also if the user has not explicitly set a toolbar position and has a screen reader enabled
      *  the toolbar will be placed at the top and in a fixed position.
@@ -280,7 +283,10 @@ class BrowserToolbarView(
     fun setToolbarBehavior(shouldDisableScroll: Boolean = false) {
         when (settings.toolbarPosition) {
             ToolbarPosition.BOTTOM -> {
-                if (settings.isDynamicToolbarEnabled && !settings.shouldUseFixedTopToolbar) {
+                if (settings.isDynamicToolbarEnabled &&
+                    !settings.shouldUseFixedTopToolbar &&
+                    !context.shouldAddNavigationBar()
+                ) {
                     setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM)
                 } else {
                     expandToolbarAndMakeItFixed()
