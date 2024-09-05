@@ -172,6 +172,13 @@ class IMEStateManager {
       IMEContentObserver& aObserver);
 
   /**
+   * Called when HTMLEditor updates the root element which is <body> of the
+   * document if there is (or the document element otherwise).
+   */
+  MOZ_CAN_RUN_SCRIPT static void OnUpdateHTMLEditorRootElement(
+      HTMLEditor& aHTMLEditor, dom::Element* aNewRootElement);
+
+  /**
    * OnChangeFocus() should be called when focused content is changed or
    * IME enabled state is changed.  If nobody has focus, set both aPresContext
    * and aContent nullptr.  E.g., all windows are deactivated.  Otherwise,

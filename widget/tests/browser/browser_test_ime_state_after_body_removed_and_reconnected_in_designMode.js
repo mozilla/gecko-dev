@@ -44,7 +44,6 @@ add_task(async function test_replace_body_in_designMode() {
         "test_replace_body_in_designMode: IME should be enabled when the document becomes editable"
       );
 
-      tipWrapper.clearFocusBlurNotifications();
       const waitForRefocusAfterBodyRemoval = waitFor("notify-focus");
       await SpecialPowers.spawn(browser, [], () => {
         content.wrappedJSObject.body = content.document.body;
@@ -60,26 +59,16 @@ add_task(async function test_replace_body_in_designMode() {
         "test_replace_body_in_designMode: IME should be enabled after the <body> is removed"
       );
 
+      const waitForRefocusAfterBodyReconnect = waitFor("notify-focus");
       await SpecialPowers.spawn(browser, [], () => {
         content.document.documentElement.appendChild(
           content.wrappedJSObject.body
         );
       });
-      tipWrapper.clearFocusBlurNotifications();
-      await new Promise(resolve => {
-        window.requestAnimationFrame(() =>
-          window.requestAnimationFrame(resolve)
-        );
-      });
-      // FIXME: IME should be refocused when new <body> is inserted because
-      // HTMLEditor::GetRoot() returns the reconnected <body> now, but
-      // IMEContentObserver keeps observing the <html>.
-      Assert.equal(
-        tipWrapper.numberOfBlurNotifications +
-          tipWrapper.numberOfFocusNotifications,
-        0,
-        "test_replace_body_in_designMode: IME should not be refocused when the <body> is reconnected"
+      info(
+        "test_replace_body_in_designMode: Waiting for IME refocus after the <body> is reconnected..."
       );
+      await waitForRefocusAfterBodyReconnect;
       Assert.equal(
         window.windowUtils.IMEStatus,
         Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED,
@@ -126,7 +115,7 @@ add_task(async function test_replace_document_element_in_designMode() {
       );
 
       tipWrapper.clearFocusBlurNotifications();
-      const waitForRefocusAfterDocumentElementRemoval = waitFor("notify-blur");
+      const waitForBlurAfterDocumentElementRemoval = waitFor("notify-blur");
       await SpecialPowers.spawn(browser, [], () => {
         content.wrappedJSObject.documentElement =
           content.document.documentElement;
@@ -135,29 +124,22 @@ add_task(async function test_replace_document_element_in_designMode() {
       info(
         "test_replace_document_element_in_designMode: Waiting for IME blur after the <html> is removed..."
       );
-      await waitForRefocusAfterDocumentElementRemoval;
+      await waitForBlurAfterDocumentElementRemoval;
       Assert.equal(
         window.windowUtils.IMEStatus,
-        Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED,
+        Ci.nsIDOMWindowUtils.IME_STATUS_DISABLED,
         "test_replace_document_element_in_designMode: IME should be enabled after the <html> is removed"
       );
 
+      info(
+        "test_replace_document_element_in_designMode: Waiting for IME focus after the <html> is reconnected..."
+      );
+      const waitForRefocusAfterDocumentElementReconnect =
+        waitFor("notify-focus");
       await SpecialPowers.spawn(browser, [], () => {
         content.document.appendChild(content.wrappedJSObject.documentElement);
       });
-      tipWrapper.clearFocusBlurNotifications();
-      await new Promise(resolve => {
-        window.requestAnimationFrame(() =>
-          window.requestAnimationFrame(resolve)
-        );
-      });
-      // FIXME: IME should be focused when new root element is inserted.
-      Assert.equal(
-        tipWrapper.numberOfBlurNotifications +
-          tipWrapper.numberOfFocusNotifications,
-        0,
-        "test_replace_document_element_in_designMode: IME should not be refocused when the <html> is reconnected"
-      );
+      await waitForRefocusAfterDocumentElementReconnect;
       Assert.equal(
         window.windowUtils.IMEStatus,
         Ci.nsIDOMWindowUtils.IME_STATUS_ENABLED,

@@ -8251,11 +8251,24 @@ nsresult PresShell::EventHandler::HandleEventAtFocusedContent(
 
   // If we cannot handle the event with mPresShell, let's try to handle it
   // with parent PresShell.
+  // However, we don't want to handle IME related events with parent document
+  // because it may leak the content of parent document and the IME state was
+  // set for the empty document.  So, dispatching on the parent document may be
+  // handled by nobody. Additionally, IMEContentObserver may send notifications
+  // to PuppetWidget in a content process while document which is in the design
+  // mode but does not have content nodes has focus.  At that time, PuppetWidget
+  // makes ContentCacheInChild collect the latest content data with dispatching
+  // query content events.  Therefore, we want they handle in the empty document
+  // rather than the parent document.  So, we must not retarget in this case
+  // anyway.
   mPresShell->mCurrentEventTarget.SetFrameAndContent(
       aGUIEvent->mMessage, nullptr, eventTargetElement);
-  if (!mPresShell->GetCurrentEventContent() ||
-      !mPresShell->GetCurrentEventFrame() ||
-      InZombieDocument(mPresShell->mCurrentEventTarget.mContent)) {
+  if (aGUIEvent->mClass != eCompositionEventClass &&
+      aGUIEvent->mClass != eQueryContentEventClass &&
+      aGUIEvent->mClass != eSelectionEventClass &&
+      (!mPresShell->GetCurrentEventContent() ||
+       !mPresShell->GetCurrentEventFrame() ||
+       InZombieDocument(mPresShell->mCurrentEventTarget.mContent))) {
     return RetargetEventToParent(aGUIEvent, aEventStatus);
   }
 
