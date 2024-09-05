@@ -212,6 +212,8 @@ this.addonsSearchDetection = class extends ExtensionAPI {
               fire.sync({ addonId, firstUrl, lastUrl });
             };
 
+            const remoteTab = context.xulBrowser.frameLoader.remoteTab;
+
             const listener = ({ requestId, url, originUrl }) => {
               // We exclude requests not originating from the location bar,
               // bookmarks and other "system-ish" requests.
@@ -227,20 +229,47 @@ this.addonsSearchDetection = class extends ExtensionAPI {
                 const wrapper = ChannelWrapper.getRegisteredChannel(
                   requestId,
                   context.extension.policy,
-                  context.xulBrowser.frameLoader.remoteTab
+                  remoteTab
                 );
 
                 wrapper.addEventListener("stop", stopListener);
               }
             };
 
+            const ensureRegisterChannel = data => {
+              // onRedirected depends on ChannelWrapper.getRegisteredChannel,
+              // which in turn depends on registerTraceableChannel to have been
+              // called. When a blocking webRequest listener is present, the
+              // parent/ext-webRequest.js implementation already calls that.
+              //
+              // A downside to a blocking webRequest listener is that it delays
+              // the network request until a roundtrip to the listener in the
+              // extension process has happened. Since we don't need to handle
+              // the onBeforeRequest event, avoid the overhead by handling the
+              // event and registration here, in the parent process.
+              data.registerTraceableChannel(extension.policy, remoteTab);
+            };
+
+            const parsedFilter = {
+              types: ["main_frame"],
+              urls: ExtensionUtils.parseMatchPatterns(filter.urls),
+            };
+
+            WebRequest.onBeforeRequest.addListener(
+              ensureRegisterChannel,
+              parsedFilter,
+              // blocking is needed to unlock data.registerTraceableChannel.
+              ["blocking"],
+              {
+                addonId: extension.id,
+                policy: extension.policy,
+                blockingAllowed: true,
+              }
+            );
+
             WebRequest.onBeforeRedirect.addListener(
               listener,
-              // filter
-              {
-                types: ["main_frame"],
-                urls: ExtensionUtils.parseMatchPatterns(filter.urls),
-              },
+              parsedFilter,
               // info
               [],
               // listener details
@@ -252,6 +281,7 @@ this.addonsSearchDetection = class extends ExtensionAPI {
             );
 
             return () => {
+              WebRequest.onBeforeRequest.removeListener(ensureRegisterChannel);
               WebRequest.onBeforeRedirect.removeListener(listener);
             };
           },
