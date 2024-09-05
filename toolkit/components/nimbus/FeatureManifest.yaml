@@ -732,6 +732,26 @@ newtab:
       type: boolean
       description: Allow Contile to use additonal sponsored top sites
 
+newtabUnifiedAds:
+  description: Mozilla Ad Routing Service (MARS) unified ads service
+  owner: mcrawford@mozilla.com, sdowne@mozilla.com
+  hasExposure: false
+  variables:
+    unifiedAdsEnabled:
+      type: boolean
+      description: >-
+          Enable MARS endpoint to serve content for all HNT services,
+          including top sites and recommended stories
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.unifiedAds.enabled
+    unifiedAdsEndpoint:
+      description: The URL for the MARS API endpoint.
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.unifiedAds.endpoint
+
 newtabSpocsCache:
   description: The about:newtab sponsored content cache.
   owner: sdowne@mozilla.com
