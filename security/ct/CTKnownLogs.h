@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1732186951000000);
+static const PRTime kCTExpirationTime = INT64_C(1732791970000000);
 
 namespace mozilla::ct {
 
@@ -161,6 +161,16 @@ const CTLogInfo kCTLogList[] = {
      "\x81\x5b\x4a\x14\x41\xec\xaf\xa9\x5d\x0e\xab\x12\x19\x71\xcd\x43\xef\xbb"
      "\x97",
      91},
+    {"Cloudflare 'Nimbus2026'", CTLogState::Admissible,
+     1724814000000,  // 2024-08-28T03:00:00Z
+     1,              // operated by Cloudflare
+     "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
+     "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xd8\x5c\x61\x4f\xac\x6a\xd2\x20\x80"
+     "\x4e\x8a\x42\xf6\x04\xad\x4b\xd4\xb1\x1c\x79\x8e\x29\x32\xde\x69\x53\x59"
+     "\xeb\xad\x78\xf3\xc0\x2a\xf2\xd0\x11\x5d\x05\x7e\xeb\xe8\xc1\xd3\xdf\x37"
+     "\xbf\x91\x64\x46\x6e\x0e\x27\x13\xea\xbb\x6f\x46\x27\x58\x86\xef\x40\x21"
+     "\xa3",
+     91},
     {"DigiCert Yeti2024 Log", CTLogState::Admissible,
      1667328840000,  // 2022-11-01T18:54:00Z
      2,              // operated by DigiCert
@@ -202,7 +212,7 @@ const CTLogInfo kCTLogList[] = {
      "\x38",
      91},
     {"DigiCert 'Wyvern2024h2' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xa8\x73\x12\x9c\x54\xd0\x7a\x7d\xc5"
@@ -212,7 +222,7 @@ const CTLogInfo kCTLogList[] = {
      "\x6d",
      91},
     {"DigiCert 'Wyvern2025h1' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xa7\xcb\x80\x61\x86\x1b\x1f\xb5\xab"
@@ -222,7 +232,7 @@ const CTLogInfo kCTLogList[] = {
      "\x09",
      91},
     {"DigiCert 'Wyvern2025h2' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xe0\xdb\x41\xef\xe4\x04\xbd\xcb\x6b"
@@ -252,7 +262,7 @@ const CTLogInfo kCTLogList[] = {
      "\x99",
      91},
     {"DigiCert 'Sphinx2024h2' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xdb\x09\x41\x84\xe7\xd1\xf1\x5b\x25"
@@ -262,7 +272,7 @@ const CTLogInfo kCTLogList[] = {
      "\x9a",
      91},
     {"DigiCert 'Sphinx2025h1' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xe3\x2f\x1f\x4d\x89\x05\x75\x29\x78"
@@ -272,7 +282,7 @@ const CTLogInfo kCTLogList[] = {
      "\x6e",
      91},
     {"DigiCert 'Sphinx2025h2' Log", CTLogState::Admissible,
-     1718500000000,  // 2024-06-16T01:06:40Z
+     1724900983000,  // 2024-08-29T03:09:43Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x41\x8c\x50\x13\x54\xb1\x19\x05\xb7"

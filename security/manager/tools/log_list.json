@@ -1,6 +1,6 @@
 {
-  "version": "43.2",
-  "log_list_timestamp": "2024-08-28T12:54:28Z",
+  "version": "45.6",
+  "log_list_timestamp": "2024-09-04T12:54:36Z",
   "operators": [
     {
       "name": "Google",
@@ -210,6 +210,22 @@
             "start_inclusive": "2025-01-01T00:00:00Z",
             "end_exclusive": "2026-01-01T00:00:00Z"
           }
+        },
+        {
+          "description": "Cloudflare 'Nimbus2026'",
+          "log_id": "yzj3FYl8hKFEX1vB3fvJbvKaWc1HCmkFhbDLFMMUWOc=",
+          "key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE2FxhT6xq0iCATopC9gStS9SxHHmOKTLeaVNZ661488Aq8tARXQV+6+jB0983v5FkRm4OJxPqu29GJ1iG70Ahow==",
+          "url": "https://ct.cloudflare.com/logs/nimbus2026/",
+          "mmd": 86400,
+          "state": {
+            "qualified": {
+              "timestamp": "2024-08-28T03:00:00Z"
+            }
+          },
+          "temporal_interval": {
+            "start_inclusive": "2026-01-01T00:00:00Z",
+            "end_exclusive": "2027-01-01T00:00:00Z"
+          }
         }
       ]
     },
@@ -290,8 +306,8 @@
           "url": "https://wyvern.ct.digicert.com/2024h2/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
@@ -306,8 +322,8 @@
           "url": "https://wyvern.ct.digicert.com/2025h1/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
@@ -322,8 +338,8 @@
           "url": "https://wyvern.ct.digicert.com/2025h2/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
@@ -370,8 +386,8 @@
           "url": "https://sphinx.ct.digicert.com/2024h2/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
@@ -386,8 +402,8 @@
           "url": "https://sphinx.ct.digicert.com/2025h1/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
@@ -402,8 +418,8 @@
           "url": "https://sphinx.ct.digicert.com/2025h2/",
           "mmd": 86400,
           "state": {
-            "qualified": {
-              "timestamp": "2024-06-16T01:06:40Z"
+            "usable": {
+              "timestamp": "2024-08-29T03:09:43Z"
             }
           },
           "temporal_interval": {
