@@ -26,9 +26,6 @@ class TestNoWindowUpdateRestart(MarionetteTestCase):
         # Every part of this test ought to run in the chrome context.
         self.marionette.set_context(self.marionette.CONTEXT_CHROME)
         self.setUpBrowser()
-        self.origDisabledForTesting = self.marionette.get_pref(
-            "app.update.disabledForTesting"
-        )
         self.resetUpdate()
 
     def setUpBrowser(self):
@@ -82,31 +79,24 @@ class TestNoWindowUpdateRestart(MarionetteTestCase):
         self.tearDownBrowser()
         self.resetUpdate()
 
-        # Reset context to the default.
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+        # Reset all modified preferences and restart Firefox
+        self.marionette.restart(in_app=False, clean=True)
 
         super(TestNoWindowUpdateRestart, self).tearDown()
 
     def tearDownBrowser(self):
         self.marionette.execute_async_script(
             """
-            let [origAppUpdateAuto, origDisabledForTesting, resolve] = arguments;
-            (async () => {
-                Services.prefs.setBoolPref("app.update.disabledForTesting", origDisabledForTesting);
-                Services.prefs.clearUserPref("app.update.download.attempts");
-                Services.prefs.clearUserPref("app.update.download.maxAttempts");
-                Services.prefs.clearUserPref("app.update.staging.enabled");
-                Services.prefs.clearUserPref("app.update.noWindowAutoRestart.enabled");
-                Services.prefs.clearUserPref("app.update.noWindowAutoRestart.delayMs");
-                Services.prefs.clearUserPref("testing.no_window_update_restart.silent_restart_env");
+            const [origAppUpdateAuto, resolve] = arguments;
 
-                let { UpdateUtils } = ChromeUtils.importESModule(
+            (async () => {
+                const { UpdateUtils } = ChromeUtils.importESModule(
                     "resource://gre/modules/UpdateUtils.sys.mjs"
                 );
                 await UpdateUtils.setAppUpdateAutoEnabled(origAppUpdateAuto);
             })().then(resolve);
         """,
-            script_args=(self.origAppUpdateAuto, self.origDisabledForTesting),
+            script_args=(self.origAppUpdateAuto,),
         )
 
     def test_update_on_last_window_close(self):
