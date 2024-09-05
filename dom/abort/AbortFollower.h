@@ -45,6 +45,9 @@ class AbortFollower : public nsISupports {
 };
 
 /*
+ * TODO(krosylight): The only consumer of this is Fetch. It would be nice to
+ * merge this back to AbortSignal as it's quite a duplication right now.
+ *
  * AbortSignalImpl is a minimal implementation without an associated global
  * and without event dispatching, those are added in AbortSignal.
  * See Bug 1478101
@@ -60,7 +63,7 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
   // Helper for other DOM code
   JS::Value RawReason() const;
 
-  virtual void SignalAbort(JS::Handle<JS::Value> aReason);
+  void SignalAbort(JS::Handle<JS::Value> aReason);
 
  protected:
   // Subclasses of this class must call these Traverse and Unlink functions
@@ -71,6 +74,10 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
   static void Unlink(AbortSignalImpl* aSignal);
 
   virtual ~AbortSignalImpl() { UnlinkFollowers(); }
+
+  virtual void SignalAbortWithDependents();
+
+  virtual void RunAbortSteps();
 
   void SetAborted(JS::Handle<JS::Value> aReason);
 
@@ -83,7 +90,10 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
 
   void UnlinkFollowers();
 
-  // Raw pointers.  |AbortFollower::Follow| adds to this array, and
+  // TODO(krosylight): We should rename all names around the term "Follow". See
+  // bug 1873648.
+  //
+  // |AbortFollower::Follow| adds to this array, and
   // |AbortFollower::Unfollow| (also called by the destructor) will remove
   // from this array.  Finally, calling |SignalAbort()| will (after running all
   // abort algorithms) empty this and make all contained followers |Unfollow()|.
