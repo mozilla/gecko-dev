@@ -12,7 +12,6 @@ To add a diagram, simply put something like this into your page:
 .. These two examples come from the upstream website (https://mermaid-js.github.io/mermaid/#/)
 
 .. code-block:: rst
-    :caption: .rst
 
     .. mermaid::
 
@@ -23,7 +22,6 @@ To add a diagram, simply put something like this into your page:
             C-->D;
 
 .. code-block:: md
-    :caption: .md
 
     ```{mermaid}
     graph TD;

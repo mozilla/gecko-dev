@@ -81,8 +81,10 @@ def lint(files, config, **lintargs):
     paths = list(paths)
     chunk_size = 50
     binary = get_rstcheck_binary()
+    # rstcheck configuration is stored in `/.rstcheck.cfg`. The `ignore-roles`
+    # directive remains in this file as it doesn't have effect when declared in
+    # the config file.
     rstcheck_options = [
-        "--ignore-language=cpp,json",
         "--ignore-roles=searchfox",
     ]
 
@@ -103,7 +105,7 @@ def lint(files, config, **lintargs):
                 filename, lineno, level, message = parse_with_split(errors)
                 if not IGNORE_NOT_REF_LINK_UPSTREAM_BUG.match(message):
                     # Ignore an upstream bug
-                    # https://github.com/myint/rstcheck/issues/19
+                    # https://github.com/rstcheck/rstcheck-core/issues/4
                     res = {
                         "path": filename,
                         "message": message,
