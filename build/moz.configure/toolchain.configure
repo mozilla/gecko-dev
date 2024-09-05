@@ -395,6 +395,20 @@ with only_when(target_is_ios):
     set_config("IPHONEOS_SDK_DIR", ios_sdk)
 
 
+# GC rooting and hazard analysis.
+# ==============================================================
+option(env="MOZ_HAZARD", help="Build for the GC rooting hazard analysis")
+
+
+@depends("MOZ_HAZARD")
+def hazard_analysis(value):
+    if value:
+        return True
+
+
+set_config("MOZ_HAZARD", hazard_analysis)
+
+
 # Cross-compilation related things.
 # ==============================================================
 option(
@@ -412,6 +426,20 @@ def toolchain_prefix(value, host, target, cross_compiling):
     # We don't want a toolchain prefix by default when building on mac for mac.
     if cross_compiling and not (target.os == "OSX" and host.os == "OSX"):
         return ("%s-" % target.toolchain, "%s-" % target.alias)
+
+
+@depends(toolchain_prefix, target)
+def first_toolchain_prefix(toolchain_prefix, target):
+    # Pass TOOLCHAIN_PREFIX down to the build system if it was given from the
+    # command line/environment (in which case there's only one value in the tuple),
+    # or when cross-compiling for Android or OSX.
+    if toolchain_prefix and (
+        target.os in ("Android", "OSX") or len(toolchain_prefix) == 1
+    ):
+        return toolchain_prefix[0]
+
+
+set_config("TOOLCHAIN_PREFIX", first_toolchain_prefix)
 
 
 # Compilers
@@ -1039,6 +1067,14 @@ def compiler_wrapper(wrapper, ccache):
             return (ccache,)
     elif wrapper:
         return tuple(wrapper)
+
+
+@depends_if(compiler_wrapper)
+def using_compiler_wrapper(compiler_wrapper):
+    return True
+
+
+set_config("MOZ_USING_COMPILER_WRAPPER", using_compiler_wrapper)
 
 
 @dependable
@@ -2026,6 +2062,7 @@ def select_linker_tmpl(host_or_target):
 
 
 select_linker = select_linker_tmpl(target)
+set_config("LINKER_KIND", select_linker.KIND)
 
 
 @template
@@ -2721,6 +2758,10 @@ def ub_signed_overflow_san_flags(
         linker_flags.ldflags.extend(["-fsanitize=signed-integer-overflow", "-rdynamic"])
 
 
+set_define("MOZ_SIGNED_OVERFLOW_SANITIZE", True, when=ub_signed_overflow_san)
+set_config("MOZ_SIGNED_OVERFLOW_SANITIZE", True, when=ub_signed_overflow_san)
+
+
 option(
     "--enable-unsigned-overflow-sanitizer",
     help="Enable UndefinedBehavior Sanitizer (Unsigned Integer Overflow Parts)",
@@ -2759,6 +2800,9 @@ def ub_unsigned_overflow_san_flags(
             ["-fsanitize=unsigned-integer-overflow", "-rdynamic"]
         )
 
+
+set_define("MOZ_UNSIGNED_OVERFLOW_SANITIZE", True, when=ub_unsigned_overflow_san)
+set_config("MOZ_UNSIGNED_OVERFLOW_SANITIZE", True, when=ub_unsigned_overflow_san)
 
 #
 

@@ -317,4 +317,5 @@ def googlevr_sdk(value, target):
 
 set_define("MOZ_ANDROID_GOOGLE_VR", googlevr_sdk.enabled)
 set_config("MOZ_ANDROID_GOOGLE_VR", googlevr_sdk.enabled)
+set_config("MOZ_ANDROID_GOOGLE_VR_INCLUDE", googlevr_sdk.include)
 set_config("MOZ_ANDROID_GOOGLE_VR_LIBS", googlevr_sdk.libs)

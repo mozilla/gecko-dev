@@ -176,6 +176,7 @@ def virtualenv_python3():
 
 
 set_config("PYTHON3", virtualenv_python3.path)
+set_config("PYTHON3_VERSION", virtualenv_python3.str_version)
 
 
 # Inject mozconfig options
@@ -377,6 +378,28 @@ def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, automation):
 
 
 set_config("VCS_CHECKOUT_TYPE", exposed_vcs_checkout_type)
+
+# Obtain a Repository interface for the current VCS repository.
+
+
+@depends(build_environment, exposed_vcs_checkout_type, hg, git)
+@imports(_from="mozversioncontrol", _import="get_repository_object")
+def vcs_repository(build_env, vcs_checkout_type, hg, git):
+    if vcs_checkout_type == "hg":
+        return get_repository_object(build_env.topsrcdir, hg=hg)
+    elif vcs_checkout_type == "git":
+        return get_repository_object(build_env.topsrcdir, git=git)
+    elif vcs_checkout_type:
+        raise FatalCheckError("unhandled VCS type: %s" % vcs_checkout_type)
+
+
+@depends_if(vcs_repository)
+@checking("for sparse checkout")
+def vcs_sparse_checkout(repo):
+    return repo.sparse_checkout_present()
+
+
+set_config("VCS_SPARSE_CHECKOUT", vcs_sparse_checkout)
 
 # The application/project to build
 # ==============================================================
@@ -1170,7 +1193,9 @@ set_config("EARLY_BETA_OR_EARLIER", milestone.is_early_beta_or_earlier)
 set_define("EARLY_BETA_OR_EARLIER", milestone.is_early_beta_or_earlier)
 set_define("MOZILLA_VERSION", depends(milestone)(lambda m: '"%s"' % m.version))
 set_config("MOZILLA_VERSION", milestone.version)
+set_define("MOZILLA_VERSION_U", milestone.version)
 set_define("MOZILLA_UAVERSION", depends(milestone)(lambda m: '"%s"' % m.uaversion))
+set_config("MOZILLA_SYMBOLVERSION", milestone.symbolversion)
 
 set_config("MOZ_APP_VERSION", milestone.app_version)
 set_config("MOZ_APP_VERSION_DISPLAY", milestone.app_version_display)
