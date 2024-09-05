@@ -72,7 +72,7 @@ struct SweepAction {
 };
 
 class ChunkPool {
-  TenuredChunk* head_;
+  ArenaChunk* head_;
   size_t count_;
 
  public:
@@ -97,41 +97,41 @@ class ChunkPool {
   bool empty() const { return !head_; }
   size_t count() const { return count_; }
 
-  TenuredChunk* head() {
+  ArenaChunk* head() {
     MOZ_ASSERT(head_);
     return head_;
   }
-  TenuredChunk* pop();
-  void push(TenuredChunk* chunk);
-  TenuredChunk* remove(TenuredChunk* chunk);
+  ArenaChunk* pop();
+  void push(ArenaChunk* chunk);
+  ArenaChunk* remove(ArenaChunk* chunk);
 
   void sort();
 
  private:
-  TenuredChunk* mergeSort(TenuredChunk* list, size_t count);
+  ArenaChunk* mergeSort(ArenaChunk* list, size_t count);
   bool isSorted() const;
 
 #ifdef DEBUG
  public:
-  bool contains(TenuredChunk* chunk) const;
+  bool contains(ArenaChunk* chunk) const;
   bool verify() const;
   void verifyChunks() const;
 #endif
 
  public:
   // Pool mutation does not invalidate an Iter unless the mutation
-  // is of the TenuredChunk currently being visited by the Iter.
+  // is of the ArenaChunk currently being visited by the Iter.
   class Iter {
    public:
     explicit Iter(ChunkPool& pool) : current_(pool.head_) {}
     bool done() const { return !current_; }
     void next();
-    TenuredChunk* get() const { return current_; }
-    operator TenuredChunk*() const { return get(); }
-    TenuredChunk* operator->() const { return get(); }
+    ArenaChunk* get() const { return current_; }
+    operator ArenaChunk*() const { return get(); }
+    ArenaChunk* operator->() const { return get(); }
 
    private:
-    TenuredChunk* current_;
+    ArenaChunk* current_;
   };
 };
 
@@ -568,8 +568,8 @@ class GCRuntime {
   void verifyAllChunks();
 #endif
 
-  TenuredChunk* getOrAllocChunk(AutoLockGCBgAlloc& lock);
-  void recycleChunk(TenuredChunk* chunk, const AutoLockGC& lock);
+  ArenaChunk* getOrAllocChunk(AutoLockGCBgAlloc& lock);
+  void recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock);
 
 #ifdef JS_GC_ZEAL
   void startVerifyPreBarriers();
@@ -691,8 +691,8 @@ class GCRuntime {
 
   // For ArenaLists::allocateFromArena()
   friend class ArenaLists;
-  TenuredChunk* pickChunk(AutoLockGCBgAlloc& lock);
-  Arena* allocateArena(TenuredChunk* chunk, Zone* zone, AllocKind kind,
+  ArenaChunk* pickChunk(AutoLockGCBgAlloc& lock);
+  Arena* allocateArena(ArenaChunk* chunk, Zone* zone, AllocKind kind,
                        ShouldCheckThresholds checkThresholds,
                        const AutoLockGC& lock);
 
@@ -704,7 +704,7 @@ class GCRuntime {
   bool tooManyEmptyChunks(const AutoLockGC& lock);
   ChunkPool expireEmptyChunkPool(const AutoLockGC& lock);
   void freeEmptyChunks(const AutoLockGC& lock);
-  void prepareToFreeChunk(TenuredChunkInfo& info);
+  void prepareToFreeChunk(ArenaChunkInfo& info);
   void setMinEmptyChunkCount(uint32_t value, const AutoLockGC& lock);
 
   friend class BackgroundAllocTask;

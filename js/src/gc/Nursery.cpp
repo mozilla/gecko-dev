@@ -61,7 +61,7 @@ static constexpr size_t NurseryChunkUsableSize =
 struct NurseryChunk : public ChunkBase {
   alignas(CellAlignBytes) uint8_t data[NurseryChunkUsableSize];
 
-  static NurseryChunk* fromChunk(TenuredChunk* chunk, ChunkKind kind,
+  static NurseryChunk* fromChunk(ArenaChunk* chunk, ChunkKind kind,
                                  uint8_t index);
 
   explicit NurseryChunk(JSRuntime* runtime, ChunkKind kind, uint8_t chunkIndex)
@@ -166,7 +166,7 @@ inline bool js::NurseryChunk::markPagesInUseHard(size_t endOffset) {
 }
 
 // static
-inline js::NurseryChunk* js::NurseryChunk::fromChunk(TenuredChunk* chunk,
+inline js::NurseryChunk* js::NurseryChunk::fromChunk(ArenaChunk* chunk,
                                                      ChunkKind kind,
                                                      uint8_t index) {
   return new (chunk) NurseryChunk(chunk->runtime, kind, index);
@@ -210,8 +210,8 @@ void js::NurseryDecommitTask::run(AutoLockHelperThreadState& lock) {
     NurseryChunk* nurseryChunk = chunksToDecommit().popCopy();
     AutoUnlockHelperThreadState unlock(lock);
     nurseryChunk->~NurseryChunk();
-    TenuredChunk* tenuredChunk = TenuredChunk::emplace(
-        nurseryChunk, gc, /* allMemoryCommitted = */ false);
+    ArenaChunk* tenuredChunk =
+        ArenaChunk::emplace(nurseryChunk, gc, /* allMemoryCommitted = */ false);
     AutoLockGC lock(gc);
     gc->recycleChunk(tenuredChunk, lock);
   }
@@ -2113,12 +2113,12 @@ bool js::Nursery::allocateNextChunk(AutoLockGCBgAlloc& lock) {
     return false;
   }
 
-  TenuredChunk* toSpaceChunk = gc->getOrAllocChunk(lock);
+  ArenaChunk* toSpaceChunk = gc->getOrAllocChunk(lock);
   if (!toSpaceChunk) {
     return false;
   }
 
-  TenuredChunk* fromSpaceChunk = nullptr;
+  ArenaChunk* fromSpaceChunk = nullptr;
   if (semispaceEnabled_ && !(fromSpaceChunk = gc->getOrAllocChunk(lock))) {
     gc->recycleChunk(toSpaceChunk, lock);
     return false;

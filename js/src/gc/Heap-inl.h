@@ -159,7 +159,7 @@ template <size_t BytesPerMarkBit, size_t FirstThingOffset>
 MOZ_ALWAYS_INLINE void
 js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyMarkBit(
     TenuredCell* dst, const TenuredCell* src, ColorBit colorBit) {
-  TenuredChunkBase* srcChunk = detail::GetCellChunkBase(src);
+  ArenaChunkBase* srcChunk = detail::GetCellChunkBase(src);
   MarkBitmapWord* srcWord;
   uintptr_t srcMask;
   srcChunk->markBits.getMarkWordAndMask(src, colorBit, &srcWord, &srcMask);

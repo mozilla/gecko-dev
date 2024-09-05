@@ -443,18 +443,18 @@ void js::gc::GCRuntime::finishVerifier() {
 }
 
 struct GCChunkHasher {
-  using Lookup = gc::TenuredChunk*;
+  using Lookup = gc::ArenaChunk*;
 
   /*
    * Strip zeros for better distribution after multiplying by the golden
    * ratio.
    */
-  static HashNumber hash(gc::TenuredChunk* chunk) {
+  static HashNumber hash(gc::ArenaChunk* chunk) {
     MOZ_ASSERT(!(uintptr_t(chunk) & gc::ChunkMask));
     return HashNumber(uintptr_t(chunk) >> gc::ChunkShift);
   }
 
-  static bool match(gc::TenuredChunk* k, gc::TenuredChunk* l) {
+  static bool match(gc::ArenaChunk* k, gc::ArenaChunk* l) {
     MOZ_ASSERT(!(uintptr_t(k) & gc::ChunkMask));
     MOZ_ASSERT(!(uintptr_t(l) & gc::ChunkMask));
     return k == l;
@@ -471,7 +471,7 @@ class js::gc::MarkingValidator {
   GCRuntime* gc;
   bool initialized;
 
-  using BitmapMap = HashMap<TenuredChunk*, UniquePtr<ChunkMarkBitmap>,
+  using BitmapMap = HashMap<ArenaChunk*, UniquePtr<ChunkMarkBitmap>,
                             GCChunkHasher, SystemAllocPolicy>;
   BitmapMap map;
 };

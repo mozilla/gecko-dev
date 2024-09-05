@@ -188,7 +188,7 @@ struct StatsClosure {
 };
 
 static void DecommittedPagesChunkCallback(JSRuntime* rt, void* data,
-                                          gc::TenuredChunk* chunk,
+                                          gc::ArenaChunk* chunk,
                                           const JS::AutoRequireNoGC& nogc) {
   size_t n = 0;
   for (uint32_t word : chunk->decommittedPages.Storage()) {
@@ -731,7 +731,7 @@ static bool CollectRuntimeStatsHelper(JSContext* cx, RuntimeStats* rtStats,
   size_t numDirtyChunks =
       (rtStats->gcHeapChunkTotal - rtStats->gcHeapUnusedChunks) / gc::ChunkSize;
   size_t perChunkAdmin =
-      sizeof(gc::TenuredChunk) - (sizeof(gc::Arena) * gc::ArenasPerChunk);
+      sizeof(gc::ArenaChunk) - (sizeof(gc::Arena) * gc::ArenasPerChunk);
   rtStats->gcHeapChunkAdmin = numDirtyChunks * perChunkAdmin;
 
   // |gcHeapUnusedArenas| is the only thing left.  Compute it in terms of

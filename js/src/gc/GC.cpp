@@ -341,7 +341,7 @@ ChunkPool GCRuntime::expireEmptyChunkPool(const AutoLockGC& lock) {
 
   ChunkPool expired;
   while (tooManyEmptyChunks(lock)) {
-    TenuredChunk* chunk = emptyChunks(lock).pop();
+    ArenaChunk* chunk = emptyChunks(lock).pop();
     prepareToFreeChunk(chunk->info);
     expired.push(chunk);
   }
@@ -354,7 +354,7 @@ ChunkPool GCRuntime::expireEmptyChunkPool(const AutoLockGC& lock) {
 
 static void FreeChunkPool(ChunkPool& pool) {
   for (ChunkPool::Iter iter(pool); !iter.done();) {
-    TenuredChunk* chunk = iter.get();
+    ArenaChunk* chunk = iter.get();
     iter.next();
     pool.remove(chunk);
     MOZ_ASSERT(chunk->unused());
@@ -367,7 +367,7 @@ void GCRuntime::freeEmptyChunks(const AutoLockGC& lock) {
   FreeChunkPool(emptyChunks(lock));
 }
 
-inline void GCRuntime::prepareToFreeChunk(TenuredChunkInfo& info) {
+inline void GCRuntime::prepareToFreeChunk(ArenaChunkInfo& info) {
   stats().count(gcstats::COUNT_DESTROY_CHUNK);
 #ifdef DEBUG
   /*
@@ -2126,14 +2126,14 @@ void js::gc::BackgroundDecommitTask::run(AutoLockHelperThreadState& lock) {
   gc->maybeRequestGCAfterBackgroundTask(lock);
 }
 
-static inline bool CanDecommitWholeChunk(TenuredChunk* chunk) {
+static inline bool CanDecommitWholeChunk(ArenaChunk* chunk) {
   return chunk->unused() && chunk->info.numArenasFreeCommitted != 0;
 }
 
 // Called from a background thread to decommit free arenas. Releases the GC
 // lock.
 void GCRuntime::decommitEmptyChunks(const bool& cancel, AutoLockGC& lock) {
-  Vector<TenuredChunk*, 0, SystemAllocPolicy> chunksToDecommit;
+  Vector<ArenaChunk*, 0, SystemAllocPolicy> chunksToDecommit;
   for (ChunkPool::Iter chunk(emptyChunks(lock)); !chunk.done(); chunk.next()) {
     if (CanDecommitWholeChunk(chunk) && !chunksToDecommit.append(chunk)) {
       onOutOfMallocMemory(lock);
@@ -2141,7 +2141,7 @@ void GCRuntime::decommitEmptyChunks(const bool& cancel, AutoLockGC& lock) {
     }
   }
 
-  for (TenuredChunk* chunk : chunksToDecommit) {
+  for (ArenaChunk* chunk : chunksToDecommit) {
     if (cancel) {
       break;
     }
@@ -2174,7 +2174,7 @@ void GCRuntime::decommitFreeArenas(const bool& cancel, AutoLockGC& lock) {
   // it is dangerous to iterate the available list directly, as the active
   // thread could modify it concurrently. Instead, we build and pass an
   // explicit Vector containing the Chunks we want to visit.
-  Vector<TenuredChunk*, 0, SystemAllocPolicy> chunksToDecommit;
+  Vector<ArenaChunk*, 0, SystemAllocPolicy> chunksToDecommit;
   for (ChunkPool::Iter chunk(availableChunks(lock)); !chunk.done();
        chunk.next()) {
     if (chunk->info.numArenasFreeCommitted != 0 &&
@@ -2184,7 +2184,7 @@ void GCRuntime::decommitFreeArenas(const bool& cancel, AutoLockGC& lock) {
     }
   }
 
-  for (TenuredChunk* chunk : chunksToDecommit) {
+  for (ArenaChunk* chunk : chunksToDecommit) {
     chunk->decommitFreeArenas(this, cancel, lock);
   }
 }

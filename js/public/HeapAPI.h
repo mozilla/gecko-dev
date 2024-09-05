@@ -37,7 +37,7 @@ namespace gc {
 
 class Arena;
 struct Cell;
-class TenuredChunk;
+class ArenaChunk;
 class StoreBuffer;
 class TenuredCell;
 
@@ -84,7 +84,7 @@ const size_t ArenaBitmapWords = HowMany(ArenaBitmapBits, JS_BITS_PER_WORD);
 
 enum class ChunkKind : uint8_t {
   Invalid = 0,
-  TenuredHeap,
+  TenuredArenas,
   NurseryToSpace,
   NurseryFromSpace
 };
@@ -97,13 +97,13 @@ class ChunkBase {
   // Initialize a tenured heap chunk.
   explicit ChunkBase(JSRuntime* rt) {
     MOZ_ASSERT((uintptr_t(this) & ChunkMask) == 0);
-    initBaseForTenuredChunk(rt);
+    initBaseForArenaChunk(rt);
   }
 
-  void initBaseForTenuredChunk(JSRuntime* rt) {
+  void initBaseForArenaChunk(JSRuntime* rt) {
     runtime = rt;
     storeBuffer = nullptr;
-    kind = ChunkKind::TenuredHeap;
+    kind = ChunkKind::TenuredArenas;
     nurseryChunkIndex = UINT8_MAX;
   }
 
@@ -123,7 +123,7 @@ class ChunkBase {
   ChunkKind getKind() const {
     MOZ_ASSERT_IF(storeBuffer, kind == ChunkKind::NurseryToSpace ||
                                    kind == ChunkKind::NurseryFromSpace);
-    MOZ_ASSERT_IF(!storeBuffer, kind == ChunkKind::TenuredHeap);
+    MOZ_ASSERT_IF(!storeBuffer, kind == ChunkKind::TenuredArenas);
     return kind;
   }
 
@@ -139,12 +139,12 @@ class ChunkBase {
   uint8_t nurseryChunkIndex;
 };
 
-// Information about tenured heap chunks.
-struct TenuredChunkInfo {
+// Information about tenured heap chunks containing arenas.
+struct ArenaChunkInfo {
  private:
   friend class ChunkPool;
-  TenuredChunk* next = nullptr;
-  TenuredChunk* prev = nullptr;
+  ArenaChunk* next = nullptr;
+  ArenaChunk* prev = nullptr;
 
  public:
   /* Number of free arenas, either committed or decommitted. */
@@ -180,7 +180,7 @@ const size_t BitsPerPageWithHeaders =
     (ArenaSize + ArenaBitmapBytes) * ArenasPerPage * CHAR_BIT + ArenasPerPage +
     1;
 const size_t ChunkBitsAvailable =
-    (ChunkSize - sizeof(ChunkBase) - sizeof(TenuredChunkInfo)) * CHAR_BIT;
+    (ChunkSize - sizeof(ChunkBase) - sizeof(ArenaChunkInfo)) * CHAR_BIT;
 const size_t PagesPerChunk = ChunkBitsAvailable / BitsPerPageWithHeaders;
 const size_t ArenasPerChunk = PagesPerChunk * ArenasPerPage;
 const size_t FreeCommittedBits = ArenasPerChunk;
@@ -190,7 +190,7 @@ const size_t BitsPerArenaWithHeaders =
     (DecommitBits / ArenasPerChunk) + 1;
 
 const size_t CalculatedChunkSizeRequired =
-    sizeof(ChunkBase) + sizeof(TenuredChunkInfo) +
+    sizeof(ChunkBase) + sizeof(ArenaChunkInfo) +
     RoundUp(ArenasPerChunk * ArenaBitmapBytes, sizeof(uintptr_t)) +
     RoundUp(FreeCommittedBits, sizeof(uint32_t) * CHAR_BIT) / CHAR_BIT +
     RoundUp(DecommitBits, sizeof(uint32_t) * CHAR_BIT) / CHAR_BIT +
@@ -307,16 +307,16 @@ using ChunkPageBitmap = mozilla::BitSet<PagesPerChunk, uint32_t>;
 // Bitmap with one bit per arena used for free committed arena set.
 using ChunkArenaBitmap = mozilla::BitSet<ArenasPerChunk, uint32_t>;
 
-// Base class containing data members for a tenured heap chunk.
-class TenuredChunkBase : public ChunkBase {
+// Base class for a tenured heap chunk containing fixed size arenas.
+class ArenaChunkBase : public ChunkBase {
  public:
-  TenuredChunkInfo info;
+  ArenaChunkInfo info;
   ChunkMarkBitmap markBits;
   ChunkArenaBitmap freeCommittedArenas;
   ChunkPageBitmap decommittedPages;
 
  protected:
-  explicit TenuredChunkBase(JSRuntime* runtime) : ChunkBase(runtime) {
+  explicit ArenaChunkBase(JSRuntime* runtime) : ChunkBase(runtime) {
     static_assert(sizeof(markBits) == ArenaBitmapBytes * ArenasPerChunk,
                   "Ensure our MarkBitmap actually covers all arenas.");
     info.numArenasFree = ArenasPerChunk;
@@ -325,7 +325,7 @@ class TenuredChunkBase : public ChunkBase {
   void initAsDecommitted();
 };
 static_assert(FirstArenaOffset ==
-              RoundUp(sizeof(gc::TenuredChunkBase), ArenaSize));
+              RoundUp(sizeof(gc::ArenaChunkBase), ArenaSize));
 
 /*
  * We sometimes use an index to refer to a cell in an arena. The index for a
@@ -336,7 +336,7 @@ const size_t ArenaCellIndexBytes = CellAlignBytes;
 const size_t MaxArenaCellIndex = ArenaSize / CellAlignBytes;
 
 const size_t ChunkStoreBufferOffset = offsetof(ChunkBase, storeBuffer);
-const size_t ChunkMarkBitmapOffset = offsetof(TenuredChunkBase, markBits);
+const size_t ChunkMarkBitmapOffset = offsetof(ArenaChunkBase, markBits);
 
 // Hardcoded offsets into Arena class.
 const size_t ArenaZoneOffset = 2 * sizeof(uint32_t);
@@ -592,13 +592,12 @@ static MOZ_ALWAYS_INLINE ChunkBase* GetCellChunkBase(const Cell* cell) {
   return GetGCAddressChunkBase(cell);
 }
 
-static MOZ_ALWAYS_INLINE TenuredChunkBase* GetCellChunkBase(
+static MOZ_ALWAYS_INLINE ArenaChunkBase* GetCellChunkBase(
     const TenuredCell* cell) {
   MOZ_ASSERT(cell);
-  auto* chunk =
-      reinterpret_cast<TenuredChunkBase*>(uintptr_t(cell) & ~ChunkMask);
+  auto* chunk = reinterpret_cast<ArenaChunkBase*>(uintptr_t(cell) & ~ChunkMask);
   MOZ_ASSERT(chunk->runtime);
-  MOZ_ASSERT(chunk->kind == ChunkKind::TenuredHeap);
+  MOZ_ASSERT(chunk->kind == ChunkKind::TenuredArenas);
   return chunk;
 }
 
@@ -615,7 +614,7 @@ static MOZ_ALWAYS_INLINE bool TenuredCellIsMarkedBlack(
   MOZ_ASSERT(cell);
   MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
 
-  TenuredChunkBase* chunk = GetCellChunkBase(cell);
+  ArenaChunkBase* chunk = GetCellChunkBase(cell);
   return chunk->markBits.isMarkedBlack(cell);
 }
 
@@ -627,14 +626,14 @@ static MOZ_ALWAYS_INLINE bool NonBlackCellIsMarkedGray(
   MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
   MOZ_ASSERT(!TenuredCellIsMarkedBlack(cell));
 
-  TenuredChunkBase* chunk = GetCellChunkBase(cell);
+  ArenaChunkBase* chunk = GetCellChunkBase(cell);
   return chunk->markBits.markBit(cell, ColorBit::GrayOrBlackBit);
 }
 
 static MOZ_ALWAYS_INLINE bool TenuredCellIsMarkedGray(const TenuredCell* cell) {
   MOZ_ASSERT(cell);
   MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
-  TenuredChunkBase* chunk = GetCellChunkBase(cell);
+  ArenaChunkBase* chunk = GetCellChunkBase(cell);
   return chunk->markBits.isMarkedGray(cell);
 }
 

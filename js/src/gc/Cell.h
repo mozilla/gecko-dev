@@ -239,9 +239,7 @@ class TenuredCell : public Cell {
     return true;
   }
 
-  TenuredChunk* chunk() const {
-    return static_cast<TenuredChunk*>(Cell::chunk());
-  }
+  ArenaChunk* chunk() const { return static_cast<ArenaChunk*>(Cell::chunk()); }
 
   // Mark bit management.
   MOZ_ALWAYS_INLINE bool isMarkedAny() const;
@@ -352,7 +350,7 @@ inline JSRuntime* Cell::runtimeFromAnyThread() const {
 inline uintptr_t Cell::address() const {
   uintptr_t addr = uintptr_t(this);
   MOZ_ASSERT(addr % CellAlignBytes == 0);
-  MOZ_ASSERT(TenuredChunk::withinValidRange(addr));
+  MOZ_ASSERT(ArenaChunk::withinValidRange(addr));
   return addr;
 }
 
