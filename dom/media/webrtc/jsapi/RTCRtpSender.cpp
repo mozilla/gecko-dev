@@ -1483,6 +1483,13 @@ void RTCRtpSender::SyncToJsep(JsepTransceiver& aJsepTransceiver) const {
   }
 }
 
+// Helper to upper case codec names for GLEAN probes
+auto upCase(const std::string& str) -> std::string {
+  std::string result;
+  std::transform(str.begin(), str.end(), result.end(), ::toupper);
+  return result;
+}
+
 Maybe<RTCRtpSender::VideoConfig> RTCRtpSender::GetNewVideoConfig() {
   // It is possible for SDP to signal that there is a send track, but there not
   // actually be a send track, according to the specification; all that needs to
@@ -1593,17 +1600,18 @@ Maybe<RTCRtpSender::VideoConfig> RTCRtpSender::GetNewVideoConfig() {
   // Log codec information we are tracking
   if (!mHaveLoggedOtherFec &&
       !GetJsepTransceiver().mSendTrack.GetFecCodecName().empty()) {
+    const auto name = upCase(GetJsepTransceiver().mSendTrack.GetFecCodecName());
     mozilla::glean::codec_stats::other_fec_signaled
-        .Get(nsDependentCString(
-            GetJsepTransceiver().mSendTrack.GetFecCodecName().c_str()))
+        .Get(nsDependentCString(name.c_str()))
         .Add(1);
     mHaveLoggedOtherFec = true;
   }
   if (!mHaveLoggedVideoPreferredCodec &&
       !GetJsepTransceiver().mSendTrack.GetVideoPreferredCodec().empty()) {
+    const auto name =
+        upCase(GetJsepTransceiver().mSendTrack.GetVideoPreferredCodec());
     mozilla::glean::codec_stats::video_preferred_codec
-        .Get(nsDependentCString(
-            GetJsepTransceiver().mSendTrack.GetVideoPreferredCodec().c_str()))
+        .Get(nsDependentCString(name.c_str()))
         .Add(1);
     mHaveLoggedVideoPreferredCodec = true;
   }
@@ -1685,9 +1693,10 @@ Maybe<RTCRtpSender::AudioConfig> RTCRtpSender::GetNewAudioConfig() {
 
   if (!mHaveLoggedAudioPreferredCodec &&
       !GetJsepTransceiver().mSendTrack.GetAudioPreferredCodec().empty()) {
+    const auto name =
+        upCase(GetJsepTransceiver().mSendTrack.GetAudioPreferredCodec());
     mozilla::glean::codec_stats::audio_preferred_codec
-        .Get(nsDependentCString(
-            GetJsepTransceiver().mSendTrack.GetAudioPreferredCodec().c_str()))
+        .Get(nsDependentCString(name.c_str()))
         .Add(1);
     mHaveLoggedAudioPreferredCodec = true;
   }
