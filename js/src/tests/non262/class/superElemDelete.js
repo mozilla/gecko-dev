@@ -16,18 +16,7 @@ class derived extends base {
             }
         };
         assertThrowsInstanceOf(() => delete super[key], ReferenceError);
-        assertEq(sideEffect, 1);
-    }
-    testDeleteElemPropValFirst() {
-        // The deletion error is a reference error, even after munging the prototype
-        // chain.
-        let key = {
-            toString() {
-                Object.setPrototypeOf(derived.prototype, null);
-                return "";
-            }
-        };
-        delete super[key];
+        assertEq(sideEffect, 0);
     }
 }
 
@@ -47,12 +36,12 @@ class derivedTestDeleteElem extends base {
         super();
 
         assertThrowsInstanceOf(() => delete super[key], ReferenceError);
-        assertEq(sideEffect, 1);
+        assertEq(sideEffect, 0);
 
         Object.setPrototypeOf(derivedTestDeleteElem.prototype, null);
 
         assertThrowsInstanceOf(() => delete super[key], ReferenceError);
-        assertEq(sideEffect, 2);
+        assertEq(sideEffect, 0);
 
         return {};
     }
@@ -60,7 +49,6 @@ class derivedTestDeleteElem extends base {
 
 var d = new derived();
 d.testDeleteElem();
-assertThrowsInstanceOf(() => d.testDeleteElemPropValFirst(), ReferenceError);
 
 new derivedTestDeleteElem();
 
