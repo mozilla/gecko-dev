@@ -88,6 +88,18 @@ add_task(async function test_history_cards_created() {
   }
 });
 
+add_task(async function test_history_searchbox_focus() {
+  const { component } = await showHistorySidebar();
+  const { searchTextbox } = component;
+
+  ok(component.shadowRoot.activeElement, "check activeElement is present");
+  Assert.equal(
+    component.shadowRoot.activeElement,
+    searchTextbox,
+    "Check search box is focused"
+  );
+});
+
 add_task(async function test_history_search() {
   const { component, contentWindow } = await showHistorySidebar();
   const { searchTextbox } = component;

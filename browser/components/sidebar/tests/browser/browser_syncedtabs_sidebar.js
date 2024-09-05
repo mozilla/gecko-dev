@@ -119,3 +119,17 @@ add_task(async function test_tabs() {
   SidebarController.hide();
   sandbox.restore();
 });
+
+add_task(async function test_syncedtabs_searchbox_focus() {
+  await SidebarController.show("viewTabsSidebar");
+  const { contentDocument } = SidebarController.browser;
+  const component = contentDocument.querySelector("sidebar-syncedtabs");
+  const { searchTextbox } = component;
+
+  ok(component.shadowRoot.activeElement, "check activeElement is present");
+  Assert.equal(
+    component.shadowRoot.activeElement,
+    searchTextbox,
+    "Check search box is focused"
+  );
+});

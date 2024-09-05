@@ -24,6 +24,7 @@ class SyncedTabsInSidebar extends SidebarPage {
 
   static queries = {
     cards: { all: "moz-card" },
+    searchTextbox: "fxview-search-textbox",
   };
 
   constructor() {
@@ -36,12 +37,14 @@ class SyncedTabsInSidebar extends SidebarPage {
     this.controller.addSyncObservers();
     this.controller.updateStates();
     this.addContextMenuListeners();
+    this.addSidebarFocusedListeners();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.controller.removeSyncObservers();
     this.removeContextMenuListeners();
+    this.removeSidebarFocusedListeners();
   }
 
   handleContextMenuEvent(e) {
@@ -63,6 +66,10 @@ class SyncedTabsInSidebar extends SidebarPage {
         super.handleCommandEvent(e);
         break;
     }
+  }
+
+  handleSidebarFocusedEvent() {
+    this.searchTextbox?.focus();
   }
 
   /**
@@ -208,7 +215,6 @@ class SyncedTabsInSidebar extends SidebarPage {
         >
         </sidebar-panel-header>
         <fxview-search-textbox
-          autofocus
           data-l10n-id="firefoxview-search-text-box-syncedtabs"
           data-l10n-attrs="placeholder"
           @fxview-search-textbox-query=${this.onSearchQuery}

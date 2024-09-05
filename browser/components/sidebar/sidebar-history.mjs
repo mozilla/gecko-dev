@@ -38,6 +38,7 @@ export class SidebarHistory extends SidebarPage {
     this._menuSortBySite = doc.getElementById("sidebar-history-sort-by-site");
     this._menu.addEventListener("command", this);
     this.addContextMenuListeners();
+    this.addSidebarFocusedListeners();
     this.controller.updateCache();
   }
 
@@ -45,6 +46,7 @@ export class SidebarHistory extends SidebarPage {
     super.disconnectedCallback();
     this._menu.removeEventListener("command", this);
     this.removeContextMenuListeners();
+    this.removeSidebarFocusedListeners();
   }
 
   handleContextMenuEvent(e) {
@@ -72,6 +74,10 @@ export class SidebarHistory extends SidebarPage {
         super.handleCommandEvent(e);
         break;
     }
+  }
+
+  handleSidebarFocusedEvent() {
+    this.searchTextbox?.focus();
   }
 
   onPrimaryAction(e) {
@@ -260,7 +266,6 @@ export class SidebarHistory extends SidebarPage {
             data-l10n-attrs="placeholder"
             @fxview-search-textbox-query=${this.onSearchQuery}
             .size=${15}
-            autofocus
           ></fxview-search-textbox>
           <moz-button
             class="menu-button"

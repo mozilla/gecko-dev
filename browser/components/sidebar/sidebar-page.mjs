@@ -56,6 +56,14 @@ export class SidebarPage extends MozLitElement {
     this._contextMenu.removeEventListener("command", this);
   }
 
+  addSidebarFocusedListeners() {
+    this.topWindow.addEventListener("SidebarFocused", this);
+  }
+
+  removeSidebarFocusedListeners() {
+    this.topWindow.removeEventListener("SidebarFocused", this);
+  }
+
   handleEvent(e) {
     switch (e.type) {
       case "contextmenu":
@@ -63,6 +71,9 @@ export class SidebarPage extends MozLitElement {
         break;
       case "command":
         this.handleCommandEvent?.(e);
+        break;
+      case "SidebarFocused":
+        this.handleSidebarFocusedEvent?.(e);
         break;
     }
   }
