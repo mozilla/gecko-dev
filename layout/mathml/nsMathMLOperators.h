@@ -20,6 +20,7 @@ enum nsStretchDirection {
 typedef uint32_t nsOperatorFlags;
 enum {
   // define the bits used to handle the operator
+  NS_MATHML_OPERATOR_FORCE_MATHML_CHAR = 1u << 31,
   NS_MATHML_OPERATOR_MUTABLE = 1 << 30,
   NS_MATHML_OPERATOR_EMBELLISH_ANCESTOR = 1 << 29,
   NS_MATHML_OPERATOR_EMBELLISH_ISOLATED = 1 << 28,
@@ -95,6 +96,10 @@ class nsMathMLOperators {
 
 ////////////////////////////////////////////////////////////////////////////
 // Macros that retrieve the bits used to handle operators
+
+#define NS_MATHML_OPERATOR_FORCES_MATHML_CHAR(_flags) \
+  (NS_MATHML_OPERATOR_FORCE_MATHML_CHAR ==            \
+   ((_flags) & NS_MATHML_OPERATOR_FORCE_MATHML_CHAR))
 
 #define NS_MATHML_OPERATOR_IS_MUTABLE(_flags) \
   (NS_MATHML_OPERATOR_MUTABLE == ((_flags) & NS_MATHML_OPERATOR_MUTABLE))
