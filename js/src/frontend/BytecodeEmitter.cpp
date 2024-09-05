@@ -7299,44 +7299,21 @@ bool BytecodeEmitter::emitDeleteProperty(UnaryNode* deleteNode) {
 bool BytecodeEmitter::emitDeleteElement(UnaryNode* deleteNode) {
   MOZ_ASSERT(deleteNode->isKind(ParseNodeKind::DeleteElemExpr));
 
-  PropertyByValue* elemExpr = &deleteNode->kid()->as<PropertyByValue>();
+  auto* elemExpr = &deleteNode->kid()->as<PropertyByValue>();
   bool isSuper = elemExpr->isSuper();
-  DebugOnly<bool> isPrivate =
-      elemExpr->key().isKind(ParseNodeKind::PrivateName);
-  MOZ_ASSERT(!isPrivate);
+  MOZ_ASSERT(!elemExpr->key().isKind(ParseNodeKind::PrivateName));
   ElemOpEmitter eoe(
       this, ElemOpEmitter::Kind::Delete,
       isSuper ? ElemOpEmitter::ObjKind::Super : ElemOpEmitter::ObjKind::Other);
-  if (isSuper) {
-    // The expression |delete super[foo];| has to evaluate |super[foo]|,
-    // which could throw if |this| hasn't yet been set by a |super(...)|
-    // call, or trigger side-effects when evaluating ToPropertyKey(foo),
-    // or also throw when the super-base is not an object, before throwing
-    // a ReferenceError for attempting to delete a super-reference.
-    if (!eoe.prepareForObj()) {
-      //            [stack]
-      return false;
-    }
 
-    UnaryNode* base = &elemExpr->expression().as<UnaryNode>();
-    if (!emitGetThisForSuperBase(base)) {
-      //            [stack] THIS
-      return false;
-    }
-    if (!eoe.prepareForKey()) {
-      //            [stack] THIS
-      return false;
-    }
-    if (!emitTree(&elemExpr->key())) {
-      //            [stack] THIS KEY
-      return false;
-    }
-  } else {
-    if (!emitElemObjAndKey(elemExpr, eoe)) {
-      //            [stack] OBJ KEY
-      return false;
-    }
+  if (!emitElemObjAndKey(elemExpr, eoe)) {
+    //              [stack] # if Super
+    //              [stack] THIS KEY
+    //              [stack] # otherwise
+    //              [stack] OBJ KEY
+    return false;
   }
+
   if (!eoe.emitDelete()) {
     //              [stack] # if Super
     //              [stack] THIS
