@@ -794,6 +794,13 @@ class JS::Realm : public JS::shadow::Realm {
 
   js::RealmFuses realmFuses;
 
+  // Scripts dependent on the generation counter of the associated global
+  using WeakScriptSet =
+      GCHashSet<js::WeakHeapPtr<JSScript*>,
+                js::StableCellHasher<js::WeakHeapPtr<JSScript*>>,
+                js::SystemAllocPolicy>;
+  JS::WeakCache<WeakScriptSet> generationCounterDependentScripts;
+
  private:
   void purgeForOfPicChain();
 };

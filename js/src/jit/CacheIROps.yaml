@@ -306,6 +306,7 @@
   args:
     expected: RawInt32Field
     generationAddr: RawPointerField
+    realmAddr: RawPointerField
 
 - name: HasClassResult
   shared: false

@@ -3640,7 +3640,7 @@ bool js::CheckLexicalNameConflict(
   if (shadowsExistingProperty && varObj->is<GlobalObject>()) {
     // Shadowing a configurable global property with a new lexical is one
     // of the rare ways to invalidate a GetGName stub.
-    varObj->as<GlobalObject>().bumpGenerationCount();
+    varObj->as<GlobalObject>().bumpGenerationCount(cx);
   }
 
   return true;

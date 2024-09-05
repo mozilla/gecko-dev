@@ -52,6 +52,8 @@
 #include "gc/FinalizationObservers.h"
 #include "gc/GC.h"
 #include "gc/GCContext.h"
+#include "jit/Invalidation.h"
+#include "jit/JitSpewer.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
 #include "js/Prefs.h"                 // JS::Prefs
@@ -1131,4 +1133,13 @@ void GlobalObjectData::addSizeOfIncludingThis(
 
   info->objectsMallocHeapGlobalVarNamesSet +=
       varNames.shallowSizeOfExcludingThis(mallocSizeOf);
+}
+
+void GlobalObject::bumpGenerationCount(JSContext* cx) {
+  MOZ_RELEASE_ASSERT(data().generationCount < UINT32_MAX);
+  data().generationCount++;
+
+  auto& weakScripts = realm()->generationCounterDependentScripts;
+  js::jit::InvalidateAndClearScriptSet(cx, weakScripts,
+                                       "generation count bump");
 }

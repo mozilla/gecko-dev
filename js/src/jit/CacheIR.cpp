@@ -3480,7 +3480,8 @@ AttachDecision GetNameIRGenerator::tryAttachGlobalNameValue(ObjOperandId objId,
     MOZ_ASSERT(globalLexical->global().isGenerationCountedGlobal());
     writer.guardGlobalGeneration(
         globalLexical->global().generationCount(),
-        globalLexical->global().addressOfGenerationCount());
+        globalLexical->global().addressOfGenerationCount(),
+        static_cast<void*>(globalLexical->global().realm()));
     ObjOperandId holderId = writer.loadObject(holder);
 #ifdef DEBUG
     writer.assertPropertyLookup(holderId, id, prop->slot());
