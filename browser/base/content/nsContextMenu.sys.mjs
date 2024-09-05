@@ -2101,7 +2101,7 @@ export class nsContextMenu {
     let cookieJarSettings = this.contentData.cookieJarSettings;
     if (this.onCanvas) {
       // Bypass cache, since it's a data: URL.
-      this._canvasToBlobURL(this.targetIdentifier).then(blobURL => {
+      this._canvasToBlobURL(this.targetIdentifier).then(function (blobURL) {
         this.window.internalSave(
           blobURL,
           null, // originalURL
