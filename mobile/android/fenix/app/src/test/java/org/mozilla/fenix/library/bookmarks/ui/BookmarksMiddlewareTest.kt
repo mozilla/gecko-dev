@@ -83,7 +83,7 @@ class BookmarksMiddlewareTest {
     @Test
     fun `GIVEN last destination was home fragment and in normal browsing mode WHEN a bookmark is clicked THEN open it as a new tab`() {
         val url = "url"
-        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url)
+        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url, guid = "")
         navController.mockBackstack(R.id.homeFragment)
         getBrowsingMode = { BrowsingMode.Normal }
         var capturedUrl = ""
@@ -109,7 +109,7 @@ class BookmarksMiddlewareTest {
     @Test
     fun `GIVEN last destination was browser fragment and in normal browsing mode WHEN a bookmark is clicked THEN open it in current tab`() {
         val url = "url"
-        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url)
+        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url, guid = "")
         navController.mockBackstack(R.id.browserFragment)
         getBrowsingMode = { BrowsingMode.Normal }
         var capturedUrl = ""
@@ -135,7 +135,7 @@ class BookmarksMiddlewareTest {
     @Test
     fun `GIVEN in private browsing mode and last destination was home fragment WHEN a bookmark is clicked THEN open it in new tab`() {
         val url = "url"
-        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url)
+        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url, guid = "")
         navController.mockBackstack(R.id.homeFragment)
         getBrowsingMode = { BrowsingMode.Private }
         var capturedUrl = ""
@@ -161,7 +161,7 @@ class BookmarksMiddlewareTest {
     @Test
     fun `GIVEN in private browsing mode and last destination was browser fragment WHEN a bookmark is clicked THEN open it in new tab`() {
         val url = "url"
-        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url)
+        val bookmarkItem = BookmarkItem.Bookmark(url, "title", url, guid = "")
         navController.mockBackstack(R.id.browserFragment)
         getBrowsingMode = { BrowsingMode.Private }
         var capturedUrl = ""

@@ -24,8 +24,8 @@ import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
-import org.mozilla.fenix.compose.list.FaviconListItem
-import org.mozilla.fenix.compose.list.IconListItem
+import org.mozilla.fenix.compose.list.SelectableFaviconListItem
+import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -36,9 +36,12 @@ internal fun BookmarksScreen(store: BookmarksStore) {
     val state by store.observeAsState(initialValue = store.state) { it }
     BookmarksList(
         bookmarkItems = state.bookmarkItems,
+        selectedItems = state.selectedItems,
         folderTitle = state.folderTitle,
         onBookmarkClick = { item -> store.dispatch(BookmarkClicked(item)) },
+        onBookmarkLongClick = { item -> store.dispatch(BookmarkLongClicked(item)) },
         onFolderClick = { item -> store.dispatch(FolderClicked(item)) },
+        onFolderLongClick = { item -> store.dispatch(FolderLongClicked(item)) },
         onBackClick = {},
         onNewFolderClick = {},
         onCloseClick = {},
@@ -50,9 +53,12 @@ internal fun BookmarksScreen(store: BookmarksStore) {
 /**
  * The Bookmarks list screen.
  * @param bookmarkItems Bookmarks and folders to display.
+ * @param selectedItems The currently selected items in the list.
  * @param folderTitle The display title of the currently selected bookmarks folder.
  * @param onBookmarkClick Invoked when the user clicks on a bookmark item row.
+ * @param onBookmarkLongClick Invoked when the user clicks on a bookmark item row.
  * @param onFolderClick Invoked when the user clicks on a folder item row.
+ * @param onFolderLongClick Invoked when the user clicks on a folder item row.
  * @param onBackClick Invoked when the user clicks on the toolbar back button.
  * @param onNewFolderClick Invoked when the user clicks on the toolbar new folder button.
  * @param onCloseClick Invoked when the user clicks on the toolbar close button.
@@ -63,9 +69,12 @@ internal fun BookmarksScreen(store: BookmarksStore) {
 @Composable
 private fun BookmarksList(
     bookmarkItems: List<BookmarkItem>,
+    selectedItems: List<BookmarkItem>,
     folderTitle: String,
     onBookmarkClick: (BookmarkItem.Bookmark) -> Unit,
+    onBookmarkLongClick: (BookmarkItem.Bookmark) -> Unit,
     onFolderClick: (BookmarkItem.Folder) -> Unit,
+    onFolderLongClick: (BookmarkItem.Folder) -> Unit,
     onBackClick: () -> Unit,
     onNewFolderClick: () -> Unit,
     onCloseClick: () -> Unit,
@@ -97,11 +106,13 @@ private fun BookmarksList(
         ) {
             items(bookmarkItems) { item ->
                 when (item) {
-                    is BookmarkItem.Bookmark -> FaviconListItem(
+                    is BookmarkItem.Bookmark -> SelectableFaviconListItem(
                         label = item.title,
                         url = item.previewImageUrl,
+                        isSelected = item in selectedItems,
                         description = item.url,
                         onClick = { onBookmarkClick(item) },
+                        onLongClick = { onBookmarkLongClick(item) },
                         iconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                         onIconClick = { onMenuClick(item) },
                         iconDescription = stringResource(
@@ -111,9 +122,11 @@ private fun BookmarksList(
                     )
 
                     is BookmarkItem.Folder -> {
-                        IconListItem(
+                        SelectableIconListItem(
                             label = item.title,
+                            isSelected = item in selectedItems,
                             onClick = { onFolderClick(item) },
+                            onLongClick = { onFolderLongClick(item) },
                             beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                             afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                             onAfterIconClick = { onMenuClick(item) },
@@ -184,13 +197,20 @@ private fun BookmarksScreenPreview() {
                 url = "https://www.whoevenmakeswebaddressesthislonglikeseriously$it.com",
                 title = "this is a very long bookmark title that should overflow $it",
                 previewImageUrl = "",
+                guid = "$it",
             )
         } else {
             BookmarkItem.Folder("folder $it", guid = "$it")
         }
     }
 
-    val store = BookmarksStore(initialState = BookmarksState(bookmarkItems = bookmarkItems, folderTitle = "Bookmarks"))
+    val store = BookmarksStore(
+        initialState = BookmarksState(
+            bookmarkItems = bookmarkItems,
+            folderTitle = "Bookmarks",
+            selectedItems = listOf(),
+        ),
+    )
 
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {

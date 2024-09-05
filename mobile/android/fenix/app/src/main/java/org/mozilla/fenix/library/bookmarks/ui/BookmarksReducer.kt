@@ -12,9 +12,26 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         folderTitle = action.folderTitle,
         bookmarkItems = action.bookmarkItems,
     )
-    is FolderClicked,
-    is BookmarkClicked,
+    is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
+    is FolderLongClicked -> state.toggleSelectionOf(action.item)
+    is FolderClicked -> if (state.selectedItems.isNotEmpty()) {
+        state.toggleSelectionOf(action.item)
+    } else {
+        state
+    }
+    is BookmarkClicked -> if (state.selectedItems.isNotEmpty()) {
+        state.toggleSelectionOf(action.item)
+    } else {
+        state
+    }
     SearchClicked,
     Init,
     -> state
 }
+
+private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState =
+    if (selectedItems.any { it.guid == item.guid }) {
+        copy(selectedItems = selectedItems - item)
+    } else {
+        copy(selectedItems = selectedItems + item)
+    }

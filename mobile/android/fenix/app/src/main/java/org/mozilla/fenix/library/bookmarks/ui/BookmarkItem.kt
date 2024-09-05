@@ -11,14 +11,22 @@ import mozilla.components.concept.storage.BookmarkNode
  */
 internal sealed class BookmarkItem {
 
+    abstract val guid: String
+
     /**
      * An item representing a site that is bookmarked.
      *
      * @property url The bookmarked url.
      * @property title The title of the bookmark.
      * @property previewImageUrl The url to lookup the favicon for the bookmark.
+     * @property guid The guid of the [BookmarkNode] representing this bookmark.
      */
-    data class Bookmark(val url: String, val title: String, val previewImageUrl: String) : BookmarkItem()
+    data class Bookmark(
+        val url: String,
+        val title: String,
+        val previewImageUrl: String,
+        override val guid: String,
+    ) : BookmarkItem()
 
     /**
      * An item representing a bookmark folder.
@@ -26,5 +34,8 @@ internal sealed class BookmarkItem {
      * @property title The name of the folder.
      * @property guid The guid of the [BookmarkNode] representing this folder.
      */
-    data class Folder(val title: String, val guid: String) : BookmarkItem()
+    data class Folder(
+        val title: String,
+        override val guid: String,
+    ) : BookmarkItem()
 }

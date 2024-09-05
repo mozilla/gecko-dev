@@ -63,7 +63,10 @@ internal class BookmarksMiddleware(
                     NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
                 )
             }
-            is BookmarksLoaded -> Unit
+            is BookmarkLongClicked,
+            is FolderLongClicked,
+            is BookmarksLoaded,
+            -> Unit
         }
     }
 
@@ -79,6 +82,7 @@ internal class BookmarksMiddleware(
                     url = node.url!!,
                     title = node.title!!,
                     previewImageUrl = node.url!!,
+                    guid = node.guid,
                 )
                 BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
                     title = node.title!!,
