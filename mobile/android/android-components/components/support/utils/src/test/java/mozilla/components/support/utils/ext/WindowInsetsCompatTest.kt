@@ -6,6 +6,9 @@ package mozilla.components.support.utils.ext
 
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.mandatorySystemGestures
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
@@ -36,10 +39,10 @@ class WindowInsetsCompatTest {
         insets = Insets.of(leftPixels, topPixels, rightPixels, bottomPixels)
         mandatorySystemGestureInsets = Insets.of(leftPixels, topPixels, rightPixels, bottomPixels)
 
-        whenever(windowInsetsCompat.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars())).thenReturn(
+        whenever(windowInsetsCompat.getInsetsIgnoringVisibility(systemBars() or displayCutout())).thenReturn(
             insets,
         )
-        whenever(windowInsetsCompat.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())).thenReturn(
+        whenever(windowInsetsCompat.getInsets(mandatorySystemGestures())).thenReturn(
             mandatorySystemGestureInsets,
         )
     }

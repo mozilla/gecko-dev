@@ -6,30 +6,32 @@ package mozilla.components.support.utils.ext
 
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 
 /**
  * Returns the top system window inset in pixels.
  */
 fun WindowInsetsCompat.top(): Int =
-    this.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars()).top
+    this.getInsetsIgnoringVisibility(systemBars() or displayCutout()).top
 
 /**
  * Returns the right system window inset in pixels.
  */
 fun WindowInsetsCompat.right(): Int =
-    this.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars()).right
+    this.getInsetsIgnoringVisibility(systemBars() or displayCutout()).right
 
 /**
  * Returns the left system window inset in pixels.
  */
 fun WindowInsetsCompat.left(): Int =
-    this.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars()).left
+    this.getInsetsIgnoringVisibility(systemBars() or displayCutout()).left
 
 /**
  * Returns the bottom system window inset in pixels.
  */
 fun WindowInsetsCompat.bottom(): Int =
-    this.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars()).bottom
+    this.getInsetsIgnoringVisibility(systemBars() or displayCutout()).bottom
 
 /**
  * Returns the mandatory system gesture insets.
