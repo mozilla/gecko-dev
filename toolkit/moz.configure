@@ -866,7 +866,7 @@ def av1(value):
 
 @depends(target, when=av1 & compile_environment)
 def dav1d_asm(target):
-    if target.cpu in ("aarch64", "x86", "x86_64"):
+    if target.cpu in ("arm", "aarch64", "x86", "x86_64"):
         return True
 
 

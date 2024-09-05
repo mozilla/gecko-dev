@@ -54,6 +54,9 @@ elif CONFIG['TARGET_CPU'] == 'x86_64':
         # The rest of the platforms are all Linux-like: plain Linux
         # Android, OpenBSD, NetBSD, FreeBSD, DragonFly, SunOS
         ASFLAGS += ['-I%s/media/libdav1d/asm/x86_64/linux/' % TOPSRCDIR]
+elif CONFIG['TARGET_CPU'] == 'arm':
+    stack_alignment = 4
+    ASFLAGS += ['-I%s/dist/include/dav1d/' % TOPOBJDIR]
 elif CONFIG['TARGET_CPU'] == 'aarch64':
     stack_alignment = 16
     ASFLAGS += ['-I%s/dist/include/dav1d/' % TOPOBJDIR]
