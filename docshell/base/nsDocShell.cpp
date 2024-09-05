@@ -9270,44 +9270,43 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
 
   // XXXbz mTiming should know what channel it's for, so we don't
   // need this hackery.
-  const bool isJavaScript = SchemeIsJavascript(aLoadState->URI());
-  const bool isExternalProtocol =
-      nsContentUtils::IsExternalProtocol(aLoadState->URI());
-  const bool isDownload = !aLoadState->FileName().IsVoid();
-  const bool toBeReset = !isJavaScript && MaybeInitTiming();
+  bool toBeReset = false;
+  bool isJavaScript = SchemeIsJavascript(aLoadState->URI());
 
-  // FIXME(emilio): Should this be done by javascript: uris? What about external
-  // protocols?
-  if (mTiming && !isDownload) {
+  if (!isJavaScript) {
+    toBeReset = MaybeInitTiming();
+  }
+  bool isNotDownload = aLoadState->FileName().IsVoid();
+  if (mTiming && isNotDownload) {
     mTiming->NotifyBeforeUnload();
   }
   // Check if the page doesn't want to be unloaded. The javascript:
   // protocol handler deals with this for javascript: URLs.
-  // NOTE(emilio): As of this writing, other browsers fire beforeunload for
-  // external protocols, so keep doing that even though they don't return data
-  // and thus we won't really unload this...
-  if (!isJavaScript && !isDownload &&
+  if (!isJavaScript && isNotDownload &&
       !aLoadState->NotifiedBeforeUnloadListeners() && mDocumentViewer) {
+    bool okToUnload;
+
     // Check if request is exempted from HTTPSOnlyMode and if https-first is
     // enabled, if so it means:
     //    * https-first failed to upgrade request to https
     //    * we already asked for permission to unload and the user accepted
     //      otherwise we wouldn't be here.
-    const bool isPrivateWin = GetOriginAttributes().IsPrivateBrowsing();
-    const uint32_t loadType = aLoadState->LoadType();
+    bool isPrivateWin = GetOriginAttributes().IsPrivateBrowsing();
+    bool isHistoryOrReload = false;
+    uint32_t loadType = aLoadState->LoadType();
 
     // Check if request is a reload.
-    const bool isHistoryOrReload =
-        loadType == LOAD_RELOAD_NORMAL ||
+    if (loadType == LOAD_RELOAD_NORMAL ||
         loadType == LOAD_RELOAD_BYPASS_CACHE ||
         loadType == LOAD_RELOAD_BYPASS_PROXY ||
         loadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE ||
-        loadType == LOAD_HISTORY;
+        loadType == LOAD_HISTORY) {
+      isHistoryOrReload = true;
+    }
 
     // If it isn't a reload, the request already failed to be upgraded and
     // https-first is enabled then don't ask the user again for permission to
     // unload and just unload.
-    bool okToUnload;
     if (!isHistoryOrReload && aLoadState->IsExemptFromHTTPSFirstMode() &&
         nsHTTPSOnlyUtils::IsHttpsFirstModeEnabled(isPrivateWin)) {
       rv = mDocumentViewer->PermitUnload(
@@ -9325,7 +9324,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     }
   }
 
-  if (mTiming && !isDownload) {
+  if (mTiming && isNotDownload) {
     mTiming->NotifyUnloadAccepted(mCurrentURI);
   }
 
@@ -9359,7 +9358,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // new request parameter.
   // Also pass nullptr for the document, since it doesn't affect the return
   // value for our purposes here.
-  const bool savePresentation =
+  bool savePresentation =
       CanSavePresentation(aLoadState->LoadType(), nullptr, nullptr,
                           /* aReportBFCacheComboTelemetry */ true);
 
@@ -9380,12 +9379,12 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     }
   }
 
-  // Don't stop current network activity for javascript: URL's since they might
-  // not result in any data, and thus nothing should be stopped in those cases.
-  // In the case where they do result in data, the javascript: URL channel takes
-  // care of stopping current network activity. Similarly, downloads don't
-  // unload this document...
-  if (!isJavaScript && !isDownload && !isExternalProtocol) {
+  // Don't stop current network activity for javascript: URL's since
+  // they might not result in any data, and thus nothing should be
+  // stopped in those cases. In the case where they do result in
+  // data, the javascript: URL channel takes care of stopping
+  // current network activity.
+  if (!isJavaScript && isNotDownload) {
     // Stop any current network activity.
     // Also stop content if this is a zombie doc. otherwise
     // the onload will be delayed by other loads initiated in the
@@ -9393,6 +9392,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     // didn't fully load before the next load was initiated.
     // If not a zombie, don't stop content until data
     // starts arriving from the new URI...
+
     if ((mDocumentViewer && mDocumentViewer->GetPreviousViewer()) ||
         LOAD_TYPE_HAS_FLAGS(aLoadState->LoadType(), LOAD_FLAGS_STOP_CONTENT)) {
       rv = Stop(nsIWebNavigation::STOP_ALL);
