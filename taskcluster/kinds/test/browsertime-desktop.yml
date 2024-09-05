@@ -880,7 +880,8 @@ browsertime-network-bench:
     raptor:
         apps: [firefox]
         subtests:
-            - h3-upload
+            - [h3-upload, h3-up]
+            - [h3-download, h3-down]
     description: Raptor (browsertime) networking download/upload performance test
     max-run-time: 2700
     run-on-projects: []

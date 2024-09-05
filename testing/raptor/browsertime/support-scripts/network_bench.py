@@ -30,6 +30,7 @@ class NetworkBench(BasePythonSupport):
         self.caddy_stdout = None
         self.caddy_stderr = None
         self.http_version = "h1"
+        self.transfer_type = "download"
 
     def setup_test(self, test, args):
         from cmdline import CHROME_ANDROID_APPS, CHROMIUM_DISTROS
@@ -40,12 +41,15 @@ class NetworkBench(BasePythonSupport):
             args.app in CHROMIUM_DISTROS or args.app in CHROME_ANDROID_APPS
         )
 
-        prefix = test.get("name").split("-")[0]
-        if prefix == "h3":
-            self.http_version = "h3"
-        elif prefix == "h2":
-            self.http_version = "h2"
-        LOG.info("http_version: '%s'" % self.http_version)
+        test_name = test.get("name").split("-", 2)
+        self.http_version = test_name[0] if test_name[0] in ["h3", "h2"] else "unknown"
+        self.transfer_type = (
+            test_name[1] if test_name[1] in ["download", "upload"] else "unknown"
+        )
+        LOG.info(f"http_version: '{self.http_version}', type: '{self.transfer_type}'")
+
+        if self.http_version == "unknown" or self.transfer_type == "unknown":
+            raise Exception("Unsupported test")
 
     def check_caddy_installed(self):
         try:
@@ -212,7 +216,7 @@ class NetworkBench(BasePythonSupport):
             self.caddy_port = self.find_free_port(socket.SOCK_STREAM)
 
         cmd += [
-            "--browsertime.upload_url",
+            "--browsertime.server_url",
             f"https://localhost:{self.caddy_port}",
         ]
 
@@ -220,7 +224,7 @@ class NetworkBench(BasePythonSupport):
 
         # We know that cmd[0] is the path to nodejs.
         self.browsertime_node = Path(cmd[0])
-        self.backend_server = self.start_backend_server("upload_backend.js")
+        self.backend_server = self.start_backend_server("benchmark_backend_server.js")
         if self.backend_server:
             self.caddy_server = self.start_caddy()
         if self.caddy_server is None:

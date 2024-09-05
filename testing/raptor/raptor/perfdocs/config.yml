@@ -238,6 +238,7 @@ suites:
             upload: "Measures HTTP/2 file upload throughput with a remote server"
             upload-h3: "Measures HTTP/3 file upload throughput with a remote server"
             h3-upload: "Measures HTTP/3 file upload throughput with a local server"
+            h3-download: "Measures HTTP/3 download throughput with a local server"
             throttled: "Pageload test using a throttled network environment"
             sample-python-support: "A sample test that uses a python support file to modify the test command."
             connect: "Verifies that connection time on a pageload is zero when a speculative connection has first been made"
