@@ -4881,13 +4881,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     }
   }
 
-  if (aFrame->IsTableFrame()) {
-    // Tables can't shrink smaller than their intrinsic minimum inline size,
-    // no matter what.
-    const IntrinsicSizeInput input(aRenderingContext, Nothing());
-    min = aFrame->GetMinISize(input);
-  }
-
   // If we have an aspect-ratio and a definite block size of |aFrame|, we should
   // use them to resolve the sizes with intrinsic keywords in the inline axis.
   // If |aAxis| is the block axis of |aFrame|, intrinsic keywords should behaves

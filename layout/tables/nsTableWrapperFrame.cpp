@@ -242,6 +242,25 @@ nscoord nsTableWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                             IntrinsicISizeType aType) {
   nscoord iSize = nsLayoutUtils::IntrinsicForContainer(
       aInput.mContext, InnerTableFrame(), aType);
+
+  {
+    // If aFrame is a container for font size inflation, then shrink
+    // wrapping inside of it should not apply font size inflation.
+    AutoMaybeDisableFontInflation an(this);
+
+    // Tables can't shrink smaller than their intrinsic minimum inline size,
+    // no matter what.
+    const IntrinsicSizeInput input(aInput.mContext, Nothing());
+
+    // GetMinISize() returns a content-box inline size, but we need the
+    // margin-box inline size as the contribution in the inline axis.
+    const IntrinsicSizeOffsetData offset =
+        InnerTableFrame()->IntrinsicISizeOffsets();
+    const nscoord innerTableMinISize = InnerTableFrame()->GetMinISize(input) +
+                                       offset.BorderPadding() + offset.margin;
+    iSize = std::max(iSize, innerTableMinISize);
+  }
+
   if (mCaptionFrames.NotEmpty()) {
     // The table wrapper's intrinsic inline size should be as least as large as
     // caption's min inline size.
