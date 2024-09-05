@@ -196,8 +196,6 @@ class nsStandardURL : public nsIFileURL,
   };
   friend class nsSegmentEncoder;
 
-  static nsresult NormalizeIPv4(const nsACString& host, nsCString& result);
-
   static nsIIDNService* GetIDNService();
 
  protected:

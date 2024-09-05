@@ -67,6 +67,7 @@
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "nsNSSComponent.h"
+#include "IPv4Parser.h"
 #include "ssl.h"
 #include "StaticComponents.h"
 
@@ -1014,8 +1015,29 @@ nsIOService::HostnameIsSharedIPAddress(nsIURI* aURI, bool* aResult) {
 
 NS_IMETHODIMP
 nsIOService::IsValidHostname(const nsACString& inHostname, bool* aResult) {
-  *aResult = net_IsValidHostName(inHostname);
+  if (!net_IsValidDNSHost(inHostname)) {
+    *aResult = false;
+    return NS_OK;
+  }
 
+  // hostname ending with a "." delimited octet that is a number
+  // must be IPv4 or IPv6 dual address
+  nsAutoCString host(inHostname);
+  if (IPv4Parser::EndsInANumber(host)) {
+    // ipv6 dual address; for example "::1.2.3.4"
+    if (net_IsValidIPv6Addr(host)) {
+      *aResult = true;
+      return NS_OK;
+    }
+
+    nsAutoCString normalized;
+    nsresult rv = IPv4Parser::NormalizeIPv4(host, normalized);
+    if (NS_FAILED(rv)) {
+      *aResult = false;
+      return NS_OK;
+    }
+  }
+  *aResult = true;
   return NS_OK;
 }
 

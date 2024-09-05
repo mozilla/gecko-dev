@@ -883,7 +883,7 @@ nsresult nsHttpChannel::ContinueOnBeforeConnect(bool aShouldUpgrade,
   }
 
   // ensure that we are using a valid hostname
-  if (!net_IsValidHostName(nsDependentCString(mConnectionInfo->Origin()))) {
+  if (!net_IsValidDNSHost(nsDependentCString(mConnectionInfo->Origin()))) {
     return NS_ERROR_UNKNOWN_HOST;
   }
 

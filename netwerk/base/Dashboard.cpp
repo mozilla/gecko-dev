@@ -1115,7 +1115,7 @@ nsresult Dashboard::TestNewConnection(ConnectionData* aConnectionData) {
 
   nsresult rv;
   if (!connectionData->mHost.Length() ||
-      !net_IsValidHostName(connectionData->mHost)) {
+      !net_IsValidDNSHost(connectionData->mHost)) {
     return NS_ERROR_UNKNOWN_HOST;
   }
 

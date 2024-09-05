@@ -524,7 +524,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
 
   // ensure that we are working with a valid hostname before proceeding.  see
   // bug 304904 for details.
-  if (!net_IsValidHostName(host)) {
+  if (!net_IsValidDNSHost(host)) {
     return NS_ERROR_UNKNOWN_HOST;
   }
 

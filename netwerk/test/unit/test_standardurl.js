@@ -1189,3 +1189,19 @@ add_task(async function test_bug1890346() {
   let url = Services.io.newURI("file:..?/..");
   equal(url.spec, "file:///?/..");
 });
+
+add_task(async function test_bug1914141() {
+  equal(Services.io.isValidHostname("example.com"), true);
+  equal(Services.io.isValidHostname("example.0"), false);
+
+  equal(Services.io.isValidHostname("192.168.0.1"), true);
+  equal(Services.io.isValidHostname("192.168.0"), true);
+  equal(Services.io.isValidHostname("1.192.168.0.1"), false);
+  equal(Services.io.isValidHostname("invalid.192.168.0.1"), false);
+
+  equal(Services.io.isValidHostname("::1"), true);
+  equal(Services.io.isValidHostname("abcd::zz::00"), false);
+  equal(Services.io.isValidHostname("zzzz::1.2.3.4"), false);
+
+  equal(Services.io.isValidHostname("::1.2.3.4"), true);
+});

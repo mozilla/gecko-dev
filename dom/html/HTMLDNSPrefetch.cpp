@@ -229,10 +229,10 @@ nsresult HTMLDNSPrefetch::Prefetch(
     const OriginAttributes& aPartitionedPrincipalOriginAttributes,
     nsIDNSService::DNSFlags flags) {
   if (IsNeckoChild()) {
-    // We need to check IsEmpty() because net_IsValidHostName()
+    // We need to check IsEmpty() because net_IsValidDNSHost()
     // considers empty strings to be valid hostnames
     if (!hostname.IsEmpty() &&
-        net_IsValidHostName(NS_ConvertUTF16toUTF8(hostname))) {
+        net_IsValidDNSHost(NS_ConvertUTF16toUTF8(hostname))) {
       // during shutdown gNeckoChild might be null
       if (gNeckoChild) {
         gNeckoChild->SendHTMLDNSPrefetch(
@@ -312,10 +312,10 @@ nsresult HTMLDNSPrefetch::CancelPrefetch(
     nsIDNSService::DNSFlags flags, nsresult aReason) {
   // Forward this request to Necko Parent if we're a child process
   if (IsNeckoChild()) {
-    // We need to check IsEmpty() because net_IsValidHostName()
+    // We need to check IsEmpty() because net_IsValidDNSHost()
     // considers empty strings to be valid hostnames
     if (!hostname.IsEmpty() &&
-        net_IsValidHostName(NS_ConvertUTF16toUTF8(hostname))) {
+        net_IsValidDNSHost(NS_ConvertUTF16toUTF8(hostname))) {
       // during shutdown gNeckoChild might be null
       if (gNeckoChild && gNeckoChild->CanSend()) {
         gNeckoChild->SendCancelHTMLDNSPrefetch(

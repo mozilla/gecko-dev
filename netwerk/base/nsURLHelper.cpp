@@ -918,7 +918,7 @@ void net_ParseRequestContentType(const nsACString& aHeaderStr,
   *aHadCharset = hadCharset;
 }
 
-bool net_IsValidHostName(const nsACString& host) {
+bool net_IsValidDNSHost(const nsACString& host) {
   // The host name is limited to 253 ascii characters.
   if (host.Length() > 253) {
     return false;

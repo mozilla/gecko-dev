@@ -237,7 +237,10 @@ interface nsIIOService : nsISupports
     boolean hostnameIsSharedIPAddress(in nsIURI aURI);
 
     /**
-     * Checks if a hostname is valid.
+     * Checks if characters not allowed in DNS are present in the hostname
+     * and if the hostname ends in a number it also checks if it's a valid
+     * IPv4 address. Any failure indicates that parsing this host will fail at a
+     * later point when using it in the URL parser.
      *
      * @param AUTF8String hostname is the hostname to validate
      * @return true if the hostname is valid, else false

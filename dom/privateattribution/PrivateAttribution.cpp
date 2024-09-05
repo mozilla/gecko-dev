@@ -53,7 +53,7 @@ bool PrivateAttribution::GetSourceHostIfNonPrivate(nsACString& aSourceHost,
 
 [[nodiscard]] static bool ValidateHost(const nsACString& aHost,
                                        ErrorResult& aRv) {
-  if (!net_IsValidHostName(aHost)) {
+  if (!net_IsValidDNSHost(aHost)) {
     aRv.ThrowSyntaxError(aHost + " is not a valid host name"_ns);
     return false;
   }
