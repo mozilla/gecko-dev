@@ -8123,13 +8123,10 @@
 # appropriate pref is set.
 - name: javascript.options.gc_on_memory_pressure
   type: bool
-#if defined(MOZ_WIDGET_ANDROID)
-  # We will enable the JS engine's GC on memory pressure on Nightly to observe its performance
-  # impact and then decide to ride the trains or not. See bug 1450787.
-  value: @IS_NIGHTLY_BUILD@
-#else
-  value: true
-#endif
+  # Disable the JS engine's GC on memory pressure on Android for now to continue investigating its
+  # performance impacts and then decide to enable it or not.
+  # See bug 1450787.
+  value: @IS_NOT_ANDROID@
   mirror: always
 
 # We allow at most MIN(max, MAX(NUM_CPUS / cpu_divisor, 1)) concurrent GCs
