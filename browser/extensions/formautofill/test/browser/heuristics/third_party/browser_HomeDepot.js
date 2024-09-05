@@ -45,6 +45,7 @@ add_heuristic_tests(
           fields: [
             { fieldName: "cc-exp-month", reason: "regex-heuristic" }, // invisible
             { fieldName: "cc-exp-year", reason: "regex-heuristic" },  // invisible
+            { fieldName: "cc-csc", reason: "regex-heuristic" },
           ],
         },
       ],

@@ -70,7 +70,7 @@ add_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", reason: "autocomplete" },
-          //{ fieldName: "cc-csc", reason: "autocomplete" },
+          { fieldName: "cc-csc", reason: "autocomplete" },
         ],
       },
       {

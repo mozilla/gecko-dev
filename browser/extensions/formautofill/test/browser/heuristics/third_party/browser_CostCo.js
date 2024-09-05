@@ -77,7 +77,7 @@ add_heuristic_tests(
             { fieldName: "cc-number", reason: "fathom" }, // ac-off
             { fieldName: "cc-exp-month" },
             { fieldName: "cc-exp-year" },
-            // { fieldName: "cc-csc"}, // ac-off
+            { fieldName: "cc-csc"}, // ac-off
             { fieldName: "cc-name", reason: "fathom" }, // ac-off
           ],
         },

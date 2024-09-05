@@ -27,12 +27,12 @@ add_heuristic_tests(
         // field is currently recognized as a 'csc' field. We need to implement a heuristic
         // to accurately determine the field type when a field aligns with multiple field types
         // instead of depending on the order of we perform the matching
-        //{
-          //invalid: true,
-          //fields: [
-            //{ fieldName: "email", reason: "regex-heuristic"},
-          //],
-        //},
+        {
+          invalid: true,
+          fields: [
+            { fieldName: "cc-csc", reason: "regex-heuristic"},
+          ],
+        },
       ],
     },
   ],

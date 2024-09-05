@@ -14,6 +14,7 @@ add_heuristic_tests(
           fields: [
             { fieldName: "cc-number", reason: "fathom" },
             { fieldName: "cc-exp", reason: "update-heuristic" },
+            { fieldName: "cc-csc", reason: "regex-heuristic" },
             { fieldName: "cc-name", reason: "regex-heuristic" },
           ],
         },

@@ -14,6 +14,7 @@ add_heuristic_tests(
           fields: [
             { fieldName: "cc-number" },
             { fieldName: "cc-exp" },
+            { fieldName: "cc-csc" },
             { fieldName: "cc-given-name" },
             { fieldName: "cc-family-name" },
           ],
