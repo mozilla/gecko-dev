@@ -4,12 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-if CONFIG["USE_ELF_HACK"] or CONFIG["RELRHACK"]:
-    DIRS += ["elfhack"]
+Library("profiling")
 
-if (
-    CONFIG["MOZ_ENABLE_FORKSERVER"]
-    and CONFIG["OS_TARGET"] == "Linux"
-    and CONFIG["MOZ_PROFILE_GENERATE"] == "1"
-):
-    DIRS += ["profiling"]
+SOURCES += ["profiling.cpp"]

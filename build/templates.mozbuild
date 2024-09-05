@@ -16,9 +16,21 @@ def Binary():
 
 
 @template
+def MaybeAddProfiling(name):
+    if (
+        CONFIG["MOZ_ENABLE_FORKSERVER"]
+        and CONFIG["OS_TARGET"] == "Linux"
+        and CONFIG["MOZ_PROFILE_GENERATE"] == "1"
+    ):
+        USE_LIBS += ["profiling"]
+
+
+@template
 def Program(name):
     """Template for program executables."""
     PROGRAM = name
+
+    MaybeAddProfiling(name)
 
     Binary()
 
@@ -125,6 +137,8 @@ def SharedLibrary(name, output_category=None):
 
     if output_category:
         SHARED_LIBRARY_OUTPUT_CATEGORY = output_category
+
+    MaybeAddProfiling(name)
 
     Binary()
 
