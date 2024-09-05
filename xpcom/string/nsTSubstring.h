@@ -457,6 +457,9 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
   void NS_FASTCALL AssignASCII(const char* aData) {
     AssignASCII(aData, strlen(aData));
   }
+
+  void NS_FASTCALL AssignASCII(const nsLiteralCString& aData);
+
   [[nodiscard]] bool NS_FASTCALL AssignASCII(const char* aData,
                                              const fallible_t& aFallible) {
     return AssignASCII(aData, strlen(aData), aFallible);
@@ -719,6 +722,8 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
                             const fallible_t& aFallible);
 
   void AppendASCII(const char* aData, size_type aLength = size_type(-1));
+
+  void AppendASCII(const nsLiteralCString& aData);
 
   [[nodiscard]] bool AppendASCII(const char* aData,
                                  const fallible_t& aFallible);

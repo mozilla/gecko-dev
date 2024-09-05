@@ -440,6 +440,11 @@ void nsTSubstring<T>::AssignASCII(const char* aData, size_type aLength) {
 }
 
 template <typename T>
+void nsTSubstring<T>::AssignASCII(const nsLiteralCString& aData) {
+  AssignASCII(aData.get(), aData.Length());
+}
+
+template <typename T>
 bool nsTSubstring<T>::AssignASCII(const char* aData, size_type aLength,
                                   const fallible_t& aFallible) {
   MOZ_ASSERT(aLength != size_type(-1));
@@ -798,6 +803,11 @@ void nsTSubstring<T>::AppendASCII(const char* aData, size_type aLength) {
     AllocFailed(this->mLength +
                 (aLength == size_type(-1) ? strlen(aData) : aLength));
   }
+}
+
+template <typename T>
+void nsTSubstring<T>::AppendASCII(const nsLiteralCString& aData) {
+  AppendASCII(aData.get(), aData.Length());
 }
 
 template <typename T>

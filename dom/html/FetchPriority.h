@@ -37,9 +37,9 @@ void LogPriorityMapping(LazyLogModule& aLazyLogModule,
                         FetchPriority aFetchPriority,
                         int32_t aSupportsPriority);
 
-extern const char* kFetchPriorityAttributeValueHigh;
-extern const char* kFetchPriorityAttributeValueLow;
-extern const char* kFetchPriorityAttributeValueAuto;
+constexpr const char kFetchPriorityAttributeValueHigh[] = "high";
+constexpr const char kFetchPriorityAttributeValueLow[] = "low";
+constexpr const char kFetchPriorityAttributeValueAuto[] = "auto";
 
 }  // namespace dom
 }  // namespace mozilla

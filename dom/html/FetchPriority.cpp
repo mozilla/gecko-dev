@@ -13,9 +13,6 @@
 #include "nsStringFwd.h"
 
 namespace mozilla::dom {
-const char* kFetchPriorityAttributeValueHigh = "high";
-const char* kFetchPriorityAttributeValueLow = "low";
-const char* kFetchPriorityAttributeValueAuto = "auto";
 
 FetchPriority ToFetchPriority(RequestPriority aRequestPriority) {
   switch (aRequestPriority) {

@@ -12458,21 +12458,21 @@ class CGEnum(CGThing):
                 declare=fill(
                     """
                     template <> struct EnumStrings<${name}> {
-                      static const nsLiteralCString Values[${count}];
-                    };
-                    """,
-                    name=self.enum.identifier.name,
-                    count=self.nEnumStrings(),
-                ),
-                define=fill(
-                    """
-                    const nsLiteralCString EnumStrings<${name}>::Values[${count}] = {
-                      $*{entries}
+                      static constexpr nsLiteralCString Values[${count}] {
+                        $*{entries}
+                      };
                     };
                     """,
                     name=self.enum.identifier.name,
                     count=self.nEnumStrings(),
                     entries="".join('"%s"_ns,\n' % val for val in self.enum.values()),
+                ),
+                define=fill(
+                    """
+                    constexpr nsLiteralCString EnumStrings<${name}>::Values[${count}];
+                    """,
+                    name=self.enum.identifier.name,
+                    count=self.nEnumStrings(),
                 ),
             ),
         )

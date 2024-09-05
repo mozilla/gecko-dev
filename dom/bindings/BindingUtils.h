@@ -1493,7 +1493,7 @@ inline Maybe<Enum> StringToEnum(const StringT& aString) {
 }
 
 template <typename Enum>
-inline const nsCString& GetEnumString(Enum stringId) {
+inline constexpr const nsLiteralCString& GetEnumString(Enum stringId) {
   MOZ_RELEASE_ASSERT(
       static_cast<size_t>(stringId) <
       mozilla::ArrayLength(binding_detail::EnumStrings<Enum>::Values));
