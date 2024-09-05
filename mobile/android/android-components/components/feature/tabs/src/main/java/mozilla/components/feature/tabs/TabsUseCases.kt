@@ -180,7 +180,6 @@ class TabsUseCases(
                 initialLoadFlags = flags,
                 initialAdditionalHeaders = additionalHeaders,
                 historyMetadata = historyMetadata,
-                desktopMode = store.state.desktopMode,
             )
 
             store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))

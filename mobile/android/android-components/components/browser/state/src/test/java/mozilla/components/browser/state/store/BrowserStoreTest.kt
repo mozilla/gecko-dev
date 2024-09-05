@@ -9,7 +9,6 @@ import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.TabListAction
-import mozilla.components.browser.state.action.ToggleDesktopMode
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.lib.state.Middleware
@@ -92,14 +91,5 @@ class BrowserStoreTest {
 
         store.dispatch(RestoreCompleteAction).joinBlocking()
         assertTrue(store.state.restoreComplete)
-    }
-
-    @Test
-    fun `ToggleDesktopMode updates state`() {
-        val store = BrowserStore()
-        assertFalse(store.state.desktopMode)
-
-        store.dispatch(ToggleDesktopMode).joinBlocking()
-        assertTrue(store.state.desktopMode)
     }
 }

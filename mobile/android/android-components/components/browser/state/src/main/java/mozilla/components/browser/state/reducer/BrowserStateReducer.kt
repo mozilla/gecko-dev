@@ -30,7 +30,6 @@ import mozilla.components.browser.state.action.ShareInternetResourceAction
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabGroupAction
 import mozilla.components.browser.state.action.TabListAction
-import mozilla.components.browser.state.action.ToggleDesktopMode
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.action.UndoAction
@@ -80,7 +79,6 @@ internal object BrowserStateReducer {
             is DebugAction -> DebugReducer.reduce(state, action)
             is ExtensionsProcessAction -> ExtensionsProcessStateReducer.reduce(state, action)
             is AwesomeBarAction -> AwesomeBarStateReducer.reduce(state, action)
-            is ToggleDesktopMode -> state.copy(desktopMode = !state.desktopMode)
         }
     }
 }

@@ -99,7 +99,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.search.SearchMigration
 import org.mozilla.fenix.downloads.DownloadService
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.gecko.GeckoProvider
 import org.mozilla.fenix.historymetadata.DefaultHistoryMetadataService
@@ -327,7 +326,6 @@ class Core(
                 search = SearchState(
                     applicationSearchEngines = applicationSearchEngines,
                 ),
-                desktopMode = context.isTablet(),
             ),
             middleware = middlewareList + EngineMiddleware.create(
                 engine,

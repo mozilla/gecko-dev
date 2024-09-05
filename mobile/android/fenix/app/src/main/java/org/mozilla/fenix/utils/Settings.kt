@@ -44,7 +44,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
-import org.mozilla.fenix.ext.isTablet
 import org.mozilla.fenix.nimbus.CookieBannersSection
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.HomeScreenSection
@@ -1628,8 +1627,8 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * If set to true, next opened tab from home screen will be opened in desktop mode.
      */
     var openNextTabInDesktopMode by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_open_next_tab_desktop_mode_is_tablet),
-        default = appContext.isTablet(),
+        appContext.getPreferenceKey(R.string.pref_key_open_next_tab_desktop_mode),
+        default = false,
     )
 
     var signedInFxaAccount by booleanPreference(
