@@ -460,7 +460,7 @@
       pc1.setRemoteDescription(answer);
 
       // Validate logging shows flexfec counted once ulpfec negotiated twice and preferred video VP9 since no VP8 was offered.
-      let flexfecOffered = await GleanTest.codecStats.otherFecSignaled.FLEXFEC.testGetValue() || 0;
+      let flexfecOffered = await GleanTest.codecStats.otherFecSignaled.flexfec.testGetValue() || 0;
       ok(flexfecOffered == 1, "checkFlexfecOffered glean should count flexfec being offered" + flexfecOffered);
       let ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
       ok(ulpfecNegotiated == 2, "checkUlpfecNegotiated glean should show ulpfec negotiated");
@@ -510,7 +510,7 @@
       pc1.setRemoteDescription(answer);
 
       // We should show CN as the preferred codec from the offer and the answer should prefer G722 since opus was removed.
-      let preferredAudioCodecFAKECodec = await GleanTest.codecStats.audioPreferredCodec.FAKECODEC.testGetValue() || 0;
+      let preferredAudioCodecFAKECodec = await GleanTest.codecStats.audioPreferredCodec.FAKECodec.testGetValue() || 0;
       ok(preferredAudioCodecFAKECodec == 1, "checkPreferredAudioCodec Glean should show preferred audio codec FAKECodec " + preferredAudioCodecFAKECodec);
       let preferredAudioCodecG722 = await GleanTest.codecStats.audioPreferredCodec.G722.testGetValue() || 0;
       ok(preferredAudioCodecG722 == 1, "checkPreferredAudioCodec Glean should show preferred audio codec G722 " + preferredAudioCodecG722);
@@ -727,35 +727,6 @@
           is(count1_2, 0);
           is(count1_3, 0);
       });
-    },
-
-    async function checkCodecCaseEquivalence() {
-      const pc1 = new RTCPeerConnection();
-      const pc2 = new RTCPeerConnection();
-      await gleanResetTestValues();
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const sender = pc1.addTrack(stream.getTracks()[0]);
-      await pc1.setLocalDescription();
-      let offer = pc1.localDescription;
-      // Set a video codec using a lower case name to ensure that GLEAN
-      // probes are case-insensitive.
-      const sdp = offer.sdp.replaceAll('VP8','vp8');
-      await pc2.setRemoteDescription({type: 'offer', sdp});
-      const answer = await pc2.createAnswer();
-      await pc2.setLocalDescription(answer);
-      await pc1.setRemoteDescription(answer);
-
-
-      // Check that the codec name is always upper case
-      let preferredVideoCodecVP8UCase = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
-      ok(preferredVideoCodecVP8UCase == 2, "checkPreferredVideoCodec glean should show preferred video codec VP8" + preferredVideoCodecVP8UCase);
-
-      // Check that the bin for the lower case codec name does not exist
-      let preferredVideoCodecVP8LCase = await GleanTest.codecStats.videoPreferredCodec.vp8.testGetValue();
-      ok(preferredVideoCodecVP8LCase === null, "checkPreferredVideoCodec glean should show preferred video codec vp8" + preferredVideoCodecVP8LCase);
-
-      // The other probes of concern are covered by other tests which inherently
-      // use lower case or mixed case codec names: FAKECodec, flexfec.
     },
 
   ];
