@@ -7642,7 +7642,8 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
 
   // Fold the adjustment for the fact that arenas don't start at the beginning
   // of the chunk into the offset to the chunk bitmap.
-  const size_t firstArenaAdjustment = gc::FirstArenaAdjustmentBits / CHAR_BIT;
+  const size_t firstArenaAdjustment =
+      gc::ChunkMarkBitmap::FirstThingAdjustmentBits / CHAR_BIT;
   const intptr_t offset =
       intptr_t(gc::ChunkMarkBitmapOffset) - intptr_t(firstArenaAdjustment);
 
