@@ -19,6 +19,7 @@ input {
   font-size: inherit;
   min-height: var(--radio-size);
   min-width: var(--radio-size);
+  accent-color: var(--color-accent-primary);
   font-family: inherit;
   margin-inline-start: calc(-1 * var(--radio-space-offset));
 }
