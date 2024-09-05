@@ -19,6 +19,9 @@ add_task(async function test() {
       visitDate: new Date(new Date().setDate(now.getDate() - 30)),
     },
   ]);
+  // Temporarily unset recalculation, otherwise the task may flip the recalc
+  // fields before we check them.
+  PlacesUtils.history.shouldStartFrecencyRecalculation = false;
   Assert.equal(
     await PlacesTestUtils.getDatabaseValue("moz_origins", "recalc_frecency", {
       host,
@@ -26,19 +29,18 @@ add_task(async function test() {
     1,
     "Frecency should be calculated"
   );
-  // There are multiple async queries running as a consequence of adding a visit
-  // we can't be sure all of them started yet, so we must await for the value.
-  await TestUtils.waitForCondition(
-    async () =>
-      (await PlacesTestUtils.getDatabaseValue(
-        "moz_origins",
-        "recalc_alt_frecency",
-        {
-          host,
-        }
-      )) == 1,
+  Assert.equal(
+    await PlacesTestUtils.getDatabaseValue(
+      "moz_origins",
+      "recalc_alt_frecency",
+      {
+        host,
+      }
+    ),
+    1,
     "Alt frecency should be calculated"
   );
+
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
   let alt_frecency = await PlacesTestUtils.getDatabaseValue(
     "moz_origins",
@@ -50,7 +52,8 @@ add_task(async function test() {
     "frecency",
     { host }
   );
-  // Remove only one visit (otherwise the page would be orphaned).
+
+  info("Remove only one visit (otherwise the page would be orphaned).");
   await PlacesUtils.history.removeVisitsByFilter({
     beginDate: new Date(now.valueOf() - 10000),
     endDate: new Date(now.valueOf() + 10000),
@@ -87,11 +90,14 @@ add_task(async function test() {
     "alternative frecency should have decreased"
   );
 
-  // Add another page to the same host.
+  info("Add another page to the same host.");
   const url2 = `https://${host}/second/`;
   await PlacesTestUtils.addVisits(url2);
-  // Remove the first page.
+  info("Remove the first page.");
   await PlacesUtils.history.remove(url);
+  // Temporarily unset recalculation, otherwise the task may flip the recalc
+  // fields before we check them.
+  PlacesUtils.history.shouldStartFrecencyRecalculation = false;
   Assert.equal(
     await PlacesTestUtils.getDatabaseValue("moz_origins", "recalc_frecency", {
       host,
