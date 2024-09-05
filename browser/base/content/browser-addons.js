@@ -88,6 +88,103 @@ const ERROR_L10N_IDS = new Map([
 ]);
 
 customElements.define(
+  "addon-webext-permissions-notification",
+  class MozAddonPermissionsNotification extends customElements.get(
+    "popupnotification"
+  ) {
+    show() {
+      super.show();
+
+      if (!this.notification) {
+        return;
+      }
+      this.render();
+    }
+
+    render() {
+      const HTML_NS = "http://www.w3.org/1999/xhtml";
+      const doc = this.ownerDocument;
+      const {
+        strings,
+        showIncognitoCheckbox,
+        grantPrivateBrowsingAllowed,
+        onPrivateBrowsingAllowedChanged,
+      } = this.notification.options.customElementOptions;
+
+      let textEl = doc.getElementById("addon-webext-perm-text");
+      textEl.textContent = strings.text;
+      textEl.hidden = !strings.text;
+
+      // By default, multiline strings don't get formatted properly. These
+      // are presently only used in site permission add-ons, so we treat it
+      // as a special case to avoid unintended effects on other things.
+      let isMultiline = strings.text.includes("\n\n");
+      textEl.classList.toggle("addon-webext-perm-text-multiline", isMultiline);
+
+      let listIntroEl = doc.getElementById("addon-webext-perm-intro");
+      listIntroEl.textContent = strings.listIntro;
+      listIntroEl.hidden = !strings.msgs.length || !strings.listIntro;
+
+      // Show the link to the sumo page if there are permissions listed
+      // or the private browsing checkbox is visible.
+      let listInfoEl = doc.getElementById("addon-webext-perm-info");
+      listInfoEl.hidden = !strings.msgs.length && !showIncognitoCheckbox;
+
+      let list = doc.getElementById("addon-webext-perm-list");
+      while (list.firstChild) {
+        list.firstChild.remove();
+      }
+      let singleEntryEl = doc.getElementById("addon-webext-perm-single-entry");
+      singleEntryEl.textContent = "";
+      singleEntryEl.hidden = true;
+      list.hidden = true;
+
+      const createPrivateBrowsingCheckbox = () => {
+        let checkboxEl = doc.createXULElement("checkbox");
+        checkboxEl.checked = grantPrivateBrowsingAllowed;
+        checkboxEl.addEventListener("CheckboxStateChange", () => {
+          onPrivateBrowsingAllowedChanged(checkboxEl.checked);
+        });
+        doc.l10n.setAttributes(
+          checkboxEl,
+          "popup-notification-addon-privatebrowsing-checkbox"
+        );
+        return checkboxEl;
+      };
+
+      let checkbox;
+      if (strings.msgs.length === 0 && showIncognitoCheckbox) {
+        checkbox = createPrivateBrowsingCheckbox();
+        singleEntryEl.appendChild(checkbox);
+        singleEntryEl.hidden = false;
+        singleEntryEl.classList.add("webext-perm-optional");
+        singleEntryEl.classList.add("webext-perm-privatebrowsing");
+      } else if (strings.msgs.length === 1 && !showIncognitoCheckbox) {
+        singleEntryEl.textContent = strings.msgs[0];
+        singleEntryEl.hidden = false;
+      } else if (strings.msgs.length) {
+        for (let msg of strings.msgs) {
+          let item = doc.createElementNS(HTML_NS, "li");
+          item.classList.add("webext-perm-granted");
+          item.textContent = msg;
+          list.appendChild(item);
+        }
+        if (showIncognitoCheckbox) {
+          let item = doc.createElementNS(HTML_NS, "li");
+          item.classList.add("webext-perm-optional");
+          item.classList.add("webext-perm-privatebrowsing");
+          checkbox = createPrivateBrowsingCheckbox();
+          item.appendChild(checkbox);
+          list.appendChild(item);
+        }
+
+        list.hidden = false;
+      }
+    }
+  }
+);
+
+customElements.define(
   "addon-progress-notification",
   class MozAddonProgressNotification extends customElements.get(
     "popupnotification"

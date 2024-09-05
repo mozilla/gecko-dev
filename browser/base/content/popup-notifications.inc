@@ -111,7 +111,9 @@
       <popupnotificationcontent id="addon-install-confirmation-content" orient="vertical"/>
     </popupnotification>
 
-    <popupnotification id="addon-webext-permissions-notification" hidden="true">
+    <popupnotification id="addon-webext-permissions-notification"
+                       is="addon-webext-permissions-notification"
+                       hidden="true">
       <popupnotificationcontent class="addon-webext-perm-notification-content" orient="vertical">
         <description id="addon-webext-perm-text" class="addon-webext-perm-text"/>
         <label id="addon-webext-perm-intro" class="addon-webext-perm-text"/>

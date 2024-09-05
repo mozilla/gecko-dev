@@ -43,8 +43,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 const DEFAULT_EXTENSION_ICON =
   "chrome://mozapps/skin/extensions/extensionGeneric.svg";
 
-const HTML_NS = "http://www.w3.org/1999/xhtml";
-
 function getTabBrowser(browser) {
   while (browser.ownerGlobal.docShell.itemType !== Ci.nsIDocShell.typeChrome) {
     browser = browser.ownerGlobal.docShell.chromeEventHandler;
@@ -397,8 +395,6 @@ export var ExtensionsUI = {
       );
     }
 
-    let checkbox;
-
     const incognitoPermissionName = "internal:privateBrowsingAllowed";
     let grantPrivateBrowsingAllowed = false;
     if (showIncognitoCheckbox) {
@@ -416,79 +412,7 @@ export var ExtensionsUI = {
 
     let promise = new Promise(resolve => {
       function eventCallback(topic) {
-        let doc = this.browser.ownerDocument;
-        if (topic == "showing") {
-          let textEl = doc.getElementById("addon-webext-perm-text");
-          textEl.textContent = strings.text;
-          textEl.hidden = !strings.text;
-
-          // By default, multiline strings don't get formatted properly. These
-          // are presently only used in site permission add-ons, so we treat it
-          // as a special case to avoid unintended effects on other things.
-          let isMultiline = strings.text.includes("\n\n");
-          textEl.classList.toggle(
-            "addon-webext-perm-text-multiline",
-            isMultiline
-          );
-
-          let listIntroEl = doc.getElementById("addon-webext-perm-intro");
-          listIntroEl.textContent = strings.listIntro;
-          listIntroEl.hidden = !strings.msgs.length || !strings.listIntro;
-
-          // Show the link to the sumo page if there are permissions listed
-          // or the private browsing checkbox is visible.
-          let listInfoEl = doc.getElementById("addon-webext-perm-info");
-          listInfoEl.hidden = !strings.msgs.length && !showIncognitoCheckbox;
-
-          let list = doc.getElementById("addon-webext-perm-list");
-          while (list.firstChild) {
-            list.firstChild.remove();
-          }
-          let singleEntryEl = doc.getElementById(
-            "addon-webext-perm-single-entry"
-          );
-          singleEntryEl.textContent = "";
-          singleEntryEl.hidden = true;
-          list.hidden = true;
-
-          const createPrivateBrowsingCheckbox = () => {
-            let checkboxEl = doc.createXULElement("checkbox");
-            checkboxEl.checked = grantPrivateBrowsingAllowed;
-            doc.l10n.setAttributes(
-              checkboxEl,
-              "popup-notification-addon-privatebrowsing-checkbox"
-            );
-            return checkboxEl;
-          };
-
-          if (strings.msgs.length === 0 && showIncognitoCheckbox) {
-            checkbox = createPrivateBrowsingCheckbox();
-            singleEntryEl.appendChild(checkbox);
-            singleEntryEl.hidden = false;
-            singleEntryEl.classList.add("webext-perm-optional");
-            singleEntryEl.classList.add("webext-perm-privatebrowsing");
-          } else if (strings.msgs.length === 1 && !showIncognitoCheckbox) {
-            singleEntryEl.textContent = strings.msgs[0];
-            singleEntryEl.hidden = false;
-          } else if (strings.msgs.length) {
-            for (let msg of strings.msgs) {
-              let item = doc.createElementNS(HTML_NS, "li");
-              item.classList.add("webext-perm-granted");
-              item.textContent = msg;
-              list.appendChild(item);
-            }
-            if (showIncognitoCheckbox) {
-              let item = doc.createElementNS(HTML_NS, "li");
-              item.classList.add("webext-perm-optional");
-              item.classList.add("webext-perm-privatebrowsing");
-              checkbox = createPrivateBrowsingCheckbox();
-              item.appendChild(checkbox);
-              list.appendChild(item);
-            }
-
-            list.hidden = false;
-          }
-        } else if (topic == "swapping") {
+        if (topic == "swapping") {
           return true;
         }
         if (topic == "removed") {
@@ -508,6 +432,17 @@ export var ExtensionsUI = {
         removeOnDismissal: true,
         popupOptions: {
           position: "bottomright topright",
+        },
+        // Pass additional options used internally by the
+        // addon-webext-permissions-notification custom element
+        // (defined and registered by browser-addons.js).
+        customElementOptions: {
+          strings,
+          showIncognitoCheckbox,
+          grantPrivateBrowsingAllowed,
+          onPrivateBrowsingAllowedChanged(value) {
+            grantPrivateBrowsingAllowed = value;
+          },
         },
       };
       // The prompt/notification machinery has a special affordance wherein
@@ -529,9 +464,6 @@ export var ExtensionsUI = {
         label: strings.acceptText,
         accessKey: strings.acceptKey,
         callback: () => {
-          grantPrivateBrowsingAllowed = showIncognitoCheckbox
-            ? checkbox.checked
-            : undefined;
           resolve(true);
         },
       };
