@@ -88,6 +88,8 @@ support-files = [
 ]
 skip-if = ["os == 'linux' && socketprocess_networking"]
 
+["browser_save_image.js"]
+
 ["browser_strip_on_share_link.js"]
 
 ["browser_strip_on_share_nested_link.js"]
