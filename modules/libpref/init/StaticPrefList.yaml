@@ -12462,7 +12462,11 @@
 # NS_HTTP_LARGE_KEEPALIVE flag is used for a connection
 - name: network.http.largeKeepaliveFactor
   type: RelaxedAtomicUint32
+#if defined(ANDROID)
   value: 10
+#else
+  value: 20
+#endif
   mirror: always
 
 # Max size, in bytes, for received HTTP response header.

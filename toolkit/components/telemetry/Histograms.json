@@ -4673,17 +4673,6 @@
     "bug_numbers": [1453825, 1640867, 1646452],
     "alert_emails": ["necko@mozilla.com", "vgosu@mozilla.com"]
   },
-  "DNS_TRR_REQUEST_PER_CONN": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 5000,
-    "n_buckets": 100,
-    "bug_numbers": [1470853],
-    "description": "Number of DOH requests per connection"
-  },
   "DNS_TRR_SUCCESS3": {
     "record_in_processes": ["main", "socket"],
     "products": ["firefox", "fennec"],

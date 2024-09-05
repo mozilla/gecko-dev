@@ -1061,6 +1061,23 @@ networking:
       - regular
       - private
 
+  trr_request_count_per_conn:
+    type: labeled_counter
+    description: >
+      Number of DOH requests per connection keyed by HTTP version
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1916352
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1916352
+    notification_emails:
+      - kershaw@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - h1
+      - h2
+      - h3
+
   http_redirect_to_scheme_top_level: &http_redirect_to_scheme_top_level
     type: labeled_counter
     description: >
