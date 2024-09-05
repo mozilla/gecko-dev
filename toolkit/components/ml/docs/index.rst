@@ -1,5 +1,5 @@
-Machine Learning
-================
+Firefox AI Platform
+===================
 
 This component is an experimental machine learning local inference engine based on
 `Transformers.js <https://huggingface.co/docs/transformers.js/index>`_ and
