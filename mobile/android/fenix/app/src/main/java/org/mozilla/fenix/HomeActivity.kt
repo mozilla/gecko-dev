@@ -1138,7 +1138,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         components.core.store.dispatch(ContentAction.UpdateDesktopModeAction(tabId, true))
 
         // Reset preference value after opening the tab in desktop mode
-        settings().openNextTabInDesktopMode = false
+        settings().openNextTabInDesktopMode = components.core.store.state.desktopMode
     }
 
     @VisibleForTesting
