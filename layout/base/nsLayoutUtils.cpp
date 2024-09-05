@@ -4341,12 +4341,6 @@ static Maybe<nscoord> GetIntrinsicSize(const SizeOrMaxSize& aSize,
                           aContentBoxToBoxSizingDiff);
 }
 
-#undef DEBUG_INTRINSIC_WIDTH
-
-#ifdef DEBUG_INTRINSIC_WIDTH
-static int32_t gNoiseIndent = 0;
-#endif
-
 static nscoord GetFitContentSizeForMaxOrPreferredSize(
     const IntrinsicISizeType aType, const nsIFrame::SizeProperty aProperty,
     const nsIFrame* aFrame, const LengthPercentage& aStyleSize,
@@ -4569,13 +4563,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
              "grid layout should always pass a percentage basis");
 
   const bool horizontalAxis = MOZ_LIKELY(aAxis == PhysicalAxis::Horizontal);
-#ifdef DEBUG_INTRINSIC_WIDTH
-  nsIFrame::IndentBy(stderr, gNoiseIndent);
-  aFrame->ListTag(stderr);
-  printf_stderr(" %s %s intrinsic size for container:\n",
-                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
-                horizontalAxis ? "horizontal" : "vertical");
-#endif
 
   // If aFrame is a container for font size inflation, then shrink
   // wrapping inside of it should not apply font size inflation.
@@ -4743,9 +4730,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                styleISize.AsFitContentFunction().ConvertsToLength()) &&
              !(fixedMaxISize && fixedMinISize &&
                *fixedMaxISize <= *fixedMinISize)) {
-#ifdef DEBUG_INTRINSIC_WIDTH
-    ++gNoiseIndent;
-#endif
     if (MOZ_UNLIKELY(!isInlineAxis)) {
       IntrinsicSize intrinsicSize = aFrame->GetIntrinsicSize();
       const auto& intrinsicBSize =
@@ -4800,14 +4784,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                            percentageBasisBSizeForChildren)));
       result = aFrame->IntrinsicISize(input, aType);
     }
-#ifdef DEBUG_INTRINSIC_WIDTH
-    --gNoiseIndent;
-    nsIFrame::IndentBy(stderr, gNoiseIndent);
-    aFrame->ListTag(stderr);
-    printf_stderr(" %s %s intrinsic size from frame is %d.\n",
-                  aType == IntrinsicISizeType::MinISize ? "min" : "pref",
-                  horizontalAxis ? "horizontal" : "vertical", result);
-#endif
 
     // If our BSize or min/max-BSize properties are set to values that we can
     // resolve and that will impose a constraint when transferred through our
@@ -4955,14 +4931,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     result -= contentBoxSize - newContentBoxSize;
   }
 
-#ifdef DEBUG_INTRINSIC_WIDTH
-  nsIFrame::IndentBy(stderr, gNoiseIndent);
-  aFrame->ListTag(stderr);
-  printf_stderr(" %s %s intrinsic size for container is %d twips.\n",
-                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
-                horizontalAxis ? "horizontal" : "vertical", result);
-#endif
-
   return result;
 }
 
@@ -4986,14 +4954,6 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   MOZ_ASSERT(aFrame);
   MOZ_ASSERT(aFrame->IsFlexOrGridItem(),
              "only grid/flex items have this behavior currently");
-
-#ifdef DEBUG_INTRINSIC_WIDTH
-  nsIFrame::IndentBy(stderr, gNoiseIndent);
-  aFrame->ListTag(stderr);
-  printf_stderr(" %s min-isize for %s WM:\n",
-                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
-                aAxis == eAxisVertical ? "vertical" : "horizontal");
-#endif
 
   // Note: this method is only meant for grid/flex items.
   const nsStylePosition* const stylePos = aFrame->StylePosition();
@@ -5053,12 +5013,6 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
 
   if (!fixedMinSize) {
     // Let the caller deal with the "content size" cases.
-#ifdef DEBUG_INTRINSIC_WIDTH
-    nsIFrame::IndentBy(stderr, gNoiseIndent);
-    aFrame->ListTag(stderr);
-    printf_stderr(" %s min-isize is indefinite.\n",
-                  aType == IntrinsicISizeType::MinISize ? "min" : "pref");
-#endif
     return NS_UNCONSTRAINEDSIZE;
   }
 
@@ -5083,13 +5037,6 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   result = AddIntrinsicSizeOffset(
       aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, min, size,
       fixedMinSize, size, Nothing(), maxSize, Nothing(), aFlags, aAxis);
-
-#ifdef DEBUG_INTRINSIC_WIDTH
-  nsIFrame::IndentBy(stderr, gNoiseIndent);
-  aFrame->ListTag(stderr);
-  printf_stderr(" %s min-isize is %d twips.\n",
-                aType == IntrinsicISizeType::MinISize ? "min" : "pref", result);
-#endif
 
   return result;
 }
