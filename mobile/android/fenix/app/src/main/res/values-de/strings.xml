@@ -309,6 +309,8 @@
     <string name="browser_menu_switch_to_mobile_site">Zur Website für Mobilgeräte wechseln</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Werkzeuge</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Zurück zum Hauptmenü</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Leseansicht, Übersetzen, Drucken, Teilen, App öffnen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -644,8 +646,6 @@
     <string name="toast_override_account_sync_server_done">Server für Mozilla-Konto/Sync geändert. Anwendung wird beendet, um Änderungen zu übernehmen…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Konto</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Symbolleiste</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Position der Adressleiste</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -952,8 +952,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Zum Aktualisieren ziehen</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Zum Ausblenden der Symbolleiste scrollen</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Symbolleiste zur Seite wischen, um Tabs zu wechseln</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Nach oben wischen, ob Tabs zu öffnen</string>
 
@@ -2708,8 +2706,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Alle Sprachen löschen</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Löschen</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">In Arbeit</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">In Arbeit</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2760,8 +2756,6 @@
     <string name="download_language_file_dialog_title">Im Datensparmodus herunterladen (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Wir laden Teile von Sprachen in Ihren Cache herunter, um die Übersetzungen privat zu halten.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Wir laden Teile von Sprachen herunter, um Übersetzungen privat zu halten.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Immer im Datensparmodus herunterladen</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2824,11 +2818,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Weiter</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Diese Umfrage ausfüllen</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Bitte füllen Sie die Umfrage aus</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Datenschutzhinweis</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Datenschutzhinweis</string>
     <!-- The submit button label text -->
