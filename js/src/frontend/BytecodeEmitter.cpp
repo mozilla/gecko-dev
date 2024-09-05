@@ -7265,20 +7265,20 @@ bool BytecodeEmitter::emitDeleteProperty(UnaryNode* deleteNode) {
                     propExpr->as<PropertyAccess>().isSuper()
                         ? PropOpEmitter::ObjKind::Super
                         : PropOpEmitter::ObjKind::Other);
+
+  if (!poe.prepareForObj()) {
+    return false;
+  }
+
   if (propExpr->isSuper()) {
-    // The expression |delete super.foo;| has to evaluate |super.foo|,
-    // which could throw if |this| hasn't yet been set by a |super(...)|
-    // call or the super-base is not an object, before throwing a
-    // ReferenceError for attempting to delete a super-reference.
-    UnaryNode* base = &propExpr->expression().as<UnaryNode>();
+    // The expression |delete super.foo;| has to evaluate |super.foo|, which
+    // could throw if |this| hasn't yet been set by a |super(...)| call.
+    auto* base = &propExpr->expression().as<UnaryNode>();
     if (!emitGetThisForSuperBase(base)) {
       //            [stack] THIS
       return false;
     }
   } else {
-    if (!poe.prepareForObj()) {
-      return false;
-    }
     if (!emitPropLHS(propExpr)) {
       //            [stack] OBJ
       return false;
