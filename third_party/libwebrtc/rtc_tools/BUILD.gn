@@ -261,9 +261,9 @@ if (!is_component_build) {
       "../test:test_renderer",
       "../test:test_support",
       "../test:test_video_capturer",
+      "../test:video_frame_writer",
       "../test:video_test_common",
       "../test:video_test_constants",
-      "../test:video_test_support",
       "../test/time_controller:time_controller",
       "//third_party/abseil-cpp/absl/flags:flag",
       "//third_party/abseil-cpp/absl/flags:parse",
@@ -462,8 +462,10 @@ if (!build_with_chromium) {
       "//api/environment",
       "//api/environment:environment_factory",
       "//api/video:builtin_video_bitrate_allocator_factory",
+      "//api/video_codecs:builtin_video_decoder_factory",
       "//api/video_codecs:builtin_video_encoder_factory",
       "//api/video_codecs:video_codecs_api",
+      "//common_video:common_video",
       "//media:media_constants",
       "//modules/video_coding:video_codec_interface",
       "//modules/video_coding:video_coding_utility",
@@ -474,6 +476,7 @@ if (!build_with_chromium) {
       "//third_party/abseil-cpp/absl/flags:flag",
       "//third_party/abseil-cpp/absl/flags:parse",
       "//third_party/abseil-cpp/absl/flags:usage",
+      "//third_party/abseil-cpp/absl/strings:strings",
     ]
   }
 }

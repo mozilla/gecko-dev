@@ -582,7 +582,8 @@ TEST(VideoCodecTest, DISABLED_EncodeDecode) {
   uint32_t timestamp_rtp = 90000;
   std::map<uint32_t, EncodingSettings> frame_settings;
   for (int frame_num = 0; frame_num < num_frames; ++frame_num) {
-    encoding_settings.keyframe = (frame_num % (key_interval + 1) == 0);
+    encoding_settings.keyframe =
+        (key_interval > 0 && (frame_num % key_interval) == 0);
     frame_settings.emplace(timestamp_rtp, encoding_settings);
     timestamp_rtp += k90kHz / framerate;
   }

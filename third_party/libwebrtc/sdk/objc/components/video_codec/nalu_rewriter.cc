@@ -259,7 +259,7 @@ AnnexBBufferReader::AnnexBBufferReader(const uint8_t* annexb_buffer,
                                        size_t length)
     : start_(annexb_buffer), length_(length) {
   RTC_DCHECK(annexb_buffer);
-  offsets_ = H264::FindNaluIndices(annexb_buffer, length);
+  offsets_ = H264::FindNaluIndices(rtc::MakeArrayView(annexb_buffer, length));
   offset_ = offsets_.begin();
 }
 

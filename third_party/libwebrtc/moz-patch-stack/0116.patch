@@ -1,114 +1,228 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Fri, 28 Jun 2024 18:13:00 +0000
-Subject: Bug 1905335 - WebRTC backport: PipeWire capture: hide cursor when it
- goes off screen or is not visible r=pehrsons,webrtc-reviewers
+From: Michael Froman <mjfroman@mac.com>
+Date: Mon, 2 Sep 2024 21:41:53 -0500
+Subject: Bug 1913286 - WebRTC backport: PipeWire camera: filter out devices
+ with no capabilities r=pehrsons,webrtc-reviewers
+
+Filter out devices that do not support any format supported by WebRTC.
+This will for example be IR cameras that show as duplicated in the list
+of cameras, but support only GRAY8 format and for that reason do not
+work at all.
 
 This is a simple backport of an WebRTC upstream change.
 
-Upstream commit: e6ad337d633c145c48a5a4ae54968c14c16081c7
+Upstream commit: b4aba7834e6c94adace1cb4c20e2e1ee70eb9cc5
 
-Differential Revision: https://phabricator.services.mozilla.com/D215197
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/5410b3c80af81f1e505a649e213efb5a9bfeb990
+Differential Revision: https://phabricator.services.mozilla.com/D219224
 ---
- .../wayland/mouse_cursor_monitor_pipewire.cc  | 14 +++--
- .../linux/wayland/shared_screencast_stream.cc | 52 +++++++++++--------
- 2 files changed, 38 insertions(+), 28 deletions(-)
+ .../linux/device_info_pipewire.cc             | 20 ++++-----
+ .../video_capture/linux/pipewire_session.cc   | 43 +++++++++++++------
+ .../video_capture/linux/pipewire_session.h    | 21 ++++++---
+ 3 files changed, 57 insertions(+), 27 deletions(-)
 
-diff --git a/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc b/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-index 3d33b0fbb8..00b07f341b 100644
---- a/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-+++ b/modules/desktop_capture/linux/wayland/mouse_cursor_monitor_pipewire.cc
-@@ -40,6 +40,14 @@ void MouseCursorMonitorPipeWire::Capture() {
-   RTC_DCHECK_RUN_ON(&sequence_checker_);
-   RTC_DCHECK(callback_);
+diff --git a/modules/video_capture/linux/device_info_pipewire.cc b/modules/video_capture/linux/device_info_pipewire.cc
+index 31d922035b..db2a3c7099 100644
+--- a/modules/video_capture/linux/device_info_pipewire.cc
++++ b/modules/video_capture/linux/device_info_pipewire.cc
+@@ -57,31 +57,31 @@ int32_t DeviceInfoPipeWire::GetDeviceName(uint32_t deviceNumber,
+   if (deviceNumber >= NumberOfDevices())
+     return -1;
  
-+  absl::optional<DesktopVector> mouse_cursor_position =
-+      options_.screencast_stream()->CaptureCursorPosition();
-+  // Invalid cursor or position
-+  if (!mouse_cursor_position) {
-+    callback_->OnMouseCursor(nullptr);
-+    return;
-+  }
-+
-   std::unique_ptr<MouseCursor> mouse_cursor =
-       options_.screencast_stream()->CaptureCursor();
+-  const PipeWireNode& node = pipewire_session_->nodes().at(deviceNumber);
++  const auto& node = pipewire_session_->nodes().at(deviceNumber);
  
-@@ -48,11 +56,7 @@ void MouseCursorMonitorPipeWire::Capture() {
+-  if (deviceNameLength <= node.display_name().length()) {
++  if (deviceNameLength <= node->display_name().length()) {
+     RTC_LOG(LS_INFO) << "deviceNameUTF8 buffer passed is too small";
+     return -1;
+   }
+-  if (deviceUniqueIdUTF8Length <= node.unique_id().length()) {
++  if (deviceUniqueIdUTF8Length <= node->unique_id().length()) {
+     RTC_LOG(LS_INFO) << "deviceUniqueIdUTF8 buffer passed is too small";
+     return -1;
+   }
+   if (productUniqueIdUTF8 &&
+-      productUniqueIdUTF8Length <= node.model_id().length()) {
++      productUniqueIdUTF8Length <= node->model_id().length()) {
+     RTC_LOG(LS_INFO) << "productUniqueIdUTF8 buffer passed is too small";
+     return -1;
    }
  
-   if (mode_ == SHAPE_AND_POSITION) {
--    absl::optional<DesktopVector> mouse_cursor_position =
--        options_.screencast_stream()->CaptureCursorPosition();
--    if (mouse_cursor_position) {
--      callback_->OnMouseCursorPosition(mouse_cursor_position.value());
--    }
-+    callback_->OnMouseCursorPosition(mouse_cursor_position.value());
+   memset(deviceNameUTF8, 0, deviceNameLength);
+-  node.display_name().copy(deviceNameUTF8, deviceNameLength);
++  node->display_name().copy(deviceNameUTF8, deviceNameLength);
+ 
+   memset(deviceUniqueIdUTF8, 0, deviceUniqueIdUTF8Length);
+-  node.unique_id().copy(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length);
++  node->unique_id().copy(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length);
+ 
+   if (productUniqueIdUTF8) {
+     memset(productUniqueIdUTF8, 0, productUniqueIdUTF8Length);
+-    node.model_id().copy(productUniqueIdUTF8, productUniqueIdUTF8Length);
++    node->model_id().copy(productUniqueIdUTF8, productUniqueIdUTF8Length);
+   }
+ 
+   return 0;
+@@ -92,11 +92,11 @@ int32_t DeviceInfoPipeWire::CreateCapabilityMap(
+   RTC_CHECK(pipewire_session_);
+ 
+   for (auto& node : pipewire_session_->nodes()) {
+-    if (node.unique_id().compare(deviceUniqueIdUTF8) != 0)
++    if (node->unique_id().compare(deviceUniqueIdUTF8) != 0)
+       continue;
+ 
+-    _captureCapabilities = node.capabilities();
+-    _lastUsedDeviceNameLength = node.unique_id().length();
++    _captureCapabilities = node->capabilities();
++    _lastUsedDeviceNameLength = node->unique_id().length();
+     _lastUsedDeviceName = static_cast<char*>(
+         realloc(_lastUsedDeviceName, _lastUsedDeviceNameLength + 1));
+     memcpy(_lastUsedDeviceName, deviceUniqueIdUTF8,
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 0642713f91..fd93b31063 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -53,6 +53,19 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
    }
  }
  
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index ab9054f1a1..b8cac318ff 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-@@ -690,32 +690,38 @@ void SharedScreenCastStreamPrivate::ProcessBuffer(pw_buffer* buffer) {
-     const struct spa_meta_cursor* cursor =
-         static_cast<struct spa_meta_cursor*>(spa_buffer_find_meta_data(
-             spa_buffer, SPA_META_Cursor, sizeof(*cursor)));
--    if (cursor && spa_meta_cursor_is_valid(cursor)) {
--      struct spa_meta_bitmap* bitmap = nullptr;
--
--      if (cursor->bitmap_offset)
--        bitmap =
--            SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
--
--      if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
--        const uint8_t* bitmap_data =
--            SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
--        BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
--            DesktopSize(bitmap->size.width, bitmap->size.height));
--        mouse_frame->CopyPixelsFrom(
--            bitmap_data, bitmap->stride,
--            DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
--        mouse_cursor_ = std::make_unique<MouseCursor>(
--            mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
++void PipeWireNode::PipeWireNodeDeleter::operator()(
++    PipeWireNode* node) const noexcept {
++  pw_proxy_destroy(node->proxy_);
++  spa_hook_remove(&node->node_listener_);
++}
++
++// static
++PipeWireNode::PipeWireNodePtr PipeWireNode::Create(PipeWireSession* session,
++                                                   uint32_t id,
++                                                   const spa_dict* props) {
++  return PipeWireNodePtr(new PipeWireNode(session, id, props));
++}
++
+ RTC_NO_SANITIZE("cfi-icall")
+ PipeWireNode::PipeWireNode(PipeWireSession* session,
+                            uint32_t id,
+@@ -75,11 +88,6 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
+   pw_node_add_listener(proxy_, &node_listener_, &node_events, this);
+ }
  
--        if (observer_) {
--          observer_->OnCursorShapeChanged();
-+    if (cursor) {
-+      if (spa_meta_cursor_is_valid(cursor)) {
-+        struct spa_meta_bitmap* bitmap = nullptr;
+-PipeWireNode::~PipeWireNode() {
+-  pw_proxy_destroy(proxy_);
+-  spa_hook_remove(&node_listener_);
+-}
+-
+ // static
+ RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+@@ -102,7 +110,9 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+                pid.value());
+       that->model_id_ = model_str;
+     }
+-  } else if (info->change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
++  }
 +
-+        if (cursor->bitmap_offset)
-+          bitmap =
-+              SPA_MEMBER(cursor, cursor->bitmap_offset, struct spa_meta_bitmap);
++  if (info->change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
+     for (uint32_t i = 0; i < info->n_params; i++) {
+       uint32_t id = info->params[i].id;
+       if (id == SPA_PARAM_EnumFormat &&
+@@ -356,6 +366,14 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
+   if (id == PW_ID_CORE) {
+     if (seq == that->sync_seq_) {
+       RTC_LOG(LS_VERBOSE) << "Enumerating PipeWire camera devices complete.";
 +
-+        if (bitmap && bitmap->size.width > 0 && bitmap->size.height > 0) {
-+          const uint8_t* bitmap_data =
-+              SPA_MEMBER(bitmap, bitmap->offset, uint8_t);
-+          BasicDesktopFrame* mouse_frame = new BasicDesktopFrame(
-+              DesktopSize(bitmap->size.width, bitmap->size.height));
-+          mouse_frame->CopyPixelsFrom(
-+              bitmap_data, bitmap->stride,
-+              DesktopRect::MakeWH(bitmap->size.width, bitmap->size.height));
-+          mouse_cursor_ = std::make_unique<MouseCursor>(
-+              mouse_frame, DesktopVector(cursor->hotspot.x, cursor->hotspot.y));
++      // Remove camera devices with no capabilities
++      auto it = std::remove_if(that->nodes_.begin(), that->nodes_.end(),
++                               [](const PipeWireNode::PipeWireNodePtr& node) {
++                                 return node->capabilities().empty();
++                               });
++      that->nodes_.erase(it, that->nodes_.end());
 +
-+          if (observer_) {
-+            observer_->OnCursorShapeChanged();
-+          }
-         }
--      }
--      mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
-+        mouse_cursor_position_.set(cursor->position.x, cursor->position.y);
- 
--      if (observer_) {
--        observer_->OnCursorPositionChanged();
-+        if (observer_) {
-+          observer_->OnCursorPositionChanged();
-+        }
-+      } else {
-+        // Indicate an invalid cursor
-+        mouse_cursor_position_.set(-1, -1);
-       }
+       that->Finish(VideoCaptureOptions::Status::SUCCESS);
      }
    }
+@@ -373,8 +391,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+ 
+   // Skip already added nodes to avoid duplicate camera entries
+   if (std::find_if(that->nodes_.begin(), that->nodes_.end(),
+-                   [id](const PipeWireNode& node) {
+-                     return node.id() == id;
++                   [id](const PipeWireNode::PipeWireNodePtr& node) {
++                     return node->id() == id;
+                    }) != that->nodes_.end())
+     return;
+ 
+@@ -388,7 +406,7 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+   if (!node_role || strcmp(node_role, "Camera"))
+     return;
+ 
+-  that->nodes_.emplace_back(that, id, props);
++  that->nodes_.push_back(PipeWireNode::Create(that, id, props));
+   that->PipeWireSync();
+ }
+ 
+@@ -396,9 +414,10 @@ void PipeWireSession::OnRegistryGlobal(void* data,
+ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
+   PipeWireSession* that = static_cast<PipeWireSession*>(data);
+ 
+-  auto it = std::remove_if(
+-      that->nodes_.begin(), that->nodes_.end(),
+-      [id](const PipeWireNode& node) { return node.id() == id; });
++  auto it = std::remove_if(that->nodes_.begin(), that->nodes_.end(),
++                           [id](const PipeWireNode::PipeWireNodePtr& node) {
++                             return node->id() == id;
++                           });
+   that->nodes_.erase(it, that->nodes_.end());
+ }
+ 
+diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
+index fdc06a6b2a..84273ea695 100644
+--- a/modules/video_capture/linux/pipewire_session.h
++++ b/modules/video_capture/linux/pipewire_session.h
+@@ -37,8 +37,15 @@ class VideoCaptureModulePipeWire;
+ // So they all represent one camera that is available via PipeWire.
+ class PipeWireNode {
+  public:
+-  PipeWireNode(PipeWireSession* session, uint32_t id, const spa_dict* props);
+-  ~PipeWireNode();
++  struct PipeWireNodeDeleter {
++    void operator()(PipeWireNode* node) const noexcept;
++  };
++
++  using PipeWireNodePtr =
++      std::unique_ptr<PipeWireNode, PipeWireNode::PipeWireNodeDeleter>;
++  static PipeWireNodePtr Create(PipeWireSession* session,
++                                uint32_t id,
++                                const spa_dict* props);
+ 
+   uint32_t id() const { return id_; }
+   std::string display_name() const { return display_name_; }
+@@ -48,6 +55,9 @@ class PipeWireNode {
+     return capabilities_;
+   }
+ 
++ protected:
++  PipeWireNode(PipeWireSession* session, uint32_t id, const spa_dict* props);
++
+  private:
+   static void OnNodeInfo(void* data, const pw_node_info* info);
+   static void OnNodeParam(void* data,
+@@ -87,8 +97,9 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+ 
+   void Init(VideoCaptureOptions::Callback* callback,
+             int fd = kInvalidPipeWireFd);
+-
+-  const std::deque<PipeWireNode>& nodes() const { return nodes_; }
++  const std::deque<PipeWireNode::PipeWireNodePtr>& nodes() const {
++    return nodes_;
++  }
+ 
+   friend class CameraPortalNotifier;
+   friend class PipeWireNode;
+@@ -134,7 +145,7 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
+ 
+   int sync_seq_ = 0;
+ 
+-  std::deque<PipeWireNode> nodes_;
++  std::deque<PipeWireNode::PipeWireNodePtr> nodes_;
+   std::unique_ptr<CameraPortal> portal_;
+   std::unique_ptr<CameraPortalNotifier> portal_notifier_;
+ };

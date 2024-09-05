@@ -23,16 +23,13 @@ class PushSincResampler;
 // Wraps PushSincResampler to provide stereo support.
 // Note: This implementation assumes 10ms buffer sizes throughout.
 template <typename T>
-class PushResampler {
+class PushResampler final {
  public:
   PushResampler();
-  virtual ~PushResampler();
-
-  // Must be called whenever the parameters change. Free to be called at any
-  // time as it is a no-op if parameters have not changed since the last call.
-  int InitializeIfNeeded(int src_sample_rate_hz,
-                         int dst_sample_rate_hz,
-                         size_t num_channels);
+  PushResampler(size_t src_samples_per_channel,
+                size_t dst_samples_per_channel,
+                size_t num_channels);
+  ~PushResampler();
 
   // Returns the total number of samples provided in destination (e.g. 32 kHz,
   // 2 channel audio gives 640 samples).
@@ -42,6 +39,12 @@ class PushResampler {
   int Resample(MonoView<const T> src, MonoView<T> dst);
 
  private:
+  // Ensures that source and destination buffers for deinterleaving are
+  // correctly configured prior to resampling that requires deinterleaving.
+  void EnsureInitialized(size_t src_samples_per_channel,
+                         size_t dst_samples_per_channel,
+                         size_t num_channels);
+
   // Buffers used for when a deinterleaving step is necessary.
   std::unique_ptr<T[]> source_;
   std::unique_ptr<T[]> destination_;

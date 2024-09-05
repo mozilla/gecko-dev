@@ -20,6 +20,7 @@
 #include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/test/PCMFile.h"
 #include "rtc_base/strings/string_builder.h"
@@ -66,7 +67,8 @@ void MonitoringAudioPacketizationCallback::GetStatistics(uint32_t* counter) {
 }
 
 TestVadDtx::TestVadDtx()
-    : encoder_factory_(
+    : env_(CreateEnvironment()),
+      encoder_factory_(
           CreateAudioEncoderFactory<AudioEncoderIlbc, AudioEncoderOpus>()),
       decoder_factory_(
           CreateAudioDecoderFactory<AudioDecoderIlbc, AudioDecoderOpus>()),
@@ -87,8 +89,8 @@ bool TestVadDtx::RegisterCodec(const SdpAudioFormat& codec_format,
   constexpr int payload_type = 17, cn_payload_type = 117;
   bool added_comfort_noise = false;
 
-  auto encoder = encoder_factory_->MakeAudioEncoder(payload_type, codec_format,
-                                                    absl::nullopt);
+  auto encoder = encoder_factory_->Create(env_, codec_format,
+                                          {.payload_type = payload_type});
   if (vad_mode.has_value() &&
       !absl::EqualsIgnoreCase(codec_format.name, "opus")) {
     AudioEncoderCngConfig config;

@@ -73,7 +73,7 @@ TEST(BweRampupTest, BweRampUpWhenCapacityIncrease) {
   SchedulableNetworkNodeBuilder schedulable_builder(*s.net(),
                                                     std::move(schedule));
 
-  auto caller_node = schedulable_builder.Build();
+  auto caller_node = schedulable_builder.Build(/*random_seed=*/1);
   auto callee_node = s.net()->NodeBuilder().capacity_kbps(5000).Build().node;
   s.net()->CreateRoute(caller->endpoint(), {caller_node}, callee->endpoint());
   s.net()->CreateRoute(callee->endpoint(), {callee_node}, caller->endpoint());

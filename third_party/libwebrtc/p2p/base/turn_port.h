@@ -192,7 +192,11 @@ class TurnPort : public Port {
   }
   // Finds the turn entry with `address` and sets its channel id.
   // Returns true if the entry is found.
-  bool SetEntryChannelId(const rtc::SocketAddress& address, int channel_id);
+  // This method must not be used in production, it is a test only
+  // utility that doesn't check the channel id is valid according to
+  // RFC5766.
+  bool SetEntryChannelIdForTesting(const rtc::SocketAddress& address,
+                                   int channel_id);
 
   void HandleConnectionDestroyed(Connection* conn) override;
 

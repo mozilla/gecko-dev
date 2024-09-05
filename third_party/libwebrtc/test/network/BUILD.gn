@@ -265,6 +265,7 @@ if (rtc_enable_protobuf) {
       "../../rtc_base:macromagic",
       "../../rtc_base/task_utils:repeating_task",
       "../../system_wrappers",
+      "//third_party/abseil-cpp/absl/functional:any_invocable",
     ]
   }
 

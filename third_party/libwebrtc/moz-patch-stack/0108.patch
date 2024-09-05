@@ -1,23 +1,48 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 17 May 2024 22:30:00 -0500
-Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
- python3
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P2 - for BSD reference null socket server
+ instead;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
+Differential Revision: https://phabricator.services.mozilla.com/D211095
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0993ae41fb7db1624dedc5cf2278cd5a505f18f5
 ---
- .gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ rtc_base/internal/default_socket_server.cc | 4 ++--
+ rtc_base/virtual_socket_server.cc          | 2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/.gn b/.gn
-index 5796d30b7b..23da4f21b9 100644
---- a/.gn
-+++ b/.gn
-@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
+diff --git a/rtc_base/internal/default_socket_server.cc b/rtc_base/internal/default_socket_server.cc
+index 5632b989fc..cb7b81978a 100644
+--- a/rtc_base/internal/default_socket_server.cc
++++ b/rtc_base/internal/default_socket_server.cc
+@@ -14,7 +14,7 @@
  
- # The python interpreter to use by default. On Windows, this will look
- # for vpython3.exe and vpython3.bat.
--script_executable = "vpython3"
-+script_executable = "python3"
+ #include "rtc_base/socket_server.h"
  
- # The secondary source root is a parallel directory tree where
- # GN build files are placed when they can not be placed directly
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+ #include "rtc_base/null_socket_server.h"
+ #else
+ #include "rtc_base/physical_socket_server.h"
+@@ -23,7 +23,7 @@
+ namespace rtc {
+ 
+ std::unique_ptr<SocketServer> CreateDefaultSocketServer() {
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+   return std::unique_ptr<SocketServer>(new rtc::NullSocketServer);
+ #else
+   return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
+diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
+index bec7d9733f..b5488f5ff5 100644
+--- a/rtc_base/virtual_socket_server.cc
++++ b/rtc_base/virtual_socket_server.cc
+@@ -24,7 +24,9 @@
+ #include "rtc_base/event.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/logging.h"
++#if !defined(WEBRTC_BSD)
+ #include "rtc_base/physical_socket_server.h"
++#endif
+ #include "rtc_base/socket_address_pair.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/time_utils.h"

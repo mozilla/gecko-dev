@@ -381,6 +381,7 @@ rtc_library("libaom_av1_encoder_factory_test") {
     "../../rtc_base:logging",
     "../../test:fileutils",
     "../../test:test_support",
+    "../../test:video_frame_writer",
     "../../test:video_test_support",
     "//third_party/abseil-cpp/absl/types:variant",
   ]

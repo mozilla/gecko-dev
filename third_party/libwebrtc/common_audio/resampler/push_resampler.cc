@@ -22,55 +22,66 @@
 
 namespace webrtc {
 
+namespace {
+// Maximum concurrent number of channels for `PushResampler<>`.
+// Note that this may be different from what the maximum is for audio codecs.
+constexpr int kMaxNumberOfChannels = 8;
+}  // namespace
+
 template <typename T>
 PushResampler<T>::PushResampler() = default;
+
+template <typename T>
+PushResampler<T>::PushResampler(size_t src_samples_per_channel,
+                                size_t dst_samples_per_channel,
+                                size_t num_channels) {
+  EnsureInitialized(src_samples_per_channel, dst_samples_per_channel,
+                    num_channels);
+}
 
 template <typename T>
 PushResampler<T>::~PushResampler() = default;
 
 template <typename T>
-int PushResampler<T>::InitializeIfNeeded(int src_sample_rate_hz,
-                                         int dst_sample_rate_hz,
+void PushResampler<T>::EnsureInitialized(size_t src_samples_per_channel,
+                                         size_t dst_samples_per_channel,
                                          size_t num_channels) {
-  // These checks used to be factored out of this template function due to
-  // Windows debug build issues with clang. http://crbug.com/615050
-  RTC_CHECK_GT(src_sample_rate_hz, 0);
-  RTC_CHECK_GT(dst_sample_rate_hz, 0);
-  RTC_CHECK_GT(num_channels, 0);
+  RTC_DCHECK_GT(src_samples_per_channel, 0);
+  RTC_DCHECK_GT(dst_samples_per_channel, 0);
+  RTC_DCHECK_GT(num_channels, 0);
+  RTC_DCHECK_LE(src_samples_per_channel, kMaxSamplesPerChannel10ms);
+  RTC_DCHECK_LE(dst_samples_per_channel, kMaxSamplesPerChannel10ms);
+  RTC_DCHECK_LE(num_channels, kMaxNumberOfChannels);
 
-  const size_t src_size_10ms_mono =
-      static_cast<size_t>(src_sample_rate_hz / 100);
-  const size_t dst_size_10ms_mono =
-      static_cast<size_t>(dst_sample_rate_hz / 100);
-
-  if (src_size_10ms_mono == SamplesPerChannel(source_view_) &&
-      dst_size_10ms_mono == SamplesPerChannel(destination_view_) &&
+  if (src_samples_per_channel == SamplesPerChannel(source_view_) &&
+      dst_samples_per_channel == SamplesPerChannel(destination_view_) &&
       num_channels == NumChannels(source_view_)) {
     // No-op if settings haven't changed.
-    return 0;
+    return;
   }
 
   // Allocate two buffers for all source and destination channels.
   // Then organize source and destination views together with an array of
   // resamplers for each channel in the deinterlaved buffers.
-  source_.reset(new T[src_size_10ms_mono * num_channels]);
-  destination_.reset(new T[dst_size_10ms_mono * num_channels]);
-  source_view_ =
-      DeinterleavedView<T>(source_.get(), src_size_10ms_mono, num_channels);
-  destination_view_ = DeinterleavedView<T>(destination_.get(),
-                                           dst_size_10ms_mono, num_channels);
+  source_.reset(new T[src_samples_per_channel * num_channels]);
+  destination_.reset(new T[dst_samples_per_channel * num_channels]);
+  source_view_ = DeinterleavedView<T>(source_.get(), src_samples_per_channel,
+                                      num_channels);
+  destination_view_ = DeinterleavedView<T>(
+      destination_.get(), dst_samples_per_channel, num_channels);
   resamplers_.resize(num_channels);
   for (size_t i = 0; i < num_channels; ++i) {
-    resamplers_[i] = std::make_unique<PushSincResampler>(src_size_10ms_mono,
-                                                         dst_size_10ms_mono);
+    resamplers_[i] = std::make_unique<PushSincResampler>(
+        src_samples_per_channel, dst_samples_per_channel);
   }
-
-  return 0;
 }
 
 template <typename T>
 int PushResampler<T>::Resample(InterleavedView<const T> src,
                                InterleavedView<T> dst) {
+  EnsureInitialized(SamplesPerChannel(src), SamplesPerChannel(dst),
+                    NumChannels(src));
+
   RTC_DCHECK_EQ(NumChannels(src), NumChannels(source_view_));
   RTC_DCHECK_EQ(NumChannels(dst), NumChannels(destination_view_));
   RTC_DCHECK_EQ(SamplesPerChannel(src), SamplesPerChannel(source_view_));

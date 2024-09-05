@@ -517,16 +517,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
 
   if (network_estimator_) {
     network_estimator_->OnTransportPacketsFeedback(report);
-    auto prev_estimate = estimate_;
-    estimate_ = network_estimator_->GetCurrentEstimate();
-    // TODO(srte): Make OnTransportPacketsFeedback signal whether the state
-    // changed to avoid the need for this check.
-    if (estimate_ && (!prev_estimate || estimate_->last_feed_time !=
-                                            prev_estimate->last_feed_time)) {
-      env_.event_log().Log(std::make_unique<RtcEventRemoteEstimate>(
-          estimate_->link_capacity_lower, estimate_->link_capacity_upper));
-      probe_controller_->SetNetworkStateEstimate(*estimate_);
-    }
+    SetNetworkStateEstimate(network_estimator_->GetCurrentEstimate());
   }
   absl::optional<DataRate> probe_bitrate =
       probe_bitrate_estimator_->FetchAndResetLastEstimatedBitrate();
@@ -603,8 +594,22 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
 
 NetworkControlUpdate GoogCcNetworkController::OnNetworkStateEstimate(
     NetworkStateEstimate msg) {
-  estimate_ = msg;
+  if (!network_estimator_) {
+    SetNetworkStateEstimate(msg);
+  }
   return NetworkControlUpdate();
+}
+
+void GoogCcNetworkController::SetNetworkStateEstimate(
+    absl::optional<NetworkStateEstimate> estimate) {
+  auto prev_estimate = estimate_;
+  estimate_ = estimate;
+  if (estimate_ && (!prev_estimate ||
+                    estimate_->update_time != prev_estimate->update_time)) {
+    env_.event_log().Log(std::make_unique<RtcEventRemoteEstimate>(
+        estimate_->link_capacity_lower, estimate_->link_capacity_upper));
+    probe_controller_->SetNetworkStateEstimate(*estimate_);
+  }
 }
 
 NetworkControlUpdate GoogCcNetworkController::GetNetworkState(

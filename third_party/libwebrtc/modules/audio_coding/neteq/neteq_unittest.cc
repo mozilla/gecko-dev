@@ -909,6 +909,7 @@ void NetEqDecodingTestFaxMode::TestJitterBufferDelay(bool apply_packet_loss) {
 
     // Get packet.
     if (packets_sent > kDelayInNumPackets) {
+      clock_.AdvanceTime(TimeDelta::Millis(kPacketLenMs));
       neteq_->GetAudio(&out_frame_, &muted);
       packets_received++;
 
@@ -928,6 +929,7 @@ void NetEqDecodingTestFaxMode::TestJitterBufferDelay(bool apply_packet_loss) {
   }
 
   if (apply_packet_loss) {
+    clock_.AdvanceTime(TimeDelta::Millis(kPacketLenMs));
     // Extra call to GetAudio to cause concealment.
     neteq_->GetAudio(&out_frame_, &muted);
   }
@@ -939,6 +941,11 @@ void NetEqDecodingTestFaxMode::TestJitterBufferDelay(bool apply_packet_loss) {
   EXPECT_EQ(expected_emitted_count, stats.jitter_buffer_emitted_count);
   EXPECT_EQ(expected_target_delay,
             rtc::checked_cast<int>(stats.jitter_buffer_target_delay_ms));
+  // In this test, since the packets are inserted with a receive time equal to
+  // the current clock time, the jitter buffer delay should match the total
+  // processing delay.
+  EXPECT_EQ(stats.jitter_buffer_delay_ms * 1000,
+            stats.total_processing_delay_us);
 }
 
 TEST_F(NetEqDecodingTestFaxMode, TestJitterBufferDelayWithoutLoss) {

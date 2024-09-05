@@ -1,36 +1,107 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Mon, 4 Dec 2023 12:57:00 -0600
-Subject: Bug 1867099 - (fix-66b7275561) disable wgc capture yellow-line
- removal. r?ng!
+Date: Mon, 18 Dec 2023 15:00:00 +0000
+Subject: Bug 1867099 - revert libwebrtc 8602f604e0. r=bwc
 
-This code won't build until we support building with
-Win 10 SDK v10.0.20348.0 or newer.
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0aac94794aad2ddb637f5076bc08706a11866737
+Upstream 8602f604e0 removed code sending BYEs which breaks some of
+our wpt.  They've opened a bug for a real fix here:
+https://bugs.chromium.org/p/webrtc/issues/detail?id=15664
+
+I've opened Bug 1870643 to track the real fix and upstream bug.
+
+Differential Revision: https://phabricator.services.mozilla.com/D196729
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d92a578327f524ec3e1c144c82492a4c76b8266f
 ---
- modules/desktop_capture/win/wgc_capture_session.cc | 6 ++++++
- 1 file changed, 6 insertions(+)
+ call/rtp_video_sender.cc                      |  1 +
+ modules/rtp_rtcp/source/rtcp_sender.cc        | 19 +++++++++++++++++--
+ .../rtp_rtcp/source/rtcp_sender_unittest.cc   |  5 +++--
+ modules/rtp_rtcp/source/rtp_rtcp_impl.cc      |  1 +
+ modules/rtp_rtcp/source/rtp_rtcp_interface.h  |  2 +-
+ 5 files changed, 23 insertions(+), 5 deletions(-)
 
-diff --git a/modules/desktop_capture/win/wgc_capture_session.cc b/modules/desktop_capture/win/wgc_capture_session.cc
-index 1c86f8ed1b..f9429134dc 100644
---- a/modules/desktop_capture/win/wgc_capture_session.cc
-+++ b/modules/desktop_capture/win/wgc_capture_session.cc
-@@ -188,6 +188,11 @@ HRESULT WgcCaptureSession::StartCapture(const DesktopCaptureOptions& options) {
-     }
-   }
+diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
+index 7e0258ae77..5dcc055ec9 100644
+--- a/call/rtp_video_sender.cc
++++ b/call/rtp_video_sender.cc
+@@ -493,6 +493,7 @@ void RtpVideoSender::SetActiveModulesLocked(bool sending) {
+   active_ = sending;
+   for (size_t i = 0; i < rtp_streams_.size(); ++i) {
+     RtpRtcpInterface& rtp_module = *rtp_streams_[i].rtp_rtcp;
++    // Sends a kRtcpByeCode when going from true to false.
+     rtp_module.SetSendingStatus(sending);
+     rtp_module.SetSendingMediaStatus(sending);
+     if (sending) {
+diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
+index cd516d3d6f..1cd3edc31c 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender.cc
+@@ -212,8 +212,23 @@ bool RTCPSender::Sending() const {
  
-+// Until Mozilla builds with Win 10 SDK v10.0.20348.0 or newer, this
-+// code will not build.  Once we support the newer SDK, Bug 1868198
-+// exists to decide if we ever want to use this code since it is
-+// removing an indicator that capture is happening.
-+#if !defined(WEBRTC_MOZILLA_BUILD)
-   // By default, the WGC capture API adds a yellow border around the captured
-   // window or display to indicate that a capture is in progress. The section
-   // below is an attempt to remove this yellow border to make the capture
-@@ -199,6 +204,7 @@ HRESULT WgcCaptureSession::StartCapture(const DesktopCaptureOptions& options) {
-           &session3))) {
-     session3->put_IsBorderRequired(false);
-   }
-+#endif
+ void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
+                                   bool sending) {
+-  MutexLock lock(&mutex_rtcp_sender_);
+-  sending_ = sending;
++  bool sendRTCPBye = false;
++  {
++    MutexLock lock(&mutex_rtcp_sender_);
++
++    if (method_ != RtcpMode::kOff) {
++      if (sending == false && sending_ == true) {
++        // Trigger RTCP bye
++        sendRTCPBye = true;
++      }
++    }
++    sending_ = sending;
++  }
++  if (sendRTCPBye) {
++    if (SendRTCP(feedback_state, kRtcpBye) != 0) {
++      RTC_LOG(LS_WARNING) << "Failed to send RTCP BYE";
++    }
++  }
+ }
  
-   allow_zero_hertz_ = options.allow_wgc_zero_hertz();
+ void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
+diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
+index 002a5f86f1..1dcb628722 100644
+--- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
++++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
+@@ -328,12 +328,13 @@ TEST_F(RtcpSenderTest, SendBye) {
+   EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
+ }
+ 
+-TEST_F(RtcpSenderTest, StopSendingDoesNotTriggersBye) {
++TEST_F(RtcpSenderTest, StopSendingTriggersBye) {
+   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
+   rtcp_sender->SetRTCPStatus(RtcpMode::kReducedSize);
+   rtcp_sender->SetSendingStatus(feedback_state(), true);
+   rtcp_sender->SetSendingStatus(feedback_state(), false);
+-  EXPECT_EQ(0, parser()->bye()->num_packets());
++  EXPECT_EQ(1, parser()->bye()->num_packets());
++  EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
+ }
+ 
+ TEST_F(RtcpSenderTest, SendFir) {
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
+index 278d88154d..579bfcd2e9 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
++++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
+@@ -297,6 +297,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+ 
+ int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
+   if (rtcp_sender_.Sending() != sending) {
++    // Sends RTCP BYE when going from true to false
+     rtcp_sender_.SetSendingStatus(GetFeedbackState(), sending);
+   }
+   return 0;
+diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
+index b43919f18a..12810664f6 100644
+--- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
++++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
+@@ -282,7 +282,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+   // Returns the FlexFEC SSRC, if there is one.
+   virtual absl::optional<uint32_t> FlexfecSsrc() const = 0;
+ 
+-  // Sets sending status.
++  // Sets sending status. Sends kRtcpByeCode when going from true to false.
+   // Returns -1 on failure else 0.
+   virtual int32_t SetSendingStatus(bool sending) = 0;
  

@@ -46,13 +46,15 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/time_utils.h"
+#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/sleep.h"
+#include "test/explicit_key_value_config.h"
 #include "test/scoped_key_value_config.h"
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_reader.h"
 #include "test/testsupport/video_frame_writer.h"
 #include "third_party/libyuv/include/libyuv/compare.h"
-#include "video/config/simulcast.h"
+#include "video/config/encoder_stream_factory.h"
 
 namespace webrtc {
 namespace test {
@@ -1291,17 +1293,16 @@ void ConfigureSimulcast(VideoCodec* vc) {
     return;
   }
 
-  ScopedKeyValueConfig field_trials((rtc::StringBuilder()
-                                     << "WebRTC-VP8ConferenceTemporalLayers/"
-                                     << num_temporal_layers << "/")
-                                        .str());
-
-  const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
-      /*min_layer=*/1, num_spatial_layers, vc->width, vc->height,
-      /*bitrate_priority=*/1.0, cricket::kDefaultVideoMaxQpVpx,
-      /*is_screenshare=*/false, /*temporal_layers_supported=*/true,
-      field_trials, webrtc::kVideoCodecVP8);
-
+  ExplicitKeyValueConfig field_trials(field_trial::GetFieldTrialString());
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = vc->codecType;
+  encoder_config.number_of_streams = num_spatial_layers;
+  encoder_config.simulcast_layers.resize(num_spatial_layers);
+  VideoEncoder::EncoderInfo encoder_info;
+  auto stream_factory =
+      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+  const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
+      field_trials, vc->width, vc->height, encoder_config);
   vc->numberOfSimulcastStreams = streams.size();
   RTC_CHECK_LE(vc->numberOfSimulcastStreams, num_spatial_layers);
   if (vc->numberOfSimulcastStreams < num_spatial_layers) {
@@ -1313,12 +1314,11 @@ void ConfigureSimulcast(VideoCodec* vc) {
     SimulcastStream* ss = &vc->simulcastStream[i];
     ss->width = streams[i].width;
     ss->height = streams[i].height;
-    RTC_CHECK_EQ(*streams[i].num_temporal_layers, num_temporal_layers);
-    ss->numberOfTemporalLayers = *streams[i].num_temporal_layers;
+    ss->numberOfTemporalLayers = num_temporal_layers;
     ss->maxBitrate = streams[i].max_bitrate_bps / 1000;
     ss->targetBitrate = streams[i].target_bitrate_bps / 1000;
     ss->minBitrate = streams[i].min_bitrate_bps / 1000;
-    ss->qpMax = streams[i].max_qp;
+    ss->qpMax = vc->qpMax;
     ss->active = true;
   }
 }

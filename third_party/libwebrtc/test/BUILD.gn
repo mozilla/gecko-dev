@@ -490,13 +490,12 @@ rtc_source_set("test_support") {
 
 rtc_library("fixed_fps_video_frame_writer_adapter") {
   visibility = [ "*" ]
-  testonly = true
   sources = [
     "testsupport/fixed_fps_video_frame_writer_adapter.cc",
     "testsupport/fixed_fps_video_frame_writer_adapter.h",
   ]
   deps = [
-    ":video_test_support",
+    ":video_frame_writer",
     "../api/test/video:video_frame_writer",
     "../api/units:time_delta",
     "../api/video:video_frame",
@@ -506,19 +505,43 @@ rtc_library("fixed_fps_video_frame_writer_adapter") {
   ]
 }
 
+rtc_library("video_frame_writer") {
+  sources = [
+    "testsupport/frame_writer.h",
+    "testsupport/video_frame_writer.cc",
+    "testsupport/video_frame_writer.h",
+    "testsupport/y4m_frame_writer.cc",
+    "testsupport/yuv_frame_writer.cc",
+  ]
+
+  deps = [
+    "../api:scoped_refptr",
+    "../api/test/video:video_frame_writer",
+    "../api/video:video_frame",
+    "../common_video",
+    "../rtc_base:buffer",
+    "../rtc_base:checks",
+    "../rtc_base:logging",
+  ]
+
+  if (!is_ios) {
+    if (!build_with_mozilla) {
+    deps += [ "//third_party:jpeg" ]
+    }
+    sources += [ "testsupport/jpeg_frame_writer.cc" ]
+  } else {
+    sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
+  }
+}
+
 rtc_library("video_test_support") {
   testonly = true
 
   sources = [
     "testsupport/frame_reader.h",
-    "testsupport/frame_writer.h",
     "testsupport/mock/mock_frame_reader.h",
-    "testsupport/video_frame_writer.cc",
-    "testsupport/video_frame_writer.h",
     "testsupport/y4m_frame_reader.cc",
-    "testsupport/y4m_frame_writer.cc",
     "testsupport/yuv_frame_reader.cc",
-    "testsupport/yuv_frame_writer.cc",
   ]
 
   deps = [
@@ -548,15 +571,6 @@ rtc_library("video_test_support") {
     "../rtc_base/system:file_wrapper",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
-
-  if (!is_ios) {
-    if (!build_with_mozilla) {
-    deps += [ "//third_party:jpeg" ]
-    }
-    sources += [ "testsupport/jpeg_frame_writer.cc" ]
-  } else {
-    sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-  }
 }
 
 if (rtc_include_tests) {
@@ -676,7 +690,7 @@ if (rtc_include_tests) {
       deps = [
         ":fixed_fps_video_frame_writer_adapter",
         ":test_support",
-        ":video_test_support",
+        ":video_frame_writer",
         "../api/units:time_delta",
         "../api/units:timestamp",
         "../api/video:video_frame",
@@ -706,6 +720,7 @@ if (rtc_include_tests) {
         ":test_support",
         ":test_support_test_artifacts",
         ":video_codec_tester",
+        ":video_frame_writer",
         ":video_test_common",
         ":video_test_support",
         ":y4m_frame_generator",
@@ -1177,6 +1192,7 @@ rtc_library("audio_codec_mocks") {
     "../api:scoped_refptr",
     "../api/audio_codecs:audio_codecs_api",
     "../api/audio_codecs:builtin_audio_decoder_factory",
+    "../api/environment",
   ]
 }
 
@@ -1349,6 +1365,8 @@ rtc_library("video_codec_tester") {
   ]
   deps = [
     ":scoped_key_value_config",
+    ":video_frame_writer",
+    ":video_test_support",
     "../api:array_view",
     "../api:create_frame_generator",
     "../api:frame_generator_api",
@@ -1383,8 +1401,9 @@ rtc_library("video_codec_tester") {
     "../rtc_base:timeutils",
     "../rtc_base/synchronization:mutex",
     "../system_wrappers",
+    "../system_wrappers:field_trial",
+    "../test:explicit_key_value_config",
     "../test:fileutils",
-    "../test:video_test_support",
     "../video/config:streams_config",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",

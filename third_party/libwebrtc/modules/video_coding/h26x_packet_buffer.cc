@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -42,24 +43,15 @@ int64_t EuclideanMod(int64_t n, int64_t div) {
   return (n %= div) < 0 ? n + div : n;
 }
 
-rtc::ArrayView<const NaluInfo> GetNaluInfos(
-    const RTPVideoHeaderH264& h264_header) {
-  if (h264_header.nalus_length > kMaxNalusPerPacket) {
-    return {};
-  }
-
-  return rtc::MakeArrayView(h264_header.nalus, h264_header.nalus_length);
-}
-
 bool IsFirstPacketOfFragment(const RTPVideoHeaderH264& h264_header) {
-  return h264_header.nalus_length > 0;
+  return !h264_header.nalus.empty();
 }
 
 bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
   const auto& h264_header =
       absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
   const bool contains_idr_nalu =
-      absl::c_any_of(GetNaluInfos(h264_header), [](const auto& nalu_info) {
+      absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
         return nalu_info.type == H264::NaluType::kIdr;
       });
   switch (h264_header.packetization_type) {
@@ -76,15 +68,25 @@ bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
 bool HasSps(const H26xPacketBuffer::Packet& packet) {
   auto& h264_header =
       absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
-  return absl::c_any_of(GetNaluInfos(h264_header), [](const auto& nalu_info) {
+  return absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
     return nalu_info.type == H264::NaluType::kSps;
   });
 }
 
+int64_t* GetContinuousSequence(rtc::ArrayView<int64_t> last_continuous,
+                               int64_t unwrapped_seq_num) {
+  for (int64_t& last : last_continuous) {
+    if (unwrapped_seq_num - 1 == last) {
+      return &last;
+    }
+  }
+  return nullptr;
+}
+
 #ifdef RTC_ENABLE_H265
 bool HasVps(const H26xPacketBuffer::Packet& packet) {
-  std::vector<H265::NaluIndex> nalu_indices = H265::FindNaluIndices(
-      packet.video_payload.cdata(), packet.video_payload.size());
+  std::vector<H265::NaluIndex> nalu_indices =
+      H265::FindNaluIndices(packet.video_payload);
   return absl::c_any_of((nalu_indices), [&packet](
                                             const H265::NaluIndex& nalu_index) {
     return H265::ParseNaluType(
@@ -97,7 +99,9 @@ bool HasVps(const H26xPacketBuffer::Packet& packet) {
 }  // namespace
 
 H26xPacketBuffer::H26xPacketBuffer(bool h264_idr_only_keyframes_allowed)
-    : h264_idr_only_keyframes_allowed_(h264_idr_only_keyframes_allowed) {}
+    : h264_idr_only_keyframes_allowed_(h264_idr_only_keyframes_allowed) {
+  last_continuous_in_sequence_.fill(std::numeric_limits<int64_t>::min());
+}
 
 H26xPacketBuffer::InsertResult H26xPacketBuffer::InsertPacket(
     std::unique_ptr<Packet> packet) {
@@ -106,7 +110,7 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::InsertPacket(
 
   InsertResult result;
 
-  int64_t unwrapped_seq_num = seq_num_unwrapper_.Unwrap(packet->seq_num);
+  int64_t unwrapped_seq_num = packet->sequence_number;
   auto& packet_slot = GetPacket(unwrapped_seq_num);
   if (packet_slot != nullptr &&
       AheadOrAt(packet_slot->timestamp, packet->timestamp)) {
@@ -147,27 +151,34 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
 
   // Check if the packet is continuous or the beginning of a new coded video
   // sequence.
-  if (unwrapped_seq_num - 1 != last_continuous_unwrapped_seq_num_) {
-    if (unwrapped_seq_num <= last_continuous_unwrapped_seq_num_ ||
-        !BeginningOfStream(*packet)) {
+  int64_t* last_continuous_unwrapped_seq_num =
+      GetContinuousSequence(last_continuous_in_sequence_, unwrapped_seq_num);
+  if (last_continuous_unwrapped_seq_num == nullptr) {
+    if (!BeginningOfStream(*packet)) {
       return result;
     }
 
-    last_continuous_unwrapped_seq_num_ = unwrapped_seq_num;
+    last_continuous_in_sequence_[last_continuous_in_sequence_index_] =
+        unwrapped_seq_num;
+    last_continuous_unwrapped_seq_num =
+        &last_continuous_in_sequence_[last_continuous_in_sequence_index_];
+    last_continuous_in_sequence_index_ =
+        (last_continuous_in_sequence_index_ + 1) %
+        last_continuous_in_sequence_.size();
   }
 
   for (int64_t seq_num = unwrapped_seq_num;
        seq_num < unwrapped_seq_num + kBufferSize;) {
-    RTC_DCHECK_GE(seq_num, *last_continuous_unwrapped_seq_num_);
+    RTC_DCHECK_GE(seq_num, *last_continuous_unwrapped_seq_num);
 
     // Packets that were never assembled into a completed frame will stay in
     // the 'buffer_'. Check that the `packet` sequence number match the expected
     // unwrapped sequence number.
-    if (static_cast<uint16_t>(seq_num) != packet->seq_num) {
+    if (seq_num != packet->sequence_number) {
       return result;
     }
 
-    last_continuous_unwrapped_seq_num_ = seq_num;
+    *last_continuous_unwrapped_seq_num = seq_num;
     // Last packet of the frame, try to assemble the frame.
     if (packet->marker_bit) {
       uint32_t rtp_timestamp = packet->timestamp;
@@ -219,7 +230,7 @@ bool H26xPacketBuffer::MaybeAssembleFrame(int64_t start_seq_num_unwrapped,
     if (packet->codec() == kVideoCodecH264) {
       const auto& h264_header =
           absl::get<RTPVideoHeaderH264>(packet->video_header.video_type_header);
-      for (const auto& nalu : GetNaluInfos(h264_header)) {
+      for (const auto& nalu : h264_header.nalus) {
         has_idr |= nalu.type == H264::NaluType::kIdr;
         has_sps |= nalu.type == H264::NaluType::kSps;
         has_pps |= nalu.type == H264::NaluType::kPps;
@@ -231,8 +242,8 @@ bool H26xPacketBuffer::MaybeAssembleFrame(int64_t start_seq_num_unwrapped,
       }
 #ifdef RTC_ENABLE_H265
     } else if (packet->codec() == kVideoCodecH265) {
-      std::vector<H265::NaluIndex> nalu_indices = H265::FindNaluIndices(
-          packet->video_payload.cdata(), packet->video_payload.size());
+      std::vector<H265::NaluIndex> nalu_indices =
+          H265::FindNaluIndices(packet->video_payload);
       for (const auto& nalu_index : nalu_indices) {
         uint8_t nalu_type = H265::ParseNaluType(
             packet->video_payload.cdata()[nalu_index.payload_start_offset]);
@@ -328,9 +339,9 @@ void H26xPacketBuffer::InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
     return;
   }
   absl::optional<SpsParser::SpsState> parsed_sps = SpsParser::ParseSps(
-      sps.data() + kNaluHeaderOffset, sps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(sps).subview(kNaluHeaderOffset));
   absl::optional<PpsParser::PpsState> parsed_pps = PpsParser::ParsePps(
-      pps.data() + kNaluHeaderOffset, pps.size() - kNaluHeaderOffset);
+      rtc::ArrayView<const uint8_t>(pps).subview(kNaluHeaderOffset));
 
   if (!parsed_sps) {
     RTC_LOG(LS_WARNING) << "Failed to parse SPS.";
@@ -383,8 +394,7 @@ bool H26xPacketBuffer::FixH264Packet(Packet& packet) {
     auto sps = sps_data_.end();
     auto pps = pps_data_.end();
 
-    for (size_t i = 0; i < h264_header.nalus_length; ++i) {
-      const NaluInfo& nalu = h264_header.nalus[i];
+    for (const NaluInfo& nalu : h264_header.nalus) {
       switch (nalu.type) {
         case H264::NaluType::kSps: {
           SpsInfo& sps_info = sps_data_[nalu.sps_id];
@@ -456,22 +466,11 @@ bool H26xPacketBuffer::FixH264Packet(Packet& packet) {
       result.AppendData(pps->second.payload.get(), pps->second.size);
 
       // Update codec header to reflect the newly added SPS and PPS.
-      NaluInfo sps_info;
-      sps_info.type = H264::NaluType::kSps;
-      sps_info.sps_id = sps->first;
-      sps_info.pps_id = -1;
-      NaluInfo pps_info;
-      pps_info.type = H264::NaluType::kPps;
-      pps_info.sps_id = sps->first;
-      pps_info.pps_id = pps->first;
-      if (h264_header.nalus_length + 2 <= kMaxNalusPerPacket) {
-        h264_header.nalus[h264_header.nalus_length++] = sps_info;
-        h264_header.nalus[h264_header.nalus_length++] = pps_info;
-      } else {
-        RTC_LOG(LS_WARNING)
-            << "Not enough space in H.264 codec header to insert "
-               "SPS/PPS provided out-of-band.";
-      }
+      h264_header.nalus.push_back(
+          {.type = H264::NaluType::kSps, .sps_id = sps->first, .pps_id = -1});
+      h264_header.nalus.push_back({.type = H264::NaluType::kPps,
+                                   .sps_id = sps->first,
+                                   .pps_id = pps->first});
     }
   }
 

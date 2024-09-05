@@ -23,6 +23,7 @@ rtc_library("audio_encoder_L16") {
     "..:audio_codecs_api",
     "../../../api:field_trials_view",
     "../../../modules/audio_coding:pcm16b",
+    "../../../rtc_base:checks",
     "../../../rtc_base:safe_conversions",
     "../../../rtc_base:safe_minmax",
     "../../../rtc_base:stringutils",

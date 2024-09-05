@@ -16,6 +16,8 @@
 #include "absl/types/optional.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/units/timestamp.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
@@ -69,7 +71,7 @@ class AcmReceiverTestOldApi : public AudioPacketizationCallback,
         encoder_factory_->QueryAudioEncoder(format);
     RTC_CHECK(info.has_value());
     std::unique_ptr<AudioEncoder> enc =
-        encoder_factory_->MakeAudioEncoder(payload_type, format, absl::nullopt);
+        encoder_factory_->Create(env_, format, {.payload_type = payload_type});
 
     // If we have a compatible CN specification, stack a CNG on top.
     auto it = cng_payload_types.find(info->sample_rate_hz);
@@ -132,6 +134,7 @@ class AcmReceiverTestOldApi : public AudioPacketizationCallback,
     return 0;
   }
 
+  const Environment env_ = CreateEnvironment();
   const rtc::scoped_refptr<AudioEncoderFactory> encoder_factory_ =
       CreateBuiltinAudioEncoderFactory();
   const rtc::scoped_refptr<AudioDecoderFactory> decoder_factory_ =

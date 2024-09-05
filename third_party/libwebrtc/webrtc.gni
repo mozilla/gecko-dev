@@ -63,10 +63,6 @@ declare_args() {
 }
 
 declare_args() {
-  # If set to true, C++ code will refer to the new JNI Generator symbols.
-  # If set to false the old ones will be used (to provide a nice update path).
-  rtc_jni_generator_legacy_symbols = false
-
   # Setting this to true, will make RTC_DLOG() expand to log statements instead
   # of being removed by the preprocessor.
   # This is useful for example to be able to get RTC_DLOGs on a release build.
@@ -196,6 +192,9 @@ declare_args() {
   # bugs.webrtc.org/9213#c13 for more info.
   rtc_use_h264 =
       proprietary_codecs && !is_android && !is_ios && !(is_win && !is_clang)
+
+  # Use system OpenH264
+  rtc_system_openh264 = false
 
   # Enable to use H265
   if (build_with_chromium) {

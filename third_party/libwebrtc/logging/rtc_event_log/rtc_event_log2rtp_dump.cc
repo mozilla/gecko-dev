@@ -13,7 +13,6 @@
 
 #include <iostream>
 #include <memory>
-#include <sstream>  // no-presubmit-check TODO(webrtc:8982):
 #include <string>
 #include <vector>
 
@@ -31,6 +30,7 @@
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/string_to_number.h"
 #include "test/rtp_file_reader.h"
 #include "test/rtp_file_writer.h"
 
@@ -76,19 +76,8 @@ using MediaType = webrtc::ParsedRtcEventLog::MediaType;
 // of the command-line flag. In this case, no value is written to the output
 // variable.
 absl::optional<uint32_t> ParseSsrc(absl::string_view str) {
-  // If the input string starts with 0x or 0X it indicates a hexadecimal number.
-  uint32_t ssrc;
-  auto read_mode = std::dec;
-  if (str.size() > 2 &&
-      (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X")) {
-    read_mode = std::hex;
-    str = str.substr(2);
-  }
-  std::stringstream ss(std::string{str});
-  ss >> read_mode >> ssrc;
-  if (str.empty() || (!ss.fail() && ss.eof()))
-    return ssrc;
-  return absl::nullopt;
+  // Set `base` to 0 to allow detection of the "0x" prefix in case hex is used.
+  return rtc::StringToNumber<uint32_t>(str, 0);
 }
 
 bool ShouldSkipStream(MediaType media_type,

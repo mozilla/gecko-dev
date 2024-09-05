@@ -120,6 +120,11 @@ class RtpTransportControllerSend final
   // Implements NetworkStateEstimateObserver interface
   void OnRemoteNetworkEstimate(NetworkStateEstimate estimate) override;
 
+  NetworkControllerInterface* GetNetworkController() override {
+    RTC_DCHECK_RUN_ON(&sequence_checker_);
+    return controller_.get();
+  }
+
  private:
   void MaybeCreateControllers() RTC_RUN_ON(sequence_checker_);
   void UpdateNetworkAvailability() RTC_RUN_ON(sequence_checker_);

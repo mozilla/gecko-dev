@@ -830,6 +830,7 @@ rtc_library("rtc_stats_counters") {
     "numerics/sample_stats.h",
   ]
   deps = [
+    ":checks",
     "../api/numerics",
     "../api/units:data_rate",
     "../api/units:time_delta",
@@ -1567,7 +1568,6 @@ rtc_library("ssl") {
 if (!build_with_mozilla) {
   visibility = [ "*" ]
   sources = [
-    "helpers.h",
     "openssl_key_pair.cc",
     "openssl_key_pair.h",
     "openssl_utility.cc",
@@ -1583,39 +1583,25 @@ if (!build_with_mozilla) {
   ]
 
   deps = [
-    ":async_socket",
     ":buffer",
     ":checks",
     ":copy_on_write_buffer",
-    ":crypto_random",
     ":digest",
     ":logging",
     ":macromagic",
     ":safe_conversions",
-    ":socket",
-    ":socket_address",
     ":ssl_header",
-    ":stream",
     ":stringutils",
-    ":threading",
     ":timeutils",
     "../api:array_view",
     "../api:refcountedbase",
     "../api:scoped_refptr",
-    "../api/task_queue:pending_task_safety_flag",
-    "../api/units:time_delta",
-    "../system_wrappers:field_trial",
-    "synchronization:mutex",
     "system:rtc_export",
-    "task_utils:repeating_task",
     "third_party/base64",
-    "third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   # If we are building the SSL library ourselves, we know it's BoringSSL.
@@ -1627,7 +1613,10 @@ if (!build_with_mozilla) {
       "boringssl_identity.h",
     ]
 
-    deps += [ "//third_party/boringssl" ]
+    deps += [
+      ":crypto_random",
+      "//third_party/boringssl",
+    ]
   } else {
     sources += [
       "openssl_certificate.cc",
@@ -2120,11 +2109,13 @@ if (rtc_include_tests) {
         "numerics/sequence_number_util_unittest.cc",
       ]
       deps = [
+        ":mod_ops",
         ":rtc_numerics",
         ":timeutils",
         "../test:test_main",
         "../test:test_support",
         "//third_party/abseil-cpp/absl/algorithm:container",
+        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 

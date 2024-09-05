@@ -47,6 +47,7 @@
 #include "video/encoder_bitrate_adjuster.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/frame_encode_metadata_writer.h"
+#include "video/quality_convergence_controller.h"
 #include "video/video_source_sink_controller.h"
 #include "video/video_stream_encoder_interface.h"
 #include "video/video_stream_encoder_observer.h"
@@ -417,6 +418,12 @@ class VideoStreamEncoder : public VideoStreamEncoderInterface,
   // provided by encoder.
   QpParser qp_parser_;
   const bool qp_parsing_allowed_;
+
+  // The quality convergence controller is used to determine if a codec has
+  // reached its target quality. This is used for screenshare to determine when
+  // there's no need to continue encoding the same repeated frame.
+  QualityConvergenceController quality_convergence_controller_
+      RTC_GUARDED_BY(encoder_queue_);
 
   // Enables encoder switching on initialization failures.
   bool switch_encoder_on_init_failures_;

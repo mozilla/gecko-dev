@@ -29,6 +29,7 @@ rtc_library("audio_encoder_ilbc") {
     "..:audio_codecs_api",
     "../../../api:field_trials_view",
     "../../../modules/audio_coding:ilbc",
+    "../../../rtc_base:checks",
     "../../../rtc_base:safe_conversions",
     "../../../rtc_base:safe_minmax",
     "../../../rtc_base:stringutils",

@@ -62,7 +62,7 @@
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_writer.h"
 #include "test/video_codec_settings.h"
-#include "video/config/simulcast.h"
+#include "video/config/encoder_stream_factory.h"
 #include "video/config/video_encoder_config.h"
 
 namespace webrtc {
@@ -72,16 +72,21 @@ namespace {
 using VideoStatistics = VideoCodecTestStats::VideoStatistics;
 
 const int kBaseKeyFrameInterval = 3000;
-const double kBitratePriority = 1.0;
 const int kDefaultMaxFramerateFps = 30;
 const int kMaxQp = 56;
 
 void ConfigureSimulcast(VideoCodec* codec_settings) {
   FieldTrialBasedConfig trials;
-  const std::vector<webrtc::VideoStream> streams = cricket::GetSimulcastConfig(
-      /*min_layer=*/1, codec_settings->numberOfSimulcastStreams,
-      codec_settings->width, codec_settings->height, kBitratePriority, kMaxQp,
-      /* is_screenshare = */ false, true, trials, webrtc::kVideoCodecVP8);
+  VideoEncoderConfig encoder_config;
+  encoder_config.codec_type = codec_settings->codecType;
+  encoder_config.number_of_streams = codec_settings->numberOfSimulcastStreams;
+  encoder_config.simulcast_layers.resize(
+      codec_settings->numberOfSimulcastStreams);
+  VideoEncoder::EncoderInfo encoder_info;
+  auto stream_factory =
+      rtc::make_ref_counted<cricket::EncoderStreamFactory>(encoder_info);
+  const std::vector<VideoStream> streams = stream_factory->CreateEncoderStreams(
+      trials, codec_settings->width, codec_settings->height, encoder_config);
 
   for (size_t i = 0; i < streams.size(); ++i) {
     SimulcastStream* ss = &codec_settings->simulcastStream[i];
@@ -92,7 +97,7 @@ void ConfigureSimulcast(VideoCodec* codec_settings) {
     ss->maxBitrate = streams[i].max_bitrate_bps / 1000;
     ss->targetBitrate = streams[i].target_bitrate_bps / 1000;
     ss->minBitrate = streams[i].min_bitrate_bps / 1000;
-    ss->qpMax = streams[i].max_qp;
+    ss->qpMax = kMaxQp;
     ss->active = true;
   }
 }
@@ -376,7 +381,7 @@ void VideoCodecTestFixtureImpl::H264KeyframeChecker::CheckEncodedFrame(
   bool contains_pps = false;
   bool contains_idr = false;
   const std::vector<webrtc::H264::NaluIndex> nalu_indices =
-      webrtc::H264::FindNaluIndices(encoded_frame.data(), encoded_frame.size());
+      webrtc::H264::FindNaluIndices(encoded_frame);
   for (const webrtc::H264::NaluIndex& index : nalu_indices) {
     webrtc::H264::NaluType nalu_type = webrtc::H264::ParseNaluType(
         encoded_frame.data()[index.payload_start_offset]);

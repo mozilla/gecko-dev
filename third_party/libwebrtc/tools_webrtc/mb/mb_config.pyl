@@ -163,6 +163,9 @@
       'ios_compile_arm64_rel': 'ios_release_bot_arm64',
       'ios_dbg_simulator': 'ios_debug_bot_x64',
 
+      # Include What You Use
+      'iwyu_verifier': 'release_bot_x64',
+
       # Linux
       'linux_asan': 'asan_lsan_clang_release_bot_x64',
       'linux_compile_arm64_dbg': 'debug_bot_arm64',

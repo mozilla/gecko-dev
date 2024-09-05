@@ -41,6 +41,7 @@ rtc_library("audio_frame_api") {
     "../../rtc_base:logging",
     "../../rtc_base:macromagic",
     "../../rtc_base:timeutils",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -124,6 +125,7 @@ rtc_library("aec3_factory") {
     ":echo_control",
     "../../modules/audio_processing/aec3",
     "../../rtc_base/system:rtc_export",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

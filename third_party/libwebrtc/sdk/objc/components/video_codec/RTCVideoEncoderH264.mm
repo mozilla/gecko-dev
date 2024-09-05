@@ -585,24 +585,26 @@ NSUInteger GetMaxSampleRate(const webrtc::H264ProfileLevelId &profile_level_id) 
     CVPixelBufferPoolRef pixelBufferPool =
         VTCompressionSessionGetPixelBufferPool(_compressionSession);
     if (!pixelBufferPool) {
-      return NO;
-    }
-
-    NSDictionary *poolAttributes =
-        (__bridge NSDictionary *)CVPixelBufferPoolGetPixelBufferAttributes(pixelBufferPool);
-    id pixelFormats =
-        [poolAttributes objectForKey:(__bridge NSString *)kCVPixelBufferPixelFormatTypeKey];
-    NSArray<NSNumber *> *compressionSessionPixelFormats = nil;
-    if ([pixelFormats isKindOfClass:[NSArray class]]) {
-      compressionSessionPixelFormats = (NSArray *)pixelFormats;
-    } else if ([pixelFormats isKindOfClass:[NSNumber class]]) {
-      compressionSessionPixelFormats = @[ (NSNumber *)pixelFormats ];
-    }
-
-    if (![compressionSessionPixelFormats
-            containsObject:[NSNumber numberWithLong:framePixelFormat]]) {
+      // If we have a compression session but can't acquire the pixel buffer pool, we're in an
+      // invalid state and should reset.
       resetCompressionSession = YES;
-      RTC_LOG(LS_INFO) << "Resetting compression session due to non-matching pixel format.";
+    } else {
+      NSDictionary *poolAttributes =
+          (__bridge NSDictionary *)CVPixelBufferPoolGetPixelBufferAttributes(pixelBufferPool);
+      id pixelFormats =
+          [poolAttributes objectForKey:(__bridge NSString *)kCVPixelBufferPixelFormatTypeKey];
+      NSArray<NSNumber *> *compressionSessionPixelFormats = nil;
+      if ([pixelFormats isKindOfClass:[NSArray class]]) {
+        compressionSessionPixelFormats = (NSArray *)pixelFormats;
+      } else if ([pixelFormats isKindOfClass:[NSNumber class]]) {
+        compressionSessionPixelFormats = @[ (NSNumber *)pixelFormats ];
+      }
+
+      if (![compressionSessionPixelFormats
+              containsObject:[NSNumber numberWithLong:framePixelFormat]]) {
+        resetCompressionSession = YES;
+        RTC_LOG(LS_INFO) << "Resetting compression session due to non-matching pixel format.";
+      }
     }
   } else {
     resetCompressionSession = YES;

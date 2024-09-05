@@ -533,8 +533,10 @@ int AvgBurstLossLength() {
   return absl::GetFlag(FLAGS_avg_burst_loss_length);
 }
 
-int LinkCapacityKbps() {
-  return absl::GetFlag(FLAGS_link_capacity);
+DataRate LinkCapacity() {
+  int link_capacity_kbps = absl::GetFlag(FLAGS_link_capacity);
+  return link_capacity_kbps == 0 ? DataRate::Infinity()
+                                 : DataRate::KilobitsPerSec(link_capacity_kbps);
 }
 
 int QueueSize() {
@@ -585,7 +587,7 @@ void Loopback() {
   BuiltInNetworkBehaviorConfig pipe_config;
   pipe_config.loss_percent = LossPercent();
   pipe_config.avg_burst_loss_length = AvgBurstLossLength();
-  pipe_config.link_capacity = DataRate::KilobitsPerSec(LinkCapacityKbps());
+  pipe_config.link_capacity = LinkCapacity();
   pipe_config.queue_length_packets = QueueSize();
   pipe_config.queue_delay_ms = AvgPropagationDelayMs();
   pipe_config.delay_standard_deviation_ms = StdPropagationDelayMs();

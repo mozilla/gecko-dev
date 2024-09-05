@@ -426,9 +426,7 @@ void ApplySpatialLayerBitrateLimits(
   if (encoder_config.simulcast_layers[*index].min_bitrate_bps <= 0) {
     min_bitrate_bps = bitrate_limits->min_bitrate_bps;
   } else {
-    min_bitrate_bps =
-        std::max(bitrate_limits->min_bitrate_bps,
-                 encoder_config.simulcast_layers[*index].min_bitrate_bps);
+    min_bitrate_bps = encoder_config.simulcast_layers[*index].min_bitrate_bps;
   }
   int max_bitrate_bps;
   if (encoder_config.simulcast_layers[*index].max_bitrate_bps <= 0) {
@@ -487,13 +485,11 @@ void ApplyEncoderBitrateLimitsIfSingleActiveStream(
     return;
   }
 
-  // If bitrate limits are set by RtpEncodingParameters, use intersection.
   int min_bitrate_bps;
   if (encoder_config_layers[index].min_bitrate_bps <= 0) {
     min_bitrate_bps = encoder_bitrate_limits->min_bitrate_bps;
   } else {
-    min_bitrate_bps = std::max(encoder_bitrate_limits->min_bitrate_bps,
-                               (*streams)[index].min_bitrate_bps);
+    min_bitrate_bps = (*streams)[index].min_bitrate_bps;
   }
   int max_bitrate_bps;
   if (encoder_config_layers[index].max_bitrate_bps <= 0) {
@@ -1000,11 +996,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
         encoder_config_);
   } else {
     auto factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-        encoder_config_.video_format.name, encoder_config_.max_qp,
-        encoder_config_.content_type ==
-            webrtc::VideoEncoderConfig::ContentType::kScreen,
-        encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
-        latest_restrictions_);
+        encoder_->GetEncoderInfo(), latest_restrictions_);
 
     streams = factory->CreateEncoderStreams(
         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
@@ -1262,6 +1254,10 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     codec.SetVideoEncoderComplexity(VideoCodecComplexity::kComplexityLow);
   }
 
+  quality_convergence_controller_.Initialize(
+      codec.numberOfSimulcastStreams, encoder_->GetEncoderInfo().min_qp,
+      codec.codecType, env_.field_trials());
+
   send_codec_ = codec;
 
   // Keep the same encoder, as long as the video_format is unchanged.
@@ -1349,8 +1345,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
 
   const VideoEncoder::EncoderInfo info = encoder_->GetEncoderInfo();
   if (rate_control_settings_.UseEncoderBitrateAdjuster()) {
-    bitrate_adjuster_ =
-        std::make_unique<EncoderBitrateAdjuster>(codec, env_.field_trials());
+    bitrate_adjuster_ = std::make_unique<EncoderBitrateAdjuster>(
+        codec, env_.field_trials(), env_.clock());
     bitrate_adjuster_->OnEncoderInfo(info);
   }
 
@@ -2078,7 +2074,9 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
   // simulcast and spatial indices.
   int stream_idx = encoded_image.SpatialIndex().value_or(
       encoded_image.SimulcastIndex().value_or(0));
-  frame_encode_metadata_writer_.FillTimingInfo(stream_idx, &image_copy);
+
+  frame_encode_metadata_writer_.FillMetadataAndTimingInfo(stream_idx,
+                                                          &image_copy);
   frame_encode_metadata_writer_.UpdateBitstream(codec_specific_info,
                                                 &image_copy);
   VideoCodecType codec_type = codec_specific_info
@@ -2091,14 +2089,12 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
             .Parse(codec_type, stream_idx, image_copy.data(), image_copy.size())
             .value_or(-1);
   }
+
   TRACE_EVENT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
                "stream_idx", stream_idx, "qp", image_copy.qp_);
   RTC_LOG(LS_VERBOSE) << __func__ << " ntp time " << encoded_image.NtpTimeMs()
                       << " stream_idx " << stream_idx << " qp "
                       << image_copy.qp_;
-  image_copy.SetAtTargetQuality(codec_type == kVideoCodecVP8 &&
-                                image_copy.qp_ <= kVp8SteadyStateQpThreshold);
-
   return image_copy;
 }
 
@@ -2121,10 +2117,15 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
   unsigned int image_width = image_copy._encodedWidth;
   unsigned int image_height = image_copy._encodedHeight;
   encoder_queue_->PostTask([this, codec_type, image_width, image_height,
-                            simulcast_index,
-                            at_target_quality =
-                                image_copy.IsAtTargetQuality()] {
+                            simulcast_index, qp = image_copy.qp_,
+                            is_steady_state_refresh_frame =
+                                image_copy.IsSteadyStateRefreshFrame()] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
+
+    // Check if the encoded image has reached target quality.
+    bool at_target_quality =
+        quality_convergence_controller_.AddSampleAndCheckTargetQuality(
+            simulcast_index, qp, is_steady_state_refresh_frame);
 
     // Let the frame cadence adapter know about quality convergence.
     if (frame_cadence_adapter_)
@@ -2170,7 +2171,10 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
   image_copy.ClearEncodedData();
 
   int temporal_index = 0;
-  if (codec_specific_info) {
+  if (encoded_image.TemporalIndex()) {
+    // Give precedence to the metadata on EncodedImage, if available.
+    temporal_index = *encoded_image.TemporalIndex();
+  } else if (codec_specific_info) {
     if (codec_specific_info->codecType == kVideoCodecVP9) {
       temporal_index = codec_specific_info->codecSpecific.VP9.temporal_idx;
     } else if (codec_specific_info->codecType == kVideoCodecVP8) {
@@ -2414,8 +2418,8 @@ void VideoStreamEncoder::RunPostEncode(const EncodedImage& encoded_image,
     // TODO(https://crbug.com/webrtc/14891): If we want to support a mix of
     // simulcast and SVC we'll also need to consider the case where we have both
     // simulcast and spatial indices.
-    int stream_index = encoded_image.SpatialIndex().value_or(
-        encoded_image.SimulcastIndex().value_or(0));
+    int stream_index = std::max(encoded_image.SimulcastIndex().value_or(0),
+                                encoded_image.SpatialIndex().value_or(0));
     bitrate_adjuster_->OnEncodedFrame(frame_size, stream_index, temporal_index);
   }
 }

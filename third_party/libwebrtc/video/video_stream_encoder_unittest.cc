@@ -76,6 +76,7 @@
 #include "test/video_encoder_proxy_factory.h"
 #include "video/config/encoder_stream_factory.h"
 #include "video/config/video_encoder_config.h"
+#include "video/encoder_bitrate_adjuster.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/send_statistics_proxy.h"
 
@@ -700,6 +701,10 @@ class SimpleVideoStreamEncoderFactory {
                 (EncodedImage & encoded_image,
                  rtc::scoped_refptr<EncodedImageBuffer> buffer),
                 (override));
+    MOCK_METHOD(VideoEncoder::EncoderInfo,
+                GetEncoderInfo,
+                (),
+                (const, override));
   };
 
   SimpleVideoStreamEncoderFactory() {
@@ -2225,16 +2230,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.max_bitrate_bps = 0;
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 270p should be used.
@@ -2290,16 +2291,12 @@ TEST_F(VideoStreamEncoderTest,
        DefaultEncoderMaxAndMinBitratesUsedForTwoStreamsHighestActive) {
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.max_bitrate_bps = 0;
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // Default bitrate limits for 270p should be used.
@@ -2364,16 +2361,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Three streams, middle stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 3;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
   config.simulcast_layers[2].active = false;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 360p should be used.
@@ -2409,16 +2402,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Three streams, lowest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 3;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = true;
   config.simulcast_layers[1].active = false;
   config.simulcast_layers[2].active = false;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // Resolution on lowest stream lower than 270p. The encoder limits not applied
@@ -2446,16 +2435,12 @@ TEST_F(VideoStreamEncoderTest,
 
   // Two streams, highest stream active.
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   const int kNumStreams = 2;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumStreams, &config);
   config.simulcast_layers[0].active = false;
   config.simulcast_layers[1].active = true;
   config.simulcast_layers[1].max_bitrate_bps = kMaxBitrateBps;
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(config.Copy(), kMaxPayloadLength);
 
   // The encoder bitrate limits for 270p should be used.
@@ -2583,6 +2568,57 @@ TEST_F(VideoStreamEncoderTest,
   video_stream_encoder_->Stop();
 }
 
+TEST_F(VideoStreamEncoderTest, CorrectlyAdjustsAv1Bitrate) {
+  ResetEncoder("AV1", /*num_streams*/ 2, /*num_temporal_layers=*/2,
+               /*num_spatial_layers=*/1, /*screenshare*/ false,
+               kDefaultFramerate,
+               VideoStreamEncoder::BitrateAllocationCallbackType::
+                   kVideoLayersAllocation);
+
+  // Let link allocation and stable bitrate be 2x the target bitrate.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, 2 * kTargetBitrate, 2 * kTargetBitrate, 0, 0, 0);
+
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+  WaitForEncodedFrame(CurrentTimeMs());
+
+  // Before enough data has been gathered, some default pushback is applied.
+  VideoEncoder::RateControlParameters rate_settings =
+      *fake_encoder_.GetAndResetLastRateControlSettings();
+  // Allow 5% diff from target bitrate.
+  const double allowed_error_bps =
+      rate_settings.target_bitrate.get_sum_bps() * 0.05;
+  EXPECT_NEAR(rate_settings.bitrate.get_sum_bps(),
+              rate_settings.target_bitrate.get_sum_bps() /
+                  EncoderBitrateAdjuster::kDefaultUtilizationFactor,
+              allowed_error_bps);
+
+  // Insert frames until bitrate adjuster is saturated.
+  const TimeDelta runtime = EncoderBitrateAdjuster::kWindowSize;
+  const Timestamp start_time = clock()->CurrentTime();
+  while (clock()->CurrentTime() - start_time < runtime) {
+    video_source_.IncomingCapturedFrame(
+        CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+    WaitForEncodedFrame(CurrentTimeMs());
+  }
+
+  // Make sure rate has been reallocated.
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate - DataRate::BitsPerSec(500), 2 * kTargetBitrate,
+      2 * kTargetBitrate, 0, 0, 0);
+  video_source_.IncomingCapturedFrame(
+      CreateFrame(CurrentTimeMs(), codec_width_, codec_height_));
+  WaitForEncodedFrame(CurrentTimeMs());
+
+  // Pushback should no longer happen.
+  rate_settings = *fake_encoder_.GetAndResetLastRateControlSettings();
+  EXPECT_NEAR(rate_settings.bitrate.get_sum_bps(),
+              rate_settings.target_bitrate.get_sum_bps(), allowed_error_bps);
+
+  video_stream_encoder_->Stop();
+}
+
 class ResolutionAlignmentTest
     : public VideoStreamEncoderTest,
       public ::testing::WithParamInterface<
@@ -2623,20 +2659,18 @@ TEST_P(ResolutionAlignmentTest, SinkWantsAlignmentApplied) {
   // Fill config with the scaling factor by which to reduce encoding size.
   const int num_streams = scale_factors_.size();
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, num_streams, &config);
   for (int i = 0; i < num_streams; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = scale_factors_[i];
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->ConfigureEncoder(std::move(config), kMaxPayloadLength);
 
+  // We can get up to 3 streams of 1280x720 resolution each in this test. Make
+  // available bitrate large enough to get all streams encoded.
+  const DataRate kAvailableBitrate = 3 * kSimulcastTargetBitrate;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
-      kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
-      0, 0, 0);
+      kAvailableBitrate, kAvailableBitrate, kAvailableBitrate, 0, 0, 0);
   // Wait for all layers before triggering event.
   sink_.SetNumExpectedLayers(num_streams);
 
@@ -5790,13 +5824,9 @@ TEST_F(VideoStreamEncoderTest,
 
 TEST_F(VideoStreamEncoderTest, InitialFrameDropAccountsForResolutionScaling) {
   VideoEncoderConfig video_encoder_config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(PayloadStringToCodecType("VP8"), 1,
                                  &video_encoder_config);
-  video_encoder_config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  video_encoder_config.video_stream_factory = nullptr;
   for (auto& layer : video_encoder_config.simulcast_layers) {
     layer.num_temporal_layers = 1;
     layer.max_framerate = kDefaultFramerate;
@@ -5842,13 +5872,9 @@ TEST_F(VideoStreamEncoderTest, InitialFrameDropActivatesWhenLayersChange) {
   // Trigger QVGA "singlecast"
   // Update the config.
   VideoEncoderConfig video_encoder_config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(PayloadStringToCodecType("VP8"), 3,
                                  &video_encoder_config);
-  video_encoder_config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  video_encoder_config.video_stream_factory = nullptr;
   for (auto& layer : video_encoder_config.simulcast_layers) {
     layer.num_temporal_layers = 1;
     layer.max_framerate = kDefaultFramerate;
@@ -8047,16 +8073,12 @@ TEST_F(VideoStreamEncoderTest, EncoderResetAccordingToParameterChange) {
   const int number_layers =
       sizeof(downscale_factors) / sizeof(downscale_factors[0]);
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, number_layers, &config);
   for (int i = 0; i < number_layers; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = downscale_factors[i];
     config.simulcast_layers[i].active = true;
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -8173,16 +8195,12 @@ TEST_F(VideoStreamEncoderTest, EncoderResolutionsExposedInSimulcast) {
       kFrameWidth / kDownscaleFactors[2], kFrameHeight / kDownscaleFactors[2]);
 
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   test::FillEncoderConfiguration(kVideoCodecVP8, kNumSimulcastLayers, &config);
   for (size_t i = 0; i < kNumSimulcastLayers; ++i) {
     config.simulcast_layers[i].scale_resolution_down_by = kDownscaleFactors[i];
     config.simulcast_layers[i].active = true;
   }
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          "VP8", /*max qp*/ 56, /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -8946,7 +8964,6 @@ TEST_P(VideoStreamEncoderWithRealEncoderTest, HandlesLayerToggling) {
       kFrameWidth / kDownscaleFactors[2], kFrameHeight / kDownscaleFactors[2]);
 
   VideoEncoderConfig config;
-  webrtc::VideoEncoder::EncoderInfo encoder_info;
   if (codec_type_ == VideoCodecType::kVideoCodecVP9) {
     test::FillEncoderConfiguration(codec_type_, 1, &config);
     config.max_bitrate_bps = kSimulcastTargetBitrate.bps();
@@ -8996,11 +9013,7 @@ TEST_P(VideoStreamEncoderWithRealEncoderTest, HandlesLayerToggling) {
     }
   };
 
-  config.video_stream_factory =
-      rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-          CodecTypeToPayloadString(codec_type_), /*max qp*/ 56,
-          /*screencast*/ false,
-          /*screenshare enabled*/ false, encoder_info);
+  config.video_stream_factory = nullptr;
   video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
       kSimulcastTargetBitrate, kSimulcastTargetBitrate, kSimulcastTargetBitrate,
       0, 0, 0);
@@ -9117,15 +9130,10 @@ class ReconfigureEncoderTest : public VideoStreamEncoderTest {
 
   void ConfigureEncoder(const VideoStream& stream) {
     VideoEncoderConfig config;
-    webrtc::VideoEncoder::EncoderInfo encoder_info;
-
     test::FillEncoderConfiguration(kVideoCodecVP8, /*num_streams=*/1, &config);
     config.max_bitrate_bps = stream.max_bitrate_bps;
     config.simulcast_layers[0] = stream;
-    config.video_stream_factory =
-        rtc::make_ref_counted<cricket::EncoderStreamFactory>(
-            /*codec_name=*/"VP8", /*max_qp=*/0, /*is_screenshare=*/false,
-            /*conference_mode=*/false, encoder_info);
+    config.video_stream_factory = nullptr;
     video_stream_encoder_->ConfigureEncoder(std::move(config),
                                             kMaxPayloadLength);
   }
@@ -9472,6 +9480,12 @@ TEST(VideoStreamEncoderFrameCadenceTest, UpdatesQualityConvergence) {
   TaskQueueBase* encoder_queue = nullptr;
   auto video_stream_encoder =
       factory.Create(std::move(adapter), &encoder_queue);
+
+  // Set minimum QP.
+  VideoEncoder::EncoderInfo info;
+  info.min_qp = kVp8SteadyStateQpThreshold;
+  EXPECT_CALL(factory.GetMockFakeEncoder(), GetEncoderInfo)
+      .WillRepeatedly(Return(info));
 
   // Configure 2 simulcast layers and setup 1 MBit/s to unpause the encoder.
   VideoEncoderConfig video_encoder_config;

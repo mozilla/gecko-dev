@@ -164,12 +164,18 @@ if (!build_with_chromium) {
       ]
       deps = [
         "../..:fileutils",
+        "../../../api:array_view",
         "../../../api:peer_network_dependencies",
+        "../../../api:rtp_parameters",
         "../../../api/test/pclf:media_configuration",
         "../../../api/test/pclf:media_quality_test_params",
         "../../../api/test/pclf:peer_configurer",
+        "../../../api/video_codecs:scalability_mode",
+        "../../../media:media_constants",
         "../../../modules/video_coding/svc:scalability_mode_util",
         "../../../modules/video_coding/svc:scalability_structures",
+        "../../../modules/video_coding/svc:scalable_video_controller",
+        "../../../rtc_base:checks",
         "../../../rtc_base:macromagic",
         "//third_party/abseil-cpp/absl/strings:string_view",
       ]

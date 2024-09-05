@@ -39,7 +39,7 @@ rtc_source_set("media_configuration") {
     "../../../rtc_base:stringutils",
     "../../../rtc_base:threading",
     "../../../test:fileutils",
-    "../../../test:video_test_support",
+    "../../../test:video_frame_writer",
     "../../../test/pc/e2e/analyzer/video:video_dumping",
     "../../audio:audio_mixer_api",
     "../../audio:audio_processing",

@@ -624,8 +624,6 @@ void RtpTransportControllerSend::OnTransportFeedback(
 void RtpTransportControllerSend::OnRemoteNetworkEstimate(
     NetworkStateEstimate estimate) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  env_.event_log().Log(std::make_unique<RtcEventRemoteEstimate>(
-      estimate.link_capacity_lower, estimate.link_capacity_upper));
   estimate.update_time = Timestamp::Millis(env_.clock().TimeInMilliseconds());
   if (controller_)
     PostUpdates(controller_->OnNetworkStateEstimate(estimate));

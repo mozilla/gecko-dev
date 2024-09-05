@@ -2338,6 +2338,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/crypto:frame_decryptor_interface",
       "../api/crypto:frame_encryptor_interface",
       "../api/crypto:options",
+      "../api/environment",
       "../api/environment:environment_factory",
       "../api/rtc_event_log",
       "../api/rtc_event_log:rtc_event_log_factory",

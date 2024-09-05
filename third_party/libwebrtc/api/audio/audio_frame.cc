@@ -12,6 +12,13 @@
 
 #include <string.h>
 
+#include <cstdint>
+
+#include "absl/types/optional.h"
+#include "api/array_view.h"
+#include "api/audio/audio_view.h"
+#include "api/audio/channel_layout.h"
+#include "api/rtp_packet_infos.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/time_utils.h"
 

@@ -978,10 +978,8 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::ConfigureVideoEncoderSettings(
           {{"off", webrtc::InterLayerPredMode::kOff},
            {"on", webrtc::InterLayerPredMode::kOn},
            {"onkeypic", webrtc::InterLayerPredMode::kOnKeyPic}});
-      webrtc::FieldTrialFlag force_flexible_mode("FlexibleMode");
       webrtc::ParseFieldTrial(
-          {&interlayer_pred_experiment_enabled, &inter_layer_pred_mode,
-           &force_flexible_mode},
+          {&interlayer_pred_experiment_enabled, &inter_layer_pred_mode},
           call_->trials().Lookup("WebRTC-Vp9InterLayerPred"));
       if (interlayer_pred_experiment_enabled) {
         vp9_settings.interLayerPred = inter_layer_pred_mode;
@@ -989,7 +987,10 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::ConfigureVideoEncoderSettings(
         // Limit inter-layer prediction to key pictures by default.
         vp9_settings.interLayerPred = webrtc::InterLayerPredMode::kOnKeyPic;
       }
-      vp9_settings.flexibleMode = force_flexible_mode.Get();
+
+      // TODO(webrtc:329396373): Remove after flexible mode is fully deployed.
+      vp9_settings.flexibleMode =
+          !IsDisabled(call_->trials(), "WebRTC-Video-Vp9FlexibleMode");
     } else {
       // Multiple spatial layers vp9 screenshare needs flexible mode.
       vp9_settings.flexibleMode = vp9_settings.numberOfSpatialLayers > 1;
@@ -1503,9 +1504,9 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
   RTC_DCHECK(ssrc != 0);
   send_streams_[ssrc] = stream;
 
-    if (ssrc_list_changed_callback_) {
-      ssrc_list_changed_callback_(send_ssrcs_);
-    }
+  if (ssrc_list_changed_callback_) {
+    ssrc_list_changed_callback_(send_ssrcs_);
+  }
 
   if (sending_) {
     stream->SetSend(true);
@@ -2239,21 +2240,10 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
   // Ensure frame dropping is always enabled.
   encoder_config.frame_drop_enabled = true;
 
-  int max_qp;
-  switch (encoder_config.codec_type) {
-    case webrtc::kVideoCodecH264:
-    case webrtc::kVideoCodecH265:
-      max_qp = kDefaultVideoMaxQpH26x;
-      break;
-    case webrtc::kVideoCodecVP8:
-    case webrtc::kVideoCodecVP9:
-    case webrtc::kVideoCodecAV1:
-    case webrtc::kVideoCodecGeneric:
-      max_qp = kDefaultVideoMaxQpVpx;
-      break;
+  int max_qp = -1;
+  if (codec.GetParam(kCodecParamMaxQuantization, &max_qp) && max_qp > 0) {
+    encoder_config.max_qp = max_qp;
   }
-  codec.GetParam(kCodecParamMaxQuantization, &max_qp);
-  encoder_config.max_qp = max_qp;
 
   return encoder_config;
 }
@@ -3146,22 +3136,22 @@ bool WebRtcVideoReceiveChannel::MaybeCreateDefaultReceiveStream(
     // BWE has already been notified of this received packet.
     return false;
   }
-    // Ignore unknown ssrcs if we recently created an unsignalled receive
-    // stream since this shouldn't happen frequently. Getting into a state
-    // of creating decoders on every packet eats up processing time (e.g.
-    // https://crbug.com/1069603) and this cooldown prevents that.
-    if (last_unsignalled_ssrc_creation_time_ms_.has_value()) {
-      int64_t now_ms = rtc::TimeMillis();
-      if (now_ms - last_unsignalled_ssrc_creation_time_ms_.value() <
-          kUnsignaledSsrcCooldownMs) {
-        // We've already created an unsignalled ssrc stream within the last
-        // 0.5 s, ignore with a warning.
-        RTC_LOG(LS_WARNING)
-            << "Another unsignalled ssrc packet arrived shortly after the "
-            << "creation of an unsignalled ssrc stream. Dropping packet.";
-        return false;
-      }
+  // Ignore unknown ssrcs if we recently created an unsignalled receive
+  // stream since this shouldn't happen frequently. Getting into a state
+  // of creating decoders on every packet eats up processing time (e.g.
+  // https://crbug.com/1069603) and this cooldown prevents that.
+  if (last_unsignalled_ssrc_creation_time_ms_.has_value()) {
+    int64_t now_ms = rtc::TimeMillis();
+    if (now_ms - last_unsignalled_ssrc_creation_time_ms_.value() <
+        kUnsignaledSsrcCooldownMs) {
+      // We've already created an unsignalled ssrc stream within the last
+      // 0.5 s, ignore with a warning.
+      RTC_LOG(LS_WARNING)
+          << "Another unsignalled ssrc packet arrived shortly after the "
+          << "creation of an unsignalled ssrc stream. Dropping packet.";
+      return false;
     }
+  }
 
   // RTX SSRC not yet known.
   ReCreateDefaultReceiveStream(packet.Ssrc(), absl::nullopt);

@@ -1,28 +1,28 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Sat, 15 Jun 2024 11:27:00 +0000
-Subject: Bug 1902618 - WebRTC backport: PipeWire video capture: mmap()
- PipeWire buffers with MAP_SHARED r=pehrsons,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Wed, 28 Aug 2024 07:50:00 +0000
+Subject: Bug 1915082 - From ScreenCapturerSck request frames in sRGB
+ colorspace. r=webrtc-reviewers,ng
 
-This is a simple backport of an WebRTC upstream change.
+The desktop capture path has no colorspace handling for RGB, and libyuv assumes
+sRGB by default. ScreenCaptureKit returns frames in the display's colorspace
+unless told otherwise. On modern macs this is 'Display P3' and will render
+inaccurately when interpreted as sRGB.
 
-Upstream commit: 025d69b4d0df05f54d7bfcb3a4a2b35b48b83d82
-
-Differential Revision: https://phabricator.services.mozilla.com/D213752
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/09f0b8ff3d06a68baefa88ed598d2125dfe9d417
+Differential Revision: https://phabricator.services.mozilla.com/D220219
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6f6acc479b373662d4ed3ef3be84c3581622297f
 ---
- modules/video_capture/linux/video_capture_pipewire.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index d7cd50df66..9ff4fdb9b1 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -418,7 +418,7 @@ void VideoCaptureModulePipeWire::ProcessBuffers() {
-       ScopedBuf frame;
-       frame.initialize(
-           static_cast<uint8_t*>(
--              mmap(nullptr, spaBuffer->datas[0].maxsize, PROT_READ, MAP_PRIVATE,
-+              mmap(nullptr, spaBuffer->datas[0].maxsize, PROT_READ, MAP_SHARED,
-                    spaBuffer->datas[0].fd, spaBuffer->datas[0].mapoffset)),
-           spaBuffer->datas[0].maxsize, spaBuffer->datas[0].fd,
-           spaBuffer->datas[0].type == SPA_DATA_DmaBuf);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index a16a74d451..a7fdfb1012 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -245,6 +245,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+                                                     excludingWindows:@[]];
+   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
+   config.pixelFormat = kCVPixelFormatType_32BGRA;
++  config.colorSpaceName = kCGColorSpaceSRGB;
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;

@@ -20,6 +20,7 @@
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "modules/portal/pipewire_utils.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/sanitizer.h"
 #include "rtc_base/string_to_number.h"
 
 namespace webrtc {
@@ -128,6 +129,7 @@ static spa_pod* BuildFormat(spa_pod_builder* builder,
   return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 int32_t VideoCaptureModulePipeWire::StartCapture(
     const VideoCaptureCapability& capability) {
   RTC_DCHECK_RUN_ON(&api_checker_);
@@ -247,6 +249,7 @@ void VideoCaptureModulePipeWire::OnStreamParamChanged(
     that->OnFormatChanged(format);
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
 
@@ -395,6 +398,7 @@ static VideoRotation VideorotationFromPipeWireTransform(uint32_t transform) {
   }
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 void VideoCaptureModulePipeWire::ProcessBuffers() {
   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
 

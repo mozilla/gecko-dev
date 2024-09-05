@@ -698,6 +698,64 @@ TEST(FullStackTest, Conference_Motion_Hd_3tl_AV1) {
   fixture->RunWithAnalyzer(conf_motion_hd);
 }
 
+#if defined(WEBRTC_MAC)
+// TODO(webrtc:351644561): Flaky on Mac x86/ARM.
+#define MAYBE_Screenshare_Slides_Simulcast_AV1 \
+  DISABLED_Screenshare_Slides_Simulcast_AV1
+#else
+#define MAYBE_Screenshare_Slides_Simulcast_AV1 Screenshare_Slides_Simulcast_AV1
+#endif
+TEST(FullStackTest, MAYBE_Screenshare_Slides_Simulcast_AV1) {
+  auto fixture = CreateVideoQualityTestFixture();
+  ParamsWithLogging screenshare;
+  screenshare.analyzer = {.test_label = "screenshare_slides_simulcast_AV1",
+                          .test_durations_secs = kFullStackTestDurationSecs};
+  screenshare.call.send_side_bwe = true;
+  screenshare.screenshare[0] = {.enabled = true};
+  screenshare.video[0] = {.enabled = true,
+                          .width = 1850,
+                          .height = 1110,
+                          .fps = 30,
+                          .min_bitrate_bps = 0,
+                          .target_bitrate_bps = 0,
+                          .max_bitrate_bps = 2500000,
+                          .codec = "AV1",
+                          .num_temporal_layers = 2};
+
+  // Set `min_bitrate_bps` and `target_bitrate_bps` to zero to use WebRTC
+  // defaults.
+  VideoQualityTest::Params screenshare_params_low;
+  screenshare_params_low.video[0] = {.enabled = true,
+                                     .width = 1850,
+                                     .height = 1110,
+                                     .fps = 5,
+                                     .min_bitrate_bps = 0,
+                                     .target_bitrate_bps = 0,
+                                     .max_bitrate_bps = 420'000,
+                                     .codec = "AV1",
+                                     .num_temporal_layers = 2};
+
+  VideoQualityTest::Params screenshare_params_high;
+  screenshare_params_high.video[0] = {.enabled = true,
+                                      .width = 1850,
+                                      .height = 1110,
+                                      .fps = 30,
+                                      .min_bitrate_bps = 0,
+                                      .target_bitrate_bps = 0,
+                                      .max_bitrate_bps = 2'500'000,
+                                      .codec = "AV1",
+                                      .num_temporal_layers = 2};
+
+  std::vector<VideoStream> streams = {
+      VideoQualityTest::DefaultVideoStream(screenshare_params_low, 0),
+      VideoQualityTest::DefaultVideoStream(screenshare_params_high, 0)};
+  screenshare.ss[0] = {
+      .streams = streams,
+      .selected_stream = 1,
+  };
+  fixture->RunWithAnalyzer(screenshare);
+}
+
 #if defined(RTC_ENABLE_VP9)
 TEST(FullStackTest, Conference_Motion_Hd_2000kbps_100ms_32pkts_Queue_Vp9) {
   auto fixture = CreateVideoQualityTestFixture();

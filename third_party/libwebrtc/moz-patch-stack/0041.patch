@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 57 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 31e93b3c7d..e21feca1d6 100644
+index 0073930d9f..94dcced9c1 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
@@ -115,7 +115,7 @@ index 61212f60fe..96e089585f 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index 344a4b64e4..5a5a160c78 100644
+index f2118e81ab..35d80151f3 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
 @@ -19,6 +19,7 @@
@@ -126,7 +126,7 @@ index 344a4b64e4..5a5a160c78 100644
  #include "api/crypto/crypto_options.h"
  #include "api/rtp_parameters.h"
  #include "call/receive_stream.h"
-@@ -118,6 +119,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -119,6 +120,8 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
        // See NackConfig for description.
        NackConfig nack;
        RtcpMode rtcp_mode = RtcpMode::kCompound;
@@ -269,7 +269,7 @@ index e53bfbb58e..68c2b2ab56 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 73fcdf5bc1..e8c13de119 100644
+index cbfa512fd0..3e2a995ada 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -83,7 +83,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

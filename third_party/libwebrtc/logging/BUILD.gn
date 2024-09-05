@@ -663,6 +663,7 @@ if (rtc_enable_protobuf) {
           "../modules/rtp_rtcp:rtp_rtcp_format",
           "../rtc_base:checks",
           "../rtc_base:protobuf_utils",
+          "../rtc_base:stringutils",
           "../test:rtp_test_utils",
           "//third_party/abseil-cpp/absl/flags:flag",
           "//third_party/abseil-cpp/absl/flags:parse",

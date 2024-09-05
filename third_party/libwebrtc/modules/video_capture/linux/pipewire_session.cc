@@ -19,6 +19,7 @@
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "modules/video_capture/device_info_impl.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/sanitizer.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/string_to_number.h"
 
@@ -65,6 +66,7 @@ PipeWireNode::PipeWireNodePtr PipeWireNode::Create(PipeWireSession* session,
   return PipeWireNodePtr(new PipeWireNode(session, id, props));
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 PipeWireNode::PipeWireNode(PipeWireSession* session,
                            uint32_t id,
                            const spa_dict* props)
@@ -87,6 +89,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
 }
 
 // static
+RTC_NO_SANITIZE("cfi-icall")
 void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
   PipeWireNode* that = static_cast<PipeWireNode*>(data);
 
@@ -123,6 +126,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
 }
 
 // static
+RTC_NO_SANITIZE("cfi-icall")
 void PipeWireNode::OnNodeParam(void* data,
                                int seq,
                                uint32_t id,
@@ -274,6 +278,7 @@ void PipeWireSession::InitPipeWire(int fd) {
     Finish(VideoCaptureOptions::Status::ERROR);
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 bool PipeWireSession::StartPipeWire(int fd) {
   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
 
@@ -340,6 +345,7 @@ void PipeWireSession::StopPipeWire() {
   }
 }
 
+RTC_NO_SANITIZE("cfi-icall")
 void PipeWireSession::PipeWireSync() {
   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
 }
@@ -374,6 +380,7 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
 }
 
 // static
+RTC_NO_SANITIZE("cfi-icall")
 void PipeWireSession::OnRegistryGlobal(void* data,
                                        uint32_t id,
                                        uint32_t permissions,

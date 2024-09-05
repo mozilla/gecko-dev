@@ -83,6 +83,7 @@ class GoogCcNetworkController : public NetworkControllerInterface {
                                     Timestamp at_time);
   void UpdateCongestionWindowSize();
   PacerConfig GetPacingRates(Timestamp at_time) const;
+  void SetNetworkStateEstimate(absl::optional<NetworkStateEstimate> estimate);
 
   const Environment env_;
   const bool packet_feedback_only_;
