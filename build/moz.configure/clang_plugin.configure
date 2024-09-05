@@ -44,7 +44,6 @@ option(
 
 
 set_config("ENABLE_MOZSEARCH_PLUGIN", True, when="--enable-mozsearch-plugin")
-set_define("MOZ_MOZSEARCH_PLUGIN", True, when="--enable-mozsearch-plugin")
 
 
 @depends(
