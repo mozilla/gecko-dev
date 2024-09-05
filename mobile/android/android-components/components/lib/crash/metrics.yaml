@@ -417,26 +417,6 @@ crash:
       items:
         type: string
 
-  remote_type:
-    type: string
-    # yamllint disable
-    description: >
-      The type of the content process. See the full list of options
-      [here](https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/data/crash-ping.html#remote-process-types).
-    # yamllint enable
-    notification_emails:
-      - crash-reporting-wg@mozilla.org
-      - stability@mozilla.org
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1830098
-    data_sensitivity:
-      - technical
-    expires: never
-    send_in_pings:
-      - crash
-
   shutdown_progress:
     type: string
     description: >
