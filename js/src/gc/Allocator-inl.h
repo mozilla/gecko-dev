@@ -111,6 +111,53 @@ T* CellAllocator::NewTenuredCell(JSContext* cx, Args&&... args) {
   return new (mozilla::KnownNotNull, cell) T(std::forward<Args>(args)...);
 }
 
+#if defined(DEBUG) || defined(JS_GC_ZEAL) || defined(JS_OOM_BREAKPOINT)
+
+// This serves as a single point to perform some unrelated checks that happens
+// before every allocation. Performs the following:
+//
+//  - checks we can't GC inside a JS::AutoAssertNoGC region
+//  - runs a zeal GC if needed
+//
+// This is a no-op in release builds.
+//
+// This is only called on paths where GC is allowed.
+inline void PreAllocGCChecks(JSContext* cx) {
+  // Crash if we could perform a GC action when it is not safe.
+  if (!cx->suppressGC) {
+    cx->verifyIsSafeToGC();
+  }
+
+#  ifdef JS_GC_ZEAL
+  GCRuntime* gc = &cx->runtime()->gc;
+  if (gc->needZealousGC()) {
+    gc->runDebugGC();
+  }
+#  endif
+}
+
+inline bool CheckForSimulatedFailure(JSContext* cx, AllowGC allowGC) {
+  // For testing out of memory conditions.
+  if (js::oom::ShouldFailWithOOM()) {
+    // If we are doing a fallible allocation, percolate up the OOM instead of
+    // reporting it.
+    if (allowGC) {
+      ReportOutOfMemory(cx);
+    }
+    return false;
+  }
+
+  return true;
+}
+#else
+
+inline void PreAllocGCChecks(JSContext* cx) {}
+inline bool CheckForSimulatedFailure(JSContext* cx, AllowGC allowGC) {
+  return true;
+}
+
+#endif  // DEBUG || JS_GC_ZEAL || JS_OOM_BREAKPOINT
+
 template <JS::TraceKind traceKind, AllowGC allowGC>
 /* static */
 void* CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
@@ -122,8 +169,14 @@ void* CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
   MOZ_ASSERT(thingSize == Arena::thingSize(allocKind));
   MOZ_ASSERT_IF(site && site->initialHeap() == Heap::Tenured,
                 heap == Heap::Tenured);
+  MOZ_ASSERT(!cx->zone()->isAtomsZone());
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
 
-  if (!PreAllocChecks<allowGC>(cx, allocKind)) {
+  if constexpr (allowGC) {
+    PreAllocGCChecks(cx);
+  }
+
+  if (!CheckForSimulatedFailure(cx, allowGC)) {
     return nullptr;
   }
 

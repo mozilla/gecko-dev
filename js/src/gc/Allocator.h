@@ -96,16 +96,6 @@ class CellAllocator {
 
   static void* RetryTenuredAlloc(JSContext* cx, AllocKind kind);
 
-#if defined(DEBUG) || defined(JS_GC_ZEAL) || defined(JS_OOM_BREAKPOINT)
-  template <AllowGC allowGC>
-  static bool PreAllocChecks(JSContext* cx, AllocKind kind);
-#else
-  template <AllowGC allowGC>
-  static bool PreAllocChecks(JSContext* cx, AllocKind kind) {
-    return true;
-  }
-#endif
-
 #ifdef JS_GC_ZEAL
   static AllocSite* MaybeGenerateMissingAllocSite(JSContext* cx,
                                                   JS::TraceKind traceKind,

@@ -148,11 +148,26 @@ template void* gc::CellAllocator::AllocTenuredCellForNurseryAlloc<NoGC>(
 template void* gc::CellAllocator::AllocTenuredCellForNurseryAlloc<CanGC>(
     JSContext*, AllocKind);
 
+#ifdef DEBUG
+static bool IsAtomsZoneKind(AllocKind kind) {
+  return kind == AllocKind::ATOM || kind == AllocKind::FAT_INLINE_ATOM ||
+         kind == AllocKind::SYMBOL;
+}
+#endif
+
 template <AllowGC allowGC>
 void* gc::CellAllocator::AllocTenuredCell(JSContext* cx, gc::AllocKind kind) {
   MOZ_ASSERT(!IsNurseryAllocable(kind));
+  MOZ_ASSERT_IF(cx->zone()->isAtomsZone(),
+                IsAtomsZoneKind(kind) || kind == AllocKind::JITCODE);
+  MOZ_ASSERT_IF(!cx->zone()->isAtomsZone(), !IsAtomsZoneKind(kind));
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
 
-  if (!PreAllocChecks<allowGC>(cx, kind)) {
+  if constexpr (allowGC) {
+    PreAllocGCChecks(cx);
+  }
+
+  if (!CheckForSimulatedFailure(cx, allowGC)) {
     return nullptr;
   }
 
@@ -235,68 +250,6 @@ void GCRuntime::attemptLastDitchGC(JSContext* cx) {
 
   lastLastDitchTime = mozilla::TimeStamp::Now();
 }
-
-#ifdef DEBUG
-static bool IsAtomsZoneKind(AllocKind kind) {
-  return kind == AllocKind::ATOM || kind == AllocKind::FAT_INLINE_ATOM ||
-         kind == AllocKind::SYMBOL;
-}
-#endif
-
-#if defined(DEBUG) || defined(JS_GC_ZEAL) || defined(JS_OOM_BREAKPOINT)
-
-static inline void CheckAllocZone(Zone* zone, AllocKind kind) {
-  MOZ_ASSERT_IF(zone->isAtomsZone(),
-                IsAtomsZoneKind(kind) || kind == AllocKind::JITCODE);
-  MOZ_ASSERT_IF(!zone->isAtomsZone(), !IsAtomsZoneKind(kind));
-}
-
-// This serves as a single point to perform a bunch of unrelated work that
-// happens before every allocation. Performs the following testing functions:
-//
-//  - checks we can't GC inside a JS::AutoAssertNoGC region
-//  - runs a zeal GC if needed
-//  - possibly fails the allocation for OOM testing
-//
-// This is a no-op in release builds.
-template <AllowGC allowGC>
-bool CellAllocator::PreAllocChecks(JSContext* cx, AllocKind kind) {
-  MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
-
-  CheckAllocZone(cx->zone(), kind);
-
-  // Crash if we could perform a GC action when it is not safe.
-  if (allowGC && !cx->suppressGC) {
-    cx->verifyIsSafeToGC();
-  }
-
-#  ifdef JS_GC_ZEAL
-  if constexpr (allowGC) {
-    GCRuntime* gc = &cx->runtime()->gc;
-    if (gc->needZealousGC()) {
-      gc->runDebugGC();
-    }
-  }
-#  endif
-
-  // For testing out of memory conditions.
-  if (js::oom::ShouldFailWithOOM()) {
-    // If we are doing a fallible allocation, percolate up the OOM instead of
-    // reporting it.
-    if constexpr (allowGC) {
-      ReportOutOfMemory(cx);
-    }
-    return false;
-  }
-
-  return true;
-}
-template bool CellAllocator::PreAllocChecks<NoGC>(JSContext* cx,
-                                                  AllocKind kind);
-template bool CellAllocator::PreAllocChecks<CanGC>(JSContext* cx,
-                                                   AllocKind kind);
-
-#endif  // DEBUG || JS_GC_ZEAL || JS_OOM_BREAKPOINT
 
 #ifdef JS_GC_ZEAL
 
