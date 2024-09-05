@@ -227,17 +227,6 @@ add_task(async function test_tabs_showhide() {
   SessionStore.setBrowserState(JSON.stringify(sessData));
   await restored;
 
-  if (!Services.prefs.getBoolPref("browser.tabs.tabmanager.enabled")) {
-    for (let win of BrowserWindowIterator()) {
-      let allTabsButton = win.document.getElementById("alltabs-button");
-      is(
-        getComputedStyle(allTabsButton).display,
-        "none",
-        "The all tabs button is hidden"
-      );
-    }
-  }
-
   // Attempt to hide all the tabs, however the active tab in each window cannot
   // be hidden, so the result will be 3 hidden tabs.
   extension.sendMessage("hideall");

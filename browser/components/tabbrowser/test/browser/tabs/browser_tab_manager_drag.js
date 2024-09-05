@@ -46,8 +46,6 @@ function getOrderOfTabs(tabs) {
 }
 
 async function testWithNewWindow(func) {
-  Services.prefs.setBoolPref("browser.tabs.tabmanager.enabled", true);
-
   const newWindow = await BrowserTestUtils.openNewBrowserWindow();
 
   await Promise.all([
@@ -75,8 +73,6 @@ async function testWithNewWindow(func) {
   await func(newWindow);
 
   await BrowserTestUtils.closeWindow(newWindow);
-
-  Services.prefs.clearUserPref("browser.tabs.tabmanager.enabled");
 }
 
 add_task(async function test_reorder() {

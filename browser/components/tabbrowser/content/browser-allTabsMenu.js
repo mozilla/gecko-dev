@@ -59,14 +59,10 @@ var gTabsPanel = {
       insertBefore: document.getElementById("allTabsMenu-tabsSeparator"),
       filterFn: tab => tab.hidden && tab.soundPlaying,
     });
-    let showPinnedTabs = Services.prefs.getBoolPref(
-      "browser.tabs.tabmanager.enabled"
-    );
     this.allTabsPanel = new TabsPanel({
       view: this.allTabsView,
       containerNode: this.allTabsViewTabs,
-      filterFn: tab =>
-        !tab.hidden && (!tab.pinned || (showPinnedTabs && tab.pinned)),
+      filterFn: tab => !tab.hidden,
       dropIndicator: this.dropIndicator,
     });
 

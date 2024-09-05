@@ -9,12 +9,6 @@ const URL3 = "data:text/plain,tab3";
 const URL4 = "data:text/plain,tab4";
 const URL5 = "data:text/plain,tab5";
 
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.tabmanager.enabled", true]],
-  });
-});
-
 /**
  * Tests that middle-clicking on a tab in the Tab Manager will close it.
  */

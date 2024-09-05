@@ -4,12 +4,6 @@
 
 "use strict";
 
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.tabmanager.enabled", true]],
-  });
-});
-
 async function openAllTabsPanel(win) {
   const button = win.document.getElementById("alltabs-button");
   const allTabsView = win.document.getElementById("allTabsMenu-allTabsView");
