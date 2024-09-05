@@ -55,9 +55,6 @@ class AbortSignal : public DOMEventTargetHelper, public AbortSignalImpl {
 
   void ThrowIfAborted(JSContext* aCx, ErrorResult& aRv);
 
-  // AbortSignalImpl
-  void SignalAbort(JS::Handle<JS::Value> aReason) override;
-
   virtual bool IsTaskSignal() const { return false; }
 
   bool Dependent() const;
@@ -66,6 +63,10 @@ class AbortSignal : public DOMEventTargetHelper, public AbortSignalImpl {
   ~AbortSignal();
 
   void MakeDependentOn(AbortSignal* aSignal);
+
+  void SignalAbortWithDependents() override;
+
+  void RunAbortSteps() override;
 
   nsTArray<WeakPtr<AbortSignal>> mSourceSignals;
   nsTArray<RefPtr<AbortSignal>> mDependentSignals;
