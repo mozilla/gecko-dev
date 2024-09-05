@@ -84,13 +84,17 @@ class CellAllocator {
   static void* RetryNurseryAlloc(JSContext* cx, JS::TraceKind traceKind,
                                  AllocKind allocKind, size_t thingSize,
                                  AllocSite* site);
+  template <AllowGC allowGC>
+  static void* AllocTenuredCellForNurseryAlloc(JSContext* cx, AllocKind kind);
 
   // Allocate a cell in the tenured heap.
   template <AllowGC allowGC>
   static void* AllocTenuredCell(JSContext* cx, AllocKind kind);
 
   template <AllowGC allowGC>
-  static void* TryNewTenuredCell(JSContext* cx, AllocKind kind);
+  static void* AllocTenuredCellUnchecked(JSContext* cx, AllocKind kind);
+
+  static void* RetryTenuredAlloc(JSContext* cx, AllocKind kind);
 
 #if defined(DEBUG) || defined(JS_GC_ZEAL) || defined(JS_OOM_BREAKPOINT)
   template <AllowGC allowGC>

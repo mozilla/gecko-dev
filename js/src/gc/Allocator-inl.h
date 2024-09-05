@@ -147,7 +147,7 @@ void* CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
                                       site);
   }
 
-  return TryNewTenuredCell<allowGC>(cx, allocKind);
+  return AllocTenuredCellForNurseryAlloc<allowGC>(cx, allocKind);
 }
 
 /* static */
