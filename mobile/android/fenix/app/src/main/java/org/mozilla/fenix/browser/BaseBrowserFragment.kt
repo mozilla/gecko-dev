@@ -2303,8 +2303,8 @@ abstract class BaseBrowserFragment :
 
             FullScreenNotificationToast(
                 activity = activity,
-                gestureNavString = getString(R.string.exit_fullscreen_with_gesture),
-                backButtonString = getString(R.string.exit_fullscreen_with_back_button),
+                gestureNavString = getString(R.string.exit_fullscreen_with_gesture_short),
+                backButtonString = getString(R.string.exit_fullscreen_with_back_button_short),
                 GestureNavUtils,
             ).show()
 
