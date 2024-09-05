@@ -73,31 +73,6 @@ add_task(function test_doorhanger_keep() {
       "The doorhanger is anchored to the all tabs button"
     );
 
-    let description = panel.querySelector(
-      "#extension-tab-hide-notification-description"
-    );
-    is(
-      description.textContent,
-      "An extension,  Generated extension, is hiding some of your tabs. You can still access all of your tabs from .",
-      "The extension name is in the description"
-    );
-
-    ok(
-      BrowserTestUtils.isVisible(
-        panel.querySelector(".popup-notification-learnmore-link")
-      ),
-      "Expect the popupnotification learnmore link to be visible"
-    );
-
-    is(
-      panel
-        .querySelector(".popup-notification-learnmore-link")
-        .getAttribute("href"),
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-        "extension-hiding-tabs",
-      "learnmore link should have the expected url set"
-    );
-
     // Click the Keep Tabs Hidden button.
     let popupnotification = document.getElementById(
       "extension-tab-hide-notification"

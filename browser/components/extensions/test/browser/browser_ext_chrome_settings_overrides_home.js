@@ -66,12 +66,11 @@ add_task(async function test_multiple_extensions_overriding_home_page() {
   function background() {
     browser.test.onMessage.addListener(async msg => {
       switch (msg) {
-        case "checkHomepage": {
+        case "checkHomepage":
           let homepage = await browser.browserSettings.homepageOverride.get({});
           browser.test.sendMessage("homepage", homepage);
           break;
-        }
-        case "trySet": {
+        case "trySet":
           let setResult = await browser.browserSettings.homepageOverride.set({
             value: "foo",
           });
@@ -81,8 +80,7 @@ add_task(async function test_multiple_extensions_overriding_home_page() {
           );
           browser.test.sendMessage("homepageSet");
           break;
-        }
-        case "tryClear": {
+        case "tryClear":
           let clearResult =
             await browser.browserSettings.homepageOverride.clear({});
           browser.test.assertFalse(
@@ -91,7 +89,6 @@ add_task(async function test_multiple_extensions_overriding_home_page() {
           );
           browser.test.sendMessage("homepageCleared");
           break;
-        }
       }
     });
   }
@@ -492,24 +489,8 @@ add_task(async function test_doorhanger_new_window() {
 
   is(
     description.textContent,
-    "An extension,  Ext2, changed what you see when you open your homepage and new windows.",
+    "An extension,  Ext2, changed what you see when you open your homepage and new windows.Learn more",
     "The extension name is in the popup"
-  );
-
-  ok(
-    BrowserTestUtils.isVisible(
-      panel.querySelector(".popup-notification-learnmore-link")
-    ),
-    "Expect the popupnotification learnmore link to be visible"
-  );
-
-  is(
-    panel
-      .querySelector(".popup-notification-learnmore-link")
-      .getAttribute("href"),
-    Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "extension-home",
-    "learnmore link should have the expected url set"
   );
 
   // Click Manage.
@@ -537,7 +518,7 @@ add_task(async function test_doorhanger_new_window() {
 
   is(
     description.textContent,
-    "An extension,  Ext1, changed what you see when you open your homepage and new windows.",
+    "An extension,  Ext1, changed what you see when you open your homepage and new windows.Learn more",
     "The extension name is in the popup"
   );
 
@@ -610,7 +591,7 @@ add_task(async function test_overriding_home_page_incognito_not_allowed() {
       let popupnotification = description.closest("popupnotification");
       is(
         description.textContent,
-        "An extension,  extension, changed what you see when you open your homepage and new windows.",
+        "An extension,  extension, changed what you see when you open your homepage and new windows.Learn more",
         "The extension name is in the popup"
       );
       is(

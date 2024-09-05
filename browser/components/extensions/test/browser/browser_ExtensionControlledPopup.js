@@ -162,24 +162,14 @@ add_task(async function testExtensionControlledPopup() {
   let description = doc.getElementById("extension-controlled-description");
   is(
     description.textContent,
-    "An extension,  Ext Controlled, changed the page you see when you open a new tab.",
+    "An extension,  Ext Controlled, changed the page you see when you open a new tab.Learn more",
     "The extension name is in the description"
   );
-
-  ok(
-    BrowserTestUtils.isVisible(
-      panel.querySelector(".popup-notification-learnmore-link")
-    ),
-    "Expect the popupnotification learnmore link to be visible"
-  );
-
+  let link = description.querySelector("a.learnMore");
   is(
-    panel
-      .querySelector(".popup-notification-learnmore-link")
-      .getAttribute("href"),
-    Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "extension-controlled",
-    "learnmore link should have the expected url set"
+    link.href,
+    "http://127.0.0.1:8888/support-dummy/extension-controlled",
+    "The link has the href set from learnMoreLink"
   );
 
   // Force close the popup, as if a user clicked away from it.

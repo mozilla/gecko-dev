@@ -316,12 +316,6 @@ export class ExtensionControlledPopup {
       anchorButton = action || doc.getElementById("PanelUI-menu-button");
     }
     let anchor = anchorButton.icon;
-    if (this.learnMoreLink) {
-      const learnMoreURL =
-        Services.urlFormatter.formatURLPref("app.support.baseURL") +
-        this.learnMoreLink;
-      popupnotification.setAttribute("learnmoreurl", learnMoreURL);
-    }
     popupnotification.show();
     panel.openPopup(anchor);
   }
@@ -355,6 +349,11 @@ export class ExtensionControlledPopup {
         lazy.BrowserUIUtils.getLocalizedFragment(doc, message, addonDetails)
       );
     }
+
+    let link = doc.createElement("a", { is: "moz-support-link" });
+    link.setAttribute("class", "learnMore");
+    link.setAttribute("support-page", this.learnMoreLink);
+    description.appendChild(link);
   }
 
   async _ensureWindowReady(win) {
