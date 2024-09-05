@@ -832,8 +832,6 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
 
   &[visible] {
     display: flex;
-    /* make the scrollbars hug the side of the container */
-    margin-inline-end: -2px;
   }
 }
 
