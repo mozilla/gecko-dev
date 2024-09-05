@@ -4,7 +4,6 @@
 
 # This modules provides functionality for dealing with compiler warnings.
 
-import errno
 import io
 import json
 import os
@@ -282,12 +281,8 @@ class WarningsDatabase(object):
 
     def save_to_file(self, filename):
         """Save the database to a file."""
-        try:
-            # Ensure the directory exists
-            os.makedirs(os.path.dirname(filename))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         with io.open(filename, "w", encoding="utf-8", newline="\n") as fh:
             self.serialize(fh)
 

@@ -5,7 +5,6 @@
 # This file contains miscellaneous utility functions that don't belong anywhere
 # in particular.
 
-import errno
 import os
 import sys
 
@@ -20,11 +19,7 @@ def ensureParentDir(path):
     """Ensures the directory parent to the given file exists."""
     d = os.path.dirname(path)
     if d and not os.path.exists(path):
-        try:
-            os.makedirs(d)
-        except OSError as error:
-            if error.errno != errno.EEXIST:
-                raise
+        os.makedirs(d, exist_ok=True)
 
 
 def mkdir(path, not_indexed=False):
@@ -33,11 +28,7 @@ def mkdir(path, not_indexed=False):
     If ``not_indexed`` is True, an attribute is set that disables content
     indexing on the directory.
     """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    os.makedirs(path, exist_ok=True)
 
     if not_indexed:
         if sys.platform == "win32":

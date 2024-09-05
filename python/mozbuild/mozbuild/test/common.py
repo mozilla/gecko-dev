@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import errno
 import os
 import shutil
 
@@ -26,11 +25,7 @@ def prepare_tmp_topsrcdir(path):
         "build/moz.configure/util.configure",
     ):
         file_path = os.path.join(path, p)
-        try:
-            os.makedirs(os.path.dirname(file_path))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         shutil.copy(os.path.join(topsrcdir, p), file_path)
 
 

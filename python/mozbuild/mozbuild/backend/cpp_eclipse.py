@@ -118,11 +118,7 @@ class CppEclipseBackend(CommonBackend):
             workspace_settings_dir,
             self._workspace_lang_dir,
         ]:
-            try:
-                os.makedirs(dir_name)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
+            os.makedirs(dir_name, exist_ok=True)
 
         project_path = os.path.join(self._project_dir, ".project")
         with open(project_path, "w") as fh:

@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import errno
 import io
 import itertools
 import os
@@ -284,11 +283,7 @@ class BuildBackend(LoggingMixin):
             assert fh is not None
 
         dirname = mozpath.dirname(fh.name)
-        try:
-            os.makedirs(dirname)
-        except OSError as error:
-            if error.errno != errno.EEXIST:
-                raise
+        os.makedirs(dirname, exist_ok=True)
 
         yield fh
 

@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import codecs
-import errno
 import io
 import itertools
 import logging
@@ -154,12 +153,7 @@ def main(argv):
             js_config = config.copy()
             pwd = os.getcwd()
             try:
-                try:
-                    os.makedirs("js/src")
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        raise
-
+                os.makedirs("js/src", exist_ok=True)
                 os.chdir("js/src")
                 js_config["OLD_CONFIGURE_SUBSTS"] = old_js_configure_substs
                 js_config["OLD_CONFIGURE_DEFINES"] = old_js_configure_defines

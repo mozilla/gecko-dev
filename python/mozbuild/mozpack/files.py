@@ -193,11 +193,7 @@ class BaseFile(object):
             if getattr(self, "path", None) and getattr(dest, "path", None):
                 # The destination directory must exist, or CopyFile will fail.
                 destdir = os.path.dirname(dest.path)
-                try:
-                    os.makedirs(destdir)
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        raise
+                os.makedirs(destdir, exist_ok=True)
                 _copyfile(self.path, dest.path)
                 shutil.copystat(self.path, dest.path)
             else:

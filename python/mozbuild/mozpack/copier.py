@@ -304,11 +304,7 @@ class FileCopier(FileRegistry):
         # symlinks and permissions and parent directories of the destination
         # directory may have their own weird schema. The contract is we only
         # manage children of destination, not its parents.
-        try:
-            os.makedirs(destination)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+        os.makedirs(destination, exist_ok=True)
 
         # Because we could be handling thousands of files, code in this
         # function is optimized to minimize system calls. We prefer CPU time
@@ -336,11 +332,7 @@ class FileCopier(FileRegistry):
         # to directory X and we attempt to install a symlink in this directory
         # to a file in directory X, we may create a recursive symlink!
         for d in sorted(required_dirs, key=len):
-            try:
-                os.mkdir(d)
-            except OSError as error:
-                if error.errno != errno.EEXIST:
-                    raise
+            os.makedirs(d, exist_ok=True)
 
             # We allow the destination to be a symlink because the caller
             # is responsible for managing the destination and we assume
