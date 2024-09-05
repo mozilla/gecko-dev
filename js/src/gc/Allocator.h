@@ -92,9 +92,9 @@ class CellAllocator {
   static void* AllocTenuredCell(JSContext* cx, AllocKind kind);
 
   template <AllowGC allowGC>
-  static void* AllocTenuredCellUnchecked(JSContext* cx, AllocKind kind);
+  static void* AllocTenuredCellUnchecked(JS::Zone* zone, AllocKind kind);
 
-  static void* RetryTenuredAlloc(JSContext* cx, AllocKind kind);
+  static void* RetryTenuredAlloc(JS::Zone* zone, AllocKind kind);
 
 #ifdef JS_GC_ZEAL
   static AllocSite* MaybeGenerateMissingAllocSite(JSContext* cx,
@@ -103,7 +103,7 @@ class CellAllocator {
 #endif
 
 #ifdef DEBUG
-  static void CheckIncrementalZoneState(JSContext* cx, void* ptr);
+  static void CheckIncrementalZoneState(JS::Zone* zone, void* ptr);
 #endif
 
   static inline Heap CheckedHeap(Heap heap);

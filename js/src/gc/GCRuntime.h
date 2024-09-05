@@ -651,8 +651,8 @@ class GCRuntime {
   void updateAllocationRates();
 
   // Allocator internals
-  static void* refillFreeList(JSContext* cx, AllocKind thingKind);
-  void attemptLastDitchGC(JSContext* cx);
+  static void* refillFreeList(JS::Zone* zone, AllocKind thingKind);
+  void attemptLastDitchGC();
 
   // Test mark queue.
 #ifdef DEBUG
