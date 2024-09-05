@@ -522,10 +522,15 @@ class QuotaMap extends Map {
     for (let [key, holder] of Object.entries(items)) {
       after += this.getSizeDelta(key, holder);
     }
-    if (lazy.enforceSessionQuota && after > QuotaMap.QUOTA_BYTES) {
-      throw new ExtensionError(
+
+    if (after > QuotaMap.QUOTA_BYTES) {
+      const quotaExceededError = new ExtensionError(
         "QuotaExceededError: storage.session API call exceeded its quota limitations."
       );
+      if (lazy.enforceSessionQuota) {
+        throw quotaExceededError;
+      }
+      return { warningError: quotaExceededError };
     }
   }
 
@@ -594,7 +599,7 @@ export var extensionStorageSession = {
 
     // set() below also checks the quota for each item, but
     // this check includes all inputs to avoid partial updates.
-    bucket.checkQuota(items);
+    const { warningError } = bucket.checkQuota(items) ?? {};
 
     let changes = {};
     for (let [key, value] of Object.entries(items)) {
@@ -605,6 +610,10 @@ export var extensionStorageSession = {
       bucket.set(key, value);
     }
     this.notifyListeners(extension, changes);
+    // Return the warningError to the child process (where it is going to be
+    // logged and associated to the extension page that has originated the
+    // call exceeding the quota).
+    return { warningError };
   },
 
   remove(extension, keys) {

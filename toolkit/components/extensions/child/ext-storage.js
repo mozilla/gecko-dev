@@ -308,7 +308,7 @@ this.storage = class extends ExtensionAPI {
           set(items) {
             return context.childManager.callParentAsyncFunction(
               "storage.session.set",
-              [serialize(items)]
+              [serialize(items), { callerLocation: context.getCaller() }]
             );
           },
           onChanged: makeOnChangedEventTarget("storage.session.onChanged"),
