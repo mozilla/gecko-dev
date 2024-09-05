@@ -8428,8 +8428,8 @@ void CodeGenerator::visitNewObjectVMCall(LNewObject* lir) {
   restoreLive(lir);
 }
 
-static bool ShouldInitFixedSlots(LNewPlainObject* lir, const Shape* shape,
-                                 uint32_t nfixed) {
+static bool ShouldInitFixedSlots(MIRGenerator* gen, LNewPlainObject* lir,
+                                 const Shape* shape, uint32_t nfixed) {
   // Look for StoreFixedSlot instructions following an object allocation
   // that write to this object before a GC is triggered or this object is
   // passed to a VM call. If all fixed slots will be initialized, the
@@ -8438,6 +8438,14 @@ static bool ShouldInitFixedSlots(LNewPlainObject* lir, const Shape* shape,
   if (nfixed == 0) {
     return false;
   }
+
+#ifdef DEBUG
+  // The bailAfter testing function can trigger a bailout between allocating the
+  // object and initializing the slots.
+  if (gen->options.ionBailAfterEnabled()) {
+    return true;
+  }
+#endif
 
   // Keep track of the fixed slots that are initialized. initializedSlots is
   // a bit mask with a bit for each slot.
@@ -8556,7 +8564,8 @@ void CodeGenerator::visitNewPlainObject(LNewPlainObject* lir) {
               Imm32(int32_t(initialHeap))),
       StoreRegisterTo(objReg));
 
-  bool initContents = ShouldInitFixedSlots(lir, shape, mir->numFixedSlots());
+  bool initContents =
+      ShouldInitFixedSlots(gen, lir, shape, mir->numFixedSlots());
 
   masm.movePtr(ImmGCPtr(shape), shapeReg);
   masm.createPlainGCObject(
