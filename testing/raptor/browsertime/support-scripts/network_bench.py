@@ -13,6 +13,7 @@ import threading
 from pathlib import Path
 from subprocess import PIPE, Popen
 
+import filters
 from base_python_support import BasePythonSupport
 from logger.logger import RaptorLogger
 
@@ -231,16 +232,55 @@ class NetworkBench(BasePythonSupport):
             raise Exception("Failed to start test servers")
 
     def handle_result(self, bt_result, raw_result, last_result=False, **kwargs):
-        # TODO
-        LOG.info("handle_result: %s" % raw_result)
+        bandwidth_key = (
+            "upload-bandwidth"
+            if self.transfer_type == "upload"
+            else "download-bandwidth"
+        )
+
+        def get_bandwidth(data):
+            try:
+                extras = data.get("extras", [])
+                if extras and isinstance(extras, list):
+                    custom_data = extras[0].get("custom_data", {})
+                    if bandwidth_key in custom_data:
+                        return custom_data[bandwidth_key]
+                return None  # Return None if any key or index is missing
+            except Exception:
+                return None
+
+        bandwidth = get_bandwidth(raw_result)
+        if not bandwidth:
+            return
+
+        LOG.info(f"Bandwidth: [{' '.join(map(str, bandwidth))}]")
+        bt_result["measurements"].setdefault(bandwidth_key, []).append(bandwidth)
 
     def _build_subtest(self, measurement_name, replicates, test):
-        # TODO
-        LOG.info("_build_subtest")
+        unit = test.get("unit", "Mbit/s")
+        if test.get("subtest_unit"):
+            unit = test.get("subtest_unit")
+
+        return {
+            "name": measurement_name,
+            "lowerIsBetter": test.get("lower_is_better", False),
+            "alertThreshold": float(test.get("alert_threshold", 2.0)),
+            "unit": unit,
+            "replicates": replicates,
+            "value": round(filters.geometric_mean(replicates[0]), 3),
+        }
 
     def summarize_test(self, test, suite, **kwargs):
-        # TODO
-        LOG.info("summarize_test")
+        suite["type"] = "benchmark"
+        if suite["subtests"] == {}:
+            suite["subtests"] = []
+        for measurement_name, replicates in test["measurements"].items():
+            if not replicates:
+                continue
+            suite["subtests"].append(
+                self._build_subtest(measurement_name, replicates, test)
+            )
+        suite["subtests"].sort(key=lambda subtest: subtest["name"])
 
     def shutdown_server(self, name, proc):
         LOG.info("%s server shutting down ..." % name)
