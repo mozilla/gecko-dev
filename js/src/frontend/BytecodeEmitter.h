@@ -751,9 +751,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
 
   [[nodiscard]] bool emitComputedPropertyName(UnaryNode* computedPropName);
 
-  [[nodiscard]] bool emitObjAndKey(ParseNode* exprOrSuper, ParseNode* key,
-                                   ElemOpEmitter& eoe);
-
   // Emit bytecode to put operands for a JSOp::GetElem/CallElem/SetElem/DelElem
   // opcode onto the stack in the right order. In the case of SetElem, the
   // value to be assigned must already be pushed.
@@ -761,7 +758,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   [[nodiscard]] bool emitElemOperands(PropertyByValue* elem,
                                       EmitElemOption opts);
 
-  [[nodiscard]] bool emitElemObjAndKey(PropertyByValue* elem, bool isSuper,
+  [[nodiscard]] bool emitElemObjAndKey(PropertyByValue* elem,
                                        ElemOpEmitter& eoe);
   [[nodiscard]] bool emitElemOpBase(JSOp op);
 
