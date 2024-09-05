@@ -1041,14 +1041,6 @@ def compiler_wrapper(wrapper, ccache):
         return tuple(wrapper)
 
 
-@depends_if(compiler_wrapper)
-def using_compiler_wrapper(compiler_wrapper):
-    return True
-
-
-set_config("MOZ_USING_COMPILER_WRAPPER", using_compiler_wrapper)
-
-
 @dependable
 def wasm():
     return split_triplet("wasm32-wasi", allow_wasi=True)
