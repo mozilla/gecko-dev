@@ -221,19 +221,19 @@ tasks:
             fetch:
                 - upx-3.95-win
 
-    android-armv7-searchfox/debug:
-        description: "Android ARMv7 Debug Searchfox"
+    android-aarch64-searchfox/debug:
+        description: "Android 5.0 AArch64 Debug Searchfox"
         index:
-            job-name: android-armv7-searchfox-debug
+            job-name: android-aarch64-searchfox-debug
         treeherder:
-            platform: android-4-1-armv7/debug
+            platform: android-5-0-aarch64/debug
         worker-type: b-linux-gcp
         worker:
             docker-image: {in-tree: android-build}
             max-run-time: 10800
             env:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
-                MOZSEARCH_PLATFORM: "android-armv7"
+                MOZSEARCH_PLATFORM: "android-aarch64"
                 GRADLE_USER_HOME: "/builds/worker/checkouts/gecko/mobile/android/gradle/dotgradle-offline"
                 TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         run:
@@ -243,7 +243,7 @@ tasks:
                 - builds/releng_base_android_64_builds.py
             script: "mozharness/scripts/fx_desktop_build.py"
             secrets: true
-            custom-build-variant-cfg: arm-debug-searchfox
+            custom-build-variant-cfg: aarch64-debug-searchfox
             tooltool-downloads: internal
         fetches:
             toolchain:

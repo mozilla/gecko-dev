@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 config = {
-    "stage_platform": "android-arm-debug",
-    "src_mozconfig": "mobile/android/config/mozconfigs/android-arm/debug-searchfox",
+    "stage_platform": "android-aarch64-debug",
+    "src_mozconfig": "mobile/android/config/mozconfigs/android-aarch64/debug-searchfox",
     "debug_build": True,
 }
