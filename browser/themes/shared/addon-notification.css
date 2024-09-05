@@ -16,7 +16,7 @@
 
 html|*.addon-webext-perm-list {
   margin-block-end: 0;
-  padding-inline-start: 10px;
+  padding-inline-start: 0;
 
   > html|li {
     list-style: none;
