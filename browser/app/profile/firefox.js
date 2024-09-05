@@ -834,6 +834,9 @@ pref("browser.shopping.experience2023.sidebarClosedCount", 0);
 // When conditions are met, shows a prompt on the shopping sidebar asking users if they want to disable auto-open behavior
 pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
 
+// Integrates the Review Checker shopping feature into the global sidebar
+pref("browser.shopping.experience2023.integratedSidebar", false);
+
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
 
