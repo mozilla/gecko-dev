@@ -2037,7 +2037,6 @@ def select_linker_tmpl(host_or_target):
 
 
 select_linker = select_linker_tmpl(target)
-set_config("LINKER_KIND", select_linker.KIND)
 
 
 @template
