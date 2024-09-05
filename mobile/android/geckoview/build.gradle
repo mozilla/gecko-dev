@@ -6,8 +6,6 @@ apply plugin: 'com.android.library'
 apply plugin: 'checkstyle'
 apply plugin: 'kotlin-android'
 
-apply from: "${topsrcdir}/mobile/android/gradle/product_flavors.gradle"
-
 // The SDK binding generation tasks depend on the JAR creation task of the
 // :annotations project.
 evaluationDependsOn(':annotations')
@@ -80,9 +78,6 @@ android {
         buildConfigField 'boolean', 'MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS', mozconfig.substs.MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS ? 'true' : 'false';
     }
 
-    project.configureProductFlavors.delegate = it
-    project.configureProductFlavors()
-
     lintOptions {
         abortOnError false
     }
@@ -117,19 +112,6 @@ android {
             }
 
             assets {
-            }
-
-            debug {
-                manifest.srcFile "${topobjdir}/mobile/android/geckoview/src/main/AndroidManifest_overlay.xml"
-            }
-
-            release {
-                manifest.srcFile "${topobjdir}/mobile/android/geckoview/src/main/AndroidManifest_overlay.xml"
-            }
-        }
-
-        withGeckoBinaries {
-            assets {
                 // This should contain only `omni.ja`.
                 srcDir "${topobjdir}/dist/geckoview/assets"
             }
@@ -141,6 +123,14 @@ android {
                     srcDir "${topobjdir}/dist/fat-aar/output/jni"
                 }
             }
+
+            debug {
+                manifest.srcFile "${topobjdir}/mobile/android/geckoview/src/main/AndroidManifest_overlay.xml"
+            }
+
+            release {
+                manifest.srcFile "${topobjdir}/mobile/android/geckoview/src/main/AndroidManifest_overlay.xml"
+            }
         }
     }
 
@@ -150,7 +140,7 @@ android {
     }
 
     publishing {
-        singleVariant('withGeckoBinariesDebug')
+        singleVariant('debug')
     }
 
     namespace 'org.mozilla.geckoview'
@@ -195,7 +185,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
 }
 
 configurations {
-    withGeckoBinariesApi {
+    api {
         outgoing {
             if (!mozconfig.substs.MOZ_ANDROID_GECKOVIEW_LITE) {
                 // The omni build provides glean-native
@@ -211,7 +201,7 @@ configurations {
     // The variant resolver _should_ pick the RuntimeOnly configuration when building
     // the tests as those define the implicit :geckoview capability but it doesn't,
     // so we manually define it here.
-    withGeckoBinariesRuntimeOnly {
+    runtimeOnly {
         outgoing {
             afterEvaluate {
                 // Implicit capability
@@ -252,11 +242,7 @@ dependencies {
 apply from: "${topsrcdir}/mobile/android/gradle/with_gecko_binaries.gradle"
 
 android.libraryVariants.all { variant ->
-    // See the notes in mobile/android/app/build.gradle for details on including
-    // Gecko binaries and the Omnijar.
-    if ((variant.productFlavors*.name).contains('withGeckoBinaries')) {
-        configureVariantWithGeckoBinaries(variant)
-    }
+    configureVariantWithGeckoBinaries(variant)
 
     // Javadoc and Sources JAR configuration cribbed from
     // https://github.com/mapbox/mapbox-gl-native/blob/d169ea55c1cfa85cd8bf19f94c5f023569f71810/platform/android/MapboxGLAndroidSDK/build.gradle#L85
@@ -455,21 +441,18 @@ publishing {
     }
 }
 
-// This is all related to the withGeckoBinaries approach; see
-// mobile/android/gradle/with_gecko_binaries.gradle.
 afterEvaluate {
     // The bundle tasks are only present when the particular configuration is
     // being built, so this task might not exist.  (This is due to the way the
     // Android Gradle plugin defines things during configuration.)
-    def bundleWithGeckoBinaries = tasks.findByName('bundleWithGeckoBinariesReleaseAar')
-    if (!bundleWithGeckoBinaries) {
+    def bundle = tasks.findByName('bundleReleaseAar')
+    if (!bundle) {
         return
     }
 
     // Remove default configuration, which is the release configuration, when
-    // we're actually building withGeckoBinaries.  This makes `gradle install`
-    // install the withGeckoBinaries artifacts, not the release artifacts (which
-    // are withoutGeckoBinaries and not suitable for distribution.)
+    // building.  This makes `gradle install` install the deubg artifacts, not
+    // the release artifacts (which are not suitable for distribution.)
     def Configuration archivesConfig = project.getConfigurations().getByName('archives')
     archivesConfig.artifacts.removeAll { it.extension.equals('aar') }
 

@@ -24,7 +24,7 @@ ext.configureVariantWithGeckoBinaries = { variant ->
         // the moz.build system and should never be re-entrant in this way.
         def assetGenTask = tasks.findByName("generate${variant.name.capitalize()}Assets")
         def jniLibFoldersTask = tasks.findByName("merge${variant.name.capitalize()}JniLibFolders")
-        if (!mozconfig.substs.MOZILLA_OFFICIAL && (variant.productFlavors*.name).contains('withGeckoBinaries')) {
+        if (!mozconfig.substs.MOZILLA_OFFICIAL) {
             assetGenTask.dependsOn rootProject.machStagePackage
             jniLibFoldersTask.dependsOn rootProject.machStagePackage
         }

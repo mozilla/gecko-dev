@@ -3,8 +3,6 @@ buildDir "${topobjdir}/gradle/build/mobile/android/test_runner"
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
-apply from: "${topsrcdir}/mobile/android/gradle/product_flavors.gradle"
-
 android {
     buildToolsVersion project.ext.buildToolsVersion
     compileSdkVersion project.ext.compileSdkVersion
@@ -35,9 +33,6 @@ android {
         ignoreAssetsPattern  '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         noCompress 'ja'
     }
-
-    project.configureProductFlavors.delegate = it
-    project.configureProductFlavors()
 
     namespace 'org.mozilla.geckoview.test_runner'
 }

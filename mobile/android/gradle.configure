@@ -58,20 +58,19 @@ def gradle_android_build_config():
         else:
             return s
 
-    def variant(productFlavors, buildType):
+    def variant(buildType):
         return namespace(
-            productFlavors=productFlavors,
             buildType=buildType,
-            # Like 'WithoutGeckoBinariesDebug'
-            name="".join(capitalize(t) for t in chain(productFlavors, (buildType,))),
+            # Like 'Debug'
+            name="".join(capitalize(t) for t in chain((buildType,))),
         )
 
     return namespace(
         geckoview=namespace(
-            variant=variant(("withGeckoBinaries",), "debug"),
+            variant=variant("debug"),
         ),
         geckoview_example=namespace(
-            variant=variant(("withGeckoBinaries",), "debug"),
+            variant=variant("debug"),
         ),
     )
 
@@ -93,14 +92,10 @@ def gradle_android_intermediates_folder(build_config):
         else:
             return s
 
-    productFlavor = uncapitalize(
-        "".join(capitalize(f) for f in build_config.geckoview.variant.productFlavors)
-    )
     buildType = uncapitalize(build_config.geckoview.variant.buildType)
 
-    return "gradle/build/mobile/android/geckoview/intermediates/javac/{}{}".format(
-        productFlavor,
-        capitalize(buildType),
+    return "gradle/build/mobile/android/geckoview/intermediates/javac/{}".format(
+        buildType,
     )
 
 
@@ -126,15 +121,11 @@ def gradle_android_geckoview_test_runner_bundle(build_config):
         else:
             return s
 
-    productFlavor = uncapitalize(
-        "".join(capitalize(f) for f in build_config.geckoview.variant.productFlavors)
-    )
     buildType = uncapitalize(build_config.geckoview.variant.buildType)
     variant = uncapitalize(build_config.geckoview.variant.name)
 
-    return "gradle/build/mobile/android/test_runner/outputs/bundle/{}/test_runner-{}-{}.aab".format(
+    return "gradle/build/mobile/android/test_runner/outputs/bundle/{}/test_runner-{}.aab".format(
         variant,
-        productFlavor,
         buildType,
     )
 
@@ -162,15 +153,11 @@ def gradle_android_geckoview_example_bundle(build_config):
         else:
             return s
 
-    productFlavor = uncapitalize(
-        "".join(capitalize(f) for f in build_config.geckoview.variant.productFlavors)
-    )
     buildType = uncapitalize(build_config.geckoview.variant.buildType)
     variant = uncapitalize(build_config.geckoview.variant.name)
 
-    return "gradle/build/mobile/android/geckoview_example/outputs/bundle/{}/geckoview_example-{}-{}.aab".format(
+    return "gradle/build/mobile/android/geckoview_example/outputs/bundle/{}/geckoview_example-{}.aab".format(
         variant,
-        productFlavor,
         buildType,
     )
 
@@ -182,7 +169,7 @@ set_config(
 
 @depends(gradle_android_build_config)
 def gradle_android_variant_name(build_config):
-    """Like "withoutGeckoBinariesDebug"."""
+    """Like "Debug"."""
 
     def uncapitalize(s):
         if s:
@@ -605,10 +592,7 @@ def gradle_android_dependencies_tasks(*tasks):
 
     # The union, plus a bit more, of all of the Gradle tasks
     # invoked by the android-* automation jobs.
-    def withoutGeckoBinaries(task):
-        return task.replace("withGeckoBinaries", "withoutGeckoBinaries")
-
-    return list(withoutGeckoBinaries(t) for t in chain(*tasks))
+    return list(t for t in chain(*tasks))
 
 
 set_config("GRADLE_ANDROID_DEPENDENCIES_TASKS", gradle_android_dependencies_tasks)

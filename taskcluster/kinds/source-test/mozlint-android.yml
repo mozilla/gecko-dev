@@ -34,31 +34,28 @@ lints:
               name: public/code-review/mozlint.json
               path: /builds/worker/mozlint.json
             - name: public/android/geckoview/api.txt
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/withGeckoBinariesDebug/api.txt
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/debug/api.txt
               type: file
             - name: public/android/geckoview/api.txt.map
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/withGeckoBinariesDebug/api.txt.map
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/debug/api.txt.map
               type: file
             - name: public/android/geckoview/apilint-result.json
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/withGeckoBinariesDebug/apilint-result.json
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/intermediates/javac/debug/apilint-result.json
               type: file
             - name: public/android/geckoview/javadoc-results.json
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/javadoc-results-withGeckoBinariesDebug.json
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/javadoc-results-debug.json
               type: file
             - name: public/geckoview/unittest
               path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/tests
               type: directory
-            - name: public/android/lint/lint-results-officialWithoutGeckoBinariesDebug.html
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/lint-results-withGeckoBinariesDebug.html
-              type: file
-            - name: public/android/lint/lint-results-withGeckoBinariesDebug.xml
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/lint-results-withGeckoBinariesDebug.xml
+            - name: public/android/lint/lint-results-debug.xml
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/lint-results-debug.xml
               type: file
             - name: public/android/checkstyle/checkstyle.html
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/checkstyle/withGeckoBinariesDebug.html
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/checkstyle/debug.html
               type: file
             - name: public/android/checkstyle/checkstyle.xml
-              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/checkstyle/withGeckoBinariesDebug.xml
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/checkstyle/debug.xml
               type: file
     run:
         using: run-task

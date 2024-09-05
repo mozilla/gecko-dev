@@ -168,7 +168,7 @@ class AndroidXPCShellRunner(MozbuildObject):
             for root, _, paths in os.walk(os.path.join(kwargs["objdir"], "gradle")):
                 for file_name in paths:
                     if file_name.endswith(".apk") and file_name.startswith(
-                        "test_runner-withGeckoBinaries"
+                        "test_runner"
                     ):
                         kwargs["localAPK"] = os.path.join(root, file_name)
                         print("using APK: %s" % kwargs["localAPK"])

@@ -9,10 +9,6 @@ if (findProject(":geckoview") != null) {
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
-if (findProject(":geckoview") != null) {
-    apply from: "${topsrcdir}/mobile/android/gradle/product_flavors.gradle"
-}
-
 android {
     defaultConfig {
         applicationId "org.mozilla.samples.browser"
@@ -32,11 +28,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-    }
-
-    if (findProject(":geckoview") != null) {
-        project.configureProductFlavors.delegate = it
-        project.configureProductFlavors()
     }
 
     flavorDimensions += "engine"

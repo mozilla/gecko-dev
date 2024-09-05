@@ -410,9 +410,6 @@ def lint(config, **lintargs):
         extra_args=lintargs.get("extra_args") or [],
     )
 
-    # It's surprising that this is the App variant name, but this is "withoutGeckoBinariesDebug"
-    # right now and the GeckoView variant name is "withGeckoBinariesDebug".  This will be addressed
-    # as we unify variants.
     path = os.path.join(
         lintargs["topobjdir"],
         "gradle/build/mobile/android/geckoview/reports",
