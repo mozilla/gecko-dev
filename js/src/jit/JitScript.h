@@ -563,6 +563,12 @@ class alignas(uintptr_t) JitScript final
     }
   }
 #endif
+
+  inline void clearFailedICHash() {
+#ifdef DEBUG
+    failedICHash_.reset();
+#endif
+  }
 };
 
 // Ensures no JitScripts are purged in the current zone.
