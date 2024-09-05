@@ -6,10 +6,3 @@
 
 if CONFIG["USE_ELF_HACK"] or CONFIG["RELRHACK"]:
     DIRS += ["elfhack"]
-
-if (
-    CONFIG["MOZ_ENABLE_FORKSERVER"]
-    and CONFIG["OS_TARGET"] == "Linux"
-    and CONFIG["MOZ_PROFILE_GENERATE"] == "1"
-):
-    DIRS += ["profiling"]
