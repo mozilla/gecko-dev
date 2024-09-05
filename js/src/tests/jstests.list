@@ -660,10 +660,6 @@ skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/for-await-next
 skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-poisoned-wrapper.js
 skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rejected-promise-close.js
 
-# https://github.com/tc39/proposal-redeclarable-global-eval-vars
-skip script test262/language/global-code/script-decl-lex-var-declared-via-eval.js
-skip script test262/annexB/language/eval-code/direct/script-decl-lex-no-collision.js
-
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #

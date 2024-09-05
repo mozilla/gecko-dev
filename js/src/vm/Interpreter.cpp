@@ -5155,12 +5155,14 @@ bool js::DeleteNameOperation(JSContext* cx, Handle<PropertyName*> name,
   bool status = result.ok();
   res.setBoolean(status);
 
+#ifndef NIGHTLY_BUILD
   if (status) {
     // Deleting a name from the global object removes it from [[VarNames]].
     if (pobj == scope && scope->is<GlobalObject>()) {
       scope->as<GlobalObject>().removeFromVarNames(name);
     }
   }
+#endif
 
   return true;
 }

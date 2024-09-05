@@ -109,6 +109,7 @@ class GlobalObjectData {
 
   ~GlobalObjectData();
 
+#ifndef NIGHTLY_BUILD
   // The global environment record's [[VarNames]] list that contains all
   // names declared using FunctionDeclaration, GeneratorDeclaration, and
   // VariableDeclaration declarations in global code in this global's realm.
@@ -117,6 +118,7 @@ class GlobalObjectData {
   using VarNamesSet =
       GCHashSet<HeapPtr<JSAtom*>, DefaultHasher<JSAtom*>, CellAllocPolicy>;
   VarNamesSet varNames;
+#endif
 
   // The original values for built-in constructors (with their prototype
   // objects) based on JSProtoKey.
@@ -999,6 +1001,7 @@ class GlobalObject : public NativeObject {
   // global.
   bool valueIsEval(const Value& val);
 
+#ifndef NIGHTLY_BUILD
   void removeFromVarNames(JSAtom* name) { data().varNames.remove(name); }
 
   // Whether the given name is in [[VarNames]].
@@ -1006,6 +1009,7 @@ class GlobalObject : public NativeObject {
 
   // Add a name to [[VarNames]].  Reports OOM on failure.
   [[nodiscard]] bool addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name);
+#endif
 
   static ArgumentsObject* getOrCreateArgumentsTemplateObject(JSContext* cx,
                                                              bool mapped);
