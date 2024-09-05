@@ -49,20 +49,22 @@ add_task(async function test_tab_switch_dismiss() {
     content.wrappedJSObject.installMozAM(url);
   });
 
-  await promisePopupNotificationShown("addon-webext-permissions");
+  const panel = await promisePopupNotificationShown("addon-webext-permissions");
 
   assertPermissionsListCount({ grantedPermissionsCount: 5 });
 
-  let permsLearnMore = document.getElementById("addon-webext-perm-info");
-  ok(
-    BrowserTestUtils.isVisible(permsLearnMore),
-    "Learn more link is shown on Permission popup"
+  let permsLearnMore = panel.querySelector(
+    ".popup-notification-learnmore-link"
   );
   is(
     permsLearnMore.href,
     Services.urlFormatter.formatURLPref("app.support.baseURL") +
       "extension-permissions",
     "Learn more link has desired URL"
+  );
+  ok(
+    BrowserTestUtils.isVisible(permsLearnMore),
+    "Learn more link is shown on Permission popup"
   );
 
   // Switching tabs dismisses the notification and cancels the install.

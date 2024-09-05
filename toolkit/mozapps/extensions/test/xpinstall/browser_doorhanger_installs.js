@@ -142,10 +142,17 @@ function testInstallDialogIncognitoCheckbox(
     // SUMO link should always be visible if the incognito checkbox is expected to be
     // shown too (even when there are no other permissions being granted as part of the
     // same install dialog).
+    let permsLearnMore = installDialog.querySelector(
+      ".popup-notification-learnmore-link"
+    );
+    is(
+      permsLearnMore.href,
+      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+        "extension-permissions",
+      "Learn more link has desired URL"
+    );
     ok(
-      BrowserTestUtils.isVisible(
-        installDialog.querySelector("#addon-webext-perm-info")
-      ),
+      BrowserTestUtils.isVisible(permsLearnMore),
       "SUMO link expected to be visible"
     );
   } else {

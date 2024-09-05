@@ -107,7 +107,6 @@ customElements.define(
 
       this.textEl = this.querySelector("#addon-webext-perm-text");
       this.introEl = this.querySelector("#addon-webext-perm-intro");
-      this.infoEl = this.querySelector("#addon-webext-perm-info");
       this.permsSingleEl = this.querySelector(
         "#addon-webext-perm-single-entry"
       );
@@ -135,7 +134,7 @@ customElements.define(
       const { strings, showIncognitoCheckbox } =
         this.notification.options.customElementOptions;
 
-      const { textEl, introEl, infoEl, permsSingleEl, permsListEl } = this;
+      const { textEl, introEl, permsSingleEl, permsListEl } = this;
 
       const HTML_NS = "http://www.w3.org/1999/xhtml";
       const doc = this.ownerDocument;
@@ -162,10 +161,6 @@ customElements.define(
       if (this.hasNoPermissions) {
         return;
       }
-
-      // There will be one or more permissions listed, and so
-      // the SUMO page link should be shown.
-      infoEl.hidden = false;
 
       // If there are multiple permissions entries to be shown,
       // add to the list element one entry for each granted permission
@@ -209,7 +204,7 @@ customElements.define(
     }
 
     #clearChildElements() {
-      const { textEl, introEl, infoEl, permsSingleEl, permsListEl } = this;
+      const { textEl, introEl, permsSingleEl, permsListEl } = this;
 
       // Clear all changes to the child elements that may have been changed
       // by a previous call of the render method.
@@ -219,8 +214,6 @@ customElements.define(
 
       introEl.textContent = "";
       introEl.hidden = true;
-
-      infoEl.hidden = true;
 
       permsSingleEl.textContent = "";
       permsSingleEl.hidden = true;

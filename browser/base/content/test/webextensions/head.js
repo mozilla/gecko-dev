@@ -230,9 +230,9 @@ function checkNotification(
   expectIncognitoCheckboxHidden
 ) {
   let icon = panel.getAttribute("icon");
+  let learnMoreLink = panel.querySelector(".popup-notification-learnmore-link");
   let ul = document.getElementById("addon-webext-perm-list");
   let singleDataEl = document.getElementById("addon-webext-perm-single-entry");
-  let learnMoreLink = document.getElementById("addon-webext-perm-info");
 
   if (checkIcon instanceof RegExp) {
     ok(

@@ -423,10 +423,21 @@ export var ExtensionsUI = {
         return false;
       }
 
+      // Show the SUMO link already part of the popupnotification by
+      // setting learnMoreURL option if there are permissions to be
+      // granted to the addon being installed (or if the private
+      // browsing checkbox is shown).
+      const learnMoreURL =
+        strings.msgs.length || showIncognitoCheckbox
+          ? Services.urlFormatter.formatURLPref("app.support.baseURL") +
+            "extension-permissions"
+          : undefined;
+
       let options = {
         hideClose: true,
         popupIconURL: icon || DEFAULT_EXTENSION_ICON,
         popupIconClass: icon ? "" : "addon-warning-icon",
+        learnMoreURL,
         persistent: true,
         eventCallback,
         removeOnDismissal: true,
