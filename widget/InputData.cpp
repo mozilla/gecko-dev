@@ -240,7 +240,8 @@ MouseInput::MouseInput()
       mButtons(0),
       mHandledByAPZ(false),
       mPreventClickEvent(false),
-      mIgnoreCapturingContent(false) {}
+      mIgnoreCapturingContent(false),
+      mSynthesizeMoveAfterDispatch(false) {}
 
 MouseInput::MouseInput(MouseType aType, ButtonType aButtonType,
                        uint16_t aInputSource, int16_t aButtons,
@@ -254,7 +255,8 @@ MouseInput::MouseInput(MouseType aType, ButtonType aButtonType,
       mOrigin(aPoint),
       mHandledByAPZ(false),
       mPreventClickEvent(false),
-      mIgnoreCapturingContent(false) {}
+      mIgnoreCapturingContent(false),
+      mSynthesizeMoveAfterDispatch(false) {}
 
 MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
     : InputData(MOUSE_INPUT, aMouseEvent.mTimeStamp, aMouseEvent.mModifiers),
@@ -264,11 +266,17 @@ MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
       mButtons(aMouseEvent.mButtons),
       mHandledByAPZ(aMouseEvent.mFlags.mHandledByAPZ),
       mPreventClickEvent(aMouseEvent.mClass == eMouseEventClass &&
-                         aMouseEvent.AsMouseEvent()->mClickEventPrevented),
-      mIgnoreCapturingContent(
-          (aMouseEvent.mMessage == eMouseMove ||
-           aMouseEvent.mMessage == ePointerMove) &&
-          aMouseEvent.AsMouseEvent()->mIgnoreCapturingContent) {
+                         static_cast<const WidgetMouseEvent&>(aMouseEvent)
+                             .mClickEventPrevented),
+      mIgnoreCapturingContent((aMouseEvent.mClass == eMouseEventClass ||
+                               aMouseEvent.mClass == ePointerEventClass) &&
+                              static_cast<const WidgetMouseEvent&>(aMouseEvent)
+                                  .mIgnoreCapturingContent),
+      mSynthesizeMoveAfterDispatch(
+          (aMouseEvent.mClass == eMouseEventClass ||
+           aMouseEvent.mClass == ePointerEventClass) &&
+          static_cast<const WidgetMouseEvent&>(aMouseEvent)
+              .mSynthesizeMoveAfterDispatch) {
   MOZ_ASSERT(NS_IsMainThread(),
              "Can only copy from WidgetTouchEvent on main thread");
 
@@ -437,6 +445,7 @@ WidgetMouseOrPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
   event.mExitFrom = exitFrom;
   event.mClickEventPrevented = mPreventClickEvent;
   event.mIgnoreCapturingContent = mIgnoreCapturingContent;
+  event.mSynthesizeMoveAfterDispatch = mSynthesizeMoveAfterDispatch;
 
   return event;
 }

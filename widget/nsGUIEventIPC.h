@@ -218,10 +218,17 @@ template <>
 struct ParamTraits<mozilla::WidgetMouseEvent> {
   using paramType = mozilla::WidgetMouseEvent;
 
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    MOZ_ASSERT(!aParam.mIgnoreCapturingContent);
-    MOZ_ASSERT(!aParam.mSynthesizeMoveAfterDispatch);
+  // We don't need to copy the following members:
+  // - mIgnoreCapturingContent: When this is `true`, the remote process should
+  //   not be capturing the pointer because this is used to dispatch boundary
+  //   events outside the capturing element after handling ePointerUp/eMouseUp.
+  // - mSynthesizeMoveAfterDispatch: When this is `true`, the event needs to
+  //   synthesize a move event to dispatch corresponding boundary events.
+  //   However, when a remote content is under the pointer, it should occur
+  //   before dispatching this event in the remote process, but there is no
+  //   path to do that.  Therefore, this flag is not required for now.
 
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter,
                static_cast<const mozilla::WidgetMouseEventBase&>(aParam));
     WriteParam(aWriter,
