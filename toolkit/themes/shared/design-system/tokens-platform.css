@@ -21,9 +21,9 @@
     --border-color-interactive: color-mix(in srgb, currentColor 15%, var(--color-gray-60));
 
     /** Button **/
-    --button-background-color: var(--button-bgcolor); /* TODO Bug 1821203 - Gray use needs to be consolidated */
-    --button-background-color-hover: var(--button-hover-bgcolor);
-    --button-background-color-active: var(--button-active-bgcolor);
+    --button-background-color: var(--button-bgcolor, color-mix(in srgb, currentColor 13%, transparent)); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+    --button-background-color-hover: var(--button-hover-bgcolor, color-mix(in srgb, currentColor 17%, transparent));
+    --button-background-color-active: var(--button-active-bgcolor, color-mix(in srgb, currentColor 30%, transparent));
     --button-text-color: var(--button-color);
     --button-text-color-primary: var(--button-primary-color);
 

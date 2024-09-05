@@ -82,7 +82,10 @@ export const storybookTables = {
       value: {
         forcedColors: "ButtonFace",
         brand: { default: "color-mix(in srgb, currentColor 7%, transparent)" },
-        platform: { default: "var(--button-bgcolor)" },
+        platform: {
+          default:
+            "var(--button-bgcolor, color-mix(in srgb, currentColor 13%, transparent))",
+        },
       },
       name: "--button-background-color",
     },
@@ -90,7 +93,10 @@ export const storybookTables = {
       value: {
         forcedColors: "SelectedItemText",
         brand: { default: "color-mix(in srgb, currentColor 14%, transparent)" },
-        platform: { default: "var(--button-hover-bgcolor)" },
+        platform: {
+          default:
+            "var(--button-hover-bgcolor, color-mix(in srgb, currentColor 17%, transparent))",
+        },
       },
       name: "--button-background-color-hover",
     },
@@ -98,7 +104,10 @@ export const storybookTables = {
       value: {
         forcedColors: "SelectedItemText",
         brand: { default: "color-mix(in srgb, currentColor 21%, transparent)" },
-        platform: { default: "var(--button-active-bgcolor)" },
+        platform: {
+          default:
+            "var(--button-active-bgcolor, color-mix(in srgb, currentColor 30%, transparent))",
+        },
       },
       name: "--button-background-color-active",
     },
@@ -835,17 +844,26 @@ export const variableLookupTable = {
   "button-background-color": {
     forcedColors: "ButtonFace",
     brand: { default: "color-mix(in srgb, currentColor 7%, transparent)" },
-    platform: { default: "var(--button-bgcolor)" },
+    platform: {
+      default:
+        "var(--button-bgcolor, color-mix(in srgb, currentColor 13%, transparent))",
+    },
   },
   "button-background-color-hover": {
     forcedColors: "SelectedItemText",
     brand: { default: "color-mix(in srgb, currentColor 14%, transparent)" },
-    platform: { default: "var(--button-hover-bgcolor)" },
+    platform: {
+      default:
+        "var(--button-hover-bgcolor, color-mix(in srgb, currentColor 17%, transparent))",
+    },
   },
   "button-background-color-active": {
     forcedColors: "SelectedItemText",
     brand: { default: "color-mix(in srgb, currentColor 21%, transparent)" },
-    platform: { default: "var(--button-active-bgcolor)" },
+    platform: {
+      default:
+        "var(--button-active-bgcolor, color-mix(in srgb, currentColor 30%, transparent))",
+    },
   },
   "button-background-color-disabled": {
     default: "var(--button-background-color)",
