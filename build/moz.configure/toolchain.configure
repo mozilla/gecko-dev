@@ -2732,10 +2732,6 @@ def ub_signed_overflow_san_flags(
         linker_flags.ldflags.extend(["-fsanitize=signed-integer-overflow", "-rdynamic"])
 
 
-set_define("MOZ_SIGNED_OVERFLOW_SANITIZE", True, when=ub_signed_overflow_san)
-set_config("MOZ_SIGNED_OVERFLOW_SANITIZE", True, when=ub_signed_overflow_san)
-
-
 option(
     "--enable-unsigned-overflow-sanitizer",
     help="Enable UndefinedBehavior Sanitizer (Unsigned Integer Overflow Parts)",
@@ -2774,9 +2770,6 @@ def ub_unsigned_overflow_san_flags(
             ["-fsanitize=unsigned-integer-overflow", "-rdynamic"]
         )
 
-
-set_define("MOZ_UNSIGNED_OVERFLOW_SANITIZE", True, when=ub_unsigned_overflow_san)
-set_config("MOZ_UNSIGNED_OVERFLOW_SANITIZE", True, when=ub_unsigned_overflow_san)
 
 #
 
