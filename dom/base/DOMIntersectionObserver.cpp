@@ -165,6 +165,21 @@ static LengthPercentage PrefMargin(float aValue, bool aIsPercentage) {
                        : LengthPercentage::FromPixels(aValue);
 }
 
+StyleRect<LengthPercentage> DOMIntersectionObserver::LazyLoadingRootMargin() {
+  StyleRect<LengthPercentage> margin;
+#define SET_MARGIN(side_, side_lower_)                                 \
+  margin.Get(eSide##side_) = PrefMargin(                               \
+      StaticPrefs::dom_image_lazy_loading_root_margin_##side_lower_(), \
+      StaticPrefs::                                                    \
+          dom_image_lazy_loading_root_margin_##side_lower_##_percentage());
+  SET_MARGIN(Top, top);
+  SET_MARGIN(Right, right);
+  SET_MARGIN(Bottom, bottom);
+  SET_MARGIN(Left, left);
+#undef SET_MARGIN
+  return margin;
+}
+
 DOMIntersectionObserver::DOMIntersectionObserver(Document& aDocument,
                                                  NativeCallback aCallback)
     : mOwner(aDocument.GetInnerWindow()),
@@ -176,18 +191,7 @@ DOMIntersectionObserver::CreateLazyLoadObserver(Document& aDocument) {
   RefPtr<DOMIntersectionObserver> observer =
       new DOMIntersectionObserver(aDocument, LazyLoadCallback);
   observer->mThresholds.AppendElement(0.0f);
-
-#define SET_MARGIN(side_, side_lower_)                                 \
-  observer->mRootMargin.Get(eSide##side_) = PrefMargin(                \
-      StaticPrefs::dom_image_lazy_loading_root_margin_##side_lower_(), \
-      StaticPrefs::                                                    \
-          dom_image_lazy_loading_root_margin_##side_lower_##_percentage());
-  SET_MARGIN(Top, top);
-  SET_MARGIN(Right, right);
-  SET_MARGIN(Bottom, bottom);
-  SET_MARGIN(Left, left);
-#undef SET_MARGIN
-
+  observer->mRootMargin = LazyLoadingRootMargin();
   return observer.forget();
 }
 
@@ -324,7 +328,8 @@ static const Document* GetTopLevelContentDocumentInThisProcess(
 // In case of out-of-process document, aRemoteDocumentVisibleRect is a rectangle
 // in the out-of-process document's coordinate system.
 static Maybe<nsRect> ComputeTheIntersection(
-    nsIFrame* aTarget, nsIFrame* aRoot, const nsRect& aRootBounds,
+    nsIFrame* aTarget, const nsRect& aTargetRectRelativeToTarget,
+    nsIFrame* aRoot, const nsRect& aRootBounds,
     const Maybe<nsRect>& aRemoteDocumentVisibleRect,
     DOMIntersectionObserver::IsForProximityToViewport
         aIsForProximityToViewport) {
@@ -333,21 +338,7 @@ static Maybe<nsRect> ComputeTheIntersection(
   // getBoundingClientRect() algorithm on the target.
   //
   // `intersectionRect` is kept relative to `target` during the loop.
-  auto inflowRect = nsLayoutUtils::GetAllInFlowRectsUnion(
-      target, target,
-      nsLayoutUtils::GetAllInFlowRectsFlag::AccountForTransforms);
-  // For content-visibility, we need to observe the overflow clip edge,
-  // https://drafts.csswg.org/css-contain-2/#close-to-the-viewport
-  if (aIsForProximityToViewport ==
-      DOMIntersectionObserver::IsForProximityToViewport::Yes) {
-    const auto& disp = *target->StyleDisplay();
-    auto clipAxes = target->ShouldApplyOverflowClipping(&disp);
-    if (!clipAxes.isEmpty()) {
-      inflowRect = OverflowAreas::GetOverflowClipRect(
-          inflowRect, inflowRect, clipAxes,
-          target->OverflowClipMargin(clipAxes));
-    }
-  }
+  auto inflowRect = aTargetRectRelativeToTarget;
   Maybe<nsRect> intersectionRect = Some(inflowRect);
 
   // 2. Let container be the containing block of the target.
@@ -633,7 +624,7 @@ IntersectionInput DOMIntersectionObserver::ComputeInput(
 // https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo
 // (steps 2.1 - 2.5)
 IntersectionOutput DOMIntersectionObserver::Intersect(
-    const IntersectionInput& aInput, const Element& aTarget,
+    const IntersectionInput& aInput, const Element& aTarget, BoxToUse aBoxToUse,
     IsForProximityToViewport aIsForProximityToViewport) {
   const bool isSimilarOrigin = SimilarOrigin(aTarget, aInput.mRootNode) ==
                                BrowsingContextOrigin::Similar;
@@ -681,24 +672,39 @@ IntersectionOutput DOMIntersectionObserver::Intersect(
   }
 
   // 2.4. Set targetRect to the DOMRectReadOnly obtained by running the
-  // getBoundingClientRect() algorithm on target.
-  nsRect targetRect = targetFrame->GetBoundingClientRect();
-  // For content-visibility, we need to observe the overflow clip edge,
-  // https://drafts.csswg.org/css-contain-2/#close-to-the-viewport
-  if (aIsForProximityToViewport == IsForProximityToViewport::Yes) {
+  // getBoundingClientRect() algorithm on target. We compute the box relative to
+  // self first, then transform.
+  nsLayoutUtils::GetAllInFlowRectsFlags flags{
+      nsLayoutUtils::GetAllInFlowRectsFlag::AccountForTransforms};
+  if (aBoxToUse == BoxToUse::Content) {
+    flags += nsLayoutUtils::GetAllInFlowRectsFlag::UseContentBox;
+  }
+  nsRect targetRectRelativeToTarget =
+      nsLayoutUtils::GetAllInFlowRectsUnion(targetFrame, targetFrame, flags);
+
+  if (aBoxToUse == BoxToUse::OverflowClip) {
     const auto& disp = *targetFrame->StyleDisplay();
     auto clipAxes = targetFrame->ShouldApplyOverflowClipping(&disp);
     if (!clipAxes.isEmpty()) {
-      targetRect = OverflowAreas::GetOverflowClipRect(
-          targetRect, targetRect, clipAxes,
+      targetRectRelativeToTarget = OverflowAreas::GetOverflowClipRect(
+          targetRectRelativeToTarget, targetRectRelativeToTarget, clipAxes,
           targetFrame->OverflowClipMargin(clipAxes));
     }
   }
 
+  auto targetRect = nsLayoutUtils::TransformFrameRectToAncestor(
+      targetFrame, targetRectRelativeToTarget,
+      nsLayoutUtils::GetContainingBlockForClientRect(targetFrame));
+
+  // For content-visibility, we need to observe the overflow clip edge,
+  // https://drafts.csswg.org/css-contain-2/#close-to-the-viewport
+  MOZ_ASSERT_IF(aIsForProximityToViewport == IsForProximityToViewport::Yes,
+                aBoxToUse == BoxToUse::OverflowClip);
+
   // 2.5. Let intersectionRect be the result of running the compute the
   // intersection algorithm on target and observer’s intersection root.
   Maybe<nsRect> intersectionRect = ComputeTheIntersection(
-      targetFrame, aInput.mRootFrame, rootBounds,
+      targetFrame, targetRectRelativeToTarget, aInput.mRootFrame, rootBounds,
       aInput.mRemoteDocumentVisibleRect, aIsForProximityToViewport);
 
   return {isSimilarOrigin, rootBounds, targetRect, intersectionRect};

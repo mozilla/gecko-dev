@@ -408,16 +408,6 @@ ImageContainer* WebRenderCanvasData::GetImageContainer() {
 
 void WebRenderCanvasData::ClearImageContainer() { mContainer = nullptr; }
 
-WebRenderRemoteData::WebRenderRemoteData(RenderRootStateManager* aManager,
-                                         nsDisplayItem* aItem)
-    : WebRenderUserData(aManager, aItem) {}
-
-WebRenderRemoteData::~WebRenderRemoteData() {
-  if (mRemoteBrowser) {
-    mRemoteBrowser->UpdateEffects(mozilla::dom::EffectsInfo::FullyHidden());
-  }
-}
-
 void DestroyWebRenderUserDataTable(WebRenderUserDataTable* aTable) {
   for (const auto& value : aTable->Values()) {
     value->RemoveFromTable();

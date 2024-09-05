@@ -21,6 +21,7 @@
 #include "mozilla/dom/HTMLFrameElement.h"
 #include "mozilla/dom/ImageDocument.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/RemoteBrowser.h"
 
 #include "nsCOMPtr.h"
 #include "nsGenericHTMLElement.h"
@@ -1298,57 +1299,19 @@ bool nsDisplayRemote::CreateWebRenderCommands(
     return true;
   }
 
-  nsPresContext* pc = mFrame->PresContext();
-  nsFrameLoader* fl = GetFrameLoader();
-
   auto* subDocFrame = static_cast<nsSubDocumentFrame*>(mFrame);
   nsRect destRect = subDocFrame->GetDestRect();
-  if (RefPtr<RemoteBrowser> remoteBrowser = fl->GetRemoteBrowser()) {
-    if (pc->GetPrintSettings()) {
-      // HACK(emilio): Usually we update sizing/positioning from
-      // ReflowFinished(). Print documents have no incremental reflow at all
-      // though, so we can't rely on it firing after a frame becomes remote.
-      // Thus, if we're painting a remote frame, update its sizing and position
-      // now.
-      //
-      // UpdatePositionAndSize() can cause havoc for non-remote frames but
-      // luckily we don't care about those, so this is fine.
-      fl->UpdatePositionAndSize(subDocFrame);
-    }
-
-    // Adjust mItemVisibleRect, which is relative to the reference frame, to be
-    // relative to this frame.
+  if (aDisplayListBuilder->IsForPainting()) {
+    subDocFrame->SetRasterScale(aSc.GetInheritedScale());
     const nsRect buildingRect = GetBuildingRect() - ToReferenceFrame();
     Maybe<nsRect> visibleRect =
         buildingRect.EdgeInclusiveIntersection(destRect);
     if (visibleRect) {
       *visibleRect -= destRect.TopLeft();
     }
-
-    // Generate an effects update notifying the browser it is visible
-    MatrixScales scale = aSc.GetInheritedScale();
-
-    ParentLayerToScreenScale2D transformToAncestorScale =
-        ParentLayerToParentLayerScale(
-            pc->GetPresShell() ? pc->GetPresShell()->GetCumulativeResolution()
-                               : 1.f) *
-        nsLayoutUtils::GetTransformToAncestorScaleCrossProcessForFrameMetrics(
-            mFrame);
-
-    aDisplayListBuilder->AddEffectUpdate(
-        remoteBrowser, EffectsInfo::VisibleWithinRect(
-                           visibleRect, scale, transformToAncestorScale));
-
-    // Create a WebRenderRemoteData to notify the RemoteBrowser when it is no
-    // longer visible
-    RefPtr<WebRenderRemoteData> userData =
-        aManager->CommandBuilder()
-            .CreateOrRecycleWebRenderUserData<WebRenderRemoteData>(this,
-                                                                   nullptr);
-    userData->SetRemoteBrowser(remoteBrowser);
+    subDocFrame->SetVisibleRect(visibleRect);
   }
-
-  nscoord auPerDevPixel = pc->AppUnitsPerDevPixel();
+  nscoord auPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint layerOffset =
       aDisplayListBuilder->ToReferenceFrame(mFrame) + destRect.TopLeft();
   mOffset = LayoutDevicePoint::FromAppUnits(layerOffset, auPerDevPixel);

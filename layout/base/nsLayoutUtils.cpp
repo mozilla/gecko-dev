@@ -2700,17 +2700,6 @@ void PrintHitTestInfoStats(nsDisplayList* aList) {
 }
 #endif
 
-// Apply a batch of effects updates generated during a paint to their
-// respective remote browsers.
-static void ApplyEffectsUpdates(
-    const nsTHashMap<nsPtrHashKey<RemoteBrowser>, EffectsInfo>& aUpdates) {
-  for (const auto& entry : aUpdates) {
-    auto* browser = entry.GetKey();
-    const auto& update = entry.GetData();
-    browser->UpdateEffects(update);
-  }
-}
-
 static void DumpBeforePaintDisplayList(UniquePtr<std::stringstream>& aStream,
                                        nsDisplayListBuilder* aBuilder,
                                        nsDisplayList* aList,
@@ -3229,11 +3218,6 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
           opaqueRegion.ToNearestPixels(presContext->AppUnitsPerDevPixel())));
       widget->UpdateWindowDraggingRegion(builder->GetWindowDraggingRegion());
     }
-  }
-
-  // Apply effects updates if we were actually painting
-  if (isForPainting) {
-    ApplyEffectsUpdates(builder->GetEffectUpdates());
   }
 
   builder->Check();

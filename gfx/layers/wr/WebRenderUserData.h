@@ -13,7 +13,6 @@
 #include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/layers/AnimationInfo.h"
 #include "mozilla/layers/LayersTypes.h"
-#include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIFrame.h"
 #include "nsRefPtrHashtable.h"
@@ -305,22 +304,6 @@ class WebRenderCanvasData : public WebRenderUserData {
  protected:
   RefPtr<WebRenderCanvasRendererAsync> mCanvasRenderer;
   RefPtr<ImageContainer> mContainer;
-};
-
-class WebRenderRemoteData : public WebRenderUserData {
- public:
-  WebRenderRemoteData(RenderRootStateManager* aManager, nsDisplayItem* aItem);
-  virtual ~WebRenderRemoteData();
-
-  UserDataType GetType() override { return UserDataType::eRemote; }
-  static UserDataType Type() { return UserDataType::eRemote; }
-
-  void SetRemoteBrowser(dom::RemoteBrowser* aBrowser) {
-    mRemoteBrowser = aBrowser;
-  }
-
- protected:
-  RefPtr<dom::RemoteBrowser> mRemoteBrowser;
 };
 
 class WebRenderMaskData : public WebRenderUserData {
