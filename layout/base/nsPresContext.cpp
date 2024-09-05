@@ -2987,6 +2987,20 @@ void nsPresContext::SetVisibleArea(const nsRect& aRect) {
   }
 }
 
+void nsPresContext::SetInitialVisibleArea(const nsRect& aRect) {
+  MOZ_ASSERT(mPresShell);
+
+  if (RefPtr<MobileViewportManager> mvm =
+          mPresShell->GetMobileViewportManager()) {
+    // On mobile environments the top level content document viewport size is
+    // depending on meta viewport tags in the document so we use it rather than
+    // using the given document viewer size directly.
+    SetVisibleArea(mvm->InitialVisibleArea());
+    return;
+  }
+  SetVisibleArea(aRect);
+}
+
 void nsPresContext::SetDynamicToolbarMaxHeight(ScreenIntCoord aHeight) {
   MOZ_ASSERT(IsRootContentDocumentCrossProcess());
 

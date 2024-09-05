@@ -148,6 +148,11 @@ class MobileViewportManager final : public nsIDOMEventListener,
    * need updating. */
   void RefreshViewportSize(bool aForceAdjustResolution);
 
+  /*
+   * Returns the visible area for setting nsPresContext's visible area.
+   */
+  nsRect InitialVisibleArea();
+
  private:
   ~MobileViewportManager();
 

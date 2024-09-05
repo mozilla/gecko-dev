@@ -794,3 +794,13 @@ ScreenIntSize MobileViewportManager::GetDisplaySizeForVisualViewport() const {
   }
   return displaySize;
 }
+
+nsRect MobileViewportManager::InitialVisibleArea() {
+  UpdateSizesBeforeReflow();
+
+  // Basically mMobileViewportSize should not be empty, but we somehow create
+  // a MobileViewportManager for the transient about blank document of each
+  // window actor, in such cases the document viewer size is empty, thus we
+  // return an empty rectangle here.
+  return nsRect(nsPoint(), CSSSize::ToAppUnits(mMobileViewportSize));
+}
