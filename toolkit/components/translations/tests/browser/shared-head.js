@@ -118,6 +118,7 @@ async function openAboutTranslations({
     pageHeader: '[data-l10n-id="about-translations-header"]',
     fromLanguageSelect: "select#language-from",
     toLanguageSelect: "select#language-to",
+    languageSwapButton: "button#language-swap",
     translationTextarea: "textarea#translation-from",
     translationResult: "#translation-to",
     translationResultBlank: "#translation-to-blank",

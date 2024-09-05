@@ -34,21 +34,8 @@ body {
 }
 
 .about-translations-header {
-  display: flex;
-}
-
-.about-translations-header > * {
-  flex: 1;
-  display: flex;
-  max-width: 50%;
-}
-
-.about-translations-header-start {
-  justify-content: start;
-}
-
-.about-translations-header-end {
-  justify-content: end;
+  display: grid;
+  grid-template-columns: 1fr max-content 1fr;
 }
 
 /* Increase the selector specificity to override the base `select` styles. */
@@ -57,8 +44,24 @@ select.about-translations-select {
   padding-inline: 10px 20px;
   padding-block: 0px;
   min-width: 50%;
+  width: max-content;
   margin: 5px;
   background-position: right var(--AT-select-arrow-inset) center;
+}
+
+select#language-to {
+  justify-self: end;
+}
+
+.language-swap-icon {
+  width: 20px;
+  height: 20px;
+  background-image: url('chrome://global/content/translations/icons/swap-languages.svg');
+  background-size: contain;
+  margin: 0 auto;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  transform: rotateY(180deg) rotateZ(90deg);
 }
 
 select.about-translations-select:dir(rtl) {
