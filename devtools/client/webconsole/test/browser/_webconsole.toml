@@ -140,6 +140,9 @@ support-files = [
   "test-network-exceptions.html",
   "test-network-request.html",
   "test-network.html",
+  "test-json-mime.html",
+  "test-json-mime.json",
+  "test-json-mime.json^headers^",
   "test-non-javascript-mime.html",
   "test-non-javascript-mime.js",
   "test-non-javascript-mime.js^headers^",
@@ -563,6 +566,8 @@ skip-if = [
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_webconsole_non_javascript_mime_warning.js"]
+
+["browser_webconsole_json_mime_warning.js"]
 
 ["browser_webconsole_non_javascript_mime_worker_error.js"]
 
