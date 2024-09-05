@@ -51,7 +51,6 @@ def js_without_nspr(build_nspr, system_nspr, js_standalone):
         return not build_nspr and not system_nspr
 
 
-set_config("JS_WITHOUT_NSPR", True, when=js_without_nspr)
 set_define("JS_WITHOUT_NSPR", True, when=js_without_nspr)
 
 
