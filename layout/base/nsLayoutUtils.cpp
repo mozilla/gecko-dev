@@ -4379,8 +4379,7 @@ static nscoord GetFitContentSizeForMaxOrPreferredSize(
  * they are handled monotonically.
  *
  * @param aContentSize the content size calculated so far
-                       (@see IntrinsicForContainer)
- * @param aContentMinSize ditto min content size
+                       (@see IntrinsicForAxis)
  * @param aStyleSize a 'width' or 'height' property value
  * @param aFixedMinSize if aStyleMinSize is a definite size then this contains
  *                      the value, otherwise Nothing()
@@ -4392,42 +4391,34 @@ static nscoord GetFitContentSizeForMaxOrPreferredSize(
  *                              aspect-ratio and the definite block size.
  *                              We use this value to resolve sizes in inline
  *                              axis with intrinsic keyword.
- * @param aFlags same as for IntrinsicForContainer
- * @param aContainerWM the container's WM
+ * @param aFlags same as for IntrinsicForAxis
  */
 static nscoord AddIntrinsicSizeOffset(
     gfxContext* aRenderingContext, nsIFrame* aFrame,
     const nsIFrame::IntrinsicSizeOffsetData& aOffsets, IntrinsicISizeType aType,
-    StyleBoxSizing aBoxSizing, nscoord aContentSize, nscoord aContentMinSize,
+    StyleBoxSizing aBoxSizing, nscoord aContentSize,
     const StyleSize& aStyleSize, const Maybe<nscoord> aFixedMinSize,
     const StyleSize& aStyleMinSize, const Maybe<nscoord> aFixedMaxSize,
     const StyleMaxSize& aStyleMaxSize, Maybe<nscoord> aISizeFromAspectRatio,
     uint32_t aFlags, PhysicalAxis aAxis) {
-  nscoord result = aContentSize;
-  nscoord min = aContentMinSize;
-  nscoord coordOutsideSize = 0;
-  nscoord contentBoxToBoxSizingDiff = 0;
+  const nscoord padding =
+      aFlags & nsLayoutUtils::IGNORE_PADDING ? 0 : aOffsets.padding;
+  nscoord contentBoxToBoxSizingDiff;
+  nscoord boxSizingToMarginDiff;
 
-  if (!(aFlags & nsLayoutUtils::IGNORE_PADDING)) {
-    coordOutsideSize += aOffsets.padding;
-  }
-
-  coordOutsideSize += aOffsets.border;
-
+  // Note: |result| can be either the border-box size or the content-box size,
+  // depending on the value of aBoxSizing.
+  nscoord result;
   if (aBoxSizing == StyleBoxSizing::Border) {
-    // Store the padding of the box so we can pass it into
-    // functions that works with content box-sizing.
-    contentBoxToBoxSizingDiff = coordOutsideSize;
-
-    min += coordOutsideSize;
-    result = NSCoordSaturatingAdd(result, coordOutsideSize);
-
-    coordOutsideSize = 0;
+    contentBoxToBoxSizingDiff = padding + aOffsets.border;
+    boxSizingToMarginDiff = aOffsets.margin;
+    result = NSCoordSaturatingAdd(aContentSize, contentBoxToBoxSizingDiff);
+  } else {
+    MOZ_ASSERT(aBoxSizing == StyleBoxSizing::Content);
+    contentBoxToBoxSizingDiff = 0;
+    boxSizingToMarginDiff = padding + aOffsets.border + aOffsets.margin;
+    result = aContentSize;
   }
-
-  coordOutsideSize += aOffsets.margin;
-
-  min += coordOutsideSize;
 
   // Compute min-content/max-content for fit-content().
   nscoord minContent = 0;
@@ -4452,13 +4443,13 @@ static nscoord AddIntrinsicSizeOffset(
   if (aType == IntrinsicISizeType::MinISize &&
       aFrame->IsPercentageResolvedAgainstZero(aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
-    result = 0;  // let |min| handle padding/border/margin
+    result = 0;
   } else if (Maybe<nscoord> size = GetAbsoluteSize(aStyleSize).orElse([&]() {
                return GetIntrinsicSize(
                    aStyleSize, aRenderingContext, aFrame, aISizeFromAspectRatio,
                    nsIFrame::SizeProperty::Size, contentBoxToBoxSizingDiff);
              })) {
-    result = *size + coordOutsideSize;
+    result = *size + boxSizingToMarginDiff;
   } else if (aStyleSize.IsFitContentFunction()) {
     // |result| here is the content size or border size, depends on
     // StyleBoxSizing. We use it as the initial value when handling the cyclic
@@ -4468,9 +4459,9 @@ static nscoord AddIntrinsicSizeOffset(
         aType, nsIFrame::SizeProperty::Size, aFrame,
         aStyleSize.AsFitContentFunction(), initial, minContent, maxContent);
     // Add border and padding.
-    result = NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize);
+    result = NSCoordSaturatingAdd(fitContentFuncSize, boxSizingToMarginDiff);
   } else {
-    result = NSCoordSaturatingAdd(result, coordOutsideSize);
+    result = NSCoordSaturatingAdd(result, boxSizingToMarginDiff);
   }
 
   // Compute max-size.
@@ -4480,7 +4471,7 @@ static nscoord AddIntrinsicSizeOffset(
         nsIFrame::SizeProperty::MaxSize, contentBoxToBoxSizingDiff);
   });
   if (maxSize) {
-    *maxSize += coordOutsideSize;
+    *maxSize += boxSizingToMarginDiff;
     if (result > *maxSize) {
       result = *maxSize;
     }
@@ -4489,7 +4480,8 @@ static nscoord AddIntrinsicSizeOffset(
         aType, nsIFrame::SizeProperty::MaxSize, aFrame,
         aStyleMaxSize.AsFitContentFunction(), NS_UNCONSTRAINEDSIZE, minContent,
         maxContent);
-    maxSize.emplace(NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize));
+    maxSize.emplace(
+        NSCoordSaturatingAdd(fitContentFuncSize, boxSizingToMarginDiff));
     if (result > *maxSize) {
       result = *maxSize;
     }
@@ -4502,7 +4494,7 @@ static nscoord AddIntrinsicSizeOffset(
         nsIFrame::SizeProperty::MinSize, contentBoxToBoxSizingDiff);
   });
   if (minSize) {
-    *minSize += coordOutsideSize;
+    *minSize += boxSizingToMarginDiff;
     if (result < *minSize) {
       result = *minSize;
     }
@@ -4515,15 +4507,15 @@ static nscoord AddIntrinsicSizeOffset(
     }
     nscoord fitContentFuncSize =
         std::max(minContent, std::min(maxContent, *minSize));
-    *minSize = NSCoordSaturatingAdd(fitContentFuncSize, coordOutsideSize);
+    *minSize = NSCoordSaturatingAdd(fitContentFuncSize, boxSizingToMarginDiff);
     if (result < *minSize) {
       result = *minSize;
     }
   }
 
-  if (result < min) {
-    result = min;
-  }
+  const nscoord borderPaddingMargin =
+      contentBoxToBoxSizingDiff + boxSizingToMarginDiff;
+  result = std::max(result, borderPaddingMargin);
 
   const nsStyleDisplay* disp = aFrame->StyleDisplay();
   if (aFrame->IsThemed(disp)) {
@@ -4611,17 +4603,9 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     ResetIfKeywords(styleISize, styleMinISize, styleMaxISize);
   }
 
-  // We build up two values starting with the content box, and then
-  // adding padding, border and margin.  The result is normally
-  // |result|.  Then, when we handle 'width', 'min-width', and
-  // 'max-width', we use the results we've been building in |min| as a
-  // minimum, overriding 'min-width'.  This ensures two things:
-  //   * that we don't let a value of 'box-sizing' specifying a width
-  //     smaller than the padding/border inside the box-sizing box give
-  //     a content width less than zero
-  //   * that we prevent tables from becoming smaller than their
-  //     intrinsic minimum width
-  nscoord result = 0, min = 0;
+  // We build up the content box size, storing in |result|, and then
+  // adding padding, border and margin in AddIntrinsicSizeOffset().
+  nscoord result = 0;
 
   Maybe<nscoord> fixedMaxISize = GetAbsoluteSize(styleMaxISize);
   Maybe<nscoord> fixedMinISize;
@@ -4916,7 +4900,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   nscoord contentBoxSize = result;
   result = AddIntrinsicSizeOffset(
       aRenderingContext, aFrame, offsetInRequestedAxis, aType, boxSizing,
-      result, min, styleISize, fixedMinISize, styleMinISize, fixedMaxISize,
+      result, styleISize, fixedMinISize, styleMinISize, fixedMaxISize,
       styleMaxISize, iSizeFromAspectRatio, aFlags, aAxis);
   nscoord overflow = result - aMarginBoxMinSizeClamp;
   if (MOZ_UNLIKELY(overflow > 0)) {
@@ -5023,12 +5007,11 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
       ourInlineAxis == aAxis ? aFrame->IntrinsicISizeOffsets(pmPercentageBasis)
                              : aFrame->IntrinsicBSizeOffsets(pmPercentageBasis);
   nscoord result = 0;
-  nscoord min = 0;
   // Note: aISizeFromAspectRatio is Nothing() here because we don't handle
   // "content size" cases here (i.e. we've returned earlier when |fixedMinSize|
   // is Nothing()).
   result = AddIntrinsicSizeOffset(
-      aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, min, size,
+      aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, size,
       fixedMinSize, size, Nothing(), maxSize, Nothing(), aFlags, aAxis);
 
   return result;
