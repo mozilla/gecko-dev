@@ -2258,10 +2258,6 @@ void nsRefreshDriver::UpdateIntersectionObservations(TimeStamp aNowTime) {
   mNeedToUpdateIntersectionObservations = false;
 }
 
-void nsRefreshDriver::UpdateRemoteFrameEffects() {
-  mPresContext->Document()->UpdateRemoteFrameEffects();
-}
-
 void nsRefreshDriver::UpdateRelevancyOfContentVisibilityAutoFrames() {
   if (!mNeedToUpdateContentRelevancy) {
     return;
@@ -2889,10 +2885,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
     // No paint happened, discard composition payloads.
     mCompositionPayloads.Clear();
   }
-
-  // This needs to happen after DL building since we rely on the raster scales
-  // being stored in nsSubDocumentFrame.
-  UpdateRemoteFrameEffects();
 
 #ifndef ANDROID /* bug 1142079 */
   double totalMs = (TimeStamp::Now() - mTickStart).ToMilliseconds();

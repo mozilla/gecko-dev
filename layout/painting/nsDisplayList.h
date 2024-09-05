@@ -37,6 +37,7 @@
 #include "mozilla/TemplateLib.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/EffectsInfo.h"
 #include "mozilla/gfx/UserData.h"
 #include "mozilla/layers/BSPTree.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
@@ -878,6 +879,14 @@ class nsDisplayListBuilder {
 
   void RemoveModifiedWindowRegions();
   void ClearRetainedWindowRegions();
+
+  const nsTHashMap<nsPtrHashKey<dom::RemoteBrowser>, dom::EffectsInfo>&
+  GetEffectUpdates() const {
+    return mEffectsUpdates;
+  }
+
+  void AddEffectUpdate(dom::RemoteBrowser* aBrowser,
+                       const dom::EffectsInfo& aUpdate);
 
   /**
    * Invalidates the caret frames from previous paints, if they have changed.
@@ -1784,6 +1793,9 @@ class nsDisplayListBuilder {
   // and thus is in-budget.
   nsTHashMap<nsPtrHashKey<const nsIFrame>, FrameWillChangeBudget>
       mFrameWillChangeBudgets;
+
+  nsTHashMap<nsPtrHashKey<dom::RemoteBrowser>, dom::EffectsInfo>
+      mEffectsUpdates;
 
   nsTHashSet<nsCString> mDestinations;  // Destination names emitted.
 

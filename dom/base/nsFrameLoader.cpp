@@ -1158,10 +1158,6 @@ void nsFrameLoader::Hide() {
     return;
   }
 
-  if (mRemoteBrowser) {
-    mRemoteBrowser->UpdateEffects(EffectsInfo::FullyHidden());
-  }
-
   if (!GetDocShell()) {
     return;
   }

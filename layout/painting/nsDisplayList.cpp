@@ -763,11 +763,40 @@ void nsDisplayListBuilder::BeginFrame() {
   mSyncDecodeImages = false;
 }
 
+void nsDisplayListBuilder::AddEffectUpdate(dom::RemoteBrowser* aBrowser,
+                                           const dom::EffectsInfo& aUpdate) {
+  dom::EffectsInfo update = aUpdate;
+  // For printing we create one display item for each page that an iframe
+  // appears on, the proper visible rect is the union of all the visible rects
+  // we get from each display item.
+  nsPresContext* pc =
+      mReferenceFrame ? mReferenceFrame->PresContext() : nullptr;
+  if (pc && pc->Type() != nsPresContext::eContext_Galley) {
+    Maybe<dom::EffectsInfo> existing = mEffectsUpdates.MaybeGet(aBrowser);
+    if (existing) {
+      // Only the visible rect should differ, the scales should match.
+      MOZ_ASSERT(existing->mRasterScale == aUpdate.mRasterScale &&
+                 existing->mTransformToAncestorScale ==
+                     aUpdate.mTransformToAncestorScale);
+      if (existing->mVisibleRect) {
+        if (update.mVisibleRect) {
+          update.mVisibleRect =
+              Some(update.mVisibleRect->Union(*existing->mVisibleRect));
+        } else {
+          update.mVisibleRect = existing->mVisibleRect;
+        }
+      }
+    }
+  }
+  mEffectsUpdates.InsertOrUpdate(aBrowser, update);
+}
+
 void nsDisplayListBuilder::EndFrame() {
   NS_ASSERTION(!mInInvalidSubtree,
                "Someone forgot to cleanup mInInvalidSubtree!");
   mCurrentContainerASR = nullptr;
   mActiveScrolledRoots.Clear();
+  mEffectsUpdates.Clear();
   FreeClipChains();
   FreeTemporaryItems();
   nsCSSRendering::EndFrameTreesLocked();
@@ -1766,6 +1795,7 @@ void nsDisplayListBuilder::AddSizeOfExcludingThis(nsWindowSizes& aSizes) const {
   MallocSizeOf mallocSizeOf = aSizes.mState.mMallocSizeOf;
   n += mDocumentWillChangeBudgets.ShallowSizeOfExcludingThis(mallocSizeOf);
   n += mFrameWillChangeBudgets.ShallowSizeOfExcludingThis(mallocSizeOf);
+  n += mEffectsUpdates.ShallowSizeOfExcludingThis(mallocSizeOf);
   n += mRetainedWindowDraggingRegion.SizeOfExcludingThis(mallocSizeOf);
   n += mRetainedWindowNoDraggingRegion.SizeOfExcludingThis(mallocSizeOf);
   n += mRetainedWindowOpaqueRegion.SizeOfExcludingThis(mallocSizeOf);

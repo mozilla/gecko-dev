@@ -500,7 +500,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void RunFrameRequestCallbacks(const nsTArray<RefPtr<mozilla::dom::Document>>&,
                                 mozilla::TimeStamp aNowTime);
   void UpdateIntersectionObservations(mozilla::TimeStamp aNowTime);
-  void UpdateRemoteFrameEffects();
   void UpdateRelevancyOfContentVisibilityAutoFrames();
   void PerformPendingViewTransitionOperations();
   MOZ_CAN_RUN_SCRIPT void
