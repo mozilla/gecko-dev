@@ -74,7 +74,7 @@ object Versions {
         const val paging = "3.3.2"
         const val palette = "1.0.0"
         const val preferences = "1.2.1"
-        const val lifecycle = "2.8.4"
+        const val lifecycle = "2.8.5"
         const val media = "1.7.0"
         const val navigation = "2.7.7"
         const val transition = "1.5.1"
