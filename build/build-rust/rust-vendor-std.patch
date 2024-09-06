@@ -35,7 +35,7 @@ index 012d64e5344..aedb53358ef 100644
 +        // isn't used by libsysroot, so we need to not use any links!
 +        builder.really_copy(&root_lock, &temp_lock);
 +
-+        let mut cmd = Command::new(&builder.initial_cargo);
++        let mut cmd = command(&builder.initial_cargo);
 +        cmd.arg("vendor").arg(dst_vendor).current_dir(&dst_libsysroot);
 +        cmd.env("RUSTC_BOOTSTRAP", "1");
 +        builder.info("Dist src");
@@ -51,7 +51,7 @@ diff --git a/src/bootstrap/src/lib.rs b/src/bootstrap/src/lib.rs
 index 5ed6b357e20..ad617948c4b 100644
 --- a/src/bootstrap/src/lib.rs
 +++ b/src/bootstrap/src/lib.rs
-@@ -1649,6 +1649,27 @@ fn read_stamp_file(&self, stamp: &Path) -> Vec<(PathBuf, DependencyType)> {
+@@ -1649,6 +1649,30 @@ fn read_stamp_file(&self, stamp: &Path) -> Vec<(PathBuf, DependencyType)> {
          paths
      }
  
@@ -71,9 +71,12 @@ index 5ed6b357e20..ad617948c4b 100644
 +            panic!("failed to copy `{}` to `{}`: {}", src.display(), dst.display(), e)
 +        }
 +        t!(fs::set_permissions(dst, metadata.permissions()));
-+        let atime = FileTime::from_last_access_time(&metadata);
-+        let mtime = FileTime::from_last_modification_time(&metadata);
-+        t!(filetime::set_file_times(dst, atime, mtime));
++        let file_times = fs::FileTimes::new()
++            .set_accessed(t!(metadata.accessed()))
++            .set_modified(t!(metadata.modified()));
++
++        let dst_file = t!(fs::File::open(dst));
++        t!(dst_file.set_times(file_times));
 +    }
 +
      /// Links a file from `src` to `dst`.

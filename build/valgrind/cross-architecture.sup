@@ -186,6 +186,17 @@
    ...
 }
 {
+   Same as above, but for rustc >= 1.81
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   ...
+   fun:_ZN3std3sys12thread_local6native4lazy20Storage*10initialize*
+   ...
+   fun:_ZN5style5bloom19StyleBloom$LT$E$GT$3new*
+   ...
+}
+{
    We intentionally leak sharing cache TLS data in the global servo thread-pool until we can free it consistently (https://github.com/rayon-rs/rayon/issues/688)
    Memcheck:Leak
    match-leak-kinds: definite
@@ -203,6 +214,17 @@
    fun:malloc
    ...
    fun:_ZN3std3sys12thread_local10fast_local4lazy20Storage*10initialize*
+   ...
+   fun:_ZN5style7sharing26StyleSharingCache$LT$E$GT$3new*
+   ...
+}
+{
+   Same as above, but for rustc >= 1.81
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:_ZN3std3sys12thread_local6native4lazy20Storage*10initialize*
    ...
    fun:_ZN5style7sharing26StyleSharingCache$LT$E$GT$3new*
    ...
