@@ -2128,6 +2128,11 @@ EnvironmentCache.prototype = {
   },
 
   _onEnvironmentChange(what, oldEnvironment) {
+    ChromeUtils.addProfilerMarker(
+      "EnvironmentChange",
+      { category: "Telemetry" },
+      what
+    );
     this._log.trace("_onEnvironmentChange for " + what);
 
     // We are already skipping change events in _checkChanges if there is a pending change task running.
