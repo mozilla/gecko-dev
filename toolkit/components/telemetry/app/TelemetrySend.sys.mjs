@@ -123,12 +123,34 @@ function isDeletionRequestPing(aPing) {
 }
 
 /**
+ * Generate a string suitable for including in a profiler marker as a ping description.
+ * @param {Object} aPing The ping to describe.
+ */
+function getPingMarkerString(aPing) {
+  let markerString = aPing.type;
+  let reason = aPing.payload?.info?.reason || aPing.payload?.reason;
+  if (reason) {
+    markerString += ", reason: " + reason;
+  }
+  return markerString;
+}
+
+/**
  * Save the provided ping as a pending ping.
  * @param {Object} aPing The ping to save.
  * @return {Promise} A promise resolved when the ping is saved.
  */
 function savePing(aPing) {
-  return lazy.TelemetryStorage.savePendingPing(aPing);
+  let startTime = Cu.now();
+  let promise = lazy.TelemetryStorage.savePendingPing(aPing);
+  promise.then(() => {
+    ChromeUtils.addProfilerMarker(
+      "Ping Save",
+      { category: "Telemetry", startTime },
+      getPingMarkerString(aPing)
+    );
+  });
+  return promise;
 }
 
 function arrayToString(array) {
@@ -1034,6 +1056,11 @@ export var TelemetrySendImpl = {
   },
 
   submitPing(ping, options) {
+    ChromeUtils.addProfilerMarker(
+      "Ping Submit",
+      { category: "Telemetry" },
+      getPingMarkerString(ping) + `, options: ${JSON.stringify(options)}`
+    );
     this._log.trace(
       "submitPing - ping id: " +
         ping.id +
@@ -1368,6 +1395,8 @@ export var TelemetrySendImpl = {
   },
 
   _doPing(ping, id, isPersisted) {
+    let startTime = Cu.now();
+
     if (!this.sendingEnabled(ping)) {
       // We can't send the pings to the server, so don't try to.
       this._log.trace("_doPing - Can't send ping " + ping.id);
@@ -1403,6 +1432,11 @@ export var TelemetrySendImpl = {
     let onRequestFinished = (success, event) => {
       let onCompletion = () => {
         if (success) {
+          ChromeUtils.addProfilerMarker(
+            "Ping Send",
+            { category: "Telemetry", startTime },
+            getPingMarkerString(ping)
+          );
           deferred.resolve();
         } else {
           deferred.reject(event);
