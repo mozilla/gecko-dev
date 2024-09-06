@@ -6,6 +6,9 @@ package org.mozilla.fenix.library.bookmarks.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,17 +16,23 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
+import org.mozilla.fenix.compose.list.IconListItem
 import org.mozilla.fenix.compose.list.SelectableFaviconListItem
 import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -188,6 +197,72 @@ private fun BookmarksListTopBar(
 }
 
 @Composable
+private fun AddFolder(
+    parentFolderTitle: String,
+    onTextChange: (String) -> Unit,
+    onParentFolderIconClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
+    Scaffold(topBar = { AddFolderTopBar(onBackClick) }) { paddingValues ->
+        var text by remember { mutableStateOf("") }
+
+        Column(modifier = Modifier.padding(paddingValues)) {
+            TextField(
+                value = text,
+                onValueChange = { newText ->
+                    text = newText
+                    onTextChange(newText)
+                },
+                label = {
+                    Text(
+                        stringResource(R.string.bookmark_name_label_normal_case),
+                        color = FirefoxTheme.colors.textPrimary,
+                    )
+                },
+                modifier = Modifier.padding(start = 16.dp, top = 32.dp),
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                stringResource(R.string.bookmark_save_in_label),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(start = 16.dp),
+            )
+
+            IconListItem(
+                label = parentFolderTitle,
+                beforeIconPainter = painterResource(R.drawable.ic_folder_icon),
+                onClick = onParentFolderIconClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AddFolderTopBar(onBackClick: () -> Unit) {
+    TopAppBar(
+        backgroundColor = FirefoxTheme.colors.layer1,
+        title = {
+            Text(
+                text = stringResource(R.string.bookmark_add_folder),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.headline6,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_back_24),
+                    contentDescription = stringResource(R.string.bookmark_navigate_back_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+    )
+}
+
+@Composable
 @FlexibleWindowLightDarkPreview
 @Suppress("MagicNumber")
 private fun BookmarksScreenPreview() {
@@ -215,6 +290,16 @@ private fun BookmarksScreenPreview() {
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
             BookmarksScreen(store)
+        }
+    }
+}
+
+@FlexibleWindowLightDarkPreview
+@Composable
+private fun AddFolderPreview() {
+    FirefoxTheme {
+        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
+            AddFolder("Bookmarks", {}, {}, {})
         }
     }
 }
