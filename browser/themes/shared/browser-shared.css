@@ -178,14 +178,6 @@ body {
   @media (prefers-reduced-motion) {
     --inactive-window-transition: 0s;
   }
-
-  /* NOTE(emilio): There should be a better way of doing this, see:
-   * https://github.com/w3c/csswg-drafts/issues/10819 and
-   * https://github.com/w3c/csswg-drafts/issues/3720 */
-  --hairline-border-width: 1px;
-  @media (resolution >= 2x) {
-    --hairline-border-width: 0.5px;
-  }
 }
 
 body {
@@ -198,17 +190,17 @@ body {
 /* Chrome/content separation */
 
 #navigator-toolbox {
-  /* This reserves space for the tabbox shadow */
-  border-bottom: var(--hairline-border-width) solid var(--toolbar-bgcolor);
+  /* This reserves space for the tabbox outline */
+  border-bottom: 0.01px solid var(--toolbar-bgcolor);
 }
 
 #tabbrowser-tabbox {
   position: relative;
-  box-shadow: 0 0 0 var(--hairline-border-width) var(--chrome-content-separator-color);
+  outline: 0.01px solid var(--chrome-content-separator-color);
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
-    box-shadow: 0 0 0 var(--hairline-border-width) var(--chrome-content-separator-color), 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
+    box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
   }
 }
 
