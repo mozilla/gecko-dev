@@ -507,6 +507,7 @@ WebProtocolHandlerRegistrar.prototype = {
     }
     if (lazy.NimbusFeatures.mailto.getVariable("dualPrompt")) {
       if ("mailto" === aProtocol) {
+        lazy.NimbusFeatures.mailto.recordExposureEvent();
         this._askUserToSetMailtoHandler(browser, aProtocol, aURI, aTitle);
         return;
       }
@@ -664,6 +665,7 @@ WebProtocolHandlerRegistrar.prototype = {
                   1000 +
                   Date.now()
               );
+              Glean.protocolhandlerMailto.promptClicked.dismiss_os_default.add();
             }
           },
         },
@@ -683,11 +685,6 @@ WebProtocolHandlerRegistrar.prototype = {
               if (this._canSetOSDefault(aProtocol)) {
                 if (this._setOSDefault(aProtocol)) {
                   Glean.protocolhandlerMailto.promptClicked.set_os_default.add();
-                  Services.telemetry.keyedScalarSet(
-                    "os.environment.is_default_handler",
-                    "mailto",
-                    true
-                  );
                   newitem.messageL10nId =
                     "protocolhandler-mailto-handler-confirm";
                   newitem.removeChild(newitem.buttonContainer);
@@ -699,11 +696,6 @@ WebProtocolHandlerRegistrar.prototype = {
                 // if anything goes wrong with setting the OS default, we want
                 // to be informed so that we can fix it.
                 Glean.protocolhandlerMailto.promptClicked.set_os_default_error.add();
-                Services.telemetry.keyedScalarSet(
-                  "os.environment.is_default_handler",
-                  "mailto",
-                  false
-                );
                 return false;
               }
 
@@ -731,6 +723,7 @@ WebProtocolHandlerRegistrar.prototype = {
                   1000 +
                   Date.now()
               );
+              Glean.protocolhandlerMailto.promptClicked.dismiss_os_default.add();
               return false;
             },
           },
