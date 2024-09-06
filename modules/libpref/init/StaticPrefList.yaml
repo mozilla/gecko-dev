@@ -11448,11 +11448,9 @@
 # In this mode, camera and microphone device labels are exposed if the site has a
 # persisted permission to either kind, as well as while actively capturing either
 # kind (temporary and tab-specific grace-period permissions do not count).
-#
-# Planned next steps: true → @IS_NOT_NIGHTLY_BUILD@ → false
 - name: media.devices.enumerate.legacy.enabled
   type: bool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # WebRTC prefs follow
@@ -14200,7 +14198,7 @@
 # Is support for Permissions.query enabled for camera and microphone?
 - name: permissions.media.query.enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
