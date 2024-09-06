@@ -9,11 +9,12 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   accessibility:
     "chrome://remote/content/shared/webdriver/Accessibility.sys.mjs",
-  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
+  assertInViewPort: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   atom: "chrome://remote/content/marionette/atom.sys.mjs",
   dom: "chrome://remote/content/shared/DOM.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   evaluate: "chrome://remote/content/marionette/evaluate.sys.mjs",
+  event: "chrome://remote/content/shared/webdriver/Event.sys.mjs",
   interaction: "chrome://remote/content/marionette/interaction.sys.mjs",
   json: "chrome://remote/content/marionette/json.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
@@ -37,8 +38,6 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
 
     // sandbox storage and name of the current sandbox
     this.sandboxes = new lazy.Sandboxes(() => this.document.defaultView);
-    // State of the input actions. This is specific to contexts and sessions
-    this.actionState = null;
   }
 
   get innerWindowId() {
@@ -59,6 +58,61 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     );
   }
 
+  #assertInViewPort(options = {}) {
+    const { target } = options;
+
+    return lazy.assertInViewPort(target, this.contentWindow);
+  }
+
+  #dispatchEvent(options = {}) {
+    const { eventName, details } = options;
+    const win = this.contentWindow;
+
+    switch (eventName) {
+      case "synthesizeKeyDown":
+        lazy.event.sendKeyDown(details.eventData, win);
+        break;
+      case "synthesizeKeyUp":
+        lazy.event.sendKeyUp(details.eventData, win);
+        break;
+      case "synthesizeMouseAtPoint":
+        lazy.event.synthesizeMouseAtPoint(
+          details.x,
+          details.y,
+          details.eventData,
+          win
+        );
+        break;
+      case "synthesizeMultiTouch":
+        lazy.event.synthesizeMultiTouch(details.eventData, win);
+        break;
+      case "synthesizeWheelAtPoint":
+        lazy.event.synthesizeWheelAtPoint(
+          details.x,
+          details.y,
+          details.eventData,
+          win
+        );
+        break;
+      default:
+        throw new Error(
+          `${eventName} is not a supported event dispatch method`
+        );
+    }
+  }
+
+  #endWheelTransaction() {
+    // Terminate the current wheel transaction if there is one. Wheel
+    // transactions should not live longer than a single action chain.
+    ChromeUtils.endWheelTransaction();
+  }
+
+  #getInViewCentrePoint(options) {
+    const { rect } = options;
+
+    return lazy.dom.getInViewCentrePoint(rect, this.contentWindow);
+  }
+
   async receiveMessage(msg) {
     if (!this.contentWindow) {
       throw new DOMException("Actor is no longer active", "InactiveActor");
@@ -77,6 +131,19 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
       );
 
       switch (name) {
+        case "MarionetteCommandsParent:_assertInViewPort":
+          result = this.#assertInViewPort(data);
+          break;
+        case "MarionetteCommandsParent:_dispatchEvent":
+          this.#dispatchEvent(data);
+          waitForNextTick = true;
+          break;
+        case "MarionetteCommandsParent:_endWheelTransaction":
+          this.#endWheelTransaction();
+          break;
+        case "MarionetteCommandsParent:_getInViewCentrePoint":
+          result = this.#getInViewCentrePoint(data);
+          break;
         case "MarionetteCommandsParent:clearElement":
           this.clearElement(data);
           waitForNextTick = true;
@@ -139,13 +206,6 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
           break;
         case "MarionetteCommandsParent:isElementSelected":
           result = await this.isElementSelected(data);
-          break;
-        case "MarionetteCommandsParent:performActions":
-          result = await this.performActions(data);
-          waitForNextTick = true;
-          break;
-        case "MarionetteCommandsParent:releaseActions":
-          result = await this.releaseActions();
           break;
         case "MarionetteCommandsParent:sendKeysToElement":
           result = await this.sendKeysToElement(data);
@@ -470,42 +530,6 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
       elem,
       capabilities["moz:accessibilityChecks"]
     );
-  }
-
-  /**
-   * Perform a series of grouped actions at the specified points in time.
-   *
-   * @param {object} options
-   * @param {object} options.actions
-   *     Array of objects with each representing an action sequence.
-   * @param {object} options.capabilities
-   *     Object with a list of WebDriver session capabilities.
-   */
-  async performActions(options = {}) {
-    const { actions } = options;
-    if (this.actionState === null) {
-      this.actionState = new lazy.action.State();
-    }
-    let actionChain = lazy.action.Chain.fromJSON(this.actionState, actions);
-
-    await actionChain.dispatch(this.actionState, this.document.defaultView);
-    // Terminate the current wheel transaction if there is one. Wheel
-    // transactions should not live longer than a single action chain.
-    ChromeUtils.endWheelTransaction();
-  }
-
-  /**
-   * The release actions command is used to release all the keys and pointer
-   * buttons that are currently depressed. This causes events to be fired
-   * as if the state was released by an explicit series of actions. It also
-   * clears all the internal state of the virtual devices.
-   */
-  async releaseActions() {
-    if (this.actionState === null) {
-      return;
-    }
-    await this.actionState.release(this.document.defaultView);
-    this.actionState = null;
   }
 
   /*
