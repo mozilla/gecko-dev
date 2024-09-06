@@ -601,6 +601,7 @@ MediaChangeMonitor::MediaChangeMonitor(
 /* static */
 RefPtr<PlatformDecoderModule::CreateDecoderPromise> MediaChangeMonitor::Create(
     PDMFactory* aPDMFactory, const CreateDecoderParams& aParams) {
+  LOG("MediaChangeMonitor::Create, params = %s", aParams.ToString().get());
   UniquePtr<CodecChangeMonitor> changeMonitor;
   const VideoInfo& currentConfig = aParams.VideoConfig();
   if (VPXDecoder::IsVPX(currentConfig.mMimeType)) {
@@ -623,6 +624,7 @@ RefPtr<PlatformDecoderModule::CreateDecoderPromise> MediaChangeMonitor::Create(
   // new set of params with the updated track info from our monitor and the
   // other params for aParams and use that going forward.
   const CreateDecoderParams updatedParams{changeMonitor->Config(), aParams};
+  LOG("updated params = %s", updatedParams.ToString().get());
 
   RefPtr<MediaChangeMonitor> instance = new MediaChangeMonitor(
       aPDMFactory, std::move(changeMonitor), nullptr, updatedParams);
@@ -851,10 +853,12 @@ void MediaChangeMonitor::SetSeekThreshold(const media::TimeUnit& aTime) {
 RefPtr<MediaChangeMonitor::CreateDecoderPromise>
 MediaChangeMonitor::CreateDecoder() {
   mCurrentConfig = *mChangeMonitor->Config().GetAsVideoInfo();
+  const CreateDecoderParams currentParams = {
+      mCurrentConfig, mParams, CreateDecoderParams::NoWrapper(true)};
+  LOG("MediaChangeMonitor::CreateDecoder, current params = %s",
+      currentParams.ToString().get());
   RefPtr<CreateDecoderPromise> p =
-      mPDMFactory
-          ->CreateDecoder(
-              {mCurrentConfig, mParams, CreateDecoderParams::NoWrapper(true)})
+      mPDMFactory->CreateDecoder(currentParams)
           ->Then(
               GetCurrentSerialEventTarget(), __func__,
               [self = RefPtr{this}, this](RefPtr<MediaDataDecoder>&& aDecoder) {
