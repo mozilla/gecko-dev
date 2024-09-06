@@ -6,7 +6,7 @@
 #include <sstream>
 // Mozilla: see mozilla.patch for more details
 // #include <codecvt>
-#include <iostream>
+// #include <iostream>
 #include <functional>
 #include <locale>
 // #include <codecvt>

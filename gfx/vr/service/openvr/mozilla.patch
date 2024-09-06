@@ -24,6 +24,9 @@ Legacy steps to update the library:
 - In strtools_public.cpp, remove the include of <codecvt>, as this causes
   problems in compiling on Linux.
 
+- In strtools_public.cpp, remove the include of <iostream>, as it implies a
+  global constructor.
+
 - In pathtools_public.cpp/.h, comment out Path_UrlToFilePath and
   Path_FilePathToUrl to avoid a compile error because 'alloca' isn't defined.
 
@@ -225,9 +228,10 @@ index f9ce0fd5ea799..f52f8e9004982 100644
  #include <stdlib.h>
  #include <sstream>
 -#include <codecvt>
+-#include <iostream>
 +// Mozilla: see mozilla.patch for more details
 +// #include <codecvt>
- #include <iostream>
++// #include <iostream>
  #include <functional>
  #include <locale>
 -#include <codecvt>
