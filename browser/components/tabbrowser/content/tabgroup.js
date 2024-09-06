@@ -39,16 +39,41 @@
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
 
-      this._lastTabRemovedObserver = new window.MutationObserver(() => {
+      this._tabsChangedObserver = new window.MutationObserver(mutationList => {
+        for (let mutation of mutationList) {
+          mutation.addedNodes.forEach(node => {
+            node.tagName === "tab" &&
+              node.dispatchEvent(
+                new CustomEvent("TabGrouped", {
+                  bubbles: true,
+                  detail: this,
+                })
+              );
+          });
+          mutation.removedNodes.forEach(node => {
+            node.tagName === "tab" &&
+              node.dispatchEvent(
+                new CustomEvent("TabUngrouped", {
+                  bubbles: true,
+                  detail: this,
+                })
+              );
+          });
+        }
         if (!this.tabs.length) {
+          this.dispatchEvent(
+            new CustomEvent("TabGroupRemove", { bubbles: true })
+          );
           this.remove();
         }
       });
-      this._lastTabRemovedObserver.observe(this, { childList: true });
+      this._tabsChangedObserver.observe(this, { childList: true });
+
+      this.dispatchEvent(new CustomEvent("TabGroupCreate", { bubbles: true }));
     }
 
     disconnectedCallback() {
-      this._lastTabRemovedObserver.disconnect();
+      this._tabsChangedObserver.disconnect();
     }
 
     get color() {

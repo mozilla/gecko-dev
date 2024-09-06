@@ -2,14 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-add_task(async function test_tabGroupCreate() {
+add_task(async function test_tabGroupCreateAndAddTab() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let group = gBrowser.addTabGroup("blue", "test", [tab1]);
+
+  Assert.ok(group.id, "group has id");
+  Assert.ok(group.tabs.includes(tab1), "tab1 is in group");
+
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tab1, tab2]);
+  group.addTabs([tab2]);
 
   Assert.equal(group.tabs.length, 2, "group has 2 tabs");
-  Assert.ok(group.tabs.includes(tab1), "tab1 is in group");
-  Assert.ok(group.tabs.includes(tab2), "tab2 is in group");
+  Assert.ok(group.tabs.includes(tab2), "tab1 is in group");
 
   gBrowser.removeTabGroup(group);
 });
@@ -270,4 +274,102 @@ add_task(async function test_tabGroupMoveToNewWindow() {
 
   fgWindow.gBrowser.removeTabGroup(group);
   await BrowserTestUtils.closeWindow(fgWindow);
+});
+
+add_task(async function test_TabGroupEvents() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let group;
+
+  let createdGroupId = null;
+  let tabGroupCreated = BrowserTestUtils.waitForEvent(
+    window,
+    "TabGroupCreate"
+  ).then(event => {
+    createdGroupId = event.target.id;
+  });
+  group = gBrowser.addTabGroup("blue", "test", [tab1]);
+  await tabGroupCreated;
+  Assert.equal(
+    createdGroupId,
+    group.id,
+    "TabGroupCreate fired with correct group as target"
+  );
+
+  let groupedGroupId = null;
+  let tabGrouped = BrowserTestUtils.waitForEvent(tab2, "TabGrouped").then(
+    event => {
+      groupedGroupId = event.detail.id;
+    }
+  );
+  group.addTabs([tab2]);
+  await tabGrouped;
+  Assert.equal(groupedGroupId, group.id, "TabGrouped fired with correct group");
+
+  let groupCollapsed = BrowserTestUtils.waitForEvent(group, "TabGroupCollapse");
+  group.collapsed = true;
+  await groupCollapsed;
+
+  let groupExpanded = BrowserTestUtils.waitForEvent(group, "TabGroupExpand");
+  group.collapsed = false;
+  await groupExpanded;
+
+  let ungroupedGroupId = null;
+  let tabUngrouped = BrowserTestUtils.waitForEvent(tab2, "TabUngrouped").then(
+    event => {
+      ungroupedGroupId = event.detail.id;
+    }
+  );
+  gBrowser.moveTabTo(tab2, 0);
+  await tabUngrouped;
+  Assert.equal(
+    ungroupedGroupId,
+    group.id,
+    "TabUngrouped fired with correct group"
+  );
+
+  let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  gBrowser.removeTabGroup(group);
+  await tabGroupRemoved;
+
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+});
+
+add_task(async function test_moveTabBetweenGroups() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+
+  let tab1Added = BrowserTestUtils.waitForEvent(tab1, "TabGrouped");
+  let tab2Added = BrowserTestUtils.waitForEvent(tab2, "TabGrouped");
+  let group1 = gBrowser.addTabGroup("blue", "test1", [tab1]);
+  let group2 = gBrowser.addTabGroup("red", "test2", [tab2]);
+  await Promise.allSettled([tab1Added, tab2Added]);
+
+  let ungroupedGroupId = null;
+  let tabUngrouped = BrowserTestUtils.waitForEvent(tab1, "TabUngrouped").then(
+    event => {
+      ungroupedGroupId = event.detail.id;
+    }
+  );
+  let groupedGroupId = null;
+  let tabGrouped = BrowserTestUtils.waitForEvent(tab1, "TabGrouped").then(
+    event => {
+      groupedGroupId = event.detail.id;
+      Assert.ok(ungroupedGroupId, "TabUngrouped fires before TabGrouped");
+    }
+  );
+
+  group2.addTabs([tab1]);
+  await Promise.allSettled([tabUngrouped, tabGrouped]);
+  Assert.equal(ungroupedGroupId, group1.id, "TabUngrouped fired with group1");
+  Assert.equal(groupedGroupId, group2.id, "TabGrouped fired with group2");
+
+  Assert.ok(
+    !group1.parent,
+    "group1 has been removed after losing its last tab"
+  );
+  Assert.equal(group2.tabs.length, 2, "group2 has 2 tabs");
+
+  gBrowser.removeTabGroup(group2);
 });
