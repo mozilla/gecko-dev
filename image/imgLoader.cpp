@@ -1882,7 +1882,7 @@ void imgLoader::NotifyObserversForCachedImage(
 
   RefPtr<HttpBaseChannel> httpBaseChannel = do_QueryObject(newChannel);
   if (httpBaseChannel) {
-    httpBaseChannel->SetDummyChannelForImageCache();
+    httpBaseChannel->SetDummyChannelForCachedResource();
     newChannel->SetContentType(nsDependentCString(request->GetMimeType()));
     RefPtr<mozilla::image::Image> image = request->GetImage();
     if (image) {

@@ -459,7 +459,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
     return mResponseTrailers.get();
   }
 
-  void SetDummyChannelForImageCache();
+  void SetDummyChannelForCachedResource();
 
   const NetAddr& GetSelfAddr() { return mSelfAddr; }
   const NetAddr& GetPeerAddr() { return mPeerAddr; }
@@ -1017,7 +1017,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   const bool mCachedOpaqueResponseBlockingPref;
   bool mChannelBlockedByOpaqueResponse;
 
-  bool mDummyChannelForImageCache;
+  bool mDummyChannelForCachedResource;
 
   bool mHasContentDecompressed;
 

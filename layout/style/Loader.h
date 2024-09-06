@@ -570,6 +570,9 @@ class Loader final {
   // Synchronously notify of a cached load data.
   void NotifyOfCachedLoad(RefPtr<SheetLoadData>);
 
+  // Notify observers of a cached stylesheet being.
+  void NotifyObserversForCachedSheet(SheetLoadData&);
+
   // Start the loads of all the sheets in mPendingDatas
   void StartDeferredLoads();
 

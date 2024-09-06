@@ -37,6 +37,7 @@
 #include "mozilla/dom/Document.h"
 #include "nsIURI.h"
 #include "nsContentUtils.h"
+#include "nsHttpChannel.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsContentPolicyUtils.h"
 #include "nsIHttpChannel.h"
@@ -48,6 +49,7 @@
 #include "nsThreadUtils.h"
 #include "nsINetworkPredictor.h"
 #include "nsQueryActor.h"
+#include "nsQueryObject.h"
 #include "nsStringStream.h"
 #include "mozilla/dom/MediaList.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -75,6 +77,7 @@
 #include "mozilla/Encoding.h"
 
 using namespace mozilla::dom;
+using namespace mozilla::net;
 
 // 1024 bytes is specified in https://drafts.csswg.org/css-syntax/
 #define SNIFFING_BUFFER_SIZE 1024
@@ -2020,6 +2023,9 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadStyleLink(
     LOG(("  Sheet already complete: 0x%p", sheet.get()));
     MOZ_ASSERT(sheet->GetOwnerNode() == aInfo.mContent);
     InsertSheetInTree(*sheet);
+    // Only call it here, since we want to notify only about stylesheets
+    // loaded with `link` tag.
+    NotifyObserversForCachedSheet(*data);
     NotifyOfCachedLoad(std::move(data));
     return LoadSheetResult{Completed::Yes, isAlternate, matched};
   }
@@ -2279,6 +2285,46 @@ void Loader::NotifyOfCachedLoad(RefPtr<SheetLoadData> aLoadData) {
     IncrementOngoingLoadCountAndMaybeBlockOnload();
   }
   SheetComplete(*aLoadData, NS_OK);
+}
+
+void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+
+  if (!obsService->HasObservers("http-on-stylesheet-cache-response")) {
+    return;
+  }
+
+  nsCOMPtr<nsIChannel> channel;
+  nsSecurityFlags securityFlags =
+      nsContentSecurityManager::ComputeSecurityFlags(
+          CORSMode::CORS_NONE, nsContentSecurityManager::CORSSecurityMapping::
+                                   CORS_NONE_MAPS_TO_INHERITED_CONTEXT);
+
+  securityFlags |= nsILoadInfo::SEC_ALLOW_CHROME;
+
+  nsContentPolicyType contentPolicyType =
+      aLoadData.mPreloadKind == StylePreloadKind::None
+          ? nsIContentPolicy::TYPE_INTERNAL_STYLESHEET
+          : nsIContentPolicy::TYPE_INTERNAL_STYLESHEET_PRELOAD;
+
+  nsINode* requestingNode = aLoadData.GetRequestingNode();
+  nsresult rv = NS_NewChannelWithTriggeringPrincipal(
+      getter_AddRefs(channel), aLoadData.mURI, requestingNode,
+      aLoadData.mTriggeringPrincipal, securityFlags, contentPolicyType);
+
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  RefPtr<HttpBaseChannel> httpBaseChannel = do_QueryObject(channel);
+  if (httpBaseChannel) {
+    httpBaseChannel->SetDummyChannelForCachedResource();
+    channel->SetContentType("text/css"_ns);
+    // For now, we only care for http channels, so "file://", "chrome://"
+    // "resource://" will be ignored.
+    obsService->NotifyObservers(channel, "http-on-stylesheet-cache-response",
+                                nullptr);
+  }
 }
 
 void Loader::Stop() {

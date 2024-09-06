@@ -245,7 +245,7 @@ HttpBaseChannel::HttpBaseChannel()
       mCachedOpaqueResponseBlockingPref(
           StaticPrefs::browser_opaqueResponseBlocking()),
       mChannelBlockedByOpaqueResponse(false),
-      mDummyChannelForImageCache(false),
+      mDummyChannelForCachedResource(false),
       mHasContentDecompressed(false),
       mRenderBlocking(false) {
   StoreApplyConversion(true);
@@ -656,7 +656,7 @@ HttpBaseChannel::GetContentType(nsACString& aContentType) {
 
 NS_IMETHODIMP
 HttpBaseChannel::SetContentType(const nsACString& aContentType) {
-  if (mListener || LoadWasOpened() || mDummyChannelForImageCache) {
+  if (mListener || LoadWasOpened() || mDummyChannelForCachedResource) {
     if (!mResponseHead) return NS_ERROR_NOT_AVAILABLE;
 
     nsAutoCString contentTypeBuf, charsetBuf;
@@ -808,7 +808,7 @@ HttpBaseChannel::GetContentLength(int64_t* aContentLength) {
 
 NS_IMETHODIMP
 HttpBaseChannel::SetContentLength(int64_t value) {
-  if (!mDummyChannelForImageCache) {
+  if (!mDummyChannelForCachedResource) {
     MOZ_ASSERT_UNREACHABLE("HttpBaseChannel::SetContentLength");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -6455,10 +6455,10 @@ bool HttpBaseChannel::Http3Allowed() const {
          LoadAllowHttp3();
 }
 
-void HttpBaseChannel::SetDummyChannelForImageCache() {
-  mDummyChannelForImageCache = true;
+void HttpBaseChannel::SetDummyChannelForCachedResource() {
+  mDummyChannelForCachedResource = true;
   MOZ_ASSERT(!mResponseHead,
-             "SetDummyChannelForImageCache should only be called once");
+             "SetDummyChannelForCachedResource should only be called once");
   mResponseHead = MakeUnique<nsHttpResponseHead>();
 }
 

@@ -279,6 +279,9 @@ LOCAL_INCLUDES += [
     "/dom/html",
     "/dom/xul",
     "/image",
+    # For nsHttpChannel.h
+    "/netwerk/base",
+    "/netwerk/protocol/http",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]
