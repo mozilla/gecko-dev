@@ -8450,15 +8450,9 @@
 # Instead, use gfxConfig::IsEnabled(Feature::HW_COMPOSITING).
 
 # Whether to force acceleration on, ignoring blacklists.
-
-# bug 838603 -- on Android, accidentally blacklisting OpenGL layers
-# means a startup crash for everyone.
-# Temporarily force-enable GL compositing.  This is default-disabled
-# deep within the bowels of the widgetry system.  Remove me when GL
-# compositing isn't default disabled in widget/android.
 - name: layers.acceleration.force-enabled
   type: bool
-  value: @IS_ANDROID@
+  value: false
   mirror: once
   do_not_use_directly: true
 
