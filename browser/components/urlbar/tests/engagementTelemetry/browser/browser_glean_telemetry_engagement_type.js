@@ -60,10 +60,10 @@ add_task(async function engagement_type_dismiss() {
   const cleanupQuickSuggest = await ensureQuickSuggestInit();
 
   await doTest(async () => {
-    await openPopup("sponsored");
+    await openPopup("amp");
 
     const originalResultCount = UrlbarTestUtils.getResultCount(window);
-    await selectRowByURL("https://example.com/sponsored");
+    await selectRowByURL("https://example.com/amp");
     UrlbarTestUtils.openResultMenuAndPressAccesskey(window, "D");
     await BrowserTestUtils.waitForCondition(
       () => originalResultCount != UrlbarTestUtils.getResultCount(window)
@@ -85,10 +85,10 @@ add_task(async function engagement_type_dismiss() {
   });
 
   await doTest(async () => {
-    await openPopup("sponsored");
+    await openPopup("amp");
 
     const originalResultCount = UrlbarTestUtils.getResultCount(window);
-    await selectRowByURL("https://example.com/sponsored");
+    await selectRowByURL("https://example.com/amp");
     EventUtils.synthesizeKey("KEY_Delete", { shiftKey: true });
     await BrowserTestUtils.waitForCondition(
       () => originalResultCount != UrlbarTestUtils.getResultCount(window)
@@ -142,8 +142,8 @@ add_task(async function engagement_type_manage() {
   const cleanupQuickSuggest = await ensureQuickSuggestInit();
 
   await doTest(async () => {
-    await openPopup("sponsored");
-    await selectRowByURL("https://example.com/sponsored");
+    await openPopup("amp");
+    await selectRowByURL("https://example.com/amp");
 
     const onManagePageLoaded = BrowserTestUtils.browserLoaded(
       browser,

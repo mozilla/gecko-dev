@@ -108,7 +108,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
    * @returns {boolean} Whether this provider should be invoked for the search.
    */
   isActive(queryContext) {
-    this.#resultFromLastQuery = null;
+    this.#topPicksResultFromLastQuery = null;
 
     // If the sources don't include search or the user used a restriction
     // character other than search, don't allow any suggestions.
@@ -203,8 +203,14 @@ class ProviderQuickSuggest extends UrlbarProvider {
     // required for looking up the features that manage them.
     let requiredKeys = ["source", "provider"];
 
-    // Add a result for the first suggestion that can be shown.
+    // Convert each suggestion into a result and add it. Don't add more than
+    // `maxResults` results so we don't spam the muxer.
+    let remainingCount = queryContext.maxResults ?? 10;
     for (let suggestion of suggestions) {
+      if (!remainingCount) {
+        break;
+      }
+
       for (let key of requiredKeys) {
         if (!suggestion[key]) {
           this.logger.error(
@@ -219,15 +225,18 @@ class ProviderQuickSuggest extends UrlbarProvider {
       if (instance != this.queryInstance) {
         return;
       }
-
-      let result;
-      if (
-        canAdd &&
-        (result = await this.#makeResult(queryContext, suggestion))
-      ) {
-        this.#resultFromLastQuery = result;
-        addCallback(this, result);
-        return;
+      if (canAdd) {
+        let result = await this.#makeResult(queryContext, suggestion);
+        if (instance != this.queryInstance) {
+          return;
+        }
+        if (result) {
+          addCallback(this, result);
+          remainingCount--;
+          if (result.payload.telemetryType == "top_picks") {
+            this.#topPicksResultFromLastQuery = result;
+          }
+        }
       }
     }
   }
@@ -272,7 +281,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     this.#recordEngagement(queryContext, this.#sessionResult, details);
 
     this.#sessionResult = null;
-    this.#resultFromLastQuery = null;
+    this.#topPicksResultFromLastQuery = null;
   }
 
   /**
@@ -792,10 +801,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
       } else if (heuristicClicked) {
         scalars.push(TELEMETRY_SCALARS.CLICK_NAV_SHOWN_HEURISTIC);
       }
-    } else if (
-      this.#resultFromLastQuery?.payload.telemetryType == "top_picks" &&
-      this.#resultFromLastQuery?.payload.dupedHeuristic
-    ) {
+    } else if (this.#topPicksResultFromLastQuery?.payload.dupedHeuristic) {
       // nav suggestion duped heuristic
       scalars.push(TELEMETRY_SCALARS.IMPRESSION_NAV_SUPERCEDED);
       if (heuristicClicked) {
@@ -931,8 +937,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
     return this.#merino;
   }
 
-  // The result we added during the most recent query. It may not be visible.
-  #resultFromLastQuery = null;
+  // The "top_picks" result added during the most recent query, if any.
+  #topPicksResultFromLastQuery = null;
 
   // The result from this provider that was visible at the end of the current
   // search session, if the session ended in an engagement.
