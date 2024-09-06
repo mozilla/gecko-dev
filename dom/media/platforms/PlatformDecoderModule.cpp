@@ -18,7 +18,7 @@ CreateDecoderParamsForAsync::CreateDecoderParamsForAsync(
       mKnowsCompositor(aParams.mKnowsCompositor),
       mCrashHelper(aParams.mCrashHelper),
       mUseNullDecoder(aParams.mUseNullDecoder),
-      mNoWrapper(aParams.mNoWrapper),
+      mWrappers(aParams.mWrappers),
       mType(aParams.mType),
       mOnWaitingForKeyEvent(aParams.mOnWaitingForKeyEvent),
       mOptions(aParams.mOptions),

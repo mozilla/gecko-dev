@@ -72,9 +72,9 @@ RemoteAudioDecoderParent::RemoteAudioDecoderParent(
 
 IPCResult RemoteAudioDecoderParent::RecvConstruct(
     ConstructResolver&& aResolver) {
-  auto params = CreateDecoderParams{mAudioInfo, mOptions,
-                                    CreateDecoderParams::NoWrapper(true),
-                                    mMediaEngineId, mTrackingId};
+  auto params = CreateDecoderParams{
+      mAudioInfo, mOptions, CreateDecoderParams::WrapperSet({/* No wrapper */}),
+      mMediaEngineId, mTrackingId};
 
   mParent->EnsurePDMFactory().CreateDecoder(params)->Then(
       GetCurrentSerialEventTarget(), __func__,

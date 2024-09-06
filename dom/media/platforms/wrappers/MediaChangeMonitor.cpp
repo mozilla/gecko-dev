@@ -853,8 +853,8 @@ void MediaChangeMonitor::SetSeekThreshold(const media::TimeUnit& aTime) {
 RefPtr<MediaChangeMonitor::CreateDecoderPromise>
 MediaChangeMonitor::CreateDecoder() {
   mCurrentConfig = *mChangeMonitor->Config().GetAsVideoInfo();
-  const CreateDecoderParams currentParams = {
-      mCurrentConfig, mParams, CreateDecoderParams::NoWrapper(true)};
+  CreateDecoderParams currentParams = {mCurrentConfig, mParams};
+  currentParams.mWrappers -= media::Wrapper::MediaChangeMonitor;
   LOG("MediaChangeMonitor::CreateDecoder, current params = %s",
       currentParams.ToString().get());
   RefPtr<CreateDecoderPromise> p =

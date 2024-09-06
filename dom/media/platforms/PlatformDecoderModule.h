@@ -43,6 +43,21 @@ static LazyLogModule sPDMLog("PlatformDecoderModule");
 
 namespace media {
 
+template <typename T>
+static nsCString EnumSetToString(const EnumSet<T>& aSet) {
+  nsCString str;
+  for (const auto e : aSet) {
+    if (!str.IsEmpty()) {
+      str.AppendLiteral("|");
+    }
+    str.AppendPrintf("%s", EnumValueToString(e));
+  }
+  if (str.IsEmpty()) {
+    str.AppendLiteral("Empty");
+  }
+  return str;
+}
+
 MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING(
     Option,
     (Default, LowLatency, HardwareDecoderNotAllowed, FullH264Parsing,
@@ -60,20 +75,6 @@ MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING(
 
 using OptionSet = EnumSet<Option>;
 
-static nsCString OptionSetToString(const OptionSet& aOptions) {
-  nsCString str;
-  for (const auto option : aOptions) {
-    if (!str.IsEmpty()) {
-      str.AppendLiteral("|");
-    }
-    str.AppendPrintf("%s", EnumValueToString(option));
-  }
-  if (str.IsEmpty()) {
-    str.AppendLiteral("Empty");
-  }
-  return str;
-}
-
 struct UseNullDecoder {
   UseNullDecoder() = default;
   explicit UseNullDecoder(bool aUseNullDecoder) : mUse(aUseNullDecoder) {}
@@ -81,11 +82,20 @@ struct UseNullDecoder {
 };
 
 // Do not wrap H264 decoder in a H264Converter.
-struct NoWrapper {
-  NoWrapper() = default;
-  explicit NoWrapper(bool aDontUseWrapper) : mDontUseWrapper(aDontUseWrapper) {}
-  bool mDontUseWrapper = false;
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(Wrapper, uint8_t,
+                                             (AudioTrimmer,
+                                              MediaChangeMonitor));
+using WrapperSet = EnumSet<Wrapper>;
+static WrapperSet GetDefaultWrapperSet(const TrackInfo& aInfo) {
+  WrapperSet set;
+  if (aInfo.IsVideo()) {
+    set += Wrapper::MediaChangeMonitor;
+  }
+  if (aInfo.IsAudio()) {
+    set += Wrapper::AudioTrimmer;
+  }
+  return set;
+}
 
 struct VideoFrameRate {
   VideoFrameRate() = default;
@@ -117,7 +127,7 @@ struct CreateDecoderParamsForAsync {
   const RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   const RefPtr<GMPCrashHelper> mCrashHelper;
   const media::UseNullDecoder mUseNullDecoder;
-  const media::NoWrapper mNoWrapper;
+  const media::WrapperSet mWrappers;
   const TrackInfo::TrackType mType = TrackInfo::kUndefinedTrack;
   std::function<MediaEventProducer<TrackInfo::TrackType>*()>
       mOnWaitingForKeyEvent;
@@ -131,14 +141,15 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   using Option = media::Option;
   using OptionSet = media::OptionSet;
   using UseNullDecoder = media::UseNullDecoder;
-  using NoWrapper = media::NoWrapper;
+  using WrapperSet = media::WrapperSet;
   using VideoFrameRate = media::VideoFrameRate;
   enum class EncryptedCustomIdent : bool {
     False,
     True,
   };
 
-  explicit CreateDecoderParams(const TrackInfo& aConfig) : mConfig(aConfig) {}
+  explicit CreateDecoderParams(const TrackInfo& aConfig)
+      : mConfig(aConfig), mWrappers(media::GetDefaultWrapperSet(aConfig)) {}
   CreateDecoderParams(const CreateDecoderParams& aParams) = default;
 
   MOZ_IMPLICIT CreateDecoderParams(const CreateDecoderParamsForAsync& aParams)
@@ -147,7 +158,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
         mKnowsCompositor(aParams.mKnowsCompositor),
         mCrashHelper(aParams.mCrashHelper),
         mUseNullDecoder(aParams.mUseNullDecoder),
-        mNoWrapper(aParams.mNoWrapper),
+        mWrappers(aParams.mWrappers),
         mType(aParams.mType),
         mOnWaitingForKeyEvent(aParams.mOnWaitingForKeyEvent),
         mOptions(aParams.mOptions),
@@ -157,7 +168,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
 
   template <typename T1, typename... Ts>
   CreateDecoderParams(const TrackInfo& aConfig, T1&& a1, Ts&&... args)
-      : mConfig(aConfig) {
+      : mConfig(aConfig), mWrappers(media::GetDefaultWrapperSet(aConfig)) {
     Set(std::forward<T1>(a1), std::forward<Ts>(args)...);
   }
 
@@ -194,12 +205,11 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     str.AppendPrintf(", mCrashHelper = %p", mCrashHelper);
     str.AppendPrintf(", mUseNullDecoder = %s",
                      mUseNullDecoder.mUse ? "yes" : "no");
-    str.AppendPrintf(", mNoWrapper = %s",
-                     mNoWrapper.mDontUseWrapper ? "no wrapper" : "has wrapper");
+    str.AppendPrintf(", mWrappers = %s", EnumSetToString(mWrappers).get());
     str.AppendPrintf(", mType = %d", static_cast<int32_t>(mType));
     str.AppendPrintf(", mOnWaitingForKeyEvent = %s",
                      mOnWaitingForKeyEvent ? "yes" : "no");
-    str.AppendPrintf(", mOptions = %s", OptionSetToString(mOptions).get());
+    str.AppendPrintf(", mOptions = %s", EnumSetToString(mOptions).get());
     str.AppendPrintf(", mRate = %f", mRate.mValue);
     str.AppendPrintf(
         ", mMediaEngineId = %s",
@@ -221,7 +231,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   layers::KnowsCompositor* mKnowsCompositor = nullptr;
   GMPCrashHelper* mCrashHelper = nullptr;
   media::UseNullDecoder mUseNullDecoder;
-  media::NoWrapper mNoWrapper;
+  WrapperSet mWrappers;
   TrackInfo::TrackType mType = TrackInfo::kUndefinedTrack;
   std::function<MediaEventProducer<TrackInfo::TrackType>*()>
       mOnWaitingForKeyEvent;
@@ -241,7 +251,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   void Set(UseNullDecoder aUseNullDecoder) {
     mUseNullDecoder = aUseNullDecoder;
   }
-  void Set(NoWrapper aNoWrapper) { mNoWrapper = aNoWrapper; }
+  void Set(const WrapperSet& aWrappers) { mWrappers = aWrappers; }
   void Set(const OptionSet& aOptions) { mOptions = aOptions; }
   void Set(VideoFrameRate aRate) { mRate = aRate; }
   void Set(layers::KnowsCompositor* aKnowsCompositor) {
@@ -273,7 +283,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     mKnowsCompositor = aParams.mKnowsCompositor;
     mCrashHelper = aParams.mCrashHelper;
     mUseNullDecoder = aParams.mUseNullDecoder;
-    mNoWrapper = aParams.mNoWrapper;
+    mWrappers = aParams.mWrappers;
     mType = aParams.mType;
     mOnWaitingForKeyEvent = aParams.mOnWaitingForKeyEvent;
     mOptions = aParams.mOptions;
@@ -292,24 +302,25 @@ struct MOZ_STACK_CLASS SupportDecoderParams final {
   using Option = media::Option;
   using OptionSet = media::OptionSet;
   using UseNullDecoder = media::UseNullDecoder;
-  using NoWrapper = media::NoWrapper;
+  using WrapperSet = media::WrapperSet;
   using VideoFrameRate = media::VideoFrameRate;
 
-  explicit SupportDecoderParams(const TrackInfo& aConfig) : mConfig(aConfig) {}
+  explicit SupportDecoderParams(const TrackInfo& aConfig)
+      : mConfig(aConfig), mWrappers(media::GetDefaultWrapperSet(aConfig)) {}
 
   explicit SupportDecoderParams(const CreateDecoderParams& aParams)
       : mConfig(aParams.mConfig),
         mError(aParams.mError),
         mKnowsCompositor(aParams.mKnowsCompositor),
         mUseNullDecoder(aParams.mUseNullDecoder),
-        mNoWrapper(aParams.mNoWrapper),
+        mWrappers(aParams.mWrappers),
         mOptions(aParams.mOptions),
         mRate(aParams.mRate),
         mMediaEngineId(aParams.mMediaEngineId) {}
 
   template <typename T1, typename... Ts>
   SupportDecoderParams(const TrackInfo& aConfig, T1&& a1, Ts&&... args)
-      : mConfig(aConfig) {
+      : mConfig(aConfig), mWrappers(media::GetDefaultWrapperSet(aConfig)) {
     Set(std::forward<T1>(a1), std::forward<Ts>(args)...);
   }
 
@@ -320,7 +331,7 @@ struct MOZ_STACK_CLASS SupportDecoderParams final {
   MediaResult* mError = nullptr;
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   UseNullDecoder mUseNullDecoder;
-  NoWrapper mNoWrapper;
+  WrapperSet mWrappers;
   OptionSet mOptions = OptionSet(Option::Default);
   VideoFrameRate mRate;
   Maybe<uint64_t> mMediaEngineId;
@@ -333,7 +344,7 @@ struct MOZ_STACK_CLASS SupportDecoderParams final {
   void Set(media::UseNullDecoder aUseNullDecoder) {
     mUseNullDecoder = aUseNullDecoder;
   }
-  void Set(media::NoWrapper aNoWrapper) { mNoWrapper = aNoWrapper; }
+  void Set(const WrapperSet& aWrappers) { mWrappers = aWrappers; }
   void Set(const media::OptionSet& aOptions) { mOptions = aOptions; }
   void Set(media::VideoFrameRate aRate) { mRate = aRate; }
   void Set(layers::KnowsCompositor* aKnowsCompositor) {

@@ -415,7 +415,7 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
         [params = CreateDecoderParamsForAsync(aParams)](
             RefPtr<MediaDataDecoder>&& aDecoder) {
           RefPtr<MediaDataDecoder> decoder = std::move(aDecoder);
-          if (!params.mNoWrapper.mDontUseWrapper) {
+          if (params.mWrappers.contains(media::Wrapper::AudioTrimmer)) {
             decoder = new AudioTrimmer(decoder.forget());
           }
           return PlatformDecoderModule::CreateDecoderPromise::CreateAndResolve(
@@ -443,7 +443,8 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
 #endif
        VPXDecoder::IsVPX(config.mMimeType) ||
        MP4Decoder::IsHEVC(config.mMimeType)) &&
-      !aParams.mUseNullDecoder.mUse && !aParams.mNoWrapper.mDontUseWrapper) {
+      !aParams.mUseNullDecoder.mUse &&
+      aParams.mWrappers.contains(media::Wrapper::MediaChangeMonitor)) {
     return MediaChangeMonitor::Create(this, aParams);
   }
   return aPDM->AsyncCreateDecoder(aParams);
