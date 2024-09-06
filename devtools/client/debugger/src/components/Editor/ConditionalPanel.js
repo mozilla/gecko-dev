@@ -253,7 +253,7 @@ export class ConditionalPanel extends PureComponent {
     this.input = input;
     this.codeMirror = codeMirror;
     codeMirror.focus();
-    codeMirror.setCursor(codeMirror.lineCount(), 0);
+    codeMirror.execCommand("selectAll");
   };
 
   getDefaultValue() {

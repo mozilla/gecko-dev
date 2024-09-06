@@ -80,6 +80,19 @@ exports[`ConditionalPanel should render at location of selected breakpoint 1`] =
             Object {
               "type": "return",
               "value": Object {
+                "execCommand": [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "selectAll",
+                    ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "type": "return",
+                      "value": undefined,
+                    },
+                  ],
+                },
                 "focus": [MockFunction] {
                   "calls": Array [
                     Array [],
@@ -117,17 +130,7 @@ exports[`ConditionalPanel should render at location of selected breakpoint 1`] =
                     },
                   ],
                 },
-                "lineCount": [MockFunction] {
-                  "calls": Array [
-                    Array [],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "lineCount": [MockFunction],
                 "on": [MockFunction] {
                   "calls": Array [
                     Array [
@@ -150,20 +153,7 @@ exports[`ConditionalPanel should render at location of selected breakpoint 1`] =
                     },
                   ],
                 },
-                "setCursor": [MockFunction] {
-                  "calls": Array [
-                    Array [
-                      undefined,
-                      0,
-                    ],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "setCursor": [MockFunction],
               },
             },
           ],
@@ -340,6 +330,19 @@ exports[`ConditionalPanel should render with condition at selected breakpoint lo
             Object {
               "type": "return",
               "value": Object {
+                "execCommand": [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "selectAll",
+                    ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "type": "return",
+                      "value": undefined,
+                    },
+                  ],
+                },
                 "focus": [MockFunction] {
                   "calls": Array [
                     Array [],
@@ -377,17 +380,7 @@ exports[`ConditionalPanel should render with condition at selected breakpoint lo
                     },
                   ],
                 },
-                "lineCount": [MockFunction] {
-                  "calls": Array [
-                    Array [],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "lineCount": [MockFunction],
                 "on": [MockFunction] {
                   "calls": Array [
                     Array [
@@ -410,20 +403,7 @@ exports[`ConditionalPanel should render with condition at selected breakpoint lo
                     },
                   ],
                 },
-                "setCursor": [MockFunction] {
-                  "calls": Array [
-                    Array [
-                      undefined,
-                      0,
-                    ],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "setCursor": [MockFunction],
               },
             },
           ],
@@ -602,6 +582,19 @@ exports[`ConditionalPanel should render with logpoint at selected breakpoint loc
             Object {
               "type": "return",
               "value": Object {
+                "execCommand": [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "selectAll",
+                    ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "type": "return",
+                      "value": undefined,
+                    },
+                  ],
+                },
                 "focus": [MockFunction] {
                   "calls": Array [
                     Array [],
@@ -639,17 +632,7 @@ exports[`ConditionalPanel should render with logpoint at selected breakpoint loc
                     },
                   ],
                 },
-                "lineCount": [MockFunction] {
-                  "calls": Array [
-                    Array [],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "lineCount": [MockFunction],
                 "on": [MockFunction] {
                   "calls": Array [
                     Array [
@@ -672,20 +655,7 @@ exports[`ConditionalPanel should render with logpoint at selected breakpoint loc
                     },
                   ],
                 },
-                "setCursor": [MockFunction] {
-                  "calls": Array [
-                    Array [
-                      undefined,
-                      0,
-                    ],
-                  ],
-                  "results": Array [
-                    Object {
-                      "type": "return",
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "setCursor": [MockFunction],
               },
             },
           ],

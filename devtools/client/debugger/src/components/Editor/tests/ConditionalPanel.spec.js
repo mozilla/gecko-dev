@@ -27,6 +27,7 @@ function generateDefaults(overrides, log, line, column, condition, logValue) {
               };
             }),
             focus: jest.fn(),
+            execCommand: jest.fn(),
             setCursor: jest.fn(),
             lineCount: jest.fn(),
           };

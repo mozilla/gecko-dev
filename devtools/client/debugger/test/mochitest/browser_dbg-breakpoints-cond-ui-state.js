@@ -45,6 +45,8 @@ add_task(async function () {
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, `${selectors.editConditionItem}`);
   await waitForConditionalPanelFocus(dbg);
+  // The whole text is selected, hit Right key to get to the end of the input
+  pressKey(dbg, "Right");
   // Move one char left to put the cursor between 1 and 2
   pressKey(dbg, "Left");
   // Insert a new line
