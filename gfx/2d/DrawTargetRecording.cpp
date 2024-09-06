@@ -640,6 +640,11 @@ void DrawTargetRecording::PopClip() {
   RecordEventSelfSkipFlushTransform(RecordedPopClip());
 }
 
+bool DrawTargetRecording::RemoveAllClips() {
+  RecordEventSelfSkipFlushTransform(RecordedRemoveAllClips());
+  return true;
+}
+
 void DrawTargetRecording::PushLayer(bool aOpaque, Float aOpacity,
                                     SourceSurface* aMask,
                                     const Matrix& aMaskTransform,

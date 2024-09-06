@@ -58,6 +58,8 @@ std::string RecordedEvent::GetEventName(EventType aType) {
       return "PushClipRect";
     case POPCLIP:
       return "PopClip";
+    case REMOVEALLCLIPS:
+      return "RemoveAllClips";
     case FILL:
       return "Fill";
     case FILLGLYPHS:

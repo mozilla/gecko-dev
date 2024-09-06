@@ -223,6 +223,9 @@ class DrawTargetRecording final : public DrawTarget {
    */
   virtual void PopClip() override;
 
+  /* Remove all applied clips. */
+  virtual bool RemoveAllClips() override;
+
   /**
    * Push a 'layer' to the DrawTarget, a layer is a temporary surface that all
    * drawing will be redirected to, this is used for example to support group

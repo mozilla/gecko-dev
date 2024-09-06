@@ -388,6 +388,7 @@ class RecordedEvent {
     PUSHCLIP,
     PUSHCLIPRECT,
     POPCLIP,
+    REMOVEALLCLIPS,
     FILL,
     FILLCIRCLE,
     FILLGLYPHS,

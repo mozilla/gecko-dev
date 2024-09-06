@@ -681,6 +681,27 @@ class RecordedPopClip : public RecordedEventDerived<RecordedPopClip> {
   MOZ_IMPLICIT RecordedPopClip(S& aStream);
 };
 
+class RecordedRemoveAllClips
+    : public RecordedEventDerived<RecordedRemoveAllClips> {
+ public:
+  MOZ_IMPLICIT RecordedRemoveAllClips()
+      : RecordedEventDerived(REMOVEALLCLIPS) {}
+
+  bool PlayEvent(Translator* aTranslator) const override;
+
+  template <class S>
+  void Record(S& aStream) const;
+  void OutputSimpleEventInfo(std::stringstream& aStringStream) const override;
+
+  std::string GetName() const override { return "RemoveAllClips"; }
+
+ private:
+  friend class RecordedEvent;
+
+  template <class S>
+  MOZ_IMPLICIT RecordedRemoveAllClips(S& aStream);
+};
+
 class RecordedPushLayer : public RecordedEventDerived<RecordedPushLayer> {
  public:
   RecordedPushLayer(bool aOpaque, Float aOpacity, SourceSurface* aMask,
@@ -2973,6 +2994,28 @@ inline void RecordedPopClip::OutputSimpleEventInfo(
   aStringStream << "PopClip";
 }
 
+inline bool RecordedRemoveAllClips::PlayEvent(Translator* aTranslator) const {
+  DrawTarget* dt = aTranslator->GetCurrentDrawTarget();
+  if (!dt) {
+    return false;
+  }
+
+  dt->RemoveAllClips();
+  return true;
+}
+
+template <class S>
+void RecordedRemoveAllClips::Record(S& aStream) const {}
+
+template <class S>
+RecordedRemoveAllClips::RecordedRemoveAllClips(S& aStream)
+    : RecordedEventDerived(REMOVEALLCLIPS) {}
+
+inline void RecordedRemoveAllClips::OutputSimpleEventInfo(
+    std::stringstream& aStringStream) const {
+  aStringStream << "RemoveAllClips";
+}
+
 inline bool RecordedPushLayer::PlayEvent(Translator* aTranslator) const {
   DrawTarget* dt = aTranslator->GetCurrentDrawTarget();
   if (!dt) {
@@ -4474,6 +4517,7 @@ inline void RecordedDestination::OutputSimpleEventInfo(
   f(PUSHCLIPRECT, RecordedPushClipRect);                           \
   f(PUSHCLIP, RecordedPushClip);                                   \
   f(POPCLIP, RecordedPopClip);                                     \
+  f(REMOVEALLCLIPS, RecordedRemoveAllClips);                       \
   f(FILL, RecordedFill);                                           \
   f(FILLCIRCLE, RecordedFillCircle);                               \
   f(FILLGLYPHS, RecordedFillGlyphs);                               \
