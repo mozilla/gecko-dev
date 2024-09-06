@@ -59,14 +59,12 @@
 # DisplayPortUtils::MaybeCreateDisplayPortInFirstScrollFrameEncountered based
 # the current structure that we may want to revisit.
             <html:div id="vertical-pinned-tabs-container"></html:div>
-            <html:div id="newtab-button-container">
-              <toolbarbutton id="vertical-tabs-newtab-button"
-                                  class="toolbarbutton-1"
-                                  command="cmd_newNavigatorTab"
-                                  onclick="gBrowser.handleNewTabMiddleClick(this, event);"
-                                  tooltip="dynamic-shortcut-tooltip"
-                                  data-l10n-id="tabs-toolbar-new-tab"/>
-            </html:div>
+            <toolbarbutton id="vertical-tabs-newtab-button"
+                                class="toolbarbutton-1"
+                                command="cmd_newNavigatorTab"
+                                onclick="gBrowser.handleNewTabMiddleClick(this, event);"
+                                tooltip="dynamic-shortcut-tooltip"
+                                data-l10n-id="tabs-toolbar-new-tab"/>
             <arrowscrollbox id="tabbrowser-arrowscrollbox" orient="horizontal" flex="1" style="min-width: 1px;" clicktoscroll="" scrolledtostart="" scrolledtoend="">
               <tab is="tabbrowser-tab" class="tabbrowser-tab" selected="true" visuallyselected="" fadein=""/>
               <hbox id="tabbrowser-arrowscrollbox-periphery">

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
+  --tabstrip-inner-border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   --tab-min-height: 36px;
   &[uidensity=compact] {
     --tab-min-height: 29px;
@@ -15,6 +16,7 @@
   --tab-border-radius: 4px;
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
+  --tab-icon-end-margin: 5.5px;
   --tab-loading-fill: #0A84FF;
   --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
   --tab-selected-textcolor: var(--toolbar-color);
@@ -259,7 +261,7 @@
      - vertical but expanded
   */
   #tabbrowser-tabs:is(:not([orient="vertical"]), [orient="vertical"][expanded]) &:not([pinned]) {
-    margin-inline-end: 5.5px;
+    margin-inline-end: var(--tab-icon-end-margin);
   }
 }
 
@@ -792,22 +794,33 @@ tab-group {
 }
 
 #tabbrowser-tabs[orient="vertical"]:has(> #tabbrowser-arrowscrollbox[overflowing]) {
-  border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-bottom: var(--tabstrip-inner-border);
 }
 
 #vertical-tabs-newtab-button {
-  display: flex;
-  height: var(--tab-min-height);
+  appearance: none;
+  font: message-box; /* match .tabbrowser-tab on macOS */
+  min-height: var(--tab-min-height);
   border-radius: var(--border-radius-medium);
-  padding: 0 var(--space-medium);
+  padding: 0 var(--inline-tab-padding);
+  margin-inline-end: var(--space-medium);
+
+  #tabbrowser-tabs:not([orient="vertical"]) > & {
+    display: none;
+  }
 
   &:hover {
     background-color: var(--tab-hover-background-color);
+    outline-color: var(--tab-hover-outline-color);
   }
 
   > .toolbarbutton-text {
     text-align: start;
-    padding-inline-start: var(--space-small);
+    padding-inline-start: var(--tab-icon-end-margin);
+
+    sidebar-main:not([expanded]) & {
+      display: none;
+    }
   }
 }
 
@@ -822,10 +835,6 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   flex: none;
 }
 
-#newtab-button-container {
-  display: none;
-}
-
 #vertical-tabs {
   overflow: hidden;
   display: none;
@@ -836,11 +845,29 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
 }
 
 #vertical-pinned-tabs-container {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--collapsed-tab-width), auto));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  /* Fit slightly more than 5 tabs + padding before overflowing */
+  max-height: 244px;
+  column-gap: 4px;
+  padding-bottom: var(--space-small);
+  margin-inline-end: var(--space-medium);
+
+  sidebar-main:not([expanded]) &:not(:empty) {
+    border-bottom: var(--tabstrip-inner-border);
+  }
+
+  #tabbrowser-tabs:not([orient="vertical"]) > & {
+    display: none;
+  }
 
   .tab-label-container {
     display: none;
   }
+
   .tab-background {
     border-radius: var(--border-radius-medium);
 
@@ -860,53 +887,20 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   .tab-close-button {
     display: none;
   }
+
   .tab-content {
     /* Prevents the tab content in the vertical-pinned-tabs-container
     from becoming misaligned when in the expanded state. */
     justify-content: center;
   }
+
   .tab-background {
     border-radius: var(--border-radius-medium);
   }
-  #newtab-button-container {
-    display: flex;
-    border-top: 0;
-    margin-inline-end: var(--space-medium);
-    font-size: var(--urlbarView-small-font-size);
-    flex-direction: column;
-    padding-top: var(--space-small);
-
-    &[showborder] {
-      border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-    }
-
-    sidebar-main:not([expanded]) & {
-      .toolbarbutton-text {
-        display: none;
-      }
-    }
-  }
-  #vertical-pinned-tabs-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--collapsed-tab-width), auto));
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    /* Fit slightly more than 5 tabs + padding before overflowing */
-    max-height: 244px;
-    column-gap: 4px;
-    padding-inline-end: var(--space-medium);
-  }
 }
 
-sidebar-main[expanded] #tabbrowser-tabs[orient="vertical"] #newtab-button-container {
-  border-top: 0;
-}
-
-sidebar-main:not([expanded]) {
-  .tab-label-container {
-    display: none;
-  }
+sidebar-main:not([expanded]) .tab-label-container {
+  display: none;
 }
 
 sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:is(:hover, [selected]) .tab-close-button {
@@ -950,7 +944,7 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] > 
   toolbarbutton:not(#firefox-view-button),
   toolbarpaletteitem:not(#wrapper-firefox-view-button)
 ) + #tabbrowser-tabs {
-  border-inline-start: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-inline-start: var(--tabstrip-inner-border);
   padding-inline-start: calc(var(--tab-overflow-pinned-tabs-width) + 2px);
   margin-inline-start: 2px;
 }

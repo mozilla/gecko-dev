@@ -1555,7 +1555,6 @@
       let verticalTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
       );
-      let newTabButton = document.getElementById("newtab-button-container");
       let numPinned = gBrowser._numPinnedTabs;
 
       if (gBrowser._numPinnedTabs !== verticalTabsContainer.children.length) {
@@ -1566,7 +1565,6 @@
         }
       }
 
-      newTabButton.toggleAttribute("showborder", gBrowser._numPinnedTabs !== 0);
       this.style.removeProperty("--tab-overflow-pinned-tabs-width");
     }
 
