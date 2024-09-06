@@ -77,7 +77,7 @@ skip-if = ["true"]
 
 ["browser_very_fission.js"]
 support-files = ["file_dummy.html"]
-run-if = ["toolkit == 'gtk'"]
+run-if = ["widget == 'gtk'"]
 
 ["browser_wpi_isolate_everything.js"]
 support-files = ["browser_wpi_base.js"]
