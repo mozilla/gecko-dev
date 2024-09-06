@@ -81,6 +81,8 @@ class Event : public nsISupports, public nsWrapperCache {
  protected:
   virtual ~Event();
 
+  void LastRelease();
+
  private:
   void ConstructorInit(EventTarget* aOwner, nsPresContext* aPresContext,
                        WidgetEvent* aEvent);

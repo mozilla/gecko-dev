@@ -132,7 +132,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Event)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Event)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(Event)
+NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(Event, LastRelease())
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Event)
 
@@ -217,6 +217,15 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Event)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExplicitOriginalTarget)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+void Event::LastRelease() {
+  nsISupports* supports = nullptr;
+  QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
+                 reinterpret_cast<void**>(&supports));
+  nsXPCOMCycleCollectionParticipant* p = nullptr;
+  CallQueryInterface(this, &p);
+  p->Unlink(supports);
+}
 
 JSObject* Event::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WrapObjectInternal(aCx, aGivenProto);
