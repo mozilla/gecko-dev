@@ -23,10 +23,8 @@ prefs = [
 skip-if = ["os == 'linux'"]
 
 ["browser_keyboard_shortcuts.js"]
-skip-if = [
-  "headless",
-  "display == 'wayland'" # sendNativeMouseEvent doesn't work on wayland
-]
+run-if = ["!headless"]
+skip-if = ["display == 'wayland'"] # sendNativeMouseEvent doesn't work on wayland
 
 ["browser_keyboard_tests.js"]
 
@@ -64,7 +62,7 @@ skip-if = [
 ["browser_screenshots_test_full_page.js"]
 
 ["browser_screenshots_test_page_crash.js"]
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 
 ["browser_screenshots_test_screenshot_too_big.js"]
 

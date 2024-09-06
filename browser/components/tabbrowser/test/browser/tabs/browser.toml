@@ -28,7 +28,7 @@ skip-if = [
 ]
 
 ["browser_bfcache_exemption_about_pages.js"]
-skip-if = ["!fission"]
+run-if = ["fission"]
 
 ["browser_blank_tab_label.js"]
 
@@ -190,7 +190,7 @@ https_first_disabled = true
 ["browser_multiselect_tabs_using_Shift_and_Ctrl.js"]
 
 ["browser_multiselect_tabs_using_keyboard.js"]
-skip-if = ["os == 'mac'"] # Skipped because macOS keyboard support requires changing system settings
+run-if = ["os != 'mac'"] # Skipped because macOS keyboard support requires changing system settings
 
 ["browser_multiselect_tabs_using_selectedTabs.js"]
 

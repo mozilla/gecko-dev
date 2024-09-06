@@ -243,8 +243,8 @@ skip-if = [
 ["browser_624727.js"]
 
 ["browser_625016.js"]
+run-if = ["os != 'mac'"] # not running on macOS where closing all windows doesn't quit the application
 skip-if = [
-  "os == 'mac'", # Disabled on OS X:
   "os == 'linux'", # linux, Bug 1348583
   "os == 'win' && debug", # Bug 1430977
 ]

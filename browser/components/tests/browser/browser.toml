@@ -18,7 +18,7 @@ skip-if = ["os == 'linux'"]
 ["browser_browserGlue_userNamespacesNotification.js"]
 
 ["browser_bug538331.js"]
-skip-if = ["!updater"]
+run-if = ["updater"]
 reason = "test depends on update channel"
 
 ["browser_contentpermissionprompt.js"]
@@ -34,8 +34,7 @@ run-if = ["os == 'win'"]
 https_first_disabled = true
 
 ["browser_quit_disabled.js"]
-# On macOS we can't change browser.quitShortcut.disabled during runtime.
-skip-if = ["os == 'mac'"]
+run-if = ["os != 'mac'"] # On macOS we can't change browser.quitShortcut.disabled during runtime.
 
 ["browser_quit_multiple_tabs.js"]
 

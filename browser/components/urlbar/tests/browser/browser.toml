@@ -162,7 +162,7 @@ https_first_disabled = true
 ["browser_autocomplete_no_title.js"]
 
 ["browser_autocomplete_readline_navigation.js"]
-skip-if = ["os != 'mac'"] # Mac only feature
+run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_autocomplete_tag_star_visibility.js"]
 

@@ -1,10 +1,8 @@
 # This test environment is copied from "browser/components/tests/browser/whats_new_page/".
 
 [DEFAULT]
-skip-if = [
-  "verify",
-  "os == 'win' && msix", # Updater is disabled in MSIX builds; what's new pages therefore have no meaning.
-]
+run-if = ["!msix"] # Updater is disabled in MSIX builds
+skip-if = ["verify"]
 reason = "This is a startup test. Verify runs tests multiple times after startup."
 support-files = [
   "../head.js",

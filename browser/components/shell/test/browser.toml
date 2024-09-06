@@ -2,17 +2,15 @@
 
 ["browser_1119088.js"]
 support-files = ["mac_desktop_image.py"]
-skip-if = [
-  "os != 'mac'",
-  "verify",
-]
+run-if = ["os == 'mac'"]
+skip-if = ["verify"]
 tags = "os_integration"
 
 ["browser_420786.js"]
-skip-if = ["os != 'linux'"]
+run-if = ["os == 'linux'"]
 
 ["browser_633221.js"]
-skip-if = ["os != 'linux'"]
+run-if = ["os == 'linux'"]
 
 ["browser_doesAppNeedPin.js"]
 

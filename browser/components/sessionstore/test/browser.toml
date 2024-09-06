@@ -251,14 +251,12 @@ skip-if = ["true"] #Bug 1455602
 
 ["browser_revive_crashed_bg_tabs.js"]
 https_first_disabled = true
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 
 ["browser_scrollPositions.js"]
 https_first_disabled = true
-skip-if = [
-  "!fission",
-  "os == 'linux'", # Bug 1716445
-]
+run-if = ["fission"]
+skip-if = ["os == 'linux'"] # Bug 1716445
 
 ["browser_scrollPositionsReaderMode.js"]
 
@@ -294,7 +292,7 @@ skip-if = [
 https_first_disabled = true
 
 ["browser_tabicon_after_bg_tab_crash.js"]
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 
 ["browser_tabs_in_urlbar.js"]
 https_first_disabled = true
@@ -305,7 +303,7 @@ skip-if = ["debug"]
 ["browser_undoCloseById_targetWindow.js"]
 
 ["browser_unrestored_crashedTabs.js"]
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 
 ["browser_upgrade_backup.js"]
 skip-if = [

@@ -64,7 +64,7 @@ skip-if = [
 ["browser_privatebrowsing_cleanup.js"]
 
 ["browser_privatebrowsing_concurrent.js"]
-skip-if = ["release_or_beta"]
+run-if = ["!release_or_beta"]
 
 ["browser_privatebrowsing_context_and_chromeFlags.js"]
 
