@@ -244,6 +244,8 @@ timestamp prepended to each line, rotate the logs with 4 files of each 50MB
 (for a total of 200MB), and write the output to the temporary directory on
 Windows, with name starting with ``firefox-logs``.
 
+.. _Enabling logging using preferences:
+
 Enabling logging using preferences
 ''''''''''''''''''''''''''''''''''
 
@@ -260,16 +262,16 @@ A number of special prefs can be set as well, described in the table below:
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
 |         Preference name             | Preference |   Preference value            |                  Description                           |
 +=====================================+============+===============================+========================================================+
-| ``logging.config.clear_on_startup`` |    bool    | \--                           | Whether to clear all prefs under ``logging.``          |
+| ``logging.config.clear_on_startup`` |    bool    | --                            | Whether to clear all prefs under ``logging.``          |
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
 | ``logging.config.LOG_FILE``         |   string   | A path (relative or absolute) | The path to which the log files will be written.       |
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
-| ``logging.config.add_timestamp``    |   bool     | \--                           | Whether to prefix all lines by a timestamp.            |
+| ``logging.config.add_timestamp``    |   bool     | --                            | Whether to prefix all lines by a timestamp.            |
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
-| ``logging.config.sync``             |   bool     | \--                           | Whether to flush the stream after each log statements. |
+| ``logging.config.sync``             |   bool     | --                            | Whether to flush the stream after each log statements. |
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
-| ``logging.config.profilerstacks``   |   bool     | \--                           | When logging to the Firefox Profiler, whether to       |
-|                                     |            |                               | include the call stack in each logging statement.      |
+| ``logging.config.profilerstacks``   |   bool     | --                            | | When logging to the Firefox Profiler, whether to     |
+|                                     |            |                               | | include the call stack in each logging statement.    |
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+
 
 Enabling logging in Rust code

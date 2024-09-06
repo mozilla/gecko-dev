@@ -669,7 +669,6 @@ ToolSidebar
 
 To build a sidebar in your tool, first, add a xul:tabbox where you want the sidebar to live:
 
-.. rstcheck: ignore-languages=xml
 .. code-block:: xml
 
   <splitter class="devtools-side-splitter"/>

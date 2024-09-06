@@ -10,7 +10,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_basic(lint, paths):
     results = lint(paths())
-    assert len(results) == 3
+    assert len(results) == 2
 
     assert "Title underline too short" in results[0].message
     assert results[0].level == "error"

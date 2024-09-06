@@ -2,9 +2,8 @@
 Fluent
 ======
 
-`Fluent <http://projectfluent.org/>`__ is a localization system developed by
-Mozilla, which aims to replace all existing localization models currently used
-at Mozilla.
+`Fluent`_ is a localization system developed by Mozilla, which aims to replace
+all existing localization models currently used at Mozilla.
 
 In case of Firefox it directly supersedes DTD and StringBundle systems, providing
 a large number of features and improvements over both of them, for developers
@@ -22,3 +21,5 @@ Other resources:
  * `Fluent Wiki <https://github.com/projectfluent/fluent/wiki>`_
  * `Fluent.js Wiki <https://github.com/projectfluent/fluent.js/wiki>`_
  * `Fluent DOM L10n Tutorial <https://projectfluent.org/dom-l10n-documentation/>`_
+
+.. _Fluent: http://projectfluent.org/

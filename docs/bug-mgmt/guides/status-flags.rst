@@ -1,24 +1,22 @@
 Release Status Flags
 ====================
 
-The flag ``status_firefoxN`` has many values, here’s a cheat sheet.
+The flag ``status_firefoxNN`` has many values, here’s a cheat sheet.
 
-+---------+------------+------------+--------------+-------------------+
-| \-\-\-  | \?         | unaffected | affected     | fixed             |
-+=========+============+============+==============+===================+
-| \?      | unaffected |            | wontfix      | verified          |
-+---------+------------+------------+--------------+-------------------+
-|         | affected   |            | fix-optional | disabled          |
-+---------+------------+------------+--------------+-------------------+
-|         |            |            | fixed        | verified disabled |
-+---------+------------+------------+--------------+-------------------+
+== ========== ========== ============ =================
+—  ?          unaffected affected     fixed
+== ========== ========== ============ =================
+?  unaffected            wontfix      verified
+\  affected              fix-optional disabled
+\                        fixed        verified disabled
+== ========== ========== ============ =================
 
 The headers of the table are values of the status flag. Each column are
 the states reachable from the column headings.
 
 -  ``---`` we don’t know whether Firefox N is affected
 -  ``?`` we don’t know whether Firefox N is affected, but we want to find
-   out
+   out.
 -  ``affected`` - present in this release
 -  ``unaffected`` - not present in this release
 -  ``fixed`` - a contributor has landed a change set in the tree

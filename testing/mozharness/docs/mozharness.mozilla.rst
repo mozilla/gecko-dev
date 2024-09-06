@@ -22,7 +22,7 @@ mozharness.mozilla.blob_upload module
     :show-inheritance:
 
 mozharness.mozilla.automation module
-------------------------------------
+----------------------------------
 
 .. automodule:: mozharness.mozilla.automation
     :members:

@@ -237,7 +237,7 @@ The shutdown of a process takes place by phase, such as:
 
 - ``profileBeforeChange`` (once this phase is complete, there is no guarantee that the process has access to a profile directory);
 - ``webWorkersShutdown`` (once this phase is complete, JavaScript does not have access to workers anymore);
-- …
+- ...
 
 Much as services, phases have clients. For instance, all users of web workers MUST have finished using their web workers before the end of phase ``webWorkersShutdown``.
 

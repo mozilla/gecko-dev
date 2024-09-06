@@ -208,7 +208,6 @@ Class Constructors
 This simplest way to define a component is to include a header defining a
 concrete type, and let the component manager call that class's constructor:
 
-.. rstcheck: ignore-languages=python
 .. code-block:: python
 
   'type': 'mozilla::foo::Foo',
@@ -227,7 +226,6 @@ returns the same instance on subsequent calls. This requires declaring the
 constructor in an included header, and implementing it in a separate source
 file:
 
-.. rstcheck: ignore-languages=python
 .. code-block:: python
 
   'type': 'mozilla::foo::Foo',
@@ -257,7 +255,6 @@ External Constructors
 For types whose headers can't easily be included, constructors can be defined
 using a template specialization on an incomplete type:
 
-.. rstcheck: ignore-languages=python
 .. code-block:: python
 
   'type': 'mozilla::foo::Foo',
@@ -284,7 +281,6 @@ Registering Categories
 Classes which need define category entries with the same value as their
 contract ID may do so using the following:
 
-.. rstcheck: ignore-languages=python
 .. code-block:: python
 
     'contract_ids': ['@mozilla.org/foo;1'],
