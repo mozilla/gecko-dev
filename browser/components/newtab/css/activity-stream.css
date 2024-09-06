@@ -2500,6 +2500,22 @@ main section {
   height: 52px;
   max-width: 205px;
 }
+.layout-variant-a .weatherNotAvailable {
+  display: none;
+}
+@media (min-width: 610px) {
+  .layout-variant-a .weatherNotAvailable {
+    display: flex;
+  }
+}
+.layout-variant-b .weatherNotAvailable {
+  display: none;
+}
+@media (min-width: 866px) {
+  .layout-variant-b .weatherNotAvailable {
+    display: flex;
+  }
+}
 .weatherNotAvailable:hover {
   background-color: var(--button-background-color-ghost-hover);
 }

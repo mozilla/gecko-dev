@@ -147,6 +147,23 @@
   height: 52px;
   max-width: 205px;
 
+  // Bug 1915727 - Layout experiment: hide error message on smallest breakpoint
+  .layout-variant-a & {
+    display: none;
+
+    @media (min-width: $break-point-medium) {
+      display: flex
+    }
+  }
+
+  .layout-variant-b & {
+    display: none;
+
+    @media (min-width: $break-point-large) {
+      display: flex
+    }
+  }
+
   &:hover {
     background-color: var(--button-background-color-ghost-hover);
   }
