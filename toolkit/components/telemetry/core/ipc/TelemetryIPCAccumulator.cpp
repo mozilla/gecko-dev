@@ -91,6 +91,8 @@ void DoArmIPCTimerMainThread(const StaticMutexAutoLock& lock) {
         nsITimer::TYPE_ONE_SHOT_LOW_PRIORITY,
         "TelemetryIPCAccumulator::IPCTimerFired");
     gIPCTimerArmed = true;
+    PROFILER_MARKER_UNTYPED("IPC Accumulator", TELEMETRY,
+                            mozilla::MarkerTiming::IntervalStart());
   }
 }
 
@@ -327,6 +329,8 @@ void TelemetryIPCAccumulator::IPCTimerFired(nsITimer* aTimer, void* aClosure) {
       break;
   }
 
+  PROFILER_MARKER_UNTYPED("IPC Accumulator", TELEMETRY,
+                          mozilla::MarkerTiming::IntervalEnd());
   gIPCTimerArmed = false;
 }
 
