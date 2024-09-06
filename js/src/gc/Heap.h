@@ -491,6 +491,20 @@ class ArenaChunk : public ArenaChunkBase {
     return (offset - offsetof(ArenaChunk, arenas)) >> ArenaShift;
   }
 
+  static size_t pageIndex(const Arena* arena) {
+    return arenaToPageIndex(arenaIndex(arena));
+  }
+
+  static size_t arenaToPageIndex(size_t arenaIndex) {
+    static_assert((offsetof(ArenaChunk, arenas) % PageSize) == 0,
+                  "First arena should be on a page boundary");
+    return arenaIndex / ArenasPerPage;
+  }
+
+  static size_t pageToArenaIndex(size_t pageIndex) {
+    return pageIndex * ArenasPerPage;
+  }
+
   explicit ArenaChunk(JSRuntime* runtime) : ArenaChunkBase(runtime) {}
 
   uintptr_t address() const {
@@ -549,16 +563,8 @@ class ArenaChunk : public ArenaChunkBase {
   // build.
   bool isPageFree(const Arena* arena) const;
 
-  // Get the page index of the arena.
-  size_t pageIndex(const Arena* arena) const {
-    return pageIndex(arenaIndex(arena));
-  }
-  size_t pageIndex(size_t arenaIndex) const {
-    return arenaIndex / ArenasPerPage;
-  }
-
-  Arena* pageAddress(size_t pageIndex) {
-    return &arenas[pageIndex * ArenasPerPage];
+  void* pageAddress(size_t pageIndex) {
+    return &arenas[pageToArenaIndex(pageIndex)];
   }
 };
 

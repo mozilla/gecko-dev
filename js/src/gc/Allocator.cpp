@@ -524,7 +524,7 @@ void ArenaChunk::commitOnePage(GCRuntime* gc) {
   decommittedPages[pageIndex] = false;
 
   for (size_t i = 0; i < ArenasPerPage; i++) {
-    size_t arenaIndex = pageIndex * ArenasPerPage + i;
+    size_t arenaIndex = pageToArenaIndex(pageIndex) + i;
     MOZ_ASSERT(!freeCommittedArenas[arenaIndex]);
     freeCommittedArenas[arenaIndex] = true;
     ++info.numArenasFreeCommitted;

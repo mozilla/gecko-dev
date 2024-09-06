@@ -692,7 +692,8 @@ void js::gc::MarkingValidator::validate() {
     ChunkMarkBitmap* incBitmap = &chunk->markBits;
 
     for (size_t i = 0; i < ArenasPerChunk; i++) {
-      if (chunk->decommittedPages[chunk->pageIndex(i)]) {
+      size_t pageIndex = ArenaChunk::arenaToPageIndex(i);
+      if (chunk->decommittedPages[pageIndex]) {
         continue;
       }
       Arena* arena = &chunk->arenas[i];
