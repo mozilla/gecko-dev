@@ -1119,10 +1119,13 @@ class GeckoEngineSession(
                 return
             }
 
-            appRedirectUrl?.let {
-                if (url == appRedirectUrl) {
-                    goBack(false)
-                    return
+            // if it is an initial load then we can't go back. We should update the URL.
+            if (!initialLoad) {
+                appRedirectUrl?.let {
+                    if (url == appRedirectUrl) {
+                        goBack(false)
+                        return
+                    }
                 }
             }
 
