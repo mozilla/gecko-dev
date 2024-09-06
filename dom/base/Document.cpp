@@ -215,6 +215,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/dom/ResizeObserver.h"
 #include "mozilla/dom/RustTypes.h"
 #include "mozilla/dom/SVGElement.h"
@@ -431,6 +432,7 @@
 #include "nsStyleSheetService.h"
 #include "nsStyleStruct.h"
 #include "nsTextControlFrame.h"
+#include "nsSubDocumentFrame.h"
 #include "nsTextNode.h"
 #include "nsUnicharUtils.h"
 #include "nsWrapperCache.h"
@@ -7376,14 +7378,15 @@ bool Document::ShouldThrottleFrameRequests() const {
   }
 
   // Note that because we have to scroll this document into view at least once
-  // to unthrottle it, we will drop one requestAnimationFrame frame when a
+  // to un-throttle it, we will drop one requestAnimationFrame frame when a
   // document that previously wasn't visible scrolls into view. This is
   // acceptable / unlikely to be human-perceivable, though we could improve on
   // it if needed by adding an intersection margin or something of that sort.
+  auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
   const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
-      *el->OwnerDoc(), /* aRoot = */ nullptr, /* aRootMargin = */ nullptr);
-  const IntersectionOutput output =
-      DOMIntersectionObserver::Intersect(input, *el);
+      *el->OwnerDoc(), /* aRoot = */ nullptr, &margin);
+  const IntersectionOutput output = DOMIntersectionObserver::Intersect(
+      input, *el, DOMIntersectionObserver::BoxToUse::Content);
   return !output.Intersects();
 }
 
@@ -16839,6 +16842,66 @@ void Document::UpdateIntersections(TimeStamp aNowTime) {
   }
   EnumerateSubDocuments([aNowTime](Document& aDoc) {
     aDoc.UpdateIntersections(aNowTime);
+    return CallState::Continue;
+  });
+}
+
+void Document::UpdateRemoteFrameEffects() {
+  if (auto* wc = GetWindowContext(); wc && !wc->Children().IsEmpty()) {
+    auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
+    const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
+        *this, /* aRoot = */ nullptr, &margin);
+    for (const RefPtr<BrowsingContext>& child : wc->Children()) {
+      Element* el = child->GetEmbedderElement();
+      if (!el) {
+        continue;
+      }
+      auto* rb = RemoteBrowser::GetFrom(el);
+      if (!rb) {
+        continue;
+      }
+      EffectsInfo info = [&] {
+        if (Hidden()) {
+          // If we're in the background, then the child frame should be hidden
+          // as well.
+          return EffectsInfo::FullyHidden();
+        }
+        const IntersectionOutput output = DOMIntersectionObserver::Intersect(
+            input, *el, DOMIntersectionObserver::BoxToUse::Content);
+        if (!output.Intersects()) {
+          // XXX do we want to pass the scale and such down even if out of the
+          // viewport?
+          return EffectsInfo::FullyHidden();
+        }
+        auto* frame = el->GetPrimaryFrame();
+        MOZ_ASSERT(frame, "How do we intersect with no frame?");
+        MOZ_ASSERT(frame->IsSubDocumentFrame(), "Hm?");
+        Maybe<nsRect> visibleRect;
+        gfx::MatrixScales rasterScale;
+        if (nsSubDocumentFrame* f = do_QueryFrame(frame)) {
+          visibleRect = f->GetVisibleRect();
+          if (!visibleRect) {
+            // If we have no visible rect (e.g., because we are zero-sized) we
+            // still want to provide the intersection rect in order to get the
+            // right throttling behavior.
+            visibleRect.emplace(*output.mIntersectionRect -
+                                output.mTargetRect.TopLeft());
+          }
+          rasterScale = f->GetRasterScale();
+        }
+        ParentLayerToScreenScale2D transformToAncestorScale =
+            ParentLayerToParentLayerScale(
+                frame->PresShell()->GetCumulativeResolution()) *
+            nsLayoutUtils::
+                GetTransformToAncestorScaleCrossProcessForFrameMetrics(frame);
+        return EffectsInfo::VisibleWithinRect(visibleRect, rasterScale,
+                                              transformToAncestorScale);
+      }();
+      rb->UpdateEffects(std::move(info));
+    }
+  }
+  EnumerateSubDocuments([](Document& aDoc) {
+    aDoc.UpdateRemoteFrameEffects();
     return CallState::Continue;
   });
 }

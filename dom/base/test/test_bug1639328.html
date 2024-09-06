@@ -10,19 +10,24 @@
     height: 10px;
   }
   iframe[id^=zero-size] {
+    border: none;
     width: 0;
     height: 0;
   }
 </style>
+<!-- TODO(emilio): The iframes with id ending in "http" are intended to use the http:// protocol, but that causes issues with http2/http3 tests, see bug 1917297 -->
 <iframe id="http" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="https" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="same-origin" src="file_bug1639328.html"></iframe>
+<br>
 <iframe id="zero-size-http" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="zero-size-https" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="zero-size-same-origin" src="file_bug1639328.html"></iframe>
+<br>
 <iframe id="display-none-http" style="display: none" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="display-none-https" style="display: none" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="display-none-same-origin" style="display: none" src="file_bug1639328.html"></iframe>
+<br>
 <iframe id="vis-hidden-http" style="visibility: hidden" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="vis-hidden-https" style="visibility: hidden" src="https://example.com/tests/dom/base/test/file_bug1639328.html"></iframe>
 <iframe id="vis-hidden-same-origin" style="visibility: hidden" src="file_bug1639328.html"></iframe>

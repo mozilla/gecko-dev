@@ -148,13 +148,20 @@ class DOMIntersectionObserver final : public nsISupports,
 
   void TakeRecords(nsTArray<RefPtr<DOMIntersectionObserverEntry>>& aRetVal);
 
+  static StyleRect<LengthPercentage> LazyLoadingRootMargin();
+
   static IntersectionInput ComputeInput(
       const Document& aDocument, const nsINode* aRoot,
       const StyleRect<LengthPercentage>* aRootMargin);
 
   enum class IsForProximityToViewport : bool { No, Yes };
+  enum class BoxToUse : uint8_t {
+    Content,
+    Border,
+    OverflowClip,
+  };
   static IntersectionOutput Intersect(
-      const IntersectionInput&, const Element&,
+      const IntersectionInput&, const Element&, BoxToUse = BoxToUse::Border,
       IsForProximityToViewport = IsForProximityToViewport::No);
   // Intersects with a given rect, already relative to the root frame.
   static IntersectionOutput Intersect(const IntersectionInput&, const nsRect&);
