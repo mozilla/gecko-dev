@@ -310,6 +310,8 @@
     <string name="browser_menu_switch_to_mobile_site">切換為行動版</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">工具</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">回到主選單</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">閱讀畫面、翻譯、列印、分享、用應用程式開啟</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -645,8 +647,6 @@
     <string name="toast_override_account_sync_server_done">已更改 Mozilla 帳號 / 同步伺服器設定。將結束應用程式讓變更生效…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">帳號</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">工具列</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">網址列位置</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -954,8 +954,6 @@
     <string name="preference_gestures_website_pull_to_refresh">向下滑動即可重新整理</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">滾動畫面即可隱藏工具列</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">橫向滑動工具列來切換分頁</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">向上滑動工具列來開新分頁</string>
 
@@ -2710,8 +2708,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">刪除所有語言</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">刪除</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">進行中</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">刪除中</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2762,8 +2758,6 @@
     <string name="download_language_file_dialog_title">裝置處於資料節省模式時，也下載資料（%1$s）嗎？</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">我們會下載部分語言檔到您的快取空間中，來確保翻譯內容能於本機內翻譯。</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">我們會下載部分語言檔，來確保翻譯內容能於本機內翻譯。</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">於資料節省模式下也總是下載資料</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2826,11 +2820,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">繼續</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">完成此問卷</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">請填寫問卷</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">隱私權公告</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">隱私權公告</string>
     <!-- The submit button label text -->
