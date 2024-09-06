@@ -80,6 +80,13 @@ class PointerEvent : public MouseEvent {
   Maybe<int32_t> mTiltY;
   Maybe<double> mAltitudeAngle;
   Maybe<double> mAzimuthAngle;
+
+  // https://w3c.github.io/pointerevents/#dfn-coalesced-events
+  // https://w3c.github.io/pointerevents/#dfn-predicted-events
+  // The events in the coalesced/predicted events list of a trusted event will
+  // have:
+  // ... Empty coalesced events list and predicted events list of their own.
+  bool mCoalescedOrPredictedEvent = false;
 };
 
 void ConvertPointerTypeToString(uint16_t aPointerTypeSrc,
