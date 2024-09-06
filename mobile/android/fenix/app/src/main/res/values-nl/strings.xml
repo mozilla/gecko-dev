@@ -311,6 +311,8 @@
     <string name="browser_menu_switch_to_mobile_site">Naar mobielwebsite</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Hulpmiddelen</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Terug naar hoofdmenu</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Lezerweergave, Vertalen, Afdrukken, Delen, App openen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -645,8 +647,6 @@
     <string name="toast_override_account_sync_server_done">Mozilla-account-/Synchronisatieserver aangepast. Toepassing wordt afgesloten om wijzigingen toe te passen…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Account</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Werkbalk</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Locatie adresbalk</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -950,8 +950,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Trekken om te vernieuwen</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Scrollen om de werkbalk te verbergen</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">De werkbalk opzij vegen om van tabblad te wisselen</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">De werkbalk omhoog vegen om tabbladen te openen</string>
 
@@ -2691,8 +2689,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Alle talen verwijderen</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Verwijderen</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Wordt uitgevoerd</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Wordt uitgevoerd</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2744,8 +2740,6 @@
     <string name="download_language_file_dialog_title">Downloaden in gegevensbesparingsmodus (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">We downloaden gedeeltelijke talen naar uw buffer om vertalingen privé te houden.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">We downloaden gedeeltelijke talen om vertalingen privé te houden.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Altijd downloaden in gegevensbesparingsmodus</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2808,11 +2802,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Doorgaan</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Deze enquête invullen</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Enquête invullen</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Privacyverklaring</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Privacyverklaring</string>
     <!-- The submit button label text -->
