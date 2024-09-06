@@ -1485,6 +1485,42 @@ nsresult internal_GetKeyedHistogramsSnapshot(
 
 }  // namespace
 
+namespace geckoprofiler::markers {
+
+struct HistogramMarker {
+  static constexpr mozilla::Span<const char> MarkerTypeName() {
+    return mozilla::MakeStringSpan("Hist");
+  }
+  static void StreamJSONMarkerData(
+      mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
+      mozilla::Telemetry::HistogramID aId, const nsCString& key,
+      uint32_t aSample) {
+    aWriter.UniqueStringProperty(
+        "id", mozilla::MakeStringSpan(GetHistogramName(aId)));
+    if (!key.IsEmpty()) {
+      aWriter.StringProperty("key", key);
+    }
+    aWriter.IntProperty("val", aSample);
+  }
+  using MS = mozilla::MarkerSchema;
+  static MS MarkerTypeDisplay() {
+    MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
+    schema.AddKeyLabelFormatSearchable("id", "Histogram Name",
+                                       MS::Format::UniqueString,
+                                       MS::Searchable::Searchable);
+    schema.AddKeyLabelFormat("key", "Key", MS::Format::String);
+    schema.AddKeyLabelFormat("val", "Sample", MS::Format::Integer);
+    schema.SetTooltipLabel(
+        "{marker.data.id}[{marker.data.key}] {marker.data.val}");
+    schema.SetTableLabel(
+        "{marker.name} - {marker.data.id}[{marker.data.key}]: "
+        "{marker.data.val}");
+    return schema;
+  }
+};
+
+}  // namespace geckoprofiler::markers
+
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //
@@ -1502,6 +1538,8 @@ bool internal_RemoteAccumulate(const StaticMutexAutoLock& aLock,
     return true;
   }
 
+  PROFILER_MARKER("Histogram::Add", TELEMETRY, {}, HistogramMarker, aId,
+                  EmptyCString(), aSample);
   TelemetryIPCAccumulator::AccumulateChildHistogram(aId, aSample);
   return true;
 }
@@ -1517,6 +1555,8 @@ bool internal_RemoteAccumulate(const StaticMutexAutoLock& aLock,
     return true;
   }
 
+  PROFILER_MARKER("Histogram::Add", TELEMETRY, {}, HistogramMarker, aId, aKey,
+                  aSample);
   TelemetryIPCAccumulator::AccumulateChildKeyedHistogram(aId, aKey, aSample);
   return true;
 }
@@ -1528,6 +1568,8 @@ void internal_Accumulate(const StaticMutexAutoLock& aLock, HistogramID aId,
     return;
   }
 
+  PROFILER_MARKER("Histogram::Add", TELEMETRY, {}, HistogramMarker, aId,
+                  EmptyCString(), aSample);
   Histogram* w = internal_GetHistogramById(aLock, aId, ProcessID::Parent);
   MOZ_ASSERT(w);
   internal_HistogramAdd(aLock, *w, aId, aSample, ProcessID::Parent);
@@ -1540,6 +1582,8 @@ void internal_Accumulate(const StaticMutexAutoLock& aLock, HistogramID aId,
     return;
   }
 
+  PROFILER_MARKER("Histogram::Add", TELEMETRY, {}, HistogramMarker, aId, aKey,
+                  aSample);
   KeyedHistogram* keyed =
       internal_GetKeyedHistogramById(aId, ProcessID::Parent);
   MOZ_ASSERT(keyed);
@@ -1553,6 +1597,8 @@ void internal_AccumulateChild(const StaticMutexAutoLock& aLock,
     return;
   }
 
+  PROFILER_MARKER("ChildHistogram::Add", TELEMETRY, {}, HistogramMarker, aId,
+                  EmptyCString(), aSample);
   Histogram* w = internal_GetHistogramById(aLock, aId, aProcessType);
   if (w == nullptr) {
     NS_WARNING("Failed GetHistogramById for CHILD");
@@ -1568,6 +1614,8 @@ void internal_AccumulateChildKeyed(const StaticMutexAutoLock& aLock,
     return;
   }
 
+  PROFILER_MARKER("ChildHistogram::Add", TELEMETRY, {}, HistogramMarker, aId,
+                  aKey, aSample);
   KeyedHistogram* keyed = internal_GetKeyedHistogramById(aId, aProcessType);
   MOZ_ASSERT(keyed);
   keyed->Add(aKey, aSample, aProcessType);
@@ -2856,7 +2904,6 @@ const char* TelemetryHistogram::GetHistogramName(HistogramID id) {
     return nullptr;
   }
 
-  StaticMutexAutoLock locker(gTelemetryHistogramMutex);
   const HistogramInfo& h = gHistogramInfos[id];
   return h.name();
 }
