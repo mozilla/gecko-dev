@@ -21,6 +21,11 @@ class BounceTrackingStoragePersistenceTestCase(MarionetteTestCase):
         self.marionette.set_context("chrome")
         self.populate_state()
 
+    def tearDown(self):
+        self.marionette.restart(in_app=False, clean=True)
+
+        super(BounceTrackingStoragePersistenceTestCase, self).tearDown()
+
     def populate_state(self):
         # Add some data to test persistence.
         self.marionette.execute_script(
