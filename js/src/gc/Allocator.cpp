@@ -527,7 +527,6 @@ void ArenaChunk::commitOnePage(GCRuntime* gc) {
     size_t arenaIndex = pageIndex * ArenasPerPage + i;
     MOZ_ASSERT(!freeCommittedArenas[arenaIndex]);
     freeCommittedArenas[arenaIndex] = true;
-    arenas[arenaIndex].setAsNotAllocated();
     ++info.numArenasFreeCommitted;
   }
 
@@ -565,7 +564,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
     }
 
     chunk = ArenaChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
-    MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
+    MOZ_ASSERT(chunk->info.numArenasFree == ArenasPerChunk);
   }
 
   if (wantBackgroundAllocation(lock)) {
@@ -673,9 +672,7 @@ ArenaChunk* ArenaChunk::emplace(void* ptr, GCRuntime* gc,
     // not have to recycle the pages, we still get the benefit of poisoning.
     chunk->decommitAllArenas();
   } else {
-    // The chunk metadata is initialized as decommitted regardless, to avoid
-    // having to initialize the arenas at this time.
-    chunk->initAsDecommitted();
+    chunk->initAsCommitted();
   }
 
   chunk->verify();
@@ -697,4 +694,14 @@ void ArenaChunkBase::initAsDecommitted() {
   freeCommittedArenas.ResetAll();
   info.numArenasFree = ArenasPerChunk;
   info.numArenasFreeCommitted = 0;
+}
+
+void ArenaChunkBase::initAsCommitted() {
+  // Set the state of all arenas to free and committed. They might have
+  // been decommitted, but in that case the re-commit operation is a
+  // no-op so it doesn't matter.
+  decommittedPages.ResetAll();
+  freeCommittedArenas.SetAll();
+  info.numArenasFree = ArenasPerChunk;
+  info.numArenasFreeCommitted = ArenasPerChunk;
 }

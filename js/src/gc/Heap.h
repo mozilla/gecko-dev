@@ -228,6 +228,7 @@ class alignas(ArenaSize) Arena {
    */
   uint8_t data[ArenaSize - ArenaHeaderSize];
 
+  // Create a free arena in uninitialized committed memory.
   void init(GCRuntime* gc, JS::Zone* zoneArg, AllocKind kind,
             const AutoLockGC& lock);
 
@@ -243,26 +244,7 @@ class alignas(ArenaSize) Arena {
     last->initAsEmpty();
   }
 
-  // Initialize an arena to its unallocated state. For arenas that were
-  // previously allocated for some zone, use release() instead.
-  void setAsNotAllocated() {
-    firstFreeSpan.initAsEmpty();
-
-    // Poison zone pointer to highlight UAF on released arenas in crash data.
-    AlwaysPoison(&zone_, JS_FREED_ARENA_PATTERN, sizeof(zone_),
-                 MemCheckKind::MakeNoAccess);
-
-    allocKind = AllocKind::LIMIT;
-    onDelayedMarkingList_ = 0;
-    hasDelayedBlackMarking_ = 0;
-    hasDelayedGrayMarking_ = 0;
-    nextDelayedMarkingArena_ = 0;
-    bufferedCells_ = nullptr;
-
-    MOZ_ASSERT(!allocated());
-  }
-
-  // Return an allocated arena to its unallocated state.
+  // Return an allocated arena to its unallocated (free) state.
   inline void release(GCRuntime* gc, const AutoLockGC& lock);
 
   uintptr_t address() const {
@@ -274,13 +256,13 @@ class alignas(ArenaSize) Arena {
 
   inline ArenaChunk* chunk() const;
 
-  bool allocated() const {
-    MOZ_ASSERT(IsAllocKind(AllocKind(allocKind)));
-    return IsValidAllocKind(AllocKind(allocKind));
-  }
+  // Return whether this arena is in the 'allocated' state, meaning that it has
+  // been initialized by calling init() and has a zone and alloc kind set.
+  // This is mostly used for assertions.
+  bool allocated() const;
 
   AllocKind getAllocKind() const {
-    MOZ_ASSERT(allocated());
+    MOZ_ASSERT(IsValidAllocKind(allocKind));
     return allocKind;
   }
 

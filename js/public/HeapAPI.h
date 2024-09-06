@@ -322,6 +322,7 @@ class ArenaChunkBase : public ChunkBase {
     info.numArenasFree = ArenasPerChunk;
   }
 
+  void initAsCommitted();
   void initAsDecommitted();
 };
 static_assert(FirstArenaOffset ==

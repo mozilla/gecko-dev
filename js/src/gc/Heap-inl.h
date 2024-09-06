@@ -16,22 +16,13 @@
 
 inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
                                 AllocKind kind, const AutoLockGC& lock) {
-#ifdef DEBUG
-  MOZ_MAKE_MEM_DEFINED(&zone_, sizeof(zone_));
-  MOZ_ASSERT((uintptr_t(zone_) & 0xff) == JS_FREED_ARENA_PATTERN);
-#endif
-
-  MOZ_ASSERT(firstFreeSpan.isEmpty());
-  MOZ_ASSERT(!allocated());
-  MOZ_ASSERT(!onDelayedMarkingList_);
-  MOZ_ASSERT(!hasDelayedBlackMarking_);
-  MOZ_ASSERT(!hasDelayedGrayMarking_);
-  MOZ_ASSERT(!nextDelayedMarkingArena_);
+  MOZ_ASSERT(zoneArg);
+  MOZ_ASSERT(IsValidAllocKind(kind));
 
   MOZ_MAKE_MEM_UNDEFINED(this, ArenaSize);
 
-  zone_ = zoneArg;
   allocKind = kind;
+  zone_ = zoneArg;
   isNewlyCreated_ = 1;
   onDelayedMarkingList_ = 0;
   hasDelayedBlackMarking_ = 0;
@@ -43,7 +34,7 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
     bufferedCells() = &ArenaCellSet::Empty;
   }
 
-  setAsFullyUnused();
+  setAsFullyUnused();  // Initializes firstFreeSpan.
 
 #ifdef DEBUG
   checkNoMarkedCells();
@@ -51,10 +42,25 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
 }
 
 inline void js::gc::Arena::release(GCRuntime* gc, const AutoLockGC& lock) {
+  MOZ_ASSERT(allocated());
+
   if (zone_->isAtomsZone()) {
     gc->atomMarking.unregisterArena(this, lock);
   }
-  setAsNotAllocated();
+
+  // Poison zone pointer to highlight UAF on released arenas in crash data.
+  AlwaysPoison(&zone_, JS_FREED_ARENA_PATTERN, sizeof(zone_),
+               MemCheckKind::MakeNoAccess);
+
+  firstFreeSpan.initAsEmpty();
+  allocKind = AllocKind::LIMIT;
+  onDelayedMarkingList_ = 0;
+  hasDelayedBlackMarking_ = 0;
+  hasDelayedGrayMarking_ = 0;
+  nextDelayedMarkingArena_ = 0;
+  bufferedCells_ = nullptr;
+
+  MOZ_ASSERT(!allocated());
 }
 
 inline js::gc::ArenaCellSet*& js::gc::Arena::bufferedCells() {

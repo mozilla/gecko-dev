@@ -368,12 +368,11 @@ void GCRuntime::freeEmptyChunks(const AutoLockGC& lock) {
 }
 
 inline void GCRuntime::prepareToFreeChunk(ArenaChunkInfo& info) {
+  MOZ_ASSERT(info.numArenasFree == ArenasPerChunk);
   stats().count(gcstats::COUNT_DESTROY_CHUNK);
 #ifdef DEBUG
-  /*
-   * Let FreeChunkPool detect a missing prepareToFreeChunk call before it
-   * frees chunk.
-   */
+  // Let FreeChunkPool detect a missing prepareToFreeChunk call before it frees
+  // chunk.
   info.numArenasFreeCommitted = 0;
 #endif
 }

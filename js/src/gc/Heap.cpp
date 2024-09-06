@@ -92,6 +92,17 @@ const uint8_t Arena::ThingsPerArena[] = {
 #undef EXPAND_THINGS_PER_ARENA
 };
 
+bool Arena::allocated() const {
+  size_t arenaIndex = ArenaChunk::arenaIndex(this);
+  size_t pageIndex = arenaIndex / ArenasPerPage;
+  bool result = !chunk()->decommittedPages[pageIndex] &&
+                !chunk()->freeCommittedArenas[arenaIndex] &&
+                IsValidAllocKind(allocKind);
+  MOZ_ASSERT_IF(result, zone_);
+  MOZ_ASSERT_IF(result, (uintptr_t(zone_) & 7) == 0);
+  return result;
+}
+
 void Arena::unmarkAll() {
   MarkBitmapWord* arenaBits = chunk()->markBits.arenaBits(this);
   for (size_t i = 0; i < ArenaBitmapWords; i++) {
@@ -626,7 +637,6 @@ void ArenaChunk::verify() const {
 
   for (size_t i = 0; i < ArenasPerChunk; ++i) {
     MOZ_ASSERT(!(decommittedPages[pageIndex(i)] && freeCommittedArenas[i]));
-    MOZ_ASSERT_IF(freeCommittedArenas[i], !arenas[i].allocated());
   }
 }
 
