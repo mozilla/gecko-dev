@@ -240,7 +240,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   // Used on Windows when the MF media engine playback is enabled.
   Maybe<uint64_t> mMediaEngineId;
   Maybe<TrackingId> mTrackingId;
-  EncryptedCustomIdent mEncryptedCustomIdent;
+  EncryptedCustomIdent mEncryptedCustomIdent = EncryptedCustomIdent::False;
 
  private:
   void Set(layers::ImageContainer* aImageContainer) {
