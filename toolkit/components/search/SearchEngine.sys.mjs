@@ -892,12 +892,8 @@ export class SearchEngine {
    *   The suggestion url parameters for use with the POST method.
    * @param {string} [details.encoding]
    *   The encoding to use for the engine.
-   * @param {object} [configuration]
-   *   The search engine configuration for application provided engines, that
-   *   may be overriding some of the WebExtension's settings.
    */
-  _initWithDetails(details, configuration = {}) {
-    this._orderHint = configuration.orderHint;
+  _initWithDetails(details) {
     this._name = details.name.trim();
 
     this._definedAliases = [];
@@ -911,7 +907,7 @@ export class SearchEngine {
     if (details.iconURL) {
       this._setIcon(details.iconURL, true);
     }
-    this._setUrls(details, configuration);
+    this._setUrls(details);
   }
 
   /**
@@ -937,67 +933,35 @@ export class SearchEngine {
    *   The suggestion url parameters for use with the POST method.
    * @param {string} [details.encoding]
    *   The encoding to use for the engine.
-   * @param {object} [configuration]
-   *   The search engine configuration for application provided engines, that
-   *   may be overriding some of the WebExtension's settings.
    */
-  _setUrls(details, configuration = {}) {
-    let postParams =
-      configuration.params?.searchUrlPostParams ||
-      details.search_url_post_params ||
-      "";
+  _setUrls(details) {
+    let postParams = details.search_url_post_params || "";
     let url = this._getEngineURLFromMetaData(lazy.SearchUtils.URL_TYPE.SEARCH, {
       method: (postParams && "POST") || "GET",
       // AddonManager will sometimes encode the URL via `new URL()`. We want
       // to ensure we're always dealing with decoded urls.
       template: decodeURI(details.search_url),
-      getParams:
-        configuration.params?.searchUrlGetParams ||
-        details.search_url_get_params ||
-        "",
+      getParams: details.search_url_get_params || "",
       postParams,
-      mozParams: configuration.extraParams || details.params || [],
+      mozParams: details.params || [],
     });
 
     this._urls.push(url);
 
     if (details.suggest_url) {
-      let suggestPostParams =
-        configuration.params?.suggestUrlPostParams ||
-        details.suggest_url_post_params ||
-        "";
+      let suggestPostParams = details.suggest_url_post_params || "";
       url = this._getEngineURLFromMetaData(
         lazy.SearchUtils.URL_TYPE.SUGGEST_JSON,
         {
           method: (suggestPostParams && "POST") || "GET",
           // suggest_url doesn't currently get encoded.
           template: details.suggest_url,
-          getParams:
-            configuration.params?.suggestUrlGetParams ||
-            details.suggest_url_get_params ||
-            "",
+          getParams: details.suggest_url_get_params || "",
           postParams: suggestPostParams,
-          mozParams: configuration.suggestExtraParams || [],
         }
       );
 
       this._urls.push(url);
-    }
-
-    if (configuration?.urls?.trending) {
-      let trending = this._getEngineURLFromMetaData(
-        lazy.SearchUtils.URL_TYPE.TRENDING_JSON,
-        {
-          method: "GET",
-          template: decodeURI(configuration.urls.trending.fullPath),
-          getParams: configuration.urls.trending.query,
-        }
-      );
-      this._urls.push(trending);
-    }
-
-    if (configuration.clickUrl) {
-      this.clickUrl = configuration.clickUrl;
     }
 
     if (details.encoding) {
