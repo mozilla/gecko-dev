@@ -18,8 +18,7 @@ class AudioTrimmer final : public MediaDataDecoder {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioTrimmer, final);
 
-  AudioTrimmer(already_AddRefed<MediaDataDecoder> aDecoder,
-               const CreateDecoderParams& aParams)
+  explicit AudioTrimmer(already_AddRefed<MediaDataDecoder> aDecoder)
       : mDecoder(aDecoder) {}
 
   RefPtr<InitPromise> Init() override;

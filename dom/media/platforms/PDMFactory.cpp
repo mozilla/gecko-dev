@@ -416,8 +416,7 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
             RefPtr<MediaDataDecoder>&& aDecoder) {
           RefPtr<MediaDataDecoder> decoder = std::move(aDecoder);
           if (!params.mNoWrapper.mDontUseWrapper) {
-            decoder =
-                new AudioTrimmer(decoder.forget(), CreateDecoderParams(params));
+            decoder = new AudioTrimmer(decoder.forget());
           }
           return PlatformDecoderModule::CreateDecoderPromise::CreateAndResolve(
               decoder, __func__);
