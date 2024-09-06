@@ -478,17 +478,6 @@
     </issue>
 
     <issue
-        id="InvalidLicenseFormat"
-        message="The license comment must be followed by a newline character"
-        errorLine1=" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"
-        errorLine2="                                                             ~">
-        <location
-            file="src/main/java/org/mozilla/fenix/translations/TranslationsDialogStore.kt"
-            line="3"
-            column="62"/>
-    </issue>
-
-    <issue
         id="NonConstantResourceId"
         message="Resource IDs will be non-final by default in Android Gradle Plugin version 8.0, avoid using them in const fields"
         errorLine1="        const val LAYOUT_ID = R.layout.about_list_item"
