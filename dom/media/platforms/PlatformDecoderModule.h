@@ -43,23 +43,36 @@ static LazyLogModule sPDMLog("PlatformDecoderModule");
 
 namespace media {
 
-enum class Option {
-  Default,
-  LowLatency,
-  HardwareDecoderNotAllowed,
-  FullH264Parsing,
-  ErrorIfNoInitializationData,  // By default frames delivered before
-                                // initialization data are dropped. Pass this
-                                // option to raise an error if frames are
-                                // delivered before initialization data.
-  DefaultPlaybackDeviceMono,    // Currently only used by Opus on RDD to avoid
-                                // initialization of audio backends on RDD
-  KeepOriginalPts,  // It can be that the decoder mangles the pts of decoded
-                    // frames, this forces using the input PTS.
+MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING(
+    Option,
+    (Default, LowLatency, HardwareDecoderNotAllowed, FullH264Parsing,
+     ErrorIfNoInitializationData,  // By default frames delivered before
+                                   // initialization data are dropped. Pass this
+                                   // option to raise an error if frames are
+                                   // delivered before initialization data.
+     DefaultPlaybackDeviceMono,  // Currently only used by Opus on RDD to avoid
+                                 // initialization of audio backends on RDD
+     KeepOriginalPts,  // It can be that the decoder mangles the pts of decoded
+                       // frames, this forces using the input PTS.
 
-  SENTINEL  // one past the last valid value
-};
+     SENTINEL  // one past the last valid value
+     ));
+
 using OptionSet = EnumSet<Option>;
+
+static nsCString OptionSetToString(const OptionSet& aOptions) {
+  nsCString str;
+  for (const auto option : aOptions) {
+    if (!str.IsEmpty()) {
+      str.AppendLiteral("|");
+    }
+    str.AppendPrintf("%s", EnumValueToString(option));
+  }
+  if (str.IsEmpty()) {
+    str.AppendLiteral("Empty");
+  }
+  return str;
+}
 
 struct UseNullDecoder {
   UseNullDecoder() = default;
@@ -169,6 +182,34 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
       return mKnowsCompositor->GetCompositorBackendType();
     }
     return layers::LayersBackend::LAYERS_NONE;
+  }
+
+  nsCString ToString() const {
+    nsPrintfCString str("CreateDecoderParams @ %p: ", this);
+    str.AppendPrintf("mConfig = %s", mConfig.ToString().get());
+    str.AppendPrintf(", mImageContainer = %p", mImageContainer);
+    str.AppendPrintf(", mError = %s",
+                     mError ? mError->Description().get() : "null");
+    str.AppendPrintf(", mKnowsCompositor = %p", mKnowsCompositor);
+    str.AppendPrintf(", mCrashHelper = %p", mCrashHelper);
+    str.AppendPrintf(", mUseNullDecoder = %s",
+                     mUseNullDecoder.mUse ? "yes" : "no");
+    str.AppendPrintf(", mNoWrapper = %s",
+                     mNoWrapper.mDontUseWrapper ? "no wrapper" : "has wrapper");
+    str.AppendPrintf(", mType = %d", static_cast<int32_t>(mType));
+    str.AppendPrintf(", mOnWaitingForKeyEvent = %s",
+                     mOnWaitingForKeyEvent ? "yes" : "no");
+    str.AppendPrintf(", mOptions = %s", OptionSetToString(mOptions).get());
+    str.AppendPrintf(", mRate = %f", mRate.mValue);
+    str.AppendPrintf(
+        ", mMediaEngineId = %s",
+        mMediaEngineId ? std::to_string(*mMediaEngineId).c_str() : "None");
+    str.AppendPrintf(", mTrackingId = %s",
+                     mTrackingId ? mTrackingId->ToString().get() : "None");
+    str.AppendPrintf(
+        ", mEncryptedCustomIdent = %s",
+        mEncryptedCustomIdent == EncryptedCustomIdent::True ? "true" : "false");
+    return std::move(str);
   }
 
   // CreateDecoderParams is a MOZ_STACK_CLASS, it is only used to
