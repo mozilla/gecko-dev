@@ -158,7 +158,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerSprite() {
-        const pointerId = 11; // sprites:Sprite
+        const pointerId = 13; // sprites:Sprite
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -168,7 +168,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerSprite(value) {
-        const pointerId = 11; // sprites:Sprite
+        const pointerId = 13; // sprites:Sprite
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -324,7 +324,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                136, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new
+                159, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new
                 FfiConverterOptionalTypePoint.lower(initialPosition),
             )
         }
@@ -360,7 +360,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                137, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to
+                160, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to
                 FfiConverterTypePoint.lower(reference),
                 FfiConverterTypeVector.lower(direction),
             )
@@ -376,7 +376,7 @@ export class Sprite {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                138, // sprites:uniffi_uniffi_sprites_fn_method_sprite_get_position
+                161, // sprites:uniffi_uniffi_sprites_fn_method_sprite_get_position
                 FfiConverterTypeSprite.lower(this),
             )
         }
@@ -400,7 +400,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                139, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_by
+                162, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_by
                 FfiConverterTypeSprite.lower(this),
                 FfiConverterTypeVector.lower(direction),
             )
@@ -425,7 +425,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                140, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_to
+                163, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_to
                 FfiConverterTypeSprite.lower(this),
                 FfiConverterTypePoint.lower(position),
             )
@@ -677,7 +677,7 @@ export function translate(position,direction) {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                141, // sprites:uniffi_uniffi_sprites_fn_func_translate
+                164, // sprites:uniffi_uniffi_sprites_fn_func_translate
                 FfiConverterTypePoint.lower(position),
                 FfiConverterTypeVector.lower(direction),
             )

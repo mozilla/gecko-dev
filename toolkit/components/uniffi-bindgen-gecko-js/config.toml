@@ -47,6 +47,10 @@ main = [
   "RelevancyStore.interrupt",
 ]
 
+[webext-storage]
+crate_name = "webext_storage"
+udl_file = "third_party/rust/webext-storage/src/webext-storage.udl"
+
 [remote_settings]
 crate_name = "remote_settings"
 udl_file = "third_party/rust/remote_settings/src/remote_settings.udl"
