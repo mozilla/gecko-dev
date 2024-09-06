@@ -59,7 +59,7 @@ bool nsMathMLmoFrame::IsFrameInSelection(nsIFrame* aFrame) {
 bool nsMathMLmoFrame::UseMathMLChar() {
   return (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
           NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
-         NS_MATHML_OPERATOR_IS_CENTERED(mFlags);
+         NS_MATHML_OPERATOR_FORCES_MATHML_CHAR(mFlags);
 }
 
 void nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -124,6 +124,7 @@ void nsMathMLmoFrame::ProcessTextData() {
   if (1 == length && ch == '-') {
     ch = 0x2212;
     data = ch;
+    mFlags |= NS_MATHML_OPERATOR_FORCE_MATHML_CHAR;
   }
 
   // cache the special bits: mutable, accent, movablelimits, centered.
@@ -156,6 +157,7 @@ void nsMathMLmoFrame::ProcessTextData() {
           (ch == 0x2265) ||  // &ge;
           (ch == 0x00D7)) {  // &times;
         mFlags |= NS_MATHML_OPERATOR_CENTERED;
+        mFlags |= NS_MATHML_OPERATOR_FORCE_MATHML_CHAR;
       }
     }
   }
@@ -197,7 +199,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
   // Also remember the other special bits that we want to carry forward.
   mFlags &= NS_MATHML_OPERATOR_MUTABLE | NS_MATHML_OPERATOR_ACCENT |
             NS_MATHML_OPERATOR_MOVABLELIMITS | NS_MATHML_OPERATOR_CENTERED |
-            NS_MATHML_OPERATOR_INVISIBLE;
+            NS_MATHML_OPERATOR_INVISIBLE | NS_MATHML_OPERATOR_FORCE_MATHML_CHAR;
 
   if (!mEmbellishData.coreFrame) {
     // i.e., we haven't been here before, the default form is infix
