@@ -3,8 +3,6 @@ head = "head.js"
 
 ["test_AppInfo.js"]
 
-["test_AsyncQueue.js"]
-
 ["test_ChallengeHeaderParser.js"]
 
 ["test_DOM.js"]
