@@ -2498,15 +2498,6 @@ HttpBaseChannel::GetResponseVersion(uint32_t* major, uint32_t* minor) {
   return NS_OK;
 }
 
-void HttpBaseChannel::NotifySetCookie(const nsACString& aCookie) {
-  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  if (obs) {
-    obs->NotifyObservers(static_cast<nsIChannel*>(this),
-                         "http-on-response-set-cookie",
-                         NS_ConvertASCIItoUTF16(aCookie).get());
-  }
-}
-
 bool HttpBaseChannel::IsBrowsingContextDiscarded() const {
   // If there is no loadGroup attached to the current channel, we check the
   // global private browsing state for the private channel instead. For
@@ -3582,11 +3573,7 @@ HttpBaseChannel::SetCookie(const nsACString& aCookieHeader) {
   nsICookieService* cs = gHttpHandler->GetCookieService();
   NS_ENSURE_TRUE(cs, NS_ERROR_FAILURE);
 
-  nsresult rv = cs->SetCookieStringFromHttp(mURI, aCookieHeader, this);
-  if (NS_SUCCEEDED(rv)) {
-    NotifySetCookie(aCookieHeader);
-  }
-  return rv;
+  return cs->SetCookieStringFromHttp(mURI, aCookieHeader, this);
 }
 
 NS_IMETHODIMP

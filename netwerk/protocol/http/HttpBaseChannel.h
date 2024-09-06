@@ -600,12 +600,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // Call AsyncAbort().
   virtual void DoAsyncAbort(nsresult aStatus) = 0;
 
-  // This is fired only when a cookie is created due to the presence of
-  // Set-Cookie header in the response header of any network request.
-  // This notification will come only after the "http-on-examine-response"
-  // was fired.
-  void NotifySetCookie(const nsACString& aCookie);
-
   void MaybeReportTimingData();
   nsIURI* GetReferringPage();
   nsPIDOMWindowInner* GetInnerDOMWindow();
