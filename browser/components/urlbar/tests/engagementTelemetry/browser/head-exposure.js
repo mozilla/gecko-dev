@@ -16,10 +16,7 @@ async function doExposureTest({
     .map(t => suggestResultType(t))
     .sort();
 
-  const cleanupQuickSuggest = await ensureQuickSuggestInit();
-  await SpecialPowers.pushPrefEnv({
-    set: prefs,
-  });
+  const cleanupQuickSuggest = await ensureQuickSuggestInit({ prefs });
 
   await doTest(async () => {
     await openPopup(query);
@@ -39,7 +36,6 @@ async function doExposureTest({
     assertExposureTelemetry(results ? [{ results }] : []);
   });
 
-  await SpecialPowers.popPrefEnv();
   await cleanupQuickSuggest();
 }
 

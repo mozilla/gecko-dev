@@ -160,6 +160,25 @@ export class BaseFeature {
   }
 
   /**
+   * If the feature manages suggestions served by the Suggest Rust component and
+   * at least one of its suggestion providers requires constraints, the subclass
+   * should override this method and return a plain JS object that can be passed
+   * to `SuggestionProviderConstraints()`. This method will only be called if
+   * the feature and suggestion type are enabled.
+   *
+   * @param {string} _type
+   *   A Rust suggestion type name as defined in `suggest.udl`, e.g., "Amp",
+   *   "Wikipedia", "Mdn", etc. See also `BaseFeature.rustSuggestionTypes`.
+   * @returns {object|null}
+   *   If the given type's provider requires constraints, this should return a
+   *   plain JS object that can be passed to `SuggestionProviderConstraints()`.
+   *   Otherwise it should return null.
+   */
+  getRustProviderConstraints(_type) {
+    return null;
+  }
+
+  /**
    * If the feature corresponds to a type of suggestion, the subclass should
    * override this method. It should return a new `UrlbarResult` for a given
    * suggestion, which can come from either remote settings or Merino.

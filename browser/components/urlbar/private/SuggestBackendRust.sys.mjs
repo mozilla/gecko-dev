@@ -11,12 +11,14 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   InterruptKind: "resource://gre/modules/RustSuggest.sys.mjs",
+  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   RemoteSettingsServer: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestStoreBuilder: "resource://gre/modules/RustSuggest.sys.mjs",
   Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestionProviderConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
   SuggestionQuery: "resource://gre/modules/RustSuggest.sys.mjs",
   TaskQueue: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -121,15 +123,26 @@ export class SuggestBackendRust extends BaseFeature {
     this.logger.debug("Handling query: " + JSON.stringify(searchString));
 
     let providers = [];
-    for (let { type, provider } of this.#enabledSuggestionTypes) {
+    let allProviderConstraints = {};
+    for (let { type, provider, providerConstraints } of this
+      .#enabledSuggestionTypes) {
       this.logger.debug(`Adding type to query: '${type}' (${provider})`);
       providers.push(provider);
+      if (providerConstraints) {
+        allProviderConstraints = {
+          ...allProviderConstraints,
+          ...providerConstraints,
+        };
+      }
     }
 
     let suggestions = await this.#store.query(
       new lazy.SuggestionQuery({
         providers,
         keyword: searchString,
+        providerConstraints: new lazy.SuggestionProviderConstraints(
+          allProviderConstraints
+        ),
       })
     );
 
@@ -201,10 +214,23 @@ export class SuggestBackendRust extends BaseFeature {
       ) {
         // Mark this type as stale so we'll ingest next time this method is
         // called.
-        this.#ingestedSuggestionTypes.delete(type);
-      } else if (evenIfFresh || !this.#ingestedSuggestionTypes.has(type)) {
-        this.#ingestedSuggestionTypes.add(type);
-        this.#ingestSuggestionType(type);
+        this.#providerConstraintsByIngestedSuggestionType.delete(type);
+      } else {
+        let providerConstraints = feature.getRustProviderConstraints(type);
+        if (
+          evenIfFresh ||
+          !this.#providerConstraintsByIngestedSuggestionType.has(type) ||
+          !lazy.ObjectUtils.deepEqual(
+            providerConstraints,
+            this.#providerConstraintsByIngestedSuggestionType.get(type)
+          )
+        ) {
+          this.#providerConstraintsByIngestedSuggestionType.set(
+            type,
+            providerConstraints
+          );
+          this.#ingestSuggestionType({ type, providerConstraints });
+        }
       }
     }
   }
@@ -234,6 +260,8 @@ export class SuggestBackendRust extends BaseFeature {
    *     "Wikipedia", "Mdn", etc.
    *   {number} provider
    *     An integer that identifies the provider of the suggestion type to Rust.
+   *   {object|null} providerConstraints
+   *     A plain JS object version of the type's provider constraints, if any.
    */
   get #enabledSuggestionTypes() {
     let items = [];
@@ -243,7 +271,11 @@ export class SuggestBackendRust extends BaseFeature {
           if (feature.isRustSuggestionTypeEnabled(type)) {
             let provider = this.#providerFromSuggestionType(type);
             if (provider) {
-              items.push({ type, provider });
+              items.push({
+                type,
+                provider,
+                providerConstraints: feature.getRustProviderConstraints(type),
+              });
             }
           }
         }
@@ -311,7 +343,7 @@ export class SuggestBackendRust extends BaseFeature {
 
   #uninit() {
     this.#store = null;
-    this.#ingestedSuggestionTypes.clear();
+    this.#providerConstraintsByIngestedSuggestionType.clear();
     this.#configsBySuggestionType.clear();
     lazy.timerManager.unregisterTimer(INGEST_TIMER_ID);
 
@@ -322,11 +354,15 @@ export class SuggestBackendRust extends BaseFeature {
   /**
    * Ingests the given suggestion type.
    *
-   * @param {string} type
+   * @param {object} options
+   *   Options object.
+   * @param {string} options.type
    *   A Rust suggestion type name as defined in `suggest.udl`, e.g., "Amp",
    *   "Wikipedia", "Mdn", etc.
+   * @param {object|null} options.providerConstraints
+   *   A plain JS object version of the type's provider constraints, if any.
    */
-  #ingestSuggestionType(type) {
+  #ingestSuggestionType({ type, providerConstraints }) {
     this.#ingestQueue.queueIdleCallback(async () => {
       if (!this.#store) {
         return;
@@ -344,6 +380,9 @@ export class SuggestBackendRust extends BaseFeature {
         await this.#store.ingest(
           new lazy.SuggestIngestionConstraints({
             providers: [provider],
+            providerConstraints: providerConstraints
+              ? new lazy.SuggestionProviderConstraints(providerConstraints)
+              : null,
           })
         );
         Glean.urlbar.quickSuggestIngestTime.stopAndAccumulate(timerId);
@@ -452,8 +491,9 @@ export class SuggestBackendRust extends BaseFeature {
   // `SuggestStore.fetchProviderConfig()`.
   #configsBySuggestionType = new Map();
 
-  // Keeps track of suggestion types with fresh (non-stale) ingests.
-  #ingestedSuggestionTypes = new Set();
+  // Keeps track of suggestion types with fresh (non-stale) ingests. Maps
+  // ingested suggestion types to `feature.getRustProviderConstraints(type)`.
+  #providerConstraintsByIngestedSuggestionType = new Map();
 
   #ingestQueue;
   #shutdownBlocker;

@@ -246,6 +246,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // sponsored and recommended results related to the user's search string.
   ["quicksuggest.enabled", false],
 
+  // Comma-separated list of Suggest exposure suggestion types to enable.
+  ["quicksuggest.exposureSuggestionTypes", ""],
+
   // Whether non-sponsored quick suggest results are subject to impression
   // frequency caps. This pref is a fallback for the Nimbus variable
   // `quickSuggestImpressionCapsNonSponsoredEnabled`.
@@ -1586,10 +1589,12 @@ class Preferences {
         return new Set(value);
       }
       case "exposureResults":
+      case "quicksuggest.exposureSuggestionTypes":
         return new Set(
           this._readPref(pref)
             .split(",")
             .map(s => s.trim())
+            .filter(s => !!s)
         );
     }
     return this._readPref(pref);

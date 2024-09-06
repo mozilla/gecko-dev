@@ -20,6 +20,8 @@ const FEATURES = {
   AdmWikipedia: "resource:///modules/urlbar/private/AdmWikipedia.sys.mjs",
   BlockedSuggestions:
     "resource:///modules/urlbar/private/BlockedSuggestions.sys.mjs",
+  ExposureSuggestions:
+    "resource:///modules/urlbar/private/ExposureSuggestions.sys.mjs",
   FakespotSuggestions:
     "resource:///modules/urlbar/private/FakespotSuggestions.sys.mjs",
   ImpressionCaps: "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs",

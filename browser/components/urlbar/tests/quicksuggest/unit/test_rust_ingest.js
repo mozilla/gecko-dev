@@ -144,6 +144,62 @@ add_task(async function featureWithMultipleSuggestionTypes() {
   });
 });
 
+// For a feature whose suggestion type provider has constraints, ingest should
+// happen when the constraints change.
+add_task(async function providerConstraintsChanged() {
+  // We'll use the Exposure feature since it has provider constraints. Make sure
+  // it exists.
+  let feature = QuickSuggest.getFeature("ExposureSuggestions");
+  Assert.ok(
+    !!feature,
+    "This test expects the ExposureSuggestions feature to exist"
+  );
+  Assert.ok(
+    feature.rustSuggestionTypes.includes("Exposure"),
+    "This test expects Exposure suggestions to exist"
+  );
+
+  let providersFilter = [SuggestionProvider.EXPOSURE];
+  await withIngestStub(async ({ stub, rustBackend }) => {
+    // Set the pref to a few non-empty string values. Each time, an exposure
+    // ingest should be triggered.
+    for (let type of ["aaa", "bbb", "aaa,bbb"]) {
+      UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", type);
+      info("Awaiting ingest promise after setting exposureSuggestionTypes");
+      await rustBackend.ingestPromise;
+
+      checkIngestCounts({
+        stub,
+        providersFilter,
+        expected: {
+          [SuggestionProvider.EXPOSURE]: 1,
+        },
+      });
+    }
+
+    // Set the pref to an empty string. The feature should become disabled and
+    // it shouldn't trigger ingest since no exposure suggestions are enabled.
+    UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", "");
+    info(
+      "Awaiting ingest promise after setting exposureSuggestionTypes to empty string"
+    );
+    await rustBackend.ingestPromise;
+
+    Assert.ok(
+      !feature.isEnabled,
+      "Exposure feature should be disabled after setting exposureSuggestionTypes to empty string"
+    );
+    checkIngestCounts({
+      stub,
+      providersFilter,
+      expected: {},
+    });
+  });
+
+  UrlbarPrefs.clear("quicksuggest.exposureSuggestionTypes");
+  await QuickSuggest.rustBackend.ingestPromise;
+});
+
 // Ingestion should be performed according to the defined interval.
 add_task(async function interval() {
   // Re-enable the backend with a small ingest interval. A new ingest will

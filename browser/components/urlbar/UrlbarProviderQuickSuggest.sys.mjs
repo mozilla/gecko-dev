@@ -204,7 +204,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let requiredKeys = ["source", "provider"];
 
     // Convert each suggestion into a result and add it. Don't add more than
-    // `maxResults` results so we don't spam the muxer.
+    // `maxResults` visible results so we don't spam the muxer.
     let remainingCount = queryContext.maxResults ?? 10;
     for (let suggestion of suggestions) {
       if (!remainingCount) {
@@ -232,7 +232,9 @@ class ProviderQuickSuggest extends UrlbarProvider {
         }
         if (result) {
           addCallback(this, result);
-          remainingCount--;
+          if (!result.isHiddenExposure) {
+            remainingCount--;
+          }
           if (result.payload.telemetryType == "top_picks") {
             this.#topPicksResultFromLastQuery = result;
           }
@@ -889,12 +891,14 @@ class ProviderQuickSuggest extends UrlbarProvider {
     this.logger.info("Checking if suggestion can be added");
     this.logger.debug(JSON.stringify({ suggestion }));
 
-    // Return false if suggestions are disabled.
+    // Return false if suggestions are disabled. Always allow Rust exposure
+    // suggestions.
     if (
-      (suggestion.is_sponsored &&
+      ((suggestion.is_sponsored &&
         !lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored")) ||
-      (!suggestion.is_sponsored &&
-        !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored"))
+        (!suggestion.is_sponsored &&
+          !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored"))) &&
+      (suggestion.source != "rust" || suggestion.provider != "Exposure")
     ) {
       this.logger.info("Suggestions disabled, not adding suggestion");
       return false;

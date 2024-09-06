@@ -15,8 +15,8 @@ add_setup(async function () {
 add_task(async function engagement() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     query: "amp",
     trigger: doClick,
@@ -28,8 +28,8 @@ add_task(async function engagement() {
 add_task(async function abandonment() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     query: "amp",
     trigger: doBlur,
@@ -41,8 +41,8 @@ add_task(async function abandonment() {
 add_task(async function oneExposureResult_shown_matched() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     query: "amp",
     expectedResultTypes: ["adm_sponsored"],
@@ -53,8 +53,8 @@ add_task(async function oneExposureResult_shown_matched() {
 add_task(async function oneExposureResult_shown_notMatched() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     query: "wikipedia",
     expectedResultTypes: [],
@@ -64,8 +64,8 @@ add_task(async function oneExposureResult_shown_notMatched() {
 add_task(async function oneExposureResult_hidden_matched() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", false],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", false],
     ],
     query: "amp",
     expectedResultTypes: ["adm_sponsored"],
@@ -76,8 +76,8 @@ add_task(async function oneExposureResult_hidden_matched() {
 add_task(async function oneExposureResult_hidden_notMatched() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", false],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", false],
     ],
     query: "wikipedia",
     expectedResultTypes: [],
@@ -88,13 +88,13 @@ add_task(async function manyExposureResults_shown_oneMatched_1() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", true],
+      ["showExposureResults", true],
     ],
     query: "amp",
     expectedResultTypes: ["adm_sponsored"],
@@ -106,13 +106,13 @@ add_task(async function manyExposureResults_shown_oneMatched_2() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", true],
+      ["showExposureResults", true],
     ],
     query: "wikipedia",
     expectedResultTypes: ["adm_nonsponsored"],
@@ -124,13 +124,13 @@ add_task(async function manyExposureResults_shown_manyMatched() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", true],
+      ["showExposureResults", true],
     ],
     query: "amp and wikipedia",
     // Only one result should be recorded since exposures are shown and at most
@@ -144,13 +144,13 @@ add_task(async function manyExposureResults_hidden_oneMatched_1() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", false],
+      ["showExposureResults", false],
     ],
     query: "amp",
     expectedResultTypes: ["adm_sponsored"],
@@ -162,13 +162,13 @@ add_task(async function manyExposureResults_hidden_oneMatched_2() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", false],
+      ["showExposureResults", false],
     ],
     query: "wikipedia",
     expectedResultTypes: ["adm_nonsponsored"],
@@ -180,13 +180,13 @@ add_task(async function manyExposureResults_hidden_manyMatched() {
   await doExposureTest({
     prefs: [
       [
-        "browser.urlbar.exposureResults",
+        "exposureResults",
         [
           suggestResultType("adm_sponsored"),
           suggestResultType("adm_nonsponsored"),
         ].join(","),
       ],
-      ["browser.urlbar.showExposureResults", false],
+      ["showExposureResults", false],
     ],
     query: "amp and wikipedia",
     // Both results should be recorded since exposures are hidden and there's no
@@ -199,8 +199,8 @@ add_task(async function manyExposureResults_hidden_manyMatched() {
 add_task(async function modifyQuery_terminal() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     // start with a Wikipedia query
     query: "wikipedia",
@@ -222,8 +222,8 @@ add_task(async function modifyQuery_terminal() {
 add_task(async function modifyQuery_nonTerminal() {
   await doExposureTest({
     prefs: [
-      ["browser.urlbar.exposureResults", suggestResultType("adm_sponsored")],
-      ["browser.urlbar.showExposureResults", true],
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
     ],
     // start with an AMP query
     query: "amp",
@@ -239,5 +239,34 @@ add_task(async function modifyQuery_nonTerminal() {
     // `shouldBeShown` is checked before `trigger` is called, and the AMP result
     // will be present then.
     shouldBeShown: true,
+  });
+});
+
+add_task(async function suggestExposure_matched() {
+  await doExposureTest({
+    prefs: [["quicksuggest.exposureSuggestionTypes", "aaa"]],
+    query: "aaa keyword",
+    expectedResultTypes: ["exposure"],
+    shouldBeShown: false,
+  });
+});
+
+add_task(async function suggestExposure_notMatched() {
+  await doExposureTest({
+    prefs: [["quicksuggest.exposureSuggestionTypes", "aaa"]],
+    query: "bbb keyword",
+    expectedResultTypes: [],
+  });
+});
+
+add_task(async function suggestExposure_showExposureResults() {
+  await doExposureTest({
+    prefs: [
+      ["quicksuggest.exposureSuggestionTypes", "aaa"],
+      ["showExposureResults", true],
+    ],
+    query: "aaa keyword",
+    expectedResultTypes: ["exposure"],
+    shouldBeShown: false,
   });
 });

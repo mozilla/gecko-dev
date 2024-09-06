@@ -529,6 +529,9 @@ pref("browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled", false);
 // characters than this threshold.
 pref("browser.urlbar.quicksuggest.ampTopPickCharThreshold", 0);
 
+// Comma-separated list of Suggest exposure suggestion types to enable.
+pref("browser.urlbar.quicksuggest.exposureSuggestionTypes", "");
+
 // Whether unit conversion is enabled.
 #ifdef NIGHTLY_BUILD
 pref("browser.urlbar.unitConversion.enabled", true);

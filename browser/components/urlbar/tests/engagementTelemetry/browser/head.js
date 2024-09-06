@@ -112,6 +112,13 @@ async function ensureQuickSuggestInit({ ...args } = {}) {
         type: "weather",
         weather: MerinoTestUtils.WEATHER_RS_DATA,
       },
+      {
+        type: "exposure-suggestions",
+        suggestion_type: "aaa",
+        attachment: {
+          keywords: ["aaa keyword"],
+        },
+      },
     ],
     ...args,
   });

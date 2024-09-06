@@ -13,6 +13,8 @@ firefox-appdir = "browser"
 
 ["test_quicksuggest_dynamicWikipedia.js"]
 
+["test_quicksuggest_exposures.js"]
+
 ["test_quicksuggest_fakespot.js"]
 
 ["test_quicksuggest_impressionCaps.js"]
