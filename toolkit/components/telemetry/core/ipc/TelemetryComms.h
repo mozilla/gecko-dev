@@ -52,18 +52,8 @@ struct ScalarAction {
   mozilla::Telemetry::ProcessID mProcessType;
 };
 
-struct KeyedScalarAction {
-  uint32_t mId;
-  bool mDynamic;
-  ScalarActionType mActionType;
+struct KeyedScalarAction : public ScalarAction {
   nsCString mKey;
-  // We need to wrap mData in a Maybe otherwise the IPC system
-  // is unable to instantiate a ScalarAction.
-  Maybe<ScalarVariant> mData;
-  // The process type this scalar should be recorded for.
-  // The IPC system will determine the process this action was coming from
-  // later.
-  mozilla::Telemetry::ProcessID mProcessType;
 };
 
 // Dynamic scalars support.

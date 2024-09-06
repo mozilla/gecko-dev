@@ -203,9 +203,9 @@ void TelemetryIPCAccumulator::RecordChildKeyedScalarAction(
     DispatchIPCTimerFired();
   }
   // Store the action. The ProcessID will be determined by the receiver.
-  gChildKeyedScalarsActions->AppendElement(
-      KeyedScalarAction{aId, aDynamic, aAction, NS_ConvertUTF16toUTF8(aKey),
-                        Some(aValue), Telemetry::ProcessID::Count});
+  gChildKeyedScalarsActions->AppendElement(KeyedScalarAction{
+      {aId, aDynamic, aAction, Some(aValue), Telemetry::ProcessID::Count},
+      NS_ConvertUTF16toUTF8(aKey)});
   ArmIPCTimer(locker);
 }
 
