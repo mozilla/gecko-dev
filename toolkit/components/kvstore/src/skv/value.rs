@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{convert::TryInto, ops::RangeInclusive};
+use std::convert::TryInto;
 
 use nserror::nsresult;
 use nsstring::{nsCString, nsString};
@@ -12,11 +12,6 @@ use rusqlite::{
 };
 use storage_variant::{DataType, NsIVariantExt, VariantType};
 use xpcom::{interfaces::nsIVariant, RefPtr};
-
-/// The range of integral values that an `f64` can represent
-/// without losing precision.
-const F64_INTEGER_RANGE: RangeInclusive<f64> =
-    ((-1i64 << f64::MANTISSA_DIGITS) + 1) as f64..=((1i64 << f64::MANTISSA_DIGITS) - 1) as f64;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Value(serde_json::Value);
@@ -29,21 +24,7 @@ impl Value {
                 DataType::Bool => bool::from_variant(variant)?.into(),
                 DataType::Int32 => i32::from_variant(variant)?.into(),
                 DataType::Int64 => i64::from_variant(variant)?.into(),
-                DataType::Double => {
-                    let value = f64::from_variant(variant)?;
-                    let n = value.trunc();
-                    if F64_INTEGER_RANGE.contains(&value) && value - n == 0.0 {
-                        // `serde_json::Number` loses precision when
-                        // deserializing either bound of the safe integer range
-                        // into an `f64` [1], so we serialize all
-                        // integral values in that range as `i64`s.
-                        //
-                        // [1]: https://github.com/serde-rs/json/issues/1170
-                        (n as i64).into()
-                    } else {
-                        value.into()
-                    }
-                }
+                DataType::Double => f64::from_variant(variant)?.into(),
                 DataType::AString | DataType::WCharStr | DataType::WStringSizeIs => {
                     nsString::from_variant(variant)?.to_string().into()
                 }
