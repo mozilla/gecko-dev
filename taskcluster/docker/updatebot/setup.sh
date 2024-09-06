@@ -10,6 +10,11 @@ set -vex
 # because we don't have it yet, and we are asking mercurial to go install it
 # so mercurial can use it.
 hg clone https://repo.mercurial-scm.org/evolve/ "$HOME/.mozbuild/evolve"
+(
+  cd "$HOME/.mozbuild/evolve"
+  rev=$(hg tags | sort -k 1 -V -r | awk -F: 'NR==2 {print $2}')
+  hg up "${rev}"
+)
 
 # Copy the system known_hosts to the home directory so we have uniformity with Windows
 # and the ssh command will find them in the same place.
