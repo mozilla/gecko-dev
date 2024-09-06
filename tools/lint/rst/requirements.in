@@ -12,7 +12,7 @@ snowballstemmer==2.2.0
 sphinxcontrib-applehelp==1.0.4
 sphinxcontrib-htmlhelp==2.0.1
 sphinxcontrib-mermaid==0.9.2
-rstcheck==3.5.0
+rstcheck==6.2.4
 Pygments==2.14.0
 pytz==2022.7.1
 urllib3==1.26.9

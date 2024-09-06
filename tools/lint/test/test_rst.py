@@ -10,15 +10,15 @@ pytestmark = pytest.mark.skipif(
 
 def test_basic(lint, paths):
     results = lint(paths())
-    assert len(results) == 2
+    assert len(results) == 3
 
     assert "Title underline too short" in results[0].message
     assert results[0].level == "error"
     assert results[0].relpath == "bad.rst"
 
-    assert "Title overline & underline mismatch" in results[1].message
-    assert results[1].level == "error"
-    assert results[1].relpath == "bad2.rst"
+    assert "Title overline & underline mismatch" in results[2].message
+    assert results[2].level == "error"
+    assert results[2].relpath == "bad2.rst"
 
 
 if __name__ == "__main__":

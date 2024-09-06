@@ -392,6 +392,7 @@ be declared in GeckoView's ``AndroidManifest.xml``.
 
 For example, this is the definition of the ``media`` process:
 
+.. rstcheck: ignore-languages=xml
 .. code-block:: xml
 
   <service

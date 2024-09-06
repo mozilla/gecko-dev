@@ -198,6 +198,7 @@ See
 `the source <https://hg.mozilla.org/mozilla-central/file/default/testing/mozbase/manifestparser/manifestparser/manifestparser.py>`_ for the full documentation of the
 expression syntax until it is documented here.
 
+.. rstcheck: ignore-directives=todo
 .. todo::
 
    Document manifest filter language.

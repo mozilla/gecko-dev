@@ -116,6 +116,7 @@ definition file.
 
 The probes in the definition file are represented in a fixed-depth, two-level structure:
 
+.. rstcheck: ignore-languages=yaml
 .. code-block:: yaml
 
     # The following is a category.

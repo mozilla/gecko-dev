@@ -306,6 +306,7 @@ that can be applied to the `TestManifest`. To do so, add the filter to `TestMani
     :members:
     :exclude-members: filterlist,InstanceFilter,DEFAULT_FILTERS
 
+.. rstcheck: ignore-directives=autodata
 .. autodata::  manifestparser.filters.DEFAULT_FILTERS
     :annotation:
 

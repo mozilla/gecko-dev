@@ -27,6 +27,7 @@ to interact with it.
 Template ``moz.yaml`` file
 ==========================
 
+.. rstcheck: ignore-languages=yaml
 .. code-block:: yaml
 
 
