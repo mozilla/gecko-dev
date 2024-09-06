@@ -874,6 +874,46 @@ newtabTopicSelection:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.topicLabels.locale-topic-label-config
 
+newtabContextualContent:
+  description: about:newtab contextual content feed
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    contextualContentEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.contextualContent.enabled
+      description: >-
+        Override the contextual content enabled value set via region/locale
+    localeContextualContentConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.locale-content-config
+      description: >-
+        A comma-separated list of locales that get contextual content by default.
+    regionContextualContentConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.region-content-config
+      description: >-
+        A comma-separated list of regions that get contextual content by default.
+    contextualContentTopics:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.topics
+      description: >-
+        CSV list of possible topics for the contextual content feed
+    contextualContentDetailedView:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.detailedView
+      description: >-
+        Controls if cards in contextual content feed display meta information and images
 
 pocketNewtab:
   description: The Pocket section in newtab

@@ -64,6 +64,11 @@ const REGION_THUMBS_CONFIG =
 const LOCALE_THUMBS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config";
 
+const REGION_CONTEXTUAL_CONTENT_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.contextualContent.region-content-config";
+const LOCALE_CONTEXTUAL_CONTENT_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.contextualContent.locale-content-config";
+
 // Determine if spocs should be shown for a geo/locale
 function showSpocs({ geo }) {
   const spocsGeoString =
@@ -134,6 +139,27 @@ function showThumbsUpDown({ geo, locale }) {
     .map(s => s.trim())
     .filter(item => item);
   return thumbsUpDownGeo.includes(geo) && thumbsUpDownLocale.includes(locale);
+}
+
+function showContextualContent({ geo, locale }) {
+  const contextualContentGeoString =
+    Services.prefs.getStringPref(REGION_CONTEXTUAL_CONTENT_CONFIG) || "";
+  const contextualContentLocaleString =
+    Services.prefs.getStringPref(LOCALE_CONTEXTUAL_CONTENT_CONFIG) || "";
+
+  const contextualContentGeo = contextualContentGeoString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+  const contextualContentLocale = contextualContentLocaleString
+    .split(",")
+    .map(s => s.trim())
+    .filter(item => item);
+
+  return (
+    contextualContentGeo.includes(geo) &&
+    contextualContentLocale.includes(locale)
+  );
 }
 
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
@@ -724,6 +750,28 @@ export const PREFS_CONFIG = new Map([
     {
       title: "Controls if spocs should be included in startup cache.",
       value: true,
+    },
+  ],
+  [
+    "discoverystream.contextualContent.enabled",
+    {
+      title: "Controls if contextual content (List feed) is displayed",
+      getValue: showContextualContent,
+    },
+  ],
+  [
+    "discoverystream.contextualContent.topics",
+    {
+      title: "CSV list of possible topics for the contextual content feed",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.detailedView",
+    {
+      title:
+        "Controls if cards in contextual content feed display meta information and images",
+      value: false,
     },
   ],
   [
