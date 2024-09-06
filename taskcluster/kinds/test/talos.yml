@@ -647,24 +647,16 @@ talos-webgl:
     treeherder-symbol: T(webgl)
     variants:
         - webrender-sw
-        - webgl-ipc
     run-on-projects:
         by-variant:
-            webgl-ipc:
-                by-test-platform:
-                    (linux1804|windows11|macosx1015)-64.*: [trunk]
-                    windows11-64-2009.*shippable.*: [trunk]
-                    default: []
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx1015)-64-shippable-qr.*: [trunk]
                     default: []
             default:
                 by-test-platform:
-                    windows.*-32.*: []
-                    (linux|windows11-64|macos)(?!.*shippable).*: []
-                    (linux|windows11-64|macos)(?!.*-qr).*: []
-                    default: [trunk]
+                    (linux1804|windows11|macosx1015)-64-shippable.*: [trunk]
+                    default: []
     max-run-time: 2100
     mozharness:
         extra-options:
@@ -675,8 +667,6 @@ talos-webgl-profiling:
     try-name: webgl
     treeherder-symbol: T-Prof(webgl)
     tier: 2
-    variants:
-        - webgl-ipc
     run-on-projects: []
     max-run-time: 1800
     mozharness:

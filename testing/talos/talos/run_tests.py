@@ -270,10 +270,6 @@ function FindProxyForURL(url, host) {
         # we need to add 'webrender' so reported data is consistent
         talos_results.add_extra_option("webrender")
 
-    # differentiate webgl from webgl-ipc results
-    if browser_config["preferences"].get("webgl.out-of-process", False):
-        talos_results.add_extra_option("webgl-ipc")
-
     testname = None
 
     # run the tests

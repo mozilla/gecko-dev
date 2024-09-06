@@ -326,17 +326,6 @@ webrender-sw:
             extra-options:
                 - "--setpref=gfx.webrender.software=true"
 
-webgl-ipc:
-    description: "{description} with WebGL IPC process enabled"
-    component: "Core::Graphics: CanvasWebGL"
-    expiration: "2024-09-01"
-    suffix: "gli"
-    merge:
-        mozharness:
-            extra-options:
-                - "--setpref=webgl.out-of-process=true"
-                - "--setpref=security.sandbox.content.headless=true"
-
 wmf-media-engine:
     description: "{description} with Windows Media Foundation media engine enabled"
     component: "Core::Audio/Video: Playback"
