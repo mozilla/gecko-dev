@@ -11,8 +11,6 @@ add_task(async () => {
   let local = gDataHomeLocal.clone();
   local.append("foo");
   let empty = makeRandomProfileDir("empty");
-  let emptyLocal = gDataHomeLocal.clone();
-  emptyLocal.append("empty");
 
   let profileData = {
     options: {
@@ -38,7 +36,7 @@ add_task(async () => {
   Assert.ok(!didCreate, "Should not have created a new profile.");
   Assert.ok(rootDir.equals(empty), "Should have selected the right root dir.");
   Assert.ok(
-    localDir.equals(emptyLocal),
+    localDir.equals(empty),
     "Should have selected the right local dir."
   );
   Assert.ok(!profile, "No named profile matches this.");

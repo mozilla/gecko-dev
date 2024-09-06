@@ -94,8 +94,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   nsresult CreateTimesInternal(nsIFile* profileDir);
   void GetProfileByDir(nsIFile* aRootDir, nsIFile* aLocalDir,
                        nsIToolkitProfile** aResult);
-  nsresult GetProfileByStoreID(const nsACString& aStoreID,
-                               nsIToolkitProfile** aResult);
 
   nsresult GetProfileDescriptor(nsIFile* aRootDir, nsACString& aDescriptor,
                                 bool* aIsRelative);
@@ -109,7 +107,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   bool UseLegacyProfiles();
   nsresult CreateDefaultProfile(nsIToolkitProfile** aResult);
   void SetNormalDefault(nsIToolkitProfile* aProfile);
-  nsresult GetLocalDirFromRootDir(nsIFile* aRootDir, nsIFile** aResult);
 
   // Returns the known install hashes from the installs database. Modifying the
   // installs database is safe while iterating the returned array.
@@ -121,8 +118,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   mozilla::LinkedList<RefPtr<nsToolkitProfile>> mProfiles;
   // The profile selected for use at startup, if it exists in profiles.ini.
   nsCOMPtr<nsIToolkitProfile> mCurrent;
-  // The managed profile that acts as a pointer to a profile group.
-  nsCOMPtr<nsIToolkitProfile> mGroupProfile;
   // The profile selected for this install in installs.ini.
   nsCOMPtr<nsIToolkitProfile> mDedicatedProfile;
   // The default profile used by non-dev-edition builds.

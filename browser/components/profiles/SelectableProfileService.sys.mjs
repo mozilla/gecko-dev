@@ -47,8 +47,7 @@ class SelectableProfileServiceClass {
         rootDir: Services.dirsvc.get("ProfD", Ci.nsIFile),
       };
     } else {
-      this.#groupToolkitProfile =
-        lazy.ProfileService.currentProfile ?? lazy.ProfileService.groupProfile;
+      this.#groupToolkitProfile = lazy.ProfileService.currentProfile;
     }
   }
 
@@ -93,7 +92,7 @@ class SelectableProfileServiceClass {
   }
 
   async getProfilesStorePath() {
-    if (!this.#groupToolkitProfile.storeID) {
+    if (!this.#groupToolkitProfile?.storeID) {
       await this.createProfilesStorePath();
     }
 
@@ -112,16 +111,14 @@ class SelectableProfileServiceClass {
       return;
     }
 
+    this.initWindowTracker();
+
     await this.initConnection();
 
     // Get the SelectableProfile by the profile directory
     this.#currentProfile = await this.getProfileByPath(
-      Services.dirsvc.get("ProfD", Ci.nsIFile)
+      this.#groupToolkitProfile.rootDir
     );
-
-    // The 'activate' event listeners use #currentProfile, so this line has
-    // to come after #currentProfile has been set.
-    this.initWindowTracker();
 
     this.#initialized = true;
   }
@@ -286,33 +283,6 @@ class SelectableProfileServiceClass {
   }
 
   // App session lifecycle methods and multi-process support
-
-  /*
-   * Helper that returns an inited Firefox executable process (nsIProcess).
-   * Mostly useful for mocking in unit testing.
-   */
-  getExecutableProcess() {
-    let process = Cc["@mozilla.org/process/util;1"].createInstance(
-      Ci.nsIProcess
-    );
-    let executable = Services.dirsvc.get("XREExeF", Ci.nsIFile);
-    process.init(executable);
-    return process;
-  }
-
-  /**
-   * Launch a new Firefox instance using the given selectable profile.
-   *
-   * @param {SelectableProfile} aProfile The profile to launch
-   */
-  launchInstance(aProfile) {
-    let process = this.getExecutableProcess();
-    let args = ["--profile", aProfile.path];
-    if (Services.appinfo.OS === "Darwin") {
-      args.unshift("-foreground");
-    }
-    process.runw(false, args, args.length);
-  }
 
   /**
    * When the group DB has been updated, either changes to prefs or profiles,
