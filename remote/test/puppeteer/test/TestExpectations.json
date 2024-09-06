@@ -454,13 +454,6 @@
     "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
   },
   {
-    "testIdPattern": "[mouse.spec] Mouse should not throw if clicking in parallel",
-    "platforms": ["darwin", "linux", "win32"],
-    "parameters": ["firefox", "webDriverBiDi"],
-    "expectations": ["FAIL"],
-    "comment": "Needs support for action queue: https://bugzilla.mozilla.org/show_bug.cgi?id=1915798"
-  },
-  {
     "testIdPattern": "[mouse.spec] Mouse should reset properly",
     "platforms": ["darwin", "linux", "win32"],
     "parameters": ["cdp"],

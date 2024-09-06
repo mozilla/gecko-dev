@@ -389,7 +389,11 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
       actions,
       this.#actionsOptions
     );
-    await actionChain.dispatch(this.#actionState, this.#actionsOptions);
+
+    // Enqueue to serialize access to input state.
+    await this.#actionState.enqueueAction(() =>
+      actionChain.dispatch(this.#actionState, this.#actionsOptions)
+    );
 
     await this.#endWheelTransaction();
   }
@@ -406,7 +410,12 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
       return;
     }
 
-    await this.#actionState.release(this.#actionsOptions);
+    // Enqueue to serialize access to input state.
+    await this.#actionState.enqueueAction(() => {
+      const undoActions = this.#actionState.inputCancelList.reverse();
+      undoActions.dispatch(this.#actionState, this.#actionsOptions);
+    });
+
     this.#actionState = null;
   }
 

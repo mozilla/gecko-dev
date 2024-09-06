@@ -162,6 +162,27 @@ class InputModule extends RootBiDiModule {
   }
 
   /**
+   * Retrieves the action's input state.
+   *
+   * @param {BrowsingContext} context
+   *     The Browsing Context to retrieve the input state for.
+   *
+   * @returns {Actions.InputState}
+   *     The action's input state.
+   */
+  #getInputState(context) {
+    // Bug 1821460: Fetch top-level browsing context.
+    let inputState = this.#inputStates.get(context);
+
+    if (inputState === undefined) {
+      inputState = new lazy.action.State();
+      this.#inputStates.set(context, inputState);
+    }
+
+    return inputState;
+  }
+
+  /**
    * Retrieve the in-view center point for the rect and visible viewport.
    *
    * @param {DOMRect} rect
@@ -200,6 +221,19 @@ class InputModule extends RootBiDiModule {
     );
   }
 
+  /**
+   * Resets the action's input state.
+   *
+   * @param {BrowsingContext} context
+   *     The Browsing Context to reset the input state for.
+   */
+  #resetInputState(context) {
+    // Bug 1821460: Fetch top-level browsing context.
+    if (this.#inputStates.has(context)) {
+      this.#inputStates.delete(context);
+    }
+  }
+
   async performActions(options = {}) {
     const { actions, context: contextId } = options;
 
@@ -215,20 +249,19 @@ class InputModule extends RootBiDiModule {
       );
     }
 
-    // Bug 1821460: Fetch top-level browsing context.
-    let inputState = this.#inputStates.get(context);
-    if (inputState === undefined) {
-      inputState = new lazy.action.State();
-      this.#inputStates.set(context, inputState);
-    }
-
+    const inputState = this.#getInputState(context);
     const actionsOptions = { ...this.#actionsOptions, context };
+
     const actionChain = await lazy.action.Chain.fromJSON(
       inputState,
       actions,
       actionsOptions
     );
-    await actionChain.dispatch(inputState, actionsOptions);
+
+    // Enqueue to serialize access to input state.
+    await inputState.enqueueAction(() =>
+      actionChain.dispatch(inputState, actionsOptions)
+    );
 
     await this.#endWheelTransaction(context);
   }
@@ -260,15 +293,16 @@ class InputModule extends RootBiDiModule {
       );
     }
 
-    // Bug 1821460: Fetch top-level browsing context.
-    let inputState = this.#inputStates.get(context);
-    if (inputState === undefined) {
-      return;
-    }
-
+    const inputState = this.#getInputState(context);
     const actionsOptions = { ...this.#actionsOptions, context };
-    await inputState.release(actionsOptions);
-    this.#inputStates.delete(context);
+
+    // Enqueue to serialize access to input state.
+    await inputState.enqueueAction(() => {
+      const undoActions = inputState.inputCancelList.reverse();
+      return undoActions.dispatch(inputState, actionsOptions);
+    });
+
+    this.#resetInputState(context);
   }
 
   /**

@@ -8,16 +8,18 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  AsyncQueue: "chrome://remote/content/shared/AsyncQueue.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   event: "chrome://remote/content/shared/webdriver/Event.sys.mjs",
   keyData: "chrome://remote/content/shared/webdriver/KeyData.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   Sleep: "chrome://remote/content/marionette/sync.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>
@@ -77,11 +79,18 @@ const MODIFIER_NAME_LOOKUP = {
  * single State object.
  */
 action.State = class {
+  #actionsQueue;
+
   /**
    * Creates a new {@link State} instance.
    */
   constructor() {
+    // A queue that ensures that access to the input state is serialized.
+    this.#actionsQueue = new lazy.AsyncQueue();
+
+    // Tracker for mouse button clicks.
     this.clickTracker = new ClickTracker();
+
     /**
      * A map between input ID and the device state for that input
      * source, with one entry for each active input source.
@@ -97,10 +106,18 @@ action.State = class {
      */
     this.inputsToCancel = new TickActions();
 
-    /**
-     * Map between string input id and numeric pointer id
-     */
+    // Map between string input id and numeric pointer id.
     this.pointerIdMap = new Map();
+  }
+
+  /**
+   * Returns the list of inputs to cancel when releasing the actions.
+   *
+   * @returns {TickActions}
+   *     The inputs to cancel.
+   */
+  get inputCancelList() {
+    return this.inputsToCancel;
   }
 
   toString() {
@@ -108,20 +125,17 @@ action.State = class {
   }
 
   /**
-   * Reset state stored in this object.
+   * Enqueue a new action task.
    *
-   * Note: It is an error to use the State object after calling release().
-   *
-   * @param {ActionsOptions} options
-   *     Configuration of actions dispatch.
+   * @param {Function} task
+   *     The task to queue.
    *
    * @returns {Promise}
-   *     Promise that is resolved once all inputs are released.
+   *     Promise that resolves when the task is completed, with the resolved
+   *     value being the result of the task.
    */
-  release(options) {
-    this.inputsToCancel.reverse();
-
-    return this.inputsToCancel.dispatch(this, options);
+  enqueueAction(task) {
+    return this.#actionsQueue.enqueue(task);
   }
 
   /**
