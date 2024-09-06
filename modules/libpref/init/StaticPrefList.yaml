@@ -14393,7 +14393,7 @@
 # be used instead.
 - name: privacy.annotate_channels.strict_list.enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # Annotate trackers using the strict list in the private browsing mode. If set
