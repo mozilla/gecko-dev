@@ -9,16 +9,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.Snackbar
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -26,13 +33,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.ext.getIcon
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -52,28 +60,31 @@ fun DownloadsScreen(
 ) {
     val uiState by downloadsStore.observeAsState(initialValue = downloadsStore.state) { it }
 
-    if (uiState.isEmptyState) {
-        NoDownloads(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(FirefoxTheme.colors.layer1),
-        )
-    } else {
-        DownloadsContent(
-            state = uiState,
-            onClick = onItemClick,
-            onSelectionChange = { item, isSelected ->
-                if (isSelected) {
-                    downloadsStore.dispatch(DownloadFragmentAction.AddItemForRemoval(item))
-                } else {
-                    downloadsStore.dispatch(DownloadFragmentAction.RemoveItemForRemoval(item))
-                }
-            },
-            onDeleteClick = onItemDeleteClick,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(FirefoxTheme.colors.layer1),
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FirefoxTheme.colors.layer1),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (uiState.isEmptyState) {
+            NoDownloadsText()
+        } else {
+            DownloadsContent(
+                state = uiState,
+                onClick = onItemClick,
+                onSelectionChange = { item, isSelected ->
+                    if (isSelected) {
+                        downloadsStore.dispatch(DownloadFragmentAction.AddItemForRemoval(item))
+                    } else {
+                        downloadsStore.dispatch(DownloadFragmentAction.RemoveItemForRemoval(item))
+                    }
+                },
+                onDeleteClick = onItemDeleteClick,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .widthIn(max = FirefoxTheme.size.containerMaxWidth),
+            )
+        }
     }
 }
 
@@ -143,18 +154,13 @@ private fun DownloadsContent(
 }
 
 @Composable
-private fun NoDownloads(modifier: Modifier = Modifier) {
-    Box(
+private fun NoDownloadsText(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(id = R.string.download_empty_message_1),
         modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(id = R.string.download_empty_message_1),
-            modifier = Modifier,
-            color = FirefoxTheme.colors.textSecondary,
-            style = FirefoxTheme.typography.body1,
-        )
-    }
+        color = FirefoxTheme.colors.textSecondary,
+        style = FirefoxTheme.typography.body1,
+    )
 }
 
 private class DownloadsScreenPreviewModelParameterProvider :
@@ -200,17 +206,32 @@ private class DownloadsScreenPreviewModelParameterProvider :
 }
 
 @Composable
-@PreviewLightDark
+@FlexibleWindowLightDarkPreview
 private fun DownloadsScreenPreviews(
     @PreviewParameter(DownloadsScreenPreviewModelParameterProvider::class) state: DownloadFragmentState,
 ) {
+    val store = remember { DownloadFragmentStore(initialState = state) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     FirefoxTheme {
-        DownloadsScreen(
-            downloadsStore = DownloadFragmentStore(
-                initialState = state,
-            ),
-            onItemClick = {},
-            onItemDeleteClick = {},
-        )
+        Box {
+            DownloadsScreen(
+                downloadsStore = store,
+                onItemClick = {
+                    scope.launch { snackbarHostState.showSnackbar("Item ${it.fileName} clicked") }
+                },
+                onItemDeleteClick = {
+                    store.dispatch(DownloadFragmentAction.UpdateDownloadItems(store.state.items - it))
+                },
+            )
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            ) { snackbarData ->
+                Snackbar(
+                    snackbarData = snackbarData,
+                )
+            }
+        }
     }
 }

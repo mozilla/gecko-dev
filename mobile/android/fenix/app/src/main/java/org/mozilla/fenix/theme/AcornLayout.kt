@@ -169,6 +169,12 @@ data class AcornSize(
      * Placeholder for detekt.
      */
     val circularIndicatorDiameter = xSmall
+
+    /**
+     * The maximum width that a container can take when it is the sole UI element on the screen.
+     * This will adapt a phone-centric design into a large screen viewport.
+     */
+    val containerMaxWidth = LayoutPrimitives.windowBreakpointSmallMax
 }
 
 /**
