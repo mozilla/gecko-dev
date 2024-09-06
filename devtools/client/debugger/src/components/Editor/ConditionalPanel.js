@@ -34,6 +34,7 @@ export class ConditionalPanel extends PureComponent {
   constructor() {
     super();
     this.cbPanel = null;
+    this.breakpointPanelEditor = null;
   }
 
   static get propTypes() {
@@ -49,26 +50,66 @@ export class ConditionalPanel extends PureComponent {
     };
   }
 
+  removeBreakpointPanelEditor() {
+    if (this.breakpointPanelEditor) {
+      this.breakpointPanelEditor.destroy();
+    }
+    this.breakpointPanelEditor = null;
+  }
+
   keepFocusOnInput() {
     if (this.input) {
       this.input.focus();
+    } else if (this.breakpointPanelEditor) {
+      this.breakpointPanelEditor.focus();
     }
   }
 
-  saveAndClose = () => {
-    if (this.input) {
-      this.setBreakpoint(this.input.value.trim());
+  /**
+   * Set the breakpoint/logpoint if expression isn't empty, and close the panel.
+   *
+   * @param {String} expression: The expression that will be used for setting the
+   *        conditional breakpoint/logpoint
+   */
+  saveAndClose = (expression = null) => {
+    if (expression) {
+      this.setBreakpoint(expression.trim());
     }
 
     this.props.closeConditionalPanel();
   };
 
+  /**
+   * Handle inline editor keydown event
+   *
+   * @param {Event} e: The keydown event
+   */
   onKey = e => {
     if (e.key === "Enter" && !e.shiftKey) {
-      this.saveAndClose();
+      this.saveAndClose(this.input?.value);
     } else if (e.key === "Escape") {
       this.props.closeConditionalPanel();
     }
+  };
+
+  /**
+   * Handle inline editor blur event
+   *
+   * @param {Event} e: The blur event
+   */
+  onBlur = e => {
+    if (
+      // if there is no event
+      // or if the focus is the conditional panel
+      // do not close the conditional panel
+      !e ||
+      (e?.relatedTarget &&
+        e.relatedTarget.closest(".conditional-breakpoint-panel"))
+    ) {
+      return;
+    }
+
+    this.props.closeConditionalPanel();
   };
 
   setBreakpoint(value) {
@@ -105,17 +146,20 @@ export class ConditionalPanel extends PureComponent {
   };
 
   showConditionalPanel(prevProps) {
-    const { location, editor, breakpoint, selectedSource } = this.props;
+    const { location, log, editor, breakpoint, selectedSource } = this.props;
     if (!selectedSource || !location) {
+      this.removeBreakpointPanelEditor();
       return;
     }
     // When breakpoint is removed
     if (prevProps?.breakpoint && !breakpoint) {
       editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      this.removeBreakpointPanelEditor();
       return;
     }
     if (selectedSource.id !== location.source.id) {
       editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      this.removeBreakpointPanelEditor();
       return;
     }
     const line = toEditorLine(location.source.id, location.line || 0);
@@ -124,12 +168,42 @@ export class ConditionalPanel extends PureComponent {
       lines: [{ line }],
       renderAsBlock: true,
       createLineElementNode: () => {
-        // Create a Codemirror 5 editor for the breakpoint panel
-        // TODO: Switch to use Codemirror 6 version Bug 1890205
-        const breakpointPanelEditor = createEditor();
-        breakpointPanelEditor.appendToLocalElement(
-          document.createElement("div")
-        );
+        // Create a Codemirror editor for the breakpoint panel
+
+        const onEnterKeyMapConfig = {
+          preventDefault: true,
+          stopPropagation: true,
+          run: () => this.saveAndClose(breakpointPanelEditor.getText(null)),
+        };
+
+        const breakpointPanelEditor = createEditor({
+          cm6: features.codemirrorNext,
+          readOnly: false,
+          lineNumbers: false,
+          placeholder: L10N.getStr(
+            log
+              ? "editor.conditionalPanel.logPoint.placeholder2"
+              : "editor.conditionalPanel.placeholder2"
+          ),
+          keyMap: [
+            {
+              key: "Enter",
+              ...onEnterKeyMapConfig,
+            },
+            {
+              key: "Mod-Enter",
+              ...onEnterKeyMapConfig,
+            },
+            {
+              key: "Escape",
+              preventDefault: true,
+              stopPropagation: true,
+              run: () => this.props.closeConditionalPanel(),
+            },
+          ],
+        });
+
+        this.breakpointPanelEditor = breakpointPanelEditor;
         return this.renderConditionalPanel(this.props, breakpointPanelEditor);
       },
     });
@@ -168,6 +242,7 @@ export class ConditionalPanel extends PureComponent {
     } else {
       this.clearConditionalPanel();
     }
+    this.removeBreakpointPanelEditor();
   }
 
   renderToWidget(props) {
@@ -209,57 +284,55 @@ export class ConditionalPanel extends PureComponent {
     }
   }
 
-  createEditor = (input, editor) => {
-    const { log, closeConditionalPanel } = this.props;
-    const codeMirror = editor.CodeMirror.fromTextArea(input, {
-      mode: "javascript",
-      theme: "mozilla",
-      placeholder: L10N.getStr(
-        log
-          ? "editor.conditionalPanel.logPoint.placeholder2"
-          : "editor.conditionalPanel.placeholder2"
-      ),
-      cursorBlinkRate: prefs.cursorBlinkRate,
-    });
+  setupAndAppendInlineEditor = (el, editor) => {
+    const { log } = this.props;
 
-    codeMirror.on("keydown", (cm, e) => {
-      if (e.key === "Enter") {
-        e.codemirrorIgnore = true;
-      }
-    });
+    if (features.codemirrorNext) {
+      editor.appendToLocalElement(el);
+      editor.on("blur", e => this.onBlur(e));
 
-    codeMirror.on("blur", (cm, e) => {
-      if (
-        // if there is no event
-        // or if the focus is the conditional panel
-        // do not close the conditional panel
-        !e ||
-        (e?.relatedTarget &&
-          e.relatedTarget.closest(".conditional-breakpoint-panel"))
-      ) {
-        return;
-      }
+      editor.setText(this.getDefaultValue());
+      editor.focus();
+      editor.selectAll();
+    } else {
+      const codeMirror = editor.CodeMirror.fromTextArea(el, {
+        mode: "javascript",
+        theme: "mozilla",
+        placeholder: L10N.getStr(
+          log
+            ? "editor.conditionalPanel.logPoint.placeholder2"
+            : "editor.conditionalPanel.placeholder2"
+        ),
+        cursorBlinkRate: prefs.cursorBlinkRate,
+      });
 
-      closeConditionalPanel();
-    });
+      codeMirror.on("keydown", (cm, e) => {
+        if (e.key === "Enter") {
+          e.codemirrorIgnore = true;
+        }
+      });
 
-    const codeMirrorWrapper = codeMirror.getWrapperElement();
+      codeMirror.on("blur", (cm, e) => this.onBlur(e));
 
-    codeMirrorWrapper.addEventListener("keydown", e => {
-      codeMirror.save();
-      this.onKey(e);
-    });
+      const codeMirrorWrapper = codeMirror.getWrapperElement();
 
-    this.input = input;
-    this.codeMirror = codeMirror;
-    codeMirror.focus();
-    codeMirror.execCommand("selectAll");
+      codeMirrorWrapper.addEventListener("keydown", e => {
+        codeMirror.save();
+        this.onKey(e);
+      });
+
+      this.input = el;
+      this.codeMirror = codeMirror;
+      codeMirror.focus();
+      codeMirror.execCommand("selectAll");
+    }
   };
 
   getDefaultValue() {
     const { breakpoint, log } = this.props;
     const options = breakpoint?.options || {};
-    return log ? options.logValue : options.condition;
+    const value = log ? options.logValue : options.condition;
+    return value || "";
   }
 
   renderConditionalPanel(props, editor) {
@@ -285,10 +358,15 @@ export class ConditionalPanel extends PureComponent {
           },
           "»"
         ),
-        textarea({
-          defaultValue,
-          ref: input => this.createEditor(input, editor),
-        })
+        features.codemirrorNext
+          ? div({
+              className: "inline-codemirror-container",
+              ref: el => this.setupAndAppendInlineEditor(el, editor),
+            })
+          : textarea({
+              defaultValue,
+              ref: input => this.setupAndAppendInlineEditor(input, editor),
+            })
       )
     );
 

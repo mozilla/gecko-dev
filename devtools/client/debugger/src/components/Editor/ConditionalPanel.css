@@ -47,3 +47,13 @@
   /* Match the color of the placeholder text to existing inputs in the Debugger */
   color: var(--theme-text-color-alt);
 }
+
+/* cm6 style */
+.conditional-breakpoint-panel .inline-codemirror-container {
+  flex: 1 1 100%;
+
+  /* We already set an outline on the conditional panel, so hide the default codemirror one */
+  .cm-editor.cm-focused {
+    outline: none;
+  }
+}

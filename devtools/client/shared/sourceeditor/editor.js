@@ -647,8 +647,14 @@ class Editor extends EventEmitter {
 
     const {
       codemirror,
-      codemirrorView: { EditorView, lineNumbers, drawSelection },
-      codemirrorState: { EditorState, Compartment },
+      codemirrorView: {
+        drawSelection,
+        EditorView,
+        keymap,
+        lineNumbers,
+        placeholder,
+      },
+      codemirrorState: { EditorState, Compartment, Prec },
       codemirrorSearch: { highlightSelectionMatches },
       codemirrorLanguage: {
         syntaxTreeAvailable,
@@ -750,6 +756,14 @@ class Editor extends EventEmitter {
       extensions.push(codemirrorLangJavascript.javascript());
     }
 
+    if (this.config.placeholder) {
+      extensions.push(placeholder(this.config.placeholder));
+    }
+
+    if (this.config.keyMap) {
+      extensions.push(Prec.highest(keymap.of(this.config.keyMap)));
+    }
+
     if (Services.prefs.prefHasUserValue(CARET_BLINK_TIME)) {
       // We need to multiply the preference value by 2 to match Firefox cursor rate
       const cursorBlinkRate = Services.prefs.getIntPref(CARET_BLINK_TIME) * 2;
@@ -768,6 +782,11 @@ class Editor extends EventEmitter {
     cm.isDocumentLoadComplete = false;
     this.#ownerDoc.sourceEditor = { editor: this, cm };
     editors.set(this, cm);
+
+    // For now, we only need to pipe the blur event
+    cm.contentDOM.addEventListener("blur", e => this.emit("blur", e), {
+      signal: this.#abortController?.signal,
+    });
   }
 
   /**
@@ -3283,6 +3302,29 @@ class Editor extends EventEmitter {
       );
     }
     return outputNode.innerHTML;
+  }
+
+  /**
+   * Focus the CodeMirror editor
+   */
+  focus() {
+    const cm = editors.get(this);
+    cm.focus();
+  }
+
+  /**
+   * Select the whole document
+   */
+  selectAll() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      cm.dispatch({
+        selection: { anchor: 0, head: cm.state.doc.length },
+        userEvent: "select",
+      });
+    } else {
+      cm.execCommand("selectAll");
+    }
   }
 }
 

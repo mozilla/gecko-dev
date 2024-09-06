@@ -5,7 +5,13 @@
 import SourceEditor from "devtools/client/shared/sourceeditor/editor";
 import { features, prefs } from "../prefs";
 
-export function createEditor(useCm6 = false) {
+/**
+ * Create a SourceEditor
+ *
+ * @param {Object} config: SourceEditor config object
+ * @returns
+ */
+export function createEditor(config = { cm6: false }) {
   const gutters = ["breakpoints", "hit-markers", "CodeMirror-linenumbers"];
 
   if (features.codeFolding) {
@@ -14,7 +20,6 @@ export function createEditor(useCm6 = false) {
 
   return new SourceEditor({
     mode: SourceEditor.modes.js,
-    cm6: useCm6,
     foldGutter: features.codeFolding,
     enableCodeFolding: features.codeFolding,
     readOnly: true,
@@ -37,6 +42,7 @@ export function createEditor(useCm6 = false) {
       "Ctrl-G": false,
     },
     cursorBlinkRate: prefs.cursorBlinkRate,
+    ...config,
   });
 }
 
@@ -47,7 +53,7 @@ export function createEditor(useCm6 = false) {
  * @returns {CodeMirror}
  */
 export function createHeadlessEditor(useCm6) {
-  const editor = createEditor(useCm6);
+  const editor = createEditor({ cm6: useCm6 });
   editor.appendToLocalElement(document.createElement("div"));
   return editor;
 }

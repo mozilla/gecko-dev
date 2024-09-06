@@ -20,7 +20,7 @@ export function getEditor(useCm6) {
     return editor;
   }
 
-  editor = createEditor(useCm6);
+  editor = createEditor({ cm6: useCm6 });
   return editor;
 }
 
