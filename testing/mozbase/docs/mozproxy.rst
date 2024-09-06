@@ -11,7 +11,9 @@ Mozproxy is used by Raptor to run performance test without having to interact
 with the real web site.
 
 Mozproxy provide a function that returns a playback class. The usage pattern is
-::
+
+.. rstcheck: ignore-languages=python
+.. code-block:: python
 
    from mozproxy import get_playback
 

@@ -35,12 +35,13 @@ The important decorators are as follows:
 
 Here is a complete example:
 
+.. rstcheck: ignore-languages=python
 .. code-block:: python
 
-   from mach.decorators import (
-       CommandArgument,
-       Command,
-   )
+    from mach.decorators import (
+      CommandArgument,
+      Command,
+    )
 
     @Command('doit', help='Do ALL OF THE THINGS.')
     @CommandArgument('--force', '-f', action='store_true',
@@ -77,19 +78,20 @@ why the command cannot currently be run.
 
 Here is an example:
 
+.. rstcheck: ignore-languages=python
 .. code-block:: python
 
-   from mach.decorators import (
-       Command,
-   )
+  from mach.decorators import (
+      Command,
+  )
 
-   def build_available(cls):
-       """The build needs to be available."""
-       return cls.build_path is not None
+  def build_available(cls):
+      """The build needs to be available."""
+      return cls.build_path is not None
 
-   @Command('run_tests', conditions=[build_available])
-   def run_tests(command_context):
-       # Do stuff here.
+  @Command('run_tests', conditions=[build_available])
+  def run_tests(command_context):
+      # Do stuff here.
 
 By default all commands without any conditions applied will be runnable,
 but it is possible to change this behaviour by setting

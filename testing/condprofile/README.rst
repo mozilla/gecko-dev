@@ -100,7 +100,9 @@ and they provide four keys:
 In the example below, we install uBlock, set a pref, and pass the
 **max_urls** option to the **heavy** scenario.
 
-  {
+.. code-block:: json
+
+   {
       "name": "intermediate",
       "addons":{
          "uBlock":"https://addons.mozilla.org/firefox/downloads/file/3361355/ublock_origin-1.21.2-an+fx.xpi"
