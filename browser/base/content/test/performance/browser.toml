@@ -40,8 +40,8 @@ support-files = ["!/browser/components/downloads/test/browser/head.js"]
 
 ["browser_preferences_usage.js"]
 https_first_disabled = true
+run-if = ["debug"]
 skip-if = [
-  "!debug",
   "apple_catalina",  # platform migration
   "socketprocess_networking",
 ]
@@ -52,7 +52,7 @@ skip-if = [
 support-files = ["file_empty.html"]
 
 ["browser_startup_content_subframe.js"]
-skip-if = ["!fission"]
+run-if = ["fission"]
 support-files = [
   "file_empty.html",
   "StartupContentSubframe.sys.mjs",
@@ -65,7 +65,10 @@ run-if = [
 ]
 
 ["browser_startup_hiddenwindow.js"]
-skip-if = ["os == 'mac'"]
+run-if = [
+  "os == 'linux'",
+  "os == 'win'",
+]
 
 ["browser_tabclose.js"]
 skip-if = [

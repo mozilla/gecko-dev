@@ -244,11 +244,11 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1556066
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_bug1261299.js"]
-skip-if = ["os != 'mac'"] # Because of tests for supporting Service Menu of macOS, bug 1261299
+run-if = ["os == 'mac'"] # Because of tests for supporting Service Menu of macOS, bug 1261299
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_bug1297539.js"]
-skip-if = ["os != 'mac'"] # Because of tests for supporting pasting from Service Menu of macOS, bug 1297539
+run-if = ["os == 'mac'"] # Because of tests for supporting pasting from Service Menu of macOS, bug 1297539
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_bug1299667.js"]
@@ -273,10 +273,8 @@ skip-if = ["true"] # Clicks in content don't go through contentAreaClick.
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_datachoices_notification.js"]
-skip-if = [
-  "!datareporting",
-  "verify && !debug && os == 'win'",
-]
+run-if = ["datareporting"]
+skip-if = ["verify && !debug && os == 'win'"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_documentnavigation.js"]
@@ -397,10 +395,8 @@ support-files = [
 
 ["browser_remoteTroubleshoot.js"]
 https_first_disabled = true
-skip-if = [
-  "!updater",
-  "os == 'linux' && asan", # Bug 1711507
-]
+run-if = ["updater"]
+skip-if = ["os == 'linux' && asan"] # Bug 1711507
 reason = "depends on UpdateUtils .Locale"
 support-files = ["test_remoteTroubleshoot.html"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
@@ -409,7 +405,7 @@ support-files = ["test_remoteTroubleshoot.html"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_restore_isAppTab.js"]
-skip-if = ["!crashreporter"] # test requires crashreporter due to 1536221
+run-if = ["crashreporter"] # test requires crashreporter due to 1536221
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_save_link-perwindowpb.js"]

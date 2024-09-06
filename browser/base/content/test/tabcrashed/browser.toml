@@ -1,5 +1,5 @@
 [DEFAULT]
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 support-files = [
   "head.js",
   "file_contains_emptyiframe.html",
