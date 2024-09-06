@@ -3,16 +3,40 @@
 
 "use strict";
 
-ChromeUtils.defineESModuleGetters(this, {
-  extensionStorageSync: "resource://gre/modules/ExtensionStorageSync.sys.mjs",
-  Service: "resource://services-sync/service.sys.mjs",
-  QuotaError: "resource://gre/modules/RustWebextstorage.sys.mjs",
-});
+const NS_ERROR_DOM_QUOTA_EXCEEDED_ERR = 0x80530016;
 
-const { ExtensionStorageEngineBridge } = ChromeUtils.importESModule(
-  "resource://services-sync/engines/extension-storage.sys.mjs"
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "StorageSyncService",
+  "@mozilla.org/extensions/storage/sync;1",
+  "nsIInterfaceRequestor"
 );
-const SYNC_QUOTA_BYTES = 102400;
+
+function promisify(func, ...params) {
+  return new Promise((resolve, reject) => {
+    let changes = [];
+    func(...params, {
+      QueryInterface: ChromeUtils.generateQI([
+        "mozIExtensionStorageListener",
+        "mozIExtensionStorageCallback",
+        "mozIBridgedSyncEngineCallback",
+        "mozIBridgedSyncEngineApplyCallback",
+      ]),
+      onChanged(extId, json) {
+        changes.push({ extId, changes: JSON.parse(json) });
+      },
+      handleSuccess(value) {
+        resolve({
+          changes,
+          value: typeof value == "string" ? JSON.parse(value) : value,
+        });
+      },
+      handleError(code, message) {
+        reject(Components.Exception(message, code));
+      },
+    });
+  });
+}
 
 add_task(async function setup_storage_sync() {
   // So that we can write to the profile directory.
@@ -20,95 +44,92 @@ add_task(async function setup_storage_sync() {
 });
 
 add_task(async function test_storage_sync_service() {
-  const service = extensionStorageSync;
+  const service = StorageSyncService.getInterface(Ci.mozIExtensionStorageArea);
   {
-    // mocking notifyListeners so we have access to the return value of `service.set`
-    service.notifyListeners = (extId, changeSet) => {
-      equal(extId, "ext-1");
-      let expected = {
-        hi: {
-          newValue: "hello! 💖",
+    let { changes, value } = await promisify(
+      service.set,
+      "ext-1",
+      JSON.stringify({
+        hi: "hello! 💖",
+        bye: "adiós",
+      })
+    );
+    deepEqual(
+      changes,
+      [
+        {
+          extId: "ext-1",
+          changes: {
+            hi: {
+              newValue: "hello! 💖",
+            },
+            bye: {
+              newValue: "adiós",
+            },
+          },
         },
-        bye: {
-          newValue: "adiós",
-        },
-      };
-
-      deepEqual(
-        [changeSet],
-        [expected],
-        "`set` should notify listeners about changes"
-      );
-    };
-
-    let newValue = {
-      hi: "hello! 💖",
-      bye: "adiós",
-    };
-
-    // finalling calling `service.set` which asserts the deepEqual in the above mocked `notifyListeners`
-    await service.set({ id: "ext-1" }, newValue);
+      ],
+      "`set` should notify listeners about changes"
+    );
+    ok(!value, "`set` should not return a value");
   }
 
   {
-    service.notifyListeners = (_extId, _changeSet) => {
-      console.log(`NOTIFY LISTENERS`);
-    };
+    let { changes, value } = await promisify(
+      service.get,
+      "ext-1",
+      JSON.stringify(["hi"])
+    );
+    deepEqual(changes, [], "`get` should not notify listeners");
+    deepEqual(
+      value,
+      {
+        hi: "hello! 💖",
+      },
+      "`get` with key should return value"
+    );
 
-    let expected = {
-      hi: "hello! 💖",
-    };
-
-    let value = await service.get({ id: "ext-1" }, ["hi"]);
-    deepEqual(value, expected, "`get` with key should return value");
-
-    let expected2 = {
-      hi: "hello! 💖",
-      bye: "adiós",
-    };
-
-    let allValues = await service.get({ id: "ext-1" }, null);
+    let { value: allValues } = await promisify(service.get, "ext-1", "null");
     deepEqual(
       allValues,
-      expected2,
+      {
+        hi: "hello! 💖",
+        bye: "adiós",
+      },
       "`get` without a key should return all values"
     );
   }
 
   {
-    service.notifyListeners = (extId, changeSet) => {
-      console.log("notifyListeners", extId, changeSet);
-    };
-
-    let newValue = {
-      hi: "hola! 👋",
-    };
-
-    await service.set({ id: "ext-2" }, newValue);
-    await service.clear({ id: "ext-1" });
-    let allValues = await service.get({ id: "ext-1" }, null);
+    await promisify(
+      service.set,
+      "ext-2",
+      JSON.stringify({
+        hi: "hola! 👋",
+      })
+    );
+    await promisify(service.clear, "ext-1");
+    let { value: allValues } = await promisify(service.get, "ext-1", "null");
     deepEqual(allValues, {}, "clear removed ext-1");
 
-    let allValues2 = await service.get({ id: "ext-2" }, null);
-    let expected = { hi: "hola! 👋" };
-    deepEqual(allValues2, expected, "clear didn't remove ext-2");
+    let { value: allValues2 } = await promisify(service.get, "ext-2", "null");
+    deepEqual(allValues2, { hi: "hola! 👋" }, "clear didn't remove ext-2");
     // We need to clear data for ext-2 too, so later tests don't fail due to
     // this data.
-    await service.clear({ id: "ext-2" });
+    await promisify(service.clear, "ext-2");
   }
 });
 
 add_task(async function test_storage_sync_bridged_engine() {
-  let engine = new ExtensionStorageEngineBridge(Service);
-  await engine.initialize();
-  let area = engine._rustStore;
+  const area = StorageSyncService.getInterface(Ci.mozIExtensionStorageArea);
+  const engine = StorageSyncService.getInterface(Ci.mozIBridgedSyncEngine);
 
   info("Add some local items");
-  await area.set("ext-1", JSON.stringify({ a: "abc" }));
-  await area.set("ext-2", JSON.stringify({ b: "xyz" }));
+  await promisify(area.set, "ext-1", JSON.stringify({ a: "abc" }));
+  await promisify(area.set, "ext-2", JSON.stringify({ b: "xyz" }));
 
   info("Start a sync");
-  await engine._bridge.syncStarted();
+  await promisify(engine.syncStarted);
 
   info("Store some incoming synced items");
   let incomingEnvelopesAsJSON = [
@@ -133,24 +154,20 @@ add_task(async function test_storage_sync_bridged_engine() {
       }),
     },
   ].map(e => JSON.stringify(e));
-
-  await engine._bridge.storeIncoming(incomingEnvelopesAsJSON);
+  await promisify(area.storeIncoming, incomingEnvelopesAsJSON);
 
   info("Merge");
   // Three levels of JSON wrapping: each outgoing envelope, the cleartext in
   // each envelope, and the extension storage data in each cleartext payload.
-  let outgoingEnvelopesAsJSON = await engine._bridge.apply();
+  let { value: outgoingEnvelopesAsJSON } = await promisify(area.apply);
   let outgoingEnvelopes = outgoingEnvelopesAsJSON.map(json => JSON.parse(json));
   let parsedCleartexts = outgoingEnvelopes.map(e => JSON.parse(e.payload));
   let parsedData = parsedCleartexts.map(c => JSON.parse(c.data));
 
-  let changes = (await area.getSyncedChanges()).map(change => {
-    return {
-      extId: change.extId,
-      changes: JSON.parse(change.changes),
-    };
-  });
-
+  let { changes } = await promisify(
+    area.QueryInterface(Ci.mozISyncedExtensionStorageArea)
+      .fetchPendingSyncChanges
+  );
   deepEqual(
     changes,
     [
@@ -199,17 +216,15 @@ add_task(async function test_storage_sync_bridged_engine() {
   );
 
   info("Mark all extensions as uploaded");
-  // await promisify(engine.setUploaded, 0, [ext1Guid, "guidAAA"]);
-  await engine._bridge.setUploaded(0, [ext1Guid, "guidAAA"]);
+  await promisify(engine.setUploaded, 0, [ext1Guid, "guidAAA"]);
 
   info("Finish sync");
-  // await promisify(engine.syncFinished);
-  await engine._bridge.syncFinished();
+  await promisify(engine.syncFinished);
 
   // Try fetching values for the remote-only extension we just synced.
-  let ext3Value = await area.get("ext-3", "null");
+  let { value: ext3Value } = await promisify(area.get, "ext-3", "null");
   deepEqual(
-    JSON.parse(ext3Value),
+    ext3Value,
     {
       d: "new! ✨",
     },
@@ -217,47 +232,43 @@ add_task(async function test_storage_sync_bridged_engine() {
   );
 
   info("Try applying a second time");
-  let secondApply = await engine._bridge.apply();
-  deepEqual(secondApply, {}, "Shouldn't merge anything on second apply");
+  let secondApply = await promisify(area.apply);
+  deepEqual(secondApply.value, {}, "Shouldn't merge anything on second apply");
 
   info("Wipe all items");
-  await engine._bridge.wipe();
+  await promisify(engine.wipe);
 
   for (let extId of ["ext-1", "ext-2", "ext-3"]) {
     // `get` always returns an object, even if there are no keys for the
     // extension ID.
-    let value = await area.get(extId, "null");
-    deepEqual(
-      JSON.parse(value),
-      {},
-      `Wipe should remove all values for ${extId}`
-    );
+    let { value } = await promisify(area.get, extId, "null");
+    deepEqual(value, {}, `Wipe should remove all values for ${extId}`);
   }
 });
 
 add_task(async function test_storage_sync_quota() {
-  let engine = new ExtensionStorageEngineBridge(Service);
-  await engine.initialize();
-  let service = engine._rustStore;
+  const service = StorageSyncService.getInterface(Ci.mozIExtensionStorageArea);
+  const engine = StorageSyncService.getInterface(Ci.mozIBridgedSyncEngine);
+  await promisify(engine.wipe);
+  await promisify(service.set, "ext-1", JSON.stringify({ x: "hi" }));
+  await promisify(service.set, "ext-1", JSON.stringify({ longer: "value" }));
 
-  await engine._bridge.wipe();
-  await service.set("ext-1", JSON.stringify({ x: "hi" }));
-  await service.set("ext-1", JSON.stringify({ longer: "value" }));
-
-  let v1 = await service.getBytesInUse("ext-1", '"x"');
+  let { value: v1 } = await promisify(service.getBytesInUse, "ext-1", '"x"');
   Assert.equal(v1, 5); // key len without quotes, value len with quotes.
-  let v2 = await service.getBytesInUse("ext-1", "null");
+  let { value: v2 } = await promisify(service.getBytesInUse, "ext-1", "null");
   // 5 from 'x', plus 'longer' (6 for key, 7 for value = 13) = 18.
   Assert.equal(v2, 18);
 
+  // Now set something greater than our quota.
   await Assert.rejects(
-    service.set(
+    promisify(
+      service.set,
       "ext-1",
       JSON.stringify({
-        big: "x".repeat(SYNC_QUOTA_BYTES),
+        big: "x".repeat(Ci.mozIExtensionStorageArea.SYNC_QUOTA_BYTES),
       })
     ),
-    QuotaError,
-    "should reject with QuotaError"
+    ex => ex.result == NS_ERROR_DOM_QUOTA_EXCEEDED_ERR,
+    "should reject with NS_ERROR_DOM_QUOTA_EXCEEDED_ERR"
   );
 });
