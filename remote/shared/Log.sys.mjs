@@ -74,9 +74,6 @@ export class Log {
    * See https://bugzilla.mozilla.org/show_bug.cgi?id=1828395
    */
   static get verbose() {
-    // we can't use Preferences.sys.mjs before first paint,
-    // see ../browser/base/content/test/performance/browser_startup.js
-    const level = Services.prefs.getStringPref(PREF_REMOTE_LOG_LEVEL, "Info");
-    return StdLog.Level[level] >= StdLog.Level.Info;
+    return StdLog.Level[lazy.logLevel] >= StdLog.Level.Info;
   }
 }
