@@ -3455,55 +3455,25 @@ void TelemetryScalar::RecordDiscardedData(
   ScalarBase* scalar = nullptr;
   mozilla::DebugOnly<nsresult> rv;
 
-  ScalarKey uniqueId = ScalarKey{
-      static_cast<uint32_t>(ScalarID::TELEMETRY_DISCARDED_ACCUMULATIONS),
-      false};
-  rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  internal_profilerMarker(
-      locker, ScalarActionType::eAdd,
-      ScalarVariant(aDiscardedData.mDiscardedHistogramAccumulations), uniqueId);
-  scalar->AddValue(aDiscardedData.mDiscardedHistogramAccumulations);
+#define REPORT_DISCARDED(id, member)                                         \
+  if (aDiscardedData.member) {                                               \
+    ScalarKey uniqueId =                                                     \
+        ScalarKey{static_cast<uint32_t>(ScalarID::id), false};               \
+    rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);  \
+    MOZ_ASSERT(NS_SUCCEEDED(rv));                                            \
+    internal_profilerMarker(locker, ScalarActionType::eAdd,                  \
+                            ScalarVariant(aDiscardedData.member), uniqueId); \
+    scalar->AddValue(aDiscardedData.member);                                 \
+  }
 
-  uniqueId = ScalarKey{
-      static_cast<uint32_t>(ScalarID::TELEMETRY_DISCARDED_KEYED_ACCUMULATIONS),
-      false};
-  rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  internal_profilerMarker(
-      locker, ScalarActionType::eAdd,
-      ScalarVariant(aDiscardedData.mDiscardedKeyedHistogramAccumulations),
-      uniqueId);
-  scalar->AddValue(aDiscardedData.mDiscardedKeyedHistogramAccumulations);
-
-  uniqueId = ScalarKey{
-      static_cast<uint32_t>(ScalarID::TELEMETRY_DISCARDED_SCALAR_ACTIONS),
-      false};
-  rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  internal_profilerMarker(locker, ScalarActionType::eAdd,
-                          ScalarVariant(aDiscardedData.mDiscardedScalarActions),
-                          uniqueId);
-  scalar->AddValue(aDiscardedData.mDiscardedScalarActions);
-
-  uniqueId = ScalarKey{
-      static_cast<uint32_t>(ScalarID::TELEMETRY_DISCARDED_KEYED_SCALAR_ACTIONS),
-      false};
-  rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  internal_profilerMarker(
-      locker, ScalarActionType::eAdd,
-      ScalarVariant(aDiscardedData.mDiscardedKeyedScalarActions), uniqueId);
-  scalar->AddValue(aDiscardedData.mDiscardedKeyedScalarActions);
-
-  uniqueId = ScalarKey{
-      static_cast<uint32_t>(ScalarID::TELEMETRY_DISCARDED_CHILD_EVENTS), false};
-  rv = internal_GetScalarByEnum(locker, uniqueId, aProcessType, &scalar);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  internal_profilerMarker(locker, ScalarActionType::eAdd,
-                          ScalarVariant(aDiscardedData.mDiscardedChildEvents),
-                          uniqueId);
-  scalar->AddValue(aDiscardedData.mDiscardedChildEvents);
+  REPORT_DISCARDED(TELEMETRY_DISCARDED_ACCUMULATIONS,
+                   mDiscardedHistogramAccumulations)
+  REPORT_DISCARDED(TELEMETRY_DISCARDED_KEYED_ACCUMULATIONS,
+                   mDiscardedKeyedHistogramAccumulations)
+  REPORT_DISCARDED(TELEMETRY_DISCARDED_SCALAR_ACTIONS, mDiscardedScalarActions)
+  REPORT_DISCARDED(TELEMETRY_DISCARDED_KEYED_SCALAR_ACTIONS,
+                   mDiscardedKeyedScalarActions)
+  REPORT_DISCARDED(TELEMETRY_DISCARDED_CHILD_EVENTS, mDiscardedChildEvents)
 }
 
 /**
