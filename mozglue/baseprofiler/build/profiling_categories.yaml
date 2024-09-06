@@ -312,3 +312,10 @@
   subcategories:
     - name: SANDBOX
       label: Other
+
+- name: TELEMETRY
+  label: Telemetry
+  color: grey
+  subcategories:
+    - name: TELEMETRY
+      label: Other
