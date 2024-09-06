@@ -65,12 +65,6 @@ Time KeymapWrapper::sLastRepeatableKeyTime = 0;
 KeymapWrapper::RepeatState KeymapWrapper::sRepeatState =
     KeymapWrapper::NOT_PRESSED;
 
-#ifdef MOZ_WAYLAND
-wl_seat* KeymapWrapper::sSeat = nullptr;
-int KeymapWrapper::sSeatID = -1;
-wl_keyboard* KeymapWrapper::sKeyboard = nullptr;
-#endif
-
 static const char* GetBoolName(bool aBool) { return aBool ? "TRUE" : "FALSE"; }
 
 static const char* GetStatusName(nsEventStatus aStatus) {
@@ -690,8 +684,7 @@ void KeymapWrapper::SetModifierMasks(xkb_keymap* aKeymap) {
 
 /* This keymap routine is derived from weston-2.0.0/clients/simple-im.c
  */
-static void keyboard_handle_keymap(void* data, struct wl_keyboard* wl_keyboard,
-                                   uint32_t format, int fd, uint32_t size) {
+void KeymapWrapper::HandleKeymap(uint32_t format, int fd, uint32_t size) {
   KeymapWrapper::ResetKeyboard();
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
@@ -724,50 +717,6 @@ static void keyboard_handle_keymap(void* data, struct wl_keyboard* wl_keyboard,
 
   xkb_context_unref(xkb_context);
 }
-
-static void keyboard_handle_enter(void* data, struct wl_keyboard* keyboard,
-                                  uint32_t serial, struct wl_surface* surface,
-                                  struct wl_array* keys) {
-  KeymapWrapper::SetFocusIn(surface, serial);
-}
-
-static void keyboard_handle_leave(void* data, struct wl_keyboard* keyboard,
-                                  uint32_t serial, struct wl_surface* surface) {
-  KeymapWrapper::SetFocusOut(surface);
-}
-
-static void keyboard_handle_key(void* data, struct wl_keyboard* keyboard,
-                                uint32_t serial, uint32_t time, uint32_t key,
-                                uint32_t state) {}
-static void keyboard_handle_modifiers(void* data, struct wl_keyboard* keyboard,
-                                      uint32_t serial, uint32_t mods_depressed,
-                                      uint32_t mods_latched,
-                                      uint32_t mods_locked, uint32_t group) {}
-static void keyboard_handle_repeat_info(void* data,
-                                        struct wl_keyboard* keyboard,
-                                        int32_t rate, int32_t delay) {}
-
-static const struct wl_keyboard_listener keyboard_listener = {
-    keyboard_handle_keymap,    keyboard_handle_enter,
-    keyboard_handle_leave,     keyboard_handle_key,
-    keyboard_handle_modifiers, keyboard_handle_repeat_info};
-
-static void seat_handle_capabilities(void* data, struct wl_seat* seat,
-                                     unsigned int caps) {
-  wl_keyboard* keyboard = KeymapWrapper::GetKeyboard();
-  if ((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboard) {
-    keyboard = wl_seat_get_keyboard(seat);
-    wl_keyboard_add_listener(keyboard, &keyboard_listener, nullptr);
-    KeymapWrapper::SetKeyboard(keyboard);
-  } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboard) {
-    KeymapWrapper::ClearKeyboard();
-  }
-}
-
-static const struct wl_seat_listener seat_listener = {
-    seat_handle_capabilities,
-};
-
 #endif
 
 KeymapWrapper::~KeymapWrapper() {
@@ -2695,35 +2644,6 @@ void KeymapWrapper::GetFocusInfo(wl_surface** aFocusSurface,
   KeymapWrapper* keymapWrapper = KeymapWrapper::GetInstance();
   *aFocusSurface = keymapWrapper->mFocusSurface;
   *aFocusSerial = keymapWrapper->mFocusSerial;
-}
-
-void KeymapWrapper::SetSeat(wl_seat* aSeat, int aId) {
-  sSeat = aSeat;
-  sSeatID = aId;
-  wl_seat_add_listener(aSeat, &seat_listener, nullptr);
-}
-
-void KeymapWrapper::ClearSeat(int aId) {
-  if (sSeatID == aId) {
-    ClearKeyboard();
-    sSeat = nullptr;
-    sSeatID = -1;
-  }
-}
-
-wl_seat* KeymapWrapper::GetSeat() { return sSeat; }
-
-void KeymapWrapper::SetKeyboard(wl_keyboard* aKeyboard) {
-  sKeyboard = aKeyboard;
-}
-
-wl_keyboard* KeymapWrapper::GetKeyboard() { return sKeyboard; }
-
-void KeymapWrapper::ClearKeyboard() {
-  if (sKeyboard) {
-    wl_keyboard_destroy(sKeyboard);
-    sKeyboard = nullptr;
-  }
 }
 #endif
 

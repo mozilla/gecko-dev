@@ -16,6 +16,7 @@
 #include "mozilla/widget/idle-inhibit-unstable-v1-client-protocol.h"
 #include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
 #include "mozilla/widget/pointer-constraints-unstable-v1-client-protocol.h"
+#include "mozilla/widget/pointer-gestures-unstable-v1-client-protocol.h"
 #include "mozilla/widget/linux-dmabuf-unstable-v1-client-protocol.h"
 #include "mozilla/widget/viewporter-client-protocol.h"
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
@@ -57,7 +58,20 @@ class nsWaylandDisplay {
   }
   bool IsPrimarySelectionEnabled() { return mIsPrimarySelectionEnabled; }
 
+  wl_pointer* GetPointer() { return mPointer; }
+  void SetPointer(wl_pointer* aPointer);
+  void RemovePointer();
+
   void SetShm(wl_shm* aShm);
+
+  void SetKeyboard(wl_keyboard* aKeyboard);
+  wl_keyboard* GetKeyboard() { return mKeyboard; }
+  void ClearKeyboard();
+
+  void SetSeat(wl_seat* aSeat, int aSeatId);
+  wl_seat* GetSeat() { return mSeat; }
+  void RemoveSeat(int aSeatId);
+
   void SetCompositor(wl_compositor* aCompositor);
   void SetSubcompositor(wl_subcompositor* aSubcompositor);
   void SetDataDeviceManager(wl_data_device_manager* aDataDeviceManager);
@@ -66,6 +80,7 @@ class nsWaylandDisplay {
   void SetRelativePointerManager(
       zwp_relative_pointer_manager_v1* aRelativePointerManager);
   void SetPointerConstraints(zwp_pointer_constraints_v1* aPointerConstraints);
+  void SetPointerGestures(zwp_pointer_gestures_v1* aPointerGestures);
   void SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf);
   void SetXdgActivation(xdg_activation_v1* aXdgActivation);
   void SetXdgDbusAnnotationManager(
@@ -84,9 +99,15 @@ class nsWaylandDisplay {
   wl_compositor* mCompositor = nullptr;
   wl_subcompositor* mSubcompositor = nullptr;
   wl_shm* mShm = nullptr;
+  wl_seat* mSeat = nullptr;
+  int mSeatId = -1;
+  wl_keyboard* mKeyboard = nullptr;
+  wl_pointer* mPointer = nullptr;
   zwp_idle_inhibit_manager_v1* mIdleInhibitManager = nullptr;
   zwp_relative_pointer_manager_v1* mRelativePointerManager = nullptr;
   zwp_pointer_constraints_v1* mPointerConstraints = nullptr;
+  zwp_pointer_gestures_v1* mPointerGestures = nullptr;
+  zwp_pointer_gesture_hold_v1* mPointerGestureHold = nullptr;
   wp_viewporter* mViewporter = nullptr;
   zwp_linux_dmabuf_v1* mDmabuf = nullptr;
   xdg_activation_v1* mXdgActivation = nullptr;

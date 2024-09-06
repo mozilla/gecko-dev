@@ -141,7 +141,6 @@ using mozilla::gl::GLContextGLX;
 #define MAX_RECTS_IN_REGION 100
 
 #if !GTK_CHECK_VERSION(3, 18, 0)
-
 struct _GdkEventTouchpadPinch {
   GdkEventType type;
   GdkWindow* window;
@@ -159,16 +158,8 @@ struct _GdkEventTouchpadPinch {
   guint state;
 };
 
-typedef enum {
-  GDK_TOUCHPAD_GESTURE_PHASE_BEGIN,
-  GDK_TOUCHPAD_GESTURE_PHASE_UPDATE,
-  GDK_TOUCHPAD_GESTURE_PHASE_END,
-  GDK_TOUCHPAD_GESTURE_PHASE_CANCEL
-} GdkTouchpadGesturePhase;
-
 gint GDK_TOUCHPAD_GESTURE_MASK = 1 << 24;
 GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
-
 #endif
 
 const gint kEvents = GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK |
@@ -5509,6 +5500,11 @@ gboolean nsWindow::OnTouchpadPinchEvent(GdkEventTouchpadPinch* aEvent) {
   mLastPinchEventSpan = aEvent->scale;
   DispatchPinchGestureInput(event);
   return TRUE;
+}
+
+void nsWindow::OnTouchpadHoldEvent(GdkTouchpadGesturePhase aPhase, guint aTime,
+                                   uint32_t aFingers) {
+  LOG("OnTouchpadHoldEvent: aPhase %d aFingers %d", aPhase, aFingers);
 }
 
 gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {

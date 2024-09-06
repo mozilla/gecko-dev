@@ -305,7 +305,7 @@ static const struct xdg_activation_token_v1_listener token_listener = {
 
 RefPtr<FocusRequestPromise> RequestWaylandFocusPromise() {
 #ifdef MOZ_WAYLAND
-  if (!GdkIsWaylandDisplay() || !KeymapWrapper::GetSeat()) {
+  if (!GdkIsWaylandDisplay() || !WaylandDisplayGet()->GetSeat()) {
     LOGW("RequestWaylandFocusPromise() failed.");
     return nullptr;
   }
@@ -349,7 +349,7 @@ RefPtr<FocusRequestPromise> RequestWaylandFocusPromise() {
       aXdgToken, &token_listener,
       new XDGTokenRequest(aXdgToken, transferPromise));
   xdg_activation_token_v1_set_serial(aXdgToken, focusSerial,
-                                     KeymapWrapper::GetSeat());
+                                     WaylandDisplayGet()->GetSeat());
   xdg_activation_token_v1_set_surface(aXdgToken, focusSurface);
   xdg_activation_token_v1_commit(aXdgToken);
 

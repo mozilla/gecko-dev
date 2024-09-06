@@ -109,6 +109,15 @@ typedef enum {
 } GdkAnchorHints;
 #endif
 
+#if !GTK_CHECK_VERSION(3, 18, 0)
+typedef enum {
+  GDK_TOUCHPAD_GESTURE_PHASE_BEGIN,
+  GDK_TOUCHPAD_GESTURE_PHASE_UPDATE,
+  GDK_TOUCHPAD_GESTURE_PHASE_END,
+  GDK_TOUCHPAD_GESTURE_PHASE_CANCEL
+} GdkTouchpadGesturePhase;
+#endif
+
 namespace mozilla {
 enum class NativeKeyBindingsType : uint8_t;
 
@@ -258,6 +267,8 @@ class nsWindow final : public nsBaseWidget {
   gboolean OnPropertyNotifyEvent(GtkWidget* aWidget, GdkEventProperty* aEvent);
   gboolean OnTouchEvent(GdkEventTouch* aEvent);
   gboolean OnTouchpadPinchEvent(GdkEventTouchpadPinch* aEvent);
+  void OnTouchpadHoldEvent(GdkTouchpadGesturePhase aPhase, guint aTime,
+                           uint32_t aFingers);
 
   gint GetInputRegionMarginInGdkCoords();
 
