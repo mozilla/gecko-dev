@@ -8,6 +8,7 @@ SetParentalControlEnabled(false);
 
 function setup() {
   Services.prefs.setBoolPref("network.dns.get-ttl", false);
+  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
   h2Port = trr_test_setup();
 }
 

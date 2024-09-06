@@ -26,6 +26,7 @@ add_setup(async function setup() {
   }
 
   Services.prefs.setIntPref("network.trr.mode", Ci.nsIDNSService.MODE_TRRFIRST);
+  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
 });
 
 let test_answer = "bXkgdm9pY2UgaXMgbXkgcGFzc3dvcmQ=";
