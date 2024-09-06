@@ -1,10 +1,12 @@
 [DEFAULT]
 tags = "remote"
 subsuite = "remote"
-support-files = ["head.js"]
+support-files = ["head.js", "style.css", "test-page-with-css.html"]
 prefs = ["remote.messagehandler.modulecache.useBrowserTestRoot=true"]
 
 ["browser_BrowsingContextListener.js"]
+
+["browser_CachedResourceListener.js"]
 
 ["browser_ConsoleAPIListener.js"]
 

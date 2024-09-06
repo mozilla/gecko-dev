@@ -101,6 +101,10 @@ export class NetworkRequest {
     return ChromeUtils.getXPCOMErrorName(this.#channel.status);
   }
 
+  get headers() {
+    return this.#getHeadersList();
+  }
+
   get headersSize() {
     // TODO: rawHeaders will not be updated after modifying the headers via
     // request interception. Need to find another way to retrieve the
@@ -141,6 +145,15 @@ export class NetworkRequest {
     return this.#channel.URI.spec;
   }
 
+  get supportsInterception() {
+    // The request which doesn't have `wrappedChannel` can not be intercepted.
+    return !!this.#wrappedChannel;
+  }
+
+  get timings() {
+    return this.#getFetchTimings();
+  }
+
   get wrappedChannel() {
     return this.#wrappedChannel;
   }
@@ -171,97 +184,6 @@ export class NetworkRequest {
       "", // aValue="" as an empty value
       false // aMerge=false to force clearing the header
     );
-  }
-
-  /**
-   * Retrieve the Fetch timings for the NetworkRequest.
-   *
-   * @returns {object}
-   *     Object with keys corresponding to fetch timing names, and their
-   *     corresponding values.
-   */
-  getFetchTimings() {
-    const {
-      channelCreationTime,
-      redirectStartTime,
-      redirectEndTime,
-      dispatchFetchEventStartTime,
-      cacheReadStartTime,
-      domainLookupStartTime,
-      domainLookupEndTime,
-      connectStartTime,
-      connectEndTime,
-      secureConnectionStartTime,
-      requestStartTime,
-      responseStartTime,
-      responseEndTime,
-    } = this.#timedChannel;
-
-    // fetchStart should be the post-redirect start time, which should be the
-    // first non-zero timing from: dispatchFetchEventStart, cacheReadStart and
-    // domainLookupStart. See https://www.w3.org/TR/navigation-timing-2/#processing-model
-    const fetchStartTime =
-      dispatchFetchEventStartTime ||
-      cacheReadStartTime ||
-      domainLookupStartTime;
-
-    // Bug 1805478: Per spec, the origin time should match Performance API's
-    // timeOrigin for the global which initiated the request. This is not
-    // available in the parent process, so for now we will use 0.
-    const timeOrigin = 0;
-
-    return {
-      timeOrigin,
-      requestTime: this.#convertTimestamp(channelCreationTime, timeOrigin),
-      redirectStart: this.#convertTimestamp(redirectStartTime, timeOrigin),
-      redirectEnd: this.#convertTimestamp(redirectEndTime, timeOrigin),
-      fetchStart: this.#convertTimestamp(fetchStartTime, timeOrigin),
-      dnsStart: this.#convertTimestamp(domainLookupStartTime, timeOrigin),
-      dnsEnd: this.#convertTimestamp(domainLookupEndTime, timeOrigin),
-      connectStart: this.#convertTimestamp(connectStartTime, timeOrigin),
-      connectEnd: this.#convertTimestamp(connectEndTime, timeOrigin),
-      tlsStart: this.#convertTimestamp(secureConnectionStartTime, timeOrigin),
-      tlsEnd: this.#convertTimestamp(connectEndTime, timeOrigin),
-      requestStart: this.#convertTimestamp(requestStartTime, timeOrigin),
-      responseStart: this.#convertTimestamp(responseStartTime, timeOrigin),
-      responseEnd: this.#convertTimestamp(responseEndTime, timeOrigin),
-    };
-  }
-
-  /**
-   * Retrieve the list of headers for the NetworkRequest.
-   *
-   * @returns {Array.Array}
-   *     Array of (name, value) tuples.
-   */
-  getHeadersList() {
-    const headers = [];
-
-    if (this.#channel instanceof Ci.nsIHttpChannel) {
-      this.#channel.visitRequestHeaders({
-        visitHeader(name, value) {
-          // The `Proxy-Authorization` header even though it appears on the channel is not
-          // actually sent to the server for non CONNECT requests after the HTTP/HTTPS tunnel
-          // is setup by the proxy.
-          if (name == "Proxy-Authorization") {
-            return;
-          }
-          headers.push([name, value]);
-        },
-      });
-    }
-
-    if (this.#channel instanceof Ci.nsIDataChannel) {
-      // Data channels have no request headers.
-      return [];
-    }
-
-    if (this.#channel instanceof Ci.nsIFileChannel) {
-      // File channels have no request headers.
-      return [];
-    }
-
-    return headers;
   }
 
   /**
@@ -362,6 +284,28 @@ export class NetworkRequest {
   }
 
   /**
+   * Return a static version of the class instance.
+   * This method is used to prepare the data to be sent with the events for cached resources
+   * generated from the content process but need to be sent to the parent.
+   */
+  toJSON() {
+    return {
+      headers: this.headers,
+      headersSize: this.headersSize,
+      method: this.method,
+      navigationId: this.navigationId,
+      postDataSize: this.postDataSize,
+      redirectCount: this.redirectCount,
+      requestId: this.requestId,
+      serializedURL: this.serializedURL,
+      // Since this data is meant to be sent to the parent process
+      // it will not be possible to intercept such request.
+      supportsInterception: false,
+      timings: this.timings,
+    };
+  }
+
+  /**
    * Convert the provided request timing to a timing relative to the beginning
    * of the request. All timings are numbers representing high definition
    * timestamps.
@@ -389,6 +333,97 @@ export class NetworkRequest {
     const id = lazy.NetworkUtils.getChannelBrowsingContextID(this.#channel);
     const browsingContext = BrowsingContext.get(id);
     return lazy.TabManager.getIdForBrowsingContext(browsingContext);
+  }
+
+  /**
+   * Retrieve the Fetch timings for the NetworkRequest.
+   *
+   * @returns {object}
+   *     Object with keys corresponding to fetch timing names, and their
+   *     corresponding values.
+   */
+  #getFetchTimings() {
+    const {
+      channelCreationTime,
+      redirectStartTime,
+      redirectEndTime,
+      dispatchFetchEventStartTime,
+      cacheReadStartTime,
+      domainLookupStartTime,
+      domainLookupEndTime,
+      connectStartTime,
+      connectEndTime,
+      secureConnectionStartTime,
+      requestStartTime,
+      responseStartTime,
+      responseEndTime,
+    } = this.#timedChannel;
+
+    // fetchStart should be the post-redirect start time, which should be the
+    // first non-zero timing from: dispatchFetchEventStart, cacheReadStart and
+    // domainLookupStart. See https://www.w3.org/TR/navigation-timing-2/#processing-model
+    const fetchStartTime =
+      dispatchFetchEventStartTime ||
+      cacheReadStartTime ||
+      domainLookupStartTime;
+
+    // Bug 1805478: Per spec, the origin time should match Performance API's
+    // timeOrigin for the global which initiated the request. This is not
+    // available in the parent process, so for now we will use 0.
+    const timeOrigin = 0;
+
+    return {
+      timeOrigin,
+      requestTime: this.#convertTimestamp(channelCreationTime, timeOrigin),
+      redirectStart: this.#convertTimestamp(redirectStartTime, timeOrigin),
+      redirectEnd: this.#convertTimestamp(redirectEndTime, timeOrigin),
+      fetchStart: this.#convertTimestamp(fetchStartTime, timeOrigin),
+      dnsStart: this.#convertTimestamp(domainLookupStartTime, timeOrigin),
+      dnsEnd: this.#convertTimestamp(domainLookupEndTime, timeOrigin),
+      connectStart: this.#convertTimestamp(connectStartTime, timeOrigin),
+      connectEnd: this.#convertTimestamp(connectEndTime, timeOrigin),
+      tlsStart: this.#convertTimestamp(secureConnectionStartTime, timeOrigin),
+      tlsEnd: this.#convertTimestamp(connectEndTime, timeOrigin),
+      requestStart: this.#convertTimestamp(requestStartTime, timeOrigin),
+      responseStart: this.#convertTimestamp(responseStartTime, timeOrigin),
+      responseEnd: this.#convertTimestamp(responseEndTime, timeOrigin),
+    };
+  }
+
+  /**
+   * Retrieve the list of headers for the NetworkRequest.
+   *
+   * @returns {Array.Array}
+   *     Array of (name, value) tuples.
+   */
+  #getHeadersList() {
+    const headers = [];
+
+    if (this.#channel instanceof Ci.nsIHttpChannel) {
+      this.#channel.visitRequestHeaders({
+        visitHeader(name, value) {
+          // The `Proxy-Authorization` header even though it appears on the channel is not
+          // actually sent to the server for non CONNECT requests after the HTTP/HTTPS tunnel
+          // is setup by the proxy.
+          if (name == "Proxy-Authorization") {
+            return;
+          }
+          headers.push([name, value]);
+        },
+      });
+    }
+
+    if (this.#channel instanceof Ci.nsIDataChannel) {
+      // Data channels have no request headers.
+      return [];
+    }
+
+    if (this.#channel instanceof Ci.nsIFileChannel) {
+      // File channels have no request headers.
+      return [];
+    }
+
+    return headers;
   }
 
   #getNavigationId() {

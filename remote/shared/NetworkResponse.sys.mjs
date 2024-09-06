@@ -19,6 +19,7 @@ export class NetworkResponse {
   #encodedBodySize;
   #fromCache;
   #fromServiceWorker;
+  #isCachedCSS;
   #isDataURL;
   #headersTransmittedSize;
   #status;
@@ -35,14 +36,22 @@ export class NetworkResponse {
    *     Whether the response was read from the cache or not.
    * @param {boolean} params.fromServiceWorker
    *     Whether the response is coming from a service worker or not.
+   * @param {boolean} params.isCachedCSS
+   *     Whether the response is coming from a cached css file.
    * @param {string=} params.rawHeaders
    *     The response's raw (ie potentially compressed) headers
    */
   constructor(channel, params) {
     this.#channel = channel;
-    const { fromCache, fromServiceWorker, rawHeaders = "" } = params;
+    const {
+      fromCache,
+      fromServiceWorker,
+      isCachedCSS,
+      rawHeaders = "",
+    } = params;
     this.#fromCache = fromCache;
     this.#fromServiceWorker = fromServiceWorker;
+    this.#isCachedCSS = isCachedCSS;
     this.#isDataURL = this.#channel instanceof Ci.nsIDataChannel;
     this.#wrappedChannel = ChannelWrapper.get(channel);
 
@@ -59,9 +68,10 @@ export class NetworkResponse {
     // cache the status/statusMessage in order to ensure consistent values
     // between responseStarted and responseCompleted.
     this.#status = this.#isDataURL ? 200 : this.#channel.responseStatus;
-    this.#statusMessage = this.#isDataURL
-      ? "OK"
-      : this.#channel.responseStatusText;
+    this.#statusMessage =
+      this.#isDataURL || this.#isCachedCSS
+        ? "OK"
+        : this.#channel.responseStatusText;
   }
 
   get decodedBodySize() {
@@ -70,6 +80,10 @@ export class NetworkResponse {
 
   get encodedBodySize() {
     return this.#encodedBodySize;
+  }
+
+  get headers() {
+    return this.#getHeadersList();
   }
 
   get headersTransmittedSize() {
@@ -82,6 +96,10 @@ export class NetworkResponse {
 
   get fromServiceWorker() {
     return this.#fromServiceWorker;
+  }
+
+  get mimeType() {
+    return this.#getComputedMimeType();
   }
 
   get protocol() {
@@ -116,49 +134,6 @@ export class NetworkResponse {
       "", // aValue="" as an empty value
       false // aMerge=false to force clearing the header
     );
-  }
-
-  getComputedMimeType() {
-    // TODO: DevTools NetworkObserver is computing a similar value in
-    // addResponseContent, but uses an inconsistent implementation in
-    // addResponseStart. This approach can only be used as early as in
-    // addResponseHeaders. We should move this logic to the NetworkObserver and
-    // expose mimeType in addResponseStart. Bug 1809670.
-    let mimeType = "";
-
-    try {
-      if (this.#isDataURL) {
-        mimeType = this.#channel.contentType;
-      } else {
-        mimeType = this.#wrappedChannel.contentType;
-      }
-      const contentCharset = this.#channel.contentCharset;
-      if (contentCharset) {
-        mimeType += `;charset=${contentCharset}`;
-      }
-    } catch (e) {
-      // Ignore exceptions when reading contentType/contentCharset
-    }
-
-    return mimeType;
-  }
-
-  getHeadersList() {
-    const headers = [];
-
-    // According to the fetch spec for data URLs we can just hardcode
-    // "Content-Type" header.
-    if (this.#isDataURL) {
-      headers.push(["Content-Type", this.#channel.contentType]);
-    } else {
-      this.#channel.visitResponseHeaders({
-        visitHeader(name, value) {
-          headers.push([name, value]);
-        },
-      });
-    }
-
-    return headers;
   }
 
   /**
@@ -215,5 +190,69 @@ export class NetworkResponse {
     this.#decodedBodySize = decodedBodySize;
     this.#encodedBodySize = encodedBodySize;
     this.#totalTransmittedSize = totalTransmittedSize;
+  }
+
+  /**
+   * Return a static version of the class instance.
+   * This method is used to prepare the data to be sent with the events for cached resources
+   * generated from the content process but need to be sent to the parent.
+   */
+  toJSON() {
+    return {
+      decodedBodySize: this.decodedBodySize,
+      headers: this.headers,
+      headersTransmittedSize: this.headersTransmittedSize,
+      encodedBodySize: this.encodedBodySize,
+      fromCache: this.fromCache,
+      mimeType: this.mimeType,
+      protocol: this.protocol,
+      serializedURL: this.serializedURL,
+      status: this.status,
+      statusMessage: this.statusMessage,
+      totalTransmittedSize: this.totalTransmittedSize,
+    };
+  }
+
+  #getComputedMimeType() {
+    // TODO: DevTools NetworkObserver is computing a similar value in
+    // addResponseContent, but uses an inconsistent implementation in
+    // addResponseStart. This approach can only be used as early as in
+    // addResponseHeaders. We should move this logic to the NetworkObserver and
+    // expose mimeType in addResponseStart. Bug 1809670.
+    let mimeType = "";
+
+    try {
+      if (this.#isDataURL || this.#isCachedCSS) {
+        mimeType = this.#channel.contentType;
+      } else {
+        mimeType = this.#wrappedChannel.contentType;
+      }
+      const contentCharset = this.#channel.contentCharset;
+      if (contentCharset) {
+        mimeType += `;charset=${contentCharset}`;
+      }
+    } catch (e) {
+      // Ignore exceptions when reading contentType/contentCharset
+    }
+
+    return mimeType;
+  }
+
+  #getHeadersList() {
+    const headers = [];
+
+    // According to the fetch spec for data URLs we can just hardcode
+    // "Content-Type" header.
+    if (this.#isDataURL) {
+      headers.push(["Content-Type", this.#channel.contentType]);
+    } else {
+      this.#channel.visitResponseHeaders({
+        visitHeader(name, value) {
+          headers.push([name, value]);
+        },
+      });
+    }
+
+    return headers;
   }
 }

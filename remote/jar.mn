@@ -43,6 +43,7 @@ remote.jar:
   content/shared/WindowManager.sys.mjs (shared/WindowManager.sys.mjs)
   content/shared/listeners/BeforeStopRequestListener.sys.mjs (shared/listeners/BeforeStopRequestListener.sys.mjs)
   content/shared/listeners/BrowsingContextListener.sys.mjs (shared/listeners/BrowsingContextListener.sys.mjs)
+  content/shared/listeners/CachedResourceListener.sys.mjs (shared/listeners/CachedResourceListener.sys.mjs)
   content/shared/listeners/ConsoleAPIListener.sys.mjs (shared/listeners/ConsoleAPIListener.sys.mjs)
   content/shared/listeners/ConsoleListener.sys.mjs (shared/listeners/ConsoleListener.sys.mjs)
   content/shared/listeners/ContextualIdentityListener.sys.mjs (shared/listeners/ContextualIdentityListener.sys.mjs)

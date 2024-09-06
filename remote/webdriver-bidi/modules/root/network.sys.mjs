@@ -576,7 +576,7 @@ class NetworkModule extends RootBiDiModule {
 
     if (headers !== null) {
       // Delete all existing request headers.
-      request.getHeadersList().forEach(([name]) => {
+      request.headers.forEach(([name]) => {
         request.clearRequestHeader(name);
       });
 
@@ -596,8 +596,7 @@ class NetworkModule extends RootBiDiModule {
       }
 
       let foundCookieHeader = false;
-      const requestHeaders = request.getHeadersList();
-      for (const [name] of requestHeaders) {
+      for (const [name] of request.headers) {
         if (name.toLowerCase() == "cookie") {
           // If there is already a cookie header, use merge: false to override
           // the value.
@@ -720,8 +719,7 @@ class NetworkModule extends RootBiDiModule {
 
     if (headers !== null) {
       // Delete all existing response headers.
-      response
-        .getHeadersList()
+      response.headers
         .filter(
           ([name]) =>
             // All headers in IMMUTABLE_RESPONSE_HEADERS cannot be changed and
@@ -1360,8 +1358,7 @@ class NetworkModule extends RootBiDiModule {
     }
 
     const challenges = [];
-
-    for (const [name, value] of response.getHeadersList()) {
+    for (const [name, value] of response.headers) {
       if (name.toLowerCase() === headerName) {
         // A single header can contain several challenges.
         const headerChallenges = lazy.parseChallengeHeader(value);
@@ -1457,7 +1454,7 @@ class NetworkModule extends RootBiDiModule {
     const headers = [];
     const cookies = [];
 
-    for (const [name, value] of request.getHeadersList()) {
+    for (const [name, value] of request.headers) {
       headers.push(this.#serializeHeader(name, value));
       if (name.toLowerCase() == "cookie") {
         // TODO: Retrieve the actual cookies from the cookie store.
@@ -1475,7 +1472,7 @@ class NetworkModule extends RootBiDiModule {
       }
     }
 
-    const timings = request.getFetchTimings();
+    const timings = request.timings;
 
     return {
       request: requestId,
@@ -1503,9 +1500,9 @@ class NetworkModule extends RootBiDiModule {
     // TODO: Ideally we should have a `isCacheStateLocal` getter
     // const fromCache = response.isCacheStateLocal();
     const fromCache = response.fromCache;
-    const mimeType = response.getComputedMimeType();
+    const mimeType = response.mimeType;
     const headers = [];
-    for (const [name, value] of response.getHeadersList()) {
+    for (const [name, value] of response.headers) {
       headers.push(this.#serializeHeader(name, value));
     }
 
@@ -1709,7 +1706,7 @@ class NetworkModule extends RootBiDiModule {
       protocolEventName,
       beforeRequestSentEvent
     );
-    if (beforeRequestSentEvent.isBlocked) {
+    if (beforeRequestSentEvent.isBlocked && request.supportsInterception) {
       // TODO: Requests suspended in beforeRequestSent still reach the server at
       // the moment. https://bugzilla.mozilla.org/show_bug.cgi?id=1849686
       request.wrappedChannel.suspend(
@@ -1819,7 +1816,8 @@ class NetworkModule extends RootBiDiModule {
 
     if (
       protocolEventName === "network.responseStarted" &&
-      responseEvent.isBlocked
+      responseEvent.isBlocked &&
+      request.supportsInterception
     ) {
       request.wrappedChannel.suspend(
         this.#getSuspendMarkerText(request, "responseStarted")
@@ -1998,6 +1996,12 @@ class NetworkModule extends RootBiDiModule {
         this.#subscribeEvent(value);
       }
     }
+  }
+
+  _sendEventsForCachedResource(params) {
+    this.#onBeforeRequestSent("beforerequest-sent", params);
+    this.#onResponseEvent("response-started", params);
+    this.#onResponseEvent("response-completed", params);
   }
 
   _setDecodedBodySize(params) {
