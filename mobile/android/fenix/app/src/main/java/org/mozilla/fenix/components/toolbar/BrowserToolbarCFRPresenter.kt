@@ -243,7 +243,8 @@ class BrowserToolbarCFRPresenter(
         }
 
         context.isTablet() &&
-            settings.shouldShowTabletNavigationCFR -> ToolbarCFR.TABLET_NAVIGATION
+            settings.shouldShowTabletNavigationCFR &&
+            settings.navigationToolbarEnabled -> ToolbarCFR.TABLET_NAVIGATION
 
         shoppingExperienceFeature.isEnabled &&
             settings.shouldShowReviewQualityCheckCFR -> whichShoppingCFR()
@@ -519,7 +520,11 @@ class BrowserToolbarCFRPresenter(
                 ),
                 popupVerticalOffset = CFR_TO_ANCHOR_VERTICAL_PADDING.dp,
                 dismissButtonColor = getColor(context, R.color.fx_mobile_icon_color_oncolor),
-                indicatorDirection = CFRPopup.IndicatorDirection.UP,
+                indicatorDirection = if (settings.toolbarPosition == ToolbarPosition.TOP) {
+                    CFRPopup.IndicatorDirection.UP
+                } else {
+                    CFRPopup.IndicatorDirection.DOWN
+                },
             ),
             onDismiss = {
                 AddressToolbar.tabletNavigationCfrDismissed.record(NoExtras())

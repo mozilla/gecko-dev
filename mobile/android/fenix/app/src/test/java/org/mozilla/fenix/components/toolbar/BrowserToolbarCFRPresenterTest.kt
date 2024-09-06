@@ -489,6 +489,7 @@ class BrowserToolbarCFRPresenterTest {
                 every { shouldShowEraseActionCFR } returns false
                 every { shouldShowReviewQualityCheckCFR } returns false
                 every { shouldShowTabletNavigationCFR } returns true
+                every { navigationToolbarEnabled } returns true
             },
         )
 
