@@ -318,7 +318,7 @@ class MOZ_STACK_CLASS SVGUserUnitList {
 
   /// This may return a non-finite value
   float operator[](uint32_t aIndex) const {
-    return (*mList)[aIndex].GetValueInPixels(mElement, mAxis);
+    return (*mList)[aIndex].GetValueInPixelsWithZoom(mElement, mAxis);
   }
 
   bool HasPercentageValueAt(uint32_t aIndex) const {
