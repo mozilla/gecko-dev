@@ -4109,7 +4109,8 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
       mozilla::Version(mAppData->maxVersion) < gToolkitVersion) {
     Output(true,
            "Error: Platform version '%s' is not compatible with\n"
-           "minVersion >= %s\nmaxVersion <= %s\n",
+           "minVersion >= %s\nmaxVersion <= %s\n"
+           "Maybe try to reinstall " MOZ_APP_DISPLAYNAME "?\n",
            (const char*)gToolkitVersion, (const char*)mAppData->minVersion,
            (const char*)mAppData->maxVersion);
     return 1;
