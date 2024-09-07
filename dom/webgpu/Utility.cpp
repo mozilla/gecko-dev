@@ -368,6 +368,36 @@ ffi::WGPUTextureFormat ConvertTextureFormat(
       result.astc.block = ffi::WGPUAstcBlock_B12x12;
       result.astc.channel = ffi::WGPUAstcChannel_UnormSrgb;
       break;
+    case dom::GPUTextureFormat::Etc2_rgb8unorm:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgb8Unorm;
+      break;
+    case dom::GPUTextureFormat::Etc2_rgb8unorm_srgb:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgb8UnormSrgb;
+      break;
+    case dom::GPUTextureFormat::Etc2_rgb8a1unorm:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgb8A1Unorm;
+      break;
+    case dom::GPUTextureFormat::Etc2_rgb8a1unorm_srgb:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgb8A1UnormSrgb;
+      break;
+    case dom::GPUTextureFormat::Etc2_rgba8unorm:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgba8Unorm;
+      break;
+    case dom::GPUTextureFormat::Etc2_rgba8unorm_srgb:
+      result.tag = ffi::WGPUTextureFormat_Etc2Rgb8UnormSrgb;
+      break;
+    case dom::GPUTextureFormat::Eac_r11unorm:
+      result.tag = ffi::WGPUTextureFormat_EacR11Unorm;
+      break;
+    case dom::GPUTextureFormat::Eac_r11snorm:
+      result.tag = ffi::WGPUTextureFormat_EacR11Snorm;
+      break;
+    case dom::GPUTextureFormat::Eac_rg11unorm:
+      result.tag = ffi::WGPUTextureFormat_EacRg11Unorm;
+      break;
+    case dom::GPUTextureFormat::Eac_rg11snorm:
+      result.tag = ffi::WGPUTextureFormat_EacRg11Snorm;
+      break;
   }
 
   // Clang will check for us that the switch above is exhaustive,
