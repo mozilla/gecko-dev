@@ -894,16 +894,18 @@ interface nsIUpdateManager : nsISupports
   Promise getDownloadingUpdate();
 
   /**
-   * If Firefox installed an update at the launch of the current session, this
-   * will contain that update. If not, this will be `null`.
+   * Returns a Promise that resolves with the update that Firefox installed at the
+   * launch of the current session. If no update was installed, null will be returned
+   * @returns Promise<nsIUpdate>
    */
-  readonly attribute nsIUpdate updateInstalledAtStartup;
+  Promise updateInstalledAtStartup();
 
   /**
-   * Returns the most recent update that has been installed,
-   * null if it does not exist.
+   * Returns a Promise that resolves with the most recent update that has been installed,
+   * the value will be null if it does not exist
+   * @returns Promise<nsIUpdate>
    */
-  readonly attribute nsIUpdate lastUpdateInstalled;
+  Promise lastUpdateInstalled();
 
   /**
    * Adds the specified update to the update history. The update history is
@@ -930,8 +932,10 @@ interface nsIUpdateManager : nsISupports
   /**
    * The user agreed to proceed with an elevated update and we are now
    * permitted to show an elevation prompt.
+   *
+   * @returns Promise<undefined>
    */
-  void elevationOptedIn();
+  Promise elevationOptedIn();
 
   /**
    * These functions clean up and remove an active update without applying

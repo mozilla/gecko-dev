@@ -4581,16 +4581,18 @@ export class UpdateManager {
   /**
    * See nsIUpdateService.idl
    */
-  get updateInstalledAtStartup() {
+  async updateInstalledAtStartup() {
+    await lazy.AUS.init();
     return this.#updateInstalledAtStartup;
   }
 
   /**
    * See nsIUpdateService.idl
    */
-  get lastUpdateInstalled() {
-    if (this.updateInstalledAtStartup) {
-      return this.updateInstalledAtStartup;
+  async lastUpdateInstalled() {
+    await lazy.AUS.init();
+    if (this.#updateInstalledAtStartup) {
+      return this.#updateInstalledAtStartup;
     }
     return this._getUpdates().find(u => u.state == STATE_SUCCEEDED) ?? null;
   }
@@ -4889,8 +4891,9 @@ export class UpdateManager {
   /**
    * See nsIUpdateService.idl
    */
-  elevationOptedIn() {
+  async elevationOptedIn() {
     // The user has been been made aware that the update requires elevation.
+    await lazy.AUS.init();
     let update = this._readyUpdate;
     if (!update) {
       return;

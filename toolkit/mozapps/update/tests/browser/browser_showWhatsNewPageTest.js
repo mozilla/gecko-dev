@@ -179,9 +179,9 @@ async function WnpTest({
   await reloadUpdateManagerData(false);
 
   if (expectedPostUpdatePage) {
-    const postUpdatePage = Cc["@mozilla.org/browser/clh;1"].getService(
-      Ci.nsIBrowserHandler
-    ).defaultArgs;
+    const postUpdatePage = Cc["@mozilla.org/browser/clh;1"]
+      .getService(Ci.nsIBrowserHandler)
+      .getFirstWindowArgs();
     is(
       postUpdatePage,
       expectedPostUpdatePage,

@@ -65,8 +65,9 @@ add_task(async function test_override_postupdate_page() {
 
 function getPostUpdatePage() {
   Services.prefs.setCharPref(PREF_MSTONE, "PreviousMilestone");
-  return Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler)
-    .defaultArgs;
+  return Cc["@mozilla.org/browser/clh;1"]
+    .getService(Ci.nsIBrowserHandler)
+    .getFirstWindowArgs();
 }
 
 /**

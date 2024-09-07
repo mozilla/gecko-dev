@@ -26,7 +26,7 @@ async function forceMajorUpgrade() {
     set: [["browser.startup.homepage_override.mstone", "88.0"]],
   });
 
-  void BrowserHandler.defaultArgs;
+  void BrowserHandler.getFirstWindowArgs();
 
   return async () => {
     await SpecialPowers.popPrefEnv();
