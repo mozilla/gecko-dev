@@ -102,7 +102,7 @@ add_task(async function whats_new_page() {
   fos.close();
 
   updatesFile.remove(false);
-  Cc["@mozilla.org/updates/update-manager;1"]
+  await Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(false);
 });

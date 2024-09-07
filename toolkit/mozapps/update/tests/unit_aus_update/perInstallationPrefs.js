@@ -234,5 +234,5 @@ async function run_test() {
   gPolicyFunctionResult = defaultValue + 10;
   await changeAndVerifyPref(pref, gPolicyFunctionResult, 0, true);
 
-  doTestFinish();
+  await doTestFinish();
 }

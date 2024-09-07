@@ -114,7 +114,7 @@ add_task(async function testUpdateAutoPrefUI() {
   let updates = getLocalUpdateString(updateProps, patches);
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates), true);
   writeStatusFile(STATE_PENDING);
-  reloadUpdateManagerData();
+  await reloadUpdateManagerData();
   ok(
     !!(await gUpdateManager.getReadyUpdate()),
     "There should be a ready update"

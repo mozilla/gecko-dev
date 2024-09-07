@@ -1184,7 +1184,7 @@ function dumpOverride(aText) {
  * run of a test passed when it runs synchronously so the log output can be
  * inspected.
  */
-function doTestFinish() {
+async function doTestFinish() {
   if (gDebugTest) {
     // This prevents do_print errors from being printed by the xpcshell test
     // harness due to nsUpdateService.js logging to the console when the
@@ -1193,7 +1193,7 @@ function doTestFinish() {
     gAUS.observe(null, "nsPref:changed", PREF_APP_UPDATE_LOG);
   }
 
-  reloadUpdateManagerData(true);
+  await reloadUpdateManagerData(true);
 
   // Call app update's observe method passing quit-application to test that the
   // shutdown of app update runs without throwing or leaking. The observer
@@ -4201,7 +4201,7 @@ function isFileInUse(aFile) {
  * Waits until files that are in use that break tests are no longer in use and
  * then calls doTestFinish to end the test.
  */
-function waitForFilesInUse() {
+async function waitForFilesInUse() {
   if (AppConstants.platform == "win") {
     let fileNames = [
       FILE_APP_BIN,
@@ -4218,7 +4218,7 @@ function waitForFilesInUse() {
   }
 
   debugDump("calling doTestFinish");
-  doTestFinish();
+  await doTestFinish();
 }
 
 /**

@@ -102,7 +102,7 @@ add_setup(async function setupTestCommon() {
   ds.unregisterProvider(dirProvider);
 
   setUpdateTimerPrefs();
-  reloadUpdateManagerData(true);
+  await reloadUpdateManagerData(true);
   removeUpdateFiles(true);
   UpdateListener.reset();
   AppMenuNotifications.removeNotification(/.*/);
@@ -121,7 +121,7 @@ registerCleanupFunction(async () => {
   Services.env.set("MOZ_TEST_STAGING_ERROR", "");
   UpdateListener.reset();
   AppMenuNotifications.removeNotification(/.*/);
-  reloadUpdateManagerData(true);
+  await reloadUpdateManagerData(true);
   // Pass false when the log files are needed for troubleshooting the tests.
   removeUpdateFiles(true);
   // Always try to restore the original updater files. If none of the updater
@@ -658,7 +658,7 @@ function runDoorhangerUpdateTest(params, steps) {
       // Perform a startup processing doorhanger test.
       writeStatusFile(STATE_FAILED_CRC_ERROR);
       writeUpdatesToXMLFile(getLocalUpdatesXMLString(params.updates), true);
-      reloadUpdateManagerData();
+      await reloadUpdateManagerData();
       await testPostUpdateProcessing();
     }
 

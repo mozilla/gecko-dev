@@ -37,5 +37,5 @@ async function run_test() {
     VERSION_DOWNGRADE_ERROR,
     1
   );
-  waitForFilesInUse();
+  await waitForFilesInUse();
 }

@@ -41,5 +41,5 @@ async function run_test() {
     );
   }
 
-  waitForFilesInUse();
+  await waitForFilesInUse();
 }

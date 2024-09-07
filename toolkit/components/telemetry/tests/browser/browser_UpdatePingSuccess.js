@@ -42,11 +42,11 @@ add_task(async function test_updatePing() {
   registerCleanupFunction(async () => {
     let activeUpdateFile = getActiveUpdateFile();
     activeUpdateFile.remove(false);
-    reloadUpdateManagerData(true);
+    await reloadUpdateManagerData(true);
   });
   writeFile(XML_UPDATE, getActiveUpdateFile());
   writeSuccessUpdateStatusFile();
-  reloadUpdateManagerData(false);
+  await reloadUpdateManagerData(false);
 
   // Start monitoring the ping archive.
   let archiveChecker = new TelemetryArchiveTesting.Checker();
@@ -132,8 +132,8 @@ function getActiveUpdateFile() {
  *         be reset. If false (the default), the update xml files will be read
  *         to populate the update metadata.
  */
-function reloadUpdateManagerData(skipFiles = false) {
-  Cc["@mozilla.org/updates/update-manager;1"]
+async function reloadUpdateManagerData(skipFiles = false) {
+  await Cc["@mozilla.org/updates/update-manager;1"]
     .getService(Ci.nsIUpdateManager)
     .internal.reload(skipFiles);
 }
