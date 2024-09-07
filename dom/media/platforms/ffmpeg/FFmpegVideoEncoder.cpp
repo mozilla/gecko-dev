@@ -112,10 +112,16 @@ struct H264Setting {
   nsCString mString;
 };
 
-static const H264Setting H264Profiles[]{
+struct H264LiteralSetting {
+  int mValue;
+  nsLiteralCString mString;
+  H264Setting get() const { return {mValue, mString.AsString()}; }
+};
+
+static constexpr H264LiteralSetting H264Profiles[]{
     {FF_PROFILE_H264_BASELINE, "baseline"_ns},
     {FF_PROFILE_H264_MAIN, "main"_ns},
-    {FF_PROFILE_H264_EXTENDED, EmptyCString()},
+    {FF_PROFILE_H264_EXTENDED, ""_ns},
     {FF_PROFILE_H264_HIGH, "high"_ns}};
 
 static Maybe<H264Setting> GetH264Profile(const H264_PROFILE& aProfile) {
@@ -123,13 +129,13 @@ static Maybe<H264Setting> GetH264Profile(const H264_PROFILE& aProfile) {
     case H264_PROFILE::H264_PROFILE_UNKNOWN:
       return Nothing();
     case H264_PROFILE::H264_PROFILE_BASE:
-      return Some(H264Profiles[0]);
+      return Some(H264Profiles[0].get());
     case H264_PROFILE::H264_PROFILE_MAIN:
-      return Some(H264Profiles[1]);
+      return Some(H264Profiles[1].get());
     case H264_PROFILE::H264_PROFILE_EXTENDED:
-      return Some(H264Profiles[2]);
+      return Some(H264Profiles[2].get());
     case H264_PROFILE::H264_PROFILE_HIGH:
-      return Some(H264Profiles[3]);
+      return Some(H264Profiles[3].get());
     default:
       break;
   }
