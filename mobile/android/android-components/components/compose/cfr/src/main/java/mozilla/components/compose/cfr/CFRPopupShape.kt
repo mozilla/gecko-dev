@@ -71,7 +71,7 @@ class CFRPopupShape(
                         reset()
 
                         lineTo(0f, size.height - cornerRadiusPx)
-                        quadraticBezierTo(
+                        quadraticTo(
                             0f,
                             size.height,
                             cornerRadiusPx,
@@ -79,7 +79,7 @@ class CFRPopupShape(
                         )
 
                         lineTo(size.width - cornerRadiusPx, size.height)
-                        quadraticBezierTo(
+                        quadraticTo(
                             size.width,
                             size.height,
                             size.width,
@@ -88,7 +88,7 @@ class CFRPopupShape(
 
                         if (layoutDirection == LayoutDirection.Ltr) {
                             lineTo(size.width, cornerRadiusPx + indicatorArrowHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 size.width,
                                 indicatorArrowHeightPx,
                                 size.width - cornerRadiusPx,
@@ -100,7 +100,7 @@ class CFRPopupShape(
                             lineTo(indicatorArrowStartOffsetPx, indicatorArrowHeightPx)
 
                             lineTo(indicatorCornerRadiusPx, indicatorArrowHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 0f,
                                 indicatorArrowHeightPx,
                                 0f,
@@ -108,7 +108,7 @@ class CFRPopupShape(
                             )
                         } else {
                             lineTo(size.width, indicatorCornerRadiusPx + indicatorArrowHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 size.width,
                                 indicatorArrowHeightPx,
                                 size.width - indicatorCornerRadiusPx,
@@ -121,7 +121,7 @@ class CFRPopupShape(
                             lineTo(indicatorEnd - indicatorArrowBasePx, indicatorArrowHeightPx)
 
                             lineTo(cornerRadiusPx, indicatorArrowHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 0f,
                                 indicatorArrowHeightPx,
                                 0f,
@@ -142,7 +142,7 @@ class CFRPopupShape(
 
                         if (layoutDirection == LayoutDirection.Ltr) {
                             lineTo(0f, messageBodyHeightPx - indicatorCornerRadiusPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 0f,
                                 size.height - indicatorArrowHeightPx,
                                 indicatorCornerRadiusPx,
@@ -154,7 +154,7 @@ class CFRPopupShape(
                             lineTo(indicatorArrowStartOffsetPx + indicatorArrowBasePx, messageBodyHeightPx)
 
                             lineTo(size.width - cornerRadiusPx, messageBodyHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 size.width,
                                 messageBodyHeightPx,
                                 size.width,
@@ -162,7 +162,7 @@ class CFRPopupShape(
                             )
                         } else {
                             lineTo(0f, messageBodyHeightPx - cornerRadiusPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 0f,
                                 messageBodyHeightPx,
                                 cornerRadiusPx,
@@ -175,7 +175,7 @@ class CFRPopupShape(
                             lineTo(indicatorStartPx + indicatorArrowBasePx, messageBodyHeightPx)
 
                             lineTo(size.width - indicatorCornerRadiusPx, messageBodyHeightPx)
-                            quadraticBezierTo(
+                            quadraticTo(
                                 size.width,
                                 messageBodyHeightPx,
                                 size.width,
@@ -184,7 +184,7 @@ class CFRPopupShape(
                         }
 
                         lineTo(size.width, cornerRadiusPx)
-                        quadraticBezierTo(
+                        quadraticTo(
                             size.width,
                             0f,
                             size.width - cornerRadiusPx,
@@ -192,7 +192,7 @@ class CFRPopupShape(
                         )
 
                         lineTo(cornerRadiusPx, 0f)
-                        quadraticBezierTo(
+                        quadraticTo(
                             0f,
                             0f,
                             0f,
