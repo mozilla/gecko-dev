@@ -241,7 +241,7 @@ fun LazyGridItemScope.DragItemContainer(
         else -> {
             Modifier
                 .zIndex(0f)
-                .animateItemPlacement(tween())
+                .animateItem(tween())
         }
     }
 

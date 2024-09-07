@@ -222,7 +222,7 @@ private fun TabsList(
                         onSelectedTabClick = onSelectedTabClick,
                         modifier = Modifier
                             .padding(end = spaceBetweenTabs)
-                            .animateItemPlacement()
+                            .animateItem()
                             .width(
                                 tabWidth.coerceIn(
                                     minimumValue = minTabStripItemWidth,

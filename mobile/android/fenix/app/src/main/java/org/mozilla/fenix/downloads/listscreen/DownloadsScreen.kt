@@ -128,7 +128,7 @@ private fun DownloadsContent(
                     }
                 },
                 modifier = Modifier
-                    .animateItemPlacement()
+                    .animateItem()
                     .combinedClickable(
                         onClick = {
                             if (state.isNormalMode) {

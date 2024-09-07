@@ -245,7 +245,7 @@ fun LazyItemScope.DragItemContainer(
         else -> {
             Modifier
                 .zIndex(0f)
-                .animateItemPlacement(tween())
+                .animateItem(tween())
         }
     }
     Box(modifier = modifier, propagateMinConstraints = true) {

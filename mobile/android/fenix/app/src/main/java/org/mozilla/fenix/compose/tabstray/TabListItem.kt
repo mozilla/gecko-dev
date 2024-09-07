@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.compose.tabstray
 
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,7 +25,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -100,7 +102,7 @@ fun TabListItem(
         Modifier.clickable(
             enabled = shouldClickListen,
             interactionSource = interactionSource,
-            indication = rememberRipple(
+            indication = ripple(
                 color = clickableColor(),
             ),
             onClick = { onClick(tab) },
@@ -109,7 +111,7 @@ fun TabListItem(
         Modifier.combinedClickable(
             enabled = shouldClickListen,
             interactionSource = interactionSource,
-            indication = rememberRipple(
+            indication = ripple(
                 color = clickableColor(),
             ),
             onLongClick = { onLongClick(tab) },
@@ -117,11 +119,14 @@ fun TabListItem(
         )
     }
 
+    val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
+
     val density = LocalDensity.current
     val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
         SwipeToDismissState(
             density = density,
             enabled = !multiSelectionEnabled && swipingEnabled,
+            decayAnimationSpec = decayAnimationSpec,
         )
     }
 

@@ -4,7 +4,9 @@
 
 package org.mozilla.fenix.compose
 
+import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.AnchoredDraggableState
@@ -92,6 +94,7 @@ private const val SWIPE_ANIMATION_DURATION_MS = 230
  * The UI state for [SwipeToDismissBox].
  *
  * @param density [Density] used to derive the underlying [AnchoredDraggableState.velocityThreshold].
+ * @param decayAnimationSpec [DecayAnimationSpec] used to specify the animation parameters.
  * @property anchoredDraggableState [AnchoredDraggableState] for the underlying [Modifier.anchoredDraggable].
  * @property anchors A list of [SwipeToDismissAnchor] which establish the swipe directions of [SwipeToDismissBox].
  * @property enabled Whether the swipe gesture is active.
@@ -99,13 +102,15 @@ private const val SWIPE_ANIMATION_DURATION_MS = 230
 @OptIn(ExperimentalFoundationApi::class)
 class SwipeToDismissState(
     density: Density,
+    decayAnimationSpec: DecayAnimationSpec<Float>,
     val anchoredDraggableState: AnchoredDraggableState<SwipeToDismissAnchor> = AnchoredDraggableState(
         initialValue = SwipeToDismissAnchor.Default,
         positionalThreshold = { distance: Float -> distance * DISMISS_THRESHOLD },
         velocityThreshold = { with(density) { VELOCITY_THRESHOLD_DP.toPx() } },
-        animationSpec = tween(
+        snapAnimationSpec = tween(
             durationMillis = SWIPE_ANIMATION_DURATION_MS,
         ),
+        decayAnimationSpec = decayAnimationSpec,
     ),
     val anchors: List<SwipeToDismissAnchor> = SwipeToDismissAnchor.swipeBothDirectionsAnchors(),
     val enabled: Boolean = true,
@@ -161,7 +166,10 @@ class SwipeToDismissState(
 @Composable
 fun SwipeToDismissBox(
     modifier: Modifier = Modifier,
-    state: SwipeToDismissState = SwipeToDismissState(density = LocalDensity.current),
+    state: SwipeToDismissState = SwipeToDismissState(
+        density = LocalDensity.current,
+        decayAnimationSpec = rememberSplineBasedDecay(),
+    ),
     onItemDismiss: () -> Unit,
     backgroundContent: @Composable BoxScope.() -> Unit,
     dismissContent: @Composable BoxScope.() -> Unit,
@@ -286,10 +294,13 @@ private fun SwipeableItem(
     onSwipeToEnd: () -> Unit = {},
 ) {
     val density = LocalDensity.current
+    val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
+
     val swipeState = remember {
         SwipeToDismissState(
             density = density,
             anchors = anchors,
+            decayAnimationSpec = decayAnimationSpec,
         )
     }
 

@@ -14,16 +14,17 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.LocalContentColor
+import androidx.compose.material.LocalRippleConfiguration
+import androidx.compose.material.RippleConfiguration
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.LocalRippleTheme
 import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -186,6 +187,7 @@ fun TabsTrayBanner(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Suppress("LongMethod")
 @Composable
 private fun TabPageBanner(
@@ -217,7 +219,7 @@ private fun TabPageBanner(
                 .height(80.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CompositionLocalProvider(LocalRippleTheme provides DisabledRippleTheme) {
+            CompositionLocalProvider(LocalRippleConfiguration provides DisabledRippleConfiguration) {
                 TabRow(
                     selectedTabIndex = selectedPage.ordinal,
                     modifier = Modifier.fillMaxWidth(MAX_WIDTH_TAB_ROW_PERCENT),
@@ -516,13 +518,12 @@ private fun TabsTrayBannerPreviewRoot(
     }
 }
 
-private object DisabledRippleTheme : RippleTheme {
-    @Composable
-    override fun defaultColor() = Color.Unspecified
-
-    @Composable
-    override fun rippleAlpha(): RippleAlpha = RippleAlpha(0.0f, 0.0f, 0.0f, 0.0f)
-}
+@OptIn(ExperimentalMaterialApi::class)
+private val DisabledRippleConfiguration =
+    RippleConfiguration(
+        color = Color.Unspecified,
+        rippleAlpha = RippleAlpha(0.0f, 0.0f, 0.0f, 0.0f),
+    )
 
 private fun generateFakeTabsList(tabCount: Int = 10, isPrivate: Boolean = false): List<TabSessionState> =
     List(tabCount) { index ->

@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.compose.tabstray
 
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -32,7 +34,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -117,12 +119,14 @@ fun TabGridItem(
 
     // Used to propagate the ripple effect to the whole tab
     val interactionSource = remember { MutableInteractionSource() }
+    val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
 
     val density = LocalDensity.current
     val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
         SwipeToDismissState(
             density = density,
             enabled = !multiSelectionEnabled && swipingEnabled,
+            decayAnimationSpec = decayAnimationSpec,
         )
     }
     val swipingActive by remember(swipeState.swipingActive) {
@@ -154,7 +158,7 @@ fun TabGridItem(
                 Modifier.clickable(
                     enabled = shouldClickListen,
                     interactionSource = interactionSource,
-                    indication = rememberRipple(
+                    indication = ripple(
                         color = clickableColor(),
                     ),
                     onClick = { onClick(tab) },
@@ -163,7 +167,7 @@ fun TabGridItem(
                 Modifier.combinedClickable(
                     enabled = shouldClickListen,
                     interactionSource = interactionSource,
-                    indication = rememberRipple(
+                    indication = ripple(
                         color = clickableColor(),
                     ),
                     onLongClick = { onLongClick(tab) },
