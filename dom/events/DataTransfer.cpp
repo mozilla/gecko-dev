@@ -625,7 +625,7 @@ already_AddRefed<DataTransfer> DataTransfer::MozCloneForEvent(
 // The order of the types matters. `kFileMime` needs to be one of the first two
 // types. And the order should be the same as the types order defined in
 // MandatoryDataTypesAsCStrings() for Clipboard API.
-static const nsCString kNonPlainTextExternalFormats[] = {
+static constexpr nsLiteralCString kNonPlainTextExternalFormats[] = {
     nsLiteralCString(kCustomTypesMime), nsLiteralCString(kFileMime),
     nsLiteralCString(kHTMLMime),        nsLiteralCString(kRTFMime),
     nsLiteralCString(kURLMime),         nsLiteralCString(kURLDataMime),
@@ -665,7 +665,8 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
         wc, getter_AddRefs(clipboardDataSnapshot));
   } else {
     AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> formats;
-    formats.AppendElements(Span<const nsCString>(kNonPlainTextExternalFormats));
+    formats.AppendElements(
+        Span<const nsLiteralCString>(kNonPlainTextExternalFormats));
     rv = clipboard->GetDataSnapshotSync(formats, *mClipboardType, wc,
                                         getter_AddRefs(clipboardDataSnapshot));
   }
