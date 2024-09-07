@@ -288,6 +288,10 @@
     <string name="browser_menu_switch_to_mobile_site">موبائل سائٹ تے سوئچ کرو</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">اوزار</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">مین مینیو تے واپس ون٘ڄو</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">قاری منظر، ترجمہ، پرنٹ، شیئر، اوپن ایپ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description">قاری منظر، پرنٹ، شیئر، اوپن ایپس</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -609,8 +613,6 @@
     <string name="toast_override_account_sync_server_done">موزیلا کھاتہ/ہم وقت سرور دی تجدید تھی ڳئی ہے۔ تبدیلیان لاگو کرݨ کیتے ایپ چھوڑیندے پئے ہو۔۔۔</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">کھاتہ</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">ٹول بار</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">پتہ بار مقام</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -922,8 +924,6 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">ٹول بار لُکاوݨ کیتے سکرول کرو</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">ٹیباں تبدیل کرݨ کیتے ٹول بار تے پاسے ول انگل پھیرو</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">ٹیباں کھولݨ کیتے ٹول بار کوں سوائپ کرو</string>
 
@@ -2663,8 +2663,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">ساریاں زباناں مٹاؤ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">مٹاؤ</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">تھیندیاں پیاں</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">تھیندیاں پیاں</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2715,8 +2713,6 @@
     <string name="download_language_file_dialog_title">ڈیٹا سیونگ موڈ (%1$s) وِچ رہن٘دے ہوئے ڈاؤن لوڈ کروں؟</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">ترجمہ کوں نجی رکّھݨ کِیتے اَساں تُہاݙے کیشے وِچ جزوی ٻولیاں ڈاؤن لوڈ کرین٘دے ہِسے۔</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">اَساں ترجمہ کوں نجی رکّھݨ کِیتے جزوی ٻولیاں ڈاؤن لوڈ کرین٘دے ہِسے۔</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">ہمیشاں ڈیٹا سیونگ موڈ وِچ ڈاؤن لوڈ کرو</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2769,11 +2765,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">جاری</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">ایہ سروے مکمل کرو</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">سوہݨا، سروے مکمل کرو</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">رازداری نوٹس</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">رازداری نوٹس</string>
     <!-- The submit button label text -->

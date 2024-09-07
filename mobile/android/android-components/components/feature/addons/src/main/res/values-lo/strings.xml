@@ -196,6 +196,12 @@
     <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">ບໍ່ສາມາດຕິດຕັ້ງສ່ວນຂະຫຍາຍນີ້ໄດ້ເນື່ອງຈາກມັນປະກົດວ່າເສຍຫາຍ.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ສ່ວນຂະຫຍາຍນີ້ບໍ່ສາມາດຕິດຕັ້ງໄດ້ເພາະວ່າມັນບໍ່ໄດ້ຖືກກວດສອບ.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ບໍ່ສາມາດຕິດຕັ້ງໄດ້ ເພາະວ່າມັນບໍ່ເຂົ້າກັນໄດ້ກັບ %2$s %3$s.</string>
+    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_blocklisted_1">%1$s ບໍ່ສາມາດຕິດຕັ້ງໄດ້ເນື່ອງຈາກມັນມີຄວາມສ່ຽງສູງທີ່ຈະເຮັດໃຫ້ເກີດບັນຫາຄວາມສະຖຽນ ຫຼື ຄວາມປອດໄພ.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">ບໍ່ສາມາດຕິດຕັ້ງ %1$s ໄດ້ ເນື່ອງຈາກຕ້ອງຕິດຕັ້ງໂດຍອົງກອນທີ່ໃຊ້ນະໂຍບາຍຂອງອົງກອນເທົ່ານັ້ນ, ເຊິ່ງບໍ່ຮອງຮັບໃນ platform ນີ້.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">ສຳເລັດການເປີດໃຊ້ງານ %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
