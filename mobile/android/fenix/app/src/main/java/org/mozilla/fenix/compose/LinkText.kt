@@ -92,6 +92,7 @@ fun LinkText(
     // opens them in the default browser. Since this component allows the caller to define the
     // onClick behaviour - e.g. to open the link in in-app custom tab, here StringAnnotation is used
     // and modifier is enabled with Role.Button when screen reader is enabled.
+    @Suppress("DEPRECATION") // https://bugzilla.mozilla.org/show_bug.cgi?id=1916877
     ClickableText(
         text = annotatedString,
         style = style,
