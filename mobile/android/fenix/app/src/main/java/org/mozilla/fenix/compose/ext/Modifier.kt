@@ -46,7 +46,7 @@ fun Modifier.dashedBorder(
     dashWidth: Dp,
     dashGap: Dp = dashWidth,
 ) = this.then(
-    drawBehind {
+    Modifier.drawBehind {
         val cornerRadiusPx = cornerRadius.toPx()
         val borderHeightPx = dashHeight.toPx()
         val dashWidthPx = dashWidth.toPx()
