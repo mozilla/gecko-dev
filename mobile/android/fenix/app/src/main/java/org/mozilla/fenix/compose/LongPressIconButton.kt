@@ -5,7 +5,6 @@
 package org.mozilla.fenix.compose
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Indication
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -34,7 +33,6 @@ fun LongPressIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    indication: Indication? = rememberRipple(bounded = false, radius = RippleRadius),
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -46,7 +44,7 @@ fun LongPressIconButton(
                 enabled = enabled,
                 role = Role.Button,
                 interactionSource = interactionSource,
-                indication = indication,
+                indication = rememberRipple(bounded = false, radius = RippleRadius),
             ),
         contentAlignment = Alignment.Center,
     ) {
