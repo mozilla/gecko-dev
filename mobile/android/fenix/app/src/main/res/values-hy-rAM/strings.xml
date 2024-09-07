@@ -305,6 +305,8 @@
     <string name="browser_menu_switch_to_mobile_site">Անցում բջջային կայք</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Գործիքներ</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Վերադառնալ հիմնական ցանկ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Ընթերցողի դիտում, թարգմանել, տպել, համօգտագործում, բաց հավելված</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -637,8 +639,6 @@
     <string name="toast_override_account_sync_server_done">Mozilla հաշիվը/Համաժամեցման սպասարկիչը փոփոխվել են: Դուրս եկեք հավելվածից՝ փոփոխությունները գորխադրելու համար…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Հաշիվ</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Գործիքագոտի</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Հասցեի գոտու տեղադրություն</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -942,8 +942,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Քաշել՝ թարմացման համար</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Ոլորել՝ գործիքագոտիի թաքցնման համար</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Սահարկեք գործիքագոտին կողքից՝ ներդիրների փոխարկման համար</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Սահարկել գործիքագոտին վերև՝ ներդիրների բացման համար</string>
 
@@ -2672,8 +2670,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Ջնջել բոլոր լեզուները</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Ջնջել</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Ընթացքում</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Ընթացքում</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2724,8 +2720,6 @@
     <string name="download_language_file_dialog_title">Ներբեռնե՞լ, քանի դեռ տվյալների պահպանման կերպում է (%1$s):</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Մենք ներբեռնում ենք մասնակի լեզուներ Ձեր շտեմում՝ թարգմանությունները գաղտնի պահելու համար:</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Մենք ներբեռնում ենք մասնակի լեզուներ՝ թարգմանությունները գաղտնի պահելու համար:</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Միշտ ներբեռնել տվյալների պահպանման կերպում</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2788,11 +2782,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Շարունակել</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Լրացրեք այս հարցումը</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Խնդրում ենք լրացնել հարցումը</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Գաղտնիության դրույթներ</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Գաղտնիության ծանուցում</string>
     <!-- The submit button label text -->

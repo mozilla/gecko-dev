@@ -303,6 +303,8 @@
     <string name="browser_menu_switch_to_mobile_site">Перейти на мобільний сайт</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Інструменти</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Повернутися до головного меню</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Режим читання, Переклад, Друк, Спільний доступ, Відкрити програму</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -640,8 +642,6 @@
     <string name="toast_override_account_sync_server_done">Сервер облікового запису/синхронізації Mozilla змінено. Вихід з програми для застосування змін…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Обліковий запис</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Панель інструментів</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Розташування панелі адреси</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -950,8 +950,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Потягнути для оновлення</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Прокрутити, щоб сховати панель інструментів</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Посунути вбік панель інструментів, щоб перемкнути вкладки</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Провести вгору на панелі інструментів вгору для відкриття вкладок</string>
 
@@ -2690,8 +2688,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Видалити всі мови</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Видалити</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Виконується</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Виконується</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2742,8 +2738,6 @@
     <string name="download_language_file_dialog_title">Завантажувати в режимі заощадження даних (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Ми завантажуємо частину словників у ваш кеш, щоб зберегти приватність перекладів.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Ми завантажуємо мови частково, щоб забезпечити конфіденційність перекладів.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Завжди завантажувати в режимі заощадження даних</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2806,11 +2800,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Продовжити</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Пройти це опитування</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Будь ласка, пройдіть опитування</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Повідомлення про приватність</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Положення про приватність</string>
     <!-- The submit button label text -->

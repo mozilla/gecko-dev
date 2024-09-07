@@ -305,6 +305,8 @@
     <string name="browser_menu_switch_to_mobile_site">Skipta yfir á vefsvæði farsíma</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Verkfæri</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Til baka í aðalvalmynd</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Leshamur, Þýða, Prenta, Deila, Opna forrit</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -640,8 +642,6 @@
     <string name="toast_override_account_sync_server_done">Mozilla-reikningi / samstillingarþjóni hefur verið breytt. Slekk á forritinu til að innleiða breytingar…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Reikningur</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Verkfæraslá</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Staðsetning veffangastiku</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -945,8 +945,6 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Skrunaðu til að fela verkfæraslána</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Strjúka verkfæraslánni til hliðar til að skipta um flipa</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Strjúka verkfæraslánni upp til að opna flipa</string>
 
@@ -2444,7 +2442,7 @@
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Með því að velja „Já, prófum það“ samþykkir þú %2$s frá %1$s og %4$s frá %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">persónuverndaryfirlýsing</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">upplýsingar um meðferð persónuupplýsinga</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
     <string name="review_quality_check_contextual_onboarding_terms_use">notkunarskilmála</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
@@ -2675,8 +2673,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Eyða öllum tungumálum</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Eyða</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Í vinnslu</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Í vinnslu</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2727,8 +2723,6 @@
     <string name="download_language_file_dialog_title">Sækja á meðan verið er í gagnasparnaðarham (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Við sækjum hluta af tungumálum í skyndiminni til að halda þýðingum leyndum.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Við sækjum hluta af tungumálum til að halda þýðingum leyndum.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Alltaf sækja í gagnasparnaðarham</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2791,11 +2785,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Halda áfram</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Ljúka þessari könnun</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Ljúktu við könnunina</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Meðferð persónuupplýsinga</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Meðferð persónuupplýsinga</string>
     <!-- The submit button label text -->

@@ -309,6 +309,8 @@
     <string name="browser_menu_switch_to_mobile_site">Mudar para versão de dispositivos móveis</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ferramentas</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Voltar ao menu principal</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Modo de leitura, traduzir, imprimir, compartilhar, abrir aplicativo</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -2861,9 +2863,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Para sair do modo de tela inteira, arraste a partir do alto e use o gesto de voltar</string>
+    <string name="exit_fullscreen_with_gesture">Para sair de tela inteira, arraste desde o topo e use o gesto de voltar</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Para sair do modo de tela inteira, arraste a partir do alto e toque em voltar</string>
+    <string name="exit_fullscreen_with_back_button">Para sair de tela inteira, arraste desde o topo e toque em voltar</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

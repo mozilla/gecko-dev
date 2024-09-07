@@ -305,7 +305,7 @@
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Offer</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
-    <string name="browser_menu_back_button_content_description">Yn ôl i\'r brif ddewislen</string>
+    <string name="browser_menu_back_button_content_description">Nôl i\'r brif ddewislen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Golwg Darllenydd, Cyfieithu, Argraffu, Rhannu, Agor ap</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
