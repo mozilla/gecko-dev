@@ -36,7 +36,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param textColor Optional text [Color] for the chip.
  * @param onClick Callback for when the user taps this chip.
  */
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun Chip(
     text: String,

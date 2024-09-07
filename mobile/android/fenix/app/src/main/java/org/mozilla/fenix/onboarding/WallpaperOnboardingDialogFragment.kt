@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.lifecycleScope
@@ -37,7 +36,6 @@ import org.mozilla.fenix.wallpapers.WallpaperOnboarding
 /**
  * Dialog displaying the wallpapers onboarding.
  */
-@OptIn(ExperimentalMaterialApi::class)
 class WallpaperOnboardingDialogFragment : BottomSheetDialogFragment() {
     private val appStore by lazy {
         requireComponents.appStore
