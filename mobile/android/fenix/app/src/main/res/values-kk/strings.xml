@@ -2812,14 +2812,18 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Мен оны қолданбаймын</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Мен Firefox-та іздеуді пайдаланбаймын</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Firefox басты бетіне қаншалықты көңіліңіз толады?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox-та баспаға шығаруды жақсартуға көмектесіңіз. Бұл бар болғаны секундты алады</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox жүйесінде баспаға шығаруға қаншалықты көңіліңіз толады?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Firefox басты бетіне қаншалықты көңіліңіз толады?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox-тағы іздеу тәжірибесіне қаншалықты көңіліңіз толады?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox логотипі</string>
@@ -2850,9 +2854,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралу ым қимылын қолданыңыз</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралу ым қимылын қолданыңыз</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралуды басыңыз</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Толық экраннан шығу үшін, экранды жоғарыдан тартып, артқа оралуды басыңыз</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
