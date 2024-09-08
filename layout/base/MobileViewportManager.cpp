@@ -352,7 +352,7 @@ void MobileViewportManager::UpdateResolutionForViewportSizeChange(
   //    viewport tag is added or removed)
   // 4. neither screen size nor CSS viewport changes
 
-  if (!aDisplayWidthChangeRatio) {
+  if (!aDisplayWidthChangeRatio || mContext->IsDocumentFullscreen()) {
     UpdateVisualViewportSize(zoom);
     return;
   }

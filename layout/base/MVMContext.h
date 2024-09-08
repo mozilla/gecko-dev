@@ -57,6 +57,7 @@ class MVMContext {
   virtual bool AllowZoomingForDocument() const = 0;
   virtual bool IsInReaderMode() const = 0;
   virtual bool IsDocumentLoading() const = 0;
+  virtual bool IsDocumentFullscreen() const = 0;
 
   virtual void SetResolutionAndScaleTo(float aResolution,
                                        ResolutionChangeOrigin aOrigin) = 0;

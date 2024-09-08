@@ -81,6 +81,7 @@ class MockMVMContext : public MVMContext {
   bool AllowZoomingForDocument() const { return true; }
   bool IsInReaderMode() const { return false; }
   bool IsDocumentLoading() const { return false; }
+  bool IsDocumentFullscreen() const { return false; }
 
   void SetResolutionAndScaleTo(float aResolution,
                                ResolutionChangeOrigin aOrigin) {

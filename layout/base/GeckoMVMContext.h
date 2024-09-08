@@ -50,6 +50,7 @@ class GeckoMVMContext final : public MVMContext {
   bool AllowZoomingForDocument() const override;
   bool IsInReaderMode() const override;
   bool IsDocumentLoading() const override;
+  bool IsDocumentFullscreen() const override;
 
   void SetResolutionAndScaleTo(float aResolution,
                                ResolutionChangeOrigin aOrigin) override;

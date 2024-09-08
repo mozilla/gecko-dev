@@ -143,6 +143,11 @@ bool GeckoMVMContext::IsDocumentLoading() const {
   return mDocument->GetReadyStateEnum() == dom::Document::READYSTATE_LOADING;
 }
 
+bool GeckoMVMContext::IsDocumentFullscreen() const {
+  MOZ_ASSERT(mDocument);
+  return mDocument->Fullscreen();
+}
+
 void GeckoMVMContext::SetResolutionAndScaleTo(float aResolution,
                                               ResolutionChangeOrigin aOrigin) {
   MOZ_ASSERT(mPresShell);
