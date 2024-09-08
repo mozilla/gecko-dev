@@ -13547,11 +13547,6 @@
   value: true
   mirror: always
 
-- name: network.url.strict_protocol_setter
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # When true, if all the cyrillic characters in a label
 # are latin confusables and on a non-cyrillic domain
 # the label will be displayed as punycode.
