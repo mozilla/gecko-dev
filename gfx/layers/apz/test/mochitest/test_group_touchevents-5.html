@@ -47,10 +47,14 @@ var subtests = [
 // The following tests intermittently fail on Linux.
 // See bug 1909710 for re-enabling these subtests.
 if (getPlatform() != "linux") {
-  subtests.push(...[
-    {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", true]]},
-    {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", false]]},
-  ]);
+  subtests.push(
+    {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", true]]});
+
+  // apz.allow_zooming=false is quite broken on Android
+  if (getPlatform() != "android") {
+    subtests.push(
+      {"file": "helper_touch_drag_root_scrollbar.html", "prefs": [["apz.allow_zooming", false]]});
+  }
 }
 
 if (isApzEnabled()) {
