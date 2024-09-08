@@ -1635,8 +1635,8 @@ function setLayerDimensions(div, viewport, mustFlip = false, mustRotate = true) 
     const useRound = util_FeatureTest.isCSSRoundSupported;
     const w = `var(--scale-factor) * ${pageWidth}px`,
       h = `var(--scale-factor) * ${pageHeight}px`;
-    const widthStr = useRound ? `round(${w}, 1px)` : `calc(${w})`,
-      heightStr = useRound ? `round(${h}, 1px)` : `calc(${h})`;
+    const widthStr = useRound ? `round(down, ${w}, var(--scale-round-x, 1px))` : `calc(${w})`,
+      heightStr = useRound ? `round(down, ${h}, var(--scale-round-y, 1px))` : `calc(${h})`;
     if (!mustFlip || viewport.rotation % 180 === 0) {
       style.width = widthStr;
       style.height = heightStr;
@@ -4962,7 +4962,7 @@ class AnnotationEditor {
     const {
       firstChild
     } = annotation.container;
-    if (firstChild.nodeName === "DIV" && firstChild.classList.contains("annotationContent")) {
+    if (firstChild?.nodeName === "DIV" && firstChild.classList.contains("annotationContent")) {
       firstChild.remove();
     }
   }
@@ -9728,7 +9728,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.6.99",
+    apiVersion: "4.6.107",
     data,
     password,
     disableAutoFetch,
@@ -11397,8 +11397,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.6.99";
-const build = "4fb045b9e";
+const version = "4.6.107";
+const build = "5369a24c9";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -18073,7 +18073,7 @@ class AnnotationEditorLayer {
     const {
       target
     } = event;
-    if (target === this.#textLayer.div || target.classList.contains("endOfContent") && this.#textLayer.div.contains(target)) {
+    if (target === this.#textLayer.div || (target.getAttribute("role") === "img" || target.classList.contains("endOfContent")) && this.#textLayer.div.contains(target)) {
       const {
         isMac
       } = util_FeatureTest.platform;
@@ -18083,7 +18083,11 @@ class AnnotationEditorLayer {
       this.#uiManager.showAllEditors("highlight", true, true);
       this.#textLayer.div.classList.add("free");
       this.toggleDrawing();
-      HighlightEditor.startHighlighting(this, this.#uiManager.direction === "ltr", event);
+      HighlightEditor.startHighlighting(this, this.#uiManager.direction === "ltr", {
+        target: this.#textLayer.div,
+        x: event.x,
+        y: event.y
+      });
       this.#textLayer.div.addEventListener("pointerup", () => {
         this.#textLayer.div.classList.remove("free");
         this.toggleDrawing(true);
@@ -18639,8 +18643,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.6.99";
-const pdfjsBuild = "4fb045b9e";
+const pdfjsVersion = "4.6.107";
+const pdfjsBuild = "5369a24c9";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

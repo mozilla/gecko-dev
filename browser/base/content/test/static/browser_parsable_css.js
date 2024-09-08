@@ -45,7 +45,6 @@ let ignoreList = [
     errorMessage: /Property contained reference to invalid variable.*color/i,
     isFromDevTools: true,
   },
-  // PDF.js uses a property that is currently only supported in chrome.
   {
     sourceName: /web\/viewer\.css$/i,
     errorMessage:
@@ -144,6 +143,15 @@ let propNameAllowlist = [
   {
     propName: "--timing-marker-load-color",
     isFromDevTools: true,
+  },
+  // These variables are used in JS in viewer.mjs (PDF.js).
+  {
+    propName: "--scale-round-x",
+    isFromDevTools: false,
+  },
+  {
+    propName: "--scale-round-y",
+    isFromDevTools: false,
   },
 ];
 

@@ -532,6 +532,7 @@ function toggleExpandedBtn(button, toggle, view = null) {
   button.setAttribute("aria-expanded", toggle);
   view?.classList.toggle("hidden", !toggle);
 }
+const calcRound = Math.fround;
 
 ;// CONCATENATED MODULE: ./web/app_options.js
 const OptionKind = {
@@ -7797,8 +7798,11 @@ class StructTreeLayerBuilder {
   #treeDom = null;
   #treePromise;
   #elementAttributes = new Map();
-  constructor(pdfPage) {
+  #rawDims;
+  #elementsToAddToTextLayer = null;
+  constructor(pdfPage, rawDims) {
     this.#promise = pdfPage.getStructTree();
+    this.#rawDims = rawDims;
   }
   async render() {
     if (this.#treePromise) {
@@ -7865,6 +7869,52 @@ class StructTreeLayerBuilder {
       htmlElement.setAttribute("lang", removeNullCharacters(lang, true));
     }
   }
+  #addImageInTextLayer(node, element) {
+    const {
+      alt,
+      bbox,
+      children
+    } = node;
+    const child = children?.[0];
+    if (!this.#rawDims || !alt || !bbox || child?.type !== "content") {
+      return false;
+    }
+    const {
+      id
+    } = child;
+    if (!id) {
+      return false;
+    }
+    element.setAttribute("aria-owns", id);
+    const img = document.createElement("span");
+    (this.#elementsToAddToTextLayer ||= new Map()).set(id, img);
+    img.setAttribute("role", "img");
+    img.setAttribute("aria-label", removeNullCharacters(alt));
+    const {
+      pageHeight,
+      pageX,
+      pageY
+    } = this.#rawDims;
+    const calc = "calc(var(--scale-factor)*";
+    const {
+      style
+    } = img;
+    style.width = `${calc}${bbox[2] - bbox[0]}px)`;
+    style.height = `${calc}${bbox[3] - bbox[1]}px)`;
+    style.left = `${calc}${bbox[0] - pageX}px)`;
+    style.top = `${calc}${pageHeight - bbox[3] + pageY}px)`;
+    return true;
+  }
+  addElementsToTextLayer() {
+    if (!this.#elementsToAddToTextLayer) {
+      return;
+    }
+    for (const [id, img] of this.#elementsToAddToTextLayer) {
+      document.getElementById(id)?.append(img);
+    }
+    this.#elementsToAddToTextLayer.clear();
+    this.#elementsToAddToTextLayer = null;
+  }
   #walk(node) {
     if (!node) {
       return null;
@@ -7880,6 +7930,9 @@ class StructTreeLayerBuilder {
         element.setAttribute("aria-level", match[1]);
       } else if (PDF_ROLE_TO_HTML_ROLE[role]) {
         element.setAttribute("role", PDF_ROLE_TO_HTML_ROLE[role]);
+      }
+      if (role === "Figure" && this.#addImageInTextLayer(node, element)) {
+        return element;
       }
     }
     this.#setAttributes(node, element);
@@ -8460,6 +8513,8 @@ class PDFPageView {
   #layerProperties = null;
   #loadingId = null;
   #previousRotation = null;
+  #scaleRoundX = 1;
+  #scaleRoundY = 1;
   #renderError = null;
   #renderingState = RenderingStates.INITIAL;
   #textLayerMode = TextLayerMode.ENABLE;
@@ -8676,9 +8731,12 @@ class PDFPageView {
       return;
     }
     const treeDom = await this.structTreeLayer?.render();
-    if (treeDom && this.canvas && treeDom.parentNode !== this.canvas) {
+    if (treeDom) {
       this.l10n.pause();
-      this.canvas.append(treeDom);
+      this.structTreeLayer?.addElementsToTextLayer();
+      if (this.canvas && treeDom.parentNode !== this.canvas) {
+        this.canvas.append(treeDom);
+      }
       this.l10n.resume();
     }
     this.structTreeLayer?.show();
@@ -8893,7 +8951,7 @@ class PDFPageView {
       this.annotationLayer = null;
       this._annotationCanvasMap = null;
     }
-    if (this.structTreeLayer && !(this.textLayer || this.annotationLayer)) {
+    if (this.structTreeLayer && !this.textLayer) {
       this.structTreeLayer = null;
     }
     if (this.annotationEditorLayer && (!keepAnnotationEditorLayer || !this.annotationEditorLayer.div)) {
@@ -9103,13 +9161,20 @@ class PDFPageView {
     }
     const sfx = approximateFraction(outputScale.sx);
     const sfy = approximateFraction(outputScale.sy);
-    canvas.width = floorToDivide(width * outputScale.sx, sfx[0]);
-    canvas.height = floorToDivide(height * outputScale.sy, sfy[0]);
-    const {
-      style
-    } = canvas;
-    style.width = floorToDivide(width, sfx[1]) + "px";
-    style.height = floorToDivide(height, sfy[1]) + "px";
+    const canvasWidth = canvas.width = floorToDivide(calcRound(width * outputScale.sx), sfx[0]);
+    const canvasHeight = canvas.height = floorToDivide(calcRound(height * outputScale.sy), sfy[0]);
+    const pageWidth = floorToDivide(calcRound(width), sfx[1]);
+    const pageHeight = floorToDivide(calcRound(height), sfy[1]);
+    outputScale.sx = canvasWidth / pageWidth;
+    outputScale.sy = canvasHeight / pageHeight;
+    if (this.#scaleRoundX !== sfx[1]) {
+      div.style.setProperty("--scale-round-x", `${sfx[1]}px`);
+      this.#scaleRoundX = sfx[1];
+    }
+    if (this.#scaleRoundY !== sfy[1]) {
+      div.style.setProperty("--scale-round-y", `${sfy[1]}px`);
+      this.#scaleRoundY = sfy[1];
+    }
     this.#viewportMap.set(canvas, viewport);
     const transform = outputScale.scaled ? [outputScale.sx, 0, 0, outputScale.sy, 0, 0] : null;
     const renderContext = {
@@ -9128,7 +9193,7 @@ class PDFPageView {
       showCanvas?.(true);
       await this.#finishRenderTask(renderTask);
       if (this.textLayer || this.annotationLayer) {
-        this.structTreeLayer ||= new StructTreeLayerBuilder(pdfPage);
+        this.structTreeLayer ||= new StructTreeLayerBuilder(pdfPage, viewport.rawDims);
       }
       this.#renderTextLayer();
       if (this.annotationLayer) {
@@ -9296,7 +9361,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.6.99";
+    const viewerVersion = "4.6.107";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -13472,8 +13537,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.6.99";
-const pdfjsBuild = "4fb045b9e";
+const pdfjsVersion = "4.6.107";
+const pdfjsBuild = "5369a24c9";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
