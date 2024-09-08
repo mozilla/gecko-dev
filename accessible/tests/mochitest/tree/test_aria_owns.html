@@ -43,16 +43,16 @@
       testAccessibleTree("t2_1", tree);
 
       tree =
-        { SECTION: [ // t3_3
-          { GROUPING: [ // t3_1
-            { NOTE: [ // t3_2
-              { HEADING: [ // DOM child of t3_2
+        { GROUPING: [ // t3_1
+          { NOTE: [ // t3_2
+            { HEADING: [ // DOM child of t3_2
+              { SECTION: [ // t3_3
                 // no kids, no loop
               ] },
             ] },
           ] },
         ] };
-      testAccessibleTree("t3_3", tree);
+      testAccessibleTree("t3_1", tree);
 
       tree =
         { SECTION: [ // t4_1
@@ -121,6 +121,17 @@
           // Can't own ancestor, so no children.
         ] };
       testAccessibleTree("presentation_owner", tree);
+
+      tree =
+        { GROUPING: [ // t7
+          { SECTION: [ // t7_1
+            { SECTION: [ // t7_2
+              { SECTION: [ { TEXT_LEAF: [] } ] },
+              ] },
+            ] },
+            { role: ROLE_PUSHBUTTON, name: "heck yes" },
+        ] };
+      testAccessibleTree("t7", tree);
 
       SimpleTest.finish();
     }
@@ -191,6 +202,15 @@
        aria-owns relocation was processed (bug 1485097). -->
   <div id="presentation" role="presentation">
     <div id="presentation_owner" aria-owns="presentation"></div>
+  </div>
+
+  <div id="t7" role="group">
+    <div id="t7_1" role="presentation">
+      <div id="t7_2" role="presentation">
+          <div aria-owns="t7_2">heck yes</div>
+      </div>
+    </div>
+    <div role="button" aria-labelledby="t7_1"></div>
   </div>
 </body>
 
