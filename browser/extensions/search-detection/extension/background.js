@@ -47,12 +47,6 @@ class AddonsSearchDetection {
         this.onRedirectedListener
       );
     }
-    // If there is already a listener, remove it so that we can re-add one
-    // after. This is because we're using the same listener with different URL
-    // patterns (when the list of search engines changes).
-    if (browser.webRequest.onBeforeRequest.hasListener(this.noOpListener)) {
-      browser.webRequest.onBeforeRequest.removeListener(this.noOpListener);
-    }
 
     // Retrieve the list of URL patterns to monitor with our listener.
     //
@@ -65,21 +59,10 @@ class AddonsSearchDetection {
       return;
     }
 
-    browser.webRequest.onBeforeRequest.addListener(
-      this.noOpListener,
-      { types: ["main_frame"], urls: patterns },
-      ["blocking"]
-    );
-
     browser.addonsSearchDetection.onRedirected.addListener(
       this.onRedirectedListener,
       { urls: patterns }
     );
-  }
-
-  // This listener is required to force the registration of traceable channels.
-  noOpListener() {
-    // Do nothing.
   }
 
   async onRedirectedListener({ addonId, firstUrl, lastUrl }) {
