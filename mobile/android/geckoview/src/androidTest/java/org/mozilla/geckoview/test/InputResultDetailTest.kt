@@ -282,13 +282,17 @@ class InputResultDetailTest : BaseSessionTest() {
 
         value = sessionRule.waitForResult(sendDownEvent(50f, 50f))
 
-        // Now the touch event should be handed to the root scroller.
+        // Now the touch event should be handed off to the root scroller.
         assertResultDetail(
             "handoff",
             value,
             PanZoomController.INPUT_RESULT_HANDLED,
             PanZoomController.SCROLLABLE_FLAG_BOTTOM,
-            (PanZoomController.OVERSCROLL_FLAG_HORIZONTAL or PanZoomController.OVERSCROLL_FLAG_VERTICAL),
+            // Although the root scroll container is in fact over-scrollable
+            // vertically, the child scroll container is scrollabe to top,
+            // thus pull-to-refresh should not be triggered, that's the reason
+            // why we don't receive OVERSCROLL_FLAG_VERTICAL here.
+            PanZoomController.OVERSCROLL_FLAG_HORIZONTAL,
         )
     }
 
@@ -363,7 +367,11 @@ class InputResultDetailTest : BaseSessionTest() {
                 value,
                 PanZoomController.INPUT_RESULT_HANDLED,
                 PanZoomController.SCROLLABLE_FLAG_BOTTOM,
-                (PanZoomController.OVERSCROLL_FLAG_HORIZONTAL or PanZoomController.OVERSCROLL_FLAG_VERTICAL),
+                // Although the root scroll container is in fact over-scrollable
+                // vertically, the child scroll container is scrollabe to top,
+                // thus pull-to-refresh should not be triggered, that's the reason
+                // why we don't receive OVERSCROLL_FLAG_VERTICAL here.
+                PanZoomController.OVERSCROLL_FLAG_HORIZONTAL,
             )
         }
     }
