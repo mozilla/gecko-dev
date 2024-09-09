@@ -11,13 +11,14 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66"
+rust-version = "1.76"
 name = "glean-core"
-version = "60.5.0"
+version = "61.0.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
 ]
+build = "build.rs"
 include = [
     "/README.md",
     "/LICENSE",
@@ -28,6 +29,10 @@ include = [
     "/uniffi.toml",
     "/build.rs",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A modern Telemetry library"
 readme = "README.md"
 keywords = ["telemetry"]
@@ -35,7 +40,87 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
 [package.metadata.glean]
-glean-parser = "14.5.1"
+glean-parser = "15.0.0"
+
+[lib]
+name = "glean_core"
+path = "src/lib.rs"
+
+[[test]]
+name = "boolean"
+path = "tests/boolean.rs"
+
+[[test]]
+name = "counter"
+path = "tests/counter.rs"
+
+[[test]]
+name = "custom_distribution"
+path = "tests/custom_distribution.rs"
+
+[[test]]
+name = "datetime"
+path = "tests/datetime.rs"
+
+[[test]]
+name = "event"
+path = "tests/event.rs"
+
+[[test]]
+name = "labeled"
+path = "tests/labeled.rs"
+
+[[test]]
+name = "memory_distribution"
+path = "tests/memory_distribution.rs"
+
+[[test]]
+name = "object"
+path = "tests/object.rs"
+
+[[test]]
+name = "ping"
+path = "tests/ping.rs"
+
+[[test]]
+name = "ping_maker"
+path = "tests/ping_maker.rs"
+
+[[test]]
+name = "quantity"
+path = "tests/quantity.rs"
+
+[[test]]
+name = "rate"
+path = "tests/rate.rs"
+
+[[test]]
+name = "storage"
+path = "tests/storage.rs"
+
+[[test]]
+name = "string"
+path = "tests/string.rs"
+
+[[test]]
+name = "string_list"
+path = "tests/string_list.rs"
+
+[[test]]
+name = "text"
+path = "tests/text.rs"
+
+[[test]]
+name = "timespan"
+path = "tests/timespan.rs"
+
+[[test]]
+name = "timing_distribution"
+path = "tests/timing_distribution.rs"
+
+[[test]]
+name = "uuid"
+path = "tests/uuid.rs"
 
 [dependencies.bincode]
 version = "1.2.1"
@@ -80,7 +165,7 @@ version = "1.0.4"
 version = "0.1.40"
 
 [dependencies.uniffi]
-version = "0.27.0"
+version = "0.28.0"
 default-features = false
 
 [dependencies.uuid]
@@ -105,18 +190,18 @@ version = "0.4"
 version = "3.8.0"
 
 [build-dependencies.uniffi]
-version = "0.27.0"
+version = "0.28.0"
 features = ["build"]
 default-features = false
 
 [features]
 enable_env_logger = ["env_logger"]
 
-[target."cfg(target_os = \"android\")".dependencies.android_logger]
+[target.'cfg(target_os = "android")'.dependencies.android_logger]
 version = "0.12.0"
 default-features = false
 
-[target."cfg(target_os = \"ios\")".dependencies.oslog]
+[target.'cfg(target_os = "ios")'.dependencies.oslog]
 version = "0.1.0"
 features = ["logger"]
 default-features = false

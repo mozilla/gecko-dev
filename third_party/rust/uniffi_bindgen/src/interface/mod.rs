@@ -52,7 +52,7 @@ use std::{
 use anyhow::{anyhow, bail, ensure, Result};
 
 pub mod universe;
-pub use uniffi_meta::{AsType, ExternalKind, ObjectImpl, Type};
+pub use uniffi_meta::{AsType, EnumShape, ExternalKind, ObjectImpl, Type};
 use universe::{TypeIterator, TypeUniverse};
 
 mod callbacks;
@@ -67,6 +67,7 @@ mod record;
 pub use record::{Field, Record};
 
 pub mod ffi;
+mod visit_mut;
 pub use ffi::{
     FfiArgument, FfiCallbackFunction, FfiDefinition, FfiField, FfiFunction, FfiStruct, FfiType,
 };
@@ -79,7 +80,7 @@ pub type Literal = LiteralMetadata;
 
 /// The main public interface for this module, representing the complete details of an interface exposed
 /// by a rust component and the details of consuming it via an extern-C FFI layer.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ComponentInterface {
     /// All of the types used in the interface.
     // We can't checksum `self.types`, but its contents are implied by the other fields
@@ -162,6 +163,11 @@ impl ComponentInterface {
 
     pub fn namespace_docstring(&self) -> Option<&str> {
         self.types.namespace_docstring.as_deref()
+    }
+
+    /// The crate this interfaces lives in.
+    pub fn crate_name(&self) -> &str {
+        &self.types.namespace.crate_name
     }
 
     pub fn uniffi_contract_version(&self) -> u32 {
@@ -810,6 +816,9 @@ impl ComponentInterface {
     pub(super) fn add_enum_definition(&mut self, defn: Enum) -> Result<()> {
         match self.enums.entry(defn.name().to_owned()) {
             Entry::Vacant(v) => {
+                if matches!(defn.shape, EnumShape::Error { .. }) {
+                    self.errors.insert(defn.name.clone());
+                }
                 self.types.add_known_types(defn.iter_types())?;
                 v.insert(defn);
             }
@@ -1174,7 +1183,7 @@ existing definition: Enum {
             docstring: None,
         },
     ],
-    flat: true,
+    shape: Enum,
     non_exhaustive: false,
     docstring: None,
 },
@@ -1196,7 +1205,9 @@ new definition: Enum {
             docstring: None,
         },
     ],
-    flat: true,
+    shape: Error {
+        flat: true,
+    },
     non_exhaustive: false,
     docstring: None,
 }",

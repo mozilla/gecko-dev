@@ -7,7 +7,7 @@ use quote::quote;
 use syn::ext::IdentExt;
 
 use super::gen_ffi_function;
-use crate::export::ExportedImplFnArgs;
+use crate::export::ExportFnArgs;
 use crate::fnsig::FnSignature;
 use crate::util::extract_docstring;
 use uniffi_meta::UniffiTraitDiscriminants;
@@ -103,14 +103,14 @@ pub(crate) fn expand_uniffi_trait_export(
                 let method_eq = quote! {
                     fn uniffi_trait_eq_eq(&self, other: &#self_ident) -> bool {
                         use ::std::cmp::PartialEq;
-                        uniffi::deps::static_assertions::assert_impl_all!(#self_ident: PartialEq); // This object has a trait method which requires `PartialEq` be implemented.
+                        ::uniffi::deps::static_assertions::assert_impl_all!(#self_ident: PartialEq); // This object has a trait method which requires `PartialEq` be implemented.
                         PartialEq::eq(self, other)
                     }
                 };
                 let method_ne = quote! {
                     fn uniffi_trait_eq_ne(&self, other: &#self_ident) -> bool {
                         use ::std::cmp::PartialEq;
-                        uniffi::deps::static_assertions::assert_impl_all!(#self_ident: PartialEq); // This object has a trait method which requires `PartialEq` be implemented.
+                        ::uniffi::deps::static_assertions::assert_impl_all!(#self_ident: PartialEq); // This object has a trait method which requires `PartialEq` be implemented.
                         PartialEq::ne(self, other)
                     }
                 };
@@ -165,17 +165,17 @@ fn process_uniffi_trait_method(
         &FnSignature::new_method(
             self_ident.clone(),
             item.sig.clone(),
-            ExportedImplFnArgs::default(),
+            ExportFnArgs::default(),
             docstring.clone(),
         )?,
-        &None,
+        None,
         udl_mode,
     )?;
     // metadata for the method, which will be packed inside metadata for the trait.
     let method_meta = FnSignature::new_method(
         self_ident.clone(),
         item.sig,
-        ExportedImplFnArgs::default(),
+        ExportFnArgs::default(),
         docstring,
     )?
     .metadata_expr()?;

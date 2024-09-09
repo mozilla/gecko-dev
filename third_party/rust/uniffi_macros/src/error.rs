@@ -1,47 +1,27 @@
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{
-    parse::{Parse, ParseStream},
-    Data, DataEnum, DeriveInput, Index,
-};
+use syn::{DeriveInput, Index};
+use uniffi_meta::EnumShape;
 
 use crate::{
-    enum_::{rich_error_ffi_converter_impl, variant_metadata, EnumAttr},
+    enum_::{rich_error_ffi_converter_impl, variant_metadata, EnumItem},
+    ffiops,
     util::{
-        chain, create_metadata_items, derive_ffi_traits, either_attribute_arg, extract_docstring,
-        ident_to_string, kw, mod_path, parse_comma_separated, tagged_impl_header,
-        try_metadata_value_from_usize, AttributeSliceExt, UniffiAttributeArgs,
+        chain, create_metadata_items, extract_docstring, ident_to_string, mod_path,
+        try_metadata_value_from_usize, AttributeSliceExt,
     },
+    DeriveOptions,
 };
 
-pub fn expand_error(
-    input: DeriveInput,
-    // Attributes from #[derive_error_for_udl()], if we are in udl mode
-    attr_from_udl_mode: Option<ErrorAttr>,
-    udl_mode: bool,
-) -> syn::Result<TokenStream> {
-    let enum_ = match input.data {
-        Data::Enum(e) => e,
-        _ => {
-            return Err(syn::Error::new(
-                Span::call_site(),
-                "This derive currently only supports enums",
-            ));
-        }
-    };
-    let ident = &input.ident;
-    let docstring = extract_docstring(&input.attrs)?;
-    let mut attr: ErrorAttr = input.attrs.parse_uniffi_attr_args()?;
-    if let Some(attr_from_udl_mode) = attr_from_udl_mode {
-        attr = attr.merge(attr_from_udl_mode)?;
-    }
-    let ffi_converter_impl = error_ffi_converter_impl(ident, &enum_, &attr, udl_mode)?;
-    let meta_static_var = (!udl_mode).then(|| {
-        error_meta_static_var(ident, docstring, &enum_, &attr)
-            .unwrap_or_else(syn::Error::into_compile_error)
-    });
+pub fn expand_error(input: DeriveInput, options: DeriveOptions) -> syn::Result<TokenStream> {
+    let enum_item = EnumItem::new(input)?;
+    let ffi_converter_impl = error_ffi_converter_impl(&enum_item, &options)?;
+    let meta_static_var = options
+        .generate_metadata
+        .then(|| error_meta_static_var(&enum_item).unwrap_or_else(syn::Error::into_compile_error));
 
-    let variant_errors: TokenStream = enum_
+    let variant_errors: TokenStream = enum_item
+        .enum_()
         .variants
         .iter()
         .flat_map(|variant| {
@@ -63,16 +43,11 @@ pub fn expand_error(
     })
 }
 
-fn error_ffi_converter_impl(
-    ident: &Ident,
-    enum_: &DataEnum,
-    attr: &ErrorAttr,
-    udl_mode: bool,
-) -> syn::Result<TokenStream> {
-    Ok(if attr.flat.is_some() {
-        flat_error_ffi_converter_impl(ident, enum_, udl_mode, attr)
+fn error_ffi_converter_impl(item: &EnumItem, options: &DeriveOptions) -> syn::Result<TokenStream> {
+    Ok(if item.is_flat_error() {
+        flat_error_ffi_converter_impl(item, options)
     } else {
-        rich_error_ffi_converter_impl(ident, enum_, udl_mode, &attr.clone().try_into()?)
+        rich_error_ffi_converter_impl(item, options)
     })
 }
 
@@ -80,38 +55,44 @@ fn error_ffi_converter_impl(
 //
 // These are errors where we only lower the to_string() value, rather than any associated data.
 // We lower the to_string() value unconditionally, whether the enum has associated data or not.
-fn flat_error_ffi_converter_impl(
-    ident: &Ident,
-    enum_: &DataEnum,
-    udl_mode: bool,
-    attr: &ErrorAttr,
-) -> TokenStream {
-    let name = ident_to_string(ident);
-    let lower_impl_spec = tagged_impl_header("Lower", ident, udl_mode);
-    let lift_impl_spec = tagged_impl_header("Lift", ident, udl_mode);
-    let derive_ffi_traits = derive_ffi_traits(ident, udl_mode, &["ConvertError"]);
+fn flat_error_ffi_converter_impl(item: &EnumItem, options: &DeriveOptions) -> TokenStream {
+    let name = item.name();
+    let ident = item.ident();
+    let lower_impl_spec = options.ffi_impl_header("Lower", ident);
+    let lift_impl_spec = options.ffi_impl_header("Lift", ident);
+    let type_id_impl_spec = options.ffi_impl_header("TypeId", ident);
+    let derive_ffi_traits = options.derive_ffi_traits(ident, &["LowerError", "ConvertError"]);
     let mod_path = match mod_path() {
         Ok(p) => p,
         Err(e) => return e.into_compile_error(),
     };
 
     let lower_impl = {
-        let mut match_arms: Vec<_> = enum_.variants.iter().enumerate().map(|(i, v)| {
-            let v_ident = &v.ident;
-            let idx = Index::from(i + 1);
+        let mut match_arms: Vec<_> = item
+            .enum_()
+            .variants
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let v_ident = &v.ident;
+                let idx = Index::from(i + 1);
+                let write_string = ffiops::write(quote! { ::std::string::String });
 
-            quote! {
-                Self::#v_ident { .. } => {
-                    ::uniffi::deps::bytes::BufMut::put_i32(buf, #idx);
-                    <::std::string::String as ::uniffi::Lower<crate::UniFfiTag>>::write(error_msg, buf);
+                quote! {
+                    Self::#v_ident { .. } => {
+                        ::uniffi::deps::bytes::BufMut::put_i32(buf, #idx);
+                        #write_string(error_msg, buf);
+                    }
                 }
-            }
-        }).collect();
-        if attr.non_exhaustive.is_some() {
+            })
+            .collect();
+        if item.is_non_exhaustive() {
             match_arms.push(quote! {
-                _ => panic!("Unexpected variant in non-exhaustive enum"),
+                _ => ::std::panic!("Unexpected variant in non-exhaustive enum"),
             })
         }
+
+        let lower = ffiops::lower_into_rust_buffer(quote! { Self });
 
         quote! {
             #[automatically_derived]
@@ -124,18 +105,14 @@ fn flat_error_ffi_converter_impl(
                 }
 
                 fn lower(obj: Self) -> ::uniffi::RustBuffer {
-                    <Self as ::uniffi::Lower<crate::UniFfiTag>>::lower_into_rust_buffer(obj)
+                    #lower(obj)
                 }
-
-                const TYPE_ID_META: ::uniffi::MetadataBuffer = ::uniffi::MetadataBuffer::from_code(::uniffi::metadata::codes::TYPE_ENUM)
-                    .concat_str(#mod_path)
-                    .concat_str(#name);
             }
         }
     };
 
-    let lift_impl = if attr.with_try_read.is_some() {
-        let match_arms = enum_.variants.iter().enumerate().map(|(i, v)| {
+    let lift_impl = if item.generate_error_try_read() {
+        let match_arms = item.enum_().variants.iter().enumerate().map(|(i, v)| {
             let v_ident = &v.ident;
             let idx = Index::from(i + 1);
 
@@ -143,25 +120,23 @@ fn flat_error_ffi_converter_impl(
                 #idx => Self::#v_ident,
             }
         });
+        let try_lift = ffiops::try_lift_from_rust_buffer(quote! { Self });
         quote! {
             #[automatically_derived]
             unsafe #lift_impl_spec {
                 type FfiType = ::uniffi::RustBuffer;
 
                 fn try_read(buf: &mut &[::std::primitive::u8]) -> ::uniffi::deps::anyhow::Result<Self> {
-                    Ok(match ::uniffi::deps::bytes::Buf::get_i32(buf) {
+                    ::std::result::Result::Ok(match ::uniffi::deps::bytes::Buf::get_i32(buf) {
                         #(#match_arms)*
                         v => ::uniffi::deps::anyhow::bail!("Invalid #ident enum value: {}", v),
                     })
                 }
 
                 fn try_lift(v: ::uniffi::RustBuffer) -> ::uniffi::deps::anyhow::Result<Self> {
-                    <Self as ::uniffi::Lift<crate::UniFfiTag>>::try_lift_from_rust_buffer(v)
+                    #try_lift(v)
                 }
-
-                const TYPE_ID_META: ::uniffi::MetadataBuffer = <Self as ::uniffi::Lower<crate::UniFfiTag>>::TYPE_ID_META;
             }
-
         }
     } else {
         quote! {
@@ -177,14 +152,12 @@ fn flat_error_ffi_converter_impl(
                 type FfiType = ::uniffi::RustBuffer;
 
                 fn try_read(buf: &mut &[::std::primitive::u8]) -> ::uniffi::deps::anyhow::Result<Self> {
-                    panic!("Can't lift flat errors")
+                    ::std::panic!("Can't lift flat errors")
                 }
 
                 fn try_lift(v: ::uniffi::RustBuffer) -> ::uniffi::deps::anyhow::Result<Self> {
-                    panic!("Can't lift flat errors")
+                    ::std::panic!("Can't lift flat errors")
                 }
-
-                const TYPE_ID_META: ::uniffi::MetadataBuffer = <Self as ::uniffi::Lower<crate::UniFfiTag>>::TYPE_ID_META;
             }
         }
     };
@@ -192,31 +165,36 @@ fn flat_error_ffi_converter_impl(
     quote! {
         #lower_impl
         #lift_impl
+
+        #[automatically_derived]
+        #type_id_impl_spec {
+            const TYPE_ID_META: ::uniffi::MetadataBuffer = ::uniffi::MetadataBuffer::from_code(::uniffi::metadata::codes::TYPE_ENUM)
+                .concat_str(#mod_path)
+                .concat_str(#name);
+        }
+
         #derive_ffi_traits
     }
 }
 
-pub(crate) fn error_meta_static_var(
-    ident: &Ident,
-    docstring: String,
-    enum_: &DataEnum,
-    attr: &ErrorAttr,
-) -> syn::Result<TokenStream> {
-    let name = ident_to_string(ident);
+pub(crate) fn error_meta_static_var(item: &EnumItem) -> syn::Result<TokenStream> {
+    let name = item.name();
     let module_path = mod_path()?;
-    let flat = attr.flat.is_some();
-    let non_exhaustive = attr.non_exhaustive.is_some();
+    let non_exhaustive = item.is_non_exhaustive();
+    let docstring = item.docstring();
+    let flat = item.is_flat_error();
+    let shape = EnumShape::Error { flat }.as_u8();
     let mut metadata_expr = quote! {
             ::uniffi::MetadataBuffer::from_code(::uniffi::metadata::codes::ENUM)
                 .concat_str(#module_path)
                 .concat_str(#name)
-                .concat_option_bool(Some(#flat))
+                .concat_value(#shape)
                 .concat_bool(false) // discr_type: None
     };
     if flat {
-        metadata_expr.extend(flat_error_variant_metadata(enum_)?)
+        metadata_expr.extend(flat_error_variant_metadata(item)?)
     } else {
-        metadata_expr.extend(variant_metadata(enum_)?);
+        metadata_expr.extend(variant_metadata(item)?);
     }
     metadata_expr.extend(quote! {
         .concat_bool(#non_exhaustive)
@@ -225,7 +203,8 @@ pub(crate) fn error_meta_static_var(
     Ok(create_metadata_items("error", &name, metadata_expr, None))
 }
 
-pub fn flat_error_variant_metadata(enum_: &DataEnum) -> syn::Result<Vec<TokenStream>> {
+pub fn flat_error_variant_metadata(item: &EnumItem) -> syn::Result<Vec<TokenStream>> {
+    let enum_ = item.enum_();
     let variants_len =
         try_metadata_value_from_usize(enum_.variants.len(), "UniFFI limits enums to 256 variants")?;
     std::iter::once(Ok(quote! { .concat_value(#variants_len) }))
@@ -238,75 +217,4 @@ pub fn flat_error_variant_metadata(enum_: &DataEnum) -> syn::Result<Vec<TokenStr
             })
         }))
         .collect()
-}
-
-#[derive(Clone, Default)]
-pub struct ErrorAttr {
-    pub flat: Option<kw::flat_error>,
-    pub with_try_read: Option<kw::with_try_read>,
-    pub non_exhaustive: Option<kw::non_exhaustive>,
-}
-
-impl UniffiAttributeArgs for ErrorAttr {
-    fn parse_one(input: ParseStream<'_>) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-        if lookahead.peek(kw::flat_error) {
-            Ok(Self {
-                flat: input.parse()?,
-                ..Self::default()
-            })
-        } else if lookahead.peek(kw::with_try_read) {
-            Ok(Self {
-                with_try_read: input.parse()?,
-                ..Self::default()
-            })
-        } else if lookahead.peek(kw::non_exhaustive) {
-            Ok(Self {
-                non_exhaustive: input.parse()?,
-                ..Self::default()
-            })
-        } else if lookahead.peek(kw::handle_unknown_callback_error) {
-            // Not used anymore, but still allowed
-            Ok(Self::default())
-        } else {
-            Err(lookahead.error())
-        }
-    }
-
-    fn merge(self, other: Self) -> syn::Result<Self> {
-        Ok(Self {
-            flat: either_attribute_arg(self.flat, other.flat)?,
-            with_try_read: either_attribute_arg(self.with_try_read, other.with_try_read)?,
-            non_exhaustive: either_attribute_arg(self.non_exhaustive, other.non_exhaustive)?,
-        })
-    }
-}
-
-// So ErrorAttr can be used with `parse_macro_input!`
-impl Parse for ErrorAttr {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        parse_comma_separated(input)
-    }
-}
-
-impl TryFrom<ErrorAttr> for EnumAttr {
-    type Error = syn::Error;
-
-    fn try_from(error_attr: ErrorAttr) -> Result<Self, Self::Error> {
-        if error_attr.flat.is_some() {
-            Err(syn::Error::new(
-                Span::call_site(),
-                "flat attribute not valid for rich enum errors",
-            ))
-        } else if error_attr.with_try_read.is_some() {
-            Err(syn::Error::new(
-                Span::call_site(),
-                "with_try_read attribute not valid for rich enum errors",
-            ))
-        } else {
-            Ok(EnumAttr {
-                non_exhaustive: error_attr.non_exhaustive,
-            })
-        }
-    }
 }

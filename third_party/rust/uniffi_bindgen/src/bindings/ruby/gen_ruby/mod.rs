@@ -2,39 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use askama::Template;
-use camino::Utf8Path;
+
 use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
-use std::collections::HashMap;
 
-use crate::bindings::ruby;
 use crate::interface::*;
-use crate::{BindingGenerator, BindingsConfig};
-
-pub struct RubyBindingGenerator;
-impl BindingGenerator for RubyBindingGenerator {
-    type Config = Config;
-
-    fn write_bindings(
-        &self,
-        ci: &ComponentInterface,
-        config: &Config,
-        out_dir: &Utf8Path,
-        try_format_code: bool,
-    ) -> Result<()> {
-        ruby::write_bindings(config, ci, out_dir, try_format_code)
-    }
-
-    fn check_library_path(&self, library_path: &Utf8Path, cdylib_name: Option<&str>) -> Result<()> {
-        if cdylib_name.is_none() {
-            bail!("Generate bindings for Ruby requires a cdylib, but {library_path} was given");
-        }
-        Ok(())
-    }
-}
 
 const RESERVED_WORDS: &[&str] = &[
     "alias", "and", "BEGIN", "begin", "break", "case", "class", "def", "defined?", "do", "else",
@@ -106,7 +81,7 @@ pub fn canonical_name(t: &Type) -> String {
 // since the details of the underlying component are entirely determined by the `ComponentInterface`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
-    cdylib_name: Option<String>,
+    pub(super) cdylib_name: Option<String>,
     cdylib_path: Option<String>,
 }
 
@@ -124,20 +99,6 @@ impl Config {
     pub fn cdylib_path(&self) -> String {
         self.cdylib_path.clone().unwrap_or_default()
     }
-}
-
-impl BindingsConfig for Config {
-    fn update_from_ci(&mut self, ci: &ComponentInterface) {
-        self.cdylib_name
-            .get_or_insert_with(|| format!("uniffi_{}", ci.namespace()));
-    }
-
-    fn update_from_cdylib_name(&mut self, cdylib_name: &str) {
-        self.cdylib_name
-            .get_or_insert_with(|| cdylib_name.to_string());
-    }
-
-    fn update_from_dependency_configs(&mut self, _config_map: HashMap<&str, &Self>) {}
 }
 
 #[derive(Template)]

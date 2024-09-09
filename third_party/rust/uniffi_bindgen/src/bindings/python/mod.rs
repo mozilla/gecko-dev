@@ -5,33 +5,64 @@
 use std::process::Command;
 
 use anyhow::Result;
-use camino::Utf8Path;
 use fs_err as fs;
 
-pub mod gen_python;
-mod test;
-use super::super::interface::ComponentInterface;
-pub use gen_python::{generate_python_bindings, Config};
-pub use test::{run_script, run_test};
+mod gen_python;
+#[cfg(feature = "bindgen-tests")]
+pub mod test;
+use crate::{BindingGenerator, Component, GenerationSettings};
 
-// Generate python bindings for the given ComponentInterface, in the given output directory.
-pub fn write_bindings(
-    config: &Config,
-    ci: &ComponentInterface,
-    out_dir: &Utf8Path,
-    try_format_code: bool,
-) -> Result<()> {
-    let py_file = out_dir.join(format!("{}.py", ci.namespace()));
-    fs::write(&py_file, generate_python_bindings(config, ci)?)?;
+use gen_python::{generate_python_bindings, Config};
 
-    if try_format_code {
-        if let Err(e) = Command::new("yapf").arg(&py_file).output() {
-            println!(
-                "Warning: Unable to auto-format {} using yapf: {e:?}",
-                py_file.file_name().unwrap(),
-            )
-        }
+pub struct PythonBindingGenerator;
+
+impl BindingGenerator for PythonBindingGenerator {
+    type Config = Config;
+
+    fn new_config(&self, root_toml: &toml::Value) -> Result<Self::Config> {
+        Ok(
+            match root_toml.get("bindings").and_then(|b| b.get("python")) {
+                Some(v) => v.clone().try_into()?,
+                None => Default::default(),
+            },
+        )
     }
 
-    Ok(())
+    fn update_component_configs(
+        &self,
+        settings: &GenerationSettings,
+        components: &mut Vec<Component<Self::Config>>,
+    ) -> Result<()> {
+        for c in &mut *components {
+            c.config.cdylib_name.get_or_insert_with(|| {
+                settings
+                    .cdylib
+                    .clone()
+                    .unwrap_or_else(|| format!("uniffi_{}", c.ci.namespace()))
+            });
+        }
+        Ok(())
+    }
+
+    fn write_bindings(
+        &self,
+        settings: &GenerationSettings,
+        components: &[Component<Self::Config>],
+    ) -> Result<()> {
+        for Component { ci, config, .. } in components {
+            let py_file = settings.out_dir.join(format!("{}.py", ci.namespace()));
+            fs::write(&py_file, generate_python_bindings(config, &mut ci.clone())?)?;
+
+            if settings.try_format_code {
+                if let Err(e) = Command::new("yapf").arg(&py_file).output() {
+                    println!(
+                        "Warning: Unable to auto-format {} using yapf: {e:?}",
+                        py_file.file_name().unwrap(),
+                    )
+                }
+            }
+        }
+
+        Ok(())
+    }
 }

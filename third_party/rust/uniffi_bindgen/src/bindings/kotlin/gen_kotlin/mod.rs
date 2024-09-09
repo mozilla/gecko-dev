@@ -7,16 +7,14 @@ use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::Debug;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use askama::Template;
-use camino::Utf8Path;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
 use serde::{Deserialize, Serialize};
 
 use crate::backend::TemplateExpression;
-use crate::bindings::kotlin;
+
 use crate::interface::*;
-use crate::{BindingGenerator, BindingsConfig};
 
 mod callback_interface;
 mod compounds;
@@ -28,28 +26,6 @@ mod object;
 mod primitives;
 mod record;
 mod variant;
-
-pub struct KotlinBindingGenerator;
-impl BindingGenerator for KotlinBindingGenerator {
-    type Config = Config;
-
-    fn write_bindings(
-        &self,
-        ci: &ComponentInterface,
-        config: &Config,
-        out_dir: &Utf8Path,
-        try_format_code: bool,
-    ) -> Result<()> {
-        kotlin::write_bindings(config, ci, out_dir, try_format_code)
-    }
-
-    fn check_library_path(&self, library_path: &Utf8Path, cdylib_name: Option<&str>) -> Result<()> {
-        if cdylib_name.is_none() {
-            bail!("Generate bindings for Kotlin requires a cdylib, but {library_path} was given");
-        }
-        Ok(())
-    }
-}
 
 trait CodeType: Debug {
     /// The language specific label used to reference this type. This will be used in
@@ -94,22 +70,70 @@ trait CodeType: Debug {
 // config options to customize the generated Kotlin.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Config {
-    package_name: Option<String>,
-    cdylib_name: Option<String>,
+    pub(super) package_name: Option<String>,
+    pub(super) cdylib_name: Option<String>,
     generate_immutable_records: Option<bool>,
     #[serde(default)]
     custom_types: HashMap<String, CustomTypeConfig>,
     #[serde(default)]
-    external_packages: HashMap<String, String>,
+    pub(super) external_packages: HashMap<String, String>,
     #[serde(default)]
     android: bool,
     #[serde(default)]
     android_cleaner: Option<bool>,
+    #[serde(default)]
+    kotlin_target_version: Option<String>,
 }
 
 impl Config {
     pub(crate) fn android_cleaner(&self) -> bool {
         self.android_cleaner.unwrap_or(self.android)
+    }
+
+    pub(crate) fn use_enum_entries(&self) -> bool {
+        self.get_kotlin_version() >= KotlinVersion::new(1, 9, 0)
+    }
+
+    /// Returns a `Version` with the contents of `kotlin_target_version`.
+    /// If `kotlin_target_version` is not defined, version `0.0.0` will be used as a fallback.
+    /// If it's not valid, this function will panic.
+    fn get_kotlin_version(&self) -> KotlinVersion {
+        self.kotlin_target_version
+            .clone()
+            .map(|v| {
+                KotlinVersion::parse(&v).unwrap_or_else(|_| {
+                    panic!("Provided Kotlin target version is not valid: {}", v)
+                })
+            })
+            .unwrap_or(KotlinVersion::new(0, 0, 0))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct KotlinVersion((u16, u16, u16));
+
+impl KotlinVersion {
+    fn new(major: u16, minor: u16, patch: u16) -> Self {
+        Self((major, minor, patch))
+    }
+
+    fn parse(version: &str) -> Result<Self> {
+        let components = version
+            .split('.')
+            .map(|n| {
+                n.parse::<u16>()
+                    .map_err(|_| anyhow!("Invalid version string ({n} is not an integer)"))
+            })
+            .collect::<Result<Vec<u16>>>()?;
+
+        match components.as_slice() {
+            [major, minor, patch] => Ok(Self((*major, *minor, *patch))),
+            [major, minor] => Ok(Self((*major, *minor, 0))),
+            [major] => Ok(Self((*major, 0, 0))),
+            _ => Err(anyhow!(
+                "Invalid version string (expected 1-3 components): {version}"
+            )),
+        }
     }
 }
 
@@ -122,48 +146,24 @@ pub struct CustomTypeConfig {
 }
 
 impl Config {
+    // We insist someone has already configured us - any defaults we supply would be wrong.
     pub fn package_name(&self) -> String {
-        if let Some(package_name) = &self.package_name {
-            package_name.clone()
-        } else {
-            "uniffi".into()
-        }
+        self.package_name
+            .as_ref()
+            .expect("package name should have been set in update_component_configs")
+            .clone()
     }
 
     pub fn cdylib_name(&self) -> String {
-        if let Some(cdylib_name) = &self.cdylib_name {
-            cdylib_name.clone()
-        } else {
-            "uniffi".into()
-        }
+        self.cdylib_name
+            .as_ref()
+            .expect("cdylib name should have been set in update_component_configs")
+            .clone()
     }
 
     /// Whether to generate immutable records (`val` instead of `var`)
     pub fn generate_immutable_records(&self) -> bool {
         self.generate_immutable_records.unwrap_or(false)
-    }
-}
-
-impl BindingsConfig for Config {
-    fn update_from_ci(&mut self, ci: &ComponentInterface) {
-        self.package_name
-            .get_or_insert_with(|| format!("uniffi.{}", ci.namespace()));
-        self.cdylib_name
-            .get_or_insert_with(|| format!("uniffi_{}", ci.namespace()));
-    }
-
-    fn update_from_cdylib_name(&mut self, cdylib_name: &str) {
-        self.cdylib_name
-            .get_or_insert_with(|| cdylib_name.to_string());
-    }
-
-    fn update_from_dependency_configs(&mut self, config_map: HashMap<&str, &Self>) {
-        for (crate_name, config) in config_map {
-            if !self.external_packages.contains_key(crate_name) {
-                self.external_packages
-                    .insert(crate_name.to_string(), config.package_name());
-            }
-        }
     }
 }
 
@@ -431,9 +431,10 @@ impl KotlinCodeOracle {
             FfiType::Float64 => "Double".to_string(),
             FfiType::Handle => "Long".to_string(),
             FfiType::RustArcPtr(_) => "Pointer".to_string(),
-            FfiType::RustBuffer(maybe_suffix) => {
-                format!("RustBuffer{}", maybe_suffix.as_deref().unwrap_or_default())
-            }
+            FfiType::RustBuffer(maybe_external) => match maybe_external {
+                Some(external_meta) => format!("RustBuffer{}", external_meta.name),
+                None => "RustBuffer".to_string(),
+            },
             FfiType::RustCallStatus => "UniffiRustCallStatus.ByValue".to_string(),
             FfiType::ForeignBytes => "ForeignBytes.ByValue".to_string(),
             FfiType::Callback(name) => self.ffi_callback_name(name),
@@ -719,5 +720,32 @@ mod filters {
 
         let spaces = usize::try_from(*spaces).unwrap_or_default();
         Ok(textwrap::indent(&wrapped, &" ".repeat(spaces)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_kotlin_version() {
+        assert_eq!(
+            KotlinVersion::parse("1.2.3").unwrap(),
+            KotlinVersion::new(1, 2, 3)
+        );
+        assert_eq!(
+            KotlinVersion::parse("2.3").unwrap(),
+            KotlinVersion::new(2, 3, 0),
+        );
+        assert_eq!(
+            KotlinVersion::parse("2").unwrap(),
+            KotlinVersion::new(2, 0, 0),
+        );
+        assert!(KotlinVersion::parse("2.").is_err());
+        assert!(KotlinVersion::parse("").is_err());
+        assert!(KotlinVersion::parse("A.B.C").is_err());
+        assert!(KotlinVersion::new(1, 2, 3) > KotlinVersion::new(0, 1, 2));
+        assert!(KotlinVersion::new(1, 2, 3) > KotlinVersion::new(0, 100, 0));
+        assert!(KotlinVersion::new(10, 0, 0) > KotlinVersion::new(1, 10, 0));
     }
 }

@@ -36,7 +36,7 @@ import platform
 {%- endfor %}
 
 # Used for default argument values
-_DEFAULT = object()
+_DEFAULT = object() # type: typing.Any
 
 {% include "RustBufferTemplate.py" %}
 {% include "Helpers.py" %}
@@ -67,7 +67,7 @@ __all__ = [
     "{{ record|type_name }}",
     {%- endfor %}
     {%- for func in ci.function_definitions() %}
-    "{{ func.name()|fn_name }}",
+    "{{ func.name() }}",
     {%- endfor %}
     {%- for obj in ci.object_definitions() %}
     "{{ obj|type_name }}",
@@ -75,9 +75,6 @@ __all__ = [
     {%- for c in ci.callback_interface_definitions() %}
     "{{ c.name()|class_name }}",
     {%- endfor %}
-    {%- if ci.has_async_fns() %}
-    "uniffi_set_event_loop",
-    {%- endif %}
 ]
 
 {% import "macros.py" as py %}

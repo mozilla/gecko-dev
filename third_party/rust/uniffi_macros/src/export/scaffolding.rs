@@ -7,11 +7,14 @@ use quote::quote;
 use std::iter;
 
 use super::attributes::AsyncRuntime;
-use crate::fnsig::{FnKind, FnSignature};
+use crate::{
+    ffiops,
+    fnsig::{FnKind, FnSignature},
+};
 
 pub(super) fn gen_fn_scaffolding(
     sig: FnSignature,
-    ar: &Option<AsyncRuntime>,
+    ar: Option<&AsyncRuntime>,
     udl_mode: bool,
 ) -> syn::Result<TokenStream> {
     if sig.receiver.is_some() {
@@ -41,7 +44,7 @@ pub(super) fn gen_fn_scaffolding(
 
 pub(super) fn gen_constructor_scaffolding(
     sig: FnSignature,
-    ar: &Option<AsyncRuntime>,
+    ar: Option<&AsyncRuntime>,
     udl_mode: bool,
 ) -> syn::Result<TokenStream> {
     if sig.receiver.is_some() {
@@ -63,7 +66,7 @@ pub(super) fn gen_constructor_scaffolding(
 
 pub(super) fn gen_method_scaffolding(
     sig: FnSignature,
-    ar: &Option<AsyncRuntime>,
+    ar: Option<&AsyncRuntime>,
     udl_mode: bool,
 ) -> syn::Result<TokenStream> {
     let scaffolding_func = if sig.receiver.is_none() {
@@ -128,34 +131,38 @@ impl ScaffoldingBits {
         udl_mode: bool,
     ) -> Self {
         let ident = &sig.ident;
-        let lift_impl = if is_trait {
-            quote! {
-                <::std::sync::Arc<dyn #self_ident> as ::uniffi::Lift<crate::UniFfiTag>>
-            }
+        let self_type = if is_trait {
+            quote! { ::std::sync::Arc<dyn #self_ident> }
         } else {
-            quote! {
-                <::std::sync::Arc<#self_ident> as ::uniffi::Lift<crate::UniFfiTag>>
-            }
+            quote! { ::std::sync::Arc<#self_ident> }
         };
+        let lift_type = ffiops::lift_type(&self_type);
+        let try_lift = ffiops::try_lift(&self_type);
         let try_lift_self = if is_trait {
             // For trait interfaces we need to special case this.  Trait interfaces normally lift
             // foreign trait impl pointers.  However, for a method call, we want to lift a Rust
             // pointer.
             quote! {
                 {
-                    let boxed_foreign_arc = unsafe { Box::from_raw(uniffi_self_lowered as *mut ::std::sync::Arc<dyn #self_ident>) };
+                    let boxed_foreign_arc = unsafe {
+                        ::std::boxed::Box::from_raw(
+                            uniffi_self_lowered as *mut ::std::sync::Arc<dyn #self_ident>,
+                        )
+                    };
                     // Take a clone for our own use.
-                    Ok(*boxed_foreign_arc)
+                    ::std::result::Result::Ok(*boxed_foreign_arc)
                 }
             }
         } else {
-            quote! { #lift_impl::try_lift(uniffi_self_lowered) }
+            quote! { #try_lift(uniffi_self_lowered) }
         };
 
         let lift_closure = sig.lift_closure(Some(quote! {
             match #try_lift_self {
-                Ok(v) => v,
-                Err(e) => return Err(("self", e))
+                ::std::result::Result::Ok(v) => v,
+                ::std::result::Result::Err(e) => {
+                    return ::std::result::Result::Err(("self", e));
+                }
             }
         }));
         let call_params = sig.rust_call_params(true);
@@ -171,7 +178,7 @@ impl ScaffoldingBits {
             param_names: iter::once(quote! { uniffi_self_lowered })
                 .chain(sig.scaffolding_param_names())
                 .collect(),
-            param_types: iter::once(quote! { #lift_impl::FfiType })
+            param_types: iter::once(quote! { #lift_type })
                 .chain(sig.scaffolding_param_types())
                 .collect(),
             lift_closure,
@@ -210,7 +217,7 @@ impl ScaffoldingBits {
 /// `rust_fn` is the Rust function to call.
 pub(super) fn gen_ffi_function(
     sig: &FnSignature,
-    ar: &Option<AsyncRuntime>,
+    ar: Option<&AsyncRuntime>,
     udl_mode: bool,
 ) -> syn::Result<TokenStream> {
     let ScaffoldingBits {
@@ -241,36 +248,32 @@ pub(super) fn gen_ffi_function(
     let ffi_ident = sig.scaffolding_fn_ident()?;
     let name = &sig.name;
     let return_ty = &sig.return_ty;
-    let return_impl = &sig.lower_return_impl();
+    let ffi_return_ty = ffiops::lower_return_type(return_ty);
+    let lower_return = ffiops::lower_return(return_ty);
+    let handle_failed_lift = ffiops::lower_return_handle_failed_lift(return_ty);
 
     Ok(if !sig.is_async {
-        let scaffolding_fn_ffi_buffer_version = ffi_buffer_scaffolding_fn(
-            &ffi_ident,
-            &quote! { <#return_ty as ::uniffi::LowerReturn<crate::UniFfiTag>>::ReturnType },
-            &param_types,
-            true,
-        );
+        let scaffolding_fn_ffi_buffer_version =
+            ffi_buffer_scaffolding_fn(&ffi_ident, &ffi_return_ty, &param_types, true);
         quote! {
             #[doc(hidden)]
             #[no_mangle]
             #vis extern "C" fn #ffi_ident(
                 #(#param_names: #param_types,)*
                 call_status: &mut ::uniffi::RustCallStatus,
-            ) -> #return_impl::ReturnType {
+            ) -> #ffi_return_ty {
                 ::uniffi::deps::log::debug!(#name);
                 let uniffi_lift_args = #lift_closure;
                 ::uniffi::rust_call(call_status, || {
-                    #return_impl::lower_return(
-                        match uniffi_lift_args() {
-                            Ok(uniffi_args) => {
-                                let uniffi_result = #rust_fn_call;
-                                #convert_result
-                            }
-                            Err((arg_name, anyhow_error)) => {
-                                #return_impl::handle_failed_lift(arg_name, anyhow_error)
-                            },
+                    match uniffi_lift_args() {
+                        ::std::result::Result::Ok(uniffi_args) => {
+                            let uniffi_result = #rust_fn_call;
+                            #lower_return(#convert_result)
                         }
-                    )
+                        ::std::result::Result::Err((arg_name, error)) => {
+                            #handle_failed_lift(::uniffi::LiftArgsError { arg_name, error} )
+                        },
+                    }
                 })
             }
 
@@ -289,26 +292,21 @@ pub(super) fn gen_ffi_function(
             #[no_mangle]
             pub extern "C" fn #ffi_ident(#(#param_names: #param_types,)*) -> ::uniffi::Handle {
                 ::uniffi::deps::log::debug!(#name);
-                let uniffi_lift_args = #lift_closure;
-                match uniffi_lift_args() {
-                    Ok(uniffi_args) => {
-                        ::uniffi::rust_future_new::<_, #return_ty, _>(
-                            async move {
+                let uniffi_lifted_args = (#lift_closure)();
+                ::uniffi::rust_future_new::<_, #return_ty, _>(
+                    async move {
+                        match uniffi_lifted_args {
+                            ::std::result::Result::Ok(uniffi_args) => {
                                 let uniffi_result = #future_expr.await;
-                                #convert_result
+                                Ok(#convert_result)
+                            }
+                            ::std::result::Result::Err((arg_name, error)) => {
+                                Err(::uniffi::LiftArgsError { arg_name, error })
                             },
-                            crate::UniFfiTag
-                        )
+                        }
                     },
-                    Err((arg_name, anyhow_error)) => {
-                        ::uniffi::rust_future_new::<_, #return_ty, _>(
-                            async move {
-                                #return_impl::handle_failed_lift(arg_name, anyhow_error)
-                            },
-                            crate::UniFfiTag,
-                        )
-                    },
-                }
+                    crate::UniFfiTag
+                )
             }
 
             #scaffolding_fn_ffi_buffer_version
@@ -337,7 +335,7 @@ fn ffi_buffer_scaffolding_fn(
             ) {
                 let mut arg_buf = unsafe { ::std::slice::from_raw_parts(arg_ptr, ::uniffi::ffi_buffer_size!(#(#type_list),*)) };
                 let mut return_buf = unsafe { ::std::slice::from_raw_parts_mut(return_ptr, ::uniffi::ffi_buffer_size!(#return_type, ::uniffi::RustCallStatus)) };
-                let mut out_status = ::uniffi::RustCallStatus::default();
+                let mut out_status: ::uniffi::RustCallStatus = ::std::default::Default::default();
 
                 let return_value = #fn_ident(
                     #(

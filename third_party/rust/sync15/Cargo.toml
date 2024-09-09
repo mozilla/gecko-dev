@@ -76,7 +76,7 @@ path = "../support/guid"
 features = ["random"]
 
 [dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 
 [dependencies.url]
 version = "2.1"
@@ -91,7 +91,7 @@ version = "0.10"
 default-features = false
 
 [build-dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 features = ["build"]
 
 [features]

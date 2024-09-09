@@ -73,7 +73,7 @@ path = "../../components/sync15"
 features = ["sync-engine"]
 
 [dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 
 [dependencies.url]
 version = "2.1"
@@ -100,7 +100,7 @@ path = "../support/sql"
 path = "../support/rc_crypto/nss/nss_build_common"
 
 [build-dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 features = ["build"]
 
 [features]

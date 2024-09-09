@@ -9,19 +9,23 @@
 //! proc-macro generated code.  The goal is to allow the proc-macros to go from a type name to the
 //! correct function for a given FFI operation.
 //!
-//! The traits form a sort-of tree structure from general to specific:
+//! The main traits form a sort-of tree structure from general to specific:
 //! ```ignore
 //!
-//!                   [FfiConverter]
-//!                        |
-//!           -----------------------------
-//!           |                           |
-//!       [Lower]                      [Lift]
-//!           |                           |
-//!           |                       --------------
-//!           |                       |            |
-//!       [LowerReturn]           [LiftRef]  [LiftReturn]
+//!                         [FfiConverter]
+//!                               |
+//!            -----------------------------------------
+//!            |                                       |
+//!         [Lower]                                  [Lift]
+//!            |                                       |
+//!        -----------------                    --------------
+//!        |               |                    |            |
+//!   [LowerReturn]  [LowerError]          [LiftRef]  [LiftReturn]
 //! ```
+//!
+//! There's also:
+//!   - [TypeId], which is implemented for all types that implement any of the above traits.
+//!   - [ConvertError], which is implement for errors that can be used in callback interfaces.
 //!
 //! The `derive_ffi_traits` macro can be used to derive the specific traits from the general ones.
 //! Here's the main ways we implement these traits:
@@ -39,21 +43,21 @@
 //!
 //! ## Safety
 //!
-//! All traits are unsafe (implementing it requires `unsafe impl`) because we can't guarantee
+//! Most traits are unsafe (implementing it requires `unsafe impl`) because we can't guarantee
 //! that it's safe to pass your type out to foreign-language code and back again. Buggy
 //! implementations of this trait might violate some assumptions made by the generated code,
 //! or might not match with the corresponding code in the generated foreign-language bindings.
 //! These traits should not be used directly, only in generated code, and the generated code should
 //! have fixture tests to test that everything works correctly together.
 
-use std::{borrow::Borrow, sync::Arc};
+use std::{borrow::Borrow, mem::ManuallyDrop, sync::Arc};
 
 use anyhow::bail;
 use bytes::Buf;
 
 use crate::{
-    FfiDefault, Handle, MetadataBuffer, Result, RustBuffer, RustCallStatus, RustCallStatusCode,
-    UnexpectedUniFFICallbackError,
+    FfiDefault, Handle, LiftArgsError, MetadataBuffer, Result, RustBuffer, RustCallError,
+    RustCallStatus, RustCallStatusCode, UnexpectedUniFFICallbackError,
 };
 
 /// Generalized FFI conversions
@@ -128,8 +132,6 @@ pub unsafe trait FfiConverter<UT>: Sized {
     fn try_read(buf: &mut &[u8]) -> Result<Self>;
 
     /// Type ID metadata, serialized into a [MetadataBuffer].
-    ///
-    /// If a type implements multiple FFI traits, `TYPE_ID_META` must be the same for all of them.
     const TYPE_ID_META: MetadataBuffer;
 }
 
@@ -217,8 +219,6 @@ pub unsafe trait Lift<UT>: Sized {
             n => bail!("junk data left in buffer after lifting (count: {n})",),
         }
     }
-
-    const TYPE_ID_META: MetadataBuffer;
 }
 
 /// Lower Rust values to pass them to the foreign code
@@ -249,13 +249,11 @@ pub unsafe trait Lower<UT>: Sized {
         Self::write(obj, &mut buf);
         RustBuffer::from_vec(buf)
     }
-
-    const TYPE_ID_META: MetadataBuffer;
 }
 
 /// Return Rust values to the foreign code
 ///
-/// This is usually derived from [Lift], but we special case types like `Result<>` and `()`.
+/// This is usually derived from [Lower], but we special case types like `Result<>` and `()`.
 ///
 /// ## Safety
 ///
@@ -271,25 +269,50 @@ pub unsafe trait LowerReturn<UT>: Sized {
     /// When derived, it's the same as `FfiType`.
     type ReturnType: FfiDefault;
 
+    /// Lower the return value from an scaffolding call
+    ///
+    /// Returns values that [rust_call] expects:
+    ///
+    /// - Ok(v) for `Ok` returns and non-result returns, where v is the lowered return value
+    /// - `Err(RustCallError::Error(buf))` for `Err` returns where `buf` is serialized error value.
+    fn lower_return(v: Self) -> Result<Self::ReturnType, RustCallError>;
+
+    /// Lower the return value for failed argument lifts
+    ///
+    /// This is called when we fail to make a scaffolding call, because of an error lifting an
+    /// argument.  It should return a value that [rust_call] expects:
+    ///
+    /// - By default, this is `Err(RustCallError::InternalError(msg))` where `msg` is message
+    ///   describing the failed lift.
+    /// - For Result types, if we can downcast the error to the `Err` value, then return
+    ///   `Err(RustCallError::Error(buf))`. This results in better exception throws on the foreign
+    ///   side.
+    fn handle_failed_lift(error: LiftArgsError) -> Result<Self::ReturnType, RustCallError> {
+        let LiftArgsError { arg_name, error } = error;
+        Err(RustCallError::InternalError(format!(
+            "Failed to convert arg '{arg_name}': {error}"
+        )))
+    }
+}
+
+/// Return Rust error values
+///
+/// This is implemented for types that can be the `E` param in `Result<T, E>`.
+/// It's is usually derived from [Lower], but we sometimes special case it.
+///
+/// ## Safety
+///
+/// All traits are unsafe (implementing it requires `unsafe impl`) because we can't guarantee
+/// that it's safe to pass your type out to foreign-language code and back again. Buggy
+/// implementations of this trait might violate some assumptions made by the generated code,
+/// or might not match with the corresponding code in the generated foreign-language bindings.
+/// These traits should not be used directly, only in generated code, and the generated code should
+/// have fixture tests to test that everything works correctly together.
+pub unsafe trait LowerError<UT>: Sized {
     /// Lower this value for scaffolding function return
     ///
-    /// This method converts values into the `Result<>` type that [rust_call] expects. For
-    /// successful calls, return `Ok(lower_return)`.  For errors that should be translated into
-    /// thrown exceptions on the foreign code, serialize the error into a RustBuffer and return
-    /// `Err(buf)`
-    fn lower_return(obj: Self) -> Result<Self::ReturnType, RustBuffer>;
-
-    /// If possible, get a serialized error for failed argument lifts
-    ///
-    /// By default, we just panic and let `rust_call` handle things.  However, for `Result<_, E>`
-    /// returns, if the anyhow error can be downcast to `E`, then serialize that and return it.
-    /// This results in the foreign code throwing a "normal" exception, rather than an unexpected
-    /// exception.
-    fn handle_failed_lift(arg_name: &str, e: anyhow::Error) -> Self {
-        panic!("Failed to convert arg '{arg_name}': {e}")
-    }
-
-    const TYPE_ID_META: MetadataBuffer;
+    /// Lower the type into a RustBuffer.  `RustCallStatus.error_buf` will be set to this.
+    fn lower_error(obj: Self) -> RustBuffer;
 }
 
 /// Return foreign values to Rust
@@ -323,12 +346,12 @@ pub unsafe trait LiftReturn<UT>: Sized {
                     Self::handle_callback_unexpected_error(UnexpectedUniFFICallbackError::new(e))
                 }),
             RustCallStatusCode::Error => {
-                Self::lift_error(unsafe { call_status.error_buf.assume_init() })
+                Self::lift_error(ManuallyDrop::into_inner(call_status.error_buf))
             }
             _ => {
-                let e = <String as FfiConverter<crate::UniFfiTag>>::try_lift(unsafe {
-                    call_status.error_buf.assume_init()
-                })
+                let e = <String as FfiConverter<crate::UniFfiTag>>::try_lift(
+                    ManuallyDrop::into_inner(call_status.error_buf),
+                )
                 .unwrap_or_else(|e| format!("(Error lifting message: {e}"));
                 Self::handle_callback_unexpected_error(UnexpectedUniFFICallbackError::new(e))
             }
@@ -355,8 +378,6 @@ pub unsafe trait LiftReturn<UT>: Sized {
     fn handle_callback_unexpected_error(e: UnexpectedUniFFICallbackError) -> Self {
         panic!("Callback interface failure: {e}")
     }
-
-    const TYPE_ID_META: MetadataBuffer;
 }
 
 /// Lift references
@@ -375,6 +396,14 @@ pub unsafe trait LiftReturn<UT>: Sized {
 /// `&T` using the Arc.
 pub unsafe trait LiftRef<UT> {
     type LiftType: Lift<UT> + Borrow<Self>;
+}
+
+/// Type ID metadata
+///
+/// This is used to build up more complex metadata.  For example, the `MetadataBuffer` for function
+/// signatures includes a copy of this metadata for each argument and return type.
+pub trait TypeId<UT> {
+    const TYPE_ID_META: MetadataBuffer;
 }
 
 pub trait ConvertError<UT>: Sized {
@@ -427,18 +456,24 @@ pub unsafe trait HandleAlloc<UT>: Send + Sync {
     /// This creates a new handle from an existing one.
     /// It's used when the foreign code wants to pass back an owned handle and still keep a copy
     /// for themselves.
-    fn clone_handle(handle: Handle) -> Handle;
+    /// # Safety
+    /// The handle must be valid.
+    unsafe fn clone_handle(handle: Handle) -> Handle;
 
     /// Get a clone of the `Arc<>` using a "borrowed" handle.
     ///
-    /// Take care that the handle can not be destroyed between when it's passed and when
+    /// # Safety
+    /// The handle must be valid. Take care that the handle can
+    /// not be destroyed between when it's passed and when
     /// `get_arc()` is called.  #1797 is a cautionary tale.
-    fn get_arc(handle: Handle) -> Arc<Self> {
+    unsafe fn get_arc(handle: Handle) -> Arc<Self> {
         Self::consume_handle(Self::clone_handle(handle))
     }
 
     /// Consume a handle, getting back the initial `Arc<>`
-    fn consume_handle(handle: Handle) -> Arc<Self>;
+    /// # Safety
+    /// The handle must be valid.
+    unsafe fn consume_handle(handle: Handle) -> Arc<Self>;
 }
 
 /// Derive FFI traits
@@ -465,18 +500,22 @@ macro_rules! derive_ffi_traits {
         $crate::derive_ffi_traits!(impl<UT> Lower<UT> for $ty);
         $crate::derive_ffi_traits!(impl<UT> Lift<UT> for $ty);
         $crate::derive_ffi_traits!(impl<UT> LowerReturn<UT> for $ty);
+        $crate::derive_ffi_traits!(impl<UT> LowerError<UT> for $ty);
         $crate::derive_ffi_traits!(impl<UT> LiftReturn<UT> for $ty);
         $crate::derive_ffi_traits!(impl<UT> LiftRef<UT> for $ty);
         $crate::derive_ffi_traits!(impl<UT> ConvertError<UT> for $ty);
+        $crate::derive_ffi_traits!(impl<UT> TypeId<UT> for $ty);
     };
 
     (local $ty:ty) => {
         $crate::derive_ffi_traits!(impl Lower<crate::UniFfiTag> for $ty);
         $crate::derive_ffi_traits!(impl Lift<crate::UniFfiTag> for $ty);
         $crate::derive_ffi_traits!(impl LowerReturn<crate::UniFfiTag> for $ty);
+        $crate::derive_ffi_traits!(impl LowerError<crate::UniFfiTag> for $ty);
         $crate::derive_ffi_traits!(impl LiftReturn<crate::UniFfiTag> for $ty);
         $crate::derive_ffi_traits!(impl LiftRef<crate::UniFfiTag> for $ty);
         $crate::derive_ffi_traits!(impl ConvertError<crate::UniFfiTag> for $ty);
+        $crate::derive_ffi_traits!(impl TypeId<crate::UniFfiTag> for $ty);
     };
 
     (impl $(<$($generic:ident),*>)? $(::uniffi::)? Lower<$ut:path> for $ty:ty $(where $($where:tt)*)?) => {
@@ -491,8 +530,6 @@ macro_rules! derive_ffi_traits {
             fn write(obj: Self, buf: &mut ::std::vec::Vec<u8>) {
                 <Self as $crate::FfiConverter<$ut>>::write(obj, buf)
             }
-
-            const TYPE_ID_META: $crate::MetadataBuffer = <Self as $crate::FfiConverter<$ut>>::TYPE_ID_META;
         }
     };
 
@@ -508,8 +545,6 @@ macro_rules! derive_ffi_traits {
             fn try_read(buf: &mut &[u8]) -> $crate::deps::anyhow::Result<Self> {
                 <Self as $crate::FfiConverter<$ut>>::try_read(buf)
             }
-
-            const TYPE_ID_META: $crate::MetadataBuffer = <Self as $crate::FfiConverter<$ut>>::TYPE_ID_META;
         }
     };
 
@@ -518,11 +553,18 @@ macro_rules! derive_ffi_traits {
         {
             type ReturnType = <Self as $crate::Lower<$ut>>::FfiType;
 
-            fn lower_return(obj: Self) -> $crate::deps::anyhow::Result<Self::ReturnType, $crate::RustBuffer> {
-                Ok(<Self as $crate::Lower<$ut>>::lower(obj))
+            fn lower_return(v: Self) -> $crate::deps::anyhow::Result<Self::ReturnType, $crate::RustCallError> {
+                ::std::result::Result::Ok(<Self as $crate::Lower<$ut>>::lower(v))
             }
+        }
+    };
 
-            const TYPE_ID_META: $crate::MetadataBuffer =<Self as $crate::Lower<$ut>>::TYPE_ID_META;
+    (impl $(<$($generic:ident),*>)? $(::uniffi::)? LowerError<$ut:path> for $ty:ty $(where $($where:tt)*)?) => {
+        unsafe impl $(<$($generic),*>)* $crate::LowerError<$ut> for $ty $(where $($where)*)*
+        {
+            fn lower_error(obj: Self) -> $crate::RustBuffer {
+                <Self as $crate::Lower<$ut>>::lower_into_rust_buffer(obj)
+            }
         }
     };
 
@@ -534,8 +576,6 @@ macro_rules! derive_ffi_traits {
             fn try_lift_successful_return(v: Self::ReturnType) -> $crate::Result<Self> {
                 <Self as $crate::Lift<$ut>>::try_lift(v)
             }
-
-            const TYPE_ID_META: $crate::MetadataBuffer = <Self as $crate::Lift<$ut>>::TYPE_ID_META;
         }
     };
 
@@ -569,20 +609,23 @@ macro_rules! derive_ffi_traits {
                 $crate::Handle::from_pointer(::std::sync::Arc::into_raw(::std::sync::Arc::new(value)))
             }
 
-            fn clone_handle(handle: $crate::Handle) -> $crate::Handle {
-                unsafe {
-                    ::std::sync::Arc::<::std::sync::Arc<Self>>::increment_strong_count(handle.as_pointer::<::std::sync::Arc<Self>>());
-                }
+            unsafe fn clone_handle(handle: $crate::Handle) -> $crate::Handle {
+                ::std::sync::Arc::<::std::sync::Arc<Self>>::increment_strong_count(handle.as_pointer::<::std::sync::Arc<Self>>());
                 handle
             }
 
-            fn consume_handle(handle: $crate::Handle) -> ::std::sync::Arc<Self> {
-                unsafe {
-                    ::std::sync::Arc::<Self>::clone(
-                        &std::sync::Arc::<::std::sync::Arc::<Self>>::from_raw(handle.as_pointer::<::std::sync::Arc<Self>>())
-                    )
-                }
+            unsafe fn consume_handle(handle: $crate::Handle) -> ::std::sync::Arc<Self> {
+                ::std::sync::Arc::<Self>::clone(
+                    &std::sync::Arc::<::std::sync::Arc::<Self>>::from_raw(handle.as_pointer::<::std::sync::Arc<Self>>())
+                )
             }
+        }
+    };
+
+    (impl $(<$($generic:ident),*>)? $(::uniffi::)? TypeId<$ut:path> for $ty:ty $(where $($where:tt)*)?) => {
+        impl $(<$($generic),*>)* $crate::TypeId<$ut> for $ty $(where $($where)*)*
+        {
+            const TYPE_ID_META: $crate::MetadataBuffer = <Self as $crate::FfiConverter<$ut>>::TYPE_ID_META;
         }
     };
 }
@@ -592,12 +635,12 @@ unsafe impl<T: Send + Sync, UT> HandleAlloc<UT> for T {
         Handle::from_pointer(Arc::into_raw(value))
     }
 
-    fn clone_handle(handle: Handle) -> Handle {
-        unsafe { Arc::increment_strong_count(handle.as_pointer::<T>()) };
+    unsafe fn clone_handle(handle: Handle) -> Handle {
+        Arc::increment_strong_count(handle.as_pointer::<T>());
         handle
     }
 
-    fn consume_handle(handle: Handle) -> Arc<Self> {
-        unsafe { Arc::from_raw(handle.as_pointer()) }
+    unsafe fn consume_handle(handle: Handle) -> Arc<Self> {
+        Arc::from_raw(handle.as_pointer())
     }
 }

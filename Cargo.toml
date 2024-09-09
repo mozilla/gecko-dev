@@ -55,8 +55,8 @@ resolver = "2"
 
 [workspace.dependencies]
 # Shared across multiple UniFFI consumers.
-uniffi = "0.27.3"
-uniffi_bindgen = "0.27.3"
+uniffi = "0.28.1"
+uniffi_bindgen = "0.28.1"
 # Shared across multiple application-services consumers.
 rusqlite = "0.31.0"
 # Shared across multiple glean consumers.
@@ -172,9 +172,6 @@ hashbrown = { path = "build/rust/hashbrown" }
 # Patch `socket2` 0.4 to 0.5
 socket2 = { path = "build/rust/socket2" }
 
-# Patch heck 0.4 to 0.5
-heck = { path = "build/rust/heck" }
-
 # The following overrides point to dummy projects, as a temporary measure until this is resolved:
 # https://github.com/rust-lang/cargo/issues/6179
 js-sys = { path = "build/rust/dummy-web/js-sys" }
@@ -213,14 +210,14 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "dbeaef2eb28e9da7cc2f96e26296513cc4e07c07" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "6651984e3b456d99fad0df1deb727b7c2f62ec16" }
 
 # Patch `gpu-descriptor` 0.3.0 to remove unnecessary `allocator-api2` dep.:
 # Still waiting for the now-merged <https://github.com/zakarumych/gpu-descriptor/pull/40> to be released.

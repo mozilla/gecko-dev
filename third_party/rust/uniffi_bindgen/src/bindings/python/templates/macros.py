@@ -17,14 +17,14 @@
 {%-     when Some with (e) -%}
 {%-         match e -%}
 {%-             when Type::Enum { name, module_path } -%}
-_rust_call_with_error({{ e|ffi_converter_name }},
+_uniffi_rust_call_with_error({{ e|ffi_converter_name }},
 {%-             when Type::Object { name, module_path, imp } -%}
-_rust_call_with_error({{ e|ffi_converter_name }}__as_error,
+_uniffi_rust_call_with_error({{ e|ffi_converter_name }}__as_error,
 {%-             else %}
 # unsupported error type!
 {%-         endmatch %}
 {%- else -%}
-_rust_call(
+_uniffi_rust_call(
 {%- endmatch -%}
     _UniffiLib.{{ func.ffi_func().name() }},
     {{- prefix }}
@@ -34,7 +34,7 @@ _rust_call(
 
 {%- macro arg_list_lowered(func) %}
     {%- for arg in func.arguments() %}
-        {{ arg|lower_fn }}({{ arg.name()|var_name }})
+        {{ arg|lower_fn }}({{ arg.name() }})
         {%- if !loop.last %},{% endif %}
     {%- endfor %}
 {%- endmacro -%}
@@ -54,12 +54,12 @@ _rust_call(
 
 {#-
 // Arglist as used in Python declarations of methods, functions and constructors.
-// Note the var_name and type_name filters.
+// Note the type_name filters.
 -#}
 
 {% macro arg_list_decl(func) %}
     {%- for arg in func.arguments() -%}
-        {{ arg.name()|var_name }}
+        {{ arg.name() }}
         {%- match arg.default_value() %}
         {%- when Some with(literal) %}: "typing.Union[object, {{ arg|type_name -}}]" = _DEFAULT
         {%- else %}: "{{ arg|type_name -}}"
@@ -88,10 +88,10 @@ _rust_call(
     {%- match arg.default_value() %}
     {%- when None %}
     {%- when Some with(literal) %}
-    if {{ arg.name()|var_name }} is _DEFAULT:
-        {{ arg.name()|var_name }} = {{ literal|literal_py(arg.as_type().borrow()) }}
+    if {{ arg.name() }} is _DEFAULT:
+        {{ arg.name() }} = {{ literal|literal_py(arg.as_type().borrow()) }}
     {%- endmatch %}
-    {{ arg|check_lower_fn }}({{ arg.name()|var_name }})
+    {{ arg|check_lower_fn }}({{ arg.name() }})
     {% endfor -%}
 {%- endmacro -%}
 
@@ -104,10 +104,10 @@ _rust_call(
         {%- match arg.default_value() %}
         {%- when None %}
         {%- when Some with(literal) %}
-        if {{ arg.name()|var_name }} is _DEFAULT:
-            {{ arg.name()|var_name }} = {{ literal|literal_py(arg.as_type().borrow()) }}
+        if {{ arg.name() }} is _DEFAULT:
+            {{ arg.name() }} = {{ literal|literal_py(arg.as_type().borrow()) }}
         {%- endmatch %}
-        {{ arg|check_lower_fn }}({{ arg.name()|var_name }})
+        {{ arg|check_lower_fn }}({{ arg.name() }})
         {% endfor -%}
 {%- endmacro -%}
 

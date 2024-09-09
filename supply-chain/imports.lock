@@ -260,9 +260,23 @@ user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
+[[publisher.glean]]
+version = "61.0.0"
+when = "2024-08-21"
+user-id = 48
+user-login = "badboy"
+user-name = "Jan-Erik Rediger"
+
 [[publisher.glean-core]]
 version = "60.5.0"
 when = "2024-08-06"
+user-id = 48
+user-login = "badboy"
+user-name = "Jan-Erik Rediger"
+
+[[publisher.glean-core]]
+version = "61.0.0"
+when = "2024-08-21"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -684,9 +698,21 @@ when = "2024-06-03"
 user-id = 127697
 user-login = "bendk"
 
+[[publisher.uniffi]]
+version = "0.28.1"
+when = "2024-08-13"
+user-id = 127697
+user-login = "bendk"
+
 [[publisher.uniffi_bindgen]]
 version = "0.27.3"
 when = "2024-06-03"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_bindgen]]
+version = "0.28.1"
+when = "2024-08-13"
 user-id = 127697
 user-login = "bendk"
 
@@ -696,9 +722,21 @@ when = "2024-06-03"
 user-id = 127697
 user-login = "bendk"
 
+[[publisher.uniffi_build]]
+version = "0.28.1"
+when = "2024-08-13"
+user-id = 127697
+user-login = "bendk"
+
 [[publisher.uniffi_checksum_derive]]
 version = "0.27.3"
 when = "2024-06-03"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_checksum_derive]]
+version = "0.28.1"
+when = "2024-08-13"
 user-id = 127697
 user-login = "bendk"
 
@@ -708,9 +746,21 @@ when = "2024-06-03"
 user-id = 127697
 user-login = "bendk"
 
+[[publisher.uniffi_core]]
+version = "0.28.1"
+when = "2024-08-13"
+user-id = 127697
+user-login = "bendk"
+
 [[publisher.uniffi_macros]]
 version = "0.27.3"
 when = "2024-06-03"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_macros]]
+version = "0.28.1"
+when = "2024-08-13"
 user-id = 127697
 user-login = "bendk"
 
@@ -720,15 +770,33 @@ when = "2024-06-03"
 user-id = 127697
 user-login = "bendk"
 
+[[publisher.uniffi_meta]]
+version = "0.28.1"
+when = "2024-08-13"
+user-id = 127697
+user-login = "bendk"
+
 [[publisher.uniffi_testing]]
 version = "0.27.3"
 when = "2024-06-03"
 user-id = 127697
 user-login = "bendk"
 
+[[publisher.uniffi_testing]]
+version = "0.28.1"
+when = "2024-08-13"
+user-id = 127697
+user-login = "bendk"
+
 [[publisher.uniffi_udl]]
 version = "0.27.3"
 when = "2024-06-03"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_udl]]
+version = "0.28.1"
+when = "2024-08-13"
 user-id = 127697
 user-login = "bendk"
 

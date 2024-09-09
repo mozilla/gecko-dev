@@ -95,10 +95,10 @@
 use anyhow::{anyhow, bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use fs_err::{self as fs, File};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::Deserialize;
 use std::io::prelude::*;
 use std::io::ErrorKind;
-use std::{collections::HashMap, process::Command};
+use std::process::Command;
 
 pub mod backend;
 pub mod bindings;
@@ -107,38 +107,28 @@ pub mod library_mode;
 pub mod macro_metadata;
 pub mod scaffolding;
 
-use bindings::TargetLanguage;
+#[cfg(feature = "cargo-metadata")]
+pub mod cargo_metadata;
+
+use crate::interface::{
+    Argument, Constructor, Enum, FfiArgument, FfiField, Field, Function, Method, Object, Record,
+    Variant,
+};
 pub use interface::ComponentInterface;
+pub use library_mode::find_components;
 use scaffolding::RustScaffolding;
+use uniffi_meta::Type;
 
-/// Trait for bindings configuration.  Each bindings language defines one of these.
-///
-/// BindingsConfigs are initially loaded from `uniffi.toml` file.  Then the trait methods are used
-/// to fill in missing values.
-pub trait BindingsConfig: DeserializeOwned {
-    /// Update missing values using the `ComponentInterface`
-    fn update_from_ci(&mut self, ci: &ComponentInterface);
-
-    /// Update missing values using the dylib file for the main crate, when in library mode.
-    ///
-    /// cdylib_name will be the library filename without the leading `lib` and trailing extension
-    fn update_from_cdylib_name(&mut self, cdylib_name: &str);
-
-    /// Update missing values from config instances from dependent crates
-    ///
-    /// config_map maps crate names to config instances. This is mostly used to set up external
-    /// types.
-    fn update_from_dependency_configs(&mut self, config_map: HashMap<&str, &Self>);
-}
-
-/// Binding generator config with no members
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct EmptyBindingsConfig;
-
-impl BindingsConfig for EmptyBindingsConfig {
-    fn update_from_ci(&mut self, _ci: &ComponentInterface) {}
-    fn update_from_cdylib_name(&mut self, _cdylib_name: &str) {}
-    fn update_from_dependency_configs(&mut self, _config_map: HashMap<&str, &Self>) {}
+/// The options used when creating bindings. Named such
+/// it doesn't cause confusion that it's settings specific to
+/// the generator itself.
+// TODO: We should try and move the public interface of the module to
+// this struct. For now, only the BindingGenerator uses it.
+#[derive(Debug, Default)]
+pub struct GenerationSettings {
+    pub out_dir: Utf8PathBuf,
+    pub try_format_code: bool,
+    pub cdylib: Option<String>,
 }
 
 /// A trait representing a UniFFI Binding Generator
@@ -147,61 +137,127 @@ impl BindingsConfig for EmptyBindingsConfig {
 /// and call the [`generate_external_bindings`] using a type that implements this trait.
 pub trait BindingGenerator: Sized {
     /// Handles configuring the bindings
-    type Config: BindingsConfig;
+    type Config;
+
+    /// Creates a new config.
+    fn new_config(&self, root_toml: &toml::Value) -> Result<Self::Config>;
+
+    /// Update the various config items in preparation to write one or more of them.
+    ///
+    /// # Arguments
+    /// - `cdylib`: The name of the cdylib file, if known.
+    /// - `library_path`: The name of library used to extract the symbols.
+    /// - `components`: A mutable array of [`Component`]s to be updated.
+    fn update_component_configs(
+        &self,
+        settings: &GenerationSettings,
+        components: &mut Vec<Component<Self::Config>>,
+    ) -> Result<()>;
 
     /// Writes the bindings to the output directory
     ///
     /// # Arguments
-    /// - `ci`: A [`ComponentInterface`] representing the interface
-    /// - `config`: An instance of the [`BindingsConfig`] associated with this type
+    /// - `components`: An array of [`Component`]s representing the items to be generated.
     /// - `out_dir`: The path to where the binding generator should write the output bindings
     fn write_bindings(
         &self,
-        ci: &ComponentInterface,
-        config: &Self::Config,
-        out_dir: &Utf8Path,
-        try_format_code: bool,
+        settings: &GenerationSettings,
+        components: &[Component<Self::Config>],
     ) -> Result<()>;
-
-    /// Check if `library_path` used by library mode is valid for this generator
-    fn check_library_path(&self, library_path: &Utf8Path, cdylib_name: Option<&str>) -> Result<()>;
 }
 
-pub struct BindingGeneratorDefault {
-    pub target_languages: Vec<TargetLanguage>,
-    pub try_format_code: bool,
+/// A trait to alter language specific type representations.
+///
+/// It is meant to be implemented by each language oracle. It takes a
+/// ['ComponentInterface'] and uses its own specific language adjustment
+/// functions to be able to generate language specific templates.
+pub trait VisitMut {
+    /// Go through each `Record` of a [`ComponentInterface`] and
+    /// adjust it to language specific naming conventions.
+    fn visit_record(&self, record: &mut Record);
+
+    /// Change the name of an `Object` of a [`ComponentInterface`
+    /// to language specific naming conventions.
+    fn visit_object(&self, object: &mut Object);
+
+    /// Change the name of a `Field` of an `Enum` `Variant`
+    /// to language specific naming conventions.
+    fn visit_field(&self, field: &mut Field);
+
+    /// Change the name of a `FfiField` inside a `FfiStruct`
+    /// to language specific naming conventions.
+    fn visit_ffi_field(&self, ffi_field: &mut FfiField);
+
+    /// Change the `Arugment` of a `FfiFunction` in the [`ComponentInterface`]
+    /// to language specific naming conventions.
+    fn visit_ffi_argument(&self, ffi_argument: &mut FfiArgument);
+
+    /// Go through each `Enum` of a [`ComponentInterface`] and
+    /// adjust it to language specific naming conventions.
+    fn visit_enum(&self, is_error: bool, enum_: &mut Enum);
+
+    /// Change the naming of the key in the [`ComponentInterface`]
+    /// `BTreeMap` where all `Enum`s are stored to reflect the changed
+    /// name of an `Enum`.
+    fn visit_enum_key(&self, key: &mut String) -> String;
+
+    /// Go through each `Variant` of an `Enum` and
+    /// adjust it to language specific naming conventions.
+    fn visit_variant(&self, is_error: bool, variant: &mut Variant);
+
+    /// Go through each `Type` in the `TypeUniverse` of
+    /// a [`ComponentInterface`] and adjust it to language specific
+    /// naming conventions.
+    fn visit_type(&self, type_: &mut Type);
+
+    /// Go through each `Method` of an `Object` and
+    /// adjust it to language specific naming conventions.
+    fn visit_method(&self, method: &mut Method);
+
+    /// Go through each `Argument` of a `Function` and
+    /// adjust it to language specific naming conventions.
+    fn visit_argument(&self, argument: &mut Argument);
+
+    /// Go through each `Constructor` of a [`ComponentInterface`] and
+    /// adjust it to language specific naming conventions.
+    fn visit_constructor(&self, constructor: &mut Constructor);
+
+    /// Go through each `Function` of a [`ComponentInterface`] and
+    /// adjust it to language specific naming conventions.
+    fn visit_function(&self, function: &mut Function);
 }
 
-impl BindingGenerator for BindingGeneratorDefault {
-    type Config = Config;
+/// Everything needed to generate a ComponentInterface.
+#[derive(Debug)]
+pub struct Component<Config> {
+    pub ci: ComponentInterface,
+    pub config: Config,
+}
 
-    fn write_bindings(
-        &self,
-        ci: &ComponentInterface,
-        config: &Self::Config,
-        out_dir: &Utf8Path,
-        _try_format_code: bool,
-    ) -> Result<()> {
-        for &language in &self.target_languages {
-            bindings::write_bindings(
-                &config.bindings,
-                ci,
-                out_dir,
-                language,
-                self.try_format_code,
-            )?;
-        }
-        Ok(())
+/// A trait used by the bindgen to obtain config information about a source crate
+/// which was found in the metadata for the library.
+///
+/// This is an abstraction around needing the source directory for a crate.
+/// In most cases `cargo_metadata` can be used, but this should be able to work in
+/// more environments.
+pub trait BindgenCrateConfigSupplier {
+    /// Get the toml for the crate. Probably came from uniffi.toml in the root of the crate source.
+    fn get_toml(&self, _crate_name: &str) -> Result<Option<toml::value::Table>> {
+        Ok(None)
     }
+    /// Obtains the contents of the named UDL file which was referenced by the type metadata.
+    fn get_udl(&self, crate_name: &str, udl_name: &str) -> Result<String> {
+        bail!("Crate {crate_name} has no UDL {udl_name}")
+    }
+}
 
-    fn check_library_path(&self, library_path: &Utf8Path, cdylib_name: Option<&str>) -> Result<()> {
-        for &language in &self.target_languages {
-            if cdylib_name.is_none() && language != TargetLanguage::Swift {
-                bail!("Generate bindings for {language} requires a cdylib, but {library_path} was given");
-            }
-        }
-        Ok(())
-    }
+pub struct EmptyCrateConfigSupplier;
+impl BindgenCrateConfigSupplier for EmptyCrateConfigSupplier {}
+
+/// A convenience function for the CLI to help avoid using static libs
+/// in places cdylibs are required.
+pub fn is_cdylib(library_file: impl AsRef<Utf8Path>) -> bool {
+    crate::library_mode::calc_cdylib_name(library_file.as_ref()).is_some()
 }
 
 /// Generate bindings for an external binding generator
@@ -210,7 +266,6 @@ impl BindingGenerator for BindingGeneratorDefault {
 /// Implements an entry point for external binding generators.
 /// The function does the following:
 /// - It parses the `udl` in a [`ComponentInterface`]
-/// - Parses the `uniffi.toml` and loads it into the type that implements [`BindingsConfig`]
 /// - Creates an instance of [`BindingGenerator`], based on type argument `B`, and run [`BindingGenerator::write_bindings`] on it
 ///
 /// # Arguments
@@ -232,31 +287,39 @@ pub fn generate_external_bindings<T: BindingGenerator>(
     let crate_name = crate_name
         .map(|c| Ok(c.to_string()))
         .unwrap_or_else(|| crate_name_from_cargo_toml(udl_file.as_ref()))?;
-    let mut component = parse_udl(udl_file.as_ref(), &crate_name)?;
+    let mut ci = parse_udl(udl_file.as_ref(), &crate_name)?;
     if let Some(ref library_file) = library_file {
-        macro_metadata::add_to_ci_from_library(&mut component, library_file.as_ref())?;
+        macro_metadata::add_to_ci_from_library(&mut ci, library_file.as_ref())?;
     }
     let crate_root = &guess_crate_root(udl_file.as_ref()).context("Failed to guess crate root")?;
 
     let config_file_override = config_file_override.as_ref().map(|p| p.as_ref());
 
     let config = {
-        let mut config = load_initial_config::<T::Config>(crate_root, config_file_override)?;
-        config.update_from_ci(&component);
-        if let Some(ref library_file) = library_file {
-            if let Some(cdylib_name) = crate::library_mode::calc_cdylib_name(library_file.as_ref())
-            {
-                config.update_from_cdylib_name(cdylib_name)
-            }
-        };
-        config
+        let crate_config = load_toml_file(Some(&crate_root.join("uniffi.toml")))
+            .context("failed to load {crate_root}/uniffi.toml")?;
+        let toml_value =
+            overridden_config_value(crate_config.unwrap_or_default(), config_file_override)?;
+        binding_generator.new_config(&toml_value)?
     };
 
-    let out_dir = get_out_dir(
-        udl_file.as_ref(),
-        out_dir_override.as_ref().map(|p| p.as_ref()),
-    )?;
-    binding_generator.write_bindings(&component, &config, &out_dir, try_format_code)
+    let settings = GenerationSettings {
+        cdylib: match library_file {
+            Some(ref library_file) => {
+                crate::library_mode::calc_cdylib_name(library_file.as_ref()).map(ToOwned::to_owned)
+            }
+            None => None,
+        },
+        out_dir: get_out_dir(
+            udl_file.as_ref(),
+            out_dir_override.as_ref().map(|p| p.as_ref()),
+        )?,
+        try_format_code,
+    };
+
+    let mut components = vec![Component { ci, config }];
+    binding_generator.update_component_configs(&settings, &mut components)?;
+    binding_generator.write_bindings(&settings, &components)
 }
 
 // Generate the infrastructural Rust code for implementing the UDL interface,
@@ -435,20 +498,15 @@ fn load_toml_file(source: Option<&Utf8Path>) -> Result<Option<toml::value::Table
 }
 
 /// Load the default `uniffi.toml` config, merge TOML trees with `config_file_override` if specified.
-fn load_initial_config<Config: DeserializeOwned>(
-    crate_root: &Utf8Path,
+fn overridden_config_value(
+    mut config: toml::value::Table,
     config_file_override: Option<&Utf8Path>,
-) -> Result<Config> {
-    let mut config = load_toml_file(Some(crate_root.join("uniffi.toml").as_path()))
-        .context("default config")?
-        .unwrap_or(toml::value::Table::default());
-
+) -> Result<toml::Value> {
     let override_config = load_toml_file(config_file_override).context("override config")?;
     if let Some(override_config) = override_config {
         merge_toml(&mut config, override_config);
     }
-
-    Ok(toml::Value::from(config).try_into()?)
+    Ok(toml::Value::from(config))
 }
 
 fn merge_toml(a: &mut toml::value::Table, b: toml::value::Table) {
@@ -464,55 +522,6 @@ fn merge_toml(a: &mut toml::value::Table, b: toml::value::Table) {
                 a.insert(key, value);
             }
         }
-    }
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Config {
-    #[serde(default)]
-    bindings: bindings::Config,
-}
-
-impl BindingsConfig for Config {
-    fn update_from_ci(&mut self, ci: &ComponentInterface) {
-        self.bindings.kotlin.update_from_ci(ci);
-        self.bindings.swift.update_from_ci(ci);
-        self.bindings.python.update_from_ci(ci);
-        self.bindings.ruby.update_from_ci(ci);
-    }
-
-    fn update_from_cdylib_name(&mut self, cdylib_name: &str) {
-        self.bindings.kotlin.update_from_cdylib_name(cdylib_name);
-        self.bindings.swift.update_from_cdylib_name(cdylib_name);
-        self.bindings.python.update_from_cdylib_name(cdylib_name);
-        self.bindings.ruby.update_from_cdylib_name(cdylib_name);
-    }
-
-    fn update_from_dependency_configs(&mut self, config_map: HashMap<&str, &Self>) {
-        self.bindings.kotlin.update_from_dependency_configs(
-            config_map
-                .iter()
-                .map(|(key, config)| (*key, &config.bindings.kotlin))
-                .collect(),
-        );
-        self.bindings.swift.update_from_dependency_configs(
-            config_map
-                .iter()
-                .map(|(key, config)| (*key, &config.bindings.swift))
-                .collect(),
-        );
-        self.bindings.python.update_from_dependency_configs(
-            config_map
-                .iter()
-                .map(|(key, config)| (*key, &config.bindings.python))
-                .collect(),
-        );
-        self.bindings.ruby.update_from_dependency_configs(
-            config_map
-                .iter()
-                .map(|(key, config)| (*key, &config.bindings.ruby))
-                .collect(),
-        );
     }
 }
 

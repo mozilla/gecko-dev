@@ -10,7 +10,8 @@ use quote::ToTokens;
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
-    Attribute, Ident, LitStr, Meta, PathArguments, PathSegment, Token,
+    punctuated::Punctuated,
+    Attribute, Ident, LitStr, Meta, Path, PathArguments, PathSegment, Token,
 };
 use uniffi_meta::UniffiTraitDiscriminants;
 
@@ -71,6 +72,9 @@ impl UniffiAttributeArgs for ExportTraitArgs {
     }
 }
 
+/// Attribute arguments for function
+///
+/// This includes top-level functions, constructors, and methods.
 #[derive(Clone, Default)]
 pub struct ExportFnArgs {
     pub(crate) async_runtime: Option<AsyncRuntime>,
@@ -110,7 +114,7 @@ impl UniffiAttributeArgs for ExportFnArgs {
         } else {
             Err(syn::Error::new(
                 input.span(),
-                format!("uniffi::export attribute `{input}` is not supported here."),
+                format!("attribute `{input}` is not supported here."),
             ))
         }
     }
@@ -211,7 +215,7 @@ impl UniffiAttributeArgs for ExportStructArgs {
 }
 
 #[derive(Clone)]
-pub(crate) enum AsyncRuntime {
+pub enum AsyncRuntime {
     Tokio(LitStr),
 }
 
@@ -236,112 +240,100 @@ impl ToTokens for AsyncRuntime {
     }
 }
 
-/// Arguments for function inside an impl block
-///
-/// This stores the parsed arguments for `uniffi::constructor` and `uniffi::method`
-#[derive(Clone, Default)]
-pub struct ExportedImplFnArgs {
-    pub(crate) name: Option<String>,
-    pub(crate) defaults: DefaultMap,
-}
-
-impl Parse for ExportedImplFnArgs {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        parse_comma_separated(input)
-    }
-}
-
-impl UniffiAttributeArgs for ExportedImplFnArgs {
-    fn parse_one(input: ParseStream<'_>) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-        if lookahead.peek(kw::name) {
-            let _: kw::name = input.parse()?;
-            let _: Token![=] = input.parse()?;
-            let name = Some(input.parse::<LitStr>()?.value());
-            Ok(Self {
-                name,
-                ..Self::default()
-            })
-        } else if lookahead.peek(kw::default) {
-            Ok(Self {
-                defaults: DefaultMap::parse(input)?,
-                ..Self::default()
-            })
-        } else {
-            Err(syn::Error::new(
-                input.span(),
-                format!("uniffi::constructor/method attribute `{input}` is not supported here."),
-            ))
-        }
-    }
-
-    fn merge(self, other: Self) -> syn::Result<Self> {
-        Ok(Self {
-            name: either_attribute_arg(self.name, other.name)?,
-            defaults: self.defaults.merge(other.defaults),
-        })
-    }
-}
-
 #[derive(Default)]
 pub(super) struct ExportedImplFnAttributes {
     pub constructor: bool,
-    pub args: ExportedImplFnArgs,
+    pub args: ExportFnArgs,
 }
 
 impl ExportedImplFnAttributes {
     pub fn new(attrs: &[Attribute]) -> syn::Result<Self> {
         let mut this = Self::default();
         for attr in attrs {
-            let segs = &attr.path().segments;
+            let path = attr.path();
 
-            let fst = segs
-                .first()
-                .expect("attributes have at least one path segment");
-            if fst.ident != "uniffi" {
-                continue;
-            }
-            ensure_no_path_args(fst)?;
-
-            let args = match &attr.meta {
-                Meta::List(_) => attr.parse_args::<ExportedImplFnArgs>()?,
-                _ => Default::default(),
-            };
-            this.args = args;
-
-            if segs.len() != 2 {
-                return Err(syn::Error::new_spanned(
-                    segs,
-                    "unsupported uniffi attribute",
-                ));
-            }
-            let snd = &segs[1];
-            ensure_no_path_args(snd)?;
-
-            match snd.ident.to_string().as_str() {
-                "constructor" => {
-                    if this.constructor {
-                        return Err(syn::Error::new_spanned(
-                            attr,
-                            "duplicate constructor attribute",
-                        ));
+            if is_uniffi_path(path) {
+                this.process_path(path, attr, &attr.meta)?;
+            } else if is_cfg_attr(attr) {
+                if let Ok(nested) =
+                    attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+                {
+                    for meta in &nested {
+                        if let Meta::Path(path) = meta {
+                            this.process_path(path, attr, meta)?
+                        }
                     }
-                    this.constructor = true;
-                }
-                "method" => {
-                    if this.constructor {
-                        return Err(syn::Error::new_spanned(
-                            attr,
-                            "confused constructor/method attributes",
-                        ));
-                    }
-                }
-                _ => return Err(syn::Error::new_spanned(snd, "unknown uniffi attribute")),
+                };
             }
         }
 
         Ok(this)
     }
+
+    fn process_path(&mut self, path: &Path, attr: &Attribute, meta: &Meta) -> syn::Result<()> {
+        let segs = &path.segments;
+
+        let fst = segs
+            .first()
+            .expect("attributes have at least one path segment");
+
+        if fst.ident != "uniffi" {
+            return Ok(());
+        }
+        ensure_no_path_args(fst)?;
+
+        let args = match meta {
+            Meta::List(_) => attr.parse_args::<ExportFnArgs>()?,
+            _ => Default::default(),
+        };
+        self.args = args;
+
+        if segs.len() != 2 {
+            return Err(syn::Error::new_spanned(
+                segs,
+                "unsupported uniffi attribute",
+            ));
+        }
+        let snd = &segs[1];
+        ensure_no_path_args(snd)?;
+
+        match snd.ident.to_string().as_str() {
+            "constructor" => {
+                if self.constructor {
+                    return Err(syn::Error::new_spanned(
+                        attr,
+                        "duplicate constructor attribute",
+                    ));
+                }
+                self.constructor = true;
+            }
+            "method" => {
+                if self.constructor {
+                    return Err(syn::Error::new_spanned(
+                        attr,
+                        "confused constructor/method attributes",
+                    ));
+                }
+            }
+            _ => return Err(syn::Error::new_spanned(snd, "unknown uniffi attribute")),
+        }
+
+        Ok(())
+    }
+}
+
+fn is_uniffi_path(path: &Path) -> bool {
+    path.segments
+        .first()
+        .map(|segment| segment.ident == "uniffi")
+        .unwrap_or(false)
+}
+
+fn is_cfg_attr(attr: &Attribute) -> bool {
+    attr.meta
+        .path()
+        .get_ident()
+        .is_some_and(|ident| *ident == "cfg_attr")
 }
 
 fn ensure_no_path_args(seg: &PathSegment) -> syn::Result<()> {

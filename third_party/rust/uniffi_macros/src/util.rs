@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::ffiops;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use std::path::{Path as StdPath, PathBuf};
@@ -77,14 +78,14 @@ pub fn mod_path() -> syn::Result<String> {
 
 pub fn try_read_field(f: &syn::Field) -> TokenStream {
     let ident = &f.ident;
-    let ty = &f.ty;
+    let try_read = ffiops::try_read(&f.ty);
 
     match ident {
         Some(ident) => quote! {
-            #ident: <#ty as ::uniffi::Lift<crate::UniFfiTag>>::try_read(buf)?,
+            #ident: #try_read(buf)?,
         },
         None => quote! {
-            <#ty as ::uniffi::Lift<crate::UniFfiTag>>::try_read(buf)?,
+            #try_read(buf)?,
         },
     }
 }
@@ -257,6 +258,10 @@ pub mod kw {
     syn::custom_keyword!(with_try_read);
     syn::custom_keyword!(name);
     syn::custom_keyword!(non_exhaustive);
+    syn::custom_keyword!(Record);
+    syn::custom_keyword!(Enum);
+    syn::custom_keyword!(Error);
+    syn::custom_keyword!(Object);
     syn::custom_keyword!(Debug);
     syn::custom_keyword!(Display);
     syn::custom_keyword!(Eq);

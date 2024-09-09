@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66"
+rust-version = "1.76"
 name = "glean"
-version = "60.5.0"
+version = "61.0.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -80,7 +80,7 @@ name = "upload_timing"
 path = "tests/upload_timing.rs"
 
 [dependencies.glean-core]
-version = "60.5.0"
+version = "61.0.0"
 
 [dependencies.inherent]
 version = "1"

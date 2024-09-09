@@ -23,7 +23,7 @@ open class {{ impl_class_name }}:
     {%-    endmatch %}
     {%- endfor %}
     {%- if is_error %}
-    Error,
+    Swift.Error,
     {% endif %}
     {{ protocol_name }} {
     fileprivate let pointer: UnsafeMutableRawPointer!
@@ -161,6 +161,13 @@ public struct {{ ffi_converter_name }}: FfiConverter {
 
 {# Objects as error #}
 {%- if is_error %}
+
+extension {{ type_name }}: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
 {# Due to some mismatches in the ffi converter mechanisms, errors are a RustBuffer holding a pointer #}
 public struct {{ ffi_converter_name }}__as_error: FfiConverterRustBuffer {
     public static func lift(_ buf: RustBuffer) throws -> {{ type_name }} {

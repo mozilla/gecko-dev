@@ -49,8 +49,8 @@ version = "1.4"
 version = ">=0.11,<=0.12"
 
 [dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 
 [build-dependencies.uniffi]
-version = "0.27.1"
+version = "0.28.0"
 features = ["build"]

@@ -11,6 +11,7 @@ use crate::{
     export::{
         attributes::ExportTraitArgs, callback_interface, gen_method_scaffolding, item::ImplItem,
     },
+    ffiops,
     object::interface_meta_static_var,
     util::{ident_to_string, tagged_impl_header},
 };
@@ -53,10 +54,14 @@ pub(super) fn gen_trait_scaffolding(
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) -> *const ::std::ffi::c_void {
-            uniffi::rust_call(call_status, || {
-                let ptr = ptr as *mut std::sync::Arc<dyn #self_ident>;
-                let arc = unsafe { ::std::sync::Arc::clone(&*ptr) };
-                Ok(::std::boxed::Box::into_raw(::std::boxed::Box::new(arc)) as  *const ::std::ffi::c_void)
+            ::uniffi::rust_call(call_status, || {
+                let ptr = ptr as *mut ::std::sync::Arc<dyn #self_ident>;
+                let arc: ::std::sync::Arc<_> = unsafe { ::std::clone::Clone::clone(&*ptr) };
+                ::std::result::Result::Ok(
+                    ::std::boxed::Box::into_raw(
+                        ::std::boxed::Box::new(arc),
+                    ) as *const ::std::ffi::c_void
+                )
             })
         }
 
@@ -73,10 +78,14 @@ pub(super) fn gen_trait_scaffolding(
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) {
-            uniffi::rust_call(call_status, || {
-                assert!(!ptr.is_null());
-                drop(unsafe { ::std::boxed::Box::from_raw(ptr as *mut std::sync::Arc<dyn #self_ident>) });
-                Ok(())
+            ::uniffi::rust_call(call_status, || {
+                ::std::assert!(!ptr.is_null());
+                ::std::mem::drop(unsafe {
+                    ::std::boxed::Box::from_raw(
+                        ptr as *mut ::std::sync::Arc<dyn #self_ident>,
+                    )
+                });
+                ::std::result::Result::Ok(())
             });
         }
     };
@@ -84,7 +93,7 @@ pub(super) fn gen_trait_scaffolding(
     let impl_tokens: TokenStream = items
         .into_iter()
         .map(|item| match item {
-            ImplItem::Method(sig) => gen_method_scaffolding(sig, &None, udl_mode),
+            ImplItem::Method(sig) => gen_method_scaffolding(sig, None, udl_mode),
             _ => unreachable!("traits have no constructors"),
         })
         .collect::<syn::Result<_>>()?;
@@ -95,7 +104,7 @@ pub(super) fn gen_trait_scaffolding(
         } else {
             ObjectImpl::Trait
         };
-        interface_meta_static_var(&self_ident, imp, mod_path, docstring)
+        interface_meta_static_var(&self_ident, imp, mod_path, docstring.as_str())
             .unwrap_or_else(syn::Error::into_compile_error)
     });
     let ffi_converter_tokens = ffi_converter(mod_path, &self_ident, udl_mode, with_foreign);
@@ -122,14 +131,16 @@ pub(crate) fn ffi_converter(
         let trait_impl_ident = callback_interface::trait_impl_ident(&trait_name);
         quote! {
             fn try_lift(v: Self::FfiType) -> ::uniffi::deps::anyhow::Result<::std::sync::Arc<Self>> {
-                Ok(::std::sync::Arc::new(<#trait_impl_ident>::new(v as u64)))
+                ::std::result::Result::Ok(::std::sync::Arc::new(<#trait_impl_ident>::new(v as u64)))
             }
         }
     } else {
         quote! {
             fn try_lift(v: Self::FfiType) -> ::uniffi::deps::anyhow::Result<::std::sync::Arc<Self>> {
                 unsafe {
-                    Ok(*::std::boxed::Box::from_raw(v as *mut ::std::sync::Arc<Self>))
+                    ::std::result::Result::Ok(
+                        *::std::boxed::Box::from_raw(v as *mut ::std::sync::Arc<Self>),
+                    )
                 }
             }
         }
@@ -139,13 +150,17 @@ pub(crate) fn ffi_converter(
     } else {
         quote! { ::uniffi::metadata::codes::TYPE_TRAIT_INTERFACE }
     };
+    let lower_self = ffiops::lower(quote! { ::std::sync::Arc<Self> });
+    let try_lift_self = ffiops::try_lift(quote! { ::std::sync::Arc<Self> });
 
     quote! {
         // All traits must be `Sync + Send`. The generated scaffolding will fail to compile
         // if they are not, but unfortunately it fails with an unactionably obscure error message.
         // By asserting the requirement explicitly, we help Rust produce a more scrutable error message
         // and thus help the user debug why the requirement isn't being met.
-        uniffi::deps::static_assertions::assert_impl_all!(dyn #trait_ident: ::core::marker::Sync, ::core::marker::Send);
+        ::uniffi::deps::static_assertions::assert_impl_all!(
+            dyn #trait_ident: ::core::marker::Sync, ::core::marker::Send
+        );
 
         unsafe #impl_spec {
             type FfiType = *const ::std::os::raw::c_void;
@@ -156,19 +171,18 @@ pub(crate) fn ffi_converter(
 
             #try_lift
 
-            fn write(obj: ::std::sync::Arc<Self>, buf: &mut Vec<u8>) {
+            fn write(obj: ::std::sync::Arc<Self>, buf: &mut ::std::vec::Vec<u8>) {
                 ::uniffi::deps::static_assertions::const_assert!(::std::mem::size_of::<*const ::std::ffi::c_void>() <= 8);
                 ::uniffi::deps::bytes::BufMut::put_u64(
                     buf,
-                    <Self as ::uniffi::FfiConverterArc<crate::UniFfiTag>>::lower(obj) as u64,
+                    #lower_self(obj) as ::std::primitive::u64,
                 );
             }
 
             fn try_read(buf: &mut &[u8]) -> ::uniffi::Result<::std::sync::Arc<Self>> {
                 ::uniffi::deps::static_assertions::const_assert!(::std::mem::size_of::<*const ::std::ffi::c_void>() <= 8);
                 ::uniffi::check_remaining(buf, 8)?;
-                <Self as ::uniffi::FfiConverterArc<crate::UniFfiTag>>::try_lift(
-                    ::uniffi::deps::bytes::Buf::get_u64(buf) as Self::FfiType)
+                #try_lift_self(::uniffi::deps::bytes::Buf::get_u64(buf) as Self::FfiType)
             }
 
             const TYPE_ID_META: ::uniffi::MetadataBuffer = ::uniffi::MetadataBuffer::from_code(#metadata_code)
