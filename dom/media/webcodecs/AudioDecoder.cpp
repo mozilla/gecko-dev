@@ -261,7 +261,7 @@ Result<UniquePtr<TrackInfo>, nsresult> AudioDecoderTraits::CreateTrackInfo(
 
   LOG("Created AudioInfo %s (%" PRIu32 "ch %" PRIu32
       "Hz - with extra-data: %s)",
-      NS_ConvertUTF16toUTF8(aConfig.mCodec).get(), ai->mChannels, ai->mChannels,
+      NS_ConvertUTF16toUTF8(aConfig.mCodec).get(), ai->mChannels, ai->mRate,
       aConfig.mDescription && !aConfig.mDescription->IsEmpty() ? "yes" : "no");
 
   return track;
