@@ -83,6 +83,8 @@ object CustomAttributeProvider : JexlAttributeProvider {
                 "search_widget_is_installed" to settings.searchWidgetInstalled,
 
                 "android_version" to android.os.Build.VERSION.SDK_INT,
+
+                "is_fxa_signed_in" to settings.signedInFxaAccount,
             ),
         )
     }
