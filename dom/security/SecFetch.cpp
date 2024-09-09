@@ -112,6 +112,8 @@ nsCString MapInternalContentPolicyTypeToDest(nsContentPolicyType aType) {
       return "webidentity"_ns;
     case nsIContentPolicy::TYPE_WEB_TRANSPORT:
       return "webtransport"_ns;
+    case nsIContentPolicy::TYPE_INTERNAL_EXTERNAL_RESOURCE:
+      return "image"_ns;
     case nsIContentPolicy::TYPE_END:
     case nsIContentPolicy::TYPE_INVALID:
       break;

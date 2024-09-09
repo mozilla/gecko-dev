@@ -391,7 +391,8 @@ static_assert(
         nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE == 58 &&
         nsIContentPolicy::TYPE_WEB_TRANSPORT == 59 &&
         nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_SYNC == 60 &&
-        nsIContentPolicy::TYPE_END == 61,
+        nsIContentPolicy::TYPE_INTERNAL_EXTERNAL_RESOURCE == 61 &&
+        nsIContentPolicy::TYPE_END == 62,
     "nsContentPolicyType values are as expected");
 
 namespace {

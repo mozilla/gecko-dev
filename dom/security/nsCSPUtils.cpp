@@ -364,6 +364,7 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_SPECULATIVE:
     case nsIContentPolicy::TYPE_INTERNAL_DTD:
     case nsIContentPolicy::TYPE_INTERNAL_FORCE_ALLOWED_DTD:
+    case nsIContentPolicy::TYPE_INTERNAL_EXTERNAL_RESOURCE:
       return nsIContentSecurityPolicy::DEFAULT_SRC_DIRECTIVE;
 
     // CSP does not apply to webrtc connections

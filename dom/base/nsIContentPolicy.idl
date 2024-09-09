@@ -442,12 +442,19 @@ interface nsIContentPolicy : nsISupports
     TYPE_INTERNAL_XMLHTTPREQUEST_SYNC = 60,
 
     /**
+     * This is a request triggered by Document::RequestExternalResource.
+     * It is presumably something like an SVG <use> or CSS filter:.
+     * For simplicity treat this like TYPE_OTHER outside CSP.
+     */
+    TYPE_INTERNAL_EXTERNAL_RESOURCE = 61,
+
+    /**
      * Used to indicate the end of this list, not a content policy. If you want
      * to add a new content policy type, place it before this sentinel value
      * TYPE_END, have it use TYPE_END's current value, and increment TYPE_END by
      * one. (TYPE_END should always have the highest numerical value.)
      */
-    TYPE_END = 61,
+    TYPE_END = 62,
 
 
     /* When adding new content types, please update
