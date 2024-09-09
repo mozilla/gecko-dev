@@ -12,6 +12,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
+import kotlin.math.roundToInt
 
 /**
  * A modification of [mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior] that supports two toolbars.
@@ -97,7 +98,7 @@ class EngineViewClippingBehavior(
             // the values should be negative because the baseline
             // for clipping is bottom toolbar height.
             val contentBottomClipping = recentTopToolbarTranslation - recentBottomToolbarTranslation
-            it.setVerticalClipping(contentBottomClipping.toInt())
+            it.setVerticalClipping(contentBottomClipping.roundToInt())
         }
         return true
     }
