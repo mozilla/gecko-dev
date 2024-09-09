@@ -21,7 +21,7 @@ import org.mozilla.focus.R
 import org.mozilla.focus.cookiebanner.CookieBannerOption
 import org.mozilla.focus.nimbus.FocusNimbus
 import org.mozilla.focus.searchsuggestions.SearchSuggestionsPreferences
-import org.mozilla.focus.utils.AppConstants.isKlarBuild
+import org.mozilla.focus.telemetry.GleanMetricsService
 
 /**
  * A simple wrapper for SharedPreferences that makes reading preference a little bit easier.
@@ -171,10 +171,13 @@ class Settings(
         )
 
     var isExperimentationEnabled: Boolean
-        get() = preferences.getBoolean(getPreferenceKey(R.string.pref_key_studies), !isKlarBuild)
+        get() = preferences.getBoolean(
+            getPreferenceKey(R.string.pref_key_studies_v2),
+            GleanMetricsService.isTelemetryEnabled(context),
+        )
         set(value) {
             preferences.edit()
-                .putBoolean(getPreferenceKey(R.string.pref_key_studies), value)
+                .putBoolean(getPreferenceKey(R.string.pref_key_studies_v2), value)
                 .commit()
         }
 

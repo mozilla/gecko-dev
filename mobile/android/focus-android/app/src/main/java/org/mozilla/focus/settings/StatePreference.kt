@@ -28,7 +28,7 @@ class StatePreference(context: Context, attrs: AttributeSet?) : Preference(conte
     private fun setValueByKey(key: String?) {
         key?.let {
             val state = when (key) {
-                context.getString(R.string.pref_key_studies) -> context.settings.isExperimentationEnabled
+                context.getString(R.string.pref_key_studies_v2) -> context.settings.isExperimentationEnabled
 
                 context.getString(R.string.pref_key_screen_autocomplete) ->
                     context.settings.shouldAutocompleteFromShippedDomainList() ||

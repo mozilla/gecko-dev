@@ -351,8 +351,8 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     var isExperimentationEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_experimentation),
-        default = true,
+        appContext.getPreferenceKey(R.string.pref_key_experimentation_v2),
+        default = isTelemetryEnabled,
     )
 
     var isOverrideTPPopupsForPerformanceTest = false

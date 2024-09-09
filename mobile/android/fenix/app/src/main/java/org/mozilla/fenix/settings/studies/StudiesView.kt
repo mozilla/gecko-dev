@@ -63,7 +63,7 @@ class StudiesView(
                     R.string.studies_restart_dialog_ok,
                 ) { dialog, _ ->
                     settings.isExperimentationEnabled = isChecked
-                    val experimentsKey = context.getPreferenceKey(R.string.pref_key_experimentation)
+                    val experimentsKey = context.getPreferenceKey(R.string.pref_key_experimentation_v2)
                     // In this case, we are using commit() on purpose as we want to warranty
                     // that we are changing the setting before quitting the app.
                     context.settings().preferences.edit().putBoolean(experimentsKey, isChecked)
