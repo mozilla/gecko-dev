@@ -93,6 +93,7 @@ const Template = ({
   showDescriptions,
   showAccesskeys,
   accesskeys,
+  supportPage,
 }) => html`
   <moz-radio-group
     name=${groupName}
@@ -110,7 +111,9 @@ const Template = ({
             : buttonLabels[i]}
           iconSrc=${ifDefined(showIcons ? icons[i] : "")}
           accesskey=${ifDefined(showAccesskeys ? accesskeys[i] : "")}
-        ></moz-radio>
+          support-page=${ifDefined(supportPage)}
+        >
+        </moz-radio>
       `
     )}
   </moz-radio-group>
@@ -128,6 +131,7 @@ Default.args = {
   showDescriptions: false,
   showAccesskeys: false,
   accesskeys: accesskeyOptions,
+  supportPage: "",
 };
 
 export const AllUnchecked = Template.bind({});
@@ -164,4 +168,10 @@ export const WithAccesskeys = Template.bind({});
 WithAccesskeys.args = {
   ...Default.args,
   showAccesskeys: true,
+};
+
+export const WithSupportLinks = Template.bind({});
+WithSupportLinks.args = {
+  ...Default.args,
+  supportPage: "test",
 };

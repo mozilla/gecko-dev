@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script>
+    const { BrowserTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/BrowserTestUtils.sys.mjs"
+    );
+
     let html, render, renderTarget, defaultTemplate;
 
     add_setup(async function setup() {
@@ -238,6 +242,8 @@
 
       await keyboardNavigate("right");
       validateActiveElement(secondButton);
+
+      await SpecialPowers.popPrefEnv();
     });
 
     // Verify first radio buttons is focusable when all radio buttons are un-checked.
@@ -726,6 +732,62 @@
         "Focus cycles between radio buttons with the same accesskey."
       );
       ok(!thirdRadio.checked, "Third radio button is not checked.");
+    });
+
+    add_task(async function testSupportLink() {
+      const LEARN_MORE_TEXT = "Learn more"
+
+      let supportLinktempalte = html`
+        <moz-radio-group name="test-name" label="Radio group label">
+          <moz-radio value="first" label="First" support-page="test-page"></moz-radio>
+          <moz-radio value="third" label="Second">
+            <a slot="support-link" href="www.example.com">Help me!</a>
+          </moz-radio>
+        </moz-radio-group>
+      `;
+
+      let { radioButtons } = await renderRadioElements(
+        supportLinktempalte
+      );
+      let [firstRadio, secondRadio] = radioButtons;
+
+      let supportLink = firstRadio.shadowRoot.querySelector(
+        "a[is=moz-support-link]"
+      );
+      // Ensure translations have finished before checking label contents.
+      await BrowserTestUtils.waitForMutationCondition(
+        supportLink,
+        { childList: true },
+        () => supportLink.textContent.trim()
+      );
+
+      ok(supportLink, "Support link is rendered when supportPage attribute is set.");
+      ok(
+        supportLink.href.includes("test-page"),
+        "Support link href points to the expected SUMO page."
+      );
+      is(
+        supportLink.innerText,
+        LEARN_MORE_TEXT,
+        "Support link uses the default label text."
+      );
+
+      let slottedSupportLink = secondRadio.shadowRoot
+        .querySelector("slot[name=support-link]")
+        .assignedElements()[0];
+      ok(
+        slottedSupportLink,
+        "Links can also be rendered using the support-link slot."
+      );
+      ok(
+        slottedSupportLink.href.includes("www.example.com"),
+        "Slotted link uses the expected url."
+      );
+      is(
+        slottedSupportLink.innerText,
+        "Help me!",
+        "Slotted link uses non-default label text."
+      );
     });
   </script>
 </head>

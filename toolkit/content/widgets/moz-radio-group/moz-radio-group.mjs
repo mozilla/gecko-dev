@@ -8,6 +8,8 @@ import { MozLitElement } from "../lit-utils.mjs";
 import "chrome://global/content/elements/moz-label.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-fieldset.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-support-link.mjs";
 
 const NAVIGATION_FORWARD = "forward";
 const NAVIGATION_BACKWARD = "backward";
@@ -226,6 +228,7 @@ customElements.define("moz-radio-group", MozRadioGroup);
  * @property {string} label - Label for the radio input.
  * @property {string} name
  *  Name of the input control, set by the associated moz-radio-group element.
+ * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {number} value - Value of the radio input.
  */
 export class MozRadio extends MozLitElement {
@@ -245,6 +248,7 @@ export class MozRadio extends MozLitElement {
     inputTabIndex: { type: Number, state: true },
     label: { type: String, fluent: true },
     name: { type: String, attribute: false },
+    supportPage: { type: String, attribute: "support-page" },
     value: { type: String },
   };
 
@@ -358,6 +362,7 @@ export class MozRadio extends MozLitElement {
     return html`<span class="label-content">
       ${this.iconTemplate()}
       <span class="text">${this.label}</span>
+      ${this.supportLinkTemplate()}
     </span>`;
   }
 
@@ -367,6 +372,16 @@ export class MozRadio extends MozLitElement {
         ${this.description ?? html`<slot name="description"></slot>`}
       </span>
     `;
+  }
+
+  supportLinkTemplate() {
+    return this.supportPage
+      ? html`<a
+          is="moz-support-link"
+          support-page=${this.supportPage}
+          part="support-link"
+        ></a>`
+      : html`<slot name="support-link"></slot>`;
   }
 
   render() {
