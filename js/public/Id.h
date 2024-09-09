@@ -199,7 +199,7 @@ class PropertyKey {
 
   MOZ_ALWAYS_INLINE bool isAtom(JSAtom* atom) const {
     MOZ_ASSERT(PropertyKey::isNonIntAtom(atom));
-    return isAtom() && toAtom() == atom;
+    return *this == NonIntAtom(atom);
   }
 
   MOZ_ALWAYS_INLINE JSAtom* toAtom() const {
