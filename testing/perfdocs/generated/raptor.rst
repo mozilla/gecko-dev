@@ -4589,7 +4589,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-android-hw-s21-13-0-android-aarch64-shippable-qr/opt**
+   .. list-table:: **test-android-hw-s24-14-0-android-aarch64-shippable-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -4973,7 +4973,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-android-hw-s21-13-0-android-aarch64-shippable-qr/opt**
+   .. list-table:: **test-android-hw-s24-14-0-android-aarch64-shippable-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -5372,7 +5372,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-android-hw-s21-13-0-android-aarch64-shippable-qr/opt**
+   .. list-table:: **test-android-hw-s24-14-0-android-aarch64-shippable-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 
@@ -5789,7 +5789,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
 
 
-   .. list-table:: **test-android-hw-s21-13-0-android-aarch64-shippable-qr/opt**
+   .. list-table:: **test-android-hw-s24-14-0-android-aarch64-shippable-qr/opt**
       :widths: 30 15 15 15 15
       :header-rows: 1
 

@@ -455,7 +455,7 @@ browsertime-benchmark-speedometer-mobile:
             cstm-car-m:
                 by-test-platform:
                     android-hw-p6.*shippable-qr.*: []
-                    android-hw-s21.*shippable-qr.*: []
+                    android-hw-s24.*shippable-qr.*: []
                     default: [mozilla-central]
             default: []
     treeherder-symbol: Btime(sp)
@@ -481,20 +481,20 @@ browsertime-benchmark-speedometer3-mobile:
                     android-hw-a51.*shippable-qr.*: [trunk-only]
                     android-hw-a55.*shippable-qr.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
-                    android-hw-s21.*shippable-qr.*: [mozilla-central]
+                    android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
             geckoview:
                 by-test-platform:
                     android-hw-a51.*shippable-qr.*: [trunk-only]
                     android-hw-a55.*shippable-qr.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
-                    android-hw-s21.*shippable-qr.*: [mozilla-central]
+                    android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
             cstm-car-m: [mozilla-central]
             chrome-m:
                 by-test-platform:
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
-                    android-hw-s21.*shippable-qr.*: [mozilla-central]
+                    android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
             default: []
     treeherder-symbol: Btime(sp3)
