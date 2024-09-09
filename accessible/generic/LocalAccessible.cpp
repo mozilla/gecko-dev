@@ -3380,7 +3380,21 @@ void LocalAccessible::SendCache(uint64_t aCacheDomain,
 already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     uint64_t aCacheDomain, CacheUpdateType aUpdateType,
     uint64_t aInitialDomains) {
+  MOZ_ASSERT((~aCacheDomain & aInitialDomains) == CacheDomain::None,
+             "Initial domain pushes without domains requested!");
   RefPtr<AccAttributes> fields = new AccAttributes();
+
+  if (aUpdateType == CacheUpdateType::Initial) {
+    aInitialDomains = CacheDomain::All;
+  }
+  // Pass a single cache domain in to query whether this is the initial push for
+  // this domain.
+  auto IsInitialPush = [aInitialDomains](uint64_t aCacheDomain) {
+    return (aCacheDomain & aInitialDomains) == aCacheDomain;
+  };
+  auto IsUpdatePush = [aInitialDomains](uint64_t aCacheDomain) {
+    return (aCacheDomain & aInitialDomains) == CacheDomain::None;
+  };
 
   // Caching name for text leaf Accessibles is redundant, since their name is
   // always their text. Text gets handled below.
@@ -3389,7 +3403,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     int32_t nameFlag = Name(name);
     if (nameFlag != eNameOK) {
       fields->SetAttribute(CacheKey::NameValueFlag, nameFlag);
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::NameAndDescription)) {
       fields->SetAttribute(CacheKey::NameValueFlag, DeleteEntry());
     }
 
@@ -3400,14 +3414,14 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       if (Elm()->GetAttr(nsGkAtoms::placeholder, placeholder) &&
           name != placeholder) {
         fields->SetAttribute(CacheKey::HTMLPlaceholder, std::move(placeholder));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::NameAndDescription)) {
         fields->SetAttribute(CacheKey::HTMLPlaceholder, DeleteEntry());
       }
     }
 
     if (!name.IsEmpty()) {
       fields->SetAttribute(CacheKey::Name, std::move(name));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::NameAndDescription)) {
       fields->SetAttribute(CacheKey::Name, DeleteEntry());
     }
 
@@ -3415,7 +3429,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     Description(description);
     if (!description.IsEmpty()) {
       fields->SetAttribute(CacheKey::Description, std::move(description));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::NameAndDescription)) {
       fields->SetAttribute(CacheKey::Description, DeleteEntry());
     }
   }
@@ -3446,7 +3460,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       Value(value);
       if (!value.IsEmpty()) {
         fields->SetAttribute(CacheKey::TextValue, std::move(value));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Value)) {
         fields->SetAttribute(CacheKey::TextValue, DeleteEntry());
       }
     }
@@ -3459,7 +3473,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       mContent->AsElement()->GetAttr(nsGkAtoms::src, src);
       if (!src.IsEmpty()) {
         fields->SetAttribute(CacheKey::SrcURL, std::move(src));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Value)) {
         fields->SetAttribute(CacheKey::SrcURL, DeleteEntry());
       }
     }
@@ -3596,7 +3610,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     // This handles the case where this LocalAccessible was moved (but not
     // re-created). In that case, we will have cached bounds, but we currently
     // do an initial cache push.
-    MOZ_ASSERT(aUpdateType == CacheUpdateType::Initial || mBounds.isSome(),
+    MOZ_ASSERT(IsInitialPush(CacheDomain::Bounds) || mBounds.isSome(),
                "Incremental cache push but mBounds is not set!");
 
     if (OuterDocAccessible* doc = AsOuterDoc()) {
@@ -3622,7 +3636,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       }
     }
 
-    boundsChanged = aUpdateType == CacheUpdateType::Initial ||
+    boundsChanged = IsInitialPush(CacheDomain::Bounds) ||
                     !newBoundsRect.IsEqualEdges(mBounds.value());
     if (boundsChanged) {
       mBounds = Some(newBoundsRect);
@@ -3640,7 +3654,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
 
     if (frame && frame->ScrollableOverflowRect().IsEmpty()) {
       fields->SetAttribute(CacheKey::IsClipped, true);
-    } else if (aUpdateType != CacheUpdateType::Initial) {
+    } else if (IsUpdatePush(CacheDomain::Bounds)) {
       fields->SetAttribute(CacheKey::IsClipped, DeleteEntry());
     }
   }
@@ -3672,7 +3686,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       Language(language);
       if (!language.IsEmpty()) {
         fields->SetAttribute(CacheKey::Language, std::move(language));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Text)) {
         fields->SetAttribute(CacheKey::Language, DeleteEntry());
       }
     }
@@ -3685,13 +3699,13 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     if (!offsetAttrs.IsEmpty()) {
       fields->SetAttribute(CacheKey::TextOffsetAttributes,
                            std::move(offsetAttrs));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::TextOffsetAttributes) ||
+               IsUpdatePush(CacheDomain::Text)) {
       fields->SetAttribute(CacheKey::TextOffsetAttributes, DeleteEntry());
     }
   }
 
-  if (aCacheDomain & (CacheDomain::Text | CacheDomain::Bounds) &&
-      !HasChildren()) {
+  if (aCacheDomain & (CacheDomain::TextBounds) && !HasChildren()) {
     // We cache line start offsets for both text and non-text leaf Accessibles
     // because non-text leaf Accessibles can still start a line.
     TextLeafPoint lineStart =
@@ -3699,8 +3713,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
             /* aIncludeOrigin */ true);
     int32_t lineStartOffset = lineStart ? lineStart.mOffset : -1;
     // We push line starts and text bounds in two cases:
-    // 1. Text or bounds changed, which means it's very likely that line starts
-    // and text bounds changed too.
+    // 1. TextBounds is pushed initially.
     // 2. CacheDomain::Bounds was requested (indicating that the frame was
     // reflowed) but the bounds  didn't actually change. This can happen when
     // the spanned text is non-rectangular. For example, an Accessible might
@@ -3712,7 +3725,8 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     // there was a change. This should be safe because the text didn't change in
     // this Accessible, so if the first line start doesn't shift, none of them
     // should shift.
-    if (aCacheDomain & CacheDomain::Text || boundsChanged ||
+    if (IsInitialPush(CacheDomain::TextBounds) ||
+        aCacheDomain & CacheDomain::Text || boundsChanged ||
         mFirstLineStart != lineStartOffset) {
       mFirstLineStart = lineStartOffset;
       nsTArray<int32_t> lineStarts;
@@ -3722,7 +3736,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       }
       if (!lineStarts.IsEmpty()) {
         fields->SetAttribute(CacheKey::TextLineStarts, std::move(lineStarts));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::TextBounds)) {
         fields->SetAttribute(CacheKey::TextLineStarts, DeleteEntry());
       }
 
@@ -3807,7 +3821,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         fields->SetAttribute(CacheKey::TransformMatrix, std::move(ptr));
       }
     }
-    if (!transformed && aUpdateType == CacheUpdateType::Update) {
+    if (!transformed && IsUpdatePush(CacheDomain::TransformMatrix)) {
       // Otherwise, if we're bundling a transform update but this
       // frame isn't transformed (or doesn't exist), we need
       // to send a DeleteEntry() to remove any
@@ -3832,7 +3846,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       positionArr.AppendElement(scrollPosition.x);
       positionArr.AppendElement(scrollPosition.y);
       fields->SetAttribute(CacheKey::ScrollPosition, std::move(positionArr));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::ScrollPosition)) {
       fields->SetAttribute(CacheKey::ScrollPosition, DeleteEntry());
     }
   }
@@ -3841,14 +3855,14 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     nsAtom* id = mContent->GetID();
     if (id) {
       fields->SetAttribute(CacheKey::DOMNodeID, id);
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::DOMNodeIDAndClass)) {
       fields->SetAttribute(CacheKey::DOMNodeID, DeleteEntry());
     }
     nsString className;
     DOMNodeClass(className);
     if (!className.IsEmpty()) {
       fields->SetAttribute(CacheKey::DOMNodeClass, std::move(className));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::DOMNodeIDAndClass)) {
       fields->SetAttribute(CacheKey::DOMNodeClass, DeleteEntry());
     }
   }
@@ -3856,7 +3870,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
   // State is only included in the initial push. Thereafter, cached state is
   // updated via events.
   if (aCacheDomain & CacheDomain::State) {
-    if (aUpdateType == CacheUpdateType::Initial) {
+    if (IsInitialPush(CacheDomain::State)) {
       // Most states are updated using state change events, so we only send
       // these for the initial cache push.
       uint64_t state = State();
@@ -3870,7 +3884,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     // set to "false", so we need to differentiate between false and unset.
     if (auto ariaSelected = ARIASelected()) {
       fields->SetAttribute(CacheKey::ARIASelected, *ariaSelected);
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::State)) {
       fields->SetAttribute(CacheKey::ARIASelected, DeleteEntry());  // Unset.
     }
   }
@@ -3881,7 +3895,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       int32_t value = 0;
       if (nsCoreUtils::GetUIntAttr(mContent, attr, &value)) {
         fields->SetAttribute(attr, value);
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::GroupInfo)) {
         fields->SetAttribute(attr, DeleteEntry());
       }
     }
@@ -3894,7 +3908,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       ActionNameAt(0, actionName);
       RefPtr<nsAtom> actionAtom = NS_Atomize(actionName);
       fields->SetAttribute(CacheKey::PrimaryAction, actionAtom);
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::Actions)) {
       fields->SetAttribute(CacheKey::PrimaryAction, DeleteEntry());
     }
 
@@ -3902,7 +3916,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // Here we cache the showlongdesc action.
       if (imgAcc->HasLongDesc()) {
         fields->SetAttribute(CacheKey::HasLongdesc, true);
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Actions)) {
         fields->SetAttribute(CacheKey::HasLongdesc, DeleteEntry());
       }
     }
@@ -3910,7 +3924,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     KeyBinding accessKey = AccessKey();
     if (!accessKey.IsEmpty()) {
       fields->SetAttribute(CacheKey::AccessKey, accessKey.Serialize());
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::Actions)) {
       fields->SetAttribute(CacheKey::AccessKey, DeleteEntry());
     }
   }
@@ -3923,7 +3937,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     float opacity = Opacity();
     if (opacity != 1.0f) {
       fields->SetAttribute(CacheKey::Opacity, opacity);
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::Style)) {
       fields->SetAttribute(CacheKey::Opacity, DeleteEntry());
     }
 
@@ -3931,7 +3945,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
         frame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
         nsLayoutUtils::IsReallyFixedPos(frame)) {
       fields->SetAttribute(CacheKey::CssPosition, nsGkAtoms::fixed);
-    } else if (aUpdateType != CacheUpdateType::Initial) {
+    } else if (IsUpdatePush(CacheDomain::Style)) {
       fields->SetAttribute(CacheKey::CssPosition, DeleteEntry());
     }
 
@@ -3941,7 +3955,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       RefPtr<nsAtom> overflowAtom = NS_Atomize(overflow);
       if (overflowAtom == nsGkAtoms::hidden) {
         fields->SetAttribute(CacheKey::CSSOverflow, nsGkAtoms::hidden);
-      } else if (aUpdateType != CacheUpdateType::Initial) {
+      } else if (IsUpdatePush(CacheDomain::Style)) {
         fields->SetAttribute(CacheKey::CSSOverflow, DeleteEntry());
       }
     }
@@ -3951,7 +3965,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     if (auto* table = HTMLTableAccessible::GetFrom(this)) {
       if (table->IsProbablyLayoutTable()) {
         fields->SetAttribute(CacheKey::TableLayoutGuess, true);
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Table)) {
         fields->SetAttribute(CacheKey::TableLayoutGuess, DeleteEntry());
       }
     } else if (auto* cell = HTMLTableCellAccessible::GetFrom(this)) {
@@ -3963,14 +3977,14 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       MOZ_ASSERT(value > 0);
       if (value > 1) {
         fields->SetAttribute(CacheKey::RowSpan, value);
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Table)) {
         fields->SetAttribute(CacheKey::RowSpan, DeleteEntry());
       }
       value = static_cast<int32_t>(cell->ColExtent());
       MOZ_ASSERT(value > 0);
       if (value > 1) {
         fields->SetAttribute(CacheKey::ColSpan, value);
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Table)) {
         fields->SetAttribute(CacheKey::ColSpan, DeleteEntry());
       }
       if (mContent->AsElement()->HasAttr(nsGkAtoms::headers)) {
@@ -3982,7 +3996,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
           }
         }
         fields->SetAttribute(CacheKey::CellHeaders, std::move(headers));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Table)) {
         fields->SetAttribute(CacheKey::CellHeaders, DeleteEntry());
       }
     }
@@ -4002,7 +4016,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     }
     if (ariaAttrs) {
       fields->SetAttribute(CacheKey::ARIAAttributes, std::move(ariaAttrs));
-    } else if (aUpdateType == CacheUpdateType::Update) {
+    } else if (IsUpdatePush(CacheDomain::ARIA)) {
       fields->SetAttribute(CacheKey::ARIAAttributes, DeleteEntry());
     }
   }
@@ -4019,7 +4033,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       mContent->AsElement()->GetAttr(nsGkAtoms::name, name);
       if (!name.IsEmpty()) {
         fields->SetAttribute(CacheKey::DOMName, std::move(name));
-      } else if (aUpdateType != CacheUpdateType::Initial) {
+      } else if (IsUpdatePush(CacheDomain::Relations)) {
         // It's possible we used to have a name and it's since been
         // removed. Send a delete entry.
         fields->SetAttribute(CacheKey::DOMName, DeleteEntry());
@@ -4058,7 +4072,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       }
       if (ids.Length()) {
         fields->SetAttribute(relAtom, std::move(ids));
-      } else if (aUpdateType == CacheUpdateType::Update) {
+      } else if (IsUpdatePush(CacheDomain::Relations)) {
         fields->SetAttribute(relAtom, DeleteEntry());
       }
     }
