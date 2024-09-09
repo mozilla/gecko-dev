@@ -441,6 +441,13 @@ class nsDisplayListBuilder {
    * Get the scrollframe to ignore, if any.
    */
   nsIFrame* GetIgnoreScrollFrame() { return mIgnoreScrollFrame; }
+  /**
+   * Set for display lists built for hit-testing a point that is already
+   * relative to the layout viewport. Display lists with this flag set
+   * do not build an async zoom container (which would transform coordinates
+   * relative to the visual viewport into coordinates relative to the
+   * layout viewport during hit-testing).
+   */
   void SetIsRelativeToLayoutViewport();
   bool IsRelativeToLayoutViewport() const {
     return mIsRelativeToLayoutViewport;
