@@ -155,6 +155,8 @@ subprojects {
             }
 
             android {
+                buildToolsVersion gradle.mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
+
                 testOptions {
                     unitTests {
                         includeAndroidResources = true
