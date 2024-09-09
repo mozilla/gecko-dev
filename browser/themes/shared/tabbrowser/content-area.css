@@ -34,6 +34,11 @@
   min-height: 0;
 }
 
+#tabbrowser-tabbox {
+  position: relative;
+  margin: 0;
+}
+
 /* We set large flex on both containers to allow the devtools toolbox to
  * set a flex value itself. We don't want the toolbox to actually take up free
  * space, but we do want it to collapse when the window shrinks, and with
