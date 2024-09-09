@@ -549,17 +549,11 @@ tasks.withType(KotlinCompile).configureEach {
 dependencies {
     implementation ComponentsDependencies.kotlin_json
 
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
-    androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
-
     implementation project(':browser-engine-gecko')
 
     implementation ComponentsDependencies.kotlin_coroutines
     testImplementation ComponentsDependencies.testing_coroutines
     implementation ComponentsDependencies.accompanist_drawablepainter
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_coordinatorlayout
 
     implementation ComponentsDependencies.thirdparty_sentry
 
@@ -661,36 +655,43 @@ dependencies {
     implementation ComponentsDependencies.androidx_activity
     implementation ComponentsDependencies.androidx_activity_ktx
     implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_compose_ui
-    implementation ComponentsDependencies.androidx_compose_ui_tooling_preview
+    implementation ComponentsDependencies.androidx_appcompat
+    implementation ComponentsDependencies.androidx_biometric
+
+    implementation platform(ComponentsDependencies.androidx_compose_bom)
+    androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
     implementation ComponentsDependencies.androidx_compose_animation
     implementation ComponentsDependencies.androidx_compose_foundation
     implementation ComponentsDependencies.androidx_compose_material
-    implementation ComponentsDependencies.androidx_biometric
-    implementation ComponentsDependencies.androidx_paging
-    implementation ComponentsDependencies.androidx_preferences
-    implementation ComponentsDependencies.androidx_fragment
-    implementation ComponentsDependencies.androidx_navigation_fragment
-    implementation ComponentsDependencies.androidx_navigation_ui
-    implementation ComponentsDependencies.androidx_compose_navigation
-    implementation ComponentsDependencies.androidx_recyclerview
-    implementation ComponentsDependencies.androidx_swiperefreshlayout
+    implementation ComponentsDependencies.androidx_compose_ui
+    implementation ComponentsDependencies.androidx_compose_ui_tooling_preview
 
+    implementation ComponentsDependencies.androidx_constraintlayout
+    implementation ComponentsDependencies.androidx_coordinatorlayout
+    implementation ComponentsDependencies.androidx_core
+    implementation ComponentsDependencies.androidx_core_ktx
+    implementation ComponentsDependencies.androidx_core_splashscreen
+    implementation ComponentsDependencies.androidx_datastore
+    implementation ComponentsDependencies.androidx_datastore_preferences
+    implementation ComponentsDependencies.androidx_fragment
     implementation ComponentsDependencies.androidx_lifecycle_common
     implementation ComponentsDependencies.androidx_lifecycle_livedata
     implementation ComponentsDependencies.androidx_lifecycle_process
     implementation ComponentsDependencies.androidx_lifecycle_runtime
-    implementation ComponentsDependencies.androidx_lifecycle_viewmodel
     implementation ComponentsDependencies.androidx_lifecycle_service
-
-    implementation ComponentsDependencies.androidx_core
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation FenixDependencies.androidx_core_splashscreen
+    implementation ComponentsDependencies.androidx_lifecycle_viewmodel
+    implementation ComponentsDependencies.androidx_navigation_compose
+    implementation ComponentsDependencies.androidx_navigation_fragment
+    implementation ComponentsDependencies.androidx_navigation_ui
+    implementation ComponentsDependencies.androidx_paging
+    implementation ComponentsDependencies.androidx_preferences
+    implementation ComponentsDependencies.androidx_profileinstaller
+    implementation ComponentsDependencies.androidx_recyclerview
+    implementation ComponentsDependencies.androidx_swiperefreshlayout
     implementation ComponentsDependencies.androidx_transition
-    implementation FenixDependencies.androidx_viewpager2
+    implementation ComponentsDependencies.androidx_viewpager2
     implementation ComponentsDependencies.androidx_work_runtime
-    implementation ComponentsDependencies.androidx_datastore
-    implementation ComponentsDependencies.androidx_datastore_preferences
+
     implementation FenixDependencies.protobuf_javalite
     implementation ComponentsDependencies.google_material
 
@@ -703,8 +704,6 @@ dependencies {
     // Required for in-app reviews
     implementation ComponentsDependencies.play_review
     implementation ComponentsDependencies.play_review_ktx
-
-    implementation FenixDependencies.androidx_profileinstaller
 
     constraints {
         implementation (ComponentsDependencies.androidx_tracing) {

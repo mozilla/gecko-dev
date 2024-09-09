@@ -18,11 +18,6 @@ object FocusVersions {
         const val install_referrer = "2.2"
     }
 
-    object AndroidX {
-        const val constraint_layout_compose = "1.0.1"
-        const val splashscreen = "1.0.1"
-    }
-
     object Testing {
         const val falcon = "2.2.0"
         const val fastlane = "2.1.1"
@@ -31,11 +26,6 @@ object FocusVersions {
 }
 
 object FocusDependencies {
-    const val androidx_constraint_layout_compose =
-        "androidx.constraintlayout:constraintlayout-compose:${FocusVersions.AndroidX.constraint_layout_compose}"
-
-    const val androidx_splashscreen = "androidx.core:core-splashscreen:${FocusVersions.AndroidX.splashscreen}"
-
     const val adjust = "com.adjust.sdk:adjust-android:${FocusVersions.Adjust.adjust}"
     const val install_referrer = "com.android.installreferrer:installreferrer:${FocusVersions.Adjust.install_referrer}"
 

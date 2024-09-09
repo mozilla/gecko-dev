@@ -231,22 +231,25 @@ nimbus {
 }
 
 dependencies {
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
-    androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
-
     implementation ComponentsDependencies.androidx_activity
     implementation ComponentsDependencies.androidx_appcompat
     implementation ComponentsDependencies.androidx_browser
     implementation ComponentsDependencies.androidx_cardview
     implementation ComponentsDependencies.androidx_collection
-    implementation ComponentsDependencies.androidx_compose_ui
-    implementation ComponentsDependencies.androidx_compose_ui_tooling
+
+    implementation platform(ComponentsDependencies.androidx_compose_bom)
+    androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
     implementation ComponentsDependencies.androidx_compose_foundation
     implementation ComponentsDependencies.androidx_compose_material
     implementation ComponentsDependencies.androidx_compose_runtime_livedata
+    implementation ComponentsDependencies.androidx_compose_ui
+    implementation ComponentsDependencies.androidx_compose_ui_tooling
+
     implementation ComponentsDependencies.androidx_constraintlayout
-    implementation FocusDependencies.androidx_constraint_layout_compose
+    implementation ComponentsDependencies.androidx_constraintlayout_compose
     implementation ComponentsDependencies.androidx_core_ktx
+    implementation ComponentsDependencies.androidx_core_splashscreen
+    implementation ComponentsDependencies.androidx_datastore_preferences
     implementation ComponentsDependencies.androidx_fragment
     implementation ComponentsDependencies.androidx_lifecycle_process
     implementation ComponentsDependencies.androidx_lifecycle_viewmodel
@@ -254,10 +257,8 @@ dependencies {
     implementation ComponentsDependencies.androidx_preferences
     implementation ComponentsDependencies.androidx_recyclerview
     implementation ComponentsDependencies.androidx_savedstate
-    implementation FocusDependencies.androidx_splashscreen
     implementation ComponentsDependencies.androidx_transition
     implementation ComponentsDependencies.androidx_work_runtime
-    implementation ComponentsDependencies.androidx_datastore_preferences
 
     // Required for in-app reviews
     implementation ComponentsDependencies.play_review
