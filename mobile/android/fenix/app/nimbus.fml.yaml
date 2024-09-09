@@ -284,6 +284,20 @@ features:
         type: Int
         default: 0
 
+  alternative-app-launcher-icon:
+    description: A feature that changes the app launcher icon background color.
+    variables:
+      enabled:
+        description: If true, the feature is active.
+        type: Boolean
+        default: false
+      reset-to-default:
+        description: >
+          If true use the default icon, if false use the alternative icon.
+          This is required to 'reset' the icon for enrolled users once the initial experiment is complete.
+        type: Boolean
+        default: false
+
   shopping-experience:
     description: A feature that shows product review quality information.
     variables:

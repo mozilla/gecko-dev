@@ -5,6 +5,7 @@
 package org.mozilla.fenix
 
 import android.app.assist.AssistContent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_MAIN
@@ -143,6 +144,7 @@ import org.mozilla.fenix.tabstray.TabsTrayFragment
 import org.mozilla.fenix.theme.DefaultThemeManager
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.utils.changeAppLauncherIconBackgroundColor
 import java.lang.ref.WeakReference
 import java.util.Locale
 
@@ -565,6 +567,18 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 "finishing" to isFinishing.toString(),
             ),
         )
+
+        if (FxNimbus.features.alternativeAppLauncherIcon.value().enabled) {
+            // User has been enrolled in alternative app icon experiment.
+            with(applicationContext) {
+                changeAppLauncherIconBackgroundColor(
+                    packageManager = applicationContext.packageManager,
+                    appAlias = ComponentName(this, "$packageName.App"),
+                    alternativeAppAlias = ComponentName(this, "$packageName.AlternativeApp"),
+                    resetToDefault = FxNimbus.features.alternativeAppLauncherIcon.value().resetToDefault,
+                )
+            }
+        }
     }
 
     final override fun onPause() {

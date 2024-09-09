@@ -89,6 +89,19 @@
                 android:resource="@xml/shortcuts" />
         </activity-alias>
 
+        <activity-alias
+            android:name="${applicationId}.AlternativeApp"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_alternative"
+            android:roundIcon="@mipmap/ic_launcher_round_alternative"
+            android:targetActivity=".${targetActivity}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <!--
           Fennec declared entry for homescreen pinned shortcuts.
         -->
