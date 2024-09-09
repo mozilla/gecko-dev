@@ -462,6 +462,9 @@ sdnAccessible::get_innerHTML(BSTR __RPC_FAR* aInnerHTML) {
   if (!mNode) {
     RemoteAccessible* remoteAcc = mMsaa->Acc()->AsRemote();
     MOZ_ASSERT(remoteAcc);
+    if (RequestDomainsIfInactive(CacheDomain::InnerHTML)) {
+      return S_FALSE;
+    }
     if (!remoteAcc->mCachedFields) {
       return S_FALSE;
     }

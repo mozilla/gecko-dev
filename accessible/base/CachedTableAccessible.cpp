@@ -277,6 +277,9 @@ TableAccessible* CachedTableCellAccessible::Table() const {
 
 uint32_t CachedTableCellAccessible::ColExtent() const {
   if (RemoteAccessible* remoteAcc = mAcc->AsRemote()) {
+    if (RequestDomainsIfInactive(CacheDomain::Table)) {
+      return 1;
+    }
     if (remoteAcc->mCachedFields) {
       if (auto colSpan = remoteAcc->mCachedFields->GetAttribute<int32_t>(
               CacheKey::ColSpan)) {
@@ -300,6 +303,9 @@ uint32_t CachedTableCellAccessible::ColExtent() const {
 
 uint32_t CachedTableCellAccessible::RowExtent() const {
   if (RemoteAccessible* remoteAcc = mAcc->AsRemote()) {
+    if (RequestDomainsIfInactive(CacheDomain::Table)) {
+      return 1;
+    }
     if (remoteAcc->mCachedFields) {
       if (auto rowSpan = remoteAcc->mCachedFields->GetAttribute<int32_t>(
               CacheKey::RowSpan)) {
@@ -323,6 +329,9 @@ uint32_t CachedTableCellAccessible::RowExtent() const {
 
 UniquePtr<AccIterable> CachedTableCellAccessible::GetExplicitHeadersIterator() {
   if (RemoteAccessible* remoteAcc = mAcc->AsRemote()) {
+    if (RequestDomainsIfInactive(CacheDomain::Table)) {
+      return nullptr;
+    }
     if (remoteAcc->mCachedFields) {
       if (auto headers =
               remoteAcc->mCachedFields->GetAttribute<nsTArray<uint64_t>>(
@@ -340,6 +349,9 @@ UniquePtr<AccIterable> CachedTableCellAccessible::GetExplicitHeadersIterator() {
 void CachedTableCellAccessible::ColHeaderCells(nsTArray<Accessible*>* aCells) {
   auto* table = static_cast<CachedTableAccessible*>(Table());
   if (!table) {
+    return;
+  }
+  if (mAcc->IsRemote() && RequestDomainsIfInactive(CacheDomain::Table)) {
     return;
   }
   if (auto iter = GetExplicitHeadersIterator()) {

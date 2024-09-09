@@ -1490,6 +1490,9 @@ void TextLeafPoint::AddTextOffsetAttributes(AccAttributes* aAttrs) const {
 
   RemoteAccessible* acc = mAcc->AsRemote();
   MOZ_ASSERT(acc);
+  if (RequestDomainsIfInactive(CacheDomain::TextOffsetAttributes)) {
+    return;
+  }
   if (!acc->mCachedFields) {
     return;
   }
@@ -1603,6 +1606,9 @@ TextLeafPoint TextLeafPoint::FindTextOffsetAttributeSameAcc(
 
   RemoteAccessible* acc = mAcc->AsRemote();
   MOZ_ASSERT(acc);
+  if (RequestDomainsIfInactive(CacheDomain::TextOffsetAttributes)) {
+    return TextLeafPoint();
+  }
   if (!acc->mCachedFields) {
     return TextLeafPoint();
   }
@@ -1962,6 +1968,9 @@ LayoutDeviceIntRect TextLeafPoint::CharBounds() {
     return bounds;
   }
 
+  if (RequestDomainsIfInactive(CacheDomain::TextBounds)) {
+    return LayoutDeviceIntRect();
+  }
   RemoteAccessible* remote = mAcc->AsRemote();
   nsRect charBounds = remote->GetCachedCharRect(mOffset);
   if (!charBounds.IsEmpty()) {
