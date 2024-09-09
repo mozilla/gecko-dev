@@ -768,6 +768,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
 
             if support_class:
                 bt_result["custom_data"] = True
+                support_class.save_data(raw_result, bt_result)
                 support_class.handle_result(
                     bt_result,
                     raw_result,

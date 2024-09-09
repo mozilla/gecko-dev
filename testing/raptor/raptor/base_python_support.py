@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import filters
+from cmdline import FIREFOX_APPS
 
 ADDITIONAL_METRICS = ["powerUsage"]
 
@@ -9,6 +10,23 @@ ADDITIONAL_METRICS = ["powerUsage"]
 class BasePythonSupport:
     def __init__(self, **kwargs):
         self.power_test = None
+        self.app = None
+        self.bt_result = []
+        self.raw_result = []
+
+    def save_data(self, raw_result, bt_result):
+        """
+        This function is used to save the bt_result, raw_result that way we can reference
+        and use this data across the different BasePythonSupport classes
+
+        :param raw_result all non-browsertime parts of the test, should
+         include things like the android version, ttfb, and cpu usage
+        :param bt_result browsertime results/version info from the test
+
+        return: None
+        """
+        self.raw_result += [raw_result]
+        self.bt_result += [bt_result]
 
     def setup_test(self, test, args):
         """Used to setup the test.
@@ -24,6 +42,7 @@ class BasePythonSupport:
         No return is expected. The `test` argument can be changed directly.
         """
         self.power_test = args.power_test
+        self.app = args.app
 
     def modify_command(self, cmd, test):
         """Used to modify the Browsertime command before running the test.
@@ -168,6 +187,23 @@ class BasePythonSupport:
                     test["measurements"]["powerUsage"],
                     "powerUsage",
                     unit="uWh",
+                    lower_is_better=True,
+                )
+            )
+        cpu_vals = []
+        for result in self.raw_result:
+            cpu_vals += result.get("cpu", [])
+        if (
+            test.get("gather_cpuTime", None)
+            and len(cpu_vals)
+            and self.app in FIREFOX_APPS
+        ):
+            suite["subtests"].append(
+                self._build_standard_subtest(
+                    test,
+                    cpu_vals,
+                    "cpuTime",
+                    unit="ms",
                     lower_is_better=True,
                 )
             )
