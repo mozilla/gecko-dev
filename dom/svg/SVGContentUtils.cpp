@@ -521,15 +521,17 @@ static gfx::Matrix GetCTMInternal(SVGElement* aElement, CTMType aCTMType,
   while (ancestor && ancestor->IsSVGElement() &&
          !ancestor->IsSVGElement(nsGkAtoms::foreignObject)) {
     element = static_cast<SVGElement*>(ancestor);
-    if (aCTMType == CTMType::NonScalingStroke &&
-        element->IsSVGElement(nsGkAtoms::svg)) {
-      if (SVGOuterSVGFrame* frame = do_QueryFrame(element->GetPrimaryFrame())) {
-        Matrix childTransform;
-        if (frame->HasChildrenOnlyTransform(&childTransform)) {
-          return gfx::ToMatrix(matrix) * childTransform;
+    if (aCTMType == CTMType::NonScalingStroke) {
+      if (auto* el = SVGSVGElement::FromNode(element); el && !el->IsInner()) {
+        if (SVGOuterSVGFrame* frame =
+                do_QueryFrame(element->GetPrimaryFrame())) {
+          Matrix childTransform;
+          if (frame->HasChildrenOnlyTransform(&childTransform)) {
+            return gfx::ToMatrix(matrix) * childTransform;
+          }
         }
+        return gfx::ToMatrix(matrix);
       }
-      return gfx::ToMatrix(matrix);
     }
     matrix *= getLocalTransformHelper(element, true);
     if (aCTMType == CTMType::NearestViewport &&
