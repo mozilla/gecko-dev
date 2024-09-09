@@ -159,7 +159,7 @@ enum class CookieBannerUIMode(
      * SITE_NOT_SUPPORTED - The domain is not supported by cookie banner handling.
      */
     SITE_NOT_SUPPORTED(
-        R.string.reduce_cookie_banner_unsupported_site_1,
+        R.string.reduce_cookie_banner_unsupported_site,
         R.drawable.ic_cookies_disabled,
     ),
 
