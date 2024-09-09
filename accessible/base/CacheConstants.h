@@ -104,7 +104,7 @@ constexpr int32_t kNumbersInRect = 4;
  * cache should generally use these aliases rather than using nsAtoms directly.
  * There are two exceptions:
  * 1. Some ARIA attributes are copied directly from the DOM node, so these
- * aren't aliased. Specifically,   aria-level, aria-posinset and aria-setsize
+ * aren't aliased. Specifically, aria-level, aria-posinset and aria-setsize
  * are copied as separate cache keys as part of CacheDomain::GroupInfo.
  * 2. Keys for relations are defined in kRelationTypeAtoms above.
  */
@@ -256,6 +256,18 @@ class CacheKey {
   // determination.
   static constexpr nsStaticAtom* Viewport = nsGkAtoms::viewport;
 };
+
+// Return true if the given cache domains are already active.
+bool DomainsAreActive(uint64_t aRequiredCacheDomains);
+
+// Check whether the required cache domains are active. If they aren't, then
+// request the requisite cache domains and return true. This function returns
+// false if all required domains are already active.
+bool RequestDomainsIfInactive(uint64_t aRequiredCacheDomains);
+
+#define ASSERT_DOMAINS_ACTIVE(aCacheDomains)  \
+  MOZ_ASSERT(DomainsAreActive(aCacheDomains), \
+             "Required domain(s) are not currently active.")
 
 }  // namespace a11y
 }  // namespace mozilla
