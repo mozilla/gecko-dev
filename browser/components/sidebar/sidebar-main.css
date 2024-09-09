@@ -10,8 +10,6 @@
   min-width: 50px;
   padding: var(--space-small);
   padding-inline-end: 0;
-  background-color: var(--toolbar-bgcolor);
-  color: var(--toolbar-color);
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.verticalTabs") {

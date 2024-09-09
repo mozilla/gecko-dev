@@ -15,6 +15,12 @@
   --sidebar-screenshot-translate-animation-duration: 300ms;
 }
 
+#sidebar-main {
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
+  text-shadow: none;
+}
+
 #sidebar-box {
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
@@ -33,6 +39,9 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
+    /* Note that with sidebar.revamp we apply the background to the #sidebar
+     * browser. We still need the #sidebar-box background to match the toolbar
+     * tho */
     background-color: var(--toolbar-bgcolor);
     color: var(--toolbar-color);
     padding-block-end: var(--space-small);
@@ -74,6 +83,8 @@
     border-radius: var(--border-radius-medium);
     box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
     border: 0.5px solid var(--sidebar-border-color);
+    background-color: var(--sidebar-background-color);
+    color: var(--sidebar-text-color);
   }
 }
 
