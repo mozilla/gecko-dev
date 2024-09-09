@@ -107,6 +107,8 @@ support-files = ["favicon-normal16.png"]
 ["browser_click_bookmarks_on_toolbar.js"]
 https_first_disabled = true
 
+["browser_closePanelview.js"]
+
 ["browser_controller_onDrop.js"]
 
 ["browser_controller_onDrop_query.js"]

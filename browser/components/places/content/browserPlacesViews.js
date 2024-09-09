@@ -2154,6 +2154,39 @@ this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
     }
   }
 
+  destroyContextMenu() {
+    super.destroyContextMenu();
+    this.maybeClosePanel(PlacesUIUtils.lastContextMenuCommand);
+  }
+
+  /**
+   * Closes the view depending on the command.
+   *
+   * This is necessary because PlacesPanelview's buttons are not
+   * XUL menuitems and are not affected by the closemenu attribute.
+   *
+   * @param {string} command the placesCommands command
+   */
+  maybeClosePanel(command) {
+    switch (command) {
+      // placesCmd_open:newcontainertab is not a placesCommand but it
+      // is set by PlacesUIUtils.openInContainerTab to close the panel.
+      case "placesCmd_open:newcontainertab":
+      case "placesCmd_open:tab":
+        if (
+          this._viewElt.id != "PanelUI-bookmarks" ||
+          PlacesUIUtils.openInTabClosesMenu
+        ) {
+          this.panelMultiView.closest("panel").hidePopup();
+        }
+        break;
+      case "placesCmd_createBookmark":
+      case "placesCmd_deleteDataHost":
+        this.panelMultiView.closest("panel").hidePopup();
+        break;
+    }
+  }
+
   _onDragEnd() {
     this._draggedElt = null;
   }

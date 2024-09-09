@@ -134,6 +134,9 @@ add_setup(async function () {
     guid: PlacesUtils.bookmarks.menuGuid,
     children: bookmarkItems,
   });
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.bookmarks.openInTabClosesMenu", false]],
+  });
 
   registerCleanupFunction(async () => {
     await PlacesUtils.bookmarks.eraseEverything();
