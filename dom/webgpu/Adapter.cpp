@@ -217,6 +217,10 @@ bool Adapter::IsFallbackAdapter() const {
   return mInfo->device_type == ffi::WGPUDeviceType::WGPUDeviceType_Cpu;
 }
 
+bool Adapter::SupportExternalTextureInSwapChain() const {
+  return mInfo->support_use_external_texture_in_swap_chain;
+}
+
 static std::string_view ToJsKey(const Limit limit) {
   switch (limit) {
     case Limit::MaxTextureDimension1D:

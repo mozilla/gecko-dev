@@ -241,17 +241,24 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
                 backend,
             } = global.adapter_get_info(id).unwrap();
 
+            let is_hardware = match device_type {
+                wgt::DeviceType::IntegratedGpu | wgt::DeviceType::DiscreteGpu => true,
+                _ => false,
+            };
+
             if static_prefs::pref!("dom.webgpu.testing.assert-hardware-adapter") {
-                let is_hardware = match device_type {
-                    wgt::DeviceType::IntegratedGpu | wgt::DeviceType::DiscreteGpu => true,
-                    _ => false,
-                };
                 assert!(
                     is_hardware,
                     "Expected a hardware gpu adapter, got {:?}",
                     device_type
                 );
             }
+
+            let support_use_external_texture_in_swap_chain = if cfg!(target_os = "windows") {
+                id.backend() == wgt::Backend::Dx12 && is_hardware
+            } else {
+                false
+            };
 
             let info = AdapterInformation {
                 id,
@@ -264,6 +271,7 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
                 driver,
                 driver_info,
                 backend,
+                support_use_external_texture_in_swap_chain,
             };
             bincode::serialize_into(&mut data, &info).unwrap();
         }

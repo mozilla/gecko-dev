@@ -96,6 +96,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
   const RefPtr<SupportedFeatures>& Features() const;
   const RefPtr<SupportedLimits>& Limits() const;
   bool IsFallbackAdapter() const;
+  bool SupportExternalTextureInSwapChain() const;
 
   nsCString LabelOrId() const {
     nsCString ret = this->CLabel();

@@ -63,6 +63,8 @@ Device::Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
       // features are filled in Adapter::RequestDevice
       mFeatures(new SupportedFeatures(aParent)),
       mLimits(new SupportedLimits(aParent, aRawLimits)),
+      mSupportExternalTextureInSwapChain(
+          aParent->SupportExternalTextureInSwapChain()),
       mBridge(aParent->mBridge),
       mQueue(new class Queue(this, aParent->mBridge, aQueueId)) {
   mBridge->RegisterDevice(this);

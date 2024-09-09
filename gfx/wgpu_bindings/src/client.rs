@@ -489,6 +489,7 @@ pub extern "C" fn wgpu_client_adapter_extract_info(
         limits,
         name,
         vendor,
+        support_use_external_texture_in_swap_chain,
     } = bincode::deserialize::<AdapterInformation<String>>(unsafe { byte_buf.as_slice() }).unwrap();
 
     let nss = |s: &str| {
@@ -507,6 +508,7 @@ pub extern "C" fn wgpu_client_adapter_extract_info(
         limits,
         name: nss(&name),
         vendor,
+        support_use_external_texture_in_swap_chain,
     };
 }
 
@@ -1495,13 +1497,8 @@ pub extern "C" fn wgpu_texture_format_block_size_single_aspect(format: wgt::Text
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_use_external_texture_in_swapChain(
-    device_id: id::DeviceId,
     format: wgt::TextureFormat,
 ) -> bool {
-    if device_id.backend() != wgt::Backend::Dx12 {
-        return false;
-    }
-
     let supported = match format {
         wgt::TextureFormat::Bgra8Unorm => true,
         _ => false,
