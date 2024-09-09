@@ -289,6 +289,7 @@ def _get_build_variables(
         f"{description_suffix}",
         "DEB_PKG_INSTALL_PATH": deb_pkg_install_path,
         "DEB_PKG_NAME": deb_pkg_name,
+        "DEB_PRODUCT_NAME": application_ini_data["name"],
         "DEB_DISPLAY_NAME": application_ini_data["display_name"],
         "DEB_PKG_VERSION": application_ini_data["deb_pkg_version"],
         "DEB_CHANGELOG_DATE": format_datetime(application_ini_data["timestamp"]),
@@ -393,7 +394,7 @@ def _inject_deb_desktop_entry_file(
     fluent_resource_loader,
 ):
     desktop_entry_template_path = mozpath.join(
-        source_dir, "debian", f"{release_product}.desktop"
+        source_dir, "debian", f"{build_variables['DEB_PRODUCT_NAME'].lower()}.desktop"
     )
     desktop_entry_file_filename = f"{build_variables['DEB_PKG_NAME']}.desktop"
 
