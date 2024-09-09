@@ -209,8 +209,8 @@ RenderEGLImageTextureHost::ReadTexImage() {
   int shaderConfig = config.mFeatures;
 
   bool ret = mGL->ReadTexImageHelper()->ReadTexImage(
-      surf, mTextureHandle, mTextureTarget, mSize, shaderConfig,
-      /* aYInvert */ false);
+      surf, mTextureHandle, mTextureTarget, mSize, gfx::Matrix4x4(),
+      shaderConfig, /* aYInvert */ false);
   if (!ret) {
     return nullptr;
   }
