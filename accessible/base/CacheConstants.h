@@ -15,6 +15,7 @@ namespace a11y {
 
 class CacheDomain {
  public:
+  static constexpr uint64_t None = 0;
   static constexpr uint64_t NameAndDescription = ((uint64_t)0x1) << 0;
   static constexpr uint64_t Value = ((uint64_t)0x1) << 1;
   static constexpr uint64_t Bounds = ((uint64_t)0x1) << 2;
@@ -36,6 +37,7 @@ class CacheDomain {
   // Used for MathML.
   static constexpr uint64_t InnerHTML = ((uint64_t)0x1) << 17;
 #endif
+  static constexpr uint64_t TextBounds = ((uint64_t)0x1) << 18;
   static constexpr uint64_t All = ~((uint64_t)0x0);
 };
 
@@ -235,10 +237,10 @@ class CacheKey {
   // AccAttributes, CacheDomain::Text
   // Text attributes; font, etc.
   static constexpr nsStaticAtom* TextAttributes = nsGkAtoms::style;
-  // nsTArray<int32_t, 4 * n>, CacheDomain::Text | CacheDomain::Bounds
+  // nsTArray<int32_t, 4 * n>, CacheDomain::TextBounds
   // The bounds of each character in a text leaf.
   static constexpr nsStaticAtom* TextBounds = nsGkAtoms::characterData;
-  // nsTArray<int32_t>, CacheDomain::Text | CacheDomain::Bounds
+  // nsTArray<int32_t>, CacheDomain::TextBounds
   // The text offsets where new lines start.
   static constexpr nsStaticAtom* TextLineStarts = nsGkAtoms::line;
   // nsString, CacheDomain::Value

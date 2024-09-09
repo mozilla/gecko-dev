@@ -764,14 +764,21 @@ child:
     async UnlinkGhosts();
 
     /**
-     * Start accessibility engine in content process.
+     * Start accessibility engine in content process. aDomains specifies the
+     * cache domains for which content processes should send info.
      */
-    async ActivateA11y();
+    async ActivateA11y(uint64_t aDomains);
 
     /**
      * Shutdown accessibility engine in content process (if not in use).
      */
     async ShutdownA11y();
+
+    /**
+     * Set accessibility cache domains, effectively requesting more or less
+     * cached information from the content process.
+     */
+    async SetCacheDomains(uint64_t aCacheDomains);
 
     async AppInfo(nsCString version, nsCString buildID, nsCString name, nsCString UAName,
                   nsCString ID, nsCString vendor, nsCString sourceURL, nsCString updateURL);

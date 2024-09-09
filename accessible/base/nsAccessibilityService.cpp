@@ -34,6 +34,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsTextFormatter.h"
 #include "OuterDocAccessible.h"
+#include "Pivot.h"
 #include "mozilla/a11y/Role.h"
 #ifdef MOZ_ACCESSIBILITY_ATK
 #  include "RootAccessibleWrap.h"
@@ -61,6 +62,7 @@
 #include "nsTreeUtils.h"
 #include "mozilla/a11y/AccTypes.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/HTMLTableElement.h"
@@ -135,6 +137,22 @@ static LocalAccessible* MaybeCreateSpecificARIAAccessible(
     }
   }
   return nullptr;
+}
+
+// Send a request to all content processes that they build and send back
+// information about the given cache domains.
+static bool SendCacheDomainRequestToAllContentProcesses(
+    uint64_t aCacheDomains) {
+  if (!XRE_IsParentProcess()) {
+    return false;
+  }
+  bool sentAll = true;
+  nsTArray<ContentParent*> contentParents;
+  ContentParent::GetAll(contentParents);
+  for (auto* parent : contentParents) {
+    sentAll = sentAll && parent->SendSetCacheDomains(aCacheDomains);
+  }
+  return sentAll;
 }
 
 /**
@@ -431,6 +449,8 @@ ApplicationAccessible* nsAccessibilityService::gApplicationAccessible = nullptr;
 xpcAccessibleApplication* nsAccessibilityService::gXPCApplicationAccessible =
     nullptr;
 uint32_t nsAccessibilityService::gConsumers = 0;
+uint64_t nsAccessibilityService::gCacheDomains =
+    nsAccessibilityService::kDefaultCacheDomains;
 
 nsAccessibilityService::nsAccessibilityService()
     : mHTMLMarkupMap(ArrayLength(sHTMLMarkupMapList)),
@@ -1489,7 +1509,7 @@ mozilla::Monitor& nsAccessibilityService::GetAndroidMonitor() {
 ////////////////////////////////////////////////////////////////////////////////
 // nsAccessibilityService private
 
-bool nsAccessibilityService::Init() {
+bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
   AUTO_PROFILER_MARKER_TEXT("nsAccessibilityService::Init", A11Y, {}, ""_ns);
   // DO NOT ADD CODE ABOVE HERE: THIS CODE IS MEASURING TIMINGS.
 
@@ -1551,6 +1571,10 @@ bool nsAccessibilityService::Init() {
 
   // Now its safe to start platform accessibility.
   if (XRE_IsParentProcess()) PlatformInit();
+
+  // Set the active accessibility cache domains. We might want to modify the
+  // domains that we activate based on information about the instantiator.
+  gCacheDomains = ::GetCacheDomainsForKnownClients(aCacheDomains);
 
   statistics::A11yInitialized();
 
@@ -1826,6 +1850,48 @@ void nsAccessibilityService::GetConsumers(nsAString& aString) {
   aString.Assign(json);
 }
 
+void nsAccessibilityService::SetCacheDomains(uint64_t aCacheDomains) {
+  if (XRE_IsParentProcess()) {
+    const DebugOnly<bool> requestSent =
+        SendCacheDomainRequestToAllContentProcesses(aCacheDomains);
+    MOZ_ASSERT(requestSent,
+               "Could not send cache domain request to content processes.");
+    gCacheDomains = aCacheDomains;
+    return;
+  }
+
+  // Bail out if we're not a content process.
+  if (!XRE_IsContentProcess()) {
+    return;
+  }
+
+  // Anything not enabled already but enabled now is a newly-enabled domain.
+  const uint64_t newDomains = ~gCacheDomains & aCacheDomains;
+
+  // Queue cache updates on all accessibles in all documents within this
+  // process.
+  if (newDomains != CacheDomain::None) {
+    for (const RefPtr<DocAccessible>& doc : mDocAccessibleCache.Values()) {
+      MOZ_ASSERT(doc, "DocAccessible in cache is null!");
+      doc->QueueCacheUpdate(doc.get(), newDomains, true);
+      Pivot pivot(doc.get());
+      LocalAccInSameDocRule rule;
+      for (Accessible* anchor = doc.get(); anchor;
+           anchor = pivot.Next(anchor, rule)) {
+        LocalAccessible* acc = anchor->AsLocal();
+
+        // Note: Queueing changes for domains that aren't yet active. The
+        // domains will become active at the end of the function.
+        doc->QueueCacheUpdate(acc, newDomains, true);
+      }
+      // Process queued cache updates immediately.
+      doc->ProcessQueuedCacheUpdates(newDomains);
+    }
+  }
+
+  gCacheDomains = aCacheDomains;
+}
+
 void nsAccessibilityService::NotifyOfConsumersChange() {
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
@@ -1854,15 +1920,22 @@ const mozilla::a11y::MarkupMapInfo* nsAccessibilityService::GetMarkupMapInfoFor(
   return mHTMLMarkupMap.Get(aAcc->TagName());
 }
 
-nsAccessibilityService* GetOrCreateAccService(uint32_t aNewConsumer) {
+nsAccessibilityService* GetOrCreateAccService(uint32_t aNewConsumer,
+                                              uint64_t aCacheDomains) {
   // Do not initialize accessibility if it is force disabled.
   if (PlatformDisabledState() == ePlatformIsDisabled) {
     return nullptr;
   }
 
   if (!nsAccessibilityService::gAccessibilityService) {
+    uint64_t cacheDomains = aCacheDomains;
+    if (aNewConsumer == nsAccessibilityService::eXPCOM) {
+      // When instantiated via XPCOM, cache all accessibility information.
+      cacheDomains = CacheDomain::All;
+    }
+
     RefPtr<nsAccessibilityService> service = new nsAccessibilityService();
-    if (!service->Init()) {
+    if (!service->Init(cacheDomains)) {
       service->Shutdown();
       return nullptr;
     }

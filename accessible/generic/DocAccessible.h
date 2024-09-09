@@ -8,6 +8,7 @@
 
 #include "HyperTextAccessible.h"
 #include "AccEvent.h"
+#include "nsAccessibilityService.h"
 
 #include "nsClassHashtable.h"
 #include "nsTHashMap.h"
@@ -118,7 +119,8 @@ class DocAccessible : public HyperTextAccessible,
    * Note that this CANNOT be used for anything which fires events, since events
    * must be fired after their associated cache update.
    */
-  void QueueCacheUpdate(LocalAccessible* aAcc, uint64_t aNewDomain);
+  void QueueCacheUpdate(LocalAccessible* aAcc, uint64_t aNewDomain,
+                        bool aBypassActiveDomains = false);
 
   /**
    * Walks the dependent ids and elements maps for the given accessible and
@@ -559,8 +561,10 @@ class DocAccessible : public HyperTextAccessible,
    * Called from NotificationController to process this doc's
    * queued cache updates. For each acc in the map, this function
    * sends a cache update with its corresponding CacheDomain.
+   * Each domain bit in aInitialDomains indicates that this is the first push
+   * for that cache domain.
    */
-  void ProcessQueuedCacheUpdates();
+  void ProcessQueuedCacheUpdates(uint64_t aInitialDomains = 0);
 
   /**
    * Called from NotificationController before mutation events are processed to
@@ -816,6 +820,12 @@ class DocAccessible : public HyperTextAccessible,
   RefPtr<NotificationController> mNotificationController;
   friend class EventTree;
   friend class NotificationController;
+
+  /*
+   * The accessibility service may need to process queued cache updates outside
+   * of the regular NotificationController flow.
+   */
+  friend class ::nsAccessibilityService;
 
  private:
   void SetRoleMapEntryForDoc(dom::Element* aElement);

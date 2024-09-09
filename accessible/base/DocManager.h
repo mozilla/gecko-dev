@@ -162,10 +162,12 @@ class DocManager : public nsIWebProgressListener,
    */
   void ClearDocCache();
 
+ protected:
   typedef nsRefPtrHashtable<nsPtrHashKey<const dom::Document>, DocAccessible>
       DocAccessibleHashtable;
   DocAccessibleHashtable mDocAccessibleCache;
 
+ private:
   typedef nsRefPtrHashtable<nsPtrHashKey<const DocAccessible>,
                             xpcAccessibleDocument>
       XPCDocumentHashtable;

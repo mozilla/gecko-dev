@@ -9,6 +9,7 @@
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/a11y/Accessible.h"
 #include "mozilla/a11y/AccTypes.h"
+#include "mozilla/a11y/CacheConstants.h"
 #include "mozilla/a11y/RelationType.h"
 #include "mozilla/a11y/States.h"
 
@@ -715,7 +716,8 @@ class LocalAccessible : public nsISupports, public Accessible {
   virtual bool IsRemote() const override { return false; }
 
   already_AddRefed<AccAttributes> BundleFieldsForCache(
-      uint64_t aCacheDomain, CacheUpdateType aUpdateType);
+      uint64_t aCacheDomain, CacheUpdateType aUpdateType,
+      uint64_t aInitialDomains = CacheDomain::None);
 
   /**
    * Push fields to cache.

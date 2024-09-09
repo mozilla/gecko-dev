@@ -60,8 +60,9 @@ AccessibleData DocAccessibleChild::SerializeAcc(LocalAccessible* aAcc) {
   // Even though we send moves as a hide and a show, we don't want to
   // push the cache again for moves.
   if (!aAcc->Document()->IsAccessibleBeingMoved(aAcc)) {
-    fields =
-        aAcc->BundleFieldsForCache(CacheDomain::All, CacheUpdateType::Initial);
+    fields = aAcc->BundleFieldsForCache(
+        nsAccessibilityService::GetActiveCacheDomains(),
+        CacheUpdateType::Initial);
     if (fields->Count() == 0) {
       fields = nullptr;
     }

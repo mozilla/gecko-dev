@@ -346,8 +346,9 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvFlushMemory(const nsString& reason);
 
-  mozilla::ipc::IPCResult RecvActivateA11y();
+  mozilla::ipc::IPCResult RecvActivateA11y(uint64_t aCacheDomains);
   mozilla::ipc::IPCResult RecvShutdownA11y();
+  mozilla::ipc::IPCResult RecvSetCacheDomains(uint64_t aCacheDomains);
 
   mozilla::ipc::IPCResult RecvApplicationForeground();
   mozilla::ipc::IPCResult RecvApplicationBackground();

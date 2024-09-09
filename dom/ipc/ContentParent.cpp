@@ -1617,7 +1617,7 @@ void ContentParent::Init() {
   // If accessibility is running in chrome process then start it in content
   // process.
   if (GetAccService()) {
-    Unused << SendActivateA11y();
+    Unused << SendActivateA11y(nsAccessibilityService::GetActiveCacheDomains());
   }
 #endif  // #ifdef ACCESSIBILITY
 
@@ -3808,7 +3808,8 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
     if (*aData == '1') {
       // Make sure accessibility is running in content process when
       // accessibility gets initiated in chrome process.
-      Unused << SendActivateA11y();
+      Unused << SendActivateA11y(
+          nsAccessibilityService::GetActiveCacheDomains());
     } else {
       // If possible, shut down accessibility in content process when
       // accessibility gets shutdown in chrome process.
