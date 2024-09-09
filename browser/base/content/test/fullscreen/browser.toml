@@ -49,8 +49,6 @@ skip-if = [
 
 ["browser_fullscreen_newwindow.js"]
 
-["browser_fullscreen_tab_preview.js"]
-
 ["browser_fullscreen_permissions_prompt.js"]
 
 ["browser_fullscreen_warning.js"]

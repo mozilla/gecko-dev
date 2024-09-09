@@ -798,7 +798,7 @@ var FullScreen = {
     // e.g. we wouldn't want the autoscroll icon firing this event, so when the user
     // toggles chrome when moving mouse to the top, it doesn't go away again.
     let target = aEvent.originalTarget;
-    if (target.localName == "tooltip" || target.id == "tab-preview-panel") {
+    if (target.localName == "tooltip") {
       return;
     }
     if (
