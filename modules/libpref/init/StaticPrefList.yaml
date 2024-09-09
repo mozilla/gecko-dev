@@ -4899,7 +4899,7 @@
 
 - name: dom.webnotifications.silent.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 - name: dom.webnotifications.vibrate.enabled
