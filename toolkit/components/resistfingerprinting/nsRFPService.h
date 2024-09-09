@@ -15,6 +15,7 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/dom/MediaDeviceInfoBinding.h"
+#include "mozilla/dom/ScreenOrientationBinding.h"
 #include "js/RealmOptions.h"
 #include "nsHashtablesFwd.h"
 #include "nsICookieJarSettings.h"
@@ -378,6 +379,14 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // Example: Audio Group
   static void GetMediaDeviceGroup(nsString& aGroup,
                                   mozilla::dom::MediaDeviceKind aKind);
+
+  // Converts any OrientationType::SOMETHING_secondary to
+  // OrientationType::SOMETHING_primary
+  static mozilla::dom::OrientationType OrientationSecondaryToPrimary(
+      mozilla::dom::OrientationType aOrientation);
+
+  // Converts (exactly) 180 degrees to 0 degrees, 270 degrees to 90 degrees.
+  static uint16_t OrientationSecondaryToPrimary(uint16_t aAngle);
 
  private:
   nsresult Init();

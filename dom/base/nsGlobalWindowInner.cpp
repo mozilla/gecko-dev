@@ -7263,11 +7263,12 @@ void nsGlobalWindowInner::InitWasOffline() { mWasOffline = NS_IsOffline(); }
 int16_t nsGlobalWindowInner::Orientation(CallerType aCallerType) {
   // GetOrientationAngle() returns 0, 90, 180 or 270.
   // window.orientation returns -90, 0, 90 or 180.
+  uint16_t screenAngle = Screen()->GetOrientationAngle();
   if (nsIGlobalObject::ShouldResistFingerprinting(
           aCallerType, RFPTarget::ScreenOrientation)) {
-    return 0;
+    screenAngle = nsRFPService::OrientationSecondaryToPrimary(screenAngle);
   }
-  int16_t angle = AssertedCast<int16_t>(Screen()->GetOrientationAngle());
+  int16_t angle = AssertedCast<int16_t>(screenAngle);
   return angle <= 180 ? angle : angle - 360;
 }
 

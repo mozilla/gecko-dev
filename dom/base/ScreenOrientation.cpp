@@ -626,7 +626,7 @@ void ScreenOrientation::CleanupFullscreenListener() {
 OrientationType ScreenOrientation::DeviceType(CallerType aCallerType) const {
   if (nsContentUtils::ShouldResistFingerprinting(
           aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
-    return OrientationType::Landscape_primary;
+    return nsRFPService::OrientationSecondaryToPrimary(mType);
   }
   return mType;
 }
@@ -634,18 +634,13 @@ OrientationType ScreenOrientation::DeviceType(CallerType aCallerType) const {
 uint16_t ScreenOrientation::DeviceAngle(CallerType aCallerType) const {
   if (nsContentUtils::ShouldResistFingerprinting(
           aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
-    return 0;
+    return nsRFPService::OrientationSecondaryToPrimary(mAngle);
   }
   return mAngle;
 }
 
 OrientationType ScreenOrientation::GetType(CallerType aCallerType,
                                            ErrorResult& aRv) const {
-  if (nsContentUtils::ShouldResistFingerprinting(
-          aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
-    return OrientationType::Landscape_primary;
-  }
-
   Document* doc = GetResponsibleDocument();
   BrowsingContext* bc = doc ? doc->GetBrowsingContext() : nullptr;
   if (!bc) {
@@ -653,16 +648,16 @@ OrientationType ScreenOrientation::GetType(CallerType aCallerType,
     return OrientationType::Portrait_primary;
   }
 
-  return bc->GetCurrentOrientationType();
+  OrientationType orientation = bc->GetCurrentOrientationType();
+  if (nsContentUtils::ShouldResistFingerprinting(
+          aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
+    return nsRFPService::OrientationSecondaryToPrimary(orientation);
+  }
+  return orientation;
 }
 
 uint16_t ScreenOrientation::GetAngle(CallerType aCallerType,
                                      ErrorResult& aRv) const {
-  if (nsContentUtils::ShouldResistFingerprinting(
-          aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
-    return 0;
-  }
-
   Document* doc = GetResponsibleDocument();
   BrowsingContext* bc = doc ? doc->GetBrowsingContext() : nullptr;
   if (!bc) {
@@ -670,7 +665,12 @@ uint16_t ScreenOrientation::GetAngle(CallerType aCallerType,
     return 0;
   }
 
-  return bc->GetCurrentOrientationAngle();
+  uint16_t angle = static_cast<uint16_t>(bc->GetCurrentOrientationAngle());
+  if (nsContentUtils::ShouldResistFingerprinting(
+          aCallerType, GetOwnerGlobal(), RFPTarget::ScreenOrientation)) {
+    return nsRFPService::OrientationSecondaryToPrimary(angle);
+  }
+  return angle;
 }
 
 ScreenOrientation::LockPermission
