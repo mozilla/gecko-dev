@@ -277,3 +277,7 @@ bool a11y::ShouldA11yBeEnabled() {
 
   return false;
 }
+
+uint64_t a11y::GetCacheDomainsForKnownClients(uint64_t aCacheDomains) {
+  return aCacheDomains;
+}

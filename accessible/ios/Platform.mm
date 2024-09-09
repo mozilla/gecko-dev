@@ -53,5 +53,9 @@ void PlatformShowHideEvent(Accessible*, Accessible*, bool, bool) {}
 
 void PlatformSelectionEvent(Accessible*, Accessible*, uint32_t) {}
 
+uint64_t GetCacheDomainsForKnownClients(uint64_t aCacheDomains) {
+  return aCacheDomains;
+}
+
 }  // namespace a11y
 }  // namespace mozilla

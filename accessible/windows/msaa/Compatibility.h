@@ -55,6 +55,14 @@ class Compatibility {
    */
   static bool IsVisperoShared() { return !!(sConsumers & VISPEROSHARED); }
 
+  /*
+   * Returns true if the instantiator is a known screen reader.
+   */
+  static bool IsKnownScreenReader() {
+    return IsJAWS() || IsDolphin() || IsVisperoShared() ||
+           !!(sConsumers & NVDA);
+  }
+
   /**
    * Return a string describing sConsumers suitable for about:support.
    * Exposed through nsIXULRuntime.accessibilityInstantiator.

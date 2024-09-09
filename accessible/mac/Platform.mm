@@ -21,6 +21,7 @@
 
 #include "nsAppShell.h"
 #include "nsCocoaUtils.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/Telemetry.h"
 
 // Available from 10.13 onwards; test availability at runtime before using
@@ -200,6 +201,102 @@ void PlatformRoleChangedEvent(Accessible* aTarget, const a11y::role& aRole,
   }
 }
 
+// This enum lists possible assistive technology clients. It's intended for use
+// in an EnumSet since there can be multiple ATs active at once.
+enum class Client : uint64_t {
+  Unknown,
+  VoiceOver,
+  SwitchControl,
+  FullKeyboardAccess,
+  VoiceControl
+};
+
+// Get the set of currently-active clients and the client to log.
+// XXX: We should log all clients, but default to the first one encountered.
+std::pair<EnumSet<Client>, Client> GetClients() {
+  EnumSet<Client> clients;
+  std::optional<Client> clientToLog;
+  auto AddClient = [&clients, &clientToLog](Client client) {
+    clients += client;
+    if (!clientToLog.has_value()) {
+      clientToLog = client;
+    }
+  };
+  if ([[NSWorkspace sharedWorkspace]
+          respondsToSelector:@selector(isVoiceOverEnabled)] &&
+      [[NSWorkspace sharedWorkspace] isVoiceOverEnabled]) {
+    AddClient(Client::VoiceOver);
+  } else if ([[NSWorkspace sharedWorkspace]
+                 respondsToSelector:@selector(isSwitchControlEnabled)] &&
+             [[NSWorkspace sharedWorkspace] isSwitchControlEnabled]) {
+    AddClient(Client::SwitchControl);
+  } else {
+    // This is more complicated than the NSWorkspace queries above
+    // because (a) there is no "full keyboard access" query for NSWorkspace
+    // and (b) the [NSApplication fullKeyboardAccessEnabled] query checks
+    // the pre-Monterey version of full keyboard access, which is not what
+    // we're looking for here. For more info, see bug 1772375 comment 7.
+    Boolean exists;
+    int val = CFPreferencesGetAppIntegerValue(
+        CFSTR("FullKeyboardAccessEnabled"), CFSTR("com.apple.Accessibility"),
+        &exists);
+    if (exists && val == 1) {
+      AddClient(Client::FullKeyboardAccess);
+    } else {
+      val = CFPreferencesGetAppIntegerValue(CFSTR("CommandAndControlEnabled"),
+                                            CFSTR("com.apple.Accessibility"),
+                                            &exists);
+      if (exists && val == 1) {
+        AddClient(Client::VoiceControl);
+      } else {
+        AddClient(Client::Unknown);
+      }
+    }
+  }
+  return std::make_pair(clients, clientToLog.value());
+}
+
+// Expects a single client, returns a string representation of that client.
+constexpr const char* GetStringForClient(Client aClient) {
+  switch (aClient) {
+    case Client::Unknown:
+      return "Unknown";
+    case Client::VoiceOver:
+      return "VoiceOver";
+    case Client::SwitchControl:
+      return "SwitchControl";
+    case Client::FullKeyboardAccess:
+      return "FullKeyboardAccess";
+    case Client::VoiceControl:
+      return "VoiceControl";
+    default:
+      break;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown Client enum value!");
+  return "";
+}
+
+uint64_t GetCacheDomainsForKnownClients(uint64_t aCacheDomains) {
+  auto [clients, _] = GetClients();
+  // We expect VoiceOver will require all information we have.
+  if (clients.contains(Client::VoiceOver)) {
+    return CacheDomain::All;
+  }
+  if (clients.contains(Client::FullKeyboardAccess)) {
+    aCacheDomains |= CacheDomain::Bounds;
+  }
+  if (clients.contains(Client::SwitchControl)) {
+    // XXX: Find minimum set of domains required for SwitchControl.
+    // SwitchControl can give up if we don't furnish it certain information.
+    return CacheDomain::All;
+  }
+  if (clients.contains(Client::VoiceControl)) {
+    // XXX: Find minimum set of domains required for VoiceControl.
+    return CacheDomain::All;
+  }
+  return aCacheDomains;
+}
+
 }  // namespace a11y
 }  // namespace mozilla
 
@@ -224,46 +321,16 @@ void PlatformRoleChangedEvent(Accessible* aTarget, const a11y::role& aRole,
     mozilla::a11y::sA11yShouldBeEnabled = ([value intValue] == 1);
     if (sA11yShouldBeEnabled) {
       // If accessibility should be enabled, log the appropriate client
-      nsAutoString client;
-      if ([[NSWorkspace sharedWorkspace]
-              respondsToSelector:@selector(isVoiceOverEnabled)] &&
-          [[NSWorkspace sharedWorkspace] isVoiceOverEnabled]) {
-        client.Assign(u"VoiceOver"_ns);
-      } else if ([[NSWorkspace sharedWorkspace]
-                     respondsToSelector:@selector(isSwitchControlEnabled)] &&
-                 [[NSWorkspace sharedWorkspace] isSwitchControlEnabled]) {
-        client.Assign(u"SwitchControl"_ns);
-      } else {
-        // This is more complicated than the NSWorkspace queries above
-        // because (a) there is no "full keyboard access" query for NSWorkspace
-        // and (b) the [NSApplication fullKeyboardAccessEnabled] query checks
-        // the pre-Monterey version of full keyboard access, which is not what
-        // we're looking for here. For more info, see bug 1772375 comment 7.
-        Boolean exists;
-        int val = CFPreferencesGetAppIntegerValue(
-            CFSTR("FullKeyboardAccessEnabled"),
-            CFSTR("com.apple.Accessibility"), &exists);
-        if (exists && val == 1) {
-          client.Assign(u"FullKeyboardAccess"_ns);
-        } else {
-          val = CFPreferencesGetAppIntegerValue(
-              CFSTR("CommandAndControlEnabled"),
-              CFSTR("com.apple.Accessibility"), &exists);
-          if (exists && val == 1) {
-            client.Assign(u"VoiceControl"_ns);
-          } else {
-            client.Assign(u"Unknown"_ns);
-          }
-        }
-      }
+      auto [_, clientToLog] = GetClients();
+      const char* client = GetStringForClient(clientToLog);
 
 #if defined(MOZ_TELEMETRY_REPORTING)
       mozilla::Telemetry::ScalarSet(
-          mozilla::Telemetry::ScalarID::A11Y_INSTANTIATORS, client);
+          mozilla::Telemetry::ScalarID::A11Y_INSTANTIATORS,
+          NS_ConvertASCIItoUTF16(client));
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
-      CrashReporter::RecordAnnotationNSCString(
-          CrashReporter::Annotation::AccessibilityClient,
-          NS_ConvertUTF16toUTF8(client));
+      CrashReporter::RecordAnnotationCString(
+          CrashReporter::Annotation::AccessibilityClient, client);
     }
   }
 
