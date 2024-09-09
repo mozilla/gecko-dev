@@ -2723,6 +2723,7 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
   CallRefMetricsRange range = codeMeta().getFuncDefCallRefs(funcIndex);
   for (uint32_t callRefIndex = range.begin;
        callRefIndex < range.begin + range.length; callRefIndex++) {
+    MOZ_RELEASE_ASSERT(callRefIndex < codeMeta().numCallRefMetrics);
     CallRefMetrics& metrics = callRefMetrics_[callRefIndex];
     if (metrics.state == CallRefMetrics::State::Monomorphic &&
         metrics.callCount >= callCountThreshold) {

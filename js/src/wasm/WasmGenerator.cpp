@@ -495,6 +495,7 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
 
   for (const CallRefMetricsPatch& patch : code.callRefMetricsPatches) {
     if (!patch.hasOffsetOfOffsetPatch()) {
+      numCallRefMetrics_ += 1;
       continue;
     }
 
