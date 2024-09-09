@@ -48,21 +48,3 @@ private_browsing.reset_pbm:
     notification_emails:
       - pbz@mozilla.com
     expires: never
-private_browsing:
-  window_open_during_teardown:
-    type: rate
-    description: >
-      Numerator: How often a new private browsing window is opened while the old
-      private browsing session is still being shut down.
-      Denominator: How many private browsing sessions (are fully exited).
-      Rate: Of all private browsing sessions, how often do we run into the race
-      condition.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900840
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1900840
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - pbz@mozilla.com
-    expires: 133

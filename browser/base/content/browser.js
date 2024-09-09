@@ -55,7 +55,6 @@ ChromeUtils.defineESModuleGetters(this, {
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
   PanelView: "resource:///modules/PanelMultiView.sys.mjs",
-  PBMExitStatus: "resource:///modules/PBMExitStatus.sys.mjs",
   PictureInPicture: "resource://gre/modules/PictureInPicture.sys.mjs",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
@@ -5898,10 +5897,6 @@ function warnAboutClosingWindow(source) {
     if (exitingCanceled.data) {
       return false;
     }
-    // Notify observers that we're commited to exiting private browsing.
-    // "last-pb-context-exiting" isn't suitable for this since exit can still be
-    // cancelled by one of the observers.
-    Services.obs.notifyObservers(null, "last-pb-context-exiting-granted");
   }
 
   if (otherWindowExists) {
@@ -6216,9 +6211,6 @@ var gPrivateBrowsingUI = {
     if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
       return;
     }
-
-    // Init PBM exit telemetry.
-    PBMExitStatus.init();
 
     // Disable the Clear Recent History... menu item when in PB mode
     // temporary fix until bug 463607 is fixed

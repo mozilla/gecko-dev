@@ -270,6 +270,5 @@
   "gFindBarInitialized",
   "gFindBarPromise",
   "BrowserSearch",
-  "PBMExitStatus",
   "SelectableProfileService"
 ]
