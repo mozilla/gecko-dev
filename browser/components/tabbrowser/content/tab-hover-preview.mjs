@@ -6,12 +6,6 @@ var { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 
-const POPUP_OPTIONS = {
-  position: "bottomleft topleft",
-  x: 0,
-  y: -2,
-};
-
 const ZERO_DELAY_ACTIVATION_TIME = 300;
 
 /**
@@ -64,12 +58,38 @@ export default class TabHoverPreviewPanel {
 
     this._panelOpener = new TabPreviewPanelTimedFunction(
       () => {
-        this._panel.openPopup(this._tab, POPUP_OPTIONS);
+        this._panel.openPopup(this._tab, this.#popupOptions);
       },
       this._prefPreviewDelay,
       ZERO_DELAY_ACTIVATION_TIME,
       this._win
     );
+  }
+
+  get #verticalMode() {
+    return this._win.gBrowser.tabContainer.verticalMode;
+  }
+
+  get #popupOptions() {
+    if (!this.#verticalMode) {
+      return {
+        position: "bottomleft topleft",
+        x: 0,
+        y: -2,
+      };
+    }
+    if (!this._win.SidebarController._positionStart) {
+      return {
+        position: "topleft topright",
+        x: 0,
+        y: 4,
+      };
+    }
+    return {
+      position: "topright topleft",
+      x: 0,
+      y: 4,
+    };
   }
 
   getPrettyURI(uri) {
@@ -231,9 +251,9 @@ export default class TabHoverPreviewPanel {
     if (this._tab) {
       this._panel.moveToAnchor(
         this._tab,
-        POPUP_OPTIONS.position,
-        POPUP_OPTIONS.x,
-        POPUP_OPTIONS.y
+        this.#popupOptions.position,
+        this.#popupOptions.x,
+        this.#popupOptions.y
       );
     }
   }
