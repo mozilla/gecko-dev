@@ -786,19 +786,6 @@ inline bool ToPrimitive(JSContext* cx, JSType preferredType,
 MOZ_ALWAYS_INLINE const char* GetObjectClassName(JSContext* cx,
                                                  HandleObject obj);
 
-/*
- * Prepare a |this| object to be returned to script. This includes replacing
- * Windows with their corresponding WindowProxy.
- *
- * Helpers are also provided to first extract the |this| from specific
- * types of environment.
- */
-JSObject* GetThisObject(JSObject* obj);
-
-JSObject* GetThisObjectOfLexical(JSObject* env);
-
-JSObject* GetThisObjectOfWith(JSObject* env);
-
 } /* namespace js */
 
 namespace js {

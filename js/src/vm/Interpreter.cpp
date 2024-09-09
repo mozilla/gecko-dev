@@ -158,7 +158,8 @@ bool js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
     while (true) {
       if (IsNSVOLexicalEnvironment(env) ||
           env->is<GlobalLexicalEnvironmentObject>()) {
-        res.setObject(*GetThisObjectOfLexical(env));
+        auto* obj = env->as<ExtensibleLexicalEnvironmentObject>().thisObject();
+        res.setObject(*obj);
         return true;
       }
       if (!env->enclosingEnvironment()) {
@@ -186,7 +187,8 @@ void js::GetNonSyntacticGlobalThis(JSContext* cx, HandleObject envChain,
   JSObject* env = envChain;
   while (true) {
     if (env->is<ExtensibleLexicalEnvironmentObject>()) {
-      res.setObject(*GetThisObjectOfLexical(env));
+      auto* obj = env->as<ExtensibleLexicalEnvironmentObject>().thisObject();
+      res.setObject(*obj);
       return;
     }
     if (!env->enclosingEnvironment()) {
@@ -1432,7 +1434,8 @@ static inline Value ComputeImplicitThis(JSObject* env) {
 
   // WithEnvironmentObjects have an actual implicit |this|
   if (env->is<WithEnvironmentObject>()) {
-    return ObjectValue(*GetThisObjectOfWith(env));
+    auto* thisObject = env->as<WithEnvironmentObject>().withThis();
+    return ObjectValue(*thisObject);
   }
 
   // Debugger environments need special casing, as despite being

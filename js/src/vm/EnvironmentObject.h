@@ -920,6 +920,12 @@ class ClassBodyLexicalEnvironmentObject
   static uint32_t privateBrandSlot() { return JSSLOT_FREE(&class_); }
 };
 
+/*
+ * Prepare a |this| object to be returned to script. This includes replacing
+ * Windows with their corresponding WindowProxy.
+ */
+JSObject* GetThisObject(JSObject* obj);
+
 // Global and non-syntactic lexical environments are extensible.
 class ExtensibleLexicalEnvironmentObject : public LexicalEnvironmentObject {
  public:

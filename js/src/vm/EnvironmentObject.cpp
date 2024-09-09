@@ -703,6 +703,21 @@ WasmFunctionCallObject* WasmFunctionCallObject::createHollowForDebug(
 
 /*****************************************************************************/
 
+JSObject* js::GetThisObject(JSObject* obj) {
+  // Use the WindowProxy if the global is a Window, as Window must never be
+  // exposed to script.
+  if (obj->is<GlobalObject>()) {
+    return ToWindowProxyIfWindow(obj);
+  }
+
+  // We should not expose any environments except NSVOs to script. The NSVO is
+  // pretending to be the global object in this case.
+  MOZ_ASSERT_IF(obj->is<EnvironmentObject>(),
+                obj->is<NonSyntacticVariablesObject>());
+
+  return obj;
+}
+
 WithEnvironmentObject* WithEnvironmentObject::create(JSContext* cx,
                                                      HandleObject object,
                                                      HandleObject enclosing,
