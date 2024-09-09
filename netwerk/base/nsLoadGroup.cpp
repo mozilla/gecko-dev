@@ -568,7 +568,8 @@ nsresult nsLoadGroup::RemoveRequestFromHashtable(nsIRequest* request,
 
   // Collect telemetry stats only when default request is a timed channel.
   // Don't include failed requests in the timing statistics.
-  if (mDefaultLoadIsTimed && NS_SUCCEEDED(aStatus)) {
+  if (mDefaultLoadIsTimed && NS_SUCCEEDED(aStatus) &&
+      request != mDefaultLoadRequest) {
     nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(request);
     if (timedChannel) {
       // Figure out if this request was served from the cache
