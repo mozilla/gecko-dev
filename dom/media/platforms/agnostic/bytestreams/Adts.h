@@ -123,6 +123,8 @@ Result<uint8_t, bool> GetFrequencyIndex(uint32_t aSamplesPerSecond);
 bool ConvertSample(uint16_t aChannelCount, uint8_t aFrequencyIndex,
                    uint8_t aProfile, mozilla::MediaRawData* aSample);
 bool RevertSample(MediaRawData* aSample);
+Result<already_AddRefed<MediaByteBuffer>, nsresult> MakeSpecificConfig(
+    uint8_t aObjectType, uint32_t aFrequency, uint32_t aChannelCount);
 }  // namespace ADTS
 }  // namespace mozilla
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Adts.h"
+#include "BitWriter.h"
 #include "MediaData.h"
 #include "PlatformDecoderModule.h"
 #include "mozilla/Array.h"
@@ -284,6 +285,52 @@ void InitAudioSpecificConfig(const ADTS::Frame& frame,
   asc[1] = (samplingFrequencyIndex & 0x01) << 7 | (channelConfig & 0x0F) << 3;
 
   aBuffer->AppendElements(asc, 2);
+}
+
+// https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Audio_Specific_Config
+Result<already_AddRefed<MediaByteBuffer>, nsresult> MakeSpecificConfig(
+    uint8_t aObjectType, uint32_t aFrequency, uint32_t aChannelCount) {
+  if (aObjectType > 45 /* USAC */ || aObjectType == 0x1F /* Escape value */) {
+    return Err(NS_ERROR_INVALID_ARG);
+  }
+
+  if (aFrequency > 0x00FFFFFF /* max value of 24 bits */) {
+    return Err(NS_ERROR_INVALID_ARG);
+  }
+
+  if (aChannelCount > 8 || aChannelCount == 7) {
+    return Err(NS_ERROR_INVALID_ARG);
+  }
+
+  uint8_t index = GetFrequencyIndex(aFrequency)
+                      .unwrapOr(0x0F /* frequency is written explictly */);
+  MOZ_ASSERT(index <= 0x0F /* index needs only 4 bits */);
+
+  uint8_t channelConfig =
+      aChannelCount == 8 ? aChannelCount - 1 : aChannelCount;
+
+  RefPtr<MediaByteBuffer> buffer = new MediaByteBuffer();
+  BitWriter bw(buffer);
+
+  if (aObjectType < 0x1F /* Escape value */) {
+    bw.WriteBits(aObjectType, 5);
+  } else {  // If object type needs more than 5 bits
+    MOZ_ASSERT(aObjectType >= 32);
+    bw.WriteBits(0x1F, 5);
+    // Since aObjectType < 0x3F + 32, it's safe to put it into 6 bits.
+    bw.WriteBits(aObjectType - 32, 6);
+  }
+
+  bw.WriteBits(index, 4);
+  if (index == 0x0F /* frequency is written explictly */) {
+    bw.WriteBits(aFrequency, 24);
+  }
+
+  bw.WriteBits(channelConfig, 4);
+
+  // Skip extension configuration for now.
+
+  return buffer.forget();
 }
 
 };  // namespace ADTS
