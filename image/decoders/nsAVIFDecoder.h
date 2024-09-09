@@ -90,6 +90,7 @@ class nsAVIFDecoder final : public Decoder {
 
   bool mIsAnimated = false;
   bool mHasAlpha = false;
+  bool mUsePipeTransform = true;
 };
 
 class AVIFDecoderStream : public ByteStream {

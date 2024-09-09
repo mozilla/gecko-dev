@@ -15,3 +15,7 @@ defaults pref(image.avif.enabled,true) pref(image.avif.apply_transforms,true)
 == img_irotN_imir1.avif 2-flipped-horizontally.avif
 == img_irotN_imir0.avif 4-flipped-vertically.avif
 == img_irotN_imirN.avif 1-normal.avif
+
+# test grayscale avifs with icc profiles color management, both with and without alpha
+== grayscale-icc.avif grayscale-icc.png
+== grayscale-alpha-icc.avif grayscale-alpha-icc.png

@@ -1848,6 +1848,7 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
 
     uint32_t profileSpace = qcms_profile_get_color_space(mInProfile);
     if (profileSpace != icSigGrayData) {
+      mUsePipeTransform = true;
       // If the transform happens with SurfacePipe, it will be in RGBA if we
       // have an alpha channel, because the swizzle and premultiplication
       // happens after color management. Otherwise it will be in BGRA because
@@ -1860,6 +1861,10 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
         outType = inType;
       }
     } else {
+      // We can't use SurfacePipe to do the color management (it can't handle
+      // grayscale data), we have to do it ourselves on the grayscale data
+      // before passing the now RGB data to SurfacePipe.
+      mUsePipeTransform = false;
       if (mHasAlpha) {
         inType = QCMS_DATA_GRAYA_8;
         outType = gfxPlatform::GetCMSOSRGBAType();
@@ -1914,8 +1919,9 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     if (mTransform) {
       // Color management needs to be done on non-premult data, so
       // ConvertYCbCrToRGB32 needs to produce non-premult data, then color
-      // management can happen and then later in the surface pipe we will
-      // convert to premult if needed.
+      // management can happen (either here for grayscale data, or in surface
+      // pipe otherwise) and then later in the surface pipe we will convert to
+      // premult if needed.
       if (hasPremultiply) {
         premultOp = libyuv::ARGBUnattenuate;
       }
@@ -1944,8 +1950,6 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] calling SurfacePipeFactory::CreateSurfacePipe", this));
 
-  Maybe<SurfacePipe> pipe = Nothing();
-
   SurfacePipeFlags pipeFlags = SurfacePipeFlags();
   if (decodedData->mAlpha && mTransform) {
     // we know data is non-premult in this case, see above, so if we
@@ -1954,6 +1958,9 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
       pipeFlags |= SurfacePipeFlags::PREMULTIPLY_ALPHA;
     }
   }
+
+  Maybe<SurfacePipe> pipe = Nothing();
+  auto* transform = mUsePipeTransform ? mTransform : nullptr;
 
   if (mIsAnimated) {
     SurfaceFormat outFormat =
@@ -1966,10 +1973,10 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     }
     pipe = SurfacePipeFactory::CreateSurfacePipe(
         this, Size(), OutputSize(), FullFrame(), format, outFormat, animParams,
-        mTransform, pipeFlags);
+        transform, pipeFlags);
   } else {
     pipe = SurfacePipeFactory::CreateReorientSurfacePipe(
-        this, Size(), OutputSize(), format, mTransform, GetOrientation(),
+        this, Size(), OutputSize(), format, transform, GetOrientation(),
         pipeFlags);
   }
 
@@ -1982,8 +1989,29 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
   MOZ_LOG(sAVIFLog, LogLevel::Debug, ("[this=%p] writing to surface", this));
   const uint8_t* endOfRgbBuf = {rgbBuf.get() + rgbBufLength.value()};
   WriteState writeBufferResult = WriteState::NEED_MORE_DATA;
+  uint8_t* grayLine = nullptr;
+  int32_t multiplier = 1;
+  if (mTransform && !mUsePipeTransform) {
+    if (mHasAlpha) {
+      multiplier = 2;
+    }
+    // We know this calculation doesn't overflow because rgbStride is a larger
+    // value and is valid here.
+    grayLine = new uint8_t[multiplier * rgbSize.width];
+  }
   for (uint8_t* rowPtr = rgbBuf.get(); rowPtr < endOfRgbBuf;
        rowPtr += rgbStride.value()) {
+    if (mTransform && !mUsePipeTransform) {
+      // format is B8G8R8A8 or B8G8R8X8, so 1 offset picks G
+      for (int32_t i = 0; i < rgbSize.width; i++) {
+        grayLine[multiplier * i] = rowPtr[i * bytesPerPixel + 1];
+        if (mHasAlpha) {
+          grayLine[multiplier * i + 1] = rowPtr[i * bytesPerPixel + 3];
+        }
+      }
+      qcms_transform_data(mTransform, grayLine, rowPtr, rgbSize.width);
+    }
+
     writeBufferResult = pipe->WriteBuffer(reinterpret_cast<uint32_t*>(rowPtr));
 
     Maybe<SurfaceInvalidRect> invalidRect = pipe->TakeInvalidRect();
@@ -1999,6 +2027,9 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     } else if (writeBufferResult == WriteState::FINISHED) {
       MOZ_ASSERT(rowPtr + rgbStride.value() == endOfRgbBuf);
     }
+  }
+  if (mTransform && !mUsePipeTransform) {
+    delete[] grayLine;
   }
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
