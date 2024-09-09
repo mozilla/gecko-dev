@@ -259,7 +259,7 @@ class FxaWebChannelFeature(
         /**
          * Triggered when web content notifies a delete account request.
          */
-        private const val COMMAND_DELETE_ACCOUNT = "fxaccounts:delete_account"
+        private const val COMMAND_DELETE_ACCOUNT = "fxaccounts:delete"
 
         /**
          * Handles the [COMMAND_CAN_LINK_ACCOUNT] event from the web-channel.

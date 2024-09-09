@@ -782,7 +782,7 @@ class FxaWebChannelFeatureTest {
         val jsonToWebChannelDelete = JSONObject(
             """{
              "message":{
-                "command": "fxaccounts:delete_account",
+                "command": "fxaccounts:delete",
                 "messageId":123
              }
             }
