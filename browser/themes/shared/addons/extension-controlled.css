@@ -14,16 +14,20 @@
   margin-bottom: 0;
 }
 
-.extension-controlled-notification popupnotificationcontent > description > .extension-controlled-icon {
+.extension-controlled-icon {
   height: 16px;
   width: 16px;
   vertical-align: bottom;
-}
 
-.extension-controlled-icon.alltabs-icon {
-  background: url("chrome://global/skin/icons/arrow-down.svg");
-  /* This icon has a lot of extra space to the sides, reduce that a little. */
-  margin: 0 -1px 1px;
+  &.alltabs-icon {
+    background: url("chrome://browser/content/firefoxview/view-opentabs.svg");
+    -moz-context-properties: fill;
+    fill: currentColor;
+    height: 20px;
+    width: 20px;
+    /* This icon has a lot of extra space to the sides, reduce that a little. */
+    margin-block: -2px;
+  }
 }
 
 .extension-controlled-notification > .popup-notification-body-container > .popup-notification-body > .popup-notification-bottom-content > .popup-notification-warning,
