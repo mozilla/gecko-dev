@@ -1222,8 +1222,8 @@ ClassBodyLexicalEnvironmentObject::createWithoutEnclosing(
 JSObject* ExtensibleLexicalEnvironmentObject::thisObject() const {
   JSObject* obj = &getReservedSlot(THIS_VALUE_OR_SCOPE_SLOT).toObject();
 
-  // Windows must never be exposed to script. setWindowProxyThisValue should
-  // have set this to the WindowProxy.
+  // Windows must never be exposed to script. initThisObject should have set
+  // this to the WindowProxy.
   MOZ_ASSERT(!IsWindow(obj));
 
   // WarpBuilder relies on the return value not being nursery-allocated for the
@@ -3438,7 +3438,13 @@ JSObject& WithEnvironmentObject::object() const {
 }
 
 JSObject* WithEnvironmentObject::withThis() const {
-  return &getReservedSlot(THIS_SLOT).toObject();
+  JSObject* obj = &getReservedSlot(THIS_SLOT).toObject();
+
+  // Windows must never be exposed to script. WithEnvironmentObject::create
+  // should have set this to the WindowProxy.
+  MOZ_ASSERT(!IsWindow(obj));
+
+  return obj;
 }
 
 bool WithEnvironmentObject::isSyntactic() const {
