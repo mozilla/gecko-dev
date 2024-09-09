@@ -1854,12 +1854,12 @@ static MOZ_ALWAYS_INLINE bool ValueToAtomOrSymbolPure(JSContext* cx,
   }
 
   if (idVal.isNull()) {
-    *id = PropertyKey::NonIntAtom(cx->names().null);
+    *id = NameToId(cx->names().null);
     return true;
   }
 
   if (idVal.isUndefined()) {
-    *id = PropertyKey::NonIntAtom(cx->names().undefined);
+    *id = NameToId(cx->names().undefined);
     return true;
   }
 

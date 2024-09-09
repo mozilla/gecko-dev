@@ -2175,7 +2175,7 @@ bool js::RegExpExec(JSContext* cx, Handle<JSObject*> regexp,
                     MutableHandle<Value> rval) {
   // Step 1.
   Rooted<Value> exec(cx);
-  Rooted<PropertyKey> execKey(cx, PropertyKey::NonIntAtom(cx->names().exec));
+  Rooted<PropertyKey> execKey(cx, NameToId(cx->names().exec));
   if (!GetProperty(cx, regexp, regexp, execKey, &exec)) {
     return false;
   }

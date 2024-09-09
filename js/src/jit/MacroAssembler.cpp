@@ -2850,12 +2850,12 @@ void MacroAssembler::loadAtomOrSymbolAndHash(ValueOperand value, Register outId,
   }
 
   const JSAtomState& names = runtime()->names();
-  movePropertyKey(PropertyKey::NonIntAtom(names.undefined), outId);
+  movePropertyKey(NameToId(names.undefined), outId);
   move32(Imm32(names.undefined->hash()), outHash);
   jump(&done);
 
   bind(&isNull);
-  movePropertyKey(PropertyKey::NonIntAtom(names.null), outId);
+  movePropertyKey(NameToId(names.null), outId);
   move32(Imm32(names.null->hash()), outHash);
   jump(&done);
 

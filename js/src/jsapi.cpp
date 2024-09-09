@@ -3585,7 +3585,7 @@ JS_PUBLIC_API JS::PropertyKey JS::GetWellKnownSymbolKey(JSContext* cx,
 static bool AddPrefix(JSContext* cx, JS::Handle<JS::PropertyKey> id,
                       FunctionPrefixKind prefixKind,
                       JS::MutableHandle<JS::PropertyKey> out) {
-  JS::Rooted<JSAtom*> atom(cx, js::IdToFunctionName(cx, id, prefixKind));
+  JSAtom* atom = js::IdToFunctionName(cx, id, prefixKind);
   if (!atom) {
     return false;
   }
