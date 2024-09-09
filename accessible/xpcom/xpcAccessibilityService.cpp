@@ -230,6 +230,17 @@ xpcAccessibilityService::GetAccessibleFromCache(nsINode* aNode,
 }
 
 NS_IMETHODIMP
+xpcAccessibilityService::SetCacheDomains(uint64_t aCacheDomains) {
+  nsAccessibilityService* accService = GetAccService();
+  if (!accService) {
+    return NS_ERROR_SERVICE_NOT_AVAILABLE;
+  }
+
+  accService->SetCacheDomains(aCacheDomains);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 xpcAccessibilityService::CreateAccessiblePivot(nsIAccessible* aRoot,
                                                nsIAccessiblePivot** aPivot) {
   NS_ENSURE_ARG_POINTER(aPivot);

@@ -79,6 +79,15 @@ interface nsIAccessibilityService : nsISupports
   nsIAccessible getAccessibleFromCache(in Node aNode);
 
   /**
+   * Set the active cache domains. If any given domains are not currently
+   * active, then the accessibility service will enable them in all content
+   * processes, causing them to be cached.
+   *
+   * @param aCacheDomains [in] the cache domains to set
+   */
+  void setCacheDomains(in unsigned long long aCacheDomains);
+
+  /**
    * Create a new pivot for tracking a position and traversing a subtree.
    *
    * @param aRoot [in] the accessible root for the pivot
