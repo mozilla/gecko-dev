@@ -102,13 +102,9 @@ class CookieBannerHandlingDetailsView(
                         R.string.reduce_cookie_banner_details_panel_title_on_for_site_1,
                         shortUrl,
                     )
-                    CookieBannerUIMode.SITE_NOT_SUPPORTED -> {
-                        val appName = context.getString(R.string.app_name)
-                        context.getString(
-                            R.string.cookie_banner_handling_details_site_is_not_supported_title_3,
-                            appName,
-                        )
-                    }
+                    CookieBannerUIMode.SITE_NOT_SUPPORTED -> context.getString(
+                        R.string.cookie_banner_handling_details_site_is_not_supported_title_2,
+                    )
                     else -> ""
                 }
                 binding.title.text = title
@@ -129,7 +125,8 @@ class CookieBannerHandlingDetailsView(
                 appName,
             )
             CookieBannerUIMode.SITE_NOT_SUPPORTED -> context.getString(
-                R.string.reduce_cookie_banner_details_panel_title_unsupported_site_request_3,
+                R.string.reduce_cookie_banner_details_panel_title_unsupported_site_request_2,
+                appName,
             )
             else -> ""
         }
