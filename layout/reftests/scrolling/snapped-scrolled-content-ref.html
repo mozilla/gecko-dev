@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: Snapped rendering of scrolled contents</title>
+
+<style>
+
+body {
+  margin: 0;
+  padding: 60px;
+}
+
+#scrollArea {
+  width: 360px;
+  scrollbar-width: none;
+  background: white;
+  outline: 1px solid black;
+}
+
+#line {
+  height: 1px;
+  background-color: black;
+  margin-bottom: -1px; /* so that the top borders of the boxes cover the line */
+}
+
+#boxWrapper {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+#boxWrapper > div {
+  width: 60px;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+#box1 {
+  border: 1px solid red;
+}
+
+#box2 {
+  border: 1px solid green;
+}
+
+#box3 {
+  border: 1px solid blue;
+}
+
+</style>
+
+<div id="scrollArea" style="height: 192px;">
+  <div id="scrolledContent">
+    <div id="topSpacer" style="height: 96px;"></div>
+    <div id="line"></div>
+    <div id="boxWrapper">
+      <div id="box1"></div>
+      <div id="box2"></div>
+      <div id="box3"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const topSpacer = document.getElementById("topSpacer");
+const offset = new URLSearchParams(location.search).get("offset") ?? 0;
+topSpacer.style.height = (96 - parseFloat(offset)) + "px";
+
+</script>

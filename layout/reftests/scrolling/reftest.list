@@ -89,6 +89,30 @@ pref(apz.allow_zooming,true) fuzzy(0-1,0-2) fuzzy-if(geckoview,0-1,0-88) fuzzy-i
 == fractional-scroll-area.html?top=0.4&outerBottom=100.4&innerBottom=200.4&scrollBefore=999 fractional-scroll-area.html?top=0&outerBottom=100&innerBottom=200&scrollBefore=999
 != fractional-scroll-area-invalidation.html about:blank
 
+# "Snapped scrolled content" tests:
+# These tests check the following: No matter how you scroll, the scrolled contents should
+# always be rendered with the same snapping as if you hadn't scrolled; there should not
+# be any subpixel "shimmers" during scrolling. In other words, the device pixel
+# rendering at scroll position zero and the device pixel rendering at any other scroll
+# position should be identical except for an integer device pixel translation of the contents.
+# The zoom tests are marked with fails-if(useDrawSnapshot) due to bug 1917424.
+== snapped-scrolled-content-1.html snapped-scrolled-content-ref.html
+== snapped-scrolled-content-1.html?top=-0.4 snapped-scrolled-content-ref.html
+== snapped-scrolled-content-1.html?top=0.4 snapped-scrolled-content-ref.html
+== snapped-scrolled-content-1.html?scrollTop=4 snapped-scrolled-content-ref.html?offset=4
+== snapped-scrolled-content-1.html?scrollTop=999 snapped-scrolled-content-ref.html?offset=48
+== snapped-scrolled-content-1.html?scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?offset=48
+== snapped-scrolled-content-1.html?top=-0.4&scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?offset=48
+== snapped-scrolled-content-1.html?top=-0.4&scrollTop=999&innerBottom=239.6 snapped-scrolled-content-ref.html?offset=48
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html snapped-scrolled-content-ref.html
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?scrollTop=4.1667 snapped-scrolled-content-ref.html?offset=5
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?scrollTop=4 snapped-scrolled-content-ref.html?offset=5
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?scrollTop=3 snapped-scrolled-content-ref.html?offset=4
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?scrollTop=2 snapped-scrolled-content-ref.html?offset=2
+fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?scrollTop=1 snapped-scrolled-content-ref.html?offset=1
+fails == snapped-scrolled-content-1.html?top=0&scrollIntoViewPos=4.4 snapped-scrolled-content-ref.html?offset=4
+fails == snapped-scrolled-content-1.html?top=0&scrollIntoViewPos=3.7 snapped-scrolled-content-ref.html?offset=4
+
 # Tests for "overflow" styles that may be propagated to the viewport:
 == propagated-overflow-style-1a.html propagated-overflow-style-1-ref.html
 == propagated-overflow-style-1b.html propagated-overflow-style-1-ref.html

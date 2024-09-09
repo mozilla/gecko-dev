@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Snapped rendering of scrolled contents</title>
+
+<style>
+
+body {
+  margin: 0;
+  padding: 60px;
+}
+
+#scrollArea {
+  width: 360px;
+  overflow: auto;
+  scrollbar-width: none;
+  background: red;
+  outline: 1px solid black;
+}
+
+#scrolledContent {
+  position: relative;
+  background: white;
+}
+
+#line {
+  height: 1px;
+  background-color: black;
+  margin-bottom: -1px;
+}
+
+#boxWrapper {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+#boxWrapper > div {
+  width: 60px;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+#box1 {
+  margin-top: -0.3px;
+  border: 1px solid red;
+}
+
+#box2 {
+  border: 1px solid green;
+}
+
+#box3 {
+  margin-top: 0.3px;
+  border: 1px solid blue;
+}
+
+#scrollIntoViewTarget {
+  position: absolute;
+  left: 0;
+  width: 0;
+}
+
+</style>
+
+<div id="scrollArea">
+  <div id="scrolledContent">
+    <div id="topSpacer"></div>
+    <div id="line"></div>
+    <div id="boxWrapper">
+      <div id="box1"></div>
+      <div id="box2"></div>
+      <div id="box3"></div>
+    </div>
+    <div id="scrollIntoViewTarget"></div>
+  </div>
+</div>
+
+<script>
+
+function getFloatQueryParams(defaultValues) {
+  const result = Object.assign({}, defaultValues);
+  const searchParams = new URLSearchParams(location.search);
+  for (const [key, value] of searchParams) {
+    result[key] = parseFloat(value);
+  }
+  return result;
+}
+
+const params = getFloatQueryParams({
+  top: 0,
+  topSpace: 96,
+  outerBottom: 192,
+  innerBottom: 240,
+  scrollIntoViewPos: null,
+  scrollTop: null,
+});
+
+const scrollArea = document.getElementById("scrollArea");
+const scrolledContent = document.getElementById("scrolledContent");
+const topSpacer = document.getElementById("topSpacer");
+
+scrollArea.style.marginTop = params.top + "px";
+topSpacer.style.height = (params.topSpace - params.top) + "px";
+scrollArea.style.height = (params.outerBottom - params.top) + "px";
+scrolledContent.style.height =  (params.innerBottom - params.top) + "px";
+
+// Make sure the scroll frame has a display port.
+scrollArea.scrollTop = 1;
+scrollArea.scrollTop = 2;
+scrollArea.scrollTop = 0;
+
+function performScroll() {
+  if (params.scrollIntoViewPos !== null) {
+    // Scroll using `scrollIntoView`.
+    // At the time this test was written (2024-09-05), this way of calling scrollIntoView
+    // causes a ScrollTo call which doesn't allow any adjustment of the target scroll
+    // position for pixel alignment. This exercises "unsnapped" scrolling even if
+    // layout.scroll.disable-pixel-alignment is false. It also lets you scroll to
+    // fractional CSS positions, unlike scrollTop or scrollTo().
+    const scrollIntoViewTarget = document.getElementById("scrollIntoViewTarget");
+    scrollIntoViewTarget.style.top = params.scrollIntoViewPos + "px";
+    scrollIntoViewTarget.style.height = (params.outerBottom - params.top) + "px";
+    scrollIntoViewTarget.scrollIntoView();
+  } else if (params.scrollTop !== null) {
+    // Scroll to params.scrollTop using the scrollTop property.
+    // At the time this test was written (2024-09-05), this property only accepts integers in Firefox.
+    scrollArea.scrollTop = params.scrollTop;
+  }
+
+  document.documentElement.removeAttribute('class');
+}
+
+document.addEventListener("MozReftestInvalidate", performScroll);
+
+</script>
