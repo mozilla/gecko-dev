@@ -15,21 +15,16 @@
 
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "util/CheckedArithmetic.h"
-#include "vm/ArgumentsObject.h"
 #include "vm/BigIntType.h"
 #include "vm/BytecodeUtil.h"  // JSDVG_SEARCH_STACK
 #include "vm/JSAtomUtils.h"   // AtomizeString
 #include "vm/Realm.h"
-#include "vm/SharedStencil.h"  // GCThingIndex
 #include "vm/StaticStrings.h"
 #include "vm/ThrowMsgKind.h"
 #ifdef ENABLE_RECORD_TUPLE
 #  include "vm/RecordTupleShared.h"
 #endif
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-#  include "vm/DisposableRecord-inl.h"
-#endif
 #include "vm/GlobalObject-inl.h"
 #include "vm/JSAtomUtils-inl.h"  // PrimitiveValueToId, TypeName
 #include "vm/JSContext-inl.h"
