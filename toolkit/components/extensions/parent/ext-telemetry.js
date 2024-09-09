@@ -146,19 +146,9 @@ this.telemetry = class extends ExtensionAPI {
             throw new ExtensionUtils.ExtensionError(ex);
           }
         },
-        recordEvent(category, method, object, value, extra) {
+        recordEvent(_category, _method, _object, _value, _extra) {
           desktopCheck();
-          try {
-            Services.telemetry.recordEvent(
-              category,
-              method,
-              object,
-              value,
-              extra
-            );
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1894533 (Fx132).
         },
         registerScalars(category, data) {
           desktopCheck();
@@ -181,13 +171,9 @@ this.telemetry = class extends ExtensionAPI {
             throw new ExtensionUtils.ExtensionError(ex);
           }
         },
-        registerEvents(category, data) {
+        registerEvents(_category, _data) {
           desktopCheck();
-          try {
-            Services.telemetry.registerEvents(category, data);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
+          // No-op since bug 1894533 (Fx132).
         },
       },
     };

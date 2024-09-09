@@ -49,6 +49,8 @@ async function run(test) {
 // Currently unsupported on Android: blocked on 1220177.
 // See 1280234 c67 for discussion.
 if (AppConstants.MOZ_BUILD_APP === "browser") {
+  AddonTestUtils.init(this);
+
   add_task(async function test_telemetry_without_telemetry_permission() {
     await run({
       backgroundScript: () => {
@@ -544,6 +546,8 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
     Services.telemetry.clearEvents();
     Services.telemetry.setEventRecordingEnabled("telemetry.test", true);
 
+    ExtensionTestUtils.failOnSchemaWarnings(false);
+
     await run({
       backgroundScript: async () => {
         await browser.telemetry.recordEvent(
@@ -556,16 +560,22 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
       doneSignal: "record_event_ok",
     });
 
-    TelemetryTestUtils.assertEvents(
-      [
-        {
-          category: "telemetry.test",
-          method: "test1",
-          object: "object1",
-        },
-      ],
-      { category: "telemetry.test" }
+    const snapshot = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
     );
+    if ("parent" in snapshot) {
+      Assert.ok(
+        snapshot.parent.every(
+          ([, /*timestamp*/ category, method, object /* value, extra */]) =>
+            category != "telemetry.test" &&
+            method != "test1" &&
+            object != "object1"
+        )
+      );
+    }
+
+    ExtensionTestUtils.failOnSchemaWarnings(true);
 
     Services.telemetry.setEventRecordingEnabled("telemetry.test", false);
     Services.telemetry.clearEvents();
@@ -575,6 +585,8 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
   add_task(async function test_telemetry_record_event_value_must_be_string() {
     Services.telemetry.clearEvents();
     Services.telemetry.setEventRecordingEnabled("telemetry.test", true);
+
+    ExtensionTestUtils.failOnSchemaWarnings(false);
 
     await run({
       backgroundScript: async () => {
@@ -597,17 +609,24 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
       doneSignal: "record_event_string_value",
     });
 
-    TelemetryTestUtils.assertEvents(
-      [
-        {
-          category: "telemetry.test",
-          method: "test1",
-          object: "object1",
-          value: "value1",
-        },
-      ],
-      { category: "telemetry.test" }
+    const snapshot = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
     );
+    const testEvents =
+      snapshot.parent?.filter(
+        ([, category, method, object]) =>
+          category == "telemetry.test" &&
+          method == "test1" &&
+          object == "object1"
+      ) ?? [];
+    Assert.equal(
+      testEvents.length,
+      0,
+      "Deprecated telemetry.recordEvent should be no-op."
+    );
+
+    ExtensionTestUtils.failOnSchemaWarnings(true);
 
     Services.telemetry.setEventRecordingEnabled("telemetry.test", false);
     Services.telemetry.clearEvents();
@@ -739,36 +758,43 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
   add_task(async function test_telemetry_register_events() {
     Services.telemetry.clearEvents();
 
-    await run({
-      backgroundScript: async () => {
-        await browser.telemetry.registerEvents("telemetry.test.dynamic", {
-          test1: {
-            methods: ["test1"],
-            objects: ["object1"],
-            extra_keys: [],
-          },
-        });
-        await browser.telemetry.recordEvent(
-          "telemetry.test.dynamic",
-          "test1",
-          "object1"
-        );
-        browser.test.notifyPass("register_events");
-      },
-      doneSignal: "register_events",
+    ExtensionTestUtils.failOnSchemaWarnings(false);
+
+    const { messages } = await promiseConsoleOutput(async () => {
+      await run({
+        backgroundScript: async () => {
+          await browser.telemetry.registerEvents("telemetry.test.dynamic", {
+            test1: {
+              methods: ["test1"],
+              objects: ["object1"],
+              extra_keys: [],
+            },
+          });
+          await browser.telemetry.recordEvent(
+            "telemetry.test.dynamic",
+            "test1",
+            "object1"
+          );
+          browser.test.notifyPass("register_events");
+        },
+        doneSignal: "register_events",
+      });
     });
 
-    TelemetryTestUtils.assertEvents(
-      [
-        {
-          category: "telemetry.test.dynamic",
-          method: "test1",
-          object: "object1",
-        },
+    const expectedRegisterEventsMessage =
+      /`registerEvents` has been deprecated since Firefox 132 \(see bug 1894533\)/;
+    const expectedRecordEventMessage =
+      /`recordEvent` has been deprecated since Firefox 132 \(see bug 1894533\)/;
+
+    AddonTestUtils.checkMessages(messages, {
+      expected: [
+        { message: expectedRegisterEventsMessage },
+        { message: expectedRecordEventMessage },
       ],
-      { category: "telemetry.test.dynamic" },
-      { process: "dynamic" }
-    );
+      forbidUnexpected: true,
+    });
+
+    ExtensionTestUtils.failOnSchemaWarnings(true);
   });
 
   add_task(async function test_telemetry_submit_ping() {
