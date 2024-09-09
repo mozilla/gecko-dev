@@ -29,12 +29,11 @@ class nsAttrChildContentList : public nsINodeList {
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_WRAPPERCACHE_CLASS(nsAttrChildContentList)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* cx,
-                               JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   // nsINodeList interface
-  virtual int32_t IndexOf(nsIContent* aContent) override;
-  virtual nsIContent* Item(uint32_t aIndex) override;
+  int32_t IndexOf(nsIContent* aContent) override;
+  nsIContent* Item(uint32_t aIndex) override;
   uint32_t Length() override;
   nsINode* GetParentObject() final { return mNode; }
 
@@ -43,7 +42,6 @@ class nsAttrChildContentList : public nsINodeList {
  protected:
   virtual ~nsAttrChildContentList() = default;
 
- private:
   // The node whose children make up the list.
   RefPtr<nsINode> mNode;
 };
@@ -51,13 +49,13 @@ class nsAttrChildContentList : public nsINodeList {
 class nsParentNodeChildContentList final : public nsAttrChildContentList {
  public:
   explicit nsParentNodeChildContentList(nsINode* aNode)
-      : nsAttrChildContentList(aNode), mIsCacheValid(false) {
+      : nsAttrChildContentList(aNode) {
     ValidateCache();
   }
 
   // nsINodeList interface
-  virtual int32_t IndexOf(nsIContent* aContent) override;
-  virtual nsIContent* Item(uint32_t aIndex) override;
+  int32_t IndexOf(nsIContent* aContent) override;
+  nsIContent* Item(uint32_t aIndex) override;
   uint32_t Length() override;
 
   void InvalidateCacheIfAvailable() final { InvalidateCache(); }
@@ -71,10 +69,16 @@ class nsParentNodeChildContentList final : public nsAttrChildContentList {
   ~nsParentNodeChildContentList() = default;
 
   // Return true if validation succeeds, false otherwise
-  bool ValidateCache();
+  void ValidateCache();
+  void EnsureCacheValid() {
+    if (!mIsCacheValid) {
+      ValidateCache();
+    }
+    MOZ_ASSERT(mIsCacheValid);
+  }
 
   // Whether cached array of child nodes is valid
-  bool mIsCacheValid;
+  bool mIsCacheValid = false;
 
   // Cached array of child nodes
   AutoTArray<nsIContent*, 8> mCachedChildArray;
