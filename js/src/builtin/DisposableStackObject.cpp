@@ -11,12 +11,13 @@
 #include "js/PropertyAndElement.h"
 #include "js/PropertySpec.h"
 #include "vm/BytecodeUtil.h"
+#include "vm/DisposableRecord.h"
 #include "vm/GlobalObject.h"
+#include "vm/Interpreter.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/UsingHint.h"
 
-#include "vm/Interpreter-inl.h"
 #include "vm/NativeObject-inl.h"
 
 using namespace js;
