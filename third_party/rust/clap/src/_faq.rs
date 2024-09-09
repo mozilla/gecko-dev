@@ -31,14 +31,14 @@
 //!
 //! The benefits of integrating `structopt` and `clap` are:
 //! - Easier cross-linking in documentation
-//! - [Documentation parity](../examples)
+//! - Documentation parity
 //! - Tighter design feedback loop, ensuring all new features are designed with
 //!   derives in mind and easier to change `clap` in response to `structopt` bugs.
 //! - Clearer endorsement of `structopt`
 //!
 //! See also
-//! - [`clap` v3 CHANGELOG](../CHANGELOG.md#300---2021-12-31)
-//! - [`structopt` migration guide](../CHANGELOG.md#migrate-structopt)
+//! - [`clap` v3 CHANGELOG](https://github.com/clap-rs/clap/blob/v3-master/CHANGELOG.md#300---2021-12-31)
+//! - [`structopt` migration guide](https://github.com/clap-rs/clap/blob/v3-master/CHANGELOG.md#migrate-structopt)
 //!
 //! #### What are some reasons to use `clap`? (The Pitch)
 //!

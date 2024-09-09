@@ -22,7 +22,7 @@ use std::ffi::OsString;
 ///
 /// **NOTE:** Deriving requires the `derive` feature flag
 pub trait Parser: FromArgMatches + CommandFactory + Sized {
-    /// Parse from `std::env::args_os()`, exit on error
+    /// Parse from `std::env::args_os()`, [exit][Error::exit] on error.
     fn parse() -> Self {
         let mut matches = <Self as CommandFactory>::command().get_matches();
         let res = <Self as FromArgMatches>::from_arg_matches_mut(&mut matches)
@@ -43,7 +43,7 @@ pub trait Parser: FromArgMatches + CommandFactory + Sized {
         <Self as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error::<Self>)
     }
 
-    /// Parse from iterator, exit on error
+    /// Parse from iterator, [exit][Error::exit] on error.
     fn parse_from<I, T>(itr: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -72,7 +72,7 @@ pub trait Parser: FromArgMatches + CommandFactory + Sized {
         <Self as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error::<Self>)
     }
 
-    /// Update from iterator, exit on error
+    /// Update from iterator, [exit][Error::exit] on error.
     fn update_from<I, T>(&mut self, itr: I)
     where
         I: IntoIterator<Item = T>,
@@ -311,10 +311,10 @@ impl<T: Parser> Parser for Box<T> {
 }
 
 impl<T: CommandFactory> CommandFactory for Box<T> {
-    fn command<'help>() -> Command {
+    fn command() -> Command {
         <T as CommandFactory>::command()
     }
-    fn command_for_update<'help>() -> Command {
+    fn command_for_update() -> Command {
         <T as CommandFactory>::command_for_update()
     }
 }
@@ -355,7 +355,7 @@ impl<T: Subcommand> Subcommand for Box<T> {
     }
 }
 
-fn format_error<I: CommandFactory>(err: crate::Error) -> crate::Error {
+fn format_error<I: CommandFactory>(err: Error) -> Error {
     let mut cmd = I::command();
     err.format(&mut cmd)
 }

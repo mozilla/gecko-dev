@@ -27,6 +27,8 @@ pub trait OuterFromImpl<'a> {
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
         tokens.append_all(quote!(
+            #[automatically_derived]
+            #[allow(clippy::manual_unwrap_or_default)]
             impl #impl_generics #trayt for #ty_ident #ty_generics
                 #where_clause
             {

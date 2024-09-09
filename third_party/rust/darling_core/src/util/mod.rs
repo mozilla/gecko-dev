@@ -5,6 +5,7 @@ mod ident_string;
 mod ignored;
 mod over_ride;
 mod parse_attribute;
+pub mod parse_expr;
 mod path_list;
 mod path_to_string;
 mod shape;

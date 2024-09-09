@@ -298,6 +298,45 @@ impl Command {
         self
     }
 
+    /// Allows one to mutate an [`ArgGroup`] after it's been added to a [`Command`].
+    ///
+    /// # Panics
+    ///
+    /// If the argument is undefined
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use clap_builder as clap;
+    /// # use clap::{Command, arg, ArgGroup};
+    ///
+    /// Command::new("foo")
+    ///     .arg(arg!(--"set-ver" <ver> "set the version manually").required(false))
+    ///     .arg(arg!(--major "auto increase major"))
+    ///     .arg(arg!(--minor "auto increase minor"))
+    ///     .arg(arg!(--patch "auto increase patch"))
+    ///     .group(ArgGroup::new("vers")
+    ///          .args(["set-ver", "major", "minor","patch"])
+    ///          .required(true))
+    ///     .mut_group("vers", |a| a.required(false));
+    /// ```
+    #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
+    pub fn mut_group<F>(mut self, arg_id: impl AsRef<str>, f: F) -> Self
+    where
+        F: FnOnce(ArgGroup) -> ArgGroup,
+    {
+        let id = arg_id.as_ref();
+        let index = self
+            .groups
+            .iter()
+            .position(|g| g.get_id() == id)
+            .unwrap_or_else(|| panic!("Group `{id}` is undefined"));
+        let a = self.groups.remove(index);
+
+        self.groups.push(f(a));
+        self
+    }
     /// Allows one to mutate a [`Command`] after it's been added as a subcommand.
     ///
     /// This can be useful for modifying auto-generated arguments of nested subcommands with
@@ -408,7 +447,7 @@ impl Command {
     /// ```
     #[must_use]
     pub fn groups(mut self, groups: impl IntoIterator<Item = impl Into<ArgGroup>>) -> Self {
-        for g in groups.into_iter() {
+        for g in groups {
             self = self.group(g.into());
         }
         self
@@ -506,7 +545,7 @@ impl Command {
     /// that exhaustively test your CLI to ensure the asserts are evaluated, this will run those
     /// asserts in a way convenient for running as a test.
     ///
-    /// **Note::** This will not help with asserts in [`ArgMatches`], those will need exhaustive
+    /// **Note:** This will not help with asserts in [`ArgMatches`], those will need exhaustive
     /// testing of your CLI.
     ///
     /// # Examples
@@ -545,11 +584,11 @@ impl Command {
     /// let mut cmd = Command::new("myprog");
     /// let err = cmd.error(ErrorKind::InvalidValue, "Some failure case");
     /// ```
-    pub fn error(&mut self, kind: ErrorKind, message: impl std::fmt::Display) -> Error {
+    pub fn error(&mut self, kind: ErrorKind, message: impl fmt::Display) -> Error {
         Error::raw(kind, message).format(self)
     }
 
-    /// Parse [`env::args_os`], exiting on failure.
+    /// Parse [`env::args_os`], [exiting][Error::exit] on failure.
     ///
     /// # Panics
     ///
@@ -571,7 +610,7 @@ impl Command {
         self.get_matches_from(env::args_os())
     }
 
-    /// Parse [`env::args_os`], exiting on failure.
+    /// Parse [`env::args_os`], [exiting][Error::exit] on failure.
     ///
     /// Like [`Command::get_matches`] but doesn't consume the `Command`.
     ///
@@ -592,7 +631,7 @@ impl Command {
     /// [`env::args_os`]: std::env::args_os()
     /// [`Command::get_matches`]: Command::get_matches()
     pub fn get_matches_mut(&mut self) -> ArgMatches {
-        self.try_get_matches_from_mut(&mut env::args_os())
+        self.try_get_matches_from_mut(env::args_os())
             .unwrap_or_else(|e| e.exit())
     }
 
@@ -631,7 +670,7 @@ impl Command {
         self.try_get_matches_from(env::args_os())
     }
 
-    /// Parse the specified arguments, exiting on failure.
+    /// Parse the specified arguments, [exiting][Error::exit] on failure.
     ///
     /// **NOTE:** The first argument will be parsed as the binary name unless
     /// [`Command::no_binary_name`] is used.
@@ -746,7 +785,7 @@ impl Command {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let mut raw_args = clap_lex::RawArgs::new(itr.into_iter());
+        let mut raw_args = clap_lex::RawArgs::new(itr);
         let mut cursor = raw_args.cursor();
 
         if self.settings.is_set(AppSettings::Multicall) {
@@ -1070,7 +1109,7 @@ impl Command {
     /// Replace prior occurrences of arguments rather than error
     ///
     /// For any argument that would conflict with itself by default (e.g.
-    /// [`ArgAction::Set`][ArgAction::Set], it will now override itself.
+    /// [`ArgAction::Set`], it will now override itself.
     ///
     /// This is the equivalent to saying the `foo` arg using [`Arg::overrides_with("foo")`] for all
     /// defined arguments.
@@ -1087,7 +1126,7 @@ impl Command {
         }
     }
 
-    /// Disables the automatic delimiting of values after `--` or when [`Command::trailing_var_arg`]
+    /// Disables the automatic delimiting of values after `--` or when [`Arg::trailing_var_arg`]
     /// was used.
     ///
     /// **NOTE:** The same thing can be done manually by setting the final positional argument to
@@ -1117,6 +1156,8 @@ impl Command {
     }
 
     /// Sets when to color output.
+    ///
+    /// To customize how the output is styled, see [`Command::styles`].
     ///
     /// **NOTE:** This choice is propagated to all child subcommands.
     ///
@@ -1158,13 +1199,13 @@ impl Command {
     /// ```no_run
     /// # use clap_builder as clap;
     /// # use clap::{Command, ColorChoice, builder::styling};
-    /// let styles = styling::Styles::styled()
-    ///     .header(styling::AnsiColor::Green.on_default() | styling::Effects::BOLD)
-    ///     .usage(styling::AnsiColor::Green.on_default() | styling::Effects::BOLD)
-    ///     .literal(styling::AnsiColor::Blue.on_default() | styling::Effects::BOLD)
+    /// const STYLES: styling::Styles = styling::Styles::styled()
+    ///     .header(styling::AnsiColor::Green.on_default().bold())
+    ///     .usage(styling::AnsiColor::Green.on_default().bold())
+    ///     .literal(styling::AnsiColor::Blue.on_default().bold())
     ///     .placeholder(styling::AnsiColor::Cyan.on_default());
     /// Command::new("myprog")
-    ///     .styles(styles)
+    ///     .styles(STYLES)
     ///     .get_matches();
     /// ```
     #[cfg(feature = "color")]
@@ -1244,12 +1285,41 @@ impl Command {
     /// # use clap_builder as clap;
     /// # use clap::{Command, error::ErrorKind};
     /// let res = Command::new("myprog")
+    ///     .version("1.0.0")
     ///     .disable_version_flag(true)
     ///     .try_get_matches_from(vec![
+    ///         "myprog", "--version"
+    ///     ]);
+    /// assert!(res.is_err());
+    /// assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    /// ```
+    ///
+    /// You can create a custom version flag with [`ArgAction::Version`]
+    /// ```rust
+    /// # use clap_builder as clap;
+    /// # use clap::{Command, Arg, ArgAction, error::ErrorKind};
+    /// let mut cmd = Command::new("myprog")
+    ///     .version("1.0.0")
+    ///     // Remove the `-V` short flag
+    ///     .disable_version_flag(true)
+    ///     .arg(
+    ///         Arg::new("version")
+    ///             .long("version")
+    ///             .action(ArgAction::Version)
+    ///             .help("Print version")
+    ///     );
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec![
     ///         "myprog", "-V"
     ///     ]);
     /// assert!(res.is_err());
     /// assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec![
+    ///         "myprog", "--version"
+    ///     ]);
+    /// assert!(res.is_err());
+    /// assert_eq!(res.unwrap_err().kind(), ErrorKind::DisplayVersion);
     /// ```
     #[inline]
     pub fn disable_version_flag(self, yes: bool) -> Self {
@@ -1328,6 +1398,35 @@ impl Command {
     ///     ]);
     /// assert!(res.is_err());
     /// assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    /// ```
+    ///
+    /// You can create a custom help flag with [`ArgAction::Help`], [`ArgAction::HelpShort`], or
+    /// [`ArgAction::HelpLong`]
+    /// ```rust
+    /// # use clap_builder as clap;
+    /// # use clap::{Command, Arg, ArgAction, error::ErrorKind};
+    /// let mut cmd = Command::new("myprog")
+    ///     // Change help short flag to `?`
+    ///     .disable_help_flag(true)
+    ///     .arg(
+    ///         Arg::new("help")
+    ///             .short('?')
+    ///             .long("help")
+    ///             .action(ArgAction::Help)
+    ///             .help("Print help")
+    ///     );
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec![
+    ///         "myprog", "-h"
+    ///     ]);
+    /// assert!(res.is_err());
+    /// assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec![
+    ///         "myprog", "-?"
+    ///     ]);
+    /// assert!(res.is_err());
+    /// assert_eq!(res.unwrap_err().kind(), ErrorKind::DisplayHelp);
     /// ```
     #[inline]
     pub fn disable_help_flag(self, yes: bool) -> Self {
@@ -1643,7 +1742,8 @@ impl Command {
 
     /// Sets the program's description for the long help (`--help`).
     ///
-    /// If [`Command::about`] is not specified, this message will be displayed for `-h`.
+    /// If not set, [`Command::about`] will be used for long help in addition to short help
+    /// (`-h`).
     ///
     /// **NOTE:** Only [`Command::about`] (short format) is used in completion
     /// script generation in order to be concise.
@@ -1695,7 +1795,8 @@ impl Command {
     /// This is often used to describe how to use the arguments, caveats to be noted, or license
     /// and contact information.
     ///
-    /// If [`Command::after_help`] is not specified, this message will be displayed for `-h`.
+    /// If not set, [`Command::after_help`] will be used for long help in addition to short help
+    /// (`-h`).
     ///
     /// # Examples
     ///
@@ -1738,7 +1839,8 @@ impl Command {
     ///
     /// This is often used for header, copyright, or license information.
     ///
-    /// If [`Command::before_help`] is not specified, this message will be displayed for `-h`.
+    /// If not set, [`Command::before_help`] will be used for long help in addition to short help
+    /// (`-h`).
     ///
     /// # Examples
     ///
@@ -1991,6 +2093,21 @@ impl Command {
         self
     }
 
+    /// Flatten subcommand help into the current command's help
+    ///
+    /// This shows a summary of subcommands within the usage and help for the current command, similar to
+    /// `git stash --help` showing information on `push`, `pop`, etc.
+    /// To see more information, a user can still pass `--help` to the individual subcommands.
+    #[inline]
+    #[must_use]
+    pub fn flatten_help(self, yes: bool) -> Self {
+        if yes {
+            self.setting(AppSettings::FlattenHelp)
+        } else {
+            self.unset_setting(AppSettings::FlattenHelp)
+        }
+    }
+
     /// Set the default section heading for future args.
     ///
     /// This will be used for any arg that hasn't had [`Arg::help_heading`] called.
@@ -2105,7 +2222,7 @@ impl Command {
     /// For example, imagine a CLI which has three positional arguments `[foo] [bar] [baz]...` where
     /// `baz` accepts multiple values (similar to man `ARGS...` style training arguments).
     ///
-    /// With this setting the following invocations are posisble:
+    /// With this setting the following invocations are possible:
     ///
     /// * `$ prog foo bar baz1 baz2 baz3`
     /// * `$ prog foo -- baz1 baz2 baz3`
@@ -2455,7 +2572,7 @@ impl Command {
     #[must_use]
     pub fn long_flag_aliases(mut self, names: impl IntoIterator<Item = impl Into<Str>>) -> Self {
         for s in names {
-            self = self.long_flag_alias(s)
+            self = self.long_flag_alias(s);
         }
         self
     }
@@ -3277,6 +3394,20 @@ impl Command {
         self.usage_name.as_deref()
     }
 
+    #[inline]
+    #[cfg(feature = "usage")]
+    pub(crate) fn get_usage_name_fallback(&self) -> &str {
+        self.get_usage_name()
+            .unwrap_or_else(|| self.get_bin_name_fallback())
+    }
+
+    #[inline]
+    #[cfg(not(feature = "usage"))]
+    #[allow(dead_code)]
+    pub(crate) fn get_usage_name_fallback(&self) -> &str {
+        self.get_bin_name_fallback()
+    }
+
     /// Get the name of the binary.
     #[inline]
     pub fn get_display_name(&self) -> Option<&str> {
@@ -3287,6 +3418,12 @@ impl Command {
     #[inline]
     pub fn get_bin_name(&self) -> Option<&str> {
         self.bin_name.as_deref()
+    }
+
+    /// Get the name of the binary.
+    #[inline]
+    pub(crate) fn get_bin_name_fallback(&self) -> &str {
+        self.bin_name.as_deref().unwrap_or_else(|| self.get_name())
     }
 
     /// Set binary name. Uses `&mut self` instead of `self`.
@@ -3304,6 +3441,13 @@ impl Command {
     #[cfg(debug_assertions)]
     pub(crate) fn get_name_str(&self) -> &Str {
         &self.name
+    }
+
+    /// Get all known names of the cmd (i.e. primary name and visible aliases).
+    pub fn get_name_and_visible_aliases(&self) -> Vec<&str> {
+        let mut names = vec![self.name.as_str()];
+        names.extend(self.get_visible_aliases());
+        names
     }
 
     /// Get the version of the cmd.
@@ -3350,6 +3494,12 @@ impl Command {
     #[inline]
     pub fn get_long_about(&self) -> Option<&StyledStr> {
         self.long_about.as_ref()
+    }
+
+    /// Get the custom section heading specified via [`Command::flatten_help`].
+    #[inline]
+    pub fn is_flatten_help_set(&self) -> bool {
+        self.is_set(AppSettings::FlattenHelp)
     }
 
     /// Get the custom section heading specified via [`Command::next_help_heading`].
@@ -3403,6 +3553,15 @@ impl Command {
     #[inline]
     pub fn get_all_long_flag_aliases(&self) -> impl Iterator<Item = &str> + '_ {
         self.long_flag_aliases.iter().map(|a| a.0.as_str())
+    }
+
+    /// Iterate through the *hidden* aliases for this subcommand.
+    #[inline]
+    pub fn get_aliases(&self) -> impl Iterator<Item = &str> + '_ {
+        self.aliases
+            .iter()
+            .filter(|(_, vis)| !*vis)
+            .map(|a| a.0.as_str())
     }
 
     #[inline]
@@ -3612,7 +3771,7 @@ impl Command {
     //       Subcommand_1.1.1 (contains Arg)
     //
     fn get_subcommands_containing(&self, arg: &Arg) -> Vec<&Self> {
-        let mut vec = std::vec::Vec::new();
+        let mut vec = Vec::new();
         for idx in 0..self.subcommands.len() {
             if self.subcommands[idx]
                 .args
@@ -4454,7 +4613,7 @@ impl Command {
 
     #[inline]
     pub(crate) fn set(&mut self, s: AppSettings) {
-        self.settings.set(s)
+        self.settings.set(s);
     }
 
     #[inline]
@@ -4518,7 +4677,7 @@ impl Command {
 
     /// Iterate through all the names of all subcommands (not recursively), including aliases.
     /// Used for suggestions.
-    pub(crate) fn all_subcommand_names(&self) -> impl Iterator<Item = &str> + Captures {
+    pub(crate) fn all_subcommand_names(&self) -> impl Iterator<Item = &str> + Captures<'_> {
         self.get_subcommands().flat_map(|sc| {
             let name = sc.get_name();
             let aliases = sc.get_all_aliases();
@@ -4561,7 +4720,7 @@ impl Command {
                 if !args.contains(n) {
                     if self.find(n).is_some() {
                         debug!("Command::unroll_args_in_group:iter: this is an arg");
-                        args.push(n.clone())
+                        args.push(n.clone());
                     } else {
                         debug!("Command::unroll_args_in_group:iter: this is a group");
                         g_vec.push(n);
@@ -4592,7 +4751,7 @@ impl Command {
                 for r in arg.requires.iter().filter_map(&func) {
                     if let Some(req) = self.find(&r) {
                         if !req.requires.is_empty() {
-                            r_vec.push(req.get_id())
+                            r_vec.push(req.get_id());
                         }
                     }
                     args.push(r);
@@ -4742,18 +4901,21 @@ impl From<&'_ Command> for Command {
 }
 
 impl fmt::Display for Command {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
     }
 }
 
+#[allow(dead_code)] // atm dependent on features enabled
 pub(crate) trait AppTag: crate::builder::ext::Extension {}
 
+#[allow(dead_code)] // atm dependent on features enabled
 #[derive(Default, Copy, Clone, Debug)]
 struct TermWidth(usize);
 
 impl AppTag for TermWidth {}
 
+#[allow(dead_code)] // atm dependent on features enabled
 #[derive(Default, Copy, Clone, Debug)]
 struct MaxTermWidth(usize);
 

@@ -77,7 +77,6 @@ impl<'a> ToTokens for FromMetaImpl<'a> {
             }
             Data::Enum(ref variants) => {
                 let unit_arms = variants.iter().map(Variant::as_unit_match_arm);
-                let struct_arms = variants.iter().map(Variant::as_data_match_arm);
 
                 let unknown_variant_err = if !variants.is_empty() {
                     let names = variants.iter().map(Variant::as_name);
@@ -90,16 +89,33 @@ impl<'a> ToTokens for FromMetaImpl<'a> {
                     }
                 };
 
+                let word_or_err = variants
+                    .iter()
+                    .find_map(|variant| {
+                        if variant.word {
+                            let ty_ident = variant.ty_ident;
+                            let variant_ident = variant.variant_ident;
+                            Some(quote!(::darling::export::Ok(#ty_ident::#variant_ident)))
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| {
+                        quote!(::darling::export::Err(
+                            ::darling::Error::unsupported_format("word")
+                        ))
+                    });
+
                 quote!(
                     fn from_list(__outer: &[::darling::export::NestedMeta]) -> ::darling::Result<Self> {
                         // An enum must have exactly one value inside the parentheses if it's not a unit
-                        // match arm
+                        // match arm.
                         match __outer.len() {
                             0 => ::darling::export::Err(::darling::Error::too_few_items(1)),
                             1 => {
                                 if let ::darling::export::NestedMeta::Meta(ref __nested) = __outer[0] {
                                     match ::darling::util::path_to_string(__nested.path()).as_ref() {
-                                        #(#struct_arms)*
+                                        #(#variants)*
                                         __other => ::darling::export::Err(::darling::Error::#unknown_variant_err.with_span(__nested))
                                     }
                                 } else {
@@ -115,6 +131,10 @@ impl<'a> ToTokens for FromMetaImpl<'a> {
                             #(#unit_arms)*
                             __other => ::darling::export::Err(::darling::Error::unknown_value(__other))
                         }
+                    }
+
+                    fn from_word() -> ::darling::Result<Self> {
+                        #word_or_err
                     }
                 )
             }

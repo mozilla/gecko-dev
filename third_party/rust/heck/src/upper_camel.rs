@@ -1,4 +1,9 @@
-use std::fmt;
+use core::fmt;
+
+use alloc::{
+    borrow::ToOwned,
+    string::{String, ToString},
+};
 
 use crate::{capitalize, transform};
 
@@ -26,7 +31,7 @@ impl ToUpperCamelCase for str {
     }
 }
 
-/// ToPascalCase is an alias for ToUpperCamelCase. See ToUpperCamelCase for more
+/// `ToPascalCase` is an alias for [`ToUpperCamelCase`]. See ToUpperCamelCase for more
 /// documentation.
 pub trait ToPascalCase: ToOwned {
     /// Convert this type to upper camel case.
@@ -78,7 +83,6 @@ mod tests {
     t!(test6: "SHOUTY_SNAKE_CASE" => "ShoutySnakeCase");
     t!(test7: "snake_case" => "SnakeCase");
     t!(test8: "this-contains_ ALLKinds OfWord_Boundaries" => "ThisContainsAllKindsOfWordBoundaries");
-    #[cfg(feature = "unicode")]
     t!(test9: "XΣXΣ baﬄe" => "XσxςBaﬄe");
     t!(test10: "XMLHttpRequest" => "XmlHttpRequest");
 }

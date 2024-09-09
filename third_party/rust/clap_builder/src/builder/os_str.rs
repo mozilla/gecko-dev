@@ -64,16 +64,6 @@ impl From<Str> for OsStr {
     }
 }
 
-#[cfg(feature = "perf")]
-impl From<&'_ Str> for OsStr {
-    fn from(id: &'_ Str) -> Self {
-        match id.clone().into_inner() {
-            crate::builder::StrInner::Static(s) => Self::from_static_ref(std::ffi::OsStr::new(s)),
-            crate::builder::StrInner::Owned(s) => Self::from_ref(std::ffi::OsStr::new(s.as_ref())),
-        }
-    }
-}
-
 impl From<&'_ Str> for OsStr {
     fn from(id: &'_ Str) -> Self {
         id.clone().into()
@@ -95,15 +85,15 @@ impl From<&'_ std::ffi::OsString> for OsStr {
 }
 
 #[cfg(feature = "string")]
-impl From<std::string::String> for OsStr {
-    fn from(name: std::string::String) -> Self {
+impl From<String> for OsStr {
+    fn from(name: String) -> Self {
         Self::from_string(name.into())
     }
 }
 
 #[cfg(feature = "string")]
-impl From<&'_ std::string::String> for OsStr {
-    fn from(name: &'_ std::string::String) -> Self {
+impl From<&'_ String> for OsStr {
+    fn from(name: &'_ String) -> Self {
         Self::from_ref(name.as_str().as_ref())
     }
 }
@@ -220,13 +210,13 @@ impl PartialEq<OsStr> for &'_ std::ffi::OsStr {
     }
 }
 
-impl PartialEq<std::string::String> for OsStr {
+impl PartialEq<String> for OsStr {
     #[inline]
-    fn eq(&self, other: &std::string::String) -> bool {
+    fn eq(&self, other: &String) -> bool {
         PartialEq::eq(self.as_os_str(), other.as_str())
     }
 }
-impl PartialEq<OsStr> for std::string::String {
+impl PartialEq<OsStr> for String {
     #[inline]
     fn eq(&self, other: &OsStr) -> bool {
         PartialEq::eq(self.as_str(), other.as_os_str())
@@ -316,7 +306,7 @@ impl PartialEq for Inner {
 
 impl PartialOrd for Inner {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_os_str().partial_cmp(other.as_os_str())
+        Some(self.cmp(other))
     }
 }
 

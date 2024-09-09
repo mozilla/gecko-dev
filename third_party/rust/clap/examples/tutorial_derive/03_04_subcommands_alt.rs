@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 struct Cli {
     #[command(subcommand)]
@@ -26,7 +26,7 @@ fn main() {
     // matches just as you would the top level cmd
     match &cli.command {
         Commands::Add(name) => {
-            println!("'myapp add' was used, name is: {:?}", name.name)
+            println!("'myapp add' was used, name is: {:?}", name.name);
         }
     }
 }

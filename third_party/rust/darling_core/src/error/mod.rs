@@ -125,6 +125,17 @@ impl Error {
         Error::new(ErrorUnknownField::with_alts(field, alternates).into())
     }
 
+    /// Creates a new error for a field name that appears in the input but does not correspond to
+    /// a known attribute. The second argument is the list of known attributes; if a similar name
+    /// is found that will be shown in the emitted error message.
+    pub fn unknown_field_path_with_alts<'a, T, I>(field: &Path, alternates: I) -> Self
+    where
+        T: AsRef<str> + 'a,
+        I: IntoIterator<Item = &'a T>,
+    {
+        Error::new(ErrorUnknownField::with_alts(&path_to_string(field), alternates).into())
+    }
+
     /// Creates a new error for a struct or variant that does not adhere to the supported shape.
     pub fn unsupported_shape(shape: &str) -> Self {
         Error::new(ErrorKind::UnsupportedShape {
@@ -389,6 +400,51 @@ impl Error {
         self.kind.len()
     }
 
+    /// Consider additional field names as "did you mean" suggestions for
+    /// unknown field errors **if and only if** the caller appears to be operating
+    /// at error's origin (meaning no calls to [`Self::at`] have yet taken place).
+    ///
+    /// # Usage
+    /// `flatten` fields in derived trait implementations rely on this method to offer correct
+    /// "did you mean" suggestions in errors.
+    ///
+    /// Because the `flatten` field receives _all_ unknown fields, if a user mistypes a field name
+    /// that is present on the outer struct but not the flattened struct, they would get an incomplete
+    /// or inferior suggestion unless this method was invoked.
+    pub fn add_sibling_alts_for_unknown_field<'a, T, I>(mut self, alternates: I) -> Self
+    where
+        T: AsRef<str> + 'a,
+        I: IntoIterator<Item = &'a T>,
+    {
+        // The error may have bubbled up before this method was called,
+        // and in those cases adding alternates would be incorrect.
+        if !self.locations.is_empty() {
+            return self;
+        }
+
+        if let ErrorKind::UnknownField(unknown_field) = &mut self.kind {
+            unknown_field.add_alts(alternates);
+        } else if let ErrorKind::Multiple(errors) = self.kind {
+            let alternates = alternates.into_iter().collect::<Vec<_>>();
+            self.kind = ErrorKind::Multiple(
+                errors
+                    .into_iter()
+                    .map(|err| {
+                        err.add_sibling_alts_for_unknown_field(
+                            // This clone seems like it shouldn't be necessary.
+                            // Attempting to borrow alternates here leads to the following compiler error:
+                            //
+                            // error: reached the recursion limit while instantiating `darling::Error::add_sibling_alts_for_unknown_field::<'_, &&&&..., ...>`
+                            alternates.clone(),
+                        )
+                    })
+                    .collect(),
+            )
+        }
+
+        self
+    }
+
     /// Adds a location chain to the head of the error's existing locations.
     fn prepend_at(mut self, mut locations: Vec<String>) -> Self {
         if !locations.is_empty() {
@@ -578,7 +634,7 @@ impl StdError for Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
         if !self.locations.is_empty() {
             write!(f, " at {}", self.locations.join("/"))?;
@@ -775,7 +831,7 @@ impl Accumulator {
     /// This function defuses the drop bomb.
     #[must_use = "Accumulated errors should be handled or propagated to the caller"]
     pub fn into_inner(mut self) -> Vec<Error> {
-        match std::mem::replace(&mut self.0, None) {
+        match self.0.take() {
             Some(errors) => errors,
             None => panic!("darling internal error: Accumulator accessed after defuse"),
         }

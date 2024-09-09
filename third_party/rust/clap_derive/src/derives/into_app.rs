@@ -18,7 +18,7 @@ use syn::{Generics, Ident};
 
 use crate::item::Item;
 
-pub fn gen_for_struct(
+pub(crate) fn gen_for_struct(
     item: &Item,
     item_name: &Ident,
     generics: &Generics,
@@ -47,6 +47,7 @@ pub fn gen_for_struct(
             clippy::cargo,
             clippy::suspicious_else_formatting,
             clippy::almost_swapped,
+            clippy::redundant_locals,
         )]
         #[automatically_derived]
         impl #impl_generics clap::CommandFactory for #item_name #ty_generics #where_clause {
@@ -65,7 +66,7 @@ pub fn gen_for_struct(
     Ok(tokens)
 }
 
-pub fn gen_for_enum(
+pub(crate) fn gen_for_enum(
     item: &Item,
     item_name: &Ident,
     generics: &Generics,
@@ -94,6 +95,7 @@ pub fn gen_for_enum(
             clippy::cargo,
             clippy::suspicious_else_formatting,
             clippy::almost_swapped,
+            clippy::redundant_locals,
         )]
         #[automatically_derived]
         impl #impl_generics clap::CommandFactory for #item_name #ty_generics #where_clause {

@@ -63,10 +63,7 @@ impl<'cmd> Validator<'cmd> {
             }
         }
         if !has_subcmd && self.cmd.is_subcommand_required_set() {
-            let bn = self
-                .cmd
-                .get_bin_name()
-                .unwrap_or_else(|| self.cmd.get_name());
+            let bn = self.cmd.get_bin_name_fallback();
             return Err(Error::missing_subcommand(
                 self.cmd,
                 bn.to_string(),
@@ -115,7 +112,7 @@ impl<'cmd> Validator<'cmd> {
         let args_count = matcher
             .args()
             .filter(|(arg_id, matched)| {
-                matched.check_explicit(&crate::builder::ArgPredicate::IsPresent)
+                matched.check_explicit(&ArgPredicate::IsPresent)
                     // Avoid including our own groups by checking none of them.  If a group is present, the
                     // args for the group will be.
                     && self.cmd.find(arg_id).is_some()
@@ -128,15 +125,14 @@ impl<'cmd> Validator<'cmd> {
 
         matcher
             .args()
-            .filter(|(_, matched)| matched.check_explicit(&crate::builder::ArgPredicate::IsPresent))
-            .filter_map(|(id, _)| {
+            .filter(|(_, matched)| matched.check_explicit(&ArgPredicate::IsPresent))
+            .find_map(|(id, _)| {
                 debug!("Validator::validate_exclusive:iter:{id:?}");
                 self.cmd
                     .find(id)
                     // Find `arg`s which are exclusive but also appear with other args.
                     .filter(|&arg| arg.is_exclusive_set() && args_count > 1)
             })
-            .next()
             .map(|arg| {
                 // Throw an error for the first conflict found.
                 Err(Error::argument_conflict(
@@ -339,7 +335,7 @@ impl<'cmd> Validator<'cmd> {
                 required = true;
             }
 
-            if required {
+            if !is_exclusive_present && required {
                 missing_required.push(a.get_id().clone());
                 if !a.is_last_set() {
                     highest_index = highest_index.max(a.get_index().unwrap_or(0));
@@ -432,6 +428,8 @@ impl<'cmd> Validator<'cmd> {
                             "".to_owned()
                         }
                     })
+                    .collect::<FlatSet<_>>()
+                    .into_iter()
                     .collect::<Vec<_>>()
             }
         };

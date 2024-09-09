@@ -5,19 +5,20 @@ use syn::Ident;
 use crate::{
     ast::Data,
     codegen::{ExtractAttribute, OuterFromImpl, TraitImpl},
-    options::{DeriveInputShapeSet, ForwardAttrs},
+    options::DeriveInputShapeSet,
     util::PathList,
 };
+
+use super::ForwardAttrs;
 
 pub struct FromDeriveInputImpl<'a> {
     pub ident: Option<&'a Ident>,
     pub generics: Option<&'a Ident>,
     pub vis: Option<&'a Ident>,
-    pub attrs: Option<&'a Ident>,
     pub data: Option<&'a Ident>,
     pub base: TraitImpl<'a>,
     pub attr_names: &'a PathList,
-    pub forward_attrs: Option<&'a ForwardAttrs>,
+    pub forward_attrs: ForwardAttrs<'a>,
     pub from_ident: bool,
     pub supports: Option<&'a DeriveInputShapeSet>,
 }
@@ -54,7 +55,7 @@ impl<'a> ToTokens for FromDeriveInputImpl<'a> {
             .generics
             .as_ref()
             .map(|i| quote!(#i: ::darling::FromGenerics::from_generics(&#input.generics)?,));
-        let passed_attrs = self.attrs.as_ref().map(|i| quote!(#i: __fwd_attrs,));
+        let passed_attrs = self.forward_attrs.as_initializer();
         let passed_body = self
             .data
             .as_ref()
@@ -115,8 +116,8 @@ impl<'a> ExtractAttribute for FromDeriveInputImpl<'a> {
         self.attr_names
     }
 
-    fn forwarded_attrs(&self) -> Option<&ForwardAttrs> {
-        self.forward_attrs
+    fn forward_attrs(&self) -> &ForwardAttrs<'_> {
+        &self.forward_attrs
     }
 
     fn param_name(&self) -> TokenStream {

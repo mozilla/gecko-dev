@@ -11,6 +11,8 @@
 //! - [Cookbook][_cookbook]
 //! - [FAQ][_faq]
 //! - [Discussions](https://github.com/clap-rs/clap/discussions)
+//! - [CHANGELOG](https://github.com/clap-rs/clap/blob/v4.5.16/CHANGELOG.md) (includes major version migration
+//!   guides)
 //!
 //! ## Aspirations
 //!
@@ -24,7 +26,7 @@
 //!   - Leverage feature flags to keep to one active branch
 //!   - Being under [WG-CLI](https://github.com/rust-cli/team/) to increase the bus factor
 //! - We follow semver and will wait about 6-9 months between major breaking changes
-//! - We will support the last two minor Rust releases (MSRV, currently 1.70.0)
+//! - We will support the last two minor Rust releases (MSRV, currently 1.74)
 //!
 //! While these aspirations can be at odds with fast build times and low binary
 //! size, we will still strive to keep these reasonable for the flexibility you
@@ -62,7 +64,7 @@
 //! - [clap_complete](https://crates.io/crates/clap_complete) for shell completion support
 //!
 //! CLI Helpers
-//! - [cio](https://crates.io/crates/clio) for reading/writing to files specified as arguments
+//! - [clio](https://crates.io/crates/clio) for reading/writing to files specified as arguments
 //! - [clap-verbosity-flag](https://crates.io/crates/clap-verbosity-flag)
 //! - [clap-cargo](https://crates.io/crates/clap-cargo)
 //! - [concolor-clap](https://crates.io/crates/concolor-clap)
@@ -76,30 +78,17 @@
 //! - [Command-line Apps for Rust](https://rust-cli.github.io/book/index.html) book
 //!
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/clap-rs/clap/master/assets/clap.png")]
-#![warn(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    unused_allocation,
-    trivial_numeric_casts,
-    clippy::single_char_pattern
-)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![forbid(unsafe_code)]
-// HACK https://github.com/rust-lang/rust-clippy/issues/7290
-#![allow(clippy::single_component_path_imports)]
-#![allow(clippy::branches_sharing_code)]
-// Doesn't allow for debug statements, etc to be unique
-#![allow(clippy::if_same_then_else)]
-// Breaks up parallelism that clarifies intent
-#![allow(clippy::collapsible_else_if)]
+#![warn(missing_docs)]
+#![warn(clippy::print_stderr)]
+#![warn(clippy::print_stdout)]
 
 pub use clap_builder::*;
 #[cfg(feature = "derive")]
 #[doc(hidden)]
-pub use clap_derive::{self, *};
+pub use clap_derive::{self, Args, Parser, Subcommand, ValueEnum};
 
 #[cfg(feature = "unstable-doc")]
 pub mod _cookbook;

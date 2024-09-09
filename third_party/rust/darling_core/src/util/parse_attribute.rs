@@ -35,7 +35,7 @@ pub fn parse_attribute_to_meta_list(attr: &Attribute) -> Result<MetaList> {
 struct DisplayPath<'a>(&'a Path);
 
 impl fmt::Display for DisplayPath<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let path = self.0;
         if path.leading_colon.is_some() {
             write!(f, "::")?;

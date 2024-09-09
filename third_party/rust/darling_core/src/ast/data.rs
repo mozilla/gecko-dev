@@ -244,7 +244,7 @@ impl<T> Fields<T> {
         }
     }
 
-    pub fn iter(&self) -> slice::Iter<T> {
+    pub fn iter(&self) -> slice::Iter<'_, T> {
         self.fields.iter()
     }
 
@@ -428,7 +428,7 @@ impl NestedMeta {
 }
 
 impl syn::parse::Parse for NestedMeta {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
         if input.peek(syn::Lit) && !(input.peek(syn::LitBool) && input.peek2(Token![=])) {
             input.parse().map(NestedMeta::Lit)
         } else if input.peek(syn::Ident::peek_any)

@@ -3,6 +3,8 @@
 #![cfg_attr(not(feature = "error-context"), allow(dead_code))]
 #![cfg_attr(not(feature = "error-context"), allow(unused_imports))]
 
+use std::borrow::Cow;
+
 use crate::builder::Command;
 use crate::builder::StyledStr;
 use crate::builder::Styles;
@@ -12,6 +14,7 @@ use crate::error::ContextKind;
 use crate::error::ContextValue;
 use crate::error::ErrorKind;
 use crate::output::TAB;
+use crate::ArgAction;
 
 /// Defines how to format an error for displaying to the user
 pub trait ErrorFormatter: Sized {
@@ -120,7 +123,7 @@ impl ErrorFormatter for RichFormatter {
             put_usage(&mut styled, usage);
         }
 
-        try_help(&mut styled, styles, error.inner.help_flag);
+        try_help(&mut styled, styles, error.inner.help_flag.as_deref());
 
         styled
     }
@@ -146,12 +149,10 @@ fn write_dynamic_context(
 
     match error.kind() {
         ErrorKind::ArgumentConflict => {
-            let invalid_arg = error.get(ContextKind::InvalidArg);
-            let prior_arg = error.get(ContextKind::PriorArg);
-            if let (Some(ContextValue::String(invalid_arg)), Some(prior_arg)) =
-                (invalid_arg, prior_arg)
-            {
-                if ContextValue::String(invalid_arg.clone()) == *prior_arg {
+            let mut prior_arg = error.get(ContextKind::PriorArg);
+            if let Some(ContextValue::String(invalid_arg)) = error.get(ContextKind::InvalidArg) {
+                if Some(&ContextValue::String(invalid_arg.clone())) == prior_arg {
+                    prior_arg = None;
                     let _ = write!(
                         styled,
                         "the argument '{}{invalid_arg}{}' cannot be used multiple times",
@@ -165,36 +166,48 @@ fn write_dynamic_context(
                         invalid.render(),
                         invalid.render_reset()
                     );
+                }
+            } else if let Some(ContextValue::String(invalid_arg)) =
+                error.get(ContextKind::InvalidSubcommand)
+            {
+                let _ = write!(
+                    styled,
+                    "the subcommand '{}{invalid_arg}{}' cannot be used with",
+                    invalid.render(),
+                    invalid.render_reset()
+                );
+            } else {
+                styled.push_str(error.kind().as_str().unwrap());
+            }
 
-                    match prior_arg {
-                        ContextValue::Strings(values) => {
-                            styled.push_str(":");
-                            for v in values {
-                                let _ = write!(
-                                    styled,
-                                    "\n{TAB}{}{v}{}",
-                                    invalid.render(),
-                                    invalid.render_reset()
-                                );
-                            }
-                        }
-                        ContextValue::String(value) => {
+            if let Some(prior_arg) = prior_arg {
+                match prior_arg {
+                    ContextValue::Strings(values) => {
+                        styled.push_str(":");
+                        for v in values {
                             let _ = write!(
                                 styled,
-                                " '{}{value}{}'",
+                                "\n{TAB}{}{v}{}",
                                 invalid.render(),
                                 invalid.render_reset()
                             );
                         }
-                        _ => {
-                            styled.push_str(" one or more of the other specified arguments");
-                        }
+                    }
+                    ContextValue::String(value) => {
+                        let _ = write!(
+                            styled,
+                            " '{}{value}{}'",
+                            invalid.render(),
+                            invalid.render_reset()
+                        );
+                    }
+                    _ => {
+                        styled.push_str(" one or more of the other specified arguments");
                     }
                 }
-                true
-            } else {
-                false
             }
+
+            true
         }
         ErrorKind::NoEquals => {
             let invalid_arg = error.get(ContextKind::InvalidArg);
@@ -327,7 +340,7 @@ fn write_dynamic_context(
                 let were_provided = singular_or_plural(*actual_num_values as usize);
                 let _ = write!(
                     styled,
-                    "{}{min_values}{} more values required by '{}{invalid_arg}{}'; only {}{actual_num_values}{}{were_provided}",
+                    "{}{min_values}{} values required by '{}{invalid_arg}{}'; only {}{actual_num_values}{}{were_provided}",
                     valid.render(),
                     valid.render_reset(),
                     literal.render(),
@@ -451,7 +464,7 @@ pub(crate) fn format_error_message(
         put_usage(&mut styled, usage);
     }
     if let Some(cmd) = cmd {
-        try_help(&mut styled, styles, get_help_flag(cmd));
+        try_help(&mut styled, styles, get_help_flag(cmd).as_deref());
     }
     styled
 }
@@ -470,14 +483,32 @@ fn put_usage(styled: &mut StyledStr, usage: &StyledStr) {
     styled.push_styled(usage);
 }
 
-pub(crate) fn get_help_flag(cmd: &Command) -> Option<&'static str> {
+pub(crate) fn get_help_flag(cmd: &Command) -> Option<Cow<'static, str>> {
     if !cmd.is_disable_help_flag_set() {
-        Some("--help")
+        Some(Cow::Borrowed("--help"))
+    } else if let Some(flag) = get_user_help_flag(cmd) {
+        Some(Cow::Owned(flag))
     } else if cmd.has_subcommands() && !cmd.is_disable_help_subcommand_set() {
-        Some("help")
+        Some(Cow::Borrowed("help"))
     } else {
         None
     }
+}
+
+fn get_user_help_flag(cmd: &Command) -> Option<String> {
+    let arg = cmd.get_arguments().find(|arg| match arg.get_action() {
+        ArgAction::Help | ArgAction::HelpShort | ArgAction::HelpLong => true,
+        ArgAction::Append
+        | ArgAction::Count
+        | ArgAction::SetTrue
+        | ArgAction::SetFalse
+        | ArgAction::Set
+        | ArgAction::Version => false,
+    })?;
+
+    arg.get_long()
+        .map(|long| format!("--{long}"))
+        .or_else(|| arg.get_short().map(|short| format!("-{short}")))
 }
 
 fn try_help(styled: &mut StyledStr, styles: &Styles, help: Option<&str>) {
@@ -535,7 +566,7 @@ fn did_you_mean(styled: &mut StyledStr, styles: &Styles, context: &str, valid: &
 struct Escape<'s>(&'s str);
 
 impl<'s> std::fmt::Display for Escape<'s> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.0.contains(char::is_whitespace) {
             std::fmt::Debug::fmt(self.0, f)
         } else {

@@ -4,13 +4,15 @@ use quote::{quote, ToTokens};
 use crate::{
     ast::Data,
     codegen::{ExtractAttribute, OuterFromImpl, TraitImpl},
-    options::ForwardAttrs,
     util::PathList,
 };
+
+use super::ForwardAttrs;
 
 pub struct FromAttributesImpl<'a> {
     pub base: TraitImpl<'a>,
     pub attr_names: &'a PathList,
+    pub forward_attrs: ForwardAttrs<'a>,
 }
 
 impl ToTokens for FromAttributesImpl<'_> {
@@ -36,6 +38,7 @@ impl ToTokens for FromAttributesImpl<'_> {
             }
         }
 
+        let passed_attrs = self.forward_attrs.as_initializer();
         let inits = self.base.initializers();
         let default = self.base.fallback_decl();
 
@@ -59,6 +62,7 @@ impl ToTokens for FromAttributesImpl<'_> {
                     #default
 
                     ::darling::export::Ok(#ty_ident {
+                        #passed_attrs
                         #inits
                     }) #post_transform
                 }
@@ -77,8 +81,8 @@ impl<'a> ExtractAttribute for FromAttributesImpl<'a> {
         self.attr_names
     }
 
-    fn forwarded_attrs(&self) -> Option<&ForwardAttrs> {
-        None
+    fn forward_attrs(&self) -> &super::ForwardAttrs<'_> {
+        &self.forward_attrs
     }
 
     fn param_name(&self) -> TokenStream {

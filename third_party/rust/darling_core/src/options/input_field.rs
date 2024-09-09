@@ -4,7 +4,7 @@ use syn::{parse_quote_spanned, spanned::Spanned};
 
 use crate::codegen;
 use crate::options::{Core, DefaultExpression, ParseAttribute};
-use crate::util::SpannedValue;
+use crate::util::{Flag, SpannedValue};
 use crate::{Error, FromMeta, Result};
 
 #[derive(Debug, Clone)]
@@ -20,6 +20,7 @@ pub struct InputField {
     pub skip: Option<SpannedValue<bool>>,
     pub post_transform: Option<codegen::PostfixTransform>,
     pub multiple: Option<bool>,
+    pub flatten: Flag,
 }
 
 impl InputField {
@@ -44,6 +45,7 @@ impl InputField {
             skip: *self.skip.unwrap_or_default(),
             post_transform: self.post_transform.as_ref(),
             multiple: self.multiple.unwrap_or_default(),
+            flatten: self.flatten.is_present(),
         }
     }
 
@@ -67,6 +69,7 @@ impl InputField {
             skip: None,
             post_transform: Default::default(),
             multiple: None,
+            flatten: Default::default(),
         }
     }
 
@@ -130,6 +133,12 @@ impl ParseAttribute for InputField {
             }
 
             self.attr_name = FromMeta::from_meta(mi)?;
+
+            if self.flatten.is_present() {
+                return Err(
+                    Error::custom("`flatten` and `rename` cannot be used together").with_span(mi),
+                );
+            }
         } else if path.is_ident("default") {
             if self.default.is_some() {
                 return Err(Error::duplicate_field_path(path).with_span(mi));
@@ -141,12 +150,24 @@ impl ParseAttribute for InputField {
             }
 
             self.with = Some(FromMeta::from_meta(mi)?);
+
+            if self.flatten.is_present() {
+                return Err(
+                    Error::custom("`flatten` and `with` cannot be used together").with_span(mi),
+                );
+            }
         } else if path.is_ident("skip") {
             if self.skip.is_some() {
                 return Err(Error::duplicate_field_path(path).with_span(mi));
             }
 
             self.skip = FromMeta::from_meta(mi)?;
+
+            if self.skip.map(|v| *v).unwrap_or_default() && self.flatten.is_present() {
+                return Err(
+                    Error::custom("`flatten` and `skip` cannot be used together").with_span(mi),
+                );
+            }
         } else if path.is_ident("map") || path.is_ident("and_then") {
             let transformer = path.get_ident().unwrap().clone();
             if let Some(post_transform) = &self.post_transform {
@@ -171,6 +192,46 @@ impl ParseAttribute for InputField {
             }
 
             self.multiple = FromMeta::from_meta(mi)?;
+
+            if self.multiple == Some(true) && self.flatten.is_present() {
+                return Err(
+                    Error::custom("`flatten` and `multiple` cannot be used together").with_span(mi),
+                );
+            }
+        } else if path.is_ident("flatten") {
+            if self.flatten.is_present() {
+                return Err(Error::duplicate_field_path(path).with_span(mi));
+            }
+
+            self.flatten = FromMeta::from_meta(mi)?;
+
+            let mut conflicts = Error::accumulator();
+
+            if self.multiple == Some(true) {
+                conflicts.push(
+                    Error::custom("`flatten` and `multiple` cannot be used together").with_span(mi),
+                );
+            }
+
+            if self.attr_name.is_some() {
+                conflicts.push(
+                    Error::custom("`flatten` and `rename` cannot be used together").with_span(mi),
+                );
+            }
+
+            if self.with.is_some() {
+                conflicts.push(
+                    Error::custom("`flatten` and `with` cannot be used together").with_span(mi),
+                );
+            }
+
+            if self.skip.map(|v| *v).unwrap_or_default() {
+                conflicts.push(
+                    Error::custom("`flatten` and `skip` cannot be used together").with_span(mi),
+                );
+            }
+
+            conflicts.finish()?;
         } else {
             return Err(Error::unknown_field_path(path).with_span(mi));
         }

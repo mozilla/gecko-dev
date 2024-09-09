@@ -56,7 +56,7 @@ serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["preserve_order", "unbounded_depth"], optional = true }
 smallvec = { version = "1", features = ["const_new", "serde", "union"], optional = true }
 stable_deref_trait = { version = "1", features = ["std"], optional = true }
-strsim = { version = "0.10", optional = true }
+strsim = { version = "0.11", optional = true }
 time = { version = "0.3", features = ["macros", "parsing", "serde"], optional = true }
 tinystr = { version = "0.7", features = ["zerovec"], optional = true }
 tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"], optional = true }

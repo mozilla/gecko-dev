@@ -6,16 +6,14 @@
 //!
 //! ## Definition of a word boundary
 //!
-//! Word boundaries are defined as the "unicode words" defined in the
-//! `unicode_segmentation` library, as well as within those words in this
-//! manner:
+//! Word boundaries are defined by non-alphanumeric characters, as well as
+//! within those words in this manner:
 //!
-//! 1. All underscore characters are considered word boundaries.
-//! 2. If an uppercase character is followed by lowercase letters, a word
+//! 1. If an uppercase character is followed by lowercase letters, a word
 //! boundary is considered to be just prior to that uppercase character.
-//! 3. If multiple uppercase characters are consecutive, they are considered to
+//! 2. If multiple uppercase characters are consecutive, they are considered to
 //! be within a single word, except that the last will be part of the next word
-//! if it is followed by lowercase characters (see rule 2).
+//! if it is followed by lowercase characters (see rule 1).
 //!
 //! That is, "HelloWorld" is segmented `Hello|World` whereas "XMLHttpRequest" is
 //! segmented `XML|Http|Request`.
@@ -40,6 +38,9 @@
 //! 8. Train-Case
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 mod kebab;
 mod lower_camel;
@@ -63,17 +64,7 @@ pub use upper_camel::{
     AsUpperCamelCase, AsUpperCamelCase as AsPascalCase, ToPascalCase, ToUpperCamelCase,
 };
 
-use std::fmt;
-
-#[cfg(feature = "unicode")]
-fn get_iterator(s: &str) -> unicode_segmentation::UnicodeWords {
-    use unicode_segmentation::UnicodeSegmentation;
-    s.unicode_words()
-}
-#[cfg(not(feature = "unicode"))]
-fn get_iterator(s: &str) -> impl Iterator<Item = &str> {
-    s.split(|letter: char| !letter.is_ascii_alphanumeric())
-}
+use core::fmt;
 
 fn transform<F, G>(
     s: &str,
@@ -107,20 +98,12 @@ where
 
     let mut first_word = true;
 
-    for word in get_iterator(s) {
+    for word in s.split(|c: char| !c.is_alphanumeric()) {
         let mut char_indices = word.char_indices().peekable();
         let mut init = 0;
         let mut mode = WordMode::Boundary;
 
         while let Some((i, c)) = char_indices.next() {
-            // Skip underscore characters
-            if c == '_' {
-                if init == i {
-                    init += 1;
-                }
-                continue;
-            }
-
             if let Some(&(next_i, next)) = char_indices.peek() {
                 // The mode including the current character, assuming the
                 // current character does not result in a word boundary.
@@ -132,9 +115,9 @@ where
                     mode
                 };
 
-                // Word boundary after if next is underscore or current is
-                // not uppercase and next is uppercase
-                if next == '_' || (next_mode == WordMode::Lowercase && next.is_uppercase()) {
+                // Word boundary after if current is not uppercase and next
+                // is uppercase
+                if next_mode == WordMode::Lowercase && next.is_uppercase() {
                     if !first_word {
                         boundary(f)?;
                     }

@@ -1,9 +1,12 @@
 use syn::spanned::Spanned;
 use syn::{Field, Ident, Meta};
 
-use crate::options::{Core, DefaultExpression, ForwardAttrs, ParseAttribute, ParseData};
+use crate::codegen::ForwardAttrs;
+use crate::options::{
+    AttrsField, Core, DefaultExpression, ForwardAttrsFilter, ParseAttribute, ParseData,
+};
 use crate::util::PathList;
-use crate::{FromMeta, Result};
+use crate::{FromField, FromMeta, Result};
 
 /// Reusable base for `FromDeriveInput`, `FromVariant`, `FromField`, and other top-level
 /// `From*` traits.
@@ -13,7 +16,7 @@ pub struct OuterFrom {
     pub ident: Option<Ident>,
 
     /// The field on the target struct which should receive the type attributes, if any.
-    pub attrs: Option<Ident>,
+    pub attrs: Option<AttrsField>,
 
     pub container: Core,
 
@@ -22,7 +25,7 @@ pub struct OuterFrom {
 
     /// The attribute names that should be forwarded. The presence of the word with no additional
     /// filtering will cause _all_ attributes to be cloned and exposed to the struct after parsing.
-    pub forward_attrs: Option<ForwardAttrs>,
+    pub forward_attrs: Option<ForwardAttrsFilter>,
 
     /// Whether or not the container can be made through conversion from the type `Ident`.
     pub from_ident: bool,
@@ -38,6 +41,13 @@ impl OuterFrom {
             forward_attrs: Default::default(),
             from_ident: Default::default(),
         })
+    }
+
+    pub fn as_forward_attrs(&self) -> ForwardAttrs<'_> {
+        ForwardAttrs {
+            field: self.attrs.as_ref(),
+            filter: self.forward_attrs.as_ref(),
+        }
     }
 }
 
@@ -68,14 +78,18 @@ impl ParseData for OuterFrom {
     fn parse_field(&mut self, field: &Field) -> Result<()> {
         match field.ident.as_ref().map(|v| v.to_string()).as_deref() {
             Some("ident") => {
-                self.ident = field.ident.clone();
+                self.ident.clone_from(&field.ident);
                 Ok(())
             }
             Some("attrs") => {
-                self.attrs = field.ident.clone();
+                self.attrs = AttrsField::from_field(field).map(Some)?;
                 Ok(())
             }
             _ => self.container.parse_field(field),
         }
+    }
+
+    fn validate_body(&self, errors: &mut crate::error::Accumulator) {
+        self.container.validate_body(errors);
     }
 }

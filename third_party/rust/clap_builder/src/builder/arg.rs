@@ -11,6 +11,9 @@ use std::{
 
 // Internal
 use super::{ArgFlags, ArgSettings};
+#[cfg(feature = "unstable-ext")]
+use crate::builder::ext::Extension;
+use crate::builder::ext::Extensions;
 use crate::builder::ArgPredicate;
 use crate::builder::IntoResettable;
 use crate::builder::OsStr;
@@ -85,7 +88,7 @@ pub struct Arg {
     pub(crate) terminator: Option<Str>,
     pub(crate) index: Option<usize>,
     pub(crate) help_heading: Option<Option<Str>>,
-    pub(crate) value_hint: Option<ValueHint>,
+    pub(crate) ext: Extensions,
 }
 
 /// # Basic API
@@ -510,10 +513,10 @@ impl Arg {
         self
     }
 
-    /// This is a "VarArg" and everything that follows should be captured by it, as if the user had
+    /// This is a "var arg" and everything that follows should be captured by it, as if the user had
     /// used a `--`.
     ///
-    /// **NOTE:** To start the trailing "VarArg" on unknown flags (and not just a positional
+    /// **NOTE:** To start the trailing "var arg" on unknown flags (and not just a positional
     /// value), set [`allow_hyphen_values`][Arg::allow_hyphen_values].  Either way, users still
     /// have the option to explicitly escape ambiguous arguments with `--`.
     ///
@@ -869,13 +872,21 @@ impl Arg {
         self.settings.unset(setting);
         self
     }
+
+    /// Extend [`Arg`] with [`ArgExt`] data
+    #[cfg(feature = "unstable-ext")]
+    #[allow(clippy::should_implement_trait)]
+    pub fn add<T: ArgExt + Extension>(mut self, tagged: T) -> Self {
+        self.ext.set(tagged);
+        self
+    }
 }
 
 /// # Value Handling
 impl Arg {
     /// Specify how to react to an argument when parsing it.
     ///
-    /// [ArgAction][crate::ArgAction] controls things like
+    /// [`ArgAction`] controls things like
     /// - Overwriting previous values with new ones
     /// - Appending new values to all previous ones
     /// - Counting how many times a flag occurs
@@ -997,7 +1008,7 @@ impl Arg {
     /// - It reaches the [`Arg::value_terminator`] if set
     ///
     /// Alternatively,
-    /// - Use a delimiter between values with [Arg::value_delimiter]
+    /// - Use a delimiter between values with [`Arg::value_delimiter`]
     /// - Require a flag occurrence per value with [`ArgAction::Append`]
     /// - Require positional arguments to appear after `--` with [`Arg::last`]
     ///
@@ -1018,7 +1029,7 @@ impl Arg {
     /// assert_eq!(m.get_one::<String>("mode").unwrap(), "fast");
     /// ```
     ///
-    /// Flag/option hybrid (see also [default_missing_value][Arg::default_missing_value])
+    /// Flag/option hybrid (see also [`default_missing_value`][Arg::default_missing_value])
     /// ```rust
     /// # use clap_builder as clap;
     /// # use clap::{Command, Arg, error::ErrorKind, ArgAction};
@@ -1260,7 +1271,7 @@ impl Arg {
 
     /// Provide the shell a hint about how to complete this argument.
     ///
-    /// See [`ValueHint`][crate::ValueHint] for more information.
+    /// See [`ValueHint`] for more information.
     ///
     /// **NOTE:** implicitly sets [`Arg::action(ArgAction::Set)`].
     ///
@@ -1291,7 +1302,15 @@ impl Arg {
     /// ```
     #[must_use]
     pub fn value_hint(mut self, value_hint: impl IntoResettable<ValueHint>) -> Self {
-        self.value_hint = value_hint.into_resettable().into_option();
+        // HACK: we should use `Self::add` and `Self::remove` to type-check that `ArgExt` is used
+        match value_hint.into_resettable().into_option() {
+            Some(value_hint) => {
+                self.ext.set(value_hint);
+            }
+            None => {
+                self.ext.remove::<ValueHint>();
+            }
+        }
         self
     }
 
@@ -1519,11 +1538,8 @@ impl Arg {
 
     /// Allow grouping of multiple values via a delimiter.
     ///
-    /// i.e. should `--option=val1,val2,val3` be parsed as three values (`val1`, `val2`,
-    /// and `val3`) or as a single value (`val1,val2,val3`). Defaults to using `,` (comma) as the
-    /// value delimiter for all arguments that accept values (options and positional arguments)
-    ///
-    /// **NOTE:** implicitly sets [`Arg::action(ArgAction::Set)`]
+    /// i.e. allow values (`val1,val2,val3`) to be parsed as three values (`val1`, `val2`,
+    /// and `val3`) instead of one value (`val1,val2,val3`).
     ///
     /// # Examples
     ///
@@ -1617,7 +1633,7 @@ impl Arg {
     /// ```
     ///
     /// Will result in everything after `--` to be considered one raw argument. This behavior
-    /// may not be exactly what you are expecting and using [`crate::Command::trailing_var_arg`]
+    /// may not be exactly what you are expecting and using [`Arg::trailing_var_arg`]
     /// may be more appropriate.
     ///
     /// **NOTE:** Implicitly sets [`Arg::action(ArgAction::Set)`] [`Arg::num_args(1..)`],
@@ -1741,7 +1757,7 @@ impl Arg {
     ///
     /// This configuration option is often used to give the user a shortcut and allow them to
     /// efficiently specify an option argument without requiring an explicitly value. The `--color`
-    /// argument is a common example. By, supplying an default, such as `default_missing_value("always")`,
+    /// argument is a common example. By supplying a default, such as `default_missing_value("always")`,
     /// the user can quickly just add `--color` to the command line to produce the desired color output.
     ///
     /// **NOTE:** using this configuration option requires the use of the
@@ -3641,8 +3657,8 @@ impl Arg {
     /// only need to be set for one of the two arguments, they do not need to be set for each.
     ///
     /// **NOTE:** Defining a conflict is two-way, but does *not* need to defined for both arguments
-    /// (i.e. if A conflicts with B, defining A.conflicts_with(B) is sufficient. You do not
-    /// need to also do B.conflicts_with(A))
+    /// (i.e. if A conflicts with B, defining `A.conflicts_with(B)` is sufficient. You do not
+    /// need to also do `B.conflicts_with(A)`)
     ///
     /// **NOTE:** [`Arg::conflicts_with_all(names)`] allows specifying an argument which conflicts with more than one argument.
     ///
@@ -3701,8 +3717,8 @@ impl Arg {
     /// only need to be set for one of the two arguments, they do not need to be set for each.
     ///
     /// **NOTE:** Defining a conflict is two-way, but does *not* need to defined for both arguments
-    /// (i.e. if A conflicts with B, defining A.conflicts_with(B) is sufficient. You do not need
-    /// need to also do B.conflicts_with(A))
+    /// (i.e. if A conflicts with B, defining `A.conflicts_with(B)` is sufficient. You do not need
+    /// need to also do `B.conflicts_with(A)`)
     ///
     /// **NOTE:** [`Arg::exclusive(true)`] allows specifying an argument which conflicts with every other argument.
     ///
@@ -3952,6 +3968,21 @@ impl Arg {
         Some(longs)
     }
 
+    /// Get hidden aliases for this argument, if any
+    #[inline]
+    pub fn get_aliases(&self) -> Option<Vec<&str>> {
+        if self.aliases.is_empty() {
+            None
+        } else {
+            Some(
+                self.aliases
+                    .iter()
+                    .filter_map(|(s, v)| if !*v { Some(s.as_str()) } else { None })
+                    .collect(),
+            )
+        }
+    }
+
     /// Get the names of possible values for this argument. Only useful for user
     /// facing applications, such as building help messages or man files
     pub fn get_possible_values(&self) -> Vec<PossibleValue> {
@@ -3992,7 +4023,7 @@ impl Arg {
         self.val_delim
     }
 
-    /// Get the value terminator for this argument. The value_terminator is a value
+    /// Get the value terminator for this argument. The `value_terminator` is a value
     /// that terminates parsing of multi-valued arguments.
     #[inline]
     pub fn get_value_terminator(&self) -> Option<&Str> {
@@ -4007,7 +4038,8 @@ impl Arg {
 
     /// Get the value hint of this argument
     pub fn get_value_hint(&self) -> ValueHint {
-        self.value_hint.unwrap_or_else(|| {
+        // HACK: we should use `Self::add` and `Self::remove` to type-check that `ArgExt` is used
+        self.ext.get::<ValueHint>().copied().unwrap_or_else(|| {
             if self.is_takes_value_set() {
                 let type_id = self.get_value_parser().type_id();
                 if type_id == AnyValueId::of::<std::path::PathBuf>() {
@@ -4078,7 +4110,9 @@ impl Arg {
     }
 
     pub(crate) fn is_takes_value_set(&self) -> bool {
-        self.get_action().takes_values()
+        self.get_num_args()
+            .unwrap_or_else(|| 1.into())
+            .takes_values()
     }
 
     /// Report whether [`Arg::allow_hyphen_values`] is set
@@ -4092,8 +4126,8 @@ impl Arg {
     }
 
     /// Behavior when parsing the argument
-    pub fn get_action(&self) -> &super::ArgAction {
-        const DEFAULT: super::ArgAction = super::ArgAction::Set;
+    pub fn get_action(&self) -> &ArgAction {
+        const DEFAULT: ArgAction = ArgAction::Set;
         self.action.as_ref().unwrap_or(&DEFAULT)
     }
 
@@ -4193,6 +4227,18 @@ impl Arg {
     pub fn is_ignore_case_set(&self) -> bool {
         self.is_set(ArgSettings::IgnoreCase)
     }
+
+    /// Access an [`ArgExt`]
+    #[cfg(feature = "unstable-ext")]
+    pub fn get<T: ArgExt + Extension>(&self) -> Option<&T> {
+        self.ext.get::<T>()
+    }
+
+    /// Remove an [`ArgExt`]
+    #[cfg(feature = "unstable-ext")]
+    pub fn remove<T: ArgExt + Extension>(mut self) -> Option<T> {
+        self.ext.remove::<T>()
+    }
 }
 
 /// # Internally used only
@@ -4200,7 +4246,7 @@ impl Arg {
     pub(crate) fn _build(&mut self) {
         if self.action.is_none() {
             if self.num_vals == Some(ValueRange::EMPTY) {
-                let action = super::ArgAction::SetTrue;
+                let action = ArgAction::SetTrue;
                 self.action = Some(action);
             } else {
                 let action =
@@ -4209,9 +4255,9 @@ impl Arg {
                         //
                         // Bounded values are probably a group and the user should explicitly opt-in to
                         // Append
-                        super::ArgAction::Append
+                        ArgAction::Append
                     } else {
-                        super::ArgAction::Set
+                        ArgAction::Set
                     };
                 self.action = Some(action);
             }
@@ -4430,14 +4476,14 @@ impl Ord for Arg {
 impl Eq for Arg {}
 
 impl Display for Arg {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let plain = Styles::plain();
         self.stylized(&plain, None).fmt(f)
     }
 }
 
 impl fmt::Debug for Arg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let mut ds = f.debug_struct("Arg");
 
         #[allow(unused_mut)]
@@ -4467,8 +4513,8 @@ impl fmt::Debug for Arg {
             .field("terminator", &self.terminator)
             .field("index", &self.index)
             .field("help_heading", &self.help_heading)
-            .field("value_hint", &self.value_hint)
-            .field("default_missing_vals", &self.default_missing_vals);
+            .field("default_missing_vals", &self.default_missing_vals)
+            .field("ext", &self.ext);
 
         #[cfg(feature = "env")]
         {
@@ -4478,6 +4524,10 @@ impl fmt::Debug for Arg {
         ds.finish()
     }
 }
+
+/// User-provided data that can be attached to an [`Arg`]
+#[cfg(feature = "unstable-ext")]
+pub trait ArgExt: Extension {}
 
 // Flags
 #[cfg(test)]
@@ -4517,7 +4567,7 @@ mod test {
             .action(ArgAction::SetTrue);
         f._build();
 
-        assert_eq!(f.to_string(), "--flag")
+        assert_eq!(f.to_string(), "--flag");
     }
 
     #[test]
@@ -4540,7 +4590,7 @@ mod test {
         f.short_aliases = vec![('b', true)];
         f._build();
 
-        assert_eq!(f.to_string(), "-a")
+        assert_eq!(f.to_string(), "-a");
     }
 
     #[test]

@@ -12,7 +12,7 @@ mod foo {
 #[derive(FromDeriveInput)]
 #[darling(attributes(speak))]
 pub struct SpeakerOpts {
-    #[darling(default = "foo::bar::init")]
+    #[darling(default = foo::bar::init)]
     first_word: String,
 }
 

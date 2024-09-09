@@ -8,7 +8,7 @@
 //!
 #![doc = include_str!("../../../examples/tutorial_derive/02_apps.md")]
 //!
-//! You can use [`#[command(author, version, about)]` attribute defaults][super#command-attributes] on the struct to fill these fields in from your `Cargo.toml` file.
+//! You can use [`#[command(version, about)]` attribute defaults][super#command-attributes] on the struct to fill these fields in from your `Cargo.toml` file.
 //!
 //! ```rust
 #![doc = include_str!("../../../examples/tutorial_derive/02_crate.rs")]
@@ -26,4 +26,4 @@ use crate::builder::*;
 
 pub use super::chapter_0 as previous;
 pub use super::chapter_2 as next;
-pub use crate::_tutorial as table_of_contents;
+pub use crate::_derive::_tutorial as table_of_contents;

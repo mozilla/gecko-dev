@@ -15,6 +15,13 @@ user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
+[[publisher.anstyle]]
+version = "1.0.8"
+when = "2024-07-25"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
+
 [[publisher.arbitrary]]
 version = "1.3.2"
 when = "2023-10-30"
@@ -99,6 +106,13 @@ user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
+[[publisher.clap]]
+version = "4.5.16"
+when = "2024-08-15"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
+
 [[publisher.clap_builder]]
 version = "4.4.5"
 when = "2023-09-25"
@@ -113,9 +127,23 @@ user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
+[[publisher.clap_derive]]
+version = "4.5.13"
+when = "2024-07-31"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
+
 [[publisher.clap_lex]]
 version = "0.5.1"
 when = "2023-08-24"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
+
+[[publisher.clap_lex]]
+version = "0.7.2"
+when = "2024-07-25"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -1033,6 +1061,12 @@ criteria = "safe-to-deploy"
 version = "0.4.0"
 notes = "Contains `forbid_unsafe` and only uses `std::fmt` from the standard library. Otherwise only contains string manipulation."
 
+[[audits.bytecode-alliance.audits.heck]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "0.4.1 -> 0.5.0"
+notes = "Minor changes for a `no_std` upgrade but otherwise everything looks as expected."
+
 [[audits.bytecode-alliance.audits.id-arena]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
@@ -1265,6 +1299,16 @@ delta = "2.5.0 -> 2.6.0"
 notes = "The changes from the previous version are negligible and thus it retains the same properties."
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
+[[audits.google.audits.clap_builder]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+version = "4.5.15"
+notes = '''
+Grepped for `-i cipher`, `-i crypto`, `'\bfs\b'`, `'\bnet\b'`, `'\bunsafe\b'`
+and there were no hits.
+'''
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
 [[audits.google.audits.equivalent]]
 who = "George Burgess IV <gbiv@google.com>"
 criteria = "safe-to-deploy"
@@ -1296,6 +1340,19 @@ who = "George Burgess IV <gbiv@google.com>"
 criteria = "safe-to-deploy"
 version = "0.3.1"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.heck]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+version = "0.4.1"
+notes = """
+Grepped for `-i cipher`, `-i crypto`, `'\bfs\b'``, `'\bnet\b'``, `'\bunsafe\b'``
+and there were no hits.
+
+`heck` (version `0.3.3`) has been added to Chromium in
+https://source.chromium.org/chromium/chromium/src/+/28841c33c77833cc30b286f9ae24c97e7a8f4057
+"""
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.http]]
 who = "ChromeOS"

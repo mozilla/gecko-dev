@@ -1,4 +1,6 @@
-use std::fmt;
+use core::fmt;
+
+use alloc::{borrow::ToOwned, string::ToString};
 
 use crate::{lowercase, transform};
 
@@ -64,7 +66,10 @@ mod tests {
     t!(test6: "SHOUTY_SNAKE_CASE" => "shouty-snake-case");
     t!(test7: "snake_case" => "snake-case");
     t!(test8: "this-contains_ ALLKinds OfWord_Boundaries" => "this-contains-all-kinds-of-word-boundaries");
-    #[cfg(feature = "unicode")]
     t!(test9: "XΣXΣ baﬄe" => "xσxς-baﬄe");
     t!(test10: "XMLHttpRequest" => "xml-http-request");
+    t!(test11: "لِنَذْهَبْ إِلَى السِّيْنَمَا" => "لِنَذْهَبْ-إِلَى-السِّيْنَمَا");
+    // Japanese and Chinese do not have word separation.
+    t!(test12: "ファイルを読み込み" => "ファイルを読み込み");
+    t!(test13: "祝你一天过得愉快" => "祝你一天过得愉快");
 }

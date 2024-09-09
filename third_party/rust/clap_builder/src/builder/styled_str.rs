@@ -45,21 +45,17 @@ impl StyledStr {
         self.0.push_str(msg);
     }
 
-    pub(crate) fn trim(&mut self) {
-        self.0 = self.0.trim().to_owned()
-    }
-
     pub(crate) fn trim_start_lines(&mut self) {
         if let Some(pos) = self.0.find('\n') {
             let (leading, help) = self.0.split_at(pos + 1);
             if leading.trim().is_empty() {
-                self.0 = help.to_owned()
+                self.0 = help.to_owned();
             }
         }
     }
 
     pub(crate) fn trim_end(&mut self) {
-        self.0 = self.0.trim_end().to_owned()
+        self.0 = self.0.trim_end().to_owned();
     }
 
     #[cfg(feature = "help")]
@@ -160,14 +156,14 @@ impl Default for &'_ StyledStr {
     }
 }
 
-impl From<std::string::String> for StyledStr {
-    fn from(name: std::string::String) -> Self {
+impl From<String> for StyledStr {
+    fn from(name: String) -> Self {
         StyledStr(name)
     }
 }
 
-impl From<&'_ std::string::String> for StyledStr {
-    fn from(name: &'_ std::string::String) -> Self {
+impl From<&'_ String> for StyledStr {
+    fn from(name: &'_ String) -> Self {
         let mut styled = StyledStr::new();
         styled.push_str(name);
         styled
@@ -204,7 +200,7 @@ impl std::fmt::Write for StyledStr {
 
 /// Color-unaware printing. Never uses coloring.
 impl std::fmt::Display for StyledStr {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for part in self.iter_text() {
             part.fmt(f)?;
         }

@@ -5,14 +5,14 @@ error[E0277]: the trait bound `NotImplFm: FromMeta` is not satisfied
   |            ^^^^^^^^^ the trait `FromMeta` is not implemented for `NotImplFm`
   |
   = help: the following other types implement trait `FromMeta`:
-            ()
-            Arc<T>
-            AtomicBool
-            ExprArray
-            ExprPath
-            Flag
-            HashMap<String, V, S>
-            HashMap<proc_macro2::Ident, V, S>
+            bool
+            char
+            isize
+            i8
+            i16
+            i32
+            i64
+            i128
           and $N others
 
 error[E0277]: the trait bound `NotImplFm: FromMeta` is not satisfied
@@ -22,12 +22,12 @@ error[E0277]: the trait bound `NotImplFm: FromMeta` is not satisfied
    |            ^^^^^^^^^ the trait `FromMeta` is not implemented for `NotImplFm`
    |
    = help: the following other types implement trait `FromMeta`:
-             ()
-             Arc<T>
-             AtomicBool
-             ExprArray
-             ExprPath
-             Flag
-             HashMap<String, V, S>
-             HashMap<proc_macro2::Ident, V, S>
+             bool
+             char
+             isize
+             i8
+             i16
+             i32
+             i64
+             i128
            and $N others

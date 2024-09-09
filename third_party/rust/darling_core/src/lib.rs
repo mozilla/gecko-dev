@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 #![cfg_attr(feature = "diagnostics", feature(proc_macro_diagnostic))]
+#![warn(rust_2018_idioms)]
 
 #[cfg(feature = "diagnostics")]
 extern crate proc_macro;

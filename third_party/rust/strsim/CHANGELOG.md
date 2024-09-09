@@ -4,6 +4,34 @@ This project attempts to adhere to [Semantic Versioning](http://semver.org).
 
 ## [Unreleased]
 
+## [0.11.1] - (2024-04-03)
+
+### Fixed
+
+- Drop MSRV down to 1.56 which was mistakenly changed in 0.11.0
+
+## [0.11.0] - (2024-01-07)
+
+### Changed
+
+- improve OSA implementation
+  - reduce runtime
+  - reduce binary size by more than `25%`
+
+- reduce binary size of Levenshtein distance
+
+- improve Damerau-Levenshtein implementation
+  - reduce memory usage from `O(N*M)` to `O(N+M)`
+  - reduce runtime in our own benchmark by more than `70%`
+  - reduce binary size by more than `25%`
+
+- only boost similarity in Jaro-Winkler once the Jaro similarity exceeds 0.7
+
+### Fixed
+
+- Fix transposition counting in Jaro and Jaro-Winkler.
+- Limit common prefix in Jaro-Winkler to 4 characters
+
 ## [0.10.0] - (2020-01-31)
 
 ### Added
@@ -175,29 +203,31 @@ vector of results (thanks @ovarene)
 
 - Implement Hamming, Jaro, Jaro-Winkler, and Levenshtein
 
-[Unreleased]: https://github.com/dguo/strsim-rs/compare/0.10.0...HEAD
-[0.10.0]: https://github.com/dguo/strsim-rs/compare/0.9.3...0.10.0
-[0.9.3]: https://github.com/dguo/strsim-rs/compare/0.9.2...0.9.3
-[0.9.2]: https://github.com/dguo/strsim-rs/compare/0.9.1...0.9.2
-[0.9.1]: https://github.com/dguo/strsim-rs/compare/0.9.0...0.9.1
-[0.9.0]: https://github.com/dguo/strsim-rs/compare/0.8.0...0.9.0
-[0.8.0]: https://github.com/dguo/strsim-rs/compare/0.7.0...0.8.0
-[0.7.0]: https://github.com/dguo/strsim-rs/compare/0.6.0...0.7.0
-[0.6.0]: https://github.com/dguo/strsim-rs/compare/0.5.2...0.6.0
-[0.5.2]: https://github.com/dguo/strsim-rs/compare/0.5.1...0.5.2
-[0.5.1]: https://github.com/dguo/strsim-rs/compare/0.5.0...0.5.1
-[0.5.0]: https://github.com/dguo/strsim-rs/compare/0.4.1...0.5.0
-[0.4.1]: https://github.com/dguo/strsim-rs/compare/0.4.0...0.4.1
-[0.4.0]: https://github.com/dguo/strsim-rs/compare/0.3.0...0.4.0
-[0.3.0]: https://github.com/dguo/strsim-rs/compare/0.2.5...0.3.0
-[0.2.5]: https://github.com/dguo/strsim-rs/compare/0.2.4...0.2.5
-[0.2.4]: https://github.com/dguo/strsim-rs/compare/0.2.3...0.2.4
-[0.2.3]: https://github.com/dguo/strsim-rs/compare/0.2.2...0.2.3
-[0.2.2]: https://github.com/dguo/strsim-rs/compare/0.2.1...0.2.2
-[0.2.1]: https://github.com/dguo/strsim-rs/compare/0.2.0...0.2.1
-[0.2.0]: https://github.com/dguo/strsim-rs/compare/0.1.1...0.2.0
-[0.1.1]: https://github.com/dguo/strsim-rs/compare/0.1.0...0.1.1
-[0.1.0]: https://github.com/dguo/strsim-rs/compare/fabad4...0.1.0
+[Unreleased]: https://github.com/rapidfuzz/strsim-rs/compare/0.11.1...HEAD
+[0.11.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.11.0...0.11.1
+[0.11.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.9.3...0.10.0
+[0.9.3]: https://github.com/rapidfuzz/strsim-rs/compare/0.9.2...0.9.3
+[0.9.2]: https://github.com/rapidfuzz/strsim-rs/compare/0.9.1...0.9.2
+[0.9.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.9.0...0.9.1
+[0.9.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.8.0...0.9.0
+[0.8.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.7.0...0.8.0
+[0.7.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.5.2...0.6.0
+[0.5.2]: https://github.com/rapidfuzz/strsim-rs/compare/0.5.1...0.5.2
+[0.5.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.4.1...0.5.0
+[0.4.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.4.0...0.4.1
+[0.4.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.3.0...0.4.0
+[0.3.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.5...0.3.0
+[0.2.5]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.4...0.2.5
+[0.2.4]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.3...0.2.4
+[0.2.3]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.2...0.2.3
+[0.2.2]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.1...0.2.2
+[0.2.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.2.0...0.2.1
+[0.2.0]: https://github.com/rapidfuzz/strsim-rs/compare/0.1.1...0.2.0
+[0.1.1]: https://github.com/rapidfuzz/strsim-rs/compare/0.1.0...0.1.1
+[0.1.0]: https://github.com/rapidfuzz/strsim-rs/compare/fabad4...0.1.0
 [docs.rs]: https://docs.rs/strsim/
 [Damerau-Levenshtein explanation]:
 http://scarcitycomputing.blogspot.com/2013/04/damerau-levenshtein-edit-distance.html

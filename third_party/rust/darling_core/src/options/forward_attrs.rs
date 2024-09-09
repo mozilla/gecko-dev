@@ -1,30 +1,73 @@
+use proc_macro2::Ident;
+use syn::Path;
+
 use crate::ast::NestedMeta;
 use crate::util::PathList;
-use crate::{FromMeta, Result};
+use crate::{Error, FromField, FromMeta, Result};
 
-/// A rule about which attributes to forward to the generated struct.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ForwardAttrs {
-    All,
-    Only(PathList),
+use super::ParseAttribute;
+
+/// The `attrs` magic field and attributes that influence its behavior.
+#[derive(Debug, Clone)]
+pub struct AttrsField {
+    /// The ident of the field that will receive the forwarded attributes.
+    pub ident: Ident,
+    /// Path of the function that will be called to convert the `Vec` of
+    /// forwarded attributes into the type expected by the field in `ident`.
+    pub with: Option<Path>,
 }
 
-impl ForwardAttrs {
-    /// Returns `true` if this will not forward any attributes.
-    pub fn is_empty(&self) -> bool {
-        match *self {
-            ForwardAttrs::All => false,
-            ForwardAttrs::Only(ref list) => list.is_empty(),
+impl FromField for AttrsField {
+    fn from_field(field: &syn::Field) -> crate::Result<Self> {
+        let result = Self {
+            ident: field.ident.clone().ok_or_else(|| {
+                Error::custom("attributes receiver must be named field").with_span(field)
+            })?,
+            with: None,
+        };
+
+        result.parse_attributes(&field.attrs)
+    }
+}
+
+impl ParseAttribute for AttrsField {
+    fn parse_nested(&mut self, mi: &syn::Meta) -> crate::Result<()> {
+        if mi.path().is_ident("with") {
+            if self.with.is_some() {
+                return Err(Error::duplicate_field_path(mi.path()).with_span(mi));
+            }
+
+            self.with = FromMeta::from_meta(mi)?;
+            Ok(())
+        } else {
+            Err(Error::unknown_field_path_with_alts(mi.path(), &["with"]).with_span(mi))
         }
     }
 }
 
-impl FromMeta for ForwardAttrs {
+/// A rule about which attributes to forward to the generated struct.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ForwardAttrsFilter {
+    All,
+    Only(PathList),
+}
+
+impl ForwardAttrsFilter {
+    /// Returns `true` if this will not forward any attributes.
+    pub fn is_empty(&self) -> bool {
+        match *self {
+            ForwardAttrsFilter::All => false,
+            ForwardAttrsFilter::Only(ref list) => list.is_empty(),
+        }
+    }
+}
+
+impl FromMeta for ForwardAttrsFilter {
     fn from_word() -> Result<Self> {
-        Ok(ForwardAttrs::All)
+        Ok(ForwardAttrsFilter::All)
     }
 
     fn from_list(nested: &[NestedMeta]) -> Result<Self> {
-        Ok(ForwardAttrs::Only(PathList::from_list(nested)?))
+        Ok(ForwardAttrsFilter::Only(PathList::from_list(nested)?))
     }
 }

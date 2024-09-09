@@ -148,6 +148,7 @@
 //! - `author [= <expr>]`: [`Command::author`][crate::Command::author]
 //!   - When not present: no author set
 //!   - Without `<expr>`: defaults to [crate `authors`](https://doc.rust-lang.org/cargo/reference/manifest.html#the-authors-field)
+//!   - **NOTE:** A custom [`help_template`][crate::Command::help_template] is needed for author to show up.
 //! - `about [= <expr>]`: [`Command::about`][crate::Command::about]
 //!   - When not present: [Doc comment summary](#doc-comments)
 //!   - Without `<expr>`: [crate `description`](https://doc.rust-lang.org/cargo/reference/manifest.html#the-description-field) ([`Parser`][crate::Parser] container)
@@ -189,6 +190,9 @@
 //!   [`Subcommand`][crate::Subcommand])
 //!   - When `Option<T>`, the subcommand becomes optional
 //!
+//! See [Configuring the Parser][_tutorial::chapter_1] and
+//! [Subcommands][_tutorial::chapter_2#subcommands] from the tutorial.
+//!
 //! ### ArgGroup Attributes
 //!
 //! These correspond to the [`ArgGroup`][crate::ArgGroup] which is implicitly created for each
@@ -203,12 +207,18 @@
 //! - `skip [= <expr>]`: Ignore this field, filling in with `<expr>`
 //!   - Without `<expr>`: fills the field with `Default::default()`
 //!
+//! Note:
+//! - For `struct`s, [`multiple = true`][crate::ArgGroup::multiple] is implied
+//! - `enum` support is tracked at [#2621](https://github.com/clap-rs/clap/issues/2621)
+//!
+//! See [Argument Relations][_tutorial::chapter_3#argument-relations] from the tutorial.
+//!
 //! ### Arg Attributes
 //!
 //! These correspond to a [`Arg`][crate::Arg].
 //!
 //! **Raw attributes:**  Any [`Arg` method][crate::Arg] can also be used as an attribute, see [Terminology](#terminology) for syntax.
-//! - e.g. `#[arg(max_values(3))]` would translate to `arg.max_values(3)`
+//! - e.g. `#[arg(num_args(..=3))]` would translate to `arg.num_args(..=3)`
 //!
 //! **Magic attributes**:
 //! - `id = <expr>`: [`Arg::id`][crate::Arg::id]
@@ -252,11 +262,16 @@
 //!   - Requires field arg to be of type `Vec<T>` and `T` to implement `std::convert::Into<OsString>` or `#[arg(value_enum)]`
 //!   - `<expr>` must implement `IntoIterator<T>`
 //!
+//! See [Adding Arguments][_tutorial::chapter_2] and [Validation][_tutorial::chapter_3] from the
+//! tutorial.
+//!
 //! ### ValueEnum Attributes
 //!
 //! - `rename_all = <string_literal>`: Override default field / variant name case conversion for [`PossibleValue::new`][crate::builder::PossibleValue]
 //!   - When not present: `"kebab-case"`
 //!   - Available values: `"camelCase"`, `"kebab-case"`, `"PascalCase"`, `"SCREAMING_SNAKE_CASE"`, `"snake_case"`, `"lower"`, `"UPPER"`, `"verbatim"`
+//!
+//! See [Enumerated values][_tutorial::chapter_3#enumerated-values] from the tutorial.
 //!
 //! ### Possible Value Attributes
 //!
@@ -276,15 +291,17 @@
 //!
 //! `clap` assumes some intent based on the type used:
 //!
-//! | Type                | Effect                               | Implies                                                     |
-//! |---------------------|--------------------------------------|-------------------------------------------------------------|
-//! | `()`                | user-defined                         | `.action(ArgAction::Set).required(false)`                   |
-//! | `bool`              | flag                                 | `.action(ArgAction::SetTrue)`                               |
-//! | `Option<T>`         | optional argument                    | `.action(ArgAction::Set).required(false)`                   |
-//! | `Option<Option<T>>` | optional value for optional argument | `.action(ArgAction::Set).required(false).num_args(0..=1)`   |
-//! | `T`                 | required argument                    | `.action(ArgAction::Set).required(!has_default)`            |
-//! | `Vec<T>`            | `0..` occurrences of argument        | `.action(ArgAction::Append).required(false)`  |
-//! | `Option<Vec<T>>`    | `0..` occurrences of argument        | `.action(ArgAction::Append).required(false)`  |
+//! | Type                  | Effect                                               | Implies                                                     | Notes |
+//! |-----------------------|------------------------------------------------------|-------------------------------------------------------------|-------|
+//! | `()`                  | user-defined                                         | `.action(ArgAction::Set).required(false)`                   |       |
+//! | `bool`                | flag                                                 | `.action(ArgAction::SetTrue)`                               |       |
+//! | `Option<T>`           | optional argument                                    | `.action(ArgAction::Set).required(false)`                   |       |
+//! | `Option<Option<T>>`   | optional value for optional argument                 | `.action(ArgAction::Set).required(false).num_args(0..=1)`   |       |
+//! | `T`                   | required argument                                    | `.action(ArgAction::Set).required(!has_default)`            |       |
+//! | `Vec<T>`              | `0..` occurrences of argument                        | `.action(ArgAction::Append).required(false)`  |       |
+//! | `Option<Vec<T>>`      | `0..` occurrences of argument                        | `.action(ArgAction::Append).required(false)`  |       |
+//! | `Vec<Vec<T>>`         | `0..` occurrences of argument, grouped by occurrence | `.action(ArgAction::Append).required(false)`  | requires `unstable-v5` |
+//! | `Option<Vec<Vec<T>>>` | `0..` occurrences of argument, grouped by occurrence | `.action(ArgAction::Append).required(false)`  | requires `unstable-v5` |
 //!
 //! In addition, [`.value_parser(value_parser!(T))`][crate::value_parser!] is called for each
 //! field.
@@ -294,8 +311,9 @@
 //!   - To force any inferred type (like `Vec<T>`) to be treated as `T`, you can refer to the type
 //!     by another means, like using `std::vec::Vec` instead of `Vec`.  For improving this, see
 //!     [#4626](https://github.com/clap-rs/clap/issues/4626).
-//! - `Option<Vec<T>>` will be `None` instead of `vec![]` if no arguments are provided.
+//! - `Option<Vec<T>>` and `Option<Vec<Vec<T>>` will be `None` instead of `vec![]` if no arguments are provided.
 //!   - This gives the user some flexibility in designing their argument, like with `num_args(0..)`
+//! - `Vec<Vec<T>>` will need [`Arg::num_args`][crate::Arg::num_args] set to be meaningful
 //!
 //! ## Doc Comments
 //!

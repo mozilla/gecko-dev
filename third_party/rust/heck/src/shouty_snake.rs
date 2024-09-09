@@ -1,4 +1,6 @@
-use std::fmt;
+use core::fmt;
+
+use alloc::{borrow::ToOwned, string::ToString};
 
 use crate::{transform, uppercase};
 
@@ -20,7 +22,7 @@ pub trait ToShoutySnakeCase: ToOwned {
     fn to_shouty_snake_case(&self) -> Self::Owned;
 }
 
-/// Oh heck, ToShoutySnekCase is an alias for ToShoutySnakeCase. See
+/// Oh heck, `ToShoutySnekCase` is an alias for [`ToShoutySnakeCase`]. See
 /// ToShoutySnakeCase for more documentation.
 pub trait ToShoutySnekCase: ToOwned {
     /// CONVERT THIS TYPE TO SNEK CASE.
@@ -79,7 +81,6 @@ mod tests {
     t!(test6: "SHOUTY_SNAKE_CASE" => "SHOUTY_SNAKE_CASE");
     t!(test7: "snake_case" => "SNAKE_CASE");
     t!(test8: "this-contains_ ALLKinds OfWord_Boundaries" => "THIS_CONTAINS_ALL_KINDS_OF_WORD_BOUNDARIES");
-    #[cfg(feature = "unicode")]
     t!(test9: "XΣXΣ baﬄe" => "XΣXΣ_BAFFLE");
     t!(test10: "XMLHttpRequest" => "XML_HTTP_REQUEST");
 }

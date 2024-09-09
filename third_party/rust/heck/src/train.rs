@@ -1,4 +1,6 @@
-use std::fmt;
+use core::fmt;
+
+use alloc::{borrow::ToOwned, string::ToString};
 
 use crate::{capitalize, transform};
 

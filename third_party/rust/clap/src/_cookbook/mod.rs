@@ -15,6 +15,7 @@
 //! - Topics:
 //!   - Subcommands
 //!   - Cargo plugins
+//!   - custom terminal [styles][crate::Command::styles] (colors)
 //!
 //! find-like interface: [builder][find]
 //! - Topics:
@@ -43,7 +44,7 @@
 //!   - Topics:
 //!     - Subcommands
 //!
-//! repl: [builder][repl]
+//! repl: [builder][repl], [derive][repl_derive]
 //! - Topics:
 //!   - Read-Eval-Print Loops / Custom command lines
 
@@ -58,4 +59,5 @@ pub mod multicall_busybox;
 pub mod multicall_hostname;
 pub mod pacman;
 pub mod repl;
+pub mod repl_derive;
 pub mod typed_derive;

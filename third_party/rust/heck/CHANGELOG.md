@@ -1,3 +1,11 @@
+# unreleased
+
+# 0.5.0
+
+- Add `no_std` support.
+- Remove non-additive `unicode` feature. The library now uses `char::is_alphanumeric`
+  instead of the `unicode-segmentation` library to determine word boundaries in all cases.
+
 # 0.4.1
 
 Improvements:

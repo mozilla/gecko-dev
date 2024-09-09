@@ -370,7 +370,7 @@ pub(crate) fn assert_app(cmd: &Command) {
             "Command {}: {}",
             cmd.get_name(),
             "`{bin}` template variable was removed in clap5, use `{name}` instead"
-        )
+        );
     }
 
     cmd._panic_on_missing_help(cmd.is_help_expected_set());
@@ -398,50 +398,46 @@ enum Flag<'a> {
 }
 
 impl PartialEq for Flag<'_> {
-    fn eq(&self, other: &Flag) -> bool {
+    fn eq(&self, other: &Flag<'_>) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
 impl PartialOrd for Flag<'_> {
-    fn partial_cmp(&self, other: &Flag) -> Option<Ordering> {
-        use Flag::*;
+    fn partial_cmp(&self, other: &Flag<'_>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
+impl Ord for Flag<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Command(s1, _), Command(s2, _))
-            | (Arg(s1, _), Arg(s2, _))
-            | (Command(s1, _), Arg(s2, _))
-            | (Arg(s1, _), Command(s2, _)) => {
+            (Flag::Command(s1, _), Flag::Command(s2, _))
+            | (Flag::Arg(s1, _), Flag::Arg(s2, _))
+            | (Flag::Command(s1, _), Flag::Arg(s2, _))
+            | (Flag::Arg(s1, _), Flag::Command(s2, _)) => {
                 if s1 == s2 {
-                    Some(Ordering::Equal)
+                    Ordering::Equal
                 } else {
-                    s1.partial_cmp(s2)
+                    s1.cmp(s2)
                 }
             }
         }
     }
 }
 
-impl Ord for Flag<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
-
-fn detect_duplicate_flags(flags: &[Flag], short_or_long: &str) {
-    use Flag::*;
-
+fn detect_duplicate_flags(flags: &[Flag<'_>], short_or_long: &str) {
     for (one, two) in find_duplicates(flags) {
         match (one, two) {
-            (Command(flag, one), Command(_, another)) if one != another => panic!(
+            (Flag::Command(flag, one), Flag::Command(_, another)) if one != another => panic!(
                 "the '{flag}' {short_or_long} flag is specified for both '{one}' and '{another}' subcommands"
             ),
 
-            (Arg(flag, one), Arg(_, another)) if one != another => panic!(
+            (Flag::Arg(flag, one), Flag::Arg(_, another)) if one != another => panic!(
                 "{short_or_long} option names must be unique, but '{flag}' is in use by both '{one}' and '{another}'"
             ),
 
-            (Arg(flag, arg), Command(_, sub)) | (Command(flag, sub), Arg(_, arg)) => panic!(
+            (Flag::Arg(flag, arg), Flag::Command(_, sub)) | (Flag::Command(flag, sub), Flag::Arg(_, arg)) => panic!(
                 "the '{flag}' {short_or_long} flag for the '{arg}' argument conflicts with the short flag \
                      for '{sub}' subcommand"
             ),
@@ -467,22 +463,6 @@ fn find_duplicates<T: PartialEq>(slice: &[T]) -> impl Iterator<Item = (&T, &T)> 
 
 fn assert_app_flags(cmd: &Command) {
     macro_rules! checker {
-        ($a:ident requires $($b:ident)|+) => {
-            if cmd.$a() {
-                let mut s = String::new();
-
-                $(
-                    if !cmd.$b() {
-                        use std::fmt::Write;
-                        write!(&mut s, "  AppSettings::{} is required when AppSettings::{} is set.\n", std::stringify!($b), std::stringify!($a)).unwrap();
-                    }
-                )+
-
-                if !s.is_empty() {
-                    panic!("{s}")
-                }
-            }
-        };
         ($a:ident conflicts $($b:ident)|+) => {
             if cmd.$a() {
                 let mut s = String::new();
@@ -704,13 +684,14 @@ fn assert_arg(arg: &Arg) {
         arg.get_id(),
     );
 
-    assert_eq!(
-        arg.get_action().takes_values(),
-        arg.is_takes_value_set(),
-        "Argument `{}`'s selected action {:?} contradicts `takes_value`",
-        arg.get_id(),
-        arg.get_action()
-    );
+    if arg.is_takes_value_set() {
+        assert!(
+            arg.get_action().takes_values(),
+            "Argument `{}`'s selected action {:?} contradicts `takes_value`",
+            arg.get_id(),
+            arg.get_action()
+        );
+    }
     if let Some(action_type_id) = arg.get_action().value_type_id() {
         assert_eq!(
             action_type_id,
@@ -734,7 +715,7 @@ fn assert_arg(arg: &Arg) {
                 arg.is_multiple_values_set(),
                 "Argument '{}' uses hint CommandWithArguments and must accept multiple values",
                 arg.get_id()
-            )
+            );
         }
     }
 
@@ -774,13 +755,6 @@ fn assert_arg(arg: &Arg) {
         }
     }
 
-    assert_eq!(
-        num_vals.takes_values(),
-        arg.is_takes_value_set(),
-        "Argument {}: mismatch between `num_args` ({}) and `takes_value`",
-        arg.get_id(),
-        num_vals,
-    );
     assert_eq!(
         num_vals.is_multiple(),
         arg.is_multiple_values_set(),

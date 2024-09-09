@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 name = "darling_core"
-version = "0.20.1"
+version = "0.20.10"
 authors = ["Ted Driggs <ted.driggs@outlook.com>"]
 description = """
 Helper crate for proc-macro library for reading attributes into structs when
@@ -34,7 +35,7 @@ version = "1.0.37"
 version = "1.0.18"
 
 [dependencies.strsim]
-version = "0.10.0"
+version = "0.11.1"
 optional = true
 
 [dependencies.syn]

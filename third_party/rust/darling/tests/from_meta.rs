@@ -64,3 +64,46 @@ fn nested_meta_lit_bool_errors() {
         Error::unsupported_format("literal").to_string()
     );
 }
+
+/// Tests behavior of FromMeta implementation for enums.
+mod enum_impl {
+    use darling::{Error, FromMeta};
+    use syn::parse_quote;
+
+    /// A playback volume.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, FromMeta)]
+    enum Volume {
+        Normal,
+        Low,
+        High,
+        #[darling(rename = "dB")]
+        Decibels(u8),
+    }
+
+    #[test]
+    fn string_for_unit_variant() {
+        let volume = Volume::from_string("low").unwrap();
+        assert_eq!(volume, Volume::Low);
+    }
+
+    #[test]
+    fn single_value_list() {
+        let unit_variant = Volume::from_list(&[parse_quote!(high)]).unwrap();
+        assert_eq!(unit_variant, Volume::High);
+
+        let newtype_variant = Volume::from_list(&[parse_quote!(dB = 100)]).unwrap();
+        assert_eq!(newtype_variant, Volume::Decibels(100));
+    }
+
+    #[test]
+    fn empty_list_errors() {
+        let err = Volume::from_list(&[]).unwrap_err();
+        assert_eq!(err.to_string(), Error::too_few_items(1).to_string());
+    }
+
+    #[test]
+    fn multiple_values_list_errors() {
+        let err = Volume::from_list(&[parse_quote!(low), parse_quote!(dB = 20)]).unwrap_err();
+        assert_eq!(err.to_string(), Error::too_many_items(1).to_string());
+    }
+}

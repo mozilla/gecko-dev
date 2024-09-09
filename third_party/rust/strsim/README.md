@@ -1,8 +1,8 @@
 # strsim-rs
 
 [![Crates.io](https://img.shields.io/crates/v/strsim.svg)](https://crates.io/crates/strsim)
-[![Crates.io](https://img.shields.io/crates/l/strsim.svg?maxAge=2592000)](https://github.com/dguo/strsim-rs/blob/master/LICENSE)
-[![CI status](https://github.com/dguo/strsim-rs/workflows/CI/badge.svg)](https://github.com/dguo/strsim-rs/actions?query=branch%3Amaster)
+[![Crates.io](https://img.shields.io/crates/l/strsim.svg?maxAge=2592000)](https://github.com/rapidfuzz/strsim-rs/blob/main/LICENSE)
+[![CI status](https://github.com/rapidfuzz/strsim-rs/workflows/CI/badge.svg)](https://github.com/rapidfuzz/strsim-rs/actions?query=branch%3Amain)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 [Rust](https://www.rust-lang.org) implementations of [string similarity metrics]:
@@ -10,7 +10,7 @@
   - [Levenshtein] - distance & normalized
   - [Optimal string alignment]
   - [Damerau-Levenshtein] - distance & normalized
-  - [Jaro and Jaro-Winkler] - this implementation of Jaro-Winkler does not limit the common prefix length
+  - [Jaro and Jaro-Winkler]
   - [Sørensen-Dice]
 
 The normalized versions return values between `0.0` and `1.0`, where `1.0` means
@@ -21,10 +21,10 @@ There are also generic versions of the functions for non-string inputs.
 ## Installation
 
 `strsim` is available on [crates.io](https://crates.io/crates/strsim). Add it to
-your `Cargo.toml`:
-```toml
-[dependencies]
-strsim = "0.10.0"
+your project:
+
+```sh
+cargo add strsim
 ```
 
 ## Usage
@@ -90,7 +90,7 @@ Benchmarks require a Nightly toolchain. Run `$ cargo +nightly bench`.
 
 ## License
 
-[MIT](https://github.com/dguo/strsim-rs/blob/master/LICENSE)
+[MIT](https://github.com/rapidfuzz/strsim-rs/blob/main/LICENSE)
 
 [string similarity metrics]:http://en.wikipedia.org/wiki/String_metric
 [Damerau-Levenshtein]:http://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance

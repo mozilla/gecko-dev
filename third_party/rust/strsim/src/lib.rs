@@ -1,13 +1,32 @@
 //! This library implements string similarity metrics.
 
 #![forbid(unsafe_code)]
+#![allow(
+    // these casts are sometimes needed. They restrict the length of input iterators
+    // but there isn't really any way around this except for always working with
+    // 128 bit types
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    // not practical
+    clippy::needless_pass_by_value,
+    clippy::similar_names,
+    // noisy
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    // todo https://github.com/rapidfuzz/strsim-rs/issues/59
+    clippy::range_plus_one
+)]
 
 use std::char;
 use std::cmp::{max, min};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::hash::Hash;
+use std::mem;
 use std::str::Chars;
 
 #[derive(Debug, PartialEq)]
@@ -32,14 +51,20 @@ pub type HammingResult = Result<usize, StrSimError>;
 /// Calculates the number of positions in the two sequences where the elements
 /// differ. Returns an error if the sequences have different lengths.
 pub fn generic_hamming<Iter1, Iter2, Elem1, Elem2>(a: Iter1, b: Iter2) -> HammingResult
-    where Iter1: IntoIterator<Item=Elem1>,
-          Iter2: IntoIterator<Item=Elem2>,
-          Elem1: PartialEq<Elem2> {
+where
+    Iter1: IntoIterator<Item = Elem1>,
+    Iter2: IntoIterator<Item = Elem2>,
+    Elem1: PartialEq<Elem2>,
+{
     let (mut ita, mut itb) = (a.into_iter(), b.into_iter());
     let mut count = 0;
     loop {
-        match (ita.next(), itb.next()){
-            (Some(x), Some(y)) => if x != y { count += 1 },
+        match (ita.next(), itb.next()) {
+            (Some(x), Some(y)) => {
+                if x != y {
+                    count += 1;
+                }
+            }
             (None, None) => return Ok(count),
             _ => return Err(StrSimError::DifferentLengthArgs),
         }
@@ -63,70 +88,78 @@ pub fn hamming(a: &str, b: &str) -> HammingResult {
 /// Calculates the Jaro similarity between two sequences. The returned value
 /// is between 0.0 and 1.0 (higher value means more similar).
 pub fn generic_jaro<'a, 'b, Iter1, Iter2, Elem1, Elem2>(a: &'a Iter1, b: &'b Iter2) -> f64
-    where &'a Iter1: IntoIterator<Item=Elem1>,
-          &'b Iter2: IntoIterator<Item=Elem2>,
-          Elem1: PartialEq<Elem2> {
+where
+    &'a Iter1: IntoIterator<Item = Elem1>,
+    &'b Iter2: IntoIterator<Item = Elem2>,
+    Elem1: PartialEq<Elem2>,
+{
     let a_len = a.into_iter().count();
     let b_len = b.into_iter().count();
 
-    // The check for lengths of one here is to prevent integer overflow when
-    // calculating the search range.
     if a_len == 0 && b_len == 0 {
         return 1.0;
     } else if a_len == 0 || b_len == 0 {
         return 0.0;
-    } else if a_len == 1 && b_len == 1 {
-        return if a.into_iter().eq(b.into_iter()) { 1.0} else { 0.0 };
     }
 
-    let search_range = (max(a_len, b_len) / 2) - 1;
+    let mut search_range = max(a_len, b_len) / 2;
+    search_range = search_range.saturating_sub(1);
 
-    let mut b_consumed = Vec::with_capacity(b_len);
-    for _ in 0..b_len {
-        b_consumed.push(false);
-    }
-    let mut matches = 0.0;
+    // combine memory allocations to reduce runtime
+    let mut flags_memory = vec![false; a_len + b_len];
+    let (a_flags, b_flags) = flags_memory.split_at_mut(a_len);
 
-    let mut transpositions = 0.0;
-    let mut b_match_index = 0;
+    let mut matches = 0_usize;
 
     for (i, a_elem) in a.into_iter().enumerate() {
-        let min_bound =
-            // prevent integer wrapping
-            if i > search_range {
-                max(0, i - search_range)
-            } else {
-                0
-            };
+        // prevent integer wrapping
+        let min_bound = if i > search_range {
+            i - search_range
+        } else {
+            0
+        };
 
-        let max_bound = min(b_len - 1, i + search_range);
+        let max_bound = min(b_len, i + search_range + 1);
 
-        if min_bound > max_bound {
-            continue;
-        }
-
-        for (j, b_elem) in b.into_iter().enumerate() {
-            if min_bound <= j && j <= max_bound && a_elem == b_elem &&
-                !b_consumed[j] {
-                b_consumed[j] = true;
-                matches += 1.0;
-
-                if j < b_match_index {
-                    transpositions += 1.0;
-                }
-                b_match_index = j;
-
+        for (j, b_elem) in b.into_iter().enumerate().take(max_bound) {
+            if min_bound <= j && a_elem == b_elem && !b_flags[j] {
+                a_flags[i] = true;
+                b_flags[j] = true;
+                matches += 1;
                 break;
             }
         }
     }
 
-    if matches == 0.0 {
+    let mut transpositions = 0_usize;
+    if matches != 0 {
+        let mut b_iter = b_flags.iter().zip(b);
+        for (a_flag, ch1) in a_flags.iter().zip(a) {
+            if *a_flag {
+                loop {
+                    if let Some((b_flag, ch2)) = b_iter.next() {
+                        if !*b_flag {
+                            continue;
+                        }
+
+                        if ch1 != ch2 {
+                            transpositions += 1;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    transpositions /= 2;
+
+    if matches == 0 {
         0.0
     } else {
-        (1.0 / 3.0) * ((matches / a_len as f64) +
-            (matches / b_len as f64) +
-            ((matches - transpositions) / matches))
+        ((matches as f64 / a_len as f64)
+            + (matches as f64 / b_len as f64)
+            + ((matches - transpositions) as f64 / matches as f64))
+            / 3.0
     }
 }
 
@@ -156,24 +189,24 @@ pub fn jaro(a: &str, b: &str) -> f64 {
 
 /// Like Jaro but gives a boost to sequences that have a common prefix.
 pub fn generic_jaro_winkler<'a, 'b, Iter1, Iter2, Elem1, Elem2>(a: &'a Iter1, b: &'b Iter2) -> f64
-    where &'a Iter1: IntoIterator<Item=Elem1>,
-          &'b Iter2: IntoIterator<Item=Elem2>,
-          Elem1: PartialEq<Elem2> {
-    let jaro_distance = generic_jaro(a, b);
+where
+    &'a Iter1: IntoIterator<Item = Elem1>,
+    &'b Iter2: IntoIterator<Item = Elem2>,
+    Elem1: PartialEq<Elem2>,
+{
+    let sim = generic_jaro(a, b);
 
-    // Don't limit the length of the common prefix
-    let prefix_length = a.into_iter()
-        .zip(b.into_iter())
-        .take_while(|&(ref a_elem, ref b_elem)| a_elem == b_elem)
-        .count();
+    if sim > 0.7 {
+        let prefix_length = a
+            .into_iter()
+            .take(4)
+            .zip(b)
+            .take_while(|(a_elem, b_elem)| a_elem == b_elem)
+            .count();
 
-    let jaro_winkler_distance =
-        jaro_distance + (0.1 * prefix_length as f64 * (1.0 - jaro_distance));
-
-    if jaro_winkler_distance <= 1.0 {
-        jaro_winkler_distance
+        sim + 0.1 * prefix_length as f64 * (1.0 - sim)
     } else {
-        1.0
+        sim
     }
 }
 
@@ -182,7 +215,7 @@ pub fn generic_jaro_winkler<'a, 'b, Iter1, Iter2, Elem1, Elem2>(a: &'a Iter1, b:
 /// ```
 /// use strsim::jaro_winkler;
 ///
-/// assert!((0.911 - jaro_winkler("cheeseburger", "cheese fries")).abs() <
+/// assert!((0.866 - jaro_winkler("cheeseburger", "cheese fries")).abs() <
 ///         0.001);
 /// ```
 pub fn jaro_winkler(a: &str, b: &str) -> f64 {
@@ -198,23 +231,23 @@ pub fn jaro_winkler(a: &str, b: &str) -> f64 {
 /// assert_eq!(3, generic_levenshtein(&[1,2,3], &[1,2,3,4,5,6]));
 /// ```
 pub fn generic_levenshtein<'a, 'b, Iter1, Iter2, Elem1, Elem2>(a: &'a Iter1, b: &'b Iter2) -> usize
-    where &'a Iter1: IntoIterator<Item=Elem1>,
-          &'b Iter2: IntoIterator<Item=Elem2>,
-          Elem1: PartialEq<Elem2> {
+where
+    &'a Iter1: IntoIterator<Item = Elem1>,
+    &'b Iter2: IntoIterator<Item = Elem2>,
+    Elem1: PartialEq<Elem2>,
+{
     let b_len = b.into_iter().count();
 
-    if a.into_iter().next().is_none() { return b_len; }
+    let mut cache: Vec<usize> = (1..b_len + 1).collect();
 
-    let mut cache: Vec<usize> = (1..b_len+1).collect();
-
-    let mut result = 0;
+    let mut result = b_len;
 
     for (i, a_elem) in a.into_iter().enumerate() {
         result = i + 1;
         let mut distance_b = i;
 
         for (j, b_elem) in b.into_iter().enumerate() {
-            let cost = if a_elem == b_elem { 0usize } else { 1usize };
+            let cost = usize::from(a_elem != b_elem);
             let distance_a = distance_b + cost;
             distance_b = cache[j];
             result = min(result + 1, min(distance_a, distance_b + 1));
@@ -265,53 +298,46 @@ pub fn normalized_levenshtein(a: &str, b: &str) -> f64 {
 /// assert_eq!(3, osa_distance("ab", "bca"));
 /// ```
 pub fn osa_distance(a: &str, b: &str) -> usize {
-    let a_len = a.chars().count();
     let b_len = b.chars().count();
-    if a == b { return 0; }
-    else if a_len == 0 { return b_len; }
-    else if b_len == 0 { return a_len; }
-
-    let mut prev_two_distances: Vec<usize> = Vec::with_capacity(b_len + 1);
-    let mut prev_distances: Vec<usize> = Vec::with_capacity(b_len + 1);
-    let mut curr_distances: Vec<usize> = Vec::with_capacity(b_len + 1);
+    // 0..=b_len behaves like 0..b_len.saturating_add(1) which could be a different size
+    // this leads to significantly worse code gen when swapping the vectors below
+    let mut prev_two_distances: Vec<usize> = (0..b_len + 1).collect();
+    let mut prev_distances: Vec<usize> = (0..b_len + 1).collect();
+    let mut curr_distances: Vec<usize> = vec![0; b_len + 1];
 
     let mut prev_a_char = char::MAX;
     let mut prev_b_char = char::MAX;
-
-    for i in 0..(b_len + 1) {
-        prev_two_distances.push(i);
-        prev_distances.push(i);
-        curr_distances.push(0);
-    }
 
     for (i, a_char) in a.chars().enumerate() {
         curr_distances[0] = i + 1;
 
         for (j, b_char) in b.chars().enumerate() {
-            let cost = if a_char == b_char { 0 } else { 1 };
-            curr_distances[j + 1] = min(curr_distances[j] + 1,
-                                        min(prev_distances[j + 1] + 1,
-                                            prev_distances[j] + cost));
-            if i > 0 && j > 0 && a_char != b_char &&
-                a_char == prev_b_char && b_char == prev_a_char {
-                curr_distances[j + 1] = min(curr_distances[j + 1],
-                                            prev_two_distances[j - 1] + 1);
+            let cost = usize::from(a_char != b_char);
+            curr_distances[j + 1] = min(
+                curr_distances[j] + 1,
+                min(prev_distances[j + 1] + 1, prev_distances[j] + cost),
+            );
+            if i > 0 && j > 0 && a_char != b_char && a_char == prev_b_char && b_char == prev_a_char
+            {
+                curr_distances[j + 1] = min(curr_distances[j + 1], prev_two_distances[j - 1] + 1);
             }
 
             prev_b_char = b_char;
         }
 
-        prev_two_distances.clone_from(&prev_distances);
-        prev_distances.clone_from(&curr_distances);
+        mem::swap(&mut prev_two_distances, &mut prev_distances);
+        mem::swap(&mut prev_distances, &mut curr_distances);
         prev_a_char = a_char;
     }
 
-    curr_distances[b_len]
-
+    // access prev_distances instead of curr_distances since we swapped
+    // them above. In case a is empty this would still contain the correct value
+    // from initializing the last element to b_len
+    prev_distances[b_len]
 }
 
 /* Returns the final index for a value in a single vector that represents a fixed
-   2d grid */
+2d grid */
 fn flat_index(i: usize, j: usize, width: usize) -> usize {
     j * width + i
 }
@@ -325,12 +351,18 @@ fn flat_index(i: usize, j: usize, width: usize) -> usize {
 /// assert_eq!(2, generic_damerau_levenshtein(&[1,2], &[2,3,1]));
 /// ```
 pub fn generic_damerau_levenshtein<Elem>(a_elems: &[Elem], b_elems: &[Elem]) -> usize
-    where Elem: Eq + Hash + Clone {
+where
+    Elem: Eq + Hash + Clone,
+{
     let a_len = a_elems.len();
     let b_len = b_elems.len();
 
-    if a_len == 0 { return b_len; }
-    if b_len == 0 { return a_len; }
+    if a_len == 0 {
+        return b_len;
+    }
+    if b_len == 0 {
+        return a_len;
+    }
 
     let width = a_len + 2;
     let mut distances = vec![0; (a_len + 2) * (b_len + 2)];
@@ -355,13 +387,13 @@ pub fn generic_damerau_levenshtein<Elem>(a_elems: &[Elem], b_elems: &[Elem]) -> 
         for j in 1..(b_len + 1) {
             let k = match elems.get(&b_elems[j - 1]) {
                 Some(&value) => value,
-                None => 0
+                None => 0,
             };
 
             let insertion_cost = distances[flat_index(i, j + 1, width)] + 1;
             let deletion_cost = distances[flat_index(i + 1, j, width)] + 1;
-            let transposition_cost = distances[flat_index(k, db, width)] +
-                (i - k - 1) + 1 + (j - db - 1);
+            let transposition_cost =
+                distances[flat_index(k, db, width)] + (i - k - 1) + 1 + (j - db - 1);
 
             let mut substitution_cost = distances[flat_index(i, j, width)] + 1;
             if a_elems[i - 1] == b_elems[j - 1] {
@@ -369,14 +401,269 @@ pub fn generic_damerau_levenshtein<Elem>(a_elems: &[Elem], b_elems: &[Elem]) -> 
                 substitution_cost -= 1;
             }
 
-            distances[flat_index(i + 1, j + 1, width)] = min(substitution_cost,
-                min(insertion_cost, min(deletion_cost, transposition_cost)));
+            distances[flat_index(i + 1, j + 1, width)] = min(
+                substitution_cost,
+                min(insertion_cost, min(deletion_cost, transposition_cost)),
+            );
         }
 
         elems.insert(a_elems[i - 1].clone(), i);
     }
 
     distances[flat_index(a_len + 1, b_len + 1, width)]
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct RowId {
+    val: isize,
+}
+
+impl Default for RowId {
+    fn default() -> Self {
+        Self { val: -1 }
+    }
+}
+
+#[derive(Default, Clone)]
+struct GrowingHashmapMapElemChar<ValueType> {
+    key: u32,
+    value: ValueType,
+}
+
+/// specialized hashmap to store user provided types
+/// this implementation relies on a couple of base assumptions in order to simplify the implementation
+/// - the hashmap does not have an upper limit of included items
+/// - the default value for the `ValueType` can be used as a dummy value to indicate an empty cell
+/// - elements can't be removed
+/// - only allocates memory on first write access.
+///   This improves performance for hashmaps that are never written to
+struct GrowingHashmapChar<ValueType> {
+    used: i32,
+    fill: i32,
+    mask: i32,
+    map: Option<Vec<GrowingHashmapMapElemChar<ValueType>>>,
+}
+
+impl<ValueType> Default for GrowingHashmapChar<ValueType>
+where
+    ValueType: Default + Clone + Eq,
+{
+    fn default() -> Self {
+        Self {
+            used: 0,
+            fill: 0,
+            mask: -1,
+            map: None,
+        }
+    }
+}
+
+impl<ValueType> GrowingHashmapChar<ValueType>
+where
+    ValueType: Default + Clone + Eq + Copy,
+{
+    fn get(&self, key: u32) -> ValueType {
+        self.map
+            .as_ref()
+            .map_or_else(|| Default::default(), |map| map[self.lookup(key)].value)
+    }
+
+    fn get_mut(&mut self, key: u32) -> &mut ValueType {
+        if self.map.is_none() {
+            self.allocate();
+        }
+
+        let mut i = self.lookup(key);
+        if self
+            .map
+            .as_ref()
+            .expect("map should have been created above")[i]
+            .value
+            == Default::default()
+        {
+            self.fill += 1;
+            // resize when 2/3 full
+            if self.fill * 3 >= (self.mask + 1) * 2 {
+                self.grow((self.used + 1) * 2);
+                i = self.lookup(key);
+            }
+
+            self.used += 1;
+        }
+
+        let elem = &mut self
+            .map
+            .as_mut()
+            .expect("map should have been created above")[i];
+        elem.key = key;
+        &mut elem.value
+    }
+
+    fn allocate(&mut self) {
+        self.mask = 8 - 1;
+        self.map = Some(vec![GrowingHashmapMapElemChar::default(); 8]);
+    }
+
+    /// lookup key inside the hashmap using a similar collision resolution
+    /// strategy to `CPython` and `Ruby`
+    fn lookup(&self, key: u32) -> usize {
+        let hash = key;
+        let mut i = hash as usize & self.mask as usize;
+
+        let map = self
+            .map
+            .as_ref()
+            .expect("callers have to ensure map is allocated");
+
+        if map[i].value == Default::default() || map[i].key == key {
+            return i;
+        }
+
+        let mut perturb = key;
+        loop {
+            i = (i * 5 + perturb as usize + 1) & self.mask as usize;
+
+            if map[i].value == Default::default() || map[i].key == key {
+                return i;
+            }
+
+            perturb >>= 5;
+        }
+    }
+
+    fn grow(&mut self, min_used: i32) {
+        let mut new_size = self.mask + 1;
+        while new_size <= min_used {
+            new_size <<= 1;
+        }
+
+        self.fill = self.used;
+        self.mask = new_size - 1;
+
+        let old_map = std::mem::replace(
+            self.map
+                .as_mut()
+                .expect("callers have to ensure map is allocated"),
+            vec![GrowingHashmapMapElemChar::<ValueType>::default(); new_size as usize],
+        );
+
+        for elem in old_map {
+            if elem.value != Default::default() {
+                let j = self.lookup(elem.key);
+                let new_elem = &mut self.map.as_mut().expect("map created above")[j];
+                new_elem.key = elem.key;
+                new_elem.value = elem.value;
+                self.used -= 1;
+                if self.used == 0 {
+                    break;
+                }
+            }
+        }
+
+        self.used = self.fill;
+    }
+}
+
+struct HybridGrowingHashmapChar<ValueType> {
+    map: GrowingHashmapChar<ValueType>,
+    extended_ascii: [ValueType; 256],
+}
+
+impl<ValueType> HybridGrowingHashmapChar<ValueType>
+where
+    ValueType: Default + Clone + Copy + Eq,
+{
+    fn get(&self, key: char) -> ValueType {
+        let value = key as u32;
+        if value <= 255 {
+            let val_u8 = u8::try_from(value).expect("we check the bounds above");
+            self.extended_ascii[usize::from(val_u8)]
+        } else {
+            self.map.get(value)
+        }
+    }
+
+    fn get_mut(&mut self, key: char) -> &mut ValueType {
+        let value = key as u32;
+        if value <= 255 {
+            let val_u8 = u8::try_from(value).expect("we check the bounds above");
+            &mut self.extended_ascii[usize::from(val_u8)]
+        } else {
+            self.map.get_mut(value)
+        }
+    }
+}
+
+impl<ValueType> Default for HybridGrowingHashmapChar<ValueType>
+where
+    ValueType: Default + Clone + Copy + Eq,
+{
+    fn default() -> Self {
+        HybridGrowingHashmapChar {
+            map: GrowingHashmapChar::default(),
+            extended_ascii: [Default::default(); 256],
+        }
+    }
+}
+
+fn damerau_levenshtein_impl<Iter1, Iter2>(s1: Iter1, len1: usize, s2: Iter2, len2: usize) -> usize
+where
+    Iter1: Iterator<Item = char> + Clone,
+    Iter2: Iterator<Item = char> + Clone,
+{
+    // The implementations is based on the paper
+    // `Linear space string correction algorithm using the Damerau-Levenshtein distance`
+    // from Chunchun Zhao and Sartaj Sahni
+    //
+    // It has a runtime complexity of `O(N*M)` and a memory usage of `O(N+M)`.
+    let max_val = max(len1, len2) as isize + 1;
+
+    let mut last_row_id = HybridGrowingHashmapChar::<RowId>::default();
+
+    let size = len2 + 2;
+    let mut fr = vec![max_val; size];
+    let mut r1 = vec![max_val; size];
+    let mut r: Vec<isize> = (max_val..max_val + 1)
+        .chain(0..(size - 1) as isize)
+        .collect();
+
+    for (i, ch1) in s1.enumerate().map(|(i, ch1)| (i + 1, ch1)) {
+        mem::swap(&mut r, &mut r1);
+        let mut last_col_id: isize = -1;
+        let mut last_i2l1 = r[1];
+        r[1] = i as isize;
+        let mut t = max_val;
+
+        for (j, ch2) in s2.clone().enumerate().map(|(j, ch2)| (j + 1, ch2)) {
+            let diag = r1[j] + isize::from(ch1 != ch2);
+            let left = r[j] + 1;
+            let up = r1[j + 1] + 1;
+            let mut temp = min(diag, min(left, up));
+
+            if ch1 == ch2 {
+                last_col_id = j as isize; // last occurence of s1_i
+                fr[j + 1] = r1[j - 1]; // save H_k-1,j-2
+                t = last_i2l1; // save H_i-2,l-1
+            } else {
+                let k = last_row_id.get(ch2).val;
+                let l = last_col_id;
+
+                if j as isize - l == 1 {
+                    let transpose = fr[j + 1] + (i as isize - k);
+                    temp = min(temp, transpose);
+                } else if i as isize - k == 1 {
+                    let transpose = t + (j as isize - l);
+                    temp = min(temp, transpose);
+                }
+            }
+
+            last_i2l1 = r[j + 1];
+            r[j + 1] = temp;
+        }
+        last_row_id.get_mut(ch1).val = i as isize;
+    }
+
+    r[len2 + 1] as usize
 }
 
 /// Like optimal string alignment, but substrings can be edited an unlimited
@@ -388,8 +675,7 @@ pub fn generic_damerau_levenshtein<Elem>(a_elems: &[Elem], b_elems: &[Elem]) -> 
 /// assert_eq!(2, damerau_levenshtein("ab", "bca"));
 /// ```
 pub fn damerau_levenshtein(a: &str, b: &str) -> usize {
-    let (x, y): (Vec<_>, Vec<_>) = (a.chars().collect(), b.chars().collect());
-    generic_damerau_levenshtein(x.as_slice(), y.as_slice())
+    damerau_levenshtein_impl(a.chars(), a.chars().count(), b.chars(), b.chars().count())
 }
 
 /// Calculates a normalized score of the Damerau–Levenshtein algorithm between
@@ -408,17 +694,20 @@ pub fn normalized_damerau_levenshtein(a: &str, b: &str) -> f64 {
     if a.is_empty() && b.is_empty() {
         return 1.0;
     }
-    1.0 - (damerau_levenshtein(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)
+
+    let len1 = a.chars().count();
+    let len2 = b.chars().count();
+    let dist = damerau_levenshtein_impl(a.chars(), len1, b.chars(), len2);
+    1.0 - (dist as f64) / (max(len1, len2) as f64)
 }
 
 /// Returns an Iterator of char tuples.
-fn bigrams(s: &str) -> impl Iterator<Item=(char, char)> + '_ {
+fn bigrams(s: &str) -> impl Iterator<Item = (char, char)> + '_ {
     s.chars().zip(s.chars().skip(1))
 }
 
-
 /// Calculates a Sørensen-Dice similarity distance using bigrams.
-/// See http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient.
+/// See <https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient>.
 ///
 /// ```
 /// use strsim::sorensen_dice;
@@ -426,7 +715,6 @@ fn bigrams(s: &str) -> impl Iterator<Item=(char, char)> + '_ {
 /// assert_eq!(1.0, sorensen_dice("", ""));
 /// assert_eq!(0.0, sorensen_dice("", "a"));
 /// assert_eq!(0.0, sorensen_dice("french", "quebec"));
-/// assert_eq!(1.0, sorensen_dice("ferris", "ferris"));
 /// assert_eq!(1.0, sorensen_dice("ferris", "ferris"));
 /// assert_eq!(0.8888888888888888, sorensen_dice("feris", "ferris"));
 /// ```
@@ -437,20 +725,8 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
     let a: String = a.chars().filter(|&x| !char::is_whitespace(x)).collect();
     let b: String = b.chars().filter(|&x| !char::is_whitespace(x)).collect();
 
-    if a.len() == 0 && b.len() == 0 {
-        return 1.0;
-    }
-
-    if a.len() == 0 || b.len() == 0 {
-        return 0.0;
-    }
-
     if a == b {
         return 1.0;
-    }
-
-    if a.len() == 1 && b.len() == 1 {
-        return 0.0;
     }
 
     if a.len() < 2 || b.len() < 2 {
@@ -463,7 +739,7 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
         *a_bigrams.entry(bigram).or_insert(0) += 1;
     }
 
-    let mut intersection_size = 0;
+    let mut intersection_size = 0_usize;
 
     for bigram in bigrams(&b) {
         a_bigrams.entry(bigram).and_modify(|bi| {
@@ -477,10 +753,24 @@ pub fn sorensen_dice(a: &str, b: &str) -> f64 {
     (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    macro_rules! assert_delta {
+        ($x:expr, $y:expr) => {
+            assert_delta!($x, $y, 1e-5);
+        };
+        ($x:expr, $y:expr, $d:expr) => {
+            if ($x - $y).abs() > $d {
+                panic!(
+                    "assertion failed: actual: `{}`, expected: `{}`: \
+                    actual not within < {} of expected",
+                    $x, $y, $d
+                );
+            }
+        };
+    }
 
     #[test]
     fn bigrams_iterator() {
@@ -557,13 +847,13 @@ mod tests {
 
     #[test]
     fn jaro_multibyte() {
-        assert!((0.818 - jaro("testabctest", "testöঙ香test")) < 0.001);
-        assert!((0.818 - jaro("testöঙ香test", "testabctest")) < 0.001);
+        assert_delta!(0.818, jaro("testabctest", "testöঙ香test"), 0.001);
+        assert_delta!(0.818, jaro("testöঙ香test", "testabctest"), 0.001);
     }
 
     #[test]
     fn jaro_diff_short() {
-        assert!((0.767 - jaro("dixon", "dicksonx")).abs() < 0.001);
+        assert_delta!(0.767, jaro("dixon", "dicksonx"), 0.001);
     }
 
     #[test]
@@ -583,28 +873,32 @@ mod tests {
 
     #[test]
     fn jaro_diff_one_and_two() {
-        assert!((0.83 - jaro("a", "ab")).abs() < 0.01);
+        assert_delta!(0.83, jaro("a", "ab"), 0.01);
     }
 
     #[test]
     fn jaro_diff_two_and_one() {
-        assert!((0.83 - jaro("ab", "a")).abs() < 0.01);
+        assert_delta!(0.83, jaro("ab", "a"), 0.01);
     }
 
     #[test]
     fn jaro_diff_no_transposition() {
-        assert!((0.822 - jaro("dwayne", "duane")).abs() < 0.001);
+        assert_delta!(0.822, jaro("dwayne", "duane"), 0.001);
     }
 
     #[test]
     fn jaro_diff_with_transposition() {
-        assert!((0.944 - jaro("martha", "marhta")).abs() < 0.001);
+        assert_delta!(0.944, jaro("martha", "marhta"), 0.001);
+        assert_delta!(0.6, jaro("a jke", "jane a k"), 0.001);
     }
 
     #[test]
     fn jaro_names() {
-        assert!((0.392 - jaro("Friedrich Nietzsche",
-                              "Jean-Paul Sartre")).abs() < 0.001);
+        assert_delta!(
+            0.392,
+            jaro("Friedrich Nietzsche", "Jean-Paul Sartre"),
+            0.001
+        );
     }
 
     #[test]
@@ -629,16 +923,14 @@ mod tests {
 
     #[test]
     fn jaro_winkler_multibyte() {
-        assert!((0.89 - jaro_winkler("testabctest", "testöঙ香test")).abs() <
-            0.001);
-        assert!((0.89 - jaro_winkler("testöঙ香test", "testabctest")).abs() <
-            0.001);
+        assert_delta!(0.89, jaro_winkler("testabctest", "testöঙ香test"), 0.001);
+        assert_delta!(0.89, jaro_winkler("testöঙ香test", "testabctest"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_diff_short() {
-        assert!((0.813 - jaro_winkler("dixon", "dicksonx")).abs() < 0.001);
-        assert!((0.813 - jaro_winkler("dicksonx", "dixon")).abs() < 0.001);
+        assert_delta!(0.813, jaro_winkler("dixon", "dicksonx"), 0.001);
+        assert_delta!(0.813, jaro_winkler("dicksonx", "dixon"), 0.001);
     }
 
     #[test]
@@ -653,41 +945,45 @@ mod tests {
 
     #[test]
     fn jaro_winkler_diff_no_transposition() {
-        assert!((0.840 - jaro_winkler("dwayne", "duane")).abs() < 0.001);
+        assert_delta!(0.84, jaro_winkler("dwayne", "duane"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_diff_with_transposition() {
-        assert!((0.961 - jaro_winkler("martha", "marhta")).abs() < 0.001);
+        assert_delta!(0.961, jaro_winkler("martha", "marhta"), 0.001);
+        assert_delta!(0.6, jaro_winkler("a jke", "jane a k"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_names() {
-        assert!((0.562 - jaro_winkler("Friedrich Nietzsche",
-                                      "Fran-Paul Sartre")).abs() < 0.001);
+        assert_delta!(
+            0.452,
+            jaro_winkler("Friedrich Nietzsche", "Fran-Paul Sartre"),
+            0.001
+        );
     }
 
     #[test]
     fn jaro_winkler_long_prefix() {
-        assert!((0.911 - jaro_winkler("cheeseburger", "cheese fries")).abs() <
-            0.001);
+        assert_delta!(0.866, jaro_winkler("cheeseburger", "cheese fries"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_more_names() {
-        assert!((0.868 - jaro_winkler("Thorkel", "Thorgier")).abs() < 0.001);
+        assert_delta!(0.868, jaro_winkler("Thorkel", "Thorgier"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_length_of_one() {
-        assert!((0.738 - jaro_winkler("Dinsdale", "D")).abs() < 0.001);
+        assert_delta!(0.738, jaro_winkler("Dinsdale", "D"), 0.001);
     }
 
     #[test]
     fn jaro_winkler_very_long_prefix() {
-        assert!((1.0 - jaro_winkler("thequickbrownfoxjumpedoverx",
-                                    "thequickbrownfoxjumpedovery")).abs() <
-            0.001);
+        assert_delta!(
+            0.98519,
+            jaro_winkler("thequickbrownfoxjumpedoverx", "thequickbrownfoxjumpedovery")
+        );
     }
 
     #[test]
@@ -735,27 +1031,27 @@ mod tests {
 
     #[test]
     fn normalized_levenshtein_diff_short() {
-        assert!((normalized_levenshtein("kitten", "sitting") - 0.57142).abs() < 0.00001);
+        assert_delta!(0.57142, normalized_levenshtein("kitten", "sitting"));
     }
 
     #[test]
     fn normalized_levenshtein_for_empty_strings() {
-        assert!((normalized_levenshtein("", "") - 1.0).abs() < 0.00001);
+        assert_delta!(1.0, normalized_levenshtein("", ""));
     }
 
     #[test]
     fn normalized_levenshtein_first_empty() {
-        assert!(normalized_levenshtein("", "second").abs() < 0.00001);
+        assert_delta!(0.0, normalized_levenshtein("", "second"));
     }
 
     #[test]
     fn normalized_levenshtein_second_empty() {
-        assert!(normalized_levenshtein("first", "").abs() < 0.00001);
+        assert_delta!(0.0, normalized_levenshtein("first", ""));
     }
 
     #[test]
     fn normalized_levenshtein_identical_strings() {
-        assert!((normalized_levenshtein("identical", "identical") - 1.0).abs() < 0.00001);
+        assert_delta!(1.0, normalized_levenshtein("identical", "identical"));
     }
 
     #[test]
@@ -926,27 +1222,33 @@ mod tests {
 
     #[test]
     fn normalized_damerau_levenshtein_diff_short() {
-        assert!((normalized_damerau_levenshtein("levenshtein", "löwenbräu") - 0.27272).abs() < 0.00001);
+        assert_delta!(
+            0.27272,
+            normalized_damerau_levenshtein("levenshtein", "löwenbräu")
+        );
     }
 
     #[test]
     fn normalized_damerau_levenshtein_for_empty_strings() {
-        assert!((normalized_damerau_levenshtein("", "") - 1.0).abs() < 0.00001);
+        assert_delta!(1.0, normalized_damerau_levenshtein("", ""));
     }
 
     #[test]
     fn normalized_damerau_levenshtein_first_empty() {
-        assert!(normalized_damerau_levenshtein("", "flower").abs() < 0.00001);
+        assert_delta!(0.0, normalized_damerau_levenshtein("", "flower"));
     }
 
     #[test]
     fn normalized_damerau_levenshtein_second_empty() {
-        assert!(normalized_damerau_levenshtein("tree", "").abs() < 0.00001);
+        assert_delta!(0.0, normalized_damerau_levenshtein("tree", ""));
     }
 
     #[test]
     fn normalized_damerau_levenshtein_identical_strings() {
-        assert!((normalized_damerau_levenshtein("sunglasses", "sunglasses") - 1.0).abs() < 0.00001);
+        assert_delta!(
+            1.0,
+            normalized_damerau_levenshtein("sunglasses", "sunglasses")
+        );
     }
 
     #[test]
@@ -954,51 +1256,51 @@ mod tests {
         // test cases taken from
         // https://github.com/aceakash/string-similarity/blob/f83ba3cd7bae874c20c429774e911ae8cff8bced/src/spec/index.spec.js#L11
 
-        assert_eq!(1.0, sorensen_dice("a", "a"));
-        assert_eq!(0.0, sorensen_dice("a", "b"));
-        assert_eq!(1.0, sorensen_dice("", ""));
-        assert_eq!(0.0, sorensen_dice("a", ""));
-        assert_eq!(0.0, sorensen_dice("", "a"));
-        assert_eq!(1.0, sorensen_dice("apple event", "apple    event"));
-        assert_eq!(0.9090909090909091, sorensen_dice("iphone", "iphone x"));
-        assert_eq!(0.0, sorensen_dice("french", "quebec"));
-        assert_eq!(1.0, sorensen_dice("france", "france"));
-        assert_eq!(0.2, sorensen_dice("fRaNce", "france"));
-        assert_eq!(0.8, sorensen_dice("healed", "sealed"));
-        assert_eq!(
-            0.7878787878787878,
+        assert_delta!(1.0, sorensen_dice("a", "a"));
+        assert_delta!(0.0, sorensen_dice("a", "b"));
+        assert_delta!(1.0, sorensen_dice("", ""));
+        assert_delta!(0.0, sorensen_dice("a", ""));
+        assert_delta!(0.0, sorensen_dice("", "a"));
+        assert_delta!(1.0, sorensen_dice("apple event", "apple    event"));
+        assert_delta!(0.90909, sorensen_dice("iphone", "iphone x"));
+        assert_delta!(0.0, sorensen_dice("french", "quebec"));
+        assert_delta!(1.0, sorensen_dice("france", "france"));
+        assert_delta!(0.2, sorensen_dice("fRaNce", "france"));
+        assert_delta!(0.8, sorensen_dice("healed", "sealed"));
+        assert_delta!(
+            0.78788,
             sorensen_dice("web applications", "applications of the web")
         );
-        assert_eq!(
+        assert_delta!(
             0.92,
             sorensen_dice(
                 "this will have a typo somewhere",
                 "this will huve a typo somewhere"
             )
         );
-        assert_eq!(
-            0.6060606060606061,
+        assert_delta!(
+            0.60606,
             sorensen_dice(
                 "Olive-green table for sale, in extremely good condition.",
                 "For sale: table in very good  condition, olive green in colour."
             )
         );
-        assert_eq!(
-            0.2558139534883721,
+        assert_delta!(
+            0.25581,
             sorensen_dice(
                 "Olive-green table for sale, in extremely good condition.",
                 "For sale: green Subaru Impreza, 210,000 miles"
             )
         );
-        assert_eq!(
-            0.1411764705882353,
+        assert_delta!(
+            0.14118,
             sorensen_dice(
                 "Olive-green table for sale, in extremely good condition.",
                 "Wanted: mountain bike with at least 21 gears."
             )
         );
-        assert_eq!(
-            0.7741935483870968,
+        assert_delta!(
+            0.77419,
             sorensen_dice("this has one extra word", "this has one word")
         );
     }

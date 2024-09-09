@@ -2,18 +2,16 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Ident;
 
-use crate::codegen::{ExtractAttribute, OuterFromImpl, TraitImpl};
-use crate::options::ForwardAttrs;
+use crate::codegen::{ExtractAttribute, ForwardAttrs, OuterFromImpl, TraitImpl};
 use crate::util::PathList;
 
 pub struct FromTypeParamImpl<'a> {
     pub base: TraitImpl<'a>,
     pub ident: Option<&'a Ident>,
-    pub attrs: Option<&'a Ident>,
     pub bounds: Option<&'a Ident>,
     pub default: Option<&'a Ident>,
     pub attr_names: &'a PathList,
-    pub forward_attrs: Option<&'a ForwardAttrs>,
+    pub forward_attrs: ForwardAttrs<'a>,
     pub from_ident: bool,
 }
 
@@ -36,7 +34,7 @@ impl<'a> ToTokens for FromTypeParamImpl<'a> {
             .ident
             .as_ref()
             .map(|i| quote!(#i: #input.ident.clone(),));
-        let passed_attrs = self.attrs.as_ref().map(|i| quote!(#i: __fwd_attrs,));
+        let passed_attrs = self.forward_attrs.as_initializer();
         let passed_bounds = self
             .bounds
             .as_ref()
@@ -81,8 +79,8 @@ impl<'a> ExtractAttribute for FromTypeParamImpl<'a> {
         self.attr_names
     }
 
-    fn forwarded_attrs(&self) -> Option<&ForwardAttrs> {
-        self.forward_attrs
+    fn forward_attrs(&self) -> &ForwardAttrs<'_> {
+        &self.forward_attrs
     }
 
     fn param_name(&self) -> TokenStream {

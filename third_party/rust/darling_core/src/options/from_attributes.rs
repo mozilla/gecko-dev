@@ -51,6 +51,10 @@ impl ParseData for FromAttributesOptions {
     fn parse_field(&mut self, field: &syn::Field) -> Result<()> {
         self.base.parse_field(field)
     }
+
+    fn validate_body(&self, errors: &mut crate::error::Accumulator) {
+        self.base.validate_body(errors);
+    }
 }
 
 impl<'a> From<&'a FromAttributesOptions> for FromAttributesImpl<'a> {
@@ -58,6 +62,7 @@ impl<'a> From<&'a FromAttributesOptions> for FromAttributesImpl<'a> {
         FromAttributesImpl {
             base: (&v.base.container).into(),
             attr_names: &v.base.attr_names,
+            forward_attrs: v.base.as_forward_attrs(),
         }
     }
 }

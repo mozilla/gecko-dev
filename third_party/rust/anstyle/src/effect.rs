@@ -9,21 +9,30 @@
 pub struct Effects(u16);
 
 impl Effects {
+    /// No [`Effects`] applied
     const PLAIN: Self = Effects(0);
 
+    #[allow(missing_docs)]
     pub const BOLD: Self = Effects(1 << 0);
+    #[allow(missing_docs)]
     pub const DIMMED: Self = Effects(1 << 1);
     /// Not widely supported. Sometimes treated as inverse or blink
     pub const ITALIC: Self = Effects(1 << 2);
     /// Style extensions exist for Kitty, VTE, mintty and iTerm2.
     pub const UNDERLINE: Self = Effects(1 << 3);
+    #[allow(missing_docs)]
     pub const DOUBLE_UNDERLINE: Self = Effects(1 << 4);
+    #[allow(missing_docs)]
     pub const CURLY_UNDERLINE: Self = Effects(1 << 5);
+    #[allow(missing_docs)]
     pub const DOTTED_UNDERLINE: Self = Effects(1 << 6);
+    #[allow(missing_docs)]
     pub const DASHED_UNDERLINE: Self = Effects(1 << 7);
+    #[allow(missing_docs)]
     pub const BLINK: Self = Effects(1 << 8);
     /// Swap foreground and background colors; inconsistent emulation
     pub const INVERT: Self = Effects(1 << 9);
+    #[allow(missing_docs)]
     pub const HIDDEN: Self = Effects(1 << 10);
     ///  Characters legible but marked as if for deletion. Not supported in Terminal.app
     pub const STRIKETHROUGH: Self = Effects(1 << 11);
@@ -156,7 +165,7 @@ impl Effects {
 
     /// Render the ANSI code
     #[inline]
-    pub fn render(self) -> impl core::fmt::Display {
+    pub fn render(self) -> impl core::fmt::Display + Copy {
         EffectsDisplay(self)
     }
 
@@ -307,18 +316,21 @@ pub(crate) const METADATA: [Metadata; 12] = [
     },
 ];
 
+#[derive(Copy, Clone, Default, Debug)]
 struct EffectsDisplay(Effects);
 
 impl core::fmt::Display for EffectsDisplay {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         for index in self.0.index_iter() {
-            METADATA[index].escape.fmt(f)?;
+            let escape = METADATA[index].escape;
+            write!(f, "{escape}")?;
         }
         Ok(())
     }
 }
 
+/// Enumerate each enabled value in [`Effects`]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EffectIter {
     index: usize,
@@ -364,5 +376,30 @@ impl Iterator for EffectIndexIter {
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "std")]
+mod test {
+    use super::*;
+
+    #[test]
+    fn print_size_of() {
+        use std::mem::size_of;
+        dbg!(size_of::<Effects>());
+        dbg!(size_of::<EffectsDisplay>());
+    }
+
+    #[test]
+    fn no_align() {
+        #[track_caller]
+        fn assert_no_align(d: impl core::fmt::Display) {
+            let expected = format!("{d}");
+            let actual = format!("{d:<10}");
+            assert_eq!(expected, actual);
+        }
+
+        assert_no_align(Effects::BOLD.render());
     }
 }

@@ -1512,6 +1512,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.14.3 -> 0.20.1"
 
+[[audits.darling]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.20.1 -> 0.20.10"
+
 [[audits.darling_core]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -1527,6 +1532,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.14.3 -> 0.20.1"
 
+[[audits.darling_core]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.20.1 -> 0.20.10"
+
 [[audits.darling_macro]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -1541,6 +1551,11 @@ delta = "0.14.2 -> 0.14.3"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.14.3 -> 0.20.1"
+
+[[audits.darling_macro]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.20.1 -> 0.20.10"
 
 [[audits.data-encoding]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -4217,6 +4232,11 @@ criteria = "safe-to-deploy"
 version = "0.1.2"
 notes = "This crate doesn't use unsafe block, network access and filesystem access."
 
+[[audits.strsim]]
+who = "Ben Dean-Kawamura <bdk@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.10.0 -> 0.11.1"
+
 [[audits.subtle]]
 who = "Simon Friedberger <simon@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -5504,7 +5524,7 @@ end = "2025-02-26"
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2021-12-08"
-end = "2024-06-02"
+end = "2025-08-21"
 
 [[trusted.clap_builder]]
 criteria = "safe-to-deploy"
@@ -5516,13 +5536,13 @@ end = "2024-06-02"
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2021-12-08"
-end = "2024-06-02"
+end = "2025-08-21"
 
 [[trusted.clap_lex]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2022-04-15"
-end = "2024-06-02"
+end = "2025-08-21"
 
 [[trusted.dtoa]]
 criteria = "safe-to-deploy"

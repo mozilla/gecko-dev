@@ -9,7 +9,7 @@ type MetaFormat = String;
 #[derive(Debug, Clone)]
 // Don't want to publicly commit to ErrorKind supporting equality yet, but
 // not having it makes testing very difficult.
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq))]
 pub(in crate::error) enum ErrorKind {
     /// An arbitrary error message.
     Custom(String),
@@ -44,7 +44,7 @@ impl ErrorKind {
             UnknownField(_) => "Unexpected field",
             UnsupportedShape { .. } => "Unsupported shape",
             UnexpectedFormat(_) => "Unexpected meta-item format",
-            UnexpectedType(_) => "Unexpected literal type",
+            UnexpectedType(_) => "Unexpected type",
             UnknownValue(_) => "Unknown literal value",
             TooFewItems(_) => "Too few items",
             TooManyItems(_) => "Too many items",
@@ -64,7 +64,7 @@ impl ErrorKind {
 }
 
 impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::ErrorKind::*;
 
         match *self {
@@ -84,7 +84,7 @@ impl fmt::Display for ErrorKind {
                 Ok(())
             }
             UnexpectedFormat(ref format) => write!(f, "Unexpected meta-item format `{}`", format),
-            UnexpectedType(ref ty) => write!(f, "Unexpected literal type `{}`", ty),
+            UnexpectedType(ref ty) => write!(f, "Unexpected type `{}`", ty),
             UnknownValue(ref val) => write!(f, "Unknown literal value `{}`", val),
             TooFewItems(ref min) => write!(f, "Too few items: Expected at least {}", min),
             TooManyItems(ref max) => write!(f, "Too many items: Expected no more than {}", max),
@@ -120,14 +120,14 @@ impl From<ErrorUnknownField> for ErrorKind {
 #[derive(Clone, Debug)]
 // Don't want to publicly commit to ErrorKind supporting equality yet, but
 // not having it makes testing very difficult.
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq))]
 pub(in crate::error) struct ErrorUnknownField {
     name: String,
-    did_you_mean: Option<String>,
+    did_you_mean: Option<(f64, String)>,
 }
 
 impl ErrorUnknownField {
-    pub fn new<I: Into<String>>(name: I, did_you_mean: Option<String>) -> Self {
+    pub fn new<I: Into<String>>(name: I, did_you_mean: Option<(f64, String)>) -> Self {
         ErrorUnknownField {
             name: name.into(),
             did_you_mean,
@@ -142,6 +142,24 @@ impl ErrorUnknownField {
         ErrorUnknownField::new(field, did_you_mean(field, alternates))
     }
 
+    /// Add more alternate field names to the error, updating the `did_you_mean` suggestion
+    /// if a closer match to the unknown field's name is found.
+    pub fn add_alts<'a, T, I>(&mut self, alternates: I)
+    where
+        T: AsRef<str> + 'a,
+        I: IntoIterator<Item = &'a T>,
+    {
+        if let Some(bna) = did_you_mean(&self.name, alternates) {
+            if let Some(current) = &self.did_you_mean {
+                if bna.0 > current.0 {
+                    self.did_you_mean = Some(bna);
+                }
+            } else {
+                self.did_you_mean = Some(bna);
+            }
+        }
+    }
+
     #[cfg(feature = "diagnostics")]
     pub fn into_diagnostic(self, span: Option<::proc_macro2::Span>) -> ::proc_macro::Diagnostic {
         let base = span
@@ -149,7 +167,7 @@ impl ErrorUnknownField {
             .unwrap()
             .error(self.top_line());
         match self.did_you_mean {
-            Some(alt_name) => base.help(format!("did you mean `{}`?", alt_name)),
+            Some((_, alt_name)) => base.help(format!("did you mean `{}`?", alt_name)),
             None => base,
         }
     }
@@ -173,10 +191,10 @@ impl<'a> From<&'a str> for ErrorUnknownField {
 }
 
 impl fmt::Display for ErrorUnknownField {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Unknown field: `{}`", self.name)?;
 
-        if let Some(ref did_you_mean) = self.did_you_mean {
+        if let Some((_, ref did_you_mean)) = self.did_you_mean {
             write!(f, ". Did you mean `{}`?", did_you_mean)?;
         }
 
@@ -185,7 +203,7 @@ impl fmt::Display for ErrorUnknownField {
 }
 
 #[cfg(feature = "suggestions")]
-fn did_you_mean<'a, T, I>(field: &str, alternates: I) -> Option<String>
+fn did_you_mean<'a, T, I>(field: &str, alternates: I) -> Option<(f64, String)>
 where
     T: AsRef<str> + 'a,
     I: IntoIterator<Item = &'a T>,
@@ -198,11 +216,11 @@ where
             candidate = Some((confidence, pv.as_ref()));
         }
     }
-    candidate.map(|(_, candidate)| candidate.into())
+    candidate.map(|(score, candidate)| (score, candidate.into()))
 }
 
 #[cfg(not(feature = "suggestions"))]
-fn did_you_mean<'a, T, I>(_field: &str, _alternates: I) -> Option<String>
+fn did_you_mean<'a, T, I>(_field: &str, _alternates: I) -> Option<(f64, String)>
 where
     T: AsRef<str> + 'a,
     I: IntoIterator<Item = &'a T>,

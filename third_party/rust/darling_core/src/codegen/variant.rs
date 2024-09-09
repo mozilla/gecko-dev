@@ -26,6 +26,10 @@ pub struct Variant<'a> {
     /// Whether or not the variant should be skipped in the generated code.
     pub skip: bool,
 
+    /// Whether or not the variant should be used to create an instance for
+    /// `FromMeta::from_word`.
+    pub word: bool,
+
     pub allow_unknown_fields: bool,
 }
 
@@ -53,6 +57,16 @@ impl<'a> UsesTypeParams for Variant<'a> {
     }
 }
 
+impl<'a> ToTokens for Variant<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        if self.data.is_unit() {
+            self.as_unit_match_arm().to_tokens(tokens);
+        } else {
+            self.as_data_match_arm().to_tokens(tokens)
+        }
+    }
+}
+
 /// Code generator for an enum variant in a unit match position.
 /// This is placed in generated `from_string` calls for the parent enum.
 /// Value-carrying variants wrapped in this type will emit code to produce an "unsupported format" error.
@@ -68,6 +82,12 @@ impl<'a> ToTokens for UnitMatchArm<'a> {
 
         let name_in_attr = &val.name_in_attr;
 
+        let unsupported_format_error = || {
+            quote!(::darling::export::Err(
+                ::darling::Error::unsupported_format("literal")
+            ))
+        };
+
         if val.data.is_unit() {
             let variant_ident = val.variant_ident;
             let ty_ident = val.ty_ident;
@@ -75,9 +95,29 @@ impl<'a> ToTokens for UnitMatchArm<'a> {
             tokens.append_all(quote!(
                 #name_in_attr => ::darling::export::Ok(#ty_ident::#variant_ident),
             ));
+        } else if val.data.is_newtype() {
+            let field = val
+                .data
+                .fields
+                .first()
+                .expect("Newtype should have exactly one field");
+            let field_ty = field.ty;
+            let ty_ident = val.ty_ident;
+            let variant_ident = val.variant_ident;
+            let unsupported_format = unsupported_format_error();
+
+            tokens.append_all(quote!{
+                #name_in_attr => {
+                    match <#field_ty as ::darling::FromMeta>::from_none() {
+                        ::darling::export::Some(__value) => ::darling::export::Ok(#ty_ident::#variant_ident(__value)),
+                        ::darling::export::None => #unsupported_format,
+                    }
+                }
+            })
         } else {
+            let unsupported_format = unsupported_format_error();
             tokens.append_all(quote!(
-                #name_in_attr => ::darling::export::Err(::darling::Error::unsupported_format("literal")),
+                #name_in_attr => #unsupported_format,
             ));
         }
     }

@@ -158,7 +158,7 @@ impl<P: FromGenericParam> FromGenerics for Generics<P> {
     }
 }
 
-pub struct TypeParams<'a, P: 'a>(Iter<'a, P>);
+pub struct TypeParams<'a, P>(Iter<'a, P>);
 
 impl<'a, P: GenericParamExt> Iterator for TypeParams<'a, P> {
     type Item = &'a <P as GenericParamExt>::TypeParam;
