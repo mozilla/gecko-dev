@@ -100,6 +100,36 @@ add_task(async function test_switchtab() {
   BrowserTestUtils.closeWindow(win);
 });
 
+add_task(async function test_switchtab_with_userContextId() {
+  let url = "https://example.com";
+  let tab = BrowserTestUtils.addTab(gBrowser, url, { userContextId: 1 });
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+
+  info("Start query");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "exa",
+  });
+
+  info("Check the button style");
+  let button = document.querySelector(
+    ".urlbarView-actions-container .urlbarView-action-btn.urlbarView-userContext"
+  );
+  await BrowserTestUtils.waitForCondition(() => button.textContent.length);
+
+  Assert.ok(button, "Action button with userContext is in the result");
+  Assert.ok(button.textContent.includes("personal"), "Label is correct");
+  Assert.ok(
+    button.classList.contains("identity-color-blue"),
+    "Style is correct"
+  );
+
+  info("Switch the tab");
+  EventUtils.synthesizeMouseAtCenter(button, {});
+  await BrowserTestUtils.waitForCondition(() => gBrowser.selectedTab == tab);
+  Assert.ok(true, "Expected tab is selected");
+});
+
 add_task(async function test_sitesearch() {
   await SearchTestUtils.installSearchExtension({
     name: "Contextual",

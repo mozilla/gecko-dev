@@ -144,22 +144,21 @@ class ProviderInputHistory extends UrlbarProvider {
           // Don't suggest switching to the current page.
           continue;
         }
+        let userContextId = row.getResultByName("userContextId") || 0;
         let payload = lazy.UrlbarResult.payloadAndSimpleHighlights(
           queryContext.tokens,
           {
             url: [url, UrlbarUtils.HIGHLIGHT.TYPED],
             title: [resultTitle, UrlbarUtils.HIGHLIGHT.TYPED],
             icon: UrlbarUtils.getIconForUrl(url),
-            userContextId: row.getResultByName("userContextId") || 0,
+            userContextId,
           }
         );
         if (
           lazy.UrlbarPrefs.getScotchBonnetPref("secondaryActions.featureGate")
         ) {
-          payload[0].action = {
-            key: "tabswitch",
-            l10nId: "urlbar-result-action-switch-tab",
-          };
+          payload[0].action =
+            UrlbarUtils.createTabSwitchSecondaryAction(userContextId);
         }
         let result = new lazy.UrlbarResult(
           UrlbarUtils.RESULT_TYPE.TAB_SWITCH,

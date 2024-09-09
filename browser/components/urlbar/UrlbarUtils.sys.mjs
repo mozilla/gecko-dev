@@ -10,6 +10,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextualIdentityService:
+    "resource://gre/modules/ContextualIdentityService.sys.mjs",
   FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   KeywordUtils: "resource://gre/modules/KeywordUtils.sys.mjs",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
@@ -1626,6 +1628,38 @@ export var UrlbarUtils = {
     }
     return obj;
   },
+
+  /**
+   * Create secondary action button data for tab switch.
+   *
+   * @param {number} userContextId
+   *   The container id for the tab.
+   * @returns {object} data to create secondary action button.
+   */
+  createTabSwitchSecondaryAction(userContextId) {
+    let action = { key: "tabswitch" };
+    let identity =
+      lazy.ContextualIdentityService.getPublicIdentityFromId(userContextId);
+
+    if (identity) {
+      let label =
+        lazy.ContextualIdentityService.getUserContextLabel(
+          userContextId
+        ).toLowerCase();
+      action.l10nId = "urlbar-result-action-switch-tab-with-container";
+      action.l10nArgs = {
+        container: label,
+      };
+      action.classList = [
+        "urlbarView-userContext",
+        `identity-color-${identity.color}`,
+      ];
+    } else {
+      action.l10nId = "urlbar-result-action-switch-tab";
+    }
+
+    return action;
+  },
 };
 
 ChromeUtils.defineLazyGetter(UrlbarUtils.ICON, "DEFAULT", () => {
@@ -1650,6 +1684,16 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       action: {
         type: "object",
         properties: {
+          classList: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          l10nArgs: {
+            type: "object",
+            additionalProperties: true,
+          },
           l10nId: {
             type: "string",
           },

@@ -1673,6 +1673,9 @@ export class UrlbarView {
     if (global) {
       button.classList.add("urlbarView-global-action-btn");
     }
+    if (action.classList) {
+      button.classList.add(...action.classList);
+    }
     button.setAttribute("role", "button");
     if (action.icon) {
       let icon = this.#createElement("img");
