@@ -37,6 +37,7 @@ BROWSER_CHROME_MANIFESTS += [
     "tests/browser/atk/browser.toml",
     "tests/browser/bounds/browser.toml",
     "tests/browser/browser.toml",
+    "tests/browser/caching_granularity/browser.toml",
     "tests/browser/e10s/browser.toml",
     "tests/browser/events/browser.toml",
     "tests/browser/fission/browser.toml",

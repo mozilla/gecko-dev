@@ -438,8 +438,45 @@ function snippetToURL(doc, options = {}) {
   return url;
 }
 
+const CacheDomain = {
+  None: 0,
+  NameAndDescription: 0x1 << 0,
+  Value: 0x1 << 1,
+  Bounds: 0x1 << 2,
+  Resolution: 0x1 << 3,
+  Text: 0x1 << 4,
+  DOMNodeIDAndClass: 0x1 << 5,
+  State: 0x1 << 6,
+  GroupInfo: 0x1 << 7,
+  Actions: 0x1 << 8,
+  Style: 0x1 << 9,
+  TransformMatrix: 0x1 << 10,
+  ScrollPosition: 0x1 << 11,
+  Table: 0x1 << 12,
+  TextOffsetAttributes: 0x1 << 13,
+  Viewport: 0x1 << 14,
+  ARIA: 0x1 << 15,
+  Relations: 0x1 << 16,
+  InnerHTML: 0x1 << 17,
+  TextBounds: 0x1 << 18,
+  All: ~0x0,
+};
+
 function accessibleTask(doc, task, options = {}) {
   return async function () {
+    let cacheDomains;
+    if (!("cacheDomains" in options)) {
+      cacheDomains = CacheDomain.All;
+    } else {
+      // The DOMNodeIDAndClass domain is required for the tests to initialize.
+      cacheDomains = options.cacheDomains | CacheDomain.DOMNodeIDAndClass;
+    }
+
+    // Set the required cache domains for the test. Note that this also
+    // instantiates the accessibility service if it hasn't been already, since
+    // gAccService is defined lazily.
+    gAccService.setCacheDomains(cacheDomains);
+
     gIsRemoteIframe = options.remoteIframe;
     gIsIframe = options.iframe || gIsRemoteIframe;
     const urlSuffix = options.urlSuffix || "";
@@ -619,6 +656,9 @@ function accessibleTask(doc, task, options = {}) {
  *         - {String} urlSuffix
  *           String to append to the document URL. For example, this could be
  *           "#test" to scroll to the "test" id in the document.
+ *         - {CacheDomain} cacheDomains
+ *           The set of cache domains that should be present at the start of the
+ *           test. If not set, all cache domains will be present.
  */
 function addAccessibleTask(doc, task, options = {}) {
   const {
