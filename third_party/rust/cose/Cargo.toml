@@ -9,10 +9,6 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
-bin = []
-test = []
-bench = []
-
 [package]
 name = "cose"
 version = "0.1.4"

@@ -9,9 +9,6 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
-bin = []
-bench = []
-
 [package]
 name = "midir"
 version = "0.7.0"

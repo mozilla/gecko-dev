@@ -9,10 +9,6 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
-bin = []
-test = []
-bench = []
-
 [package]
 edition = "2021"
 name = "wpf-gpu-raster"
@@ -36,18 +32,6 @@ debug = 2
 [lib]
 name = "wpf_gpu_raster"
 path = "src/lib.rs"
-
-[[example]]
-name = "draw"
-path = "examples/draw.rs"
-
-[[example]]
-name = "obj-output"
-path = "examples/obj-output.rs"
-
-[[example]]
-name = "simple"
-path = "examples/simple.rs"
 
 [dependencies]
 typed-arena-nomut = "0.1.0"

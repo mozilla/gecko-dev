@@ -159,12 +159,12 @@ class VendorRust(MozbuildObject):
         if not out.startswith("cargo"):
             return False
         version = LooseVersion(out.split()[1])
-        # Cargo 1.80.0 changed vendoring in a way that creates a lot of noise
+        # Cargo 1.81.0 changed vendoring in a way that creates a lot of noise
         # if we go back and forth between vendoring with an older version and
         # a newer version. Only allow the newer versions.
         minimum_rust_version = MINIMUM_RUST_VERSION
-        if LooseVersion("1.80.0") >= MINIMUM_RUST_VERSION:
-            minimum_rust_version = "1.80.0"
+        if LooseVersion("1.81.0") >= MINIMUM_RUST_VERSION:
+            minimum_rust_version = "1.81.0"
         if version < minimum_rust_version:
             self.log(
                 logging.ERROR,
