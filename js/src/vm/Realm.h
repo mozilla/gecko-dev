@@ -224,7 +224,9 @@ struct IteratorHashPolicy {
 };
 
 class DebugEnvironments;
+class NonSyntacticVariablesObject;
 class ObjectWeakMap;
+class WithEnvironmentObject;
 
 // ObjectRealm stores various tables and other state associated with particular
 // objects in a realm. To make sure the correct ObjectRealm is used for an
@@ -264,15 +266,28 @@ class ObjectRealm {
                               size_t* objectMetadataTablesArg,
                               size_t* nonSyntacticLexicalEnvironmentsArg);
 
-  js::NonSyntacticLexicalEnvironmentObject*
+  NonSyntacticLexicalEnvironmentObject*
+  getOrCreateNonSyntacticLexicalEnvironment(
+      JSContext* cx, Handle<NonSyntacticVariablesObject*> enclosing);
+
+  NonSyntacticLexicalEnvironmentObject*
+  getOrCreateNonSyntacticLexicalEnvironment(
+      JSContext* cx, Handle<WithEnvironmentObject*> enclosing);
+
+  NonSyntacticLexicalEnvironmentObject*
+  getOrCreateNonSyntacticLexicalEnvironment(
+      JSContext* cx, Handle<WithEnvironmentObject*> enclosing,
+      Handle<NonSyntacticVariablesObject*> key);
+
+ private:
+  NonSyntacticLexicalEnvironmentObject*
   getOrCreateNonSyntacticLexicalEnvironment(JSContext* cx,
-                                            js::HandleObject enclosing);
-  js::NonSyntacticLexicalEnvironmentObject*
-  getOrCreateNonSyntacticLexicalEnvironment(JSContext* cx,
-                                            js::HandleObject enclosing,
-                                            js::HandleObject key,
-                                            js::HandleObject thisv);
-  js::NonSyntacticLexicalEnvironmentObject* getNonSyntacticLexicalEnvironment(
+                                            HandleObject enclosing,
+                                            HandleObject key,
+                                            HandleObject thisv);
+
+ public:
+  NonSyntacticLexicalEnvironmentObject* getNonSyntacticLexicalEnvironment(
       JSObject* key) const;
 };
 

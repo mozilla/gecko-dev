@@ -982,9 +982,8 @@ class NonSyntacticVariablesObject : public EnvironmentObject {
   static NonSyntacticVariablesObject* create(JSContext* cx);
 };
 
-extern bool CreateNonSyntacticEnvironmentChain(JSContext* cx,
-                                               JS::HandleObjectVector envChain,
-                                               MutableHandleObject env);
+NonSyntacticLexicalEnvironmentObject* CreateNonSyntacticEnvironmentChain(
+    JSContext* cx, JS::HandleObjectVector envChain);
 
 // With environment objects on the run-time environment chain.
 class WithEnvironmentObject : public EnvironmentObject {
@@ -1560,10 +1559,8 @@ inline bool IsFrameInitialEnvironment(AbstractFramePtr frame,
   return false;
 }
 
-extern bool CreateObjectsForEnvironmentChain(JSContext* cx,
-                                             HandleObjectVector chain,
-                                             HandleObject terminatingEnv,
-                                             MutableHandleObject envObj);
+WithEnvironmentObject* CreateObjectsForEnvironmentChain(
+    JSContext* cx, HandleObjectVector chain, HandleObject terminatingEnv);
 
 ModuleObject* GetModuleObjectForScript(JSScript* script);
 

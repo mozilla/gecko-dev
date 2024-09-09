@@ -929,7 +929,7 @@ bool DebuggerFrame::getArguments(JSContext* cx, Handle<DebuggerFrame*> frame,
   return true;
 }
 
-static JSObject* CreateBindingsEnv(
+static WithEnvironmentObject* CreateBindingsEnv(
     JSContext* cx, JS::Handle<JSObject*> enclosingEnv,
     JS::Handle<JS::StackGCVector<JS::PropertyKey>> bindingKeys,
     JS::Handle<JS::StackGCVector<JS::Value>> bindingValues) {
@@ -955,12 +955,7 @@ static JSObject* CreateBindingsEnv(
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> newEnv(cx);
-  if (!CreateObjectsForEnvironmentChain(cx, envChain, enclosingEnv, &newEnv)) {
-    return nullptr;
-  }
-
-  return newEnv;
+  return CreateObjectsForEnvironmentChain(cx, envChain, enclosingEnv);
 }
 
 /*

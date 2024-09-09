@@ -326,10 +326,11 @@ class FunctionCompiler {
       // A compiled function has a burned-in environment chain, so if no exotic
       // environment was requested, we can use the global lexical environment
       // directly and not need to worry about any potential non-syntactic scope.
-      enclosingEnv.set(&cx_->global()->lexicalEnvironment());
+      enclosingEnv = &cx_->global()->lexicalEnvironment();
       kind = ScopeKind::Global;
     } else {
-      if (!CreateNonSyntacticEnvironmentChain(cx_, envChain, &enclosingEnv)) {
+      enclosingEnv = CreateNonSyntacticEnvironmentChain(cx_, envChain);
+      if (!enclosingEnv) {
         return nullptr;
       }
       kind = ScopeKind::NonSyntactic;
@@ -497,8 +498,8 @@ MOZ_NEVER_INLINE static bool ExecuteScript(JSContext* cx, HandleObject envChain,
 
 static bool ExecuteScript(JSContext* cx, HandleObjectVector envChain,
                           HandleScript script, MutableHandleValue rval) {
-  RootedObject env(cx);
-  if (!CreateNonSyntacticEnvironmentChain(cx, envChain, &env)) {
+  RootedObject env(cx, CreateNonSyntacticEnvironmentChain(cx, envChain));
+  if (!env) {
     return false;
   }
 
@@ -580,8 +581,8 @@ JS_PUBLIC_API bool JS::Evaluate(JSContext* cx, HandleObjectVector envChain,
                                 const ReadOnlyCompileOptions& options,
                                 SourceText<char16_t>& srcBuf,
                                 MutableHandleValue rval) {
-  RootedObject env(cx);
-  if (!CreateNonSyntacticEnvironmentChain(cx, envChain, &env)) {
+  RootedObject env(cx, CreateNonSyntacticEnvironmentChain(cx, envChain));
+  if (!env) {
     return false;
   }
 

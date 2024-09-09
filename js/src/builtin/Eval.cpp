@@ -404,7 +404,8 @@ static bool ExecuteInExtensibleLexicalEnvironment(
 JS_PUBLIC_API bool js::ExecuteInFrameScriptEnvironment(
     JSContext* cx, HandleObject objArg, HandleScript scriptArg,
     MutableHandleObject envArg) {
-  RootedObject varEnv(cx, NonSyntacticVariablesObject::create(cx));
+  Rooted<NonSyntacticVariablesObject*> varEnv(
+      cx, NonSyntacticVariablesObject::create(cx));
   if (!varEnv) {
     return false;
   }
@@ -414,8 +415,9 @@ JS_PUBLIC_API bool js::ExecuteInFrameScriptEnvironment(
     return false;
   }
 
-  RootedObject env(cx);
-  if (!js::CreateObjectsForEnvironmentChain(cx, envChain, varEnv, &env)) {
+  Rooted<WithEnvironmentObject*> env(
+      cx, js::CreateObjectsForEnvironmentChain(cx, envChain, varEnv));
+  if (!env) {
     return false;
   }
 
@@ -426,8 +428,7 @@ JS_PUBLIC_API bool js::ExecuteInFrameScriptEnvironment(
   // to |this|, and will fail if it is not bound to a message manager.
   ObjectRealm& realm = ObjectRealm::get(varEnv);
   Rooted<NonSyntacticLexicalEnvironmentObject*> lexicalEnv(
-      cx,
-      realm.getOrCreateNonSyntacticLexicalEnvironment(cx, env, varEnv, objArg));
+      cx, realm.getOrCreateNonSyntacticLexicalEnvironment(cx, env, varEnv));
   if (!lexicalEnv) {
     return false;
   }
@@ -441,7 +442,8 @@ JS_PUBLIC_API bool js::ExecuteInFrameScriptEnvironment(
 }
 
 JS_PUBLIC_API JSObject* JS::NewJSMEnvironment(JSContext* cx) {
-  RootedObject varEnv(cx, NonSyntacticVariablesObject::create(cx));
+  Rooted<NonSyntacticVariablesObject*> varEnv(
+      cx, NonSyntacticVariablesObject::create(cx));
   if (!varEnv) {
     return nullptr;
   }
@@ -489,8 +491,9 @@ JS_PUBLIC_API bool JS::ExecuteInJSMEnvironment(JSContext* cx,
     //  (*) This environment intercepts JSOp::GlobalThis.
 
     // Wrap the target objects in WithEnvironments.
-    RootedObject envChain(cx);
-    if (!js::CreateObjectsForEnvironmentChain(cx, targetObj, env, &envChain)) {
+    Rooted<WithEnvironmentObject*> envChain(
+        cx, js::CreateObjectsForEnvironmentChain(cx, targetObj, env));
+    if (!envChain) {
       return false;
     }
 
