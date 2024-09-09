@@ -910,10 +910,9 @@ NonSyntacticVariablesObject* NonSyntacticVariablesObject::create(
     return nullptr;
   }
 
+  // An NVSO holds both variables qualified with `var` and those that are not.
   MOZ_ASSERT(obj->isUnqualifiedVarObj());
-  if (!JSObject::setQualifiedVarObj(cx, obj)) {
-    return nullptr;
-  }
+  MOZ_ASSERT(obj->isQualifiedVarObj());
 
   obj->initEnclosingEnvironment(&cx->global()->lexicalEnvironment());
   return obj;

@@ -38,6 +38,7 @@ class RelocationOverlay;
 
 class GlobalObject;
 class NativeObject;
+class WithEnvironmentObject;
 
 enum class IntegrityLevel { Sealed, Frozen };
 
@@ -201,9 +202,6 @@ class JSObject
   bool isGenerationCountedGlobal() const {
     return hasFlag(js::ObjectFlag::GenerationCountedGlobal);
   }
-  static bool setGenerationCountedGlobal(JSContext* cx, JS::HandleObject obj) {
-    return setFlag(cx, obj, js::ObjectFlag::GenerationCountedGlobal);
-  }
 
   bool hasFuseProperty() const {
     return hasFlag(js::ObjectFlag::HasFuseProperty);
@@ -233,9 +231,12 @@ class JSObject
   // (e.g., Gecko and XPConnect), as they often wish to run scripts under a
   // scope that captures var bindings.
   inline bool isQualifiedVarObj() const;
-  static bool setQualifiedVarObj(JSContext* cx, JS::HandleObject obj) {
-    return setFlag(cx, obj, js::ObjectFlag::QualifiedVarObj);
-  }
+
+  // Non-syntactic with-environment objects can be made qualified varobjs after
+  // construction. All other qualified varobjs are directly marked as such when
+  // allocating the object.
+  static inline bool setQualifiedVarObj(
+      JSContext* cx, JS::Handle<js::WithEnvironmentObject*> obj);
 
   // An "unqualified" varobj is the object on which "unqualified"
   // assignments (i.e., bareword assignments for which the LHS does not

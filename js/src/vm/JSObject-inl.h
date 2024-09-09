@@ -140,6 +140,12 @@ inline bool JSObject::isUnqualifiedVarObj() const {
   return is<js::GlobalObject>() || is<js::NonSyntacticVariablesObject>();
 }
 
+inline bool JSObject::setQualifiedVarObj(
+    JSContext* cx, JS::Handle<js::WithEnvironmentObject*> obj) {
+  MOZ_ASSERT(!obj->isSyntactic());
+  return setFlag(cx, obj, js::ObjectFlag::QualifiedVarObj);
+}
+
 inline bool JSObject::canHaveFixedElements() const {
   return (is<js::ArrayObject>() || IF_RECORD_TUPLE(is<js::TupleType>(), false));
 }

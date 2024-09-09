@@ -977,7 +977,7 @@ class NonSyntacticVariablesObject : public EnvironmentObject {
   static const JSClass class_;
 
   static constexpr uint32_t RESERVED_SLOTS = 1;
-  static constexpr ObjectFlags OBJECT_FLAGS = {};
+  static constexpr ObjectFlags OBJECT_FLAGS = {ObjectFlag::QualifiedVarObj};
 
   static NonSyntacticVariablesObject* create(JSContext* cx);
 };
