@@ -240,8 +240,16 @@
     <string name="mozac_feature_addons_updater_dialog_status">ສະຖານະ:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">%1$s ໄດ້ຖືກເພີ່ມເຂົ້າໃນ %2$s</string>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_description_2">ເຂົ້າເຖິງ %1$s ຈາກເມນູ %2$s.</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">ຕົກລົງ</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
-    </resources>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted">%1$s ຖືກປິດການນຳໃຊ້ເນື່ອງຈາກບັນຫາຄວາມປອດໄພ ຫຼື ຄວາມສະຖຽນ.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_unsigned">%1$s ບໍ່ສາມາດກວດສອບໄດ້ວ່າປອດໄພ ແລະ ຖືກປິດການນຳໃຊ້ແລ້ວ.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_status_incompatible">%1$s ບໍ່ເຂົ້າກັນໄດ້ກັບ %2$s ເວີຊັນຂອງທ່ານ (ເວີຊັນ %3$s).</string>
+</resources>

@@ -309,6 +309,8 @@
     <string name="browser_menu_switch_to_mobile_site">Passer en version mobile</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Outils</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Retour au menu principal</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Mode lecture, traduire, imprimer, partager, ouvrir dans une application</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -646,8 +648,6 @@
     <string name="toast_override_account_sync_server_done">Serveur pour la synchronisation ou le compte Mozilla modifié. Fermeture de l’application pour appliquer les modifications…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Compte</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Barre d’outils</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Emplacement de la barre d’adresse</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -956,8 +956,6 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Masquer la barre d’outils au défilement</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Changer d’onglet en glissant la barre d’outils latéralement</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Ouvrir des onglets en glissant la barre d’outils vers le haut</string>
 
@@ -2715,8 +2713,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Supprimer toutes les langues</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Supprimer</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">En cours</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">En cours</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2767,8 +2763,6 @@
     <string name="download_language_file_dialog_title">Télécharger en mode d’économie de données (%1$s) ?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Nous téléchargeons partiellement des langues dans votre cache pour que les traductions restent privées.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Nous téléchargeons partiellement des langues pour que les traductions restent privées.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Toujours télécharger en mode d’économie de données</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2831,11 +2825,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Continuer</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Participer au sondage</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Merci de répondre au sondage</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Politique de confidentialité</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Politique de confidentialité</string>
     <!-- The submit button label text -->
@@ -2857,14 +2847,18 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Je ne l’utilise pas</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Je n’utilise pas la recherche avec Firefox</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Êtes-vous satisfait·e de votre page d’accueil Firefox ?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Aidez-nous à améliorer l’impression dans Firefox. Cela ne prend qu’un instant</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Êtes-vous satisfait·e de l’impression avec Firefox ?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Quel est votre degré de satisfaction avec votre page d’accueil de Firefox ?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Êtes-vous satisfait·e de la recherche avec Firefox ?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
@@ -2895,10 +2889,17 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Pour quitter le mode plein écran, balayez depuis le haut et utilisez le geste de retour</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pour quitter le mode plein écran, balayez depuis le haut et utilisez le geste de retour</string>
 
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Pour quitter le mode plein écran, balayez depuis le haut et appuyez sur le bouton retour</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pour quitter le mode plein écran, balayez depuis le haut et appuyez sur le bouton retour</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Balayez depuis le haut et utilisez le geste de retour pour quitter</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Balayez depuis le haut et appuyez sur le bouton retour pour quitter</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

@@ -2867,17 +2867,17 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, arraste desde o topo e use o gesto de voltar</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, deslize do topo para baixo e use o gesto de voltar</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, arraste desde o topo e toque em voltar</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para sair de tela inteira, deslize do topo para baixo e toque em Voltar</string>
 
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_gesture_short">Arraste para baixo desde o topo e use o gesto de voltar para sair</string>
+    <string name="exit_fullscreen_with_gesture_short">Para sair, deslize do topo para baixo e use o gesto de voltar</string>
 
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_back_button_short">Arraste para baixo desde o topo e toque em voltar para sair</string>
+    <string name="exit_fullscreen_with_back_button_short">Para sair, deslize do topo para baixo e toque em Voltar</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
