@@ -132,9 +132,10 @@ wr::WrExternalImage RenderAndroidHardwareBufferTextureHost::Lock(
     return InvalidToWrExternalImage();
   }
 
-  const auto uvs = GetUvCoords(GetSize());
-  return NativeTextureToWrExternalImage(
-      mTextureHandle, uvs.first.x, uvs.first.y, uvs.second.x, uvs.second.y);
+  const gfx::IntSize size = GetSize();
+  return NativeTextureToWrExternalImage(mTextureHandle, 0.0, 0.0,
+                                        static_cast<float>(size.width),
+                                        static_cast<float>(size.height));
 }
 
 void RenderAndroidHardwareBufferTextureHost::Unlock() {}

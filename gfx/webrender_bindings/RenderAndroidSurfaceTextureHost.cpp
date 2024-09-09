@@ -72,10 +72,20 @@ wr::WrExternalImage RenderAndroidSurfaceTextureHost::Lock(uint8_t aChannelIndex,
 
   UpdateTexImageIfNecessary();
 
-  const auto uvs = GetUvCoords(mSize);
-  return NativeTextureToWrExternalImage(mSurfTex->GetTexName(), uvs.first.x,
-                                        uvs.first.y, uvs.second.x,
-                                        uvs.second.y);
+  const gfx::Matrix4x4 transform = GetTextureTransform();
+  // We expect this transform to always be rectilinear, usually just a
+  // y-flip and sometimes an x and y scale/translation. This allows us
+  // to simply transform 2 points here instead of 4.
+  MOZ_ASSERT(transform.IsRectilinear(),
+             "Unexpected non-rectilinear transform returned from "
+             "SurfaceTexture.GetTransformMatrix()");
+  gfx::Point uv0(0.0, 0.0);
+  gfx::Point uv1(1.0, 1.0);
+  uv0 = transform.TransformPoint(uv0);
+  uv1 = transform.TransformPoint(uv1);
+
+  return NativeTextureToWrExternalImage(mSurfTex->GetTexName(), uv0.x, uv0.y,
+                                        uv1.x, uv1.y);
 }
 
 void RenderAndroidSurfaceTextureHost::Unlock() {}
@@ -251,7 +261,7 @@ RenderAndroidSurfaceTextureHost::ReadTexImage() {
 
   bool ret = mGL->ReadTexImageHelper()->ReadTexImage(
       surf, mSurfTex->GetTexName(), LOCAL_GL_TEXTURE_EXTERNAL, mSize,
-      gfx::Matrix4x4(), shaderConfig, /* aYInvert */ false);
+      GetTextureTransform(), shaderConfig, /* aYInvert */ false);
   if (!ret) {
     return nullptr;
   }
@@ -288,8 +298,7 @@ void RenderAndroidSurfaceTextureHost::UnmapPlanes() {
   }
 }
 
-std::pair<gfx::Point, gfx::Point> RenderAndroidSurfaceTextureHost::GetUvCoords(
-    gfx::IntSize aTextureSize) const {
+gfx::Matrix4x4 RenderAndroidSurfaceTextureHost::GetTextureTransform() const {
   gfx::Matrix4x4 transform;
 
   // GetTransformMatrix() returns the transform set by the producer side of the
@@ -305,21 +314,7 @@ std::pair<gfx::Point, gfx::Point> RenderAndroidSurfaceTextureHost::GetUvCoords(
     gl::AndroidSurfaceTexture::GetTransformMatrix(surf, &transform);
   }
 
-  // We expect this transform to always be rectilinear, usually just a
-  // y-flip and sometimes an x and y scale. This allows this function
-  // to simply transform and return 2 points here instead of 4.
-  MOZ_ASSERT(transform.IsRectilinear(),
-             "Unexpected non-rectilinear transform returned from "
-             "SurfaceTexture.GetTransformMatrix()");
-
-  transform.PostScale(aTextureSize.width, aTextureSize.height, 0.0);
-
-  gfx::Point uv0 = gfx::Point(0.0, 0.0);
-  gfx::Point uv1 = gfx::Point(1.0, 1.0);
-  uv0 = transform.TransformPoint(uv0);
-  uv1 = transform.TransformPoint(uv1);
-
-  return std::make_pair(uv0, uv1);
+  return transform;
 }
 
 RefPtr<layers::TextureSource>

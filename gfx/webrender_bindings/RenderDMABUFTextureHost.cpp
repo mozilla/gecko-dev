@@ -46,11 +46,11 @@ wr::WrExternalImage RenderDMABUFTextureHost::Lock(uint8_t aChannelIndex,
                                  mSurface->GetTexture(aChannelIndex));
   }
 
-  const auto uvs = GetUvCoords(gfx::IntSize(
-      mSurface->GetWidth(aChannelIndex), mSurface->GetHeight(aChannelIndex)));
-  return NativeTextureToWrExternalImage(mSurface->GetTexture(aChannelIndex),
-                                        uvs.first.x, uvs.first.y, uvs.second.x,
-                                        uvs.second.y);
+  const gfx::IntSize size(mSurface->GetWidth(aChannelIndex),
+                          mSurface->GetHeight(aChannelIndex));
+  return NativeTextureToWrExternalImage(
+      mSurface->GetTexture(aChannelIndex), 0.0, 0.0,
+      static_cast<float>(size.width), static_cast<float>(size.height));
 }
 
 void RenderDMABUFTextureHost::Unlock() {}
