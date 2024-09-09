@@ -70,24 +70,23 @@ nsJARProtocolHandler::GetScheme(nsACString& result) {
 NS_IMETHODIMP
 nsJARProtocolHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
                                  nsIChannel** result) {
-  nsJARChannel* chan = new nsJARChannel();
-  if (!chan) return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(chan);
+  RefPtr<nsJARChannel> chan = new nsJARChannel();
+  if (!chan) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   nsresult rv = chan->Init(uri);
   if (NS_FAILED(rv)) {
-    NS_RELEASE(chan);
     return rv;
   }
 
   // set the loadInfo on the new channel
   rv = chan->SetLoadInfo(aLoadInfo);
   if (NS_FAILED(rv)) {
-    NS_RELEASE(chan);
     return rv;
   }
 
-  *result = chan;
+  *result = chan.forget().take();
   return NS_OK;
 }
 
