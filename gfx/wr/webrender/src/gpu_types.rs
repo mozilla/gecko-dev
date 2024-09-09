@@ -123,6 +123,21 @@ pub struct BlurInstance {
 pub struct ScalingInstance {
     pub target_rect: DeviceRect,
     pub source_rect: DeviceRect,
+    source_rect_type: f32,
+}
+
+impl ScalingInstance {
+    pub fn new(target_rect: DeviceRect, source_rect: DeviceRect, source_rect_normalized: bool) -> Self {
+        let source_rect_type = match source_rect_normalized {
+            true => UV_TYPE_NORMALIZED,
+            false => UV_TYPE_UNNORMALIZED,
+        };
+        Self {
+            target_rect,
+            source_rect,
+            source_rect_type: pack_as_float(source_rect_type),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -239,9 +254,10 @@ pub struct PrimitiveInstanceData {
     data: [i32; 4],
 }
 
-/// Specifies that an RGB CompositeInstance's UV coordinates are normalized.
+// Keep these in sync with the correspondong #defines in shared.glsl
+/// Specifies that an RGB CompositeInstance or ScalingInstance's UV coordinates are normalized.
 const UV_TYPE_NORMALIZED: u32 = 0;
-/// Specifies that an RGB CompositeInstance's UV coordinates are not normalized.
+/// Specifies that an RGB CompositeInstance or ScalingInstance's UV coordinates are not normalized.
 const UV_TYPE_UNNORMALIZED: u32 = 1;
 
 /// A GPU-friendly representation of the `ScaleOffset` type
@@ -318,14 +334,19 @@ impl CompositeInstance {
         clip_rect: DeviceRect,
         color: PremultipliedColorF,
         uv_rect: TexelRect,
+        normalized_uvs: bool,
         flip: (bool, bool),
     ) -> Self {
+        let uv_type = match normalized_uvs {
+            true => UV_TYPE_NORMALIZED,
+            false => UV_TYPE_UNNORMALIZED,
+        };
         CompositeInstance {
             rect,
             clip_rect,
             color,
             _padding: 0.0,
-            color_space_or_uv_type: pack_as_float(UV_TYPE_UNNORMALIZED),
+            color_space_or_uv_type: pack_as_float(uv_type),
             yuv_format: 0.0,
             yuv_channel_bit_depth: 0.0,
             uv_rects: [uv_rect, uv_rect, uv_rect],
@@ -640,6 +661,8 @@ bitflags! {
         /// Whether to force the anti-aliasing when the primitive
         /// is axis-aligned.
         const FORCE_AA = 1024;
+        /// Specifies UV coordinates are normalized
+        const NORMALIZED_UVS = 2048;
     }
 }
 

@@ -130,9 +130,7 @@ void main(void) {
     uv = mix(aUvRect0.xy, aUvRect0.zw, uv);
     // The uvs may be inverted, so use the min and max for the bounds
     vec4 uvBounds = vec4(min(aUvRect0.xy, aUvRect0.zw), max(aUvRect0.xy, aUvRect0.zw));
-    int rescale_uv = int(aParams.y);
-    if (rescale_uv == 1)
-    {
+    if (int(aParams.y) == UV_TYPE_UNNORMALIZED) {
         // using an atlas, so UVs are in pixels, and need to be
         // normalized and clamped.
 #if defined(WR_FEATURE_TEXTURE_RECT)

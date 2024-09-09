@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{
-    AlphaType, ColorDepth, ColorF, ColorU, ExternalImageData, ExternalImageType,
+    AlphaType, ColorDepth, ColorF, ColorU, ExternalImageType,
     ImageKey as ApiImageKey, ImageBufferKind, ImageRendering, PremultipliedColorF,
     RasterSpace, Shadow, YuvColorSpace, ColorRange, YuvFormat,
 };
@@ -71,6 +71,7 @@ pub struct ImageInstance {
     pub tight_local_clip_rect: LayoutRect,
     pub visible_tiles: Vec<VisibleImageTile>,
     pub src_color: Option<RenderTaskId>,
+    pub normalized_uvs: bool,
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -176,45 +177,44 @@ impl ImageData {
                     frame_state.gpu_cache,
                 );
 
-                let orig_task_id = frame_state.rg_builder.add().init(
+                let mut task_id = frame_state.rg_builder.add().init(
                     RenderTask::new_image(size, request)
                 );
 
-                // On some devices we cannot render from an ImageBufferKind::TextureExternal
-                // source using most shaders, so must peform a copy to a regular texture first.
-                let task_id = if frame_context.fb_config.external_images_require_copy
-                    && matches!(
-                        external_image,
-                        Some(ExternalImageData {
-                            image_type: ExternalImageType::TextureHandle(
-                                ImageBufferKind::TextureExternal
-                            ),
-                            ..
-                        })
-                    )
-                {
-                    let target_kind = if descriptor.format.bytes_per_pixel() == 1 {
-                        RenderTargetKind::Alpha
-                    } else {
-                        RenderTargetKind::Color
-                    };
+                if let Some(external_image) = external_image {
+                    // On some devices we cannot render from an ImageBufferKind::TextureExternal
+                    // source using most shaders, so must peform a copy to a regular texture first.
+                    let requires_copy = frame_context.fb_config.external_images_require_copy &&
+                        external_image.image_type ==
+                            ExternalImageType::TextureHandle(ImageBufferKind::TextureExternal);
 
-                    let task_id = RenderTask::new_scaling(
-                        orig_task_id,
-                        frame_state.rg_builder,
-                        target_kind,
-                        size
-                    );
+                    if requires_copy {
+                        let target_kind = if descriptor.format.bytes_per_pixel() == 1 {
+                            RenderTargetKind::Alpha
+                        } else {
+                            RenderTargetKind::Color
+                        };
 
-                    frame_state.surface_builder.add_child_render_task(
-                        task_id,
-                        frame_state.rg_builder,
-                    );
+                        task_id = RenderTask::new_scaling(
+                            task_id,
+                            frame_state.rg_builder,
+                            target_kind,
+                            size
+                        );
 
-                    task_id
-                } else {
-                    orig_task_id
-                };
+                        frame_state.surface_builder.add_child_render_task(
+                            task_id,
+                            frame_state.rg_builder,
+                        );
+                    }
+
+                    // Ensure the instance is rendered using normalized_uvs if the external image
+                    // requires so. If we inserted a scale above this is not required as the
+                    // instance is rendered from a render task rather than the external image.
+                    if !requires_copy {
+                        image_instance.normalized_uvs = external_image.normalized_uvs;
+                    }
+                }
 
                 // Every frame, for cached items, we need to request the render
                 // task cache item. The closure will be invoked on the first
@@ -449,6 +449,7 @@ impl InternablePrimitive for Image {
             tight_local_clip_rect: LayoutRect::zero(),
             visible_tiles: Vec::new(),
             src_color: None,
+            normalized_uvs: false,
         });
 
         PrimitiveInstanceKind::Image {

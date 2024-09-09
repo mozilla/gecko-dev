@@ -170,6 +170,11 @@ void brush_vs(
     float perspective_interpolate = (brush_flags & BRUSH_FLAG_PERSPECTIVE_INTERPOLATION) != 0 ? 1.0 : 0.0;
     v_perspective.x = perspective_interpolate;
 
+    if ((brush_flags & BRUSH_FLAG_NORMALIZED_UVS) != 0) {
+        uv0 *= texture_size;
+        uv1 *= texture_size;
+    }
+
     // Handle case where the UV coords are inverted (e.g. from an
     // external image).
     vec2 min_uv = min(uv0, uv1);

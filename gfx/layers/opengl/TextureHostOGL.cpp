@@ -582,7 +582,8 @@ void SurfaceTextureHost::PushResourceUpdates(
                         ? gfx::SurfaceFormat::B8G8R8A8
                         : gfx::SurfaceFormat::B8G8R8X8;
       wr::ImageDescriptor descriptor(GetSize(), format);
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
+                           /* aNormalizedUvs */ false);
       break;
     }
     default: {
@@ -875,7 +876,8 @@ void AndroidHardwareBufferTextureHost::PushResourceUpdates(
                         ? gfx::SurfaceFormat::B8G8R8A8
                         : gfx::SurfaceFormat::B8G8R8X8;
       wr::ImageDescriptor descriptor(GetSize(), format);
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
+                           /* aNormalizedUvs */ false);
       break;
     }
     default: {
@@ -1031,7 +1033,8 @@ void EGLImageTextureHost::PushResourceUpdates(
                        ? gfx::SurfaceFormat::B8G8R8A8
                        : gfx::SurfaceFormat::B8G8R8X8;
   wr::ImageDescriptor descriptor(GetSize(), formatTmp);
-  (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
+  (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
+                       /* aNormalizedUvs */ false);
 }
 
 void EGLImageTextureHost::PushDisplayItems(
