@@ -154,7 +154,7 @@ add_task(function test_doorhanger_disable() {
     );
     ok(
       images.some(img =>
-        getComputedStyle(img).backgroundImage.includes("arrow-down.svg")
+        getComputedStyle(img).backgroundImage.includes("view-opentabs.svg")
       ),
       "There's an icon for the all tabs menu"
     );
