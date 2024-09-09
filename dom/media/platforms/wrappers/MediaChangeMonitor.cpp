@@ -662,7 +662,7 @@ MediaChangeMonitor::MediaChangeMonitor(
     MediaDataDecoder* aDecoder, const CreateDecoderParams& aParams)
     : mChangeMonitor(std::move(aCodecChangeMonitor)),
       mPDMFactory(aPDMFactory),
-      mCurrentConfig(aParams.VideoConfig()),
+      mCurrentConfig(aParams.mConfig.Clone()),
       mDecoder(aDecoder),
       mParams(aParams) {}
 
@@ -671,20 +671,25 @@ RefPtr<PlatformDecoderModule::CreateDecoderPromise> MediaChangeMonitor::Create(
     PDMFactory* aPDMFactory, const CreateDecoderParams& aParams) {
   LOG("MediaChangeMonitor::Create, params = %s", aParams.ToString().get());
   UniquePtr<CodecChangeMonitor> changeMonitor;
-  const VideoInfo& currentConfig = aParams.VideoConfig();
-  if (VPXDecoder::IsVPX(currentConfig.mMimeType)) {
-    changeMonitor = MakeUnique<VPXChangeMonitor>(currentConfig);
+  if (aParams.IsVideo()) {
+    const VideoInfo& config = aParams.VideoConfig();
+    if (VPXDecoder::IsVPX(config.mMimeType)) {
+      changeMonitor = MakeUnique<VPXChangeMonitor>(config);
 #ifdef MOZ_AV1
-  } else if (AOMDecoder::IsAV1(currentConfig.mMimeType)) {
-    changeMonitor = MakeUnique<AV1ChangeMonitor>(currentConfig);
+    } else if (AOMDecoder::IsAV1(config.mMimeType)) {
+      changeMonitor = MakeUnique<AV1ChangeMonitor>(config);
 #endif
-  } else if (MP4Decoder::IsHEVC(currentConfig.mMimeType)) {
-    changeMonitor = MakeUnique<HEVCChangeMonitor>(currentConfig);
+    } else if (MP4Decoder::IsHEVC(config.mMimeType)) {
+      changeMonitor = MakeUnique<HEVCChangeMonitor>(config);
+    } else {
+      MOZ_ASSERT(MP4Decoder::IsH264(config.mMimeType));
+      changeMonitor = MakeUnique<H264ChangeMonitor>(
+          config, aParams.mOptions.contains(
+                      CreateDecoderParams::Option::FullH264Parsing));
+    }
   } else {
-    MOZ_ASSERT(MP4Decoder::IsH264(currentConfig.mMimeType));
-    changeMonitor = MakeUnique<H264ChangeMonitor>(
-        currentConfig, aParams.mOptions.contains(
-                           CreateDecoderParams::Option::FullH264Parsing));
+    MOZ_ASSERT(MP4Decoder::IsAAC(aParams.AudioConfig().mMimeType));
+    changeMonitor = MakeUnique<AACCodecChangeMonitor>(aParams.AudioConfig());
   }
 
   // The change monitor may have an updated track config. E.g. the h264 monitor
@@ -920,8 +925,8 @@ void MediaChangeMonitor::SetSeekThreshold(const media::TimeUnit& aTime) {
 
 RefPtr<MediaChangeMonitor::CreateDecoderPromise>
 MediaChangeMonitor::CreateDecoder() {
-  mCurrentConfig = *mChangeMonitor->Config().GetAsVideoInfo();
-  CreateDecoderParams currentParams = {mCurrentConfig, mParams};
+  mCurrentConfig = mChangeMonitor->Config().Clone();
+  CreateDecoderParams currentParams = {*mCurrentConfig, mParams};
   currentParams.mWrappers -= media::Wrapper::MediaChangeMonitor;
   LOG("MediaChangeMonitor::CreateDecoder, current params = %s",
       currentParams.ToString().get());

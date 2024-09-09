@@ -409,6 +409,11 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
   }
 
   if (config.IsAudio()) {
+    if (MP4Decoder::IsAAC(config.mMimeType) && !aParams.mUseNullDecoder.mUse &&
+        aParams.mWrappers.contains(media::Wrapper::MediaChangeMonitor)) {
+      // If AudioTrimmer is needed, MediaChangeMonitor will request it.
+      return MediaChangeMonitor::Create(this, aParams);
+    }
     RefPtr<PlatformDecoderModule::CreateDecoderPromise> p;
     p = aPDM->AsyncCreateDecoder(aParams)->Then(
         GetCurrentSerialEventTarget(), __func__,

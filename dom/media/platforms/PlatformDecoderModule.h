@@ -87,6 +87,8 @@ MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(Wrapper, uint8_t,
                                               MediaChangeMonitor));
 using WrapperSet = EnumSet<Wrapper>;
 static WrapperSet GetDefaultWrapperSet(const TrackInfo& aInfo) {
+  // MediaChangeMonitor can work with some audio codecs like AAC but only
+  // WebCodecs needs it, so it's only enabled for video by default.
   WrapperSet set;
   if (aInfo.IsVideo()) {
     set += Wrapper::MediaChangeMonitor;
@@ -187,6 +189,10 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     MOZ_ASSERT(mConfig.IsAudio());
     return *mConfig.GetAsAudioInfo();
   }
+
+  bool IsVideo() const { return mConfig.IsVideo(); }
+
+  bool IsAudio() const { return mConfig.IsAudio(); }
 
   layers::LayersBackend GetLayersBackend() const {
     if (mKnowsCompositor) {

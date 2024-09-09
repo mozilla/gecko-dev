@@ -127,7 +127,7 @@ class MediaChangeMonitor final
 
   UniquePtr<CodecChangeMonitor> mChangeMonitor;
   RefPtr<PDMFactory> mPDMFactory;
-  VideoInfo mCurrentConfig;
+  UniquePtr<TrackInfo> mCurrentConfig;
   nsCOMPtr<nsISerialEventTarget> mThread;
   RefPtr<MediaDataDecoder> mDecoder;
   MozPromiseRequestHolder<CreateDecoderPromise> mDecoderRequest;
