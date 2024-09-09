@@ -93,7 +93,7 @@ object Versions {
     }
 
     object Google {
-        const val accompanist = "0.34.0"
+        const val accompanist = "0.36.0"
         const val firebase_messaging = "24.0.1"
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
