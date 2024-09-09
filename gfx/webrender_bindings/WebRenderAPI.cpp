@@ -982,11 +982,9 @@ void TransactionBuilder::AddExternalImage(ImageKey key,
                                           const ImageDescriptor& aDescriptor,
                                           ExternalImageId aExtID,
                                           wr::ExternalImageType aImageType,
-                                          uint8_t aChannelIndex,
-                                          bool aNormalizedUvs) {
+                                          uint8_t aChannelIndex) {
   wr_resource_updates_add_external_image(mTxn, key, &aDescriptor, aExtID,
-                                         &aImageType, aChannelIndex,
-                                         aNormalizedUvs);
+                                         &aImageType, aChannelIndex);
 }
 
 void TransactionBuilder::AddExternalImageBuffer(
@@ -1016,20 +1014,17 @@ void TransactionBuilder::UpdateExternalImage(ImageKey aKey,
                                              const ImageDescriptor& aDescriptor,
                                              ExternalImageId aExtID,
                                              wr::ExternalImageType aImageType,
-                                             uint8_t aChannelIndex,
-                                             bool aNormalizedUvs) {
+                                             uint8_t aChannelIndex) {
   wr_resource_updates_update_external_image(mTxn, aKey, &aDescriptor, aExtID,
-                                            &aImageType, aChannelIndex,
-                                            aNormalizedUvs);
+                                            &aImageType, aChannelIndex);
 }
 
 void TransactionBuilder::UpdateExternalImageWithDirtyRect(
     ImageKey aKey, const ImageDescriptor& aDescriptor, ExternalImageId aExtID,
     wr::ExternalImageType aImageType, const wr::DeviceIntRect& aDirtyRect,
-    uint8_t aChannelIndex, bool aNormalizedUvs) {
+    uint8_t aChannelIndex) {
   wr_resource_updates_update_external_image_with_dirty_rect(
-      mTxn, aKey, &aDescriptor, aExtID, &aImageType, aChannelIndex,
-      aNormalizedUvs, aDirtyRect);
+      mTxn, aKey, &aDescriptor, aExtID, &aImageType, aChannelIndex, aDirtyRect);
 }
 
 void TransactionBuilder::SetBlobImageVisibleArea(

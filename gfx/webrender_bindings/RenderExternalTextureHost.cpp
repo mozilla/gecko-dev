@@ -166,10 +166,9 @@ void RenderExternalTextureHost::UpdateTexture(size_t aIndex) {
     texture = new layers::DirectMapTextureSource(mGL, mSurfaces[aIndex]);
 
     const GLuint handle = texture->GetTextureHandle();
-    const gfx::IntSize size = texture->GetSize();
+    const auto uvs = GetUvCoords(texture->GetSize());
     mImages[aIndex] = NativeTextureToWrExternalImage(
-        handle, 0.0, 0.0, static_cast<float>(size.width),
-        static_cast<float>(size.height));
+        handle, uvs.first.x, uvs.first.y, uvs.second.x, uvs.second.y);
   }
 
   MOZ_ASSERT(mGL->GetError() == LOCAL_GL_NO_ERROR);

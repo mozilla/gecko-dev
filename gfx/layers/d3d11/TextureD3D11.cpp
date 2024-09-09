@@ -1242,8 +1242,7 @@ void DXGITextureHostD3D11::PushResourceUpdates(
                                  wr::ImageBufferKind::TextureRect)
                            : wr::ExternalImageType::TextureHandle(
                                  wr::ImageBufferKind::TextureExternal);
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
     case gfx::SurfaceFormat::P010:
@@ -1269,10 +1268,8 @@ void DXGITextureHostD3D11::PushResourceUpdates(
                                  wr::ImageBufferKind::TextureRect)
                            : wr::ExternalImageType::TextureHandle(
                                  wr::ImageBufferKind::TextureExternal);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
     default: {
@@ -1421,12 +1418,9 @@ void DXGIYCbCrTextureHostD3D11::PushResourceUpdates(
   wr::ImageDescriptor descriptor0(mSizeY, gfx::SurfaceFormat::A8);
   // cb and cr
   wr::ImageDescriptor descriptor1(mSizeCbCr, gfx::SurfaceFormat::A8);
-  (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                       /* aNormalizedUvs */ false);
-  (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                       /* aNormalizedUvs */ false);
-  (aResources.*method)(aImageKeys[2], descriptor1, aExtID, imageType, 2,
-                       /* aNormalizedUvs */ false);
+  (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+  (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
+  (aResources.*method)(aImageKeys[2], descriptor1, aExtID, imageType, 2);
 }
 
 void DXGIYCbCrTextureHostD3D11::PushDisplayItems(

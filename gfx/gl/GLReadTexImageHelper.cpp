@@ -41,12 +41,8 @@ GLReadTexImageHelper::~GLReadTexImageHelper() {
 static const GLchar readTextureImageVS[] =
     "attribute vec2 aVertex;\n"
     "attribute vec2 aTexCoord;\n"
-    "uniform mat4 uTexMatrix;\n"
     "varying vec2 vTexCoord;\n"
-    "void main() {\n"
-    "  gl_Position = vec4(aVertex, 0, 1);\n"
-    "  vTexCoord = (uTexMatrix * vec4(aTexCoord, 0.0, 1.0)).xy;\n"
-    "}";
+    "void main() { gl_Position = vec4(aVertex, 0, 1); vTexCoord = aTexCoord; }";
 
 static const GLchar readTextureImageFS_TEXTURE_2D[] =
     "#ifdef GL_ES\n"
@@ -486,7 +482,6 @@ already_AddRefed<DataSourceSurface> ReadBackSurface(GLContext* gl,
 
 already_AddRefed<DataSourceSurface> GLReadTexImageHelper::ReadTexImage(
     GLuint aTextureId, GLenum aTextureTarget, const gfx::IntSize& aSize,
-    const gfx::Matrix4x4& aTexMatrix,
     /* ShaderConfigOGL.mFeature */ int aConfig, bool aYInvert) {
   /* Allocate resulting image surface */
   int32_t stride = aSize.width * BytesPerPixel(SurfaceFormat::R8G8B8A8);
@@ -496,8 +491,8 @@ already_AddRefed<DataSourceSurface> GLReadTexImageHelper::ReadTexImage(
     return nullptr;
   }
 
-  if (!ReadTexImage(isurf, aTextureId, aTextureTarget, aSize, aTexMatrix,
-                    aConfig, aYInvert)) {
+  if (!ReadTexImage(isurf, aTextureId, aTextureTarget, aSize, aConfig,
+                    aYInvert)) {
     return nullptr;
   }
 
@@ -506,7 +501,7 @@ already_AddRefed<DataSourceSurface> GLReadTexImageHelper::ReadTexImage(
 
 bool GLReadTexImageHelper::ReadTexImage(
     DataSourceSurface* aDest, GLuint aTextureId, GLenum aTextureTarget,
-    const gfx::IntSize& aSize, const gfx::Matrix4x4& aTexMatrix,
+    const gfx::IntSize& aSize,
     /* ShaderConfigOGL.mFeature */ int aConfig, bool aYInvert) {
   MOZ_ASSERT(aTextureTarget == LOCAL_GL_TEXTURE_2D ||
              aTextureTarget == LOCAL_GL_TEXTURE_EXTERNAL ||
@@ -572,10 +567,7 @@ bool GLReadTexImageHelper::ReadTexImage(
     mGL->fUseProgram(program);
     CLEANUP_IF_GLERROR_OCCURRED("when using program");
     mGL->fUniform1i(mGL->fGetUniformLocation(program, "uTexture"), 0);
-    CLEANUP_IF_GLERROR_OCCURRED("when setting uniform uTexture");
-    mGL->fUniformMatrix4fv(mGL->fGetUniformLocation(program, "uTexMatrix"), 1,
-                           false, aTexMatrix.components);
-    CLEANUP_IF_GLERROR_OCCURRED("when setting uniform uTexMatrix");
+    CLEANUP_IF_GLERROR_OCCURRED("when setting uniform location");
 
     /* Setup quad geometry */
     mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);

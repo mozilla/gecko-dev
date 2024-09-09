@@ -53,12 +53,6 @@ uniform bool u_mali_workaround_dummy;
 #define TEX_SIZE(sampler) textureSize(sampler, 0)
 #endif
 
-// Keep these in sync with the corresponding constants in gpu_types.rs
-// Specifies that the UV coordinates supplied to certain shaders are normalized.
-#define UV_TYPE_NORMALIZED 0
-// Specifies that the UV coordinates supplied to certain shaders are not normalized.
-#define UV_TYPE_UNNORMALIZED 1
-
 //======================================================================================
 // Vertex shader attributes and uniforms
 //======================================================================================

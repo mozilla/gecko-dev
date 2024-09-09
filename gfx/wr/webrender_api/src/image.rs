@@ -74,9 +74,8 @@ pub enum ExternalImageSource<'a> {
 /// The data that an external client should provide about
 /// an external image. For instance, if providing video frames,
 /// the application could call wr.render() whenever a new
-/// video frame is ready. Note that the UV coords are either normalized or
-/// unnormalized depending on the value of normalized_uvs in the corresponding
-/// ExternalImageData.
+/// video frame is ready. Note that the UV coords are supplied
+/// in texel-space!
 pub struct ExternalImage<'a> {
     /// UV coordinates for the image.
     pub uv: TexelRect,
@@ -145,8 +144,6 @@ pub struct ExternalImageData {
     pub channel_index: u8,
     /// Storage format identifier.
     pub image_type: ExternalImageType,
-    /// Whether UV coordinates used with this image are normalized.
-    pub normalized_uvs: bool,
 }
 
 /// Specifies the format of a series of pixels, in driver terms.

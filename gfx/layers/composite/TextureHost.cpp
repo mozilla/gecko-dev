@@ -543,8 +543,7 @@ void BufferTextureHost::PushResourceUpdates(
         GetSize(),
         ImageDataSerializer::ComputeRGBStride(GetFormat(), GetSize().width),
         GetFormat());
-    (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                         /* aNormalizedUvs */ false);
+    (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
   } else {
     MOZ_ASSERT(aImageKeys.length() == 3);
 
@@ -556,12 +555,9 @@ void BufferTextureHost::PushResourceUpdates(
     wr::ImageDescriptor cbcrDescriptor(
         cbcrSize, desc.cbCrStride(),
         SurfaceFormatForColorDepth(desc.colorDepth()));
-    (aResources.*method)(aImageKeys[0], yDescriptor, aExtID, imageType, 0,
-                         /* aNormalizedUvs */ false);
-    (aResources.*method)(aImageKeys[1], cbcrDescriptor, aExtID, imageType, 1,
-                         /* aNormalizedUvs */ false);
-    (aResources.*method)(aImageKeys[2], cbcrDescriptor, aExtID, imageType, 2,
-                         /* aNormalizedUvs */ false);
+    (aResources.*method)(aImageKeys[0], yDescriptor, aExtID, imageType, 0);
+    (aResources.*method)(aImageKeys[1], cbcrDescriptor, aExtID, imageType, 1);
+    (aResources.*method)(aImageKeys[2], cbcrDescriptor, aExtID, imageType, 2);
   }
 }
 

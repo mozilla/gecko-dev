@@ -2576,11 +2576,6 @@ impl BatchBuilder {
                         batch_params.prim_user_data,
                     );
 
-                    let brush_flags = match image_instance.normalized_uvs {
-                        true => brush_flags | BrushFlags::NORMALIZED_UVS,
-                        false => brush_flags,
-                    };
-
                     self.add_segmented_prim_to_batch(
                         segments,
                         common_data.opacity,

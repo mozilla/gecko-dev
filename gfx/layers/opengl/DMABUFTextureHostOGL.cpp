@@ -98,8 +98,7 @@ void DMABUFTextureHostOGL::PushResourceUpdates(
       // XXX Add RGBA handling. Temporary hack to avoid crash
       // With BGRA format setting, rendering works without problem.
       wr::ImageDescriptor descriptor(GetSize(), mSurface->GetFormat());
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
     case gfx::SurfaceFormat::NV12: {
@@ -111,10 +110,8 @@ void DMABUFTextureHostOGL::PushResourceUpdates(
       wr::ImageDescriptor descriptor1(
           gfx::IntSize(mSurface->GetWidth(1), mSurface->GetHeight(1)),
           gfx::SurfaceFormat::R8G8);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
     case gfx::SurfaceFormat::YUV420: {
@@ -126,12 +123,9 @@ void DMABUFTextureHostOGL::PushResourceUpdates(
       wr::ImageDescriptor descriptor1(
           gfx::IntSize(mSurface->GetWidth(1), mSurface->GetHeight(1)),
           gfx::SurfaceFormat::A8);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[2], descriptor1, aExtID, imageType, 2,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
+      (aResources.*method)(aImageKeys[2], descriptor1, aExtID, imageType, 2);
       break;
     }
     default: {

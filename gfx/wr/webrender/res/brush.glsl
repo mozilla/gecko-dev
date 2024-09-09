@@ -88,7 +88,6 @@ void text_shader_main(
 #define BRUSH_FLAG_SEGMENT_NINEPATCH_MIDDLE   256
 #define BRUSH_FLAG_TEXEL_RECT                 512
 #define BRUSH_FLAG_FORCE_AA                  1024
-#define BRUSH_FLAG_NORMALIZED_UVS            2048
 
 #define INVALID_SEGMENT_INDEX                   0xffff
 

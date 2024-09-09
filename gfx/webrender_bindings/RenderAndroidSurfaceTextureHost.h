@@ -69,9 +69,12 @@ class RenderAndroidSurfaceTextureHost final : public RenderTextureHostSWGL {
   virtual ~RenderAndroidSurfaceTextureHost();
   bool EnsureAttachedToGLContext();
 
-  gfx::Matrix4x4 GetTextureTransform() const;
-
   already_AddRefed<gfx::DataSourceSurface> ReadTexImage();
+
+  // Returns the UV coordinates to be used when sampling the texture, taking in
+  // to account the SurfaceTexture's transform if applicable.
+  std::pair<gfx::Point, gfx::Point> GetUvCoords(
+      gfx::IntSize aTextureSize) const override;
 
   enum PrepareStatus {
     STATUS_NONE,

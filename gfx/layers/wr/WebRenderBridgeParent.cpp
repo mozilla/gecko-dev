@@ -843,8 +843,7 @@ bool WebRenderBridgeParent::UpdateSharedExternalImage(
   wr::ImageDescriptor descriptor(surfaceSize, dSurf->Stride(),
                                  dSurf->GetFormat());
   aResources.UpdateExternalImageWithDirtyRect(
-      aKey, descriptor, aExtId, imageType, wr::ToDeviceIntRect(aDirtyRect), 0,
-      /* aNormalizedUvs */ false);
+      aKey, descriptor, aExtId, imageType, wr::ToDeviceIntRect(aDirtyRect), 0);
 
   return true;
 }

@@ -346,11 +346,6 @@ pub mod desc {
                 count: 4,
                 kind: VertexAttributeKind::F32,
             },
-            VertexAttribute {
-                name: "aSourceRectType",
-                count: 1,
-                kind: VertexAttributeKind::F32,
-            },
         ],
     };
 

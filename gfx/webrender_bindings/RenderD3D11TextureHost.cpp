@@ -380,10 +380,10 @@ wr::WrExternalImage RenderDXGITextureHost::Lock(uint8_t aChannelIndex,
     return InvalidToWrExternalImage();
   }
 
-  const gfx::IntSize size = GetSize(aChannelIndex);
-  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), 0.0, 0.0,
-                                        static_cast<float>(size.width),
-                                        static_cast<float>(size.height));
+  const auto uvs = GetUvCoords(GetSize(aChannelIndex));
+  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), uvs.first.x,
+                                        uvs.first.y, uvs.second.x,
+                                        uvs.second.y);
 }
 
 bool RenderDXGITextureHost::LockInternal() {
@@ -701,10 +701,10 @@ wr::WrExternalImage RenderDXGIYCbCrTextureHost::Lock(uint8_t aChannelIndex,
     return InvalidToWrExternalImage();
   }
 
-  const gfx::IntSize size = GetSize(aChannelIndex);
-  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), 0.0, 0.0,
-                                        static_cast<float>(size.width),
-                                        static_cast<float>(size.height));
+  const auto uvs = GetUvCoords(GetSize(aChannelIndex));
+  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), uvs.first.x,
+                                        uvs.first.y, uvs.second.x,
+                                        uvs.second.y);
 }
 
 void RenderDXGIYCbCrTextureHost::Unlock() {

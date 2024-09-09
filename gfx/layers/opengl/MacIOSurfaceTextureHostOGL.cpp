@@ -130,8 +130,7 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
                         ? gfx::SurfaceFormat::B8G8R8A8
                         : gfx::SurfaceFormat::B8G8R8X8;
       wr::ImageDescriptor descriptor(GetSize(), format);
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
     case gfx::SurfaceFormat::YUY2: {
@@ -142,8 +141,7 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
       MOZ_ASSERT(aImageKeys.length() == 1);
       MOZ_ASSERT(mSurface->GetPlaneCount() == 0);
       wr::ImageDescriptor descriptor(GetSize(), gfx::SurfaceFormat::B8G8R8X8);
-      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
     case gfx::SurfaceFormat::NV12: {
@@ -157,10 +155,8 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
           gfx::IntSize(mSurface->GetDevicePixelWidth(1),
                        mSurface->GetDevicePixelHeight(1)),
           gfx::SurfaceFormat::R8G8);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
     case gfx::SurfaceFormat::P010: {
@@ -174,10 +170,8 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
           gfx::IntSize(mSurface->GetDevicePixelWidth(1),
                        mSurface->GetDevicePixelHeight(1)),
           gfx::SurfaceFormat::R16G16);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
     case gfx::SurfaceFormat::NV16: {
@@ -191,10 +185,8 @@ void MacIOSurfaceTextureHostOGL::PushResourceUpdates(
           gfx::IntSize(mSurface->GetDevicePixelWidth(1),
                        mSurface->GetDevicePixelHeight(1)),
           gfx::SurfaceFormat::R16G16);
-      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
-      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1,
-                           /* aNormalizedUvs */ false);
+      (aResources.*method)(aImageKeys[0], descriptor0, aExtID, imageType, 0);
+      (aResources.*method)(aImageKeys[1], descriptor1, aExtID, imageType, 1);
       break;
     }
     default: {

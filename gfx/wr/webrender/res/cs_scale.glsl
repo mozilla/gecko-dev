@@ -19,34 +19,28 @@ uniform vec2 uTextureSize;
 
 PER_INSTANCE attribute vec4 aScaleTargetRect;
 PER_INSTANCE attribute vec4 aScaleSourceRect;
-PER_INSTANCE attribute float aSourceRectType;
 
 void main(void) {
     vec2 src_offset = aScaleSourceRect.xy;
     vec2 src_size = aScaleSourceRect.zw - aScaleSourceRect.xy;
 
-    // The uvs may be inverted, so use the min and max for the bounds
-    vUvRect = vec4(min(aScaleSourceRect.xy, aScaleSourceRect.zw),
-                   max(aScaleSourceRect.xy, aScaleSourceRect.zw));
-    vUv = (src_offset + src_size * aPosition.xy);
-
-    if (int(aSourceRectType) == UV_TYPE_UNNORMALIZED) {
-        vUvRect = vec4(vUvRect.xy + vec2(0.5), vUvRect.zw - vec2(0.5));
-
+    // If this is in WR_FEATURE_TEXTURE_RECT mode, the rect and size use
+    // non-normalized texture coordinates.
 #ifdef WR_FEATURE_TEXTURE_RECT
-        // In WR_FEATURE_TEXTURE_RECT mode the UV coordinates used to sample
-        // from the texture should be unnormalized, so we leave them as is.
-        vec2 texture_size = vec2(1, 1);
+    vec2 texture_size = vec2(1, 1);
 #elif defined(WR_FEATURE_TEXTURE_EXTERNAL_ESSL1)
-        vec2 texture_size = uTextureSize;
+    vec2 texture_size = uTextureSize;
 #else
-        vec2 texture_size = vec2(TEX_SIZE(sColor0));
+    vec2 texture_size = vec2(TEX_SIZE(sColor0));
 #endif
-        vUvRect /= texture_size.xyxy;
-        vUv /= texture_size;
-    }
+
+    // The uvs may be inverted, so use the min and max for the bounds
+    vUvRect = vec4(min(aScaleSourceRect.xy, aScaleSourceRect.zw) + vec2(0.5),
+                   max(aScaleSourceRect.xy, aScaleSourceRect.zw) - vec2(0.5)) / texture_size.xyxy;
 
     vec2 pos = mix(aScaleTargetRect.xy, aScaleTargetRect.zw, aPosition.xy);
+    vUv = (src_offset + src_size * aPosition.xy) / texture_size;
+
     gl_Position = uTransform * vec4(pos, 0.0, 1.0);
 }
 
