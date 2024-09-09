@@ -278,7 +278,7 @@ class DynamicDownloadDialogBehaviorTest {
 
         val result = behavior.layoutDependsOn(rootLayout, mockk(), mockk())
 
-        assertTrue(result)
+        assertFalse(result)
         assertSame(anchor, behavior.anchor)
     }
 
@@ -320,7 +320,7 @@ class DynamicDownloadDialogBehaviorTest {
 
         val result = behavior.layoutDependsOn(rootLayout, mockk(), mockk())
 
-        assertTrue(result)
+        assertFalse(result)
         assertSame(anchor, behavior.anchor)
     }
 

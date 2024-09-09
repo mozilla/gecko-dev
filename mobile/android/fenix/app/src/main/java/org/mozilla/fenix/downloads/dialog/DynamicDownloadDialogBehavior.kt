@@ -180,7 +180,7 @@ class DynamicDownloadDialogBehavior<V : View>(
     ): Boolean {
         engineView = parent.findViewInHierarchy { it is EngineView } as? EngineView
         anchor = findAnchorInParent(parent)
-        return anchor != null
+        return super.layoutDependsOn(parent, child, dependency)
     }
 
     fun forceExpand(view: View) {
