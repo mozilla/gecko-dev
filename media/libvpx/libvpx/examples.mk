@@ -122,10 +122,6 @@ vp9_spatial_svc_encoder.SRCS        += examples/svc_context.h
 vp9_spatial_svc_encoder.GUID        = 4A38598D-627D-4505-9C7B-D4020C84100D
 vp9_spatial_svc_encoder.DESCRIPTION = VP9 Spatial SVC Encoder
 
-ifneq ($(CONFIG_SHARED),yes)
-EXAMPLES-$(CONFIG_VP9_ENCODER)    += resize_util.c
-endif
-
 EXAMPLES-$(CONFIG_ENCODERS)          += vpx_temporal_svc_encoder.c
 vpx_temporal_svc_encoder.SRCS        += ivfenc.c ivfenc.h
 vpx_temporal_svc_encoder.SRCS        += y4minput.c y4minput.h

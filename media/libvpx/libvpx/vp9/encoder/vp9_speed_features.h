@@ -364,7 +364,7 @@ typedef struct SPEED_FEATURES {
 
   PARTITION_SEARCH_TYPE partition_search_type;
 
-  // Used if partition_search_type = FIXED_SIZE_PARTITION
+  // Used if partition_search_type = FIXED_PARTITION
   BLOCK_SIZE always_this_block_size;
 
   // Skip rectangular partition test when partition type none gives better

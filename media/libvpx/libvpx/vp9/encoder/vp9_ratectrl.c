@@ -289,11 +289,11 @@ void vp9_update_buffer_level_svc_preencode(VP9_COMP *cpi) {
         svc->current_superframe > 0) {
       // TODO(marpan): This may need to be modified for temporal layers.
       const double framerate_pts = 10000000.0 / ts_delta;
-      const double bits = round(lc->target_bandwidth / framerate_pts);
-      lrc->bits_off_target += (int)VPXMIN(bits, INT_MAX);
+      lrc->bits_off_target += saturate_cast_double_to_int(
+          round(lc->target_bandwidth / framerate_pts));
     } else {
-      const double bits = round(lc->target_bandwidth / lc->framerate);
-      lrc->bits_off_target += (int)VPXMIN(bits, INT_MAX);
+      lrc->bits_off_target += saturate_cast_double_to_int(
+          round(lc->target_bandwidth / lc->framerate));
     }
     // Clip buffer level to maximum buffer size for the layer.
     lrc->bits_off_target =
@@ -1719,8 +1719,9 @@ void vp9_rc_set_frame_target(VP9_COMP *cpi, int target) {
 #endif  // CONFIG_RATE_CTRL
 
   // Target rate per SB64 (including partial SB64s.
-  rc->sb64_target_rate = (int)(((int64_t)rc->this_frame_target * 64 * 64) /
-                               (cm->width * cm->height));
+  const int64_t sb64_target_rate =
+      ((int64_t)rc->this_frame_target * 64 * 64) / (cm->width * cm->height);
+  rc->sb64_target_rate = (int)VPXMIN(sb64_target_rate, INT_MAX);
 }
 
 static void update_alt_ref_frame_stats(VP9_COMP *cpi) {
@@ -2182,11 +2183,9 @@ int vp9_calc_iframe_target_size_one_pass_cbr(const VP9_COMP *cpi) {
   const RATE_CONTROL *rc = &cpi->rc;
   const VP9EncoderConfig *oxcf = &cpi->oxcf;
   const SVC *const svc = &cpi->svc;
-  int target;
+  int64_t target;
   if (cpi->common.current_video_frame == 0) {
-    target = ((rc->starting_buffer_level / 2) > INT_MAX)
-                 ? INT_MAX
-                 : (int)(rc->starting_buffer_level / 2);
+    target = rc->starting_buffer_level / 2;
   } else {
     int kf_boost = 32;
     double framerate = cpi->framerate;
@@ -2202,9 +2201,11 @@ int vp9_calc_iframe_target_size_one_pass_cbr(const VP9_COMP *cpi) {
     if (rc->frames_since_key < framerate / 2) {
       kf_boost = (int)round(kf_boost * rc->frames_since_key / (framerate / 2));
     }
-    target = (int)(((int64_t)(16 + kf_boost) * rc->avg_frame_bandwidth) >> 4);
+
+    target = ((int64_t)(16 + kf_boost) * rc->avg_frame_bandwidth) >> 4;
   }
-  return vp9_rc_clamp_iframe_target_size(cpi, target);
+  target = VPXMIN(INT_MAX, target);
+  return vp9_rc_clamp_iframe_target_size(cpi, (int)target);
 }
 
 static void set_intra_only_frame(VP9_COMP *cpi) {
@@ -2634,10 +2635,9 @@ void vp9_rc_update_framerate(VP9_COMP *cpi) {
   const VP9_COMMON *const cm = &cpi->common;
   const VP9EncoderConfig *const oxcf = &cpi->oxcf;
   RATE_CONTROL *const rc = &cpi->rc;
-  const double avg_frame_bandwidth =
-      round(oxcf->target_bandwidth / cpi->framerate);
 
-  rc->avg_frame_bandwidth = (int)VPXMIN(avg_frame_bandwidth, INT_MAX);
+  rc->avg_frame_bandwidth = saturate_cast_double_to_int(
+      round(oxcf->target_bandwidth / cpi->framerate));
 
   int64_t vbr_min_bits =
       (int64_t)rc->avg_frame_bandwidth * oxcf->two_pass_vbrmin_section / 100;

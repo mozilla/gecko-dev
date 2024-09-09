@@ -1042,7 +1042,7 @@ static void dealloc_compressor_data(VP9_COMP *cpi) {
   vpx_free_frame_buffer(&cpi->last_frame_uf);
   vpx_free_frame_buffer(&cpi->scaled_source);
   vpx_free_frame_buffer(&cpi->scaled_last_source);
-  vpx_free_frame_buffer(&cpi->alt_ref_buffer);
+  vpx_free_frame_buffer(&cpi->tf_buffer);
 #ifdef ENABLE_KF_DENOISE
   vpx_free_frame_buffer(&cpi->raw_unscaled_source);
   vpx_free_frame_buffer(&cpi->raw_scaled_source);
@@ -1299,7 +1299,7 @@ static void alloc_raw_frame_buffers(VP9_COMP *cpi) {
                        "Failed to allocate lag buffers");
 
   // TODO(agrange) Check if ARF is enabled and skip allocation if not.
-  if (vpx_realloc_frame_buffer(&cpi->alt_ref_buffer, oxcf->width, oxcf->height,
+  if (vpx_realloc_frame_buffer(&cpi->tf_buffer, oxcf->width, oxcf->height,
                                cm->subsampling_x, cm->subsampling_y,
 #if CONFIG_VP9_HIGHBITDEPTH
                                cm->use_highbitdepth,
@@ -1307,7 +1307,7 @@ static void alloc_raw_frame_buffers(VP9_COMP *cpi) {
                                VP9_ENC_BORDER_IN_PIXELS, cm->byte_alignment,
                                NULL, NULL, NULL))
     vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
-                       "Failed to allocate altref buffer");
+                       "Failed to allocate temporal filter buffer");
 }
 
 static void alloc_util_frame_buffers(VP9_COMP *cpi) {
@@ -4523,11 +4523,6 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
   int qrange_adj = 1;
 #endif
 
-  // A flag which indicates whether we are recoding the current frame
-  // when the current frame size is larger than the max frame size in the
-  // external rate control model.
-  // This flag doesn't have any impact when external rate control is not used.
-  int ext_rc_recode = 0;
   const int orig_rc_max_frame_bandwidth = rc->max_frame_bandwidth;
 
 #if CONFIG_RATE_CTRL
@@ -4643,8 +4638,7 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
     }
 #endif  // CONFIG_RATE_CTRL
     const GF_GROUP *gf_group = &cpi->twopass.gf_group;
-    if (cpi->ext_ratectrl.ready && !ext_rc_recode &&
-        !cpi->tpl_with_external_rc &&
+    if (cpi->ext_ratectrl.ready &&
         (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0 &&
         cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
       vpx_codec_err_t codec_status;
@@ -6466,7 +6460,7 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
 #endif
         // Produce the filtered ARF frame.
         vp9_temporal_filter(cpi, arf_src_index);
-        vpx_extend_frame_borders(&cpi->alt_ref_buffer);
+        vpx_extend_frame_borders(&cpi->tf_buffer);
 #if CONFIG_COLLECT_COMPONENT_TIMING
         end_timing(cpi, vp9_temporal_filter_time);
 #endif
@@ -6476,7 +6470,7 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
         if (cpi->oxcf.alt_ref_aq != 0 && not_low_bitrate && not_last_frame)
           vp9_alt_ref_aq_setup_mode(cpi->alt_ref_aq, cpi);
 
-        force_src_buffer = &cpi->alt_ref_buffer;
+        force_src_buffer = &cpi->tf_buffer;
       }
 #endif
       cm->show_frame = 0;
@@ -6592,6 +6586,26 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
 #endif
   } else if (oxcf->pass == 1) {
     set_frame_size(cpi);
+  }
+
+  // Key frame temporal filtering
+  const int is_key_temporal_filter_enabled =
+      oxcf->enable_keyframe_filtering && cpi->oxcf.mode != REALTIME &&
+      (oxcf->pass != 1) && !cpi->use_svc &&
+      !is_lossless_requested(&cpi->oxcf) && cm->frame_type == KEY_FRAME &&
+      (oxcf->arnr_max_frames > 0) && (oxcf->arnr_strength > 0) &&
+      cpi->oxcf.speed < 2;
+  // Save the pointer to the original source image.
+  YV12_BUFFER_CONFIG *source_buffer = cpi->un_scaled_source;
+
+  if (is_key_temporal_filter_enabled && source != NULL) {
+    // Produce the filtered Key frame. Set distance to -1 since the key frame
+    // is already popped out.
+    vp9_temporal_filter(cpi, -1);
+    vpx_extend_frame_borders(&cpi->tf_buffer);
+    force_src_buffer = &cpi->tf_buffer;
+    cpi->un_scaled_source = cpi->Source =
+        force_src_buffer ? force_src_buffer : &source->img;
   }
 #endif  // !CONFIG_REALTIME_ONLY
 
@@ -6722,6 +6736,13 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
 
   if (cpi->keep_level_stats && oxcf->pass != 1)
     update_level_info(cpi, size, arf_src_index);
+
+#if !CONFIG_REALTIME_ONLY
+  if (is_key_temporal_filter_enabled && cpi->b_calculate_psnr) {
+    cpi->raw_source_frame = vp9_scale_if_required(
+        cm, source_buffer, &cpi->scaled_source, (oxcf->pass == 0), EIGHTTAP, 0);
+  }
+#endif  // !CONFIG_REALTIME_ONLY
 
 #if CONFIG_INTERNAL_STATS
 

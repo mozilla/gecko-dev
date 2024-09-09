@@ -312,12 +312,6 @@ static double simple_weight(YV12_BUFFER_CONFIG *source) {
   return sum_weights;
 }
 
-// Returns the saturating cast of a double value to int.
-static int saturate_cast_double_to_int(double d) {
-  if (d > INT_MAX) return INT_MAX;
-  return (int)d;
-}
-
 /* This function returns the current per frame maximum bitrate target */
 static int frame_max_bits(VP8_COMP *cpi) {
   /* Max allocation for a single frame based on the max section guidelines

@@ -44,6 +44,7 @@ typedef struct vp9_extracfg {
   unsigned int tile_columns;
   unsigned int tile_rows;
   unsigned int enable_tpl_model;
+  unsigned int enable_keyframe_filtering;
   unsigned int arnr_max_frames;
   unsigned int arnr_strength;
   unsigned int min_gf_interval;
@@ -83,6 +84,7 @@ static struct vp9_extracfg default_extra_cfg = {
   6,                     // tile_columns
   0,                     // tile_rows
   1,                     // enable_tpl_model
+  0,                     // enable_keyframe_filtering
   7,                     // arnr_max_frames
   5,                     // arnr_strength
   0,                     // min_gf_interval; 0 -> default decision
@@ -614,6 +616,8 @@ static vpx_codec_err_t set_encoder_config(
 
   oxcf->enable_tpl_model = extra_cfg->enable_tpl_model;
 
+  oxcf->enable_keyframe_filtering = extra_cfg->enable_keyframe_filtering;
+
   // TODO(yunqing): The dependencies between row tiles cause error in multi-
   // threaded encoding. For now, tile_rows is forced to be 0 in this case.
   // The further fix can be done by adding synchronizations after a tile row
@@ -962,6 +966,14 @@ static vpx_codec_err_t ctrl_set_tpl_model(vpx_codec_alg_priv_t *ctx,
                                           va_list args) {
   struct vp9_extracfg extra_cfg = ctx->extra_cfg;
   extra_cfg.enable_tpl_model = CAST(VP9E_SET_TPL, args);
+  return update_extra_cfg(ctx, &extra_cfg);
+}
+
+static vpx_codec_err_t ctrl_set_keyframe_filtering(vpx_codec_alg_priv_t *ctx,
+                                                   va_list args) {
+  struct vp9_extracfg extra_cfg = ctx->extra_cfg;
+  extra_cfg.enable_keyframe_filtering =
+      CAST(VP9E_SET_KEY_FRAME_FILTERING, args);
   return update_extra_cfg(ctx, &extra_cfg);
 }
 
@@ -1454,22 +1466,13 @@ static vpx_codec_err_t encoder_encode(vpx_codec_alg_priv_t *ctx,
           timebase_units_to_ticks(timebase_in_ts, pts_end);
       res = image2yuvconfig(img, &sd);
 
-      if (sd.y_width != ctx->cfg.g_w || sd.y_height != ctx->cfg.g_h) {
-        /* from vpx_encoder.h for g_w/g_h:
-           "Note that the frames passed as input to the encoder must have this
-           resolution"
-        */
-        ctx->base.err_detail = "Invalid input frame resolution";
-        res = VPX_CODEC_INVALID_PARAM;
-      } else {
-        // Store the original flags in to the frame buffer. Will extract the
-        // key frame flag when we actually encode this frame.
-        if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
+      // Store the original flags in to the frame buffer. Will extract the
+      // key frame flag when we actually encode this frame.
+      if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
                                 dst_time_stamp, dst_end_time_stamp)) {
-          res = update_error_state(ctx, &cpi->common.error);
-        }
-        ctx->next_frame_flags = 0;
+        res = update_error_state(ctx, &cpi->common.error);
       }
+      ctx->next_frame_flags = 0;
     }
 
     cx_data = ctx->cx_data;
@@ -2045,7 +2048,6 @@ static vpx_codec_err_t ctrl_set_external_rate_control(vpx_codec_alg_priv_t *ctx,
   VP9_COMP *cpi = ctx->cpi;
   EXT_RATECTRL *ext_ratectrl = &cpi->ext_ratectrl;
   const VP9EncoderConfig *oxcf = &cpi->oxcf;
-  // TODO(angiebird): Check the possibility of this flag being set at pass == 1
   if (oxcf->pass == 2) {
     const FRAME_INFO *frame_info = &cpi->frame_info;
     vpx_rc_config_t ratectrl_config;
@@ -2064,6 +2066,8 @@ static vpx_codec_err_t ctrl_set_external_rate_control(vpx_codec_alg_priv_t *ctx,
     ratectrl_config.frame_rate_den = oxcf->g_timebase.num;
     ratectrl_config.overshoot_percent = oxcf->over_shoot_pct;
     ratectrl_config.undershoot_percent = oxcf->under_shoot_pct;
+    ratectrl_config.min_base_q_index = oxcf->best_allowed_q;
+    ratectrl_config.max_base_q_index = oxcf->worst_allowed_q;
     ratectrl_config.base_qp = oxcf->cq_level;
 
     if (oxcf->rc_mode == VPX_VBR) {
@@ -2100,15 +2104,6 @@ static vpx_codec_err_t ctrl_set_quantizer_one_pass(vpx_codec_alg_priv_t *ctx,
   return res;
 }
 
-static vpx_codec_err_t ctrl_enable_external_rc_tpl(vpx_codec_alg_priv_t *ctx,
-                                                   va_list args) {
-  VP9_COMP *const cpi = ctx->cpi;
-  const int enable_flag = va_arg(args, int);
-  if (enable_flag != 0 && enable_flag != 1) return VPX_CODEC_INVALID_PARAM;
-  cpi->tpl_with_external_rc = enable_flag;
-  return VPX_CODEC_OK;
-}
-
 static vpx_codec_ctrl_fn_map_t encoder_ctrl_maps[] = {
   { VP8_COPY_REFERENCE, ctrl_copy_reference },
 
@@ -2125,6 +2120,7 @@ static vpx_codec_ctrl_fn_map_t encoder_ctrl_maps[] = {
   { VP9E_SET_TILE_COLUMNS, ctrl_set_tile_columns },
   { VP9E_SET_TILE_ROWS, ctrl_set_tile_rows },
   { VP9E_SET_TPL, ctrl_set_tpl_model },
+  { VP9E_SET_KEY_FRAME_FILTERING, ctrl_set_keyframe_filtering },
   { VP8E_SET_ARNR_MAXFRAMES, ctrl_set_arnr_max_frames },
   { VP8E_SET_ARNR_STRENGTH, ctrl_set_arnr_strength },
   { VP8E_SET_ARNR_TYPE, ctrl_set_arnr_type },
@@ -2164,7 +2160,6 @@ static vpx_codec_ctrl_fn_map_t encoder_ctrl_maps[] = {
   { VP9E_SET_RTC_EXTERNAL_RATECTRL, ctrl_set_rtc_external_ratectrl },
   { VP9E_SET_EXTERNAL_RATE_CONTROL, ctrl_set_external_rate_control },
   { VP9E_SET_QUANTIZER_ONE_PASS, ctrl_set_quantizer_one_pass },
-  { VP9E_ENABLE_EXTERNAL_RC_TPL, ctrl_enable_external_rc_tpl },
 
   // Getters
   { VP8E_GET_LAST_QUANTIZER, ctrl_get_quantizer },
@@ -2473,6 +2468,8 @@ void vp9_dump_encoder_config(const VP9EncoderConfig *oxcf, FILE *fp) {
   DUMP_STRUCT_VALUE(fp, oxcf, tile_rows);
 
   DUMP_STRUCT_VALUE(fp, oxcf, enable_tpl_model);
+
+  DUMP_STRUCT_VALUE(fp, oxcf, enable_keyframe_filtering);
 
   DUMP_STRUCT_VALUE(fp, oxcf, max_threads);
 

@@ -254,13 +254,14 @@ EOF
 }
 
 sub common_bottom() {
+  my $include_guard = uc($opts{sym})."_H_";
   print <<EOF;
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif
+#endif  // ${include_guard}
 EOF
 }
 

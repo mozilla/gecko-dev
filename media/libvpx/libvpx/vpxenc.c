@@ -444,6 +444,9 @@ static const arg_def_t tile_rows =
 
 static const arg_def_t enable_tpl_model =
     ARG_DEF(NULL, "enable-tpl", 1, "Enable temporal dependency model");
+static const arg_def_t enable_keyframe_filtering =
+    ARG_DEF(NULL, "enable-keyframe-filtering", 1,
+            "Enable key frame temporal filtering (0: off (default), 1: on)");
 
 static const arg_def_t lossless =
     ARG_DEF(NULL, "lossless", 1, "Lossless mode (0: false (default), 1: true)");
@@ -541,6 +544,7 @@ static const arg_def_t *vp9_args[] = { &cpu_used_vp9,
                                        &tile_cols,
                                        &tile_rows,
                                        &enable_tpl_model,
+                                       &enable_keyframe_filtering,
                                        &arnr_maxframes,
                                        &arnr_strength,
                                        &arnr_type,
@@ -577,6 +581,7 @@ static const int vp9_arg_ctrl_map[] = { VP8E_SET_CPUUSED,
                                         VP9E_SET_TILE_COLUMNS,
                                         VP9E_SET_TILE_ROWS,
                                         VP9E_SET_TPL,
+                                        VP9E_SET_KEY_FRAME_FILTERING,
                                         VP8E_SET_ARNR_MAXFRAMES,
                                         VP8E_SET_ARNR_STRENGTH,
                                         VP8E_SET_ARNR_TYPE,
