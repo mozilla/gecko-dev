@@ -512,6 +512,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_throttle.js"]
 
+["browser_net_throttling_cached.js"]
+
 ["browser_net_throttling_profiles.js"]
 
 ["browser_net_timeline_ticks.js"]
