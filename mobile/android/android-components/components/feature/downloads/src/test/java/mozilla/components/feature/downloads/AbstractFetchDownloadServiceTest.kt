@@ -1561,6 +1561,17 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
+    fun `onTimeout will call service stopSelf`() {
+        val service = spy(AbstractFetchDownloadService::class.java)
+        val startId = 1
+        val fgsType = 0
+
+        service.onTimeout(startId, fgsType)
+
+        verify(service).stopSelf()
+    }
+
+    @Test
     fun `register and unregister notification actions receiver`() {
         val service = spy(
             object : AbstractFetchDownloadService() {

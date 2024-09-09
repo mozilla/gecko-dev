@@ -429,6 +429,12 @@ abstract class AbstractFetchDownloadService : Service() {
         stopSelf()
     }
 
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        logger.error("Unable to finish download due to timeout")
+        // calling stopSelf() will prevent the system throwing a RemoteServiceException
+        stopSelf()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
 
