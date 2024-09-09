@@ -38,9 +38,6 @@
 
 using namespace js;
 
-using RootedArgumentsObject = Rooted<ArgumentsObject*>;
-using MutableHandleArgumentsObject = MutableHandle<ArgumentsObject*>;
-
 /*****************************************************************************/
 
 SharedShape* js::EnvironmentCoordinateToEnvironmentShape(JSScript* script,
@@ -2040,7 +2037,7 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
    * argsObj is null, it means the env is dead.
    */
   static bool createMissingArguments(JSContext* cx, EnvironmentObject& env,
-                                     MutableHandleArgumentsObject argsObj) {
+                                     MutableHandle<ArgumentsObject*> argsObj) {
     argsObj.set(nullptr);
 
     LiveEnvironmentVal* maybeEnv = DebugEnvironments::hasLiveEnvironment(env);
@@ -2129,7 +2126,7 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
       JSContext* cx, Handle<DebugEnvironmentProxy*> debugEnv,
       EnvironmentObject& env,
       MutableHandle<mozilla::Maybe<PropertyDescriptor>> desc) const {
-    RootedArgumentsObject argsObj(cx);
+    Rooted<ArgumentsObject*> argsObj(cx);
     if (!createMissingArguments(cx, env, &argsObj)) {
       return false;
     }
@@ -2204,7 +2201,7 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
 
   bool getMissingArguments(JSContext* cx, EnvironmentObject& env,
                            MutableHandleValue vp) const {
-    RootedArgumentsObject argsObj(cx);
+    Rooted<ArgumentsObject*> argsObj(cx);
     if (!createMissingArguments(cx, env, &argsObj)) {
       return false;
     }
@@ -2282,7 +2279,7 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
   bool getMissingArgumentsMaybeSentinelValue(JSContext* cx,
                                              EnvironmentObject& env,
                                              MutableHandleValue vp) const {
-    RootedArgumentsObject argsObj(cx);
+    Rooted<ArgumentsObject*> argsObj(cx);
     if (!createMissingArguments(cx, env, &argsObj)) {
       return false;
     }
