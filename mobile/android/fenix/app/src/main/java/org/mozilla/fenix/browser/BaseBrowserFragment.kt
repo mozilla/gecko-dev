@@ -1498,8 +1498,6 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
-                        Divider()
-
                         if (!activity.isMicrosurveyPromptDismissed.value &&
                             !(context.isTablet() && context.settings().shouldShowTabletNavigationCFR)
                         ) {
@@ -1507,6 +1505,8 @@ abstract class BaseBrowserFragment :
                                 if (isToolbarAtBottom) {
                                     updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
                                 }
+
+                                Divider()
 
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
@@ -1755,8 +1755,6 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
-                        Divider()
-
                         val activity = requireActivity() as HomeActivity
 
                         if (!activity.isMicrosurveyPromptDismissed.value) {
@@ -1764,6 +1762,8 @@ abstract class BaseBrowserFragment :
                                 if (isToolbarAtBottom) {
                                     updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)
                                 }
+
+                                Divider()
 
                                 MicrosurveyRequestPrompt(
                                     microsurvey = it,
