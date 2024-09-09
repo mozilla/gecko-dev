@@ -113,7 +113,7 @@ impl ScopeBounds {
 fn parse_scope<'a>(
     context: &ParserContext,
     input: &mut Parser<'a, '_>,
-    in_style_rule: bool,
+    parse_relative: ParseRelative,
     for_end: bool,
 ) -> Result<Option<SelectorList<SelectorImpl>>, ParseError<'a>> {
     input
@@ -145,10 +145,8 @@ fn parse_scope<'a>(
                 };
                 let parse_relative = if for_end {
                     ParseRelative::ForScope
-                } else if in_style_rule {
-                    ParseRelative::ForNesting
                 } else {
-                    ParseRelative::No
+                    parse_relative
                 };
                 Ok(Some(SelectorList::parse_disallow_pseudo(
                     &selector_parser,
@@ -164,10 +162,10 @@ impl ScopeBounds {
     pub fn parse<'a>(
         context: &ParserContext,
         input: &mut Parser<'a, '_>,
-        in_style_rule: bool,
+        parse_relative: ParseRelative,
     ) -> Result<Self, ParseError<'a>> {
-        let start = parse_scope(context, input, in_style_rule, false)?;
-        let end = parse_scope(context, input, in_style_rule, true)?;
+        let start = parse_scope(context, input, parse_relative, false)?;
+        let end = parse_scope(context, input, parse_relative, true)?;
         Ok(Self { start, end })
     }
 }

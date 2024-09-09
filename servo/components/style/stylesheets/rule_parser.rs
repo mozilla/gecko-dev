@@ -729,7 +729,7 @@ impl<'a, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'i> {
                 AtRulePrelude::Document(cond)
             },
             "scope" if static_prefs::pref!("layout.css.at-scope.enabled") => {
-                let bounds = ScopeBounds::parse(&self.context, input, self.in_style_rule())?;
+                let bounds = ScopeBounds::parse(&self.context, input, self.parse_relative())?;
                 AtRulePrelude::Scope(bounds)
             },
             "starting-style" if static_prefs::pref!("layout.css.starting-style-at-rules.enabled") => {
