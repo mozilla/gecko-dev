@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: glean_parser
-Version: 14.5.1
+Version: 15.0.0
 Summary: Parser tools for Mozilla's Glean telemetry
 Home-page: https://github.com/mozilla/glean_parser
 Author: The Glean Team
@@ -78,6 +78,16 @@ $ glean_parser check < ping.json
 # Changelog
 
 ## Unreleased
+
+## 15.0.0
+
+- **Breaking change:** Updating Kotlin template import statement as part of removing `service-glean` from Android Components. ([bug 1906941](https://bugzilla.mozilla.org/show_bug.cgi?id=1906941))
+- **Breaking change:** Do not generate Geckoview Streaming helper code ([#743](https://github.com/mozilla/glean_parser/pull/743))
+
+## 14.5.2
+
+- Revert updating Kotlin template import statement as part of removing `service-glean` from Android Components.
+  This change was BREAKING. It will be reintroduced in a major release afterwards ([#744](https://github.com/mozilla/glean_parser/pull/744))
 
 ## 14.5.1
 

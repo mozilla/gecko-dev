@@ -8,7 +8,6 @@
 Outputter to generate Kotlin code for metrics.
 """
 
-from collections import OrderedDict
 import enum
 import json
 from pathlib import Path
@@ -17,9 +16,7 @@ from typing import Any, Dict, List, Optional, Union  # noqa
 from . import __version__
 from . import metrics
 from . import pings
-from . import tags
 from . import util
-from .util import DictWrapper
 
 
 def kotlin_datatypes_filter(value: util.JSONType) -> str:
@@ -179,105 +176,6 @@ def generate_build_date(date: Optional[str]) -> str:
     return f'Calendar.getInstance(TimeZone.getTimeZone("GMT+0")).also {{ cal -> cal.set({components}) }}'  # noqa
 
 
-def output_gecko_lookup(
-    objs: metrics.ObjectTree, output_dir: Path, options: Optional[Dict[str, Any]] = None
-) -> None:
-    """
-    Given a tree of objects, generate a Kotlin map between Gecko histograms and
-    Glean SDK metric types.
-
-    :param objects: A tree of objects (metrics and pings) as returned from
-        `parser.parse_objects`.
-    :param output_dir: Path to an output directory to write to.
-    :param options: options dictionary, with the following optional keys:
-
-        - `namespace`: The package namespace to declare at the top of the
-          generated files. Defaults to `GleanMetrics`.
-        - `glean_namespace`: The package namespace of the glean library itself.
-          This is where glean objects will be imported from in the generated
-          code.
-    """
-    if options is None:
-        options = {}
-
-    template = util.get_jinja2_template(
-        "kotlin.geckoview.jinja2",
-        filters=(
-            ("kotlin", kotlin_datatypes_filter),
-            ("type_name", type_name),
-            ("class_name", class_name),
-        ),
-    )
-
-    namespace = options.get("namespace", "GleanMetrics")
-    glean_namespace = options.get("glean_namespace", "mozilla.components.service.glean")
-
-    # Build a dictionary that contains data for metrics that are
-    # histogram-like/scalar-like and contain a gecko_datapoint, with this format:
-    #
-    # {
-    #   "histograms": {
-    #     "category": [
-    #       {"gecko_datapoint": "the-datapoint", "name": "the-metric-name"},
-    #       ...
-    #     ],
-    #     ...
-    #   },
-    #   "other-type": {}
-    # }
-    gecko_metrics: Dict[str, Dict[str, List[Dict[str, str]]]] = DictWrapper()
-
-    # Define scalar-like types.
-    SCALAR_LIKE_TYPES = ["boolean", "string", "quantity"]
-
-    for category_key, category_val in objs.items():
-        # Support exfiltration of Gecko metrics from products using both the
-        # Glean SDK and GeckoView. See bug 1566356 for more context.
-        for metric in category_val.values():
-            # This is not a Gecko metric, skip it.
-            if (
-                isinstance(metric, pings.Ping)
-                or isinstance(metric, tags.Tag)
-                or not getattr(metric, "gecko_datapoint", False)
-            ):
-                continue
-
-            # Put scalars in their own categories, histogram-like in "histograms" and
-            # categorical histograms in "categoricals".
-            type_category = "histograms"
-            if metric.type in SCALAR_LIKE_TYPES:
-                type_category = metric.type
-            elif metric.type == "labeled_counter":
-                # Labeled counters with a 'gecko_datapoint' property
-                # are categorical histograms.
-                type_category = "categoricals"
-
-            gecko_metrics.setdefault(type_category, OrderedDict())
-            gecko_metrics[type_category].setdefault(category_key, [])
-
-            gecko_metrics[type_category][category_key].append(
-                {"gecko_datapoint": metric.gecko_datapoint, "name": metric.name}
-            )
-
-    if not gecko_metrics:
-        # Bail out and don't create a file if no gecko metrics
-        # are found.
-        return
-
-    filepath = output_dir / "GleanGeckoMetricsMapping.kt"
-    with filepath.open("w", encoding="utf-8") as fd:
-        fd.write(
-            template.render(
-                parser_version=__version__,
-                gecko_metrics=gecko_metrics,
-                namespace=namespace,
-                glean_namespace=glean_namespace,
-            )
-        )
-        # Jinja2 squashes the final newline, so we explicitly add it
-        fd.write("\n")
-
-
 def output_kotlin(
     objs: metrics.ObjectTree, output_dir: Path, options: Optional[Dict[str, Any]] = None
 ) -> None:
@@ -376,6 +274,3 @@ def output_kotlin(
             )
             # Jinja2 squashes the final newline, so we explicitly add it
             fd.write("\n")
-
-    # TODO: Maybe this should just be a separate outputter?
-    output_gecko_lookup(objs, output_dir, options)
