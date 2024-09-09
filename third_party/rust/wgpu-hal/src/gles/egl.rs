@@ -143,7 +143,7 @@ impl Drop for DisplayOwner {
         match self.display {
             DisplayRef::X11(ptr) => unsafe {
                 let func: libloading::Symbol<XCloseDisplayFun> =
-                    self.library.get(b"XCloseDisplay\0").unwrap();
+                    self.library.get(b"XCloseDisplay").unwrap();
                 func(ptr.as_ptr());
             },
             DisplayRef::Wayland => {}
@@ -155,7 +155,7 @@ fn open_x_display() -> Option<DisplayOwner> {
     log::debug!("Loading X11 library to get the current display");
     unsafe {
         let library = find_library(&["libX11.so.6", "libX11.so"])?;
-        let func: libloading::Symbol<XOpenDisplayFun> = library.get(b"XOpenDisplay\0").unwrap();
+        let func: libloading::Symbol<XOpenDisplayFun> = library.get(b"XOpenDisplay").unwrap();
         let result = func(ptr::null());
         ptr::NonNull::new(result).map(|ptr| DisplayOwner {
             display: DisplayRef::X11(ptr),
@@ -182,9 +182,9 @@ fn test_wayland_display() -> Option<DisplayOwner> {
     let library = unsafe {
         let client_library = find_library(&["libwayland-client.so.0", "libwayland-client.so"])?;
         let wl_display_connect: libloading::Symbol<WlDisplayConnectFun> =
-            client_library.get(b"wl_display_connect\0").unwrap();
+            client_library.get(b"wl_display_connect").unwrap();
         let wl_display_disconnect: libloading::Symbol<WlDisplayDisconnectFun> =
-            client_library.get(b"wl_display_disconnect\0").unwrap();
+            client_library.get(b"wl_display_disconnect").unwrap();
         let display = ptr::NonNull::new(wl_display_connect(ptr::null()))?;
         wl_display_disconnect(display.as_ptr());
         find_library(&["libwayland-egl.so.1", "libwayland-egl.so"])?
@@ -379,7 +379,7 @@ struct EglContextLock<'a> {
     display: khronos_egl::Display,
 }
 
-/// A guard containing a lock to an [`AdapterContext`], while the GL context is kept current.
+/// A guard containing a lock to an [`AdapterContext`]
 pub struct AdapterContextLock<'a> {
     glow: MutexGuard<'a, ManuallyDrop<glow::Context>>,
     egl: Option<EglContextLock<'a>>,
@@ -1082,9 +1082,7 @@ impl crate::Instance for Instance {
             unsafe { gl.debug_message_callback(super::gl_debug_message_callback) };
         }
 
-        // Wrap in ManuallyDrop to make it easier to "current" the GL context before dropping this
-        // GLOW context, which could also happen if a panic occurs after we uncurrent the context
-        // below but before AdapterContext is constructed.
+        // Avoid accidental drop when the context is not current.
         let gl = ManuallyDrop::new(gl);
         inner.egl.unmake_current();
 
@@ -1296,7 +1294,7 @@ impl crate::Surface for Surface {
                     (WindowKind::Wayland, Rwh::Wayland(handle)) => {
                         let library = &self.wsi.display_owner.as_ref().unwrap().library;
                         let wl_egl_window_create: libloading::Symbol<WlEglWindowCreateFun> =
-                            unsafe { library.get(b"wl_egl_window_create\0") }.unwrap();
+                            unsafe { library.get(b"wl_egl_window_create") }.unwrap();
                         let window =
                             unsafe { wl_egl_window_create(handle.surface.as_ptr(), 640, 480) }
                                 .cast();
@@ -1405,7 +1403,7 @@ impl crate::Surface for Surface {
         if let Some(window) = wl_window {
             let library = &self.wsi.display_owner.as_ref().unwrap().library;
             let wl_egl_window_resize: libloading::Symbol<WlEglWindowResizeFun> =
-                unsafe { library.get(b"wl_egl_window_resize\0") }.unwrap();
+                unsafe { library.get(b"wl_egl_window_resize") }.unwrap();
             unsafe {
                 wl_egl_window_resize(
                     window,
@@ -1477,7 +1475,7 @@ impl crate::Surface for Surface {
                     .expect("unsupported window")
                     .library;
                 let wl_egl_window_destroy: libloading::Symbol<WlEglWindowDestroyFun> =
-                    unsafe { library.get(b"wl_egl_window_destroy\0") }.unwrap();
+                    unsafe { library.get(b"wl_egl_window_destroy") }.unwrap();
                 unsafe { wl_egl_window_destroy(window) };
             }
         }

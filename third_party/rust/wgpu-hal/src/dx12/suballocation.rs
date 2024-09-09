@@ -52,14 +52,14 @@ pub(crate) fn create_buffer_resource(
     device: &crate::dx12::Device,
     desc: &crate::BufferDescriptor,
     raw_desc: Direct3D12::D3D12_RESOURCE_DESC,
-) -> Result<(Direct3D12::ID3D12Resource, Option<AllocationWrapper>), crate::DeviceError> {
+    resource: &mut Option<Direct3D12::ID3D12Resource>,
+) -> Result<Option<AllocationWrapper>, crate::DeviceError> {
     let is_cpu_read = desc.usage.contains(crate::BufferUses::MAP_READ);
     let is_cpu_write = desc.usage.contains(crate::BufferUses::MAP_WRITE);
 
     // Workaround for Intel Xe drivers
     if !device.private_caps.suballocation_supported {
-        return create_committed_buffer_resource(device, desc, raw_desc)
-            .map(|resource| (resource, None));
+        return create_committed_buffer_resource(device, desc, raw_desc, resource).map(|()| None);
     }
 
     let location = match (is_cpu_read, is_cpu_write) {
@@ -80,7 +80,6 @@ pub(crate) fn create_buffer_resource(
         location,
     );
     let allocation = allocator.allocator.allocate(&allocation_desc)?;
-    let mut resource = None;
 
     unsafe {
         device.raw.CreatePlacedResource(
@@ -89,30 +88,32 @@ pub(crate) fn create_buffer_resource(
             &raw_desc,
             Direct3D12::D3D12_RESOURCE_STATE_COMMON,
             None,
-            &mut resource,
+            resource,
         )
     }
     .into_device_result("Placed buffer creation")?;
 
-    let resource = resource.ok_or(crate::DeviceError::Unexpected)?;
+    if resource.is_none() {
+        return Err(crate::DeviceError::ResourceCreationFailed);
+    }
 
     device
         .counters
         .buffer_memory
         .add(allocation.size() as isize);
 
-    Ok((resource, Some(AllocationWrapper { allocation })))
+    Ok(Some(AllocationWrapper { allocation }))
 }
 
 pub(crate) fn create_texture_resource(
     device: &crate::dx12::Device,
     desc: &crate::TextureDescriptor,
     raw_desc: Direct3D12::D3D12_RESOURCE_DESC,
-) -> Result<(Direct3D12::ID3D12Resource, Option<AllocationWrapper>), crate::DeviceError> {
+    resource: &mut Option<Direct3D12::ID3D12Resource>,
+) -> Result<Option<AllocationWrapper>, crate::DeviceError> {
     // Workaround for Intel Xe drivers
     if !device.private_caps.suballocation_supported {
-        return create_committed_texture_resource(device, desc, raw_desc)
-            .map(|resource| (resource, None));
+        return create_committed_texture_resource(device, desc, raw_desc, resource).map(|()| None);
     }
 
     let location = MemoryLocation::GpuOnly;
@@ -127,7 +128,6 @@ pub(crate) fn create_texture_resource(
         location,
     );
     let allocation = allocator.allocator.allocate(&allocation_desc)?;
-    let mut resource = None;
 
     unsafe {
         device.raw.CreatePlacedResource(
@@ -136,19 +136,21 @@ pub(crate) fn create_texture_resource(
             &raw_desc,
             Direct3D12::D3D12_RESOURCE_STATE_COMMON,
             None, // clear value
-            &mut resource,
+            resource,
         )
     }
     .into_device_result("Placed texture creation")?;
 
-    let resource = resource.ok_or(crate::DeviceError::Unexpected)?;
+    if resource.is_none() {
+        return Err(crate::DeviceError::ResourceCreationFailed);
+    }
 
     device
         .counters
         .texture_memory
         .add(allocation.size() as isize);
 
-    Ok((resource, Some(AllocationWrapper { allocation })))
+    Ok(Some(AllocationWrapper { allocation }))
 }
 
 pub(crate) fn free_buffer_allocation(
@@ -224,7 +226,8 @@ pub(crate) fn create_committed_buffer_resource(
     device: &crate::dx12::Device,
     desc: &crate::BufferDescriptor,
     raw_desc: Direct3D12::D3D12_RESOURCE_DESC,
-) -> Result<Direct3D12::ID3D12Resource, crate::DeviceError> {
+    resource: &mut Option<Direct3D12::ID3D12Resource>,
+) -> Result<(), crate::DeviceError> {
     let is_cpu_read = desc.usage.contains(crate::BufferUses::MAP_READ);
     let is_cpu_write = desc.usage.contains(crate::BufferUses::MAP_WRITE);
 
@@ -247,8 +250,6 @@ pub(crate) fn create_committed_buffer_resource(
         VisibleNodeMask: 0,
     };
 
-    let mut resource = None;
-
     unsafe {
         device.raw.CreateCommittedResource(
             &heap_properties,
@@ -260,19 +261,24 @@ pub(crate) fn create_committed_buffer_resource(
             &raw_desc,
             Direct3D12::D3D12_RESOURCE_STATE_COMMON,
             None,
-            &mut resource,
+            resource,
         )
     }
     .into_device_result("Committed buffer creation")?;
 
-    resource.ok_or(crate::DeviceError::Unexpected)
+    if resource.is_none() {
+        return Err(crate::DeviceError::ResourceCreationFailed);
+    }
+
+    Ok(())
 }
 
 pub(crate) fn create_committed_texture_resource(
     device: &crate::dx12::Device,
     _desc: &crate::TextureDescriptor,
     raw_desc: Direct3D12::D3D12_RESOURCE_DESC,
-) -> Result<Direct3D12::ID3D12Resource, crate::DeviceError> {
+    resource: &mut Option<Direct3D12::ID3D12Resource>,
+) -> Result<(), crate::DeviceError> {
     let heap_properties = Direct3D12::D3D12_HEAP_PROPERTIES {
         Type: Direct3D12::D3D12_HEAP_TYPE_CUSTOM,
         CPUPageProperty: Direct3D12::D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE,
@@ -283,8 +289,6 @@ pub(crate) fn create_committed_texture_resource(
         CreationNodeMask: 0,
         VisibleNodeMask: 0,
     };
-
-    let mut resource = None;
 
     unsafe {
         device.raw.CreateCommittedResource(
@@ -297,10 +301,14 @@ pub(crate) fn create_committed_texture_resource(
             &raw_desc,
             Direct3D12::D3D12_RESOURCE_STATE_COMMON,
             None, // clear value
-            &mut resource,
+            resource,
         )
     }
     .into_device_result("Committed texture creation")?;
 
-    resource.ok_or(crate::DeviceError::Unexpected)
+    if resource.is_none() {
+        return Err(crate::DeviceError::ResourceCreationFailed);
+    }
+
+    Ok(())
 }

@@ -85,7 +85,6 @@ pub enum GlobalDeclKind<'a> {
     Override(Override<'a>),
     Struct(Struct<'a>),
     Type(TypeAlias<'a>),
-    ConstAssert(Handle<Expression<'a>>),
 }
 
 #[derive(Debug)]
@@ -110,7 +109,7 @@ pub struct EntryPoint<'a> {
 }
 
 #[cfg(doc)]
-use crate::front::wgsl::lower::{LocalExpressionContext, StatementContext};
+use crate::front::wgsl::lower::{RuntimeExpressionContext, StatementContext};
 
 #[derive(Debug)]
 pub struct Function<'a> {
@@ -143,7 +142,7 @@ pub struct GlobalVariable<'a> {
     pub name: Ident<'a>,
     pub space: crate::AddressSpace,
     pub binding: Option<ResourceBinding<'a>>,
-    pub ty: Option<Handle<Type<'a>>>,
+    pub ty: Handle<Type<'a>>,
     pub init: Option<Handle<Expression<'a>>>,
 }
 
@@ -199,14 +198,12 @@ pub enum Type<'a> {
     Scalar(Scalar),
     Vector {
         size: crate::VectorSize,
-        ty: Handle<Type<'a>>,
-        ty_span: Span,
+        scalar: Scalar,
     },
     Matrix {
         columns: crate::VectorSize,
         rows: crate::VectorSize,
-        ty: Handle<Type<'a>>,
-        ty_span: Span,
+        width: crate::Bytes,
     },
     Atomic(Scalar),
     Pointer {
@@ -285,7 +282,6 @@ pub enum StatementKind<'a> {
     Increment(Handle<Expression<'a>>),
     Decrement(Handle<Expression<'a>>),
     Ignore(Handle<Expression<'a>>),
-    ConstAssert(Handle<Expression<'a>>),
 }
 
 #[derive(Debug)]
@@ -334,8 +330,7 @@ pub enum ConstructorType<'a> {
     /// `vec3<f32>(1.0)`.
     Vector {
         size: crate::VectorSize,
-        ty: Handle<Type<'a>>,
-        ty_span: Span,
+        scalar: Scalar,
     },
 
     /// A matrix construction whose component type is inferred from the
@@ -350,8 +345,7 @@ pub enum ConstructorType<'a> {
     Matrix {
         columns: crate::VectorSize,
         rows: crate::VectorSize,
-        ty: Handle<Type<'a>>,
-        ty_span: Span,
+        width: crate::Bytes,
     },
 
     /// An array whose component type and size are inferred from the arguments:
@@ -467,22 +461,13 @@ pub struct Let<'a> {
 }
 
 #[derive(Debug)]
-pub struct LocalConst<'a> {
-    pub name: Ident<'a>,
-    pub ty: Option<Handle<Type<'a>>>,
-    pub init: Handle<Expression<'a>>,
-    pub handle: Handle<Local>,
-}
-
-#[derive(Debug)]
 pub enum LocalDecl<'a> {
     Var(LocalVariable<'a>),
     Let(Let<'a>),
-    Const(LocalConst<'a>),
 }
 
 #[derive(Debug)]
 /// A placeholder for a local variable declaration.
 ///
-/// See [`super::ExpressionContext::locals`] for more information.
+/// See [`Function::locals`] for more information.
 pub struct Local;

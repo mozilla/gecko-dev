@@ -13,7 +13,6 @@ use serde::Deserialize;
 #[cfg(any(feature = "serde", test))]
 use serde::Serialize;
 use std::hash::{Hash, Hasher};
-use std::mem::size_of;
 use std::path::PathBuf;
 use std::{num::NonZeroU32, ops::Range};
 
@@ -7229,7 +7228,7 @@ impl DrawIndirectArgs {
         unsafe {
             std::mem::transmute(std::slice::from_raw_parts(
                 std::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
+                std::mem::size_of::<Self>(),
             ))
         }
     }
@@ -7260,7 +7259,7 @@ impl DrawIndexedIndirectArgs {
         unsafe {
             std::mem::transmute(std::slice::from_raw_parts(
                 std::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
+                std::mem::size_of::<Self>(),
             ))
         }
     }
@@ -7285,7 +7284,7 @@ impl DispatchIndirectArgs {
         unsafe {
             std::mem::transmute(std::slice::from_raw_parts(
                 std::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
+                std::mem::size_of::<Self>(),
             ))
         }
     }
@@ -7310,15 +7309,8 @@ impl ShaderBoundChecks {
     /// Creates a new configuration where the shader isn't bound checked.
     ///
     /// # Safety
-    ///
-    /// The caller MUST ensure that all shaders built with this configuration
-    /// don't perform any out of bounds reads or writes.
-    ///
-    /// Note that `wgpu_core`, in particular, initializes only those portions of
-    /// buffers that it expects might be read, and it does not expect contents
-    /// outside the ranges bound in bindgroups to be accessible, so using this
-    /// configuration with ill-behaved shaders could expose uninitialized GPU
-    /// memory contents to the application.
+    /// The caller MUST ensure that all shaders built with this configuration don't perform any
+    /// out of bounds reads or writes.
     #[must_use]
     pub unsafe fn unchecked() -> Self {
         ShaderBoundChecks {
@@ -7341,6 +7333,10 @@ impl Default for ShaderBoundChecks {
 
 /// Selects which DX12 shader compiler to use.
 ///
+/// If the `wgpu-hal/dx12-shader-compiler` feature isn't enabled then this will fall back
+/// to the Fxc compiler at runtime and log an error.
+/// This feature is always enabled when using `wgpu`.
+///
 /// If the `Dxc` option is selected, but `dxcompiler.dll` and `dxil.dll` files aren't found,
 /// then this will fall back to the Fxc compiler at runtime and log an error.
 ///
@@ -7357,10 +7353,6 @@ pub enum Dx12Compiler {
     ///
     /// However, it requires both `dxcompiler.dll` and `dxil.dll` to be shipped with the application.
     /// These files can be downloaded from <https://github.com/microsoft/DirectXShaderCompiler/releases>.
-    ///
-    /// Minimum supported version: [v1.5.2010](https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.5.2010)
-    ///
-    /// It also requires WDDM 2.1 (Windows 10 version 1607).
     Dxc {
         /// Path to the `dxil.dll` file, or path to the directory containing `dxil.dll` file. Passing `None` will use standard platform specific dll loading rules.
         dxil_path: Option<PathBuf>,
