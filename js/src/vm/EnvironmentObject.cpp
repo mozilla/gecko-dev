@@ -40,8 +40,12 @@ using namespace js;
 
 /*****************************************************************************/
 
-SharedShape* js::EnvironmentCoordinateToEnvironmentShape(JSScript* script,
-                                                         jsbytecode* pc) {
+/*
+ * Return a shape representing the static scope containing the variable
+ * accessed by the ALIASEDVAR op at 'pc'.
+ */
+static SharedShape* EnvironmentCoordinateToEnvironmentShape(JSScript* script,
+                                                            jsbytecode* pc) {
   MOZ_ASSERT(JOF_OPTYPE(JSOp(*pc)) == JOF_ENVCOORD);
   ScopeIter si(script->innermostScope(pc));
   uint32_t hops = EnvironmentCoordinate(pc).hops();
@@ -2617,6 +2621,10 @@ bool DebugEnvironmentProxy::isOptimizedOut() const {
 
 /*****************************************************************************/
 
+[[nodiscard]] static bool GetFrameEnvironmentAndScope(
+    JSContext* cx, AbstractFramePtr frame, const jsbytecode* pc,
+    MutableHandleObject env, MutableHandle<Scope*> scope);
+
 DebugEnvironments::DebugEnvironments(JSContext* cx, Zone* zone)
     : zone_(zone),
       proxiedEnvs(cx),
@@ -3383,11 +3391,16 @@ JSObject* js::GetDebugEnvironmentForFunction(JSContext* cx,
   return GetDebugEnvironment(cx, ei);
 }
 
+static auto GetSuspendedGeneratorEnvironmentAndScope(
+    AbstractGeneratorObject& genObj, JSScript* script) {
+  jsbytecode* pc =
+      script->offsetToPC(script->resumeOffsets()[genObj.resumeIndex()]);
+  return std::pair{&genObj.environmentChain(), script->innermostScope(pc)};
+}
+
 JSObject* js::GetDebugEnvironmentForSuspendedGenerator(
     JSContext* cx, JSScript* script, AbstractGeneratorObject& genObj) {
-  RootedObject env(cx);
-  Rooted<Scope*> scope(cx);
-  GetSuspendedGeneratorEnvironmentAndScope(genObj, script, &env, &scope);
+  auto [env, scope] = GetSuspendedGeneratorEnvironmentAndScope(genObj, script);
 
   EnvironmentIter ei(cx, env, scope);
   return GetDebugEnvironment(cx, ei);
@@ -3484,7 +3497,7 @@ ModuleObject* js::GetModuleObjectForScript(JSScript* script) {
 }
 
 static bool GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
-    JSContext* cx, const EnvironmentIter& originalIter, HandleObject scopeChain,
+    JSContext* cx, const EnvironmentIter& originalIter, HandleObject envChain,
     const jsbytecode* pc, MutableHandleValue res) {
   for (EnvironmentIter ei(cx, originalIter); ei; ei++) {
     if (ei.scope().kind() == ScopeKind::Module) {
@@ -3580,7 +3593,7 @@ static bool GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
     MOZ_CRASH("'this' binding must be found");
   }
 
-  GetNonSyntacticGlobalThis(cx, scopeChain, res);
+  GetNonSyntacticGlobalThis(cx, envChain, res);
   return true;
 }
 
@@ -3588,30 +3601,39 @@ bool js::GetThisValueForDebuggerFrameMaybeOptimizedOut(JSContext* cx,
                                                        AbstractFramePtr frame,
                                                        const jsbytecode* pc,
                                                        MutableHandleValue res) {
-  RootedObject scopeChain(cx);
+  RootedObject envChain(cx);
   Rooted<Scope*> scope(cx);
-  if (!GetFrameEnvironmentAndScope(cx, frame, pc, &scopeChain, &scope)) {
+  if (!GetFrameEnvironmentAndScope(cx, frame, pc, &envChain, &scope)) {
     return false;
   }
 
-  EnvironmentIter ei(cx, scopeChain, scope, frame);
+  EnvironmentIter ei(cx, envChain, scope, frame);
   return GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
-      cx, ei, scopeChain, pc, res);
+      cx, ei, envChain, pc, res);
 }
 
 bool js::GetThisValueForDebuggerSuspendedGeneratorMaybeOptimizedOut(
     JSContext* cx, AbstractGeneratorObject& genObj, JSScript* script,
     MutableHandleValue res) {
-  RootedObject scopeChain(cx);
-  Rooted<Scope*> scope(cx);
-  GetSuspendedGeneratorEnvironmentAndScope(genObj, script, &scopeChain, &scope);
+  auto [env, scope] = GetSuspendedGeneratorEnvironmentAndScope(genObj, script);
+  Rooted<JSObject*> envChain(cx, env);
 
-  EnvironmentIter ei(cx, scopeChain, scope);
+  EnvironmentIter ei(cx, envChain, scope);
   return GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
-      cx, ei, scopeChain, nullptr, res);
+      cx, ei, envChain, nullptr, res);
 }
 
-bool js::CheckLexicalNameConflict(
+static void ReportRuntimeRedeclaration(JSContext* cx,
+                                       Handle<PropertyName*> name,
+                                       const char* redeclKind) {
+  if (UniqueChars printable = AtomToPrintableString(cx, name)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_REDECLARED_VAR, redeclKind,
+                              printable.get());
+  }
+}
+
+[[nodiscard]] static bool CheckLexicalNameConflict(
     JSContext* cx, Handle<ExtensibleLexicalEnvironmentObject*> lexicalEnv,
     HandleObject varObj, Handle<PropertyName*> name) {
   const char* redeclKind = nullptr;
@@ -3688,10 +3710,9 @@ static void ReportCannotDeclareGlobalBinding(JSContext* cx,
   }
 }
 
-bool js::CheckCanDeclareGlobalBinding(JSContext* cx,
-                                      Handle<GlobalObject*> global,
-                                      Handle<PropertyName*> name,
-                                      bool isFunction) {
+[[nodiscard]] static bool CheckCanDeclareGlobalBinding(
+    JSContext* cx, Handle<GlobalObject*> global, Handle<PropertyName*> name,
+    bool isFunction) {
   RootedId id(cx, NameToId(name));
   Rooted<mozilla::Maybe<PropertyDescriptor>> desc(cx);
   if (!GetOwnPropertyDescriptor(cx, global, id, &desc)) {
@@ -3905,7 +3926,7 @@ static bool InitHoistedFunctionDeclarations(JSContext* cx, HandleScript script,
   return true;
 }
 
-bool js::CheckGlobalDeclarationConflicts(
+[[nodiscard]] static bool CheckGlobalDeclarationConflicts(
     JSContext* cx, HandleScript script,
     Handle<ExtensibleLexicalEnvironmentObject*> lexicalEnv,
     HandleObject varObj) {
@@ -4008,7 +4029,7 @@ static bool CheckArgumentsRedeclaration(JSContext* cx, HandleScript script) {
 }
 
 static bool CheckEvalDeclarationConflicts(JSContext* cx, HandleScript script,
-                                          HandleObject scopeChain,
+                                          HandleObject envChain,
                                           HandleObject varObj) {
   // Strict eval has its own call objects and we shouldn't end up here.
   //
@@ -4019,7 +4040,7 @@ static bool CheckEvalDeclarationConflicts(JSContext* cx, HandleScript script,
 
   MOZ_ASSERT(script->bodyScope()->as<EvalScope>().hasBindings());
 
-  RootedObject obj(cx, scopeChain);
+  RootedObject env(cx, envChain);
 
   // ES 18.2.1.3.
 
@@ -4027,11 +4048,11 @@ static bool CheckEvalDeclarationConflicts(JSContext* cx, HandleScript script,
   //
   // Check that a direct eval will not hoist 'var' bindings over lexical
   // bindings with the same name.
-  while (obj != varObj) {
-    if (!CheckVarNameConflictsInEnv(cx, script, obj)) {
+  while (env != varObj) {
+    if (!CheckVarNameConflictsInEnv(cx, script, env)) {
       return false;
     }
-    obj = obj->enclosingEnvironment();
+    env = env->enclosingEnvironment();
   }
 
   // Check for redeclared "arguments" in function parameter expressions.
@@ -4141,10 +4162,10 @@ bool js::PushVarEnvironmentObject(JSContext* cx, Handle<Scope*> scope,
   return true;
 }
 
-bool js::GetFrameEnvironmentAndScope(JSContext* cx, AbstractFramePtr frame,
-                                     const jsbytecode* pc,
-                                     MutableHandleObject env,
-                                     MutableHandle<Scope*> scope) {
+static bool GetFrameEnvironmentAndScope(JSContext* cx, AbstractFramePtr frame,
+                                        const jsbytecode* pc,
+                                        MutableHandleObject env,
+                                        MutableHandle<Scope*> scope) {
   env.set(frame.environmentChain());
 
   if (frame.isWasmDebugFrame()) {
@@ -4158,16 +4179,6 @@ bool js::GetFrameEnvironmentAndScope(JSContext* cx, AbstractFramePtr frame,
     scope.set(frame.script()->innermostScope(pc));
   }
   return true;
-}
-
-void js::GetSuspendedGeneratorEnvironmentAndScope(
-    AbstractGeneratorObject& genObj, JSScript* script, MutableHandleObject env,
-    MutableHandle<Scope*> scope) {
-  env.set(&genObj.environmentChain());
-
-  jsbytecode* pc =
-      script->offsetToPC(script->resumeOffsets()[genObj.resumeIndex()]);
-  scope.set(script->innermostScope(pc));
 }
 
 #ifdef DEBUG

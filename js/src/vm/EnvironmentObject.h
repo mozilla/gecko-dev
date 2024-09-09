@@ -26,13 +26,6 @@ class AbstractGeneratorObject;
 class IndirectBindingMap;
 class ModuleObject;
 
-/*
- * Return a shape representing the static scope containing the variable
- * accessed by the ALIASEDVAR op at 'pc'.
- */
-extern SharedShape* EnvironmentCoordinateToEnvironmentShape(JSScript* script,
-                                                            jsbytecode* pc);
-
 // Return the name being accessed by the given ALIASEDVAR op. This function is
 // relatively slow so it should not be used on hot paths.
 extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
@@ -1579,20 +1572,6 @@ ModuleEnvironmentObject* GetModuleEnvironmentForScript(JSScript* script);
     JSContext* cx, AbstractGeneratorObject& genObj, JSScript* script,
     MutableHandleValue res);
 
-[[nodiscard]] bool CheckCanDeclareGlobalBinding(JSContext* cx,
-                                                Handle<GlobalObject*> global,
-                                                Handle<PropertyName*> name,
-                                                bool isFunction);
-
-[[nodiscard]] bool CheckLexicalNameConflict(
-    JSContext* cx, Handle<ExtensibleLexicalEnvironmentObject*> lexicalEnv,
-    HandleObject varObj, Handle<PropertyName*> name);
-
-[[nodiscard]] bool CheckGlobalDeclarationConflicts(
-    JSContext* cx, HandleScript script,
-    Handle<ExtensibleLexicalEnvironmentObject*> lexicalEnv,
-    HandleObject varObj);
-
 [[nodiscard]] bool GlobalOrEvalDeclInstantiation(JSContext* cx,
                                                  HandleObject envChain,
                                                  HandleScript script,
@@ -1603,17 +1582,6 @@ ModuleEnvironmentObject* GetModuleEnvironmentForScript(JSScript* script);
 
 [[nodiscard]] bool PushVarEnvironmentObject(JSContext* cx, Handle<Scope*> scope,
                                             AbstractFramePtr frame);
-
-[[nodiscard]] bool GetFrameEnvironmentAndScope(JSContext* cx,
-                                               AbstractFramePtr frame,
-                                               const jsbytecode* pc,
-                                               MutableHandleObject env,
-                                               MutableHandle<Scope*> scope);
-
-void GetSuspendedGeneratorEnvironmentAndScope(AbstractGeneratorObject& genObj,
-                                              JSScript* script,
-                                              MutableHandleObject env,
-                                              MutableHandle<Scope*> scope);
 
 #ifdef DEBUG
 bool AnalyzeEntrainedVariables(JSContext* cx, HandleScript script);

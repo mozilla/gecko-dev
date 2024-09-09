@@ -83,33 +83,6 @@ static inline bool CheckUninitializedLexical(JSContext* cx, PropertyName* name_,
   return true;
 }
 
-inline bool GetLengthProperty(const Value& lval, MutableHandleValue vp) {
-  /* Optimize length accesses on strings, arrays, and arguments. */
-  if (lval.isString()) {
-    vp.setInt32(lval.toString()->length());
-    return true;
-  }
-  if (lval.isObject()) {
-    JSObject* obj = &lval.toObject();
-    if (obj->is<ArrayObject>()) {
-      vp.setNumber(obj->as<ArrayObject>().length());
-      return true;
-    }
-
-    if (obj->is<ArgumentsObject>()) {
-      ArgumentsObject* argsobj = &obj->as<ArgumentsObject>();
-      if (!argsobj->hasOverriddenLength()) {
-        uint32_t length = argsobj->initialLength();
-        MOZ_ASSERT(length < INT32_MAX);
-        vp.setInt32(int32_t(length));
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 enum class GetNameMode { Normal, TypeOf };
 
 template <GetNameMode mode>

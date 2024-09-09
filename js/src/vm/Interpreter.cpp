@@ -252,11 +252,38 @@ bool js::Debug_CheckSelfHosted(JSContext* cx, HandleValue funVal) {
   return true;
 }
 
+static inline bool GetLengthProperty(const Value& lval, MutableHandleValue vp) {
+  /* Optimize length accesses on strings, arrays, and arguments. */
+  if (lval.isString()) {
+    vp.setInt32(lval.toString()->length());
+    return true;
+  }
+  if (lval.isObject()) {
+    JSObject* obj = &lval.toObject();
+    if (obj->is<ArrayObject>()) {
+      vp.setNumber(obj->as<ArrayObject>().length());
+      return true;
+    }
+
+    if (obj->is<ArgumentsObject>()) {
+      ArgumentsObject* argsobj = &obj->as<ArgumentsObject>();
+      if (!argsobj->hasOverriddenLength()) {
+        uint32_t length = argsobj->initialLength();
+        MOZ_ASSERT(length < INT32_MAX);
+        vp.setInt32(int32_t(length));
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 static inline bool GetPropertyOperation(JSContext* cx,
                                         Handle<PropertyName*> name,
                                         HandleValue lval,
                                         MutableHandleValue vp) {
-  if (name == cx->names().length && GetLengthProperty(lval, vp)) {
+  if (name == cx->names().length && ::GetLengthProperty(lval, vp)) {
     return true;
   }
 
@@ -4856,7 +4883,7 @@ bool js::GetProperty(JSContext* cx, HandleValue v, Handle<PropertyName*> name,
                      MutableHandleValue vp) {
   if (name == cx->names().length) {
     // Fast path for strings, arrays and arguments.
-    if (GetLengthProperty(v, vp)) {
+    if (::GetLengthProperty(v, vp)) {
       return true;
     }
   }
@@ -5595,15 +5622,6 @@ void js::ReportRuntimeLexicalError(JSContext* cx, unsigned errorNumber,
   }
 
   ReportRuntimeLexicalError(cx, errorNumber, name);
-}
-
-void js::ReportRuntimeRedeclaration(JSContext* cx, Handle<PropertyName*> name,
-                                    const char* redeclKind) {
-  if (UniqueChars printable = AtomToPrintableString(cx, name)) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_REDECLARED_VAR, redeclKind,
-                              printable.get());
-  }
 }
 
 bool js::ThrowCheckIsObject(JSContext* cx, CheckIsObjectKind kind) {

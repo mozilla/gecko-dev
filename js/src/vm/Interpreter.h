@@ -707,12 +707,6 @@ void ReportRuntimeLexicalError(JSContext* cx, unsigned errorNumber,
 
 void ReportInNotObjectError(JSContext* cx, HandleValue lref, HandleValue rref);
 
-// The parser only reports redeclarations that occurs within a single
-// script. Due to the extensibility of the global lexical scope, we also check
-// for redeclarations during runtime in JSOp::GlobalOrEvalDeclInstantation.
-void ReportRuntimeRedeclaration(JSContext* cx, Handle<PropertyName*> name,
-                                const char* redeclKind);
-
 bool ThrowCheckIsObject(JSContext* cx, CheckIsObjectKind kind);
 
 bool ThrowUninitializedThis(JSContext* cx);
