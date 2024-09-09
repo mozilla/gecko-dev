@@ -2805,7 +2805,8 @@ static void ARGBToYMatrixRow_LSX(const uint8_t* src_argb,
                                  uint8_t* dst_y,
                                  int width,
                                  const struct RgbConstants* rgbconstants) {
-  asm("vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
+  asm volatile(
+      "vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
       "vldrepl.b      $vr1,  %3,    1             \n\t"  // load rgbconstants
       "vldrepl.b      $vr2,  %3,    2             \n\t"  // load rgbconstants
       "vldrepl.h      $vr3,  %3,    4             \n\t"  // load rgbconstants
@@ -2863,7 +2864,8 @@ static void RGBAToYMatrixRow_LSX(const uint8_t* src_rgba,
                                  uint8_t* dst_y,
                                  int width,
                                  const struct RgbConstants* rgbconstants) {
-  asm("vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
+  asm volatile(
+      "vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
       "vldrepl.b      $vr1,  %3,    1             \n\t"  // load rgbconstants
       "vldrepl.b      $vr2,  %3,    2             \n\t"  // load rgbconstants
       "vldrepl.h      $vr3,  %3,    4             \n\t"  // load rgbconstants
@@ -2920,7 +2922,8 @@ static void RGBToYMatrixRow_LSX(const uint8_t* src_rgba,
                       7,  9,  10, 12, 13, 15, 1,  0,  4,  0,  7,  0,  10,
                       0,  13, 0,  16, 0,  19, 0,  22, 0,  25, 0,  28, 0,
                       31, 0,  2,  0,  5,  0,  8,  0,  11, 0,  14, 0};
-  asm("vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
+  asm volatile(
+      "vldrepl.b      $vr0,  %3,    0             \n\t"  // load rgbconstants
       "vldrepl.b      $vr1,  %3,    1             \n\t"  // load rgbconstants
       "vldrepl.b      $vr2,  %3,    2             \n\t"  // load rgbconstants
       "vldrepl.h      $vr3,  %3,    4             \n\t"  // load rgbconstants
