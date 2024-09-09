@@ -597,6 +597,28 @@ bool JitScript::ensureHasCachedIonData(JSContext* cx, HandleScript script) {
   return true;
 }
 
+std::pair<CallObject*, NamedLambdaObject*>
+JitScript::functionEnvironmentTemplates(JSFunction* fun) const {
+  EnvironmentObject* templateEnv = templateEnvironment();
+
+  CallObject* callObjectTemplate = nullptr;
+  if (fun->needsCallObject()) {
+    callObjectTemplate = &templateEnv->as<CallObject>();
+  }
+
+  NamedLambdaObject* namedLambdaTemplate = nullptr;
+  if (fun->needsNamedLambdaEnvironment()) {
+    if (callObjectTemplate) {
+      namedLambdaTemplate =
+          &callObjectTemplate->enclosingEnvironment().as<NamedLambdaObject>();
+    } else {
+      namedLambdaTemplate = &templateEnv->as<NamedLambdaObject>();
+    }
+  }
+
+  return {callObjectTemplate, namedLambdaTemplate};
+}
+
 void JitScript::setBaselineScriptImpl(JSScript* script,
                                       BaselineScript* baselineScript) {
   JSRuntime* rt = script->runtimeFromMainThread();

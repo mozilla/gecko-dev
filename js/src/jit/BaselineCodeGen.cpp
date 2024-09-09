@@ -1270,22 +1270,9 @@ bool BaselineCompilerCodeGen::initEnvironmentChain() {
   // both, the NamedLambdaObject must enclose the CallObject. If one of the
   // allocations fails, we perform the whole operation in C++.
 
-  JSObject* templateEnv = handler.script()->jitScript()->templateEnvironment();
-  MOZ_ASSERT(templateEnv);
-
-  CallObject* callObjectTemplate = nullptr;
-  if (handler.function()->needsCallObject()) {
-    callObjectTemplate = &templateEnv->as<CallObject>();
-  }
-
-  NamedLambdaObject* namedLambdaTemplate = nullptr;
-  if (handler.function()->needsNamedLambdaEnvironment()) {
-    if (callObjectTemplate) {
-      templateEnv = templateEnv->enclosingEnvironment();
-    }
-    namedLambdaTemplate = &templateEnv->as<NamedLambdaObject>();
-  }
-
+  auto [callObjectTemplate, namedLambdaTemplate] =
+      handler.script()->jitScript()->functionEnvironmentTemplates(
+          handler.function());
   MOZ_ASSERT(namedLambdaTemplate || callObjectTemplate);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());

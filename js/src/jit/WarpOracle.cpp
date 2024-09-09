@@ -283,20 +283,8 @@ WarpEnvironment WarpScriptOracle::createEnvironment() {
     return WarpEnvironment(ConstantObjectEnvironment(obj));
   }
 
-  JSObject* templateEnv = script_->jitScript()->templateEnvironment();
-
-  CallObject* callObjectTemplate = nullptr;
-  if (fun->needsCallObject()) {
-    callObjectTemplate = &templateEnv->as<CallObject>();
-  }
-
-  NamedLambdaObject* namedLambdaTemplate = nullptr;
-  if (fun->needsNamedLambdaEnvironment()) {
-    if (callObjectTemplate) {
-      templateEnv = templateEnv->enclosingEnvironment();
-    }
-    namedLambdaTemplate = &templateEnv->as<NamedLambdaObject>();
-  }
+  auto [callObjectTemplate, namedLambdaTemplate] =
+      script_->jitScript()->functionEnvironmentTemplates(fun);
 
   return WarpEnvironment(
       FunctionEnvironment(callObjectTemplate, namedLambdaTemplate));
