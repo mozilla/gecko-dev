@@ -85,5 +85,9 @@
 
     --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
+
+    --sidebar-background-color: light-dark(white, rgb(28, 27, 34));
+    --sidebar-text-color: light-dark(rgb(21, 20, 26), rgb(249, 249, 250));
+    --sidebar-border-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
   }
 }
