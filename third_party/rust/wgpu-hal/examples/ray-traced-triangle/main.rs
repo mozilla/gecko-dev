@@ -8,9 +8,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use glam::{Affine3A, Mat4, Vec3};
 use std::{
     borrow::{Borrow, Cow},
-    iter,
-    mem::size_of,
-    ptr,
+    iter, mem, ptr,
     time::Instant,
 };
 use winit::window::WindowButtons;
@@ -306,7 +304,7 @@ impl<A: hal::Api> Example<A> {
                     ty: wgt::BindingType::Buffer {
                         ty: wgt::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgt::BufferSize::new(size_of::<Uniforms>() as _),
+                        min_binding_size: wgt::BufferSize::new(mem::size_of::<Uniforms>() as _),
                     },
                     count: None,
                 },
@@ -518,7 +516,7 @@ impl<A: hal::Api> Example<A> {
             }
         };
 
-        let uniforms_size = size_of::<Uniforms>();
+        let uniforms_size = std::mem::size_of::<Uniforms>();
 
         let uniform_buffer = unsafe {
             let uniform_buffer = device
@@ -659,7 +657,8 @@ impl<A: hal::Api> Example<A> {
             ),
         ];
 
-        let instances_buffer_size = instances.len() * size_of::<AccelerationStructureInstance>();
+        let instances_buffer_size =
+            instances.len() * std::mem::size_of::<AccelerationStructureInstance>();
 
         let instances_buffer = unsafe {
             let instances_buffer = device
@@ -829,7 +828,7 @@ impl<A: hal::Api> Example<A> {
         };
 
         let instances_buffer_size =
-            self.instances.len() * size_of::<AccelerationStructureInstance>();
+            self.instances.len() * std::mem::size_of::<AccelerationStructureInstance>();
 
         let tlas_flags = hal::AccelerationStructureBuildFlags::PREFER_FAST_TRACE
             | hal::AccelerationStructureBuildFlags::ALLOW_UPDATE;

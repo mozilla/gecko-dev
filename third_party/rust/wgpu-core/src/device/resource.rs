@@ -39,9 +39,7 @@ use once_cell::sync::OnceCell;
 
 use smallvec::SmallVec;
 use thiserror::Error;
-use wgt::{
-    math::align_to, DeviceLostReason, TextureFormat, TextureSampleType, TextureViewDimension,
-};
+use wgt::{DeviceLostReason, TextureFormat, TextureSampleType, TextureViewDimension};
 
 use std::{
     borrow::Cow,
@@ -1631,7 +1629,7 @@ impl Device {
 
     /// Generate information about late-validated buffer bindings for pipelines.
     //TODO: should this be combined with `get_introspection_bind_group_layouts` in some way?
-    fn make_late_sized_buffer_groups(
+    pub(crate) fn make_late_sized_buffer_groups(
         shader_binding_sizes: &FastHashMap<naga::ResourceBinding, wgt::BufferSize>,
         layout: &binding_model::PipelineLayout,
     ) -> ArrayVec<pipeline::LateSizedBufferGroup, { hal::MAX_BIND_GROUPS }> {
@@ -1883,8 +1881,8 @@ impl Device {
         Ok(bgl)
     }
 
-    fn create_buffer_binding<'a>(
-        &self,
+    pub(crate) fn create_buffer_binding<'a>(
+        self: &Arc<Self>,
         bb: &'a binding_model::ResolvedBufferBinding,
         binding: u32,
         decl: &wgt::BindGroupLayoutEntry,
@@ -1892,6 +1890,7 @@ impl Device {
         dynamic_binding_info: &mut Vec<binding_model::BindGroupDynamicBindingData>,
         late_buffer_binding_sizes: &mut FastHashMap<u32, wgt::BufferSize>,
         used: &mut BindGroupStates,
+        limits: &wgt::Limits,
         snatch_guard: &'a SnatchGuard<'a>,
     ) -> Result<hal::BufferBinding<'a, dyn hal::DynBuffer>, binding_model::CreateBindGroupError>
     {
@@ -1916,7 +1915,7 @@ impl Device {
             wgt::BufferBindingType::Uniform => (
                 wgt::BufferUsages::UNIFORM,
                 hal::BufferUses::UNIFORM,
-                self.limits.max_uniform_buffer_binding_size,
+                limits.max_uniform_buffer_binding_size,
             ),
             wgt::BufferBindingType::Storage { read_only } => (
                 wgt::BufferUsages::STORAGE,
@@ -1925,12 +1924,12 @@ impl Device {
                 } else {
                     hal::BufferUses::STORAGE_READ_WRITE
                 },
-                self.limits.max_storage_buffer_binding_size,
+                limits.max_storage_buffer_binding_size,
             ),
         };
 
         let (align, align_limit_name) =
-            binding_model::buffer_binding_type_alignment(&self.limits, binding_ty);
+            binding_model::buffer_binding_type_alignment(limits, binding_ty);
         if bb.offset % align as u64 != 0 {
             return Err(Error::UnalignedBufferOffset(
                 bb.offset,
@@ -2006,21 +2005,10 @@ impl Device {
             late_buffer_binding_sizes.insert(binding, late_size);
         }
 
-        // This was checked against the device's alignment requirements above,
-        // which should always be a multiple of `COPY_BUFFER_ALIGNMENT`.
         assert_eq!(bb.offset % wgt::COPY_BUFFER_ALIGNMENT, 0);
-
-        // `wgpu_hal` only restricts shader access to bound buffer regions with
-        // a certain resolution. For the sake of lazy initialization, round up
-        // the size of the bound range to reflect how much of the buffer is
-        // actually going to be visible to the shader.
-        let bounds_check_alignment =
-            binding_model::buffer_binding_type_bounds_check_alignment(&self.alignments, binding_ty);
-        let visible_size = align_to(bind_size, bounds_check_alignment);
-
         used_buffer_ranges.extend(buffer.initialization_status.read().create_action(
             buffer,
-            bb.offset..bb.offset + visible_size,
+            bb.offset..bb.offset + bind_size,
             MemoryInitKind::NeedsInitializedMemory,
         ));
 
@@ -2032,7 +2020,7 @@ impl Device {
     }
 
     fn create_sampler_binding<'a>(
-        &self,
+        self: &Arc<Self>,
         used: &mut BindGroupStates,
         binding: u32,
         decl: &wgt::BindGroupLayoutEntry,
@@ -2080,8 +2068,8 @@ impl Device {
         Ok(sampler.raw())
     }
 
-    fn create_texture_binding<'a>(
-        &self,
+    pub(crate) fn create_texture_binding<'a>(
+        self: &Arc<Self>,
         binding: u32,
         decl: &wgt::BindGroupLayoutEntry,
         view: &'a Arc<TextureView>,
@@ -2179,6 +2167,7 @@ impl Device {
                         &mut dynamic_binding_info,
                         &mut late_buffer_binding_sizes,
                         &mut used,
+                        &self.limits,
                         &snatch_guard,
                     )?;
 
@@ -2200,6 +2189,7 @@ impl Device {
                             &mut dynamic_binding_info,
                             &mut late_buffer_binding_sizes,
                             &mut used,
+                            &self.limits,
                             &snatch_guard,
                         )?;
                         hal_buffers.push(bb);
@@ -2335,7 +2325,7 @@ impl Device {
         Ok(bind_group)
     }
 
-    fn check_array_binding(
+    pub(crate) fn check_array_binding(
         features: wgt::Features,
         count: Option<NonZeroU32>,
         num_bindings: usize,
@@ -2368,8 +2358,8 @@ impl Device {
         Ok(())
     }
 
-    fn texture_use_parameters(
-        &self,
+    pub(crate) fn texture_use_parameters(
+        self: &Arc<Self>,
         binding: u32,
         decl: &wgt::BindGroupLayoutEntry,
         view: &TextureView,
@@ -3459,7 +3449,10 @@ impl Device {
         Ok(cache)
     }
 
-    fn get_texture_format_features(&self, format: TextureFormat) -> wgt::TextureFormatFeatures {
+    pub(crate) fn get_texture_format_features(
+        &self,
+        format: TextureFormat,
+    ) -> wgt::TextureFormatFeatures {
         // Variant of adapter.get_texture_format_features that takes device features into account
         use wgt::TextureFormatFeatureFlags as tfsc;
         let mut format_features = self.adapter.get_texture_format_features(format);
@@ -3473,7 +3466,7 @@ impl Device {
         format_features
     }
 
-    fn describe_format_features(
+    pub(crate) fn describe_format_features(
         &self,
         format: TextureFormat,
     ) -> Result<wgt::TextureFormatFeatures, MissingFeatures> {
