@@ -147,7 +147,7 @@ bool js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
   // global lexical |this| value. This is for compatibility with the Subscript
   // Loader.
   if (frame.script()->hasNonSyntacticScope() && thisv.isNullOrUndefined()) {
-    RootedObject env(cx, frame.environmentChain());
+    JSObject* env = frame.environmentChain();
     while (true) {
       if (IsNSVOLexicalEnvironment(env) || IsGlobalLexicalEnvironment(env)) {
         res.setObject(*GetThisObjectOfLexical(env));
@@ -175,7 +175,7 @@ bool js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
 
 void js::GetNonSyntacticGlobalThis(JSContext* cx, HandleObject envChain,
                                    MutableHandleValue res) {
-  RootedObject env(cx, envChain);
+  JSObject* env = envChain;
   while (true) {
     if (IsExtensibleLexicalEnvironment(env)) {
       res.setObject(*GetThisObjectOfLexical(env));
