@@ -383,8 +383,8 @@ static bool CanDecryptAndDecode(
     CodecType aCodecType,
     const KeySystemConfig::ContainerSupport& aContainerSupport,
     const nsTArray<KeySystemConfig::EMECodecString>& aCodecs,
-    const Maybe<CryptoScheme>& aScheme,
-    DecoderDoctorDiagnostics* aDiagnostics) {
+    const Maybe<CryptoScheme>& aScheme, DecoderDoctorDiagnostics* aDiagnostics,
+    Maybe<bool> aShouldResistFingerprinting) {
   MOZ_ASSERT(aCodecType != Invalid);
   for (const KeySystemConfig::EMECodecString& codec : aCodecs) {
     MOZ_ASSERT(!codec.IsEmpty());
@@ -396,7 +396,8 @@ static bool CanDecryptAndDecode(
 
     if (aContainerSupport.Decrypts(codec, aScheme)) {
       IgnoredErrorResult rv;
-      MediaSource::IsTypeSupported(aContentType, aDiagnostics, rv);
+      MediaSource::IsTypeSupported(aContentType, aDiagnostics, rv,
+                                   aShouldResistFingerprinting);
       if (!rv.Failed()) {
         // GMP can decrypt and is allowed to return compressed samples to
         // Gecko to decode, and Gecko has a decoder.
@@ -773,9 +774,13 @@ static Sequence<MediaKeySystemMediaCapability> GetSupportedCapabilities(
     // restrictions...
     const auto& containerSupport =
         supportedInMP4 ? aKeySystem.mMP4 : aKeySystem.mWebM;
+    Maybe<bool> shouldResistFingerprinting =
+        aDocument ? Some(aDocument->ShouldResistFingerprinting(
+                        RFPTarget::MediaCapabilities))
+                  : Nothing();
     if (!CanDecryptAndDecode(aKeySystem.mKeySystem, contentTypeString,
                              majorType, containerSupport, codecs, scheme,
-                             aDiagnostics)) {
+                             aDiagnostics, shouldResistFingerprinting)) {
       EME_LOG(
           "MediaKeySystemConfiguration (label='%s') "
           "MediaKeySystemMediaCapability('%s','%s','%s') unsupported; "

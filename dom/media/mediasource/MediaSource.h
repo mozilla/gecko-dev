@@ -83,7 +83,8 @@ class MediaSource final : public DOMEventTargetHelper,
   // Throws on aRv if not supported.
   static void IsTypeSupported(const nsAString& aType,
                               DecoderDoctorDiagnostics* aDiagnostics,
-                              ErrorResult& aRv);
+                              ErrorResult& aRv,
+                              Maybe<bool> aShouldResistFingerprinting);
 
   IMPL_EVENT_HANDLER(sourceopen);
   IMPL_EVENT_HANDLER(sourceended);
