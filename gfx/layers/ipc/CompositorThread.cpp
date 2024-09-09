@@ -23,7 +23,7 @@ namespace mozilla {
 namespace layers {
 
 static StaticRefPtr<CompositorThreadHolder> sCompositorThreadHolder;
-static Atomic<bool> sCompositorThreadRunning(false);
+static Atomic<bool> sFinishedCompositorShutDown(false);
 static mozilla::BackgroundHangMonitor* sBackgroundHangMonitor;
 static ProfilerThreadId sProfilerThreadId;
 
@@ -43,8 +43,7 @@ CompositorThreadHolder::CompositorThreadHolder()
 }
 
 CompositorThreadHolder::~CompositorThreadHolder() {
-  ReleaseAssertIsOnMainThread();
-  MOZ_ASSERT(!sCompositorThreadRunning);
+  sFinishedCompositorShutDown = true;
 }
 
 /* static */ already_AddRefed<nsIThread>
@@ -113,7 +112,6 @@ void CompositorThreadHolder::Start() {
   MOZ_ASSERT(NS_IsMainThread(), "Should be on the main Thread!");
   MOZ_ASSERT(!sCompositorThreadHolder,
              "The compositor thread has already been started!");
-  MOZ_ASSERT(!sCompositorThreadRunning);
 
   // We unset the holder instead of asserting because failing to start the
   // compositor thread may not be a fatal error. As long as this succeeds in
@@ -126,10 +124,7 @@ void CompositorThreadHolder::Start() {
     gfxCriticalNote << "Compositor thread not started ("
                     << XRE_IsParentProcess() << ")";
     sCompositorThreadHolder = nullptr;
-    return;
   }
-
-  sCompositorThreadRunning = true;
 }
 
 void CompositorThreadHolder::Shutdown() {
@@ -148,21 +143,24 @@ void CompositorThreadHolder::Shutdown() {
   // Ensure there are no pending tasks that would cause an access to the
   // thread's HangMonitor. APZ and Canvas can keep a reference to the compositor
   // thread and may continue to dispatch tasks on it as the system shuts down.
-  CompositorThread()->Dispatch(
-      NS_NewRunnableFunction("CompositorThreadHolder::Shutdown", []() {
+  CompositorThread()->Dispatch(NS_NewRunnableFunction(
+      "CompositorThreadHolder::Shutdown",
+      [compositorThreadHolder =
+           RefPtr<CompositorThreadHolder>(sCompositorThreadHolder),
+       backgroundHangMonitor = UniquePtr<mozilla::BackgroundHangMonitor>(
+           sBackgroundHangMonitor)]() {
         VideoBridgeParent::UnregisterExternalImages();
         nsCOMPtr<nsIThread> thread = NS_GetCurrentThread();
         static_cast<nsThread*>(thread.get())->SetUseHangMonitor(false);
-        sCompositorThreadRunning = false;
       }));
-
-  SpinEventLoopUntil("CompositorThreadHolder::Shutdown"_ns, [&]() {
-    bool finished = !sCompositorThreadRunning;
-    return finished;
-  });
 
   sCompositorThreadHolder = nullptr;
   sBackgroundHangMonitor = nullptr;
+
+  SpinEventLoopUntil("CompositorThreadHolder::Shutdown"_ns, [&]() {
+    bool finished = sFinishedCompositorShutDown;
+    return finished;
+  });
 
   // At this point, the CompositorThreadHolder instance will have been
   // destroyed, but the compositor thread itself may still be running due to
