@@ -33,6 +33,7 @@ puppeteer:
     description: Puppeteer tests against Firefox CDP-based remote protocol
     treeherder:
         symbol: Pup(cdp)
+        tier: 2
     run:  # Bug 1651542: Use screenshot feature to warm-up the font cache before the actual test
         using: run-task
         command: >
