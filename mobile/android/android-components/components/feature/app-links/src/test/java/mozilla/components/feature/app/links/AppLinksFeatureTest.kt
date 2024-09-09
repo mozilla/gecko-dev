@@ -223,7 +223,7 @@ class AppLinksFeatureTest {
     }
 
     @Test
-    fun `WHEN non-custom tab and caller is the same as external app THEN an external app dialog is shown`() {
+    fun `WHEN tab have action view and caller is the same as external app THEN an external app dialog is shown`() {
         feature = spy(
             AppLinksFeature(
                 context = mockContext,
@@ -243,6 +243,77 @@ class AppLinksFeatureTest {
                 id = "d",
                 url = webUrl,
                 source = SessionState.Source.External.ActionView(
+                    ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
+                ),
+            )
+
+        val appIntent: Intent = mock()
+        val componentName: ComponentName = mock()
+        doReturn(componentName).`when`(appIntent).component
+        doReturn("com.zxing.app").`when`(componentName).packageName
+
+        feature.handleAppIntent(tab, intentUrl, appIntent)
+
+        verify(mockDialog, never()).showNow(eq(mockFragmentManager), anyString())
+    }
+
+    @Test
+    fun `WHEN tab have action send and caller is the same as external app THEN an external app dialog is shown`() {
+        feature = spy(
+            AppLinksFeature(
+                context = mockContext,
+                store = store,
+                fragmentManager = mockFragmentManager,
+                useCases = mockUseCases,
+                dialog = mockDialog,
+                loadUrlUseCase = mockLoadUrlUseCase,
+                shouldPrompt = { true },
+            ),
+        ).also {
+            it.start()
+        }
+
+        val tab =
+            createCustomTab(
+                id = "d",
+                url = webUrl,
+                source = SessionState.Source.External.ActionSend(
+                    ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
+                ),
+            )
+
+        val appIntent: Intent = mock()
+        val componentName: ComponentName = mock()
+        doReturn(componentName).`when`(appIntent).component
+        doReturn("com.zxing.app").`when`(componentName).packageName
+
+        feature.handleAppIntent(tab, intentUrl, appIntent)
+
+        verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
+        verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
+    }
+
+    @Test
+    fun `WHEN tab have action search and caller is the same as external app THEN an external app dialog is shown`() {
+        feature = spy(
+            AppLinksFeature(
+                context = mockContext,
+                store = store,
+                fragmentManager = mockFragmentManager,
+                useCases = mockUseCases,
+                dialog = mockDialog,
+                loadUrlUseCase = mockLoadUrlUseCase,
+                shouldPrompt = { true },
+            ),
+        ).also {
+            it.start()
+        }
+
+        val tab =
+            createCustomTab(
+                id = "d",
+                url = webUrl,
+                source = SessionState.Source.External.ActionSearch(
                     ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY),
                 ),
             )
@@ -345,10 +416,10 @@ class AppLinksFeatureTest {
         val componentName: ComponentName = mock()
         doReturn(componentName).`when`(appIntent).component
         doReturn("com.zxing.app").`when`(componentName).packageName
-        assertTrue(feature.isSameCallerAndApp(customTab, appIntent))
+        assertTrue(feature.isAuthentication(customTab, appIntent))
 
         val tab = createTab(webUrl, private = true)
-        assertFalse(feature.isSameCallerAndApp(tab, appIntent))
+        assertFalse(feature.isAuthentication(tab, appIntent))
 
         val customTab2 =
             createCustomTab(
@@ -358,9 +429,9 @@ class AppLinksFeatureTest {
                     ExternalPackage("com.example.app", PackageCategory.PRODUCTIVITY),
                 ),
             )
-        assertFalse(feature.isSameCallerAndApp(customTab2, appIntent))
+        assertFalse(feature.isAuthentication(customTab2, appIntent))
 
         doReturn(null).`when`(componentName).packageName
-        assertFalse(feature.isSameCallerAndApp(customTab, appIntent))
+        assertFalse(feature.isAuthentication(customTab, appIntent))
     }
 }

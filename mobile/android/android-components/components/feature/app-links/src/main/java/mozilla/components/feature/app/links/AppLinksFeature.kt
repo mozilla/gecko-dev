@@ -108,7 +108,7 @@ class AppLinksFeature(
         }
 
         @Suppress("ComplexCondition")
-        if (isSameCallerAndApp(tab, appIntent) || (!tab.content.private && !shouldPrompt()) ||
+        if (isAuthentication(tab, appIntent) || (!tab.content.private && !shouldPrompt()) ||
             fragmentManager == null
         ) {
             doOpenApp()
@@ -172,13 +172,24 @@ class AppLinksFeature(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun isSameCallerAndApp(tab: SessionState, appIntent: Intent): Boolean {
-        return (tab.source as? SessionState.Source.External.CustomTab)?.let { externalSource ->
-            when (externalSource.caller?.packageId) {
-                null -> false
-                appIntent.component?.packageName -> true
-                else -> false
+    internal fun isAuthentication(tab: SessionState, appIntent: Intent): Boolean {
+        return when (tab.source) {
+            is SessionState.Source.External.ActionSend,
+            is SessionState.Source.External.ActionSearch,
+            -> false
+            // CustomTab and ActionView can be used for authentication
+            is SessionState.Source.External.CustomTab,
+            is SessionState.Source.External.ActionView,
+            -> {
+                (tab.source as? SessionState.Source.External)?.let { externalSource ->
+                    when (externalSource.caller?.packageId) {
+                        null -> false
+                        appIntent.component?.packageName -> true
+                        else -> false
+                    }
+                } ?: false
             }
-        } ?: false
+            else -> false
+        }
     }
 }
