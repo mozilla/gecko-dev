@@ -76,10 +76,6 @@
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
-    height: 100%;
-    box-sizing: border-box;
-    display: inline-block;
-    width: 100%;
     border-radius: var(--border-radius-medium);
     box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
     border: 0.5px solid var(--sidebar-border-color);
