@@ -115,6 +115,7 @@ impl Example for App {
                 image_type: ExternalImageType::TextureHandle(
                     ImageBufferKind::Texture2D,
                 ),
+                normalized_uvs: false,
             }),
             None,
         );
@@ -127,6 +128,7 @@ impl Example for App {
                 image_type: ExternalImageType::TextureHandle(
                     ImageBufferKind::Texture2D,
                 ),
+                normalized_uvs: false,
             }),
             None,
         );
@@ -139,6 +141,7 @@ impl Example for App {
                 image_type: ExternalImageType::TextureHandle(
                     ImageBufferKind::Texture2D,
                 ),
+                normalized_uvs: false,
             }),
             None,
         );
@@ -151,6 +154,7 @@ impl Example for App {
                 image_type: ExternalImageType::TextureHandle(
                     ImageBufferKind::Texture2D,
                 ),
+                normalized_uvs: false,
             }),
             None,
         );

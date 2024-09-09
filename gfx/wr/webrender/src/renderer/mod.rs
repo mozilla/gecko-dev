@@ -71,7 +71,7 @@ use crate::gpu_cache::{GpuCacheUpdate, GpuCacheUpdateList};
 use crate::gpu_cache::{GpuCacheDebugChunk, GpuCacheDebugCmd};
 use crate::gpu_types::{ScalingInstance, SvgFilterInstance, SVGFEFilterInstance, CopyInstance, PrimitiveInstanceData};
 use crate::gpu_types::{BlurInstance, ClearInstance, CompositeInstance};
-use crate::internal_types::{TextureSource, TextureCacheCategory, FrameId};
+use crate::internal_types::{TextureSource, TextureSourceExternal, TextureCacheCategory, FrameId};
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::DebugOutput;
 use crate::internal_types::{CacheTextureId, FastHashMap, FastHashSet, RenderedDocument, ResultMsg};
@@ -533,7 +533,7 @@ impl TextureResolver {
                 device.bind_texture(sampler, &self.dummy_cache_texture, swizzle);
                 swizzle
             }
-            TextureSource::External(ref index, _) => {
+            TextureSource::External(TextureSourceExternal { ref index, .. }) => {
                 let texture = self.external_images
                     .get(index)
                     .expect("BUG: External image should be resolved by now");
@@ -574,7 +574,7 @@ impl TextureResolver {
         default_value: TexelRect,
     ) -> TexelRect {
         match source {
-            TextureSource::External(ref index, _) => {
+            TextureSource::External(TextureSourceExternal { ref index, .. }) => {
                 let texture = self.external_images
                     .get(index)
                     .expect("BUG: External image should be resolved by now");
@@ -593,7 +593,11 @@ impl TextureResolver {
             TextureSource::TextureCache(id, _) => {
                 self.texture_cache_map[&id].texture.get_dimensions()
             },
-            TextureSource::External(index, _) => {
+            TextureSource::External(TextureSourceExternal { index, .. }) => {
+                // If UV coords are normalized then this value will be incorrect. However, the
+                // texture size is currently only used to set the uTextureSize uniform, so that
+                // shaders without access to textureSize() can normalize unnormalized UVs. Which
+                // means this is not a problem.
                 let uv_rect = self.external_images[&index].get_uv_rect();
                 (uv_rect.uv1 - uv_rect.uv0).abs().to_size().to_i32()
             },
@@ -623,6 +627,8 @@ impl TextureResolver {
         let mut external_image_bytes = 0;
         for img in self.external_images.values() {
             let uv_rect = img.get_uv_rect();
+            // If UV coords are normalized then this value will be incorrect. This is unfortunate
+            // but doesn't impact end users at all.
             let size = (uv_rect.uv1 - uv_rect.uv0).abs().to_size().to_i32();
 
             // Assume 4 bytes per pixels which is true most of the time but
@@ -2475,14 +2481,13 @@ impl Renderer {
             let instances = match source {
                 TextureSource::External(..) => {
                     uv_override_instances = instances.iter().map(|instance| {
+                        let mut new_instance = instance.clone();
                         let texel_rect: TexelRect = self.texture_resolver.get_uv_rect(
                             &source,
                             instance.source_rect.cast().into()
                         ).into();
-                        ScalingInstance {
-                            target_rect: instance.target_rect,
-                            source_rect: DeviceRect::new(texel_rect.uv0, texel_rect.uv1),
-                        }
+                        new_instance.source_rect = DeviceRect::new(texel_rect.uv0, texel_rect.uv1);
+                        new_instance
                     }).collect::<Vec<_>>();
                     &uv_override_instances
                 }
@@ -3083,6 +3088,7 @@ impl Renderer {
                         surface_rect.to_f32(),
                         PremultipliedColorF::WHITE,
                         uv_rect,
+                        plane.texture.uses_normalized_uvs(),
                         (false, false),
                     );
 
@@ -3231,6 +3237,7 @@ impl Renderer {
                                 clip_rect,
                                 PremultipliedColorF::WHITE,
                                 uv_rect,
+                                plane.texture.uses_normalized_uvs(),
                                 flip,
                             );
                             let features = instance.get_rgb_features();
@@ -5729,7 +5736,7 @@ impl Renderer {
                 .expect("Unable to lock the external image handler!");
             for def in &deferred_images {
                 info!("\t{}", def.short_path);
-                let ExternalImageData { id, channel_index, image_type } = def.external;
+                let ExternalImageData { id, channel_index, image_type, .. } = def.external;
                 // The image rendering parameter is irrelevant because no filtering happens during capturing.
                 let ext_image = handler.lock(id, channel_index);
                 let (data, short_path) = match ext_image.source {

@@ -874,10 +874,11 @@ fn add_scaling_instances(
     instances
         .entry(source)
         .or_insert(Vec::new())
-        .push(ScalingInstance {
+        .push(ScalingInstance::new(
             target_rect,
             source_rect,
-        });
+            source.uses_normalized_uvs(),
+        ));
 }
 
 fn add_svg_filter_instances(

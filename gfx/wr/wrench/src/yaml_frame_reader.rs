@@ -142,7 +142,8 @@ impl LocalExternalImageHandler {
             ExternalImageData {
                 id: image_id,
                 channel_index: channel_idx,
-                image_type: ExternalImageType::TextureHandle(target)
+                image_type: ExternalImageType::TextureHandle(target),
+                normalized_uvs: false,
             }
         )
     }
