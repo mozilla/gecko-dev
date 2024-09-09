@@ -29,6 +29,7 @@
 
 #include "common/attributes.h"
 
+#include "src/cpu.h"
 #include "src/arm/cpu.h"
 
 #if defined(HAVE_GETAUXVAL) || defined(HAVE_ELF_AUX_INFO)
@@ -52,7 +53,7 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     elf_aux_info(AT_HWCAP2, &hw_cap2, sizeof(hw_cap2));
 #endif
 
-    unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+    unsigned flags = dav1d_get_default_cpu_flags();
     flags |= (hw_cap & HWCAP_AARCH64_ASIMDDP) ? DAV1D_ARM_CPU_FLAG_DOTPROD : 0;
     flags |= (hw_cap2 & HWCAP2_AARCH64_I8MM) ? DAV1D_ARM_CPU_FLAG_I8MM : 0;
     flags |= (hw_cap & HWCAP_AARCH64_SVE) ? DAV1D_ARM_CPU_FLAG_SVE : 0;
@@ -75,7 +76,8 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     elf_aux_info(AT_HWCAP, &hw_cap, sizeof(hw_cap));
 #endif
 
-    unsigned flags = (hw_cap & HWCAP_ARM_NEON) ? DAV1D_ARM_CPU_FLAG_NEON : 0;
+    unsigned flags = dav1d_get_default_cpu_flags();
+    flags |= (hw_cap & HWCAP_ARM_NEON) ? DAV1D_ARM_CPU_FLAG_NEON : 0;
     flags |= (hw_cap & HWCAP_ARM_ASIMDDP) ? DAV1D_ARM_CPU_FLAG_DOTPROD : 0;
     flags |= (hw_cap & HWCAP_ARM_I8MM) ? DAV1D_ARM_CPU_FLAG_I8MM : 0;
     return flags;
@@ -95,7 +97,7 @@ static int have_feature(const char *feature) {
 }
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-    unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+    unsigned flags = dav1d_get_default_cpu_flags();
     if (have_feature("hw.optional.arm.FEAT_DotProd"))
         flags |= DAV1D_ARM_CPU_FLAG_DOTPROD;
     if (have_feature("hw.optional.arm.FEAT_I8MM"))
@@ -104,16 +106,14 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
     return flags;
 }
 
-#elif defined(__OpenBSD__)
-
-#if ARCH_AARCH64
+#elif defined(__OpenBSD__) && ARCH_AARCH64
 #include <machine/armreg.h>
 #include <machine/cpu.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-     unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+     unsigned flags = dav1d_get_default_cpu_flags();
 
 #ifdef CPU_ID_AA64ISAR0
      int mib[2];
@@ -142,25 +142,31 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
 
      return flags;
 }
-#else  /* !ARCH_AARCH64 */
-
-COLD unsigned dav1d_get_cpu_flags_arm(void) {
-    unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
-    return flags;
-}
-#endif /* ARCH_AARCH64 */
 
 #elif defined(_WIN32)
 #include <windows.h>
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-    unsigned flags = DAV1D_ARM_CPU_FLAG_NEON;
+    unsigned flags = dav1d_get_default_cpu_flags();
 #ifdef PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE
     if (IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE))
         flags |= DAV1D_ARM_CPU_FLAG_DOTPROD;
 #endif
-    /* No I8MM or SVE feature detection available on Windows at the time of
-     * writing. */
+#ifdef PF_ARM_SVE_INSTRUCTIONS_AVAILABLE
+    if (IsProcessorFeaturePresent(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE))
+        flags |= DAV1D_ARM_CPU_FLAG_SVE;
+#endif
+#ifdef PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE
+    if (IsProcessorFeaturePresent(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE))
+        flags |= DAV1D_ARM_CPU_FLAG_SVE2;
+#endif
+#ifdef PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE
+    /* There's no PF_* flag that indicates whether plain I8MM is available
+     * or not. But if SVE_I8MM is available, that also implies that
+     * regular I8MM is available. */
+    if (IsProcessorFeaturePresent(PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE))
+        flags |= DAV1D_ARM_CPU_FLAG_I8MM;
+#endif
     return flags;
 }
 
@@ -206,7 +212,8 @@ static unsigned parse_proc_cpuinfo(const char *flag) {
 }
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-    unsigned flags = parse_proc_cpuinfo("neon") ? DAV1D_ARM_CPU_FLAG_NEON : 0;
+    unsigned flags = dav1d_get_default_cpu_flags();
+    flags |= parse_proc_cpuinfo("neon") ? DAV1D_ARM_CPU_FLAG_NEON : 0;
     flags |= parse_proc_cpuinfo("asimd") ? DAV1D_ARM_CPU_FLAG_NEON : 0;
     flags |= parse_proc_cpuinfo("asimddp") ? DAV1D_ARM_CPU_FLAG_DOTPROD : 0;
     flags |= parse_proc_cpuinfo("i8mm") ? DAV1D_ARM_CPU_FLAG_I8MM : 0;
@@ -220,7 +227,7 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
 #else  /* Unsupported OS */
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-    return 0;
+    return dav1d_get_default_cpu_flags();
 }
 
 #endif

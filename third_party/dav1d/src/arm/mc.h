@@ -63,6 +63,7 @@
 decl_8tap_fns(neon);
 decl_8tap_fns(neon_dotprod);
 decl_8tap_fns(neon_i8mm);
+decl_8tap_fns(sve2);
 
 decl_mc_fn(BF(dav1d_put_bilin, neon));
 decl_mct_fn(BF(dav1d_prep_bilin, neon));
@@ -110,17 +111,27 @@ static ALWAYS_INLINE void mc_dsp_init_arm(Dav1dMCDSPContext *const c) {
     c->warp8x8t = BF(dav1d_warp_affine_8x8t, neon);
     c->emu_edge = BF(dav1d_emu_edge, neon);
 
-#if ARCH_AARCH64 && BITDEPTH == 8
+#if ARCH_AARCH64
+#if BITDEPTH == 8
 #if HAVE_DOTPROD
-    if (!(flags & DAV1D_ARM_CPU_FLAG_DOTPROD)) return;
-
-    init_8tap_fns(neon_dotprod);
+    if (flags & DAV1D_ARM_CPU_FLAG_DOTPROD) {
+        init_8tap_fns(neon_dotprod);
+    }
 #endif  // HAVE_DOTPROD
 
 #if HAVE_I8MM
-    if (!(flags & DAV1D_ARM_CPU_FLAG_I8MM)) return;
-
-    init_8tap_fns(neon_i8mm);
+    if (flags & DAV1D_ARM_CPU_FLAG_I8MM) {
+        init_8tap_fns(neon_i8mm);
+    }
 #endif  // HAVE_I8MM
-#endif  // ARCH_AARCH64 && BITDEPTH == 8
+#endif  // BITDEPTH == 8
+
+#if BITDEPTH == 16
+#if HAVE_SVE2
+    if (flags & DAV1D_ARM_CPU_FLAG_SVE2) {
+        init_8tap_fns(sve2);
+    }
+#endif  // HAVE_SVE2
+#endif  // BITDEPTH == 16
+#endif  // ARCH_AARCH64
 }

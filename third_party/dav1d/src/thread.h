@@ -132,6 +132,14 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 #else
 
 #include <pthread.h>
+#if defined(__FreeBSD__)
+ /* ALIGN from <sys/param.h> conflicts with ALIGN from "common/attributes.h" */
+#define _SYS_PARAM_H_
+#include <sys/types.h>
+#endif
+#ifdef HAVE_PTHREAD_NP_H
+#include <pthread_np.h>
+#endif
 
 #define dav1d_init_thread() do {} while (0)
 
@@ -145,29 +153,28 @@ static inline void dav1d_set_thread_name(const char *const name) {
     prctl(PR_SET_NAME, name);
 }
 
-#elif defined(__APPLE__)
+#elif defined(HAVE_PTHREAD_SETNAME_NP) && defined(__APPLE__)
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(name);
 }
 
-#elif defined(__DragonFly__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-
-#if defined(__FreeBSD__)
- /* ALIGN from <sys/param.h> conflicts with ALIGN from "common/attributes.h" */
-#define _SYS_PARAM_H_
-#include <sys/types.h>
-#endif
-#include <pthread_np.h>
-
-static inline void dav1d_set_thread_name(const char *const name) {
-    pthread_set_name_np(pthread_self(), name);
-}
-
-#elif defined(__NetBSD__)
+#elif defined(HAVE_PTHREAD_SETNAME_NP) && defined(__NetBSD__)
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(pthread_self(), "%s", (void*)name);
+}
+
+#elif defined(HAVE_PTHREAD_SETNAME_NP)
+
+static inline void dav1d_set_thread_name(const char *const name) {
+    pthread_setname_np(pthread_self(), name);
+}
+
+#elif defined(HAVE_PTHREAD_SET_NAME_NP)
+
+static inline void dav1d_set_thread_name(const char *const name) {
+    pthread_set_name_np(pthread_self(), name);
 }
 
 #elif defined(__HAIKU__)

@@ -201,16 +201,6 @@ int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f
                                   (void **) &p->progress);
     if (res) return res;
 
-    dav1d_picture_copy_props(&p->p, c->content_light, c->content_light_ref,
-                             c->mastering_display, c->mastering_display_ref,
-                             c->itut_t35, c->itut_t35_ref, c->n_itut_t35,
-                             &f->tile[0].data.m);
-
-    // Must be removed from the context after being attached to the frame
-    dav1d_ref_dec(&c->itut_t35_ref);
-    c->itut_t35 = NULL;
-    c->n_itut_t35 = 0;
-
     // Don't clear these flags from c->frame_flags if the frame is not going to be output.
     // This way they will be added to the next visible frame too.
     const int flags_mask = ((f->frame_hdr->show_frame || c->output_invisible_frames) &&
@@ -221,6 +211,22 @@ int dav1d_thread_picture_alloc(Dav1dContext *const c, Dav1dFrameContext *const f
 
     p->visible = f->frame_hdr->show_frame;
     p->showable = f->frame_hdr->showable_frame;
+
+    if (p->visible) {
+        // Only add HDR10+ and T35 metadata when show frame flag is enabled
+        dav1d_picture_copy_props(&p->p, c->content_light, c->content_light_ref,
+                                 c->mastering_display, c->mastering_display_ref,
+                                 c->itut_t35, c->itut_t35_ref, c->n_itut_t35,
+                                 &f->tile[0].data.m);
+
+        // Must be removed from the context after being attached to the frame
+        dav1d_ref_dec(&c->itut_t35_ref);
+        c->itut_t35 = NULL;
+        c->n_itut_t35 = 0;
+    } else {
+        dav1d_data_props_copy(&p->p.m, &f->tile[0].data.m);
+    }
+
     if (c->n_fc > 1) {
         atomic_init(&p->progress[0], 0);
         atomic_init(&p->progress[1], 0);

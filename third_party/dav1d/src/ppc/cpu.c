@@ -29,6 +29,7 @@
 
 #include "common/attributes.h"
 
+#include "src/cpu.h"
 #include "src/ppc/cpu.h"
 
 #if (defined(HAVE_GETAUXVAL) || defined(HAVE_ELF_AUX_INFO)) && ARCH_PPC64LE
@@ -37,7 +38,7 @@
 #endif
 
 COLD unsigned dav1d_get_cpu_flags_ppc(void) {
-    unsigned flags = 0;
+    unsigned flags = dav1d_get_default_cpu_flags();
 #if defined(HAVE_GETAUXVAL) && ARCH_PPC64LE
     unsigned long hw_cap = getauxval(AT_HWCAP);
     unsigned long hw_cap2 = getauxval(AT_HWCAP2);

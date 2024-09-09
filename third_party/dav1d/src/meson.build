@@ -119,6 +119,7 @@ if is_asm_enabled
                     'arm/64/loopfilter16.S',
                     'arm/64/looprestoration16.S',
                     'arm/64/mc16.S',
+                    'arm/64/mc16_sve.S',
                 )
             endif
         elif host_machine.cpu_family().startswith('arm')
@@ -370,7 +371,7 @@ libdav1d = library('dav1d',
 )
 
 dav1d_dep = declare_dependency(link_with: libdav1d,
-    include_directories : include_directories('../include/dav1d')
+    include_directories : include_directories('../include')
 )
 
 #

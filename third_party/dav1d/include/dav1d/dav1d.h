@@ -31,10 +31,10 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#include "common.h"
-#include "picture.h"
-#include "data.h"
-#include "version.h"
+#include "dav1d/common.h"
+#include "dav1d/picture.h"
+#include "dav1d/data.h"
+#include "dav1d/version.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -26,6 +26,8 @@
 
 #include "config.h"
 #include "common/attributes.h"
+
+#include "src/cpu.h"
 #include "src/loongarch/cpu.h"
 
 #if defined(HAVE_GETAUXVAL)
@@ -36,7 +38,7 @@
 #endif
 
 COLD unsigned dav1d_get_cpu_flags_loongarch(void) {
-    unsigned flags = 0;
+    unsigned flags = dav1d_get_default_cpu_flags();
 #if defined(HAVE_GETAUXVAL)
     unsigned long hw_cap = getauxval(AT_HWCAP);
     flags |= (hw_cap & LA_HWCAP_LSX) ? DAV1D_LOONGARCH_CPU_FLAG_LSX : 0;

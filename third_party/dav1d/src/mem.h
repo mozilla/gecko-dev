@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 
-#if defined(_WIN32) || !defined(HAVE_POSIX_MEMALIGN)
+#if defined(_WIN32) || defined(HAVE_MEMALIGN)
 #include <malloc.h>
 #endif
 
@@ -79,6 +79,39 @@ typedef struct Dav1dMemPool {
 #endif
 } Dav1dMemPool;
 
+// TODO: Move this to a common location?
+#define ROUND_UP(x,a) (((x)+((a)-1)) & ~((a)-1))
+
+/*
+ * Allocate align-byte aligned memory. The return value can be released
+ * by calling the dav1d_free_aligned() function.
+ */
+static inline void *dav1d_alloc_aligned_internal(const size_t sz, const size_t align) {
+    assert(!(align & (align - 1)));
+#ifdef _WIN32
+    return _aligned_malloc(sz, align);
+#elif defined(HAVE_POSIX_MEMALIGN)
+    void *ptr;
+    if (posix_memalign(&ptr, align, sz)) return NULL;
+    return ptr;
+#elif defined(HAVE_MEMALIGN)
+    return memalign(align, sz);
+#elif defined(HAVE_ALIGNED_ALLOC)
+    // The C11 standard specifies that the size parameter
+    // must be an integral multiple of alignment.
+    return aligned_alloc(align, ROUND_UP(sz, align));
+#else
+#error No aligned allocation functions are available
+#endif
+}
+
+static inline void dav1d_free_aligned_internal(void *ptr) {
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
+}
 
 #if TRACK_HEAP_ALLOCATIONS
 void *dav1d_malloc(enum AllocationType type, size_t sz);
@@ -91,34 +124,9 @@ void dav1d_log_alloc_stats(Dav1dContext *c);
 #define dav1d_mem_pool_init(type, pool) dav1d_mem_pool_init(pool)
 #define dav1d_malloc(type, sz) malloc(sz)
 #define dav1d_realloc(type, ptr, sz) realloc(ptr, sz)
+#define dav1d_alloc_aligned(type, sz, align) dav1d_alloc_aligned_internal(sz, align)
 #define dav1d_free(ptr) free(ptr)
-
-/*
- * Allocate align-byte aligned memory. The return value can be released
- * by calling the dav1d_free_aligned() function.
- */
-static inline void *dav1d_alloc_aligned(const size_t sz, const size_t align) {
-    assert(!(align & (align - 1)));
-#ifdef _WIN32
-    return _aligned_malloc(sz, align);
-#elif defined(HAVE_POSIX_MEMALIGN)
-    void *ptr;
-    if (posix_memalign(&ptr, align, sz)) return NULL;
-    return ptr;
-#else
-    return memalign(align, sz);
-#endif
-}
-#define dav1d_alloc_aligned(type, sz, align) dav1d_alloc_aligned(sz, align)
-
-static inline void dav1d_free_aligned(void *ptr) {
-#ifdef _WIN32
-    _aligned_free(ptr);
-#else
-    free(ptr);
-#endif
-}
-
+#define dav1d_free_aligned(ptr) dav1d_free_aligned_internal(ptr)
 #endif /* TRACK_HEAP_ALLOCATIONS */
 
 void dav1d_mem_pool_push(Dav1dMemPool *pool, Dav1dMemPoolBuffer *buf);

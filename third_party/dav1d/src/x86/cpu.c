@@ -32,6 +32,7 @@
 
 #include "common/attributes.h"
 
+#include "src/cpu.h"
 #include "src/x86/cpu.h"
 
 typedef struct {
@@ -52,7 +53,7 @@ COLD unsigned dav1d_get_cpu_flags_x86(void) {
         };
     } cpu;
     dav1d_cpu_cpuid(&cpu.r, 0, 0);
-    unsigned flags = 0;
+    unsigned flags = dav1d_get_default_cpu_flags();
 
     if (cpu.max_leaf >= 1) {
         CpuidRegisters r;

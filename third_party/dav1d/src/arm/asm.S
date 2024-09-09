@@ -323,6 +323,32 @@ EXTERN\name:
 \name:
 .endm
 
+.macro jumptable name
+#ifdef _WIN32
+// MS armasm64 doesn't seem to be able to create relocations for subtraction
+// of labels in different sections; for armasm64 (and all of Windows for
+// simplicity), write the jump table in the text section, to allow calculating
+// differences at assembly time. See
+// https://developercommunity.visualstudio.com/t/armasm64-unable-to-create-cross-section/10722340
+// for reference. (LLVM can create such relocations, but checking for _WIN32
+// for simplicity, as execute-only memory isn't relevant on Windows at the
+// moment.)
+        function \name
+#else
+// For other platforms, write jump tables in a const data section, to allow
+// working in environments where executable memory isn't readable.
+        const \name
+#endif
+.endm
+
+.macro endjumptable
+#ifdef _WIN32
+        endfunc
+#else
+        endconst
+#endif
+.endm
+
 #ifdef __APPLE__
 #define L(x) L ## x
 #else

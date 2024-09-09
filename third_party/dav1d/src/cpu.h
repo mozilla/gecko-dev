@@ -54,12 +54,9 @@ void dav1d_init_cpu(void);
 DAV1D_API void dav1d_set_cpu_flags_mask(unsigned mask);
 int dav1d_num_logical_processors(Dav1dContext *c);
 
-static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
-    unsigned flags = dav1d_cpu_flags & dav1d_cpu_flags_mask;
+static ALWAYS_INLINE unsigned dav1d_get_default_cpu_flags(void) {
+    unsigned flags = 0;
 
-#if TRIM_DSP_FUNCTIONS
-/* Since this function is inlined, unconditionally setting a flag here will
- * enable dead code elimination in the calling function. */
 #if ARCH_AARCH64 || ARCH_ARM
 #if defined(__ARM_NEON) || defined(__APPLE__) || defined(_WIN32) || ARCH_AARCH64
     flags |= DAV1D_ARM_CPU_FLAG_NEON;
@@ -119,6 +116,17 @@ static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
     flags |= DAV1D_X86_CPU_FLAG_SSE2;
 #endif
 #endif
+
+    return flags;
+}
+
+static ALWAYS_INLINE unsigned dav1d_get_cpu_flags(void) {
+    unsigned flags = dav1d_cpu_flags & dav1d_cpu_flags_mask;
+
+#if TRIM_DSP_FUNCTIONS
+/* Since this function is inlined, unconditionally setting a flag here will
+ * enable dead code elimination in the calling function. */
+    flags |= dav1d_get_default_cpu_flags();
 #endif
 
     return flags;

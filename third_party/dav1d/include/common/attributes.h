@@ -189,9 +189,13 @@ static inline int clzll(const unsigned long long mask) {
 #ifndef static_assert
 #define CHECK_OFFSET(type, field, name) \
     struct check_##type##_##field { int x[(name == offsetof(type, field)) ? 1 : -1]; }
+#define CHECK_SIZE(type, size) \
+    struct check_##type##_size { int x[(size == sizeof(type)) ? 1 : -1]; }
 #else
 #define CHECK_OFFSET(type, field, name) \
     static_assert(name == offsetof(type, field), #field)
+#define CHECK_SIZE(type, size) \
+    static_assert(size == sizeof(type), #type)
 #endif
 
 #ifdef _MSC_VER

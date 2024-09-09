@@ -109,16 +109,7 @@ void *dav1d_malloc(const enum AllocationType type, const size_t sz) {
 void *dav1d_alloc_aligned(const enum AllocationType type,
                           const size_t sz, const size_t align)
 {
-    assert(!(align & (align - 1)));
-    void *ptr;
-#ifdef _WIN32
-    ptr = _aligned_malloc(sz + align, align);
-#elif defined(HAVE_POSIX_MEMALIGN)
-    if (posix_memalign(&ptr, align, sz + align)) return NULL;
-#else
-    ptr = memalign(align, sz + align);
-#endif
-
+    void *const ptr = dav1d_alloc_aligned_internal(align, sz + align);
     return track_alloc(type, ptr, sz, align);
 }
 
@@ -140,12 +131,7 @@ void dav1d_free(void *ptr) {
 
 void dav1d_free_aligned(void *ptr) {
     if (ptr) {
-        ptr = track_free(ptr);
-#ifdef _WIN32
-        _aligned_free(ptr);
-#else
-        free(ptr);
-#endif
+        dav1d_free_aligned_internal(track_free(ptr));
     }
 }
 

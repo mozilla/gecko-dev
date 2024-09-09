@@ -34,13 +34,13 @@
 function splat_mv_neon, export=1
         ld1             {v3.16b},  [x1]
         clz             w3,  w3
-        adr             x5,  L(splat_tbl)
+        movrel          x5,  splat_tbl
         sub             w3,  w3,  #26
         ext             v2.16b,  v3.16b,  v3.16b,  #12
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
         add             w2,  w2,  w2,  lsl #1
         ext             v0.16b,  v2.16b,  v3.16b,  #4
-        sub             x3,  x5,  w3, uxtw
+        add             x3,  x5,  x3
         ext             v1.16b,  v2.16b,  v3.16b,  #8
         lsl             w2,  w2,  #2
         ext             v2.16b,  v2.16b,  v3.16b,  #12
@@ -80,15 +80,16 @@ function splat_mv_neon, export=1
         st1             {v0.16b, v1.16b, v2.16b}, [x1]
         b.gt            1b
         ret
-
-L(splat_tbl):
-        .hword L(splat_tbl) -  320b
-        .hword L(splat_tbl) -  160b
-        .hword L(splat_tbl) -   80b
-        .hword L(splat_tbl) -   40b
-        .hword L(splat_tbl) -   20b
-        .hword L(splat_tbl) -   10b
 endfunc
+
+jumptable splat_tbl
+        .word 320b  - splat_tbl
+        .word 160b  - splat_tbl
+        .word 80b   - splat_tbl
+        .word 40b   - splat_tbl
+        .word 20b   - splat_tbl
+        .word 10b   - splat_tbl
+endjumptable
 
 const mv_tbls, align=4
         .byte           255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
@@ -112,7 +113,7 @@ function save_tmvs_neon, export=1
 
         movi            v30.8b,  #0
         ld1             {v31.8b}, [x3]
-        adr             x8,  L(save_tmvs_tbl)
+        movrel          x8,  save_tmvs_tbl
         movrel          x16, mask_mult
         movrel          x13, mv_tbls
         ld1             {v29.8b}, [x16]
@@ -137,9 +138,9 @@ function save_tmvs_neon, export=1
 2:
         ldrb            w11, [x9, #10]            // cand_b->bs
         ld1             {v0.16b}, [x9]            // cand_b->mv
-        add             x11, x8,  w11, uxtw #2
+        add             x11, x8,  w11, uxtw #3
         ldr             h1,  [x9, #8]             // cand_b->ref
-        ldrh            w12, [x11]                // bw8
+        ldr             w12, [x11]                // bw8
         mov             x15, x8
         add             x9,  x9,  w12, uxtw #1    // cand_b += bw8*2
         cmp             x9,  x10
@@ -149,9 +150,9 @@ function save_tmvs_neon, export=1
         ldrb            w15, [x9, #10]            // cand_b->bs
         add             x16, x9,  #8
         ld1             {v4.16b}, [x9]            // cand_b->mv
-        add             x15, x8,  w15, uxtw #2
+        add             x15, x8,  w15, uxtw #3
         ld1             {v1.h}[1], [x16]          // cand_b->ref
-        ldrh            w12, [x15]                // bw8
+        ldr             w12, [x15]                // bw8
         add             x9,  x9,  w12, uxtw #1    // cand_b += bw8*2
         trn1            v2.2d,   v0.2d,   v4.2d
 
@@ -166,12 +167,12 @@ function save_tmvs_neon, export=1
         addp            v1.4h,   v1.4h,   v1.4h   // Combine condition for [1] and [0]
         umov            w16, v1.h[0]              // Extract case for first block
         umov            w17, v1.h[1]
-        ldrh            w11, [x11, #2]            // Fetch jump table entry
-        ldrh            w15, [x15, #2]
+        ldrsw           x11, [x11, #4]            // Fetch jump table entry
+        ldrsw           x15, [x15, #4]
         ldr             q1, [x13, w16, uxtw #4]   // Load permutation table base on case
         ldr             q5, [x13, w17, uxtw #4]
-        sub             x11, x8,  w11, uxtw       // Find jump table target
-        sub             x15, x8,  w15, uxtw
+        add             x11, x8,  x11             // Find jump table target
+        add             x15, x8,  x15
         tbl             v0.16b, {v0.16b}, v1.16b  // Permute cand_b to output refmvs_temporal_block
         tbl             v4.16b, {v4.16b}, v5.16b
 
@@ -243,50 +244,51 @@ function save_tmvs_neon, export=1
         str             q2, [x3, #(16*5-16)]
         add             x3,  x3,  #16*5
         ret
-
-L(save_tmvs_tbl):
-        .hword 16 * 12
-        .hword L(save_tmvs_tbl) - 160b
-        .hword 16 * 12
-        .hword L(save_tmvs_tbl) - 160b
-        .hword 8 * 12
-        .hword L(save_tmvs_tbl) -  80b
-        .hword 8 * 12
-        .hword L(save_tmvs_tbl) -  80b
-        .hword 8 * 12
-        .hword L(save_tmvs_tbl) -  80b
-        .hword 8 * 12
-        .hword L(save_tmvs_tbl) -  80b
-        .hword 4 * 12
-        .hword L(save_tmvs_tbl) -  40b
-        .hword 4 * 12
-        .hword L(save_tmvs_tbl) -  40b
-        .hword 4 * 12
-        .hword L(save_tmvs_tbl) -  40b
-        .hword 4 * 12
-        .hword L(save_tmvs_tbl) -  40b
-        .hword 2 * 12
-        .hword L(save_tmvs_tbl) -  20b
-        .hword 2 * 12
-        .hword L(save_tmvs_tbl) -  20b
-        .hword 2 * 12
-        .hword L(save_tmvs_tbl) -  20b
-        .hword 2 * 12
-        .hword L(save_tmvs_tbl) -  20b
-        .hword 2 * 12
-        .hword L(save_tmvs_tbl) -  20b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
-        .hword 1 * 12
-        .hword L(save_tmvs_tbl) -  10b
 endfunc
+
+jumptable save_tmvs_tbl
+        .word 16 * 12
+        .word 160b - save_tmvs_tbl
+        .word 16 * 12
+        .word 160b - save_tmvs_tbl
+        .word 8 * 12
+        .word 80b  - save_tmvs_tbl
+        .word 8 * 12
+        .word 80b  - save_tmvs_tbl
+        .word 8 * 12
+        .word 80b  - save_tmvs_tbl
+        .word 8 * 12
+        .word 80b  - save_tmvs_tbl
+        .word 4 * 12
+        .word 40b  - save_tmvs_tbl
+        .word 4 * 12
+        .word 40b  - save_tmvs_tbl
+        .word 4 * 12
+        .word 40b  - save_tmvs_tbl
+        .word 4 * 12
+        .word 40b  - save_tmvs_tbl
+        .word 2 * 12
+        .word 20b  - save_tmvs_tbl
+        .word 2 * 12
+        .word 20b  - save_tmvs_tbl
+        .word 2 * 12
+        .word 20b  - save_tmvs_tbl
+        .word 2 * 12
+        .word 20b  - save_tmvs_tbl
+        .word 2 * 12
+        .word 20b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+        .word 1 * 12
+        .word 10b  - save_tmvs_tbl
+endjumptable

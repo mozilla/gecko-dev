@@ -54,8 +54,14 @@ const h_tbl_neon_dotprod, align=4
         .byte  4,  5,  6,  7,   5,  6,  7,  8,   6,  7,  8,  9,   7,  8,  9, 10
         .byte  8,  9, 10, 11,   9, 10, 11, 12,  10, 11, 12, 13,  11, 12, 13, 14
 
+        // Shuffle indices to permute horizontal samples in preparation for
+        // input to USMMLA instructions.
+#define OFFSET_USMMLA 48
+        .byte  0,  1,  2,  3,   4,  5,  6,  7,   2,  3,  4,  5,   6,  7,  8,  9
+        .byte  4,  5,  6,  7,   8,  9, 10, 11,   6,  7,  8,  9,  10, 11, 12, 13
+
         // Lookup table used to help conversion of shifted 32-bit values to 8-bit.
-#define OFFSET_CVT_32_8 48
+#define OFFSET_CVT_32_8 80
         .byte  1,  2,  5,  6,   9, 10, 13, 14,  17, 18, 21, 22,  25, 26, 29, 30
 endconst
 
@@ -114,10 +120,10 @@ L(\type\()_8tap_v_\isa):
         sub             \src, \src, \s_strd
 .ifc \isa, neon_dotprod
     .ifc \type, prep
-        mov             w8, 0x2002          // FILTER_WEIGHT * 128 + rounding
+        mov             w8, #0x2002         // FILTER_WEIGHT * 128 + rounding
         dup             v4.4s, w8
     .else
-        movi            v4.4s, #32, lsl 8   // FILTER_WEIGHT * 128, bias for SDOT
+        movi            v4.4s, #32, lsl #8  // FILTER_WEIGHT * 128, bias for SDOT
     .endif
 .endif
         ubfx            w11, \my, #7, #7
@@ -677,18 +683,18 @@ L(\type\()_8tap_h_hv_\isa):
         madd            \mx, \mx, w11, w9
         madd            w14, \my, w11, w10      // for HV
 .ifc \isa, neon_dotprod
-        mov             w13, 0x2002             // FILTER_WEIGHT * 128 + rounding
+        mov             w13, #0x2002            // FILTER_WEIGHT * 128 + rounding
         dup             v27.4s, w13             // put H overrides this
 .endif
         movrel          x13, h_tbl_neon_dotprod
         sub             \src, \src, #3          // src - 3
-        ldr             q28, [x13]
-        ubfx            w9, \mx, #7, #7
+        ldr             q28, [x13]              // for 4-tap & 8-tap H filters
+        ubfx            w15, \mx, #7, #7
         and             \mx, \mx, #0x7F
         ubfx            w11, w14, #7, #7        // for HV
         and             w14, w14, #0x7F         // for HV
         cmp             \w, #4
-        csel            \mx, \mx, w9, le
+        csel            \mx, \mx, w15, le
         add             \xmx, x12, \xmx, lsl #3 // subpel H filter address
 .ifc \isa, neon_dotprod
         movi            v24.16b, #128
@@ -706,7 +712,7 @@ L(\type\()_8tap_h_hv_\isa):
         ldr             q25, [x13, #(OFFSET_CVT_32_8)] // LUT to help conversion
 .endif                                                 // of 32b values to 8b
         sxtl            v7.8h, v7.8b
-        cmp             w10, SHARP1
+        cmp             w10, #SHARP1
         b.ne            L(\type\()_6tap_hv_\isa)    // vertical != SHARP1
 
         // HV 8-tap cases
@@ -1005,11 +1011,92 @@ L(\type\()_6tap_hv_\isa):
 
         // .align JUMP_ALIGN    // fallthrough
 80:     // HV6 - 8xN+
-        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 .ifc \type, prep
         add             \wd_strd, \w, \w
 .endif
+.ifc \isa, neon_i8mm
+        cmp             w9, #SHARP1
+        b.eq            88f             // horizontal == SHARP1
+
+        ldp             q29, q30, [x13, #(OFFSET_USMMLA)]
+        ext             v0.8b, v26.8b, v26.8b, #7
+        ins             v26.d[1], v0.d[0]
+
+        .align LOOP_ALIGN
+81:
+        mov             \lsrc, \src
+        mov             \ldst, \dst
+        mov             w8, \h
+
+        bl              L(\type\()_hv_filter6_neon_i8mm)
+        srshr           v16.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter6_neon_i8mm)
+        srshr           v17.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter6_neon_i8mm)
+        srshr           v18.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter6_neon_i8mm)
+        srshr           v19.8h, v22.8h, #2
+        bl              L(\type\()_hv_filter6_neon_i8mm)
+        srshr           v20.8h, v22.8h, #2
+
+        .align LOOP_ALIGN
+8:
+        ld1             {v23.16b}, [\lsrc], \s_strd
+
+        smull           v0.4s, v16.4h, v7.h[1]
+        smull2          v1.4s, v16.8h, v7.h[1]
+        mov             v16.16b, v17.16b
+        movi            v5.4s, #0
+        movi            v6.4s, #0
+        tbl             v2.16b, {v23.16b}, v29.16b
+        tbl             v3.16b, {v23.16b}, v30.16b
+
+        smlal           v0.4s, v17.4h, v7.h[2]
+        smlal2          v1.4s, v17.8h, v7.h[2]
+        mov             v17.16b, v18.16b
+
+        usmmla          v5.4s, v2.16b, v26.16b
+        usmmla          v6.4s, v3.16b, v26.16b
+
+        smlal           v0.4s, v18.4h, v7.h[3]
+        smlal2          v1.4s, v18.8h, v7.h[3]
+        mov             v18.16b, v19.16b
+        subs            w8, w8, #1
+
+        smlal           v0.4s, v19.4h, v7.h[4]
+        smlal2          v1.4s, v19.8h, v7.h[4]
+        uzp1            v23.8h, v5.8h, v6.8h
+        mov             v19.16b, v20.16b
+
+        smlal           v0.4s, v20.4h, v7.h[5]
+        smlal2          v1.4s, v20.8h, v7.h[5]
+        srshr           v20.8h, v23.8h, #2
+        smlal           v0.4s, v20.4h, v7.h[6]
+        smlal2          v1.4s, v20.8h, v7.h[6]
+    .ifc \type, prep
+        rshrn           v0.4h, v0.4s, #6
+        rshrn2          v0.8h, v1.4s, #6
+        st1             {v0.8h}, [\ldst], \d_strd
+        b.gt            8b
+        add             \dst, \dst, #16
+    .else
+        tbl             v0.16b, {v0.16b, v1.16b}, v25.16b
+        sqrshrun        v0.8b, v0.8h, #2
+        st1             {v0.8b}, [\ldst], \d_strd
+        b.gt            8b
+        add             \dst, \dst, #8
+    .endif
+        add             \src, \src, #8
+        subs            \w, \w, #8
+        b.gt            81b
+        ret             x15
+
+        .align JUMP_ALIGN
+88:
+.endif  // neon_i8mm
+        ldp             q29, q30, [x13, #16]
+
         .align LOOP_ALIGN
 81:
         mov             \lsrc, \src
@@ -1040,8 +1127,8 @@ L(\type\()_6tap_hv_\isa):
 .endif
         .align LOOP_ALIGN
 8:
-        ldr             q23, [\xmy]
-        add             \xmy, \xmy, \s_strd
+        ldr             q23, [\lsrc]
+        add             \lsrc, \lsrc, \s_strd
 
         smull           v0.4s, v16.4h, v7.h[1]
         smull2          v1.4s, v16.8h, v7.h[1]
@@ -1127,6 +1214,20 @@ L(\type\()_hv_filter8_\isa):
         \dot            v23.4s, v4.16b, v26.4b[1]
         uzp1            v22.8h, v22.8h, v23.8h
         ret
+
+.ifc \isa, neon_i8mm
+        .align FUNC_ALIGN
+L(\type\()_hv_filter6_neon_i8mm):
+        ld1             {v4.16b}, [\lsrc], \s_strd
+        movi            v22.4s, #0
+        movi            v23.4s, #0
+        tbl             v2.16b, {v4.16b}, v29.16b
+        tbl             v3.16b, {v4.16b}, v30.16b
+        usmmla          v22.4s, v2.16b, v26.16b
+        usmmla          v23.4s, v3.16b, v26.16b
+        uzp1            v22.8h, v22.8h, v23.8h
+        ret
+.endif
 
         .align FUNC_ALIGN
 L(\type\()_hv_filter4_\isa):
@@ -1264,8 +1365,8 @@ L(\type\()_hv_filter4_\isa):
 
         .align JUMP_ALIGN
 L(\type\()_8tap_h_\isa):
-        adr             x9, L(\type\()_8tap_h_\isa\()_tbl)
-        ldrh            w8, [x9, x8, lsl #1]
+        movrel          x11, \type\()_8tap_h_\isa\()_tbl
+        ldrsw           x8, [x11, x8, lsl #2]
 .ifc \type, put
     .ifc \isa, neon_i8mm
         movi            v27.4s, #34     // special rounding
@@ -1274,8 +1375,8 @@ L(\type\()_8tap_h_\isa):
         dup             v27.4s, w10
     .endif
 .endif
-        sub             x9, x9, x8
-        br              x9
+        add             x11, x11, x8
+        br              x11
 
 .ifc \type, put
         .align JUMP_ALIGN
@@ -1368,8 +1469,63 @@ L(\type\()_8tap_h_\isa):
         .align JUMP_ALIGN
 80:     // H - 8xN
         AARCH64_VALID_JUMP_TARGET
-        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
+.ifc \isa, neon_i8mm
+        cmp             w9, #SHARP1
+        b.eq            88f             // horizontal == SHARP1
+
+        ldp             q29, q30, [x13, #(OFFSET_USMMLA)]
+        ext             v0.8b, v26.8b, v26.8b, #7
+        ins             v26.d[1], v0.d[0]
+
+        .align LOOP_ALIGN
+8:
+        ldr             q0, [\src]
+        ldr             q16, [\src, \s_strd]
+        add             \src, \src, \s_strd, lsl #1
+    .ifc \type, prep
+        movi            v4.4s, #0
+        movi            v5.4s, #0
+        movi            v20.4s, #0
+        movi            v21.4s, #0
+    .else
+        mov             v4.16b, v27.16b
+        mov             v5.16b, v27.16b
+        mov             v20.16b, v27.16b
+        mov             v21.16b, v27.16b
+    .endif
+        tbl             v1.16b, {v0.16b}, v29.16b
+        tbl             v2.16b, {v0.16b}, v30.16b
+        tbl             v17.16b, {v16.16b}, v29.16b
+        tbl             v18.16b, {v16.16b}, v30.16b
+
+        usmmla          v4.4s, v1.16b, v26.16b
+        usmmla          v5.4s, v2.16b, v26.16b
+        usmmla          v20.4s, v17.16b, v26.16b
+        usmmla          v21.4s, v18.16b, v26.16b
+
+        uzp1            v4.8h, v4.8h, v5.8h
+        uzp1            v20.8h, v20.8h, v21.8h
+    .ifc \type, prep
+        srshr           v4.8h, v4.8h, #2
+        srshr           v20.8h, v20.8h, #2
+        subs            \h, \h, #2
+        stp             q4, q20, [\dst], #32
+    .else   // put
+        sqshrun         v4.8b, v4.8h, #6
+        sqshrun         v20.8b, v20.8h, #6
+        subs            \h, \h, #2
+        str             d4, [\dst]
+        str             d20, [\dst, \d_strd]
+        add             \dst, \dst, \d_strd, lsl #1
+    .endif
+        b.gt            8b
+        ret
+
+        .align JUMP_ALIGN
+88:
+.endif  // neon_i8mm
+        ldp             q29, q30, [x13, #16]
 
         .align LOOP_ALIGN
 8:
@@ -1433,8 +1589,61 @@ L(\type\()_8tap_h_\isa):
         .align JUMP_ALIGN
 160:    // H - 16xN
         AARCH64_VALID_JUMP_TARGET
-        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
+.ifc \isa, neon_i8mm
+        cmp             w9, #SHARP1
+        b.eq            168f            // horizontal == SHARP1
+
+        ldp             q29, q30, [x13, #(OFFSET_USMMLA)]
+        ext             v0.8b, v26.8b, v26.8b, #7
+        ins             v26.d[1], v0.d[0]
+
+        .align LOOP_ALIGN
+16:
+        ldr             q16, [\src]
+        ldur            q17, [\src, #8] // avoid 2 register TBL for small cores
+        add             \src, \src, \s_strd
+    .ifc \type, prep
+        movi            v6.4s, #0
+        movi            v7.4s, #0
+        movi            v22.4s, #0
+        movi            v23.4s, #0
+    .else
+        mov             v6.16b, v27.16b
+        mov             v7.16b, v27.16b
+        mov             v22.16b, v27.16b
+        mov             v23.16b, v27.16b
+    .endif
+        tbl             v0.16b, {v16.16b}, v29.16b
+        tbl             v1.16b, {v16.16b}, v30.16b
+        tbl             v2.16b, {v17.16b}, v29.16b
+        tbl             v3.16b, {v17.16b}, v30.16b
+
+        usmmla          v6.4s, v0.16b, v26.16b
+        usmmla          v7.4s, v1.16b, v26.16b
+        usmmla          v22.4s, v2.16b, v26.16b
+        usmmla          v23.4s, v3.16b, v26.16b
+
+        uzp1            v6.8h, v6.8h, v7.8h
+        uzp1            v22.8h, v22.8h, v23.8h
+    .ifc \type, prep
+        srshr           v6.8h, v6.8h, #2
+        srshr           v22.8h, v22.8h, #2
+        subs            \h, \h, #1
+        stp             q6, q22, [\dst], #32
+    .else   // put
+        sqshrun         v6.8b, v6.8h, #6
+        sqshrun2        v6.16b, v22.8h, #6
+        subs            \h, \h, #1
+        st1             {v6.16b}, [\dst], \d_strd
+    .endif
+        b.gt            16b
+        ret
+
+        .align JUMP_ALIGN
+168:
+.endif  // neon_i8mm
+        ldp             q29, q30, [x13, #16]
 
         .align LOOP_ALIGN
 16:
@@ -1497,13 +1706,75 @@ L(\type\()_8tap_h_\isa):
 640:
 1280:
         AARCH64_VALID_JUMP_TARGET
-        ldp             q29, q30, [x13, #16]
         ldr             d26, [\xmx]
 .ifc \type, put
         sub             \d_strd, \d_strd, \w, uxtw
 .endif
         sub             \s_strd, \s_strd, \w, uxtw
         mov             w8, \w
+
+.ifc \isa, neon_i8mm
+        cmp             w9, #SHARP1
+        b.eq            328f            // horizontal == SHARP1
+
+        ldp             q29, q30, [x13, #(OFFSET_USMMLA)]
+        ext             v0.8b, v26.8b, v26.8b, #7
+        ins             v26.d[1], v0.d[0]
+
+        .align LOOP_ALIGN
+32:
+        ldr             q16, [\src]
+        ldur            q17, [\src, #8] // avoid 2 register TBL for small cores
+        add             \src, \src, #16
+    .ifc \type, prep
+        movi            v6.4s, #0
+        movi            v7.4s, #0
+        movi            v22.4s, #0
+        movi            v23.4s, #0
+    .else
+        mov             v6.16b, v27.16b
+        mov             v7.16b, v27.16b
+        mov             v22.16b, v27.16b
+        mov             v23.16b, v27.16b
+    .endif
+        tbl             v0.16b, {v16.16b}, v29.16b
+        tbl             v1.16b, {v16.16b}, v30.16b
+        tbl             v2.16b, {v17.16b}, v29.16b
+        tbl             v3.16b, {v17.16b}, v30.16b
+
+        usmmla          v6.4s, v0.16b, v26.16b
+        usmmla          v7.4s, v1.16b, v26.16b
+        usmmla          v22.4s, v2.16b, v26.16b
+        usmmla          v23.4s, v3.16b, v26.16b
+
+        uzp1            v6.8h, v6.8h, v7.8h
+        uzp1            v22.8h, v22.8h, v23.8h
+    .ifc \type, prep
+        srshr           v6.8h, v6.8h, #2
+        srshr           v22.8h, v22.8h, #2
+        subs            w8, w8, #16
+        stp             q6, q22, [\dst], #32
+    .else   // put
+        sqshrun         v6.8b, v6.8h, #6
+        sqshrun2        v6.16b, v22.8h, #6
+        subs            w8, w8, #16
+        str             q6, [\dst], #16
+    .endif
+        b.gt            32b
+
+        add             \src, \src, \s_strd
+    .ifc \type, put
+        add             \dst, \dst, \d_strd
+    .endif
+        mov             w8, \w
+        subs            \h, \h, #1
+        b.gt            32b
+        ret
+
+        .align JUMP_ALIGN
+328:
+.endif  // neon_i8mm
+        ldp             q29, q30, [x13, #16]
 
         .align LOOP_ALIGN
 32:
@@ -1568,19 +1839,19 @@ L(\type\()_8tap_h_\isa):
         subs            \h, \h, #1
         b.gt            32b
         ret
-
-L(\type\()_8tap_h_\isa\()_tbl):
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 1280b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 640b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 320b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 160b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 80b)
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 40b)
-.ifc \type, put
-        .hword (L(\type\()_8tap_h_\isa\()_tbl) - 20b)
-        .hword 0
-.endif
 endfunc
+
+jumptable \type\()_8tap_h_\isa\()_tbl
+        .word 1280b - \type\()_8tap_h_\isa\()_tbl
+        .word 640b  - \type\()_8tap_h_\isa\()_tbl
+        .word 320b  - \type\()_8tap_h_\isa\()_tbl
+        .word 160b  - \type\()_8tap_h_\isa\()_tbl
+        .word 80b   - \type\()_8tap_h_\isa\()_tbl
+        .word 40b   - \type\()_8tap_h_\isa\()_tbl
+.ifc \type, put
+        .word 20b   - \type\()_8tap_h_\isa\()_tbl
+.endif
+endjumptable
 .endm
 
 // dst(x0), d_strd(x7), src(x1), s_strd(x2), w(w3), h(w4), mx(w5), my(w6)

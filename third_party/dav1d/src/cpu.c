@@ -33,19 +33,23 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#elif defined(__APPLE__)
+#endif
+#ifdef __APPLE__
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#else
-#include <pthread.h>
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_PTHREAD_GETAFFINITY_NP
+#include <pthread.h>
 #ifdef HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 #if defined(__FreeBSD__)
 #define cpu_set_t cpuset_t
+#endif
 #endif
 
 unsigned dav1d_cpu_flags = 0U;

@@ -36,17 +36,18 @@
 function ipred_dc_128_16bpc_neon, export=1
         ldr             w8,  [sp]
         clz             w3,  w3
-        adr             x5,  L(ipred_dc_128_tbl)
+        movrel          x5,  ipred_dc_128_tbl
         sub             w3,  w3,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
         dup             v0.8h,   w8
-        sub             x5,  x5,  w3, uxtw
+        add             x5,  x5,  x3
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         urshr           v0.8h,   v0.8h,  #1
         br              x5
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
         subs            w4,  w4,  #4
@@ -54,8 +55,9 @@ function ipred_dc_128_16bpc_neon, export=1
         st1             {v0.4h},  [x6], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
         subs            w4,  w4,  #4
@@ -105,14 +107,15 @@ function ipred_dc_128_16bpc_neon, export=1
         st1             {v0.8h, v1.8h, v2.8h, v3.8h}, [x6], x1
         b.gt            64b
         ret
-
-L(ipred_dc_128_tbl):
-        .hword L(ipred_dc_128_tbl) - 640b
-        .hword L(ipred_dc_128_tbl) - 320b
-        .hword L(ipred_dc_128_tbl) - 160b
-        .hword L(ipred_dc_128_tbl) -   8b
-        .hword L(ipred_dc_128_tbl) -   4b
 endfunc
+
+jumptable ipred_dc_128_tbl
+        .word 640b - ipred_dc_128_tbl
+        .word 320b - ipred_dc_128_tbl
+        .word 160b - ipred_dc_128_tbl
+        .word 80b  - ipred_dc_128_tbl
+        .word 40b  - ipred_dc_128_tbl
+endjumptable
 
 // void ipred_v_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                         const pixel *const topleft,
@@ -120,11 +123,11 @@ endfunc
 //                         const int max_width, const int max_height);
 function ipred_v_16bpc_neon, export=1
         clz             w3,  w3
-        adr             x5,  L(ipred_v_tbl)
+        movrel          x5,  ipred_v_tbl
         sub             w3,  w3,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
         add             x2,  x2,  #2
-        sub             x5,  x5,  w3, uxtw
+        add             x5,  x5,  x3
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -189,14 +192,15 @@ function ipred_v_16bpc_neon, export=1
         st1             {v4.8h, v5.8h, v6.8h, v7.8h}, [x6], x1
         b.gt            64b
         ret
-
-L(ipred_v_tbl):
-        .hword L(ipred_v_tbl) - 640b
-        .hword L(ipred_v_tbl) - 320b
-        .hword L(ipred_v_tbl) - 160b
-        .hword L(ipred_v_tbl) -  80b
-        .hword L(ipred_v_tbl) -  40b
 endfunc
+
+jumptable ipred_v_tbl
+        .word 640b - ipred_v_tbl
+        .word 320b - ipred_v_tbl
+        .word 160b - ipred_v_tbl
+        .word 80b  - ipred_v_tbl
+        .word 40b  - ipred_v_tbl
+endjumptable
 
 // void ipred_h_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                         const pixel *const topleft,
@@ -204,17 +208,18 @@ endfunc
 //                         const int max_width, const int max_height);
 function ipred_h_16bpc_neon, export=1
         clz             w3,  w3
-        adr             x5,  L(ipred_h_tbl)
+        movrel          x5,  ipred_h_tbl
         sub             w3,  w3,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
         sub             x2,  x2,  #8
-        sub             x5,  x5,  w3, uxtw
+        add             x5,  x5,  x3
         mov             x7,  #-8
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         st1             {v3.4h},  [x0], x1
         st1             {v2.4h},  [x6], x1
@@ -223,8 +228,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.4h},  [x6], x1
         b.gt            4b
         ret
-8:
+80:
         AARCH64_VALID_JUMP_TARGET
+8:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         st1             {v3.8h},  [x0], x1
         st1             {v2.8h},  [x6], x1
@@ -233,8 +239,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h},  [x6], x1
         b.gt            8b
         ret
-16:
+160:
         AARCH64_VALID_JUMP_TARGET
+16:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -247,8 +254,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h}, [x6], x1
         b.gt            16b
         ret
-32:
+320:
         AARCH64_VALID_JUMP_TARGET
+32:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -265,8 +273,9 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h}, [x6], x1
         b.gt            32b
         ret
-64:
+640:
         AARCH64_VALID_JUMP_TARGET
+64:
         ld4r            {v0.8h, v1.8h, v2.8h, v3.8h},  [x2], x7
         str             q3,  [x0, #16]
         str             q2,  [x6, #16]
@@ -291,14 +300,15 @@ function ipred_h_16bpc_neon, export=1
         st1             {v0.8h}, [x6], x1
         b.gt            64b
         ret
-
-L(ipred_h_tbl):
-        .hword L(ipred_h_tbl) - 64b
-        .hword L(ipred_h_tbl) - 32b
-        .hword L(ipred_h_tbl) - 16b
-        .hword L(ipred_h_tbl) -  8b
-        .hword L(ipred_h_tbl) -  4b
 endfunc
+
+jumptable ipred_h_tbl
+        .word 640b - ipred_h_tbl
+        .word 320b - ipred_h_tbl
+        .word 160b - ipred_h_tbl
+        .word 80b  - ipred_h_tbl
+        .word 40b  - ipred_h_tbl
+endjumptable
 
 // void ipred_dc_top_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                              const pixel *const topleft,
@@ -306,11 +316,11 @@ endfunc
 //                              const int max_width, const int max_height);
 function ipred_dc_top_16bpc_neon, export=1
         clz             w3,  w3
-        adr             x5,  L(ipred_dc_top_tbl)
+        movrel          x5,  ipred_dc_top_tbl
         sub             w3,  w3,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
         add             x2,  x2,  #2
-        sub             x5,  x5,  w3, uxtw
+        add             x5,  x5,  x3
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -408,14 +418,15 @@ function ipred_dc_top_16bpc_neon, export=1
         st1             {v0.8h, v1.8h, v2.8h, v3.8h}, [x6], x1
         b.gt            64b
         ret
-
-L(ipred_dc_top_tbl):
-        .hword L(ipred_dc_top_tbl) - 640b
-        .hword L(ipred_dc_top_tbl) - 320b
-        .hword L(ipred_dc_top_tbl) - 160b
-        .hword L(ipred_dc_top_tbl) -  80b
-        .hword L(ipred_dc_top_tbl) -  40b
 endfunc
+
+jumptable ipred_dc_top_tbl
+        .word 640b - ipred_dc_top_tbl
+        .word 320b - ipred_dc_top_tbl
+        .word 160b - ipred_dc_top_tbl
+        .word 80b  - ipred_dc_top_tbl
+        .word 40b  - ipred_dc_top_tbl
+endjumptable
 
 // void ipred_dc_left_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                               const pixel *const topleft,
@@ -425,13 +436,13 @@ function ipred_dc_left_16bpc_neon, export=1
         sub             x2,  x2,  w4, uxtw #1
         clz             w3,  w3
         clz             w7,  w4
-        adr             x5,  L(ipred_dc_left_tbl)
+        movrel          x5,  ipred_dc_left_tbl
         sub             w3,  w3,  #20 // 25 leading bits, minus table offset 5
         sub             w7,  w7,  #25
-        ldrh            w3,  [x5, w3, uxtw #1]
-        ldrh            w7,  [x5, w7, uxtw #1]
-        sub             x3,  x5,  w3, uxtw
-        sub             x5,  x5,  w7, uxtw
+        ldrsw           x3,  [x5, w3, uxtw #2]
+        ldrsw           x7,  [x5, w7, uxtw #2]
+        add             x3,  x5,  x3
+        add             x5,  x5,  x7
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -445,12 +456,13 @@ L(ipred_dc_left_h4):
         br              x3
 L(ipred_dc_left_w4):
         AARCH64_VALID_JUMP_TARGET
+1:
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
         subs            w4,  w4,  #4
         st1             {v0.4h},  [x0], x1
         st1             {v0.4h},  [x6], x1
-        b.gt            L(ipred_dc_left_w4)
+        b.gt            1b
         ret
 
 L(ipred_dc_left_h8):
@@ -462,12 +474,13 @@ L(ipred_dc_left_h8):
         br              x3
 L(ipred_dc_left_w8):
         AARCH64_VALID_JUMP_TARGET
+1:
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
         subs            w4,  w4,  #4
         st1             {v0.8h},  [x0], x1
         st1             {v0.8h},  [x6], x1
-        b.gt            L(ipred_dc_left_w8)
+        b.gt            1b
         ret
 
 L(ipred_dc_left_h16):
@@ -549,19 +562,20 @@ L(ipred_dc_left_w64):
         st1             {v0.8h, v1.8h, v2.8h, v3.8h}, [x6], x1
         b.gt            1b
         ret
-
-L(ipred_dc_left_tbl):
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_h64)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_h32)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_h16)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_h8)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_h4)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_w64)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_w32)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_w16)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_w8)
-        .hword L(ipred_dc_left_tbl) - L(ipred_dc_left_w4)
 endfunc
+
+jumptable ipred_dc_left_tbl
+        .word L(ipred_dc_left_h64) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_h32) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_h16) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_h8)  - ipred_dc_left_tbl
+        .word L(ipred_dc_left_h4)  - ipred_dc_left_tbl
+        .word L(ipred_dc_left_w64) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_w32) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_w16) - ipred_dc_left_tbl
+        .word L(ipred_dc_left_w8)  - ipred_dc_left_tbl
+        .word L(ipred_dc_left_w4)  - ipred_dc_left_tbl
+endjumptable
 
 // void ipred_dc_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                          const pixel *const topleft,
@@ -573,16 +587,16 @@ function ipred_dc_16bpc_neon, export=1
         clz             w3,  w3
         clz             w6,  w4
         dup             v16.4s, w7               // width + height
-        adr             x5,  L(ipred_dc_tbl)
+        movrel          x5,  ipred_dc_tbl
         rbit            w7,  w7                  // rbit(width + height)
         sub             w3,  w3,  #20            // 25 leading bits, minus table offset 5
         sub             w6,  w6,  #25
         clz             w7,  w7                  // ctz(width + height)
-        ldrh            w3,  [x5, w3, uxtw #1]
-        ldrh            w6,  [x5, w6, uxtw #1]
+        ldrsw           x3,  [x5, w3, uxtw #2]
+        ldrsw           x6,  [x5, w6, uxtw #2]
         neg             w7,  w7                  // -ctz(width + height)
-        sub             x3,  x5,  w3, uxtw
-        sub             x5,  x5,  w6, uxtw
+        add             x3,  x5,  x3
+        add             x5,  x5,  x6
         ushr            v16.4s,  v16.4s,  #1     // (width + height) >> 1
         dup             v17.4s,  w7              // -ctz(width + height)
         add             x6,  x0,  x1
@@ -794,19 +808,20 @@ L(ipred_dc_w64):
         st1             {v0.8h, v1.8h, v2.8h, v3.8h}, [x6], x1
         b.gt            2b
         ret
-
-L(ipred_dc_tbl):
-        .hword L(ipred_dc_tbl) - L(ipred_dc_h64)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_h32)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_h16)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_h8)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_h4)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_w64)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_w32)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_w16)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_w8)
-        .hword L(ipred_dc_tbl) - L(ipred_dc_w4)
 endfunc
+
+jumptable ipred_dc_tbl
+        .word L(ipred_dc_h64) - ipred_dc_tbl
+        .word L(ipred_dc_h32) - ipred_dc_tbl
+        .word L(ipred_dc_h16) - ipred_dc_tbl
+        .word L(ipred_dc_h8)  - ipred_dc_tbl
+        .word L(ipred_dc_h4)  - ipred_dc_tbl
+        .word L(ipred_dc_w64) - ipred_dc_tbl
+        .word L(ipred_dc_w32) - ipred_dc_tbl
+        .word L(ipred_dc_w16) - ipred_dc_tbl
+        .word L(ipred_dc_w8)  - ipred_dc_tbl
+        .word L(ipred_dc_w4)  - ipred_dc_tbl
+endjumptable
 
 // void ipred_paeth_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                             const pixel *const topleft,
@@ -814,13 +829,13 @@ endfunc
 //                             const int max_width, const int max_height);
 function ipred_paeth_16bpc_neon, export=1
         clz             w9,  w3
-        adr             x5,  L(ipred_paeth_tbl)
+        movrel          x5,  ipred_paeth_tbl
         sub             w9,  w9,  #25
-        ldrh            w9,  [x5, w9, uxtw #1]
+        ldrsw           x9,  [x5, w9, uxtw #2]
         ld1r            {v4.8h},  [x2]
         add             x8,  x2,  #2
         sub             x2,  x2,  #8
-        sub             x5,  x5,  w9, uxtw
+        add             x5,  x5,  x9
         mov             x7,  #-8
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
@@ -933,14 +948,15 @@ function ipred_paeth_16bpc_neon, export=1
         b               1b
 9:
         ret
-
-L(ipred_paeth_tbl):
-        .hword L(ipred_paeth_tbl) - 640b
-        .hword L(ipred_paeth_tbl) - 320b
-        .hword L(ipred_paeth_tbl) - 160b
-        .hword L(ipred_paeth_tbl) -  80b
-        .hword L(ipred_paeth_tbl) -  40b
 endfunc
+
+jumptable ipred_paeth_tbl
+        .word 640b - ipred_paeth_tbl
+        .word 320b - ipred_paeth_tbl
+        .word 160b - ipred_paeth_tbl
+        .word 80b  - ipred_paeth_tbl
+        .word 40b  - ipred_paeth_tbl
+endjumptable
 
 // void ipred_smooth_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                              const pixel *const topleft,
@@ -951,13 +967,13 @@ function ipred_smooth_16bpc_neon, export=1
         add             x11, x10, w4, uxtw
         add             x10, x10, w3, uxtw
         clz             w9,  w3
-        adr             x5,  L(ipred_smooth_tbl)
+        movrel          x5,  ipred_smooth_tbl
         sub             x12, x2,  w4, uxtw #1
         sub             w9,  w9,  #25
-        ldrh            w9,  [x5, w9, uxtw #1]
+        ldrsw           x9,  [x5, w9, uxtw #2]
         ld1r            {v4.8h},  [x12] // bottom
         add             x8,  x2,  #2
-        sub             x5,  x5,  w9, uxtw
+        add             x5,  x5,  x9
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -1137,14 +1153,15 @@ function ipred_smooth_16bpc_neon, export=1
         b               1b
 9:
         ret
-
-L(ipred_smooth_tbl):
-        .hword L(ipred_smooth_tbl) - 640b
-        .hword L(ipred_smooth_tbl) - 320b
-        .hword L(ipred_smooth_tbl) - 160b
-        .hword L(ipred_smooth_tbl) -  80b
-        .hword L(ipred_smooth_tbl) -  40b
 endfunc
+
+jumptable ipred_smooth_tbl
+        .word 640b - ipred_smooth_tbl
+        .word 320b - ipred_smooth_tbl
+        .word 160b - ipred_smooth_tbl
+        .word 80b  - ipred_smooth_tbl
+        .word 40b  - ipred_smooth_tbl
+endjumptable
 
 // void ipred_smooth_v_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                                const pixel *const topleft,
@@ -1154,13 +1171,13 @@ function ipred_smooth_v_16bpc_neon, export=1
         movrel          x7,  X(sm_weights)
         add             x7,  x7,  w4, uxtw
         clz             w9,  w3
-        adr             x5,  L(ipred_smooth_v_tbl)
+        movrel          x5,  ipred_smooth_v_tbl
         sub             x8,  x2,  w4, uxtw #1
         sub             w9,  w9,  #25
-        ldrh            w9,  [x5, w9, uxtw #1]
+        ldrsw           x9,  [x5, w9, uxtw #2]
         ld1r            {v4.8h},  [x8] // bottom
         add             x2,  x2,  #2
-        sub             x5,  x5,  w9, uxtw
+        add             x5,  x5,  x9
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -1264,14 +1281,15 @@ function ipred_smooth_v_16bpc_neon, export=1
         b               1b
 9:
         ret
-
-L(ipred_smooth_v_tbl):
-        .hword L(ipred_smooth_v_tbl) - 640b
-        .hword L(ipred_smooth_v_tbl) - 320b
-        .hword L(ipred_smooth_v_tbl) - 160b
-        .hword L(ipred_smooth_v_tbl) -  80b
-        .hword L(ipred_smooth_v_tbl) -  40b
 endfunc
+
+jumptable ipred_smooth_v_tbl
+        .word 640b - ipred_smooth_v_tbl
+        .word 320b - ipred_smooth_v_tbl
+        .word 160b - ipred_smooth_v_tbl
+        .word 80b  - ipred_smooth_v_tbl
+        .word 40b  - ipred_smooth_v_tbl
+endjumptable
 
 // void ipred_smooth_h_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                                const pixel *const topleft,
@@ -1281,12 +1299,12 @@ function ipred_smooth_h_16bpc_neon, export=1
         movrel          x8,  X(sm_weights)
         add             x8,  x8,  w3, uxtw
         clz             w9,  w3
-        adr             x5,  L(ipred_smooth_h_tbl)
+        movrel          x5,  ipred_smooth_h_tbl
         add             x12, x2,  w3, uxtw #1
         sub             w9,  w9,  #25
-        ldrh            w9,  [x5, w9, uxtw #1]
+        ldrsw           x9,  [x5, w9, uxtw #2]
         ld1r            {v5.8h},  [x12] // right
-        sub             x5,  x5,  w9, uxtw
+        add             x5,  x5,  x9
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         br              x5
@@ -1396,14 +1414,15 @@ function ipred_smooth_h_16bpc_neon, export=1
         b               1b
 9:
         ret
-
-L(ipred_smooth_h_tbl):
-        .hword L(ipred_smooth_h_tbl) - 640b
-        .hword L(ipred_smooth_h_tbl) - 320b
-        .hword L(ipred_smooth_h_tbl) - 160b
-        .hword L(ipred_smooth_h_tbl) -  80b
-        .hword L(ipred_smooth_h_tbl) -  40b
 endfunc
+
+jumptable ipred_smooth_h_tbl
+        .word 640b - ipred_smooth_h_tbl
+        .word 320b - ipred_smooth_h_tbl
+        .word 160b - ipred_smooth_h_tbl
+        .word 80b  - ipred_smooth_h_tbl
+        .word 40b  - ipred_smooth_h_tbl
+endjumptable
 
 const padding_mask_buf
         .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -1728,11 +1747,11 @@ endfunc
 //                                const int dx, const int max_base_x);
 function ipred_z1_fill1_16bpc_neon, export=1
         clz             w9,  w3
-        adr             x8,  L(ipred_z1_fill1_tbl)
+        movrel          x8,  ipred_z1_fill1_tbl
         sub             w9,  w9,  #25
-        ldrh            w9,  [x8, w9, uxtw #1]
+        ldrsw           x9,  [x8, w9, uxtw #2]
         add             x10, x2,  w6,  uxtw #1    // top[max_base_x]
-        sub             x8,  x8,  w9,  uxtw
+        add             x8,  x8,  x9
         ld1r            {v31.8h}, [x10]           // padding
         mov             w7,  w5
         mov             w15, #64
@@ -1916,14 +1935,15 @@ function ipred_z1_fill1_16bpc_neon, export=1
         add             x13, x13, x1
         mov             w3,  w12
         b               169b
-
-L(ipred_z1_fill1_tbl):
-        .hword L(ipred_z1_fill1_tbl) - 640b
-        .hword L(ipred_z1_fill1_tbl) - 320b
-        .hword L(ipred_z1_fill1_tbl) - 160b
-        .hword L(ipred_z1_fill1_tbl) -  80b
-        .hword L(ipred_z1_fill1_tbl) -  40b
 endfunc
+
+jumptable ipred_z1_fill1_tbl
+        .word 640b - ipred_z1_fill1_tbl
+        .word 320b - ipred_z1_fill1_tbl
+        .word 160b - ipred_z1_fill1_tbl
+        .word 80b  - ipred_z1_fill1_tbl
+        .word 40b  - ipred_z1_fill1_tbl
+endjumptable
 
 function ipred_z1_fill2_16bpc_neon, export=1
         cmp             w3,  #8
@@ -2050,11 +2070,11 @@ endconst
 //                                const int dx, const int dy);
 function ipred_z2_fill1_16bpc_neon, export=1
         clz             w10, w4
-        adr             x9,  L(ipred_z2_fill1_tbl)
+        movrel          x9,  ipred_z2_fill1_tbl
         sub             w10, w10, #25
-        ldrh            w10, [x9, w10, uxtw #1]
+        ldrsw           x10, [x9, w10, uxtw #2]
         mov             w8,  #(1 << 6)            // xpos = 1 << 6
-        sub             x9,  x9,  w10, uxtw
+        add             x9,  x9,  x10
         sub             w8,  w8,  w6              // xpos -= dx
 
         movrel          x11, increments
@@ -2814,14 +2834,15 @@ function ipred_z2_fill1_16bpc_neon, export=1
         ldp             d10, d11, [sp, #0x10]
         ldp             d8,  d9,  [sp], 0x40
         ret
-
-L(ipred_z2_fill1_tbl):
-        .hword L(ipred_z2_fill1_tbl) - 640b
-        .hword L(ipred_z2_fill1_tbl) - 320b
-        .hword L(ipred_z2_fill1_tbl) - 160b
-        .hword L(ipred_z2_fill1_tbl) -  80b
-        .hword L(ipred_z2_fill1_tbl) -  40b
 endfunc
+
+jumptable ipred_z2_fill1_tbl
+        .word 640b - ipred_z2_fill1_tbl
+        .word 320b - ipred_z2_fill1_tbl
+        .word 160b - ipred_z2_fill1_tbl
+        .word 80b  - ipred_z2_fill1_tbl
+        .word 40b  - ipred_z2_fill1_tbl
+endjumptable
 
 function ipred_z2_fill2_16bpc_neon, export=1
         cmp             w4,  #8
@@ -3432,11 +3453,11 @@ endfunc
 //                                const int dy, const int max_base_y);
 function ipred_z3_fill1_16bpc_neon, export=1
         clz             w9,  w4
-        adr             x8,  L(ipred_z3_fill1_tbl)
+        movrel          x8,  ipred_z3_fill1_tbl
         sub             w9,  w9,  #25
-        ldrh            w9,  [x8, w9, uxtw #1]
+        ldrsw           x9,  [x8, w9, uxtw #2]
         add             x10, x2,  w6,  uxtw #1    // left[max_base_y]
-        sub             x8,  x8,  w9,  uxtw
+        add             x8,  x8,  x9
         ld1r            {v31.8h}, [x10]           // padding
         mov             w7,  w5
         mov             w15, #64
@@ -3637,19 +3658,20 @@ function ipred_z3_fill1_16bpc_neon, export=1
         b               1b
 9:
         ret
-
-L(ipred_z3_fill1_tbl):
-        .hword L(ipred_z3_fill1_tbl) - 640b
-        .hword L(ipred_z3_fill1_tbl) - 320b
-        .hword L(ipred_z3_fill1_tbl) - 160b
-        .hword L(ipred_z3_fill1_tbl) -  80b
-        .hword L(ipred_z3_fill1_tbl) -  40b
 endfunc
+
+jumptable ipred_z3_fill1_tbl
+        .word 640b - ipred_z3_fill1_tbl
+        .word 320b - ipred_z3_fill1_tbl
+        .word 160b - ipred_z3_fill1_tbl
+        .word 80b  - ipred_z3_fill1_tbl
+        .word 40b  - ipred_z3_fill1_tbl
+endjumptable
 
 function ipred_z3_fill_padding_neon, export=0
         cmp             w3,  #8
-        adr             x8,  L(ipred_z3_fill_padding_tbl)
-        b.gt            L(ipred_z3_fill_padding_wide)
+        movrel          x8,  ipred_z3_fill_padding_tbl
+        b.gt            ipred_z3_fill_padding_wide
         // w3 = remaining width, w4 = constant height
         mov             w12, w4
 
@@ -3659,12 +3681,13 @@ function ipred_z3_fill_padding_neon, export=0
         // power of two in the remaining width, and repeating.
         clz             w9,  w3
         sub             w9,  w9,  #25
-        ldrh            w9,  [x8, w9, uxtw #1]
-        sub             x9,  x8,  w9,  uxtw
+        ldrsw           x9,  [x8, w9, uxtw #2]
+        add             x9,  x8,  x9
         br              x9
 
-2:
+20:
         AARCH64_VALID_JUMP_TARGET
+2:
         st1             {v31.s}[0], [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.s}[0], [x13], x1
@@ -3682,8 +3705,9 @@ function ipred_z3_fill_padding_neon, export=0
         mov             w4,  w12
         b               1b
 
-4:
+40:
         AARCH64_VALID_JUMP_TARGET
+4:
         st1             {v31.4h}, [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.4h}, [x13], x1
@@ -3701,17 +3725,18 @@ function ipred_z3_fill_padding_neon, export=0
         mov             w4,  w12
         b               1b
 
-8:
-16:
-32:
-64:
+80:
+160:
+320:
+640:
         AARCH64_VALID_JUMP_TARGET
+8:
         st1             {v31.8h}, [x0],  x1
         subs            w4,  w4,  #4
         st1             {v31.8h}, [x13], x1
         st1             {v31.8h}, [x0],  x1
         st1             {v31.8h}, [x13], x1
-        b.gt            4b
+        b.gt            8b
         subs            w3,  w3,  #8
         lsr             x1,  x1,  #1
         msub            x0,  x1,  x12, x0         // ptr -= h * stride
@@ -3725,16 +3750,18 @@ function ipred_z3_fill_padding_neon, export=0
 
 9:
         ret
+endfunc
 
-L(ipred_z3_fill_padding_tbl):
-        .hword L(ipred_z3_fill_padding_tbl) - 64b
-        .hword L(ipred_z3_fill_padding_tbl) - 32b
-        .hword L(ipred_z3_fill_padding_tbl) - 16b
-        .hword L(ipred_z3_fill_padding_tbl) -  8b
-        .hword L(ipred_z3_fill_padding_tbl) -  4b
-        .hword L(ipred_z3_fill_padding_tbl) -  2b
+jumptable ipred_z3_fill_padding_tbl
+        .word 640b - ipred_z3_fill_padding_tbl
+        .word 320b - ipred_z3_fill_padding_tbl
+        .word 160b - ipred_z3_fill_padding_tbl
+        .word 80b  - ipred_z3_fill_padding_tbl
+        .word 40b  - ipred_z3_fill_padding_tbl
+        .word 20b  - ipred_z3_fill_padding_tbl
+endjumptable
 
-L(ipred_z3_fill_padding_wide):
+function ipred_z3_fill_padding_wide
         // Fill a WxH rectangle with padding, with W > 8.
         lsr             x1,  x1,  #1
         mov             w12, w3
@@ -3883,13 +3910,13 @@ function ipred_filter_\bpc\()bpc_neon
         add             x6,  x6,  w5, uxtw
         ld1             {v16.8b, v17.8b, v18.8b, v19.8b}, [x6], #32
         clz             w9,  w3
-        adr             x5,  L(ipred_filter\bpc\()_tbl)
+        movrel          x5,  ipred_filter\bpc\()_tbl
         ld1             {v20.8b, v21.8b, v22.8b}, [x6]
         sub             w9,  w9,  #26
-        ldrh            w9,  [x5, w9, uxtw #1]
+        ldrsw           x9,  [x5, w9, uxtw #2]
         sxtl            v16.8h,  v16.8b
         sxtl            v17.8h,  v17.8b
-        sub             x5,  x5,  w9, uxtw
+        add             x5,  x5,  x9
         sxtl            v18.8h,  v18.8b
         sxtl            v19.8h,  v19.8b
         add             x6,  x0,  x1
@@ -4162,13 +4189,14 @@ function ipred_filter_\bpc\()bpc_neon
         b               1b
 9:
         ret
-
-L(ipred_filter\bpc\()_tbl):
-        .hword L(ipred_filter\bpc\()_tbl) - 320b
-        .hword L(ipred_filter\bpc\()_tbl) - 160b
-        .hword L(ipred_filter\bpc\()_tbl) -  80b
-        .hword L(ipred_filter\bpc\()_tbl) -  40b
 endfunc
+
+jumptable ipred_filter\bpc\()_tbl
+        .word 320b - ipred_filter\bpc\()_tbl
+        .word 160b - ipred_filter\bpc\()_tbl
+        .word 80b  - ipred_filter\bpc\()_tbl
+        .word 40b  - ipred_filter\bpc\()_tbl
+endjumptable
 .endm
 
 filter_fn 10
@@ -4187,12 +4215,12 @@ endfunc
 function pal_pred_16bpc_neon, export=1
         ld1             {v30.8h}, [x2]
         clz             w9,  w4
-        adr             x6,  L(pal_pred_tbl)
+        movrel          x6,  pal_pred_tbl
         sub             w9,  w9,  #25
         movi            v29.16b, #7
-        ldrh            w9,  [x6, w9, uxtw #1]
+        ldrsw           x9,  [x6, w9, uxtw #2]
         movi            v31.8h,  #1, lsl #8
-        sub             x6,  x6,  w9, uxtw
+        add             x6,  x6,  x9
         br              x6
 40:
         AARCH64_VALID_JUMP_TARGET
@@ -4391,14 +4419,15 @@ function pal_pred_16bpc_neon, export=1
         st1             {v4.8h, v5.8h, v6.8h, v7.8h}, [x2], x1
         b.gt            64b
         ret
-
-L(pal_pred_tbl):
-        .hword L(pal_pred_tbl) - 640b
-        .hword L(pal_pred_tbl) - 320b
-        .hword L(pal_pred_tbl) - 160b
-        .hword L(pal_pred_tbl) -  80b
-        .hword L(pal_pred_tbl) -  40b
 endfunc
+
+jumptable pal_pred_tbl
+        .word 640b - pal_pred_tbl
+        .word 320b - pal_pred_tbl
+        .word 160b - pal_pred_tbl
+        .word 80b  - pal_pred_tbl
+        .word 40b  - pal_pred_tbl
+endjumptable
 
 // void ipred_cfl_128_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                               const pixel *const topleft,
@@ -4408,18 +4437,19 @@ endfunc
 function ipred_cfl_128_16bpc_neon, export=1
         dup             v31.8h,  w7   // bitdepth_max
         clz             w9,  w3
-        adr             x7,  L(ipred_cfl_128_tbl)
+        movrel          x7,  ipred_cfl_128_tbl
         sub             w9,  w9,  #26
-        ldrh            w9,  [x7, w9, uxtw #1]
+        ldrsw           x9,  [x7, w9, uxtw #2]
         urshr           v0.8h,   v31.8h,  #1
         dup             v1.8h,   w6   // alpha
-        sub             x7,  x7,  w9, uxtw
+        add             x7,  x7,  x9
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         movi            v30.8h,  #0
         br              x7
 L(ipred_cfl_splat_w4):
         AARCH64_VALID_JUMP_TARGET
+1:
         ld1             {v4.8h, v5.8h}, [x5], #32
         subs            w4,  w4,  #4
         smull           v2.4s,   v4.4h,   v1.4h  // diff = ac * alpha
@@ -4448,10 +4478,11 @@ L(ipred_cfl_splat_w4):
         st1             {v2.d}[1],  [x6], x1
         st1             {v3.d}[0],  [x0], x1
         st1             {v3.d}[1],  [x6], x1
-        b.gt            L(ipred_cfl_splat_w4)
+        b.gt            1b
         ret
 L(ipred_cfl_splat_w8):
         AARCH64_VALID_JUMP_TARGET
+1:
         ld1             {v4.8h, v5.8h}, [x5], #32
         subs            w4,  w4,  #2
         smull           v2.4s,   v4.4h,   v1.4h  // diff = ac * alpha
@@ -4478,7 +4509,7 @@ L(ipred_cfl_splat_w8):
         smin            v3.8h,   v3.8h,   v31.8h
         st1             {v2.8h},  [x0], x1
         st1             {v3.8h},  [x6], x1
-        b.gt            L(ipred_cfl_splat_w8)
+        b.gt            1b
         ret
 L(ipred_cfl_splat_w16):
         AARCH64_VALID_JUMP_TARGET
@@ -4544,14 +4575,15 @@ L(ipred_cfl_splat_w16):
         mov             w3,  w9
         b.gt            1b
         ret
-
-L(ipred_cfl_128_tbl):
-L(ipred_cfl_splat_tbl):
-        .hword L(ipred_cfl_128_tbl) - L(ipred_cfl_splat_w16)
-        .hword L(ipred_cfl_128_tbl) - L(ipred_cfl_splat_w16)
-        .hword L(ipred_cfl_128_tbl) - L(ipred_cfl_splat_w8)
-        .hword L(ipred_cfl_128_tbl) - L(ipred_cfl_splat_w4)
 endfunc
+
+jumptable ipred_cfl_128_tbl
+ipred_cfl_splat_tbl:
+        .word L(ipred_cfl_splat_w16) - ipred_cfl_128_tbl
+        .word L(ipred_cfl_splat_w16) - ipred_cfl_128_tbl
+        .word L(ipred_cfl_splat_w8) - ipred_cfl_128_tbl
+        .word L(ipred_cfl_splat_w4) - ipred_cfl_128_tbl
+endjumptable
 
 // void ipred_cfl_top_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                               const pixel *const topleft,
@@ -4561,12 +4593,12 @@ endfunc
 function ipred_cfl_top_16bpc_neon, export=1
         dup             v31.8h,  w7   // bitdepth_max
         clz             w9,  w3
-        adr             x7,  L(ipred_cfl_top_tbl)
+        movrel          x7,  ipred_cfl_top_tbl
         sub             w9,  w9,  #26
-        ldrh            w9,  [x7, w9, uxtw #1]
+        ldrsw           x9,  [x7, w9, uxtw #2]
         dup             v1.8h,   w6   // alpha
         add             x2,  x2,  #2
-        sub             x7,  x7,  w9, uxtw
+        add             x7,  x7,  x9
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         movi            v30.8h,  #0
@@ -4603,13 +4635,14 @@ function ipred_cfl_top_16bpc_neon, export=1
         rshrn           v0.4h,   v0.4s,   #5
         dup             v0.8h,   v0.h[0]
         b               L(ipred_cfl_splat_w16)
-
-L(ipred_cfl_top_tbl):
-        .hword L(ipred_cfl_top_tbl) - 32b
-        .hword L(ipred_cfl_top_tbl) - 16b
-        .hword L(ipred_cfl_top_tbl) -  8b
-        .hword L(ipred_cfl_top_tbl) -  4b
 endfunc
+
+jumptable ipred_cfl_top_tbl
+        .word 32b - ipred_cfl_top_tbl
+        .word 16b - ipred_cfl_top_tbl
+        .word 8b  - ipred_cfl_top_tbl
+        .word 4b  - ipred_cfl_top_tbl
+endjumptable
 
 // void ipred_cfl_left_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                                const pixel *const topleft,
@@ -4621,15 +4654,15 @@ function ipred_cfl_left_16bpc_neon, export=1
         sub             x2,  x2,  w4, uxtw #1
         clz             w9,  w3
         clz             w8,  w4
-        adr             x10, L(ipred_cfl_splat_tbl)
-        adr             x7,  L(ipred_cfl_left_tbl)
+        movrel          x10, ipred_cfl_splat_tbl
+        movrel          x7,  ipred_cfl_left_tbl
         sub             w9,  w9,  #26
         sub             w8,  w8,  #26
-        ldrh            w9,  [x10, w9, uxtw #1]
-        ldrh            w8,  [x7,  w8, uxtw #1]
+        ldrsw           x9,  [x10, w9, uxtw #2]
+        ldrsw           x8,  [x7,  w8, uxtw #2]
         dup             v1.8h,   w6   // alpha
-        sub             x9,  x10, w9, uxtw
-        sub             x7,  x7,  w8, uxtw
+        add             x9,  x10, x9
+        add             x7,  x7,  x8
         add             x6,  x0,  x1
         lsl             x1,  x1,  #1
         movi            v30.8h,  #0
@@ -4670,13 +4703,14 @@ L(ipred_cfl_left_h32):
         rshrn           v0.4h,   v0.4s,   #5
         dup             v0.8h,   v0.h[0]
         br              x9
-
-L(ipred_cfl_left_tbl):
-        .hword L(ipred_cfl_left_tbl) - L(ipred_cfl_left_h32)
-        .hword L(ipred_cfl_left_tbl) - L(ipred_cfl_left_h16)
-        .hword L(ipred_cfl_left_tbl) - L(ipred_cfl_left_h8)
-        .hword L(ipred_cfl_left_tbl) - L(ipred_cfl_left_h4)
 endfunc
+
+jumptable ipred_cfl_left_tbl
+        .word L(ipred_cfl_left_h32) - ipred_cfl_left_tbl
+        .word L(ipred_cfl_left_h16) - ipred_cfl_left_tbl
+        .word L(ipred_cfl_left_h8)  - ipred_cfl_left_tbl
+        .word L(ipred_cfl_left_h4)  - ipred_cfl_left_tbl
+endjumptable
 
 // void ipred_cfl_16bpc_neon(pixel *dst, const ptrdiff_t stride,
 //                           const pixel *const topleft,
@@ -4691,16 +4725,16 @@ function ipred_cfl_16bpc_neon, export=1
         clz             w9,  w3
         clz             w6,  w4
         dup             v16.4s, w8               // width + height
-        adr             x7,  L(ipred_cfl_tbl)
+        movrel          x7,  ipred_cfl_tbl
         rbit            w8,  w8                  // rbit(width + height)
         sub             w9,  w9,  #22            // 26 leading bits, minus table offset 4
         sub             w6,  w6,  #26
         clz             w8,  w8                  // ctz(width + height)
-        ldrh            w9,  [x7, w9, uxtw #1]
-        ldrh            w6,  [x7, w6, uxtw #1]
+        ldrsw           x9,  [x7, w9, uxtw #2]
+        ldrsw           x6,  [x7, w6, uxtw #2]
         neg             w8,  w8                  // -ctz(width + height)
-        sub             x9,  x7,  w9, uxtw
-        sub             x7,  x7,  w6, uxtw
+        add             x9,  x7,  x9
+        add             x7,  x7,  x6
         ushr            v16.4s,  v16.4s,  #1     // (width + height) >> 1
         dup             v17.4s,  w8              // -ctz(width + height)
         add             x6,  x0,  x1
@@ -4823,17 +4857,18 @@ L(ipred_cfl_w32):
 1:
         dup             v0.8h,   v0.h[0]
         b               L(ipred_cfl_splat_w16)
-
-L(ipred_cfl_tbl):
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_h32)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_h16)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_h8)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_h4)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_w32)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_w16)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_w8)
-        .hword L(ipred_cfl_tbl) - L(ipred_cfl_w4)
 endfunc
+
+jumptable ipred_cfl_tbl
+        .word L(ipred_cfl_h32) - ipred_cfl_tbl
+        .word L(ipred_cfl_h16) - ipred_cfl_tbl
+        .word L(ipred_cfl_h8)  - ipred_cfl_tbl
+        .word L(ipred_cfl_h4)  - ipred_cfl_tbl
+        .word L(ipred_cfl_w32) - ipred_cfl_tbl
+        .word L(ipred_cfl_w16) - ipred_cfl_tbl
+        .word L(ipred_cfl_w8)  - ipred_cfl_tbl
+        .word L(ipred_cfl_w4)  - ipred_cfl_tbl
+endjumptable
 
 // void cfl_ac_420_16bpc_neon(int16_t *const ac, const pixel *const ypx,
 //                            const ptrdiff_t stride, const int w_pad,
@@ -4841,14 +4876,14 @@ endfunc
 function ipred_cfl_ac_420_16bpc_neon, export=1
         clz             w8,  w5
         lsl             w4,  w4,  #2
-        adr             x7,  L(ipred_cfl_ac_420_tbl)
+        movrel          x7,  ipred_cfl_ac_420_tbl
         sub             w8,  w8,  #27
-        ldrh            w8,  [x7, w8, uxtw #1]
+        ldrsw           x8,  [x7, w8, uxtw #2]
         movi            v24.4s,  #0
         movi            v25.4s,  #0
         movi            v26.4s,  #0
         movi            v27.4s,  #0
-        sub             x7,  x7,  w8, uxtw
+        add             x7,  x7,  x8
         sub             w8,  w6,  w4         // height - h_pad
         rbit            w9,  w5              // rbit(width)
         rbit            w10, w6              // rbit(height)
@@ -4980,9 +5015,9 @@ L(ipred_cfl_ac_420_w8_hpad):
 
 L(ipred_cfl_ac_420_w16):
         AARCH64_VALID_JUMP_TARGET
-        adr             x7,  L(ipred_cfl_ac_420_w16_tbl)
-        ldrh            w3,  [x7, w3, uxtw #1]
-        sub             x7,  x7,  w3, uxtw
+        movrel          x7,  ipred_cfl_ac_420_w16_tbl
+        ldrsw           x3,  [x7, w3, uxtw #2]
+        add             x7,  x7,  x3
         br              x7
 
 L(ipred_cfl_ac_420_w16_wpad0):
@@ -5158,19 +5193,20 @@ L(ipred_cfl_ac_420_w16_hpad):
         // Quadruple the height and reuse the w4 summing/subtracting
         lsl             w6,  w6,  #2
         b               L(ipred_cfl_ac_420_w4_calc_subtract_dc)
-
-L(ipred_cfl_ac_420_tbl):
-        .hword L(ipred_cfl_ac_420_tbl) - L(ipred_cfl_ac_420_w16)
-        .hword L(ipred_cfl_ac_420_tbl) - L(ipred_cfl_ac_420_w8)
-        .hword L(ipred_cfl_ac_420_tbl) - L(ipred_cfl_ac_420_w4)
-        .hword 0
-
-L(ipred_cfl_ac_420_w16_tbl):
-        .hword L(ipred_cfl_ac_420_w16_tbl) - L(ipred_cfl_ac_420_w16_wpad0)
-        .hword L(ipred_cfl_ac_420_w16_tbl) - L(ipred_cfl_ac_420_w16_wpad1)
-        .hword L(ipred_cfl_ac_420_w16_tbl) - L(ipred_cfl_ac_420_w16_wpad2)
-        .hword L(ipred_cfl_ac_420_w16_tbl) - L(ipred_cfl_ac_420_w16_wpad3)
 endfunc
+
+jumptable ipred_cfl_ac_420_tbl
+        .word L(ipred_cfl_ac_420_w16) - ipred_cfl_ac_420_tbl
+        .word L(ipred_cfl_ac_420_w8)  - ipred_cfl_ac_420_tbl
+        .word L(ipred_cfl_ac_420_w4)  - ipred_cfl_ac_420_tbl
+endjumptable
+
+jumptable ipred_cfl_ac_420_w16_tbl
+        .word L(ipred_cfl_ac_420_w16_wpad0) - ipred_cfl_ac_420_w16_tbl
+        .word L(ipred_cfl_ac_420_w16_wpad1) - ipred_cfl_ac_420_w16_tbl
+        .word L(ipred_cfl_ac_420_w16_wpad2) - ipred_cfl_ac_420_w16_tbl
+        .word L(ipred_cfl_ac_420_w16_wpad3) - ipred_cfl_ac_420_w16_tbl
+endjumptable
 
 // void cfl_ac_422_16bpc_neon(int16_t *const ac, const pixel *const ypx,
 //                            const ptrdiff_t stride, const int w_pad,
@@ -5178,14 +5214,14 @@ endfunc
 function ipred_cfl_ac_422_16bpc_neon, export=1
         clz             w8,  w5
         lsl             w4,  w4,  #2
-        adr             x7,  L(ipred_cfl_ac_422_tbl)
+        movrel          x7,  ipred_cfl_ac_422_tbl
         sub             w8,  w8,  #27
-        ldrh            w8,  [x7, w8, uxtw #1]
+        ldrsw           x8,  [x7, w8, uxtw #2]
         movi            v24.4s,  #0
         movi            v25.4s,  #0
         movi            v26.4s,  #0
         movi            v27.4s,  #0
-        sub             x7,  x7,  w8, uxtw
+        add             x7,  x7,  x8
         sub             w8,  w6,  w4         // height - h_pad
         rbit            w9,  w5              // rbit(width)
         rbit            w10, w6              // rbit(height)
@@ -5286,9 +5322,9 @@ L(ipred_cfl_ac_422_w8_wpad):
 
 L(ipred_cfl_ac_422_w16):
         AARCH64_VALID_JUMP_TARGET
-        adr             x7,  L(ipred_cfl_ac_422_w16_tbl)
-        ldrh            w3,  [x7, w3, uxtw #1]
-        sub             x7,  x7,  w3, uxtw
+        movrel          x7,  ipred_cfl_ac_422_w16_tbl
+        ldrsw           x3,  [x7, w3, uxtw #2]
+        add             x7,  x7,  x3
         br              x7
 
 L(ipred_cfl_ac_422_w16_wpad0):
@@ -5406,19 +5442,20 @@ L(ipred_cfl_ac_422_w16_wpad3):
         mov             v0.16b,  v2.16b
         mov             v1.16b,  v3.16b
         b               L(ipred_cfl_ac_420_w16_hpad)
-
-L(ipred_cfl_ac_422_tbl):
-        .hword L(ipred_cfl_ac_422_tbl) - L(ipred_cfl_ac_422_w16)
-        .hword L(ipred_cfl_ac_422_tbl) - L(ipred_cfl_ac_422_w8)
-        .hword L(ipred_cfl_ac_422_tbl) - L(ipred_cfl_ac_422_w4)
-        .hword 0
-
-L(ipred_cfl_ac_422_w16_tbl):
-        .hword L(ipred_cfl_ac_422_w16_tbl) - L(ipred_cfl_ac_422_w16_wpad0)
-        .hword L(ipred_cfl_ac_422_w16_tbl) - L(ipred_cfl_ac_422_w16_wpad1)
-        .hword L(ipred_cfl_ac_422_w16_tbl) - L(ipred_cfl_ac_422_w16_wpad2)
-        .hword L(ipred_cfl_ac_422_w16_tbl) - L(ipred_cfl_ac_422_w16_wpad3)
 endfunc
+
+jumptable ipred_cfl_ac_422_tbl
+        .word L(ipred_cfl_ac_422_w16) - ipred_cfl_ac_422_tbl
+        .word L(ipred_cfl_ac_422_w8)  - ipred_cfl_ac_422_tbl
+        .word L(ipred_cfl_ac_422_w4)  - ipred_cfl_ac_422_tbl
+endjumptable
+
+jumptable ipred_cfl_ac_422_w16_tbl
+        .word L(ipred_cfl_ac_422_w16_wpad0) - ipred_cfl_ac_422_w16_tbl
+        .word L(ipred_cfl_ac_422_w16_wpad1) - ipred_cfl_ac_422_w16_tbl
+        .word L(ipred_cfl_ac_422_w16_wpad2) - ipred_cfl_ac_422_w16_tbl
+        .word L(ipred_cfl_ac_422_w16_wpad3) - ipred_cfl_ac_422_w16_tbl
+endjumptable
 
 // void cfl_ac_444_16bpc_neon(int16_t *const ac, const pixel *const ypx,
 //                            const ptrdiff_t stride, const int w_pad,
@@ -5426,14 +5463,14 @@ endfunc
 function ipred_cfl_ac_444_16bpc_neon, export=1
         clz             w8,  w5
         lsl             w4,  w4,  #2
-        adr             x7,  L(ipred_cfl_ac_444_tbl)
+        movrel          x7,  ipred_cfl_ac_444_tbl
         sub             w8,  w8,  #26
-        ldrh            w8,  [x7, w8, uxtw #1]
+        ldrsw           x8,  [x7, w8, uxtw #2]
         movi            v24.4s,  #0
         movi            v25.4s,  #0
         movi            v26.4s,  #0
         movi            v27.4s,  #0
-        sub             x7,  x7,  w8, uxtw
+        add             x7,  x7,  x8
         sub             w8,  w6,  w4         // height - h_pad
         rbit            w9,  w5              // rbit(width)
         rbit            w10, w6              // rbit(height)
@@ -5542,10 +5579,11 @@ L(ipred_cfl_ac_444_w16_wpad):
 
 L(ipred_cfl_ac_444_w32):
         AARCH64_VALID_JUMP_TARGET
-        adr             x7,  L(ipred_cfl_ac_444_w32_tbl)
-        ldrh            w3,  [x7, w3, uxtw] // (w3>>1) << 1
+        movrel          x7,  ipred_cfl_ac_444_w32_tbl
+        lsr             w3,  w3,  #1
+        ldrsw           x3,  [x7, w3, uxtw #2]
         lsr             x2,  x2,  #1 // Restore the stride to one line increments
-        sub             x7,  x7,  w3, uxtw
+        add             x7,  x7,  x3
         br              x7
 
 L(ipred_cfl_ac_444_w32_wpad0):
@@ -5659,16 +5697,18 @@ L(ipred_cfl_ac_444_w32_hpad):
         //  Multiply the height by eight and reuse the w4 subtracting
         lsl             w6,  w6,  #3
         b               L(ipred_cfl_ac_420_w4_calc_subtract_dc)
-
-L(ipred_cfl_ac_444_tbl):
-        .hword L(ipred_cfl_ac_444_tbl) - L(ipred_cfl_ac_444_w32)
-        .hword L(ipred_cfl_ac_444_tbl) - L(ipred_cfl_ac_444_w16)
-        .hword L(ipred_cfl_ac_444_tbl) - L(ipred_cfl_ac_444_w8)
-        .hword L(ipred_cfl_ac_444_tbl) - L(ipred_cfl_ac_444_w4)
-
-L(ipred_cfl_ac_444_w32_tbl):
-        .hword L(ipred_cfl_ac_444_w32_tbl) - L(ipred_cfl_ac_444_w32_wpad0)
-        .hword L(ipred_cfl_ac_444_w32_tbl) - L(ipred_cfl_ac_444_w32_wpad2)
-        .hword L(ipred_cfl_ac_444_w32_tbl) - L(ipred_cfl_ac_444_w32_wpad4)
-        .hword L(ipred_cfl_ac_444_w32_tbl) - L(ipred_cfl_ac_444_w32_wpad6)
 endfunc
+
+jumptable ipred_cfl_ac_444_tbl
+        .word L(ipred_cfl_ac_444_w32) - ipred_cfl_ac_444_tbl
+        .word L(ipred_cfl_ac_444_w16) - ipred_cfl_ac_444_tbl
+        .word L(ipred_cfl_ac_444_w8)  - ipred_cfl_ac_444_tbl
+        .word L(ipred_cfl_ac_444_w4)  - ipred_cfl_ac_444_tbl
+endjumptable
+
+jumptable ipred_cfl_ac_444_w32_tbl
+        .word L(ipred_cfl_ac_444_w32_wpad0) - ipred_cfl_ac_444_w32_tbl
+        .word L(ipred_cfl_ac_444_w32_wpad2) - ipred_cfl_ac_444_w32_tbl
+        .word L(ipred_cfl_ac_444_w32_wpad4) - ipred_cfl_ac_444_w32_tbl
+        .word L(ipred_cfl_ac_444_w32_wpad6) - ipred_cfl_ac_444_w32_tbl
+endjumptable
