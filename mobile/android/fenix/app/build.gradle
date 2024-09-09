@@ -556,10 +556,10 @@ dependencies {
 
     implementation ComponentsDependencies.kotlin_coroutines
     testImplementation ComponentsDependencies.testing_coroutines
+    implementation ComponentsDependencies.accompanist_drawablepainter
     implementation ComponentsDependencies.androidx_appcompat
     implementation ComponentsDependencies.androidx_constraintlayout
     implementation ComponentsDependencies.androidx_coordinatorlayout
-    implementation FenixDependencies.google_accompanist_drawablepainter
 
     implementation ComponentsDependencies.thirdparty_sentry
 

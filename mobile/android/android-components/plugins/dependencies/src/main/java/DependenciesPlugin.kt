@@ -93,6 +93,7 @@ object Versions {
     }
 
     object Google {
+        const val accompanist = "0.34.0"
         const val firebase_messaging = "24.0.1"
         const val material = "1.12.0"
         const val osslicenses_plugin = "0.10.6"
@@ -117,6 +118,8 @@ object ComponentsDependencies {
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"
     const val testing_leakcanary = "com.squareup.leakcanary:leakcanary-android-instrumentation:${Versions.leakcanary}"
+
+    const val accompanist_drawablepainter = "com.google.accompanist:accompanist-drawablepainter:${Versions.Google.accompanist}"
 
     const val androidx_activity = "androidx.activity:activity:${Versions.AndroidX.activity}"
     const val androidx_activity_ktx = "androidx.activity:activity-ktx:${Versions.AndroidX.activity}"

@@ -19,7 +19,6 @@ object FenixVersions {
     const val androidx_profileinstaller = "1.3.1"
     const val androidx_splash_screen = "1.0.1"
     const val androidx_viewpager2 = "1.1.0"
-    const val google_accompanist = "0.34.0"
 
     const val adjust = "4.38.2"
     const val installreferrer = "2.2"
@@ -37,8 +36,6 @@ object FenixDependencies {
     const val androidx_core_splashscreen = "androidx.core:core-splashscreen:${FenixVersions.androidx_splash_screen}"
     const val androidx_profileinstaller = "androidx.profileinstaller:profileinstaller:${FenixVersions.androidx_profileinstaller}"
     const val androidx_viewpager2 = "androidx.viewpager2:viewpager2:${FenixVersions.androidx_viewpager2}"
-
-    const val google_accompanist_drawablepainter = "com.google.accompanist:accompanist-drawablepainter:${FenixVersions.google_accompanist}"
 
     const val protobuf_javalite = "com.google.protobuf:protobuf-javalite:${FenixVersions.protobuf}"
     const val protobuf_compiler = "com.google.protobuf:protoc:${FenixVersions.protobuf}"
