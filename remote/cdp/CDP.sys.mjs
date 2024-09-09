@@ -26,6 +26,9 @@ const RECOMMENDED_PREFS = new Map([
     "browser.contentblocking.features.standard",
     "-tp,tpPrivate,cookieBehavior0,-cm,-fp",
   ],
+  // Avoid cookie expiry date to be affected by server time, which can result
+  // in flaky tests.
+  ["network.cookie.useServerTime", false],
 ]);
 
 /**
