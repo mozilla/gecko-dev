@@ -82,7 +82,7 @@ def configure_gradlew(config, job, taskdesc):
         {
             "ANDROID_SDK_ROOT": path.join(fetches_dir, "android-sdk-linux"),
             "GRADLE_USER_HOME": path.join(
-                topsrc_dir, "mobile/android/gradle/dotgradle-online"
+                topsrc_dir, "mobile/android/gradle/dotgradle-offline"
             ),
             "MOZ_BUILD_DATE": config.params["moz_build_date"],
         }

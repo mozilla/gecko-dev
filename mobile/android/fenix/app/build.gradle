@@ -516,7 +516,12 @@ android.applicationVariants.configureEach { variant ->
 }
 
 // Generate Kotlin code for the Fenix Glean metrics.
-ext.gleanNamespace = "mozilla.telemetry.glean"
+ext {
+    // Enable expiration by major version.
+    gleanExpireByVersion = Config.majorVersion(project)
+    gleanNamespace = "mozilla.telemetry.glean"
+    gleanPythonEnvDir = gradle.mozconfig.substs.GRADLE_GLEAN_PARSER_VENV
+}
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply plugin: "org.mozilla.appservices.nimbus-gradle-plugin"
 
@@ -923,6 +928,3 @@ def getSupportedLocales() {
     def foundLocalesString = foundLocales.toString().replaceAll(',}', '}')
     return foundLocalesString
 }
-
-// Enable expiration by major version.
-ext.gleanExpireByVersion = Config.majorVersion(project)

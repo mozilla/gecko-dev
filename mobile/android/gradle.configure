@@ -658,3 +658,11 @@ def gradle_maven_repositories(values):
 
 
 set_config("GRADLE_MAVEN_REPOSITORIES", gradle_maven_repositories)
+
+
+@imports(_from="sys", _import="prefix")
+def gradle_glean_parser_venv():
+    return prefix
+
+
+set_config("GRADLE_GLEAN_PARSER_VENV", gradle_glean_parser_venv())

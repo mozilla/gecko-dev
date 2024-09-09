@@ -204,7 +204,12 @@ tasks.withType(KotlinCompile).configureEach {
 // -------------------------------------------------------------------------------------------------
 // Generate Kotlin code for the Focus Glean metrics.
 // -------------------------------------------------------------------------------------------------
-ext.gleanNamespace = "mozilla.telemetry.glean"
+ext {
+    // Enable expiration by major version.
+    gleanExpireByVersion = 1
+    gleanNamespace = "mozilla.telemetry.glean"
+    gleanPythonEnvDir = gradle.mozconfig.substs.GRADLE_GLEAN_PARSER_VENV
+}
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply plugin: "org.mozilla.appservices.nimbus-gradle-plugin"
 
@@ -694,9 +699,6 @@ tasks.register('printVariants') {
         println 'variants: ' + JsonOutput.toJson(variants)
     }
 }
-
-// Enable expiration by major version.
-ext.gleanExpireByVersion = 1
 
 afterEvaluate {
 
