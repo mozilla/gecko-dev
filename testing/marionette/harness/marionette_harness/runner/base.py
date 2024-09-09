@@ -222,7 +222,7 @@ class MarionetteTestResult(StructuredTestResult, TestResultCollection):
                 self.logger.info("END LOG:")
 
     def stopTest(self, *args, **kwargs):
-        unittest._TextTestResult.stopTest(self, *args, **kwargs)
+        unittest.TextTestResult.stopTest(self, *args, **kwargs)
         if self.marionette.check_for_crash():
             # this tells unittest.TestSuite not to continue running tests
             self.shouldStop = True
