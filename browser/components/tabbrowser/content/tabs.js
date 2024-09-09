@@ -1148,13 +1148,8 @@
     }
 
     on_overflow(event) {
-      // Ignore overflow events:
-      // - from nested scrollable elements
-      // - for vertical orientation
-      if (
-        event.target != this.arrowScrollbox ||
-        event.originalTarget.getAttribute("orient") == "vertical"
-      ) {
+      // Ignore overflow events from nested scrollable elements
+      if (event.target != this.arrowScrollbox) {
         return;
       }
 

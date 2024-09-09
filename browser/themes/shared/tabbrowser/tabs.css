@@ -712,6 +712,10 @@ tab-group {
     border-bottom: .5px solid transparent;
   }
 
+  &[orient="horizontal"] {
+    min-width: 1px;
+  }
+
   &:not([scrolledtostart])::part(overflow-start-indicator) {
     margin-inline: -.5px -6.5px;
   }
@@ -776,7 +780,7 @@ tab-group {
 /* Vertical tabs styling */
 
 #tabbrowser-arrowscrollbox[orient="vertical"] {
-  overflow-y: auto;
+  min-height: 1px;
 
   &::part(scrollbutton-up),
   &::part(scrollbutton-down) {
