@@ -27,7 +27,7 @@ use selectors::parser::{Component, ParseRelative, Selector, SelectorList};
 use selectors::OpaqueElement;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
-use style_traits::CssWriter;
+use style_traits::{CssWriter, ParseError};
 
 /// A scoped rule.
 #[derive(Debug, ToShmem)]
@@ -115,15 +115,26 @@ fn parse_scope<'a>(
     input: &mut Parser<'a, '_>,
     in_style_rule: bool,
     for_end: bool,
-) -> Option<SelectorList<SelectorImpl>> {
+) -> Result<Option<SelectorList<SelectorImpl>>, ParseError<'a>> {
     input
         .try_parse(|input| {
             if for_end {
-                input.expect_ident_matching("to")?;
+                // scope-end not existing is valid.
+                if input.try_parse(|i| i.expect_ident_matching("to")).is_err() {
+                    return Ok(None);
+                }
             }
-            input.expect_parenthesis_block()?;
+            let parens = input.try_parse(|i| i.expect_parenthesis_block());
+            if for_end {
+                // `@scope to {}` is NOT valid.
+                parens?;
+            } else if parens.is_err() {
+                // `@scope {}` is valid.
+                return Ok(None);
+            }
             input.parse_nested_block(|input| {
                 if input.is_exhausted() {
+                    // `@scope () {}` is valid.
                     return Ok(None);
                 }
                 let selector_parser = SelectorParser {
@@ -139,15 +150,13 @@ fn parse_scope<'a>(
                 } else {
                     ParseRelative::No
                 };
-                Ok(Some(SelectorList::parse_forgiving(
+                Ok(Some(SelectorList::parse_disallow_pseudo(
                     &selector_parser,
                     input,
                     parse_relative,
                 )?))
             })
         })
-        .ok()
-        .flatten()
 }
 
 impl ScopeBounds {
@@ -156,11 +165,10 @@ impl ScopeBounds {
         context: &ParserContext,
         input: &mut Parser<'a, '_>,
         in_style_rule: bool,
-    ) -> Self {
-        let start = parse_scope(context, input, in_style_rule, false);
-
-        let end = parse_scope(context, input, in_style_rule, true);
-        Self { start, end }
+    ) -> Result<Self, ParseError<'a>> {
+        let start = parse_scope(context, input, in_style_rule, false)?;
+        let end = parse_scope(context, input, in_style_rule, true)?;
+        Ok(Self { start, end })
     }
 }
 

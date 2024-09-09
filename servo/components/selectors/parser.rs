@@ -498,6 +498,24 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
         )
     }
 
+    /// Same as `parse`, but disallow parsing of pseudo-elements.
+    pub fn parse_disallow_pseudo<'i, 't, P>(
+        parser: &P,
+        input: &mut CssParser<'i, 't>,
+        parse_relative: ParseRelative,
+    ) -> Result<Self, ParseError<'i, P::Error>>
+    where
+        P: Parser<'i, Impl = Impl>,
+    {
+        Self::parse_with_state(
+            parser,
+            input,
+            SelectorParsingState::DISALLOW_PSEUDOS,
+            ForgivingParsing::No,
+            parse_relative,
+        )
+    }
+
     pub fn parse_forgiving<'i, 't, P>(
         parser: &P,
         input: &mut CssParser<'i, 't>,
