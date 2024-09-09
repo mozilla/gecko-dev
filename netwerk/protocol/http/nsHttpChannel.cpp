@@ -665,12 +665,6 @@ nsresult nsHttpChannel::OnBeforeConnect() {
   // SecurityInfo.sys.mjs
   mLoadInfo->SetHstsStatus(isSecureURI);
 
-  RefPtr<mozilla::dom::BrowsingContext> bc;
-  mLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
-  if (bc && bc->Top()->GetForceOffline()) {
-    return NS_ERROR_OFFLINE;
-  }
-
   // At this point it is no longer possible to call
   // HttpBaseChannel::UpgradeToSecure.
   StoreUpgradableToSecure(false);
@@ -773,7 +767,12 @@ nsresult nsHttpChannel::MaybeUseHTTPSRRForUpgrade(bool aShouldUpgrade,
     return aStatus;
   }
 
-  if (mURI->SchemeIs("https") || aShouldUpgrade || !LoadUseHTTPSSVC()) {
+  RefPtr<mozilla::dom::BrowsingContext> bc;
+  mLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
+  bool forceOffline = bc && bc->Top()->GetForceOffline();
+
+  if (mURI->SchemeIs("https") || aShouldUpgrade || !LoadUseHTTPSSVC() ||
+      forceOffline) {
     return ContinueOnBeforeConnect(aShouldUpgrade, aStatus);
   }
 
@@ -1224,6 +1223,12 @@ nsresult nsHttpChannel::ContinueConnect() {
   if (mLoadFlags & LOAD_NO_NETWORK_IO) {
     LOG(("  mLoadFlags & LOAD_NO_NETWORK_IO"));
     return NS_ERROR_DOCUMENT_NOT_CACHED;
+  }
+
+  RefPtr<mozilla::dom::BrowsingContext> bc;
+  mLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
+  if (bc && bc->Top()->GetForceOffline()) {
+    return NS_ERROR_OFFLINE;
   }
 
   // hit the net...
@@ -4134,10 +4139,10 @@ nsresult nsHttpChannel::OpenCacheEntryInternal(bool isHttps) {
     return NS_OK;
   }
 
-  if (offline || (mLoadFlags & INHIBIT_CACHING) ||
-      (bc && bc->Top()->GetForceOffline())) {
+  bool forceOffline = bc && bc->Top()->GetForceOffline();
+  if (offline || (mLoadFlags & INHIBIT_CACHING) || forceOffline) {
     if (BYPASS_LOCAL_CACHE(mLoadFlags, LoadPreferCacheLoadOverBypass()) &&
-        !offline) {
+        !offline && !forceOffline) {
       return NS_OK;
     }
     cacheEntryOpenFlags = nsICacheStorage::OPEN_READONLY;
