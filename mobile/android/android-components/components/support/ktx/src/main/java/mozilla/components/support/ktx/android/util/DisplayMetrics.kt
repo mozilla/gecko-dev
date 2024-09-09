@@ -6,6 +6,7 @@ package mozilla.components.support.ktx.android.util
 
 import android.util.DisplayMetrics
 import android.util.TypedValue
+import kotlin.math.roundToInt
 
 /**
  * Converts a value in density independent pixels (dp) to a float value.
@@ -19,7 +20,7 @@ fun Int.dpToFloat(displayMetrics: DisplayMetrics) = TypedValue.applyDimension(
 /**
  * Converts a value in density independent pixels (dp) to the actual pixel values for the display.
  */
-fun Int.dpToPx(displayMetrics: DisplayMetrics) = dpToFloat(displayMetrics).toInt()
+fun Int.dpToPx(displayMetrics: DisplayMetrics) = dpToFloat(displayMetrics).roundToInt()
 
 /** Converts a value in density independent pixels (dp) to a px value. */
 fun Float.dpToPx(displayMetrics: DisplayMetrics) = TypedValue.applyDimension(
