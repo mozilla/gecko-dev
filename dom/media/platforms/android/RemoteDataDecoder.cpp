@@ -222,17 +222,6 @@ class RemoteVideoDecoder final : public RemoteDataDecoder {
         mJavaDecoder->IsAdaptivePlaybackSupported();
     mIsHardwareAccelerated = mJavaDecoder->IsHardwareAccelerated();
 
-    // On some devices we have observed that the transform obtained from
-    // SurfaceTexture.getTransformMatrix() is incorrect for surfaces produced by
-    // a MediaCodec. We therefore override the transform to be a simple y-flip
-    // to ensure it is rendered correctly.
-    const auto hardware = java::sdk::Build::HARDWARE()->ToString();
-    if (hardware.EqualsASCII("mt6735") || hardware.EqualsASCII("kirin980") ||
-        hardware.EqualsASCII("mt8696")) {
-      mTransformOverride = Some(
-          gfx::Matrix4x4::Scaling(1.0, -1.0, 1.0).PostTranslate(0.0, 1.0, 0.0));
-    }
-
     mMediaInfoFlag = MediaInfoFlag::None;
     mMediaInfoFlag |= mIsHardwareAccelerated ? MediaInfoFlag::HardwareDecoding
                                              : MediaInfoFlag::SoftwareDecoding;
@@ -427,7 +416,7 @@ class RemoteVideoDecoder final : public RemoteDataDecoder {
       RefPtr<layers::Image> img = new layers::SurfaceTextureImage(
           mSurfaceHandle, inputInfo.mImageSize, false /* NOT continuous */,
           gl::OriginPos::BottomLeft, mConfig.HasAlpha(), forceBT709ColorSpace,
-          mTransformOverride);
+          /* aTransformOverride */ Nothing());
       img->AsSurfaceTextureImage()->RegisterSetCurrentCallback(
           std::move(releaseSample));
 
@@ -568,9 +557,6 @@ class RemoteVideoDecoder final : public RemoteDataDecoder {
   const VideoInfo mConfig;
   java::GeckoSurface::GlobalRef mSurface;
   AndroidSurfaceTextureHandle mSurfaceHandle{};
-  // Used to override the SurfaceTexture transform on some devices where the
-  // decoder provides a buggy value.
-  Maybe<gfx::Matrix4x4> mTransformOverride;
   // Only accessed on reader's task queue.
   bool mIsCodecSupportAdaptivePlayback = false;
   // Can be accessed on any thread, but only written on during init.

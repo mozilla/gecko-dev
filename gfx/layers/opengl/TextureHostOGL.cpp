@@ -571,6 +571,15 @@ void SurfaceTextureHost::PushResourceUpdates(
         wr::ImageBufferKind::TextureExternalBT709);
   }
 
+  // Hardware webrender directly renders from the SurfaceTexture therefore we
+  // must provide it the (transformed) normalized UVs. For software webrender we
+  // first read from the SurfaceTexture in to a CPU buffer, which we sample from
+  // using unnormalized UVs. The readback code handles the texture transform.
+  // See RenderAndroidSurfaceTextureHost::Lock() and
+  // RenderAndroidSurfaceTextureHost::ReadTexImage(), respectively.
+  const bool normalizedUvs =
+      aResources.GetBackendType() == WebRenderBackend::HARDWARE;
+
   switch (GetFormat()) {
     case gfx::SurfaceFormat::R8G8B8X8:
     case gfx::SurfaceFormat::R8G8B8A8: {
@@ -583,7 +592,7 @@ void SurfaceTextureHost::PushResourceUpdates(
                         : gfx::SurfaceFormat::B8G8R8X8;
       wr::ImageDescriptor descriptor(GetSize(), format);
       (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0,
-                           /* aNormalizedUvs */ false);
+                           normalizedUvs);
       break;
     }
     default: {

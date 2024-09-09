@@ -169,13 +169,6 @@ class RenderTextureHost {
  protected:
   virtual ~RenderTextureHost();
 
-  // Returns the UV coordinates to be used when sampling the texture, in pixels.
-  // For most implementations these will be (0, 0) and (size.x, size.y), but
-  // some texture types (such as RenderAndroidSurfaceTextureHost) require an
-  // additional transform to be applied to the coordinates.
-  virtual std::pair<gfx::Point, gfx::Point> GetUvCoords(
-      gfx::IntSize aTextureSize) const;
-
   bool mIsFromDRMSource;
 
   // protected by RenderThread::mRenderTextureMapLock
