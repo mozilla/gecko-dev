@@ -77,9 +77,6 @@ body {
   --short-notification-background: #0250BB;
   --short-notification-gradient: #9059FF;
 
-  --button-bgcolor: color-mix(in srgb, currentColor 13%, transparent);
-  --button-hover-bgcolor: color-mix(in srgb, currentColor 17%, transparent);
-  --button-active-bgcolor: color-mix(in srgb, currentColor 30%, transparent);
   --button-color: currentColor;
   --button-primary-bgcolor: AccentColor;
   --button-primary-hover-bgcolor: color-mix(in srgb, black 10%, AccentColor);
@@ -92,10 +89,10 @@ body {
   --buttons-destructive-color: #fbfbfe;
 
   --identity-box-margin-inline: 4px;
-  --urlbar-box-bgcolor: var(--button-bgcolor);
-  --urlbar-box-focus-bgcolor: var(--button-bgcolor);
-  --urlbar-box-hover-bgcolor: var(--button-hover-bgcolor);
-  --urlbar-box-active-bgcolor: var(--button-active-bgcolor);
+  --urlbar-box-bgcolor: var(--button-background-color-hover);
+  --urlbar-box-focus-bgcolor: var(--button-background-color);
+  --urlbar-box-hover-bgcolor: var(--button-background-color-hover);
+  --urlbar-box-active-bgcolor: var(--button-background-color-active);
   --urlbar-box-text-color: inherit;
   --urlbar-box-hover-text-color: var(--urlbar-box-text-color);
   --urlbar-min-height: max(32px, 1.4em);

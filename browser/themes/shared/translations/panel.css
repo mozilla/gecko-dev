@@ -70,24 +70,24 @@ h1.translations-panel-header-wrapper {
 
 #full-page-translations-panel-translate-hint-action {
   appearance: none;
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
   border-radius: 4px;
   color: var(--button-color);
   padding: 8px 16px;
   font-size: 0.9em;
-}
 
-#full-page-translations-panel-translate-hint-action:hover {
-  background-color: var(--button-hover-bgcolor);
-}
+  &:hover {
+    background-color: var(--button-background-color-hover);
+  }
 
-#full-page-translations-panel-translate-hint-action:hover:active {
-  background-color: var(--button-active-bgcolor);
-}
+  &:hover:active {
+    background-color: var(--button-background-color-active);
+  }
 
-#full-page-translations-panel-translate-hint-action:focus-visible {
-  outline: var(--focus-outline);
-  outline-offset: var(--focus-outline-offset);
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
+  }
 }
 
 #full-page-translations-panel-error-message-hint {

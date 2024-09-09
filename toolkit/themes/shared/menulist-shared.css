@@ -14,7 +14,7 @@
 
 :host(:not([native])) {
   appearance: none;
-  background-color: var(--button-bgcolor, ButtonFace);
+  background-color: var(--button-background-color);
   color: var(--button-color, ButtonText);
   border-radius: 4px;
   padding-block: 4px;
@@ -33,11 +33,11 @@
 }
 
 :host(:not([native]):hover) {
-  background-color: var(--button-hover-bgcolor, color-mix(in srgb, currentColor 10%, ButtonFace));
+  background-color: var(--button-background-color-hover);
 }
 
 :host(:not([native]):hover:active) {
-  background-color: var(--button-active-bgcolor, color-mix(in srgb, currentColor 20%, ButtonFace));
+  background-color: var(--button-background-color-active);
 }
 
 :host(:not([native]):focus-visible) {

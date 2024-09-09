@@ -494,30 +494,30 @@
   border-width: 0;
   padding: 2px;
   padding-inline-end: 6px;
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
   color: var(--button-color);
   border-radius: 4px;
-}
 
-.permission-popup-permission-remove-button > .button-box > .button-icon {
-  margin: 0;
-  width: 12px;
-  height: 12px;
-  list-style-image: url(chrome://global/skin/icons/close.svg);
-  -moz-context-properties: fill;
-  fill: currentColor;
-}
+  > .button-box > .button-icon {
+    margin: 0;
+    width: 12px;
+    height: 12px;
+    list-style-image: url(chrome://global/skin/icons/close.svg);
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
 
-.permission-popup-permission-remove-button > .button-box > .button-text {
-  display: none;
-}
+  > .button-box > .button-text {
+    display: none;
+  }
 
-.permission-popup-permission-remove-button:not(:focus-visible):hover {
-  background-color: var(--button-hover-bgcolor);
-}
+  &:hover {
+    background-color: var(--button-background-color-hover);
+  }
 
-.permission-popup-permission-remove-button:not(:focus-visible):hover:active {
-  background-color: var(--button-active-bgcolor)
+  &:hover:active {
+    background-color: var(--button-background-color-active)
+  }
 }
 
 #protections-popup-cookie-banner-section[hasException] .protections-popup-cookie-banner-switch-on-header,

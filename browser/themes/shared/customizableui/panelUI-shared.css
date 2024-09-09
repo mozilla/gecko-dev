@@ -5,12 +5,12 @@
 :root {
   --panelui-subview-transition-duration: 150ms;
 
-  --panel-item-hover-bgcolor: var(--button-hover-bgcolor);
-  --panel-item-active-bgcolor: var(--button-active-bgcolor);
+  --panel-item-hover-bgcolor: var(--button-background-color-hover);
+  --panel-item-active-bgcolor: var(--button-background-color-active);
   --panel-banner-item-color: var(--button-color);
-  --panel-banner-item-background-color: var(--button-bgcolor);
-  --panel-banner-item-hover-bgcolor: var(--button-hover-bgcolor);
-  --panel-banner-item-active-bgcolor: var(--button-active-bgcolor);
+  --panel-banner-item-background-color: var(--button-background-color);
+  --panel-banner-item-hover-bgcolor: var(--button-background-color-hover);
+  --panel-banner-item-active-bgcolor: var(--button-background-color-active);
   --panel-banner-item-update-supported-bgcolor: light-dark(#2ac3a2, #54ffbd);
   --panel-banner-item-info-icon-bgcolor: light-dark(#0090ed, #80ebff);
 
@@ -667,16 +667,16 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
     > #appMenu-fxa-label2 {
       padding: 6px 12px;
-      background-color: var(--button-bgcolor);
+      background-color: var(--button-background-color);
       font-size: 0.8em;
       font-weight: 600;
 
       &:hover {
-        background-color: var(--button-hover-bgcolor);
+        background-color: var(--button-background-color-hover);
       }
 
       &:hover:active {
-        background-color: var(--button-active-bgcolor);
+        background-color: var(--button-background-color-active);
       }
     }
   }
@@ -1142,7 +1142,7 @@ panelview .toolbarbutton-1,
   -moz-context-properties: fill, stroke;
   fill: var(--button-color);
   /* the stroke color is used to fill the circle in the icon */
-  stroke: var(--button-bgcolor);
+  stroke: var(--button-background-color);
   border-radius: 50%;
   padding: 0;
 }
@@ -1154,7 +1154,7 @@ panelview .toolbarbutton-1,
 
 #appMenu-fullscreen-button2 > .toolbarbutton-icon {
   padding: 1px;
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
 }
 
 #appMenu-zoomReduce-button2:not([disabled]):hover > .toolbarbutton-icon,
@@ -1518,11 +1518,11 @@ toolbarbutton[itemtype="showmorebutton"],
   border: 1px solid transparent;
 
   &:hover {
-    background-color: var(--button-hover-bgcolor);
+    background-color: var(--button-background-color-hover);
   }
 
   &:is([selected], [selected]:hover, :hover:active) {
-    background-color: var(--button-active-bgcolor);
+    background-color: var(--button-background-color-active);
   }
 
   > .radio-check {
@@ -1624,7 +1624,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 }
 
 #panic-button-success-closebutton {
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
   color: var(--button-color);
   margin: 5px 0 0;
   border: 1px solid transparent;
@@ -1634,9 +1634,9 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   appearance: none;
 
   &:hover {
-    background-color: var(--button-hover-bgcolor);
+    background-color: var(--button-background-color-hover);
     &:active {
-      background-color: var(--button-active-bgcolor);
+      background-color: var(--button-background-color-active);
     }
   }
 }
@@ -1909,16 +1909,16 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 .PanelUI-profiler-button {
   appearance: none;
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
   border-radius: 4px;
   color: var(--button-color);
   padding: 8px;
   margin: 0 5px;
 
   &:hover {
-    background-color: var(--button-hover-bgcolor);
+    background-color: var(--button-background-color-hover);
     &:active {
-      background-color: var(--button-active-bgcolor);
+      background-color: var(--button-background-color-active);
     }
   }
 

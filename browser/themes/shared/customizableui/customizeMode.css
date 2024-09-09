@@ -373,11 +373,11 @@ toolbarpaletteitem {
 }
 
 .customization-uidensity-menuitem:is(:hover, :focus-visible) {
-  background-color: var(--button-hover-bgcolor);
+  background-color: var(--button-background-color-hover);
 }
 
 .customization-uidensity-menuitem:is(:hover:active, [active="true"]) {
-  background-color: var(--button-active-bgcolor);
+  background-color: var(--button-background-color-active);
 }
 
 .customization-uidensity-menuitem > .menu-iconic-text {

@@ -4,6 +4,6 @@
 
 #urlbar {
   --urlbar-box-bgcolor: var(--toolbar-field-focus-background-color);
-  --urlbar-box-focus-bgcolor: var(--button-bgcolor);
-  --urlbar-box-hover-bgcolor: var(--button-hover-bgcolor);
+  --urlbar-box-focus-bgcolor: var(--button-background-color);
+  --urlbar-box-hover-bgcolor: var(--button-background-color-hover);
 }

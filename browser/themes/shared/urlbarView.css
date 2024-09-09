@@ -392,7 +392,7 @@
 
 .urlbarView-button-menu {
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-color: var(--button-bgcolor);
+  background-color: var(--button-background-color);
 
   .urlbarView-results:not([disable-resultmenu-autohide]) > .urlbarView-row:not(:hover, [selected]) > .urlbarView-row-inner + &:not([open]):empty {
     display: none;
@@ -437,7 +437,7 @@
   flex-shrink: 0;
 
   &:not(:hover) {
-    background-color: var(--button-bgcolor);
+    background-color: var(--button-background-color);
   }
 
   &:is([selected], [primary]) {
