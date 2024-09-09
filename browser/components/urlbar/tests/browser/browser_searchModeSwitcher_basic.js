@@ -439,4 +439,69 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
   );
 
   await BrowserTestUtils.closeWindow(newWin);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_suggestions_after_no_search_mode() {
+  info("Add a search engine as default");
+  let defaultEngine = await SearchTestUtils.installSearchExtension(
+    {
+      name: "default-engine",
+      search_url: "https://www.example.com/",
+      favicon_url: "https://www.example.com/favicon.ico",
+    },
+    {
+      setAsDefault: true,
+      skipUnload: true,
+    }
+  );
+
+  info("Add one more search engine to check the result");
+  let anotherEngine = await SearchTestUtils.installSearchExtension(
+    {
+      name: "another-engine",
+      search_url: "https://example.com/",
+      favicon_url: "https://example.com/favicon.ico",
+    },
+    { skipUnload: true }
+  );
+
+  info("Open urlbar with a query");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "test",
+  });
+  Assert.equal(
+    (await UrlbarTestUtils.getDetailsOfResultAt(window, 0)).result.payload
+      .engine,
+    "default-engine",
+    "Suggest to search from the default engine"
+  );
+
+  info("Open search mode swither");
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the another-engine menu button");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=another-engine]").click();
+  await popupHidden;
+  Assert.equal(
+    (await UrlbarTestUtils.getDetailsOfResultAt(window, 0)).result.payload
+      .engine,
+    "another-engine",
+    "Suggest to search from the another engine"
+  );
+
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
+  Assert.equal(
+    (await UrlbarTestUtils.getDetailsOfResultAt(window, 0)).result.payload
+      .engine,
+    "default-engine",
+    "Suggest to search from the default engine again"
+  );
+
+  await defaultEngine.unload();
+  await anotherEngine.unload();
 });

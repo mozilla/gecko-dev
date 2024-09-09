@@ -145,6 +145,8 @@ export class SearchModeSwitcher {
   exitSearchMode(event) {
     event.preventDefault();
     this.#input.searchMode = null;
+    // Update the result by the default engine.
+    this.#input.startQuery();
   }
 
   /**
