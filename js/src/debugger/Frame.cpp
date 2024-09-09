@@ -54,7 +54,7 @@
 #include "vm/AsyncIteration.h"     // for AsyncGeneratorObject
 #include "vm/BytecodeUtil.h"       // for JSDVG_SEARCH_STACK
 #include "vm/Compartment.h"        // for Compartment
-#include "vm/EnvironmentObject.h"  // for IsGlobalLexicalEnvironment
+#include "vm/EnvironmentObject.h"  // for GlobalLexicalEnvironmentObject
 #include "vm/GeneratorObject.h"    // for AbstractGeneratorObject
 #include "vm/GlobalObject.h"       // for GlobalObject
 #include "vm/Interpreter.h"        // for Call, ExecuteKernel
@@ -1135,14 +1135,14 @@ Result<Completion> js::DebuggerGenericEval(
     case EvalOptions::EnvKind::Global:
       MOZ_ASSERT(!iter);
       MOZ_ASSERT(envArg);
-      MOZ_ASSERT(IsGlobalLexicalEnvironment(envArg));
+      MOZ_ASSERT(envArg->is<GlobalLexicalEnvironmentObject>());
       MOZ_ASSERT(!bindings);
       break;
     case EvalOptions::EnvKind::GlobalWithExtraInnerBindings:
     case EvalOptions::EnvKind::GlobalWithExtraOuterBindings:
       MOZ_ASSERT(!iter);
       MOZ_ASSERT(envArg);
-      MOZ_ASSERT(IsGlobalLexicalEnvironment(envArg));
+      MOZ_ASSERT(envArg->is<GlobalLexicalEnvironmentObject>());
       MOZ_ASSERT(bindings);
       break;
   }

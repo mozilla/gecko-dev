@@ -150,7 +150,8 @@ static inline void AssertScopeMatchesEnvironment(Scope* scope,
   //
   // In the case of a syntactic env chain, the outermost env is always a
   // GlobalObject.
-  MOZ_ASSERT(env->is<GlobalObject>() || IsGlobalLexicalEnvironment(env) ||
+  MOZ_ASSERT(env->is<GlobalObject>() ||
+             env->is<GlobalLexicalEnvironmentObject>() ||
              env->is<DebugEnvironmentProxy>());
 #endif
 }

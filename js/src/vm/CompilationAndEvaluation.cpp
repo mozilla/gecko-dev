@@ -339,7 +339,7 @@ class FunctionCompiler {
 
     // Make sure the static scope chain matches up when we have a
     // non-syntactic scope.
-    MOZ_ASSERT_IF(!IsGlobalLexicalEnvironment(enclosingEnv),
+    MOZ_ASSERT_IF(!enclosingEnv->is<GlobalLexicalEnvironmentObject>(),
                   kind == ScopeKind::NonSyntactic);
 
     CompileOptions options(cx_, optionsArg);
@@ -488,7 +488,7 @@ MOZ_NEVER_INLINE static bool ExecuteScript(JSContext* cx, HandleObject envChain,
   CHECK_THREAD(cx);
   cx->check(envChain, script);
 
-  if (!IsGlobalLexicalEnvironment(envChain)) {
+  if (!envChain->is<GlobalLexicalEnvironmentObject>()) {
     MOZ_RELEASE_ASSERT(script->hasNonSyntacticScope());
   }
 
@@ -542,7 +542,7 @@ static bool EvaluateSourceBuffer(JSContext* cx, ScopeKind scopeKind,
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   cx->check(env);
-  MOZ_ASSERT_IF(!IsGlobalLexicalEnvironment(env),
+  MOZ_ASSERT_IF(!env->is<GlobalLexicalEnvironmentObject>(),
                 scopeKind == ScopeKind::NonSyntactic);
 
   options.setNonSyntacticScope(scopeKind == ScopeKind::NonSyntactic);

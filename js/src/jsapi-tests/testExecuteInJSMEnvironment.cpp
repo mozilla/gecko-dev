@@ -41,7 +41,7 @@ BEGIN_TEST(testExecuteInJSMEnvironment_Basic) {
   JS::RootedObject varEnv(cx, JS::NewJSMEnvironment(cx));
   JS::RootedObject lexEnv(cx, JS_ExtensibleLexicalEnvironment(varEnv));
   CHECK(varEnv && varEnv->is<js::NonSyntacticVariablesObject>());
-  CHECK(lexEnv && js::IsExtensibleLexicalEnvironment(lexEnv));
+  CHECK(lexEnv && lexEnv->is<js::ExtensibleLexicalEnvironmentObject>());
   CHECK(lexEnv->enclosingEnvironment() == varEnv);
 
   JS::RootedValue vi(cx, JS::Int32Value(1000));

@@ -124,6 +124,13 @@ JSObject* js::BoxNonStrictThis(JSContext* cx, HandleValue thisv) {
   return PrimitiveToObject(cx, thisv);
 }
 
+static bool IsNSVOLexicalEnvironment(JSObject* env) {
+  return env->is<LexicalEnvironmentObject>() &&
+         env->as<LexicalEnvironmentObject>()
+             .enclosingEnvironment()
+             .is<NonSyntacticVariablesObject>();
+}
+
 bool js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
                          MutableHandleValue res) {
   MOZ_ASSERT(frame.isFunctionFrame());
@@ -149,7 +156,8 @@ bool js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
   if (frame.script()->hasNonSyntacticScope() && thisv.isNullOrUndefined()) {
     JSObject* env = frame.environmentChain();
     while (true) {
-      if (IsNSVOLexicalEnvironment(env) || IsGlobalLexicalEnvironment(env)) {
+      if (IsNSVOLexicalEnvironment(env) ||
+          env->is<GlobalLexicalEnvironmentObject>()) {
         res.setObject(*GetThisObjectOfLexical(env));
         return true;
       }
@@ -177,7 +185,7 @@ void js::GetNonSyntacticGlobalThis(JSContext* cx, HandleObject envChain,
                                    MutableHandleValue res) {
   JSObject* env = envChain;
   while (true) {
-    if (IsExtensibleLexicalEnvironment(env)) {
+    if (env->is<ExtensibleLexicalEnvironmentObject>()) {
       res.setObject(*GetThisObjectOfLexical(env));
       return;
     }
@@ -815,7 +823,7 @@ bool js::ExecuteKernel(JSContext* cx, HandleScript script,
                        HandleObject envChainArg, AbstractFramePtr evalInFrame,
                        MutableHandleValue result) {
   MOZ_ASSERT_IF(script->isGlobalCode(),
-                IsGlobalLexicalEnvironment(envChainArg) ||
+                envChainArg->is<GlobalLexicalEnvironmentObject>() ||
                     !IsSyntacticEnvironment(envChainArg));
 #ifdef DEBUG
   RootedObject terminatingEnv(cx, envChainArg);
@@ -861,7 +869,8 @@ bool js::Execute(JSContext* cx, HandleScript script, HandleObject envChain,
         "Module scripts can only be executed in the module's environment");
   } else {
     MOZ_RELEASE_ASSERT(
-        IsGlobalLexicalEnvironment(envChain) || script->hasNonSyntacticScope(),
+        envChain->is<GlobalLexicalEnvironmentObject>() ||
+            script->hasNonSyntacticScope(),
         "Only global scripts with non-syntactic envs can be executed with "
         "interesting envchains");
   }

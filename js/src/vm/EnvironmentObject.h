@@ -1511,21 +1511,6 @@ inline bool IsSyntacticEnvironment(JSObject* env) {
   return true;
 }
 
-inline bool IsExtensibleLexicalEnvironment(JSObject* env) {
-  return env->is<ExtensibleLexicalEnvironmentObject>();
-}
-
-inline bool IsGlobalLexicalEnvironment(JSObject* env) {
-  return env->is<GlobalLexicalEnvironmentObject>();
-}
-
-inline bool IsNSVOLexicalEnvironment(JSObject* env) {
-  return env->is<LexicalEnvironmentObject>() &&
-         env->as<LexicalEnvironmentObject>()
-             .enclosingEnvironment()
-             .is<NonSyntacticVariablesObject>();
-}
-
 inline JSObject* MaybeUnwrapWithEnvironment(JSObject* env) {
   if (env->is<WithEnvironmentObject>()) {
     return &env->as<WithEnvironmentObject>().object();

@@ -234,7 +234,8 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
                        jsbytecode* pc, MutableHandleValue vp) {
   MOZ_ASSERT((evalType == INDIRECT_EVAL) == !caller);
   MOZ_ASSERT((evalType == INDIRECT_EVAL) == !pc);
-  MOZ_ASSERT_IF(evalType == INDIRECT_EVAL, IsGlobalLexicalEnvironment(env));
+  MOZ_ASSERT_IF(evalType == INDIRECT_EVAL,
+                env->is<GlobalLexicalEnvironmentObject>());
   AssertInnerizedEnvironmentChain(cx, *env);
 
   // Step 2.

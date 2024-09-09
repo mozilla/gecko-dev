@@ -1486,7 +1486,7 @@ void EnvironmentIter::settle() {
         MOZ_ASSERT(scope == &env_->as<VarEnvironmentObject>().scope());
       } else if (scope->is<GlobalScope>()) {
         MOZ_ASSERT(env_->is<GlobalObject>() ||
-                   IsGlobalLexicalEnvironment(env_));
+                   env_->is<GlobalLexicalEnvironmentObject>());
       }
     } else if (hasNonSyntacticEnvironmentObject()) {
       if (env_->is<LexicalEnvironmentObject>()) {
