@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "nsSize.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/gfx/MatrixFwd.h"
 #include "mozilla/gfx/Types.h"
 
 namespace mozilla {
@@ -72,11 +73,13 @@ class GLReadTexImageHelper final {
    */
   already_AddRefed<gfx::DataSourceSurface> ReadTexImage(
       GLuint aTextureId, GLenum aTextureTarget, const gfx::IntSize& aSize,
+      const gfx::Matrix4x4& aTexMatrix,
       /* ShaderProgramType */ int aShaderProgram, bool aYInvert = false);
 
   bool ReadTexImage(gfx::DataSourceSurface* aDest, GLuint aTextureId,
                     GLenum aTextureTarget, const gfx::IntSize& aSize,
-                    int aShaderProgram, bool aYInvert = false);
+                    const gfx::Matrix4x4& aTexMatrix, int aShaderProgram,
+                    bool aYInvert = false);
 };
 
 }  // namespace gl

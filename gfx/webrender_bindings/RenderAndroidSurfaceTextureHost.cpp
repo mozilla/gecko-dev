@@ -251,7 +251,7 @@ RenderAndroidSurfaceTextureHost::ReadTexImage() {
 
   bool ret = mGL->ReadTexImageHelper()->ReadTexImage(
       surf, mSurfTex->GetTexName(), LOCAL_GL_TEXTURE_EXTERNAL, mSize,
-      shaderConfig, /* aYInvert */ false);
+      gfx::Matrix4x4(), shaderConfig, /* aYInvert */ false);
   if (!ret) {
     return nullptr;
   }

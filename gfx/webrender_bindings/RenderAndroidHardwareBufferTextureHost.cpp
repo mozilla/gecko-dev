@@ -209,8 +209,8 @@ RenderAndroidHardwareBufferTextureHost::ReadTexImage() {
   int shaderConfig = config.mFeatures;
 
   bool ret = mGL->ReadTexImageHelper()->ReadTexImage(
-      surf, mTextureHandle, LOCAL_GL_TEXTURE_EXTERNAL, GetSize(), shaderConfig,
-      /* aYInvert */ false);
+      surf, mTextureHandle, LOCAL_GL_TEXTURE_EXTERNAL, GetSize(),
+      gfx::Matrix4x4(), shaderConfig, /* aYInvert */ false);
   if (!ret) {
     return nullptr;
   }
