@@ -1738,9 +1738,7 @@ class PlacesToolbar extends PlacesViewBase {
         this._allowPopupShowing = false;
       }
     }
-    if (target._placesNode?.uri) {
-      PlacesUIUtils.setupSpeculativeConnection(target._placesNode.uri, window);
-    }
+    PlacesUIUtils.maybeSpeculativeConnectOnMouseDown(aEvent);
   }
 
   _cleanupDragDetails() {
@@ -2063,10 +2061,7 @@ class PlacesMenu extends PlacesViewBase {
   // We don't have a facility for catch "mousedown" events on the native
   // Mac menus because Mac doesn't expose it
   _onMouseDown(aEvent) {
-    let target = aEvent.target;
-    if (target._placesNode?.uri) {
-      PlacesUIUtils.setupSpeculativeConnection(target._placesNode.uri, window);
-    }
+    PlacesUIUtils.maybeSpeculativeConnectOnMouseDown(aEvent);
   }
 }
 
@@ -2094,6 +2089,7 @@ this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
       "dragstart",
       "ViewHiding",
       "ViewShown",
+      "mousedown",
     ]);
   }
 
@@ -2122,6 +2118,9 @@ this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
         break;
       case "ViewShown":
         this._onViewShown(event);
+        break;
+      case "mousedown":
+        this._onMouseDown(event);
         break;
     }
   }
@@ -2290,5 +2289,9 @@ this.PlacesPanelview = class PlacesPanelview extends PlacesViewBase {
     if (!this.controllers.getControllerCount() && this._controller) {
       this.controllers.appendController(this._controller);
     }
+  }
+
+  _onMouseDown(aEvent) {
+    PlacesUIUtils.maybeSpeculativeConnectOnMouseDown(aEvent);
   }
 };

@@ -1632,6 +1632,25 @@ export var PlacesUIUtils = {
   },
 
   /**
+   * Sets up a speculative connection to the target of a
+   * clicked places DOM node on left and middle click.
+   *
+   * @param {event} event the mousedown event.
+   */
+  maybeSpeculativeConnectOnMouseDown(event) {
+    if (
+      event.type == "mousedown" &&
+      event.target._placesNode?.uri &&
+      event.button != 2
+    ) {
+      PlacesUIUtils.setupSpeculativeConnection(
+        event.target._placesNode.uri,
+        event.target.ownerGlobal
+      );
+    }
+  },
+
+  /**
    * Generates a cached-favicon: link for an icon URL, that will allow to fetch
    * the icon from the local favicons cache, rather than from the network.
    * If the icon URL is invalid, fallbacks to the default favicon URL.

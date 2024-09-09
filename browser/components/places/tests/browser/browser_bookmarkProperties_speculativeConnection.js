@@ -10,8 +10,12 @@
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-const sandbox = sinon.createSandbox();
-let spy = sandbox
+const { CustomizableUITestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CustomizableUITestUtils.sys.mjs"
+);
+
+let gCUITestUtils = new CustomizableUITestUtils(window);
+let spy = sinon
   .stub(PlacesUIUtils, "setupSpeculativeConnection")
   .returns(Promise.resolve());
 
@@ -29,7 +33,7 @@ add_setup(async function () {
   }
   registerCleanupFunction(async () => {
     await PlacesUtils.bookmarks.eraseEverything();
-    sandbox.restore();
+    spy.restore();
   });
 });
 
@@ -41,16 +45,55 @@ add_task(async function checkToolbarSpeculativeConnection() {
   });
   let toolbarNode = getToolbarNodeForItemGuid(toolbarBookmark.guid);
 
-  info("Synthesize mousedown on selected bookmark");
-  EventUtils.synthesizeMouseAtCenter(toolbarNode, {
-    type: "mousedown",
-  });
-  EventUtils.synthesizeMouseAtCenter(toolbarNode, {
-    type: "mouseup",
+  info("Synthesize right click on bookmark");
+  mouseDownUp(toolbarNode, 2);
+  Assert.ok(spy.notCalled, "Speculative connection for Toolbar not called");
+
+  info("Synthesize left click on bookmark");
+  mouseDownUp(toolbarNode, 0);
+  Assert.ok(spy.calledOnce, "Speculative connection for Toolbar called");
+
+  info("Synthesize middle click on bookmark");
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
+  mouseDownUp(toolbarNode, 1);
+  Assert.ok(spy.calledTwice, "Speculative connection for Toolbar called");
+
+  let tab = await newTabPromise;
+  BrowserTestUtils.removeTab(tab);
+
+  spy.resetHistory();
+});
+
+add_task(async function checkPanelviewSpeculativeConnection() {
+  await PlacesUtils.bookmarks.eraseEverything();
+
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
+    url: "http://example.com/",
+    title: "Bookmark 3",
   });
 
-  Assert.ok(spy.called, "Speculative connection for Toolbar called");
-  sandbox.restore();
+  let menuNode = await openBookmarksPanelGetBookmark3();
+  info("Synthesize right click on bookmark");
+  mouseDownUp(menuNode, 2);
+  Assert.ok(
+    spy.notCalled,
+    "Speculative connection for Panel Button not called"
+  );
+
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
+  info("Synthesize middle click on bookmark");
+  mouseDownUp(menuNode, 1);
+  Assert.ok(spy.calledOnce, "Speculative connection for Panel Button called");
+  let tab = await newTabPromise;
+  BrowserTestUtils.removeTab(tab);
+
+  menuNode = await openBookmarksPanelGetBookmark3();
+  info("Synthesize left click on bookmark");
+  mouseDownUp(menuNode, 0);
+  Assert.ok(spy.calledTwice, "Speculative connection for Panel Button called");
+
+  spy.resetHistory();
 });
 
 add_task(async function checkMenuSpeculativeConnection() {
@@ -82,7 +125,38 @@ add_task(async function checkMenuSpeculativeConnection() {
     title: "Bookmark 2",
   });
 
-  // Test Bookmarks Menu Button
+  let menuNode = await openBookmarksMenuGetBookmark2();
+  info("Synthesize right click on bookmark");
+  mouseDownUp(menuNode, 2);
+  Assert.ok(spy.notCalled, "Speculative connection for Menu Button not called");
+
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
+  info("Synthesize middle click on bookmark");
+  mouseDownUp(menuNode, 1);
+  Assert.ok(spy.calledOnce, "Speculative connection for Menu Button called");
+  let tab = await newTabPromise;
+  BrowserTestUtils.removeTab(tab);
+
+  menuNode = await openBookmarksMenuGetBookmark2();
+  info("Synthesize left click on bookmark");
+  mouseDownUp(menuNode, 0);
+  Assert.ok(spy.calledTwice, "Speculative connection for Menu Button called");
+
+  spy.resetHistory();
+});
+
+function mouseDownUp(node, button) {
+  EventUtils.synthesizeMouseAtCenter(node, {
+    type: "mousedown",
+    button,
+  });
+  EventUtils.synthesizeMouseAtCenter(node, {
+    type: "mouseup",
+    button,
+  });
+}
+
+async function openBookmarksMenuGetBookmark2() {
   let BMB = document.getElementById("bookmarks-menu-button");
   let BMBpopup = document.getElementById("BMB_bookmarksPopup");
   let promiseEvent = BrowserTestUtils.waitForEvent(BMBpopup, "popupshown");
@@ -90,17 +164,18 @@ add_task(async function checkMenuSpeculativeConnection() {
   await promiseEvent;
   info("Popupshown on Bookmarks-Menu-Button");
 
-  let menuBookmark = [...BMBpopup.children].find(
-    node => node.label == "Bookmark 2"
-  );
+  return [...BMBpopup.children].find(node => node.label == "Bookmark 2");
+}
 
-  EventUtils.synthesizeMouseAtCenter(menuBookmark, {
-    type: "mousedown",
-  });
-  EventUtils.synthesizeMouseAtCenter(menuBookmark, {
-    type: "mouseup",
-  });
+async function openBookmarksPanelGetBookmark3() {
+  await gCUITestUtils.openMainMenu();
+  let BMview;
+  document.getElementById("appMenu-bookmarks-button").click();
+  BMview = document.getElementById("PanelUI-bookmarks");
+  let promise = BrowserTestUtils.waitForEvent(BMview, "ViewShown");
+  await promise;
+  info("Bookmarks panel shown.");
 
-  Assert.ok(spy.called, "Speculative connection for Menu Button called");
-  sandbox.restore();
-});
+  let list = document.getElementById("panelMenu_bookmarksMenu");
+  return [...list.children].find(node => node.label == "Bookmark 3");
+}
