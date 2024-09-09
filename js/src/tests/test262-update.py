@@ -25,7 +25,6 @@ UNSUPPORTED_FEATURES = set(
         "legacy-regexp",  # Bug 1306461
         "set-methods",  # Bug 1805038
         "explicit-resource-management",  # Bug 1569081
-        "promise-try",
         "source-phase-imports",
         "source-phase-imports-module-source",
         "Math.sumPrecise",
@@ -46,6 +45,7 @@ FEATURE_CHECK_NEEDED = {
     "json-parse-with-source": "!JSON.hasOwnProperty('isRawJSON')",  # Bug 1658310
     "Float16Array": "!this.hasOwnProperty('Float16Array')",
     "RegExp.escape": "!RegExp.escape",
+    "promise-try": "!Promise.try",
 }
 RELEASE_OR_BETA = set(
     [
@@ -66,6 +66,7 @@ SHELL_OPTIONS = {
     "regexp-duplicate-named-groups": "--enable-regexp-duplicate-named-groups",
     "RegExp.escape": "--enable-regexp-escape",
     "regexp-modifiers": "--enable-regexp-modifiers",
+    "promise-try": "--enable-promise-try",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {

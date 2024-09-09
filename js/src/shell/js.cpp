@@ -12682,7 +12682,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "wasm-tail-calls",
                         "Enable WebAssembly tail-calls proposal.") ||
       !op.addBoolOption('\0', "wasm-js-string-builtins",
-                        "Enable WebAssembly js-string-builtins proposal.")) {
+                        "Enable WebAssembly js-string-builtins proposal.") ||
+      !op.addBoolOption('\0', "enable-promise-try", "Enable Promise.try")) {
     return false;
   }
 
@@ -12757,6 +12758,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-regexp-escape")) {
     JS::Prefs::setAtStartup_experimental_regexp_escape(true);
+  }
+  if (op.getBoolOption("enable-promise-try")) {
+    JS::Prefs::setAtStartup_experimental_promise_try(true);
   }
 #endif
   if (op.getBoolOption("enable-json-parse-with-source")) {

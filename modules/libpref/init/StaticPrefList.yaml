@@ -8080,6 +8080,14 @@
     value: false
     mirror: always
     set_spidermonkey_pref: startup
+
+  # Experimental support for Promise.try in JavaScript.
+-   name: javascript.options.experimental.promise_try
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+
 #endif  // NIGHTLY_BUILD
 
 -   name: javascript.options.experimental.json_parse_with_source
