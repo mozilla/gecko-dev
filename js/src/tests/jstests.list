@@ -637,6 +637,10 @@ skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extension
 skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji_ZWJ_Sequence.js
 skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji.js
 
+# https://github.com/tc39/proposal-redeclarable-global-eval-vars
+skip-if(release_or_beta) script test262/language/global-code/script-decl-lex-var-declared-via-eval.js
+skip-if(release_or_beta) script test262/annexB/language/eval-code/direct/script-decl-lex-no-collision.js
+
 # Requires CLDR 44
 # https://github.com/tc39/test262/pull/3946
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1859752
