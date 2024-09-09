@@ -97,7 +97,7 @@ let ecmaGlobals = [
   {
     name: "SharedArrayBuffer",
     insecureContext: true,
-    crossOringinIsolated: true,
+    crossOriginIsolated: true,
   },
   { name: "String", insecureContext: true },
   { name: "Symbol", insecureContext: true },
@@ -503,7 +503,7 @@ function entryDisabled(
     // only in secure contexts.
     (isInsecureContext && !entry.insecureContext) ||
     entry.earlyBetaOrEarlier === !isEarlyBetaOrEarlier ||
-    entry.crossOringinIsolated === !isCrossOringinIsolated ||
+    entry.crossOriginIsolated === !isCrossOringinIsolated ||
     entry.disabled
   );
 }
