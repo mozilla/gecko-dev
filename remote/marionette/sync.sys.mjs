@@ -8,7 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
-  executeSoon: "chrome://remote/content/shared/Sync.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
 
@@ -19,6 +18,20 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 const { TYPE_ONE_SHOT, TYPE_REPEATING_SLACK } = Ci.nsITimer;
 
 const PROMISE_TIMEOUT = AppConstants.DEBUG ? 4500 : 1500;
+
+/**
+ * Dispatch a function to be executed on the main thread.
+ *
+ * @param {Function} func
+ *     Function to be executed.
+ */
+export function executeSoon(func) {
+  if (typeof func != "function") {
+    throw new TypeError();
+  }
+
+  Services.tm.dispatchToMainThread(func);
+}
 
 /**
  * Runs a Promise-like function off the main thread until it is resolved
@@ -310,7 +323,7 @@ export function MessageManagerDestroyedPromise(messageManager) {
  */
 export function IdlePromise(win) {
   const animationFramePromise = new Promise(resolve => {
-    lazy.executeSoon(() => {
+    executeSoon(() => {
       win.requestAnimationFrame(resolve);
     });
   });

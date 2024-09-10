@@ -84,7 +84,7 @@ event.synthesizeMouseAtPoint = function (left, top, opts, win) {
 };
 
 /**
- * Synthesize a touch event at a point.
+ * Synthesise a touch event at a point.
  *
  * If the type is specified in opts, a touch event of that type is
  * fired. Otherwise, a touchstart followed by a touchend is performed.
