@@ -196,23 +196,21 @@ bool NameOpEmitter::prepareForRhs() {
   switch (loc_.kind()) {
     case NameLocation::Kind::Dynamic:
     case NameLocation::Kind::Import:
-    case NameLocation::Kind::DynamicAnnexBVar:
       if (!bce_->makeAtomIndex(name_, ParserAtom::Atomize::Yes, &atomIndex_)) {
         return false;
       }
-      if (loc_.kind() == NameLocation::Kind::DynamicAnnexBVar) {
-        // Annex B vars always go on the nearest variable environment,
-        // even if lexical environments in between contain same-named
-        // bindings.
-        if (!bce_->emit1(JSOp::BindVar)) {
-          //        [stack] ENV
-          return false;
-        }
-      } else {
-        if (!bce_->emitAtomOp(JSOp::BindName, atomIndex_)) {
-          //        [stack] ENV
-          return false;
-        }
+      if (!bce_->emitAtomOp(JSOp::BindName, atomIndex_)) {
+        //          [stack] ENV
+        return false;
+      }
+      emittedBindOp_ = true;
+      break;
+    case NameLocation::Kind::DynamicAnnexBVar:
+      // Annex B vars always go on the nearest variable environment, even if
+      // lexical environments in between contain same-named bindings.
+      if (!bce_->emit1(JSOp::BindVar)) {
+        //          [stack] ENV
+        return false;
       }
       emittedBindOp_ = true;
       break;
@@ -227,14 +225,14 @@ bool NameOpEmitter::prepareForRhs() {
         // InitGLexical always gets the global lexical scope. It doesn't
         // need a BindName/BindGName.
         MOZ_ASSERT(bce_->innermostScope().is<GlobalScope>());
-      } else if (bce_->sc->hasNonSyntacticScope()) {
-        if (!bce_->emitAtomOp(JSOp::BindName, atomIndex_)) {
-          //        [stack] ENV
-          return false;
-        }
-        emittedBindOp_ = true;
       } else {
-        if (!bce_->emitAtomOp(JSOp::BindGName, atomIndex_)) {
+        JSOp op;
+        if (bce_->sc->hasNonSyntacticScope()) {
+          op = JSOp::BindName;
+        } else {
+          op = JSOp::BindGName;
+        }
+        if (!bce_->emitAtomOp(op, atomIndex_)) {
           //        [stack] ENV
           return false;
         }
@@ -242,15 +240,10 @@ bool NameOpEmitter::prepareForRhs() {
       }
       break;
     case NameLocation::Kind::Intrinsic:
-      break;
     case NameLocation::Kind::NamedLambdaCallee:
-      break;
     case NameLocation::Kind::ArgumentSlot:
-      break;
     case NameLocation::Kind::FrameSlot:
-      break;
     case NameLocation::Kind::DebugEnvironmentCoordinate:
-      break;
     case NameLocation::Kind::EnvironmentCoordinate:
       break;
   }
@@ -270,7 +263,7 @@ bool NameOpEmitter::prepareForRhs() {
         //          [stack] ENV ENV
         return false;
       }
-      if (!bce_->emitAtomOp(JSOp::GetBoundName, name_)) {
+      if (!bce_->emitAtomOp(JSOp::GetBoundName, atomIndex_)) {
         //          [stack] ENV V
         return false;
       }
@@ -299,9 +292,15 @@ bool NameOpEmitter::emitAssignment() {
   switch (loc_.kind()) {
     case NameLocation::Kind::Dynamic:
     case NameLocation::Kind::Import:
-    case NameLocation::Kind::DynamicAnnexBVar:
+      MOZ_ASSERT(emittedBindOp_);
       if (!bce_->emitAtomOp(bce_->strictifySetNameOp(JSOp::SetName),
                             atomIndex_)) {
+        return false;
+      }
+      break;
+    case NameLocation::Kind::DynamicAnnexBVar:
+      MOZ_ASSERT(emittedBindOp_);
+      if (!bce_->emitAtomOp(bce_->strictifySetNameOp(JSOp::SetName), name_)) {
         return false;
       }
       break;
