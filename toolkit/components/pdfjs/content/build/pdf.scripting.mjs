@@ -1335,6 +1335,16 @@ class AForm {
     event.value = this._util.printx(formatStr, event.value);
   }
   AFSpecial_KeystrokeEx(cMask) {
+    const event = globalThis.event;
+    const simplifiedFormatStr = cMask.replaceAll(/[^9AOX]/g, "");
+    this.#AFSpecial_KeystrokeEx_helper(simplifiedFormatStr, false);
+    if (event.rc) {
+      return;
+    }
+    event.rc = true;
+    this.#AFSpecial_KeystrokeEx_helper(cMask, true);
+  }
+  #AFSpecial_KeystrokeEx_helper(cMask, warn) {
     if (!cMask) {
       return;
     }
@@ -1361,18 +1371,24 @@ class AForm {
     }
     const err = `${GlobalConstants.IDS_INVALID_VALUE} = "${cMask}"`;
     if (value.length > cMask.length) {
-      this._app.alert(err);
+      if (warn) {
+        this._app.alert(err);
+      }
       event.rc = false;
       return;
     }
     if (event.willCommit) {
       if (value.length < cMask.length) {
-        this._app.alert(err);
+        if (warn) {
+          this._app.alert(err);
+        }
         event.rc = false;
         return;
       }
       if (!_checkValidity(value, cMask)) {
-        this._app.alert(err);
+        if (warn) {
+          this._app.alert(err);
+        }
         event.rc = false;
         return;
       }
@@ -1383,7 +1399,9 @@ class AForm {
       cMask = cMask.substring(0, value.length);
     }
     if (!_checkValidity(value, cMask)) {
-      this._app.alert(err);
+      if (warn) {
+        this._app.alert(err);
+      }
       event.rc = false;
     }
   }
@@ -1400,7 +1418,7 @@ class AForm {
         break;
       case 2:
         const value = this.AFMergeChange(event);
-        formatStr = value.length > 8 || value.startsWith("(") ? "(999) 999-9999" : "999-9999";
+        formatStr = value.startsWith("(") || value.length > 7 && /^\p{N}+$/.test(value) ? "(999) 999-9999" : "999-9999";
         break;
       case 3:
         formatStr = "999-99-9999";
@@ -4007,8 +4025,8 @@ function initSandbox(params) {
 
 ;// CONCATENATED MODULE: ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.6.107";
-const pdfjsBuild = "5369a24c9";
+const pdfjsVersion = "4.6.137";
+const pdfjsBuild = "5b4c2fe1a";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

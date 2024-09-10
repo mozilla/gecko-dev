@@ -3541,10 +3541,16 @@ class AltText {
   #guessedText = null;
   #textWithDisclaimer = null;
   #useNewAltTextFlow = false;
+  static #l10nNewButton = null;
   static _l10nPromise = null;
   constructor(editor) {
     this.#editor = editor;
     this.#useNewAltTextFlow = editor._uiManager.useNewAltTextFlow;
+    AltText.#l10nNewButton ||= Object.freeze({
+      added: "pdfjs-editor-new-alt-text-added-button-label",
+      missing: "pdfjs-editor-new-alt-text-missing-button-label",
+      review: "pdfjs-editor-new-alt-text-to-review-button-label"
+    });
   }
   static initialize(l10nPromise) {
     AltText._l10nPromise ||= l10nPromise;
@@ -3555,7 +3561,7 @@ class AltText {
     let msg;
     if (this.#useNewAltTextFlow) {
       altText.classList.add("new");
-      msg = await AltText._l10nPromise.get("pdfjs-editor-new-alt-text-missing-button-label");
+      msg = await AltText._l10nPromise.get(AltText.#l10nNewButton.missing);
     } else {
       msg = await AltText._l10nPromise.get("pdfjs-editor-alt-text-button-label");
     }
@@ -3715,10 +3721,8 @@ class AltText {
       return;
     }
     if (this.#useNewAltTextFlow) {
-      const label = this.#label;
-      const type = label === "review" ? "to-review" : label;
       button.classList.toggle("done", !!this.#altText);
-      AltText._l10nPromise.get(`pdfjs-editor-new-alt-text-${type}-button-label`).then(msg => {
+      AltText._l10nPromise.get(AltText.#l10nNewButton[this.#label]).then(msg => {
         button.setAttribute("aria-label", msg);
         for (const child of button.childNodes) {
           if (child.nodeType === Node.TEXT_NODE) {
@@ -4187,9 +4191,7 @@ class AnnotationEditor {
       parentScale,
       pageDimensions: [pageWidth, pageHeight]
     } = this;
-    const scaledWidth = pageWidth * parentScale;
-    const scaledHeight = pageHeight * parentScale;
-    return util_FeatureTest.isCSSRoundSupported ? [Math.round(scaledWidth), Math.round(scaledHeight)] : [scaledWidth, scaledHeight];
+    return [pageWidth * parentScale, pageHeight * parentScale];
   }
   setDims(width, height) {
     const [parentWidth, parentHeight] = this.parentDimensions;
@@ -9728,7 +9730,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.6.107",
+    apiVersion: "4.6.137",
     data,
     password,
     disableAutoFetch,
@@ -11397,8 +11399,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.6.107";
-const build = "5369a24c9";
+const version = "4.6.137";
+const build = "5b4c2fe1a";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -15471,6 +15473,7 @@ class ColorPicker {
   #eventBus;
   #uiManager = null;
   #type;
+  static #l10nColor = null;
   static get _keyboardManager() {
     return shadow(this, "_keyboardManager", new KeyboardManager([[["Escape", "mac+Escape"], ColorPicker.prototype._hideDropdownFromKeyboard], [[" ", "mac+ "], ColorPicker.prototype._colorSelectFromKeyboard], [["ArrowDown", "ArrowRight", "mac+ArrowDown", "mac+ArrowRight"], ColorPicker.prototype._moveToNext], [["ArrowUp", "ArrowLeft", "mac+ArrowUp", "mac+ArrowLeft"], ColorPicker.prototype._moveToPrevious], [["Home", "mac+Home"], ColorPicker.prototype._moveToBeginning], [["End", "mac+End"], ColorPicker.prototype._moveToEnd]]));
   }
@@ -15489,6 +15492,13 @@ class ColorPicker {
     this.#uiManager = editor?._uiManager || uiManager;
     this.#eventBus = this.#uiManager._eventBus;
     this.#defaultColor = editor?.color || this.#uiManager?.highlightColors.values().next().value || "#FFFF98";
+    ColorPicker.#l10nColor ||= Object.freeze({
+      blue: "pdfjs-editor-colorpicker-blue",
+      green: "pdfjs-editor-colorpicker-green",
+      pink: "pdfjs-editor-colorpicker-pink",
+      red: "pdfjs-editor-colorpicker-red",
+      yellow: "pdfjs-editor-colorpicker-yellow"
+    });
   }
   renderButton() {
     const button = this.#button = document.createElement("button");
@@ -15533,7 +15543,7 @@ class ColorPicker {
       button.role = "option";
       button.setAttribute("data-color", color);
       button.title = name;
-      button.setAttribute("data-l10n-id", `pdfjs-editor-colorpicker-${name}`);
+      button.setAttribute("data-l10n-id", ColorPicker.#l10nColor[name]);
       const swatch = document.createElement("span");
       button.append(swatch);
       swatch.className = "swatch";
@@ -17636,7 +17646,6 @@ class StampEditor extends AnnotationEditor {
     const [parentWidth, parentHeight] = this.parentDimensions;
     this.width = width / parentWidth;
     this.height = height / parentHeight;
-    this.setDims(width, height);
     if (this._initialOptions?.isCentered) {
       this.center();
     } else {
@@ -18643,8 +18652,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.6.107";
-const pdfjsBuild = "5369a24c9";
+const pdfjsVersion = "4.6.137";
+const pdfjsBuild = "5b4c2fe1a";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

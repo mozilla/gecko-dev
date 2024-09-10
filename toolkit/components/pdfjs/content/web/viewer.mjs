@@ -2319,6 +2319,7 @@ class NewAltTextManager {
       mlManager
     } = uiManager;
     let hasAI = !!mlManager;
+    this.#toggleTitleAndDisclaimer();
     if (mlManager && !mlManager.isReady("altText")) {
       hasAI = false;
       if (mlManager.hasProgress) {
@@ -9361,7 +9362,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.6.107";
+    const viewerVersion = "4.6.137";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -13537,8 +13538,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.6.107";
-const pdfjsBuild = "5369a24c9";
+const pdfjsVersion = "4.6.137";
+const pdfjsBuild = "5b4c2fe1a";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
