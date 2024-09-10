@@ -615,9 +615,9 @@ bool GetAndClearExceptionAndStack(JSContext* cx, MutableHandleValue res,
                                   MutableHandle<SavedFrame*> stack);
 
 bool DeleteNameOperation(JSContext* cx, Handle<PropertyName*> name,
-                         HandleObject scopeObj, MutableHandleValue res);
+                         HandleObject envChain, MutableHandleValue res);
 
-bool ImplicitThisOperation(JSContext* cx, HandleObject scopeObj,
+bool ImplicitThisOperation(JSContext* cx, HandleObject envChain,
                            Handle<PropertyName*> name, MutableHandleValue res);
 
 bool InitPropGetterSetterOperation(JSContext* cx, jsbytecode* pc,
