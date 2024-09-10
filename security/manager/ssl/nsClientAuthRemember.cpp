@@ -37,9 +37,6 @@ using namespace mozilla::psm;
 NS_IMPL_ISUPPORTS(nsClientAuthRememberService, nsIClientAuthRememberService)
 NS_IMPL_ISUPPORTS(nsClientAuthRemember, nsIClientAuthRememberRecord)
 
-const nsCString nsClientAuthRemember::SentinelValue =
-    "no client certificate"_ns;
-
 NS_IMETHODIMP
 nsClientAuthRemember::GetAsciiHost(/*out*/ nsACString& aAsciiHost) {
   aAsciiHost = mAsciiHost;

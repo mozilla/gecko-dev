@@ -64,7 +64,7 @@ class nsClientAuthRemember final : public nsIClientAuthRememberRecord {
   nsCString mAsciiHost;
   nsCString mOriginAttributesSuffix;
   nsCString mDBKey;
-  static const nsCString SentinelValue;
+  static constexpr nsLiteralCString SentinelValue = "no client certificate"_ns;
 
  protected:
   ~nsClientAuthRemember() = default;
