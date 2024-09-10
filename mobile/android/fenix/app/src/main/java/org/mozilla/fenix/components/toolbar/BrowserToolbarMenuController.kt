@@ -28,6 +28,7 @@ import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.utils.ManufacturerCodes
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.AppMenu
@@ -292,9 +293,15 @@ class DefaultBrowserToolbarMenuController(
                         if (isInstallable()) {
                             addToHomescreen()
                         } else {
-                            val directions =
-                                BrowserFragmentDirections.actionBrowserFragmentToCreateShortcutFragment()
-                            navController.navigateSafe(R.id.browserFragment, directions)
+                            if (ManufacturerCodes.isXiaomi) {
+                                val directions =
+                                    BrowserFragmentDirections.actionBrowserFragmentToCreateXiaomiShortcutFragment()
+                                navController.navigateSafe(R.id.browserFragment, directions)
+                            } else {
+                                val directions =
+                                    BrowserFragmentDirections.actionBrowserFragmentToCreateShortcutFragment()
+                                navController.navigateSafe(R.id.browserFragment, directions)
+                            }
                         }
                     }
                 }
