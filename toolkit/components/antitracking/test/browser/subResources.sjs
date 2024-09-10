@@ -21,7 +21,10 @@ function handleRequest(aRequest, aResponse) {
     setState(key, hints.toString());
   }
 
-  aResponse.setHeader("Set-Cookie", "foopy=1");
+  aResponse.setHeader(
+    "Set-Cookie",
+    "foopy=1; SameSite=None; Secure; Partitioned;"
+  );
 
   if (key == "script") {
     aResponse.setHeader("Content-Type", "text/javascript", false);

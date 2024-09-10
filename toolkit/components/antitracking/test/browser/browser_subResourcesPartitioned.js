@@ -71,9 +71,9 @@ async function runTests(topPage, limitForeignContexts) {
     .then(r => r.text())
     .then(text => {
       if (limitForeignContexts) {
-        is(text, "0", "No cookie received received for scripts.");
+        is(text, "0", "No cookie received for scripts.");
       } else {
-        is(text, "1", "One cookie received received for scripts.");
+        is(text, "1", "One cookie received for scripts.");
       }
     });
 
@@ -186,9 +186,9 @@ async function runTests(topPage, limitForeignContexts) {
     .then(r => r.text())
     .then(text => {
       if (limitForeignContexts) {
-        is(text, "0", "No cookie received received for scripts.");
+        is(text, "0", "No cookie received for scripts.");
       } else {
-        is(text, "1", "One cookie received received for scripts.");
+        is(text, "1", "One cookie received for scripts.");
       }
     });
 
