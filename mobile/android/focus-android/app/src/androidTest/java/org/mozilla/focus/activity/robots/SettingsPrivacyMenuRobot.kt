@@ -31,6 +31,7 @@ import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.packageName
 import org.mozilla.focus.helpers.TestHelper.waitingTime
 import org.mozilla.focus.helpers.TestHelper.waitingTimeShort
+import org.mozilla.focus.telemetry.GleanMetricsService
 
 class SettingsPrivacyMenuRobot {
 
@@ -688,7 +689,13 @@ private fun studiesOption(): ViewInteraction {
 
 private fun studiesDefaultOption(): ViewInteraction {
     privacySettingsList.scrollToEnd(3)
-    return onView(withText(R.string.preference_state_on))
+
+    val defaultStringId = if (GleanMetricsService.isTelemetryEnabled(getTargetContext)) {
+        R.string.preference_state_on
+    } else {
+        R.string.preference_state_off
+    }
+    return onView(withText(defaultStringId))
 }
 
 private fun exceptionsList(): ViewInteraction {
