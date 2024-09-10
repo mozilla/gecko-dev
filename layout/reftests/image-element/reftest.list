@@ -12,7 +12,7 @@ fuzzy-if(winWidget,47-132,47-54) == element-paint-simple.html element-paint-simp
 == element-paint-recursion.html element-paint-recursion-ref.html
 == element-paint-continuation.html element-paint-continuation-ref.html
 == element-paint-transform-01.html element-paint-transform-01-ref.html
-random-if(winWidget&&!gfxSVGFE) fuzzy-if(!useDrawSnapshot,255-255,39-42) fuzzy-if(gfxSVGFE,0-255,0-1983) == element-paint-transform-02.html element-paint-transform-02-ref.html # bug 587133
+random-if(winWidget&&!gfxSVGFE) fuzzy-if(!useDrawSnapshot,255-255,39-42) fuzzy-if(gfxSVGFE,0-201,0-1486) == element-paint-transform-02.html element-paint-transform-02-ref.html # bug 587133
 == element-paint-background-size-01.html element-paint-background-size-01-ref.html
 == element-paint-background-size-02.html element-paint-background-size-02-ref.html
 fuzzy(0-255,0-4) == element-paint-transform-repeated.html element-paint-transform-repeated-ref.html # Bug 1475907

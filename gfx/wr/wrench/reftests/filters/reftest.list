@@ -3,7 +3,6 @@ fuzzy(2,10000) == svgfe-blendmultiply-linear.yaml svgfe-blendmultiply-linear-ref
 fuzzy(2,10000) == svgfe-blendnormal-linear.yaml svgfe-blendnormal-linear-ref.yaml
 fuzzy(2,10000) == svgfe-colormatrix.yaml svgfe-colormatrix-ref.yaml
 fuzzy(4,10000) == svgfe-dropshadow.yaml svgfe-dropshadow-ref.yaml
-fuzzy(12,10000) == svgfe-dropshadow-offscreen-source.yaml svgfe-dropshadow-offscreen-source-ref.yaml
 fuzzy(2,10000) == svgfe-opacity-linear.yaml svgfe-opacity-linear-ref.yaml
 fuzzy(2,10000) == svgfe-opacity.yaml svgfe-opacity-ref.yaml
 fuzzy(12,10000) == svgfe-subregion-bigger.yaml svgfe-subregion-bigger-ref.yaml

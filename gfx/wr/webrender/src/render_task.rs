@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{CompositeOperator, FilterPrimitive, FilterPrimitiveInput, FilterPrimitiveKind, SVGFE_GRAPH_MAX};
+use api::{CompositeOperator, FilterPrimitive, FilterPrimitiveInput, FilterPrimitiveKind};
 use api::{LineStyle, LineOrientation, ClipMode, MixBlendMode, ColorF, ColorSpace, FilterOpGraphPictureBufferId};
 use api::MAX_RENDER_TASK_SIZE;
 use api::units::*;
@@ -1644,15 +1644,13 @@ impl RenderTask {
         filter_nodes: &[(FilterGraphNode, FilterGraphOp)],
         frame_state: &mut FrameBuildingState,
         data_stores: &mut DataStores,
-        _uv_rect_kind: UvRectKind,
+        uv_rect_kind: UvRectKind,
         original_task_id: RenderTaskId,
-        source_subregion: LayoutRect,
-        target_subregion: LayoutRect,
-        prim_subregion: LayoutRect,
-        surface_rects_clipped: LayoutRect,
-        surface_rects_clipped_local: LayoutRect,
+        surface_rects_task_size: DeviceIntSize,
+        surface_rects_clipped: DeviceRect,
+        surface_rects_clipped_local: PictureRect,
     ) -> RenderTaskId {
-        const BUFFER_LIMIT: usize = SVGFE_GRAPH_MAX;
+        const BUFFER_LIMIT: usize = 256;
         let mut task_by_buffer_id: [RenderTaskId; BUFFER_LIMIT] = [RenderTaskId::INVALID; BUFFER_LIMIT];
         let mut subregion_by_buffer_id: [LayoutRect; BUFFER_LIMIT] = [LayoutRect::zero(); BUFFER_LIMIT];
         // If nothing replaces this value (all node subregions are empty), we
@@ -1669,6 +1667,40 @@ impl RenderTask {
         // These assumptions are verified with asserts in this function as
         // appropriate.
 
+        // Converts a UvRectKind::Quad to a subregion, we need this for
+        // SourceGraphic because it could source from a larger image when doing
+        // a dirty rect update.  In theory this can be used for blur output as
+        // well but it doesn't seem to be necessary from early testing.
+        //
+        // See calculate_uv_rect_kind in picture.rs for how these were generated.
+        fn subregion_for_uvrectkind(kind: &UvRectKind, rect: LayoutRect) -> LayoutRect {
+            let used =
+            match kind {
+                UvRectKind::Quad{top_left: tl, top_right: _tr, bottom_left: _bl, bottom_right: br} => {
+                    LayoutRect::new(
+                        LayoutPoint::new(
+                            rect.min.x + rect.width() * tl.x / tl.w,
+                            rect.min.y + rect.height() * tl.y / tl.w,
+                        ),
+                        LayoutPoint::new(
+                            rect.min.x + rect.width() * br.x / br.w,
+                            rect.min.y + rect.height() * br.y / br.w,
+                        ),
+                    )
+                }
+                UvRectKind::Rect => {
+                    rect
+                }
+            };
+            // For some reason, the following test passes a uv_rect_kind that
+            // resolves to [-.2, -.2, -.2, -.2]
+            // reftest layout/reftests/svg/filters/dynamic-filter-invalidation-01.svg
+            match used.is_empty() {
+                true => rect,
+                false => used,
+            }
+        }
+
         // Make a UvRectKind::Quad that represents a task for a node, which may
         // have an inflate border, must be a Quad because the surface_rects
         // compositing shader expects it to be one, we don't actually use this
@@ -1676,7 +1708,24 @@ impl RenderTask {
         // this works, it projects from clipped rect to unclipped rect, where
         // our clipped rect is simply task_size minus the inflate, and unclipped
         // is our full task_size
-        fn uv_rect_kind_for_task_size(clipped: DeviceRect, unclipped: DeviceRect) -> UvRectKind {
+        fn uv_rect_kind_for_task_size(task_size: DeviceIntSize, inflate: i16) -> UvRectKind {
+            let unclipped = DeviceRect::new(
+                DevicePoint::new(
+                    inflate as f32,
+                    inflate as f32,
+                ),
+                DevicePoint::new(
+                    task_size.width as f32 - inflate as f32,
+                    task_size.height as f32 - inflate as f32,
+                ),
+            );
+            let clipped = DeviceRect::new(
+                DevicePoint::zero(),
+                DevicePoint::new(
+                    task_size.width as f32,
+                    task_size.height as f32,
+                ),
+            );
             let scale_x = 1.0 / clipped.width();
             let scale_y = 1.0 / clipped.height();
             UvRectKind::Quad{
@@ -1712,6 +1761,29 @@ impl RenderTask {
         let subregion_to_device_scale_y = surface_rects_clipped.height() / surface_rects_clipped_local.height();
         let subregion_to_device_offset_x = surface_rects_clipped.min.x - (surface_rects_clipped_local.min.x * subregion_to_device_scale_x).floor();
         let subregion_to_device_offset_y = surface_rects_clipped.min.y - (surface_rects_clipped_local.min.y * subregion_to_device_scale_y).floor();
+
+        // We will treat the entire SourceGraphic coordinate space as being this
+        // subregion, which is how large the source picture task is.
+        let filter_subregion: LayoutRect = surface_rects_clipped.cast_unit();
+
+        // Calculate the used subregion (invalidation rect) for SourceGraphic
+        // that we are painting for, the intermediate task sizes are based on
+        // this portion of SourceGraphic, this also serves as a clip on the
+        // SourceGraphic, which is necessary for this reftest:
+        // layout/reftests/svg/filters/svg-filter-chains/clip-original-SourceGraphic.svg
+        let source_subregion =
+            subregion_for_uvrectkind(
+                &uv_rect_kind,
+                surface_rects_clipped.cast_unit(),
+            )
+            .intersection(&filter_subregion)
+            .unwrap_or(LayoutRect::zero())
+            .round_out();
+
+        // This is the rect for the output picture we are producing
+        let output_rect = filter_subregion.to_i32();
+        // Output to the same subregion we were provided
+        let output_subregion = filter_subregion;
 
         // Iterate the filter nodes and create tasks
         let mut made_dependency_on_source = false;
@@ -2036,11 +2108,7 @@ impl RenderTask {
                 .round();
 
             // Clip the used subregion we calculated from the inputs to fit
-            // within the node's specified subregion, but we want to keep a copy
-            // of the combined input subregion for sizing tasks that involve
-            // blurs as their intermediate stages will have to be downscaled if
-            // very large, and we want that to be at the same alignment as the
-            // node output itself.
+            // within the node's specified subregion.
             used_subregion = used_subregion
                 .intersection(&full_subregion)
                 .unwrap_or(LayoutRect::zero())
@@ -2091,10 +2159,10 @@ impl RenderTask {
                     // in FilterSupport.cpp for more information.
                     //
                     // Any other case uses the union of input subregions
-                    if k4 > 0.0 {
+                    if k4 != 0.0 {
                         // Can produce pixels anywhere in the subregion.
                         used_subregion = full_subregion;
-                    } else  if k1 > 0.0 && k2 == 0.0 && k3 == 0.0 {
+                    } else  if k1 != 0.0 && k2 == 0.0 && k3 == 0.0 && k4 == 0.0 {
                         // Can produce pixels where both exist.
                         used_subregion = full_subregion
                             .intersection(&node_inputs[0].0.subregion)
@@ -2102,13 +2170,13 @@ impl RenderTask {
                             .intersection(&node_inputs[1].0.subregion)
                             .unwrap_or(LayoutRect::zero());
                     }
-                    else if k2 > 0.0 && k3 == 0.0 {
+                    else if k2 != 0.0 && k3 == 0.0 && k4 == 0.0 {
                         // Can produce pixels where source exists.
                         used_subregion = full_subregion
                             .intersection(&node_inputs[0].0.subregion)
                             .unwrap_or(LayoutRect::zero());
                     }
-                    else if k2 == 0.0 && k3 > 0.0 {
+                    else if k2 == 0.0 && k3 != 0.0 && k4 == 0.0 {
                         // Can produce pixels where background exists.
                         used_subregion = full_subregion
                             .intersection(&node_inputs[1].0.subregion)
@@ -2171,9 +2239,7 @@ impl RenderTask {
                 },
                 FilterGraphOp::SVGFESourceAlpha |
                 FilterGraphOp::SVGFESourceGraphic => {
-                    used_subregion = source_subregion
-                        .intersection(&full_subregion)
-                        .unwrap_or(LayoutRect::zero());
+                    used_subregion = source_subregion;
                 },
                 FilterGraphOp::SVGFESpecularLightingDistant{..} => {},
                 FilterGraphOp::SVGFESpecularLightingPoint{..} => {},
@@ -2196,90 +2262,65 @@ impl RenderTask {
                 },
             }
 
+            // If this is the output node, apply the output clip.
+            let node_inflate = node.inflate;
+            let mut create_output_task = false;
+            if is_output {
+                // If we're drawing a subregion that encloses output_subregion
+                // we can just crop the node to output_subregion.
+                if used_subregion.to_i32().contains_box(&output_rect) {
+                    used_subregion = output_subregion;
+                } else {
+                    // We'll have to create an extra blit task after this task
+                    // so that there is transparent black padding around it.
+                    create_output_task = true;
+                }
+            }
+
+            // Convert subregion from layout pixels to integer device pixels and
+            // then calculate size afterwards so it reflects the used pixel area
+            //
+            // This can be an empty rect if the source_subregion invalidation
+            // rect didn't request any pixels of this node, but we can't skip
+            // creating tasks that have no size because they would leak in the
+            // render task graph with no consumers
+            let node_task_rect: DeviceIntRect = used_subregion.to_i32().cast_unit();
+            let mut node_task_size = node_task_rect.size().cast_unit();
+
+            // We have to limit the render target sizes we're asking for on the
+            // intermediate nodes; it's not feasible to allocate extremely large
+            // surfaces.  Note that the SVGFEFilterTask code can adapt to any
+            // scaling that we use here, input subregions simply have to be in
+            // the same space as the target subregion, which we're not changing,
+            // and operator parameters like kernel_unit_length are also in that
+            // space.  Blurs will do this same logic if their intermediate is
+            // too large.  We use a simple halving calculation here so that
+            // pixel alignment is still vaguely sensible.
+            while node_task_size.width as usize + node_inflate as usize * 2 > MAX_SURFACE_SIZE ||
+                node_task_size.height as usize + node_inflate as usize * 2 > MAX_SURFACE_SIZE {
+                node_task_size.width >>= 1;
+                node_task_size.height >>= 1;
+            }
+
             // SVG spec requires that a later node sampling pixels outside
             // this node's subregion will receive a transparent black color
-            // for those samples, we achieve this by adding a 1 pixel inflate
-            // around the target rect, which works fine with the
-            // edgemode=duplicate behavior of the texture fetch in the shader,
-            // all of the out of bounds reads are transparent black.
-            //
-            // If this is the output node, we don't apply the inflate, knowing
-            // that the pixels outside of the invalidation rect will not be used
-            // so it is okay if they duplicate outside the view.
-            let mut node_inflate = node.inflate;
-            if is_output {
-                // Use the provided target subregion (invalidation rect)
-                used_subregion = target_subregion;
-                node_inflate = 0;
-            }
-
-            // We can't render tasks larger than a certain size, if this node
-            // is too large (particularly with blur padding), we need to render
-            // at a reduced resolution, later nodes can still be full resolution
-            // but for example blurs are not significantly harmed by reduced
-            // resolution in most cases.
-            let mut device_to_render_scale = 1.0;
-            let mut render_to_device_scale = 1.0;
-            let mut subregion = used_subregion;
-            let padded_subregion = match op {
-                FilterGraphOp::SVGFEGaussianBlur{std_deviation_x, std_deviation_y} |
-                FilterGraphOp::SVGFEDropShadow{std_deviation_x, std_deviation_y, ..} => {
-                    used_subregion
-                    .inflate(
-                        std_deviation_x.ceil() * BLUR_SAMPLE_SCALE,
-                        std_deviation_y.ceil() * BLUR_SAMPLE_SCALE)
-                }
-                _ => used_subregion,
-            };
-            while
-                padded_subregion.scale(device_to_render_scale, device_to_render_scale).round().width() + node_inflate as f32 * 2.0 > MAX_SURFACE_SIZE as f32 ||
-                padded_subregion.scale(device_to_render_scale, device_to_render_scale).round().height() + node_inflate as f32 * 2.0 > MAX_SURFACE_SIZE as f32 {
-                device_to_render_scale *= 0.5;
-                render_to_device_scale *= 2.0;
-                // If the rendering was scaled, we need to snap used_subregion
-                // to the correct granularity or we'd have misaligned sampling
-                // when this is used as an input later.
-                subregion = used_subregion
-                    .scale(device_to_render_scale, device_to_render_scale)
-                    .round()
-                    .scale(render_to_device_scale, render_to_device_scale);
-            }
-
-            // This is the rect we will be actually producing as a render task,
-            // it is sometimes the case that subregion is empty, but we
-            // must make a task or else the earlier tasks would not be properly
-            // linked into the frametree, causing a leak.
-            let node_task_rect: DeviceRect =
-                subregion
-                .scale(device_to_render_scale, device_to_render_scale)
-                .round()
-                .inflate(node_inflate as f32, node_inflate as f32)
-                .cast_unit();
-            let node_task_size = node_task_rect.to_i32().size();
-            let node_task_size =
-                if node_task_size.width < 1 || node_task_size.height < 1 {
-                    DeviceIntSize::new(1, 1)
-                } else {
-                    node_task_size
-                };
+            // for those samples, we achieve this by adding a 1 pixel border
+            // around the target rect, which works fine with the clamping of the
+            // texture fetch in the shader, and to account for the offset we
+            // have to make a UvRectKind::Quad mapping for later nodes to use
+            // when sampling this output, if they use feOffset or have a
+            // larger target rect those samples will be clamped to the
+            // transparent black border and thus meet spec.
+            node_task_size.width += node_inflate as i32 * 2;
+            node_task_size.height += node_inflate as i32 * 2;
 
             // Make the uv_rect_kind for this node's task to use, this matters
             // only on the final node because we don't use it internally
-            let node_uv_rect_kind = uv_rect_kind_for_task_size(
-                subregion
-                .scale(device_to_render_scale, device_to_render_scale)
-                .round()
-                .inflate(node_inflate as f32, node_inflate as f32)
-                .cast_unit(),
-                prim_subregion
-                .scale(device_to_render_scale, device_to_render_scale)
-                .round()
-                .inflate(node_inflate as f32, node_inflate as f32)
-                .cast_unit(),
-            );
+            let node_uv_rect_kind =
+                uv_rect_kind_for_task_size(node_task_size, node_inflate);
 
             // Create task for this node
-            let task_id;
+            let mut task_id;
             match op {
                 FilterGraphOp::SVGFEGaussianBlur { std_deviation_x, std_deviation_y } => {
                     // Note: wrap_prim_with_filters copies the SourceGraphic to
@@ -2295,49 +2336,65 @@ impl RenderTask {
 
                     // We have to make a copy of the input that is padded with
                     // transparent black for the area outside the subregion, so
-                    // that the blur task does not duplicate at the edges
-                    let adjusted_blur_std_deviation = DeviceSize::new(
-                        std_deviation_x.clamp(0.0, (i32::MAX / 2) as f32) * device_to_render_scale,
-                        std_deviation_y.clamp(0.0, (i32::MAX / 2) as f32) * device_to_render_scale,
+                    // that the blur task does not duplicate at the edges, and
+                    // this is also where we have to adjust size to account for
+                    // for downscaling of the image in the blur task to avoid
+                    // introducing sampling artifacts on the downscale
+                    let mut adjusted_blur_std_deviation = DeviceSize::new(
+                        std_deviation_x,
+                        std_deviation_y,
                     );
                     let blur_subregion = blur_input.subregion
-                        .scale(device_to_render_scale, device_to_render_scale)
                         .inflate(
-                            adjusted_blur_std_deviation.width * BLUR_SAMPLE_SCALE,
-                            adjusted_blur_std_deviation.height * BLUR_SAMPLE_SCALE)
-                        .round_out();
+                            std_deviation_x.ceil() * BLUR_SAMPLE_SCALE,
+                            std_deviation_y.ceil() * BLUR_SAMPLE_SCALE);
                     let blur_task_size = blur_subregion.size().cast_unit();
                     // Adjust task size to prevent potential sampling errors
-                    let adjusted_blur_task_size =
+                    let mut adjusted_blur_task_size =
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32();
+                        );
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(
-                            blur_subregion.min.x.floor() + ((
-                                blur_task_size.width -
-                                adjusted_blur_task_size.width) * 0.5).floor(),
-                            blur_subregion.min.y.floor() + ((
-                                blur_task_size.height -
-                                adjusted_blur_task_size.height) * 0.5).floor(),
-                        );
-                    // Recalculate the blur_subregion to match, and if render
-                    // scale is used, undo that so it is in the same subregion
-                    // coordinate system as the node
-                    let blur_subregion =
-                        LayoutRect::new(
-                            corner,
-                            LayoutPoint::new(
-                                corner.x + adjusted_blur_task_size.width,
-                                corner.y + adjusted_blur_task_size.height,
-                            ),
+                            blur_subregion.min.x + ((
+                                blur_task_size.width as i32 -
+                                adjusted_blur_task_size.width) / 2) as f32,
+                            blur_subregion.min.y + ((
+                                blur_task_size.height as i32 -
+                                adjusted_blur_task_size.height) / 2) as f32,
                         )
-                        .scale(render_to_device_scale, render_to_device_scale);
+                        .floor();
+                    // Recalculate the blur_subregion to match, note that if the
+                    // task was downsized it doesn't affect the size of this
+                    // rect, so we don't have to scale blur_input.subregion for
+                    // input purposes as they are the same scale.
+                    let blur_subregion = LayoutRect::new(
+                        corner,
+                        LayoutPoint::new(
+                            corner.x + adjusted_blur_task_size.width as f32,
+                            corner.y + adjusted_blur_task_size.height as f32,
+                        ),
+                    );
+                    // For extremely large blur radius we have to limit size,
+                    // see comments on node_task_size above for more details.
+                    while adjusted_blur_task_size.to_i32().width as usize > MAX_SURFACE_SIZE ||
+                        adjusted_blur_task_size.to_i32().height as usize > MAX_SURFACE_SIZE {
+                        adjusted_blur_task_size.width >>= 1;
+                        adjusted_blur_task_size.height >>= 1;
+                        adjusted_blur_std_deviation.width *= 0.5;
+                        adjusted_blur_std_deviation.height *= 0.5;
+                        if adjusted_blur_task_size.width < 2 {
+                            adjusted_blur_task_size.width = 2;
+                        }
+                        if adjusted_blur_task_size.height < 2 {
+                            adjusted_blur_task_size.height = 2;
+                        }
+                    }
 
                     let input_subregion_task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
-                        adjusted_blur_task_size.to_i32(),
+                        adjusted_blur_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
                                 node: FilterGraphNode{
@@ -2368,7 +2425,7 @@ impl RenderTask {
                             frame_state.rg_builder,
                             RenderTargetKind::Color,
                             None,
-                            adjusted_blur_task_size.to_i32(),
+                            adjusted_blur_task_size,
                         );
 
                     task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
@@ -2388,10 +2445,10 @@ impl RenderTask {
                                             source_padding: LayoutRect::zero(),
                                             target_padding: LayoutRect::zero(),
                                         }].to_vec(),
-                                    subregion,
+                                    subregion: used_subregion,
                                 },
                                 op: FilterGraphOp::SVGFEIdentity,
-                                content_origin: node_task_rect.min,
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: None,
                             }
                         ),
@@ -2413,49 +2470,65 @@ impl RenderTask {
 
                     // We have to make a copy of the input that is padded with
                     // transparent black for the area outside the subregion, so
-                    // that the blur task does not duplicate at the edges
-                    let adjusted_blur_std_deviation = DeviceSize::new(
-                        std_deviation_x.clamp(0.0, (i32::MAX / 2) as f32) * device_to_render_scale,
-                        std_deviation_y.clamp(0.0, (i32::MAX / 2) as f32) * device_to_render_scale,
+                    // that the blur task does not duplicate at the edges, and
+                    // this is also where we have to adjust size to account for
+                    // for downscaling of the image in the blur task to avoid
+                    // introducing sampling artifacts on the downscale
+                    let mut adjusted_blur_std_deviation = DeviceSize::new(
+                        std_deviation_x,
+                        std_deviation_y,
                     );
                     let blur_subregion = blur_input.subregion
-                        .scale(device_to_render_scale, device_to_render_scale)
                         .inflate(
-                            adjusted_blur_std_deviation.width * BLUR_SAMPLE_SCALE,
-                            adjusted_blur_std_deviation.height * BLUR_SAMPLE_SCALE)
-                        .round_out();
+                            std_deviation_x.ceil() * BLUR_SAMPLE_SCALE,
+                            std_deviation_y.ceil() * BLUR_SAMPLE_SCALE);
                     let blur_task_size = blur_subregion.size().cast_unit();
                     // Adjust task size to prevent potential sampling errors
-                    let adjusted_blur_task_size =
+                    let mut adjusted_blur_task_size =
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32();
+                        );
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(
-                            blur_subregion.min.x.floor() + ((
-                                blur_task_size.width -
-                                adjusted_blur_task_size.width) * 0.5).floor(),
-                            blur_subregion.min.y.floor() + ((
-                                blur_task_size.height -
-                                adjusted_blur_task_size.height) * 0.5).floor(),
-                        );
-                    // Recalculate the blur_subregion to match, and if render
-                    // scale is used, undo that so it is in the same subregion
-                    // coordinate system as the node
-                    let blur_subregion =
-                        LayoutRect::new(
-                            corner,
-                            LayoutPoint::new(
-                                corner.x + adjusted_blur_task_size.width,
-                                corner.y + adjusted_blur_task_size.height,
-                            ),
+                            blur_subregion.min.x + ((
+                                blur_task_size.width as i32 -
+                                adjusted_blur_task_size.width) / 2) as f32,
+                            blur_subregion.min.y + ((
+                                blur_task_size.height as i32 -
+                                adjusted_blur_task_size.height) / 2) as f32,
                         )
-                        .scale(render_to_device_scale, render_to_device_scale);
+                        .floor();
+                    // Recalculate the blur_subregion to match, note that if the
+                    // task was downsized it doesn't affect the size of this
+                    // rect, so we don't have to scale blur_input.subregion for
+                    // input purposes as they are the same scale.
+                    let blur_subregion = LayoutRect::new(
+                        corner,
+                        LayoutPoint::new(
+                            corner.x + adjusted_blur_task_size.width as f32,
+                            corner.y + adjusted_blur_task_size.height as f32,
+                        ),
+                    );
+                    // For extremely large blur radius we have to limit size,
+                    // see comments on node_task_size above for more details.
+                    while adjusted_blur_task_size.to_i32().width as usize > MAX_SURFACE_SIZE ||
+                        adjusted_blur_task_size.to_i32().height as usize > MAX_SURFACE_SIZE {
+                        adjusted_blur_task_size.width >>= 1;
+                        adjusted_blur_task_size.height >>= 1;
+                        adjusted_blur_std_deviation.width *= 0.5;
+                        adjusted_blur_std_deviation.height *= 0.5;
+                        if adjusted_blur_task_size.width < 2 {
+                            adjusted_blur_task_size.width = 2;
+                        }
+                        if adjusted_blur_task_size.height < 2 {
+                            adjusted_blur_task_size.height = 2;
+                        }
+                    }
 
                     let input_subregion_task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
-                        adjusted_blur_task_size.to_i32(),
+                        adjusted_blur_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
                                 node: FilterGraphNode{
@@ -2474,7 +2547,7 @@ impl RenderTask {
                                     inflate: 0,
                                 },
                                 op: FilterGraphOp::SVGFEIdentity,
-                                content_origin: node_task_rect.min,
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: None,
                             }
                         ),
@@ -2493,12 +2566,12 @@ impl RenderTask {
                             frame_state.rg_builder,
                             RenderTargetKind::Color,
                             None,
-                            adjusted_blur_task_size.to_i32(),
+                            adjusted_blur_task_size,
                         );
 
                     // Now we make the compositing task, for this we need to put
                     // the blurred shadow image at the correct subregion offset
-                    let blur_subregion_translated = blur_subregion
+                    let blur_subregion = blur_subregion
                         .translate(LayoutVector2D::new(dx, dy));
                     task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
@@ -2514,13 +2587,13 @@ impl RenderTask {
                                         // Shadow picture
                                         FilterGraphPictureReference{
                                             buffer_id: blur_input.buffer_id,
-                                            subregion: blur_subregion_translated,
+                                            subregion: blur_subregion,
                                             inflate: 0,
                                             offset: LayoutVector2D::zero(),
                                             source_padding: LayoutRect::zero(),
                                             target_padding: LayoutRect::zero(),
                                         }].to_vec(),
-                                    subregion,
+                                    subregion: used_subregion,
                                 },
                                 op: FilterGraphOp::SVGFEDropShadow{
                                     color,
@@ -2528,7 +2601,7 @@ impl RenderTask {
                                     dx: 0.0, dy: 0.0,
                                     std_deviation_x: 0.0, std_deviation_y: 0.0,
                                 },
-                                content_origin: node_task_rect.min,
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: None,
                             }
                         ),
@@ -2555,18 +2628,22 @@ impl RenderTask {
                                         FilterGraphPictureReference{
                                             buffer_id: FilterOpGraphPictureBufferId::None,
                                             // This is what makes the mapping
-                                            // actually work.
-                                            subregion: source_subregion.cast_unit(),
+                                            // actually work - this has to be
+                                            // the subregion of the whole filter
+                                            // because that is the size of the
+                                            // input task, it will be cropped to
+                                            // the used area (source_subregion).
+                                            subregion: filter_subregion,
                                             offset: LayoutVector2D::zero(),
                                             inflate: 0,
                                             source_padding: LayoutRect::zero(),
                                             target_padding: LayoutRect::zero(),
                                         }
                                     ].to_vec(),
-                                    subregion: source_subregion.cast_unit(),
+                                    subregion: used_subregion,
                                 },
                                 op: op.clone(),
-                                content_origin: source_subregion.min.cast_unit(),
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: None,
                             }
                         ),
@@ -2589,11 +2666,11 @@ impl RenderTask {
                                     kept_by_optimizer: true,
                                     linear: node.linear,
                                     inputs: node_inputs.iter().map(|input| {input.0}).collect(),
-                                    subregion,
+                                    subregion: used_subregion,
                                     inflate: node_inflate,
                                 },
                                 op: op.clone(),
-                                content_origin: node_task_rect.min,
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: Some(filter_data.gpu_cache_handle),
                             }
                         ),
@@ -2621,11 +2698,11 @@ impl RenderTask {
                                     kept_by_optimizer: true,
                                     linear: node.linear,
                                     inputs: node_inputs.iter().map(|input| {input.0}).collect(),
-                                    subregion,
+                                    subregion: used_subregion,
                                     inflate: node_inflate,
                                 },
                                 op: op.clone(),
-                                content_origin: node_task_rect.min,
+                                content_origin: DevicePoint::zero(),
                                 extra_gpu_cache_handle: None,
                             }
                         ),
@@ -2648,10 +2725,46 @@ impl RenderTask {
             // to look them up quickly, since nodes can only depend on previous
             // nodes in the same list
             task_by_buffer_id[filter_index] = task_id;
-            subregion_by_buffer_id[filter_index] = subregion;
+            subregion_by_buffer_id[filter_index] = used_subregion;
 
             // The final task we create is the output picture.
             output_task_id = task_id;
+            if create_output_task {
+                // If the final node subregion is smaller than the output rect,
+                // we need to pad it with transparent black to match SVG spec,
+                // as the output task rect is larger than the invalidated area,
+                // ideally the origin and size of the picture we return should
+                // be used instead of the get_rect result for sizing geometry,
+                // as it would allow us to produce a much smaller rect.
+                let output_uv_rect_kind =
+                    uv_rect_kind_for_task_size(surface_rects_task_size, 0);
+                task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
+                    surface_rects_task_size,
+                    RenderTaskKind::SVGFENode(
+                        SVGFEFilterTask{
+                            node: FilterGraphNode{
+                                kept_by_optimizer: true,
+                                linear: false,
+                                inputs: [FilterGraphPictureReference{
+                                    buffer_id: FilterOpGraphPictureBufferId::None,
+                                    subregion: used_subregion,
+                                    offset: LayoutVector2D::zero(),
+                                    inflate: node_inflate,
+                                    source_padding: LayoutRect::zero(),
+                                    target_padding: LayoutRect::zero(),
+                                }].to_vec(),
+                                subregion: output_subregion,
+                                inflate: 0,
+                            },
+                            op: FilterGraphOp::SVGFEIdentity,
+                            content_origin: surface_rects_clipped.min,
+                            extra_gpu_cache_handle: None,
+                        }
+                    ),
+                ).with_uv_rect_kind(output_uv_rect_kind));
+                frame_state.rg_builder.add_dependency(task_id, output_task_id);
+                output_task_id = task_id;
+            }
         }
 
         // If no tasks referenced the SourceGraphic, we actually have to create

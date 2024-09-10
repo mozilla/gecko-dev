@@ -45,7 +45,7 @@ use api::{PropertyBinding, ReferenceFrameKind, ScrollFrameDescriptor};
 use api::{APZScrollGeneration, HasScrollLinkedEffect, Shadow, SpatialId, StickyFrameDescriptor, ImageMask, ItemTag};
 use api::{ClipMode, PrimitiveKeyKind, TransformStyle, YuvColorSpace, ColorRange, YuvData, TempFilterData};
 use api::{ReferenceTransformBinding, Rotation, FillRule, SpatialTreeItem, ReferenceFrameDescriptor};
-use api::{FilterOpGraphPictureBufferId, SVGFE_GRAPH_MAX};
+use api::FilterOpGraphPictureBufferId;
 use api::channel::{unbounded_channel, Receiver, Sender};
 use api::units::*;
 use crate::image_tiling::simplify_repeated_primitive;
@@ -3838,7 +3838,7 @@ impl<'a> SceneBuilder<'a> {
 
             // The SVG spec allows us to drop the entire filter graph if it is
             // unreasonable, so we limit the number of filters in a graph
-            const BUFFER_LIMIT: usize = SVGFE_GRAPH_MAX;
+            const BUFFER_LIMIT: usize = 256;
             // Easily tunable for debugging proper handling of inflated rects,
             // this should normally be 1
             const SVGFE_INFLATE: i16 = 1;
