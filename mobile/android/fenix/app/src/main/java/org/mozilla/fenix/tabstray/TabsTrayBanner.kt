@@ -19,14 +19,10 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.LocalContentColor
-import androidx.compose.material.LocalRippleConfiguration
-import androidx.compose.material.RippleConfiguration
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -219,63 +215,61 @@ private fun TabPageBanner(
                 .height(80.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CompositionLocalProvider(LocalRippleConfiguration provides DisabledRippleConfiguration) {
-                TabRow(
-                    selectedTabIndex = selectedPage.ordinal,
-                    modifier = Modifier.fillMaxWidth(MAX_WIDTH_TAB_ROW_PERCENT),
-                    backgroundColor = Color.Transparent,
-                    contentColor = selectedColor,
-                    divider = {},
+            TabRow(
+                selectedTabIndex = selectedPage.ordinal,
+                modifier = Modifier.fillMaxWidth(MAX_WIDTH_TAB_ROW_PERCENT),
+                backgroundColor = Color.Transparent,
+                contentColor = selectedColor,
+                divider = {},
+            ) {
+                Tab(
+                    selected = selectedPage == Page.NormalTabs,
+                    onClick = { onTabPageIndicatorClicked(Page.NormalTabs) },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .testTag(TabsTrayTestTag.normalTabsPageButton),
+                    selectedContentColor = selectedColor,
+                    unselectedContentColor = inactiveColor,
                 ) {
-                    Tab(
-                        selected = selectedPage == Page.NormalTabs,
-                        onClick = { onTabPageIndicatorClicked(Page.NormalTabs) },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .testTag(TabsTrayTestTag.normalTabsPageButton),
-                        selectedContentColor = selectedColor,
-                        unselectedContentColor = inactiveColor,
-                    ) {
-                        val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
-                        TabCounter(
-                            tabCount = normalTabCount,
-                            textColor = tabCounterAlpha,
-                            iconColor = tabCounterAlpha,
-                        )
-                    }
-
-                    Tab(
-                        selected = selectedPage == Page.PrivateTabs,
-                        onClick = { onTabPageIndicatorClicked(Page.PrivateTabs) },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .testTag(TabsTrayTestTag.privateTabsPageButton),
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_private_browsing),
-                                contentDescription = stringResource(id = R.string.tabs_header_private_tabs_title),
-                            )
-                        },
-                        selectedContentColor = selectedColor,
-                        unselectedContentColor = inactiveColor,
-                    )
-
-                    Tab(
-                        selected = selectedPage == Page.SyncedTabs,
-                        onClick = { onTabPageIndicatorClicked(Page.SyncedTabs) },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .testTag(TabsTrayTestTag.syncedTabsPageButton),
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_synced_tabs),
-                                contentDescription = stringResource(id = R.string.tabs_header_synced_tabs_title),
-                            )
-                        },
-                        selectedContentColor = selectedColor,
-                        unselectedContentColor = inactiveColor,
+                    val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
+                    TabCounter(
+                        tabCount = normalTabCount,
+                        textColor = tabCounterAlpha,
+                        iconColor = tabCounterAlpha,
                     )
                 }
+
+                Tab(
+                    selected = selectedPage == Page.PrivateTabs,
+                    onClick = { onTabPageIndicatorClicked(Page.PrivateTabs) },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .testTag(TabsTrayTestTag.privateTabsPageButton),
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_private_browsing),
+                            contentDescription = stringResource(id = R.string.tabs_header_private_tabs_title),
+                        )
+                    },
+                    selectedContentColor = selectedColor,
+                    unselectedContentColor = inactiveColor,
+                )
+
+                Tab(
+                    selected = selectedPage == Page.SyncedTabs,
+                    onClick = { onTabPageIndicatorClicked(Page.SyncedTabs) },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .testTag(TabsTrayTestTag.syncedTabsPageButton),
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_synced_tabs),
+                            contentDescription = stringResource(id = R.string.tabs_header_synced_tabs_title),
+                        )
+                    },
+                    selectedContentColor = selectedColor,
+                    unselectedContentColor = inactiveColor,
+                )
             }
 
             Spacer(modifier = Modifier.weight(1.0f))
@@ -517,13 +511,6 @@ private fun TabsTrayBannerPreviewRoot(
         }
     }
 }
-
-@OptIn(ExperimentalMaterialApi::class)
-private val DisabledRippleConfiguration =
-    RippleConfiguration(
-        color = Color.Unspecified,
-        rippleAlpha = RippleAlpha(0.0f, 0.0f, 0.0f, 0.0f),
-    )
 
 private fun generateFakeTabsList(tabCount: Int = 10, isPrivate: Boolean = false): List<TabSessionState> =
     List(tabCount) { index ->
