@@ -17,6 +17,9 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundParent.h"
+#include "mozilla/net/CookieServiceParent.h"
+#include "mozilla/net/NeckoParent.h"
+#include "mozilla/net/CookieServiceParent.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "nsCOMPtr.h"
 #include "nsImportModule.h"
@@ -36,6 +39,7 @@ mozilla::LazyLogModule gRemoteWorkerManagerLog("RemoteWorkerManager");
 namespace mozilla {
 
 using namespace ipc;
+using namespace net;
 
 namespace dom {
 
@@ -50,7 +54,7 @@ bool IsServiceWorker(const RemoteWorkerData& aData) {
          OptionalServiceWorkerData::TServiceWorkerData;
 }
 
-void TransmitPermissionsAndBlobURLsForPrincipalInfo(
+void TransmitPermissionsAndCookiesAndBlobURLsForPrincipalInfo(
     ContentParent* aContentParent, const PrincipalInfo& aPrincipalInfo) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aContentParent);
@@ -67,6 +71,25 @@ void TransmitPermissionsAndBlobURLsForPrincipalInfo(
 
   MOZ_ALWAYS_SUCCEEDS(
       aContentParent->TransmitPermissionsForPrincipal(principal));
+
+  CookieServiceParent* cs = nullptr;
+
+  PNeckoParent* neckoParent =
+      LoneManagedOrNullAsserts(aContentParent->ManagedPNeckoParent());
+  if (neckoParent) {
+    PCookieServiceParent* csParent =
+        LoneManagedOrNullAsserts(neckoParent->ManagedPCookieServiceParent());
+    if (csParent) {
+      cs = static_cast<CookieServiceParent*>(csParent);
+    }
+  }
+
+  if (cs) {
+    nsCOMPtr<nsIURI> uri = principal->GetURI();
+    cs->UpdateCookieInContentList(uri, principal->OriginAttributesRef());
+  } else {
+    aContentParent->AddPrincipalToCookieInProcessCache(principal);
+  }
 }
 
 }  // namespace
@@ -313,8 +336,8 @@ void RemoteWorkerManager::LaunchInternal(
           AssertIsOnMainThread();
           if (RefPtr<ContentParent> contentParent =
                   contentHandle->GetContentParent()) {
-            TransmitPermissionsAndBlobURLsForPrincipalInfo(contentParent,
-                                                           principalInfo);
+            TransmitPermissionsAndCookiesAndBlobURLsForPrincipalInfo(
+                contentParent, principalInfo);
           }
         });
 

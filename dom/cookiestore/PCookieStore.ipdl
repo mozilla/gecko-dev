@@ -6,6 +6,7 @@ include protocol PBackground;
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
+using struct nsID from "nsID.h";
 
 namespace mozilla {
 namespace dom {
@@ -44,13 +45,15 @@ parent:
                    int64_t expires,
                    nsString path,
                    int32_t sameSite,
-                   bool partitioned) returns (bool v);
+                   bool partitioned,
+                   nsID operationId) returns (bool waitForNotification);
 
   async DeleteRequest(nsString domain,
                       OriginAttributes attrs,
                       nsString name,
                       nsString path,
-                      bool partitioned) returns (bool v);
+                      bool partitioned,
+                      nsID operationID) returns (bool waitForNotification);
 
   async Close();
 

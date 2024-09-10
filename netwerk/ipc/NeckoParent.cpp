@@ -287,7 +287,7 @@ mozilla::ipc::IPCResult NeckoParent::RecvPDocumentChannelConstructor(
 }
 
 PCookieServiceParent* NeckoParent::AllocPCookieServiceParent() {
-  return new CookieServiceParent();
+  return new CookieServiceParent(static_cast<ContentParent*>(Manager()));
 }
 
 bool NeckoParent::DeallocPCookieServiceParent(PCookieServiceParent* cs) {

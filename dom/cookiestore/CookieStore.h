@@ -17,6 +17,7 @@ namespace mozilla::dom {
 
 class CookieData;
 class CookieStoreChild;
+class CookieStoreNotificationWatcherWrapper;
 class CookieStoreNotifier;
 class Promise;
 
@@ -72,6 +73,7 @@ class CookieStore final : public DOMEventTargetHelper {
 
   RefPtr<CookieStoreChild> mActor;
   RefPtr<CookieStoreNotifier> mNotifier;
+  RefPtr<CookieStoreNotificationWatcherWrapper> mNotificationWatcher;
 };
 
 }  // namespace mozilla::dom
