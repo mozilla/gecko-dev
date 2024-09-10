@@ -69,13 +69,21 @@ async function setPartitionedStorage(browser, type, key) {
     content.localStorage.setItem(storageKey, storageValue);
   };
 
+  const thirdPartyHandler = async (storageType, storageKey, storageValue) => {
+    if (storageType == "cookie") {
+      content.document.cookie = `${storageKey}=${storageValue}; SameSite=None; Secure; Partitioned;`;
+      return;
+    }
+    content.localStorage.setItem(storageKey, storageValue);
+  };
+
   // Set first party storage.
   await SpecialPowers.spawn(browser, [type, key, "first"], handler);
   // Set third-party (partitioned) storage in the iframe.
   await SpecialPowers.spawn(
     browser.browsingContext.children[0],
     [type, key, "third"],
-    handler
+    thirdPartyHandler
   );
 }
 
