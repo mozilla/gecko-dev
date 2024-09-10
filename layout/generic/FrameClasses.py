@@ -136,7 +136,9 @@ FRAME_CLASSES = [
     Frame("SVGGFrame", "SVGG", SVG_CONTAINER),
     Frame("SVGImageFrame", "SVGImage", SVG_CONTENT | LEAF),
     Frame("SVGInnerSVGFrame", "SVGInnerSVG", SVG_CONTAINER),
-    Frame("SVGLinearGradientFrame", "SVGLinearGradient", SVG_CONTAINER),
+    Frame(
+        "SVGLinearGradientFrame", "SVGLinearGradient", SVG_RENDERING_OBSERVER_CONTAINER
+    ),
     Frame("SVGMarkerFrame", "SVGMarker", SVG_RENDERING_OBSERVER_CONTAINER),
     Frame("SVGMarkerAnonChildFrame", "SVGMarkerAnonChild", SVG_CONTAINER),
     Frame("SVGMaskFrame", "SVGMask", SVG_RENDERING_OBSERVER_CONTAINER),
@@ -147,8 +149,10 @@ FRAME_CLASSES = [
         | {"Replaced", "ReplacedSizing", "SupportsContainLayoutAndPaint"},
     ),
     Frame("SVGOuterSVGAnonChildFrame", "SVGOuterSVGAnonChild", SVG_CONTAINER),
-    Frame("SVGPatternFrame", "SVGPattern", SVG_CONTAINER),
-    Frame("SVGRadialGradientFrame", "SVGRadialGradient", SVG_CONTAINER),
+    Frame("SVGPatternFrame", "SVGPattern", SVG_RENDERING_OBSERVER_CONTAINER),
+    Frame(
+        "SVGRadialGradientFrame", "SVGRadialGradient", SVG_RENDERING_OBSERVER_CONTAINER
+    ),
     Frame("SVGStopFrame", "SVGStop", SVG_CONTENT | LEAF),
     Frame("SVGSwitchFrame", "SVGSwitch", SVG_CONTAINER),
     Frame("SVGSymbolFrame", "SVGSymbol", SVG_RENDERING_OBSERVER_CONTAINER),
