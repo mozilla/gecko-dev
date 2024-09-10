@@ -9,6 +9,7 @@ from mach.decorators import Command, SubCommand
 
 CPP_PATH = "toolkit/components/uniffi-js/UniFFIGeneratedScaffolding.cpp"
 JS_DIR = "toolkit/components/uniffi-bindgen-gecko-js/components/generated"
+FIXTURE_CPP_PATH = "toolkit/components/uniffi-js/UniFFIFixtureScaffolding.cpp"
 FIXTURE_JS_DIR = "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated"
 
 
@@ -57,6 +58,8 @@ def generate_command(command_context):
         FIXTURE_JS_DIR,
         "--cpp-path",
         CPP_PATH,
+        "--fixture-cpp-path",
+        FIXTURE_CPP_PATH,
     ]
     subprocess.check_call(cmdline, cwd=command_context.topsrcdir)
     return 0

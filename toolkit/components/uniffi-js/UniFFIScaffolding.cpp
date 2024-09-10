@@ -31,14 +31,39 @@ using mozilla::dom::UniFFIScaffoldingValue;
 using mozilla::uniffi::UniffiHandlerBase;
 
 namespace mozilla::uniffi {
-// Implemented in UniFFIGeneratedScaffolding.cpp
-UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId);
-Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(
+// Prototypes for the generated functions
+UniquePtr<UniffiHandlerBase> UniFFIGetHandler(uint64_t aId);
+Maybe<already_AddRefed<UniFFIPointer>> UniFFIReadPointer(
     const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
     long aPosition, ErrorResult& aError);
-bool WritePointer(const GlobalObject& aGlobal, uint64_t aId,
-                  const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff,
-                  long aPosition, ErrorResult& aError);
+bool UniFFIWritePointer(const GlobalObject& aGlobal, uint64_t aId,
+                        const UniFFIPointer& aPtr,
+                        const ArrayBuffer& aArrayBuff, long aPosition,
+                        ErrorResult& aError);
+
+#ifdef MOZ_UNIFFI_FIXTURES
+UniquePtr<UniffiHandlerBase> UniFFIFixturesGetHandler(uint64_t aId);
+Maybe<already_AddRefed<UniFFIPointer>> UniFFIFixturesReadPointer(
+    const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
+    long aPosition, ErrorResult& aError);
+bool UniFFIFixturesWritePointer(const GlobalObject& aGlobal, uint64_t aId,
+                                const UniFFIPointer& aPtr,
+                                const ArrayBuffer& aArrayBuff, long aPosition,
+                                ErrorResult& aError);
+#endif
+
+// Helper function to access both `UniFFIGetHandler` and
+// `UniFFIFixturesGetHandler` if supported.
+static UniquePtr<UniffiHandlerBase> GetHandlerHelper(uint64_t aId) {
+  UniquePtr<UniffiHandlerBase> handler = uniffi::UniFFIGetHandler(aId);
+#ifdef MOZ_UNIFFI_FIXTURES
+  if (!handler) {
+    handler = uniffi::UniFFIFixturesGetHandler(aId);
+  }
+#endif
+  return handler;
+}
+
 }  // namespace mozilla::uniffi
 
 namespace mozilla::dom {
@@ -48,7 +73,7 @@ namespace mozilla::dom {
 already_AddRefed<Promise> UniFFIScaffolding::CallAsync(
     const GlobalObject& aGlobal, uint64_t aId,
     const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
-  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandler(aId)) {
+  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandlerHelper(aId)) {
     return UniffiHandlerBase::CallAsync(std::move(handler), aGlobal, aArgs,
                                         aError);
   }
@@ -63,7 +88,7 @@ void UniFFIScaffolding::CallSync(
     const Sequence<UniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
-  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandler(aId)) {
+  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandlerHelper(aId)) {
     return UniffiHandlerBase::CallSync(std::move(handler), aGlobal, aArgs,
                                        aReturnValue, aError);
   }
@@ -76,10 +101,18 @@ already_AddRefed<UniFFIPointer> UniFFIScaffolding::ReadPointer(
     const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
     long aPosition, ErrorResult& aError) {
   Maybe<already_AddRefed<UniFFIPointer>> firstTry =
-      uniffi::ReadPointer(aGlobal, aId, aArrayBuff, aPosition, aError);
+      uniffi::UniFFIReadPointer(aGlobal, aId, aArrayBuff, aPosition, aError);
   if (firstTry.isSome()) {
     return firstTry.extract();
   }
+#ifdef MOZ_UNIFFI_FIXTURES
+  Maybe<already_AddRefed<UniFFIPointer>> secondTry =
+      uniffi::UniFFIFixturesReadPointer(aGlobal, aId, aArrayBuff, aPosition,
+                                        aError);
+  if (secondTry.isSome()) {
+    return secondTry.extract();
+  }
+#endif
 
   aError.ThrowUnknownError(nsPrintfCString("Unknown object id: %" PRIu64, aId));
   return nullptr;
@@ -89,9 +122,17 @@ void UniFFIScaffolding::WritePointer(const GlobalObject& aGlobal, uint64_t aId,
                                      const UniFFIPointer& aPtr,
                                      const ArrayBuffer& aArrayBuff,
                                      long aPosition, ErrorResult& aError) {
-  if (uniffi::WritePointer(aGlobal, aId, aPtr, aArrayBuff, aPosition, aError)) {
+  if (uniffi::UniFFIWritePointer(aGlobal, aId, aPtr, aArrayBuff, aPosition,
+                                 aError)) {
     return;
   }
+#ifdef MOZ_UNIFFI_FIXTURES
+  if (uniffi::UniFFIFixturesWritePointer(aGlobal, aId, aPtr, aArrayBuff,
+                                         aPosition, aError)) {
+    return;
+  }
+#endif
+
   aError.ThrowUnknownError(nsPrintfCString("Unknown object id: %" PRIu64, aId));
 }
 
