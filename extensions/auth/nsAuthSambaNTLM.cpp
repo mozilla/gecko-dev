@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "base/process_util.h"
 #include "nsAuth.h"
 #include "nsAuthSambaNTLM.h"
 #include "nspr.h"
@@ -12,12 +13,9 @@
 #include "mozilla/Telemetry.h"
 
 #include <stdlib.h>
+#include <sys/wait.h>
 
-nsAuthSambaNTLM::nsAuthSambaNTLM()
-    : mInitialMessage(nullptr),
-      mChildPID(nullptr),
-      mFromChildFD(nullptr),
-      mToChildFD(nullptr) {}
+nsAuthSambaNTLM::nsAuthSambaNTLM() = default;
 
 nsAuthSambaNTLM::~nsAuthSambaNTLM() {
   // ntlm_auth reads from stdin regularly so closing our file handles
@@ -27,78 +25,48 @@ nsAuthSambaNTLM::~nsAuthSambaNTLM() {
 }
 
 void nsAuthSambaNTLM::Shutdown() {
-  if (mFromChildFD) {
-    PR_Close(mFromChildFD);
-    mFromChildFD = nullptr;
-  }
-  if (mToChildFD) {
-    PR_Close(mToChildFD);
-    mToChildFD = nullptr;
-  }
-  if (mChildPID) {
-    PR_KillProcess(mChildPID);
-    mChildPID = nullptr;
+  mFromChildFD = nullptr;
+  mToChildFD = nullptr;
+
+  if (mChildPID != -1) {
+    // Kill and wait for the process to exit.
+    kill(mChildPID, SIGKILL);
+
+    int status = 0;
+    pid_t result;
+    do {
+      result = waitpid(mChildPID, &status, 0);
+    } while (result == -1 && errno == EINTR);
+
+    mChildPID = -1;
   }
 }
 
 NS_IMPL_ISUPPORTS(nsAuthSambaNTLM, nsIAuthModule)
 
-static bool SpawnIOChild(char* const* aArgs, PRProcess** aPID,
-                         PRFileDesc** aFromChildFD, PRFileDesc** aToChildFD) {
-  PRFileDesc* toChildPipeRead;
-  PRFileDesc* toChildPipeWrite;
-  if (PR_CreatePipe(&toChildPipeRead, &toChildPipeWrite) != PR_SUCCESS) {
-    return false;
-  }
-  PR_SetFDInheritable(toChildPipeRead, true);
-  PR_SetFDInheritable(toChildPipeWrite, false);
-
-  PRFileDesc* fromChildPipeRead;
-  PRFileDesc* fromChildPipeWrite;
-  if (PR_CreatePipe(&fromChildPipeRead, &fromChildPipeWrite) != PR_SUCCESS) {
-    PR_Close(toChildPipeRead);
-    PR_Close(toChildPipeWrite);
-    return false;
-  }
-  PR_SetFDInheritable(fromChildPipeRead, false);
-  PR_SetFDInheritable(fromChildPipeWrite, true);
-
-  PRProcessAttr* attr = PR_NewProcessAttr();
-  if (!attr) {
-    PR_Close(fromChildPipeRead);
-    PR_Close(fromChildPipeWrite);
-    PR_Close(toChildPipeRead);
-    PR_Close(toChildPipeWrite);
+[[nodiscard]] static bool CreatePipe(mozilla::UniqueFileHandle* aReadPipe,
+                                     mozilla::UniqueFileHandle* aWritePipe) {
+  int fds[2];
+  if (pipe(fds) == -1) {
     return false;
   }
 
-  PR_ProcessAttrSetStdioRedirect(attr, PR_StandardInput, toChildPipeRead);
-  PR_ProcessAttrSetStdioRedirect(attr, PR_StandardOutput, fromChildPipeWrite);
-
-  PRProcess* process = PR_CreateProcess(aArgs[0], aArgs, nullptr, attr);
-  PR_DestroyProcessAttr(attr);
-  PR_Close(fromChildPipeWrite);
-  PR_Close(toChildPipeRead);
-  if (!process) {
-    LOG(("ntlm_auth exec failure [%d]", PR_GetError()));
-    PR_Close(fromChildPipeRead);
-    PR_Close(toChildPipeWrite);
-    return false;
-  }
-
-  *aPID = process;
-  *aFromChildFD = fromChildPipeRead;
-  *aToChildFD = toChildPipeWrite;
+  aReadPipe->reset(fds[0]);
+  aWritePipe->reset(fds[1]);
   return true;
 }
 
-static bool WriteString(PRFileDesc* aFD, const nsACString& aString) {
-  int32_t length = aString.Length();
+static bool WriteString(const mozilla::UniqueFileHandle& aFD,
+                        const nsACString& aString) {
+  size_t length = aString.Length();
   const char* s = aString.BeginReading();
   LOG(("Writing to ntlm_auth: %s", s));
 
   while (length > 0) {
-    int result = PR_Write(aFD, s, length);
+    ssize_t result;
+    do {
+      result = write(aFD.get(), s, length);
+    } while (result == -1 && errno == EINTR);
     if (result <= 0) return false;
     s += result;
     length -= result;
@@ -106,14 +74,18 @@ static bool WriteString(PRFileDesc* aFD, const nsACString& aString) {
   return true;
 }
 
-static bool ReadLine(PRFileDesc* aFD, nsACString& aString) {
+static bool ReadLine(const mozilla::UniqueFileHandle& aFD,
+                     nsACString& aString) {
   // ntlm_auth is defined to only send one line in response to each of our
   // input lines. So this simple unbuffered strategy works as long as we
   // read the response immediately after sending one request.
   aString.Truncate();
   for (;;) {
     char buf[1024];
-    int result = PR_Read(aFD, buf, sizeof(buf));
+    ssize_t result;
+    do {
+      result = read(aFD.get(), buf, sizeof(buf));
+    } while (result == -1 && errno == EINTR);
     if (result <= 0) return false;
     aString.Append(buf, result);
     if (buf[result - 1] == '\n') {
@@ -160,17 +132,39 @@ nsresult nsAuthSambaNTLM::SpawnNTLMAuthHelper() {
   const char* username = PR_GetEnv("USER");
   if (!username) return NS_ERROR_FAILURE;
 
-  const char* const args[] = {"ntlm_auth",
-                              "--helper-protocol",
-                              "ntlmssp-client-1",
-                              "--use-cached-creds",
-                              "--username",
-                              username,
-                              nullptr};
+  // Use base::LaunchApp to run the child process. This code is posix-only, as
+  // this will not be used on Windows.
+  {
+    mozilla::UniqueFileHandle toChildPipeRead;
+    mozilla::UniqueFileHandle toChildPipeWrite;
+    if (!CreatePipe(&toChildPipeRead, &toChildPipeWrite)) {
+      return NS_ERROR_FAILURE;
+    }
 
-  bool isOK = SpawnIOChild(const_cast<char* const*>(args), &mChildPID,
-                           &mFromChildFD, &mToChildFD);
-  if (!isOK) return NS_ERROR_FAILURE;
+    mozilla::UniqueFileHandle fromChildPipeRead;
+    mozilla::UniqueFileHandle fromChildPipeWrite;
+    if (!CreatePipe(&fromChildPipeRead, &fromChildPipeWrite)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    base::LaunchOptions options;
+    options.fds_to_remap.push_back(
+        std::pair{toChildPipeRead.get(), STDIN_FILENO});
+    options.fds_to_remap.push_back(
+        std::pair{fromChildPipeWrite.get(), STDOUT_FILENO});
+
+    std::vector<std::string> argvVec{"ntlm_auth",        "--helper-protocol",
+                                     "ntlmssp-client-1", "--use-cached-creds",
+                                     "--username",       username};
+
+    auto result = base::LaunchApp(argvVec, std::move(options), &mChildPID);
+    if (result.isErr()) {
+      return NS_ERROR_FAILURE;
+    }
+
+    mToChildFD = std::move(toChildPipeWrite);
+    mFromChildFD = std::move(fromChildPipeRead);
+  }
 
   if (!WriteString(mToChildFD, "YR\n"_ns)) return NS_ERROR_FAILURE;
   nsCString line;

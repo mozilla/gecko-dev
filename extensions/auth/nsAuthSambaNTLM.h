@@ -12,6 +12,7 @@
 #include "prio.h"
 #include "prproces.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 /**
  * This is an implementation of NTLM authentication that does single-signon
@@ -41,11 +42,11 @@ class nsAuthSambaNTLM final : public nsIAuthModule {
 
   void Shutdown();
 
-  uint8_t* mInitialMessage; /* free with free() */
+  uint8_t* mInitialMessage = nullptr; /* free with free() */
   uint32_t mInitialMessageLen{};
-  PRProcess* mChildPID;
-  PRFileDesc* mFromChildFD;
-  PRFileDesc* mToChildFD;
+  pid_t mChildPID = -1;
+  mozilla::UniqueFileHandle mFromChildFD;
+  mozilla::UniqueFileHandle mToChildFD;
 };
 
 #endif /* nsAuthSambaNTLM_h__ */
