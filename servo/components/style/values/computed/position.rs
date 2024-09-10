@@ -12,6 +12,7 @@ use crate::values::generics::position::AspectRatio as GenericAspectRatio;
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
+use crate::values::generics::position::GenericAnchorFunction;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 pub use crate::values::specified::position::{
     AnchorName, AnchorScope, DashedIdentAndOrTryTactic, PositionArea, PositionAreaKeyword,
@@ -33,6 +34,9 @@ pub type HorizontalPosition = LengthPercentage;
 
 /// The computed value of a CSS vertical position.
 pub type VerticalPosition = LengthPercentage;
+
+/// The computed value of an `anchor()` function.
+pub type AnchorFunction = GenericAnchorFunction<Percentage, LengthPercentage>;
 
 impl Position {
     /// `50% 50%`

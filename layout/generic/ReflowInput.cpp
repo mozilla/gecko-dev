@@ -829,8 +829,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
   // inlineStart=-inlineEnd
   const auto& inlineStart = position->mOffset.GetIStart(aWM);
   const auto& inlineEnd = position->mOffset.GetIEnd(aWM);
-  bool inlineStartIsAuto = inlineStart.IsAuto();
-  bool inlineEndIsAuto = inlineEnd.IsAuto();
+  // `anchor()` doesn't apply in relative positioning, so pretend it's auto.
+  bool inlineStartIsAuto =
+      inlineStart.IsAuto() || inlineStart.IsAnchorFunction();
+  bool inlineEndIsAuto = inlineEnd.IsAuto() || inlineEnd.IsAnchorFunction();
 
   // If neither 'inlineStart' nor 'inlineEnd' is auto, then we're
   // over-constrained and we ignore one of them
@@ -1631,11 +1633,36 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   NS_ASSERTION(mFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW),
                "Why are we here?");
 
-  const auto& styleOffset = mStylePosition->mOffset;
-  bool iStartIsAuto = styleOffset.GetIStart(cbwm).IsAuto();
-  bool iEndIsAuto = styleOffset.GetIEnd(cbwm).IsAuto();
-  bool bStartIsAuto = styleOffset.GetBStart(cbwm).IsAuto();
-  bool bEndIsAuto = styleOffset.GetBEnd(cbwm).IsAuto();
+  auto originalStyleOffset = mStylePosition->mOffset;
+
+  // TODO(dshin): `anchor()` to be resolved here.
+  auto autoInset = StyleInset::Auto();
+  auto styleOffset = StyleRect<mozilla::StyleInset*>::WithAllSides(nullptr);
+  styleOffset.GetIStart(cbwm) =
+      originalStyleOffset.GetIStart(cbwm).IsAnchorFunction()
+          ? &autoInset
+          : &originalStyleOffset.GetIStart(cbwm);
+  styleOffset.GetIEnd(cbwm) =
+      originalStyleOffset.GetIEnd(cbwm).IsAnchorFunction()
+          ? &autoInset
+          : &originalStyleOffset.GetIEnd(cbwm);
+  styleOffset.GetBStart(cbwm) =
+      originalStyleOffset.GetBStart(cbwm).IsAnchorFunction()
+          ? &autoInset
+          : &originalStyleOffset.GetBStart(cbwm);
+  styleOffset.GetBEnd(cbwm) =
+      originalStyleOffset.GetBEnd(cbwm).IsAnchorFunction()
+          ? &autoInset
+          : &originalStyleOffset.GetBEnd(cbwm);
+
+  NS_ASSERTION(styleOffset.All([](const StyleInset* aInset) {
+    return !aInset->IsAnchorFunction();
+  }),
+               "Anchor function not resolved?");
+  bool iStartIsAuto = styleOffset.GetIStart(cbwm)->IsAuto();
+  bool iEndIsAuto = styleOffset.GetIEnd(cbwm)->IsAuto();
+  bool bStartIsAuto = styleOffset.GetBStart(cbwm)->IsAuto();
+  bool bEndIsAuto = styleOffset.GetBEnd(cbwm)->IsAuto();
 
   // If both 'inline-start' and 'inline-end' are 'auto' or both 'block-start'
   // and 'block-end' are 'auto', then compute the hypothetical box position
@@ -1711,13 +1738,13 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.IStart(cbwm) = 0;
   } else {
     offsets.IStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm), styleOffset.GetIStart(cbwm));
+        cbSize.ISize(cbwm), *styleOffset.GetIStart(cbwm));
   }
   if (iEndIsAuto) {
     offsets.IEnd(cbwm) = 0;
   } else {
     offsets.IEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm), styleOffset.GetIEnd(cbwm));
+        cbSize.ISize(cbwm), *styleOffset.GetIEnd(cbwm));
   }
 
   if (iStartIsAuto && iEndIsAuto) {
@@ -1734,13 +1761,13 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.BStart(cbwm) = 0;
   } else {
     offsets.BStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm), styleOffset.GetBStart(cbwm));
+        cbSize.BSize(cbwm), *styleOffset.GetBStart(cbwm));
   }
   if (bEndIsAuto) {
     offsets.BEnd(cbwm) = 0;
   } else {
     offsets.BEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm), styleOffset.GetBEnd(cbwm));
+        cbSize.BSize(cbwm), *styleOffset.GetBEnd(cbwm));
   }
 
   if (bStartIsAuto && bEndIsAuto) {

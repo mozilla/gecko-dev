@@ -285,8 +285,8 @@ static inline bool IsFixedPaddingSize(const LengthPercentage& aCoord) {
 static inline bool IsFixedMarginSize(const LengthPercentageOrAuto& aCoord) {
   return aCoord.ConvertsToLength();
 }
-static inline bool IsFixedOffset(const LengthPercentageOrAuto& aCoord) {
-  return aCoord.ConvertsToLength();
+static inline bool IsFixedOffset(const StyleInset& aInset) {
+  return aInset.ConvertsToLength();
 }
 
 bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,

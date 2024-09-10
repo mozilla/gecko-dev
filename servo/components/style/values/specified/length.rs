@@ -19,6 +19,7 @@ use crate::values::generics::length::{
 };
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::{self, CalcNode};
+use crate::values::specified::position::AnchorFunction;
 use crate::values::specified::NonNegativeNumber;
 use crate::values::CSSFloat;
 use crate::{Zero, ZeroNoPercent};
@@ -1808,6 +1809,39 @@ impl ZeroNoPercent for LengthPercentage {
             LengthPercentage::Percentage(_) => false,
             _ => self.is_zero(),
         }
+    }
+}
+
+/// A specified value for inset types.
+pub type Inset = generics::GenericInset<Percentage, LengthPercentage>;
+
+impl Inset {
+    /// Parses an inset type, allowing the unitless length quirk.
+    /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
+    #[inline]
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(l) = input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
+            return Ok(Self::LengthPercentage(l));
+        }
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(Self::Auto);
+        }
+        let inner = AnchorFunction::parse(context, input)?;
+        Ok(Self::AnchorFunction(Box::new(inner)))
+    }
+}
+
+impl Parse for Inset {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 

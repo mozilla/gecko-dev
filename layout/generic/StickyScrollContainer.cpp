@@ -61,11 +61,13 @@ StickyScrollContainer::GetStickyScrollContainerForScrollFrame(
   return aFrame->GetProperty(StickyScrollContainerProperty());
 }
 
-static nscoord ComputeStickySideOffset(
-    Side aSide, const StyleRect<LengthPercentageOrAuto>& aOffset,
-    nscoord aPercentBasis) {
-  auto& side = aOffset.Get(aSide);
-  if (side.IsAuto()) {
+static nscoord ComputeStickySideOffset(Side aSide,
+                                       const StyleRect<StyleInset>& aInset,
+                                       nscoord aPercentBasis) {
+  const auto& side = aInset.Get(aSide);
+  if (side.IsAuto() || side.IsAnchorFunction()) {
+    // `sticky` positioning is not absolute positioning, so treat `anchor()` as
+    // `auto`.
     return NS_AUTOOFFSET;
   }
   return nsLayoutUtils::ComputeCBDependentValue(aPercentBasis, side);

@@ -316,6 +316,8 @@ include = [
   "Zoom",
   "TransitionProperty",
   "ViewTransitionName",
+  "Inset",
+  "AnchorFunction",
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -1122,4 +1124,13 @@ renaming_overrides_prefixing = true
     return IsNonCustom() &&
            nsCSSPropertyID(AsNonCustom()._0) == eCSSProperty_all;
   }
+"""
+
+"GenericInset" = """
+  inline bool HasPercent() const;
+  inline bool ConvertsToLength() const;
+  inline bool HasLengthAndPercentage() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
 """

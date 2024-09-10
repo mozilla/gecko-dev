@@ -1947,9 +1947,12 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     PercentageBaseGetter aHeightGetter) {
   const nsStylePosition* positionData = StylePosition();
   int32_t sign = 1;
-  LengthPercentageOrAuto coord = positionData->mOffset.Get(aSide);
+  auto coord = positionData->mOffset.Get(aSide);
 
-  if (coord.IsAuto()) {
+  // TODO(dshin): Treat anchor function as auto for now.
+  // TODO(dshin): Did we calculate and discard the resolved `anchor()` value
+  // somewhere else at this point?
+  if (coord.IsAuto() || coord.IsAnchorFunction()) {
     if (!aResolveAuto) {
       auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
       val->SetString("auto");
@@ -2059,8 +2062,7 @@ nscoord nsComputedDOMStyle::GetUsedAbsoluteOffset(mozilla::Side aSide) {
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetStaticOffset(
     mozilla::Side aSide) {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  SetValueToLengthPercentageOrAuto(val, StylePosition()->mOffset.Get(aSide),
-                                   false);
+  SetValueToInset(val, StylePosition()->mOffset.Get(aSide));
   return val.forget();
 }
 
@@ -2184,6 +2186,17 @@ void nsComputedDOMStyle::SetValueToLengthPercentageOrAuto(
   }
   SetValueToLengthPercentage(aValue, aSize.AsLengthPercentage(),
                              aClampNegativeCalc);
+}
+
+void nsComputedDOMStyle::SetValueToInset(nsROCSSPrimitiveValue* aValue,
+                                         const mozilla::StyleInset& aInset) {
+  // This function isn't used for absolutely positioned insets, so just assume
+  // `anchor()` is `auto`.
+  if (!aInset.IsLengthPercentage()) {
+    aValue->SetString("auto");
+    return;
+  }
+  SetValueToLengthPercentage(aValue, aInset.AsLengthPercentage(), false);
 }
 
 void nsComputedDOMStyle::SetValueToLengthPercentage(

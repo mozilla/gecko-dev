@@ -1537,6 +1537,15 @@ class nsLayoutUtils {
     return ComputeCBDependentValue(aPercentBasis, aCoord.AsLengthPercentage());
   }
 
+  static nscoord ComputeCBDependentValue(nscoord aPercentBasis,
+                                         const mozilla::StyleInset& aInset) {
+    if (!aInset.IsLengthPercentage()) {
+      // Callers are assumed to have handled other cases already.
+      return 0;
+    }
+    return ComputeCBDependentValue(aPercentBasis, aInset.AsLengthPercentage());
+  }
+
   static nscoord ComputeBSizeValue(nscoord aContainingBlockBSize,
                                    nscoord aContentEdgeToBoxSizingBoxEdge,
                                    const LengthPercentage& aCoord) {

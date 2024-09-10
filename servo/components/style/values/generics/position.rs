@@ -5,8 +5,14 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
+use std::fmt::Write;
+
+use style_traits::CssWriter;
+use style_traits::ToCss;
+
 use crate::values::animated::ToAnimatedZero;
 use crate::values::generics::ratio::Ratio;
+use crate::values::DashedIdent;
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[derive(
@@ -221,6 +227,7 @@ pub struct GenericAspectRatio<N> {
 }
 
 pub use self::GenericAspectRatio as AspectRatio;
+use crate::values::generics::Optional;
 
 impl<N> AspectRatio<N> {
     /// Returns `auto`
@@ -238,4 +245,93 @@ impl<N> ToAnimatedZero for AspectRatio<N> {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
     }
+}
+
+/// Anchor function used by inset properties. This resolves
+/// to length at computed time.
+///
+/// https://drafts.csswg.org/css-anchor-position-1/#funcdef-anchor
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem, ToComputedValue, ToResolvedValue)]
+#[repr(C)]
+pub struct GenericAnchorFunction<Percentage, LengthPercentage>
+where
+    Percentage: ToCss,
+    LengthPercentage: ToCss,
+{
+    /// Anchor name of the element to anchor to.
+    /// If omitted, selects the implicit anchor element.
+    pub target_element: Optional<DashedIdent>,
+    /// Where relative to the target anchor element to position
+    /// the anchored element to.
+    pub side: AnchorSide<Percentage>,
+    /// Value to use in case the anchor function is invalid.
+    pub fallback: Optional<LengthPercentage>,
+}
+
+impl<Percentage, LengthPercentage> ToCss for GenericAnchorFunction<Percentage, LengthPercentage>
+where
+    Percentage: ToCss,
+    LengthPercentage: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> std::fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("anchor(")?;
+        if let Some(t) = self.target_element.as_ref() {
+            t.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        self.side.to_css(dest)?;
+        if let Some(f) = self.fallback.as_ref() {
+            // This comma isn't really `derive()`-able, unfortunately.
+            dest.write_str(", ")?;
+            f.to_css(dest)?;
+        }
+        dest.write_str(")")
+    }
+}
+
+/// Keyword values for the anchor positioning function.
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem, Parse, ToComputedValue, ToResolvedValue
+)]
+#[repr(u8)]
+pub enum AnchorSideKeyword {
+    /// Inside relative (i.e. Same side) to the inset property it's used in.
+    Inside,
+    /// Same as above, but outside (i.e. Opposite side).
+    Outside,
+    /// Top of the anchor element.
+    Top,
+    /// Left of the anchor element.
+    Left,
+    /// Right of the anchor element.
+    Right,
+    /// Bottom of the anchor element.
+    Bottom,
+    /// Refers to the start side of the anchor element for the same axis of the inset
+    /// property it's used in, resolved against the positioned element's containing
+    /// block's writing mode.
+    Start,
+    /// Same as above, but for the end side.
+    End,
+    /// Same as `start`, resolved against the positioned element's writing mode.
+    SelfStart,
+    /// Same as above, but for the end side.
+    SelfEnd,
+    /// Halfway between `start` and `end` sides.
+    Center,
+}
+
+/// Anchor side for the anchor positioning function.
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, Parse, SpecifiedValueInfo, ToCss, ToShmem, ToComputedValue, ToResolvedValue
+)]
+#[repr(C)]
+pub enum AnchorSide<P> {
+    /// A keyword value for the anchor side.
+    Keyword(AnchorSideKeyword),
+    /// Percentage value between the `start` and `end` sides.
+    Percentage(P),
 }

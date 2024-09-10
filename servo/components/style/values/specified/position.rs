@@ -12,11 +12,13 @@ use crate::selector_map::PrecomputedHashMap;
 use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
-use crate::values::generics::position::AspectRatio as GenericAspectRatio;
+use crate::values::generics::position::GenericAnchorFunction as GenericAnchorFunction;
+use crate::values::generics::position::{AnchorSide, AspectRatio as GenericAspectRatio};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
+use crate::values::specified;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage, NonNegativeNumber};
 use crate::values::DashedIdent;
 use crate::{Atom, Zero};
@@ -1684,5 +1686,40 @@ impl AspectRatio {
                 NonNegativeNumber::new(h),
             )),
         }
+    }
+}
+
+/// A specified value for `anchor()` function.
+pub type AnchorFunction = GenericAnchorFunction<specified::Percentage, LengthPercentage>;
+
+impl Parse for AnchorFunction {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if !static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        input.expect_function_matching("anchor")?;
+        input.parse_nested_block(|i| {
+            let target_element = i.try_parse(|i| DashedIdent::parse(context, i)).ok();
+            let side = AnchorSide::parse(context, i)?;
+            let target_element = if target_element.is_none() {
+                i.try_parse(|i| DashedIdent::parse(context, i)).ok()
+            } else {
+                target_element
+            };
+            let fallback = i
+                .try_parse(|i| {
+                    i.expect_comma()?;
+                    LengthPercentage::parse(context, i)
+                })
+                .ok();
+            Ok(Self {
+                target_element: target_element.into(),
+                side,
+                fallback: fallback.into(),
+            })
+        })
     }
 }

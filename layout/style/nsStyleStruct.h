@@ -722,7 +722,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
       LogicalAxis aAxis) const;
 
   Position mObjectPosition;
-  StyleRect<LengthPercentageOrAuto> mOffset;
+  StyleRect<mozilla::StyleInset> mOffset;
   StyleSize mWidth;
   StyleSize mMinWidth;
   StyleMaxSize mMaxWidth;
