@@ -335,11 +335,13 @@ class BrowserFragmentTest {
     @Test
     fun `WHEN toolbar is initialized THEN onConfigurationChanged sets toolbar actions for size in fragment`() {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
+        every { browserFragment.reinitializeEngineView() } just Runs
 
         browserFragment._browserToolbarView = null
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 0) { browserFragment.onUpdateToolbarForConfigurationChange(any()) }
         verify(exactly = 0) { browserFragment.updateTabletToolbarActions(any()) }
+        verify(exactly = 0) { browserFragment.reinitializeEngineView() }
 
         browserFragment._browserToolbarView = browserToolbarView
 
@@ -352,6 +354,7 @@ class BrowserFragmentTest {
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 1) { browserFragment.onUpdateToolbarForConfigurationChange(any()) }
         verify(exactly = 1) { browserFragment.updateTabletToolbarActions(any()) }
+        verify(exactly = 1) { browserFragment.reinitializeEngineView() }
 
         unmockkObject(ThemeManager.Companion)
         unmockkStatic(AppCompatResources::class)
@@ -361,6 +364,7 @@ class BrowserFragmentTest {
     fun `WHEN fragment configuration changed THEN menu is dismissed`() {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         every { browserFragment.context } returns null
+        every { browserFragment.reinitializeEngineView() } just Runs
         browserFragment._browserToolbarView = browserToolbarView
 
         mockkObject(ThemeManager.Companion)
@@ -386,6 +390,7 @@ class BrowserFragmentTest {
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
         every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)
@@ -414,6 +419,7 @@ class BrowserFragmentTest {
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
         every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)
@@ -441,6 +447,7 @@ class BrowserFragmentTest {
         browserFragment._browserToolbarView = browserToolbarView
         every { browserFragment.browserToolbarView.view } returns browserToolbar
         every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)
         every { ThemeManager.resolveAttribute(any(), context) } returns mockk(relaxed = true)

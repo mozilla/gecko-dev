@@ -615,10 +615,15 @@ abstract class BaseBrowserFragment :
                 sessionId = customTabSessionId,
                 view = binding.findInPageView,
                 engineView = binding.engineView,
-                toolbars = listOf(
-                    _bottomToolbarContainerView?.toolbarContainerView,
-                    browserToolbarView.layout as? ViewGroup?,
-                ),
+                toolbars = {
+                    listOf(
+                        _bottomToolbarContainerView?.toolbarContainerView,
+                        browserToolbarView.layout as? ViewGroup?,
+                    )
+                },
+                toolbarsResetCallback = {
+                    onUpdateToolbarForConfigurationChange(browserToolbarView)
+                },
             ),
             owner = this,
             view = view,
@@ -2372,8 +2377,9 @@ abstract class BaseBrowserFragment :
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,
             )
-            reinitializeEngineView()
         }
+
+        reinitializeEngineView()
 
         // If the microsurvey feature is visible, we should update it's state.
         if (shouldShowMicrosurveyPrompt(requireContext()) && !shouldUpdateNavBarState) {
@@ -2394,7 +2400,8 @@ abstract class BaseBrowserFragment :
         )
     }
 
-    private fun reinitializeEngineView() {
+    @VisibleForTesting
+    internal fun reinitializeEngineView() {
         val isFullscreen = fullScreenFeature.get()?.isFullScreen == true
         val topToolbarHeight = requireContext().settings().getTopToolbarHeight(
             includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
