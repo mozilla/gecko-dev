@@ -12,6 +12,10 @@ prefs = [
 
   # Only enable CDP protocol
   "remote.active-protocols=2",
+
+  # Avoid cookie expiry date to be affected by server time, which can result
+  # in flaky tests.
+  "network.cookie.useServerTime=false"
 ]
 skip-if = [
   "display == 'wayland'" # Bug 1861933: Timestamp unreliable due to worker setup
