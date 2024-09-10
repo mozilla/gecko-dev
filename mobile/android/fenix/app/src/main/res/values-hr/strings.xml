@@ -115,6 +115,15 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Kod pregledavanja web-stranica, ova traka se uvlači dok se pomičete prema dolje kako biste imali više prostora za pregledavanje.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Dodirni i drži strelice pritisnutima za kretanje po stranicama u povijesti ove kartice.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Novo: strelice naprijed i natrag jednim dodirom</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Uživaj u bržoj navigaciji koja je uvijek nadohvat ruke.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreban je pristup kameri. Otvori postavke Androida, odaberi dozvole i dopusti pristup kameri.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -199,6 +208,9 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Učini %s svojim</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Proširenja poboljšavaju pregledavanje, od mijenjanja %s izgleda i performanse do jačanja privatnosti i sigurnosti.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Saznaj više</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -208,7 +220,7 @@
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Privremeno deaktivirano</string>
     <!-- Browser menu button that opens account settings -->
-    <string name="browser_menu_account_settings">Informacije računa</string>
+    <string name="browser_menu_account_settings">Informacije o računu</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Pomoć</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -323,6 +335,12 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Izađi iz %1$s</string>
 
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Novo: poboljšan izbornik</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Pronađi što trebaš brže, od privatnog pregledavanja do spremanja radnji.</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">Ovdje nema dodataka</string>
@@ -427,6 +445,10 @@
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_3">Naš preglednik, koji podržava neprofitna organizacija, sprječava tvrtke da te tajno prate na webu.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Više od 100 milijuna ljudi štiti svoju privatnost biranjem preglednika koji podržava neprofitna organizacija.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Poznati sustavi za praćenje? Automatski se blokiraju. Proširenja? Isprobaj svih 700. PDF datoteke? Naš ugrađeni čitač olakšava upravljanje njima.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Naš neprofitni preglednik pomaže spriječiti tvrtke da vas tajno prate na webu.\n\nSaznajte više u našoj obavijesti o privatnosti.</string>
     <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
     This is part of the string with the key "juno_onboarding_default_browser_description". -->
@@ -437,6 +459,9 @@
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Ne sada</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Ostanite zaštićeni šifriranjem kada prenosite podatke između uređaja</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Prijava i sinkronizacija povećavaju tvoju sigurnost. Firefox šifrira lozinke, zabilješke i još mnogo toga.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Prijava</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -497,7 +522,7 @@
     <!-- Preference Category for settings to Firefox Suggest -->
     <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Adresna traka – Firefox prijedlozi</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Saznaj više o funkciji Firefox prijedlozi</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Saznaj više o funkciji „Firefox prijedlozi”</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Ocijeni na Google Playu</string>
     <!-- Preference linking to about page for Fenix
@@ -566,8 +591,12 @@
     <string name="errorpage_httpsonly_message_summary">Međutim, također je moguće da je napadač upleten. Ako nastavite do web stranice, ne biste trebali unositi osjetljive podatke. Ako nastavite, način rada HTTPS-Only biti će privremeno isključen za ovu web stranicu.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">Pristupačnost</string>
+    <!-- Preference to override the Mozilla account server -->
+    <string name="preferences_override_account_server">Prilagođeni server Mozilla računa</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">Prilagođeni poslužitelj za sinkronizaciju</string>
+    <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
+    <string name="toast_override_account_sync_server_done">Mozilla račun/server za sinkronizaciju je promijenjen. Aplikacija se zatvara kako bi se promjene primijenile …</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Račun</string>
     <!-- Preference for changing where the AddressBar is positioned -->
@@ -724,7 +753,9 @@
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
-    <string name="preferences_manage_account">Upravljanje računom</string>
+    <string name="preferences_manage_account">Upravljaj računom</string>
+    <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
+    <string name="preferences_manage_account_summary">Promijeni lozinku, upravljaj prikupljanjem podataka ili izbriši tvoj račun</string>
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">Sinkroniziraj sada</string>
     <!-- Preference category for sync -->
@@ -955,13 +986,13 @@
     <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
     <string name="preferences_inactive_tabs">Premjesti stare kartice u neaktivne</string>
     <!-- Title of inactive tabs preference -->
-    <string name="preferences_inactive_tabs_title">Kartice koje nisu pregledavane dva tjedna premještene su u neaktivnu sekciju.</string>
+    <string name="preferences_inactive_tabs_title">Kartice koje nisu pregledavane dva tjedna premještaju su u odjeljak neaktivnih.</string>
 
     <!-- Studies -->
     <!-- Title of the remove studies button -->
     <string name="studies_remove">Ukloni</string>
     <!-- Title of the active section on the studies list -->
-    <string name="studies_active">Aktivno</string>
+    <string name="studies_active">Aktivne</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s može s vremena na vrijeme instalirati i pokretati studije.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -997,7 +1028,7 @@
     <!-- Text shown in the menu to view recently closed tabs -->
     <string name="tab_tray_menu_recently_closed">Nedavno zatvorene kartice</string>
     <!-- Text shown in the tabs tray inactive tabs section -->
-    <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources">Nedavno zatvoreno</string>
+    <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources">Nedavno zatvorene</string>
     <!-- Text shown in the menu to view account settings -->
     <string name="tab_tray_menu_account_settings">Postavke računa</string>
     <!-- Text shown in the menu to view tab settings -->
@@ -1983,7 +2014,7 @@
     <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
     <string name="search_add_custom_engine_suggest_string_hint">URL API za prijedloge pretraživanja</string>
     <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Zamijenite upit s “%s”. Na primjer:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+    <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Zamijeni upit s „%s”. Na primjer:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
     <!-- The text for the "Save" button for saving a custom search engine -->
     <string name="search_custom_engine_save_button">Spremi</string>
 
@@ -2166,7 +2197,7 @@
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">UKLJUČI AUTOMATSKO ZATVARANJE</string>
 
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
-    <string name="inactive_tabs_auto_close_message_snackbar">Automatsko zatvaranje omogućeno</string>
+    <string name="inactive_tabs_auto_close_message_snackbar">Automatsko zatvaranje ukljčeno</string>
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
@@ -2234,6 +2265,8 @@
     <string name="review_quality_check_adjusted_rating_description_2">Na temelju pouzdanih recenzija</string>
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
     <string name="review_quality_check_explanation_title">Kako određujemo kvalitetu recenzija</string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">Saznaj više o %s.</string>
     <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
     <string name="review_quality_check_info_learn_more_link_2">kako %s određuje kvalitetu recenzija</string>
     <!-- Text for title of settings section. -->
@@ -2271,6 +2304,10 @@
     <string name="review_quality_check_analysis_in_progress_warning_body">To bi moglo potrajati oko 60 sekundi.</string>
     <!-- Title for info card displayed after the user reports a product is back in stock. -->
     <string name="review_quality_check_analysis_requested_info_title">Hvala na javljanju!</string>
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">Trebali bismo imati informacije o recenzijama ovog proizvoda u roku od 24 sata. Navrati kasnije.</string>
+    <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">Trebali bismo imati informacije o recenzijama ovog proizvoda u roku od 24 sata. Navrati kasnije.</string>
     <!-- Title for info card displayed to the user when analysis finished updating. -->
     <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">Analiza je aktualna</string>
     <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
@@ -2285,6 +2322,8 @@
     <string name="review_quality_check_no_connection_body">Provjeri svoju mrežnu vezu i pokušaj ponovo učitati stranicu.</string>
     <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
     <string name="review_quality_check_no_analysis_title">Još nema informacija o ovim recenzijama</string>
+    <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
+    <string name="review_quality_check_no_analysis_body">Za dobivanje uvida u pouzdanost recenzija ovog proizvoda, provjeri kvalitetu recenzije. Traje samo oko 60 sekundi.</string>
     <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
     <string name="review_quality_check_no_analysis_link">Provjeri kvalitetu recenzije</string>
     <!-- Headline for review quality check contextual onboarding card. -->
@@ -2345,7 +2384,7 @@
     <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
     <string name="a11y_state_label_expanded">rasklopljeno</string>
     <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
-    <string name="a11y_action_label_wallpaper_collection_learn_more">otvorite poveznicu kako biste saznali više o ovoj kolekciji</string>
+    <string name="a11y_action_label_wallpaper_collection_learn_more">otvori poveznicu i saznaj više o ovoj zbirci</string>
     <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
     <string name="a11y_action_label_read_article">pročitaj članak</string>
     <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2462,6 +2501,9 @@
     <!-- Title of the automatic translation preference screen that will appear on the toolbar.-->
     <string name="automatic_translation_toolbar_title_preference">Automatski prijevod</string>
 
+    <!-- Automatic translation options preference screen -->
+    <!-- Preference option for offering to translate. Radio button title text.-->
+    <string name="automatic_translation_option_offer_to_translate_title_preference">Ponudi prijevod (standardno)</string>
     <!-- Preference option for always translate. Radio button title text. -->
     <string name="automatic_translation_option_always_translate_title_preference">Uvijek prevedi</string>
     <!-- Preference option for always translate. Radio button summary text. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
@@ -2583,15 +2625,17 @@
     <!-- The title of the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_title">Broj kartica</string>
     <!-- The active tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_active">Aktivno</string>
+    <string name="debug_drawer_tab_tools_tab_count_active">Aktivne</string>
     <!-- The inactive tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_inactive">Neaktivno</string>
+    <string name="debug_drawer_tab_tools_tab_count_inactive">Neaktivne</string>
     <!-- The private tab count category in the tab count section in Tab Tools. -->
-    <string name="debug_drawer_tab_tools_tab_count_private">Privatno</string>
+    <string name="debug_drawer_tab_tools_tab_count_private">Privatne</string>
     <!-- The total tab count category in the tab count section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_count_total">Ukupno</string>
     <!-- The title of the tab creation tool section in Tab Tools. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_title">Alat za izradu kartica</string>
+    <!-- The label of the text field in the tab creation tool. -->
+    <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">Broj kartica koje želiš izraditi</string>
     <!-- The error message of the text field in the tab creation tool when the text field is empty -->
     <string name="debug_drawer_tab_tools_tab_quantity_empty_error">Tekstualno polje je prazno</string>
     <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->

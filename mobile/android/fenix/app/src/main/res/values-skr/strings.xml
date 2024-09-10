@@ -2520,6 +2520,8 @@
     <string name="translations_bottom_sheet_negative_button">ہݨ کائناں</string>
     <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
     <string name="translations_bottom_sheet_negative_button_restore">اصل ݙکھاؤ</string>
+    <!-- Accessibility announcement (not visible, for screen readers etc.) for the translations dialog after restore button was pressed that indicates the original untranslated page was loaded. -->
+    <string name="translations_bottom_sheet_restore_accessibility_announcement">اصلی بغیر ترجمہ تھیا ورقہ لوڈ تھیا</string>
     <!-- Button text on the translations dialog when a translation error appears, used to dismiss the dialog and return to the browser. -->
     <string name="translations_bottom_sheet_negative_button_error">تھی ڳیا</string>
     <!-- Button text on the translations dialog to begin a translation of the website. -->
@@ -2752,6 +2754,8 @@
     <string name="debug_drawer_tab_tools_tab_quantity_empty_error">عبارت خانہ خالی ہے</string>
     <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
     <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">سوہݨا، صرف مثبت سالم عدد درج کرو</string>
+    <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">سوہݨا، صفر کنوں وݙا عدد درج کرو</string>
     <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
     <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">فعال ٹیباں وچ شامل کرو</string>
     <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
@@ -2787,11 +2791,13 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">میں ایں کوں کائنی ورتیندا</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">میں Firefox تے کائنی ڳولیندا</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">تساں آپݨے Firefox مکھ پنے نال چوکھے مطمئن ہو؟</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">تساں Firefox وچ چھاپݨ نال چوکھے مطمئن ہو؟</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">تساں آپݨے Firefox مکھ پنے نال چوکھے مطمئن ہو؟</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
@@ -2823,9 +2829,16 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک اشارہ ورتو</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک اشارہ ورتو</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک دباؤ</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">پوری سکرین کنوں نکلݨ کیتے، اُتے کنوں گھیلو تے بیک دباؤ</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">اُتوں گھیلو تے ٻاہر نکلݨ کیتے واپسی دا اشارہ ورتو</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">اُتوں گھیلو تے ٻاہر نکلݨ کیتے واپس دباؤ</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
