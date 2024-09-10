@@ -1349,7 +1349,8 @@ panelview .toolbarbutton-1 {
   }
 }
 
-#PanelUI-fxa-remotetabs-tabspane {
+#PanelUI-fxa-remotetabs-tabspane,
+#PanelUI-remotetabs-tabspane {
   min-width: 0;
 }
 
