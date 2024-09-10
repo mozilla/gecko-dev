@@ -49,7 +49,13 @@ struct CompilationDependencyTracker {
         return true;
       }
     }
-    return dependencies.append(dep.clone());
+
+    auto clone = dep.clone();
+    if (!clone) {
+      return false;
+    }
+
+    return dependencies.append(std::move(clone));
   }
 
   bool checkDependencies() {
