@@ -444,10 +444,18 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
     int32_t width;
     rv = stmt->GetInt32(0, &width);
     if (lastWidth == width) {
-      // We already found an icon for this width. We always prefer the first
+      // If we already found an icon for this width, we always prefer the first
       // icon found, because it's a non-root icon, per the root ASC ordering.
       continue;
     }
+
+    int32_t isRich = stmt->AsInt32(3);
+    if (aPreferredWidth <= THRESHOLD_WIDTH && lastWidth > 0 && isRich) {
+      // If we already found an icon, we prefer it to rich icons for small
+      // sizes.
+      break;
+    }
+
     if (!aIconData.spec.IsEmpty() && width < aPreferredWidth) {
       // We found the best match, or we already found a match so we don't need
       // to fallback to the root domain icon.

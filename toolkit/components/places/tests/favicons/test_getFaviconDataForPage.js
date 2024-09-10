@@ -159,7 +159,7 @@ add_task(async function test_richIconPrioritizationBelowThreshold() {
         Assert.equal(aMimeType, FAVICON_MIMETYPE);
         resolve();
       },
-      48
+      12
     );
   });
 });
