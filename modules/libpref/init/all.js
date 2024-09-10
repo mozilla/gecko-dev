@@ -4187,3 +4187,10 @@ pref("extensions.webcompat.useScriptingAPI", true);
 pref("privacy.fingerprintingProtection.WebCompatService.logLevel", "Error");
 // To test strip on share site specific parameters by enabling a different list to be used
 pref("privacy.query_stripping.strip_on_share.enableTestMode", false);
+
+#if defined(MOZ_BACKGROUNDTASKS) && defined(ENABLE_TESTS)
+  // Test prefs to verify background tasks inheret and override gecko prefs
+  // correctly.
+  pref("toolkit.backgroundtasks.tests.geckoPrefsInherited", 17);
+  pref("toolkit.backgroundtasks.tests.geckoPrefsOverriden", 18);
+#endif

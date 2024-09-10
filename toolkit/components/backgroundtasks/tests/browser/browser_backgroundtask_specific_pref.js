@@ -21,3 +21,71 @@ add_task(async function test_backgroundtask_specific_pref() {
   });
   Assert.equal(79, exitCode);
 });
+
+add_task(async function test_backgroundtask_browser_pref_inherited() {
+  // First, verify this pref is set in Firefox.
+  Assert.equal(
+    15,
+    Services.prefs.getIntPref(
+      "toolkit.backgroundtasks.tests.browserPrefsInherited",
+      -1
+    )
+  );
+
+  // Second, verify that this pref is set in background tasks.
+  let exitCode = await do_backgroundtask("backgroundtask_specific_pref", {
+    extraArgs: ["toolkit.backgroundtasks.tests.browserPrefsInherited"],
+  });
+  Assert.equal(15, exitCode);
+});
+
+add_task(async function test_backgroundtask_gecko_pref_overridden() {
+  // First, verify this pref is set in Firefox.
+  Assert.equal(
+    16,
+    Services.prefs.getIntPref(
+      "toolkit.backgroundtasks.tests.browserPrefsOverriden",
+      -1
+    )
+  );
+
+  // Second, verify that this pref is overridden in background tasks.
+  let exitCode = await do_backgroundtask("backgroundtask_specific_pref", {
+    extraArgs: ["toolkit.backgroundtasks.tests.browserPrefsOverriden"],
+  });
+  Assert.equal(26, exitCode);
+});
+
+add_task(async function test_backgroundtask_gecko_pref_inherited() {
+  // First, verify this pref is set in Gecko.
+  Assert.equal(
+    17,
+    Services.prefs.getIntPref(
+      "toolkit.backgroundtasks.tests.geckoPrefsInherited",
+      -1
+    )
+  );
+
+  // Second, verify that this pref is set in background tasks.
+  let exitCode = await do_backgroundtask("backgroundtask_specific_pref", {
+    extraArgs: ["toolkit.backgroundtasks.tests.geckoPrefsInherited"],
+  });
+  Assert.equal(17, exitCode);
+});
+
+add_task(async function test_backgroundtask_gecko_pref_overridden() {
+  // First, verify this pref is set in Gecko.
+  Assert.equal(
+    18,
+    Services.prefs.getIntPref(
+      "toolkit.backgroundtasks.tests.geckoPrefsOverriden",
+      -1
+    )
+  );
+
+  // Second, verify that this pref is overridden in background tasks.
+  let exitCode = await do_backgroundtask("backgroundtask_specific_pref", {
+    extraArgs: ["toolkit.backgroundtasks.tests.geckoPrefsOverriden"],
+  });
+  Assert.equal(28, exitCode);
+});

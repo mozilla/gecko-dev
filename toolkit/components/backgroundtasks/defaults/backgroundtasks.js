@@ -54,3 +54,8 @@ pref("app.update.background.automaticRestartEnabled", true);
 #else
 pref("app.update.background.automaticRestartEnabled", false);
 #endif
+
+#if defined(ENABLE_TESTS)
+  // Test prefs to verify background tasks override gecko prefs correctly.
+  pref("toolkit.backgroundtasks.tests.geckoPrefsOverriden", 28);
+#endif

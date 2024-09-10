@@ -45,3 +45,8 @@ pref("app.normandy.run_interval_seconds", 0);
 // Use a separate Nimbus application ID from regular Firefox Desktop.
 // This prevents enrolling in regular desktop experiments.
 pref("nimbus.appId", "firefox-desktop-background-task");
+
+#if defined(ENABLE_TESTS)
+  // Test prefs to verify background tasks override browser prefs correctly.
+  pref("toolkit.backgroundtasks.tests.browserPrefsOverriden", 26);
+#endif
