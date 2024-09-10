@@ -39,14 +39,6 @@ struct CallbackInterfaceInfo {
   CallbackInitFunc mInitForeignCallback;
 };
 
-Maybe<CallbackInterfaceInfo> UniFFIGetCallbackInterfaceInfo(
-    uint64_t aInterfaceId);
-
-#ifdef MOZ_UNIFFI_FIXTURES
-Maybe<CallbackInterfaceInfo> UniFFIFixturesGetCallbackInterfaceInfo(
-    uint64_t aInterfaceId);
-#endif
-
 /**
  * Register the JS handler for a callback interface
  */

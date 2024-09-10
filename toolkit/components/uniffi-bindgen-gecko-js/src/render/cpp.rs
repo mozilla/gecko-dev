@@ -21,34 +21,38 @@ use uniffi_bindgen::interface::{ComponentInterface, FfiFunction, FfiType};
 
 #[derive(Template)]
 #[template(path = "UniFFIScaffolding.cpp", escape = "none")]
-pub struct CPPScaffoldingTemplate<'a> {
-    // Prefix for each function name in.  This is related to how we handle the test fixtures.  For
-    // each function defined in the UniFFI namespace in UniFFI.webidl we:
-    //   - Generate a function in to handle it using the real UDL files
-    //   - Generate a different function in for handle it using the fixture UDL files
-    //   - Have a hand-written stub function that always calls the first function and only calls
-    //     the second function in if MOZ_UNIFFI_FIXTURES is defined.
-    prefix: &'a str,
-    ffi_functions: Vec<FfiFunctionCpp>,
-    pointer_types: Vec<PointerType>,
-    callback_interfaces: Vec<CallbackInterfaceCpp>,
-    scaffolding_calls: Vec<ScaffoldingCall>,
+pub struct CPPScaffoldingTemplate {
+    all_ffi_functions: CombinedItems<Vec<FfiFunctionCpp>>,
+    all_pointer_types: CombinedItems<Vec<PointerType>>,
+    all_callback_interfaces: CombinedItems<Vec<CallbackInterfaceCpp>>,
+    all_scaffolding_calls: CombinedItems<Vec<ScaffoldingCall>>,
 }
 
-impl<'a> CPPScaffoldingTemplate<'a> {
+impl CPPScaffoldingTemplate {
     pub fn new(
-        prefix: &'a str,
-        components: &'a Vec<Component>,
-        function_ids: &'a FunctionIds<'a>,
-        object_ids: &'a ObjectIds<'a>,
-        callback_ids: &'a CallbackIds<'a>,
+        components: &Vec<Component>,
+        fixture_components: &Vec<Component>,
+        function_ids: &FunctionIds<'_>,
+        object_ids: &ObjectIds<'_>,
+        callback_ids: &CallbackIds<'_>,
     ) -> Self {
         Self {
-            prefix,
-            ffi_functions: Self::ffi_functions(components),
-            pointer_types: Self::pointer_types(object_ids, components),
-            callback_interfaces: Self::callback_interfaces(prefix, callback_ids, components),
-            scaffolding_calls: Self::scaffolding_calls(prefix, function_ids, components),
+            all_ffi_functions: CombinedItems::new(
+                Self::ffi_functions(components),
+                Self::ffi_functions(fixture_components),
+            ),
+            all_pointer_types: CombinedItems::new(
+                Self::pointer_types(object_ids, components),
+                Self::pointer_types(object_ids, fixture_components),
+            ),
+            all_callback_interfaces: CombinedItems::new(
+                Self::callback_interfaces(callback_ids, components),
+                Self::callback_interfaces(callback_ids, fixture_components),
+            ),
+            all_scaffolding_calls: CombinedItems::new(
+                Self::scaffolding_calls(function_ids, components),
+                Self::scaffolding_calls(function_ids, fixture_components),
+            ),
         }
     }
 
@@ -90,7 +94,6 @@ impl<'a> CPPScaffoldingTemplate<'a> {
     }
 
     fn callback_interfaces(
-        prefix: &str,
         callback_ids: &CallbackIds<'_>,
         components: &[Component],
     ) -> Vec<CallbackInterfaceCpp> {
@@ -102,10 +105,7 @@ impl<'a> CPPScaffoldingTemplate<'a> {
                     .map(move |cbi| CallbackInterfaceCpp {
                         id: callback_ids.get(&c.ci, cbi),
                         name: format!("{}:{}", c.ci.namespace(), cbi.name()),
-                        handler_fn: format!(
-                            "{prefix}CallbackHandler{}",
-                            cbi.name().to_upper_camel_case()
-                        ),
+                        handler_fn: format!("CallbackHandler{}", cbi.name().to_upper_camel_case()),
                         static_var: format!(
                             "JS_CALLBACK_HANDLER_{}",
                             cbi.name().to_shouty_snake_case(),
@@ -117,20 +117,46 @@ impl<'a> CPPScaffoldingTemplate<'a> {
     }
 
     fn scaffolding_calls(
-        prefix: &str,
-        function_ids: &'a FunctionIds<'a>,
+        function_ids: &FunctionIds<'_>,
         components: &[Component],
     ) -> Vec<ScaffoldingCall> {
         let mut calls: Vec<ScaffoldingCall> = components
             .iter()
             .flat_map(|c| {
-                exposed_functions(&c.ci).map(move |ffi_func| {
-                    ScaffoldingCall::new(prefix, &c.ci, ffi_func, function_ids)
-                })
+                exposed_functions(&c.ci)
+                    .map(move |ffi_func| ScaffoldingCall::new(&c.ci, ffi_func, function_ids))
             })
             .collect();
         calls.sort_by_key(|c| c.function_id);
         calls
+    }
+}
+
+/// Combines fixture and non-fixture template items
+struct CombinedItems<T> {
+    item: T,
+    fixture_item: T,
+}
+
+impl<T> CombinedItems<T> {
+    fn new(item: T, fixture_item: T) -> Self {
+        Self { item, fixture_item }
+    }
+
+    /// Iterate over child items
+    /// Each item is the tuple (preprocssor_condition, <T>, preprocssor_condition_end), where
+    /// `preprocssor_condition` is the preprocessor preprocssor_condition that should control if
+    /// the items are included.
+    fn iter(&self) -> impl Iterator<Item = (String, &T, String)> {
+        vec![
+            ("".to_string(), &self.item, "".to_string()),
+            (
+                "#ifdef MOZ_UNIFFI_FIXTURES".to_string(),
+                &self.fixture_item,
+                "#endif /* MOZ_UNIFFI_FIXTURES */".to_string(),
+            ),
+        ]
+        .into_iter()
     }
 }
 
@@ -165,14 +191,9 @@ struct ScaffoldingCall {
 }
 
 impl ScaffoldingCall {
-    fn new(
-        prefix: &str,
-        ci: &ComponentInterface,
-        ffi_func: &FfiFunction,
-        function_ids: &FunctionIds,
-    ) -> Self {
+    fn new(ci: &ComponentInterface, ffi_func: &FfiFunction, function_ids: &FunctionIds) -> Self {
         let handler_class_name = format!(
-            "ScaffoldingCallHandler{prefix}{}",
+            "ScaffoldingCallHandler{}",
             ffi_func.name().to_upper_camel_case()
         );
         let arguments = ffi_func

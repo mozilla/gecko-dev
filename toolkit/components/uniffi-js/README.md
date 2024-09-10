@@ -6,10 +6,7 @@ This directory contains C++ helper code for the UniFFI Rust library
  - `UniFFIPointer.*` and `UniFFIPointerType.*` implement the `UniFFIPointer` WebIDL class
 
  - `UniFFI*Scaffolding.cpp` implements the `UniFFIScaffolding` WebIDL class.
-   - UniFFIGeneratedScaffolding.cpp contains the generated code for all
-     non-testing UDL files.
-   - UniFFIFixtureScaffolding.cpp contains generated code for test fixture UDL
-     files. It's only compiled if `--enable-uniffi-fixtures` is set.
+   - UniFFIGeneratedScaffolding.cpp contains the generated C++ code
    - UniFFIScaffolding.cpp is a facade that wraps UniFFIFixtureScaffolding, and
      UniFFIGeneratedScaffolding if enabled, to implement the interface.
 

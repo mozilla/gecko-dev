@@ -29,6 +29,7 @@ using dom::UniFFIScaffoldingCallResult;
 
 // Define scaffolding functions from UniFFI
 extern "C" {
+
   void* uniffi_relevancy_fn_clone_relevancystore(void*, RustCallStatus*);
   void uniffi_relevancy_fn_free_relevancystore(void*, RustCallStatus*);
   void* uniffi_relevancy_fn_constructor_relevancystore_new(RustBuffer, RustCallStatus*);
@@ -95,9 +96,118 @@ extern "C" {
   void* uniffi_tabs_fn_method_tabsstore_new_remote_command_store(void*, RustCallStatus*);
   void uniffi_tabs_fn_method_tabsstore_register_with_sync_manager(void*, RustCallStatus*);
   void uniffi_tabs_fn_method_tabsstore_set_local_tabs(void*, RustBuffer, RustCallStatus*);
+
+#ifdef MOZ_UNIFFI_FIXTURES
+  uint64_t uniffi_arithmetical_fn_func_add(uint64_t, uint64_t, RustCallStatus*);
+  uint64_t uniffi_arithmetical_fn_func_div(uint64_t, uint64_t, RustCallStatus*);
+  int8_t uniffi_arithmetical_fn_func_equal(uint64_t, uint64_t, RustCallStatus*);
+  uint64_t uniffi_arithmetical_fn_func_sub(uint64_t, uint64_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_custom_types_fn_func_get_custom_types_demo(RustBuffer, RustCallStatus*);
+  double uniffi_uniffi_fixture_external_types_fn_func_gradient(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_fixture_external_types_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
+  void* uniffi_uniffi_fixture_refcounts_fn_clone_singletonobject(void*, RustCallStatus*);
+  void uniffi_uniffi_fixture_refcounts_fn_free_singletonobject(void*, RustCallStatus*);
+  void uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method(void*, RustCallStatus*);
+  int32_t uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount(RustCallStatus*);
+  void* uniffi_uniffi_fixture_refcounts_fn_func_get_singleton(RustCallStatus*);
+  double uniffi_uniffi_geometry_fn_func_gradient(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_geometry_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_clone_optionneur(void*, RustCallStatus*);
+  void uniffi_uniffi_rondpoint_fn_free_optionneur(void*, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_constructor_optionneur_new(RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_boolean(void*, int8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_enum(void*, RustBuffer, RustCallStatus*);
+  float uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_f32(void*, float, RustCallStatus*);
+  double uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_f64(void*, double, RustCallStatus*);
+  int16_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i16_dec(void*, int16_t, RustCallStatus*);
+  int16_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i16_hex(void*, int16_t, RustCallStatus*);
+  int32_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i32_dec(void*, int32_t, RustCallStatus*);
+  int32_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i32_hex(void*, int32_t, RustCallStatus*);
+  int64_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i64_dec(void*, int64_t, RustCallStatus*);
+  int64_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i64_hex(void*, int64_t, RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i8_dec(void*, int8_t, RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i8_hex(void*, int8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_null(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_sequence(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_string(void*, RustBuffer, RustCallStatus*);
+  uint16_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u16_dec(void*, uint16_t, RustCallStatus*);
+  uint16_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u16_hex(void*, uint16_t, RustCallStatus*);
+  uint32_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_dec(void*, uint32_t, RustCallStatus*);
+  uint32_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_hex(void*, uint32_t, RustCallStatus*);
+  uint32_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_oct(void*, uint32_t, RustCallStatus*);
+  uint64_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u64_dec(void*, uint64_t, RustCallStatus*);
+  uint64_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u64_hex(void*, uint64_t, RustCallStatus*);
+  uint8_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u8_dec(void*, uint8_t, RustCallStatus*);
+  uint8_t uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u8_hex(void*, uint8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_zero(void*, RustBuffer, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_clone_retourneur(void*, RustCallStatus*);
+  void uniffi_uniffi_rondpoint_fn_free_retourneur(void*, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_constructor_retourneur_new(RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_boolean(void*, int8_t, RustCallStatus*);
+  double uniffi_uniffi_rondpoint_fn_method_retourneur_identique_double(void*, double, RustCallStatus*);
+  float uniffi_uniffi_rondpoint_fn_method_retourneur_identique_float(void*, float, RustCallStatus*);
+  int16_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i16(void*, int16_t, RustCallStatus*);
+  int32_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i32(void*, int32_t, RustCallStatus*);
+  int64_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i64(void*, int64_t, RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i8(void*, int8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_retourneur_identique_nombres(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_retourneur_identique_nombres_signes(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_retourneur_identique_optionneur_dictionnaire(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_retourneur_identique_string(void*, RustBuffer, RustCallStatus*);
+  uint16_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u16(void*, uint16_t, RustCallStatus*);
+  uint32_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u32(void*, uint32_t, RustCallStatus*);
+  uint64_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u64(void*, uint64_t, RustCallStatus*);
+  uint8_t uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u8(void*, uint8_t, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_clone_stringifier(void*, RustCallStatus*);
+  void uniffi_uniffi_rondpoint_fn_free_stringifier(void*, RustCallStatus*);
+  void* uniffi_uniffi_rondpoint_fn_constructor_stringifier_new(RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_boolean(void*, int8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_double(void*, double, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_float(void*, float, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i16(void*, int16_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i32(void*, int32_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i64(void*, int64_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i8(void*, int8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u16(void*, uint16_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u32(void*, uint32_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u64(void*, uint64_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u8(void*, uint8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_method_stringifier_well_known_string(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_func_copie_carte(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_func_copie_dictionnaire(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_func_copie_enumeration(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_rondpoint_fn_func_copie_enumerations(RustBuffer, RustCallStatus*);
+  int8_t uniffi_uniffi_rondpoint_fn_func_switcheroo(int8_t, RustCallStatus*);
+  void* uniffi_uniffi_sprites_fn_clone_sprite(void*, RustCallStatus*);
+  void uniffi_uniffi_sprites_fn_free_sprite(void*, RustCallStatus*);
+  void* uniffi_uniffi_sprites_fn_constructor_sprite_new(RustBuffer, RustCallStatus*);
+  void* uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to(RustBuffer, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_sprites_fn_method_sprite_get_position(void*, RustCallStatus*);
+  void uniffi_uniffi_sprites_fn_method_sprite_move_by(void*, RustBuffer, RustCallStatus*);
+  void uniffi_uniffi_sprites_fn_method_sprite_move_to(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_sprites_fn_func_translate(RustBuffer, RustBuffer, RustCallStatus*);
+  void* uniffi_uniffi_todolist_fn_clone_todolist(void*, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_free_todolist(void*, RustCallStatus*);
+  void* uniffi_uniffi_todolist_fn_constructor_todolist_new(RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_add_entries(void*, RustBuffer, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_add_entry(void*, RustBuffer, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_add_item(void*, RustBuffer, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_add_items(void*, RustBuffer, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_clear_item(void*, RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_method_todolist_get_entries(void*, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_method_todolist_get_first(void*, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_method_todolist_get_items(void*, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_method_todolist_get_last(void*, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_method_todolist_get_last_entry(void*, RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_method_todolist_make_default(void*, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_func_create_entry_with(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_todolist_fn_func_get_default_list(RustCallStatus*);
+  void uniffi_uniffi_todolist_fn_func_set_default_list(void*, RustCallStatus*);
+#endif /* MOZ_UNIFFI_FIXTURES */
 }
 
 // Define pointer types
+
 const static mozilla::uniffi::UniFFIPointerType kRelevancyRelevancyStorePointerType {
   "relevancy::RelevancyStore"_ns,
   uniffi_relevancy_fn_clone_relevancystore,
@@ -134,11 +244,52 @@ const static mozilla::uniffi::UniFFIPointerType kTabsTabsStorePointerType {
   uniffi_tabs_fn_free_tabsstore,
 };
 
+#ifdef MOZ_UNIFFI_FIXTURES
+const static mozilla::uniffi::UniFFIPointerType kRefcountsSingletonObjectPointerType {
+  "refcounts::SingletonObject"_ns,
+  uniffi_uniffi_fixture_refcounts_fn_clone_singletonobject,
+  uniffi_uniffi_fixture_refcounts_fn_free_singletonobject,
+};
+const static mozilla::uniffi::UniFFIPointerType kRondpointOptionneurPointerType {
+  "rondpoint::Optionneur"_ns,
+  uniffi_uniffi_rondpoint_fn_clone_optionneur,
+  uniffi_uniffi_rondpoint_fn_free_optionneur,
+};
+const static mozilla::uniffi::UniFFIPointerType kRondpointRetourneurPointerType {
+  "rondpoint::Retourneur"_ns,
+  uniffi_uniffi_rondpoint_fn_clone_retourneur,
+  uniffi_uniffi_rondpoint_fn_free_retourneur,
+};
+const static mozilla::uniffi::UniFFIPointerType kRondpointStringifierPointerType {
+  "rondpoint::Stringifier"_ns,
+  uniffi_uniffi_rondpoint_fn_clone_stringifier,
+  uniffi_uniffi_rondpoint_fn_free_stringifier,
+};
+const static mozilla::uniffi::UniFFIPointerType kSpritesSpritePointerType {
+  "sprites::Sprite"_ns,
+  uniffi_uniffi_sprites_fn_clone_sprite,
+  uniffi_uniffi_sprites_fn_free_sprite,
+};
+const static mozilla::uniffi::UniFFIPointerType kTodolistTodoListPointerType {
+  "todolist::TodoList"_ns,
+  uniffi_uniffi_todolist_fn_clone_todolist,
+  uniffi_uniffi_todolist_fn_free_todolist,
+};
+#endif /* MOZ_UNIFFI_FIXTURES */
+
 // Define the data we need per-callback interface
 
+
+#ifdef MOZ_UNIFFI_FIXTURES
+#endif /* MOZ_UNIFFI_FIXTURES */
+
 // Define a lookup function for our callback interface info
-Maybe<CallbackInterfaceInfo> UniFFIGetCallbackInterfaceInfo(uint64_t aInterfaceId) {
+Maybe<CallbackInterfaceInfo> GetCallbackInterfaceInfo(uint64_t aInterfaceId) {
     switch(aInterfaceId) {
+
+
+#ifdef MOZ_UNIFFI_FIXTURES
+#endif /* MOZ_UNIFFI_FIXTURES */
 
         default:
             return Nothing();
@@ -146,7 +297,8 @@ Maybe<CallbackInterfaceInfo> UniFFIGetCallbackInterfaceInfo(uint64_t aInterfaceI
 }
 
 // Define scaffolding call classes for each combination of return/argument types
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreCalculateMetrics : public UniffiHandlerBase {
+
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreCalculateMetrics : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
@@ -186,7 +338,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreClose : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
@@ -217,7 +369,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreIngest : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
@@ -263,7 +415,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreInterrupt : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreInterrupt : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
@@ -294,7 +446,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreUserInterestVector : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
@@ -334,7 +486,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRelevancyFnConstructorRelevancystoreNew : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mDbpath;
@@ -374,7 +526,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
@@ -417,7 +569,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecords : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
@@ -457,7 +609,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mPtr;
@@ -503,7 +655,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnConstructorRemotesettingsNew : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsNew : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mRemoteSettingsConfig;
@@ -543,7 +695,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnFuncRawSuggestionUrlMatches : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnFuncRawSuggestionUrlMatches : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mRawUrl;
@@ -589,7 +741,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClear : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClear : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -620,7 +772,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -651,7 +803,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreDismissSuggestion : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -688,7 +840,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -728,7 +880,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchProviderConfig : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchProviderConfig : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -774,7 +926,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreIngest : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreIngest : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -820,7 +972,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreInterrupt : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreInterrupt : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -857,7 +1009,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQuery : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -903,7 +1055,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQueryWithMetrics : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQueryWithMetrics : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mPtr;
@@ -949,7 +1101,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststoreNew : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststoreNew : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
@@ -995,7 +1147,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderBuild : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderBuild : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1035,7 +1187,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderCachePath : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderCachePath : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1081,7 +1233,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderDataPath : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderDataPath : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1127,7 +1279,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderLoadExtension : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderLoadExtension : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1179,7 +1331,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1225,7 +1377,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mPtr;
@@ -1271,7 +1423,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststorebuilderNew : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststorebuilderNew : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
 
@@ -1305,7 +1457,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
@@ -1357,7 +1509,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
@@ -1415,7 +1567,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
@@ -1455,7 +1607,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
@@ -1507,7 +1659,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mPtr;
@@ -1553,7 +1705,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineApply : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineApply : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1593,7 +1745,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1639,7 +1791,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineLastSync : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineLastSync : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1679,7 +1831,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedenginePrepareForSync : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedenginePrepareForSync : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1716,7 +1868,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineReset : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1747,7 +1899,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineResetSyncId : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1787,7 +1939,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetLastSync : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetLastSync : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1824,7 +1976,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetUploaded : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1867,7 +2019,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineStoreIncoming : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1904,7 +2056,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncFinished : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1935,7 +2087,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncId : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -1975,7 +2127,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncStarted : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncStarted : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -2006,7 +2158,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineWipe : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mPtr;
@@ -2037,7 +2189,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreBridgedEngine : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
@@ -2077,7 +2229,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreGetAll : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
@@ -2117,7 +2269,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreNewRemoteCommandStore : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreNewRemoteCommandStore : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
@@ -2157,7 +2309,7 @@ public:
         );
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreRegisterWithSyncManager : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreRegisterWithSyncManager : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
@@ -2188,7 +2340,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreSetLocalTabs : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mPtr;
@@ -2225,7 +2377,7 @@ public:
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     }
 };
-class ScaffoldingCallHandlerUniFFIUniffiTabsFnConstructorTabsstoreNew : public UniffiHandlerBase {
+class ScaffoldingCallHandlerUniffiTabsFnConstructorTabsstoreNew : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mPath;
@@ -2266,173 +2418,4450 @@ public:
     }
 };
 
-UniquePtr<UniffiHandlerBase> UniFFIGetHandler(uint64_t aId) {
+#ifdef MOZ_UNIFFI_FIXTURES
+class ScaffoldingCallHandlerUniffiArithmeticalFnFuncAdd : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mA;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mB;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mB, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_arithmetical_fn_func_add(
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mA)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mB)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiArithmeticalFnFuncDiv : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mDividend;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mDivisor;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mDividend, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mDivisor, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_arithmetical_fn_func_div(
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mDividend)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mDivisor)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiArithmeticalFnFuncEqual : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mA;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mB;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mB, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_arithmetical_fn_func_equal(
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mA)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mB)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiArithmeticalFnFuncSub : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mA;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mB;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mB, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_arithmetical_fn_func_sub(
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mA)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mB)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDemo;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mDemo, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_custom_types_fn_func_get_custom_types_demo(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDemo)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
+            uniffi_uniffi_fixture_external_types_fn_func_gradient(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<double>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn1;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn2;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mLn2, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_fixture_external_types_fn_func_intersection(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn1)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn2)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int32_t>::FromRust(
+            uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::FromRust(
+            uniffi_uniffi_fixture_refcounts_fn_func_get_singleton(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method(
+            ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
+            uniffi_uniffi_geometry_fn_func_gradient(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<double>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn1;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn2;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mLn2, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_geometry_fn_func_intersection(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn1)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn2)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mC;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mC, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_func_copie_carte(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mC)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieDictionnaire : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mD;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mD, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_func_copie_dictionnaire(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mD)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumeration : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mE;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mE, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_func_copie_enumeration(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mE)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumerations : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mE;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mE, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_func_copie_enumerations(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mE)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncSwitcheroo : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mB;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[0], &mB, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_func_switcheroo(
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mB)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonBoolean : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_boolean(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonEnum : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_enum(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF32 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<float>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<float>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<float>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<float>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_f32(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<float>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<float>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF64 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<double>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<double>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_f64(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<double>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<double>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i16_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i16_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i32_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i32_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i64_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i64_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i8_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_i8_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonNull : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_null(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonSequence : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_sequence(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonString : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_string(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u16_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u16_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Oct : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u32_oct(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u64_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u64_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Dec : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u8_dec(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Hex : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_u8_hex(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonZero : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_optionneur_sinon_zero(
+                ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorOptionneurNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromRust(
+            uniffi_uniffi_rondpoint_fn_constructor_optionneur_new(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueBoolean : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_boolean(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueDouble : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<double>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<double>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_double(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<double>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<double>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueFloat : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<float>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<float>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<float>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<float>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_float(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<float>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<float>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI16 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i16(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI32 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i32(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI64 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i64(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI8 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<int8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_i8(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<int8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombres : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_nombres(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombresSignes : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_nombres_signes(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueOptionneurDictionnaire : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_optionneur_dictionnaire(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueString : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_string(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU16 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint16_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u16(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint16_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU32 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint32_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u32(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU64 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint64_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u64(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint64_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU8 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint8_t>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_retourneur_identique_u8(
+                ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint8_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorRetourneurNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromRust(
+            uniffi_uniffi_rondpoint_fn_constructor_retourneur_new(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringBoolean : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_boolean(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringDouble : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<double>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<double>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_double(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<double>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringFloat : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<float>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<float>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_float(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<float>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI16 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i16(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI32 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i32(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI64 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i64(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI8 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<int8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<int8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_i8(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<int8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU16 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint16_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint16_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u16(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint16_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU32 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u32(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU64 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint64_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint64_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u64(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint64_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU8 : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint8_t>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint8_t>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_to_string_u8(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint8_t>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierWellKnownString : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mValue;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mValue, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_rondpoint_fn_method_stringifier_well_known_string(
+                ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mValue)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorStringifierNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromRust(
+            uniffi_uniffi_rondpoint_fn_constructor_stringifier_new(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnFuncTranslate : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPosition;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDirection;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPosition, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDirection, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_sprites_fn_func_translate(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPosition)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDirection)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteGetPosition : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_sprites_fn_method_sprite_get_position(
+                ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveBy : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDirection;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDirection, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_sprites_fn_method_sprite_move_by(
+            ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDirection)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mPosition;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mPosition, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_sprites_fn_method_sprite_move_to(
+            ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mPosition)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mInitialPosition;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mInitialPosition, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromRust(
+            uniffi_uniffi_sprites_fn_constructor_sprite_new(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mInitialPosition)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNewRelativeTo : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mReference;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mDirection;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mReference, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mDirection, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromRust(
+            uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mReference)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDirection)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncCreateEntryWith : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mTodo;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mTodo, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_func_create_entry_with(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mTodo)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncGetDefaultList : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_func_get_default_list(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncSetDefaultList : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mList;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mList, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_func_set_default_list(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mList)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mEntries;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mEntries, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_add_entries(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mEntries)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mEntry;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mEntry, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_add_entry(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mEntry)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mTodo;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mTodo, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_add_item(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mTodo)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mItems;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mItems, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_add_items(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mItems)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mTodo;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mTodo, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_clear_item(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mTodo)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_method_todolist_get_entries(
+                ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetFirst : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_method_todolist_get_first(
+                ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetItems : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_method_todolist_get_items(
+                ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLast : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_method_todolist_get_last(
+                ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLastEntry : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_todolist_fn_method_todolist_get_last_entry(
+                ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistMakeDefault : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mPtr;
+
+    // MakeRustCall stores the result of the call in these fields
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        uniffi_uniffi_todolist_fn_method_todolist_make_default(
+            ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoRust(std::move(mPtr)),
+            &callStatus
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromRust(
+            uniffi_uniffi_todolist_fn_constructor_todolist_new(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+#endif /* MOZ_UNIFFI_FIXTURES */
+
+UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
   switch (aId) {
+
     case 0: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreCalculateMetrics>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreCalculateMetrics>();
     }
     case 1: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreClose>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose>();
     }
     case 2: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreIngest>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest>();
     }
     case 3: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreInterrupt>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreInterrupt>();
     }
     case 4: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnMethodRelevancystoreUserInterestVector>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector>();
     }
     case 5: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRelevancyFnConstructorRelevancystoreNew>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew>();
     }
     case 6: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath>();
     }
     case 7: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecords>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords>();
     }
     case 8: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince>();
     }
     case 9: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiRemoteSettingsFnConstructorRemotesettingsNew>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsNew>();
     }
     case 10: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnFuncRawSuggestionUrlMatches>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnFuncRawSuggestionUrlMatches>();
     }
     case 11: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClear>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClear>();
     }
     case 12: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions>();
     }
     case 13: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreDismissSuggestion>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion>();
     }
     case 14: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig>();
     }
     case 15: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreFetchProviderConfig>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchProviderConfig>();
     }
     case 16: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreIngest>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreIngest>();
     }
     case 17: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreInterrupt>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreInterrupt>();
     }
     case 18: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQuery>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery>();
     }
     case 19: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststoreQueryWithMetrics>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQueryWithMetrics>();
     }
     case 20: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststoreNew>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststoreNew>();
     }
     case 21: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderBuild>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderBuild>();
     }
     case 22: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderCachePath>();
     }
     case 23: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderDataPath>();
     }
     case 24: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderLoadExtension>();
     }
     case 25: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName>();
     }
     case 26: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer>();
     }
     case 27: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiSuggestFnConstructorSuggeststorebuilderNew>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststorebuilderNew>();
     }
     case 28: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand>();
     }
     case 29: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt>();
     }
     case 30: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands>();
     }
     case 31: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand>();
     }
     case 32: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent>();
     }
     case 33: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineApply>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineApply>();
     }
     case 34: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId>();
     }
     case 35: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineLastSync>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineLastSync>();
     }
     case 36: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedenginePrepareForSync>();
     }
     case 37: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineReset>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset>();
     }
     case 38: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId>();
     }
     case 39: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetLastSync>();
     }
     case 40: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded>();
     }
     case 41: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming>();
     }
     case 42: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished>();
     }
     case 43: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncId>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId>();
     }
     case 44: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncStarted>();
     }
     case 45: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsbridgedengineWipe>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe>();
     }
     case 46: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreBridgedEngine>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine>();
     }
     case 47: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreGetAll>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll>();
     }
     case 48: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreNewRemoteCommandStore>();
     }
     case 49: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreRegisterWithSyncManager>();
     }
     case 50: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnMethodTabsstoreSetLocalTabs>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs>();
     }
     case 51: {
-        return MakeUnique<ScaffoldingCallHandlerUniFFIUniffiTabsFnConstructorTabsstoreNew>();
+        return MakeUnique<ScaffoldingCallHandlerUniffiTabsFnConstructorTabsstoreNew>();
     }
+
+#ifdef MOZ_UNIFFI_FIXTURES
+    case 52: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncAdd>();
+    }
+    case 53: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncDiv>();
+    }
+    case 54: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncEqual>();
+    }
+    case 55: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncSub>();
+    }
+    case 56: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo>();
+    }
+    case 57: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient>();
+    }
+    case 58: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection>();
+    }
+    case 59: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount>();
+    }
+    case 60: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton>();
+    }
+    case 61: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod>();
+    }
+    case 62: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient>();
+    }
+    case 63: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection>();
+    }
+    case 64: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte>();
+    }
+    case 65: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieDictionnaire>();
+    }
+    case 66: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumeration>();
+    }
+    case 67: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumerations>();
+    }
+    case 68: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncSwitcheroo>();
+    }
+    case 69: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonBoolean>();
+    }
+    case 70: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonEnum>();
+    }
+    case 71: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF32>();
+    }
+    case 72: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF64>();
+    }
+    case 73: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Dec>();
+    }
+    case 74: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Hex>();
+    }
+    case 75: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Dec>();
+    }
+    case 76: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Hex>();
+    }
+    case 77: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Dec>();
+    }
+    case 78: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Hex>();
+    }
+    case 79: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Dec>();
+    }
+    case 80: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Hex>();
+    }
+    case 81: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonNull>();
+    }
+    case 82: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonSequence>();
+    }
+    case 83: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonString>();
+    }
+    case 84: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Dec>();
+    }
+    case 85: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Hex>();
+    }
+    case 86: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Dec>();
+    }
+    case 87: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Hex>();
+    }
+    case 88: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Oct>();
+    }
+    case 89: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Dec>();
+    }
+    case 90: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Hex>();
+    }
+    case 91: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Dec>();
+    }
+    case 92: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Hex>();
+    }
+    case 93: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonZero>();
+    }
+    case 94: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorOptionneurNew>();
+    }
+    case 95: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueBoolean>();
+    }
+    case 96: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueDouble>();
+    }
+    case 97: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueFloat>();
+    }
+    case 98: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI16>();
+    }
+    case 99: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI32>();
+    }
+    case 100: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI64>();
+    }
+    case 101: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI8>();
+    }
+    case 102: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombres>();
+    }
+    case 103: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombresSignes>();
+    }
+    case 104: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueOptionneurDictionnaire>();
+    }
+    case 105: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueString>();
+    }
+    case 106: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU16>();
+    }
+    case 107: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU32>();
+    }
+    case 108: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU64>();
+    }
+    case 109: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU8>();
+    }
+    case 110: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorRetourneurNew>();
+    }
+    case 111: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringBoolean>();
+    }
+    case 112: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringDouble>();
+    }
+    case 113: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringFloat>();
+    }
+    case 114: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI16>();
+    }
+    case 115: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI32>();
+    }
+    case 116: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI64>();
+    }
+    case 117: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI8>();
+    }
+    case 118: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU16>();
+    }
+    case 119: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU32>();
+    }
+    case 120: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU64>();
+    }
+    case 121: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU8>();
+    }
+    case 122: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierWellKnownString>();
+    }
+    case 123: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorStringifierNew>();
+    }
+    case 124: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnFuncTranslate>();
+    }
+    case 125: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteGetPosition>();
+    }
+    case 126: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveBy>();
+    }
+    case 127: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo>();
+    }
+    case 128: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew>();
+    }
+    case 129: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNewRelativeTo>();
+    }
+    case 130: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncCreateEntryWith>();
+    }
+    case 131: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncGetDefaultList>();
+    }
+    case 132: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncSetDefaultList>();
+    }
+    case 133: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries>();
+    }
+    case 134: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry>();
+    }
+    case 135: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem>();
+    }
+    case 136: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems>();
+    }
+    case 137: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem>();
+    }
+    case 138: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries>();
+    }
+    case 139: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetFirst>();
+    }
+    case 140: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetItems>();
+    }
+    case 141: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLast>();
+    }
+    case 142: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLastEntry>();
+    }
+    case 143: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistMakeDefault>();
+    }
+    case 144: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew>();
+    }
+#endif /* MOZ_UNIFFI_FIXTURES */
 
     default:
       return nullptr;
   }
 }
 
-Maybe<already_AddRefed<UniFFIPointer>> UniFFIReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
+Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
   const UniFFIPointerType* type;
   switch (aId) {
+
     case 0: {
       type = &kRelevancyRelevancyStorePointerType;
       break;
@@ -2461,15 +6890,43 @@ Maybe<already_AddRefed<UniFFIPointer>> UniFFIReadPointer(const GlobalObject& aGl
       type = &kTabsTabsStorePointerType;
       break;
     }
+
+#ifdef MOZ_UNIFFI_FIXTURES
+    case 7: {
+      type = &kRefcountsSingletonObjectPointerType;
+      break;
+    }
+    case 8: {
+      type = &kRondpointOptionneurPointerType;
+      break;
+    }
+    case 9: {
+      type = &kRondpointRetourneurPointerType;
+      break;
+    }
+    case 10: {
+      type = &kRondpointStringifierPointerType;
+      break;
+    }
+    case 11: {
+      type = &kSpritesSpritePointerType;
+      break;
+    }
+    case 12: {
+      type = &kTodolistTodoListPointerType;
+      break;
+    }
+#endif /* MOZ_UNIFFI_FIXTURES */
     default:
       return Nothing();
   }
   return Some(UniFFIPointer::Read(aArrayBuff, aPosition, type, aError));
 }
 
-bool UniFFIWritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
+bool WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
   const UniFFIPointerType* type;
   switch (aId) {
+
     case 0: {
       type = &kRelevancyRelevancyStorePointerType;
       break;
@@ -2498,6 +6955,33 @@ bool UniFFIWritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIP
       type = &kTabsTabsStorePointerType;
       break;
     }
+
+#ifdef MOZ_UNIFFI_FIXTURES
+    case 7: {
+      type = &kRefcountsSingletonObjectPointerType;
+      break;
+    }
+    case 8: {
+      type = &kRondpointOptionneurPointerType;
+      break;
+    }
+    case 9: {
+      type = &kRondpointRetourneurPointerType;
+      break;
+    }
+    case 10: {
+      type = &kRondpointStringifierPointerType;
+      break;
+    }
+    case 11: {
+      type = &kSpritesSpritePointerType;
+      break;
+    }
+    case 12: {
+      type = &kTodolistTodoListPointerType;
+      break;
+    }
+#endif /* MOZ_UNIFFI_FIXTURES */
     default:
       return false;
   }

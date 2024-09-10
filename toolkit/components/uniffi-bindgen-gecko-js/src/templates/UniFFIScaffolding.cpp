@@ -29,12 +29,18 @@ using dom::UniFFIScaffoldingCallResult;
 
 // Define scaffolding functions from UniFFI
 extern "C" {
+  {%- for (preprocessor_condition, ffi_functions, preprocessor_condition_end) in all_ffi_functions.iter() %}
+{{ preprocessor_condition }}
   {%- for func in ffi_functions %}
   {{ func.return_type }} {{ func.name }}({{ func.arg_types|join(", ") }});
+  {%- endfor %}
+{{ preprocessor_condition_end }}
   {%- endfor %}
 }
 
 // Define pointer types
+{%- for (preprocessor_condition, pointer_types, preprocessor_condition_end) in all_pointer_types.iter() %}
+{{ preprocessor_condition }}
 {%- for pointer_type in pointer_types %}
 const static mozilla::uniffi::UniFFIPointerType {{ pointer_type.name }} {
   "{{ pointer_type.label }}"_ns,
@@ -42,8 +48,12 @@ const static mozilla::uniffi::UniFFIPointerType {{ pointer_type.name }} {
   {{ pointer_type.free_fn }},
 };
 {%- endfor %}
+{{ preprocessor_condition_end }}
+{%- endfor %}
 
 // Define the data we need per-callback interface
+{%- for (preprocessor_condition, callback_interfaces, preprocessor_condition_end) in all_callback_interfaces.iter() %}
+{{ preprocessor_condition }}
 {%- for cbi in callback_interfaces %}
 MOZ_CAN_RUN_SCRIPT
 extern "C" int {{ cbi.handler_fn }}(uint64_t aHandle, uint32_t aMethod, const uint8_t* aArgsData, int32_t aArgsLen, RustBuffer* aOutBuffer) {
@@ -57,10 +67,14 @@ extern "C" int {{ cbi.handler_fn }}(uint64_t aHandle, uint32_t aMethod, const ui
 }
 static StaticRefPtr<dom::UniFFICallbackHandler> {{ cbi.static_var }};
 {%- endfor %}
+{{ preprocessor_condition_end }}
+{%- endfor %}
 
 // Define a lookup function for our callback interface info
-Maybe<CallbackInterfaceInfo> {{ prefix }}GetCallbackInterfaceInfo(uint64_t aInterfaceId) {
+Maybe<CallbackInterfaceInfo> GetCallbackInterfaceInfo(uint64_t aInterfaceId) {
     switch(aInterfaceId) {
+        {%- for (preprocessor_condition, callback_interfaces, preprocessor_condition_end) in all_callback_interfaces.iter() %}
+{{ preprocessor_condition }}
         {%- for cbi in callback_interfaces %}
         case {{ cbi.id }}: {
             return Some(CallbackInterfaceInfo {
@@ -71,6 +85,8 @@ Maybe<CallbackInterfaceInfo> {{ prefix }}GetCallbackInterfaceInfo(uint64_t aInte
             });
         }
         {%- endfor %}
+{{ preprocessor_condition_end }}
+        {%- endfor %}
 
         default:
             return Nothing();
@@ -78,6 +94,8 @@ Maybe<CallbackInterfaceInfo> {{ prefix }}GetCallbackInterfaceInfo(uint64_t aInte
 }
 
 // Define scaffolding call classes for each combination of return/argument types
+{%- for (preprocessor_condition, scaffolding_calls, preprocessor_condition_end) in all_scaffolding_calls.iter() %}
+{{ preprocessor_condition }}
 {%- for scaffolding_call in scaffolding_calls %}
 class {{ scaffolding_call.handler_class_name }} : public UniffiHandlerBase {
 private:
@@ -145,13 +163,19 @@ public:
 };
 
 {%- endfor %}
+{{ preprocessor_condition_end }}
+{%- endfor %}
 
-UniquePtr<UniffiHandlerBase> {{ prefix }}GetHandler(uint64_t aId) {
+UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
   switch (aId) {
+    {%- for (preprocessor_condition, scaffolding_calls, preprocessor_condition_end) in all_scaffolding_calls.iter() %}
+{{ preprocessor_condition }}
     {%- for call in scaffolding_calls %}
     case {{ call.function_id }}: {
         return MakeUnique<{{ call.handler_class_name }}>();
     }
+    {%- endfor %}
+{{ preprocessor_condition_end }}
     {%- endfor %}
 
     default:
@@ -159,43 +183,43 @@ UniquePtr<UniffiHandlerBase> {{ prefix }}GetHandler(uint64_t aId) {
   }
 }
 
-Maybe<already_AddRefed<UniFFIPointer>> {{ prefix }}ReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
-  {%- if pointer_types.is_empty() %}
-  return Nothing();
-  {%- else %}
+Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
   const UniFFIPointerType* type;
   switch (aId) {
+    {%- for (preprocessor_condition, pointer_types, preprocessor_condition_end) in all_pointer_types.iter() %}
+{{ preprocessor_condition }}
     {%- for pointer_type in pointer_types %}
     case {{ pointer_type.object_id }}: {
       type = &{{ pointer_type.name }};
       break;
     }
     {%- endfor %}
+{{ preprocessor_condition_end }}
+    {%- endfor %}
     default:
       return Nothing();
   }
   return Some(UniFFIPointer::Read(aArrayBuff, aPosition, type, aError));
-  {%- endif %}
 }
 
-bool {{ prefix }}WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
-  {%- if pointer_types.is_empty() %}
-  return false;
-  {%- else %}
+bool WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
   const UniFFIPointerType* type;
   switch (aId) {
+    {%- for (preprocessor_condition, pointer_types, preprocessor_condition_end) in all_pointer_types.iter() %}
+{{ preprocessor_condition }}
     {%- for pointer_type in pointer_types %}
     case {{ pointer_type.object_id }}: {
       type = &{{ pointer_type.name }};
       break;
     }
+    {%- endfor %}
+{{ preprocessor_condition_end }}
     {%- endfor %}
     default:
       return false;
   }
   aPtr.Write(aArrayBuff, aPosition, type, aError);
   return true;
-  {%- endif %}
 }
 
 }  // namespace mozilla::uniffi
