@@ -46,7 +46,18 @@ class CookieServiceChild final : public PCookieServiceChild,
  private:
   ~CookieServiceChild();
 
-  void RecordDocumentCookie(Cookie* aCookie, const OriginAttributes& aAttrs);
+  enum class CookieNotificationAction {
+    NoActionNeeded,
+    CookieAdded,
+    CookieChanged,
+    CookieDeleted,
+  };
+
+  CookieNotificationAction RecordDocumentCookie(Cookie* aCookie,
+                                                const OriginAttributes& aAttrs);
+
+  void NotifyObservers(Cookie* aCookie, const OriginAttributes& aAttrs,
+                       CookieNotificationAction aAction);
 
   static bool RequireThirdPartyCheck(nsILoadInfo* aLoadInfo);
 
