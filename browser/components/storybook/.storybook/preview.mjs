@@ -8,6 +8,7 @@ import { css, html } from "lit.all.mjs";
 import { MozLitElement } from "toolkit/content/widgets/lit-utils.mjs";
 import customElementsManifest from "../custom-elements.json";
 import { insertFTLIfNeeded, connectFluent } from "./fluent-utils.mjs";
+import chromeMap from "./chrome-map.js";
 
 // Base Fluent set up.
 connectFluent();
@@ -24,6 +25,33 @@ window.RPMSetPref = () => {
 window.RPMGetFormatURLPref = () => {
   /* NOOP */
 };
+
+/**
+ * Function to automatically import reusable components into all stories. This
+ * helps ensure that components composed of multiple `moz-` elements will render
+ * correctly, since these elements would otherwise be lazily imported.
+ */
+function importReusableComponents() {
+  let sourceMap = chromeMap[2];
+  let mozElements = new Set();
+  for (let key of Object.keys(sourceMap)) {
+    if (
+      key.startsWith("dist/bin/chrome/toolkit/content/global/elements/moz-") &&
+      key.endsWith(".mjs")
+    ) {
+      mozElements.add(key.split("/").pop().replace(".mjs", ""));
+    }
+  }
+  mozElements.forEach(elementName => {
+    // eslint-disable-next-line no-unsanitized/method
+    import(`toolkit/content/widgets/${elementName}/${elementName}.mjs`);
+  });
+
+  // Manually import the two components that don't follow our naming conventions.
+  import("toolkit/content/widgets/panel-list/panel-list.js");
+  import("toolkit/content/widgets/named-deck.js");
+}
+importReusableComponents();
 
 /**
  * Wrapper component used to decorate all of our stories by providing access to
