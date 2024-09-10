@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LocalContentAlpha
@@ -183,7 +182,6 @@ fun TabsTrayBanner(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Suppress("LongMethod")
 @Composable
 private fun TabPageBanner(
