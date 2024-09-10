@@ -13,6 +13,7 @@ import mozilla.components.browser.state.engine.middleware.CreateEngineSessionMid
 import mozilla.components.browser.state.engine.middleware.EngineDelegateMiddleware
 import mozilla.components.browser.state.engine.middleware.ExtensionsProcessMiddleware
 import mozilla.components.browser.state.engine.middleware.LinkingMiddleware
+import mozilla.components.browser.state.engine.middleware.PdfStateMiddleware
 import mozilla.components.browser.state.engine.middleware.SuspendMiddleware
 import mozilla.components.browser.state.engine.middleware.TabsRemovedMiddleware
 import mozilla.components.browser.state.engine.middleware.TranslationsMiddleware
@@ -52,6 +53,7 @@ object EngineMiddleware {
             CrashMiddleware(),
             ExtensionsProcessMiddleware(engine),
             TranslationsMiddleware(engine, scope),
+            PdfStateMiddleware(scope),
         ) + if (trimMemoryAutomatically) {
             listOf(TrimMemoryMiddleware())
         } else {

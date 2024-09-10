@@ -321,8 +321,19 @@ internal object ContentStateReducer {
                     }
                 }
             }
+            is ContentAction.EnteredPdfViewer -> {
+                updateContentState(state, action.tabId) {
+                    it.copy(isPdf = true)
+                }
+            }
+            is ContentAction.ExitedPdfViewer -> {
+                updateContentState(state, action.tabId) {
+                    it.copy(isPdf = false)
+                }
+            }
         }
     }
+
     private fun consumeDownload(state: BrowserState, sessionId: String, downloadId: String): BrowserState {
         return updateContentState(state, sessionId) {
             if (it.download != null && it.download.id == downloadId) {

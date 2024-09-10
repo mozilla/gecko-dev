@@ -4,11 +4,17 @@
 
 package mozilla.components.browser.state.reducer
 
+import kotlinx.coroutines.test.runTest
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ContentStateReducerTest {
@@ -22,5 +28,43 @@ class ContentStateReducerTest {
 
         assertFalse(browserState == result)
         assertEquals("updatedUrl", result.tabs[0].content.url)
+    }
+
+    @Test
+    fun `WHEN entering pdf viewer THEN mark the current tab as showing a pdf`() = runTest {
+        val currentTabId = "test"
+        val currentTab = TabSessionState(
+            id = currentTabId,
+            content = ContentState(
+                url = "https://mozilla.org",
+                isPdf = false,
+            ),
+        )
+        val browserStore = BrowserStore(
+            initialState = BrowserState(tabs = listOf(mock(), currentTab)),
+        )
+
+        browserStore.dispatch(ContentAction.EnteredPdfViewer(currentTabId)).join()
+
+        assertTrue(browserStore.state.findTabOrCustomTabOrSelectedTab(currentTabId)!!.content.isPdf)
+    }
+
+    @Test
+    fun `WHEN exiting pdf viewer THEN mark the current tab as not showing a pdf`() = runTest {
+        val currentTabId = "test"
+        val currentTab = TabSessionState(
+            id = currentTabId,
+            content = ContentState(
+                url = "https://mozilla.org",
+                isPdf = true,
+            ),
+        )
+        val browserStore = BrowserStore(
+            initialState = BrowserState(tabs = listOf(mock(), currentTab)),
+        )
+
+        browserStore.dispatch(ContentAction.ExitedPdfViewer(currentTabId)).join()
+
+        assertFalse(browserStore.state.findTabOrCustomTabOrSelectedTab(currentTabId)!!.content.isPdf)
     }
 }

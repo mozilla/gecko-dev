@@ -104,6 +104,7 @@ data class ContentState(
     val showToolbarAsExpanded: Boolean = false,
     val previewImageUrl: String? = null,
     val isSearch: Boolean = false,
+    val isPdf: Boolean = false,
     val hasFormData: Boolean = false,
     val isProductUrl: Boolean = false,
 )
