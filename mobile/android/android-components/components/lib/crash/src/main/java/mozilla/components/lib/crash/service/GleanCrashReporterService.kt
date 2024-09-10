@@ -74,11 +74,6 @@ class GleanCrashReporterService(
         const val FOREGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY = "fg_proc_native_code_crash"
         const val BACKGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY = "bg_proc_native_code_crash"
 
-        // These keys are deprecated and should be removed after a period to allow for persisted
-        // crashes to be submitted.
-        const val FATAL_NATIVE_CODE_CRASH_KEY = "fatal_native_code_crash"
-        const val NONFATAL_NATIVE_CODE_CRASH_KEY = "nonfatal_native_code_crash"
-
         private const val MINIDUMP_READ_BUFFER_SIZE: Int = 8192
     }
 
