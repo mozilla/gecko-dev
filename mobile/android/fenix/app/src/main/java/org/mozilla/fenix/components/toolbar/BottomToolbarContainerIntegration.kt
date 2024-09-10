@@ -15,6 +15,7 @@ import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.ext.isToolbarAtBottom
 
 /**
@@ -22,11 +23,12 @@ import org.mozilla.fenix.ext.isToolbarAtBottom
  * When the content of a tab is being scrolled, the toolbar will react to user interactions.
  */
 class BottomToolbarContainerIntegration(
-    val toolbar: ScrollableToolbar,
-    val store: BrowserStore,
-    val appStore: AppStore,
-    val bottomToolbarContainerView: BottomToolbarContainerView,
+    toolbar: ScrollableToolbar,
+    store: BrowserStore,
+    private val appStore: AppStore,
+    private val bottomToolbarContainerView: BottomToolbarContainerView,
     sessionId: String?,
+    private val findInPageFeature: () -> FindInPageIntegration?,
 ) : LifecycleAwareFeature {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -41,10 +43,10 @@ class BottomToolbarContainerIntegration(
                 .collect { state ->
                     with(bottomToolbarContainerView.toolbarContainerView) {
                         // When the address bar is positioned at the bottom, we never want bottom container to be
-                        // visible if the search dialog is visible. It's different if the address bar is at the top: in
-                        // that case we want the navbar be visible whenever the keyboard is hidden, even if the search
-                        // dialog is present.
-                        if (context.isToolbarAtBottom()) {
+                        // visible if the search dialog is visible or when the find in page bar is showing.
+                        // If the address bar is at top and find in page is not showing then the navbar should be
+                        // visible whenever the keyboard is hidden, even if the search dialog is present.
+                        if (context.isToolbarAtBottom() && (findInPageFeature()?.isFeatureActive != true)) {
                             isVisible = !state.isSearchDialogVisible
                         }
                     }

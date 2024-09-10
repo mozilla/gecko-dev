@@ -791,6 +791,7 @@ class HomeFragment : Fragment() {
                 appStore = requireComponents.appStore,
                 bottomToolbarContainerView = bottomToolbarContainerView,
                 sessionId = null,
+                findInPageFeature = { null },
             ),
             owner = this,
             view = binding.root,

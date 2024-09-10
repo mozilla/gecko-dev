@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -31,11 +32,13 @@ class BottomToolbarContainerIntegrationTest {
     private lateinit var feature: BottomToolbarContainerIntegration
     private lateinit var appStore: AppStore
     private lateinit var toolbarContainer: ToolbarContainerView
+    private val findInPageIntegration: FindInPageIntegration = mockk()
 
     @Before
     fun setup() {
         appStore = AppStore()
         toolbarContainer = spyk(ToolbarContainerView(testContext))
+        every { findInPageIntegration.isFeatureActive } returns false
 
         val bottomToolbarContainerView: BottomToolbarContainerView = mockk()
         feature = BottomToolbarContainerIntegration(
@@ -44,6 +47,7 @@ class BottomToolbarContainerIntegrationTest {
             appStore = appStore,
             bottomToolbarContainerView = bottomToolbarContainerView,
             sessionId = null,
+            findInPageFeature = { findInPageIntegration },
         ).apply {
             toolbarController = mockk(relaxed = true)
         }
@@ -69,7 +73,7 @@ class BottomToolbarContainerIntegrationTest {
     }
 
     @Test
-    fun `GIVEN the toolbar is positioned at bottom WHEN search dialog becomes visible THEN toolbar gets hidden`() {
+    fun `GIVEN toolbar at bottom and find in page not active WHEN search dialog becomes visible THEN toolbar gets hidden`() {
         val searchDialogVisibility = true
         val toolbarContainerVisibility = false
 
@@ -80,7 +84,7 @@ class BottomToolbarContainerIntegrationTest {
     }
 
     @Test
-    fun `GIVEN toolbar positioned at bottom WHEN search dialog is not visible THEN toolbar is visible`() {
+    fun `GIVEN toolbar at bottom and find in page not active WHEN search dialog is not visible THEN toolbar is visible`() {
         val searchDialogVisibility = false
         val toolbarContainerVisibility = true
 
@@ -91,7 +95,18 @@ class BottomToolbarContainerIntegrationTest {
     }
 
     @Test
-    fun `GIVEN toolbar positioned at top WHEN search dialog visibility changes THEN toolbar visibility remains unchanged`() {
+    fun `GIVEN toolbar at bottom and find in page active WHEN search dialog is not visible THEN toolbar visibility does not change`() {
+        val searchDialogVisibility = false
+        every { findInPageIntegration.isFeatureActive } returns true
+
+        feature.start()
+        appStore.dispatch(AppAction.UpdateSearchDialogVisibility(isVisible = searchDialogVisibility)).joinBlocking()
+
+        verify(exactly = 0) { toolbarContainer.visibility = any() }
+    }
+
+    @Test
+    fun `GIVEN toolbar positioned at top and find in page not active WHEN search dialog visibility changes THEN toolbar visibility remains unchanged`() {
         every { testContext.components.settings.toolbarPosition } returns ToolbarPosition.TOP
         var searchDialogVisibility = false
         val toolbarContainerVisibility = true
@@ -105,5 +120,22 @@ class BottomToolbarContainerIntegrationTest {
         appStore.dispatch(AppAction.UpdateSearchDialogVisibility(isVisible = searchDialogVisibility)).joinBlocking()
 
         assertEquals(toolbarContainerVisibility, toolbarContainer.isVisible)
+    }
+
+    @Test
+    fun `GIVEN toolbar positioned at top and find in page active WHEN search dialog visibility changes THEN toolbar visibility remains unchanged`() {
+        every { testContext.components.settings.toolbarPosition } returns ToolbarPosition.TOP
+        var searchDialogVisibility = false
+        every { findInPageIntegration.isFeatureActive } returns true
+
+        feature.start()
+        appStore.dispatch(AppAction.UpdateSearchDialogVisibility(isVisible = searchDialogVisibility)).joinBlocking()
+
+        verify(exactly = 0) { toolbarContainer.visibility = any() }
+
+        searchDialogVisibility = true
+        appStore.dispatch(AppAction.UpdateSearchDialogVisibility(isVisible = searchDialogVisibility)).joinBlocking()
+
+        verify(exactly = 0) { toolbarContainer.visibility = any() }
     }
 }
