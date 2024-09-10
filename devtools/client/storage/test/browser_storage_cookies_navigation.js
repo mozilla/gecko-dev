@@ -22,7 +22,8 @@ add_task(async function () {
   );
   const URL_IFRAME = buildURLWithContent(
     "example.org",
-    `<h1>example.org</h1>` + `<script>document.cookie = "hello=world";</script>`
+    `<h1>example.org</h1>` +
+      `<script>document.cookie = "hello=world; SameSite=None; Secure; Partitioned;";</script>`
   );
 
   // open tab
