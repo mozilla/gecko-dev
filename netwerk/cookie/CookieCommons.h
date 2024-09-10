@@ -115,8 +115,16 @@ class CookieCommons final {
   static already_AddRefed<nsICookieJarSettings> GetCookieJarSettings(
       nsIChannel* aChannel);
 
-  static bool ShouldIncludeCrossSiteCookieForDocument(Cookie* aCookie,
-                                                      dom::Document* aDocument);
+  static bool ShouldIncludeCrossSiteCookie(Cookie* aCookie,
+                                           bool aPartitionForeign,
+                                           bool aInPrivateBrowsing,
+                                           bool aUsingStorageAccess);
+
+  static bool ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
+                                           bool aCookiePartitioned,
+                                           bool aPartitionForeign,
+                                           bool aInPrivateBrowsing,
+                                           bool aUsingStorageAccess);
 
   static bool IsSchemeSupported(nsIPrincipal* aPrincipal);
   static bool IsSchemeSupported(nsIURI* aURI);

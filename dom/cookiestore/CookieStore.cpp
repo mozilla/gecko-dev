@@ -22,6 +22,7 @@
 #include "nsIPrincipal.h"
 #include "nsReadableUtils.h"
 #include "nsSandboxFlags.h"
+#include "ThirdPartyUtil.h"
 
 using namespace mozilla::net;
 
@@ -193,6 +194,46 @@ void ResolvePromiseAsync(Promise* aPromise) {
       [promise = RefPtr(aPromise)] { promise->MaybeResolveWithUndefined(); }));
 }
 
+bool GetContextAttributes(CookieStore* aCookieStore, bool* aThirdPartyContext,
+                          bool* aPartitionForeign, bool* aUsingStorageAccess,
+                          Promise* aPromise) {
+  MOZ_ASSERT(aCookieStore);
+  MOZ_ASSERT(aThirdPartyContext);
+  MOZ_ASSERT(aPartitionForeign);
+  MOZ_ASSERT(aUsingStorageAccess);
+  MOZ_ASSERT(aPromise);
+
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsPIDOMWindowInner> window = aCookieStore->GetOwnerWindow();
+    MOZ_ASSERT(window);
+
+    ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
+    if (thirdPartyUtil) {
+      Unused << thirdPartyUtil->IsThirdPartyWindow(window->GetOuterWindow(),
+                                                   nullptr, aThirdPartyContext);
+    }
+
+    nsCOMPtr<Document> document = window->GetExtantDoc();
+    if (NS_WARN_IF(!document)) {
+      aPromise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+      return false;
+    }
+
+    *aPartitionForeign = document->CookieJarSettings()->GetPartitionForeign();
+    *aUsingStorageAccess = document->UsingStorageAccess();
+    return true;
+  }
+
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(workerPrivate);
+
+  *aThirdPartyContext = workerPrivate->IsThirdPartyContext();
+  *aPartitionForeign =
+      workerPrivate->CookieJarSettings()->GetPartitionForeign();
+  *aUsingStorageAccess = workerPrivate->UsingStorageAccess();
+  return true;
+}
+
 }  // namespace
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(CookieStore)
@@ -321,6 +362,15 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
           return;
         }
 
+        bool thirdPartyContext = true;
+        bool partitionForeign = true;
+        bool usingStorageAccess = false;
+
+        if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
+                                  &usingStorageAccess, promise)) {
+          return;
+        }
+
         if (!self->MaybeCreateActor()) {
           promise->MaybeRejectWithNotAllowedError("Permission denied");
           return;
@@ -345,8 +395,9 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
             self->mActor->SendSetRequest(
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
                                            : nsString(aOptions.mDomain),
-                cookiePrincipal->OriginAttributesRef(),
-                nsString(aOptions.mName), nsString(aOptions.mValue),
+                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
+                partitionForeign, usingStorageAccess, nsString(aOptions.mName),
+                nsString(aOptions.mValue),
                 // If expires is not set, it's a session cookie.
                 aOptions.mExpires.IsNull(),
                 aOptions.mExpires.IsNull()
@@ -431,6 +482,15 @@ already_AddRefed<Promise> CookieStore::Delete(
           return;
         }
 
+        bool thirdPartyContext = true;
+        bool partitionForeign = true;
+        bool usingStorageAccess = false;
+
+        if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
+                                  &usingStorageAccess, promise)) {
+          return;
+        }
+
         if (!self->MaybeCreateActor()) {
           promise->MaybeRejectWithNotAllowedError("Permission denied");
           return;
@@ -455,9 +515,9 @@ already_AddRefed<Promise> CookieStore::Delete(
             self->mActor->SendDeleteRequest(
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
                                            : nsString(aOptions.mDomain),
-                cookiePrincipal->OriginAttributesRef(),
-                nsString(aOptions.mName), path, aOptions.mPartitioned,
-                operationID);
+                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
+                partitionForeign, usingStorageAccess, nsString(aOptions.mName),
+                path, aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
@@ -522,8 +582,10 @@ already_AddRefed<Promise> CookieStore::GetInternal(
   }
 
   nsCOMPtr<nsIPrincipal> cookiePrincipal;
+  nsCOMPtr<nsIPrincipal> partitionedCookiePrincipal;
   switch (CookieCommons::CheckGlobalAndRetrieveCookiePrincipals(
-      MaybeGetDocument(), getter_AddRefs(cookiePrincipal), nullptr)) {
+      MaybeGetDocument(), getter_AddRefs(cookiePrincipal),
+      getter_AddRefs(partitionedCookiePrincipal))) {
     case CookieCommons::SecurityChecksResult::eSecurityError:
       aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
       return nullptr;
@@ -540,7 +602,9 @@ already_AddRefed<Promise> CookieStore::GetInternal(
   NS_DispatchToCurrentThread(NS_NewRunnableFunction(
       __func__,
       [self = RefPtr(this), promise = RefPtr(promise), aOptions,
-       cookiePrincipal = RefPtr(cookiePrincipal.get()), aOnlyTheFirstMatch]() {
+       cookiePrincipal = RefPtr(cookiePrincipal.get()),
+       partitionedCookiePrincipal = RefPtr(partitionedCookiePrincipal.get()),
+       aOnlyTheFirstMatch]() {
         nsAutoString name;
         if (aOptions.mName.WasPassed()) {
           name = aOptions.mName.Value();
@@ -619,6 +683,15 @@ already_AddRefed<Promise> CookieStore::GetInternal(
           }
         }
 
+        bool thirdPartyContext = true;
+        bool partitionForeign = true;
+        bool usingStorageAccess = false;
+
+        if (!GetContextAttributes(self, &thirdPartyContext, &partitionForeign,
+                                  &usingStorageAccess, promise)) {
+          return;
+        }
+
         if (!self->MaybeCreateActor()) {
           promise->MaybeRejectWithNotAllowedError("Permission denied");
           return;
@@ -632,11 +705,15 @@ already_AddRefed<Promise> CookieStore::GetInternal(
         }
 
         RefPtr<CookieStoreChild::GetRequestPromise> ipcPromise =
-            self->mActor->SendGetRequest(NS_ConvertUTF8toUTF16(baseDomain),
-                                         cookiePrincipal->OriginAttributesRef(),
-                                         aOptions.mName.WasPassed(),
-                                         nsString(name), path,
-                                         aOnlyTheFirstMatch);
+            self->mActor->SendGetRequest(
+                NS_ConvertUTF8toUTF16(baseDomain),
+                cookiePrincipal->OriginAttributesRef(),
+                partitionedCookiePrincipal
+                    ? Some(partitionedCookiePrincipal->OriginAttributesRef())
+                    : Nothing(),
+                thirdPartyContext, partitionForeign, usingStorageAccess,
+                aOptions.mName.WasPassed(), nsString(name), path,
+                aOnlyTheFirstMatch);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
