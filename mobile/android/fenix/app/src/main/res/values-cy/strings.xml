@@ -2854,10 +2854,10 @@
 
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_gesture_short">Llusgwch o\'r brig a defnyddio ystum cefn i allanfa</string>
+    <string name="exit_fullscreen_with_gesture_short">Llusgwch o\'r brig a defnyddio ystum nôl i adael</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_back_button_short">Llusgwch o\'r brig a gwasgwch yn ôl i\'r allanfa</string>
+    <string name="exit_fullscreen_with_back_button_short">Llusgwch o\'r brig a phwyso nôl i adael</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
