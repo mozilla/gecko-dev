@@ -240,18 +240,15 @@ EnvironmentArray BuildEnvironmentArray(const environment_map& env_vars_to_set);
 class AppProcessBuilder {
  public:
   AppProcessBuilder();
-  // This function will fork a new process for use as a
-  // content processes.
-  bool ForkProcess(const std::vector<std::string>& argv,
-                   LaunchOptions&& options, ProcessHandle* process_handle);
-  // This function will be called in the child process to initializes
-  // the environment of the content process.  It should be called
-  // after the message loop of the main thread, to make sure the fork
-  // server is destroyed properly in the child process.
-  //
-  // The message loop may allocate resources like file descriptors.
-  // If this function is called before the end of the loop, the
-  // reosurces may be destroyed while the loop is still alive.
+  // This function will fork a new process for use as a content
+  // processes.  The next two functions substitute for the
+  // corresponding exec().
+  bool ForkProcess(LaunchOptions&& options, ProcessHandle* process_handle);
+  // This function must be called with the argument and environment
+  // information to be used by the following call to InitAppProcess.
+  void SetExecInfo(std::vector<std::string>&& aArgv, environment_map&& aEnv);
+  // This function will be called in the child process to initialize
+  // the environment of the content process.
   void InitAppProcess(int* argcp, char*** argvp);
 
  private:
@@ -259,6 +256,7 @@ class AppProcessBuilder {
 
   mozilla::ipc::FileDescriptorShuffle shuffle_;
   std::vector<std::string> argv_;
+  environment_map env_;
 };
 
 void InitForkServerProcess();

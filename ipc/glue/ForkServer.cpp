@@ -97,21 +97,21 @@ inline void CleanString(std::string& str) {
   }
 }
 
-inline void PrepareArguments(std::vector<std::string>& aArgv,
+inline void PrepareArguments(std::vector<std::string>* aArgv,
                              nsTArray<nsCString>& aArgvArray) {
   for (auto& elt : aArgvArray) {
-    aArgv.push_back(elt.get());
+    aArgv->push_back(elt.get());
     CleanCString(elt);
   }
 }
 
 // Prepare aOptions->env_map
-inline void PrepareEnv(base::LaunchOptions* aOptions,
+inline void PrepareEnv(base::environment_map* aEnvOut,
                        nsTArray<EnvVar>& aEnvMap) {
   for (auto& elt : aEnvMap) {
     nsCString& var = std::get<0>(elt);
     nsCString& val = std::get<1>(elt);
-    aOptions->env_map[var.get()] = val.get();
+    (*aEnvOut)[var.get()] = val.get();
     CleanCString(var);
     CleanCString(val);
   }
@@ -140,37 +140,67 @@ static void ReadParamInfallible(IPC::MessageReader* aReader, P* aResult,
 }
 
 /**
- * Parse a Message to get a list of arguments and fill a LaunchOptions.
+ * Parse a Message to obtain a `LaunchOptions` and the attached fd
+ * that the child will use to receive its `SubprocessExecInfo`.
  */
 inline bool ParseForkNewSubprocess(IPC::Message& aMsg,
-                                   std::vector<std::string>& aArgv,
+                                   UniqueFileHandle* aExecFd,
                                    base::LaunchOptions* aOptions) {
   if (aMsg.type() != Msg_ForkNewSubprocess__ID) {
     MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
-            ("unknown message type %d\n", aMsg.type()));
+            ("unknown message type %d (!= %d)\n", aMsg.type(),
+             Msg_ForkNewSubprocess__ID));
     return false;
   }
 
   IPC::MessageReader reader(aMsg);
-  nsTArray<nsCString> argv_array;
-  nsTArray<EnvVar> env_map;
   nsTArray<FdMapping> fds_remap;
 
+  // FIXME(jld): This should all be fallible, but that will have to
+  // wait until bug 1752638 before it makes sense.
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   ReadParamInfallible(&reader, &aOptions->fork_flags,
                       "Error deserializing 'int'");
   ReadParamInfallible(&reader, &aOptions->sandbox_chroot,
                       "Error deserializing 'bool'");
 #endif
-  ReadParamInfallible(&reader, &argv_array,
-                      "Error deserializing 'nsCString[]'");
-  ReadParamInfallible(&reader, &env_map, "Error deserializing 'EnvVar[]'");
+  ReadParamInfallible(&reader, aExecFd,
+                      "Error deserializing 'UniqueFileHandle'");
   ReadParamInfallible(&reader, &fds_remap, "Error deserializing 'FdMapping[]'");
   reader.EndRead();
 
-  PrepareArguments(aArgv, argv_array);
-  PrepareEnv(aOptions, env_map);
   PrepareFdsRemap(aOptions, fds_remap);
+
+  return true;
+}
+
+/**
+ * Parse a `Message`, in the forked child process, to get the argument
+ * and environment strings.
+ */
+inline bool ParseSubprocessExecInfo(IPC::Message& aMsg,
+                                    std::vector<std::string>* aArgv,
+                                    base::environment_map* aEnv) {
+  if (aMsg.type() != Msg_SubprocessExecInfo__ID) {
+    MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
+            ("unexpected message type %d (!= %d)\n", aMsg.type(),
+             Msg_SubprocessExecInfo__ID));
+    return false;
+  }
+
+  IPC::MessageReader reader(aMsg);
+  nsTArray<nsCString> argv_array;
+  nsTArray<EnvVar> env_map;
+
+  // FIXME(jld): We may want to do something nicer than crashing,
+  // given that this process doesn't have crash reporting set up yet.
+  ReadParamInfallible(&reader, &argv_array,
+                      "Error deserializing 'nsCString[]'");
+  ReadParamInfallible(&reader, &env_map, "Error deserializing 'EnvVar[]'");
+  reader.EndRead();
+
+  PrepareArguments(aArgv, argv_array);
+  PrepareEnv(aEnv, env_map);
 
   return true;
 }
@@ -204,21 +234,38 @@ inline void SanitizeBuffers(IPC::Message& aMsg, std::vector<std::string>& aArgv,
  * process.  |mAppProcBuilder| is null for the fork server.
  */
 void ForkServer::OnMessageReceived(UniquePtr<IPC::Message> message) {
-  std::vector<std::string> argv;
+  UniqueFileHandle execFd;
   base::LaunchOptions options;
-  if (!ParseForkNewSubprocess(*message, argv, &options)) {
+  if (!ParseForkNewSubprocess(*message, &execFd, &options)) {
     return;
   }
 
   base::ProcessHandle child_pid = -1;
   mAppProcBuilder = MakeUnique<base::AppProcessBuilder>();
-  if (!mAppProcBuilder->ForkProcess(argv, std::move(options), &child_pid)) {
+  if (!mAppProcBuilder->ForkProcess(std::move(options), &child_pid)) {
     MOZ_CRASH("fail to fork");
   }
   MOZ_ASSERT(child_pid >= 0);
 
   if (child_pid == 0) {
     // Content process
+    MiniTransceiver execTcver(execFd.get());
+    UniquePtr<IPC::Message> execMsg;
+    if (!execTcver.Recv(execMsg)) {
+      // Crashing here isn't great, because the crash reporter isn't
+      // set up, but we don't have a lot of options currently.  Also,
+      // receive probably won't fail unless the parent also crashes.
+      printf_stderr("ForkServer: SubprocessExecInfo receive error\n");
+      MOZ_CRASH();
+    }
+
+    std::vector<std::string> argv;
+    base::environment_map env;
+    if (!ParseSubprocessExecInfo(*execMsg, &argv, &env)) {
+      printf_stderr("ForkServer: SubprocessExecInfo parse error\n");
+      MOZ_CRASH();
+    }
+    mAppProcBuilder->SetExecInfo(std::move(argv), std::move(env));
     return;
   }
 
@@ -230,11 +277,6 @@ void ForkServer::OnMessageReceived(UniquePtr<IPC::Message> message) {
   IPC::MessageWriter writer(reply);
   WriteIPDLParam(&writer, nullptr, child_pid);
   mTcver->SendInfallible(reply, "failed to send a reply message");
-
-  // Without this, the content processes that is forked later are
-  // able to read the content of buffers even the buffers have been
-  // released.
-  SanitizeBuffers(*message, argv, options);
 }
 
 /**

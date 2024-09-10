@@ -64,14 +64,13 @@ namespace base {
 #if defined(MOZ_ENABLE_FORKSERVER)
 AppProcessBuilder::AppProcessBuilder() {}
 
-static void ReplaceEnviroment(const LaunchOptions& options) {
-  for (auto& elt : options.env_map) {
+static void ReplaceEnviroment(const environment_map& env_map) {
+  for (auto& elt : env_map) {
     setenv(elt.first.c_str(), elt.second.c_str(), 1);
   }
 }
 
-bool AppProcessBuilder::ForkProcess(const std::vector<std::string>& argv,
-                                    LaunchOptions&& options,
+bool AppProcessBuilder::ForkProcess(LaunchOptions&& options,
                                     ProcessHandle* process_handle) {
   auto cleanFDs = mozilla::MakeScopeExit([&] {
     for (auto& elt : options.fds_to_remap) {
@@ -91,7 +90,6 @@ bool AppProcessBuilder::ForkProcess(const std::vector<std::string>& argv,
   } launcher;
 #  endif
 
-  argv_ = argv;
   if (!shuffle_.Init(options.fds_to_remap)) {
     return false;
   }
@@ -114,7 +112,6 @@ bool AppProcessBuilder::ForkProcess(const std::vector<std::string>& argv,
 
   if (pid == 0) {
     cleanFDs.release();
-    ReplaceEnviroment(options);
   } else {
     gProcessLog.print("==> process %d launched child process %d\n",
                       GetCurrentProcId(), pid);
@@ -124,6 +121,12 @@ bool AppProcessBuilder::ForkProcess(const std::vector<std::string>& argv,
   if (process_handle) *process_handle = pid;
 
   return true;
+}
+
+void AppProcessBuilder::SetExecInfo(std::vector<std::string>&& aArgv,
+                                    environment_map&& aEnv) {
+  argv_ = std::move(aArgv);
+  env_ = std::move(aEnv);
 }
 
 void AppProcessBuilder::ReplaceArguments(int* argcp, char*** argvp) {
@@ -163,6 +166,7 @@ void AppProcessBuilder::InitAppProcess(int* argcp, char*** argvp) {
   shuffle_.Forget();
 
   ReplaceArguments(argcp, argvp);
+  ReplaceEnviroment(env_);
 }
 
 static void InstallChildSignalHandler() {
