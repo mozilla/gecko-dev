@@ -20,6 +20,7 @@ DIRS += [
     "baseprofiler",
     "build",
     "misc",
+    "static",
 ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"]:

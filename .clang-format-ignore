@@ -168,7 +168,6 @@ media/openmax_il/.*
 media/webrtc/signaling/src/sdp/sipcc/.*
 media/webrtc/trunk/.*
 mfbt/double-conversion/double-conversion/.*
-mfbt/lz4/.*
 mobile/android/geckoview/src/thirdparty/.*
 modules/brotli/.*
 modules/fdlibm/.*
@@ -180,6 +179,7 @@ modules/woff2/src/.*
 modules/xz-embedded/.*
 modules/zlib/.*
 mozglue/misc/decimal/.*
+mozglue/static/lz4/.*
 mozglue/tests/glibc_printf_tests/.*
 netwerk/dns/nsIDNKitInterface.h
 netwerk/sctp/src/.*
