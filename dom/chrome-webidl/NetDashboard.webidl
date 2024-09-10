@@ -68,6 +68,7 @@ dictionary DnsCacheEntry {
   boolean trr = false;
   DOMString originAttributesSuffix = "";
   DOMString flags = "";
+  unsigned short type = 0;
 };
 
 [GenerateConversionToJS]

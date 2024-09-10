@@ -529,6 +529,16 @@ void DisallowHTTPSRR(uint32_t& aCaps);
 
 nsLiteralCString HttpVersionToTelemetryLabel(HttpVersion version);
 
+enum class ProxyDNSStrategy : uint8_t {
+  // To resolve the origin of the end server we are connecting
+  // to.
+  ORIGIN = 1 << 0,
+  // To resolve the host name of the proxy.
+  PROXY = 1 << 1
+};
+
+ProxyDNSStrategy GetProxyDNSStrategyHelper(const char* aType, uint32_t aFlag);
+
 }  // namespace net
 }  // namespace mozilla
 

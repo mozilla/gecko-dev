@@ -3575,9 +3575,15 @@ void nsHttpConnectionMgr::DoSpeculativeConnectionInternal(
     return;
   }
 
-  if (aFetchHTTPSRR && NS_SUCCEEDED(aTrans->FetchHTTPSRR())) {
-    // nsHttpConnectionMgr::DoSpeculativeConnection will be called again when
-    // HTTPS RR is available.
+  ProxyDNSStrategy strategy = GetProxyDNSStrategyHelper(
+      aEnt->mConnInfo->ProxyType(), aEnt->mConnInfo->ProxyFlag());
+  // Speculative connections can be triggered by non-Necko consumers,
+  // so add an extra check to ensure HTTPS RR isn't fetched when a proxy is
+  // used.
+  if (aFetchHTTPSRR && strategy == ProxyDNSStrategy::ORIGIN &&
+      NS_SUCCEEDED(aTrans->FetchHTTPSRR())) {
+    // nsHttpConnectionMgr::DoSpeculativeConnection will be called again
+    // when HTTPS RR is available.
     return;
   }
 

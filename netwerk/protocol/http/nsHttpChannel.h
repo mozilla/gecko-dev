@@ -309,23 +309,11 @@ class nsHttpChannel final : public HttpBaseChannel,
   // Connections will only be established in this function.
   // (including DNS prefetch and speculative connection.)
   void MaybeResolveProxyAndBeginConnect();
-  nsresult MaybeStartDNSPrefetch();
-
-  // Tells the channel to resolve the origin of the end server we are connecting
-  // to.
-  static uint16_t const DNS_PREFETCH_ORIGIN = 1 << 0;
-  // Tells the channel to resolve the host name of the proxy.
-  static uint16_t const DNS_PREFETCH_PROXY = 1 << 1;
-  // Will be set if the current channel uses an HTTP/HTTPS proxy.
-  static uint16_t const DNS_PROXY_IS_HTTP = 1 << 2;
-  // Tells the channel to wait for the result of the origin server resolution
-  // before any connection attempts are made.
-  static uint16_t const DNS_BLOCK_ON_ORIGIN_RESOLVE = 1 << 3;
+  void MaybeStartDNSPrefetch();
 
   // Based on the proxy configuration determine the strategy for resolving the
   // end server host name.
-  // Returns a combination of the above flags.
-  uint16_t GetProxyDNSStrategy();
+  ProxyDNSStrategy GetProxyDNSStrategy();
 
   // We might synchronously or asynchronously call BeginConnect,
   // which includes DNS prefetch and speculative connection, according to
