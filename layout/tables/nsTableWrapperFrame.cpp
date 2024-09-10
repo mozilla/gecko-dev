@@ -575,42 +575,35 @@ void nsTableWrapperFrame::CreateReflowInputForInnerTable(
     // sufficient to call the standard ReflowInput constructor.
     aChildRI.emplace(aPresContext, aOuterRI, aTableFrame, availSize, cbSize,
                      ReflowInput::InitFlags{}, StyleSizeOverrides{}, csFlags);
-  } else {
-    Maybe<LogicalMargin> borderPadding;
-    Maybe<LogicalMargin> padding;
-    {
-      // Compute inner table frame's border & padding because we may need to
-      // reduce the size for inner table's size overrides. We won't waste time
-      // if they are not used, because we can use them directly by passing them
-      // into ReflowInput::Init().
-      Maybe<LogicalMargin> collapseBorder;
-      Maybe<LogicalMargin> collapsePadding;
-      aTableFrame->GetCollapsedBorderPadding(collapseBorder, collapsePadding);
-      SizeComputationInput input(aTableFrame, aOuterRI.mRenderingContext, wm,
-                                 cbSize->ISize(wm), collapseBorder,
-                                 collapsePadding);
-      borderPadding.emplace(input.ComputedLogicalBorderPadding(wm));
-      padding.emplace(input.ComputedLogicalPadding(wm));
-    }
-
-    StyleSizeOverrides innerOverrides = ComputeSizeOverridesForInnerTable(
-        aTableFrame, aOuterRI.mStyleSizeOverrides, borderPadding->Size(wm),
-        aBSizeOccupiedByCaption);
-
-    aChildRI.emplace(aPresContext, aOuterRI, aTableFrame, availSize, Nothing(),
-                     ReflowInput::InitFlag::CallerWillInit, innerOverrides,
-                     csFlags);
-    aChildRI->Init(aPresContext, cbSize, Some(*borderPadding - *padding),
-                   padding);
+    return;
   }
 
-  // Carry BResize flags from aOuterRI to aChildRI.
-  if (aOuterRI.IsBResizeForWM(wm)) {
-    aChildRI->SetBResize(true);
+  Maybe<LogicalMargin> borderPadding;
+  Maybe<LogicalMargin> padding;
+  {
+    // Compute inner table frame's border & padding because we may need to
+    // reduce the size for inner table's size overrides. We won't waste time if
+    // they are not used, because we can use them directly by passing them into
+    // ReflowInput::Init().
+    Maybe<LogicalMargin> collapseBorder;
+    Maybe<LogicalMargin> collapsePadding;
+    aTableFrame->GetCollapsedBorderPadding(collapseBorder, collapsePadding);
+    SizeComputationInput input(aTableFrame, aOuterRI.mRenderingContext, wm,
+                               cbSize->ISize(wm), collapseBorder,
+                               collapsePadding);
+    borderPadding.emplace(input.ComputedLogicalBorderPadding(wm));
+    padding.emplace(input.ComputedLogicalPadding(wm));
   }
-  if (aOuterRI.IsBResizeForPercentagesForWM(wm)) {
-    aChildRI->SetBResizeForPercentages(true);
-  }
+
+  StyleSizeOverrides innerOverrides = ComputeSizeOverridesForInnerTable(
+      aTableFrame, aOuterRI.mStyleSizeOverrides, borderPadding->Size(wm),
+      aBSizeOccupiedByCaption);
+
+  aChildRI.emplace(aPresContext, aOuterRI, aTableFrame, availSize, Nothing(),
+                   ReflowInput::InitFlag::CallerWillInit, innerOverrides,
+                   csFlags);
+  aChildRI->Init(aPresContext, cbSize, Some(*borderPadding - *padding),
+                 padding);
 }
 
 void nsTableWrapperFrame::CreateReflowInputForCaption(
