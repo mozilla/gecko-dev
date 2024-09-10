@@ -52,11 +52,15 @@ const MODIFIER_NAME_LOOKUP = {
 };
 
 /**
- * State associated with actions
+ * State associated with actions.
  *
- * Typically each top-level browsing context in a session should have a single State object
+ * Typically each top-level navigable in a WebDriver session should have a
+ * single State object.
  */
 action.State = class {
+  /**
+   * Creates a new {@link State} instance.
+   */
   constructor() {
     this.clickTracker = new ClickTracker();
     /**
@@ -86,31 +90,46 @@ action.State = class {
 
   /**
    * Reset state stored in this object.
-   * It is an error to use the State object after calling release().
    *
-   * @param {WindowProxy} win Current window global.
+   * Note: It is an error to use the State object after calling release().
+   *
+   * @param {WindowProxy} win
+   *     Window global to release the inputs for.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once all inputs are released.
    */
-  async release(win) {
+  release(win) {
     this.inputsToCancel.reverse();
-    await this.inputsToCancel.dispatch(this, win);
+
+    return this.inputsToCancel.dispatch(this, win);
   }
 
   /**
    * Get the state for a given input source.
    *
-   * @param {string} id Input source id.
-   * @returns {InputSource} Input source state.
+   * @param {string} id
+   *     Id of the input source.
+   *
+   * @returns {InputSource}
+   *     State of the input source.
    */
   getInputSource(id) {
     return this.inputStateMap.get(id);
   }
 
   /**
-   * Find or add state for an input source. The caller should verify
-   * that the returned state is the expected type.
+   * Find or add state for an input source.
    *
-   * @param {string} id Input source id.
-   * @param {InputSource} newInputSource Input source state.
+   * The caller should verify that the returned state is the expected type.
+   *
+   * @param {string} id
+   *     Id of the input source.
+   * @param {InputSource} newInputSource
+   *     State of the input source.
+   *
+   * @returns {InputSource}
+   *     The input source.
    */
   getOrAddInputSource(id, newInputSource) {
     let inputSource = this.getInputSource(id);
@@ -124,10 +143,13 @@ action.State = class {
   }
 
   /**
-   * Iterate over all input states of a given type
+   * Iterate over all input states of a given type.
    *
-   * @param {string} type Input source type name (e.g. "pointer").
-   * @returns {Iterator} Iterator over [id, input source].
+   * @param {string} type
+   *     Type name of the input source (e.g. "pointer").
+   *
+   * @returns {Iterator<string, InputSource>}
+   *     Iterator over id and input source.
    */
   *inputSourcesByType(type) {
     for (const [id, inputSource] of this.inputStateMap) {
@@ -138,15 +160,19 @@ action.State = class {
   }
 
   /**
-   * Get a numerical pointer id for a given pointer
+   * Get a numerical pointer id for a given pointer.
    *
    * Pointer ids are positive integers. Mouse pointers are typically
    * ids 0 or 1. Non-mouse pointers never get assigned id < 2. Each
    * pointer gets a unique id.
    *
-   * @param {string} id Pointer id.
-   * @param {string} type Pointer type.
-   * @returns {number} Numerical pointer id.
+   * @param {string} id
+   *     Id of the pointer.
+   * @param {string} type
+   *     Type of the pointer.
+   *
+   * @returns {number}
+   *     The numerical pointer id.
    */
   getPointerId(id, type) {
     let pointerId = this.pointerIdMap.get(id);
@@ -174,11 +200,17 @@ action.State = class {
   }
 };
 
+/**
+ * Tracker for mouse button clicks.
+ */
 export class ClickTracker {
   #count;
   #lastButtonClicked;
   #timer;
 
+  /**
+   * Creates a new {@link ClickTracker} instance.
+   */
   constructor() {
     this.#count = 0;
     this.#lastButtonClicked = null;
@@ -235,6 +267,12 @@ class InputSource {
   #id;
   static type = null;
 
+  /**
+   * Creates a new {@link InputSource} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   */
   constructor(id) {
     this.#id = id;
     this.type = this.constructor.type;
@@ -247,17 +285,21 @@ class InputSource {
   }
 
   /**
-   * @param {State} state Actions state.
-   * @param {Sequence} actionSequence Actions for a specific input source.
+   * Unmarshals a JSON Object to an {@link InputSource}.
+   *
+   * @param {State} actionState
+   *     Actions state.
+   * @param {Sequence} actionSequence
+   *     Actions for a specific input source.
    *
    * @returns {InputSource}
    *     An {@link InputSource} object for the type of the
-   *     {@link actionSequence}.
+   *     action {@link Sequence}.
    *
    * @throws {InvalidArgumentError}
-   *     If {@link actionSequence.type} is not valid.
+   *     If the <code>actionSequence</code> is invalid.
    */
-  static fromJSON(state, actionSequence) {
+  static fromJSON(actionState, actionSequence) {
     const { id, type } = actionSequence;
 
     lazy.assert.string(
@@ -272,8 +314,11 @@ class InputSource {
       );
     }
 
-    const sequenceInputSource = cls.fromJSON(state, actionSequence);
-    const inputSource = state.getOrAddInputSource(id, sequenceInputSource);
+    const sequenceInputSource = cls.fromJSON(actionState, actionSequence);
+    const inputSource = actionState.getOrAddInputSource(
+      id,
+      sequenceInputSource
+    );
 
     if (inputSource.type !== type) {
       throw new lazy.error.InvalidArgumentError(
@@ -290,7 +335,22 @@ class InputSource {
 class NullInputSource extends InputSource {
   static type = "none";
 
-  static fromJSON(state, actionSequence) {
+  /**
+   * Unmarshals a JSON Object to a {@link NullInputSource}.
+   *
+   * @param {State} actionState
+   *     Actions state.
+   * @param {Sequence} actionSequence
+   *     Actions for a specific input source.
+   *
+   * @returns {NullInputSource}
+   *     A {@link NullInputSource} object for the type of the
+   *     action {@link Sequence}.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionSequence</code> is invalid.
+   */
+  static fromJSON(actionState, actionSequence) {
     const { id } = actionSequence;
 
     return new this(id);
@@ -303,6 +363,12 @@ class NullInputSource extends InputSource {
 class KeyInputSource extends InputSource {
   static type = "key";
 
+  /**
+   * Creates a new {@link KeyInputSource} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   */
   constructor(id) {
     super(id);
 
@@ -313,7 +379,22 @@ class KeyInputSource extends InputSource {
     this.meta = false;
   }
 
-  static fromJSON(state, actionSequence) {
+  /**
+   * Unmarshals a JSON Object to a {@link KeyInputSource}.
+   *
+   * @param {State} actionState
+   *     Actions state.
+   * @param {Sequence} actionSequence
+   *     Actions for a specific input source.
+   *
+   * @returns {KeyInputSource}
+   *     A {@link KeyInputSource} object for the type of the
+   *     action {@link Sequence}.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionSequence</code> is invalid.
+   */
+  static fromJSON(actionState, actionSequence) {
     const { id } = actionSequence;
 
     return new this(id);
@@ -389,9 +470,12 @@ class PointerInputSource extends InputSource {
   static type = "pointer";
 
   /**
-   * @param {string} id InputSource id.
-   * @param {Pointer} pointer Object representing the specific pointer
-   * type associated with this input source.
+   * Creates a new {@link PointerInputSource} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {Pointer} pointer
+   *     The specific {@link Pointer} type associated with this input source.
    */
   constructor(id, pointer) {
     super(id);
@@ -416,6 +500,7 @@ class PointerInputSource extends InputSource {
       button,
       lazy.pprint`Expected "button" to be a positive integer, got ${button}`
     );
+
     return this.pressed.has(button);
   }
 
@@ -424,15 +509,13 @@ class PointerInputSource extends InputSource {
    *
    * @param {number} button
    *     Positive integer that refers to a mouse button.
-   *
-   * @returns {Set}
-   *     Set of pressed buttons.
    */
   press(button) {
     lazy.assert.positiveInteger(
       button,
       lazy.pprint`Expected "button" to be a positive integer, got ${button}`
     );
+
     this.pressed.add(button);
   }
 
@@ -450,10 +533,26 @@ class PointerInputSource extends InputSource {
       button,
       lazy.pprint`Expected "button" to be a positive integer, got ${button}`
     );
+
     return this.pressed.delete(button);
   }
 
-  static fromJSON(state, actionSequence) {
+  /**
+   * Unmarshals a JSON Object to a {@link PointerInputSource}.
+   *
+   * @param {State} actionState
+   *     Actions state.
+   * @param {Sequence} actionSequence
+   *     Actions for a specific input source.
+   *
+   * @returns {PointerInputSource}
+   *     A {@link PointerInputSource} object for the type of the
+   *     action {@link Sequence}.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionSequence</code> is invalid.
+   */
+  static fromJSON(actionState, actionSequence) {
     const { id, parameters } = actionSequence;
     let pointerType = "mouse";
 
@@ -479,7 +578,7 @@ class PointerInputSource extends InputSource {
       }
     }
 
-    const pointerId = state.getPointerId(id, pointerType);
+    const pointerId = actionState.getPointerId(id, pointerType);
     const pointer = Pointer.fromJSON(pointerId, pointerType);
 
     return new this(id, pointer);
@@ -492,7 +591,22 @@ class PointerInputSource extends InputSource {
 class WheelInputSource extends InputSource {
   static type = "wheel";
 
-  static fromJSON(state, actionSequence) {
+  /**
+   * Unmarshals a JSON Object to a {@link WheelInputSource}.
+   *
+   * @param {State} actionState
+   *     Actions state.
+   * @param {Sequence} actionSequence
+   *     Actions for a specific input source.
+   *
+   * @returns {WheelInputSource}
+   *     A {@link WheelInputSource} object for the type of the
+   *     action {@link Sequence}.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionSequence</code> is invalid.
+   */
+  static fromJSON(actionState, actionSequence) {
     const { id } = actionSequence;
 
     return new this(id);
@@ -525,11 +639,17 @@ class Origin {
   }
 
   /**
-   * Convert [x, y] coordinates to viewport coordinates
+   * Convert [x, y] coordinates to viewport coordinates.
    *
-   * @param {InputSource} inputSource - State of the current input device
-   * @param {Array<number>} coords - [x, y] coordinate of target relative to origin
-   * @param {WindowProxy} win - Current window global
+   * @param {InputSource} inputSource
+   *     State of the current input device
+   * @param {Array<number>} coords
+   *     Coordinates [x, y] of the target relative to the origin.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Array<number>}
+   *     Viewport coordinates [x, y].
    */
   getTargetCoordinates(inputSource, coords, win) {
     const [x, y] = coords;
@@ -539,9 +659,14 @@ class Origin {
   }
 
   /**
-   * @param {Element|string=} origin - Type of orgin, one of "viewport", "pointer", element or undefined.
+   * Unmarshals a JSON Object to an {@link Origin}.
    *
-   * @returns {Origin} - An origin object representing the origin.
+   * @param {Element|string=} origin
+   *     Type of origin, one of "viewport", "pointer", {@link Element}
+   *     or undefined.
+   *
+   * @returns {Origin}
+   *     A {@link Origin} object representing the origin.
    *
    * @throws {InvalidArgumentError}
    *     If <code>origin</code> isn't a valid origin.
@@ -576,9 +701,15 @@ class PointerOrigin extends Origin {
   }
 }
 
+/**
+ * Representation of an element origin.
+ */
 class ElementOrigin extends Origin {
   /**
-   * @param {Element} element - The element providing the coordinate origin.
+   * Creates a new {@link ElementOrigin} instance.
+   *
+   * @param {Element} element
+   *     The element providing the coordinate origin.
    */
   constructor(element) {
     super();
@@ -601,10 +732,8 @@ class ElementOrigin extends Origin {
 }
 
 /**
- * Repesents the behaviour of a single input source at a single
+ * Represents the behavior of a single input source at a single
  * point in time.
- *
- * @param {string} id - Input source ID.
  */
 class Action {
   /** Type of the input source associated with this action */
@@ -614,6 +743,12 @@ class Action {
   /** Whether this kind of action affects the overall duration of a tick */
   affectsWallClockTime = false;
 
+  /**
+   * Creates a new {@link Action} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   */
   constructor(id) {
     this.id = id;
     this.type = this.constructor.type;
@@ -630,7 +765,8 @@ class Action {
    * This is overridden by subclasses to implement the type-specific
    * dispatch of the action.
    *
-   * @returns {Promise} - Promise that is resolved once the action is complete.
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
    */
   dispatch() {
     throw new Error(
@@ -639,15 +775,20 @@ class Action {
   }
 
   /**
-   * @param {string} type - Input source type.
-   * @param {string} id - Input source id.
-   * @param {object} actionItem - Object representing a single action.
+   * Unmarshals a JSON Object to an {@link Action}.
    *
-   * @returns {Action} - An action that can be dispatched.
+   * @param {string} type
+   *     Type of {@link InputSource}.
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {Action}
+   *     An action that can be dispatched.
    *
    * @throws {InvalidArgumentError}
-   *     If any <code>actionSequence</code> or <code>actionItem</code>
-   *     attributes are invalid.
+   *     If the <code>actionItem</code> attribute is invalid.
    */
   static fromJSON(type, id, actionItem) {
     lazy.assert.object(
@@ -688,15 +829,20 @@ class NullAction extends Action {
 
 /**
  * Action that waits for a given duration.
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {number} options.duration - Time to pause, in ms.
  */
 class PauseAction extends NullAction {
   static subtype = "pause";
   affectsWallClockTime = true;
 
+  /**
+   * Creates a new {@link PauseAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {number} options.duration
+   *     Time to pause, in ms.
+   */
   constructor(id, options) {
     super(id);
 
@@ -705,12 +851,17 @@ class PauseAction extends NullAction {
   }
 
   /**
-   * Dispatch pause action
+   * Dispatch pause action.
    *
-   * @param {State} state - Actions state.
-   * @param {InputSource} inputSource - State of the current input device.
-   * @param {number} tickDuration - Length of the current tick, in ms.
-   * @returns {Promise} - Promise that is resolved once the action is complete.
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     Length of the current tick, in ms.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
    */
   dispatch(state, inputSource, tickDuration) {
     const ms = this.duration ?? tickDuration;
@@ -722,6 +873,20 @@ class PauseAction extends NullAction {
     return lazy.Sleep(ms);
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link PauseAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {PauseAction}
+   *     A pause action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { duration } = actionItem;
 
@@ -738,18 +903,24 @@ class PauseAction extends NullAction {
 
 /**
  * Action associated with a keyboard input device
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {string} options.value - Key character.
  */
 class KeyAction extends Action {
   static type = "key";
 
+  /**
+   * Creates a new {@link KeyAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {string} options.value
+   *     The key character.
+   */
   constructor(id, options) {
     super(id);
 
     const { value } = options;
+
     this.value = value;
   }
 
@@ -763,6 +934,20 @@ class KeyAction extends Action {
     return new KeyEventData(value);
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link KeyAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {KeyAction}
+   *     A key action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { value } = actionItem;
 
@@ -792,12 +977,30 @@ class KeyAction extends Action {
 /**
  * Action equivalent to pressing a key on a keyboard.
  *
- * @param {string} id - Input source ID.
- * @param {string} value - Key character.
+ * @param {string} id
+ *     Id of {@link InputSource}.
+ * @param {object} options
+ * @param {string} options.value
+ *     The key character.
  */
 class KeyDownAction extends KeyAction {
   static subtype = "keyDown";
 
+  /**
+   * Dispatch a keydown action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
@@ -825,12 +1028,30 @@ class KeyDownAction extends KeyAction {
 /**
  * Action equivalent to releasing a key on a keyboard.
  *
- * @param {string} id - Input source ID.
- * @param {string} value - Key character.
+ * @param {string} id
+ *     Id of {@link InputSource}.
+ * @param {object} options
+ * @param {string} options.value
+ *     The key character.
  */
 class KeyUpAction extends KeyAction {
   static subtype = "keyUp";
 
+  /**
+   * Dispatch a keyup action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
@@ -859,24 +1080,38 @@ class KeyUpAction extends KeyAction {
 
 /**
  * Action associated with a pointer input device
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {number=} options.width - Pointer width in pixels.
- * @param {number=} options.height - Pointer height in pixels.
- * @param {number=} options.pressure - Pointer pressure.
- * @param {number=} options.tangentialPressure - Pointer tangential pressure.
- * @param {number=} options.tiltX - Pointer X tilt angle.
- * @param {number=} options.tiltX - Pointer Y tilt angle.
- * @param {number=} options.twist - Pointer twist angle.
- * @param {number=} options.altitudeAngle - Pointer altitude angle.
- * @param {number=} options.azimuthAngle - Pointer azimuth angle.
  */
 class PointerAction extends Action {
   static type = "pointer";
 
+  /**
+   * Creates a new {@link PointerAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {number=} options.width
+   *     Width of pointer in pixels.
+   * @param {number=} options.height
+   *     Height of pointer in pixels.
+   * @param {number=} options.pressure
+   *     Pressure of pointer.
+   * @param {number=} options.tangentialPressure
+   *     Tangential pressure of pointer.
+   * @param {number=} options.tiltX
+   *     X tilt angle of pointer.
+   * @param {number=} options.tiltY
+   *     Y tilt angle of pointer.
+   * @param {number=} options.twist
+   *     Twist angle of pointer.
+   * @param {number=} options.altitudeAngle
+   *     Altitude angle of pointer.
+   * @param {number=} options.azimuthAngle
+   *     Azimuth angle of pointer.
+   */
   constructor(id, options) {
     super(id);
+
     const {
       width,
       height,
@@ -888,6 +1123,7 @@ class PointerAction extends Action {
       altitudeAngle,
       azimuthAngle,
     } = options;
+
     this.width = width;
     this.height = height;
     this.pressure = pressure;
@@ -900,9 +1136,15 @@ class PointerAction extends Action {
   }
 
   /**
-   * Validate properties common to all pointer types
+   * Validate properties common to all pointer types.
    *
-   * @param {object} actionItem - Object representing a single action.
+   * @param {object} actionItem
+   *     Object representing a single pointer action.
+   *
+   * @returns {object}
+   *     Properties of the pointer action; contains `width`, `height`,
+   *     `pressure`, `tangentialPressure`, `tiltX`, `tiltY`, `twist`,
+   *     `altitudeAngle`, and `azimuthAngle`.
    */
   static validateCommon(actionItem) {
     const {
@@ -916,6 +1158,7 @@ class PointerAction extends Action {
       altitudeAngle,
       azimuthAngle,
     } = actionItem;
+
     if (width !== undefined) {
       lazy.assert.positiveInteger(
         width,
@@ -997,23 +1240,38 @@ class PointerAction extends Action {
 
 /**
  * Action associated with a pointer input device being depressed.
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {number} options.button - Button being pressed. For devices without buttons (e.g. touch), this should be 0.
- * @param {number=} options.width - Pointer width in pixels.
- * @param {number=} options.height - Pointer height in pixels.
- * @param {number=} options.pressure - Pointer pressure.
- * @param {number=} options.tangentialPressure - Pointer tangential pressure.
- * @param {number=} options.tiltX - Pointer X tilt angle.
- * @param {number=} options.tiltX - Pointer Y tilt angle.
- * @param {number=} options.twist - Pointer twist angle.
- * @param {number=} options.altitudeAngle - Pointer altitude angle.
- * @param {number=} options.azimuthAngle - Pointer azimuth angle.
  */
 class PointerDownAction extends PointerAction {
   static subtype = "pointerDown";
 
+  /**
+   * Creates a new {@link PointerAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {number} options.button
+   *     Button being pressed. For devices without buttons (e.g. touch),
+   *     this should be 0.
+   * @param {number=} options.width
+   *     Width of pointer in pixels.
+   * @param {number=} options.height
+   *     Height of pointer in pixels.
+   * @param {number=} options.pressure
+   *     Pressure of pointer.
+   * @param {number=} options.tangentialPressure
+   *     Tangential pressure of pointer.
+   * @param {number=} options.tiltX
+   *     X tilt angle of pointer.
+   * @param {number=} options.tiltY
+   *     Y tilt angle of pointer.
+   * @param {number=} options.twist
+   *     Twist angle of pointer.
+   * @param {number=} options.altitudeAngle
+   *     Altitude angle of pointer.
+   * @param {number=} options.azimuthAngle
+   *     Azimuth angle of pointer.
+   */
   constructor(id, options) {
     super(id, options);
 
@@ -1021,6 +1279,21 @@ class PointerDownAction extends PointerAction {
     this.button = button;
   }
 
+  /**
+   * Dispatch a pointerdown action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} button: ${this.button}`
@@ -1040,6 +1313,20 @@ class PointerDownAction extends PointerAction {
     });
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link PointerDownAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {PointerDownAction}
+   *     A pointer down action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { button } = actionItem;
     const props = PointerAction.validateCommon(actionItem);
@@ -1057,23 +1344,38 @@ class PointerDownAction extends PointerAction {
 
 /**
  * Action associated with a pointer input device being released.
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {number} options.button - Button being released. For devices without buttons (e.g. touch), this should be 0.
- * @param {number=} options.width - Pointer width in pixels.
- * @param {number=} options.height - Pointer height in pixels.
- * @param {number=} options.pressure - Pointer pressure.
- * @param {number=} options.tangentialPressure - Pointer tangential pressure.
- * @param {number=} options.tiltX - Pointer X tilt angle.
- * @param {number=} options.tiltX - Pointer Y tilt angle.
- * @param {number=} options.twist - Pointer twist angle.
- * @param {number=} options.altitudeAngle - Pointer altitude angle.
- * @param {number=} options.azimuthAngle - Pointer azimuth angle.
  */
 class PointerUpAction extends PointerAction {
   static subtype = "pointerUp";
 
+  /**
+   * Creates a new {@link PointerUpAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {number} options.button
+   *     Button being pressed. For devices without buttons (e.g. touch),
+   *     this should be 0.
+   * @param {number=} options.width
+   *     Width of pointer in pixels.
+   * @param {number=} options.height
+   *     Height of pointer in pixels.
+   * @param {number=} options.pressure
+   *     Pressure of pointer.
+   * @param {number=} options.tangentialPressure
+   *     Tangential pressure of pointer.
+   * @param {number=} options.tiltX
+   *     X tilt angle of pointer.
+   * @param {number=} options.tiltY
+   *     Y tilt angle of pointer.
+   * @param {number=} options.twist
+   *     Twist angle of pointer.
+   * @param {number=} options.altitudeAngle
+   *     Altitude angle of pointer.
+   * @param {number=} options.azimuthAngle
+   *     Azimuth angle of pointer.
+   */
   constructor(id, options) {
     super(id, options);
 
@@ -1081,6 +1383,21 @@ class PointerUpAction extends PointerAction {
     this.button = button;
   }
 
+  /**
+   * Dispatch a pointerup action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} button: ${this.button}`
@@ -1099,6 +1416,20 @@ class PointerUpAction extends PointerAction {
     });
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link PointerUpAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {PointerUpAction}
+   *     A pointer up action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { button } = actionItem;
     const props = PointerAction.validateCommon(actionItem);
@@ -1116,27 +1447,39 @@ class PointerUpAction extends PointerAction {
 
 /**
  * Action associated with a pointer input device being moved.
- *
- * @param {string} id - Input source ID.
- * @param {object} options - Named arguments.
- * @param {number=} options.width - Pointer width in pixels.
- * @param {number=} options.height - Pointer height in pixels.
- * @param {number=} options.pressure - Pointer pressure.
- * @param {number=} options.tangentialPressure - Pointer tangential pressure.
- * @param {number=} options.tiltX - Pointer X tilt angle.
- * @param {number=} options.tiltX - Pointer Y tilt angle.
- * @param {number=} options.twist - Pointer twist angle.
- * @param {number=} options.altitudeAngle - Pointer altitude angle.
- * @param {number=} options.azimuthAngle - Pointer azimuth angle.
- * @param {number=} options.duration - Duration of move in ms.
- * @param {Origin} options.origin - Origin of target coordinates.
- * @param {number} options.x - X value of target coordinates.
- * @param {number} options.y - Y value of target coordinates.
  */
 class PointerMoveAction extends PointerAction {
   static subtype = "pointerMove";
   affectsWallClockTime = true;
 
+  /**
+   * Creates a new {@link PointerMoveAction} instance.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {number} options.button
+   *     Button being pressed. For devices without buttons (e.g. touch),
+   *     this should be 0.
+   * @param {number=} options.width
+   *     Width of pointer in pixels.
+   * @param {number=} options.height
+   *     Height of pointer in pixels.
+   * @param {number=} options.pressure
+   *     Pressure of pointer.
+   * @param {number=} options.tangentialPressure
+   *     Tangential pressure of pointer.
+   * @param {number=} options.tiltX
+   *     X tilt angle of pointer.
+   * @param {number=} options.tiltY
+   *     Y tilt angle of pointer.
+   * @param {number=} options.twist
+   *     Twist angle of pointer.
+   * @param {number=} options.altitudeAngle
+   *     Altitude angle of pointer.
+   * @param {number=} options.azimuthAngle
+   *     Azimuth angle of pointer.
+   */
   constructor(id, options) {
     super(id, options);
 
@@ -1147,6 +1490,21 @@ class PointerMoveAction extends PointerAction {
     this.y = y;
   }
 
+  /**
+   * Dispatch a pointermove action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} x: ${this.x} y: ${this.y}`
@@ -1171,11 +1529,14 @@ class PointerMoveAction extends PointerAction {
   /**
    * Perform one part of a pointer move corresponding to a specific emitted event.
    *
-   * @param {State} state - Actions state.
-   * @param {InputSource} inputSource - State of the current input device.
-   * @param {Array<Array<number>>} targets - Array of [x, y] arrays
-   * specifying the viewport coordinates to move to.
-   * @param {WindowProxy} win - Current window global.
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {Array<Array<number>>} targets
+   *     Array of [x, y] arrays specifying the viewport coordinates to move to.
+   * @param {WindowProxy} win
+   *     Current window global.
    */
   performPointerMoveStep(state, inputSource, targets, win) {
     if (targets.length !== 1) {
@@ -1205,6 +1566,20 @@ class PointerMoveAction extends PointerAction {
     inputSource.y = target[1];
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link PointerMoveAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {PointerMoveAction}
+   *     A pointer move action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { duration, origin, x, y } = actionItem;
 
@@ -1236,8 +1611,7 @@ class PointerMoveAction extends PointerAction {
 }
 
 /**
- * Action associated with a wheel input device
- *
+ * Action associated with a wheel input device.
  */
 class WheelAction extends Action {
   static type = "wheel";
@@ -1245,20 +1619,32 @@ class WheelAction extends Action {
 
 /**
  * Action associated with scrolling a scroll wheel
- *
- * @param {number} duration - Duration of scroll in ms.
- * @param {Origin} origin - Origin of target coordinates.
- * @param {number} x - X value of scroll coordinates.
- * @param {number} y - Y value of scroll coordinates.
- * @param {number} deltaX - Number of CSS pixels to scroll in X direction.
- * @param {number} deltaY - Number of CSS pixels to scroll in Y direction
  */
 class WheelScrollAction extends WheelAction {
   static subtype = "scroll";
   affectsWallClockTime = true;
 
-  constructor(id, { duration, origin, x, y, deltaX, deltaY }) {
+  /**
+   * Creates a new {@link WheelScrollAction} instance.
+   *
+   * @param {number} id
+   *     Id of {@link InputSource}.
+   * @param {object} options
+   * @param {Origin} options.origin
+   *     {@link Origin} of target coordinates.
+   * @param {number} options.x
+   *     X value of scroll coordinates.
+   * @param {number} options.y
+   *     Y value of scroll coordinates.
+   * @param {number} options.deltaX
+   *     Number of CSS pixels to scroll in X direction.
+   * @param {number} options.deltaY
+   *     Number of CSS pixels to scroll in Y direction.
+   */
+  constructor(id, options) {
     super(id);
+
+    const { duration, origin, x, y, deltaX, deltaY } = options;
 
     this.duration = duration;
     this.origin = origin;
@@ -1268,6 +1654,20 @@ class WheelScrollAction extends WheelAction {
     this.deltaY = deltaY;
   }
 
+  /**
+   * Unmarshals a JSON Object to a {@link WheelScrollAction}.
+   *
+   * @param {string} id
+   *     Id of {@link InputSource}.
+   * @param {object} actionItem
+   *     Object representing a single action.
+   *
+   * @returns {WheelScrollAction}
+   *     A wheel scroll action that can be dispatched.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionItem</code> attribute is invalid.
+   */
   static fromJSON(id, actionItem) {
     const { duration, origin, x, y, deltaX, deltaY } = actionItem;
 
@@ -1312,7 +1712,22 @@ class WheelScrollAction extends WheelAction {
     });
   }
 
-  async dispatch(state, inputSource, tickDuration, win) {
+  /**
+   * Dispatch a wheel scroll action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
+  dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with id: ${this.id} deltaX: ${this.deltaX} deltaY: ${this.deltaY}`
     );
@@ -1329,7 +1744,7 @@ class WheelScrollAction extends WheelAction {
     // This is an action-local state that holds the amount of scroll completed
     const deltaPosition = [startX, startY];
 
-    await moveOverTime(
+    return moveOverTime(
       [[startX, startY]],
       [[this.deltaX, this.deltaY]],
       this.duration ?? tickDuration,
@@ -1347,11 +1762,16 @@ class WheelScrollAction extends WheelAction {
   /**
    * Perform one part of a wheel scroll corresponding to a specific emitted event.
    *
-   * @param {State} state - Actions state.
-   * @param {Array<number>} scrollCoordinates - [x, y] viewport coordinates of the scroll.
-   * @param {Array<number>} deltaPosition - [deltaX, deltaY] coordinates of the scroll before this event.
-   * @param {Array<Array<number>>} deltaTargets - Array of [deltaX, deltaY] coordinates to scroll to.
-   * @param {WindowProxy} win - Current window global.
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {Array<number>} scrollCoordinates
+   *     The viewport coordinates [x, y] of the scroll action.
+   * @param {Array<number>} deltaPosition
+   *     [deltaX, deltaY] coordinates of the scroll before this event.
+   * @param {Array<Array<number>>} deltaTargets
+   *     Array of [deltaX, deltaY] coordinates to scroll to.
+   * @param {WindowProxy} win
+   *     Current window global.
    */
   performOneWheelScroll(
     state,
@@ -1391,7 +1811,8 @@ class WheelScrollAction extends WheelAction {
 }
 
 /**
- * Group of actions representing behaviour of all touch pointers during a single tick.
+ * Group of actions representing behavior of all touch pointers during
+ * a single tick.
  *
  * For touch pointers, we need to call into the platform once with all
  * the actions so that they are regarded as simultaneous. This means
@@ -1401,6 +1822,9 @@ class WheelScrollAction extends WheelAction {
 class TouchActionGroup {
   static type = null;
 
+  /**
+   * Creates a new {@link TouchActionGroup} instance.
+   */
   constructor() {
     this.type = this.constructor.type;
     this.actions = new Map();
@@ -1415,8 +1839,10 @@ class TouchActionGroup {
   /**
    * Add action corresponding to a specific pointer to the group.
    *
-   * @param {InputSource} inputSource - State of the current input device.
-   * @param {Action} action - Action to add to the group
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {Action} action
+   *     Action to add to the group.
    */
   addPointer(inputSource, action) {
     if (action.subtype !== this.type) {
@@ -1434,7 +1860,8 @@ class TouchActionGroup {
    * This is overridden by subclasses to implement the type-specific
    * dispatch of the action.
    *
-   * @returns {Promise} - Promise that is resolved once the action is complete.
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
    */
   dispatch() {
     throw new Error(
@@ -1444,12 +1871,27 @@ class TouchActionGroup {
 }
 
 /**
- * Group of actions representing behaviour of all touch pointers
+ * Group of actions representing behavior of all touch pointers
  * depressed during a single tick.
  */
 class PointerDownTouchActionGroup extends TouchActionGroup {
   static type = "pointerDown";
 
+  /**
+   * Dispatch a pointerdown touch action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(
@@ -1504,12 +1946,27 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
 }
 
 /**
- * Group of actions representing behaviour of all touch pointers
+ * Group of actions representing behavior of all touch pointers
  * released during a single tick.
  */
 class PointerUpTouchActionGroup extends TouchActionGroup {
   static type = "pointerUp";
 
+  /**
+   * Dispatch a pointerup touch action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(
@@ -1546,12 +2003,27 @@ class PointerUpTouchActionGroup extends TouchActionGroup {
 }
 
 /**
- * Group of actions representing behaviour of all touch pointers
+ * Group of actions representing behavior of all touch pointers
  * moved during a single tick.
  */
 class PointerMoveTouchActionGroup extends TouchActionGroup {
   static type = "pointerMove";
 
+  /**
+   * Dispatch a pointermove touch action.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {number} tickDuration
+   *     [unused] Length of the current tick, in ms.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action is complete.
+   */
   dispatch(state, inputSource, tickDuration, win) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(this.actions).map(
@@ -1614,13 +2086,15 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
   /**
    * Perform one part of a pointer move corresponding to a specific emitted event.
    *
-   * @param {State} state - Actions state.
-   * @param {Array.<PointerInputSource>} staticTouchPointers
-   *      Array of PointerInputSource objects for pointers that aren't involved in
-   *      the touch move.
-   * @param {Array.<Array>} targetCoords
-   *      Array of [x, y] arrays specifying the viewport coordinates to move to.
-   * @param {WindowProxy} win - Current window global.
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {Array<PointerInputSource>} staticTouchPointers
+   *     Array of PointerInputSource objects for pointers that aren't
+   *     involved in the touch move.
+   * @param {Array<Array<number>>} targetCoords
+   *     Array of [x, y] arrays specifying the viewport coordinates to move to.
+   * @param {WindowProxy} win
+   *     Current window global.
    */
   performPointerMoveStep(state, staticTouchPointers, targetCoords, win) {
     if (targetCoords.length !== this.actions.size) {
@@ -1679,17 +2153,18 @@ for (const cls of [
  * responsible for actually emitting the event, given the current
  * position in the coordinate space.
  *
- * @param {Array.<Array>} startCoords
- *    Array of initial [x, y] coordinates for each input source involved
- *    in the move.
- * @param {Array.<Array>} targetCoords
- *    Array of target [x, y] coordinates for each input source involved
- *    in the move.
- * @param {number} duration - Time in ms the move will take.
+ * @param {Array<Array>} startCoords
+ *     Array of initial [x, y] coordinates for each input source involved
+ *     in the move.
+ * @param {Array<Array<number>>} targetCoords
+ *     Array of target [x, y] coordinates for each input source involved
+ *     in the move.
+ * @param {number} duration
+ *     Time in ms the move will take.
  * @param {Function} callback
- *    Function that actually performs the move. This takes a single parameter
- *    which is an array of [x, y] coordinates corresponding to the move
- *    targets.
+ *     Function that actually performs the move. This takes a single parameter
+ *     which is an array of [x, y] coordinates corresponding to the move
+ *     targets.
  */
 async function moveOverTime(startCoords, targetCoords, duration, callback) {
   lazy.logger.trace(
@@ -1777,12 +2252,20 @@ for (const cls of [
 }
 
 /**
- * Implementation of the behaviour of a specific type of pointer
+ * Implementation of the behavior of a specific type of pointer.
+ *
+ * @abstract
  */
 class Pointer {
   /** Type of pointer */
   static type = null;
 
+  /**
+   * Creates a new {@link Pointer} instance.
+   *
+   * @param {number} id
+   *     Numeric pointer id.
+   */
   constructor(id) {
     this.id = id;
     this.type = this.constructor.type;
@@ -1810,11 +2293,18 @@ class Pointer {
   }
 
   /**
-   * @param {number} pointerId - Numeric pointer id.
-   * @param {string} pointerType - Pointer type.
-   * @returns {Pointer} - The pointer class for {@link pointerType}
+   * Unmarshals a JSON Object to a {@link Pointer}.
    *
-   * @throws {InvalidArgumentError} - If {@link pointerType} is not a valid pointer type.
+   * @param {number} pointerId
+   *     Numeric pointer id.
+   * @param {string} pointerType
+   *     Pointer type.
+   *
+   * @returns {Pointer}
+   *     An instance of the Pointer class for {@link pointerType}.
+   *
+   * @throws {InvalidArgumentError}
+   *     If {@link pointerType} is not a valid pointer type.
    */
   static fromJSON(pointerId, pointerType) {
     const cls = pointerTypes.get(pointerType);
@@ -1831,7 +2321,7 @@ class Pointer {
 }
 
 /**
- * Implementation of mouse pointer behaviour
+ * Implementation of mouse pointer behavior.
  */
 class MousePointer extends Pointer {
   static type = "mouse";
@@ -1932,10 +2422,13 @@ action.Chain = class extends Array {
   /**
    * Dispatch the action chain to the relevant window.
    *
-   * @param {State} state - Actions state.
-   * @param {WindowProxy} win - Current window global.
-   * @returns {Promise} - Promise that is resolved once the action
-   * chain is complete.
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {WindowProxy} win
+   *     Current window global.
+   *
+   * @returns {Promise}
+   *     Promise that is resolved once the action chain is complete.
    */
   dispatch(state, win) {
     let i = 1;
@@ -1955,13 +2448,18 @@ action.Chain = class extends Array {
   }
 
   /**
-   * @param {State} state - Actions state.
-   * @param {Array.<object>} actions - Array of objects that each
-   * represent an action sequence.
-   * @returns {action.Chain} - Object that allows dispatching a chain
-   * of actions.
-   * @throws {InvalidArgumentError} - If actions doesn't correspond to
-   * a valid action chain.
+   * Unmarshals a JSON Object to a {@link Chain}.
+   *
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {Array<object>} actions
+   *     Array of objects that each represent an action sequence.
+   *
+   * @returns {Chain}
+   *     Object that allows dispatching a chain of actions.
+   *
+   * @throws {InvalidArgumentError}
+   *     If <code>actions</code> doesn't correspond to a valid action chain.
    */
   static fromJSON(state, actions) {
     lazy.assert.array(
@@ -1999,7 +2497,8 @@ class TickActions extends Array {
   /**
    * Tick duration in milliseconds.
    *
-   * @returns {number} - Longest action duration in |tickActions| if any, or 0.
+   * @returns {number}
+   *     Longest action duration in |tickActions| if any, or 0.
    */
   getDuration() {
     let max = 0;
@@ -2024,10 +2523,13 @@ class TickActions extends Array {
    * Note that the tick-actions are dispatched in order, but they may have
    * different durations and therefore may not end in the same order.
    *
-   * @param {State} state - Actions state.
-   * @param {WindowProxy} win - Current window global.
+   * @param {State} state
+   *     The {@link State} of actions.
+   * @param {WindowProxy} win
+   *     Current window global.
    *
-   * @returns {Promise} - Promise that resolves when tick is complete.
+   * @returns {Promise}
+   *     Promise that resolves when tick is complete.
    */
   dispatch(state, win) {
     const tickDuration = this.getDuration();
@@ -2046,13 +2548,15 @@ class TickActions extends Array {
    * The actual transformation here is to group together touch pointer
    * actions into {@link TouchActionGroup} instances.
    *
-   * @param {State} state - Actions state.
-   * @returns {Array.<Array.<InputSource?,Action|TouchActionGroup>>}
+   * @param {State} state
+   *     The {@link State} of actions.
+   *
+   * @returns {Array<Array<InputSource?,Action|TouchActionGroup>>}
    *    Array of pairs. For ungrouped actions each element is
    *    [InputSource, Action] For touch actions there are multiple
    *    pointers handled at once, so the first item of the array is
    *    null, meaning the group has to perform its own handling of the
-   *    relevant state, and the second element is a TouuchActionGroup.
+   *    relevant state, and the second element is a TouchActionGroup.
    */
   groupTickActions(state) {
     const touchActions = new Map();
@@ -2082,7 +2586,7 @@ class TickActions extends Array {
 
 /**
  * Represents one input source action sequence; this is essentially an
- * |Array.<Action>|.
+ * |Array<Action>|.
  *
  * This is a temporary object only used when constructing an {@link
  * action.Chain}.
@@ -2093,10 +2597,18 @@ class Sequence extends Array {
   }
 
   /**
-   * @param {State} state - Actions state.
+   * Unmarshals a JSON Object to a {@link Sequence}.
+   *
+   * @param {State} state
+   *     The {@link State} of actions.
    * @param {object} actionSequence
    *     Protocol representation of the actions for a specific input source.
-   * @returns {Array.<Array>} - Array of [InputSource?,Action|TouchActionGroup]
+   *
+   * @returns {Array<Array<InputSource, Action | TouchActionGroup>>}
+   *     Object that allows dispatching a sequence of actions.
+   *
+   * @throws {InvalidArgumentError}
+   *     If the <code>actionSequence</code> doesn't correspond to a valid action sequence.
    */
   static fromJSON(state, actionSequence) {
     // used here to validate 'type' in addition to InputSource type below
@@ -2122,9 +2634,12 @@ class Sequence extends Array {
 }
 
 /**
- * Representation of an input event
+ * Representation of an input event.
  */
 class InputEventData {
+  /**
+   * Creates a new {@link InputEventData} instance.
+   */
   constructor() {
     this.altKey = false;
     this.shiftKey = false;
@@ -2143,13 +2658,18 @@ class InputEventData {
 }
 
 /**
- * Representation of a key input event
- *
- * @param {string} rawKey - Key value.
+ * Representation of a key input event.
  */
 class KeyEventData extends InputEventData {
+  /**
+   * Creates a new {@link KeyEventData} instance.
+   *
+   * @param {string} rawKey
+   *     The key value.
+   */
   constructor(rawKey) {
     super();
+
     const { key, code, location, printable } = lazy.keyData.getData(rawKey);
 
     this.key = key;
@@ -2169,11 +2689,15 @@ class KeyEventData extends InputEventData {
 }
 
 /**
- * Representation of a pointer input event
- *
- * @param {string} type - Event type.
+ * Representation of a pointer input event.
  */
 class PointerEventData extends InputEventData {
+  /**
+   * Creates a new {@link PointerEventData} instance.
+   *
+   * @param {string} type
+   *     The event type.
+   */
   constructor(type) {
     super();
 
@@ -2200,7 +2724,8 @@ class PointerEventData extends InputEventData {
   /**
    * Return a flag for buttons which indicates a button is pressed.
    *
-   * @param {integer} button - Mouse button number.
+   * @param {integer} button
+   *     The mouse button number.
    */
   static getButtonFlag(button) {
     switch (button) {
@@ -2215,13 +2740,18 @@ class PointerEventData extends InputEventData {
 }
 
 /**
- * Representation of a mouse input event
- *
- * @param {string} type - Event type.
- * @param {object=} options
- * @param {number} options.button - Mouse button number.
+ * Representation of a mouse input event.
  */
 class MouseEventData extends PointerEventData {
+  /**
+   * Creates a new {@link MouseEventData} instance.
+   *
+   * @param {string} type
+   *     The event type.
+   * @param {object=} options
+   * @param {number=} options.button
+   *     The number of the mouse button. Defaults to 0.
+   */
   constructor(type, options = {}) {
     super(type);
 
@@ -2245,15 +2775,22 @@ class MouseEventData extends PointerEventData {
 }
 
 /**
- * Representation of a wheel scroll event
- *
- * @param {object} options
- * @param {number} options.deltaX - Scroll delta X.
- * @param {number} options.deltaY - Scroll delta Y.
- * @param {number} options.deltaY - Scroll delta Z (current always 0).
- * @param {number=} options.deltaMode - Scroll delta mode (current always 0).
+ * Representation of a wheel scroll event.
  */
 class WheelEventData extends InputEventData {
+  /**
+   * Creates a new {@link WheelEventData} instance.
+   *
+   * @param {object} options
+   * @param {number} options.deltaX
+   *     Scroll delta X.
+   * @param {number} options.deltaY
+   *     Scroll delta Y.
+   * @param {number} options.deltaZ
+   *     Scroll delta Z (current always 0).
+   * @param {number=} options.deltaMode
+   *     Scroll delta mode (current always 0).
+   */
   constructor(options) {
     super();
 
@@ -2283,13 +2820,17 @@ class WheelEventData extends InputEventData {
 }
 
 /**
- * Representation of a multitouch event
- *
- * @param {string} type - Event type.
+ * Representation of a multi touch event.
  */
 class MultiTouchEventData extends PointerEventData {
   #setGlobalState;
 
+  /**
+   * Creates a new {@link MultiTouchEventData} instance.
+   *
+   * @param {string} type
+   *     The event type.
+   */
   constructor(type) {
     super(type);
 
@@ -2309,8 +2850,10 @@ class MultiTouchEventData extends PointerEventData {
   /**
    * Add the data from one pointer to the event.
    *
-   * @param {InputSource} inputSource - State of the pointer.
-   * @param {PointerAction} action - Action for the pointer.
+   * @param {InputSource} inputSource
+   *     The state of the pointer.
+   * @param {PointerAction} action
+   *     Action for the pointer.
    */
   addPointerEventData(inputSource, action) {
     this.x.push(inputSource.x);
@@ -2352,16 +2895,18 @@ class MultiTouchEventData extends PointerEventData {
   }
 }
 
-// helpers
+// Helpers
 
 /**
  * Assert that target is in the viewport of win.
  *
- * @param {Array.<number>} target - [x, y] coordinates of target
- * relative to viewport.
- * @param {WindowProxy} win - target window.
- * @throws {MoveTargetOutOfBoundsError} - If target is outside the
- * viewport.
+ * @param {Array<number>} target
+ *     Coordinates [x, y] of the target relative to the viewport.
+ * @param {WindowProxy} win
+ *     The target window.
+ *
+ * @throws {MoveTargetOutOfBoundsError}
+ *     If target is outside the viewport.
  */
 function assertInViewPort(target, win) {
   const [x, y] = target;
