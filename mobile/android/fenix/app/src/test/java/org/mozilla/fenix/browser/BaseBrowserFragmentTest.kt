@@ -16,6 +16,7 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.createTab
@@ -29,6 +30,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isKeyboardVisible
@@ -316,6 +318,11 @@ class BaseBrowserFragmentTest {
 
     @Test
     fun `GIVEN fixed toolbar WHEN setting engine view insets THEN set none`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }
@@ -327,6 +334,11 @@ class BaseBrowserFragmentTest {
 
     @Test
     fun `GIVEN only a top toolbar WHEN setting engine view insets THEN use top toolbar's height`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }
@@ -348,7 +360,79 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN a pdf shown with a dynamic top toolbar WHEN setting engine view insets THEN set none`() {
+        var currentTab = createTab("https://example.com")
+        currentTab = currentTab.copy(
+            content = currentTab.content.copy(
+                isPdf = true,
+            ),
+        )
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 0
+        every { settings.isDynamicToolbarEnabled } returns true
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
+    fun `GIVEN find in page active with a dynamic top toolbar WHEN setting engine view insets THEN set none`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        val findInPageIntegration: FindInPageIntegration = mockk {
+            every { isFeatureActive } returns true
+        }
+        fragment.findInPageIntegration.set(
+            feature = findInPageIntegration,
+            owner = mockk(relaxed = true),
+            view = mockk(relaxed = true),
+        )
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 0
+        every { settings.isDynamicToolbarEnabled } returns true
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
     fun `GIVEN only a bottom toolbar WHEN setting engine view insets THEN use bottom toolbar's height`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }
@@ -371,6 +455,11 @@ class BaseBrowserFragmentTest {
 
     @Test
     fun `GIVEN addressbar and navbar shown WHEN setting engine view insets THEN use both toolbars' heights`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }
@@ -394,6 +483,11 @@ class BaseBrowserFragmentTest {
 
     @Test
     fun `GIVEN keyboard shown WHEN setting engine view insets THEN use both toolbars' heights`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }

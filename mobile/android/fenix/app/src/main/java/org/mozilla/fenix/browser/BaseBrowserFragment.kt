@@ -290,7 +290,9 @@ abstract class BaseBrowserFragment :
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
-    private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
+
+    @VisibleForTesting
+    internal val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val toolbarIntegration = ViewBoundFeatureWrapper<ToolbarIntegration>()
     private val bottomToolbarContainerIntegration = ViewBoundFeatureWrapper<BottomToolbarContainerIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
@@ -2135,7 +2137,11 @@ abstract class BaseBrowserFragment :
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     internal fun configureEngineViewWithDynamicToolbarsMaxHeight() {
+        val currentTab = requireComponents.core.store.state.findCustomTabOrSelectedTab(customTabSessionId)
+        if (currentTab?.content?.isPdf == true) return
+        if (findInPageIntegration.get()?.isFeatureActive == true) return
         val toolbarHeights = view?.let { probeToolbarHeights(it) } ?: return
+
         getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
     }
 
